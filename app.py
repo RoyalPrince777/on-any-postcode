@@ -521,7 +521,29 @@ def db():
     con.row_factory = sqlite3.Row
     return con
 
+<div class="card">
+  <div class="metric">🏪</div>
+  <h2>Business Network</h2>
+  <p>Businesses Connected</p>
+</div>
 
+<div class="card">
+  <div class="metric">👤</div>
+  <h2>Creator Hub</h2>
+  <p>Creators Connected</p>
+</div>
+
+<div class="card">
+  <div class="metric">🚚</div>
+  <h2>Delivery</h2>
+  <p>Bookings Recorded</p>
+</div>
+
+<div class="card">
+  <div class="metric">💎</div>
+  <h2>SIKA Records</h2>
+  <p>Trust Earned</p>
+</div>
 def init():
     con = db()
     con.execute("CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT, branch TEXT, title TEXT, name TEXT, location TEXT, category TEXT, notes TEXT, status TEXT, created_at TEXT)")
