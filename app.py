@@ -112,7 +112,16 @@ def init():
         created_at TEXT
     )
     """)
-
+con.execute("""
+CREATE TABLE IF NOT EXISTS community_power(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    member TEXT,
+    mission TEXT,
+    category TEXT,
+    points INTEGER,
+    created_at TEXT
+)
+""")
     con.execute("""
     CREATE TABLE IF NOT EXISTS businesses(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1407,7 +1416,122 @@ def send_mail():
     audit("mail_recorded", f"{vals[0]} to {vals[1]}")
     return redirect("/mail")
 
+@app.route("/community-power")
+def community_power():
 
+    con = db()
+
+    rows = con.execute(
+        """
+        SELECT *
+        FROM community_power
+        ORDER BY id DESC
+        LIMIT 100
+        """
+    ).fetchall()
+
+    con.close()
+
+    table_rows = "".join([
+        f"""
+        <tr>
+            <td>{r['created_at']}</td>
+            <td>{r['member']}</td>
+            <td>{r['mission']}</td>
+            <td>{r['category']}</td>
+            <td>{r['points']}</td>
+        </tr>
+        """
+        for r in rows
+    ]) or "<tr><td colspan='5'>No contribution records yet.</td></tr>"
+
+    return layout("Community Power", f"""
+    <section class='hero'>
+        <h1>⚡ Community Power</h1>
+        <p>Community action. Contribution recorded.</p>
+    </section>
+
+    <div class='card'>
+        <form method='post' action='/add-community-power'>
+            <input name='member' placeholder='Member' required>
+            <input name='mission' placeholder='Mission' required>
+
+            <select name='category'>
+                <option>Community</option>
+                <option>Business</option>
+                <option>Creator</option>
+                <option>Events</option>
+                <option>Sports</option>
+                <option>Culture</option>
+            </select>
+
+            <input type='number'
+                   name='points'
+                   value='10'
+                   required>
+
+            <button>
+                Record Contribution
+            </button>
+
+        </form>
+    </div>
+
+    <h2>Contribution Records</h2>
+
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Member</th>
+            <th>Mission</th>
+            <th>Category</th>
+            <th>Points</th>
+        </tr>
+
+        {table_rows}
+
+    </table>
+    """)
+
+
+@app.route("/add-community-power", methods=["POST"])
+def add_community_power():
+
+    vals = (
+        safe(request.form.get("member")),
+        safe(request.form.get("mission")),
+        safe(request.form.get("category")),
+        int(request.form.get("points")),
+        now()
+    )
+
+    con = db()
+
+    con.execute(
+        """
+        INSERT INTO community_power(
+            member,
+            mission,
+            category,
+            points,
+            created_at
+        )
+        VALUES(?,?,?,?,?)
+        """,
+        vals
+    )
+
+    con.commit()
+    con.close()
+
+    audit(
+        "community_power",
+        vals[1]
+    )
+
+    return redirect(
+        "/community-power"
+)
 @app.route("/notifications")
 def notifications():
     con = db()
