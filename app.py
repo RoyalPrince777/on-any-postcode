@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS members(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS records(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         system TEXT,
