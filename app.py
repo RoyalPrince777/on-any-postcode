@@ -437,7 +437,7 @@ def add_record():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)from flask import Flask, request, redirect
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
 from datetime import datetime
 import os
 import sqlite3
