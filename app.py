@@ -75,7 +75,7 @@ def db():
 def init():
     con = db()
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS members(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nickname TEXT,
