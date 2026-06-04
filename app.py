@@ -446,7 +446,13 @@ from html import escape
 app = Flask(__name__)
 DB = "oap_final_v7.db"
 
-ROOTS = {
+ROOTS = {"business-network": ["🏪 Business Network","Merchants and services."],
+"creator-hub": ["👤 Creator Hub","Creators and artists."],
+"delivery": ["🚚 Delivery","Bookings and logistics."],
+"family-tree": ["🌳 Family Tree","Heritage and relationships."],
+"affiliate-tree": ["🌿 Affiliate Tree","Direct value referrals."],
+"awards": ["🏅 Awards","Recognition and achievements."],
+"sika-records": ["💎 SIKA Records","Trust and contribution records."],
     "world": ["🌍 World", "News, events, countries, weather, highlights and awards."],
     "my-world": ["👤 My World", "Profile, messages, mail, cards, awards, family tree and contribution records."],
     "community": ["🤝 Community", "Community Power, Community Voice, projects, mentorship, humanitarian and volunteering."],
@@ -520,6 +526,81 @@ def init():
     con = db()
     con.execute("CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT, branch TEXT, title TEXT, name TEXT, location TEXT, category TEXT, notes TEXT, status TEXT, created_at TEXT)")
     con.execute("CREATE TABLE IF NOT EXISTS voice(id INTEGER PRIMARY KEY AUTOINCREMENT, target TEXT, voice_type TEXT, choice TEXT, reason TEXT, created_at TEXT)")
+    con.execute("""
+CREATE TABLE IF NOT EXISTS businesses(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT,
+category TEXT,
+location TEXT,
+status TEXT,
+notes TEXT,
+created_at TEXT
+)
+""")
+
+con.execute("""
+CREATE TABLE IF NOT EXISTS creators(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT,
+category TEXT,
+location TEXT,
+bio TEXT,
+created_at TEXT
+)
+""")
+
+con.execute("""
+CREATE TABLE IF NOT EXISTS delivery_bookings(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+customer TEXT,
+pickup TEXT,
+dropoff TEXT,
+item TEXT,
+status TEXT,
+created_at TEXT
+)
+""")
+
+con.execute("""
+CREATE TABLE IF NOT EXISTS family_tree(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+person TEXT,
+relationship TEXT,
+connected_to TEXT,
+created_at TEXT
+)
+""")
+
+con.execute("""
+CREATE TABLE IF NOT EXISTS affiliate_tree(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+member TEXT,
+referred_by TEXT,
+status TEXT,
+created_at TEXT
+)
+""")
+
+con.execute("""
+CREATE TABLE IF NOT EXISTS awards(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+title TEXT,
+recipient TEXT,
+reason TEXT,
+created_at TEXT
+)
+""")
+
+con.execute("""
+CREATE TABLE IF NOT EXISTS sika_records(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+member TEXT,
+record_type TEXT,
+points INTEGER,
+notes TEXT,
+created_at TEXT
+)
+""")
     con.execute("CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, detail TEXT, created_at TEXT)")
     con.commit()
     con.close()
