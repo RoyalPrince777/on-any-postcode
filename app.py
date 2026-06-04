@@ -76,7 +76,26 @@ def db():
     con.row_factory = sqlite3.Row
     return con
 
-
+con.execute("""
+CREATE TABLE IF NOT EXISTS verification_badges(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT,
+level TEXT,
+location TEXT,
+status TEXT,
+created_at TEXT
+)
+""")
+con.execute("""
+CREATE TABLE IF NOT EXISTS business_listings(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+business_name TEXT,
+category TEXT,
+postcode TEXT,
+status TEXT,
+created_at TEXT
+)
+""")
 def init():
     con = db()
     con.execute("CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT, branch TEXT, title TEXT, name TEXT, location TEXT, category TEXT, notes TEXT, status TEXT, created_at TEXT)")
