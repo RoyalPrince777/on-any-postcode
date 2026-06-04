@@ -75,8 +75,8 @@ def db():
 def init():
     con = db()
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS members(
+con.execute("""
+CREATE TABLE IF NOT EXISTS members(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nickname TEXT,
         username TEXT UNIQUE,
@@ -92,8 +92,8 @@ def init():
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS records(
+con.execute("""
+CREATE TABLE IF NOT EXISTS records(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         system TEXT,
         module TEXT,
@@ -227,8 +227,8 @@ CREATE TABLE IF NOT EXISTS audit(
     )
     """)
 
-    con.commit()
-    con.close()
+con.commit()
+con.close()
 
 
 init()
