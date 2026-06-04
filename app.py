@@ -870,7 +870,8 @@ def add_experience():
 
     audit("experience_added", vals[0])
     return redirect("/operations")
-    @app.route("/add-delivery", methods=["POST"])
+    
+@app.route("/add-delivery", methods=["POST"])
 def add_delivery():
     vals = (
         safe(request.form.get("customer")),
