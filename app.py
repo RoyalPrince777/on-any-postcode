@@ -414,7 +414,97 @@ def command():
 def cards():
     return layout("Digital Cards", f"<section class='hero'><h1>🏆 Digital Cards</h1><p>Football cards, team cards, culture cards, music cards, fan cards, creator cards, heritage cards and contribution cards. No loot boxes. No gambling. No pay-to-win.</p></section>{form('experiences','Digital Cards')}{table(records('experiences','Digital Cards'))}")
 
+@app.route("/verification")
+def verification():
+    return layout(
+        "Verification",
+        """
+        <section class='hero'>
+        <h1>🏅 Verification</h1>
+        <p>Trust earned through contribution and proof.</p>
+        </section>
 
+        <section class='grid'>
+            <div class='card'><h2>📮 Postcode</h2></div>
+            <div class='card'><h2>🏙 Borough</h2></div>
+            <div class='card'><h2>🗺 County</h2></div>
+            <div class='card'><h2>🌍 Country</h2></div>
+            <div class='card'><h2>🌎 Continent</h2></div>
+            <div class='card'><h2>🌐 Global</h2></div>
+            <div class='card'><h2>🪐 Planet</h2></div>
+            <div class='card'><h2>✨ Universe</h2></div>
+        </section>
+        """
+    )
+    @app.route("/circle")
+def circle():
+    return layout(
+        "OAP Circle",
+        """
+        <section class='hero'>
+        <h1>👑 OAP Circle</h1>
+        <p>From Postcode to Universe.</p>
+        </section>
+
+        <section class='grid'>
+            <div class='card'>
+                <h2>Free Community Member</h2>
+            </div>
+
+            <div class='card'>
+                <h2>Postcode Founder £5</h2>
+            </div>
+
+            <div class='card'>
+                <h2>Borough Builder £10</h2>
+            </div>
+
+            <div class='card'>
+                <h2>Country Champion £25</h2>
+            </div>
+        </section>
+        """
+    )
+    @app.route("/community-power")
+def community_power():
+    return layout(
+        "Community Power",
+        """
+        <section class='hero'>
+        <h1>⚡ Community Power</h1>
+        <p>People building together.</p>
+        </section>
+
+        <section class='grid'>
+            <div class='card'>Projects</div>
+            <div class='card'>Missions</div>
+            <div class='card'>Volunteers</div>
+            <div class='card'>Mentors</div>
+            <div class='card'>Humanitarian</div>
+            <div class='card'>Community Voice</div>
+        </section>
+        """
+    )
+    @app.route("/countries")
+def countries():
+    return layout(
+        "Countries",
+        """
+        <section class='hero'>
+        <h1>🌍 Countries</h1>
+        <p>Every country has a space.</p>
+        </section>
+
+        <section class='grid'>
+            <div class='card'>🇬🇭 Ghana</div>
+            <div class='card'>🇬🇧 United Kingdom</div>
+            <div class='card'>🇺🇸 United States</div>
+            <div class='card'>🇳🇬 Nigeria</div>
+            <div class='card'>🇿🇦 South Africa</div>
+            <div class='card'>🇯🇲 Jamaica</div>
+        </section>
+        """
+    )
 @app.route("/add-record", methods=["POST"])
 def add_record():
     vals = (
