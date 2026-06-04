@@ -129,8 +129,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS creators(
+con.execute("""
+CREATE TABLE IF NOT EXISTS creators(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         category TEXT,
@@ -141,8 +141,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS experiences(
+con.execute("""
+CREATE TABLE IF NOT EXISTS experiences(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
         location TEXT,
@@ -153,8 +153,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS delivery_bookings(
+con.execute("""
+CREATE TABLE IF NOT EXISTS delivery_bookings(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         customer TEXT,
         pickup TEXT,
@@ -167,8 +167,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS riders_drivers(
+con.execute("""
+CREATE TABLE IF NOT EXISTS riders_drivers(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         role TEXT,
@@ -180,8 +180,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS sika_records(
+con.execute("""
+CREATE TABLE IF NOT EXISTS sika_records(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         record_type TEXT,
@@ -193,8 +193,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS verification_badges(
+con.execute("""
+CREATE TABLE IF NOT EXISTS verification_badges(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         level TEXT,
@@ -205,8 +205,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS readiness_requests(
+con.execute("""
+CREATE TABLE IF NOT EXISTS readiness_requests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         area TEXT,
         request_type TEXT,
@@ -218,8 +218,8 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS audit(
+con.execute("""
+CREATE TABLE IF NOT EXISTS audit(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         action TEXT,
         detail TEXT,
