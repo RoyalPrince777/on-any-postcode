@@ -1,62 +1,50 @@
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, session
 from datetime import datetime
 import os
 import sqlite3
 from html import escape
 
 app = Flask(__name__)
-DB = "oap_final_v7.db"
-
-ROOTS = {
-    "world": ["🌍 World", "News, events, countries, weather, highlights and awards."],
-    "my-world": ["👤 My World", "Profile, messages, mail, cards, awards, family tree and contribution records."],
-    "community": ["🤝 Community", "Community Power, Community Voice, projects, mentorship, humanitarian and volunteering."],
-    "real-education": ["🌱 Real Education", "Mind, body, purpose, nature, trades, technology, strategy, martial arts and service."],
-    "culture": ["🎭 Culture", "Countries, languages, stories, proverbs, food, dance and heritage."],
-    "music": ["🎵 Music", "Artists, releases, radio, playlists, charts, festivals and international song."],
-    "sports": ["⚽ Sports", "World Cup, football, chess, martial arts, community sports and tournaments."],
-    "business": ["🏪 Business", "Business Network, Creator Hub, Market, promotions and Affiliate Family Tree."],
-    "experiences": ["🎪 Experiences", "Events, celebrations, comedy, games, festivals and watch parties."],
-    "explorer": ["🗺 Explorer", "Search, discover, countries, creators, businesses, events, music, culture and sports."],
-    "trust": ["🛡 Trust", "Privacy, security, terms, youth protection, policies, AI policy and finance policy."],
-}
+app.secret_key = os.environ.get("SECRET_KEY", "OAP-CHANGE-THIS-777")
+DB = "oap_architecture_v12.db"
 
 SYSTEMS = {
-    "hrm": "🧠 HRM",
-    "command": "🎛 Command",
-    "sika": "💎 SIKA",
-    "finance": "🏦 Finance",
-    "connectivity": "📶 Connectivity",
-    "mobility": "🛵 Mobility",
-    "mail": "📧 Mail",
-    "ollama": "🤖 Local AI / Ollama",
+    "world": ("🌍 OAP World", "One public front door."),
+    "identity": ("👤 My World", "One identity hub."),
+    "intelligence": ("🧠 Intelligence", "HRM, Review Core, Agents, Command."),
+    "money": ("💎 Money / SIKA", "SIKA records, wallet readiness, finance readiness."),
+    "communications": ("📧 Communications", "Mail, messenger, notifications."),
+    "infrastructure": ("🗺 Infrastructure", "Weather, maps, navigation, connectivity, eSIM readiness."),
+    "operations": ("🚚 Operations", "Bookings, delivery, riders, drivers, businesses, creators, experiences."),
+    "culture": ("🎭 Culture", "Music, media, sports, education, countries, international song."),
+    "trust": ("🛡 Trust", "Privacy, safety, compliance, verification, audit."),
 }
 
-BRANCHES = {
-    "world": ["Community News", "Events", "Countries", "Weather", "Highlights", "Awards"],
-    "my-world": ["Profile", "Messages", "Mail", "Cards", "Awards", "Family Tree", "Contribution Records", "Settings"],
-    "community": ["Community Power", "Community Voice", "Projects", "Mentorship", "Humanitarian", "Volunteering"],
-    "real-education": ["Mind", "Body", "Purpose", "Nature", "Trades", "Technology", "Strategy", "Chess", "Martial Arts", "Muay Thai", "Business", "Service"],
-    "culture": ["Countries", "Languages", "Food", "Stories", "Heritage", "Dance", "Proverbs", "United States of Africa (Black Stars)", "Ghana", "Akan", "KORADASO", "Begoro"],
-    "music": ["Artists", "Releases", "Radio", "Playlists", "Charts", "Festivals", "International Song"],
-    "sports": ["World Cup", "Football", "Chess", "IQ Arena", "Basketball", "Athletics", "Combat Sports", "Community Sports", "Tournaments"],
-    "business": ["Business Network", "Creator Hub", "Market", "Promotions", "Affiliate Family Tree"],
-    "experiences": ["Events", "Celebrations", "Comedy", "Games", "Watch Parties", "Festivals"],
-    "explorer": ["Search", "Discover", "Countries", "Creators", "Businesses", "Events", "Music", "Culture", "Sports"],
-    "trust": ["Privacy Promise", "Security", "Terms", "Youth Protection", "Community Standards", "Music & Media Policy", "AI Policy", "Finance Policy", "Contact & Reports"],
-    "hrm": ["Dashboard", "Memory", "Learning", "Audit", "Risk", "Council", "Decisions", "Animals", "God Layer", "Youth Safety", "Ollama"],
-    "command": ["Dashboard", "Operations", "Metrics", "Status", "Reports", "Logs", "Agents"],
-    "sika": ["Trust Records", "Contribution Records", "Badges", "Verification", "Ledger Sandbox"],
-    "finance": ["Dashboard", "Invoices", "Goals", "Pots", "Statements", "Activity"],
-    "connectivity": ["eSIM", "Devices", "Coverage", "WiFi", "Signal Reports"],
-    "mobility": ["Delivery", "E-Bikes", "Scooters", "Drivers", "Riders", "Logistics", "Community Transport", "Global Transport"],
-    "mail": ["Inbox", "Sent", "Drafts", "Contacts", "Notifications"],
-    "ollama": ["Local AI Status", "Prompts", "Memory Helper", "Risk Check", "Human Approval"],
+MODULES = {
+    "world": ["News", "Events", "Explorer", "Countries", "Community Power", "OAP Movement", "Legacy Makers"],
+    "identity": ["Join OAP", "Enter My World", "Profile", "Family Tree", "Awards", "Verification", "SIKA Records"],
+    "intelligence": ["HRM", "Review Core", "Agents", "Neo Team", "Animal Team", "Command Center", "Risk Register", "Decision Log"],
+    "money": ["SIKA Dashboard", "Contribution Records", "Trust Records", "Wallet Readiness", "Card Readiness", "Deposit Requests", "Finance Compliance"],
+    "communications": ["Mail", "Messenger", "Inbox", "Contacts", "Notifications", "Broadcasts"],
+    "infrastructure": ["Weather", "Navigation", "Maps", "OAP Connect", "eSIM Requests", "WiFi", "Coverage", "Devices"],
+    "operations": ["Business Network", "Creator Hub", "Experiences", "Delivery Bookings", "Riders", "Drivers", "Dispatch", "Transport"],
+    "culture": ["Music", "Media", "International Song", "Sports", "World Cup", "Real Education", "KORADASO", "Akan", "Begoro"],
+    "trust": ["Privacy Promise", "Youth Safety", "Compliance Tracker", "Verification Badges", "Audit Logs", "Review Queue"],
 }
 
-TEAMS = [(f"slot-{i:02d}", f"Team Slot {i:02d}", "Qualification / Confirmed", "National anthem, team music, fan songs") for i in range(1, 49)]
+TRANSPORT = [
+    "Walking", "Bicycle", "E-Bike", "Scooter", "Motorcycle", "Car",
+    "Taxi Request", "Van", "Truck", "Bus", "Tram", "Train",
+    "Underground", "Ferry", "Ship", "Flight", "Helicopter"
+]
 
-CATS = ["Value Created", "Community Voice", "Music", "Culture", "Sport", "Business", "Real Education", "Experience", "Digital Card", "Mobility", "Finance", "Trust"]
+AGENTS = [
+    "Neo", "Morpheus", "Trinity", "Oracle", "Architect", "Keymaker",
+    "Tank", "Dozer", "Seraph", "Bee", "Lion", "Tiger",
+    "Elephant", "Owl", "Panther", "Dolphin", "Horse", "Stag"
+]
+
+TEAMS = [(f"slot-{i:02d}", f"Team Slot {i:02d}") for i in range(1, 49)]
 
 
 def now():
@@ -67,8 +55,15 @@ def safe(v):
     return escape((v or "").strip())
 
 
-def slug(t):
-    return t.lower().replace("&", "and").replace("/", "-").replace("(", "").replace(")", "").replace(" ", "-")
+def slug(v):
+    return (
+        v.lower()
+        .replace("&", "and")
+        .replace("/", "-")
+        .replace(" ", "-")
+        .replace("(", "")
+        .replace(")", "")
+    )
 
 
 def db():
@@ -76,670 +71,159 @@ def db():
     con.row_factory = sqlite3.Row
     return con
 
-con.execute("""
-CREATE TABLE IF NOT EXISTS verification_badges(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-name TEXT,
-level TEXT,
-location TEXT,
-status TEXT,
-created_at TEXT
-)
-""")
-con.execute("""
-CREATE TABLE IF NOT EXISTS business_listings(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-business_name TEXT,
-category TEXT,
-postcode TEXT,
-status TEXT,
-created_at TEXT
-)
-""")
+
 def init():
     con = db()
-    con.execute("CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT, branch TEXT, title TEXT, name TEXT, location TEXT, category TEXT, notes TEXT, status TEXT, created_at TEXT)")
-    con.execute("CREATE TABLE IF NOT EXISTS voice(id INTEGER PRIMARY KEY AUTOINCREMENT, target TEXT, voice_type TEXT, choice TEXT, reason TEXT, created_at TEXT)")
-    con.execute("CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, detail TEXT, created_at TEXT)")
-    con.commit()
-    con.close()
 
-
-def add_audit(action, detail):
-    con = db()
-    con.execute("INSERT INTO audit(action,detail,created_at) VALUES(?,?,?)", (action, detail, now()))
-    con.commit()
-    con.close()
-
-
-init()
-
-
-def nav():
-    return "<a href='/'>Home</a>" + "".join([f"<a href='/{k}'>{v[0]}</a>" for k, v in ROOTS.items()])
-
-
-def sysnav():
-    return "".join([f"<a href='/{k}'>{v}</a>" for k, v in SYSTEMS.items()])
-
-
-def layout(title, body):
-    return f"""<!doctype html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title}</title>
-<style>
-:root {{
-  --bg:#050505; --card:#101010; --gold:#d4af37; --blue:#00eaff;
-  --text:#f7f0dd; --muted:#c9b987; --line:#6d5520; --green:#52d98f;
-}}
-* {{ box-sizing:border-box; }}
-body {{
-  margin:0;
-  background:radial-gradient(circle at top,#161616 0,#050505 55%,#000 100%);
-  color:var(--text);
-  font-family:Arial,Helvetica,sans-serif;
-}}
-header {{
-  position:sticky; top:0; z-index:9;
-  background:#050505ee;
-  border-bottom:1px solid var(--gold);
-  padding:14px;
-}}
-.brand {{
-  font-family:Impact,Arial Black,sans-serif;
-  color:var(--gold);
-  font-size:26px;
-  letter-spacing:3px;
-  text-transform:uppercase;
-}}
-.tag {{ color:var(--muted); font-size:13px; letter-spacing:1px; }}
-nav,.sys {{ display:flex; gap:8px; overflow:auto; padding-top:10px; }}
-nav a,.sys a,.btn {{
-  white-space:nowrap;
-  text-decoration:none;
-  color:var(--text);
-  background:#111;
-  border:1px solid var(--line);
-  border-radius:999px;
-  padding:9px 12px;
-  font-weight:900;
-}}
-main,footer {{ max-width:1200px; margin:auto; padding:18px; }}
-.hero {{
-  background:linear-gradient(135deg,#090909,#161616,#123c52);
-  border:1px solid var(--gold);
-  border-radius:26px;
-  padding:26px;
-  margin-bottom:16px;
-  box-shadow:0 0 30px #d4af3738;
-}}
-h1 {{ font-size:34px; margin-top:0; }}
-.grid {{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
-  gap:14px;
-}}
-.card {{
-  display:block;
-  background:linear-gradient(160deg,#090909,#111);
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:18px;
-  color:var(--text);
-  text-decoration:none;
-  box-shadow:0 0 18px #000;
-}}
-.card h2 {{ margin-top:0; }}
-.metric {{ font-size:32px; color:var(--gold); font-weight:900; }}
-.signal-green {{ color:var(--green); font-weight:900; }}
-.neon {{ color:var(--blue); text-shadow:0 0 12px var(--blue); }}
-input,select,textarea,button {{
-  width:100%;
-  padding:12px;
-  margin:6px 0;
-  border-radius:14px;
-  border:1px solid var(--line);
-  background:#050505;
-  color:var(--text);
-  font-size:15px;
-}}
-button {{ background:#1d8f5f; font-weight:900; cursor:pointer; }}
-table {{
-  width:100%;
-  border-collapse:collapse;
-  background:#101010;
-  border-radius:18px;
-  overflow:hidden;
-  margin-top:14px;
-}}
-td,th {{
-  border-bottom:1px solid var(--line);
-  padding:10px;
-  text-align:left;
-  vertical-align:top;
-}}
-.warn {{
-  background:#2c2108;
-  border:1px solid var(--gold);
-  border-radius:18px;
-  padding:14px;
-  margin:12px 0;
-}}
-.small {{ color:var(--muted); }}
-</style>
-</head>
-<body>
-<header>
-  <div class="brand">ON ANY POSTCODE 🌍👑</div>
-  <div class="tag">Born Local. Built Global. EARTH IS OUR TURF. One Race. Human Race.</div>
-  <nav>{nav()}</nav>
-</header>
-<main>{body}</main>
-<footer>
-  <h3>System Engines</h3>
-  <div class="sys">{sysnav()}</div>
-  <p>💎 Create Value. 🤝 Build Trust. 🌱 Grow Community. 🏆 Leave A Legacy.</p>
-  <p>3 IDENTITIES. 1 LEGACY. Global Luxury • Street Royalty • Future Sovereign</p>
-</footer>
-</body>
-</html>"""
-
-
-def records(root=None, branch=None):
-    con = db()
-    if root and branch:
-        rows = con.execute("SELECT * FROM records WHERE root=? AND branch=? ORDER BY id DESC LIMIT 50", (root, branch)).fetchall()
-    elif root:
-        rows = con.execute("SELECT * FROM records WHERE root=? ORDER BY id DESC LIMIT 50", (root,)).fetchall()
-    else:
-        rows = con.execute("SELECT * FROM records ORDER BY id DESC LIMIT 80").fetchall()
-    con.close()
-    return rows
-
-
-def table(rows):
-    if not rows:
-        return "<div class='card'><h2>No records yet</h2><p>Create the first contribution record.</p></div>"
-    body = "".join([f"<tr><td>{r['created_at']}</td><td>{r['root']}</td><td>{r['branch']}</td><td>{r['title']}</td><td>{r['status']}</td><td>{r['notes']}</td></tr>" for r in rows])
-    return f"<table><tr><th>Time</th><th>Root</th><th>Branch</th><th>Title</th><th>Status</th><th>Notes</th></tr>{body}</table>"
-
-
-def form(root, branch="General"):
-    opts = "".join([f"<option>{c}</option>" for c in CATS])
-    return f"""
-<div class="card">
-  <h2>Contribution Record</h2>
-  <form method="post" action="/add-record">
-    <input type="hidden" name="root" value="{root}">
-    <input type="hidden" name="branch" value="{branch}">
-    <input name="title" placeholder="Title / idea / action / content" required>
-    <input name="name" placeholder="Name / creator / business / team / person">
-    <input name="location" placeholder="Postcode / country / global">
-    <select name="category">{opts}</select>
-    <select name="status">
-      <option>Idea</option>
-      <option>Review</option>
-      <option>Ready</option>
-      <option>Active Record</option>
-      <option>Completed</option>
-      <option>Blocked</option>
-    </select>
-    <textarea name="notes" placeholder="Notes, rights proof, safety check, next action"></textarea>
-    <button>Contribution Recorded</button>
-  </form>
-</div>
-"""
-
-
-@app.route("/")
-def home():
-    cards = "".join([f"<a class='card' href='/{k}'><h2>{v[0]}</h2><p>{v[1]}</p></a>" for k, v in ROOTS.items()])
-    body = f"""
-<section class="hero">
-  <h1>OAP Final Roots v7 💎</h1>
-  <h2>3 Identities. 1 Legacy.</h2>
-  <p><b>Global Luxury</b> • <b>Street Royalty</b> • <span class="neon"><b>Future Sovereign</b></span></p>
-  <p><b>EARTH IS OUR TURF.</b> One Race. Human Race.</p>
-  <p>Every postcode has a story. Every culture has a song. Every community has a voice.</p>
-  <div class="warn">Public systems create value today. Regulated systems such as banking, cards, e-money, telecom/eSIM service, taxi/private-hire operations and regulated payments require lawful authorisation or regulated providers before activation.</div>
-</section>
-
-<section class="grid">
-  <div class="card"><div class="metric">💎</div><h2>Value Created</h2><p>Primary metric before revenue.</p></div>
-  <div class="card"><div class="metric">🤝</div><h2>Trust Earned</h2><p>Proof, safety, contribution.</p></div>
-  <div class="card"><div class="metric">🌱</div><h2>Communities Grown</h2><p>Local roots, global connection.</p></div>
-  <div class="card"><div class="metric">🏆</div><h2>Legacy Created</h2><p>Cards, awards, culture, impact.</p></div>
-</section>
-
-<section class="grid">
-  <div class="card"><h2 class="signal-green">🟢 Launch Signal</h2><p>No red lights if homepage, World Cup, Command and Trust open.</p></div>
-  <div class="card"><h2>🎛 Dashboard Signal</h2><p>Command Center records actions, Community Voice and audit logs.</p></div>
-  <div class="card"><h2>🤖 Ollama Signal</h2><p>Local AI is suggestions only. Human approval before action.</p></div>
-  <div class="card"><h2>🛡 Trust Signal</h2><p>Privacy, youth safety, finance policy and media rights stay visible.</p></div>
-</section>
-
-<h2>Menu Roots</h2>
-<section class="grid">{cards}</section>
-"""
-    return layout("OAP Final Roots v7", body)
-
-
-@app.route("/<root>")
-def root_page(root):
-    if root == "sports":
-        return sports()
-    if root == "command":
-        return command()
-    if root == "trust":
-        return trust()
-    data = ROOTS.get(root) or [SYSTEMS.get(root, "Page"), "System engine for OAP operations and records."]
-    branches = BRANCHES.get(root, [])
-    cards = "".join([f"<a class='card' href='/{root}/{slug(b)}'><h2>{b}</h2><p>{data[0]} branch.</p></a>" for b in branches])
-    return layout(data[0], f"<section class='hero'><h1>{data[0]}</h1><p>{data[1]}</p></section><section class='grid'>{cards}</section><h2>Record Value</h2>{form(root)}<h2>Latest Records</h2>{table(records(root))}")
-
-
-@app.route("/<root>/<branch>")
-def branch_page(root, branch):
-    if root == "sports" and branch == "world-cup":
-        return worldcup()
-    if root == "sports" and branch in ["chess", "iq-arena"]:
-        return chess()
-    if root == "real-education" and branch in ["martial-arts", "muay-thai"]:
-        return martial()
-    title = branch.replace("-", " ").title()
-    return layout(title, f"<section class='hero'><h1>{title}</h1><p>{root.replace('-', ' ').title()} branch inside OAP World.</p></section>{form(root, title)}<h2>Latest {title}</h2>{table(records(root, title))}")
-
-
-def sports():
-    cards = "".join([f"<a class='card' href='/sports/{slug(b)}'><h2>{b}</h2><p>Sports and tournament branch.</p></a>" for b in BRANCHES["sports"]])
-    return layout("Sports", f"<section class='hero'><h1>⚽ Sports</h1><p>World Cup, football, chess, martial arts, tournaments and community sport.</p></section><section class='grid'>{cards}</section>{form('sports')}{table(records('sports'))}")
-
-
-def worldcup():
-    teamcards = "".join([f"<a class='card' href='/world-cup/team/{s}'><h2>{n}</h2><p>{r}</p><p><b>Music:</b> {m}</p></a>" for s, n, r, m in TEAMS])
-    tournament = """
-<section class="grid">
-  <a class="card" href="/sports/world-cup"><h2>🏠 Tournament Home</h2><p>Overview, law, latest records.</p></a>
-  <a class="card" href="/sports/world-cup/groups"><h2>🧩 Groups</h2><p>Group stage records.</p></a>
-  <a class="card" href="/sports/world-cup/fixtures"><h2>📅 Fixtures</h2><p>Match schedule and matchday checklist.</p></a>
-  <a class="card" href="/sports/world-cup/match-centre"><h2>⚽ Match Centre</h2><p>Preview, fan energy, manager notes.</p></a>
-  <a class="card" href="/sports/world-cup/knockout"><h2>🔥 Knockout Rounds</h2><p>Round of 32 to semi finals.</p></a>
-  <a class="card" href="/sports/world-cup/final"><h2>🏆 Final</h2><p>Final match centre and legacy records.</p></a>
-  <a class="card" href="/community/community-voice"><h2>🌍 Community Voice</h2><p>Participation, not betting.</p></a>
-  <a class="card" href="/cards"><h2>🏆 Digital Cards</h2><p>Team, anthem, culture and legacy cards.</p></a>
-</section>
-"""
-    return layout("World Cup", f"<section class='hero'><h1>⚽ World Cup Tournament</h1><p>48-team ready: groups, fixtures, match centre, knockout rounds, final, team pages, national anthems, team music, Community Voice, watch parties, cards and awards.</p><div class='warn'>Compete with honor. No betting. No gambling. No loot boxes. No pay-to-win.</div></section>{tournament}<h2>Team Spaces</h2><section class='grid'>{teamcards}</section>")
-
-
-@app.route("/world-cup/team/<team>")
-def team_page(team):
-    info = next((t for t in TEAMS if t[0] == team), None)
-    if not info:
-        return layout("Team Not Found", "<section class='hero'><h1>Team not found</h1></section>")
-    s, n, r, m = info
-    cards = "".join([f"<a class='card' href='/world-cup/team/{s}/{x}'><h2>{x.replace('-', ' ').title()}</h2><p>{n} section.</p></a>" for x in ["national-anthem", "team-music", "fan-songs", "manager-board", "fixtures", "matchday-checklist", "community-voice", "watch-parties", "cards", "awards"]])
-    return layout(n, f"<section class='hero'><h1>{n} Team Space</h1><p><b>Region:</b> {r}</p><p><b>International Music:</b> {m}</p></section><section class='grid'>{cards}</section>{form('sports', n)}{table(records('sports', n))}")
-
-
-@app.route("/world-cup/team/<team>/<section>", methods=["GET", "POST"])
-def team_section(team, section):
-    info = next((t for t in TEAMS if t[0] == team), None)
-    if not info:
-        return layout("Team Not Found", "<section class='hero'><h1>Team not found</h1></section>")
-    s, n, r, m = info
-    title = section.replace("-", " ").title()
-    extra = ""
-    if section == "national-anthem":
-        extra = """<div class='card'><h2>🎵 National Anthem Player</h2><p>Default: Paused. User chooses play. Rights proof required.</p><audio controls preload='none'><source src='' type='audio/mpeg'>Your browser does not support audio.</audio><p class='small'>Add official/source link and rights proof as a contribution record below.</p></div>"""
-    if request.method == "POST":
-        con = db()
-        con.execute("INSERT INTO voice(target,voice_type,choice,reason,created_at) VALUES(?,?,?,?,?)", (f"{n}/{title}", safe(request.form.get("voice_type")), safe(request.form.get("choice")), safe(request.form.get("reason")), now()))
-        con.commit()
-        con.close()
-        add_audit("community_voice", f"{n}/{title}")
-        return redirect(request.path)
-    vf = ""
-    if section == "community-voice":
-        vf = """<div class='card'><h2>Community Voice</h2><form method='post'><select name='voice_type'><option>Best Team Energy</option><option>Best National Anthem</option><option>Best Team Music</option><option>Best Culture</option><option>Best Fans</option><option>Best Watch Party</option></select><input name='choice' placeholder='Your choice'><textarea name='reason' placeholder='Why?'></textarea><button>Voice Recorded</button></form></div>"""
-    return layout(f"{n} {title}", f"<section class='hero'><h1>{n} / {title}</h1><p><b>Music identity:</b> {m}</p></section>{extra}{vf}{form('sports', f'{n} / {title}')}{table(records('sports', f'{n} / {title}'))}")
-
-
-def chess():
-    return layout("Chess / IQ Arena", f"<section class='hero'><h1>♟️ Chess / IQ Arena</h1><p>Chess, Ludo, Connect 4, logic, debates, strategy and mastery.</p></section>{form('real-education', 'Strategy / Chess')}{table(records('real-education', 'Strategy / Chess'))}")
-
-
-def martial():
-    return layout("Martial Arts", f"<section class='hero'><h1>🥋 Martial Arts</h1><p>Muay Thai, boxing, wrestling, judo, discipline, fitness, respect and self-control.</p></section>{form('real-education', 'Martial Arts')}{table(records('real-education', 'Martial Arts'))}")
-
-
-def trust():
-    return layout("Trust Center", f"<section class='hero'><h1>🛡 Trust Center</h1><p>Your data belongs to you. Your profile belongs to you. Your content belongs to you. Your culture belongs to you.</p><p>Privacy, security, youth protection, community standards, media rights, AI/HRM and finance readiness policies.</p></section>{form('trust')}{table(records('trust'))}")
-
-
-def command():
-    con = db()
-    rc = con.execute("SELECT COUNT(*) c FROM records").fetchone()["c"]
-    vc = con.execute("SELECT COUNT(*) c FROM voice").fetchone()["c"]
-    aud = con.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 30").fetchall()
-    con.close()
-    rows = "".join([f"<tr><td>{a['created_at']}</td><td>{a['action']}</td><td>{a['detail']}</td></tr>" for a in aud]) or "<tr><td colspan=3>No logs yet.</td></tr>"
-    return layout("Command", f"<section class='hero'><h1>🎛 Command Center</h1><p>Agents, HRM, Local AI/Ollama, animals, God layer, youth safety, audit and launch status.</p></section><section class='grid'><div class='card'><div class='metric'>{rc}</div><h2>Records</h2></div><div class='card'><div class='metric'>{vc}</div><h2>Community Voice</h2></div><div class='card'><h2 class='signal-green'>🟢 Green</h2><p>No red lights if home, World Cup, Trust and Command open.</p></div><div class='card'><h2>🤖 Ollama</h2><p>Local AI suggestions only. Human approval before action.</p></div></section><h2>Audit Logs</h2><table><tr><th>Time</th><th>Action</th><th>Detail</th></tr>{rows}</table>")
-
-
-@app.route("/cards")
-def cards():
-    return layout("Digital Cards", f"<section class='hero'><h1>🏆 Digital Cards</h1><p>Football cards, team cards, culture cards, music cards, fan cards, creator cards, heritage cards and contribution cards. No loot boxes. No gambling. No pay-to-win.</p></section>{form('experiences','Digital Cards')}{table(records('experiences','Digital Cards'))}")
-
-@app.route("/verification")
-def verification():
-    return layout(
-        "Verification",
-        """
-        <section class='hero'>
-        <h1>🏅 Verification</h1>
-        <p>Trust earned through contribution and proof.</p>
-        </section>
-
-        <section class='grid'>
-            <div class='card'><h2>📮 Postcode</h2></div>
-            <div class='card'><h2>🏙 Borough</h2></div>
-            <div class='card'><h2>🗺 County</h2></div>
-            <div class='card'><h2>🌍 Country</h2></div>
-            <div class='card'><h2>🌎 Continent</h2></div>
-            <div class='card'><h2>🌐 Global</h2></div>
-            <div class='card'><h2>🪐 Planet</h2></div>
-            <div class='card'><h2>✨ Universe</h2></div>
-        </section>
-        """
-    )
-    @app.route("/circle")
-def circle():
-    return layout(
-        "OAP Circle",
-        """
-        <section class='hero'>
-        <h1>👑 OAP Circle</h1>
-        <p>From Postcode to Universe.</p>
-        </section>
-
-        <section class='grid'>
-            <div class='card'>
-                <h2>Free Community Member</h2>
-            </div>
-
-            <div class='card'>
-                <h2>Postcode Founder £5</h2>
-            </div>
-
-            <div class='card'>
-                <h2>Borough Builder £10</h2>
-            </div>
-
-            <div class='card'>
-                <h2>Country Champion £25</h2>
-            </div>
-        </section>
-        """
-    )
-    @app.route("/community-power")
-def community_power():
-    return layout(
-        "Community Power",
-        """
-        <section class='hero'>
-        <h1>⚡ Community Power</h1>
-        <p>People building together.</p>
-        </section>
-
-        <section class='grid'>
-            <div class='card'>Projects</div>
-            <div class='card'>Missions</div>
-            <div class='card'>Volunteers</div>
-            <div class='card'>Mentors</div>
-            <div class='card'>Humanitarian</div>
-            <div class='card'>Community Voice</div>
-        </section>
-        """
-    )
-    @app.route("/countries")
-def countries():
-    return layout(
-        "Countries",
-        """
-        <section class='hero'>
-        <h1>🌍 Countries</h1>
-        <p>Every country has a space.</p>
-        </section>
-
-        <section class='grid'>
-            <div class='card'>🇬🇭 Ghana</div>
-            <div class='card'>🇬🇧 United Kingdom</div>
-            <div class='card'>🇺🇸 United States</div>
-            <div class='card'>🇳🇬 Nigeria</div>
-            <div class='card'>🇿🇦 South Africa</div>
-            <div class='card'>🇯🇲 Jamaica</div>
-        </section>
-        """
-    )
-@app.route("/add-record", methods=["POST"])
-def add_record():
-    vals = (
-        safe(request.form.get("root")),
-        safe(request.form.get("branch")),
-        safe(request.form.get("title")),
-        safe(request.form.get("name")),
-        safe(request.form.get("location")),
-        safe(request.form.get("category")),
-        safe(request.form.get("notes")),
-        safe(request.form.get("status")),
-        now(),
-    )
-    con = db()
-    con.execute("INSERT INTO records(root,branch,title,name,location,category,notes,status,created_at) VALUES(?,?,?,?,?,?,?,?,?)", vals)
-    con.commit()
-    con.close()
-    add_audit("record_added", f"{vals[0]} / {vals[2]}")
-    return redirect("/" + (vals[0] or ""))
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
-from datetime import datetime
-import os
-import sqlite3
-from html import escape
-
-app = Flask(__name__)
-DB = "oap_final_v7.db"
-
-ROOTS = {"business-network": ["🏪 Business Network","Merchants and services."],
-"creator-hub": ["👤 Creator Hub","Creators and artists."],
-"delivery": ["🚚 Delivery","Bookings and logistics."],
-"family-tree": ["🌳 Family Tree","Heritage and relationships."],
-"affiliate-tree": ["🌿 Affiliate Tree","Direct value referrals."],
-"awards": ["🏅 Awards","Recognition and achievements."],
-"sika-records": ["💎 SIKA Records","Trust and contribution records."],
-    "world": ["🌍 World", "News, events, countries, weather, highlights and awards."],
-    "my-world": ["👤 My World", "Profile, messages, mail, cards, awards, family tree and contribution records."],
-    "community": ["🤝 Community", "Community Power, Community Voice, projects, mentorship, humanitarian and volunteering."],
-    "real-education": ["🌱 Real Education", "Mind, body, purpose, nature, trades, technology, strategy, martial arts and service."],
-    "culture": ["🎭 Culture", "Countries, languages, stories, proverbs, food, dance and heritage."],
-    "music": ["🎵 Music", "Artists, releases, radio, playlists, charts, festivals and international song."],
-    "sports": ["⚽ Sports", "World Cup, football, chess, martial arts, community sports and tournaments."],
-    "business": ["🏪 Business", "Business Network, Creator Hub, Market, promotions and Affiliate Family Tree."],
-    "experiences": ["🎪 Experiences", "Events, celebrations, comedy, games, festivals and watch parties."],
-    "explorer": ["🗺 Explorer", "Search, discover, countries, creators, businesses, events, music, culture and sports."],
-    "trust": ["🛡 Trust", "Privacy, security, terms, youth protection, policies, AI policy and finance policy."],
-}
-
-SYSTEMS = {
-    "hrm": "🧠 HRM",
-    "command": "🎛 Command",
-    "sika": "💎 SIKA",
-    "finance": "🏦 Finance",
-    "connectivity": "📶 Connectivity",
-    "mobility": "🛵 Mobility",
-    "mail": "📧 Mail",
-    "ollama": "🤖 Local AI / Ollama",
-}
-
-BRANCHES = {
-    "world": ["Community News", "Events", "Countries", "Weather", "Highlights", "Awards"],
-    "my-world": ["Profile", "Messages", "Mail", "Cards", "Awards", "Family Tree", "Contribution Records", "Settings"],
-    "community": ["Community Power", "Community Voice", "Projects", "Mentorship", "Humanitarian", "Volunteering"],
-    "real-education": ["Mind", "Body", "Purpose", "Nature", "Trades", "Technology", "Strategy", "Chess", "Martial Arts", "Muay Thai", "Business", "Service"],
-    "culture": ["Countries", "Languages", "Food", "Stories", "Heritage", "Dance", "Proverbs", "United States of Africa (Black Stars)", "Ghana", "Akan", "KORADASO", "Begoro"],
-    "music": ["Artists", "Releases", "Radio", "Playlists", "Charts", "Festivals", "International Song"],
-    "sports": ["World Cup", "Football", "Chess", "IQ Arena", "Basketball", "Athletics", "Combat Sports", "Community Sports", "Tournaments"],
-    "business": ["Business Network", "Creator Hub", "Market", "Promotions", "Affiliate Family Tree"],
-    "experiences": ["Events", "Celebrations", "Comedy", "Games", "Watch Parties", "Festivals"],
-    "explorer": ["Search", "Discover", "Countries", "Creators", "Businesses", "Events", "Music", "Culture", "Sports"],
-    "trust": ["Privacy Promise", "Security", "Terms", "Youth Protection", "Community Standards", "Music & Media Policy", "AI Policy", "Finance Policy", "Contact & Reports"],
-    "hrm": ["Dashboard", "Memory", "Learning", "Audit", "Risk", "Council", "Decisions", "Animals", "God Layer", "Youth Safety", "Ollama"],
-    "command": ["Dashboard", "Operations", "Metrics", "Status", "Reports", "Logs", "Agents"],
-    "sika": ["Trust Records", "Contribution Records", "Badges", "Verification", "Ledger Sandbox"],
-    "finance": ["Dashboard", "Invoices", "Goals", "Pots", "Statements", "Activity"],
-    "connectivity": ["eSIM", "Devices", "Coverage", "WiFi", "Signal Reports"],
-    "mobility": ["Delivery", "E-Bikes", "Scooters", "Drivers", "Riders", "Logistics", "Community Transport", "Global Transport"],
-    "mail": ["Inbox", "Sent", "Drafts", "Contacts", "Notifications"],
-    "ollama": ["Local AI Status", "Prompts", "Memory Helper", "Risk Check", "Human Approval"],
-}
-
-TEAMS = [(f"slot-{i:02d}", f"Team Slot {i:02d}", "Qualification / Confirmed", "National anthem, team music, fan songs") for i in range(1, 49)]
-
-CATS = ["Value Created", "Community Voice", "Music", "Culture", "Sport", "Business", "Real Education", "Experience", "Digital Card", "Mobility", "Finance", "Trust"]
-
-
-def now():
-    return datetime.utcnow().isoformat(timespec="seconds")
-
-
-def safe(v):
-    return escape((v or "").strip())
-
-
-def slug(t):
-    return t.lower().replace("&", "and").replace("/", "-").replace("(", "").replace(")", "").replace(" ", "-")
-
-
-def db():
-    con = sqlite3.connect(DB)
-    con.row_factory = sqlite3.Row
-    return con
-
-<div class="card">
-  <div class="metric">🏪</div>
-  <h2>Business Network</h2>
-  <p>Businesses Connected</p>
-</div>
-
-<div class="card">
-  <div class="metric">👤</div>
-  <h2>Creator Hub</h2>
-  <p>Creators Connected</p>
-</div>
-
-<div class="card">
-  <div class="metric">🚚</div>
-  <h2>Delivery</h2>
-  <p>Bookings Recorded</p>
-</div>
-
-<div class="card">
-  <div class="metric">💎</div>
-  <h2>SIKA Records</h2>
-  <p>Trust Earned</p>
-</div>
-def init():
-    con = db()
-    con.execute("CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT, branch TEXT, title TEXT, name TEXT, location TEXT, category TEXT, notes TEXT, status TEXT, created_at TEXT)")
-    con.execute("CREATE TABLE IF NOT EXISTS voice(id INTEGER PRIMARY KEY AUTOINCREMENT, target TEXT, voice_type TEXT, choice TEXT, reason TEXT, created_at TEXT)")
     con.execute("""
-CREATE TABLE IF NOT EXISTS businesses(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-name TEXT,
-category TEXT,
-location TEXT,
-status TEXT,
-notes TEXT,
-created_at TEXT
-)
-""")
+    CREATE TABLE IF NOT EXISTS members(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nickname TEXT,
+        username TEXT UNIQUE,
+        email TEXT,
+        password TEXT,
+        postcode TEXT,
+        borough TEXT,
+        county TEXT,
+        country TEXT,
+        continent TEXT,
+        circle TEXT,
+        created_at TEXT
+    )
+    """)
 
-con.execute("""
-CREATE TABLE IF NOT EXISTS creators(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-name TEXT,
-category TEXT,
-location TEXT,
-bio TEXT,
-created_at TEXT
-)
-""")
-
-con.execute("""
-CREATE TABLE IF NOT EXISTS delivery_bookings(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-customer TEXT,
-pickup TEXT,
-dropoff TEXT,
-item TEXT,
-status TEXT,
-created_at TEXT
-)
-""")
-
-con.execute("""
-CREATE TABLE IF NOT EXISTS family_tree(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-person TEXT,
-relationship TEXT,
-connected_to TEXT,
-created_at TEXT
-)
-""")
-
-con.execute("""
-CREATE TABLE IF NOT EXISTS affiliate_tree(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-member TEXT,
-referred_by TEXT,
-status TEXT,
-created_at TEXT
-)
-""")
-
-con.execute("""
-CREATE TABLE IF NOT EXISTS awards(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-title TEXT,
-recipient TEXT,
-reason TEXT,
-created_at TEXT
-)
-""")
-
-con.execute("""
-CREATE TABLE IF NOT EXISTS sika_records(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-member TEXT,
-record_type TEXT,
-points INTEGER,
-notes TEXT,
-created_at TEXT
-)
-""")
-    con.execute("CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, detail TEXT, created_at TEXT)")
-    con.commit()
-    con.close()
-
-
-def add_audit(action, detail):
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS records(
+    )
+    """)):
     con = db()
-    con.execute("INSERT INTO audit(action,detail,created_at) VALUES(?,?,?)", (action, detail, now()))
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS records(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        system TEXT,
+        module TEXT,
+        title TEXT,
+        name TEXT,
+        location TEXT,
+        category TEXT,
+        status TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS businesses(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        category TEXT,
+        location TEXT,
+        contact TEXT,
+        status TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS creators(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        category TEXT,
+        country TEXT,
+        link TEXT,
+        bio TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS experiences(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        location TEXT,
+        date_note TEXT,
+        category TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS delivery_bookings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer TEXT,
+        pickup TEXT,
+        dropoff TEXT,
+        item TEXT,
+        transport TEXT,
+        status TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS riders_drivers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        role TEXT,
+        vehicle TEXT,
+        area TEXT,
+        status TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS sika_records(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        record_type TEXT,
+        value_note TEXT,
+        points INTEGER,
+        status TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS verification_badges(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        level TEXT,
+        location TEXT,
+        status TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS readiness_requests(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        area TEXT,
+        request_type TEXT,
+        applicant TEXT,
+        location TEXT,
+        status TEXT,
+        notes TEXT,
+        created_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS audit(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        action TEXT,
+        detail TEXT,
+        created_at TEXT
+    )
+    """)
+
     con.commit()
     con.close()
 
@@ -747,12 +231,22 @@ def add_audit(action, detail):
 init()
 
 
+def audit(action, detail):
+    con = db()
+    con.execute(
+        "INSERT INTO audit(action,detail,created_at) VALUES(?,?,?)",
+        (action, detail, now())
+    )
+    con.commit()
+    con.close()
+
+
 def nav():
-    return "<a href='/'>Home</a>" + "".join([f"<a href='/{k}'>{v[0]}</a>" for k, v in ROOTS.items()])
-
-
-def sysnav():
-    return "".join([f"<a href='/{k}'>{v}</a>" for k, v in SYSTEMS.items()])
+    links = "<a href='/'>Home</a>"
+    links += "".join([f"<a href='/{k}'>{v[0]}</a>" for k, v in SYSTEMS.items()])
+    links += "<a href='/world-cup'>⚽ World Cup</a>"
+    links += "<a href='/command'>🎛 Command</a>"
+    return links
 
 
 def layout(title, body):
@@ -763,18 +257,24 @@ def layout(title, body):
 <title>{title}</title>
 <style>
 :root {{
-  --bg:#050505; --card:#101010; --gold:#d4af37; --blue:#00eaff;
-  --text:#f7f0dd; --muted:#c9b987; --line:#6d5520; --green:#52d98f;
+  --gold:#d4af37;
+  --line:#6d5520;
+  --text:#f7f0dd;
+  --muted:#c9b987;
+  --green:#52d98f;
+  --blue:#00eaff;
 }}
 * {{ box-sizing:border-box; }}
 body {{
   margin:0;
-  background:radial-gradient(circle at top,#161616 0,#050505 55%,#000 100%);
+  background:radial-gradient(circle at top,#161616,#050505 55%,#000);
   color:var(--text);
   font-family:Arial,Helvetica,sans-serif;
 }}
 header {{
-  position:sticky; top:0; z-index:9;
+  position:sticky;
+  top:0;
+  z-index:9;
   background:#050505ee;
   border-bottom:1px solid var(--gold);
   padding:14px;
@@ -786,9 +286,18 @@ header {{
   letter-spacing:3px;
   text-transform:uppercase;
 }}
-.tag {{ color:var(--muted); font-size:13px; letter-spacing:1px; }}
-nav,.sys {{ display:flex; gap:8px; overflow:auto; padding-top:10px; }}
-nav a,.sys a,.btn {{
+.tag {{
+  color:var(--muted);
+  font-size:13px;
+  letter-spacing:1px;
+}}
+nav {{
+  display:flex;
+  gap:8px;
+  overflow:auto;
+  padding-top:10px;
+}}
+nav a,.btn {{
   white-space:nowrap;
   text-decoration:none;
   color:var(--text);
@@ -798,7 +307,11 @@ nav a,.sys a,.btn {{
   padding:9px 12px;
   font-weight:900;
 }}
-main,footer {{ max-width:1200px; margin:auto; padding:18px; }}
+main,footer {{
+  max-width:1200px;
+  margin:auto;
+  padding:18px;
+}}
 .hero {{
   background:linear-gradient(135deg,#090909,#161616,#123c52);
   border:1px solid var(--gold);
@@ -807,7 +320,6 @@ main,footer {{ max-width:1200px; margin:auto; padding:18px; }}
   margin-bottom:16px;
   box-shadow:0 0 30px #d4af3738;
 }}
-h1 {{ font-size:34px; margin-top:0; }}
 .grid {{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
@@ -821,11 +333,13 @@ h1 {{ font-size:34px; margin-top:0; }}
   padding:18px;
   color:var(--text);
   text-decoration:none;
-  box-shadow:0 0 18px #000;
 }}
-.card h2 {{ margin-top:0; }}
-.metric {{ font-size:32px; color:var(--gold); font-weight:900; }}
-.signal-green {{ color:var(--green); font-weight:900; }}
+.metric {{
+  font-size:32px;
+  color:var(--gold);
+  font-weight:900;
+}}
+.green {{ color:var(--green); font-weight:900; }}
 .neon {{ color:var(--blue); text-shadow:0 0 12px var(--blue); }}
 input,select,textarea,button {{
   width:100%;
@@ -837,7 +351,10 @@ input,select,textarea,button {{
   color:var(--text);
   font-size:15px;
 }}
-button {{ background:#1d8f5f; font-weight:900; cursor:pointer; }}
+button {{
+  background:#1d8f5f;
+  font-weight:900;
+}}
 table {{
   width:100%;
   border-collapse:collapse;
@@ -859,233 +376,819 @@ td,th {{
   padding:14px;
   margin:12px 0;
 }}
-.small {{ color:var(--muted); }}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">ON ANY POSTCODE 🌍👑</div>
-  <div class="tag">Born Local. Built Global. EARTH IS OUR TURF. One Race. Human Race.</div>
+  <div class="tag">One Brand. One Front Door. One Identity. Born Local. Built Global.</div>
   <nav>{nav()}</nav>
 </header>
 <main>{body}</main>
 <footer>
-  <h3>System Engines</h3>
-  <div class="sys">{sysnav()}</div>
-  <p>💎 Create Value. 🤝 Build Trust. 🌱 Grow Community. 🏆 Leave A Legacy.</p>
-  <p>3 IDENTITIES. 1 LEGACY. Global Luxury • Street Royalty • Future Sovereign</p>
+  ⚡ Contribution Recorded. 💎 Value Manifested. 🤝 Trust Earned. 🏆 Legacy Recorded.
 </footer>
 </body>
 </html>"""
 
 
-def records(root=None, branch=None):
+def get_records(system=None, module=None):
     con = db()
-    if root and branch:
-        rows = con.execute("SELECT * FROM records WHERE root=? AND branch=? ORDER BY id DESC LIMIT 50", (root, branch)).fetchall()
-    elif root:
-        rows = con.execute("SELECT * FROM records WHERE root=? ORDER BY id DESC LIMIT 50", (root,)).fetchall()
+    if system and module:
+        rows = con.execute(
+            "SELECT * FROM records WHERE system=? AND module=? ORDER BY id DESC LIMIT 50",
+            (system, module)
+        ).fetchall()
+    elif system:
+        rows = con.execute(
+            "SELECT * FROM records WHERE system=? ORDER BY id DESC LIMIT 50",
+            (system,)
+        ).fetchall()
     else:
-        rows = con.execute("SELECT * FROM records ORDER BY id DESC LIMIT 80").fetchall()
+        rows = con.execute(
+            "SELECT * FROM records ORDER BY id DESC LIMIT 80"
+        ).fetchall()
     con.close()
     return rows
 
 
-def table(rows):
+def record_table(rows):
     if not rows:
         return "<div class='card'><h2>No records yet</h2><p>Create the first contribution record.</p></div>"
-    body = "".join([f"<tr><td>{r['created_at']}</td><td>{r['root']}</td><td>{r['branch']}</td><td>{r['title']}</td><td>{r['status']}</td><td>{r['notes']}</td></tr>" for r in rows])
-    return f"<table><tr><th>Time</th><th>Root</th><th>Branch</th><th>Title</th><th>Status</th><th>Notes</th></tr>{body}</table>"
+
+    body = "".join([
+        f"<tr><td>{r['created_at']}</td><td>{r['system']}</td><td>{r['module']}</td><td>{r['title']}</td><td>{r['status']}</td><td>{r['notes']}</td></tr>"
+        for r in rows
+    ])
+
+    return f"""
+<table>
+<tr><th>Time</th><th>System</th><th>Module</th><th>Title</th><th>Status</th><th>Notes</th></tr>
+{body}
+</table>
+"""
 
 
-def form(root, branch="General"):
-    opts = "".join([f"<option>{c}</option>" for c in CATS])
+def contribution_form(system, module="General"):
     return f"""
 <div class="card">
-  <h2>Contribution Record</h2>
-  <form method="post" action="/add-record">
-    <input type="hidden" name="root" value="{root}">
-    <input type="hidden" name="branch" value="{branch}">
-    <input name="title" placeholder="Title / idea / action / content" required>
-    <input name="name" placeholder="Name / creator / business / team / person">
-    <input name="location" placeholder="Postcode / country / global">
-    <select name="category">{opts}</select>
-    <select name="status">
-      <option>Idea</option>
-      <option>Review</option>
-      <option>Ready</option>
-      <option>Active Record</option>
-      <option>Completed</option>
-      <option>Blocked</option>
-    </select>
-    <textarea name="notes" placeholder="Notes, rights proof, safety check, next action"></textarea>
-    <button>Contribution Recorded</button>
-  </form>
+<h2>⚡ Contribution Record</h2>
+<form method="post" action="/add-record">
+<input type="hidden" name="system" value="{system}">
+<input type="hidden" name="module" value="{module}">
+<input name="title" placeholder="Title / idea / action / request" required>
+<input name="name" placeholder="Name / person / business / creator / team">
+<input name="location" placeholder="Postcode / borough / country / global">
+<select name="category">
+<option>Contribution Recorded</option>
+<option>Value Manifested</option>
+<option>Trust Earned</option>
+<option>Legacy Recorded</option>
+<option>Request</option>
+<option>Readiness</option>
+<option>Review</option>
+</select>
+<select name="status">
+<option>Idea</option>
+<option>Request Recorded</option>
+<option>Review</option>
+<option>Manual Approval Needed</option>
+<option>Ready</option>
+<option>Active Record</option>
+<option>Blocked</option>
+</select>
+<textarea name="notes" placeholder="Notes, proof, safety check, provider/legal/compliance status, next action"></textarea>
+<button>Contribution Recorded</button>
+</form>
 </div>
 """
 
 
 @app.route("/")
 def home():
-    cards = "".join([f"<a class='card' href='/{k}'><h2>{v[0]}</h2><p>{v[1]}</p></a>" for k, v in ROOTS.items()])
+    cards = "".join([
+        f"<a class='card' href='/{k}'><h2>{v[0]}</h2><p>{v[1]}</p></a>"
+        for k, v in SYSTEMS.items()
+    ])
+
     body = f"""
 <section class="hero">
-  <h1>OAP Final Roots v7 💎</h1>
-  <h2>3 Identities. 1 Legacy.</h2>
-  <p><b>Global Luxury</b> • <b>Street Royalty</b> • <span class="neon"><b>Future Sovereign</b></span></p>
-  <p><b>EARTH IS OUR TURF.</b> One Race. Human Race.</p>
-  <p>Every postcode has a story. Every culture has a song. Every community has a voice.</p>
-  <div class="warn">Public systems create value today. Regulated systems such as banking, cards, e-money, telecom/eSIM service, taxi/private-hire operations and regulated payments require lawful authorisation or regulated providers before activation.</div>
+<h1>OAP Architecture v12 💎</h1>
+<h2>One Brand. One Front Door. One Identity.</h2>
+<p><b>Separate Intelligence.</b> Separate Money. Separate Communications. Separate Infrastructure. Separate Operations.</p>
+<p><b>EARTH IS OUR TURF.</b> One Race. Human Race.</p>
+<div class="warn">
+Banking, deposits, cards, e-money, telecom/eSIM activation, taxi/private-hire and regulated payments are routed as readiness/request records until lawful authorisation or provider backing is confirmed.
+</div>
 </section>
 
 <section class="grid">
-  <div class="card"><div class="metric">💎</div><h2>Value Created</h2><p>Primary metric before revenue.</p></div>
-  <div class="card"><div class="metric">🤝</div><h2>Trust Earned</h2><p>Proof, safety, contribution.</p></div>
-  <div class="card"><div class="metric">🌱</div><h2>Communities Grown</h2><p>Local roots, global connection.</p></div>
-  <div class="card"><div class="metric">🏆</div><h2>Legacy Created</h2><p>Cards, awards, culture, impact.</p></div>
+<div class="card"><div class="metric">⚡</div><h2>Contribution Recorded</h2></div>
+<div class="card"><div class="metric">💎</div><h2>Value Manifested</h2></div>
+<div class="card"><div class="metric">🤝</div><h2>Trust Earned</h2></div>
+<div class="card"><div class="metric">🏆</div><h2>Legacy Recorded</h2></div>
+<div class="card"><div class="metric">🚚</div><h2>Operations Ready</h2></div>
+<div class="card"><div class="metric">📶</div><h2>Infrastructure Ready</h2></div>
+<div class="card"><div class="metric">🧠</div><h2>Intelligence Ready</h2></div>
+<div class="card"><div class="metric">🛡</div><h2>Review Protected</h2></div>
 </section>
 
-<section class="grid">
-  <div class="card"><h2 class="signal-green">🟢 Launch Signal</h2><p>No red lights if homepage, World Cup, Command and Trust open.</p></div>
-  <div class="card"><h2>🎛 Dashboard Signal</h2><p>Command Center records actions, Community Voice and audit logs.</p></div>
-  <div class="card"><h2>🤖 Ollama Signal</h2><p>Local AI is suggestions only. Human approval before action.</p></div>
-  <div class="card"><h2>🛡 Trust Signal</h2><p>Privacy, youth safety, finance policy and media rights stay visible.</p></div>
-</section>
-
-<h2>Menu Roots</h2>
+<h2>Systems</h2>
 <section class="grid">{cards}</section>
 """
-    return layout("OAP Final Roots v7", body)
+    return layout("OAP Architecture v12", body)
 
 
-@app.route("/<root>")
-def root_page(root):
-    if root == "sports":
-        return sports()
-    if root == "command":
+@app.route("/<system>")
+def system_page(system):
+    if system == "command":
         return command()
-    if root == "trust":
-        return trust()
-    data = ROOTS.get(root) or [SYSTEMS.get(root, "Page"), "System engine for OAP operations and records."]
-    branches = BRANCHES.get(root, [])
-    cards = "".join([f"<a class='card' href='/{root}/{slug(b)}'><h2>{b}</h2><p>{data[0]} branch.</p></a>" for b in branches])
-    return layout(data[0], f"<section class='hero'><h1>{data[0]}</h1><p>{data[1]}</p></section><section class='grid'>{cards}</section><h2>Record Value</h2>{form(root)}<h2>Latest Records</h2>{table(records(root))}")
+
+    data = SYSTEMS.get(system)
+    if not data:
+        return layout("Not Found", "<section class='hero'><h1>System not found</h1></section>")
+
+    modules = MODULES.get(system, [])
+    cards = "".join([
+        f"<a class='card' href='/{system}/{slug(m)}'><h2>{m}</h2><p>{data[0]} module.</p></a>"
+        for m in modules
+    ])
+
+    return layout(
+        data[0],
+        f"<section class='hero'><h1>{data[0]}</h1><p>{data[1]}</p></section>"
+        f"<section class='grid'>{cards}</section>"
+        f"{special_forms(system)}"
+        f"<h2>Latest Records</h2>{record_table(get_records(system=system))}"
+    )
 
 
-@app.route("/<root>/<branch>")
-def branch_page(root, branch):
-    if root == "sports" and branch == "world-cup":
-        return worldcup()
-    if root == "sports" and branch in ["chess", "iq-arena"]:
-        return chess()
-    if root == "real-education" and branch in ["martial-arts", "muay-thai"]:
-        return martial()
-    title = branch.replace("-", " ").title()
-    return layout(title, f"<section class='hero'><h1>{title}</h1><p>{root.replace('-', ' ').title()} branch inside OAP World.</p></section>{form(root, title)}<h2>Latest {title}</h2>{table(records(root, title))}")
+@app.route("/<system>/<module>")
+def module_page(system, module):
+    title = module.replace("-", " ").title()
+    return layout(
+        title,
+        f"<section class='hero'><h1>{title}</h1><p>{system.title()} module.</p></section>"
+        f"{contribution_form(system, title)}"
+        f"<h2>Latest Records</h2>{record_table(get_records(system, title))}"
+)
+def special_forms(system):
+    forms = contribution_form(system)
+
+    if system == "operations":
+        forms += business_form()
+        forms += creator_form()
+        forms += experience_form()
+        forms += delivery_form()
+        forms += rider_driver_form()
+
+    if system == "money":
+        forms += sika_form()
+        forms += readiness_form("Finance / Bank / Card / Deposit")
+
+    if system == "infrastructure":
+        forms += readiness_form("eSIM / Weather / Navigation / Connectivity")
+
+    if system == "identity":
+        forms += verification_form()
+
+    return forms
 
 
-def sports():
-    cards = "".join([f"<a class='card' href='/sports/{slug(b)}'><h2>{b}</h2><p>Sports and tournament branch.</p></a>" for b in BRANCHES["sports"]])
-    return layout("Sports", f"<section class='hero'><h1>⚽ Sports</h1><p>World Cup, football, chess, martial arts, tournaments and community sport.</p></section><section class='grid'>{cards}</section>{form('sports')}{table(records('sports'))}")
-
-
-def worldcup():
-    teamcards = "".join([f"<a class='card' href='/world-cup/team/{s}'><h2>{n}</h2><p>{r}</p><p><b>Music:</b> {m}</p></a>" for s, n, r, m in TEAMS])
-    tournament = """
-<section class="grid">
-  <a class="card" href="/sports/world-cup"><h2>🏠 Tournament Home</h2><p>Overview, law, latest records.</p></a>
-  <a class="card" href="/sports/world-cup/groups"><h2>🧩 Groups</h2><p>Group stage records.</p></a>
-  <a class="card" href="/sports/world-cup/fixtures"><h2>📅 Fixtures</h2><p>Match schedule and matchday checklist.</p></a>
-  <a class="card" href="/sports/world-cup/match-centre"><h2>⚽ Match Centre</h2><p>Preview, fan energy, manager notes.</p></a>
-  <a class="card" href="/sports/world-cup/knockout"><h2>🔥 Knockout Rounds</h2><p>Round of 32 to semi finals.</p></a>
-  <a class="card" href="/sports/world-cup/final"><h2>🏆 Final</h2><p>Final match centre and legacy records.</p></a>
-  <a class="card" href="/community/community-voice"><h2>🌍 Community Voice</h2><p>Participation, not betting.</p></a>
-  <a class="card" href="/cards"><h2>🏆 Digital Cards</h2><p>Team, anthem, culture and legacy cards.</p></a>
-</section>
+def business_form():
+    return """
+<div class="card">
+<h2>🏪 Add Business</h2>
+<form method="post" action="/add-business">
+<input name="name" placeholder="Business name" required>
+<input name="category" placeholder="Category">
+<input name="location" placeholder="Postcode / area">
+<input name="contact" placeholder="Phone / email / link">
+<select name="status">
+<option>Request Recorded</option>
+<option>Review</option>
+<option>Approved</option>
+</select>
+<textarea name="notes" placeholder="Notes"></textarea>
+<button>Business Connected</button>
+</form>
+</div>
 """
-    return layout("World Cup", f"<section class='hero'><h1>⚽ World Cup Tournament</h1><p>48-team ready: groups, fixtures, match centre, knockout rounds, final, team pages, national anthems, team music, Community Voice, watch parties, cards and awards.</p><div class='warn'>Compete with honor. No betting. No gambling. No loot boxes. No pay-to-win.</div></section>{tournament}<h2>Team Spaces</h2><section class='grid'>{teamcards}</section>")
+
+
+def creator_form():
+    return """
+<div class="card">
+<h2>👤 Add Creator</h2>
+<form method="post" action="/add-creator">
+<input name="name" placeholder="Creator name" required>
+<input name="category" placeholder="Music / comedy / sport / education">
+<input name="country" placeholder="Country">
+<input name="link" placeholder="Link">
+<textarea name="bio" placeholder="Bio"></textarea>
+<button>Creator Connected</button>
+</form>
+</div>
+"""
+
+
+def experience_form():
+    return """
+<div class="card">
+<h2>🎪 Add Experience</h2>
+<form method="post" action="/add-experience">
+<input name="title" placeholder="Experience title">
+<input name="location" placeholder="Location">
+<input name="date_note" placeholder="Date / note">
+<input name="category" placeholder="Watch party / comedy / meetup">
+<textarea name="notes" placeholder="Notes"></textarea>
+<button>Experience Created</button>
+</form>
+</div>
+"""
+
+
+def delivery_form():
+    opts = "".join([f"<option>{t}</option>" for t in TRANSPORT])
+    return f"""
+<div class="card">
+<h2>🚚 Delivery / Booking</h2>
+<form method="post" action="/add-delivery">
+<input name="customer" placeholder="Customer / request name">
+<input name="pickup" placeholder="Pickup">
+<input name="dropoff" placeholder="Dropoff">
+<input name="item" placeholder="Item / booking">
+<select name="transport">{opts}</select>
+<select name="status">
+<option>Request Recorded</option>
+<option>Review</option>
+<option>Accepted</option>
+<option>Collected</option>
+<option>In Transit</option>
+<option>Delivered</option>
+</select>
+<textarea name="notes" placeholder="Notes"></textarea>
+<button>Booking Recorded</button>
+</form>
+</div>
+"""
+
+
+def rider_driver_form():
+    opts = "".join([f"<option>{t}</option>" for t in TRANSPORT])
+    return f"""
+<div class="card">
+<h2>🛵 Rider / Driver</h2>
+<form method="post" action="/add-rider-driver">
+<input name="name" placeholder="Name">
+<select name="role">
+<option>Rider</option>
+<option>Driver</option>
+<option>Courier</option>
+<option>Volunteer</option>
+</select>
+<select name="vehicle">{opts}</select>
+<input name="area" placeholder="Area / postcode">
+<select name="status">
+<option>Request Recorded</option>
+<option>Review</option>
+<option>Available</option>
+<option>Active</option>
+</select>
+<textarea name="notes" placeholder="Notes"></textarea>
+<button>Rider / Driver Recorded</button>
+</form>
+</div>
+"""
+
+
+def sika_form():
+    return """
+<div class="card">
+<h2>💎 SIKA Record</h2>
+<form method="post" action="/add-sika">
+<input name="name" placeholder="Name">
+<select name="record_type">
+<option>Contribution Recorded</option>
+<option>Trust Earned</option>
+<option>Value Manifested</option>
+<option>Legacy Recorded</option>
+</select>
+<input name="value_note" placeholder="Value note">
+<input name="points" type="number" value="1">
+<select name="status">
+<option>Recorded</option>
+<option>Review</option>
+<option>Approved</option>
+</select>
+<textarea name="notes"></textarea>
+<button>SIKA Recorded</button>
+</form>
+</div>
+"""
+
+
+def verification_form():
+    return """
+<div class="card">
+<h2>🏅 Verification Request</h2>
+<form method="post" action="/add-verification">
+<input name="name" placeholder="Name">
+<select name="level">
+<option>Postcode</option>
+<option>Borough</option>
+<option>County</option>
+<option>Country</option>
+<option>Continent</option>
+<option>Global</option>
+<option>Planet</option>
+<option>Universe</option>
+</select>
+<input name="location" placeholder="Location">
+<select name="status">
+<option>Request Recorded</option>
+<option>Review</option>
+<option>Approved</option>
+</select>
+<textarea name="notes"></textarea>
+<button>Verification Recorded</button>
+</form>
+</div>
+"""
+
+
+def readiness_form(area):
+    return f"""
+<div class="card">
+<h2>🛡 {area} Request</h2>
+<form method="post" action="/add-readiness">
+<input type="hidden" name="area" value="{area}">
+<input name="request_type" placeholder="Deposit / card / eSIM / taxi / provider / compliance">
+<input name="applicant" placeholder="Applicant / business / person">
+<input name="location" placeholder="Location">
+<select name="status">
+<option>Request Recorded</option>
+<option>Compliance Review</option>
+<option>Provider Check</option>
+<option>Manual Approval Needed</option>
+<option>Blocked</option>
+</select>
+<textarea name="notes" placeholder="Legal/provider/compliance notes"></textarea>
+<button>Request Recorded</button>
+</form>
+</div>
+"""
+
+
+@app.route("/world-cup")
+def worldcup():
+    cards = "".join([
+        f"<a class='card' href='/world-cup/team/{s}'><h2>{n}</h2><p>Team space.</p></a>"
+        for s, n in TEAMS
+    ])
+
+    return layout(
+        "World Cup",
+        f"""
+<section class='hero'>
+<h1>⚽ World Cup</h1>
+<p>48-team structure. Community voice. Watch parties. No gambling.</p>
+</section>
+<section class='grid'>{cards}</section>
+"""
+    )
 
 
 @app.route("/world-cup/team/<team>")
-def team_page(team):
-    info = next((t for t in TEAMS if t[0] == team), None)
-    if not info:
-        return layout("Team Not Found", "<section class='hero'><h1>Team not found</h1></section>")
-    s, n, r, m = info
-    cards = "".join([f"<a class='card' href='/world-cup/team/{s}/{x}'><h2>{x.replace('-', ' ').title()}</h2><p>{n} section.</p></a>" for x in ["national-anthem", "team-music", "fan-songs", "manager-board", "fixtures", "matchday-checklist", "community-voice", "watch-parties", "cards", "awards"]])
-    return layout(n, f"<section class='hero'><h1>{n} Team Space</h1><p><b>Region:</b> {r}</p><p><b>International Music:</b> {m}</p></section><section class='grid'>{cards}</section>{form('sports', n)}{table(records('sports', n))}")
-
-
-@app.route("/world-cup/team/<team>/<section>", methods=["GET", "POST"])
-def team_section(team, section):
-    info = next((t for t in TEAMS if t[0] == team), None)
-    if not info:
-        return layout("Team Not Found", "<section class='hero'><h1>Team not found</h1></section>")
-    s, n, r, m = info
-    title = section.replace("-", " ").title()
-    extra = ""
-    if section == "national-anthem":
-        extra = """<div class='card'><h2>🎵 National Anthem Player</h2><p>Default: Paused. User chooses play. Rights proof required.</p><audio controls preload='none'><source src='' type='audio/mpeg'>Your browser does not support audio.</audio><p class='small'>Add official/source link and rights proof as a contribution record below.</p></div>"""
-    if request.method == "POST":
-        con = db()
-        con.execute("INSERT INTO voice(target,voice_type,choice,reason,created_at) VALUES(?,?,?,?,?)", (f"{n}/{title}", safe(request.form.get("voice_type")), safe(request.form.get("choice")), safe(request.form.get("reason")), now()))
-        con.commit()
-        con.close()
-        add_audit("community_voice", f"{n}/{title}")
-        return redirect(request.path)
-    vf = ""
-    if section == "community-voice":
-        vf = """<div class='card'><h2>Community Voice</h2><form method='post'><select name='voice_type'><option>Best Team Energy</option><option>Best National Anthem</option><option>Best Team Music</option><option>Best Culture</option><option>Best Fans</option><option>Best Watch Party</option></select><input name='choice' placeholder='Your choice'><textarea name='reason' placeholder='Why?'></textarea><button>Voice Recorded</button></form></div>"""
-    return layout(f"{n} {title}", f"<section class='hero'><h1>{n} / {title}</h1><p><b>Music identity:</b> {m}</p></section>{extra}{vf}{form('sports', f'{n} / {title}')}{table(records('sports', f'{n} / {title}'))}")
-
-
-def chess():
-    return layout("Chess / IQ Arena", f"<section class='hero'><h1>♟️ Chess / IQ Arena</h1><p>Chess, Ludo, Connect 4, logic, debates, strategy and mastery.</p></section>{form('real-education', 'Strategy / Chess')}{table(records('real-education', 'Strategy / Chess'))}")
-
-
-def martial():
-    return layout("Martial Arts", f"<section class='hero'><h1>🥋 Martial Arts</h1><p>Muay Thai, boxing, wrestling, judo, discipline, fitness, respect and self-control.</p></section>{form('real-education', 'Martial Arts')}{table(records('real-education', 'Martial Arts'))}")
-
-
-def trust():
-    return layout("Trust Center", f"<section class='hero'><h1>🛡 Trust Center</h1><p>Your data belongs to you. Your profile belongs to you. Your content belongs to you. Your culture belongs to you.</p><p>Privacy, security, youth protection, community standards, media rights, AI/HRM and finance readiness policies.</p></section>{form('trust')}{table(records('trust'))}")
-
-
-def command():
-    con = db()
-    rc = con.execute("SELECT COUNT(*) c FROM records").fetchone()["c"]
-    vc = con.execute("SELECT COUNT(*) c FROM voice").fetchone()["c"]
-    aud = con.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 30").fetchall()
-    con.close()
-    rows = "".join([f"<tr><td>{a['created_at']}</td><td>{a['action']}</td><td>{a['detail']}</td></tr>" for a in aud]) or "<tr><td colspan=3>No logs yet.</td></tr>"
-    return layout("Command", f"<section class='hero'><h1>🎛 Command Center</h1><p>Agents, HRM, Local AI/Ollama, animals, God layer, youth safety, audit and launch status.</p></section><section class='grid'><div class='card'><div class='metric'>{rc}</div><h2>Records</h2></div><div class='card'><div class='metric'>{vc}</div><h2>Community Voice</h2></div><div class='card'><h2 class='signal-green'>🟢 Green</h2><p>No red lights if home, World Cup, Trust and Command open.</p></div><div class='card'><h2>🤖 Ollama</h2><p>Local AI suggestions only. Human approval before action.</p></div></section><h2>Audit Logs</h2><table><tr><th>Time</th><th>Action</th><th>Detail</th></tr>{rows}</table>")
-
-
-@app.route("/cards")
-def cards():
-    return layout("Digital Cards", f"<section class='hero'><h1>🏆 Digital Cards</h1><p>Football cards, team cards, culture cards, music cards, fan cards, creator cards, heritage cards and contribution cards. No loot boxes. No gambling. No pay-to-win.</p></section>{form('experiences','Digital Cards')}{table(records('experiences','Digital Cards'))}")
+def team(team):
+    return layout(
+        team,
+        f"""
+<section class='hero'>
+<h1>{team}</h1>
+<p>Team hub, music, fixtures, community voice, watch parties.</p>
+</section>
+{contribution_form('culture', team)}
+"""
+    )
 
 
 @app.route("/add-record", methods=["POST"])
 def add_record():
     vals = (
-        safe(request.form.get("root")),
-        safe(request.form.get("branch")),
+        safe(request.form.get("system")),
+        safe(request.form.get("module")),
         safe(request.form.get("title")),
         safe(request.form.get("name")),
         safe(request.form.get("location")),
         safe(request.form.get("category")),
-        safe(request.form.get("notes")),
         safe(request.form.get("status")),
+        safe(request.form.get("notes")),
         now(),
     )
+
     con = db()
-    con.execute("INSERT INTO records(root,branch,title,name,location,category,notes,status,created_at) VALUES(?,?,?,?,?,?,?,?,?)", vals)
+    con.execute(
+        "INSERT INTO records(system,module,title,name,location,category,status,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+        vals
+    )
     con.commit()
     con.close()
-    add_audit("record_added", f"{vals[0]} / {vals[2]}")
+
+    audit("record_added", f"{vals[0]} / {vals[2]}")
     return redirect("/" + (vals[0] or ""))
 
 
+@app.route("/add-business", methods=["POST"])
+def add_business():
+    vals = (
+        safe(request.form.get("name")),
+        safe(request.form.get("category")),
+        safe(request.form.get("location")),
+        safe(request.form.get("contact")),
+        safe(request.form.get("status")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO businesses(name,category,location,contact,status,notes,created_at) VALUES(?,?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("business_added", vals[0])
+    return redirect("/operations")
+
+
+@app.route("/add-creator", methods=["POST"])
+def add_creator():
+    vals = (
+        safe(request.form.get("name")),
+        safe(request.form.get("category")),
+        safe(request.form.get("country")),
+        safe(request.form.get("link")),
+        safe(request.form.get("bio")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO creators(name,category,country,link,bio,created_at) VALUES(?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("creator_added", vals[0])
+    return redirect("/operations")
+
+
+@app.route("/add-experience", methods=["POST"])
+def add_experience():
+    vals = (
+        safe(request.form.get("title")),
+        safe(request.form.get("location")),
+        safe(request.form.get("date_note")),
+        safe(request.form.get("category")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO experiences(title,location,date_note,category,notes,created_at) VALUES(?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("experience_added", vals[0])
+    return redirect("/operations")
+    @app.route("/add-delivery", methods=["POST"])
+def add_delivery():
+    vals = (
+        safe(request.form.get("customer")),
+        safe(request.form.get("pickup")),
+        safe(request.form.get("dropoff")),
+        safe(request.form.get("item")),
+        safe(request.form.get("transport")),
+        safe(request.form.get("status")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO delivery_bookings(customer,pickup,dropoff,item,transport,status,notes,created_at) VALUES(?,?,?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("delivery_added", vals[3])
+    return redirect("/operations")
+
+
+@app.route("/add-rider-driver", methods=["POST"])
+def add_rider_driver():
+    vals = (
+        safe(request.form.get("name")),
+        safe(request.form.get("role")),
+        safe(request.form.get("vehicle")),
+        safe(request.form.get("area")),
+        safe(request.form.get("status")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO riders_drivers(name,role,vehicle,area,status,notes,created_at) VALUES(?,?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("rider_driver_added", vals[0])
+    return redirect("/operations")
+
+
+@app.route("/add-sika", methods=["POST"])
+def add_sika():
+    try:
+        points = int(request.form.get("points") or 0)
+    except ValueError:
+        points = 0
+
+    vals = (
+        safe(request.form.get("name")),
+        safe(request.form.get("record_type")),
+        safe(request.form.get("value_note")),
+        points,
+        safe(request.form.get("status")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO sika_records(name,record_type,value_note,points,status,notes,created_at) VALUES(?,?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("sika_added", vals[0])
+    return redirect("/money")
+
+
+@app.route("/add-verification", methods=["POST"])
+def add_verification():
+    vals = (
+        safe(request.form.get("name")),
+        safe(request.form.get("level")),
+        safe(request.form.get("location")),
+        safe(request.form.get("status")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO verification_badges(name,level,location,status,notes,created_at) VALUES(?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("verification_added", vals[0])
+    return redirect("/identity")
+
+
+@app.route("/add-readiness", methods=["POST"])
+def add_readiness():
+    vals = (
+        safe(request.form.get("area")),
+        safe(request.form.get("request_type")),
+        safe(request.form.get("applicant")),
+        safe(request.form.get("location")),
+        safe(request.form.get("status")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO readiness_requests(area,request_type,applicant,location,status,notes,created_at) VALUES(?,?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("readiness_added", f"{vals[0]} / {vals[1]}")
+    return redirect("/command")
+
+
+@app.route("/command")
+def command():
+    con = db()
+
+    counts = {
+        "Records": con.execute("SELECT COUNT(*) c FROM records").fetchone()["c"],
+        "Businesses": con.execute("SELECT COUNT(*) c FROM businesses").fetchone()["c"],
+        "Creators": con.execute("SELECT COUNT(*) c FROM creators").fetchone()["c"],
+        "Experiences": con.execute("SELECT COUNT(*) c FROM experiences").fetchone()["c"],
+        "Deliveries": con.execute("SELECT COUNT(*) c FROM delivery_bookings").fetchone()["c"],
+        "Riders / Drivers": con.execute("SELECT COUNT(*) c FROM riders_drivers").fetchone()["c"],
+        "SIKA": con.execute("SELECT COUNT(*) c FROM sika_records").fetchone()["c"],
+        "Verification": con.execute("SELECT COUNT(*) c FROM verification_badges").fetchone()["c"],
+        "Readiness": con.execute("SELECT COUNT(*) c FROM readiness_requests").fetchone()["c"],
+    }
+
+    audits = con.execute("SELECT * FROM audit ORDER BY id DESC LIMIT 50").fetchall()
+    latest = con.execute("SELECT * FROM records ORDER BY id DESC LIMIT 30").fetchall()
+
+    con.close()
+
+    cards = "".join([
+        f"<div class='card'><div class='metric'>{v}</div><h2>{k}</h2></div>"
+        for k, v in counts.items()
+    ])
+
+    aud = "".join([
+        f"<tr><td>{a['created_at']}</td><td>{a['action']}</td><td>{a['detail']}</td></tr>"
+        for a in audits
+    ]) or "<tr><td colspan='3'>No audit logs yet.</td></tr>"
+
+    rec = "".join([
+        f"<tr><td>{r['created_at']}</td><td>{r['system']}</td><td>{r['module']}</td><td>{r['title']}</td><td>{r['status']}</td></tr>"
+        for r in latest
+    ]) or "<tr><td colspan='5'>No records yet.</td></tr>"
+
+    body = f"""
+<section class="hero">
+<h1>🎛 Command Center</h1>
+<p>Master dashboard. Records, audit, readiness, operations and launch signals.</p>
+</section>
+
+<section class="grid">
+{cards}
+</section>
+
+<h2>Latest Records</h2>
+<table>
+<tr><th>Time</th><th>System</th><th>Module</th><th>Title</th><th>Status</th></tr>
+{rec}
+</table>
+
+<h2>Audit Logs</h2>
+<table>
+<tr><th>Time</th><th>Action</th><th>Detail</th></tr>
+{aud}
+</table>
+"""
+
+    return layout("Command Center", body)
+
+@app.route("/join", methods=["GET", "POST"])
+def join():
+    if request.method == "POST":
+        vals = (
+            safe(request.form.get("nickname")),
+            safe(request.form.get("username")),
+            safe(request.form.get("email")),
+            safe(request.form.get("password")),
+            safe(request.form.get("postcode")),
+            safe(request.form.get("borough")),
+            safe(request.form.get("county")),
+            safe(request.form.get("country")),
+            safe(request.form.get("continent")),
+            safe(request.form.get("circle")),
+            now(),
+        )
+        con = db()
+        try:
+            con.execute("""
+                INSERT INTO members(
+                    nickname, username, email, password, postcode, borough,
+                    county, country, continent, circle, created_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+            """, vals)
+            con.commit()
+            session["member"] = vals[1]
+            audit("member_joined", vals[1])
+            con.close()
+            return redirect("/my-world")
+        except sqlite3.IntegrityError:
+            con.close()
+            return layout("Username Taken", "<section class='hero'><h1>Username already exists</h1><p>Go back and choose another username.</p></section>")
+
+    return layout("Join OAP", """
+<section class="hero">
+<h1>🌍 Join OAP</h1>
+<p>Create My World. Become a Legacy Maker.</p>
+</section>
+
+<div class="card">
+<form method="post">
+<input name="nickname" placeholder="Nickname" required>
+<input name="username" placeholder="Username" required>
+<input name="email" placeholder="Email optional">
+<input name="password" type="password" placeholder="Password" required>
+<input name="postcode" placeholder="Postcode">
+<input name="borough" placeholder="Borough">
+<input name="county" placeholder="County / Region">
+<input name="country" placeholder="Country">
+<input name="continent" placeholder="Continent">
+<select name="circle">
+<option>Community Member - Free</option>
+<option>Postcode Founder - £5</option>
+<option>Borough Builder - £10</option>
+<option>Country Champion - £25</option>
+</select>
+<button>Join OAP</button>
+</form>
+</div>
+""")
+
+
+@app.route("/enter", methods=["GET", "POST"])
+def enter():
+    if request.method == "POST":
+        username = safe(request.form.get("username"))
+        password = safe(request.form.get("password"))
+
+        con = db()
+        member = con.execute(
+            "SELECT * FROM members WHERE username=? AND password=?",
+            (username, password)
+        ).fetchone()
+        con.close()
+
+        if member:
+            session["member"] = username
+            audit("member_entered", username)
+            return redirect("/my-world")
+
+        return layout("Enter Failed", "<section class='hero'><h1>Enter failed</h1><p>Check username or password.</p></section>")
+
+    return layout("Enter My World", """
+<section class="hero">
+<h1>👤 Enter My World</h1>
+<p>Return to your OAP identity hub.</p>
+</section>
+
+<div class="card">
+<form method="post">
+<input name="username" placeholder="Username" required>
+<input name="password" type="password" placeholder="Password" required>
+<button>Enter My World</button>
+</form>
+</div>
+""")
+
+
+@app.route("/leave")
+def leave():
+    session.clear()
+    return redirect("/")
+
+
+@app.route("/my-world")
+def my_world():
+    username = session.get("member")
+    if not username:
+        return redirect("/enter")
+
+    con = db()
+    member = con.execute("SELECT * FROM members WHERE username=?", (username,)).fetchone()
+    con.close()
+
+    if not member:
+        session.clear()
+        return redirect("/enter")
+
+    return layout("My World", f"""
+<section class="hero">
+<h1>👤 My World</h1>
+<p>Welcome, <b>{member['nickname']}</b>.</p>
+<p>{member['postcode']} • {member['borough']} • {member['country']} • {member['continent']}</p>
+</section>
+
+<section class="grid">
+<div class="card"><h2>🏆 Circle</h2><p>{member['circle']}</p></div>
+<div class="card"><h2>⚡ Contribution Recorded</h2><p>Your actions become proof.</p></div>
+<div class="card"><h2>💎 SIKA Records</h2><p>Trust and value layer.</p></div>
+<div class="card"><h2>🌳 Family Tree</h2><p>Legacy and relationships.</p></div>
+<a class="card" href="/leave"><h2>Leave My World</h2><p>Sign out safely.</p></a>
+</section>
+""")
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000)),
+        debug=True
+    )
