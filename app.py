@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS records(
         created_at TEXT
     )
     """)
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS community_power(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     member TEXT,
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS community_power(
     created_at TEXT
 )
 """)
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS businesses(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS businesses(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS creators(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS creators(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS experiences(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS experiences(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS delivery_bookings(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         customer TEXT,
@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS delivery_bookings(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS riders_drivers(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS riders_drivers(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS sika_records(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS sika_records(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS verification_badges(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS verification_badges(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS readiness_requests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         area TEXT,
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS readiness_requests(
     )
     """)
 
-con.execute("""
+    con.execute("""
 CREATE TABLE IF NOT EXISTS audit(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         action TEXT,
