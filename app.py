@@ -1187,6 +1187,35 @@ def my_world():
 </section>
 """)
 if __name__ == "__main__":
+
+1188 """)
+
+@app.route("/messenger")
+def messenger():
+    ...
+
+@app.route("/send-message", methods=["POST"])
+def send_message():
+    ...
+
+@app.route("/mail")
+def mail():
+    ...
+
+@app.route("/send-mail", methods=["POST"])
+def send_mail():
+    ...
+
+@app.route("/notifications")
+def notifications():
+    ...
+
+@app.route("/add-notification", methods=["POST"])
+def add_notification():
+    ...
+
+1189 if __name__ == "__main__":
+1190     app.run(
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
