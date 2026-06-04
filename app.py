@@ -226,9 +226,8 @@ CREATE TABLE IF NOT EXISTS audit(
         created_at TEXT
     )
     """)
-
-     con.commit()
-     con.close()
+    con.commit()
+    con.close()
 
 init()
 
