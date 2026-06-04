@@ -1186,38 +1186,617 @@ def my_world():
 <a class="card" href="/leave"><h2>Leave My World</h2><p>Sign out safely.</p></a>
 </section>
 """)
-if __name__ == "__main__":
+con.execute("""
+CREATE TABLE IF NOT EXISTS dispatch_jobs(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer TEXT,
+    pickup TEXT,
+    dropoff TEXT,
+    item TEXT,
+    rider TEXT,
+    status TEXT,
+    created_at TEXT
+)
+""")
 
-1188 """)
+con.execute("""
+CREATE TABLE IF NOT EXISTS rider_status(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rider_name TEXT,
+    vehicle TEXT,
+    area TEXT,
+    status TEXT,
+    created_at TEXT
+)
+""")
+@app.route("/dispatch")
+def dispatch():
 
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM dispatch_jobs ORDER BY id DESC LIMIT 100"
+    ).fetchall()
+    con.close()
+
+    jobs = "".join([
+        f"<tr><td>{r['customer']}</td><td>{r['pickup']}</td><td>{r['dropoff']}</td><td>{r['status']}</td></tr>"
+        for r in rows
+    ])
+
+    return layout(
+        "Dispatch Board",
+        f"""
+        <section class='hero'>
+        <h1>🚚 Dispatch Board</h1>
+        <p>Bookings, deliveries and operations.</p>
+        </section>
+
+        <div class='card'>
+        <form method='post' action='/add-dispatch'>
+        <input name='customer' placeholder='Customer'>
+        <input name='pickup' placeholder='Pickup'>
+        <input name='dropoff' placeholder='Dropoff'>
+        <input name='item' placeholder='Item'>
+        <input name='rider' placeholder='Assigned Rider'>
+        <select name='status'>
+            <option>Pending</option>
+            <option>Assigned</option>
+            <option>Collected</option>
+            <option>Delivered</option>
+        </select>
+        <button>Create Booking</button>
+        </form>
+        </div>
+
+        <table>
+        <tr><th>Customer</th><th>Pickup</th><th>Dropoff</th><th>Status</th></tr>
+        {jobs}
+        </table>
+        """
+    )
+
+
+@app.route("/add-dispatch", methods=["POST"])
+def add_dispatch():
+
+    vals = (
+        safe(request.form.get("customer")),
+        safe(request.form.get("pickup")),
+        safe(request.form.get("dropoff")),
+        safe(request.form.get("item")),
+        safe(request.form.get("rider")),
+        safe(request.form.get("status")),
+        now(),
+    )
+
+    con = db()
+
+    con.execute("""
+    INSERT INTO dispatch_jobs(
+        customer,pickup,dropoff,item,rider,status,created_at
+    ) VALUES(?,?,?,?,?,?,?)
+    """, vals)
+
+    con.commit()
+    con.close()
+
+    return redirect("/dispatch")
 @app.route("/messenger")
 def messenger():
-    ...
+    con = db()
+    rows = con.execute("SELECT * FROM messages ORDER BY id DESC LIMIT 50").fetchall()
+    con.close()
+
+    table_rows = "".join([
+        f"<tr><td>{m['created_at']}</td><td>{m['sender']}</td><td>{m['receiver']}</td><td>{m['subject']}</td><td>{m['status']}</td></tr>"
+        for m in rows
+    ]) or "<tr><td colspan='5'>No messages yet.</td></tr>"
+
+    return layout("Messenger", f"""
+<section class="hero">
+<h1>💬 Messenger</h1>
+<p>OAP communication records. Human-first. Private-first.</p>
+</section>
+
+<div class="card">
+<form method="post" action="/send-message">
+<input name="sender" placeholder="From">
+<input name="receiver" placeholder="To">
+<input name="subject" placeholder="Subject">
+<textarea name="body" placeholder="Message"></textarea>
+<select name="status">
+<option>Draft</option>
+<option>Sent</option>
+<option>Review</option>
+</select>
+<button>Send Message</button>
+</form>
+</div>
+
+<h2>Messages</h2>
+<table>
+<tr><th>Time</th><th>From</th><th>To</th><th>Subject</th><th>Status</th></tr>
+{table_rows}
+</table>
+""")
+
 
 @app.route("/send-message", methods=["POST"])
 def send_message():
-    ...
+    vals = (
+        safe(request.form.get("sender")),
+        safe(request.form.get("receiver")),
+        safe(request.form.get("subject")),
+        safe(request.form.get("body")),
+        safe(request.form.get("status")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO messages(sender,receiver,subject,body,status,created_at) VALUES(?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("message_sent", f"{vals[0]} to {vals[1]}")
+    return redirect("/messenger")
+
 
 @app.route("/mail")
 def mail():
-    ...
+    con = db()
+    rows = con.execute("SELECT * FROM mail_items ORDER BY id DESC LIMIT 50").fetchall()
+    con.close()
+
+    table_rows = "".join([
+        f"<tr><td>{m['created_at']}</td><td>{m['folder']}</td><td>{m['sender']}</td><td>{m['receiver']}</td><td>{m['subject']}</td></tr>"
+        for m in rows
+    ]) or "<tr><td colspan='5'>No mail yet.</td></tr>"
+
+    return layout("OAP Mail", f"""
+<section class="hero">
+<h1>📧 OAP Mail</h1>
+<p>Inbox, sent, drafts and member communication records.</p>
+</section>
+
+<div class="card">
+<form method="post" action="/send-mail">
+<input name="sender" placeholder="From">
+<input name="receiver" placeholder="To">
+<input name="subject" placeholder="Subject">
+<textarea name="body" placeholder="Mail body"></textarea>
+<select name="folder">
+<option>Inbox</option>
+<option>Sent</option>
+<option>Draft</option>
+<option>Review</option>
+</select>
+<button>Record Mail</button>
+</form>
+</div>
+
+<h2>Mail Items</h2>
+<table>
+<tr><th>Time</th><th>Folder</th><th>From</th><th>To</th><th>Subject</th></tr>
+{table_rows}
+</table>
+""")
+
 
 @app.route("/send-mail", methods=["POST"])
 def send_mail():
-    ...
+    vals = (
+        safe(request.form.get("sender")),
+        safe(request.form.get("receiver")),
+        safe(request.form.get("subject")),
+        safe(request.form.get("body")),
+        safe(request.form.get("folder")),
+        now(),
+    )
+
+    con = db()
+    con.execute(
+        "INSERT INTO mail_items(sender,receiver,subject,body,folder,created_at) VALUES(?,?,?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("mail_recorded", f"{vals[0]} to {vals[1]}")
+    return redirect("/mail")
+
 
 @app.route("/notifications")
 def notifications():
-    ...
+    con = db()
+    rows = con.execute("SELECT * FROM notifications ORDER BY id DESC LIMIT 50").fetchall()
+    con.close()
+
+    table_rows = "".join([
+        f"<tr><td>{n['created_at']}</td><td>{n['title']}</td><td>{n['status']}</td><td>{n['body']}</td></tr>"
+        for n in rows
+    ]) or "<tr><td colspan='4'>No notifications yet.</td></tr>"
+
+    return layout("Notifications", f"""
+<section class="hero">
+<h1>🔔 Notifications</h1>
+<p>OAP alerts, system updates and community notices.</p>
+</section>
+
+<div class="card">
+<form method="post" action="/add-notification">
+<input name="title" placeholder="Notification title">
+<textarea name="body" placeholder="Notification body"></textarea>
+<select name="status">
+<option>Draft</option>
+<option>Active</option>
+<option>Review</option>
+<option>Archived</option>
+</select>
+<button>Notification Recorded</button>
+</form>
+</div>
+
+<h2>Notifications</h2>
+<table>
+<tr><th>Time</th><th>Title</th><th>Status</th><th>Body</th></tr>
+{table_rows}
+</table>
+""")
+
 
 @app.route("/add-notification", methods=["POST"])
 def add_notification():
-    ...
+    vals = (
+        safe(request.form.get("title")),
+        safe(request.form.get("body")),
+        safe(request.form.get("status")),
+        now(),
+    )
 
-1189 if __name__ == "__main__":
-1190     app.run(
+    con = db()
+    con.execute(
+        "INSERT INTO notifications(title,body,status,created_at) VALUES(?,?,?,?)",
+        vals
+    )
+    con.commit()
+    con.close()
+
+    audit("notification_added", vals[0])
+    return redirect("/notifications")
+@app.route("/navigation-hub")
+def navigation_hub():
+
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM navigation_routes ORDER BY id DESC LIMIT 100"
+    ).fetchall()
+    con.close()
+
+    routes = "".join([
+        f"<tr><td>{r['start_point']}</td><td>{r['destination']}</td><td>{r['transport_type']}</td><td>{r['status']}</td></tr>"
+        for r in rows
+    ])
+
+    return layout(
+        "Navigation Hub",
+        f"""
+<section class='hero'>
+<h1>🧭 Navigation Hub</h1>
+<p>Community routes, logistics and movement records.</p>
+</section>
+
+<div class='card'>
+<form method='post' action='/add-route'>
+<input name='start_point' placeholder='Start'>
+<input name='destination' placeholder='Destination'>
+<input name='transport_type' placeholder='Transport'>
+<select name='status'>
+<option>Planned</option>
+<option>Active</option>
+<option>Completed</option>
+</select>
+<button>Create Route</button>
+</form>
+</div>
+
+<table>
+<tr><th>Start</th><th>Destination</th><th>Transport</th><th>Status</th></tr>
+{routes}
+</table>
+"""
+    )
+
+
+@app.route("/add-route", methods=["POST"])
+def add_route():
+
+    vals = (
+        safe(request.form.get("start_point")),
+        safe(request.form.get("destination")),
+        safe(request.form.get("transport_type")),
+        safe(request.form.get("status")),
+        now(),
+    )
+
+    con = db()
+
+    con.execute("""
+    INSERT INTO navigation_routes(
+        start_point,destination,transport_type,status,created_at
+    ) VALUES(?,?,?,?,?)
+    """, vals)
+
+    con.commit()
+    con.close()
+
+    return redirect("/navigation-hub")@app.route("/maps-hub")
+def maps_hub():
+
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM map_places ORDER BY id DESC LIMIT 100"
+    ).fetchall()
+    con.close()
+
+    places = "".join([
+        f"<tr><td>{r['place_name']}</td><td>{r['category']}</td><td>{r['location']}</td></tr>"
+        for r in rows
+    ])
+
+    return layout(
+        "Maps Hub",
+        f"""
+<section class='hero'>
+<h1>🗺 Maps Hub</h1>
+<p>Places, businesses, landmarks and communities.</p>
+</section>
+
+<div class='card'>
+<form method='post' action='/add-place'>
+<input name='place_name' placeholder='Place Name'>
+<input name='category' placeholder='Category'>
+<input name='location' placeholder='Location'>
+<textarea name='notes'></textarea>
+<button>Add Place</button>
+</form>
+</div>
+
+<table>
+<tr><th>Name</th><th>Category</th><th>Location</th></tr>
+{places}
+</table>
+"""
+    )
+
+
+@app.route("/add-place", methods=["POST"])
+def add_place():
+
+    vals = (
+        safe(request.form.get("place_name")),
+        safe(request.form.get("category")),
+        safe(request.form.get("location")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+
+    con.execute("""
+    INSERT INTO map_places(
+        place_name,category,location,notes,created_at
+    ) VALUES(?,?,?,?,?)
+    """, vals)
+
+    con.commit()
+    con.close()
+
+    return redirect("/maps-hub")@app.route("/weather-hub")
+def weather_hub():
+
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM weather_records ORDER BY id DESC LIMIT 50"
+    ).fetchall()
+    con.close()
+
+    weather = "".join([
+        f"<tr><td>{r['location']}</td><td>{r['condition']}</td><td>{r['temperature']}</td></tr>"
+        for r in rows
+    ])
+
+    return layout(
+        "Weather Hub",
+        f"""
+<section class='hero'>
+<h1>🌦 Weather Hub</h1>
+<p>Postcode → Borough → Country → Global weather records.</p>
+</section>
+
+<div class='card'>
+<form method='post' action='/add-weather'>
+<input name='location' placeholder='Location'>
+<input name='condition' placeholder='Condition'>
+<input name='temperature' placeholder='Temperature'>
+<textarea name='notes'></textarea>
+<button>Record Weather</button>
+</form>
+</div>
+
+<table>
+<tr><th>Location</th><th>Condition</th><th>Temperature</th></tr>
+{weather}
+</table>
+"""
+    )
+
+
+@app.route("/add-weather", methods=["POST"])
+def add_weather():
+
+    vals = (
+        safe(request.form.get("location")),
+        safe(request.form.get("condition")),
+        safe(request.form.get("temperature")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+
+    con.execute("""
+    INSERT INTO weather_records(
+        location,condition,temperature,notes,created_at
+    ) VALUES(?,?,?,?,?)
+    """, vals)
+
+    con.commit()
+    con.close()
+
+    return redirect("/weather-hub")
+
+@app.route("/maps-hub")
+def maps_hub():
+
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM map_places ORDER BY id DESC LIMIT 100"
+    ).fetchall()
+    con.close()
+
+    places = "".join([
+        f"<tr><td>{r['place_name']}</td><td>{r['category']}</td><td>{r['location']}</td></tr>"
+        for r in rows
+    ])
+
+    return layout(
+        "Maps Hub",
+        f"""
+<section class='hero'>
+<h1>🗺 Maps Hub</h1>
+<p>Places, landmarks, communities and businesses.</p>
+</section>
+
+<div class='card'>
+<form method='post' action='/add-place'>
+<input name='place_name' placeholder='Place'>
+<input name='category' placeholder='Category'>
+<input name='location' placeholder='Location'>
+<textarea name='notes'></textarea>
+<button>Add Place</button>
+</form>
+</div>
+
+<table>
+<tr>
+<th>Name</th>
+<th>Category</th>
+<th>Location</th>
+</tr>
+{places}
+</table>
+"""
+    )
+
+
+@app.route("/add-place", methods=["POST"])
+def add_place():
+
+    vals = (
+        safe(request.form.get("place_name")),
+        safe(request.form.get("category")),
+        safe(request.form.get("location")),
+        safe(request.form.get("notes")),
+        now(),
+    )
+
+    con = db()
+
+    con.execute("""
+    INSERT INTO map_places(
+        place_name,category,location,notes,created_at
+    ) VALUES(?,?,?,?,?)
+    """, vals)
+
+    con.commit()
+    con.close()
+
+    return redirect("/maps-hub")
+    @app.route("/navigation-hub")
+def navigation_hub():
+
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM navigation_routes ORDER BY id DESC LIMIT 100"
+    ).fetchall()
+    con.close()
+
+    routes = "".join([
+        f"<tr><td>{r['start_point']}</td><td>{r['destination']}</td><td>{r['transport_type']}</td><td>{r['status']}</td></tr>"
+        for r in rows
+    ])
+
+    return layout(
+        "Navigation Hub",
+        f"""
+<section class='hero'>
+<h1>🧭 Navigation Hub</h1>
+<p>Community routes, logistics and movement records.</p>
+</section>
+
+<div class='card'>
+<form method='post' action='/add-route'>
+<input name='start_point' placeholder='Start'>
+<input name='destination' placeholder='Destination'>
+<input name='transport_type' placeholder='Transport'>
+<select name='status'>
+<option>Planned</option>
+<option>Active</option>
+<option>Completed</option>
+</select>
+<button>Create Route</button>
+</form>
+</div>
+
+<table>
+<tr><th>Start</th><th>Destination</th><th>Transport</th><th>Status</th></tr>
+{routes}
+</table>
+"""
+    )
+
+
+@app.route("/add-route", methods=["POST"])
+def add_route():
+
+    vals = (
+        safe(request.form.get("start_point")),
+        safe(request.form.get("destination")),
+        safe(request.form.get("transport_type")),
+        safe(request.form.get("status")),
+        now(),
+    )
+
+    con = db()
+
+    con.execute("""
+    INSERT INTO navigation_routes(
+        start_point,destination,transport_type,status,created_at
+    ) VALUES(?,?,?,?,?)
+    """, vals)
+
+    con.commit()
+    con.close()
+
+    return redirect("/navigation-hub")
+
+
+if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
         debug=True
-    )
+)
