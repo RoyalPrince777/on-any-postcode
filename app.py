@@ -94,12 +94,6 @@ def init():
 
     con.execute("""
     CREATE TABLE IF NOT EXISTS records(
-    )
-    """)):
-    con = db()
-
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS records(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         system TEXT,
         module TEXT,
