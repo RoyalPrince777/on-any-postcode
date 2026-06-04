@@ -116,8 +116,8 @@ CREATE TABLE IF NOT EXISTS community_power(
     created_at TEXT
 )
 """)
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS businesses(
+con.execute("""
+CREATE TABLE IF NOT EXISTS businesses(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         category TEXT,
