@@ -1843,7 +1843,8 @@ def add_place():
     con.commit()
     con.close()
 
-return redirect("/maps-hub")
+    return redirect("/maps-hub")
+
 @app.route("/navigation-hub")
 def navigation_hub():
 
