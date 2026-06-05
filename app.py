@@ -967,7 +967,6 @@ LW                     RW
 <section class='grid'>{tab_cards}</section>
 """
 )
-)
 
 @app.route("/hrm/council")
 def hrm_council():
