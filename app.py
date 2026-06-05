@@ -994,6 +994,37 @@ def hrm_council():
 """
     )
 
+    @app.route("/world-cup/tournament")
+def worldcup_tournament():
+    sections = [
+        ("📊 Group Tables", "12 groups. P W D L GF GA GD PTS."),
+        ("⚽ Fixtures", "Upcoming, live and completed matches."),
+        ("🔥 Knockout Stage", "Round of 32 to semi-finals."),
+        ("🥉 Third Place", "Third place match board."),
+        ("👑 Final", "World Cup final command board."),
+        ("🏟 Stadiums", "Host cities, stadiums, capacity and weather."),
+        ("🧠 HRM Notes", "Tournament signals, lessons, risks and memory.")
+    ]
+
+    cards = "".join([
+        f"<div class='card'><h2>{title}</h2><p>{desc}</p></div>"
+        for title, desc in sections
+    ])
+
+    return layout(
+        "Tournament Center",
+        f"""
+<section class='hero'>
+<h1>🏆 World Cup Tournament Center</h1>
+<p>Groups, tables, fixtures, knockouts, stadiums, final and HRM tournament memory.</p>
+</section>
+
+<section class='grid'>
+{cards}
+</section>
+"""
+)
+
 @app.route("/add-record", methods=["POST"])
 @app.route("/add-record", methods=["POST"])
 def add_record():
