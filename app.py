@@ -388,7 +388,9 @@ td,th {{
 <main>{body}</main>
 <footer>
   <footer>
-  🌍 ON ANY POSTCODE — ✨️👑Born Local🔥💨🚀✨️Built Global💎💦 EARTH IS OUR TURF. One Race. Human Race.
+  <footer>
+  🌍 ON ANY POSTCODE — Born Local. Built Global. EARTH IS OUR TURF. One Race. Human Race.
+</footer>
 </footer>.
 </footer>
 </body>
