@@ -491,7 +491,7 @@ def system_page(system):
         data[0],
         f"<section class='hero'><h1>{data[0]}</h1><p>{data[1]}</p></section>"
         f"<section class='grid'>{cards}</section>"
-    )      ""
+    )
 
 @app.route("/<system>/<module>")
 def module_page(system, module):
