@@ -21,7 +21,7 @@ SYSTEMS = {
 }
 
 MODULES = {
-    "world": ["News", "Events", "Explorer", "Countries", "Community Power", "OAP Movement", "Legacy Makers"],
+    "world": ["OAP Signals", "Experiences", "Explorer", "Country Spaces", "World Cup 2026", "Community Power", "OAP Movement", "Legacy Makers"],
     "identity": ["Join OAP", "Enter My World", "Profile", "Family Tree", "Awards", "Verification", "SIKA Records"],
     "intelligence": ["HRM", "Review Core", "Agents", "Neo Team", "Animal Team", "Command Center", "Risk Register", "Decision Log"],
     "money": ["SIKA Dashboard", "Contribution Records", "Trust Records", "Wallet Readiness", "Card Readiness", "Deposit Requests", "Finance Compliance"],
@@ -44,8 +44,7 @@ AGENTS = [
     "Elephant", "Owl", "Panther", "Dolphin", "Horse", "Stag"
 ]
 
-TEAMS = [(f"slot-{i:02d}", f"Team Slot {i:02d}") for i in range(1, 49)]
-
+TEAMS = [(f"team-{i:02d}", f"World Cup Team Space {i:02d}") for i in range(1, 49)]
 OAP_FLAG_NUMBER = 13
 OAP_FLAG_LINE = "13 = OAP Flag / Crown Signal"
 
