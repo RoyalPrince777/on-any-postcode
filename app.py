@@ -967,6 +967,35 @@ LW                     RW
 <section class='grid'>{tab_cards}</section>
 """
 )
+)
+
+@app.route("/hrm/council")
+def hrm_council():
+    cards = "".join([
+        f"<div class='card'><h2>{name}</h2><p>{role}</p></div>"
+        for name, role in COUNCIL_AGENTS
+    ])
+
+    return layout(
+        "HRM Council",
+        f"""
+<section class='hero'>
+<h1>👑 HRM Council</h1>
+<p>God layer, founder approval, advice agents, Neo team, animal team, HRM memory and Local AI.</p>
+</section>
+
+<section class='grid'>
+{cards}
+</section>
+
+<div class='card'>
+<h2>Build Law</h2>
+<p>Bee collects. HRM records. Local AI summarises. Council reviews. Founder approves.</p>
+</div>
+"""
+    )
+
+@app.route("/add-record", methods=["POST"])
 @app.route("/add-record", methods=["POST"])
 def add_record():
     vals = (
