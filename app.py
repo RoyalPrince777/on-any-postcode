@@ -1890,8 +1890,7 @@ def navigation_hub_2():
 
 
 @app.route("/add-route", methods=["POST"])
-def add_route():
-
+def add_route_2():
     vals = (
         safe(request.form.get("start_point")),
         safe(request.form.get("destination")),
