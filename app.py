@@ -462,9 +462,6 @@ def contribution_form(system, module="General"):
 </form>
 </div>
 """
-    
-<
-
 
 @app.route("/")
 def home():
