@@ -45,7 +45,6 @@ AGENTS = [
 ]
 
 TEAMS = [
-]
 ("algeria","🇩🇿 Algeria"),
 ("argentina","🇦🇷 Argentina"),
 ("australia","🇦🇺 Australia"),
