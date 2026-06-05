@@ -19,7 +19,6 @@ SYSTEMS = {
     "culture": ("🎭 Culture", "Music, media, sports, education, countries, international song."),
     "trust": ("🛡 Trust", "Privacy, safety, compliance, verification, audit."),
 }
-a
 
 MODULES = {
     "world": ["OAP Signals", "Experiences", "Explorer", "Country Spaces", "World Cup 2026", "Community Power", "OAP Movement", "Legacy Makers"],
