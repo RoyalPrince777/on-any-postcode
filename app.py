@@ -46,6 +46,9 @@ AGENTS = [
 
 TEAMS = [(f"slot-{i:02d}", f"Team Slot {i:02d}") for i in range(1, 49)]
 
+OAP_FLAG_NUMBER = 13
+OAP_FLAG_LINE = "13 = OAP Flag / Crown Signal"
+
 
 def now():
     return datetime.utcnow().isoformat(timespec="seconds")
