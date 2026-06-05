@@ -19,6 +19,7 @@ SYSTEMS = {
     "culture": ("🎭 Culture", "Music, media, sports, education, countries, international song."),
     "trust": ("🛡 Trust", "Privacy, safety, compliance, verification, audit."),
 }
+a
 
 MODULES = {
     "world": ["OAP Signals", "Experiences", "Explorer", "Country Spaces", "World Cup 2026", "Community Power", "OAP Movement", "Legacy Makers"],
@@ -44,7 +45,20 @@ AGENTS = [
     "Elephant", "Owl", "Panther", "Dolphin", "Horse", "Stag"
 ]
 
-TEAMS = [(f"team-{i:02d}", f"World Cup Team Space {i:02d}") for i in range(1, 49)]
+TEAMS = [
+("argentina","🇦🇷 Argentina"),("brazil","🇧🇷 Brazil"),("uruguay","🇺🇾 Uruguay"),("colombia","🇨🇴 Colombia"),
+("ecuador","🇪🇨 Ecuador"),("paraguay","🇵🇾 Paraguay"),("usa","🇺🇸 USA"),("canada","🇨🇦 Canada"),
+("mexico","🇲🇽 Mexico"),("costa-rica","🇨🇷 Costa Rica"),("panama","🇵🇦 Panama"),("jamaica","🇯🇲 Jamaica"),
+("england","🏴 England"),("france","🇫🇷 France"),("spain","🇪🇸 Spain"),("portugal","🇵🇹 Portugal"),
+("germany","🇩🇪 Germany"),("italy","🇮🇹 Italy"),("netherlands","🇳🇱 Netherlands"),("belgium","🇧🇪 Belgium"),
+("croatia","🇭🇷 Croatia"),("switzerland","🇨🇭 Switzerland"),("denmark","🇩🇰 Denmark"),("serbia","🇷🇸 Serbia"),
+("poland","🇵🇱 Poland"),("ukraine","🇺🇦 Ukraine"),("ghana","🇬🇭 Ghana"),("nigeria","🇳🇬 Nigeria"),
+("morocco","🇲🇦 Morocco"),("senegal","🇸🇳 Senegal"),("egypt","🇪🇬 Egypt"),("cameroon","🇨🇲 Cameroon"),
+("ivory-coast","🇨🇮 Ivory Coast"),("south-africa","🇿🇦 South Africa"),("algeria","🇩🇿 Algeria"),
+("japan","🇯🇵 Japan"),("south-korea","🇰🇷 South Korea"),("australia","🇦🇺 Australia"),("iran","🇮🇷 Iran"),
+("saudi-arabia","🇸🇦 Saudi Arabia"),("qatar","🇶🇦 Qatar"),("uzbekistan","🇺🇿 Uzbekistan"),("iraq","🇮🇶 Iraq"),
+("new-zealand","🇳🇿 New Zealand"),("tunisia","🇹🇳 Tunisia"),("mali","🇲🇱 Mali"),("venezuela","🇻🇪 Venezuela")
+]
 OAP_FLAG_NUMBER = 13
 OAP_FLAG_LINE = "13 = OAP Flag / Crown Signal"
 
