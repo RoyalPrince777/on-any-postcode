@@ -756,7 +756,7 @@ def readiness_form(area):
 @app.route("/world-cup")
 def worldcup():
     cards = "".join([
-        f"<a class='card' href='/world-cup/team/{s}'><h2>{n}</h2><p>Team space.</p></a>"
+        f"<a class='card' href='/world-cup/team/{s}'><h2>{n}</h2><p>⚽ Team hub ready</p></a>"
         for s, n in TEAMS
     ])
 
@@ -774,16 +774,38 @@ def worldcup():
 
 @app.route("/world-cup/team/<team>")
 def team(team):
+    team_name = dict(TEAMS).get(team, team)
+
+    features = [
+        "⚡ Match Signals",
+        "🎵 National Anthem",
+        "🎭 Culture",
+        "🎪 Watch Parties",
+        "🏪 Business Offers",
+        "👤 Creator Reactions",
+        "🏆 Awards",
+        "📊 Fixtures / Results",
+        "🧠 HRM Notes"
+    ]
+
+    cards = "".join([
+        f"<div class='card'><h2>{f}</h2><p>{team_name} World Cup layer.</p></div>"
+        for f in features
+    ])
+
     return layout(
-        team,
+        team_name,
         f"""
 <section class='hero'>
-<h1>{team}</h1>
-<p>Team hub, music, fixtures, community voice, watch parties.</p>
+<h1>{team_name}</h1>
+<p>World Cup 2026 team hub.</p>
 </section>
-{contribution_form('culture', team)}
+
+<section class='grid'>
+{cards}
+</section>
 """
-    )
+)
 
 
 @app.route("/add-record", methods=["POST"])
