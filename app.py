@@ -1714,7 +1714,7 @@ def add_place_old():
     con.close()
 
     return redirect("/maps-hub")
-    @app.route("/weather-hub")
+@app.route("/weather-hub")
 def weather_hub():
 
     con = db()
