@@ -779,6 +779,7 @@ def country_spaces():
 <section class='grid'>{cards}</section>
 """
 )
+
 @app.route("/world-cup")
 def worldcup():
     cards = "".join([
