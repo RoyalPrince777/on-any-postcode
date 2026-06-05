@@ -387,7 +387,9 @@ td,th {{
 </header>
 <main>{body}</main>
 <footer>
-  ⚡ Contribution Recorded. 💎 Value Manifested. 🤝 Trust Earned. 🏆 Legacy Recorded.
+  <footer>
+  🌍 ON ANY POSTCODE — ✨️👑Born Local🔥💨🚀✨️Built Global💎💦 EARTH IS OUR TURF. One Race. Human Race.
+</footer>.
 </footer>
 </body>
 </html>"""
