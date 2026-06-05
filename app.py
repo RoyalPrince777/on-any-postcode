@@ -432,39 +432,11 @@ def record_table(rows):
 </table>
 """
 
-
 def contribution_form(system, module="General"):
-    return f"""
-<div class="card">
-<h2>Post to OAP</h2>
-<form method="post" action="/add-record">
-<input type="hidden" name="system" value="{system}">
-<input type="hidden" name="module" value="{module}">
-<input name="title" placeholder="Title / idea / action / request" required>
-<input name="name" placeholder="Name / person / business / creator / team">
-<input name="location" placeholder="Postcode / borough / country / global">
-<select name="category">
-<option>Post</option>
-<option>Community</option>
-<option>Business</option>
-<option>Event</option>
-<option>Creator</option>
-<option>Request</option>
-<option>Review</option>
-</select>
-<select name="status">
-<option>Live</option>
-<option>Open</option>
-<option>Active</option>
-<option>Review</option>
-<option>Ready</option>
-<option>Blocked</option>
-</select>
-<textarea name="notes" placeholder="Write your post, request, idea, update, proof, or next action"></textarea>
-<button>Post</button>
-</form>
-</div>
-"""
+    return ""
+
+@app.route("/")
+def home():
 
 @app.route("/")
 def home():
@@ -519,8 +491,7 @@ def system_page(system):
         data[0],
         f"<section class='hero'><h1>{data[0]}</h1><p>{data[1]}</p></section>"
         f"<section class='grid'>{cards}</section>"
-        f"{special_forms(system)}"
-        f"<h2>Latest Records</h2>{record_table(get_records(system=system))}"
+        f"{simple_system_extra(system)}"}"
     )
 
 
@@ -530,8 +501,7 @@ def module_page(system, module):
     return layout(
         title,
         f"<section class='hero'><h1>{title}</h1><p>{system.title()} module.</p></section>"
-        f"{contribution_form(system, title)}"
-        f"<h2>Latest Records</h2>{record_table(get_records(system, title))}"
+        f"<div class='card'><h2>Coming next</h2><p>This page is being shaped into a simple OAP experience.</p></div>"
 )
 def special_forms(system):
     forms = contribution_form(system)
