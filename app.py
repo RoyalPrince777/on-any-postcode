@@ -994,7 +994,7 @@ def hrm_council():
 """
     )
 
-    @app.route("/world-cup/tournament")
+@app.route("/world-cup/tournament")
 def worldcup_tournament():
     sections = [
         ("📊 Group Tables", "12 groups. P W D L GF GA GD PTS."),
