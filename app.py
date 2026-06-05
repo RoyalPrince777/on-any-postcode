@@ -1847,8 +1847,7 @@ def add_place_2():
     return redirect("/maps-hub")
 
 @app.route("/navigation-hub")
-def navigation_hub():
-
+def navigation_hub_2():
     con = db()
     rows = con.execute(
         "SELECT * FROM navigation_routes ORDER BY id DESC LIMIT 100"
