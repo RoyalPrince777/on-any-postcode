@@ -872,7 +872,7 @@ def add_record():
         safe(request.form.get("status")),
         safe(request.form.get("notes")),
         now(),
-    )1
+    )
 
     con = db()
     con.execute(
