@@ -491,7 +491,7 @@ def system_page(system):
         data[0],
         f"<section class='hero'><h1>{data[0]}</h1><p>{data[1]}</p></section>"
         f"<section class='grid'>{cards}</section>"
-        f"{simple_system_extra(system)}"}"
+        f"f"{special_forms(system)}"
     )
 
 
@@ -504,8 +504,7 @@ def module_page(system, module):
         f"<div class='card'><h2>Coming next</h2><p>This page is being shaped into a simple OAP experience.</p></div>"
 )
 def special_forms(system):
-    forms = contribution_form(system)
-
+    forms = ""
     if system == "operations":
         forms += business_form()
         forms += creator_form()
