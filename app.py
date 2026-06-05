@@ -427,7 +427,11 @@ def record_table(rows):
 <tr><th>Time</th><th>System</th><th>Module</th><th>Title</th><th>Status</th><th>Notes</th></tr>
 {body}
 </table>
+"""
 
+
+def contribution_form(system, module="General"):
+    return f"""
 <div class="card">
 <h2>Post to OAP</h2>
 <form method="post" action="/add-record">
@@ -459,37 +463,7 @@ def record_table(rows):
 </div>
 """
     
-<div class="card">
-<h2>⚡ Contribution Record</h2>
-<form method="post" action="/add-record">
-<input type="hidden" name="system" value="{system}">
-<input type="hidden" name="module" value="{module}">
-<input name="title" placeholder="Title / idea / action / request" required>
-<input name="name" placeholder="Name / person / business / creator / team">
-<input name="location" placeholder="Postcode / borough / country / global">
-<select name="category">
-<option>Contribution Recorded</option>
-<option>Value Manifested</option>
-<option>Trust Earned</option>
-<option>Legacy Recorded</option>
-<option>Request</option>
-<option>Readiness</option>
-<option>Review</option>
-</select>
-<select name="status">
-<option>Idea</option>
-<option>Request Recorded</option>
-<option>Review</option>
-<option>Manual Approval Needed</option>
-<option>Ready</option>
-<option>Active Record</option>
-<option>Blocked</option>
-</select>
-<textarea name="notes" placeholder="Notes, proof, safety check, provider/legal/compliance status, next action"></textarea>
-<button>Contribution Recorded</button>
-</form>
-</div>
-"""
+<
 
 
 @app.route("/")
@@ -525,7 +499,6 @@ Banking, deposits, cards, e-money, telecom/eSIM activation, taxi/private-hire an
 <section class="grid">{cards}</section>
 """
     return layout("OAP Architecture v12", body)
-
 
 @app.route("/<system>")
 def system_page(system):
