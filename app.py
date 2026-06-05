@@ -437,9 +437,6 @@ def contribution_form(system, module="General"):
 
 @app.route("/")
 def home():
-
-@app.route("/")
-def home():
     cards = "".join([
         f"<a class='card' href='/{k}'><h2>{v[0]}</h2><p>{v[1]}</p></a>"
         for k, v in SYSTEMS.items()
