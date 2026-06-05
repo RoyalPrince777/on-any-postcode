@@ -1823,8 +1823,7 @@ def maps_hub():
 
 
 @app.route("/add-place", methods=["POST"])
-def add_place():
-
+def add_place_2():
     vals = (
         safe(request.form.get("place_name")),
         safe(request.form.get("category")),
