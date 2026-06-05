@@ -860,6 +860,75 @@ def hrm_local_ai():
 <section class='grid'>{summary}</section>
 """
 )
+@app.route("/world-cup/match/<home>/<away>")
+def match_command(home, away):
+    home_name = dict(TEAMS).get(home, home)
+    away_name = dict(TEAMS).get(away, away)
+
+    tabs = [
+        "🏟 Stadium",
+        "⚔️ Pitch",
+        "⚽ Fixtures",
+        "👔 Manager",
+        "👥 Squad",
+        "🎵 Anthem",
+        "🎭 Culture",
+        "🎪 Watch Parties",
+        "🏪 Business",
+        "👤 Creators",
+        "🏆 Awards",
+        "🧠 HRM"
+    ]
+
+    tab_cards = "".join([
+        f"<div class='card'><h2>{tab}</h2><p>{home_name} vs {away_name} board.</p></div>"
+        for tab in tabs
+    ])
+
+    pitch = f"""
+<div class='card'>
+<h2>⚔️ Versus Pitch Board</h2>
+<pre style='white-space:pre-wrap;text-align:center;font-size:14px;line-height:1.45'>
+{away_name}
+
+      ST         ST
+
+LW                     RW
+
+      CM     CM
+
+         CM
+
+LB  CB   CB   RB
+
+════════ VS ════════
+
+LB  CB   CB   RB
+
+         CM
+
+      CM     CM
+
+LW                     RW
+
+         ST
+
+{home_name}
+</pre>
+</div>
+"""
+
+    return layout(
+        f"{home_name} vs {away_name}",
+        f"""
+<section class='hero'>
+<h1>⚔️ {home_name} vs {away_name}</h1>
+<p>Match Command Center. Stadium, pitch, fixtures, manager, squad, anthem, culture, business and HRM.</p>
+</section>
+{pitch}
+<section class='grid'>{tab_cards}</section>
+"""
+)
 @app.route("/add-record", methods=["POST"])
 def add_record():
     vals = (
