@@ -1188,6 +1188,7 @@ def my_world():
 <a class="card" href="/leave"><h2>Leave My World</h2><p>Sign out safely.</p></a>
 </section>
 """)
+con = db()
 con.execute("""
 CREATE TABLE IF NOT EXISTS dispatch_jobs(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1211,6 +1212,8 @@ CREATE TABLE IF NOT EXISTS rider_status(
     created_at TEXT
 )
 """)
+con.commit()
+con.close()
 @app.route("/dispatch")
 def dispatch():
 
