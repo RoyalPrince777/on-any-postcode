@@ -58,7 +58,7 @@ TEAMS = [
 ("denmark","🇩🇰 Denmark"),
 ("ecuador","🇪🇨 Ecuador"),
 ("egypt","🇪🇬 Egypt"),
-("england","🇬🇧 England"),
+("england","🏴󠁧󠁢󠁥󠁮󠁧󠁿 England"),
 ("france","🇫🇷 France"),
 ("germany","🇩🇪 Germany"),
 ("ghana","🇬🇭 Ghana"),
