@@ -45,14 +45,6 @@ AGENTS = [
 ]
 
 TEAMS = [
-    CONTINENTS = [
-("africa","🌍 Africa"),
-("europe","🌍 Europe"),
-("asia","🌏 Asia"),
-("north-america","🌎 North America"),
-("south-america","🌎 South America"),
-("caribbean","🏝 Caribbean"),
-("oceania","🌊 Oceania")
 ]
 ("algeria","🇩🇿 Algeria"),
 ("argentina","🇦🇷 Argentina"),
@@ -101,6 +93,15 @@ TEAMS = [
 ("usa","🇺🇸 USA"),
 ("uzbekistan","🇺🇿 Uzbekistan"),
 ("venezuela","🇻🇪 Venezuela"),
+]
+CONTINENTS = [
+("africa","🌍 Africa"),
+("europe","🌍 Europe"),
+("asia","🌏 Asia"),
+("north-america","🌎 North America"),
+("south-america","🌎 South America"),
+("caribbean","🏝 Caribbean"),
+("oceania","🌊 Oceania")
 ]
 OAP_FLAG_NUMBER = 13
 OAP_FLAG_LINE = "13 = OAP Flag / Crown Signal"
