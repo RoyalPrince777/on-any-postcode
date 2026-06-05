@@ -482,10 +482,10 @@ Banking, deposits, cards, e-money, telecom/eSIM activation, taxi/private-hire an
 </section>
 
 <section class="grid">
-<div class="card"><div class="metric">⚡</div><h2>Contribution Recorded</h2></div>
-<div class="card"><div class="metric">💎</div><h2>Value Manifested</h2></div>
-<div class="card"><div class="metric">🤝</div><h2>Trust Earned</h2></div>
-<div class="card"><div class="metric">🏆</div><h2>Legacy Recorded</h2></div>
+<div class="card"><div class="metric">⚡</div><h2>Community</h2></div>
+<div class="card"><div class="metric">💎</div><h2>Culture</h2></div>
+<div class="card"><div class="metric">🤝</div><h2>Business</h2></div>
+<div class="card"><div class="metric">🏆</div><h2>Events</h2></div>
 <div class="card"><div class="metric">🚚</div><h2>Operations Ready</h2></div>
 <div class="card"><div class="metric">📶</div><h2>Infrastructure Ready</h2></div>
 <div class="card"><div class="metric">🧠</div><h2>Intelligence Ready</h2></div>
