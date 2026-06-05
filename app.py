@@ -762,7 +762,23 @@ def readiness_form(area):
 </div>
 """
 
+@app.route("/world/country-spaces")
+def country_spaces():
+    cards = "".join([
+        f"<a class='card' href='/world/country-spaces/{s}'><h2>{n}</h2><p>Country spaces, culture and World Cup links.</p></a>"
+        for s, n in CONTINENTS
+    ])
 
+    return layout(
+        "Country Spaces",
+        f"""
+<section class='hero'>
+<h1>🌍 Country Spaces</h1>
+<p>Postcode → Country → Continent → World.</p>
+</section>
+<section class='grid'>{cards}</section>
+"""
+)
 @app.route("/world-cup")
 def worldcup():
     cards = "".join([
