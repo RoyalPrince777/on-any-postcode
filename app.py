@@ -105,7 +105,45 @@ CONTINENTS = [
 OAP_FLAG_NUMBER = 13
 OAP_FLAG_LINE = "13 = OAP Flag / Crown Signal"
 
+COUNCIL_AGENTS = [
+    ("🙏 God Layer", "Highest values: truth, protection, dignity, purpose."),
+    ("👑 Founder / Sovereign Veto", "Final decision maker. Approves or stops major moves."),
+    ("📜 Chancellor", "Governance, lawful wording, rules, compliance and public claims."),
+    ("🛡 Guardian", "Safety, privacy, youth protection, risk checks and trust."),
+    ("🏗 Architect", "System structure, routes, tables, performance and clean code."),
+    ("📚 Archivist", "History, records, decisions, lessons and long-term memory."),
+    ("🧠 HRM", "Memory engine. Logs actions, risks, builds, fixes and learning."),
+    ("🤖 Ollama / Local AI", "Private summariser. Reads HRM records and recommends next moves."),
 
+    ("GPT", "Chief Architect and coding partner."),
+    ("Claude", "Chancellor and governance reviewer."),
+    ("Gemini", "Archivist and broad research memory."),
+    ("Kimi", "Expansion strategist and long-context planner."),
+    ("Grok", "Challenger and stress tester."),
+    ("Edge / Copilot", "Web operator and browser workflow helper."),
+
+    ("🕶 Neo", "Execution, action and build momentum."),
+    ("🧠 Morpheus", "Strategy, belief and direction."),
+    ("⚔️ Trinity", "Operations, precision and mission flow."),
+    ("🔮 Oracle", "Insight, patterns and warnings."),
+    ("🏗 Matrix Architect", "Deep structure, systems and route design."),
+    ("🗝 Keymaker", "Access, links, routes and unlocks."),
+    ("🛡 Seraph", "Security, privacy and protection."),
+    ("📦 Tank", "Infrastructure, runtime and local systems."),
+    ("🔧 Dozer", "Backup, recovery and support."),
+
+    ("🐝 Bee", "Collects missing data, fixtures, players, tasks and source checks."),
+    ("🐘 Elephant", "Memory, history, records and lessons."),
+    ("🦉 Owl", "Wisdom, judgement, timing and review."),
+    ("🦍 Gorilla", "Protection, resilience and strength."),
+    ("🦁 Lion", "Leadership, standards and courage."),
+    ("🐅 Tiger", "Focus, execution and next action."),
+    ("🐆 Panther", "Adaptation, stealth and fast changes."),
+    ("🦅 Eagle", "Vision, roadmap and future scanning."),
+    ("🐬 Dolphin", "Communication, public wording and community signals."),
+    ("🐎 Horse", "Movement, operations and momentum."),
+    ("🦌 Stag", "Balance, harmony and long-term alignment.")
+]
 def now():
     return datetime.utcnow().isoformat(timespec="seconds")
 
