@@ -387,11 +387,7 @@ td,th {{
 </header>
 <main>{body}</main>
 <footer>
-  <footer>
-  <footer>
   🌍 ON ANY POSTCODE — Born Local. Built Global. EARTH IS OUR TURF. One Race. Human Race.
-</footer>
-</footer>.
 </footer>
 </body>
 </html>"""
@@ -419,7 +415,7 @@ def get_records(system=None, module=None):
 
 def record_table(rows):
     if not rows:
-        return "<div class='card'><h2>No records yet</h2><p>Create the first contribution record.</p></div>"
+        return "<div class='card'><h2>Open</h2><p>This space is live and ready for the first post.</p></div>"
 
     body = "".join([
         f"<tr><td>{r['created_at']}</td><td>{r['system']}</td><td>{r['module']}</td><td>{r['title']}</td><td>{r['status']}</td><td>{r['notes']}</td></tr>"
@@ -435,6 +431,37 @@ def record_table(rows):
 
 
 def contribution_form(system, module="General"):
+    return f"""
+<div class="card">
+<h2>Post to OAP</h2>
+<form method="post" action="/add-record">
+<input type="hidden" name="system" value="{system}">
+<input type="hidden" name="module" value="{module}">
+<input name="title" placeholder="Title / idea / action / request" required>
+<input name="name" placeholder="Name / person / business / creator / team">
+<input name="location" placeholder="Postcode / borough / country / global">
+<select name="category">
+<option>Post</option>
+<option>Community</option>
+<option>Business</option>
+<option>Event</option>
+<option>Creator</option>
+<option>Request</option>
+<option>Review</option>
+</select>
+<select name="status">
+<option>Live</option>
+<option>Open</option>
+<option>Active</option>
+<option>Review</option>
+<option>Ready</option>
+<option>Blocked</option>
+</select>
+<textarea name="notes" placeholder="Write your post, request, idea, update, proof, or next action"></textarea>
+<button>Post</button>
+</form>
+</div>
+"""
     return f"""
 <div class="card">
 <h2>⚡ Contribution Record</h2>
