@@ -833,7 +833,33 @@ def team(team):
 """
 )
 
+@app.route("/hrm/local-ai")
+def hrm_local_ai():
+    logs = "".join([
+        f"<div class='card'><h2>{x}</h2><p>Ready for HRM records.</p></div>"
+        for x in HRM_LOG_TYPES
+    ])
 
+    summary = "".join([
+        f"<div class='card'><h2>{x}</h2><p>Waiting for real OAP records.</p></div>"
+        for x in LOCAL_AI_SUMMARY_FIELDS
+    ])
+
+    return layout(
+        "HRM Local AI",
+        f"""
+<section class='hero'>
+<h1>🧠 HRM Local AI</h1>
+<p>Memory first. Local AI summaries later. Human approval before action.</p>
+</section>
+
+<h2>🧠 HRM Logs</h2>
+<section class='grid'>{logs}</section>
+
+<h2>🤖 Local AI Summary</h2>
+<section class='grid'>{summary}</section>
+"""
+)
 @app.route("/add-record", methods=["POST"])
 def add_record():
     vals = (
@@ -846,7 +872,7 @@ def add_record():
         safe(request.form.get("status")),
         safe(request.form.get("notes")),
         now(),
-    )
+    )1
 
     con = db()
     con.execute(
