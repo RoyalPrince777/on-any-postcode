@@ -45,6 +45,15 @@ AGENTS = [
 ]
 
 TEAMS = [
+    CONTINENTS = [
+("africa","🌍 Africa"),
+("europe","🌍 Europe"),
+("asia","🌏 Asia"),
+("north-america","🌎 North America"),
+("south-america","🌎 South America"),
+("caribbean","🏝 Caribbean"),
+("oceania","🌊 Oceania")
+]
 ("algeria","🇩🇿 Algeria"),
 ("argentina","🇦🇷 Argentina"),
 ("australia","🇦🇺 Australia"),
