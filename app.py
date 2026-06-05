@@ -427,11 +427,7 @@ def record_table(rows):
 <tr><th>Time</th><th>System</th><th>Module</th><th>Title</th><th>Status</th><th>Notes</th></tr>
 {body}
 </table>
-"""
 
-
-def contribution_form(system, module="General"):
-    return f"""
 <div class="card">
 <h2>Post to OAP</h2>
 <form method="post" action="/add-record">
@@ -462,7 +458,7 @@ def contribution_form(system, module="General"):
 </form>
 </div>
 """
-    return f"""
+    
 <div class="card">
 <h2>⚡ Contribution Record</h2>
 <form method="post" action="/add-record">
