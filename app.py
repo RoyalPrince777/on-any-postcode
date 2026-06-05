@@ -1692,7 +1692,7 @@ def maps_hub():
     )
 
 
-@app.route("/add-place", methods=["POST"])
+@app.route("/add-place-old", methods=["POST"])
 def add_place_old():
     vals = (
         safe(request.form.get("place_name")),
@@ -1714,6 +1714,7 @@ def add_place_old():
     con.close()
 
     return redirect("/maps-hub")
+    
 @app.route("/weather-hub")
 def weather_hub():
 
