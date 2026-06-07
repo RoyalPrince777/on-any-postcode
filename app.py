@@ -994,7 +994,7 @@ def hrm_council():
 """
     )
 
-    @app.route("/oap-world")
+@app.route("/oap-world")
 def oap_world_hub():
     links = [
         ("💬 Messenger", "/messenger", "Messages, inbox and community contact."),
