@@ -1026,7 +1026,6 @@ def worldcup_tournament():
 )
 
 @app.route("/add-record", methods=["POST"])
-@app.route("/add-record", methods=["POST"])
 def add_record():
     vals = (
         safe(request.form.get("system")),
