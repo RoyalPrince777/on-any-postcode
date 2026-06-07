@@ -1661,30 +1661,6 @@ def messenger():
 </table>
 """)
 
-
-@app.route("/send-message", methods=["POST"])
-def send_message():
-    vals = (
-        safe(request.form.get("sender")),
-        safe(request.form.get("receiver")),
-        safe(request.form.get("subject")),
-        safe(request.form.get("body")),
-        safe(request.form.get("status")),
-        now(),
-    )
-
-    con = db()
-    con.execute(
-        "INSERT INTO messages(sender,receiver,subject,body,status,created_at) VALUES(?,?,?,?,?,?)",
-        vals
-    )
-    con.commit()
-    con.close()
-
-    audit("message_sent", f"{vals[0]} to {vals[1]}")
-    return redirect("/messenger")
-
-
 @app.route("/mail")
 def mail():
     con = db()
