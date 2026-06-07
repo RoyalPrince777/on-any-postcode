@@ -994,6 +994,91 @@ def hrm_council():
 """
     )
 
+    @app.route("/oap-world")
+def oap_world_hub():
+    links = [
+        ("💬 Messenger", "/messenger", "Messages, inbox and community contact."),
+        ("⚡ OAP Signals", "/world/oap-signals", "Community updates and movement signals."),
+        ("🎪 Experiences", "/world/experiences", "Events, gatherings and matchday energy."),
+        ("🏪 Business", "/operations/business-network", "Local business board."),
+        ("👤 Creators", "/operations/creator-hub", "Creator activity and promotion."),
+        ("⚽ World Cup", "/world-cup", "Teams, fixtures and match command."),
+        ("🧠 HRM", "/hrm/local-ai", "Memory, learning and local AI summaries."),
+        ("👑 Council", "/hrm/council", "Agents, council and build law.")
+    ]
+
+    cards = "".join([
+        f"<a class='card' href='{url}'><h2>{title}</h2><p>{desc}</p></a>"
+        for title, url, desc in links
+    ])
+
+    return layout(
+        "OAP World",
+        f"""
+<section class='hero'>
+<h1>🌍 OAP World</h1>
+<p>Born Local. Built Global. Community, messages, signals, creators, business, World Cup and HRM.</p>
+</section>
+<section class='grid'>{cards}</section>
+"""
+    )
+
+
+@app.route("/messenger")
+def messenger():
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM records WHERE system='communications' AND module='Messenger' ORDER BY id DESC LIMIT 20"
+    ).fetchall()
+    con.close()
+
+    messages = "".join([
+        f"""
+<div class='card'>
+<h2>{r['title']}</h2>
+<p><b>From:</b> {r['name'] or 'OAP Member'}</p>
+<p><b>Area:</b> {r['location'] or 'OAP World'}</p>
+<p>{r['notes'] or ''}</p>
+<p><small>{r['created_at']}</small></p>
+</div>
+"""
+        for r in rows
+    ]) or "<div class='card'><h2>Inbox Open</h2><p>No messages yet. First message starts the network.</p></div>"
+
+    form = """
+<div class='card'>
+<h2>✉️ New Message</h2>
+<form method='post' action='/add-record'>
+<input type='hidden' name='system' value='communications'>
+<input type='hidden' name='module' value='Messenger'>
+<input name='title' placeholder='Subject' required>
+<input name='name' placeholder='Your name / username'>
+<input name='location' placeholder='Postcode / borough / country'>
+<input type='hidden' name='category' value='Message'>
+<select name='status'>
+<option>Open</option>
+<option>Important</option>
+<option>Reply Needed</option>
+</select>
+<textarea name='notes' placeholder='Write message'></textarea>
+<button type='submit'>Send Message</button>
+</form>
+</div>
+"""
+
+    return layout(
+        "Messenger",
+        f"""
+<section class='hero'>
+<h1>💬 OAP Messenger</h1>
+<p>Simple member messaging board. Private inbox later. Community messages now.</p>
+</section>
+{form}
+<h2>📥 Inbox</h2>
+<section class='grid'>{messages}</section>
+"""
+)
+
 @app.route("/world-cup/tournament")
 def worldcup_tournament():
     sections = [
