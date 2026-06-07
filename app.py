@@ -1621,9 +1621,6 @@ def add_dispatch():
     con.commit()
     con.close()
     
-<        for r in rows
-    ]) or "<tr><td colspan='5'>No contribution records yet.</td></tr>"
-
     return layout("Community Power", f"""
     <section class='hero'>
         <h1>⚡ Community Power</h1>
