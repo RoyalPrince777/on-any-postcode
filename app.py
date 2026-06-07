@@ -1620,25 +1620,7 @@ def add_dispatch():
 
     con.commit()
     con.close()
-
-    return redirect("/dispatch")
-@app.route("/messenger")
-def messenger():
-    con = db()
-    rows = con.execute("SELECT * FROM messages ORDER BY id DESC LIMIT 50").fetchall()
-    con.close()
-
-    table_rows = "".join([
-        f"<tr><td>{m['created_at']}</td><td>{m['sender']}</td><td>{m['receiver']}</td><td>{m['subject']}</td><td>{m['status']}</td></tr>"
-        for m in rows
-    ]) or "<tr><td colspan='5'>No messages yet.</td></tr>"
-
-    return layout("Messenger", f"""
-<section class="hero">
-<h1>💬 Messenger</h1>
-<p>OAP communication records. Human-first. Private-first.</p>
-</section>
-
+    
 <div class="card">
 <form method="post" action="/send-message">
 <input name="sender" placeholder="From">
