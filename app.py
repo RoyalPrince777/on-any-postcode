@@ -1636,13 +1636,6 @@ def add_dispatch():
 </form>
 </div>
 
-<h2>Messages</h2>
-<table>
-<tr><th>Time</th><th>From</th><th>To</th><th>Subject</th><th>Status</th></tr>
-{table_rows}
-</table>
-""")
-
 @app.route("/mail")
 def mail():
     con = db()
@@ -1656,8 +1649,8 @@ def mail():
 
     return layout("OAP Mail", f"""
 <section class="hero">
-<h1>📧 OAP Mail</h1>
-<p>Inbox, sent, drafts and member communication records.</p>
+     <h1>📧 OAP Mail</h1>
+     <p>Inbox, sent, drafts and member communication records.</p>
 </section>
 
 <div class="card">
