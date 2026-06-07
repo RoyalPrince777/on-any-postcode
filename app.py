@@ -1621,19 +1621,20 @@ def add_dispatch():
     con.commit()
     con.close()
     
-<div class="card">
+<        for r in rows
+    ]) or "<tr><td colspan='5'>No contribution records yet.</td></tr>"
+
+    return layout("Community Power", f"""
+    <section class='hero'>
+        <h1>⚡ Community Power</h1>
+        <p>Community action. Contribution recorded.</p>
+    </section>
+
+div class='card'>
+<form method='post' action='/add-community-power'>
+div class="card">
 <form method="post" action="/send-message">
-<input name="sender" placeholder="From">
-<input name="receiver" placeholder="To">
-<input name="subject" placeholder="Subject">
-<textarea name="body" placeholder="Message"></textarea>
-<select name="status">
-<option>Draft</option>
-<option>Sent</option>
-<option>Review</option>
-</select>
-<button>Send Message</button>
-</form>
+<
 </div>
 
 @app.route("/mail")
@@ -1675,7 +1676,6 @@ def mail():
 {table_rows}
 </table>
 """)
-
 
 @app.route("/send-mail", methods=["POST"])
 def send_mail():
@@ -1725,18 +1725,7 @@ def community_power():
             <td>{r['points']}</td>
         </tr>
         """
-        for r in rows
-    ]) or "<tr><td colspan='5'>No contribution records yet.</td></tr>"
-
-    return layout("Community Power", f"""
-    <section class='hero'>
-        <h1>⚡ Community Power</h1>
-        <p>Community action. Contribution recorded.</p>
-    </section>
-
-    <div class='card'>
-        <form method='post' action='/add-community-power'>
-            <input name='member' placeholder='Member' required>
+     <input name='member' placeholder='Member' required>
             <input name='mission' placeholder='Mission' required>
 
             <select name='category'>
