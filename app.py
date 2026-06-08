@@ -1922,8 +1922,10 @@ def add_route():
     con.commit()
     con.close()
 
-    return redirect("/navigation-hub")@app.route("/maps-hub")
-def maps_hub():
+return redirect("/navigation-hub")
+
+
+@app.route("/maps-hub")
 
     con = db()
     rows = con.execute(
@@ -1940,7 +1942,7 @@ def maps_hub():
         "Maps Hub",
         f"""
 <section class='hero'>
-<h1>🗺 Maps Hub</h1>
+  <h1>🗺 Maps Hub</h1>
 <p>Places, businesses, landmarks and communities.</p>
 </section>
 
