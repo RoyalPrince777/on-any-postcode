@@ -1812,7 +1812,7 @@ def notifications():
 
     return layout("Notifications", f"""
 <section class="hero">
-<h1>🔔 Notifications</h1>
+  <h1>🔔 Notifications</h1>
 <p>OAP alerts, system updates and community notices.</p>
 </section>
 
