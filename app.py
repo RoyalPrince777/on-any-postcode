@@ -1942,7 +1942,7 @@ return redirect("/navigation-hub")
         "Maps Hub",
         f"""
 <section class='hero'>
-  <h1>🗺 Maps Hub</h1>
+   <h1>🗺 Maps Hub</h1>
 <p>Places, businesses, landmarks and communities.</p>
 </section>
 
