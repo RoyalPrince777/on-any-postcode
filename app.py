@@ -1947,7 +1947,6 @@ def maps_hub():
     ]) or "<tr><td colspan='3'>No places yet.</td></tr>"
 
     return layout(
-    return layout(
         "Maps Hub",
         f"""
         <section class='hero'>
