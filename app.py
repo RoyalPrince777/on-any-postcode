@@ -1933,16 +1933,16 @@ def maps_hub():
     ).fetchall()
     con.close()
 
-    places = "".join([
+places = "".join([
         f"<tr><td>{r['place_name']}</td><td>{r['category']}</td><td>{r['location']}</td></tr>"
         for r in rows
-    ])
+    ]) or "<tr><td colspan='3'>No places yet.</td></tr>"
 
     return layout(
         "Maps Hub",
         f"""
 <section class='hero'>
-   <h1>🗺 Maps Hub</h1>
+<h1>🗺️ Maps Hub</h1>
 <p>Places, businesses, landmarks and communities.</p>
 </section>
 
@@ -1961,7 +1961,7 @@ def maps_hub():
 {places}
 </table>
 """
-    )
+)
 
 
 @app.route("/add-place-old", methods=["POST"])
