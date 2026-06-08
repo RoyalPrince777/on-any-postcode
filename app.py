@@ -1933,7 +1933,15 @@ def maps_hub():
     ).fetchall()
     con.close()
 
-places = "".join([
+@app.route("/maps-hub")
+def maps_hub():
+    con = db()
+    rows = con.execute(
+        "SELECT * FROM map_places ORDER BY id DESC LIMIT 100"
+    ).fetchall()
+    con.close()
+
+    places = "".join([
         f"<tr><td>{r['place_name']}</td><td>{r['category']}</td><td>{r['location']}</td></tr>"
         for r in rows
     ]) or "<tr><td colspan='3'>No places yet.</td></tr>"
@@ -1962,8 +1970,7 @@ places = "".join([
 </table>
 """
 )
-
-
+    
 @app.route("/add-place-old", methods=["POST"])
 def add_place_old():
     vals = (
