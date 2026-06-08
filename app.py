@@ -1267,7 +1267,7 @@ def add_record():
 
 
 @app.route("/add-business", methods=["POST"])
-return redirect("/business-network")
+def add_business():
     vals = (
         safe(request.form.get("name")),
         safe(request.form.get("category")),
