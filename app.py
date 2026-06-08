@@ -2160,7 +2160,26 @@ def add_weather():
 
     return redirect("/weather-hub")
 
+@app.route("/circle")
+def circle():
+    return redirect("/identity")
 
+@app.route("/business-network")
+def business_network():
+    return redirect("/operations")
+
+@app.route("/creator-hub")
+def creator_hub():
+    return redirect("/operations")
+
+@app.route("/experiences")
+def experiences_alias():
+    return redirect("/world/experiences")
+
+@app.route("/explorer")
+def explorer_alias():
+    return redirect("/world/explorer")
+    
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
