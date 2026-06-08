@@ -1873,10 +1873,9 @@ def navigation_hub():
     ])
 
     return layout(
-        "Navigation Hub",
-        f"""
+    return layout("Navigation Hub", f"""
 <section class='hero'>
-<h1>🧭 Navigation Hub</h1>
+<h1>Navigation Hub</h1>
 <p>Community routes, logistics and movement records.</p>
 </section>
 
@@ -1898,8 +1897,7 @@ def navigation_hub():
 <tr><th>Start</th><th>Destination</th><th>Transport</th><th>Status</th></tr>
 {routes}
 </table>
-"""
-    )
+""")
 
 
 @app.route("/add-route", methods=["POST"])
