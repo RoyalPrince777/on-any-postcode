@@ -1924,8 +1924,8 @@ def add_route():
 
 return redirect("/navigation-hub")
 
-
 @app.route("/maps-hub")
+def maps_hub():
 
     con = db()
     rows = con.execute(
