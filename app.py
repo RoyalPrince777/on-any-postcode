@@ -1634,7 +1634,6 @@ div class="card">
 <
 </div>
 
-@app.route("/mail")
 def mail():
     con = db()
     rows = con.execute("SELECT * FROM mail_items ORDER BY id DESC LIMIT 50").fetchall()
