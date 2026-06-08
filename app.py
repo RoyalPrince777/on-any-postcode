@@ -1590,19 +1590,27 @@ def enter():
         password = safe(request.form.get("password"))
 
         con = db()
-        member = con.execute(
-            "SELECT * FROM members WHERE username=? AND password=?",
-            (username, password)
-        ).fetchone()
+            member = con.execute(
+    "SELECT * FROM members WHERE username=?",
+    (username,)
+).fetchone()
         con.close()
 
-        if member:
-            session["member"] = username
-            audit("member_entered", username)
-            return redirect("/my-world")
+        valid = False
 
-        return layout("Enter Failed", "<section class='hero'><h1>Enter failed</h1><p>Check username or password.</p></section>")
+if member:
+    try:
+        valid = check_password_hash(member["password"], password)
+    except Exception:
+        valid = False
 
+    if not valid:
+        valid = member["password"] == password
+
+if member and valid:
+    session["member"] = username
+    audit("member_entered", username)
+    return redirect("/my-world")
     return layout("Enter My World", """
 <section class="hero">
 <h1>👤 Enter My World</h1>
