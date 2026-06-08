@@ -1627,11 +1627,10 @@ def add_dispatch():
         <p>Community action. Contribution recorded.</p>
     </section>
 
-div class='card'>
-<form method='post' action='/add-community-power'>
+<div class='card'>
+<form method='post' action='/add-community-power'>""")
 div class="card">
 <form method="post" action="/send-message">
-<
 </div>
 
 def mail():
