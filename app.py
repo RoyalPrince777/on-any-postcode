@@ -1587,29 +1587,28 @@ def enter():
         username = safe(request.form.get("username"))
         password = safe(request.form.get("password"))
 
-        con = db()
-            member = con.execute(
-    "SELECT * FROM members WHERE username=?",
-    (username,)
-).fetchone()
+    con = db()
+        member = con.execute(
+            "SELECT * FROM members WHERE username=?",
+            (username,)
+        ).fetchone()
         con.close()
 
         valid = False
 
-if member:
-    try:
-        valid = check_password_hash(member["password"], password)
-    except Exception:
-        valid = False
+        if member:
+            try:
+                valid = check_password_hash(member["password"], password)
+            except Exception:
+                valid = False
 
-    if not valid:
-        valid = member["password"] == password
+            if not valid:
+                valid = member["password"] == password
 
-if member and valid:
-    session["member"] = username
-    audit("member_entered", username)
-    return redirect("/my-world")
-    return layout("Enter My World", """
+        if member and valid:
+            session["member"] = username
+            audit("member_entered", username)
+            return layout("Enter My World", """
 <section class="hero">
 <h1>👤 Enter My World</h1>
 <p>Return to your OAP identity hub.</p>
