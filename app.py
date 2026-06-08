@@ -413,6 +413,51 @@ CREATE TABLE IF NOT EXISTS weather_records(
 init()
 
 
+init()
+
+
+def safe_migrations():
+    con = db()
+
+    migrations = [
+        ("members", "verified", "INTEGER DEFAULT 0"),
+        ("members", "active", "INTEGER DEFAULT 1"),
+        ("members", "updated_at", "TEXT"),
+
+        ("records", "updated_at", "TEXT"),
+
+        ("businesses", "updated_at", "TEXT"),
+        ("creators", "updated_at", "TEXT"),
+        ("experiences", "updated_at", "TEXT"),
+
+        ("audit", "level", "TEXT DEFAULT 'INFO'"),
+
+        ("delivery_bookings", "updated_at", "TEXT"),
+        ("riders_drivers", "updated_at", "TEXT"),
+        ("sika_records", "updated_at", "TEXT"),
+        ("verification_badges", "updated_at", "TEXT"),
+        ("readiness_requests", "updated_at", "TEXT"),
+        ("dispatch_jobs", "updated_at", "TEXT"),
+        ("rider_status", "updated_at", "TEXT"),
+        ("mail_items", "updated_at", "TEXT"),
+        ("notifications", "updated_at", "TEXT"),
+        ("navigation_routes", "updated_at", "TEXT"),
+        ("map_places", "updated_at", "TEXT"),
+        ("weather_records", "updated_at", "TEXT"),
+    ]
+
+    for table, column, definition in migrations:
+        try:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        except sqlite3.OperationalError:
+            pass
+
+    con.commit()
+    con.close()
+
+
+safe_migrations()
+
 def audit(action, detail):
     con = db()
     con.execute(
