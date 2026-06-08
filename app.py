@@ -1947,28 +1947,29 @@ def maps_hub():
     ]) or "<tr><td colspan='3'>No places yet.</td></tr>"
 
     return layout(
+    return layout(
         "Maps Hub",
         f"""
-<section class='hero'>
-<h1>🗺️ Maps Hub</h1>
-<p>Places, businesses, landmarks and communities.</p>
-</section>
+        <section class='hero'>
+            <h1>🗺️ Maps Hub</h1>
+            <p>Places, businesses, landmarks and communities.</p>
+        </section>
 
-<div class='card'>
-<form method='post' action='/add-place'>
-<input name='place_name' placeholder='Place Name'>
-<input name='category' placeholder='Category'>
-<input name='location' placeholder='Location'>
-<textarea name='notes'></textarea>
-<button>Add Place</button>
-</form>
-</div>
+        <div class='card'>
+            <form method='post' action='/add-place'>
+                <input name='place_name' placeholder='Place Name'>
+                <input name='category' placeholder='Category'>
+                <input name='location' placeholder='Location'>
+                <textarea name='notes'></textarea>
+                <button>Add Place</button>
+            </form>
+        </div>
 
-<table>
-<tr><th>Name</th><th>Category</th><th>Location</th></tr>
-{places}
-</table>
-"""
+        <table>
+            <tr><th>Name</th><th>Category</th><th>Location</th></tr>
+            {places}
+        </table>
+        """
 )
     
 @app.route("/add-place-old", methods=["POST"])
