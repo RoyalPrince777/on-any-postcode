@@ -1287,8 +1287,7 @@ return redirect("/business-network")
     con.close()
 
     audit("business_added", vals[0])
-    return redirect("/operations")
-
+    return redirect("/business-network")
 
 @app.route("/add-creator", methods=["POST"])
 def add_creator():
@@ -1310,8 +1309,7 @@ def add_creator():
     con.close()
 
     audit("creator_added", vals[0])
-    return redirect("/operations")
-
+    return redirect("/creator-hub")
 
 @app.route("/add-experience", methods=["POST"])
 def add_experience():
@@ -1333,7 +1331,7 @@ def add_experience():
     con.close()
 
     audit("experience_added", vals[0])
-    return redirect("/operations")
+    return redirect("/experiences")
 
 @app.route("/add-delivery", methods=["POST"])
 def add_delivery():
