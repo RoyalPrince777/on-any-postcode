@@ -1457,7 +1457,20 @@ else:
         <h1>💚 Pulse Inbox</h1>
         <p>Not Messenger. This is OAP Pulse — human records, support, linkups and community heartbeat.</p>
         </section>
+<div class='card'>
+    <h2>🔍 Search Pulse</h2>
 
+    <form method='get'>
+        <input
+            name='q'
+            placeholder='Search Pulse...'
+            value='{safe(request.args.get("q",""))}'>
+
+        <button type='submit'>
+            Search
+        </button>
+    </form>
+</div>
         <div class='card'>
         <h2>Send Pulse</h2>
         <form method='post'>
