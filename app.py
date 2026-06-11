@@ -495,7 +495,209 @@ def init():
         updated_at TEXT NOT NULL
     )
     """)
-    
+    # OAP Pulse / Human Communications Core
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_spaces(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        purpose TEXT,
+        space_type TEXT DEFAULT 'community',
+        postcode TEXT,
+        borough TEXT,
+        country TEXT,
+        visibility TEXT DEFAULT 'public',
+        created_at TEXT NOT NULL
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_linkups(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        linkup_type TEXT DEFAULT 'group',
+        space_id INTEGER,
+        created_by TEXT NOT NULL,
+        status TEXT DEFAULT 'open',
+        created_at TEXT NOT NULL,
+        updated_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_records(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_username TEXT NOT NULL,
+        receiver_username TEXT,
+        space_id INTEGER,
+        linkup_id INTEGER,
+        body TEXT NOT NULL,
+        pulse_type TEXT DEFAULT 'normal',
+        status TEXT DEFAULT 'sent',
+        created_at TEXT NOT NULL,
+        read_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_announcements(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_username TEXT NOT NULL,
+        target TEXT NOT NULL,
+        title TEXT,
+        body TEXT NOT NULL,
+        priority TEXT DEFAULT 'normal',
+        created_at TEXT NOT NULL
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_relays(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_username TEXT NOT NULL,
+        from_space_id INTEGER,
+        to_space_id INTEGER,
+        title TEXT,
+        body TEXT NOT NULL,
+        relay_type TEXT DEFAULT 'community',
+        verification_status TEXT DEFAULT 'unverified',
+        created_at TEXT NOT NULL
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_inbox(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        record_id INTEGER,
+        linkup_id INTEGER,
+        inbox_status TEXT DEFAULT 'unread',
+        created_at TEXT NOT NULL,
+        updated_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_trust(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reporter_username TEXT NOT NULL,
+        record_id INTEGER,
+        space_id INTEGER,
+        issue_type TEXT NOT NULL,
+        details TEXT,
+        review_status TEXT DEFAULT 'pending',
+        created_at TEXT NOT NULL,
+        reviewed_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_directory(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        display_name TEXT,
+        role TEXT DEFAULT 'member',
+        postcode TEXT,
+        borough TEXT,
+        country TEXT,
+        contact_status TEXT DEFAULT 'open',
+        created_at TEXT NOT NULL,
+        updated_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_pins(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        space_id INTEGER,
+        record_id INTEGER,
+        pinned_by TEXT NOT NULL,
+        reason TEXT,
+        created_at TEXT NOT NULL
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_notices(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        notice_type TEXT DEFAULT 'info',
+        title TEXT,
+        body TEXT NOT NULL,
+        notice_status TEXT DEFAULT 'unread',
+        created_at TEXT NOT NULL,
+        read_at TEXT
+    )
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_queue(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_username TEXT NOT NULL,
+        receiver_username TEXT,
+        space_id INTEGER,
+        linkup_id INTEGER,
+        body TEXT NOT NULL,
+        queue_status TEXT DEFAULT 'pending',
+        retry_count INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        last_try_at TEXT
+    )
+    """)
+
+    default_pulse_spaces = [
+        ("community", "Main OAP community room", "community", None, None, None),
+        ("command-center", "OAP operations and support room", "operations", None, None, None),
+        ("members", "Member-to-member support and updates", "members", None, None, None),
+        ("riders", "Rider coordination and delivery updates", "dispatch", None, None, None),
+        ("merchants", "Merchant support and business requests", "merchant", None, None, None),
+        ("announcements", "Official OAP community announcements", "announcement", None, None, None),
+        ("crisis-support", "Verified support, needs and safety records", "support", None, None, None),
+        ("postcode-pulse", "Postcode-level community heartbeat", "postcode", None, None, None),
+        ("earth-is-our-turf", "Global OAP movement room", "global", None, None, None)
+    ]
+
+    for name, purpose, space_type, postcode, borough, country in default_pulse_spaces:
+        con.execute(
+            """
+            INSERT OR IGNORE INTO pulse_spaces(
+                name,purpose,space_type,postcode,borough,country,created_at
+            ) VALUES(?,?,?,?,?,?,?)
+            """,
+            (name, purpose, space_type, postcode, borough, country, now())
+        )
+
+    # Create indexes for performance
+    indexes = [
+        ("idx_members_username", "members", "username"),
+        ("idx_members_email", "members", "email"),
+        ("idx_members_country", "members", "country"),
+        ("idx_records_system_module", "records", "system, module"),
+        ("idx_records_created_at", "records", "created_at"),
+        ("idx_community_power_member", "community_power", "member"),
+        ("idx_community_power_created_at", "community_power", "created_at"),
+        ("idx_businesses_category", "businesses", "category"),
+        ("idx_dispatch_status", "dispatch_jobs", "status"),
+        ("idx_delivery_status", "delivery_bookings", "status"),
+        ("idx_mail_folder", "mail_items", "folder"),
+        ("idx_audit_created_at", "audit", "created_at"),
+        ("idx_pulse_spaces_name", "pulse_spaces", "name"),
+        ("idx_pulse_spaces_type", "pulse_spaces", "space_type"),
+        ("idx_pulse_linkups_space", "pulse_linkups", "space_id"),
+        ("idx_pulse_linkups_created_by", "pulse_linkups", "created_by"),
+        ("idx_pulse_records_receiver", "pulse_records", "receiver_username"),
+        ("idx_pulse_records_sender", "pulse_records", "sender_username"),
+        ("idx_pulse_records_space", "pulse_records", "space_id"),
+        ("idx_pulse_records_linkup", "pulse_records", "linkup_id"),
+        ("idx_pulse_announcements_created", "pulse_announcements", "created_at"),
+        ("idx_pulse_relays_from", "pulse_relays", "from_space_id"),
+        ("idx_pulse_relays_to", "pulse_relays", "to_space_id"),
+        ("idx_pulse_inbox_username", "pulse_inbox", "username"),
+        ("idx_pulse_trust_status", "pulse_trust", "review_status"),
+        ("idx_pulse_directory_username", "pulse_directory", "username"),
+        ("idx_pulse_pins_space", "pulse_pins", "space_id"),
+        ("idx_pulse_notices_username", "pulse_notices", "username"),
+        ("idx_pulse_queue_status", "pulse_queue", "queue_status"),
+    ]
     # Create indexes for performance
     indexes = [
         ("idx_members_username", "members", "username"),
