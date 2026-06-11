@@ -718,7 +718,17 @@ init()
 def nav():
     """Generate navigation HTML"""
     links = "<a href='/'>Home</a>"
-    links += "".join([f"<a href='/{k}'>{v[0]}</a>" for k, v in SYSTEMS.items()])
+    links += "<a href='/world'>🌍 OAP World</a>"
+    links += "<a href='/identity'>👤 My World</a>"
+    links += "<a href='/community-power'>⚡ Community Power</a>"
+    links += "<a href='/oap-pulse/spaces'>💚 Pulse Spaces</a>"
+    links += "<a href='/intelligence'>🧠 Intelligence</a>"
+    links += "<a href='/money'>💎 Money / SIKA</a>"
+    links += "<a href='/communications'>📧 Communications</a>"
+    links += "<a href='/infrastructure'>🗺 Infrastructure</a>"
+    links += "<a href='/operations'>🚚 Operations</a>"
+    links += "<a href='/culture'>🎭 Culture</a>"
+    links += "<a href='/trust'>🛡 Trust</a>"
     links += "<a href='/world-cup'>⚽ World Cup</a>"
     links += "<a href='/command'>🎛 Command</a>"
     return links
