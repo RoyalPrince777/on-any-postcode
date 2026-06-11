@@ -727,6 +727,7 @@ def nav():
     links += "<a href='/money'>💎 Money / SIKA</a>"
     links += "<a href='/communications'>📧 Communications</a>"
     links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
+    links += "<a href='/pulse-directory'>🧭 Pulse Directory</a>"
     links += "<a href='/infrastructure'>🗺 Infrastructure</a>"
     links += "<a href='/operations'>🚚 Operations</a>"
     links += "<a href='/culture'>🎭 Culture</a>"
@@ -1505,7 +1506,113 @@ def worldcup_tournament():
 # ==# ============================================================================
 # OAP MOVEMENT / COMMUNITY POWER / OAP PULSE ROUTES
 # ============================================================================
+@app.route("/pulse-directory", methods=["GET", "POST"])
+def pulse_directory_page():
+    """Pulse Directory - members, riders, merchants, creators, businesses and support"""
+    if request.method == "POST":
+        username = safe(request.form.get("username", ""))
+        display_name = safe(request.form.get("display_name", ""))
+        role = safe(request.form.get("role", "member"))
+        postcode = safe(request.form.get("postcode", ""))
+        borough = safe(request.form.get("borough", ""))
+        country = safe(request.form.get("country", ""))
+        contact_status = safe(request.form.get("contact_status", "open"))
 
+        if username and display_name:
+            con = db()
+            try:
+                con.execute("""
+                    INSERT INTO pulse_directory(
+                        username, display_name, role, postcode, borough, country,
+                        contact_status, created_at, updated_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?)
+                """, (username, display_name, role, postcode, borough, country, contact_status, now(), now()))
+                con.commit()
+                audit("pulse_directory_added", f"{username} as {role}")
+            finally:
+                con.close()
+
+        return redirect("/pulse-directory")
+
+    role_filter = safe(request.args.get("role", ""))
+    con = db()
+    try:
+        if role_filter:
+            rows = con.execute("""
+                SELECT * FROM pulse_directory
+                WHERE role=?
+                ORDER BY id DESC
+                LIMIT 100
+            """, (role_filter,)).fetchall()
+        else:
+            rows = con.execute("""
+                SELECT * FROM pulse_directory
+                ORDER BY id DESC
+                LIMIT 100
+            """).fetchall()
+    finally:
+        con.close()
+
+    cards = "".join([
+        f"""
+        <div class='card'>
+          <h2>💚 {safe(r['display_name'])}</h2>
+          <p><b>@{safe(r['username'])}</b></p>
+          <p>Role: {safe(r['role'])}</p>
+          <p>{safe(r['postcode'])} {safe(r['borough'])} {safe(r['country'])}</p>
+          <small>Status: {safe(r['contact_status'])}</small>
+        </div>
+        """
+        for r in rows
+    ]) or "<div class='card'><h2>Directory Open</h2><p>No Pulse Directory records yet.</p></div>"
+
+    return layout(
+        "Pulse Directory",
+        f"""
+        <section class='hero'>
+        <h1>🧭 Pulse Directory</h1>
+        <p>Find members, riders, merchants, creators, businesses and support contacts inside Community Power.</p>
+        </section>
+
+        <section class='grid'>
+          <a class='card' href='/pulse-directory'><h2>All</h2><p>Everyone listed.</p></a>
+          <a class='card' href='/pulse-directory?role=member'><h2>Members</h2><p>Community members.</p></a>
+          <a class='card' href='/pulse-directory?role=rider'><h2>Riders</h2><p>Field movement.</p></a>
+          <a class='card' href='/pulse-directory?role=merchant'><h2>Merchants</h2><p>Local business support.</p></a>
+          <a class='card' href='/pulse-directory?role=creator'><h2>Creators</h2><p>Artists and media.</p></a>
+          <a class='card' href='/pulse-directory?role=support'><h2>Support</h2><p>Community support.</p></a>
+        </section>
+
+        <div class='card'>
+        <h2>Add Directory Record</h2>
+        <form method='post'>
+          <input name='username' placeholder='username' required>
+          <input name='display_name' placeholder='display name' required>
+          <select name='role'>
+            <option>member</option>
+            <option>rider</option>
+            <option>merchant</option>
+            <option>creator</option>
+            <option>business</option>
+            <option>support</option>
+          </select>
+          <input name='postcode' placeholder='postcode optional'>
+          <input name='borough' placeholder='borough optional'>
+          <input name='country' placeholder='country optional'>
+          <select name='contact_status'>
+            <option>open</option>
+            <option>limited</option>
+            <option>private</option>
+          </select>
+          <button type='submit'>Add to Directory</button>
+        </form>
+        </div>
+
+        <h2>Directory Records</h2>
+        <section class='grid'>{cards}</section>
+        """,
+        ["Community Power", "Pulse Directory"]
+    )
 @app.route("/community-power")
 def community_power_hub():
     """Community Power hub"""
