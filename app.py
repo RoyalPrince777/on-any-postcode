@@ -725,6 +725,7 @@ def nav():
     links += "<a href='/my-card'>👤 My Card</a>"
     links += "<a href='/my-energy'>⚡ My Energy</a>"
     links += "<a href='/born-local'>🌍 Born Local</a>"
+    links += "<a href='/signals'>📡 Signals</a>"
     links += "<a href='/oap-pulse/spaces'>💚 Pulse Spaces</a>"
     links += "<a href='/communications'>📧 Communications</a>"
     links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
@@ -1747,6 +1748,44 @@ def my_energy():
         </section>
         """,
         ["Community Power", "My Energy"]
+    )
+@app.route("/signals")
+def signals():
+    signal_cards = [
+        ("📡 Community Signal", "Community updates and announcements."),
+        ("🏪 Business Signal", "Business offers and opportunities."),
+        ("🎨 Creator Signal", "Creator drops and promotions."),
+        ("🎪 Event Signal", "Upcoming gatherings and experiences."),
+        ("🛡 Trust Signal", "Verification and trust notices."),
+        ("⚠️ Important Signal", "Priority alerts."),
+        ("🚚 Operations Signal", "Field and delivery updates."),
+        ("🧠 HRM Signal", "Memory, lessons and reviews.")
+    ]
+
+    cards = "".join([
+        f"""
+        <div class='card'>
+            <h2>{title}</h2>
+            <p>{desc}</p>
+        </div>
+        """
+        for title, desc in signal_cards
+    ])
+
+    return layout(
+        "Signals",
+        f"""
+        <section class='hero'>
+            <h1>📡 Signals</h1>
+            <p>The heartbeat of OAP.</p>
+            <p><b>Born Local. Built Global.</b></p>
+        </section>
+
+        <section class='grid'>
+            {cards}
+        </section>
+        """,
+        ["Community Power", "Signals"]
     )
 @app.route("/oap-pulse")
 def oap_pulse():
