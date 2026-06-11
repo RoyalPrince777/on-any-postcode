@@ -1707,8 +1707,6 @@ def the_link():
         """,
         ["Community Power", "The Link"]
     )
-    ["Community Power", "The Link"]
-    )
 
 @app.route("/my-energy")
 def my_energy():
