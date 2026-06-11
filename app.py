@@ -735,7 +735,7 @@ def nav():
     links += "<a href='/trust'>🛡 Trust</a>"
     links += "<a href='/world-cup'>⚽ World Cup</a>"
     links += "<a href='/command'>🎛 Command</a>"
-return links
+    return links
 
 def layout(title, body, breadcrumb=None):
     """Base HTML layout template"""
