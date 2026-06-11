@@ -1812,7 +1812,7 @@ def born_local_feed():
             <p>Discover creators and culture.</p>
         </div>
         """
-    ])
+    ]
 
     return layout(
         "Born Local",
@@ -1829,8 +1829,6 @@ def born_local_feed():
         """,
         ["Community Power", "Born Local"]
     )
-
-1796 @app.route("/oap-pulse/spaces", methods=["GET", "POST"])
 
 @app.route("/oap-pulse/spaces", methods=["GET", "POST"])
 def pulse_spaces():
