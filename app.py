@@ -1431,16 +1431,15 @@ def messenger():
         con.close()
 
     messages = "".join([
-        f"""
-        <div class='card'>
-          <h2>💚 {safe(r['sender_username'])}</h2>
-          <p>{safe(r['body'])}</p>
-          <small>To: {safe(r['receiver_username'] or 'community')} • {safe(r['pulse_type'])} • {safe(r['created_at'])}</small>
-        </div>
-        """
-        for r in rows
-    ]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet. First linkup starts the heartbeat.</p></div>"
-
+    f"""
+    <div class='card'>
+        <h2>🟢 👤 {safe(r['sender_username'])} ✨ {safe(r.get('trust_badge', 'Member'))}</h2>
+        <p>{safe(r['body'])}</p>
+        <small>To: {safe(r['receiver_username'] or 'community')} • {safe(r['pulse_type'])}</small>
+    </div>
+    """
+    for r in rows
+]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet.</p></div>"
     return layout(
         "Pulse Inbox",
         f"""
