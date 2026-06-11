@@ -698,21 +698,6 @@ def init():
         ("idx_pulse_notices_username", "pulse_notices", "username"),
         ("idx_pulse_queue_status", "pulse_queue", "queue_status"),
     ]
-    # Create indexes for performance
-    indexes = [
-        ("idx_members_username", "members", "username"),
-        ("idx_members_email", "members", "email"),
-        ("idx_members_country", "members", "country"),
-        ("idx_records_system_module", "records", "system, module"),
-        ("idx_records_created_at", "records", "created_at"),
-        ("idx_community_power_member", "community_power", "member"),
-        ("idx_community_power_created_at", "community_power", "created_at"),
-        ("idx_businesses_category", "businesses", "category"),
-        ("idx_dispatch_status", "dispatch_jobs", "status"),
-        ("idx_delivery_status", "delivery_bookings", "status"),
-        ("idx_mail_folder", "mail_items", "folder"),
-        ("idx_audit_created_at", "audit", "created_at"),
-    ]
     
     for idx_name, table, columns in indexes:
         try:
