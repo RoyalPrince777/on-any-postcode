@@ -1433,7 +1433,7 @@ def messenger():
     messages = "".join([
     f"""
     <div class='card'>
-        <h2>🟢 👤 {safe(r['sender_username'])} ✨ {safe(r.get('trust_badge', 'Member'))}</h2>
+        <h2>🟢 👤 {safe(r['sender_username'])} ✨ Founder</h2>
         <p>{safe(r['body'])}</p>
         <small>To: {safe(r['receiver_username'] or 'community')} • {safe(r['pulse_type'])}</small>
     </div>
