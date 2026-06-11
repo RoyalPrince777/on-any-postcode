@@ -1451,7 +1451,7 @@ else:
     for r in rows
 ]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet.</p></div>"
     return layout(
-        "Pulse Inbox",
+        "THE LINK",
         f"""
         <section class='hero'>
         <h1>💚 Pulse Inbox</h1>
