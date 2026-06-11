@@ -1380,60 +1380,91 @@ def oap_world_hub():
     )
 
 @app.route("/messenger")
+@app.route("/messenger", methods=["GET", "POST"])
 def messenger():
-    """Community messenger"""
-    page, limit, offset = get_pagination(request)
-    rows, total = get_records("communications", "Messenger", page, limit)
-    
+    """Pulse Inbox replacing old Messenger"""
+    if request.method == "POST":
+        sender = safe(request.form.get("sender_username", session.get("member", "guest")))
+        receiver = safe(request.form.get("receiver_username", ""))
+        body = safe(request.form.get("body", ""))
+        pulse_type = safe(request.form.get("pulse_type", "direct"))
+
+        if sender and body:
+            con = db()
+            try:
+                con.execute("""
+                    INSERT INTO pulse_records(
+                        sender_username, receiver_username, body, pulse_type, status, created_at
+                    ) VALUES(?,?,?,?,?,?)
+                """, (sender, receiver, body, pulse_type, "sent", now()))
+
+                record_id = con.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+
+                if receiver:
+                    con.execute("""
+                        INSERT INTO pulse_inbox(
+                            username, record_id, inbox_status, created_at, updated_at
+                        ) VALUES(?,?,?,?,?)
+                    """, (receiver, record_id, "unread", now(), now()))
+
+                con.commit()
+                audit("pulse_inbox_record_created", f"{sender} to {receiver or 'community'}")
+            finally:
+                con.close()
+
+        return redirect("/messenger")
+
+    con = db()
+    try:
+        rows = con.execute("""
+            SELECT * FROM pulse_records
+            WHERE pulse_type IN ('direct','support','normal','need','story')
+            ORDER BY id DESC
+            LIMIT 50
+        """).fetchall()
+    finally:
+        con.close()
+
     messages = "".join([
         f"""
         <div class='card'>
-        <h2>{r['title']}</h2>
-        <p><b>From:</b> {r['name'] or 'OAP Member'}</p>
-        <p><b>Area:</b> {r['location'] or 'OAP World'}</p>
-        <p>{r['notes'] or ''}</p>
-        <p><small>{r['created_at']}</small></p>
+          <h2>💚 {safe(r['sender_username'])}</h2>
+          <p>{safe(r['body'])}</p>
+          <small>To: {safe(r['receiver_username'] or 'community')} • {safe(r['pulse_type'])} • {safe(r['created_at'])}</small>
         </div>
         """
         for r in rows
-    ]) or "<div class='card'><h2>Inbox Open</h2><p>No messages yet. First message starts the network.</p></div>"
-    
-    form = """
-    <div class='card'>
-    <h2>✉️ New Message</h2>
-    <form method='post' action='/add-record'>
-    <input type='hidden' name='system' value='communications'>
-    <input type='hidden' name='module' value='Messenger'>
-    <input name='title' placeholder='Subject' required>
-    <input name='name' placeholder='Your name / username'>
-    <input name='location' placeholder='Postcode / borough / country'>
-    <input type='hidden' name='category' value='Message'>
-    <select name='status'>
-    <option>Open</option>
-    <option>Important</option>
-    <option>Reply Needed</option>
-    </select>
-    <textarea name='notes' placeholder='Write message'></textarea>
-    <button type='submit'>Send Message</button>
-    </form>
-    </div>
-    """
-    
-    pagination = pagination_links(page, total, limit, "/messenger")
-    
+    ]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet. First linkup starts the heartbeat.</p></div>"
+
     return layout(
-        "Messenger",
+        "Pulse Inbox",
         f"""
         <section class='hero'>
-        <h1>💬 OAP Messenger</h1>
-        <p>Simple member messaging board. Private inbox later. Community messages now.</p>
+        <h1>💚 Pulse Inbox</h1>
+        <p>Not Messenger. This is OAP Pulse — human records, support, linkups and community heartbeat.</p>
         </section>
-        {form}
-        <h2>📥 Inbox</h2>
+
+        <div class='card'>
+        <h2>Send Pulse</h2>
+        <form method='post'>
+          <input name='sender_username' value='{safe(session.get("member", "guest"))}' placeholder='Your username' required>
+          <input name='receiver_username' placeholder='Receiver username optional'>
+          <select name='pulse_type'>
+            <option>direct</option>
+            <option>support</option>
+            <option>normal</option>
+            <option>need</option>
+            <option>story</option>
+          </select>
+          <textarea name='body' placeholder='Write your Pulse' required></textarea>
+          <button type='submit'>Send Pulse</button>
+        </form>
+        </div>
+
+        <h2>Latest Pulse Records</h2>
         <section class='grid'>{messages}</section>
-        {pagination}
         """,
-        ["Communications", "Messenger"]
+        ["Community Power", "Pulse Inbox"]
     )
 
 @app.route("/world-cup/tournament")
