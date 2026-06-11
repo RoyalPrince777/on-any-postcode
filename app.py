@@ -723,6 +723,7 @@ def nav():
     links += "<a href='/community-power'>⚡ Community Power</a>"
     links += "<a href='/oap-pulse/spaces'>💚 Pulse Spaces</a>"
     links += "<a href='/intelligence'>🧠 Intelligence</a>"
+    links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
     links += "<a href='/money'>💎 Money / SIKA</a>"
     links += "<a href='/communications'>📧 Communications</a>"
     links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
