@@ -1789,7 +1789,6 @@ def signals():
 def oap_pulse():
     """OAP Pulse main page"""
     return redirect("/community-power")
-1794
 
 @app.route("/born-local")
 def born_local_feed():
@@ -1812,7 +1811,7 @@ def born_local_feed():
             <p>Discover creators and culture.</p>
         </div>
         """
-    ]
+    ])
 
     return layout(
         "Born Local",
