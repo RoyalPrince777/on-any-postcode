@@ -1791,7 +1791,48 @@ def signals():
 def oap_pulse():
     """OAP Pulse main page"""
     return redirect("/community-power")
+1794
 
+@app.route("/born-local")
+def born_local_feed():
+    cards = "".join([
+        """
+        <div class='card'>
+            <h2>🌍 Born Local</h2>
+            <p>Stories from postcodes around the world.</p>
+        </div>
+        """,
+        """
+        <div class='card'>
+            <h2>🏪 Local Business</h2>
+            <p>Support businesses in your area.</p>
+        </div>
+        """,
+        """
+        <div class='card'>
+            <h2>🎨 Local Creators</h2>
+            <p>Discover creators and culture.</p>
+        </div>
+        """
+    ])
+
+    return layout(
+        "Born Local",
+        f"""
+        <section class='hero'>
+            <h1>🌍 Born Local</h1>
+            <p>Every postcode has a story.</p>
+            <p><b>Born Local. Built Global.</b></p>
+        </section>
+
+        <section class='grid'>
+            {cards}
+        </section>
+        """,
+        ["Community Power", "Born Local"]
+    )
+
+1796 @app.route("/oap-pulse/spaces", methods=["GET", "POST"])
 
 @app.route("/oap-pulse/spaces", methods=["GET", "POST"])
 def pulse_spaces():
