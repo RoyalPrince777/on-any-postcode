@@ -1705,6 +1705,48 @@ def the_link():
         """,
         ["Community Power", "The Link"]
     )
+    ["Community Power", "The Link"]
+    )
+
+@app.route("/my-energy")
+def my_energy():
+    energies = [
+        "🔥 Building",
+        "🚀 Launching",
+        "🏪 In Business",
+        "🎨 Creating",
+        "🤝 Connecting",
+        "💚 Supporting",
+        "🌍 Exploring",
+        "🛡 On Duty",
+        "🎯 Focused",
+        "🔕 Quiet Mode",
+        "😴 Recharging",
+        "🎉 Celebrating",
+        "🚚 On The Move",
+        "📚 Learning"
+    ]
+
+    cards = "".join([
+        f"<div class='card'><h2>{energy}</h2></div>"
+        for energy in energies
+    ])
+
+    return layout(
+        "My Energy",
+        f"""
+        <section class='hero'>
+            <h1>⚡ My Energy</h1>
+            <p>How you're showing up today.</p>
+            <p><b>Born Local. Built Global.</b></p>
+        </section>
+
+        <section class='grid'>
+            {cards}
+        </section>
+        """,
+        ["Community Power", "My Energy"]
+    )
 @app.route("/oap-pulse")
 def oap_pulse():
     """OAP Pulse main page"""
