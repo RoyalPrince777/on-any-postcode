@@ -721,19 +721,19 @@ def nav():
     links += "<a href='/world'>🌍 OAP World</a>"
     links += "<a href='/identity'>👤 My World</a>"
     links += "<a href='/community-power'>⚡ Community Power</a>"
-    links += "<a href='/oap-pulse/spaces'>💚 Pulse Spaces</a>"
-    links += "<a href='/intelligence'>🧠 Intelligence</a>"
-    links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
-    links += "<a href='/money'>💎 Money / SIKA</a>"
-    links += "<a href='/communications'>📧 Communications</a>"
-    links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
-    links += "<a href='/pulse-directory'>🧭 Pulse Directory</a>"
-    links += "<a href='/infrastructure'>🗺 Infrastructure</a>"
-    links += "<a href='/operations'>🚚 Operations</a>"
-    links += "<a href='/culture'>🎭 Culture</a>"
-    links += "<a href='/trust'>🛡 Trust</a>"
-    links += "<a href='/world-cup'>⚽ World Cup</a>"
-    links += "<a href='/command'>🎛 Command</a>"
+links += "<a href='/the-link'>💬 The Link</a>"
+links += "<a href='/oap-pulse/spaces'>💚 Pulse Spaces</a>"
+links += "<a href='/intelligence'>🧠 Intelligence</a>"
+links += "<a href='/money'>💎 Money / SIKA</a>"
+links += "<a href='/communications'>📧 Communications</a>"
+links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
+links += "<a href='/pulse-directory'>🧭 Pulse Directory</a>"
+links += "<a href='/infrastructure'>🗺 Infrastructure</a>"
+links += "<a href='/operations'>🚚 Operations</a>"
+links += "<a href='/culture'>🎭 Culture</a>"
+links += "<a href='/trust'>🛡 Trust</a>"
+links += "<a href='/world-cup'>⚽ World Cup</a>"
+links += "<a href='/command'>🎛 Command</a>"
     return links
 
 def layout(title, body, breadcrumb=None):
@@ -1671,7 +1671,40 @@ def community_power_hub():
     <section class='grid'>{latest_html}</section>
     """, ["OAP Movement", "Community Power"])
 
+@app.route("/the-link")
+def the_link():
+    return layout(
+        "The Link",
+        """
+        <section class='hero'>
+            <h1>💬 The Link</h1>
+            <p>Simple chat. Talk local. Build global.</p>
+        </section>
 
+        <section class='grid'>
+            <a class='card' href='/pulse-directory'>
+                <h2>🧭 Directory</h2>
+                <p>Find people and businesses.</p>
+            </a>
+
+            <a class='card' href='/pulse-inbox'>
+                <h2>📥 Inbox</h2>
+                <p>View direct records.</p>
+            </a>
+
+            <a class='card' href='/community-power'>
+                <h2>⚡ Community Power</h2>
+                <p>Return to the movement hub.</p>
+            </a>
+        </section>
+
+        <div class='card'>
+            <h2>The Link is Live</h2>
+            <p>Quick chat arrives next. This is the front door.</p>
+        </div>
+        """,
+        ["Community Power", "The Link"]
+    )
 @app.route("/oap-pulse")
 def oap_pulse():
     """OAP Pulse main page"""
