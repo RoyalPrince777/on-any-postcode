@@ -722,9 +722,10 @@ def nav():
     links += "<a href='/identity'>👤 My World</a>"
     links += "<a href='/community-power'>⚡ Community Power</a>"
     links += "<a href='/the-link'>💬 The Link</a>"
+    links += "<a href='/my-card'>👤 My Card</a>"
+    links += "<a href='/my-energy'>⚡ My Energy</a>"
+    links += "<a href='/born-local'>🌍 Born Local</a>"
     links += "<a href='/oap-pulse/spaces'>💚 Pulse Spaces</a>"
-    links += "<a href='/intelligence'>🧠 Intelligence</a>"
-    links += "<a href='/money'>💎 Money / SIKA</a>"
     links += "<a href='/communications'>📧 Communications</a>"
     links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
     links += "<a href='/pulse-directory'>🧭 Pulse Directory</a>"
@@ -734,7 +735,7 @@ def nav():
     links += "<a href='/trust'>🛡 Trust</a>"
     links += "<a href='/world-cup'>⚽ World Cup</a>"
     links += "<a href='/command'>🎛 Command</a>"
-    return links
+return links
 
 def layout(title, body, breadcrumb=None):
     """Base HTML layout template"""
