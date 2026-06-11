@@ -1459,7 +1459,458 @@ def worldcup_tournament():
         ["World Cup", "Tournament"]
     )
 
+# ==# ============================================================================
+# OAP MOVEMENT / COMMUNITY POWER / OAP PULSE ROUTES
 # ============================================================================
+
+@app.route("/community-power")
+def community_power_hub():
+    """Community Power hub"""
+    con = db()
+    try:
+        counts = {
+            "Spaces": con.execute("SELECT COUNT(*) c FROM pulse_spaces").fetchone()["c"],
+            "Linkups": con.execute("SELECT COUNT(*) c FROM pulse_linkups").fetchone()["c"],
+            "Records": con.execute("SELECT COUNT(*) c FROM pulse_records").fetchone()["c"],
+            "Announcements": con.execute("SELECT COUNT(*) c FROM pulse_announcements").fetchone()["c"],
+            "Relays": con.execute("SELECT COUNT(*) c FROM pulse_relays").fetchone()["c"],
+            "Trust": con.execute("SELECT COUNT(*) c FROM pulse_trust").fetchone()["c"],
+        }
+        spaces = con.execute("SELECT * FROM pulse_spaces ORDER BY id ASC LIMIT 20").fetchall()
+        latest = con.execute("SELECT * FROM pulse_records ORDER BY id DESC LIMIT 10").fetchall()
+    finally:
+        con.close()
+
+    count_cards = "".join([
+        f"<div class='card'><div class='metric'>{v}</div><h2>{k}</h2></div>"
+        for k, v in counts.items()
+    ])
+
+    space_cards = "".join([
+        f"<a class='card' href='/oap-pulse/space/{s['id']}'><h2>💚 {safe(s['name'])}</h2><p>{safe(s['purpose'])}</p><small>{safe(s['space_type'])}</small></a>"
+        for s in spaces
+    ])
+
+    latest_html = "".join([
+        f"<div class='card'><h2>{safe(r['pulse_type'])}</h2><p>{safe(r['body'])}</p><small>{safe(r['sender_username'])} • {safe(r['created_at'])}</small></div>"
+        for r in latest
+    ]) or "<div class='card'><h2>First Pulse Waiting</h2><p>No records yet. Start the heartbeat.</p></div>"
+
+    return layout("Community Power", f"""
+    <section class='hero'>
+    <h1>⚡ Community Power</h1>
+    <h2>OAP Movement is the mission. Community Power is the engine. OAP Pulse is the heartbeat.</h2>
+    <p><b>Earth Is Our Turf.</b> Link up, support, organise, announce, and record what matters.</p>
+    </section>
+
+    <section class='grid'>
+      <a class='card' href='/oap-pulse/spaces'><h2>🌍 Pulse Spaces</h2><p>Community rooms and postcode spaces.</p></a>
+      <a class='card' href='/oap-pulse/linkup'><h2>🔗 Pulse Linkup</h2><p>Start a human connection thread.</p></a>
+      <a class='card' href='/oap-pulse/announcement'><h2>📣 Announce</h2><p>Share public movement notices.</p></a>
+      <a class='card' href='/oap-pulse/relay'><h2>🔁 Relay</h2><p>Pass urgent updates across spaces.</p></a>
+      <a class='card' href='/oap-pulse/trust'><h2>🛡 Trust</h2><p>Report, verify and protect the movement.</p></a>
+    </section>
+
+    <h2>Pulse Metrics</h2>
+    <section class='grid'>{count_cards}</section>
+
+    <h2>Pulse Spaces</h2>
+    <section class='grid'>{space_cards}</section>
+
+    <h2>Latest Pulse Records</h2>
+    <section class='grid'>{latest_html}</section>
+    """, ["OAP Movement", "Community Power"])
+
+
+@app.route("/oap-pulse")
+def oap_pulse():
+    """OAP Pulse main page"""
+    return redirect("/community-power")
+
+
+@app.route("/oap-pulse/spaces", methods=["GET", "POST"])
+def pulse_spaces():
+    """Create and view Pulse Spaces"""
+    if request.method == "POST":
+        name = safe(request.form.get("name", ""))
+        purpose = safe(request.form.get("purpose", ""))
+        space_type = safe(request.form.get("space_type", "community"))
+        postcode = safe(request.form.get("postcode", ""))
+        borough = safe(request.form.get("borough", ""))
+        country = safe(request.form.get("country", ""))
+
+        if name and purpose:
+            con = db()
+            try:
+                con.execute("""
+                    INSERT OR IGNORE INTO pulse_spaces(
+                        name,purpose,space_type,postcode,borough,country,created_at
+                    ) VALUES(?,?,?,?,?,?,?)
+                """, (name, purpose, space_type, postcode, borough, country, now()))
+                con.commit()
+                audit("pulse_space_created", name)
+            finally:
+                con.close()
+        return redirect("/oap-pulse/spaces")
+
+    con = db()
+    try:
+        rows = con.execute("SELECT * FROM pulse_spaces ORDER BY id DESC").fetchall()
+    finally:
+        con.close()
+
+    cards = "".join([
+        f"<a class='card' href='/oap-pulse/space/{r['id']}'><h2>🌍 {safe(r['name'])}</h2><p>{safe(r['purpose'])}</p><small>{safe(r['space_type'])} • {safe(r['postcode'])} {safe(r['borough'])} {safe(r['country'])}</small></a>"
+        for r in rows
+    ]) or "<div class='card'><h2>No spaces yet</h2><p>Create the first Pulse Space.</p></div>"
+
+    return layout("Pulse Spaces", f"""
+    <section class='hero'>
+    <h1>🌍 Pulse Spaces</h1>
+    <p>Postcode rooms, borough rooms, rider spaces, merchant spaces and support spaces.</p>
+    </section>
+
+    <div class='card'>
+    <h2>Create Pulse Space</h2>
+    <form method='post'>
+      <input name='name' placeholder='space name' required>
+      <input name='purpose' placeholder='purpose' required>
+      <select name='space_type'>
+        <option>community</option>
+        <option>postcode</option>
+        <option>borough</option>
+        <option>country</option>
+        <option>riders</option>
+        <option>merchants</option>
+        <option>support</option>
+        <option>announcement</option>
+      </select>
+      <input name='postcode' placeholder='postcode optional'>
+      <input name='borough' placeholder='borough optional'>
+      <input name='country' placeholder='country optional'>
+      <button>Create Space</button>
+    </form>
+    </div>
+
+    <section class='grid'>{cards}</section>
+    """, ["Community Power", "Pulse Spaces"])
+
+
+@app.route("/oap-pulse/space/<int:space_id>", methods=["GET", "POST"])
+def pulse_space(space_id):
+    """Single Pulse Space"""
+    if request.method == "POST":
+        sender = safe(request.form.get("sender_username", session.get("member", "guest")))
+        body = safe(request.form.get("body", ""))
+        pulse_type = safe(request.form.get("pulse_type", "normal"))
+
+        if sender and body:
+            con = db()
+            try:
+                con.execute("""
+                    INSERT INTO pulse_records(
+                        sender_username, space_id, body, pulse_type, status, created_at
+                    ) VALUES(?,?,?,?,?,?)
+                """, (sender, space_id, body, pulse_type, "sent", now()))
+                con.commit()
+                audit("pulse_record_created", f"{sender} in space {space_id}")
+            finally:
+                con.close()
+        return redirect(f"/oap-pulse/space/{space_id}")
+
+    con = db()
+    try:
+        space = con.execute("SELECT * FROM pulse_spaces WHERE id=?", (space_id,)).fetchone()
+        records = con.execute("SELECT * FROM pulse_records WHERE space_id=? ORDER BY id DESC LIMIT 50", (space_id,)).fetchall()
+    finally:
+        con.close()
+
+    if not space:
+        return not_found(None)
+
+    records_html = "".join([
+        f"<div class='card'><h2>{safe(r['sender_username'])}</h2><p>{safe(r['body'])}</p><small>{safe(r['pulse_type'])} • {safe(r['created_at'])}</small></div>"
+        for r in records
+    ]) or "<div class='card'><h2>Open Space</h2><p>No Pulse Records yet.</p></div>"
+
+    return layout(safe(space["name"]), f"""
+    <section class='hero'>
+    <h1>💚 {safe(space['name'])}</h1>
+    <p>{safe(space['purpose'])}</p>
+    <small>{safe(space['space_type'])} • {safe(space['postcode'])} {safe(space['borough'])} {safe(space['country'])}</small>
+    </section>
+
+    <div class='card'>
+    <h2>Send Pulse Record</h2>
+    <form method='post'>
+      <input name='sender_username' value='{safe(session.get("member", "guest"))}' placeholder='username' required>
+      <select name='pulse_type'>
+        <option>normal</option>
+        <option>support</option>
+        <option>need</option>
+        <option>story</option>
+        <option>rider-update</option>
+        <option>merchant-update</option>
+        <option>verified-safety</option>
+      </select>
+      <textarea name='body' placeholder='Write what matters' required></textarea>
+      <button>Record Pulse</button>
+    </form>
+    </div>
+
+    <section class='grid'>{records_html}</section>
+    """, ["Community Power", "Pulse Spaces", safe(space["name"])])
+
+
+@app.route("/oap-pulse/linkup", methods=["GET", "POST"])
+def pulse_linkup():
+    """Pulse Linkup threads"""
+    if request.method == "POST":
+        title = safe(request.form.get("title", ""))
+        created_by = safe(request.form.get("created_by", session.get("member", "guest")))
+        linkup_type = safe(request.form.get("linkup_type", "group"))
+        space_id = request.form.get("space_id") or None
+
+        con = db()
+        try:
+            con.execute("""
+                INSERT INTO pulse_linkups(title,linkup_type,space_id,created_by,status,created_at,updated_at)
+                VALUES(?,?,?,?,?,?,?)
+            """, (title, linkup_type, space_id, created_by, "open", now(), now()))
+            con.commit()
+            audit("pulse_linkup_created", title)
+        finally:
+            con.close()
+        return redirect("/oap-pulse/linkup")
+
+    con = db()
+    try:
+        spaces = con.execute("SELECT * FROM pulse_spaces ORDER BY name ASC").fetchall()
+        linkups = con.execute("SELECT * FROM pulse_linkups ORDER BY id DESC LIMIT 50").fetchall()
+    finally:
+        con.close()
+
+    options = "".join([f"<option value='{s['id']}'>{safe(s['name'])}</option>" for s in spaces])
+    rows = "".join([
+        f"<div class='card'><h2>🔗 {safe(l['title'])}</h2><p>{safe(l['linkup_type'])} • {safe(l['status'])}</p><small>Created by {safe(l['created_by'])}</small></div>"
+        for l in linkups
+    ]) or "<div class='card'><h2>No Linkups</h2><p>Start the first Pulse Linkup.</p></div>"
+
+    return layout("Pulse Linkup", f"""
+    <section class='hero'>
+    <h1>🔗 Pulse Linkup</h1>
+    <p>Human connection threads for members, riders, merchants and support.</p>
+    </section>
+
+    <div class='card'>
+    <form method='post'>
+      <input name='title' placeholder='linkup title' required>
+      <input name='created_by' value='{safe(session.get("member", "guest"))}' required>
+      <select name='linkup_type'>
+        <option>group</option>
+        <option>direct</option>
+        <option>support</option>
+        <option>rider</option>
+        <option>merchant</option>
+      </select>
+      <select name='space_id'>
+        <option value=''>No space</option>
+        {options}
+      </select>
+      <button>Create Linkup</button>
+    </form>
+    </div>
+
+    <section class='grid'>{rows}</section>
+    """, ["Community Power", "Pulse Linkup"])
+
+
+@app.route("/oap-pulse/announcement", methods=["GET", "POST"])
+def pulse_announcement():
+    """Pulse announcements"""
+    if request.method == "POST":
+        sender = safe(request.form.get("sender_username", session.get("member", "guest")))
+        target = safe(request.form.get("target", "community"))
+        title = safe(request.form.get("title", ""))
+        body = safe(request.form.get("body", ""))
+        priority = safe(request.form.get("priority", "normal"))
+
+        con = db()
+        try:
+            con.execute("""
+                INSERT INTO pulse_announcements(sender_username,target,title,body,priority,created_at)
+                VALUES(?,?,?,?,?,?)
+            """, (sender, target, title, body, priority, now()))
+            con.commit()
+            audit("pulse_announcement_created", title)
+        finally:
+            con.close()
+        return redirect("/oap-pulse/announcement")
+
+    con = db()
+    try:
+        rows = con.execute("SELECT * FROM pulse_announcements ORDER BY id DESC LIMIT 50").fetchall()
+    finally:
+        con.close()
+
+    cards = "".join([
+        f"<div class='card'><h2>📣 {safe(r['title'])}</h2><p>{safe(r['body'])}</p><small>{safe(r['target'])} • {safe(r['priority'])} • {safe(r['created_at'])}</small></div>"
+        for r in rows
+    ]) or "<div class='card'><h2>No announcements</h2><p>Share the first movement notice.</p></div>"
+
+    return layout("Pulse Announcements", f"""
+    <section class='hero'>
+    <h1>📣 Pulse Announcements</h1>
+    <p>Public community notices and OAP Movement updates.</p>
+    </section>
+
+    <div class='card'>
+    <form method='post'>
+      <input name='sender_username' value='{safe(session.get("member", "guest"))}' required>
+      <input name='target' placeholder='community / riders / merchants / country' value='community' required>
+      <input name='title' placeholder='announcement title' required>
+      <select name='priority'>
+        <option>normal</option>
+        <option>important</option>
+        <option>urgent</option>
+      </select>
+      <textarea name='body' placeholder='announcement body' required></textarea>
+      <button>Post Announcement</button>
+    </form>
+    </div>
+
+    <section class='grid'>{cards}</section>
+    """, ["Community Power", "Announcements"])
+
+
+@app.route("/oap-pulse/relay", methods=["GET", "POST"])
+def pulse_relay():
+    """Pulse Relay"""
+    if request.method == "POST":
+        sender = safe(request.form.get("sender_username", session.get("member", "guest")))
+        from_space_id = request.form.get("from_space_id") or None
+        to_space_id = request.form.get("to_space_id") or None
+        title = safe(request.form.get("title", ""))
+        body = safe(request.form.get("body", ""))
+        relay_type = safe(request.form.get("relay_type", "community"))
+
+        con = db()
+        try:
+            con.execute("""
+                INSERT INTO pulse_relays(
+                    sender_username,from_space_id,to_space_id,title,body,relay_type,verification_status,created_at
+                ) VALUES(?,?,?,?,?,?,?,?)
+            """, (sender, from_space_id, to_space_id, title, body, relay_type, "unverified", now()))
+            con.commit()
+            audit("pulse_relay_created", title)
+        finally:
+            con.close()
+        return redirect("/oap-pulse/relay")
+
+    con = db()
+    try:
+        spaces = con.execute("SELECT * FROM pulse_spaces ORDER BY name ASC").fetchall()
+        relays = con.execute("SELECT * FROM pulse_relays ORDER BY id DESC LIMIT 50").fetchall()
+    finally:
+        con.close()
+
+    options = "".join([f"<option value='{s['id']}'>{safe(s['name'])}</option>" for s in spaces])
+    cards = "".join([
+        f"<div class='card'><h2>🔁 {safe(r['title'])}</h2><p>{safe(r['body'])}</p><small>{safe(r['relay_type'])} • {safe(r['verification_status'])} • {safe(r['created_at'])}</small></div>"
+        for r in relays
+    ]) or "<div class='card'><h2>No relays</h2><p>Relay important updates across the movement.</p></div>"
+
+    return layout("Pulse Relay", f"""
+    <section class='hero'>
+    <h1>🔁 Pulse Relay</h1>
+    <p>Urgent updates passed from space to space. Verify before crisis sharing.</p>
+    </section>
+
+    <div class='card'>
+    <form method='post'>
+      <input name='sender_username' value='{safe(session.get("member", "guest"))}' required>
+      <select name='from_space_id'><option value=''>From Space</option>{options}</select>
+      <select name='to_space_id'><option value=''>To Space</option>{options}</select>
+      <input name='title' placeholder='relay title' required>
+      <select name='relay_type'>
+        <option>community</option>
+        <option>event</option>
+        <option>rider</option>
+        <option>merchant</option>
+        <option>support</option>
+        <option>safety</option>
+      </select>
+      <textarea name='body' placeholder='relay update' required></textarea>
+      <button>Create Relay</button>
+    </form>
+    </div>
+
+    <section class='grid'>{cards}</section>
+    """, ["Community Power", "Pulse Relay"])
+
+
+@app.route("/oap-pulse/trust", methods=["GET", "POST"])
+def pulse_trust():
+    """Pulse Trust and safety reports"""
+    if request.method == "POST":
+        reporter = safe(request.form.get("reporter_username", session.get("member", "guest")))
+        issue_type = safe(request.form.get("issue_type", "review"))
+        details = safe(request.form.get("details", ""))
+        record_id = request.form.get("record_id") or None
+        space_id = request.form.get("space_id") or None
+
+        con = db()
+        try:
+            con.execute("""
+                INSERT INTO pulse_trust(
+                    reporter_username,record_id,space_id,issue_type,details,review_status,created_at
+                ) VALUES(?,?,?,?,?,?,?)
+            """, (reporter, record_id, space_id, issue_type, details, "pending", now()))
+            con.commit()
+            audit("pulse_trust_report_created", issue_type)
+        finally:
+            con.close()
+        return redirect("/oap-pulse/trust")
+
+    con = db()
+    try:
+        rows = con.execute("SELECT * FROM pulse_trust ORDER BY id DESC LIMIT 50").fetchall()
+    finally:
+        con.close()
+
+    cards = "".join([
+        f"<div class='card'><h2>🛡 {safe(r['issue_type'])}</h2><p>{safe(r['details'])}</p><small>{safe(r['review_status'])} • {safe(r['created_at'])}</small></div>"
+        for r in rows
+    ]) or "<div class='card'><h2>No trust reports</h2><p>Pulse Trust is clean.</p></div>"
+
+    return layout("Pulse Trust", f"""
+    <section class='hero'>
+    <h1>🛡 Pulse Trust</h1>
+    <p>Report, verify and protect the OAP Movement. Human review before real-world action.</p>
+    </section>
+
+    <div class='card'>
+    <form method='post'>
+      <input name='reporter_username' value='{safe(session.get("member", "guest"))}' required>
+      <input name='record_id' placeholder='record id optional'>
+      <input name='space_id' placeholder='space id optional'>
+      <select name='issue_type'>
+        <option>review</option>
+        <option>misuse</option>
+        <option>privacy</option>
+        <option>youth-safety</option>
+        <option>crisis-verification</option>
+        <option>spam</option>
+      </select>
+      <textarea name='details' placeholder='details' required></textarea>
+      <button>Send Trust Report</button>
+    </form>
+    </div>
+
+    <section class='grid'>{cards}</section>
+    """, ["Community Power", "Pulse Trust"])
+       
+#=============================================================================
 # COMMAND & ADMIN ROUTES
 # ============================================================================
 
