@@ -1421,14 +1421,24 @@ def messenger():
 
     con = db()
     try:
-        rows = con.execute("""
-            SELECT * FROM pulse_records
-            WHERE pulse_type IN ('direct','support','normal','need','story')
-            ORDER BY id DESC
-            LIMIT 50
-        """).fetchall()
-    finally:
-        con.close()
+        if q:
+    rows = con.execute("""
+        SELECT * FROM pulse_records
+        WHERE pulse_type IN ('direct','support','normal','need','story')
+        AND (
+            body LIKE ?
+            OR sender_username LIKE ?
+        )
+        ORDER BY id DESC
+        LIMIT 50
+    """, (f"%{q}%", f"%{q}%")).fetchall()
+else:
+    rows = con.execute("""
+        SELECT * FROM pulse_records
+        WHERE pulse_type IN ('direct','support','normal','need','story')
+        ORDER BY id DESC
+        LIMIT 50
+    """).fetchall()
 
     messages = "".join([
     f"""
