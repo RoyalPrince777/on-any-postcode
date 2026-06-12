@@ -1439,7 +1439,8 @@ else:
         ORDER BY id DESC
         LIMIT 50
     """).fetchall()
-
+finally:
+    con.close()
     messages = "".join([
     f"""
     <div class='card'>
