@@ -1418,30 +1418,7 @@ def messenger():
 
         return redirect("/messenger")
 
-    q = safe(request.args.get("q", ""))
-    con = db()
-            try:
-                con.execute("""
-                    INSERT INTO pulse_records(
-                        sender_username, receiver_username, body, pulse_type, status, created_at
-                    ) VALUES(?,?,?,?,?,?)
-                """, (sender, receiver, body, pulse_type, "sent", now()))
-
-                record_id = con.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
-
-                if receiver:
-                    con.execute("""
-                        INSERT INTO pulse_inbox(
-                            username, record_id, inbox_status, created_at, updated_at
-                        ) VALUES(?,?,?,?,?)
-                    """, (receiver, record_id, "unread", now(), now()))
-
-                con.commit()
-                audit("pulse_inbox_record_created", f"{sender} to {receiver or 'community'}")
-            finally:
-                con.close()
-
-        return redirect("/messenger")
+    
     q = safe(request.args.get("q", ""))
 
     con = db()
