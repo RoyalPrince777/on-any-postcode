@@ -1424,75 +1424,71 @@ def messenger():
 con = db()
 try:
     if q:
-        rows = con.execute("""
-            SELECT * FROM pulse_records
-            WHERE pulse_type IN ('direct','support','normal','need','story')
-            AND (
-                body LIKE ?
-                OR sender_username LIKE ?
-            )
-            ORDER BY id DESC
-            LIMIT 50
-        """, (f"%{q}%", f"%{q}%")).fetchall()
-    else:
-        rows = con.execute("""
-            SELECT * FROM pulse_records
-            WHERE pulse_type IN ('direct','support','normal','need','story')
-            ORDER BY id DESC
-            LIMIT 50
-            
-        """).fetchall()
-finally:
-    con.close()
+        con = db()
+    try:
+        if q:
+            rows = con.execute("""
+                SELECT * FROM pulse_records
+                WHERE pulse_type IN ('direct','support','normal','need','story')
+                AND (
+                    body LIKE ?
+                    OR sender_username LIKE ?
+                )
+                ORDER BY id DESC
+                LIMIT 50
+            """, (f"%{q}%", f"%{q}%")).fetchall()
+        else:
+            rows = con.execute("""
+                SELECT * FROM pulse_records
+                WHERE pulse_type IN ('direct','support','normal','need','story')
+                ORDER BY id DESC
+                LIMIT 50
+            """).fetchall()
+    finally:
+        con.close()
 
     messages = "".join([
-        ...
+        f"""
+        <div class='card'>
+            <h2>💚 {safe(r['sender_username'])} ✨ Founder</h2>
+            <p>{safe(r['body'])}</p>
+            <small>To: {safe(r['receiver_username'] or 'community')} • {safe(r['pulse_type'])}</small>
+        </div>
+        """
         for r in rows
     ]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet.</p></div>"
 
     return layout(
-        ...
-    )
-    """
-    for r in rows
-]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet.</p></div>"
-   
- return layout(
         "THE LINK",
         f"""
         <section class='hero'>
-        <h1>💚 Pulse Inbox</h1>
-        <p>Not Messenger. This is OAP Pulse — human records, support, linkups and community heartbeat.</p>
+            <h1>💚 Pulse Inbox</h1>
+            <p>Not Messenger. This is OAP Pulse — human records, support, linkups and community heartbeat.</p>
         </section>
-<div class='card'>
-    <h2>🔍 Search Pulse</h2>
 
-    <form method='get'>
-        <input
-            name='q'
-            placeholder='Search Pulse...'
-            value='{safe(request.args.get("q",""))}'>
-
-        <button type='submit'>
-            Search
-        </button>
-    </form>
-</div>
         <div class='card'>
-        <h2>Send Pulse</h2>
-        <form method='post'>
-          <input name='sender_username' value='{safe(session.get("member", "guest"))}' placeholder='Your username' required>
-          <input name='receiver_username' placeholder='Receiver username optional'>
-          <select name='pulse_type'>
-            <option>direct</option>
-            <option>support</option>
-            <option>normal</option>
-            <option>need</option>
-            <option>story</option>
-          </select>
-          <textarea name='body' placeholder='Write your Pulse' required></textarea>
-          <button type='submit'>Send Pulse</button>
-        </form>
+            <h2>🔍 Search Pulse</h2>
+            <form method='get'>
+                <input name='q' placeholder='Search Pulse...' value='{safe(request.args.get("q",""))}'>
+                <button type='submit'>Search</button>
+            </form>
+        </div>
+
+        <div class='card'>
+            <h2>Send Pulse</h2>
+            <form method='post'>
+                <input name='sender_username' value='{safe(session.get("member", "guest"))}' placeholder='Your username' required>
+                <input name='receiver_username' placeholder='Receiver username optional'>
+                <select name='pulse_type'>
+                    <option>direct</option>
+                    <option>support</option>
+                    <option>normal</option>
+                    <option>need</option>
+                    <option>story</option>
+                </select>
+                <textarea name='body' placeholder='Write your Pulse' required></textarea>
+                <button type='submit'>Send Pulse</button>
+            </form>
         </div>
 
         <h2>Latest Pulse Records</h2>
