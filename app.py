@@ -1440,17 +1440,19 @@ try:
             WHERE pulse_type IN ('direct','support','normal','need','story')
             ORDER BY id DESC
             LIMIT 50
+            
         """).fetchall()
 finally:
     con.close()
 
-messages = "".join([
-    f"""
-    <div class='card'>
-        <h2>🟢 👤 {safe(r['sender_username'])} ✨ Founder</h2>
-        <p>{safe(r['body'])}</p>
-        <small>To: {safe(r['receiver_username'] or 'community')} • {safe(r['pulse_type'])}</small>
-    </div>
+    messages = "".join([
+        ...
+        for r in rows
+    ]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet.</p></div>"
+
+    return layout(
+        ...
+    )
     """
     for r in rows
 ]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet.</p></div>"
