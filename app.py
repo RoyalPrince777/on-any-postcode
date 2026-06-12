@@ -1420,9 +1420,9 @@ def messenger():
         return redirect("/messenger")
 
     con = db()
-    try:
-        if q:
-    rows = con.execute("""
+try:
+    if q:
+        rows = con.execute("""
         SELECT * FROM pulse_records
         WHERE pulse_type IN ('direct','support','normal','need','story')
         AND (
