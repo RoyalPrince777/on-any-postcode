@@ -3437,98 +3437,10 @@ VERIFIED FACTS:
     try:
         with urllib.request.urlopen(req, timeout=30) as res:
             data = json.loads(res.read().decode("utf-8"))
-# ============================================================================
-# HRM SOVEREIGN MEGAVERSE INTELLIGENCE - PUBLIC AI
-# ============================================================================
-
-@app.route("/world-watch/ai-sync")
-def world_watch_ai_sync():
-    """HRM World Watch Intelligence: public AI summaries from verified facts only"""
-    api_key = os.environ.get("OPENAI_API_KEY")
-
-    if not api_key:
-        return layout(
-            "HRM Sovereign Megaverse Intelligence",
-            """
-            <section class='hero'>
-                <h1>🧠🌍👑 HRM Sovereign Megaverse Intelligence</h1>
-                <p>OPENAI_API_KEY is missing in Render environment.</p>
-            </section>
-            <div class='card'>
-                <h2>Setup Needed</h2>
-                <p>Add OPENAI_API_KEY in Render Environment, then redeploy.</p>
-            </div>
-            """,
-            ["World Watch", "HRM"]
-        )
-
-    verified_facts = """
-Mexico 2-0 South Africa. Group A. Finished.
-South Korea 2-1 Czechia. Group A. Finished.
-Canada vs Bosnia and Herzegovina. Group B. Upcoming.
-USA vs Paraguay. Group D. Upcoming.
-"""
-
-    prompt = f"""
-You are HRM Sovereign Megaverse Intelligence for ON ANY POSTCODE.
-
-Doctrine:
-Born Local. Built Global.
-Human First. AI Assisted.
-Facts first. Stories connect.
-Humanity decides.
-
-Use ONLY these verified facts.
-Do not invent scores, players, times, venues, injuries, cards, or standings.
-
-Output:
-1. World Watch Summary
-2. What Changed
-3. Next Watch Points
-4. HRM Lesson
-5. Community Note
-
-VERIFIED FACTS:
-{verified_facts}
-"""
-
-    payload = json.dumps({
-        "model": "gpt-4o-mini",
-        "input": prompt
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        },
-        method="POST"
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=30) as res:
-            data = json.loads(res.read().decode("utf-8"))
-            text = data.get("output_text", "No summary returned.")
+            
+# ===text = data.get("output_text", "No summary returned.")
     except Exception as e:
         text = f"AI sync failed: {str(e)}"
-
-    return layout(
-        "HRM Sovereign Megaverse Intelligence",
-        f"""
-        <section class='hero'>
-            <h1>🧠🌍👑 HRM Sovereign Megaverse Intelligence</h1>
-            <p>Born Local. Built Global. Public AI summary from verified match facts only.</p>
-        </section>
-
-        <div class='card'>
-            <h2>🌍 World Watch Intelligence</h2>
-            <pre>{safe(text)}</pre>
-        </div>
-        """,
-        ["World Watch", "HRM Sovereign Megaverse Intelligence"]
-    )
 
 # ============================================================================
 # HEALTH CHECK & API ENDPOINTS
