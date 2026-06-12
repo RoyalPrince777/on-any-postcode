@@ -18,7 +18,7 @@ DB = "oap_architecture_v12.db"
 
 # Session configuration
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get("FLASK_ENV") == "production"
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get("FLASK_ENV") == "production" 
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 
