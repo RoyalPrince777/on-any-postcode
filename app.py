@@ -3395,7 +3395,8 @@ Czechia vs South Africa. Group A. Upcoming. 18 June 2026. Atlanta Stadium.
 Mexico vs Korea Republic. Group A. Upcoming. 18 June 2026. Estadio Guadalajara.
 Czechia vs Mexico. Group A. Upcoming. 24 June 2026. Mexico City Stadium.
 South Africa vs Korea Republic. Group A. Upcoming. 24 June 2026. Estadio Monterrey.
-Upcoming. 24 June 2026. Estadio Monterrey."""
+Upcoming. 24 June 2026. Estadio Monterrey.
+"""
 
     prompt = f"""
 You are HRM Sovereign Megaverse Intelligence for ON ANY POSTCODE.
@@ -3437,11 +3438,19 @@ VERIFIED FACTS:
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as res:
-            data = json.loads(res.read().decode("utf-8"))
-            text = data.get("output_text", "No summary returned.")
-    except Exception as e:
-        text = f"AI sync failed: {str(e)}"
+    with urllib.request.urlopen(req, timeout=30) as res:
+        data = json.loads(res.read().decode("utf-8"))
+
+    text = data.get("output_text", "").strip()
+
+    if not text:
+        try:
+            text = data["output"][0]["content"][0]["text"].strip()
+        except Exception:
+            text = "DEBUG RESPONSE: " + json.dumps(data)[:3000]
+
+except Exception as e:
+    text = f"AI sync failed: {str(e)}"
 
     return layout(
         "HRM Sovereign Megaverse Intelligence",
