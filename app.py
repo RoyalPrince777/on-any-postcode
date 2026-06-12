@@ -3437,8 +3437,7 @@ VERIFIED FACTS:
     try:
         with urllib.request.urlopen(req, timeout=30) as res:
             data = json.loads(res.read().decode("utf-8"))
-            
-text = data.get("output_text", "No summary returned.")
+            text = data.get("output_text", "No summary returned.")
     except Exception as e:
         text = f"AI sync failed: {str(e)}"
 
