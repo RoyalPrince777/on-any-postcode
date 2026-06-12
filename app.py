@@ -1419,10 +1419,10 @@ def messenger():
 
         return redirect("/messenger")
 
-    q = safe(request.args.get("q", ""))
+   q = safe(request.args.get("q", ""))
 
-con = db()
-try:
+    con = db()
+    try:
     if q:
         con = db()
     try:
