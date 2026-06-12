@@ -1420,7 +1420,6 @@ def messenger():
         return redirect("/messenger")
 
    q = safe(request.args.get("q", ""))
-
     con = db()
     try:
     if q:
