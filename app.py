@@ -3389,11 +3389,13 @@ def world_watch_ai_sync():
         )
 
     verified_facts = """
-    Mexico 2-0 South Africa. Group A. Finished.
-    South Korea 2-1 Czechia. Group A. Finished.
-    Canada vs Bosnia and Herzegovina. Group B. Upcoming.
-    USA vs Paraguay. Group D. Upcoming.
-    """
+Mexico 2-0 South Africa. Group A. Finished. Source: Reuters.
+South Korea 2-1 Czech Republic. Group A. Finished. Source: Reuters/AP.
+Czechia vs South Africa. Group A. Upcoming. 18 June 2026. Atlanta Stadium.
+Mexico vs Korea Republic. Group A. Upcoming. 18 June 2026. Estadio Guadalajara.
+Czechia vs Mexico. Group A. Upcoming. 24 June 2026. Mexico City Stadium.
+South Africa vs Korea Republic. Group A. Upcoming. 24 June 2026. Estadio Monterrey.
+"""
 
     prompt = f"""
 You are HRM Sovereign Megaverse Intelligence for ON ANY POSTCODE.
