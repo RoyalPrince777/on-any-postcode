@@ -7,6 +7,7 @@ from html import escape
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 import json
+import urllib.request
 
 # ============================================================================
 # CONFIGURATION & SETUP
@@ -3366,7 +3367,105 @@ def weather_hub():
 # ============================================================================
 # HEALTH CHECK & API ENDPOINTS
 # ============================================================================
+# ============================================================================
+# HRM SOVEREIGN MEGAVERSE INTELLIGENCE - PUBLIC AI
+# ============================================================================
 
+@app.route("/world-watch/ai-sync")
+def world_watch_ai_sync():
+    """HRM World Watch Intelligence: public AI summaries from verified facts only"""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return layout(
+            "HRM World Watch Intelligence",
+            """
+            <section class='hero'>
+                <h1>🧠🌍👑 HRM Sovereign Megaverse Intelligence</h1>
+                <p>OPENAI_API_KEY is missing in Render environment.</p>
+            </section>
+            <div class='card'>
+                <h2>Setup Needed</h2>
+                <p>Add OPENAI_API_KEY in Render Environment, then redeploy.</p>
+            </div>
+            """,
+            ["World Watch", "AI Sync"]
+        )
+
+    verified_facts = """
+    Mexico 2-0 South Africa. Group A. Finished.
+    South Korea 2-1 Czechia. Group A. Finished.
+    Canada vs Bosnia and Herzegovina. Group B. Upcoming.
+    USA vs Paraguay. Group D. Upcoming.
+    """
+
+    prompt = f"""
+You are HRM Sovereign Megaverse Intelligence for ON ANY POSTCODE.
+
+Master doctrine:
+Born Local. Built Global.
+Human First. AI Assisted.
+Protect life. Preserve dignity.
+Facts first. Stories connect.
+Humanity decides.
+
+Use ONLY the verified facts below.
+Do not invent scores, players, times, venues, injuries, cards, or standings.
+
+Output in short public OAP style:
+1. World Watch Summary
+2. What Changed
+3. Next Watch Points
+4. HRM Lesson
+5. Humanitarian / Community Note
+
+VERIFIED FACTS:
+{verified_facts}
+"""
+
+    payload = json.dumps({
+        "model": "gpt-4o-mini",
+        "input": prompt
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            data = json.loads(res.read().decode("utf-8"))
+            text = data.get("output_text", "No summary returned.")
+    except Exception as e:
+        text = f"AI sync failed: {str(e)}"
+
+    return layout(
+        "HRM World Watch Intelligence",
+        f"""
+        <section class='hero'>
+            <h1>🧠🌍👑 HRM Sovereign Megaverse Intelligence</h1>
+            <p>Born Local. Built Global. Public AI summary from verified match facts only.</p>
+        </section>
+
+        <div class='card'>
+            <h2>🌍 World Watch Intelligence</h2>
+            <pre>{safe(text)}</pre>
+        </div>
+
+        <section class='grid'>
+            <div class='card'><h2>🌍 World Watch</h2><p>Observes verified facts.</p></div>
+            <div class='card'><h2>⚡ Edge</h2><p>Turns facts into next watch points.</p></div>
+            <div class='card'><h2>❤️ Humanitarian</h2><p>Keeps people and dignity first.</p></div>
+            <div class='card'><h2>👑 Sovereign</h2><p>Human approval remains final.</p></div>
+        </section>
+        """,
+        ["World Watch", "HRM Sovereign Megaverse Intelligence"]
+            )
 @app.route("/health")
 def health_check():
     """Health check endpoint"""
