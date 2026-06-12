@@ -3395,8 +3395,7 @@ Czechia vs South Africa. Group A. Upcoming. 18 June 2026. Atlanta Stadium.
 Mexico vs Korea Republic. Group A. Upcoming. 18 June 2026. Estadio Guadalajara.
 Czechia vs Mexico. Group A. Upcoming. 24 June 2026. Mexico City Stadium.
 South Africa vs Korea Republic. Group A. Upcoming. 24 June 2026. Estadio Monterrey.
-Upcoming. 24 June 2026. Estadio Monterrey.
-"""
+Upcoming. 24 June 2026. Estadio Monterrey."""
 
     prompt = f"""
 You are HRM Sovereign Megaverse Intelligence for ON ANY POSTCODE.
