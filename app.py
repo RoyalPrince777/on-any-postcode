@@ -1455,7 +1455,7 @@ messages = "".join([
     for r in rows
 ]) or "<div class='card'><h2>Pulse Inbox Open</h2><p>No Pulse records yet.</p></div>"
    
-return layout(
+ return layout(
         "THE LINK",
         f"""
         <section class='hero'>
