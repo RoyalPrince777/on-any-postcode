@@ -3505,6 +3505,73 @@ def api_stats():
 # APP STARTUP
 # ============================================================================
 
+@app.route("/sovereign-megaverse")
+def sovereign_megaverse():
+    body = """
+    <section class="hero">
+        <h1>👑 Sovereign Megaverse Intelligence</h1>
+        <p>God leads. Humans decide. HRM remembers. The Founder approves. Future generations inherit.</p>
+    </section>
+
+    <section class="grid">
+        <div class="card"><h2>👑 Sovereign Veto</h2><p>The Founder can pause, reject or redirect any real-world action.</p></div>
+        <div class="card"><h2>🤴 Prince Royalty</h2><p>Service before status. Duty before privilege. Legacy before ego.</p></div>
+        <div class="card"><h2>👻 Ghost</h2><p>Observes signals, risks and changes quietly.</p></div>
+        <div class="card"><h2>🥷 Ninja</h2><p>Executes with focus, speed and discipline.</p></div>
+        <div class="card"><h2>🧠 HRM</h2><p>Remembers journals, lessons, decisions and reviews.</p></div>
+        <div class="card"><h2>💎 SIKA Trust</h2><p>Trust before wealth. Contribution before reward.</p></div>
+    </section>
+    """
+    return layout("Sovereign Megaverse", body, ["Founder", "Sovereign Megaverse"])
+    @app.route("/prince-dashboard")
+def prince_dashboard():
+    body = """
+    <section class="hero">
+        <h1>👑 Prince Dashboard</h1>
+        <p>Founder Command Center.</p>
+        <p>Born Local. Built Global.</p>
+    </section>
+
+    <section class="grid">
+
+        <div class="card">
+            <h2>🧠 HRM</h2>
+            <p>Memory, journals and lessons.</p>
+        </div>
+
+        <div class="card">
+            <h2>📊 Verified Data</h2>
+            <p>Signals and trusted records.</p>
+        </div>
+
+        <div class="card">
+            <h2>⚽ World Cup</h2>
+            <p>Matchday energy and experiences.</p>
+        </div>
+
+        <div class="card">
+            <h2>💬 The Link</h2>
+            <p>Community conversations.</p>
+        </div>
+
+        <div class="card">
+            <h2>🎭 The Stage</h2>
+            <p>Creators and businesses.</p>
+        </div>
+
+        <div class="card">
+            <h2>💎 SIKA</h2>
+            <p>Trust before wealth.</p>
+        </div>
+
+    </section>
+    """
+
+    return layout(
+        "Prince Dashboard",
+        body,
+        ["Founder", "Prince Dashboard"]
+    )
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(
