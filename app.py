@@ -3523,8 +3523,9 @@ def sovereign_megaverse():
         <div class="card"><h2>💎 SIKA Trust</h2><p>Trust before wealth. Contribution before reward.</p></div>
     </section>
     """
-    return layout("Sovereign Megaverse", body, ["Founder", "Sovereign Megaverse"])
-    @app.route("/prince-dashboard")
+return layout("Sovereign Megaverse", body, ["Founder", "Sovereign Megaverse"])
+
+@app.route("/prince-dashboard")
 def prince_dashboard():
     body = """
     <section class="hero">
