@@ -3453,21 +3453,21 @@ try:
 except Exception as e:
     text = f"AI sync failed: {str(e)}"
 
-    return layout(
-        "HRM Sovereign Megaverse Intelligence",
-        f"""
-        <section class='hero'>
-            <h1>🌍🧠👑 HRM Sovereign Megaverse Intelligence</h1>
-            <p>Born Local. Built Global. Public AI summary from verified match facts only.</p>
-        </section>
+return layout(
+    "HRM Sovereign Megaverse Intelligence",
+    f"""
+    <section class='hero'>
+        <h1>🌍🧠👑 HRM Sovereign Megaverse Intelligence</h1>
+        <p>Born Local. Built Global. Public AI summary from verified match facts only.</p>
+    </section>
 
-        <div class='card'>
-            <h2>🌍 World Watch Intelligence</h2>
-            <pre>{safe(text)}</pre>
-        </div>
-        """,
-        ["World Watch", "HRM Sovereign Megaverse Intelligence"]
-    )
+    <div class='card'>
+        <h2>🌍 World Watch Intelligence</h2>
+        <pre>{safe(text)}</pre>
+    </div>
+    """,
+    ["World Watch", "HRM Sovereign Megaverse Intelligence"]
+)
 
 # ============================================================================
 # HEALTH CHECK & API ENDPOINTS
