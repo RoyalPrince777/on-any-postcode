@@ -7,7 +7,7 @@ from html import escape
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 import json
-import urllib.request
+import urllib.request 
 
 # ============================================================================
 # CONFIGURATION & SETUP
