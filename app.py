@@ -727,6 +727,7 @@ def nav():
     links += "<a href='/my-energy'>⚡ My Energy</a>"
     links += "<a href='/born-local'>🌍 Born Local</a>"
     links += "<a href='/signals'>📡 Signals</a>"
+    links += "<a href='/sovereign-megaverse'>👑 Sovereign Megaverse</a>"
     links += "<a href='/oap-pulse/spaces'>💚 Pulse Spaces</a>"
     links += "<a href='/communications'>📧 Communications</a>"
     links += "<a href='/pulse-inbox'>📥 Pulse Inbox</a>"
