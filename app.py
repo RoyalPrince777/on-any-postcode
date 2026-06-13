@@ -3438,28 +3438,27 @@ VERIFIED FACTS:
         method="POST"
     )
 
-try:
-    with urllib.request.urlopen(req, timeout=30) as res:
-        data = json.loads(res.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            data = json.loads(res.read().decode("utf-8"))
 
-    text = data.get("output_text", "").strip()
+        text = data.get("output_text", "").strip()
 
-    if not text:
-        try:
-            text = data["output"][0]["content"][0]["text"].strip()
-        except Exception:
-            text = "DEBUG RESPONSE: " + json.dumps(data)[:3000]
+        if not text:
+            try:
+                text = data["output"][0]["content"][0]["text"].strip()
+            except Exception:
+                text = "DEBUG RESPONSE: " + json.dumps(data)[:3000]
 
-except Exception as e:
-    text = f"AI sync failed: {str(e)}"
+    except Exception as e:
+        text = f"AI sync failed: {str(e)}"
 
     return layout(
         "HRM Sovereign Megaverse Intelligence",
         f"""
         <section class='hero'>
             <h1>🌍🧠👑 HRM Sovereign Megaverse Intelligence</h1>
-            <p>Born Local. Built Global. Public AI summary from verified match facts 
-    only.</p>
+            <p>Born Local. Built Global. Public AI summary from verified match facts only.</p>
         </section>
 
         <div class='card'>
