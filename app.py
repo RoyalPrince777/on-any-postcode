@@ -3453,9 +3453,10 @@ VERIFIED FACTS:
 except Exception as e:
     text = f"AI sync failed: {str(e)}"
 
-    return layout(
-        "HRM Sovereign Megaverse Intelligence",
-        f"""
+return layout(
+    "HRM Sovereign Megaverse Intelligence",
+    f"""
+    ...
         <section class='hero'>
             <h1>🧠🌍👑 HRM Sovereign Megaverse Intelligence</h1>
             <p>Born Local. Built Global. Public AI summary from verified match facts only.</p>
