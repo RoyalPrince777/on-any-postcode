@@ -3438,7 +3438,7 @@ VERIFIED FACTS:
         method="POST"
     )
 
-    try:
+try:
     with urllib.request.urlopen(req, timeout=30) as res:
         data = json.loads(res.read().decode("utf-8"))
 
