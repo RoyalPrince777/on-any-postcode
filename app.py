@@ -20,11 +20,11 @@ matches = [
 
 rankings = [
     ("1","🇦🇷","Argentina"),("2","🇫🇷","France"),("3","🇪🇸","Spain"),
-    ("4","🏴","England"),("5","🇧🇷","Brazil"),("42","🇬🇭","Ghana")
+    ("4","🏴󠁧󠁢󠁥󠁮󠁧󠁿","England"),("5","🇧🇷","Brazil"),("42","🇬🇭","Ghana")
 ]
 
 tables = {
-    "Group L":[("🏴 England",0),("🇭🇷 Croatia",0),("🇬🇭 Ghana",0),("🇵🇦 Panama",0)],
+    "Group L":[("🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",0),("🇭🇷 Croatia",0),("🇬🇭 Ghana",0),("🇵🇦 Panama",0)],
     "Group A":[("🇲🇽 Mexico",3),("🇰🇷 South Korea",3),("🇨🇿 Czechia",0),("🇿🇦 South Africa",0)]
 }
 
