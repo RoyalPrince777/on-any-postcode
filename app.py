@@ -3,23 +3,70 @@ from flask import Flask, request, redirect, render_template_string
 app = Flask(__name__)
 
 signal_posts = []
-room_messages = []
+team_messages = []
 flag_counts = {}
 profiles = []
 
 teams = [
-    ("A","🇲🇽","Mexico","El Tri"),("A","🇿🇦","South Africa","Bafana Bafana"),("A","🇰🇷","South Korea","Taegeuk Warriors"),("A","🇨🇿","Czechia","Národní tým"),
-    ("B","🇨🇦","Canada","The Canucks"),("B","🇧🇦","Bosnia and Herzegovina","The Dragons"),("B","🇶🇦","Qatar","The Maroons"),("B","🇨🇭","Switzerland","The Nati"),
-    ("C","🇧🇷","Brazil","Seleção"),("C","🇲🇦","Morocco","Atlas Lions"),("C","🇭🇹","Haiti","Les Grenadiers"),("C","🏴","Scotland","Tartan Army"),
-    ("D","🇺🇸","United States","Stars and Stripes"),("D","🇵🇾","Paraguay","La Albirroja"),("D","🇦🇺","Australia","Socceroos"),("D","🇹🇷","Türkiye","Crescent-Stars"),
-    ("E","🇩🇪","Germany","Die Mannschaft"),("E","🇨🇼","Curaçao","La Familia Azul"),("E","🇨🇮","Ivory Coast","The Elephants"),("E","🇪🇨","Ecuador","La Tri"),
-    ("F","🇳🇱","Netherlands","Oranje"),("F","🇯🇵","Japan","Samurai Blue"),("F","🇸🇪","Sweden","Blågult"),("F","🇹🇳","Tunisia","Eagles of Carthage"),
-    ("G","🇧🇪","Belgium","Red Devils"),("G","🇪🇬","Egypt","The Pharaohs"),("G","🇮🇷","Iran","Team Melli"),("G","🇳🇿","New Zealand","All Whites"),
-    ("H","🇪🇸","Spain","La Roja"),("H","🇨🇻","Cape Verde","Blue Sharks"),("H","🇸🇦","Saudi Arabia","Green Falcons"),("H","🇺🇾","Uruguay","La Celeste"),
-    ("I","🇫🇷","France","Les Bleus"),("I","🇸🇳","Senegal","Lions of Teranga"),("I","🇮🇶","Iraq","Lions of Mesopotamia"),("I","🇳🇴","Norway","The Lions"),
-    ("J","🇦🇷","Argentina","La Albiceleste"),("J","🇩🇿","Algeria","Desert Foxes"),("J","🇦🇹","Austria","Das Team"),("J","🇯🇴","Jordan","The Chivalrous"),
-    ("K","🇵🇹","Portugal","Seleção das Quinas"),("K","🇨🇩","DR Congo","The Leopards"),("K","🇺🇿","Uzbekistan","White Wolves"),("K","🇨🇴","Colombia","Los Cafeteros"),
-    ("L","🏴","England","Three Lions"),("L","🇭🇷","Croatia","Vatreni"),("L","🇬🇭","Ghana","Black Stars"),("L","🇵🇦","Panama","Los Canaleros"),
+    ("A","🇲🇽","Mexico","El Tri","Flag meaning: hope, unity, sacrifice, and ancient identity."),
+    ("A","🇿🇦","South Africa","Bafana Bafana","Flag meaning: unity after struggle and many histories joining together."),
+    ("A","🇰🇷","South Korea","Taegeuk Warriors","Flag meaning: balance, heaven, earth, water and fire."),
+    ("A","🇨🇿","Czechia","Národní tým","Flag meaning: Bohemian colours and historic Czechoslovak identity."),
+
+    ("B","🇨🇦","Canada","The Canucks","Flag meaning: maple leaf, nature, identity, red and white."),
+    ("B","🇧🇦","Bosnia and Herzegovina","The Dragons","Flag meaning: Europe, peace, continuity and stars."),
+    ("B","🇶🇦","Qatar","The Maroons","Flag meaning: maroon heritage, white peace, nine-point edge."),
+    ("B","🇨🇭","Switzerland","The Nati","Flag meaning: unity, neutrality, white cross on red."),
+
+    ("C","🇧🇷","Brazil","Seleção","Flag meaning: nature, wealth, sky, stars, Order and Progress."),
+    ("C","🇲🇦","Morocco","Atlas Lions","Flag meaning: courage, heritage, wisdom, peace and tradition."),
+    ("C","🇭🇹","Haiti","Les Grenadiers","Flag meaning: unity, sacrifice, liberty and independence."),
+    ("C","🏴","Scotland","Tartan Army","Flag meaning: Saint Andrew, loyalty and Scottish identity."),
+
+    ("D","🇺🇸","United States","Stars and Stripes","Flag meaning: states, colonies, courage, purity and justice."),
+    ("D","🇵🇾","Paraguay","La Albirroja","Flag meaning: courage, peace, liberty and independence."),
+    ("D","🇦🇺","Australia","Socceroos","Flag meaning: history, federation and Southern Cross."),
+    ("D","🇹🇷","Türkiye","Crescent-Stars","Flag meaning: Turkish identity, crescent, star and pride."),
+
+    ("E","🇩🇪","Germany","Die Mannschaft","Flag meaning: unity, freedom and democratic identity."),
+    ("E","🇨🇼","Curaçao","La Familia Azul","Flag meaning: sea, sky, sun and the island stars."),
+    ("E","🇨🇮","Ivory Coast","The Elephants","Flag meaning: land, peace, hope and forests."),
+    ("E","🇪🇨","Ecuador","La Tri","Flag meaning: resources, sky, sea and sacrifice."),
+
+    ("F","🇳🇱","Netherlands","Oranje","Flag meaning: Dutch identity with orange football heritage."),
+    ("F","🇯🇵","Japan","Samurai Blue","Flag meaning: rising sun and Japanese identity."),
+    ("F","🇸🇪","Sweden","Blågult","Flag meaning: blue and yellow national heritage."),
+    ("F","🇹🇳","Tunisia","Eagles of Carthage","Flag meaning: sacrifice, peace and cultural identity."),
+
+    ("G","🇧🇪","Belgium","Red Devils","Flag meaning: national colours from Belgian history."),
+    ("G","🇪🇬","Egypt","The Pharaohs","Flag meaning: revolution, peace, strength and power."),
+    ("G","🇮🇷","Iran","Team Melli","Flag meaning: faith, peace, courage and national identity."),
+    ("G","🇳🇿","New Zealand","All Whites","Flag meaning: Southern Cross, history and geography."),
+
+    ("H","🇪🇸","Spain","La Roja","Flag meaning: Spanish kingdoms, unity and heritage."),
+    ("H","🇨🇻","Cape Verde","Blue Sharks","Flag meaning: ocean, islands, peace, effort and hope."),
+    ("H","🇸🇦","Saudi Arabia","Green Falcons","Flag meaning: faith, strength and justice."),
+    ("H","🇺🇾","Uruguay","La Celeste","Flag meaning: historic regions and the Sun of May."),
+
+    ("I","🇫🇷","France","Les Bleus","Flag meaning: liberty, equality and fraternity."),
+    ("I","🇸🇳","Senegal","Lions of Teranga","Flag meaning: hope, wealth, sacrifice and unity."),
+    ("I","🇮🇶","Iraq","Lions of Mesopotamia","Flag meaning: courage, peace, hope and Arab identity."),
+    ("I","🇳🇴","Norway","The Lions","Flag meaning: Nordic identity, freedom and heritage."),
+
+    ("J","🇦🇷","Argentina","La Albiceleste","Flag meaning: sky blue, white and independence."),
+    ("J","🇩🇿","Algeria","Desert Foxes","Flag meaning: hope, peace and cultural identity."),
+    ("J","🇦🇹","Austria","Das Team","Flag meaning: red-white-red Austrian identity."),
+    ("J","🇯🇴","Jordan","The Chivalrous","Flag meaning: Arab heritage, unity and faith."),
+
+    ("K","🇵🇹","Portugal","Seleção das Quinas","Flag meaning: hope, sacrifice, shields and discovery."),
+    ("K","🇨🇩","DR Congo","The Leopards","Flag meaning: peace, sacrifice, wealth, hope and unity."),
+    ("K","🇺🇿","Uzbekistan","White Wolves","Flag meaning: sky, peace, nature, moon and stars."),
+    ("K","🇨🇴","Colombia","Los Cafeteros","Flag meaning: wealth, seas, sky and courage."),
+
+    ("L","🏴","England","Three Lions","Flag meaning: Saint George, bravery and protection."),
+    ("L","🇭🇷","Croatia","Vatreni","Flag meaning: Slavic colours and Croatian checkerboard heritage."),
+    ("L","🇬🇭","Ghana","Black Stars","Flag meaning: sacrifice, gold, land and African unity."),
+    ("L","🇵🇦","Panama","Los Canaleros","Flag meaning: peace, honesty and political balance."),
 ]
 
 matches = [
@@ -44,18 +91,20 @@ HTML = """
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial}
-nav{position:sticky;top:0;background:#092414;padding:14px;white-space:nowrap;overflow-x:auto}
+nav{position:sticky;top:0;background:#092414;padding:14px;white-space:nowrap;overflow-x:auto;z-index:10}
 nav a{color:white;text-decoration:none;font-weight:bold;margin-right:14px}
 section{padding:22px;border-bottom:1px solid #1d4a2d}
 .hero{background:linear-gradient(135deg,#092414,#14512b)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}
 .card{background:#10281a;border:1px solid #245f38;border-radius:16px;padding:15px;margin:10px 0}
-.badge{background:#27c267;color:#021;padding:5px 9px;border-radius:999px;font-weight:bold}
+.badge{background:#27c267;color:#021;padding:5px 9px;border-radius:999px;font-weight:bold;display:inline-block}
 input,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin:6px 0;border-radius:9px;border:0}
 button{background:#27c267;color:#021;font-weight:bold}
-.flag{font-size:36px}
-table{width:100%;border-collapse:collapse;background:#10281a}
+.flag{font-size:42px}
+.small{opacity:.82}
+table{width:100%;border-collapse:collapse;background:#10281a;margin-bottom:15px}
 td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
+.team{border-left:5px solid #27c267}
 </style>
 </head>
 <body>
@@ -63,29 +112,23 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 <nav>
 <a href="#signal">📡 Signal</a>
 <a href="#live">🔴 Live</a>
-<a href="#rooms">⚽ Match Rooms</a>
-<a href="#flags">🏳️ Flags</a>
 <a href="#teams">🌍 Teams</a>
-<a href="#tables">📊 Tables</a>
-<a href="#replay">📜 Replay</a>
-<a href="#anthems">🎶 Anthems</a>
 <a href="#myworld">👤 My World</a>
 <a href="#sovereign">👑 Sovereign</a>
 </nav>
 
 <section class="hero">
 <h1>📺 OAP TV</h1>
-<h2>📡 Signal First</h2>
-<p>What's happening. What's lit. What's next.</p>
+<h2>Signal → Live → Teams → My World</h2>
 <p>Born Local. Built Global. Earth is our turf.</p>
 </section>
 
 <section id="signal">
 <h2>📡 OAP Signal</h2>
 <div class="grid">
-<div class="card"><span class="badge">🔥 What's Lit</span><h3>World Cup signal is live</h3><p>Clean OAP TV starts here.</p></div>
+<div class="card"><span class="badge">🔥 What's Lit</span><h3>Clean OAP TV is live</h3><p>No Watch Parties. No Predictions. No extra boards.</p></div>
+<div class="card"><span class="badge">🌍 Teams</span><h3>Everything now lives inside Teams</h3><p>Flags, meaning, rooms, fixtures, results, replay, anthem, cards and team book.</p></div>
 <div class="card"><span class="badge">🇭🇹 Team Check</span><h3>Haiti included</h3><p>Haiti is in Group C.</p></div>
-<div class="card"><span class="badge">🇬🇭 Group L</span><h3>Ghana ready</h3><p>Ghana, England, Croatia and Panama are locked.</p></div>
 </div>
 
 <form method="post" action="/signal">
@@ -107,46 +150,7 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 <b>{{state}}</b> | {{date}} | Group {{group}}
 <h3>{{home}} 🆚 {{away}}</h3>
 <p><b>{{score}}</b></p>
-</div>
-{% endfor %}
-</div>
-</section>
-
-<section id="rooms">
-<h2>⚽ Match Rooms</h2>
-<div class="grid">
-{% for state,date,group,home,away,score in matches %}
-<div class="card">
-<h3>{{home}} 🆚 {{away}}</h3>
-<p>{{date}} | Group {{group}} | {{state}} | {{score}}</p>
-<form method="post" action="/room">
-<input type="hidden" name="room" value="{{home}} vs {{away}}">
-<input name="name" placeholder="Nickname">
-<input name="message" placeholder="Message">
-<button>Post</button>
-</form>
-</div>
-{% endfor %}
-</div>
-
-{% for m in room_messages %}
-<div class="card"><b>{{m.room}}</b><br>{{m.name}}: {{m.message}}</div>
-{% endfor %}
-</section>
-
-<section id="flags">
-<h2>🏳️ Throw Your Flag Up</h2>
-<div class="grid">
-{% for group,flag,name,nick in teams %}
-<div class="card">
-<div class="flag">{{flag}}</div>
-<h3>{{name}}</h3>
-<p>{{nick}} | Group {{group}}</p>
-<p>Energy: <b>{{flag_counts.get(name,0)}}</b></p>
-<form method="post" action="/flag">
-<input type="hidden" name="team" value="{{name}}">
-<button>Throw {{flag}} Up</button>
-</form>
+<p class="small">Tap the team below to enter its match room.</p>
 </div>
 {% endfor %}
 </div>
@@ -154,15 +158,54 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 
 <section id="teams">
 <h2>🌍 Teams</h2>
+<p class="small">Every nation has a home. Everything lives inside the team.</p>
+
 <div class="grid">
-{% for group,flag,name,nick in teams %}
-<div class="card">
+{% for group,flag,name,nick,meaning in teams %}
+<div class="card team" id="{{name|replace(' ','-')}}">
 <div class="flag">{{flag}}</div>
-<h3>{{name}}</h3>
-<p><b>Nickname:</b> {{nick}}</p>
-<p><b>Group:</b> {{group}}</p>
-<p><b>Flag meaning:</b> Team culture and flag story section.</p>
-<p>🎶 Anthem: manual play only.</p>
+<h2>{{name}}</h2>
+<p><b>{{nick}}</b> | Group {{group}}</p>
+
+<h3>🏳️ Throw Your Flag Up</h3>
+<p>Support: <b>{{flag_counts.get(name,0)}}</b></p>
+<form method="post" action="/flag">
+<input type="hidden" name="team" value="{{name}}">
+<button>Throw {{flag}} Up</button>
+</form>
+
+<h3>🌍 Flag Meaning</h3>
+<p>{{meaning}}</p>
+
+<h3>⚽ Team Match Room</h3>
+<form method="post" action="/room">
+<input type="hidden" name="room" value="{{name}} Team Room">
+<input name="name" placeholder="Nickname">
+<input name="message" placeholder="Message for {{name}}">
+<button>Post in {{name}} Room</button>
+</form>
+
+<h3>📅 Fixtures / Results</h3>
+{% for state,date,mgroup,home,away,score in matches if name in home or name in away %}
+<div class="card">
+<b>{{state}}</b> | {{date}} | Group {{mgroup}}<br>
+{{home}} 🆚 {{away}}<br>
+<b>{{score}}</b>
+</div>
+{% endfor %}
+
+<h3>📜 Replay</h3>
+<p>Key moments and Player of the Match added after verification.</p>
+
+<h3>🎶 Anthem</h3>
+<p>Manual play only. Local owned/licensed files only. No autoplay.</p>
+<button>▶️ {{name}} Anthem Placeholder</button>
+
+<h3>🃏 Digital Cards</h3>
+<p>Team Card · Hero Card · Legend Card · Icon Card</p>
+
+<h3>📖 Team Book</h3>
+<p>□ Team Card · □ Hero Card · □ Legend Card · □ Icon Card</p>
 </div>
 {% endfor %}
 </div>
@@ -174,29 +217,18 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 <h3>Group {{g}}</h3>
 <table>
 <tr><th>Team</th><th>PTS</th></tr>
-{% for group,flag,name,nick in teams if group == g %}
+{% for group,flag,name,nick,meaning in teams if group == g %}
 <tr><td>{{flag}} {{name}}</td><td>0</td></tr>
 {% endfor %}
 </table>
 {% endfor %}
 </section>
 
-<section id="replay">
-<h2>📜 Replay</h2>
-<div class="grid">
-{% for state,date,group,home,away,score in matches if state == "FT" %}
-<div class="card">
-<b>{{date}} | Group {{group}}</b>
-<h3>{{home}} {{score}} {{away}}</h3>
-<p>Player of the Match added after verification.</p>
-</div>
+<section>
+<h2>💬 Latest Team Room Messages</h2>
+{% for m in team_messages %}
+<div class="card"><b>{{m.room}}</b><br>{{m.name}}: {{m.message}}</div>
 {% endfor %}
-</div>
-</section>
-
-<section id="anthems">
-<h2>🎶 Anthems</h2>
-<div class="card">Manual play only. Local owned/licensed files only. No autoplay.</div>
 </section>
 
 <section id="myworld">
@@ -235,7 +267,7 @@ def home():
         teams=teams,
         matches=matches,
         signal_posts=signal_posts,
-        room_messages=room_messages,
+        team_messages=team_messages,
         flag_counts=flag_counts,
         profiles=profiles
     )
@@ -250,19 +282,19 @@ def signal():
 
 @app.route("/room", methods=["POST"])
 def room():
-    room_messages.insert(0, {
-        "room": request.form.get("room", "Match Room"),
+    team_messages.insert(0, {
+        "room": request.form.get("room", "Team Room"),
         "name": request.form.get("name", "Visitor"),
         "message": request.form.get("message", "")
     })
-    return redirect("/#rooms")
+    return redirect("/#teams")
 
 @app.route("/flag", methods=["POST"])
 def flag():
     team = request.form.get("team", "")
     if team:
         flag_counts[team] = flag_counts.get(team, 0) + 1
-    return redirect("/#flags")
+    return redirect("/#teams")
 
 @app.route("/myworld", methods=["POST"])
 def myworld():
