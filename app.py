@@ -1,243 +1,276 @@
 from flask import Flask, request, redirect, render_template_string
-from datetime import datetime
 
 app = Flask(__name__)
 
-energy_posts = []
-watch_parties = []
-predictions = []
+signal_posts = []
+room_messages = []
+flag_counts = {}
+profiles = []
+
+teams = [
+    ("A","🇲🇽","Mexico","El Tri"),("A","🇿🇦","South Africa","Bafana Bafana"),("A","🇰🇷","South Korea","Taegeuk Warriors"),("A","🇨🇿","Czechia","Národní tým"),
+    ("B","🇨🇦","Canada","The Canucks"),("B","🇧🇦","Bosnia and Herzegovina","The Dragons"),("B","🇶🇦","Qatar","The Maroons"),("B","🇨🇭","Switzerland","The Nati"),
+    ("C","🇧🇷","Brazil","Seleção"),("C","🇲🇦","Morocco","Atlas Lions"),("C","🇭🇹","Haiti","Les Grenadiers"),("C","🏴","Scotland","Tartan Army"),
+    ("D","🇺🇸","United States","Stars and Stripes"),("D","🇵🇾","Paraguay","La Albirroja"),("D","🇦🇺","Australia","Socceroos"),("D","🇹🇷","Türkiye","Crescent-Stars"),
+    ("E","🇩🇪","Germany","Die Mannschaft"),("E","🇨🇼","Curaçao","La Familia Azul"),("E","🇨🇮","Ivory Coast","The Elephants"),("E","🇪🇨","Ecuador","La Tri"),
+    ("F","🇳🇱","Netherlands","Oranje"),("F","🇯🇵","Japan","Samurai Blue"),("F","🇸🇪","Sweden","Blågult"),("F","🇹🇳","Tunisia","Eagles of Carthage"),
+    ("G","🇧🇪","Belgium","Red Devils"),("G","🇪🇬","Egypt","The Pharaohs"),("G","🇮🇷","Iran","Team Melli"),("G","🇳🇿","New Zealand","All Whites"),
+    ("H","🇪🇸","Spain","La Roja"),("H","🇨🇻","Cape Verde","Blue Sharks"),("H","🇸🇦","Saudi Arabia","Green Falcons"),("H","🇺🇾","Uruguay","La Celeste"),
+    ("I","🇫🇷","France","Les Bleus"),("I","🇸🇳","Senegal","Lions of Teranga"),("I","🇮🇶","Iraq","Lions of Mesopotamia"),("I","🇳🇴","Norway","The Lions"),
+    ("J","🇦🇷","Argentina","La Albiceleste"),("J","🇩🇿","Algeria","Desert Foxes"),("J","🇦🇹","Austria","Das Team"),("J","🇯🇴","Jordan","The Chivalrous"),
+    ("K","🇵🇹","Portugal","Seleção das Quinas"),("K","🇨🇩","DR Congo","The Leopards"),("K","🇺🇿","Uzbekistan","White Wolves"),("K","🇨🇴","Colombia","Los Cafeteros"),
+    ("L","🏴","England","Three Lions"),("L","🇭🇷","Croatia","Vatreni"),("L","🇬🇭","Ghana","Black Stars"),("L","🇵🇦","Panama","Los Canaleros"),
+]
 
 matches = [
-    {"date":"11 Jun","state":"FT","group":"A","home":"🇲🇽 Mexico","away":"🇿🇦 South Africa","score":"2-0"},
-    {"date":"11 Jun","state":"FT","group":"A","home":"🇰🇷 South Korea","away":"🇨🇿 Czechia","score":"2-1"},
-    {"date":"12 Jun","state":"FT","group":"B","home":"🇨🇦 Canada","away":"🇧🇦 Bosnia","score":"1-1"},
-    {"date":"12 Jun","state":"FT","group":"D","home":"🇺🇸 USA","away":"🇵🇾 Paraguay","score":"4-1"},
-    {"date":"13 Jun","state":"FT","group":"C","home":"🇧🇷 Brazil","away":"🇲🇦 Morocco","score":"1-1"},
-    {"date":"14 Jun","state":"LIVE","group":"D","home":"🇦🇺 Australia","away":"🇹🇷 Turkey","score":"2-0"},
-    {"date":"17 Jun","state":"UPCOMING","group":"L","home":"🏴 England","away":"🇭🇷 Croatia","score":"16:00"},
-    {"date":"17 Jun","state":"UPCOMING","group":"L","home":"🇬🇭 Ghana","away":"🇵🇦 Panama","score":"19:00"},
+    ("FT","11 Jun","A","🇲🇽 Mexico","🇿🇦 South Africa","2-0"),
+    ("FT","11 Jun","A","🇰🇷 South Korea","🇨🇿 Czechia","2-1"),
+    ("FT","12 Jun","B","🇨🇦 Canada","🇧🇦 Bosnia and Herzegovina","1-1"),
+    ("FT","12 Jun","D","🇺🇸 United States","🇵🇾 Paraguay","4-1"),
+    ("FT","13 Jun","C","🇧🇷 Brazil","🇲🇦 Morocco","1-1"),
+    ("FT","13 Jun","C","🇭🇹 Haiti","🏴 Scotland","0-1"),
+    ("FT","14 Jun","D","🇦🇺 Australia","🇹🇷 Türkiye","2-0"),
+    ("NEXT","14 Jun","E","🇩🇪 Germany","🇨🇼 Curaçao","13:00"),
+    ("NEXT","14 Jun","F","🇳🇱 Netherlands","🇯🇵 Japan","16:00"),
+    ("NEXT","17 Jun","L","🏴 England","🇭🇷 Croatia","16:00"),
+    ("NEXT","17 Jun","L","🇬🇭 Ghana","🇵🇦 Panama","19:00"),
 ]
-
-rankings = [
-    ("1","🇦🇷","Argentina"),("2","🇫🇷","France"),("3","🇪🇸","Spain"),
-    ("4","🏴󠁧󠁢󠁥󠁮󠁧󠁿","England"),("5","🇧🇷","Brazil"),("42","🇬🇭","Ghana")
-]
-
-tables = {
-    "Group L":[("🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",0),("🇭🇷 Croatia",0),("🇬🇭 Ghana",0),("🇵🇦 Panama",0)],
-    "Group A":[("🇲🇽 Mexico",3),("🇰🇷 South Korea",3),("🇨🇿 Czechia",0),("🇿🇦 South Africa",0)]
-}
 
 HTML = """
 <!doctype html>
-<title>OAP World Cup Energy</title>
+<html>
+<head>
+<title>OAP TV</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:Arial;background:#07140d;color:#f4fff7;margin:0}
-nav{background:#0b2b17;padding:14px;position:sticky;top:0}
-nav a{color:#fff;margin:0 10px;text-decoration:none;font-weight:bold}
-section{padding:20px;border-bottom:1px solid #244}
-.card{background:#10281a;border:1px solid #245f38;border-radius:14px;padding:14px;margin:10px 0}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
-input,select,textarea,button{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:0}
+body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial}
+nav{position:sticky;top:0;background:#092414;padding:14px;white-space:nowrap;overflow-x:auto}
+nav a{color:white;text-decoration:none;font-weight:bold;margin-right:14px}
+section{padding:22px;border-bottom:1px solid #1d4a2d}
+.hero{background:linear-gradient(135deg,#092414,#14512b)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.card{background:#10281a;border:1px solid #245f38;border-radius:16px;padding:15px;margin:10px 0}
+.badge{background:#27c267;color:#021;padding:5px 9px;border-radius:999px;font-weight:bold}
+input,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin:6px 0;border-radius:9px;border:0}
 button{background:#27c267;color:#021;font-weight:bold}
+.flag{font-size:36px}
 table{width:100%;border-collapse:collapse;background:#10281a}
 td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
-.badge{padding:4px 8px;border-radius:999px;background:#27c267;color:#021;font-weight:bold}
-.pitch{white-space:pre;text-align:center;background:#0d3b1e;border-radius:14px;padding:15px}
 </style>
+</head>
+<body>
 
 <nav>
-<a href="#matches">⚽ Match Centre</a>
-<a href="#vs">⚔️ VS Board</a>
-<a href="#pitch">🟩 Pitch</a>
-<a href="#energy">⚡ OAP Energy</a>
-<a href="#watch">🎪 Watch Parties</a>
-<a href="#predictions">🏆 Predictions</a>
+<a href="#signal">📡 Signal</a>
+<a href="#live">🔴 Live</a>
+<a href="#rooms">⚽ Match Rooms</a>
+<a href="#flags">🏳️ Flags</a>
+<a href="#teams">🌍 Teams</a>
+<a href="#tables">📊 Tables</a>
+<a href="#replay">📜 Replay</a>
+<a href="#anthems">🎶 Anthems</a>
+<a href="#myworld">👤 My World</a>
+<a href="#sovereign">👑 Sovereign</a>
 </nav>
 
-<section>
-<h1>🌍⚽ OAP World Cup Energy v1</h1>
-<p>Movement gives direction. Energy gives life. HRM remembers. Community creates value.</p>
+<section class="hero">
+<h1>📺 OAP TV</h1>
+<h2>📡 Signal First</h2>
+<p>What's happening. What's lit. What's next.</p>
+<p>Born Local. Built Global. Earth is our turf.</p>
 </section>
 
-<section id="matches">
-<h2>🌍 World Rankings</h2>
+<section id="signal">
+<h2>📡 OAP Signal</h2>
 <div class="grid">
-{% for r,f,c in rankings %}
-<div class="card"><b>{{r}}</b> {{f}} {{c}} <span class="badge">World Rank</span></div>
-{% endfor %}
+<div class="card"><span class="badge">🔥 What's Lit</span><h3>World Cup signal is live</h3><p>Clean OAP TV starts here.</p></div>
+<div class="card"><span class="badge">🇭🇹 Team Check</span><h3>Haiti included</h3><p>Haiti is in Group C.</p></div>
+<div class="card"><span class="badge">🇬🇭 Group L</span><h3>Ghana ready</h3><p>Ghana, England, Croatia and Panama are locked.</p></div>
 </div>
 
-<h2>⚽ Match Centre</h2>
+<form method="post" action="/signal">
+<input name="name" placeholder="Nickname">
+<textarea name="body" placeholder="Drop OAP Signal..."></textarea>
+<button>Post Signal</button>
+</form>
+
+{% for p in signal_posts %}
+<div class="card"><b>{{p.name}}</b><p>{{p.body}}</p></div>
+{% endfor %}
+</section>
+
+<section id="live">
+<h2>🔴 Live / Next</h2>
 <div class="grid">
-{% for m in matches %}
+{% for state,date,group,home,away,score in matches if state != "FT" %}
 <div class="card">
-<b>{{m.state}}</b> | {{m.date}} | {{m.group}}<br>
-<h3>{{m.home}} 🆚 {{m.away}}</h3>
-<p>Score/Time: <b>{{m.score}}</b></p>
+<b>{{state}}</b> | {{date}} | Group {{group}}
+<h3>{{home}} 🆚 {{away}}</h3>
+<p><b>{{score}}</b></p>
+</div>
+{% endfor %}
+</div>
+</section>
+
+<section id="rooms">
+<h2>⚽ Match Rooms</h2>
+<div class="grid">
+{% for state,date,group,home,away,score in matches %}
+<div class="card">
+<h3>{{home}} 🆚 {{away}}</h3>
+<p>{{date}} | Group {{group}} | {{state}} | {{score}}</p>
+<form method="post" action="/room">
+<input type="hidden" name="room" value="{{home}} vs {{away}}">
+<input name="name" placeholder="Nickname">
+<input name="message" placeholder="Message">
+<button>Post</button>
+</form>
 </div>
 {% endfor %}
 </div>
 
-<h2>📊 Group Tables</h2>
-{% for group, rows in tables.items() %}
-<h3>{{group}}</h3>
-<table><tr><th>Team</th><th>PTS</th></tr>
-{% for team, pts in rows %}
-<tr><td>{{team}}</td><td>{{pts}}</td></tr>
+{% for m in room_messages %}
+<div class="card"><b>{{m.room}}</b><br>{{m.name}}: {{m.message}}</div>
+{% endfor %}
+</section>
+
+<section id="flags">
+<h2>🏳️ Throw Your Flag Up</h2>
+<div class="grid">
+{% for group,flag,name,nick in teams %}
+<div class="card">
+<div class="flag">{{flag}}</div>
+<h3>{{name}}</h3>
+<p>{{nick}} | Group {{group}}</p>
+<p>Energy: <b>{{flag_counts.get(name,0)}}</b></p>
+<form method="post" action="/flag">
+<input type="hidden" name="team" value="{{name}}">
+<button>Throw {{flag}} Up</button>
+</form>
+</div>
+{% endfor %}
+</div>
+</section>
+
+<section id="teams">
+<h2>🌍 Teams</h2>
+<div class="grid">
+{% for group,flag,name,nick in teams %}
+<div class="card">
+<div class="flag">{{flag}}</div>
+<h3>{{name}}</h3>
+<p><b>Nickname:</b> {{nick}}</p>
+<p><b>Group:</b> {{group}}</p>
+<p><b>Flag meaning:</b> Team culture and flag story section.</p>
+<p>🎶 Anthem: manual play only.</p>
+</div>
+{% endfor %}
+</div>
+</section>
+
+<section id="tables">
+<h2>📊 Tables</h2>
+{% for g in "ABCDEFGHIJKL" %}
+<h3>Group {{g}}</h3>
+<table>
+<tr><th>Team</th><th>PTS</th></tr>
+{% for group,flag,name,nick in teams if group == g %}
+<tr><td>{{flag}} {{name}}</td><td>0</td></tr>
 {% endfor %}
 </table>
 {% endfor %}
-
-<h2>🏆 Knockout Journey</h2>
-<div class="card">Round of 32 → Round of 16 → Quarter Finals → Semi Finals → Third Place → Final</div>
 </section>
 
-<section id="vs">
-<h2>⚔️ VS Board</h2>
-<div class="card">
-<h3>🏴 England 🆚 🇭🇷 Croatia</h3>
-<p><b>Key Duel:</b> Jude Bellingham vs Luka Modrić</p>
-<p><b>Opportunity:</b> England attack wide. Croatia control tempo.</p>
-<p><b>Threat:</b> Transitions, set pieces, midfield overloads.</p>
-</div>
-</section>
-
-<section id="pitch">
-<h2>⚽🟩 Pitch Board</h2>
+<section id="replay">
+<h2>📜 Replay</h2>
 <div class="grid">
-<div class="card"><h3>🏴 England 4-2-3-1</h3><div class="pitch">
-Kane
-
-Gordon  Bellingham  Saka
-
-Rice  Mainoo
-
-Shaw Guehi Stones Walker
-
-Pickford
-</div></div>
-<div class="card"><h3>🇭🇷 Croatia 4-3-3</h3><div class="pitch">
-Petković
-
-Perišić Kramarić Majer
-
-Modrić Kovačić
-
-Sosa Gvardiol Šutalo Juranović
-
-Livaković
-</div></div>
-</div>
-
-<h2>📋 Team Lineups + Manager Board</h2>
+{% for state,date,group,home,away,score in matches if state == "FT" %}
 <div class="card">
-<b>Opportunities:</b> 🟢 flank attacks | 🔵 midfield overload | 🟡 set pieces<br>
-<b>Manager Notes:</b> Press, protect transitions, watch key duels.
+<b>{{date}} | Group {{group}}</b>
+<h3>{{home}} {{score}} {{away}}</h3>
+<p>Player of the Match added after verification.</p>
+</div>
+{% endfor %}
 </div>
 </section>
 
-<section>
-<h2>🎖 Top Performers</h2>
-<div class="card">
-<h3>🏅 Player of the Match</h3>
-<p>👤 Name: TBD</p>
-<p>🌍 Country Flag: TBD</p>
-<p>🛡 National Team: TBD</p>
-<p>🏟 Club Team: TBD</p>
-<p>🎽 Position: TBD</p>
-<p>⭐ Rating: TBD</p>
-<p>📖 Reason: Added after match verification.</p>
-</div>
-
-<h2>🎌 International Anthems</h2>
-<div class="card">
-<p>Manual play only. Local owned/licensed files only. No autoplay.</p>
-<button>▶️ Ghana Anthem Placeholder</button>
-<button>▶️ England Anthem Placeholder</button>
-</div>
+<section id="anthems">
+<h2>🎶 Anthems</h2>
+<div class="card">Manual play only. Local owned/licensed files only. No autoplay.</div>
 </section>
 
-<section id="energy">
-<h2>⚡ OAP Energy</h2>
-<form method="post" action="/energy">
-<input name="name" placeholder="Name / nickname">
-<select name="type">
-<option>🔥 Reaction</option><option>😂 Banter</option><option>🎤 Voice</option><option>📸 Moment</option><option>🕺 Culture</option>
-</select>
-<textarea name="body" placeholder="Drop the energy..."></textarea>
-<button>Post Energy</button>
+<section id="myworld">
+<h2>👤 My World</h2>
+<form method="post" action="/myworld">
+<input name="nickname" placeholder="Nickname">
+<input name="country" placeholder="Country / Flag">
+<button>Enter My World</button>
 </form>
-{% for p in energy_posts %}
-<div class="card"><b>{{p.name}}</b> {{p.type}}<br>{{p.body}}</div>
+{% for p in profiles %}
+<div class="card">👤 {{p.nickname}} | {{p.country}}</div>
 {% endfor %}
 </section>
 
-<section id="watch">
-<h2>🎪 Watch Parties</h2>
-<form method="post" action="/watch">
-<input name="match" placeholder="Match e.g. 🇬🇭 Ghana vs 🇵🇦 Panama">
-<input name="postcode" placeholder="Postcode">
-<input name="venue" placeholder="Venue">
-<input name="time" placeholder="Date / Time">
-<input name="host" placeholder="Host">
-<input name="capacity" placeholder="Capacity">
-<button>Create Watch Party</button>
-</form>
-{% for w in watch_parties %}
-<div class="card"><b>{{w.match}}</b><br>📍 {{w.postcode}} | {{w.venue}} | {{w.time}} | Host: {{w.host}} | Cap: {{w.capacity}}</div>
-{% endfor %}
+<section id="sovereign">
+<h2>👑 Sovereign Prince Dashboard</h2>
+<div class="grid">
+<div class="card">📡 Signal Agent</div>
+<div class="card">⚽ Match Agent</div>
+<div class="card">🌍 Community Agent</div>
+<div class="card">🛡 Guardian Agent</div>
+<div class="card">📜 HRM Agent</div>
+<div class="card">🎯 Mission Agent</div>
+</div>
+<div class="card">👑 Sovereign Veto: Green continue. Yellow review. Red stop.</div>
 </section>
 
-<section id="predictions">
-<h2>🏆 Prediction Board</h2>
-<form method="post" action="/predict">
-<input name="name" placeholder="Name">
-<input name="match" placeholder="Match">
-<input name="prediction" placeholder="Prediction e.g. 🇬🇭 2-1 🇵🇦">
-<button>Submit Prediction</button>
-</form>
-{% for p in predictions %}
-<div class="card"><b>{{p.name}}</b>: {{p.match}} → {{p.prediction}}</div>
-{% endfor %}
-</section>
+</body>
+</html>
 """
 
 @app.route("/")
 def home():
-    return render_template_string(HTML, matches=matches, rankings=rankings, tables=tables,
-                                  energy_posts=energy_posts, watch_parties=watch_parties,
-                                  predictions=predictions)
+    return render_template_string(
+        HTML,
+        teams=teams,
+        matches=matches,
+        signal_posts=signal_posts,
+        room_messages=room_messages,
+        flag_counts=flag_counts,
+        profiles=profiles
+    )
 
-@app.route("/energy", methods=["POST"])
-def energy():
-    energy_posts.insert(0, {
-        "name": request.form.get("name","OAP"),
-        "type": request.form.get("type","⚡ Energy"),
-        "body": request.form.get("body","")
+@app.route("/signal", methods=["POST"])
+def signal():
+    signal_posts.insert(0, {
+        "name": request.form.get("name", "OAP"),
+        "body": request.form.get("body", "")
     })
-    return redirect("/#energy")
+    return redirect("/#signal")
 
-@app.route("/watch", methods=["POST"])
-def watch():
-    watch_parties.insert(0, {
-        "match": request.form.get("match",""),
-        "postcode": request.form.get("postcode",""),
-        "venue": request.form.get("venue",""),
-        "time": request.form.get("time",""),
-        "host": request.form.get("host",""),
-        "capacity": request.form.get("capacity","")
+@app.route("/room", methods=["POST"])
+def room():
+    room_messages.insert(0, {
+        "room": request.form.get("room", "Match Room"),
+        "name": request.form.get("name", "Visitor"),
+        "message": request.form.get("message", "")
     })
-    return redirect("/#watch")
+    return redirect("/#rooms")
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    predictions.insert(0, {
-        "name": request.form.get("name",""),
-        "match": request.form.get("match",""),
-        "prediction": request.form.get("prediction","")
+@app.route("/flag", methods=["POST"])
+def flag():
+    team = request.form.get("team", "")
+    if team:
+        flag_counts[team] = flag_counts.get(team, 0) + 1
+    return redirect("/#flags")
+
+@app.route("/myworld", methods=["POST"])
+def myworld():
+    profiles.insert(0, {
+        "nickname": request.form.get("nickname", "OAP Visitor"),
+        "country": request.form.get("country", "")
     })
-    return redirect("/#predictions")
+    return redirect("/#myworld")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)
