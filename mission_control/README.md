@@ -1,7 +1,11 @@
-# smi-mission-control-slice: initial README
+# mission_control/README.md
 
-This branch implements the first vertical slice for "OAP Sovereign Mission Control" — a unified UI and server-side approval pipeline. The first commit is the repository assessment and plan. The branch is smi-mission-control-slice and is based on smi-production-hardening.
+This folder contains the mission control vertical slice for OAP Sovereign Mission Control.
 
-Follow the repository assessment in docs/REPO_ASSESSMENT.md for the KEEP / UPGRADE / MERGE / REMOVE-DUPLICATE decisions.
+Files:
+- config.py: canonical configuration values and env var bindings
+- db.py: safe sqlite migration helper (created in later commits)
+- audit.py: audit chain helper (created in later commits)
+- state_machine.py: approval state machine (created in later commits)
+- views.py: blueprint and UI handlers (created later)
 
-Work will proceed in small commits; see branch PR for details.
