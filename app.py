@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template_string
+from flask import Flask, request, redirect, render_template_string, render_template
 
 app = Flask(__name__)
 
@@ -65,7 +65,7 @@ teams = [
 
     ("L","🏴","England","Three Lions","Flag meaning: Saint George, bravery and protection."),
     ("L","🇭🇷","Croatia","Vatreni","Flag meaning: Slavic colours and Croatian checkerboard heritage."),
-    ("L","🇬🇭","Ghana","Black Stars","Flag meaning: sacrifice, gold, land and African unity."),
+    ("L","��🇭","Ghana","Black Stars","Flag meaning: sacrifice, gold, land and African unity."),
     ("L","🇵🇦","Panama","Los Canaleros","Flag meaning: peace, honesty and political balance."),
 ]
 
@@ -244,24 +244,36 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 </section>
 
 <section id="sovereign">
-<h2>👑 Sovereign Prince Dashboard</h2>
-<div class="grid">
-<div class="card">📡 Signal Agent</div>
-<div class="card">⚽ Match Agent</div>
-<div class="card">🌍 Community Agent</div>
-<div class="card">🛡 Guardian Agent</div>
-<div class="card">📜 HRM Agent</div>
-<div class="card">🎯 Mission Agent</div>
-</div>
-<div class="card">👑 Sovereign Veto: Green continue. Yellow review. Red stop.</div>
+{{ sovereign_gateway|safe }}
 </section>
 
 </body>
 </html>
 """
 
+from mission_control import init_app as _mc_init
+import mission_control.status as mc_status
+
+# Initialize mission control CLI commands and later blueprint registration
+try:
+    _mc_init(app)
+except Exception:
+    # Initialization should not prevent app from running in case mission_control isn't ready
+    pass
+
 @app.route("/")
 def home():
+    # Prepare sovereign gateway HTML fragment using server-side status
+    try:
+        gateway_html = render_template('mission_control/sovereign_gateway.html',
+                                       status=mc_status.get_operational_status(),
+                                       agents=mc_status.get_agent_statuses(),
+                                       approval_counts=mc_status.get_approval_summary(),
+                                       timeline=mc_status.get_latest_timeline())
+    except Exception:
+        # Fail gracefully and show a minimal fallback
+        gateway_html = '''<h2>👑 OAP Sovereign Mission Control</h2><div class="card">Mission Control status unavailable</div>'''
+
     return render_template_string(
         HTML,
         teams=teams,
@@ -269,7 +281,8 @@ def home():
         signal_posts=signal_posts,
         team_messages=team_messages,
         flag_counts=flag_counts,
-        profiles=profiles
+        profiles=profiles,
+        sovereign_gateway=gateway_html,
     )
 
 @app.route("/signal", methods=["POST"])
