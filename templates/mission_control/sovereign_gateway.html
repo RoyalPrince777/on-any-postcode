@@ -1,0 +1,87 @@
+<!doctype html>
+<div class="gateway-card">
+  <header>
+    <h2>👑 OAP Sovereign Mission Control</h2>
+    <p class="tagline">One Front Door. Three Operating Modes. One Human Authority. One HRM Memory.</p>
+    <p class="location">Postcode → Borough → County/City → Country → Continent → World → Universe</p>
+    <a class="enter-btn" href="/mission">Enter Mission Control</a>
+  </header>
+
+  <section class="status-ribbon" role="region" aria-live="polite">
+    <ul>
+      <li>Local Mode: <strong class="status">{{ status.local_mode }}</strong></li>
+      <li>Database: <strong class="status">{{ status.database }}</strong></li>
+      <li>HRM Audit Chain: <strong class="status">{{ status.audit_chain }}</strong></li>
+      <li>Guardian: <strong class="status">{{ status.guardian }}</strong></li>
+      <li>Ollama: <strong class="status">{{ status.ollama }}</strong></li>
+      <li>Approval Queue: <strong class="status">{{ status.approval_queue }}</strong></li>
+    </ul>
+  </section>
+
+  <section class="modes grid">
+    <div class="card mode">
+      <h3>Sovereign Mode</h3>
+      <p>Privacy and provenance · Local model control · Data & policy control</p>
+      <a href="/mission?mode=sovereign" class="mode-btn">Open Sovereign Mode</a>
+    </div>
+    <div class="card mode">
+      <h3>Mission Mode</h3>
+      <p>Live operations · Intelligence coordination · Timeline & telemetry</p>
+      <a href="/mission?mode=mission" class="mode-btn">Open Mission Mode</a>
+    </div>
+    <div class="card mode">
+      <h3>Approval Mode</h3>
+      <p>Evidence & Guardian review · Human approval · Execution & audit</p>
+      <a href="/mission?mode=approval" class="mode-btn">Open Approval Mode</a>
+    </div>
+  </section>
+
+  <section class="agents">
+    <h4>Intelligence status</h4>
+    <div class="grid">
+      {% for a in agents %}
+        <div class="card agent">
+          <strong>{{ a.name }}</strong>
+          <div>Status: <span class="agent-status">{{ a.status }}</span></div>
+          <div>Last activity: {{ a.last_activity or 'Not connected' }}</div>
+          <div>Assignment: {{ a.assignment or 'No assignment' }}</div>
+          <div>Family: {{ a.family or '—' }}</div>
+          <div>May Recommend: {{ 'Yes' if a.can_recommend else 'No' }} · May Execute: {{ 'Yes' if a.can_execute else 'No' }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="approval-summary">
+    <h4>Approval summary</h4>
+    {% if approval_counts is string %}
+      <div class="card">{{ approval_counts }}</div>
+    {% else %}
+      <ul>
+        <li>Awaiting Human: {{ approval_counts.awaiting_human }}</li>
+        <li>Evidence Requested: {{ approval_counts.evidence_requested }}</li>
+        <li>Approved: {{ approval_counts.approved }}</li>
+        <li>Blocked/Rejected: {{ approval_counts.rejected }}</li>
+        <li>Expired: {{ approval_counts.expired }}</li>
+        <li>Executed: {{ approval_counts.executed }}</li>
+      </ul>
+    {% endif %}
+  </section>
+
+  <section class="timeline">
+    <h4>Latest timeline</h4>
+    {% if timeline %}
+      <ul>
+        {% for e in timeline %}
+          <li>{{ e.timestamp }} · {{ e.type }} · {{ e.actor_type }} · {{ e.target }} · {{ e.status }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="card">No public timeline events available</div>
+    {% endif %}
+  </section>
+
+  <footer class="human-authority">
+    <div>Green — Continue · Amber — Human Review · Red — Emergency Pause</div>
+  </footer>
+</div>
