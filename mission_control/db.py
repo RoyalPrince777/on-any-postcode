@@ -12,22 +12,16 @@ Migration files live in mission_control/migrations and must expose:
 """
 from __future__ import annotations
 
-import os
-import sqlite3
 import hashlib
-import json
+import sqlite3
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from . import config
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
-
-# Ensure migrations dir exists
-MIGRATIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 SCHEMA_MIGRATIONS_TABLE = "schema_migrations"
 
@@ -41,6 +35,16 @@ def _connect(db_path: str) -> sqlite3.Connection:
         conn.execute("PRAGMA journal_mode = WAL")
     except sqlite3.DatabaseError:
         pass
+    return conn
+
+
+def _connect_readonly(db_path: str) -> sqlite3.Connection:
+    """Open an existing database without creating files or changing pragmas."""
+
+    uri = Path(db_path).resolve().as_uri() + "?mode=ro"
+    conn = sqlite3.connect(uri, uri=True, timeout=1)
+    conn.execute("PRAGMA query_only = ON")
+    conn.execute("PRAGMA busy_timeout = 250")
     return conn
 
 
@@ -68,22 +72,54 @@ def _get_applied(conn: sqlite3.Connection) -> Dict[str, Dict]:
     return {r[0]: {"version": r[0], "name": r[1], "checksum": r[2], "applied_at": r[3]} for r in rows}
 
 
+def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
 def db_status() -> Dict:
     db_path = config.OAP_DATABASE_PATH
-    res = {"db_path": db_path, "exists": Path(db_path).exists(), "applied": [], "pending": []}
-    if not Path(db_path).exists():
+    migrations = _load_migration_modules()
+    res = {
+        "db_path": db_path,
+        "exists": Path(db_path).is_file(),
+        "initialized": False,
+        "applied": [],
+        "pending": [
+            {"version": version, "name": path.name, "checksum": checksum}
+            for version, path, checksum in migrations
+        ],
+        "error": None,
+    }
+    if not res["exists"]:
         return res
-    conn = _connect(db_path)
+
     try:
-        _ensure_schema_migrations(conn)
+        conn = _connect_readonly(db_path)
+    except sqlite3.Error:
+        res["error"] = "database_unavailable"
+        return res
+
+    try:
+        if not _table_exists(conn, SCHEMA_MIGRATIONS_TABLE):
+            return res
+
         applied = _get_applied(conn)
         res["applied"] = list(applied.values())
-        migrations = _load_migration_modules()
         pending = []
         for version, path, checksum in migrations:
             if version not in applied:
                 pending.append({"version": version, "name": path.name, "checksum": checksum})
         res["pending"] = pending
+        res["initialized"] = _table_exists(conn, "audit_events") and any(
+            version.startswith("0001_") for version in applied
+        )
+        return res
+    except sqlite3.Error:
+        res["error"] = "database_unavailable"
         return res
     finally:
         conn.close()
@@ -203,7 +239,6 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
 
             # Rotation: keep latest 21 backups matching pattern
             backups = sorted([p for p in backup_dir.glob("oap.db.bak.*") if p.is_file()], reverse=True)
-            keep = backups[:21]
             remove = backups[21:]
             for p in remove:
                 try:

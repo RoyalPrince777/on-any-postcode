@@ -1,51 +1,49 @@
-"""
-OAP Sovereign Mission Control Gateway
-Read-only, production-grade operations hub.
-Preserves Flask + SQLite + Termux/Android local-first architecture.
-"""
-import os
-from flask import Blueprint
+"""Mission control package initialiser: registers CLI commands with Flask app."""
+from __future__ import annotations
 
-# Mission Control Blueprint (read-only routes only)
-mc_bp = Blueprint(
-    "mission_control",
-    __name__,
-    url_prefix="/mission",
-    template_folder="templates",
-    static_folder="static",
-    static_url_path="/mission/static",
-)
+import click
+from flask import Flask
 
-# Register read-only routes
-from . import views
-
-mc_bp.add_url_rule("/", "index", views.mission_index)
-mc_bp.add_url_rule("", "slash", views.mission_index)
-mc_bp.add_url_rule("/status", "status", views.mission_status)
+from . import audit as auditmod
+from . import db as dbmod
+from .views import bp
 
 
-def init_app(app):
-    """
-    Initialize Mission Control for Flask application.
-    Fails safely if module is incomplete.
-    
-    Args:
-        app: Flask application instance
-    
-    Raises:
-        Exception: If registration fails (caller must handle gracefully)
-    """
-    app.register_blueprint(mc_bp)
-    
-    # Register CLI commands
-    @app.cli.command("mission-status")
-    def mission_status_cmd():
-        """Show Mission Control status (read-only)."""
-        from . import status as mc_status
-        s = mc_status.get_public_gateway_status()
-        print(f"Local Mode: {s.get('local_mode')}")
-        print(f"Database: {s.get('database')}")
-        print(f"HRM Audit Chain: {s.get('audit_chain')}")
-        print(f"Guardian: {s.get('guardian')}")
-        print(f"Ollama: {s.get('ollama')}")
-        print(f"Approval Queue: {s.get('approval_queue')}")
+def init_app(app: Flask) -> None:
+    """Register CLI commands and (later) blueprint with the Flask app."""
+    # Register DB CLI commands
+    @app.cli.command("oap-db-status")
+    @click.option("--json", "json_out", is_flag=True, default=False, help="JSON output")
+    def _db_status(json_out: bool) -> None:  # pragma: no cover - CLI wrapper
+        res = dbmod.db_status()
+        if json_out:
+            import json
+            print(json.dumps(res))
+        else:
+            print("OAP Database status:")
+            print(f"  Resolved DB path: {res['db_path']}")
+            print(f"  Schema migrations applied: {len(res['applied'])}")
+            if res['pending']:
+                print("  Pending migrations:")
+                for m in res['pending']:
+                    print(f"    - {m['name']} (checksum: {m['checksum']})")
+            else:
+                print("  No pending migrations")
+
+    @app.cli.command("oap-init-db")
+    @click.option("--dry-run", "dry_run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_db(dry_run: bool, yes: bool) -> None:  # pragma: no cover - CLI wrapper
+        dbmod.init_db(dry_run=dry_run, assume_yes=yes)
+
+    @app.cli.command("oap-verify-audit")
+    def _oap_verify_audit() -> None:  # pragma: no cover - CLI wrapper
+        ok, report = auditmod.verify_audit()
+        if ok:
+            print("Audit verification: OK")
+        else:
+            print("Audit verification: FAILED")
+            for line in report:
+                print(f"  - {line}")
+
+    app.register_blueprint(bp, url_prefix="/mission")

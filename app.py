@@ -1,4 +1,7 @@
-from flask import Flask, request, redirect, render_template_string, render_template
+from flask import Flask, redirect, render_template, request
+
+import mission_control.status as mc_status
+from mission_control import init_app as _mc_init
 
 app = Flask(__name__)
 
@@ -65,7 +68,7 @@ teams = [
 
     ("L","🏴","England","Three Lions","Flag meaning: Saint George, bravery and protection."),
     ("L","🇭🇷","Croatia","Vatreni","Flag meaning: Slavic colours and Croatian checkerboard heritage."),
-    ("L","��🇭","Ghana","Black Stars","Flag meaning: sacrifice, gold, land and African unity."),
+    ("L","🇬🇭","Ghana","Black Stars","Flag meaning: sacrifice, gold, land and African unity."),
     ("L","🇵🇦","Panama","Los Canaleros","Flag meaning: peace, honesty and political balance."),
 ]
 
@@ -83,206 +86,20 @@ matches = [
     ("NEXT","17 Jun","L","🇬🇭 Ghana","🇵🇦 Panama","19:00"),
 ]
 
-HTML = """
-<!doctype html>
-<html>
-<head>
-<title>OAP TV</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial}
-nav{position:sticky;top:0;background:#092414;padding:14px;white-space:nowrap;overflow-x:auto;z-index:10}
-nav a{color:white;text-decoration:none;font-weight:bold;margin-right:14px}
-section{padding:22px;border-bottom:1px solid #1d4a2d}
-.hero{background:linear-gradient(135deg,#092414,#14512b)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}
-.card{background:#10281a;border:1px solid #245f38;border-radius:16px;padding:15px;margin:10px 0}
-.badge{background:#27c267;color:#021;padding:5px 9px;border-radius:999px;font-weight:bold;display:inline-block}
-input,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin:6px 0;border-radius:9px;border:0}
-button{background:#27c267;color:#021;font-weight:bold}
-.flag{font-size:42px}
-.small{opacity:.82}
-table{width:100%;border-collapse:collapse;background:#10281a;margin-bottom:15px}
-td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
-.team{border-left:5px solid #27c267}
-</style>
-</head>
-<body>
-
-<nav>
-<a href="#signal">📡 Signal</a>
-<a href="#live">🔴 Live</a>
-<a href="#teams">🌍 Teams</a>
-<a href="#myworld">👤 My World</a>
-<a href="#sovereign">👑 Sovereign</a>
-</nav>
-
-<section class="hero">
-<h1>📺 OAP TV</h1>
-<h2>Signal → Live → Teams → My World</h2>
-<p>Born Local. Built Global. Earth is our turf.</p>
-</section>
-
-<section id="signal">
-<h2>📡 OAP Signal</h2>
-<div class="grid">
-<div class="card"><span class="badge">🔥 What's Lit</span><h3>Clean OAP TV is live</h3><p>No Watch Parties. No Predictions. No extra boards.</p></div>
-<div class="card"><span class="badge">🌍 Teams</span><h3>Everything now lives inside Teams</h3><p>Flags, meaning, rooms, fixtures, results, replay, anthem, cards and team book.</p></div>
-<div class="card"><span class="badge">🇭🇹 Team Check</span><h3>Haiti included</h3><p>Haiti is in Group C.</p></div>
-</div>
-
-<form method="post" action="/signal">
-<input name="name" placeholder="Nickname">
-<textarea name="body" placeholder="Drop OAP Signal..."></textarea>
-<button>Post Signal</button>
-</form>
-
-{% for p in signal_posts %}
-<div class="card"><b>{{p.name}}</b><p>{{p.body}}</p></div>
-{% endfor %}
-</section>
-
-<section id="live">
-<h2>🔴 Live / Next</h2>
-<div class="grid">
-{% for state,date,group,home,away,score in matches if state != "FT" %}
-<div class="card">
-<b>{{state}}</b> | {{date}} | Group {{group}}
-<h3>{{home}} 🆚 {{away}}</h3>
-<p><b>{{score}}</b></p>
-<p class="small">Tap the team below to enter its match room.</p>
-</div>
-{% endfor %}
-</div>
-</section>
-
-<section id="teams">
-<h2>🌍 Teams</h2>
-<p class="small">Every nation has a home. Everything lives inside the team.</p>
-
-<div class="grid">
-{% for group,flag,name,nick,meaning in teams %}
-<div class="card team" id="{{name|replace(' ','-')}}">
-<div class="flag">{{flag}}</div>
-<h2>{{name}}</h2>
-<p><b>{{nick}}</b> | Group {{group}}</p>
-
-<h3>🏳️ Throw Your Flag Up</h3>
-<p>Support: <b>{{flag_counts.get(name,0)}}</b></p>
-<form method="post" action="/flag">
-<input type="hidden" name="team" value="{{name}}">
-<button>Throw {{flag}} Up</button>
-</form>
-
-<h3>🌍 Flag Meaning</h3>
-<p>{{meaning}}</p>
-
-<h3>⚽ Team Match Room</h3>
-<form method="post" action="/room">
-<input type="hidden" name="room" value="{{name}} Team Room">
-<input name="name" placeholder="Nickname">
-<input name="message" placeholder="Message for {{name}}">
-<button>Post in {{name}} Room</button>
-</form>
-
-<h3>📅 Fixtures / Results</h3>
-{% for state,date,mgroup,home,away,score in matches if name in home or name in away %}
-<div class="card">
-<b>{{state}}</b> | {{date}} | Group {{mgroup}}<br>
-{{home}} 🆚 {{away}}<br>
-<b>{{score}}</b>
-</div>
-{% endfor %}
-
-<h3>📜 Replay</h3>
-<p>Key moments and Player of the Match added after verification.</p>
-
-<h3>🎶 Anthem</h3>
-<p>Manual play only. Local owned/licensed files only. No autoplay.</p>
-<button>▶️ {{name}} Anthem Placeholder</button>
-
-<h3>🃏 Digital Cards</h3>
-<p>Team Card · Hero Card · Legend Card · Icon Card</p>
-
-<h3>📖 Team Book</h3>
-<p>□ Team Card · □ Hero Card · □ Legend Card · □ Icon Card</p>
-</div>
-{% endfor %}
-</div>
-</section>
-
-<section id="tables">
-<h2>📊 Tables</h2>
-{% for g in "ABCDEFGHIJKL" %}
-<h3>Group {{g}}</h3>
-<table>
-<tr><th>Team</th><th>PTS</th></tr>
-{% for group,flag,name,nick,meaning in teams if group == g %}
-<tr><td>{{flag}} {{name}}</td><td>0</td></tr>
-{% endfor %}
-</table>
-{% endfor %}
-</section>
-
-<section>
-<h2>💬 Latest Team Room Messages</h2>
-{% for m in team_messages %}
-<div class="card"><b>{{m.room}}</b><br>{{m.name}}: {{m.message}}</div>
-{% endfor %}
-</section>
-
-<section id="myworld">
-<h2>👤 My World</h2>
-<form method="post" action="/myworld">
-<input name="nickname" placeholder="Nickname">
-<input name="country" placeholder="Country / Flag">
-<button>Enter My World</button>
-</form>
-{% for p in profiles %}
-<div class="card">👤 {{p.nickname}} | {{p.country}}</div>
-{% endfor %}
-</section>
-
-<section id="sovereign">
-{{ sovereign_gateway|safe }}
-</section>
-
-</body>
-</html>
-"""
-
-from mission_control import init_app as _mc_init
-import mission_control.status as mc_status
-
-# Initialize mission control CLI commands and later blueprint registration
-try:
-    _mc_init(app)
-except Exception:
-    # Initialization should not prevent app from running in case mission_control isn't ready
-    pass
+# Register read-only Mission Control routes and explicit CLI-only DB commands.
+_mc_init(app)
 
 @app.route("/")
 def home():
-    # Prepare sovereign gateway HTML fragment using server-side status
-    try:
-        gateway_html = render_template('mission_control/sovereign_gateway.html',
-                                       status=mc_status.get_operational_status(),
-                                       agents=mc_status.get_agent_statuses(),
-                                       approval_counts=mc_status.get_approval_summary(),
-                                       timeline=mc_status.get_latest_timeline())
-    except Exception:
-        # Fail gracefully and show a minimal fallback
-        gateway_html = '''<h2>👑 OAP Sovereign Mission Control</h2><div class="card">Mission Control status unavailable</div>'''
-
-    return render_template_string(
-        HTML,
+    return render_template(
+        "home.html",
         teams=teams,
         matches=matches,
         signal_posts=signal_posts,
         team_messages=team_messages,
         flag_counts=flag_counts,
         profiles=profiles,
-        sovereign_gateway=gateway_html,
+        gateway=mc_status.get_public_gateway_status(),
     )
 
 @app.route("/signal", methods=["POST"])

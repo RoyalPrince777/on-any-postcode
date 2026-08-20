@@ -8,6 +8,7 @@ import sqlite3
 import hashlib
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional, Tuple, List
 
 from . import config
@@ -89,8 +90,25 @@ def verify_audit(db_path: Optional[str] = None) -> Tuple[bool, List[str]]:
     """
     if db_path is None:
         db_path = config.OAP_DATABASE_PATH
-    conn = sqlite3.connect(db_path)
+    database = Path(db_path)
+    if not database.is_file():
+        return False, ["Mission Control database not initialized"]
+
+    uri = database.resolve().as_uri() + "?mode=ro"
     try:
+        conn = sqlite3.connect(uri, uri=True, timeout=1)
+        conn.execute("PRAGMA query_only = ON")
+    except sqlite3.Error:
+        return False, ["Mission Control database unavailable"]
+
+    try:
+        table = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+            (AUDIT_TABLE,),
+        ).fetchone()
+        if table is None:
+            return False, ["Mission Control audit chain not initialized"]
+
         cur = conn.execute(f"SELECT event_seq, prev_hash, curr_hash, payload FROM {AUDIT_TABLE} ORDER BY event_seq ASC")
         prev_hash = ""
         expected_seq = 1
@@ -113,5 +131,7 @@ def verify_audit(db_path: Optional[str] = None) -> Tuple[bool, List[str]]:
         if problems:
             return False, problems
         return True, ["OK"]
+    except sqlite3.Error:
+        return False, ["Mission Control audit chain unavailable"]
     finally:
         conn.close()

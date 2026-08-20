@@ -1,62 +1,78 @@
-"""
-Mission Control read-only views.
-Three modes: sovereign, mission, approval.
-GET only; no mutations.
-"""
-from flask import request, jsonify, render_template
-from . import status as mc_status
+"""Read-only Flask routes for the Mission Control vertical slice."""
+
+from __future__ import annotations
+
+from flask import Blueprint, jsonify, make_response, render_template, request
+
+from . import status
+
+ALLOWED_MODES = ("sovereign", "mission", "approval")
+
+bp = Blueprint(
+    "mission_control",
+    __name__,
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="/static",
+)
 
 
-VALID_MODES = {"sovereign", "mission", "approval"}
+def _no_store(response):
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
-def mission_index():
-    """
-    GET /mission and GET /mission/
-    Show mode selector or mode-specific view.
-    Validates mode parameter.
-    """
-    mode = request.args.get("mode", "").lower().strip()
-    
-    if mode and mode not in VALID_MODES:
-        return jsonify({
-            "error": "Invalid mode",
-            "valid_modes": list(VALID_MODES),
-            "message": f"Mode '{mode}' not recognized. Use one of: {', '.join(sorted(VALID_MODES))}"
-        }), 400
-    
-    # If no mode specified, show selector
-    if not mode:
-        return render_template(
-            "mission_control/mission.html",
-            mode=None,
-            status=mc_status.get_public_gateway_status(),
+@bp.get("/")
+@bp.get("")
+def mission_workspace():
+    """Render the non-operational Mission Control workspace."""
+
+    mode = request.args.get("mode", "sovereign").strip().lower()
+    if mode not in ALLOWED_MODES:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "invalid_mode",
+                        "message": "Unsupported Mission Control mode.",
+                        "allowed_modes": list(ALLOWED_MODES),
+                    }
+                ),
+                400,
+            )
         )
-    
-    # Render mode-specific dashboard
-    return render_template(
-        "mission_control/mission.html",
-        mode=mode,
-        status=mc_status.get_public_gateway_status(),
-        agents=mc_status.get_agent_statuses(),
-        approval_counts=mc_status.get_approval_summary(),
-        timeline=mc_status.get_latest_timeline(limit=5),
+
+    response = make_response(
+        render_template(
+            "mission.html",
+            active_mode=mode,
+            allowed_modes=ALLOWED_MODES,
+            gateway=status.get_public_gateway_status(),
+        )
     )
+    return _no_store(response)
 
 
+@bp.get("/status")
 def mission_status():
-    """
-    GET /mission/status
-    Return public gateway status as JSON.
-    No privileged scope checks yet (blocked until auth is real).
-    """
-    # Check for invalid privileged scope requests
-    scope = request.args.get("scope", "public").lower().strip()
+    """Return public status only; privileged status remains fail-closed."""
+
+    scope = request.args.get("scope", "public").strip().lower()
     if scope != "public":
-        return jsonify({
-            "error": "Forbidden",
-            "message": "Privileged scope requires real Identity and Permission checks. Not yet implemented."
-        }), 403
-    
-    status_data = mc_status.get_public_gateway_status()
-    return jsonify(status_data), 200
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "authentication_required",
+                        "message": (
+                            "Privileged Mission Control status is unavailable "
+                            "until Identity and Permission checks are enabled."
+                        ),
+                    }
+                ),
+                403,
+            )
+        )
+
+    return _no_store(make_response(jsonify(status.get_public_gateway_status())))

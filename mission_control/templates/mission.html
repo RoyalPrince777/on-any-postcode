@@ -1,175 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OAP Mission Control</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #06120b; color: #f5fff7; line-height: 1.6; }
-        nav { position: sticky; top: 0; background: #092414; padding: 14px; border-bottom: 1px solid #1d4a2d; z-index: 10; }
-        nav a { color: #27c267; text-decoration: none; font-weight: bold; margin-right: 20px; display: inline-block; }
-        nav a:hover { text-decoration: underline; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        section { margin: 30px 0; padding: 20px; background: #10281a; border: 1px solid #245f38; border-radius: 8px; }
-        h1, h2, h3, h4 { margin: 20px 0 10px; color: #27c267; }
-        h1 { font-size: 2rem; }
-        h2 { font-size: 1.5rem; }
-        h3 { font-size: 1.2rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin: 15px 0; }
-        .card { background: #0a1810; border: 1px solid #1d4a2d; border-radius: 8px; padding: 15px; }
-        .mode-btn, .enter-btn { display: inline-block; background: #27c267; color: #021; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; margin: 10px 0; border: none; cursor: pointer; }
-        .mode-btn:hover, .enter-btn:hover { background: #1fa852; }
-        .status { font-weight: bold; color: #27c267; }
-        .status.error { color: #ff6b6b; }
-        .status.warning { color: #ffd43b; }
-        ul, ol { margin-left: 20px; }
-        li { margin: 8px 0; }
-        .footer { text-align: center; padding: 20px; border-top: 1px solid #1d4a2d; margin-top: 40px; opacity: 0.8; }
-        @media (max-width: 768px) {
-            .grid { grid-template-columns: 1fr; }
-            nav a { margin-right: 10px; display: block; margin-bottom: 5px; }
-            h1 { font-size: 1.5rem; }
-            h2 { font-size: 1.2rem; }
-        }
-        @media (max-width: 360px) {
-            body { font-size: 14px; }
-            .container { padding: 10px; }
-            section { padding: 10px; margin: 15px 0; }
-            .mode-btn, .enter-btn { padding: 8px 12px; font-size: 12px; }
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Mission Control</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
 </head>
-<body>
-    <nav>
-        <a href="/">← Home</a>
-        <a href="/mission">Mission Control</a>
-        <a href="/mission/status">Status</a>
-    </nav>
-
-    <div class="container">
-        {% if mode is none %}
-        <!-- Mode Selector -->
-        <section>
-            <h1>👑 OAP Sovereign Mission Control</h1>
-            <p class="tagline">One Front Door. Three Operating Modes. One Human Authority. One HRM Memory.</p>
-            <p class="location">Postcode → Borough → County/City → Country → Continent → World → Universe</p>
-        </section>
-
-        <section class="status-ribbon" role="region" aria-live="polite">
-            <h3>System Status</h3>
-            <ul>
-                <li>Local Mode: <span class="status">{{ status.local_mode }}</span></li>
-                <li>Database: <span class="status">{{ status.database }}</span></li>
-                <li>HRM Audit Chain: <span class="status">{{ status.audit_chain }}</span></li>
-                <li>Guardian: <span class="status">{{ status.guardian }}</span></li>
-                <li>Ollama: <span class="status">{{ status.ollama }}</span></li>
-                <li>Approval Queue: <span class="status">{{ status.approval_queue }}</span></li>
-            </ul>
-        </section>
-
-        <section class="modes">
-            <h2>Operating Modes</h2>
-            <div class="grid">
-                <div class="card">
-                    <h3>Sovereign Mode</h3>
-                    <p>Privacy and provenance · Local model control · Data & policy control</p>
-                    <a href="/mission?mode=sovereign" class="mode-btn">Open Sovereign Mode</a>
-                </div>
-                <div class="card">
-                    <h3>Mission Mode</h3>
-                    <p>Live operations · Intelligence coordination · Timeline & telemetry</p>
-                    <a href="/mission?mode=mission" class="mode-btn">Open Mission Mode</a>
-                </div>
-                <div class="card">
-                    <h3>Approval Mode</h3>
-                    <p>Evidence & Guardian review · Human approval · Execution & audit</p>
-                    <a href="/mission?mode=approval" class="mode-btn">Open Approval Mode</a>
-                </div>
-            </div>
-        </section>
-
-        {% else %}
-        <!-- Mode-Specific Dashboard -->
-        <section>
-            <h1>{{ mode|title }} Mode</h1>
-            <p>Read-only operations dashboard. Human Authority is final.</p>
-        </section>
-
-        <section>
-            <h3>System Status</h3>
-            <ul>
-                <li>Local Mode: <span class="status">{{ status.local_mode }}</span></li>
-                <li>Database: <span class="status">{{ status.database }}</span></li>
-                <li>HRM Audit Chain: <span class="status">{{ status.audit_chain }}</span></li>
-                <li>Guardian: <span class="status">{{ status.guardian }}</span></li>
-                <li>Ollama: <span class="status">{{ status.ollama }}</span></li>
-                <li>Approval Queue: <span class="status">{{ status.approval_queue }}</span></li>
-            </ul>
-        </section>
-
-        <section>
-            <h3>Intelligence Connections</h3>
-            <div class="grid">
-                {% for agent in agents %}
-                <div class="card">
-                    <strong>{{ agent.name }}</strong>
-                    <ul style="margin-top: 10px; list-style: none; margin-left: 0;">
-                        <li>Status: <span class="status">{{ agent.status }}</span></li>
-                        <li>Last Activity: {{ agent.last_activity or 'Not connected' }}</li>
-                        <li>Assignment: {{ agent.assignment or 'No assignment' }}</li>
-                        {% if agent.family %}<li>Family: {{ agent.family }}</li>{% endif %}
-                        <li>Recommend: {{ 'Yes' if agent.can_recommend else 'No' }} · Execute: {{ 'Yes' if agent.can_execute else 'No' }}</li>
-                    </ul>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-
-        <section>
-            <h3>Approval Summary</h3>
-            {% if approval_counts is string %}
-                <p>{{ approval_counts }}</p>
-            {% else %}
-                <ul>
-                    <li>Awaiting Human: {{ approval_counts.awaiting_human }}</li>
-                    <li>Evidence Requested: {{ approval_counts.evidence_requested }}</li>
-                    <li>Approved: {{ approval_counts.approved }}</li>
-                    <li>Blocked/Rejected: {{ approval_counts.rejected }}</li>
-                    <li>Expired: {{ approval_counts.expired }}</li>
-                    <li>Executed: {{ approval_counts.executed }}</li>
-                </ul>
-            {% endif %}
-        </section>
-
-        <section>
-            <h3>Latest Timeline</h3>
-            {% if timeline %}
-                <ol>
-                    {% for event in timeline %}
-                        <li>{{ event.timestamp }} · {{ event.type }} · {{ event.status }}</li>
-                    {% endfor %}
-                </ol>
-            {% else %}
-                <p>No public timeline events available</p>
-            {% endif %}
-        </section>
-
-        <section>
-            <h3>Human Authority</h3>
-            <p>🟢 Green — Continue · 🟡 Amber — Human Review · 🔴 Red — Emergency Pause</p>
-            <p>This is a read-only gateway. All operational decisions require Human Authority approval.</p>
-        </section>
-
-        <p style="text-align: center; margin-top: 20px;">
-            <a href="/mission" class="mode-btn">← Back to Mode Selector</a>
-        </p>
-        {% endif %}
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">OAP / SMI / {{ active_mode|title }}</p>
+      <h1>Mission Control</h1>
+      <p>Render-only workspace. No operational controls are enabled.</p>
     </div>
+    <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+  </header>
 
-    <div class="footer">
-        <p>ON ANY POSTCODE — Born Local. Built Global. Earth is our turf.</p>
-        <p>One Brand. One Front Door. One Identity. One Race. Human Race.</p>
-    </div>
+  <nav class="mc-mode-nav" aria-label="Mission Control modes">
+    {% for mode in allowed_modes %}
+    <a
+      href="{{ url_for('mission_control.mission_workspace', mode=mode) }}"
+      {% if mode == active_mode %}aria-current="page"{% endif %}
+    >{{ mode|title }}</a>
+    {% endfor %}
+  </nav>
+
+  <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="workspace-status-title">
+      <h2 id="workspace-status-title">System readiness</h2>
+      <div class="mc-status-ribbon" role="list">
+        {% for component in gateway.components %}
+        <div class="mc-status mc-status--{{ component.state }}" role="listitem">
+          <span>{{ component.label }}</span>
+          <strong>{{ component.value }}</strong>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="workspace-intelligence-title">
+      <h2 id="workspace-intelligence-title">Intelligence network</h2>
+      <div class="mc-intelligence-grid" role="list">
+        {% for agent in gateway.agents %}
+        <article class="mc-intelligence-card" role="listitem">
+          <h3>{{ agent.name }}</h3>
+          <p>{{ agent.status }}</p>
+          <small>{{ agent.assignment }}</small>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="workspace-approval-title">
+      <h2 id="workspace-approval-title">Approval awareness</h2>
+      <p class="mc-notice">{{ gateway.approval_summary.message }}</p>
+      <p>Approval actions remain unavailable until the complete security and governance stack is verified.</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="workspace-timeline-title">
+      <h2 id="workspace-timeline-title">Public timeline</h2>
+      {% if gateway.timeline %}
+      <ol class="mc-timeline">
+        {% for event in gateway.timeline %}
+        <li><span>{{ event.summary }}</span><time>{{ event.timestamp }}</time></li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="mc-notice">No public timeline entries available.</p>
+      {% endif %}
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ gateway.human_authority.status }}</strong>
+      <span>{{ gateway.human_authority.message }}</span>
+    </aside>
+  </main>
+
+  <script src="{{ url_for('mission_control.static', filename='mission_control.js') }}" defer></script>
 </body>
 </html>

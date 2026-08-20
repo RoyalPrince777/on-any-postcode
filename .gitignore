@@ -64,3 +64,4 @@ Thumbs.db
 # Temporary
 /tmp/
 *.tmp
+.ruff_cache/

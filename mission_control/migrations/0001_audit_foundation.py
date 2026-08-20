@@ -4,9 +4,6 @@ Creates schema_migrations and audit_events with fields and indexes required.
 """
 from __future__ import annotations
 
-from typing import Any
-from datetime import datetime, timezone
-
 
 def migrate(conn):
     # Create schema_migrations and audit_events as the bootstrap schema
