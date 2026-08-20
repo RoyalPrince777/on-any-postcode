@@ -14,6 +14,10 @@
       <p>Render-only workspace. No operational controls are enabled.</p>
     </div>
     <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.link_dashboard') }}">The Link</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.agent_intelligence') }}">Agent Intelligence</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
     </div>
@@ -42,7 +46,7 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="workspace-intelligence-title">
-      <h2 id="workspace-intelligence-title">Intelligence network</h2>
+      <h2 id="workspace-intelligence-title">OAP Intelligence families</h2>
       <div class="mc-intelligence-grid" role="list">
         {% for agent in gateway.agents %}
         <article class="mc-intelligence-card" role="listitem">

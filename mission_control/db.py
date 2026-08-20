@@ -5,36 +5,34 @@ Implements:
 - init_db(dry_run=False, assume_yes=False)
 
 Migration files live in mission_control/migrations and must expose:
-- name (str)
-- checksum (sha256 hex of file content)
-- apply(conn) function that runs migration using provided sqlite3.Connection
+- migrate(conn) function that runs inside the transaction owned by this helper
 
 """
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import sqlite3
 import sys
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Tuple
+
+from oap.audit import audit_schema_ready
+from oap.hrm import brain_schema_ready
 
 from . import config
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 
 SCHEMA_MIGRATIONS_TABLE = "schema_migrations"
+MigrationFunction = Callable[[sqlite3.Connection], None]
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
-    # enforce URI mode and detect_missing
     conn = sqlite3.connect(db_path, timeout=30, isolation_level=None)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA busy_timeout = 5000")
-    try:
-        conn.execute("PRAGMA journal_mode = WAL")
-    except sqlite3.DatabaseError:
-        pass
     return conn
 
 
@@ -54,7 +52,7 @@ def _ensure_schema_migrations(conn: sqlite3.Connection) -> None:
     )
 
 
-def _load_migration_modules() -> List[Tuple[str, Path, str]]:
+def _load_migration_modules() -> list[tuple[str, Path, str]]:
     """Return list of migrations as (version, path, checksum) sorted by filename."""
     files = sorted(MIGRATIONS_DIR.glob("*.py"))
     migrations = []
@@ -66,7 +64,20 @@ def _load_migration_modules() -> List[Tuple[str, Path, str]]:
     return migrations
 
 
-def _get_applied(conn: sqlite3.Connection) -> Dict[str, Dict]:
+def _load_migrate_function(path: Path) -> MigrationFunction:
+    module_name = f"oap_migration_{path.stem}"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Cannot load migration {path.name}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    migrate = getattr(module, "migrate", None)
+    if not callable(migrate):
+        raise TypeError(f"Migration {path.stem} missing migrate(conn) function")
+    return migrate
+
+
+def _get_applied(conn: sqlite3.Connection) -> dict[str, dict[str, str]]:
     cur = conn.execute(f"SELECT version, name, checksum, applied_at FROM {SCHEMA_MIGRATIONS_TABLE}")
     rows = cur.fetchall()
     return {r[0]: {"version": r[0], "name": r[1], "checksum": r[2], "applied_at": r[3]} for r in rows}
@@ -80,14 +91,16 @@ def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     return row is not None
 
 
-def db_status() -> Dict:
+def db_status() -> dict[str, object]:
     db_path = config.OAP_DATABASE_PATH
     migrations = _load_migration_modules()
     res = {
         "db_path": db_path,
         "exists": Path(db_path).is_file(),
         "initialized": False,
+        "brain_runtime_initialized": False,
         "applied": [],
+        "checksum_mismatches": [],
         "pending": [
             {"version": version, "name": path.name, "checksum": checksum}
             for version, path, checksum in migrations
@@ -113,9 +126,19 @@ def db_status() -> Dict:
         for version, path, checksum in migrations:
             if version not in applied:
                 pending.append({"version": version, "name": path.name, "checksum": checksum})
+            elif applied[version]["checksum"] != checksum:
+                res["checksum_mismatches"].append(version)
         res["pending"] = pending
-        res["initialized"] = _table_exists(conn, "audit_events") and any(
+        checksums_valid = not res["checksum_mismatches"]
+        if not checksums_valid:
+            res["error"] = "migration_checksum_mismatch"
+        res["initialized"] = checksums_valid and audit_schema_ready(conn) and any(
             version.startswith("0001_") for version in applied
+        )
+        res["brain_runtime_initialized"] = (
+            checksums_valid
+            and brain_schema_ready(conn)
+            and any(version.startswith("0002_") for version in applied)
         )
         return res
     except sqlite3.Error:
@@ -143,7 +166,7 @@ def _backup_database(src_path: str, dst_path: str) -> str:
         cur = bconn.execute("PRAGMA integrity_check")
         row = cur.fetchone()
         if row is None or row[0] != "ok":
-            raise RuntimeError("Backup integrity_check failed: %s" % (row,))
+            raise RuntimeError(f"Backup integrity_check failed: {row}")
     finally:
         bconn.close()
 
@@ -162,6 +185,40 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
         print("No migrations found; nothing to do.")
         return
 
+    if dry_run:
+        print(f"Resolved DB path: {db_path}")
+        if not db_file.exists():
+            print("Dry run: would create database and apply:")
+            for version, path, _checksum in migrations:
+                print(f"  - {version} ({path.name})")
+            return
+
+        conn = _connect_readonly(str(db_file))
+        try:
+            applied = (
+                _get_applied(conn)
+                if _table_exists(conn, SCHEMA_MIGRATIONS_TABLE)
+                else {}
+            )
+            pending = []
+            for version, path, checksum in migrations:
+                if version in applied:
+                    if applied[version]["checksum"] != checksum:
+                        raise RuntimeError(
+                            f"Checksum mismatch for applied migration {version}"
+                        )
+                    continue
+                pending.append((version, path))
+            if pending:
+                print("Dry run: would apply:")
+                for version, path in pending:
+                    print(f"  - {version} ({path.name})")
+            else:
+                print("Dry run: no pending migrations")
+        finally:
+            conn.close()
+        return
+
     # Interactive confirmation
     if not assume_yes and sys.stdin.isatty():
         print(f"Resolved DB path: {db_path}")
@@ -175,20 +232,19 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
     if not db_file.exists():
         # Only create DB if user explicitly confirmed
         print("Database does not exist; creating new database")
-        if dry_run:
-            print("Dry run: would create database")
-            return
-        else:
-            db_file.parent.mkdir(parents=True, exist_ok=True)
-            # create empty db
-            conn = _connect(str(db_file))
-            conn.close()
+        db_file.parent.mkdir(parents=True, exist_ok=True)
+        # create empty db
+        conn = _connect(str(db_file))
+        conn.close()
 
     # Connect and apply migrations
     conn = _connect(str(db_file))
     try:
-        _ensure_schema_migrations(conn)
-        applied = _get_applied(conn)
+        applied = (
+            _get_applied(conn)
+            if _table_exists(conn, SCHEMA_MIGRATIONS_TABLE)
+            else {}
+        )
         for version, path, checksum in _load_migration_modules():
             if version in applied:
                 # checksum mismatch detection
@@ -196,14 +252,11 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
                     raise RuntimeError(f"Checksum mismatch for applied migration {version}")
                 continue
             print(f"Pending migration: {version} - {path.name}")
-            if dry_run:
-                continue
-
             # Backup before applying
             backup_dir = Path(config.OAP_BACKUP_DIR)
             backup_dir.mkdir(parents=True, exist_ok=True)
-            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-            backup_path = str(backup_dir / f"oap.db.bak.{ts}")
+            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+            backup_path = str(backup_dir / f"oap.db.bak.{version}.{ts}")
             print(f"Creating backup at {backup_path}")
             backup_sha = _backup_database(str(db_file), backup_path)
             print(f"Backup sha256: {backup_sha}")
@@ -211,14 +264,9 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
             # Apply migration inside BEGIN IMMEDIATE
             try:
                 conn.execute("BEGIN IMMEDIATE")
-                # load module and call migrate(conn)
-                spec = {}
-                with open(path, "r", encoding="utf-8") as f:
-                    code = f.read()
-                exec(code, spec)
-                if "migrate" not in spec:
-                    raise RuntimeError(f"Migration {version} missing migrate(conn) function")
-                spec["migrate"](conn)
+                _ensure_schema_migrations(conn)
+                migrate = _load_migrate_function(path)
+                migrate(conn)
                 # record migration
                 applied_at = datetime.now(timezone.utc).isoformat()
                 conn.execute(
@@ -235,7 +283,7 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
             cur = conn.execute("PRAGMA integrity_check")
             row = cur.fetchone()
             if row is None or row[0] != "ok":
-                raise RuntimeError("Post-migration integrity_check failed: %s" % (row,))
+                raise RuntimeError(f"Post-migration integrity_check failed: {row}")
 
             # Rotation: keep latest 21 backups matching pattern
             backups = sorted([p for p in backup_dir.glob("oap.db.bak.*") if p.is_file()], reverse=True)
@@ -243,8 +291,17 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
             for p in remove:
                 try:
                     p.unlink()
-                except Exception:
-                    pass
+                except OSError as exc:
+                    print(f"Warning: could not remove old backup {p}: {exc}")
+
+        if not audit_schema_ready(conn) or not brain_schema_ready(conn):
+            raise RuntimeError(
+                "Migration records exist but the canonical runtime schema is "
+                "incomplete or incompatible"
+            )
+
+        # Configure WAL only after every pending migration has succeeded.
+        conn.execute("PRAGMA journal_mode = WAL")
 
     finally:
         conn.close()

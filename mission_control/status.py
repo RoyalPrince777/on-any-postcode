@@ -19,14 +19,17 @@ from typing import Any
 from urllib.parse import urlparse
 
 from . import config
+from .agents import get_public_family_status
 from .db import db_status
-from .organism import INTELLIGENCE_WORLDS
 
 _PUBLIC_ACTION_LABELS = {
     "SYSTEM_LOG_ONLY": "System log recorded",
     "MISSION_REVIEWED": "Mission review recorded",
+    "SMI_REVIEWED": "Intelligence review recorded",
     "HUMAN_APPROVED": "Human approval recorded",
     "HUMAN_REJECTED": "Human rejection recorded",
+    "KERNEL_EXECUTED": "Approved Builder outcome recorded",
+    "WORLD_STATE_UPDATED": "Approved world-state update recorded",
 }
 
 
@@ -73,7 +76,7 @@ def _public_timeline(db_path: str, initialized: bool) -> list[dict[str, str]]:
         try:
             rows = connection.execute(
                 "SELECT action, timestamp FROM audit_events "
-                "WHERE action IN (?, ?, ?, ?) "
+                f"WHERE action IN ({', '.join('?' for _ in _PUBLIC_ACTION_LABELS)}) "
                 "ORDER BY event_seq DESC LIMIT 5",
                 tuple(_PUBLIC_ACTION_LABELS),
             ).fetchall()
@@ -91,8 +94,8 @@ def _public_timeline(db_path: str, initialized: bool) -> list[dict[str, str]]:
     ]
 
 
-def _approval_summary(initialized: bool) -> dict[str, Any]:
-    """Return a safe placeholder until the approval migration is available."""
+def _approval_summary(db_path: str, initialized: bool) -> dict[str, Any]:
+    """Return coarse counts from the action-bound approval ledger."""
 
     if not initialized:
         return {
@@ -101,12 +104,52 @@ def _approval_summary(initialized: bool) -> dict[str, Any]:
             "counts": {},
         }
 
-    # Migration 0003 will define the canonical approval schema. Until then,
-    # do not infer Mission Control state from the legacy ``approvals`` table.
+    try:
+        connection = _readonly_connect(db_path)
+        try:
+            receipt_table = connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type = 'table' AND name = 'smi_approval_receipts'"
+            ).fetchone()
+            memory_table = connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type = 'table' AND name = 'smi_memory_records'"
+            ).fetchone()
+            if receipt_table is None or memory_table is None:
+                return {
+                    "initialized": False,
+                    "message": "Approval records not initialized",
+                    "counts": {},
+                }
+            row = connection.execute(
+                "SELECT "
+                "SUM(CASE WHEN r.decision = 'APPROVED' THEN 1 ELSE 0 END) "
+                "AS approved, "
+                "SUM(CASE WHEN r.decision = 'REJECTED' THEN 1 ELSE 0 END) "
+                "AS rejected, "
+                "SUM(CASE WHEN r.receipt_id IS NULL AND m.output_state IN "
+                "('RECOMMENDATION_READY', 'REVIEW_REQUIRED') THEN 1 ELSE 0 END) "
+                "AS pending "
+                "FROM smi_memory_records AS m "
+                "LEFT JOIN smi_approval_receipts AS r "
+                "ON r.request_id = m.request_id"
+            ).fetchone()
+        finally:
+            connection.close()
+    except (OSError, sqlite3.Error):
+        return {
+            "initialized": False,
+            "message": "Approval records unavailable",
+            "counts": {},
+        }
     return {
-        "initialized": False,
-        "message": "Approval queue not initialized",
-        "counts": {},
+        "initialized": True,
+        "message": "Read-only approval records available",
+        "counts": {
+            "pending": int(row["pending"] or 0),
+            "approved": int(row["approved"] or 0),
+            "rejected": int(row["rejected"] or 0),
+        },
     }
 
 
@@ -133,7 +176,10 @@ def get_public_gateway_status() -> dict[str, Any]:
         "healthy" if initialized else "degraded",
     )
     ollama_available = _probe_ollama()
-    approval_summary = _approval_summary(initialized)
+    approval_summary = _approval_summary(
+        database["db_path"],
+        bool(database.get("brain_runtime_initialized")),
+    )
 
     components = [
         _component(
@@ -156,14 +202,7 @@ def get_public_gateway_status() -> dict[str, Any]:
         ),
     ]
 
-    agents = [
-        {
-            "name": name,
-            "status": "Not connected",
-            "assignment": "No assignment",
-        }
-        for name in INTELLIGENCE_WORLDS
-    ]
+    agents = get_public_family_status()
 
     return {
         "mode": "Local Mode" if config.OAP_LOCAL_MODE else "Configured Mode",

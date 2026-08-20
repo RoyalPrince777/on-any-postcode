@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-import jwt
 import logging
+from datetime import datetime, timedelta, timezone
+
+import jwt
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class JWTHandler:
         self,
         identity_id: str,
         authority_level: int,
-        expires_delta: Optional[timedelta] = None,
+        expires_delta: timedelta | None = None,
     ) -> str:
         """Create JWT token for Human Authority.
 
@@ -80,6 +80,6 @@ class JWTHandler:
         except jwt.ExpiredSignatureError:
             logger.warning("JWT token expired")
             raise ValueError("Token has expired")
-        except jwt.InvalidTokenError as e:
-            logger.warning(f"JWT validation failed: {e}")
-            raise ValueError("Invalid token")
+        except jwt.InvalidTokenError as exc:
+            logger.warning("JWT validation failed: %s", exc)
+            raise ValueError("Invalid token") from exc

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import io
 import logging
-from typing import Optional
 
 import pyotp
 import qrcode
@@ -81,8 +81,8 @@ class MFAHandler:
             if not is_valid:
                 logger.warning("TOTP verification failed")
             return is_valid
-        except Exception as e:
-            logger.error(f"TOTP verification error: {e}")
+        except (binascii.Error, OverflowError, TypeError, ValueError) as exc:
+            logger.error("TOTP verification error: %s", exc)
             return False
 
     @staticmethod

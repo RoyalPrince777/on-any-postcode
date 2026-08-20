@@ -12,31 +12,9 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-INTELLIGENCE_WORLDS = (
-    "GPT Intelligence",
-    "Claude Intelligence",
-    "Gemini Intelligence",
-    "Kimi Intelligence",
-    "Grok Intelligence",
-    "Edge/Copilot Intelligence",
-)
-
-AGENT_ANATOMY = (
-    {
-        "name": "Soul",
-        "purpose": "Purpose, values, ethics and constitutional alignment.",
-    },
-    {
-        "name": "Mind",
-        "purpose": "Reasoning, contextual understanding and permitted memory access.",
-    },
-    {
-        "name": "Body",
-        "purpose": "Approved tools, interfaces and bounded action capability.",
-    },
-)
-
-ADVISORY_AGENTS = ("Neo", "Akela", "Bagheera", "Gyata", "Shere Khan")
+from .agents import ADVISORY_AGENT_NAMES as ADVISORY_AGENTS
+from .agents import AGENT_ANATOMY, INTELLIGENCE_PROVIDERS, validate_agent_registry
+from .agents import INTELLIGENCE_WORLD_NAMES as INTELLIGENCE_WORLDS
 
 # Named advisors are preserved, but no region or governance-role assignment is
 # approved in this read-only slice.  Assignments must be added only after human
@@ -399,8 +377,8 @@ def validate_architecture(
     if region_by_id.get("synthetic_mind", {}).get("kind") != "internal_organ":
         errors.append("Synthetic Mind must remain an internal SMI organ.")
 
-    if len(world_items) != 6 or _duplicates(world_items):
-        errors.append("The six Intelligence worlds must remain unique and complete.")
+    if len(world_items) != 7 or _duplicates(world_items):
+        errors.append("The seven Intelligence worlds must remain unique and complete.")
 
     duplicate_advisors = _duplicates(ADVISORY_AGENTS)
     duplicate_agent_assignments = _duplicates(
@@ -453,6 +431,12 @@ def validate_architecture(
     if anatomy_names != ("Soul", "Mind", "Body"):
         errors.append("Every agent anatomy must remain Soul, Mind and Body only.")
 
+    agent_validation = validate_agent_registry()
+    if not agent_validation["passed"]:
+        errors.extend(
+            f"Agent registry: {error}" for error in agent_validation["errors"]
+        )
+
     return {
         "passed": not errors,
         "errors": errors,
@@ -464,6 +448,7 @@ def validate_architecture(
             "duplicate_names": len(duplicate_labels),
             "overlapping_anatomy_roles": len(duplicate_anatomy_roles),
             "duplicate_agent_roles": len(duplicate_agent_roles),
+            "registered_agents": agent_validation["checks"]["registered_agents"],
             "brain_count": len(brains),
             "final_authority": "Human Authority",
         },
@@ -478,6 +463,7 @@ def get_public_anatomy() -> dict[str, Any]:
         "systems": ORGANISM_SYSTEMS,
         "smi_regions": SMI_REGIONS,
         "intelligence_worlds": INTELLIGENCE_WORLDS,
+        "intelligence_providers": INTELLIGENCE_PROVIDERS,
         "agent_anatomy": AGENT_ANATOMY,
         "advisory_agents": ADVISORY_AGENTS,
         "governance_law": GOVERNANCE_LAW,

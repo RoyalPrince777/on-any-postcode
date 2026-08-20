@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP SMI Brain</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-brain-header">
+    <div>
+      <p class="mc-eyebrow">OAP / SMI / Recommendation-only</p>
+      <h1>SMI Brain Runtime</h1>
+      <p>One biological brain. Human Authority remains the only final authority.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.agent_intelligence') }}">Agent Intelligence</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-brain-workspace">
+    <section class="mc-integrity" aria-labelledby="brain-integrity-title">
+      <div>
+        <p class="mc-eyebrow">Architecture and runtime integrity</p>
+        <h2 id="brain-integrity-title">
+          {% if brain.validation.passed %}Single-brain boundaries verified{% else %}Brain conflict detected{% endif %}
+        </h2>
+        <p>{{ brain.mode }}</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Brains</dt><dd>{{ brain.brain_count }}</dd></div>
+        <div><dt>Regions</dt><dd>{{ brain.regions }}</dd></div>
+        <div><dt>Families</dt><dd>{{ brain.families }}</dd></div>
+        <div><dt>Agents</dt><dd>{{ brain.agents }}</dd></div>
+        <div><dt>Execute outputs</dt><dd>0</dd></div>
+        <div><dt>Conflicts</dt><dd>{{ brain.validation.errors|length }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="brain-components-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Implementation status</p>
+          <h2 id="brain-components-title">Brain and connected subsystem readiness</h2>
+        </div>
+        <span class="mc-lock-badge">No public run route</span>
+      </div>
+      <div class="mc-brain-grid" role="list">
+        {% for component in brain.components %}
+        <article class="mc-brain-card mc-brain-card--{{ component.state }}" role="listitem">
+          <div class="mc-brain-card__heading">
+            <h3>{{ component.name }}</h3>
+            <span>{{ component.state }}</span>
+          </div>
+          <dl class="mc-brain-facts">
+            <div><dt>Code</dt><dd>{{ component.implementation }}</dd></div>
+            <div><dt>Runtime</dt><dd>{{ component.runtime }}</dd></div>
+          </dl>
+          <p class="mc-boundary-note"><strong>Boundary:</strong> {{ component.boundary }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="brain-cycle-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Working pathway</p>
+          <h2 id="brain-cycle-title">SMI processing cycle</h2>
+        </div>
+        <span class="mc-lock-badge">Intelligence proposes</span>
+      </div>
+      <ol class="mc-brain-cycle" aria-label="SMI processing cycle">
+        {% for step in brain.processing_cycle %}
+        <li>
+          <span>{{ "%02d"|format(loop.index) }}</span>
+          <div><strong>{{ step.step }}</strong><small>{{ step.action }}</small></div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="brain-output-law-title">
+      <p class="mc-eyebrow">Output constitution</p>
+      <h2 id="brain-output-law-title">SMI cannot produce EXECUTE</h2>
+      <div class="mc-gate-grid">
+        <div>
+          <h3>Allowed SMI outputs</h3>
+          <ul class="mc-state-list">
+            {% for state in brain.allowed_outputs %}<li><code>{{ state }}</code></li>{% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Approved path</h3>
+          <ol class="mc-state-path">
+            {% for state in brain.approved_state_path %}<li><code>{{ state }}</code></li>{% endfor %}
+          </ol>
+        </div>
+        <div>
+          <h3>Rejected path</h3>
+          <ol class="mc-state-path mc-state-path--blocked">
+            {% for state in brain.rejected_state_path %}<li><code>{{ state }}</code></li>{% endfor %}
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="brain-activation-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Code complete, activation unexecuted</p>
+          <h2 id="brain-activation-title">Remaining activation gates</h2>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
+      </div>
+      <div class="mc-proposal-grid" role="list">
+        {% for gate in brain.activation_gates %}
+        <article role="listitem">
+          <strong>{{ gate.status }}</strong>
+          <h3>{{ gate.title }}</h3>
+          <p>{{ gate.description }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="brain-controls-title">
+      <p class="mc-eyebrow">Safety lock</p>
+      <h2 id="brain-controls-title">Operational controls unavailable</h2>
+      <p class="mc-notice">
+        No public signal-processing, approval, provider, Builder or execution route is registered.
+      </p>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ brain.human_authority.status }}</strong>
+      <span>{{ brain.human_authority.message }}</span>
+    </aside>
+  </main>
+</body>
+</html>

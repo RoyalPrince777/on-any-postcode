@@ -27,22 +27,43 @@ def _duplicate_ids(markup: str) -> set[str]:
 def test_home_and_mission_have_no_duplicate_ids(client):
     home = client.get("/").get_data(as_text=True)
     mission = client.get("/mission").get_data(as_text=True)
+    agents = client.get("/mission/agents").get_data(as_text=True)
+    brain = client.get("/mission/brain").get_data(as_text=True)
+    infrastructure = client.get("/mission/infrastructure").get_data(as_text=True)
+    linkup = client.get("/mission/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
 
     assert _duplicate_ids(home) == set()
     assert _duplicate_ids(mission) == set()
+    assert _duplicate_ids(agents) == set()
+    assert _duplicate_ids(brain) == set()
+    assert _duplicate_ids(infrastructure) == set()
+    assert _duplicate_ids(linkup) == set()
     assert _duplicate_ids(organism) == set()
 
 
 def test_navigation_and_authority_landmarks_are_labelled(client):
     home = client.get("/").get_data(as_text=True)
     mission = client.get("/mission").get_data(as_text=True)
+    agents = client.get("/mission/agents").get_data(as_text=True)
+    brain = client.get("/mission/brain").get_data(as_text=True)
+    infrastructure = client.get("/mission/infrastructure").get_data(as_text=True)
+    linkup = client.get("/mission/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
 
     assert 'aria-label="Primary navigation"' in home
     assert 'aria-label="Human Authority status"' in home
     assert 'aria-label="Mission Control modes"' in mission
     assert 'aria-current="page"' in mission
+    assert 'aria-label="OAP Intelligence families"' in agents
+    assert 'aria-label="Human Authority status"' in agents
+    assert 'aria-label="SMI processing cycle"' in brain
+    assert 'aria-label="Human Authority status"' in brain
+    assert 'aria-label="Human Authority status"' in infrastructure
+    assert 'aria-labelledby="infrastructure-scope-title"' in infrastructure
+    assert 'aria-label="The Link views"' in linkup
+    assert 'aria-label="The Link privacy path"' in linkup
+    assert 'aria-label="Human Authority status"' in linkup
     assert 'aria-label="OAP governance law"' in organism
     assert 'aria-label="Human Authority status"' in organism
 

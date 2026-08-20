@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import organism, status
+from . import agents as agent_registry
+from . import brain, infrastructure, linkup, organism, status
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
 
@@ -49,6 +50,83 @@ def mission_workspace():
             active_mode=mode,
             allowed_modes=ALLOWED_MODES,
             gateway=status.get_public_gateway_status(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/agents")
+def agent_intelligence():
+    """Render the OAP-owned Agent Intelligence directory without actions."""
+
+    requested_family = request.args.get("family", "").strip().lower()
+    family_id = requested_family or None
+    if family_id is not None and family_id not in agent_registry.LOCKED_FAMILY_IDS:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "invalid_intelligence_family",
+                        "message": "Unsupported OAP Intelligence family.",
+                        "allowed_families": list(agent_registry.LOCKED_FAMILY_IDS),
+                    }
+                ),
+                400,
+            )
+        )
+
+    query = request.args.get("q", "")
+    response = make_response(
+        render_template(
+            "agents.html",
+            directory=agent_registry.get_public_agent_directory(family_id, query),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/brain")
+def brain_dashboard():
+    """Render SMI implementation readiness without running a signal."""
+
+    response = make_response(
+        render_template(
+            "brain.html",
+            brain=brain.get_public_brain_status(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/brain/status")
+def brain_status():
+    """Return a coarse, read-only SMI implementation projection."""
+
+    return _no_store(make_response(jsonify(brain.get_public_brain_status())))
+
+
+@bp.get("/infrastructure")
+def infrastructure_dashboard():
+    """Render locked Infrastructure awareness without provider operations."""
+
+    response = make_response(
+        render_template(
+            "infrastructure.html",
+            infrastructure=infrastructure.get_public_infrastructure(),
+            shared_health=status.get_public_gateway_status()["components"],
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/linkup")
+def link_dashboard():
+    """Render The Link without identities, conversations or send controls."""
+
+    response = make_response(
+        render_template(
+            "linkup.html",
+            link=linkup.get_public_link_dashboard(),
         )
     )
     return _no_store(response)

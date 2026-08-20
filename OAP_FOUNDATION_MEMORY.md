@@ -115,7 +115,13 @@ One Brand. One Front Door. One Identity.
 
 ---
 
-## HRM Council - Governance Structure
+> Historical foundation snapshot: legacy governance labels and role lists below
+> are preserved for provenance only. The active canonical architecture is defined
+> by `mission_control/organism.py` and `mission_control/agents.py`; it uses
+> Intelligence terminology, one SMI brain, seven Intelligence families and final
+> Human Authority. Nothing in this snapshot creates an active role or subsystem.
+
+## Historical HRM Governance Structure
 
 ### God Layer & Founder
 🙏 **God Layer** - Highest values: truth, protection, dignity, purpose
@@ -165,7 +171,7 @@ One Brand. One Front Door. One Identity.
 
 ## Build Law Process
 
-**Bee collects** → **HRM records** → **Local AI summarises** → **Council reviews** → **Founder approves**
+**Bee collects** → **HRM records** → **Intelligence proposes** → **Guardian protects** → **Human Authority approves**
 
 ---
 
