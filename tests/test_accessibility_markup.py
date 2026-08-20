@@ -27,19 +27,24 @@ def _duplicate_ids(markup: str) -> set[str]:
 def test_home_and_mission_have_no_duplicate_ids(client):
     home = client.get("/").get_data(as_text=True)
     mission = client.get("/mission").get_data(as_text=True)
+    organism = client.get("/mission/organism").get_data(as_text=True)
 
     assert _duplicate_ids(home) == set()
     assert _duplicate_ids(mission) == set()
+    assert _duplicate_ids(organism) == set()
 
 
 def test_navigation_and_authority_landmarks_are_labelled(client):
     home = client.get("/").get_data(as_text=True)
     mission = client.get("/mission").get_data(as_text=True)
+    organism = client.get("/mission/organism").get_data(as_text=True)
 
     assert 'aria-label="Primary navigation"' in home
     assert 'aria-label="Human Authority status"' in home
     assert 'aria-label="Mission Control modes"' in mission
     assert 'aria-current="page"' in mission
+    assert 'aria-label="OAP governance law"' in organism
+    assert 'aria-label="Human Authority status"' in organism
 
 
 def test_mobile_layout_rule_is_present():

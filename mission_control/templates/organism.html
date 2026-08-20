@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Digital Organism Anatomy</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-organism-header">
+    <div>
+      <p class="mc-eyebrow">OAP / Digital Organism / Locked architecture</p>
+      <h1>Digital Organism Anatomy</h1>
+      <p>One overall-system anatomy. Every agent keeps Soul–Mind–Body.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-organism-workspace">
+    <section class="mc-integrity" aria-labelledby="organism-integrity-title">
+      <div>
+        <p class="mc-eyebrow">Architecture integrity</p>
+        <h2 id="organism-integrity-title">
+          {% if anatomy.validation.passed %}Canonical boundaries verified{% else %}Conflict detected{% endif %}
+        </h2>
+        <p>
+          {% if anatomy.validation.passed %}
+          One brain, one heart, unique system identities and one final human authority.
+          {% else %}
+          Rendering is read-only. Conflicts require human review before any architecture change.
+          {% endif %}
+        </p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Systems</dt><dd>{{ anatomy.validation.checks.canonical_systems }}</dd></div>
+        <div><dt>SMI regions</dt><dd>{{ anatomy.validation.checks.smi_regions }}</dd></div>
+        <div><dt>Worlds</dt><dd>{{ anatomy.validation.checks.intelligence_worlds }}</dd></div>
+        <div><dt>Brains</dt><dd>{{ anatomy.validation.checks.brain_count }}</dd></div>
+        <div><dt>Name conflicts</dt><dd>{{ anatomy.validation.checks.duplicate_names }}</dd></div>
+        <div><dt>Role conflicts</dt><dd>{{ anatomy.validation.checks.duplicate_agent_roles }}</dd></div>
+      </dl>
+      {% if anatomy.validation.errors %}
+      <ul class="mc-error-list">
+        {% for error in anatomy.validation.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="organism-map-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Overall system only</p>
+          <h2 id="organism-map-title">Canonical organism map</h2>
+        </div>
+        <span class="mc-lock-badge">Upgrade-only</span>
+      </div>
+      <ol class="mc-organism-flow">
+        {% for system in anatomy.systems %}
+        <li class="mc-organ-card mc-organ-card--{{ system.id }}">
+          <span class="mc-organ-index">{{ loop.index }}</span>
+          <div>
+            <p class="mc-organ-type">{{ system.anatomy }}</p>
+            <h3>{{ system.name }}</h3>
+            <p>{{ system.responsibility }}</p>
+            {% if system.aliases %}
+            <small>Aliases: {{ system.aliases|join(', ') }}</small>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="governance-law-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Locked governance</p>
+          <h2 id="governance-law-title">Governance law</h2>
+        </div>
+        <span class="mc-lock-badge">Human Authority final</span>
+      </div>
+      <ol class="mc-governance-chain" aria-label="OAP governance law">
+        {% for step in anatomy.governance_law %}
+        <li>
+          <strong>{{ step.actor }}</strong>
+          <span>{{ step.action }}</span>
+          {% if step.authority %}<small>{{ step.authority }}</small>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="smi-regions-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Single brain</p>
+          <h2 id="smi-regions-title">SMI biological regions</h2>
+        </div>
+        <span class="mc-lock-badge">No second brain</span>
+      </div>
+      <div class="mc-region-grid" role="list">
+        {% for region in anatomy.smi_regions %}
+        <article class="mc-region-card" role="listitem">
+          <p class="mc-organ-type">{{ region.kind|replace('_', ' ')|title }}</p>
+          <h3>{{ region.name }}</h3>
+          <p>{{ region.responsibility }}</p>
+          <small>Connects: {{ region.connection }}</small>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="mc-two-column">
+      <section class="mc-panel" aria-labelledby="intelligence-worlds-title">
+        <p class="mc-eyebrow">Preserved network</p>
+        <h2 id="intelligence-worlds-title">Six Intelligence worlds</h2>
+        <ol class="mc-world-list">
+          {% for world in anatomy.intelligence_worlds %}<li>{{ world }}</li>{% endfor %}
+        </ol>
+      </section>
+
+      <section class="mc-panel" aria-labelledby="agent-anatomy-title">
+        <p class="mc-eyebrow">Every agent</p>
+        <h2 id="agent-anatomy-title">Soul–Mind–Body</h2>
+        <div class="mc-agent-anatomy">
+          {% for part in anatomy.agent_anatomy %}
+          <article>
+            <h3>{{ part.name }}</h3>
+            <p>{{ part.purpose }}</p>
+          </article>
+          {% endfor %}
+        </div>
+        <p class="mc-advisors">
+          <strong>Preserved advisors:</strong> {{ anatomy.advisory_agents|join(', ') }}.
+          They advise; they do not become duplicate organs or final authorities.
+        </p>
+      </section>
+    </div>
+
+    <section class="mc-panel" aria-labelledby="human-gate-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Execution boundary</p>
+          <h2 id="human-gate-title">Human-approval gate</h2>
+        </div>
+        <span class="mc-lock-badge">No independent execute state</span>
+      </div>
+      <div class="mc-gate-grid">
+        <div>
+          <h3>SMI may produce only</h3>
+          <ul class="mc-state-list">
+            {% for state in anatomy.smi_output_states %}<li><code>{{ state }}</code></li>{% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Approved path</h3>
+          <ol class="mc-state-path">
+            {% for state in anatomy.approved_state_path %}<li><code>{{ state }}</code></li>{% endfor %}
+          </ol>
+        </div>
+        <div>
+          <h3>Rejected path</h3>
+          <ol class="mc-state-path mc-state-path--blocked">
+            {% for state in anatomy.rejected_state_path %}<li><code>{{ state }}</code></li>{% endfor %}
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="boundary-guards-title">
+      <p class="mc-eyebrow">Duplicate prevention</p>
+      <h2 id="boundary-guards-title">Locked boundary guards</h2>
+      <div class="mc-boundary-grid" role="list">
+        {% for guard in anatomy.boundary_guards %}
+        <article role="listitem">
+          <h3>{{ guard.components }}</h3>
+          <p>{{ guard.resolution }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="refinements-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Not executed</p>
+          <h2 id="refinements-title">Proposed refinements</h2>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
+      </div>
+      <div class="mc-proposal-grid" role="list">
+        {% for proposal in anatomy.proposed_refinements %}
+        <article role="listitem">
+          <strong>Requires human approval</strong>
+          <h3>{{ proposal.title }}</h3>
+          <p>{{ proposal.description }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ anatomy.human_authority.status }}</strong>
+      <span>{{ anatomy.human_authority.message }}</span>
+    </aside>
+  </main>
+</body>
+</html>

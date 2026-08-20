@@ -20,15 +20,7 @@ from urllib.parse import urlparse
 
 from . import config
 from .db import db_status
-
-_INTELLIGENCE_AGENTS = (
-    "GPT Intelligence",
-    "Claude Intelligence",
-    "Gemini Intelligence",
-    "Kimi Intelligence",
-    "Grok Intelligence",
-    "Edge/Copilot Intelligence",
-)
+from .organism import INTELLIGENCE_WORLDS
 
 _PUBLIC_ACTION_LABELS = {
     "SYSTEM_LOG_ONLY": "System log recorded",
@@ -170,7 +162,7 @@ def get_public_gateway_status() -> dict[str, Any]:
             "status": "Not connected",
             "assignment": "No assignment",
         }
-        for name in _INTELLIGENCE_AGENTS
+        for name in INTELLIGENCE_WORLDS
     ]
 
     return {

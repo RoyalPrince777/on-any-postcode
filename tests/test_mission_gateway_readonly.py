@@ -147,6 +147,7 @@ def test_mission_routes_register_get_only(client):
 
     assert rules["/mission"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/organism"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/status"] == {"GET", "HEAD", "OPTIONS"}
     assert "/mission/chat" not in rules
     assert "/mission/order" not in rules

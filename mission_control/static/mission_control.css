@@ -7,6 +7,7 @@
   --mc-muted: #b7c9bc;
   --mc-green: #34d276;
   --mc-amber: #f0b44c;
+  --mc-red: #ef6b6b;
   --mc-focus: #8ee8ae;
 }
 
@@ -58,6 +59,13 @@
   font-weight: 700;
   margin-top: 8px;
   padding: 10px 14px;
+}
+
+.mc-header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .mc-primary-link {
@@ -193,6 +201,16 @@
   justify-content: space-between;
 }
 
+.mc-organism-header {
+  border-bottom: 1px solid var(--mc-line);
+}
+
+.mc-organism-header h1,
+.mc-organism-header p {
+  margin-bottom: 8px;
+  margin-top: 0;
+}
+
 .mc-mode-nav {
   display: flex;
   gap: 8px;
@@ -208,6 +226,310 @@
 .mc-mode-nav a[aria-current="page"] {
   background: var(--mc-green);
   color: #02150a;
+}
+
+.mc-organism-workspace {
+  padding-bottom: 48px;
+}
+
+.mc-integrity {
+  align-items: center;
+  background: linear-gradient(135deg, #123821, #0b2416);
+  border: 1px solid var(--mc-green);
+  border-radius: 16px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  margin: 12px 0;
+  padding: 20px;
+}
+
+.mc-integrity h2,
+.mc-integrity p,
+.mc-section-heading h2,
+.mc-section-heading p {
+  margin-bottom: 6px;
+  margin-top: 0;
+}
+
+.mc-integrity-counts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(68px, 1fr));
+  margin: 0;
+}
+
+.mc-integrity-counts div {
+  background: rgb(0 0 0 / 20%);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+
+.mc-integrity-counts dt {
+  color: var(--mc-muted);
+  font-size: 0.75rem;
+}
+
+.mc-integrity-counts dd {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 3px 0 0;
+}
+
+.mc-error-list {
+  color: #ffd5d5;
+  grid-column: 1 / -1;
+}
+
+.mc-section-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.mc-lock-badge {
+  background: rgb(52 210 118 / 13%);
+  border: 1px solid var(--mc-green);
+  border-radius: 999px;
+  color: var(--mc-green);
+  flex: 0 0 auto;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.mc-lock-badge--amber {
+  background: rgb(240 180 76 / 12%);
+  border-color: var(--mc-amber);
+  color: var(--mc-amber);
+}
+
+.mc-organism-flow {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.mc-organ-card {
+  align-items: flex-start;
+  background: var(--mc-panel-soft);
+  border: 1px solid var(--mc-line);
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  min-height: 180px;
+  padding: 14px;
+  position: relative;
+}
+
+.mc-organ-card:not(:last-child)::after {
+  color: var(--mc-green);
+  content: "→";
+  font-size: 1.15rem;
+  font-weight: 800;
+  position: absolute;
+  right: -11px;
+  top: 50%;
+  z-index: 2;
+}
+
+.mc-organ-card--smi,
+.mc-organ-card--human_authority,
+.mc-organ-card--living_kernel {
+  border-color: var(--mc-green);
+  box-shadow: inset 0 0 0 1px rgb(52 210 118 / 12%);
+}
+
+.mc-organ-index {
+  align-items: center;
+  background: var(--mc-green);
+  border-radius: 50%;
+  color: #02150a;
+  display: inline-flex;
+  flex: 0 0 28px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  height: 28px;
+  justify-content: center;
+}
+
+.mc-organ-card h3,
+.mc-organ-card p,
+.mc-region-card h3,
+.mc-region-card p,
+.mc-boundary-grid h3,
+.mc-boundary-grid p,
+.mc-proposal-grid h3,
+.mc-proposal-grid p {
+  margin-bottom: 7px;
+  margin-top: 0;
+}
+
+.mc-organ-card small,
+.mc-region-card small {
+  color: var(--mc-muted);
+}
+
+.mc-organ-type {
+  color: var(--mc-green);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mc-governance-chain {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(7, minmax(100px, 1fr));
+  list-style: none;
+  margin: 18px 0 0;
+  overflow-x: auto;
+  padding: 0 0 8px;
+}
+
+.mc-governance-chain li {
+  background: var(--mc-panel-soft);
+  border: 1px solid var(--mc-line);
+  border-radius: 12px;
+  min-height: 102px;
+  padding: 12px;
+  position: relative;
+}
+
+.mc-governance-chain li:not(:last-child)::after {
+  color: var(--mc-green);
+  content: "→";
+  font-weight: 800;
+  position: absolute;
+  right: -8px;
+  top: 41px;
+  z-index: 2;
+}
+
+.mc-governance-chain strong,
+.mc-governance-chain span,
+.mc-governance-chain small {
+  display: block;
+}
+
+.mc-governance-chain span {
+  color: var(--mc-green);
+  margin-top: 5px;
+}
+
+.mc-governance-chain small {
+  color: var(--mc-muted);
+  margin-top: 8px;
+}
+
+.mc-region-grid,
+.mc-boundary-grid,
+.mc-proposal-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin-top: 16px;
+}
+
+.mc-region-card,
+.mc-boundary-grid article,
+.mc-proposal-grid article {
+  background: var(--mc-panel-soft);
+  border: 1px solid var(--mc-line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.mc-boundary-grid article {
+  border-left: 4px solid var(--mc-green);
+}
+
+.mc-proposal-grid article {
+  border-left: 4px solid var(--mc-amber);
+}
+
+.mc-proposal-grid article > strong {
+  color: var(--mc-amber);
+  display: block;
+  font-size: 0.72rem;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.mc-two-column {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.mc-world-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style-position: inside;
+  padding: 0;
+}
+
+.mc-world-list li,
+.mc-agent-anatomy article {
+  background: var(--mc-panel-soft);
+  border: 1px solid var(--mc-line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.mc-agent-anatomy {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mc-agent-anatomy h3,
+.mc-agent-anatomy p {
+  margin-bottom: 5px;
+  margin-top: 0;
+}
+
+.mc-advisors {
+  color: var(--mc-muted);
+  margin-bottom: 0;
+}
+
+.mc-gate-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mc-state-list,
+.mc-state-path {
+  list-style: none;
+  padding: 0;
+}
+
+.mc-state-list li,
+.mc-state-path li {
+  border-left: 3px solid var(--mc-green);
+  margin: 0 0 7px;
+  padding: 7px 10px;
+}
+
+.mc-state-path--blocked li {
+  border-left-color: var(--mc-red);
+}
+
+.mc-state-list code,
+.mc-state-path code {
+  color: var(--mc-text);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 768px) {
@@ -227,5 +549,35 @@
     top: 0;
     z-index: 5;
     background: var(--mc-bg);
+  }
+
+  .mc-integrity,
+  .mc-two-column,
+  .mc-gate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mc-integrity-counts {
+    grid-template-columns: repeat(2, minmax(68px, 1fr));
+  }
+
+  .mc-organism-flow,
+  .mc-region-grid,
+  .mc-boundary-grid,
+  .mc-proposal-grid,
+  .mc-agent-anatomy {
+    grid-template-columns: 1fr;
+  }
+
+  .mc-organ-card {
+    min-height: auto;
+  }
+
+  .mc-organ-card:not(:last-child)::after {
+    bottom: -12px;
+    left: 50%;
+    right: auto;
+    top: auto;
+    transform: rotate(90deg);
   }
 }

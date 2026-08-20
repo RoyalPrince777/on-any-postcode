@@ -8,8 +8,12 @@ Current read-only surface:
 - `status.py`: separate public and authorized status projections. Public data
   is coarse and redacted; authorized data fails closed until Identity and
   Permission checks exist.
-- `views.py`: GET-only `/mission` and `/mission/status` routes. No Mission
-  Control POST or execution routes are registered.
+- `organism.py`: canonical Digital Organism registry and duplicate-boundary
+  validation. It locks SMI as the single brain, Living Kernel as the heart,
+  the six Intelligence worlds, agent Soul–Mind–Body, and Human Authority as
+  the only final authority.
+- `views.py`: GET-only `/mission`, `/mission/organism`, and `/mission/status`
+  routes. No Mission Control POST or execution routes are registered.
 - `templates/` and `static/`: server-rendered, auto-escaped workspace and
   gateway assets with no remote dependencies.
 - `db.py`: status inspection opens SQLite in read-only/query-only mode. Schema

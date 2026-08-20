@@ -13,7 +13,10 @@
       <h1>Mission Control</h1>
       <p>Render-only workspace. No operational controls are enabled.</p>
     </div>
-    <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+    </div>
   </header>
 
   <nav class="mc-mode-nav" aria-label="Mission Control modes">

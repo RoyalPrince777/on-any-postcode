@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import status
+from . import organism, status
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
 
@@ -49,6 +49,19 @@ def mission_workspace():
             active_mode=mode,
             allowed_modes=ALLOWED_MODES,
             gateway=status.get_public_gateway_status(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/organism")
+def organism_anatomy():
+    """Render the canonical architecture without exposing operational controls."""
+
+    response = make_response(
+        render_template(
+            "organism.html",
+            anatomy=organism.get_public_anatomy(),
         )
     )
     return _no_store(response)
