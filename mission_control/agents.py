@@ -121,6 +121,29 @@ _CREATED_BY = {
     "authority": "Human Authority",
 }
 
+_FAMILY_TASK_TYPES = {
+    "civic": ("CIVIC", "COMMUNITY", "POSTCODE", "LOCAL"),
+    "jungle_book": ("STRATEGY", "COMMUNITY", "COORDINATION", "RISK"),
+    "animal": ("ANALYSIS", "MONITORING", "SIGNALS", "OPERATIONS"),
+    "matrix": ("ARCHITECTURE", "STRATEGY", "SYSTEMS", "TECHNICAL"),
+    "civilisation": ("CULTURE", "EDUCATION", "FUTURES", "INSTITUTIONS"),
+    "akan_core": ("AKAN", "CULTURE", "GOVERNANCE", "HERITAGE"),
+    "akan_animal": ("AKAN", "CULTURE", "COMMUNITY", "HERITAGE"),
+}
+
+_BOUNDED_AUTONOMY = {
+    "mode": "BOUNDED_ADVISORY",
+    "can_observe": True,
+    "can_analyse": True,
+    "can_collaborate": True,
+    "can_recommend": True,
+    "can_approve": False,
+    "can_execute": False,
+    "can_change_permissions": False,
+    "can_change_architecture": False,
+    "final_authority": "Human Authority",
+}
+
 
 def _registered_agent(
     agent_id: str,
@@ -153,8 +176,8 @@ def _registered_agent(
         "role_status": "Approved",
         "brain_region": "SMI advisory interface",
         "brain_region_status": "Approved advisory connection; no execution path",
-        "registry_status": "APPROVED",
-        "runtime_status": "Not connected — execution disabled",
+        "registry_status": "ACTIVE",
+        "runtime_status": "Bounded autonomous advisory — execution disabled",
         "soul": {
             "purpose": purpose,
             "values": ("Human benefit", "Protection", "Truth"),
@@ -170,6 +193,8 @@ def _registered_agent(
             "actions": ("analyse", "advise", "recommend"),
             "execution": "Disabled",
         },
+        "task_types": _FAMILY_TASK_TYPES[family_id],
+        "autonomy": dict(_BOUNDED_AUTONOMY),
         "permissions": ("READ", "ANALYSE", "RECOMMEND"),
         "restrictions": _DEFAULT_RESTRICTIONS,
         "guardian": "OAP Guardian",
@@ -182,7 +207,7 @@ def _registered_agent(
             "guardian": "OAP Guardian",
         },
         "memory": {"system": "HRM Core", "audit": True},
-        "status": "APPROVED",
+        "status": "ACTIVE",
         "provider_ids": (),
     }
 NEO = {
@@ -225,6 +250,8 @@ NEO = {
         "actions": ("solve", "assist"),
         "execution": "Human approval required",
     },
+    "task_types": ("GENERAL", "ARCHITECTURE", "STRATEGY", "SYSTEMS", "TECHNICAL"),
+    "autonomy": dict(_BOUNDED_AUTONOMY),
     "permissions": ("READ", "ANALYSE", "RECOMMEND"),
     "restrictions": _DEFAULT_RESTRICTIONS,
     "guardian": "OAP Guardian",
@@ -511,7 +538,17 @@ def validate_agent_registry(
         or item.get("body", {}).get("execution")
         not in {"Disabled", "Human approval required"}
         or item.get("runtime_status")
-        not in {"Not connected", "Not connected — execution disabled"}
+        not in {
+            "Not connected",
+            "Not connected — execution disabled",
+            "Bounded autonomous advisory — execution disabled",
+        }
+        or item.get("autonomy", {}).get("mode") != "BOUNDED_ADVISORY"
+        or item.get("autonomy", {}).get("can_approve") is not False
+        or item.get("autonomy", {}).get("can_execute") is not False
+        or item.get("autonomy", {}).get("can_change_permissions") is not False
+        or item.get("autonomy", {}).get("can_change_architecture") is not False
+        or item.get("autonomy", {}).get("final_authority") != "Human Authority"
     )
     if unsafe_agents:
         errors.append("Unsafe agent authority detected: " + ", ".join(unsafe_agents))
@@ -577,6 +614,10 @@ def validate_agent_registry(
             "duplicate_responsibilities": len(duplicate_responsibilities),
             "unknown_families": len(unknown_families),
             "unsafe_authority": len(unsafe_agents),
+            "bounded_autonomous_agents": sum(
+                item.get("autonomy", {}).get("mode") == "BOUNDED_ADVISORY"
+                for item in agent_items
+            ),
             "unsafe_proposals": len(unsafe_proposals),
         },
     }
