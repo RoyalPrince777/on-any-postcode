@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import agents as agent_registry
-from . import brain, infrastructure, linkup, ollama_chat, organism, status
+from . import brain, infrastructure, linkup, ollama_chat, organism, products, status
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
 
@@ -132,9 +132,37 @@ def infrastructure_dashboard():
     return _no_store(response)
 
 
+@bp.get("/spot")
+def spot_dashboard():
+    """Render The Spot as the parent postcode-community product."""
+
+    return _no_store(
+        make_response(
+            render_template(
+                "spot.html",
+                hierarchy=products.get_public_product_hierarchy(),
+            )
+        )
+    )
+
+
+@bp.get("/the-link")
+def the_link_dashboard():
+    """Render The Link as the communications gateway inside The Spot."""
+
+    return _no_store(
+        make_response(
+            render_template(
+                "the_link.html",
+                hierarchy=products.get_public_product_hierarchy(),
+            )
+        )
+    )
+
+
 @bp.get("/linkup")
 def link_dashboard():
-    """Render The Link without identities, conversations or send controls."""
+    """Render LinkUp without identities, conversations or send controls."""
 
     response = make_response(
         render_template(
