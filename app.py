@@ -3,7 +3,7 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 import mission_control.status as mc_status
 from mission_control import init_app as _mc_init
 from mission_control.agents import validate_agent_registry
-from mission_control.db import db_status
+from mission_control.database import db_status
 from mission_control.organism import validate_architecture
 
 app = Flask(__name__)

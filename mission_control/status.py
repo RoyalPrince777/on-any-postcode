@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 from . import config
 from .agents import get_public_family_status
-from .db import db_status
+from .database import db_status
 
 _PUBLIC_ACTION_LABELS = {
     "SYSTEM_LOG_ONLY": "System log recorded",
@@ -176,10 +176,21 @@ def get_public_gateway_status() -> dict[str, Any]:
         "healthy" if initialized else "degraded",
     )
     ollama_available = _probe_ollama()
-    approval_summary = _approval_summary(
-        database["db_path"],
-        bool(database.get("brain_runtime_initialized")),
-    )
+    if database.get("backend") == "postgresql":
+        approval_summary = {
+            "initialized": initialized,
+            "message": (
+                "Read-only approval records available"
+                if initialized
+                else "Mission Control database not initialized"
+            ),
+            "counts": {},
+        }
+    else:
+        approval_summary = _approval_summary(
+            database["db_path"],
+            bool(database.get("brain_runtime_initialized")),
+        )
 
     components = [
         _component(
@@ -209,7 +220,11 @@ def get_public_gateway_status() -> dict[str, Any]:
         "components": components,
         "agents": agents,
         "approval_summary": approval_summary,
-        "timeline": _public_timeline(database["db_path"], initialized),
+        "timeline": (
+            []
+            if database.get("backend") == "postgresql"
+            else _public_timeline(database["db_path"], initialized)
+        ),
         "human_authority": {
             "status": "Final approval required",
             "message": "Intelligence proposes. Human Authority approves or rejects.",
