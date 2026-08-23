@@ -67,6 +67,14 @@ def test_every_agent_has_a_complete_human_governed_passport():
         assert "Cannot override Human Authority" in agent["restrictions"]
         assert agent["provider_ids"] == ()
         assert agent["mind"]["provider_assignment"] == "Not assigned"
+        assert agent["autonomy"]["mode"] == "BOUNDED_ADVISORY"
+        assert agent["autonomy"]["can_analyse"] is True
+        assert agent["autonomy"]["can_collaborate"] is True
+        assert agent["autonomy"]["can_recommend"] is True
+        assert agent["autonomy"]["can_approve"] is False
+        assert agent["autonomy"]["can_execute"] is False
+        assert agent["autonomy"]["final_authority"] == "Human Authority"
+        assert agent["task_types"]
 
 
 def test_registry_has_no_duplicate_identity_role_or_responsibility():
@@ -81,6 +89,7 @@ def test_registry_has_no_duplicate_identity_role_or_responsibility():
     assert result["checks"]["missing_approved_roles"] == 0
     assert result["checks"]["duplicate_responsibilities"] == 0
     assert result["checks"]["unsafe_authority"] == 0
+    assert result["checks"]["bounded_autonomous_agents"] == 78
     assert result["checks"]["proposed_passports"] == 0
     assert result["checks"]["human_approved_passports"] == 78
 
@@ -94,6 +103,7 @@ def test_nirmata_occupies_the_existing_civilisation_artisan_slot():
     assert "Civilisation Artisan" in nirmata["aliases"]
     assert nirmata["body"]["execution"] == "Disabled"
     assert "Builder handoff" in nirmata["mind"]["capabilities"]
+    assert nirmata["autonomy"]["can_execute"] is False
 
 
 def test_kaa_is_excluded_and_external_providers_are_not_agents():
@@ -107,4 +117,3 @@ def test_kaa_is_excluded_and_external_providers_are_not_agents():
 
     assert "kaa" not in names_and_aliases
     assert provider_names.isdisjoint(agent_names)
-
