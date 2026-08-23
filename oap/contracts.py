@@ -176,6 +176,20 @@ class WarRoomReport:
 
 
 @dataclass(frozen=True, slots=True)
+class CoherenceReport:
+    """Read-only assessment of agreement across internal SMI findings."""
+
+    score: int
+    agreement_score: int
+    evidence_coverage: int
+    confidence_spread: int
+    contradictions: tuple[str, ...]
+    review_required: bool
+    adaptive_proposal: str
+    self_applied: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class Recommendation:
     """SMI output. It is never an independent execute decision."""
 
@@ -189,6 +203,7 @@ class Recommendation:
     processing_states: tuple[str, ...]
     human_review_required: bool
     war_room: WarRoomReport
+    coherence: CoherenceReport | None = None
     created_at: datetime = field(default_factory=utc_now)
 
     @property

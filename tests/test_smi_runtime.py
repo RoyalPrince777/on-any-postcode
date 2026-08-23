@@ -64,6 +64,8 @@ def test_safe_request_runs_complete_recommendation_only_cycle():
 
     assert result.output_state == OutputState.RECOMMENDATION_READY
     assert result.can_execute is False
+    assert result.coherence is not None
+    assert result.coherence.self_applied is False
     assert result.processing_states == (
         "RECEIVED",
         "IDENTITY_VERIFIED",

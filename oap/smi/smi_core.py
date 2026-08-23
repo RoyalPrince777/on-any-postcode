@@ -19,6 +19,7 @@ from oap.registry import RegistryEngine
 from oap.state_machine import ProcessingState, RequestStateMachine
 from oap.war_room import WarRoomEngine
 
+from .coherence_engine import AdaptiveCoherenceEngine
 from .context_engine import ContextEngine
 from .input_manager import InputManager
 from .judge_engine import JudgeEngine
@@ -44,6 +45,7 @@ class SMICore:
         aegis: AegisEngine,
         guardian: GuardianEngine,
         judge: JudgeEngine,
+        coherence: AdaptiveCoherenceEngine,
         war_room: WarRoomEngine,
         hrm: HRMCore,
     ) -> None:
@@ -59,6 +61,7 @@ class SMICore:
         self.aegis = aegis
         self.guardian = guardian
         self.judge = judge
+        self.coherence = coherence
         self.war_room = war_room
         self.hrm = hrm
         self.input_manager = InputManager()
@@ -117,13 +120,19 @@ class SMICore:
         state.advance(ProcessingState.SMI_REVIEWED)
 
         analysis = self.organs.integrate(findings)
-        output_state = self.judge.decide(request, analysis, safety)
+        coherence = self.coherence.assess(analysis)
+        output_state = self.judge.decide(request, analysis, safety, coherence)
         summary, rationale = self.frontal_lobe.form_summary(
             request.task_type,
             analysis,
             safety,
         )
-        rationale = (*rationale, advisors.reason)
+        rationale = (
+            *rationale,
+            advisors.reason,
+            f"Coherence score: {coherence.score}/100.",
+            coherence.adaptive_proposal,
+        )
         war_room = self.war_room.review(request, analysis, safety, output_state)
 
         if safety.passed:
@@ -146,6 +155,7 @@ class SMICore:
             processing_states=state.history,
             human_review_required=output_state != OutputState.SYSTEM_LOG_ONLY,
             war_room=war_room,
+            coherence=coherence,
         )
         self.hrm.record_recommendation(request, recommendation)
         return recommendation
@@ -185,6 +195,7 @@ class SMICore:
             self.organs.status(),
             self.aegis.status(),
             self.guardian.status(),
+            self.coherence.status(),
             self.war_room.status(),
             self.hrm.status(),
         )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from oap.contracts import (
     BrainRequest,
+    CoherenceReport,
     IntegratedAnalysis,
     OutputState,
     SafetyDecision,
@@ -17,6 +18,7 @@ class JudgeEngine:
         request: BrainRequest,
         analysis: IntegratedAnalysis,
         safety: SafetyDecision,
+        coherence: CoherenceReport | None = None,
     ) -> OutputState:
         if not safety.passed or safety.signal_level in {
             SignalLevel.ORANGE,
@@ -29,6 +31,7 @@ class JudgeEngine:
             request.high_impact
             or safety.human_review_required
             or analysis.signal_level == SignalLevel.YELLOW
+            or (coherence is not None and coherence.review_required)
         ):
             return OutputState.REVIEW_REQUIRED
         return OutputState.RECOMMENDATION_READY

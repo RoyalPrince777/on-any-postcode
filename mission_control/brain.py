@@ -119,6 +119,13 @@ def get_public_brain_status() -> dict[str, Any]:
             "Simulates consequences; Human Authority remains final.",
         ),
         _component(
+            "Adaptive Coherent Intelligence",
+            "Agreement, contradiction, evidence and drift assessment implemented",
+            "Internal SMI capability only",
+            "ready",
+            "Not an eighth family, agent, organ, second brain or authority.",
+        ),
+        _component(
             "Human Approval",
             "Signed, expiring, action-bound, single-use level-zero receipts implemented",
             "No signing key connected to public UI",

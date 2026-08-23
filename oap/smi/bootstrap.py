@@ -21,6 +21,7 @@ from oap.registry import RegistryEngine
 from oap.war_room import WarRoomEngine
 from oap.world import WorldEngine
 
+from .coherence_engine import AdaptiveCoherenceEngine
 from .context_engine import ContextEngine
 from .judge_engine import JudgeEngine
 from .organ_manager import OrganManager
@@ -56,6 +57,7 @@ def build_smi(
         aegis=AegisEngine(),
         guardian=GuardianEngine(),
         judge=JudgeEngine(),
+        coherence=AdaptiveCoherenceEngine(),
         war_room=WarRoomEngine(),
         hrm=hrm,
     )
