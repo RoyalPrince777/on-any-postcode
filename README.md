@@ -170,7 +170,8 @@ Visit `http://localhost:5050` in your browser.
 
 ### OAP Intelligence
 - One SMI brain with internal biological regions and recommendation-only output
-- Seven OAP Intelligence families with 25 preserved Soul–Mind–Body passports
+- Six OAP Intelligence worlds containing seven families, with 25 of the locked
+  78 Soul–Mind–Body passports currently preserved in code
 - Neo is the only active approved advisory role; pending roles remain unassigned
 - GPT, Claude, Gemini, Kimi, Grok, Edge/Copilot and Ollama are providers, not agents
 - Intelligence proposes, Guardian protects and Human Authority decides

@@ -15,8 +15,12 @@ def test_canonical_architecture_passes_all_integrity_checks():
     assert validation["checks"]["duplicate_names"] == 0
     assert validation["checks"]["overlapping_anatomy_roles"] == 0
     assert validation["checks"]["duplicate_agent_roles"] == 0
-    assert validation["checks"]["intelligence_worlds"] == 7
+    assert validation["checks"]["intelligence_worlds"] == 6
+    assert validation["checks"]["intelligence_families"] == 7
     assert validation["checks"]["registered_agents"] == 25
+    assert validation["checks"]["locked_agent_count"] == 78
+    assert validation["checks"]["missing_passports"] == 53
+    assert validation["checks"]["roster_complete"] is False
     assert validation["checks"]["final_authority"] == "Human Authority"
 
 
@@ -57,7 +61,7 @@ def test_canonical_projection_excludes_prohibited_and_legacy_names():
 
     assert "Kaa" not in projection
     assert "Council" not in projection
-    assert len(organism.INTELLIGENCE_WORLDS) == 7
+    assert len(organism.INTELLIGENCE_WORLDS) == 6
     assert "Matrix Intelligence" in organism.INTELLIGENCE_WORLDS
     assert "GPT Intelligence" not in organism.INTELLIGENCE_WORLDS
     assert len(set(organism.ADVISORY_AGENTS)) == len(organism.ADVISORY_AGENTS)

@@ -13,7 +13,12 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .agents import ADVISORY_AGENT_NAMES as ADVISORY_AGENTS
-from .agents import AGENT_ANATOMY, INTELLIGENCE_PROVIDERS, validate_agent_registry
+from .agents import (
+    AGENT_ANATOMY,
+    INTELLIGENCE_FAMILIES,
+    INTELLIGENCE_PROVIDERS,
+    validate_agent_registry,
+)
 from .agents import INTELLIGENCE_WORLD_NAMES as INTELLIGENCE_WORLDS
 
 # Named advisors are preserved, but no region or governance-role assignment is
@@ -377,8 +382,8 @@ def validate_architecture(
     if region_by_id.get("synthetic_mind", {}).get("kind") != "internal_organ":
         errors.append("Synthetic Mind must remain an internal SMI organ.")
 
-    if len(world_items) != 7 or _duplicates(world_items):
-        errors.append("The seven Intelligence worlds must remain unique and complete.")
+    if len(world_items) != 6 or _duplicates(world_items):
+        errors.append("The six Intelligence worlds must remain unique and complete.")
 
     duplicate_advisors = _duplicates(ADVISORY_AGENTS)
     duplicate_agent_assignments = _duplicates(
@@ -444,11 +449,15 @@ def validate_architecture(
             "canonical_systems": len(system_items),
             "smi_regions": len(region_items),
             "intelligence_worlds": len(world_items),
+            "intelligence_families": len(INTELLIGENCE_FAMILIES),
             "duplicate_systems": len(duplicate_ids),
             "duplicate_names": len(duplicate_labels),
             "overlapping_anatomy_roles": len(duplicate_anatomy_roles),
             "duplicate_agent_roles": len(duplicate_agent_roles),
             "registered_agents": agent_validation["checks"]["registered_agents"],
+            "locked_agent_count": agent_validation["checks"]["locked_agent_count"],
+            "missing_passports": agent_validation["checks"]["missing_passports"],
+            "roster_complete": agent_validation["checks"]["roster_complete"],
             "brain_count": len(brains),
             "final_authority": "Human Authority",
         },
@@ -463,6 +472,7 @@ def get_public_anatomy() -> dict[str, Any]:
         "systems": ORGANISM_SYSTEMS,
         "smi_regions": SMI_REGIONS,
         "intelligence_worlds": INTELLIGENCE_WORLDS,
+        "intelligence_families": INTELLIGENCE_FAMILIES,
         "intelligence_providers": INTELLIGENCE_PROVIDERS,
         "agent_anatomy": AGENT_ANATOMY,
         "advisory_agents": ADVISORY_AGENTS,

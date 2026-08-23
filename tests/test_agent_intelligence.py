@@ -5,8 +5,16 @@ import json
 from mission_control import agents, config
 
 
-def test_registry_locks_seven_oap_owned_families():
+def test_registry_locks_six_worlds_and_seven_oap_owned_families():
     assert agents.INTELLIGENCE_WORLD_NAMES == (
+        "Civic Intelligence",
+        "Jungle Book Intelligence",
+        "Animal Intelligence",
+        "Akan Intelligence",
+        "Matrix Intelligence",
+        "Civilisation Intelligence",
+    )
+    assert agents.INTELLIGENCE_FAMILY_NAMES == (
         "Civic Intelligence",
         "Jungle Book Intelligence",
         "Animal Intelligence",
@@ -15,12 +23,18 @@ def test_registry_locks_seven_oap_owned_families():
         "Akan Core Intelligence",
         "Akan Animal Intelligence",
     )
+    assert len(agents.LOCKED_WORLD_IDS) == 6
     assert len(agents.LOCKED_FAMILY_IDS) == 7
     assert len(set(agents.LOCKED_FAMILY_IDS)) == 7
+    assert {
+        family["world_id"]
+        for family in agents.INTELLIGENCE_FAMILIES
+        if family["id"].startswith("akan_")
+    } == {"akan"}
 
 
 def test_providers_are_separate_from_oap_agents_and_families():
-    family_names = set(agents.INTELLIGENCE_WORLD_NAMES)
+    family_names = set(agents.INTELLIGENCE_FAMILY_NAMES)
     agent_names = {agent["name"] for agent in agents.AGENT_REGISTRY}
     provider_names = {provider["name"] for provider in agents.INTELLIGENCE_PROVIDERS}
 
@@ -42,8 +56,12 @@ def test_agent_registry_is_unique_safe_and_contains_confirmed_agents():
     names = {agent["name"] for agent in agents.AGENT_REGISTRY}
 
     assert validation["passed"] is True
+    assert validation["ready_for_activation"] is False
     assert validation["errors"] == []
     assert validation["checks"]["registered_agents"] == 25
+    assert validation["checks"]["locked_agent_count"] == 78
+    assert validation["checks"]["missing_passports"] == 53
+    assert validation["checks"]["roster_complete"] is False
     assert validation["checks"]["duplicate_agent_ids"] == 0
     assert validation["checks"]["duplicate_agent_names"] == 0
     assert validation["checks"]["duplicate_approved_roles"] == 0
@@ -111,7 +129,7 @@ def test_agent_ui_is_read_only_and_does_not_create_database(
 
     assert response.status_code == 200
     assert "Your OAP Agents" in page
-    assert "Seven owned worlds" in page
+    assert "Six worlds · seven families" in page
     assert "Neo" in page
     assert "Akela" in page
     assert "Gyata" in page

@@ -15,49 +15,70 @@ INTELLIGENCE_FAMILIES: tuple[dict[str, Any], ...] = (
     {
         "id": "civic",
         "name": "Civic Intelligence",
+        "world_id": "civic",
         "purpose": "Community coordination, public service and postcode awareness.",
         "roster_status": "Roster requires human approval",
     },
     {
         "id": "jungle_book",
         "name": "Jungle Book Intelligence",
+        "world_id": "jungle_book",
         "purpose": "Situational wisdom, coordination, mentoring and protection.",
         "roster_status": "Confirmed roster preserved",
     },
     {
         "id": "animal",
         "name": "Animal Intelligence",
+        "world_id": "animal",
         "purpose": "Specialist signals expressed through approved animal archetypes.",
         "roster_status": "Confirmed core roster preserved",
     },
     {
         "id": "matrix",
         "name": "Matrix Intelligence",
+        "world_id": "matrix",
         "purpose": "Systems reasoning, simulation, strategy and problem solving.",
         "roster_status": "Confirmed roster preserved",
     },
     {
         "id": "civilisation",
         "name": "Civilisation Intelligence",
+        "world_id": "civilisation",
         "purpose": "Long-range culture, institutions, learning and human progress.",
         "roster_status": "Roster requires human approval",
     },
     {
         "id": "akan_core",
         "name": "Akan Core Intelligence",
+        "world_id": "akan",
         "purpose": "Akan-Akyem identity, values, heritage and constitutional wisdom.",
         "roster_status": "Roster requires human approval",
     },
     {
         "id": "akan_animal",
         "name": "Akan Animal Intelligence",
+        "world_id": "akan",
         "purpose": "Akan animal wisdom kept inside its own cultural family.",
         "roster_status": "Confirmed roster is incomplete",
     },
 )
 
 LOCKED_FAMILY_IDS = tuple(family["id"] for family in INTELLIGENCE_FAMILIES)
-INTELLIGENCE_WORLD_NAMES = tuple(family["name"] for family in INTELLIGENCE_FAMILIES)
+INTELLIGENCE_WORLDS: tuple[dict[str, str], ...] = (
+    {"id": "civic", "name": "Civic Intelligence"},
+    {"id": "jungle_book", "name": "Jungle Book Intelligence"},
+    {"id": "animal", "name": "Animal Intelligence"},
+    {"id": "akan", "name": "Akan Intelligence"},
+    {"id": "matrix", "name": "Matrix Intelligence"},
+    {"id": "civilisation", "name": "Civilisation Intelligence"},
+)
+LOCKED_WORLD_IDS = tuple(world["id"] for world in INTELLIGENCE_WORLDS)
+INTELLIGENCE_WORLD_NAMES = tuple(world["name"] for world in INTELLIGENCE_WORLDS)
+INTELLIGENCE_FAMILY_NAMES = tuple(family["name"] for family in INTELLIGENCE_FAMILIES)
+
+# The approved registry target is preserved independently of implementation
+# progress. Missing passports are never fabricated or treated as approved.
+LOCKED_AGENT_COUNT = 78
 
 INTELLIGENCE_PROVIDERS: tuple[dict[str, str], ...] = (
     {"id": "gpt", "name": "GPT", "type": "Cloud provider"},
@@ -290,7 +311,7 @@ def validate_agent_registry(
     agents: Iterable[Mapping[str, Any]] = AGENT_REGISTRY,
     providers: Iterable[Mapping[str, str]] = INTELLIGENCE_PROVIDERS,
 ) -> dict[str, Any]:
-    """Detect duplicate families, identities, roles and provider confusion."""
+    """Detect registry conflicts and report canonical roster completeness."""
 
     family_items = tuple(families)
     agent_items = tuple(agents)
@@ -305,6 +326,16 @@ def validate_agent_registry(
         errors.append("The locked OAP Intelligence family set or order has changed.")
     if duplicate_family_ids or duplicate_family_names:
         errors.append("OAP Intelligence family identifiers and names must be unique.")
+
+    unknown_worlds = sorted(
+        {
+            item.get("world_id", "")
+            for item in family_items
+            if item.get("world_id") not in LOCKED_WORLD_IDS
+        }
+    )
+    if unknown_worlds:
+        errors.append("Unknown Intelligence worlds: " + ", ".join(unknown_worlds))
 
     family_ids = {item["id"] for item in family_items}
     unknown_families = sorted(
@@ -389,12 +420,18 @@ def validate_agent_registry(
     if banned_names:
         errors.append("Prohibited or legacy names found: " + ", ".join(banned_names))
 
+    roster_complete = len(agent_items) == LOCKED_AGENT_COUNT
     return {
         "passed": not errors,
+        "ready_for_activation": not errors and roster_complete,
         "errors": errors,
         "checks": {
+            "worlds": len(INTELLIGENCE_WORLDS),
             "families": len(family_items),
             "registered_agents": len(agent_items),
+            "locked_agent_count": LOCKED_AGENT_COUNT,
+            "missing_passports": max(LOCKED_AGENT_COUNT - len(agent_items), 0),
+            "roster_complete": roster_complete,
             "providers": len(provider_items),
             "duplicate_providers": len(duplicate_provider_ids)
             + len(duplicate_provider_names),
