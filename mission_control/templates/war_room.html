@@ -61,6 +61,16 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="war-code-title">
+      <div class="mc-section-heading">
+        <div><h2 id="war-code-title">Implemented simulation engine</h2><p>Structured internal code is connected to SMI; this page does not run it.</p></div>
+        <span class="mc-lock-badge">Code ready</span>
+      </div>
+      <ul class="mc-capability-list">
+        {% for capability in war_room.implemented_capabilities %}<li>{{ capability }}</li>{% endfor %}
+      </ul>
+    </section>
+
     <section class="mc-panel" aria-labelledby="war-gaps-title">
       <div class="mc-section-heading">
         <div><h2 id="war-gaps-title">Missing production gaps</h2><p>Ranked build order; every activation requires Human Authority approval.</p></div>

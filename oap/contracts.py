@@ -166,6 +166,13 @@ class WarRoomReport:
     triggered: bool
     scenarios: tuple[str, ...]
     recommendation: str
+    review_id: str = ""
+    review_level: str = "ROUTINE"
+    risk_score: int = 0
+    confidence_score: int = 0
+    findings: tuple[str, ...] = ()
+    requires_human_approval: bool = True
+    decision_authority: bool = False
 
 
 @dataclass(frozen=True, slots=True)

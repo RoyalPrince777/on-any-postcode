@@ -146,6 +146,13 @@ def get_public_war_room() -> dict[str, Any]:
     return {
         "validation": validation,
         "engine": engine,
+        "implemented_capabilities": (
+            "Deterministic review identifiers",
+            "Bounded 0–100 risk scoring",
+            "Confidence scoring",
+            "Guardian finding collection",
+            "Proceed, delay and reject consequence scenarios",
+        ),
         "flow": WAR_ROOM_FLOW if validation["passed"] else (),
         "review_lenses": REVIEW_LENSES if validation["passed"] else (),
         "gaps": READINESS_GAPS if validation["passed"] else (),

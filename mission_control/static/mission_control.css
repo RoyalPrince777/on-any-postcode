@@ -90,6 +90,18 @@
   margin: 7px 0 0;
 }
 
+.mc-capability-list {
+  columns: 2;
+  line-height: 1.7;
+  padding-left: 22px;
+}
+
+@media (max-width: 640px) {
+  .mc-capability-list {
+    columns: 1;
+  }
+}
+
 .mc-header {
   background: linear-gradient(135deg, #10281a, #15492a);
 }
