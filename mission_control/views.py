@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import agents as agent_registry
-from . import brain, infrastructure, linkup, ollama_chat, organism, status
+from . import brain, infrastructure, linkup, ollama_chat, organism, status, war_room
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
 
@@ -116,6 +116,26 @@ def ollama_chat_dashboard():
         )
     )
     return _no_store(response)
+
+
+@bp.get("/war-room")
+def war_room_dashboard():
+    """Render consequence-review readiness without running a simulation."""
+
+    response = make_response(
+        render_template(
+            "war_room.html",
+            war_room=war_room.get_public_war_room(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/war-room/status")
+def war_room_status():
+    """Return a coarse, redacted War Room readiness projection."""
+
+    return _no_store(make_response(jsonify(war_room.get_public_war_room())))
 
 
 @bp.get("/infrastructure")

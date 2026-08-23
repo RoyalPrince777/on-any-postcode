@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP War Room</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-organism-header">
+    <div>
+      <p class="mc-eyebrow">OAP / SMI / Consequence Review</p>
+      <h1>War Room</h1>
+      <p>Strategic simulation and review chamber—not a second decision-maker.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-organism-workspace">
+    <section class="mc-integrity" aria-labelledby="war-integrity-title">
+      <div>
+        <p class="mc-eyebrow">Boundary validation</p>
+        <h2 id="war-integrity-title">
+          {{ 'War Room scope verified' if war_room.validation.passed else 'War Room scope blocked' }}
+        </h2>
+        <p>Simulation only. No approval, provider call or execution control is exposed.</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Flow</dt><dd>{{ war_room.validation.checks.flow_components }}</dd></div>
+        <div><dt>Lenses</dt><dd>{{ war_room.validation.checks.review_lenses }}</dd></div>
+        <div><dt>Gaps</dt><dd>{{ war_room.validation.checks.readiness_gaps }}</dd></div>
+        <div><dt>Duplicates</dt><dd>{{ war_room.validation.checks.duplicate_system_roles }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="war-flow-title">
+      <div class="mc-section-heading">
+        <div><h2 id="war-flow-title">Governed review flow</h2><p>Human Authority remains the only final authority.</p></div>
+        <span class="mc-lock-badge">Locked boundary</span>
+      </div>
+      <ol class="mc-war-flow">
+        {% for item in war_room.flow %}
+        <li><span>{{ item.order }}</span><div><strong>{{ item.component }}</strong><small>{{ item.role }}</small></div></li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="war-lenses-title">
+      <h2 id="war-lenses-title">Review lenses</h2>
+      <div class="mc-war-grid" role="list">
+        {% for lens in war_room.review_lenses %}
+        <article class="mc-intelligence-card" role="listitem">
+          <p class="mc-eyebrow">{{ lens.owner }}</p>
+          <h3>{{ lens.name }}</h3>
+          <p>{{ lens.question }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="war-gaps-title">
+      <div class="mc-section-heading">
+        <div><h2 id="war-gaps-title">Missing production gaps</h2><p>Ranked build order; every activation requires Human Authority approval.</p></div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Controls disabled</span>
+      </div>
+      <ol class="mc-gap-list">
+        {% for gap in war_room.gaps %}
+        <li>
+          <span class="mc-gap-priority">{{ gap.priority }}</span>
+          <div><strong>{{ gap.area }}</strong><small>Owner: {{ gap.owner }}</small><p>{{ gap.status }}</p><p>{{ gap.next_gate }}</p></div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ war_room.human_authority }}</strong>
+      <span>War Room can recommend review, delay or block. It cannot approve or execute.</span>
+    </aside>
+  </main>
+</body>
+</html>
