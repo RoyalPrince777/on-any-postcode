@@ -27,7 +27,8 @@
       </div>
       <dl class="mc-integrity-counts">
         <div><dt>Products</dt><dd>{{ hierarchy.validation.checks.products }}</dd></div>
-        <div><dt>Conflicts</dt><dd>{{ hierarchy.validation.errors|length }}</dd></div>
+        <div><dt>Capabilities</dt><dd>{{ hierarchy.capability_validation.checks.capabilities }}</dd></div>
+        <div><dt>Conflicts</dt><dd>{{ hierarchy.validation.errors|length + hierarchy.capability_validation.errors|length }}</dd></div>
       </dl>
     </section>
     <section class="mc-panel">
@@ -35,6 +36,24 @@
       <h2>The Link</h2>
       <p>The communications gateway connecting postcode communities without duplicating Identity, Signals, Mail or HRM.</p>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.the_link_dashboard') }}">Open The Link →</a>
+    </section>
+    <section class="mc-panel" aria-labelledby="spot-capabilities-title">
+      <p class="mc-eyebrow">Complete product surface</p>
+      <h2 id="spot-capabilities-title">Everything in The Spot</h2>
+      <div class="mc-family-grid" role="list">
+        {% for capability in hierarchy.capabilities %}
+        <article class="mc-family-card" role="listitem">
+          <div class="mc-family-card__top">
+            <h3>{{ capability.name }}</h3>
+            <span>{{ capability.status }}</span>
+          </div>
+          <p>{{ capability.purpose }}</p>
+          <small>Owner: {{ capability.owner }}</small>
+          <small>{{ capability.function }}</small>
+          <a href="{{ url_for('mission_control.spot_capability', capability_id=capability.id) }}">Open {{ capability.name }}</a>
+        </article>
+        {% endfor %}
+      </div>
     </section>
     <aside class="mc-authority"><strong>Read-only launch</strong><span>No messaging or execution control is enabled.</span></aside>
   </main>
