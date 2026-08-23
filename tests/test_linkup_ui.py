@@ -85,8 +85,9 @@ def test_link_ui_is_read_only_and_does_not_create_database(
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "The Link boundaries verified" in page
+    assert "LinkUp boundaries verified" in page
     assert "Simple chat. Talk local. Build global." in page
+    assert "The Spot / The Link / LinkUp" in page
     assert "Directory, Inbox and Community Power" in page
     assert "No member identities exposed" in page
     assert "No private messages exposed" in page

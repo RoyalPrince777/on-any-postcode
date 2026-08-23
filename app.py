@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 import mission_control.status as mc_status
 from mission_control import init_app as _mc_init
@@ -129,6 +129,27 @@ def home():
         profiles=profiles,
         gateway=mc_status.get_public_gateway_status(),
     )
+
+@app.get("/the-spot")
+def the_spot_front_door():
+    """Open The Spot while keeping one canonical implementation route."""
+
+    return redirect(url_for("mission_control.spot_dashboard"))
+
+
+@app.get("/the-link")
+def the_link_front_door():
+    """Open The Link inside The Spot."""
+
+    return redirect(url_for("mission_control.the_link_dashboard"))
+
+
+@app.get("/linkup")
+def linkup_front_door():
+    """Open LinkUp inside The Link."""
+
+    return redirect(url_for("mission_control.link_dashboard"))
+
 
 @app.route("/signal", methods=["POST"])
 def signal():

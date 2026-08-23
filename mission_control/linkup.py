@@ -1,7 +1,7 @@
 """Canonical, read-only model for the OAP communications dashboard.
 
-The Link is the user-facing Communications surface, not a second Messenger
-engine. Its approved dashboard views are Directory, Inbox and Community Power.
+LinkUp is the protected conversation product inside The Link communications
+gateway, not a second Messenger engine. Its approved dashboard views are Directory, Inbox and Community Power.
 Community Power is linked into the dashboard without transferring ownership.
 This module exposes no identities, message bodies, persistence or send path.
 """
@@ -118,7 +118,7 @@ PRIVACY_PATH: tuple[dict[str, str], ...] = (
     {"name": "Identity", "action": "Validates the member"},
     {"name": "Permissions", "action": "Scopes conversation access"},
     {"name": "Guardian", "action": "Protects privacy and youth safety"},
-    {"name": "The Link", "action": "Presents the approved communication view"},
+    {"name": "LinkUp", "action": "Presents the approved conversation view"},
     {"name": "HRM", "action": "Receives approved audit metadata only"},
 )
 
@@ -231,9 +231,9 @@ def get_public_link_dashboard() -> dict[str, Any]:
     """Return an allowlisted shell containing no people or conversations."""
 
     return {
-        "product_name": "The Link",
+        "product_name": "LinkUp",
         "tagline": "Simple chat. Talk local. Build global.",
-        "law": "Link Up. Create bridges, not barriers.",
+        "law": "Inside The Spot → The Link → LinkUp. Create bridges, not barriers.",
         "views": [dict(view) for view in LINK_DASHBOARD_VIEWS],
         "related_systems": [
             dict(system) for system in RELATED_COMMUNICATION_BOUNDARIES
