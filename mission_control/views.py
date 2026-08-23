@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template, request
+from flask import (
+    Blueprint,
+    current_app,
+    jsonify,
+    make_response,
+    render_template,
+    request,
+)
+
+from oap.contracts import IdentityRecord
 
 from . import agents as agent_registry
-from . import brain, infrastructure, linkup, ollama_chat, organism, status
+from . import brain, infrastructure, linkup, ollama_chat, organism, status, war_room
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
 
@@ -86,8 +95,9 @@ def agent_intelligence():
 
 
 @bp.get("/brain")
+@bp.get("/smi")
 def brain_dashboard():
-    """Render SMI implementation readiness without running a signal."""
+    """Render the redacted public SMI dashboard without running a signal."""
 
     response = make_response(
         render_template(
@@ -99,10 +109,78 @@ def brain_dashboard():
 
 
 @bp.get("/brain/status")
+@bp.get("/smi/status")
 def brain_status():
     """Return a coarse, read-only SMI implementation projection."""
 
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
+
+
+def _resolve_private_identity() -> IdentityRecord | None:
+    """Use an injected canonical resolver; never trust query/header identity."""
+
+    resolver = current_app.extensions.get("oap_identity_resolver")
+    if not callable(resolver):
+        return None
+    identity = resolver(request)
+    return identity if isinstance(identity, IdentityRecord) else None
+
+
+@bp.get("/smi/private")
+def private_smi_dashboard():
+    """Render private SMI operations only after canonical Identity validation."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "authentication_required",
+                        "message": "Private SMI dashboard requires Human Authority.",
+                    }
+                ),
+                403,
+            )
+        )
+    try:
+        projection = brain.get_private_brain_status(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "authorization_denied",
+                        "message": "Private SMI dashboard permission denied.",
+                    }
+                ),
+                403,
+            )
+        )
+    return _no_store(
+        make_response(render_template("smi_private.html", brain=projection))
+    )
+
+
+@bp.get("/smi/private/status")
+def private_smi_status():
+    """Return private operational status through the same strict gate."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "authentication_required"}),
+                403,
+            )
+        )
+    try:
+        projection = brain.get_private_brain_status(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(jsonify(error={"code": "authorization_denied"}), 403)
+        )
+    return _no_store(make_response(jsonify(projection)))
 
 
 @bp.get("/ollama")
@@ -118,6 +196,26 @@ def ollama_chat_dashboard():
     return _no_store(response)
 
 
+@bp.get("/war-room")
+def war_room_dashboard():
+    """Render consequence-review readiness without running a simulation."""
+
+    response = make_response(
+        render_template(
+            "war_room.html",
+            war_room=war_room.get_public_war_room(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/war-room/status")
+def war_room_status():
+    """Return a coarse, redacted War Room readiness projection."""
+
+    return _no_store(make_response(jsonify(war_room.get_public_war_room())))
+
+
 @bp.get("/infrastructure")
 def infrastructure_dashboard():
     """Render locked Infrastructure awareness without provider operations."""
@@ -130,6 +228,61 @@ def infrastructure_dashboard():
         )
     )
     return _no_store(response)
+
+
+@bp.get("/infrastructure/status")
+def infrastructure_status():
+    """Return the coarse public Infrastructure projection."""
+
+    return _no_store(
+        make_response(jsonify(infrastructure.get_public_infrastructure()))
+    )
+
+
+@bp.get("/infrastructure/private")
+def private_infrastructure_dashboard():
+    """Render private Infrastructure only through canonical Identity."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "authentication_required"}),
+                403,
+            )
+        )
+    try:
+        projection = infrastructure.get_private_infrastructure(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(jsonify(error={"code": "authorization_denied"}), 403)
+        )
+    return _no_store(
+        make_response(
+            render_template("infrastructure_private.html", infrastructure=projection)
+        )
+    )
+
+
+@bp.get("/infrastructure/private/status")
+def private_infrastructure_status():
+    """Return private Infrastructure status through the same strict gate."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "authentication_required"}),
+                403,
+            )
+        )
+    try:
+        projection = infrastructure.get_private_infrastructure(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(jsonify(error={"code": "authorization_denied"}), 403)
+        )
+    return _no_store(make_response(jsonify(projection)))
 
 
 @bp.get("/linkup")

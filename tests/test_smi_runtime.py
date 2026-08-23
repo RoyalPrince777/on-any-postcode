@@ -64,6 +64,8 @@ def test_safe_request_runs_complete_recommendation_only_cycle():
 
     assert result.output_state == OutputState.RECOMMENDATION_READY
     assert result.can_execute is False
+    assert result.coherence is not None
+    assert result.coherence.self_applied is False
     assert result.processing_states == (
         "RECEIVED",
         "IDENTITY_VERIFIED",
@@ -195,6 +197,9 @@ def test_high_impact_request_triggers_war_room_and_review():
     assert result.signal_level == SignalLevel.YELLOW
     assert result.war_room.triggered is True
     assert len(result.war_room.scenarios) == 3
+    assert result.war_room.review_level == "ENHANCED"
+    assert result.war_room.review_id.startswith("WR-")
+    assert result.war_room.decision_authority is False
 
 
 def test_aegis_and_guardian_block_override_or_execution_bypass():

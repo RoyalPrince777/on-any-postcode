@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from oap.contracts import IdentityRecord
+
 from .agents import AGENT_REGISTRY, LOCKED_FAMILY_IDS
 from .db import db_status
 from .organism import (
@@ -119,6 +121,13 @@ def get_public_brain_status() -> dict[str, Any]:
             "Simulates consequences; Human Authority remains final.",
         ),
         _component(
+            "Adaptive Coherent Intelligence",
+            "Agreement, contradiction, evidence and drift assessment implemented",
+            "Internal SMI capability only",
+            "ready",
+            "Not an eighth family, agent, organ, second brain or authority.",
+        ),
+        _component(
             "Human Approval",
             "Signed, expiring, action-bound, single-use level-zero receipts implemented",
             "No signing key connected to public UI",
@@ -169,6 +178,8 @@ def get_public_brain_status() -> dict[str, Any]:
     )
 
     return {
+        "visibility": "public",
+        "name": "Sovereign Megaverse Intelligence",
         "validation": architecture,
         "brain_count": 1,
         "regions": len(SMI_REGIONS),
@@ -188,4 +199,41 @@ def get_public_brain_status() -> dict[str, Any]:
                 "wiring, providers and Builder actions remain unexecuted."
             ),
         },
+    }
+
+
+def get_private_brain_status(identity: IdentityRecord) -> dict[str, Any]:
+    """Return the private projection only to active level-zero Human Authority."""
+
+    if (
+        identity.status != "ACTIVE"
+        or identity.identity_type != "human_authority"
+        or identity.authority_level != 0
+        or "VIEW_SOVEREIGN_SMI" not in identity.permissions
+    ):
+        raise PermissionError("Private SMI dashboard requires Human Authority")
+
+    public = get_public_brain_status()
+    database = db_status()
+    return {
+        "visibility": "private",
+        "name": "Sovereign Megaverse Intelligence",
+        "identity": {
+            "identity_id": identity.identity_id,
+            "authority_level": identity.authority_level,
+            "identity_type": identity.identity_type,
+        },
+        "runtime": {
+            "database_backend": database["backend"],
+            "database_initialized": bool(database["initialized"]),
+            "brain_runtime_initialized": bool(database["brain_runtime_initialized"]),
+            "migration_mismatches": len(database["checksum_mismatches"]),
+            "pending_migrations": len(database["pending"]),
+            "execution_exposed": False,
+        },
+        "components": public["components"],
+        "processing_cycle": public["processing_cycle"],
+        "activation_gates": public["activation_gates"],
+        "allowed_outputs": public["allowed_outputs"],
+        "human_authority": public["human_authority"],
     }

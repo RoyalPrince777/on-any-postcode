@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private OAP Infrastructure</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-private-header">
+    <div>
+      <p class="mc-eyebrow">Restricted / Human Authority / Infrastructure</p>
+      <h1>Private Infrastructure</h1>
+      <p>Provider readiness and system boundaries. Credentials are never displayed.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Public Infrastructure</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.private_smi_dashboard') }}">Private SMI</a>
+    </div>
+  </header>
+  <main class="mc-workspace">
+    <aside class="mc-authority" aria-label="Verified authority">
+      <strong>Verified Human Authority</strong>
+      <span>{{ infrastructure.identity.identity_id }} · Authority level {{ infrastructure.identity.authority_level }}</span>
+    </aside>
+    <section class="mc-panel" aria-labelledby="infra-private-runtime">
+      <h2 id="infra-private-runtime">Operational readiness</h2>
+      <div class="mc-status-ribbon" role="list">
+        <div class="mc-status" role="listitem"><span>Database</span><strong>{{ infrastructure.runtime.database_backend }}</strong></div>
+        <div class="mc-status" role="listitem"><span>Maps provider</span><strong>{{ infrastructure.runtime.maps_provider }}</strong></div>
+        <div class="mc-status" role="listitem"><span>Weather provider</span><strong>{{ infrastructure.runtime.weather_provider }}</strong></div>
+        <div class="mc-status" role="listitem"><span>eSIM provider</span><strong>{{ infrastructure.runtime.esim_provider }}</strong></div>
+        <div class="mc-status" role="listitem"><span>Connectivity provider</span><strong>{{ infrastructure.runtime.connectivity_provider }}</strong></div>
+      </div>
+    </section>
+    <section class="mc-panel" aria-labelledby="infra-private-safety">
+      <h2 id="infra-private-safety">Safety locks</h2>
+      <div class="mc-counts">
+        <div><strong>Provider calls</strong><span>{{ infrastructure.runtime.provider_calls_enabled }}</span></div>
+        <div><strong>Network mutations</strong><span>{{ infrastructure.runtime.network_mutations_enabled }}</span></div>
+        <div><strong>Credentials exposed</strong><span>{{ infrastructure.runtime.credentials_exposed }}</span></div>
+      </div>
+      <p class="mc-notice">No map request, telecom activation, network change or provider purchase can run from this dashboard.</p>
+    </section>
+    <section class="mc-panel" aria-labelledby="infra-private-gates">
+      <h2 id="infra-private-gates">Activation gates</h2>
+      <div class="mc-proposal-grid" role="list">
+        {% for gate in infrastructure.activation_gates %}
+        <article role="listitem"><strong>{{ gate.status }}</strong><h3>{{ gate.title }}</h3><p>{{ gate.description }}</p></article>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

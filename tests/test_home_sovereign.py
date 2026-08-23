@@ -15,7 +15,7 @@ def test_home_keeps_existing_sections_and_renders_gateway(client):
     assert 'href="/mission"' in page
     assert 'href="/mission/infrastructure"' in page
     assert 'href="/mission/linkup"' in page
-    assert 'href="/mission/brain"' in page
+    assert 'href="/mission/smi"' in page
     assert "Mission Control database not initialized" in page
     assert "🇬🇭 Ghana" in page
 

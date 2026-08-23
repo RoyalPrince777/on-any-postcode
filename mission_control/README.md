@@ -29,7 +29,8 @@ Current read-only surface:
   the six Intelligence worlds, seven families, agent Soul–Mind–Body, and Human Authority as
   the only final authority.
 - `views.py`: GET-only `/mission`, `/mission/agents`,
-  `/mission/brain`, `/mission/brain/status`, `/mission/infrastructure`,
+  `/mission/brain`, `/mission/brain/status`, `/mission/war-room`,
+  `/mission/war-room/status`, `/mission/infrastructure`,
   `/mission/linkup`, `/mission/organism`, and `/mission/status` routes. No
   Mission Control POST or execution routes are registered; `/mission/chat` and
   `/mission/brain/run` are intentionally absent.
