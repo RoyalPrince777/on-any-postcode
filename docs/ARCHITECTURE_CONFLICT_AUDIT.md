@@ -10,9 +10,9 @@ or activate any architecture component.
 - Fourteen internal SMI regions; Synthetic Mind is an internal organ and
   Brainstem is a bridge.
 - Six distinct OAP Intelligence worlds contain seven families.
-- All 78 passport slots are represented: 25 preserved identities and 53
-  explicit disabled proposals. Proposed passports have no role, provider,
-  tools or execution path and require individual Human Authority approval.
+- All 78 OAP-owned passports are complete and Human Authority-approved, with
+  unique identities, roles and responsibilities. Neo remains the only active
+  passport; every other runtime connection and all execution paths are disabled.
 - Agent anatomy remains Soul–Mind–Body.
 - External model providers remain separate from OAP agents and Intelligence
   families.
@@ -43,8 +43,8 @@ only as a legacy compatibility path and is not registered by this slice.
 
 1. Decide whether legacy backup applications should move to a separate archive
    outside the deployable source tree. No files were deleted or moved here.
-2. Approve any additional agent role or SMI-region assignment after the
-   duplicate-role validator passes. No pending role was activated here.
+2. Approve any future agent or SMI-region assignment only after the identity,
+   role and responsibility duplicate validators pass. No runtime was activated here.
 3. Approve each Identity source, provider assignment and Builder handler before
    wiring it to an authenticated operational interface. No public execution
    route was added here.
