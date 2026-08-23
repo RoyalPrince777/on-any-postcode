@@ -382,8 +382,8 @@ def validate_architecture(
     if region_by_id.get("synthetic_mind", {}).get("kind") != "internal_organ":
         errors.append("Synthetic Mind must remain an internal SMI organ.")
 
-    if len(world_items) != 6 or _duplicates(world_items):
-        errors.append("The six Intelligence worlds must remain unique and complete.")
+    if len(world_items) != 7 or _duplicates(world_items):
+        errors.append("The seven Intelligence worlds must remain unique and complete.")
 
     duplicate_advisors = _duplicates(ADVISORY_AGENTS)
     duplicate_agent_assignments = _duplicates(
