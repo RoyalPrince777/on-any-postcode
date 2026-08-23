@@ -64,9 +64,16 @@ class RegistryEngine:
             raise ValueError("Prohibited or legacy agent naming conflict")
 
     def select_advisors(self, task_type: str) -> AdvisorSelection:
-        del task_type
+        requested_task = str(task_type or "GENERAL").strip().upper()
         selected: list[str] = []
         for agent in self._agents:
+            supported_tasks = {
+                str(value).strip().upper()
+                for value in agent.get("task_types", ())
+            }
+            is_default_coordinator = agent.get("agent_id") == "NEO-001"
+            if not is_default_coordinator and requested_task not in supported_tasks:
+                continue
             decision = self._permission_engine.authorize_agent(
                 agent,
                 required_permission="ANALYSE",
@@ -76,9 +83,9 @@ class RegistryEngine:
         return AdvisorSelection(
             agent_ids=tuple(selected),
             reason=(
-                "Approved active advisory agents selected"
+                "Bounded autonomous advisors selected by approved task family"
                 if selected
-                else "No approved active advisory assignment"
+                else "No bounded autonomous advisory assignment"
             ),
         )
 
@@ -94,6 +101,11 @@ class RegistryEngine:
         provider_assignments = sum(
             bool(agent.get("provider_ids")) for agent in self._agents
         )
+        bounded_autonomous = sum(
+            agent.get("autonomy", {}).get("mode") == "BOUNDED_ADVISORY"
+            and agent.get("autonomy", {}).get("can_execute") is False
+            for agent in self._agents
+        )
         return {
             "component": "Registry",
             "ready": True,
@@ -101,4 +113,7 @@ class RegistryEngine:
             "active_agents": active,
             "families": len(self._family_ids),
             "provider_assignments": provider_assignments,
+            "bounded_autonomous_agents": bounded_autonomous,
+            "independent_execute": False,
+            "final_authority": "Human Authority",
         }
