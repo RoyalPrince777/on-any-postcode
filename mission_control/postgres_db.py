@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 REQUIRED_TABLES = frozenset({
     "oap_schema_migrations", "oap_identities", "oap_roles",
@@ -146,7 +147,7 @@ def postgres_status() -> dict[str, Any]:
                 and REQUIRED_TABLES <= tables
             )
             return result
-    except Exception:
+    except (_driver().Error, RuntimeError, OSError):
         result["error"] = "database_unavailable"
         return result
 
