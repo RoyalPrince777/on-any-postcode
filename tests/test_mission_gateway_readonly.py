@@ -235,6 +235,9 @@ def test_mission_routes_register_get_only(client):
     assert rules["/mission/war-room"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/war-room/status"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/infrastructure"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/infrastructure/status"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/infrastructure/private"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/infrastructure/private/status"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/linkup"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/organism"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/status"] == {"GET", "HEAD", "OPTIONS"}

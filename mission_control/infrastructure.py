@@ -13,6 +13,10 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from oap.contracts import IdentityRecord
+
+from .db import db_status
+
 LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
     {
         "id": "maps",
@@ -223,6 +227,7 @@ def get_public_infrastructure() -> dict[str, Any]:
     """Return an allowlisted, non-operational Infrastructure projection."""
 
     return {
+        "visibility": "public",
         "modules": [dict(module) for module in LOCKED_INFRASTRUCTURE_MODULES],
         "related_systems": [dict(system) for system in RELATED_SYSTEM_BOUNDARIES],
         "proposed_connections": [dict(item) for item in PROPOSED_CONNECTIONS],
@@ -238,4 +243,43 @@ def get_public_infrastructure() -> dict[str, Any]:
                 "recorded Human Authority approval."
             ),
         },
+    }
+
+
+def get_private_infrastructure(identity: IdentityRecord) -> dict[str, Any]:
+    """Return private readiness only to authorized level-zero Human Authority."""
+
+    if (
+        identity.status != "ACTIVE"
+        or identity.identity_type != "human_authority"
+        or identity.authority_level != 0
+        or "VIEW_SOVEREIGN_INFRASTRUCTURE" not in identity.permissions
+    ):
+        raise PermissionError(
+            "Private Infrastructure requires authorized Human Authority"
+        )
+
+    database = db_status()
+    public = get_public_infrastructure()
+    return {
+        "visibility": "private",
+        "identity": {
+            "identity_id": identity.identity_id,
+            "authority_level": identity.authority_level,
+        },
+        "modules": public["modules"],
+        "boundaries": public["related_systems"],
+        "runtime": {
+            "database_backend": database["backend"],
+            "database_initialized": bool(database["initialized"]),
+            "maps_provider": "unassigned",
+            "weather_provider": "unassigned",
+            "esim_provider": "unassigned",
+            "connectivity_provider": "unassigned",
+            "provider_calls_enabled": False,
+            "network_mutations_enabled": False,
+            "credentials_exposed": False,
+        },
+        "activation_gates": public["proposed_connections"],
+        "human_authority": public["human_authority"],
     }

@@ -230,6 +230,61 @@ def infrastructure_dashboard():
     return _no_store(response)
 
 
+@bp.get("/infrastructure/status")
+def infrastructure_status():
+    """Return the coarse public Infrastructure projection."""
+
+    return _no_store(
+        make_response(jsonify(infrastructure.get_public_infrastructure()))
+    )
+
+
+@bp.get("/infrastructure/private")
+def private_infrastructure_dashboard():
+    """Render private Infrastructure only through canonical Identity."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "authentication_required"}),
+                403,
+            )
+        )
+    try:
+        projection = infrastructure.get_private_infrastructure(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(jsonify(error={"code": "authorization_denied"}), 403)
+        )
+    return _no_store(
+        make_response(
+            render_template("infrastructure_private.html", infrastructure=projection)
+        )
+    )
+
+
+@bp.get("/infrastructure/private/status")
+def private_infrastructure_status():
+    """Return private Infrastructure status through the same strict gate."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "authentication_required"}),
+                403,
+            )
+        )
+    try:
+        projection = infrastructure.get_private_infrastructure(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(jsonify(error={"code": "authorization_denied"}), 403)
+        )
+    return _no_store(make_response(jsonify(projection)))
+
+
 @bp.get("/linkup")
 def link_dashboard():
     """Render The Link without identities, conversations or send controls."""
