@@ -508,6 +508,8 @@ def validate_agent_registry(
         or "Cannot override Human Authority" not in item.get("restrictions", ())
         or bool(item.get("provider_ids"))
         or item.get("mind", {}).get("provider_assignment") != "Not assigned"
+        or item.get("body", {}).get("execution")
+        not in {"Disabled", "Human approval required"}
         or item.get("runtime_status")
         not in {"Not connected", "Not connected — execution disabled"}
     )
