@@ -199,7 +199,7 @@ def test_family_filter_reports_approved_roster_honestly(client):
     assert "Morpheus" in matrix
     assert 'id="agent-jungle-akela-001"' not in matrix
     assert "Postcode Beacon" in civic
-    assert "APPROVED" in civic
+    assert "ACTIVE" in civic
     assert "Bounded autonomous advisory — execution disabled" in civic
     assert 'aria-current="page"' in matrix
 
