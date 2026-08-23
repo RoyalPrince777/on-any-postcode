@@ -11,8 +11,10 @@ or activate any architecture component.
   Brainstem is a bridge.
 - Six distinct OAP Intelligence worlds contain seven families.
 - All 78 OAP-owned passports are complete and Human Authority-approved, with
-  unique identities, roles and responsibilities. Neo remains the only active
-  passport; every other runtime connection and all execution paths are disabled.
+  unique identities, roles and responsibilities. Every passport has bounded
+  advisory autonomy; provider assignments, approval and execution remain disabled.
+- Neo is the default coordinator and task-family routing prevents all 78 agents
+  from being selected indiscriminately.
 - Agent anatomy remains Soul–Mind–Body.
 - External model providers remain separate from OAP agents and Intelligence
   families.
