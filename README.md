@@ -170,8 +170,9 @@ Visit `http://localhost:5050` in your browser.
 
 ### OAP Intelligence
 - One SMI brain with internal biological regions and recommendation-only output
-- Six OAP Intelligence worlds containing seven families and 78 complete,
-  Human Authority-approved Soul–Mind–Body passports
+- Seven OAP Intelligence worlds containing seven existing families and 78 complete,
+  Human Authority-approved Soul–Mind–Body passports. Earth Intelligence is approved
+  as an additive world; its family and agent roster remain unassigned
 - Every agent has one unique approved role and bounded advisory autonomy for
   observation, analysis, collaboration and recommendation
 - Neo remains the default coordinator; provider assignments and every agent
