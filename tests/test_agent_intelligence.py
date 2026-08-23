@@ -106,6 +106,11 @@ def test_approved_roles_are_complete_without_provider_assignments():
     assert all(agent["powered_by"] == "ON ANY POSTCODE" for agent in agents.AGENT_REGISTRY)
     assert all(agent["provider_ids"] == () for agent in agents.AGENT_REGISTRY)
     assert all("EXECUTE" not in agent["permissions"] for agent in agents.AGENT_REGISTRY)
+    assert all(
+        agent["autonomy"]["mode"] == "BOUNDED_ADVISORY"
+        and agent["autonomy"]["can_execute"] is False
+        for agent in agents.AGENT_REGISTRY
+    )
 
 
 def test_all_78_approved_passports_remain_runtime_disabled():
@@ -195,7 +200,7 @@ def test_family_filter_reports_approved_roster_honestly(client):
     assert 'id="agent-jungle-akela-001"' not in matrix
     assert "Postcode Beacon" in civic
     assert "APPROVED" in civic
-    assert "Not connected — execution disabled" in civic
+    assert "Bounded autonomous advisory — execution disabled" in civic
     assert 'aria-current="page"' in matrix
 
 
