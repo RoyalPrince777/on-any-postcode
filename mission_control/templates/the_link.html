@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP The Link</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-link-header">
+    <div>
+      <p class="mc-eyebrow">The Spot / Communications gateway</p>
+      <h1>The Link</h1>
+      <p>Connect your postcode to people, groups and community communications.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.spot_dashboard') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.link_dashboard') }}">Open LinkUp</a>
+    </div>
+  </header>
+  <main class="mc-workspace">
+    <section class="mc-integrity">
+      <div>
+        <p class="mc-eyebrow">Protected product gateway</p>
+        <h2>{% if hierarchy.validation.passed %}The Link boundaries verified{% else %}Hierarchy conflict detected{% endif %}</h2>
+        <p>The Link is the gateway. LinkUp is the conversation product inside it.</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Route conflicts</dt><dd>{{ hierarchy.validation.checks.duplicate_routes }}</dd></div>
+        <div><dt>Execution</dt><dd>Locked</dd></div>
+      </dl>
+    </section>
+    <section class="mc-panel">
+      <p class="mc-eyebrow">Inside The Link</p>
+      <h2>LinkUp</h2>
+      <p>Private chats, groups and community rooms will operate here only after Identity, Permissions and Guardian protection pass.</p>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.link_dashboard') }}">Enter LinkUp →</a>
+    </section>
+    <aside class="mc-authority"><strong>Human Authority final</strong><span>LinkUp remains read-only until its protected messaging stack is approved.</span></aside>
+  </main>
+</body>
+</html>
