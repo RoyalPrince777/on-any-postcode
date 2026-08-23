@@ -5,7 +5,16 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import agents as agent_registry
-from . import brain, infrastructure, linkup, ollama_chat, organism, products, status
+from . import (
+    brain,
+    infrastructure,
+    light_signals,
+    linkup,
+    ollama_chat,
+    organism,
+    products,
+    status,
+)
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
 
@@ -141,6 +150,7 @@ def spot_dashboard():
             render_template(
                 "spot.html",
                 hierarchy=products.get_public_product_hierarchy(),
+                signals=light_signals.get_public_light_signals(),
             )
         )
     )
