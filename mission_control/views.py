@@ -146,6 +146,33 @@ def spot_dashboard():
     )
 
 
+@bp.get("/spot/<capability_id>")
+def spot_capability(capability_id: str):
+    """Render one allowlisted Spot capability with an honest readiness state."""
+
+    capability = products.get_public_spot_capability(capability_id)
+    if capability is None:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "unknown_spot_capability",
+                        "message": "Unsupported Spot capability.",
+                        "allowed_capabilities": list(
+                            products.LOCKED_SPOT_CAPABILITY_IDS
+                        ),
+                    }
+                ),
+                404,
+            )
+        )
+    return _no_store(
+        make_response(
+            render_template("spot_capability.html", capability=capability)
+        )
+    )
+
+
 @bp.get("/the-link")
 def the_link_dashboard():
     """Render The Link as the communications gateway inside The Spot."""
