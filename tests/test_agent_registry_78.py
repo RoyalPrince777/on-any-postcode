@@ -9,7 +9,6 @@ from mission_control.agents import (
     validate_agent_registry,
 )
 
-
 EXPECTED_FAMILY_COUNTS = {
     "civic": 19,
     "jungle_book": 10,
