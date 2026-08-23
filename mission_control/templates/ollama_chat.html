@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ chat.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-chat-header">
+    <div>
+      <p class="mc-eyebrow">OAP / SMI / Local Intelligence</p>
+      <h1>{{ chat.title }}</h1>
+      <p>{{ chat.panel_name }} · recommendation-only · Human Authority final.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.agent_intelligence') }}">Agent Intelligence</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-chat-workspace">
+    <section class="mc-integrity" aria-labelledby="ollama-readiness-title">
+      <div>
+        <p class="mc-eyebrow">Provider boundary</p>
+        <h2 id="ollama-readiness-title">Ollama is a provider—not an agent</h2>
+        <p>No provider call, message write, approval or execution occurs on this page.</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Provider</dt><dd>{{ chat.provider.name }}</dd></div>
+        <div><dt>Model</dt><dd>{{ chat.provider.model }}</dd></div>
+        <div><dt>Network</dt><dd>{{ chat.provider.scope }}</dd></div>
+        <div><dt>Status</dt><dd>{{ chat.provider.status }}</dd></div>
+        <div><dt>Authority</dt><dd>None</dd></div>
+        <div><dt>Execution</dt><dd>{{ chat.execution }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="mc-chat-layout" aria-label="Ollama chat workspace">
+      <article class="mc-panel mc-chat-panel">
+        <div class="mc-section-heading">
+          <div>
+            <p class="mc-eyebrow">Conversation</p>
+            <h2>Local advisory chat</h2>
+          </div>
+          <span class="mc-lock-badge mc-lock-badge--amber">Activation locked</span>
+        </div>
+        <div class="mc-chat-empty" role="status">
+          <strong>No conversation started</strong>
+          <p>{{ chat.activation_gate }}</p>
+        </div>
+        <div class="mc-chat-composer" aria-label="Disabled Ollama chat composer">
+          <label for="ollama-message">Message OAP Mind</label>
+          <textarea id="ollama-message" rows="4" maxlength="4000" placeholder="Identity and permission connection required" disabled></textarea>
+          <div>
+            <small>Allowed result: <code>{{ chat.allowed_output }}</code></small>
+            <button type="button" disabled>Send for recommendation</button>
+          </div>
+        </div>
+      </article>
+
+      <aside class="mc-panel mc-chat-readiness" aria-labelledby="chat-gates-title">
+        <p class="mc-eyebrow">Activation gates</p>
+        <h2 id="chat-gates-title">Fail-closed readiness</h2>
+        <dl>
+          {% for key, value in chat.readiness.items() %}
+          <div>
+            <dt>{{ key|replace('_', ' ')|title }}</dt>
+            <dd>{{ 'Ready' if value else 'Locked' }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </aside>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="ollama-pathway-title">
+      <p class="mc-eyebrow">Governed pathway</p>
+      <h2 id="ollama-pathway-title">Chat → review → memory</h2>
+      <ol class="mc-brain-cycle">
+        {% for stage in chat.pathway %}
+        <li>
+          <span>{{ "%02d"|format(loop.index) }}</span>
+          <div><strong>{{ stage.step }}</strong><small>{{ stage.responsibility }}</small></div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ chat.human_authority.status }}</strong>
+      <span>{{ chat.human_authority.message }}</span>
+    </aside>
+  </main>
+</body>
+</html>

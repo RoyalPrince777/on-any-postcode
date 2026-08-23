@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import agents as agent_registry
-from . import brain, infrastructure, linkup, organism, status
+from . import brain, infrastructure, linkup, ollama_chat, organism, status
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
 
@@ -103,6 +103,19 @@ def brain_status():
     """Return a coarse, read-only SMI implementation projection."""
 
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
+
+
+@bp.get("/ollama")
+def ollama_chat_dashboard():
+    """Render the local-provider chat shell without contacting the provider."""
+
+    response = make_response(
+        render_template(
+            "ollama_chat.html",
+            chat=ollama_chat.get_public_ollama_chat(),
+        )
+    )
+    return _no_store(response)
 
 
 @bp.get("/infrastructure")
