@@ -7,6 +7,13 @@ logger = logging.getLogger(__name__)
 # Repository root: assume this file lives under mission_control/ within repo root.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# Render injects DATABASE_URL when a managed PostgreSQL database is linked.
+# SQLite remains the local-first default for Termux and development.
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+if DATABASE_URL and not DATABASE_URL.startswith(("postgresql://", "postgres://")):
+    raise RuntimeError("DATABASE_URL must use PostgreSQL")
+DATABASE_BACKEND = "postgresql" if DATABASE_URL else "sqlite"
+
 # 1) Canonical DB path
 OAP_DATABASE_PATH = os.environ.get("OAP_DATABASE_PATH")
 if OAP_DATABASE_PATH:
@@ -18,7 +25,7 @@ else:
 
 # normalized absolute path
 OAP_DATABASE_PATH = str(db_path.resolve())
-logger.info(f"Resolved OAP database path: {OAP_DATABASE_PATH}")
+logger.info("Resolved OAP database backend: %s", DATABASE_BACKEND)
 
 # 2) Backup dir
 OAP_BACKUP_DIR = os.environ.get("OAP_BACKUP_DIR")

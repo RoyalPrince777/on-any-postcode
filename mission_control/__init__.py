@@ -21,7 +21,9 @@ def init_app(app: Flask) -> None:
             print(json.dumps(res))
         else:
             print("OAP Database status:")
-            print(f"  Resolved DB path: {res['db_path']}")
+            print(f"  Backend: {res['backend']}")
+            if res["db_path"]:
+                print(f"  Resolved DB path: {res['db_path']}")
             print(f"  Schema migrations applied: {len(res['applied'])}")
             if res['pending']:
                 print("  Pending migrations:")
