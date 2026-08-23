@@ -13,6 +13,7 @@ def test_registry_locks_seven_worlds_and_seven_oap_owned_families():
         "Akan Intelligence",
         "Matrix Intelligence",
         "Civilisation Intelligence",
+        "Earth Intelligence",
     )
     assert agents.INTELLIGENCE_FAMILY_NAMES == (
         "Civic Intelligence",
