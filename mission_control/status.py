@@ -14,13 +14,16 @@ from __future__ import annotations
 
 import socket
 import sqlite3
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+import psycopg
+
+from oap.database import execute, table_exists
+
 from . import config
 from .agents import get_public_family_status
-from .db import db_status
+from .db import connect_readonly, db_status
 
 _PUBLIC_ACTION_LABELS = {
     "SYSTEM_LOG_ONLY": "System log recorded",
@@ -35,17 +38,6 @@ _PUBLIC_ACTION_LABELS = {
 
 def _component(label: str, value: str, state: str) -> dict[str, str]:
     return {"label": label, "value": value, "state": state}
-
-
-def _readonly_connect(db_path: str) -> sqlite3.Connection:
-    """Open an existing SQLite file in query-only mode without creating it."""
-
-    uri = Path(db_path).resolve().as_uri() + "?mode=ro"
-    connection = sqlite3.connect(uri, uri=True, timeout=1)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA query_only = ON")
-    connection.execute("PRAGMA busy_timeout = 250")
-    return connection
 
 
 def _probe_ollama() -> bool:
@@ -65,16 +57,17 @@ def _probe_ollama() -> bool:
         return False
 
 
-def _public_timeline(db_path: str, initialized: bool) -> list[dict[str, str]]:
+def _public_timeline(initialized: bool) -> list[dict[str, str]]:
     """Return at most five allowlisted events without identities or targets."""
 
     if not initialized:
         return []
 
     try:
-        connection = _readonly_connect(db_path)
+        connection = connect_readonly()
         try:
-            rows = connection.execute(
+            rows = execute(
+                connection,
                 "SELECT action, timestamp FROM audit_events "
                 f"WHERE action IN ({', '.join('?' for _ in _PUBLIC_ACTION_LABELS)}) "
                 "ORDER BY event_seq DESC LIMIT 5",
@@ -82,7 +75,7 @@ def _public_timeline(db_path: str, initialized: bool) -> list[dict[str, str]]:
             ).fetchall()
         finally:
             connection.close()
-    except (OSError, sqlite3.Error):
+    except (OSError, RuntimeError, sqlite3.Error, psycopg.Error):
         return []
 
     return [
@@ -94,7 +87,7 @@ def _public_timeline(db_path: str, initialized: bool) -> list[dict[str, str]]:
     ]
 
 
-def _approval_summary(db_path: str, initialized: bool) -> dict[str, Any]:
+def _approval_summary(initialized: bool) -> dict[str, Any]:
     """Return coarse counts from the action-bound approval ledger."""
 
     if not initialized:
@@ -105,17 +98,11 @@ def _approval_summary(db_path: str, initialized: bool) -> dict[str, Any]:
         }
 
     try:
-        connection = _readonly_connect(db_path)
+        connection = connect_readonly()
         try:
-            receipt_table = connection.execute(
-                "SELECT 1 FROM sqlite_master "
-                "WHERE type = 'table' AND name = 'smi_approval_receipts'"
-            ).fetchone()
-            memory_table = connection.execute(
-                "SELECT 1 FROM sqlite_master "
-                "WHERE type = 'table' AND name = 'smi_memory_records'"
-            ).fetchone()
-            if receipt_table is None or memory_table is None:
+            if not table_exists(connection, "smi_approval_receipts") or not table_exists(
+                connection, "smi_memory_records"
+            ):
                 return {
                     "initialized": False,
                     "message": "Approval records not initialized",
@@ -136,7 +123,7 @@ def _approval_summary(db_path: str, initialized: bool) -> dict[str, Any]:
             ).fetchone()
         finally:
             connection.close()
-    except (OSError, sqlite3.Error):
+    except (OSError, RuntimeError, sqlite3.Error, psycopg.Error):
         return {
             "initialized": False,
             "message": "Approval records unavailable",
@@ -176,10 +163,7 @@ def get_public_gateway_status() -> dict[str, Any]:
         "healthy" if initialized else "degraded",
     )
     ollama_available = _probe_ollama()
-    approval_summary = _approval_summary(
-        database["db_path"],
-        bool(database.get("brain_runtime_initialized")),
-    )
+    approval_summary = _approval_summary(bool(database.get("brain_runtime_initialized")))
 
     components = [
         _component(
@@ -209,7 +193,7 @@ def get_public_gateway_status() -> dict[str, Any]:
         "components": components,
         "agents": agents,
         "approval_summary": approval_summary,
-        "timeline": _public_timeline(database["db_path"], initialized),
+        "timeline": _public_timeline(initialized),
         "human_authority": {
             "status": "Final approval required",
             "message": "Intelligence proposes. Human Authority approves or rejects.",

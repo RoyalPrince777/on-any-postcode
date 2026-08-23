@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-import sqlite3
+from typing import Any
+
+from oap.database import table_columns, table_exists
 
 BRAIN_REQUIRED_COLUMNS = {
     "smi_memory_records": frozenset(
@@ -117,7 +119,7 @@ SCHEMA_STATEMENTS = (
 )
 
 
-def initialize_brain_schema(connection: sqlite3.Connection) -> None:
+def initialize_brain_schema(connection: Any) -> None:
     """Create only SMI-owned tables inside an explicitly managed connection."""
 
     for table, required_columns in BRAIN_REQUIRED_COLUMNS.items():
@@ -136,7 +138,7 @@ def initialize_brain_schema(connection: sqlite3.Connection) -> None:
         raise RuntimeError("Canonical SMI brain schema initialization failed")
 
 
-def brain_schema_ready(connection: sqlite3.Connection) -> bool:
+def brain_schema_ready(connection: Any) -> bool:
     """Return whether every canonical SMI-owned table and column is present."""
 
     return all(
@@ -145,25 +147,15 @@ def brain_schema_ready(connection: sqlite3.Connection) -> bool:
     )
 
 
-def _table_exists(connection: sqlite3.Connection, table: str) -> bool:
-    return (
-        connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
-            (table,),
-        ).fetchone()
-        is not None
-    )
+def _table_exists(connection: Any, table: str) -> bool:
+    return table_exists(connection, table)
 
 
 def _table_has_columns(
-    connection: sqlite3.Connection,
+    connection: Any,
     table: str,
     required: frozenset[str],
 ) -> bool:
     if not _table_exists(connection, table):
         return False
-    columns = {
-        str(row[1])
-        for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
-    }
-    return required <= columns
+    return required <= table_columns(connection, table)

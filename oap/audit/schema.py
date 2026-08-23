@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-import sqlite3
+from typing import Any
+
+from oap.database import table_columns, table_exists
 
 AUDIT_REQUIRED_COLUMNS = frozenset(
     {
@@ -51,12 +53,8 @@ SCHEMA_STATEMENTS = (
 )
 
 
-def initialize_audit_schema(connection: sqlite3.Connection) -> None:
-    existing = connection.execute(
-        "SELECT 1 FROM sqlite_master "
-        "WHERE type = 'table' AND name = 'audit_events'"
-    ).fetchone()
-    if existing is not None and not audit_schema_ready(connection):
+def initialize_audit_schema(connection: Any) -> None:
+    if table_exists(connection, "audit_events") and not audit_schema_ready(connection):
         raise RuntimeError(
             "Existing audit_events table is incompatible; automatic replacement "
             "is forbidden"
@@ -67,17 +65,7 @@ def initialize_audit_schema(connection: sqlite3.Connection) -> None:
         raise RuntimeError("Canonical audit schema initialization failed")
 
 
-def audit_schema_ready(connection: sqlite3.Connection) -> bool:
+def audit_schema_ready(connection: Any) -> bool:
     """Return whether the canonical audit table and columns are present."""
 
-    row = connection.execute(
-        "SELECT 1 FROM sqlite_master "
-        "WHERE type = 'table' AND name = 'audit_events'"
-    ).fetchone()
-    if row is None:
-        return False
-    columns = {
-        str(item[1])
-        for item in connection.execute("PRAGMA table_info(audit_events)").fetchall()
-    }
-    return AUDIT_REQUIRED_COLUMNS <= columns
+    return AUDIT_REQUIRED_COLUMNS <= table_columns(connection, "audit_events")
