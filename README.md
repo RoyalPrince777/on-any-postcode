@@ -172,8 +172,10 @@ Visit `http://localhost:5050` in your browser.
 - One SMI brain with internal biological regions and recommendation-only output
 - Six OAP Intelligence worlds containing seven families and 78 complete,
   Human Authority-approved Soul–Mind–Body passports
-- Every agent has one unique approved role; Neo remains the only active passport
-  while all other runtime connections and execution paths remain disabled
+- Every agent has one unique approved role and bounded advisory autonomy for
+  observation, analysis, collaboration and recommendation
+- Neo remains the default coordinator; provider assignments and every agent
+  approval or execution path remain disabled
 - GPT, Claude, Gemini, Kimi, Grok, Edge/Copilot and Ollama are providers, not agents
 - Intelligence proposes, Guardian protects and Human Authority decides
 
