@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP The Link</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-link-header">
+    <div>
+      <p class="mc-eyebrow">OAP / Link Up / Read-only</p>
+      <h1>{{ link.product_name }}</h1>
+      <p>{{ link.tagline }}</p>
+      <small>{{ link.law }}</small>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-link-workspace">
+    <section class="mc-integrity" aria-labelledby="link-integrity-title">
+      <div>
+        <p class="mc-eyebrow">Communication integrity</p>
+        <h2 id="link-integrity-title">
+          {% if link.validation.passed %}The Link boundaries verified{% else %}Communication conflict detected{% endif %}
+        </h2>
+        <p>{{ link.operating_mode.label }}. {{ link.operating_mode.message }}</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Views</dt><dd>{{ link.validation.checks.dashboard_views }}</dd></div>
+        <div><dt>Owned</dt><dd>{{ link.validation.checks.communication_views }}</dd></div>
+        <div><dt>Linked</dt><dd>{{ link.validation.checks.linked_views }}</dd></div>
+        <div><dt>Name conflicts</dt><dd>{{ link.validation.checks.naming_conflicts }}</dd></div>
+        <div><dt>Owner conflicts</dt><dd>{{ link.validation.checks.ownership_conflicts }}</dd></div>
+        <div><dt>Mutations</dt><dd>{{ link.validation.checks.mutation_controls }}</dd></div>
+      </dl>
+      {% if link.validation.errors %}
+      <ul class="mc-error-list">
+        {% for error in link.validation.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-views-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Approved dashboard</p>
+          <h2 id="link-views-title">Directory, Inbox and Community Power</h2>
+        </div>
+        <span class="mc-lock-badge">Privacy first</span>
+      </div>
+      <div class="mc-link-view-grid" role="list">
+        {% for view in link.views %}
+        <article class="mc-link-view-card" id="link-view-{{ view.id }}" role="listitem">
+          <div class="mc-link-view-card__heading">
+            <div>
+              <p class="mc-organ-type">{{ view.owner }} · {{ view.ownership|replace('_', ' ') }}</p>
+              <h3>{{ view.name }}</h3>
+            </div>
+            <span class="mc-agent-status">{{ view.status }}</span>
+          </div>
+          <p>{{ view.purpose }}</p>
+          <small>{{ view.data }}</small>
+          <p class="mc-boundary-note"><strong>Boundary:</strong> {{ view.boundary }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-workspace-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Chat dashboard shell</p>
+          <h2 id="link-workspace-title">Protected communication workspace</h2>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Controls locked</span>
+      </div>
+      <div class="mc-link-shell">
+        <aside class="mc-link-rail" aria-label="The Link views">
+          {% for view in link.views %}
+          <article>
+            <strong>{{ view.name }}</strong>
+            <span>{{ view.status }}</span>
+          </article>
+          {% endfor %}
+        </aside>
+        <div class="mc-link-empty" aria-labelledby="link-private-title">
+          <span class="mc-link-lock" aria-hidden="true">LOCKED</span>
+          <h3 id="link-private-title">Private conversations stay private</h3>
+          <p>Identity and Permissions must verify the member before any directory, room or conversation can load.</p>
+          <small>No message composer is registered on this page.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-privacy-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Protection path</p>
+          <h2 id="link-privacy-title">Identity before conversation</h2>
+        </div>
+        <span class="mc-lock-badge">Guardian protected</span>
+      </div>
+      <ol class="mc-link-privacy-path" aria-label="The Link privacy path">
+        {% for step in link.privacy_path %}
+        <li>
+          <strong>{{ step.name }}</strong>
+          <span>{{ step.action }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-boundaries-title">
+      <p class="mc-eyebrow">Duplicate prevention</p>
+      <h2 id="link-boundaries-title">Related systems stay separate</h2>
+      <div class="mc-boundary-grid" role="list">
+        {% for system in link.related_systems %}
+        <article role="listitem">
+          <p class="mc-organ-type">{{ system.owner }}</p>
+          <h3>{{ system.name }}</h3>
+          <p>{{ system.relationship }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-proposals-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Not executed</p>
+          <h2 id="link-proposals-title">Proposed secure enablement</h2>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
+      </div>
+      <div class="mc-proposal-grid" role="list">
+        {% for proposal in link.proposed_enablement %}
+        <article role="listitem">
+          <strong>{{ proposal.status }}</strong>
+          <h3>{{ proposal.title }}</h3>
+          <p>{{ proposal.description }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-controls-title">
+      <p class="mc-eyebrow">Safety lock</p>
+      <h2 id="link-controls-title">Conversation controls unavailable</h2>
+      <p class="mc-notice">
+        Sending, replying, creating rooms, inviting members, uploading files and moderation actions are not enabled.
+      </p>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ link.human_authority.status }}</strong>
+      <span>{{ link.human_authority.message }}</span>
+    </aside>
+  </main>
+</body>
+</html>

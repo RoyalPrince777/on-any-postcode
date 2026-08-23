@@ -1,7 +1,6 @@
-# mission_control/config.py
+import logging
 import os
 from pathlib import Path
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -58,4 +57,3 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
 # Local mode flag
 OAP_LOCAL_MODE = os.environ.get("OAP_LOCAL_MODE", "true").lower() == "true"
-

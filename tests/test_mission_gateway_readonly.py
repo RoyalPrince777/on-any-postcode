@@ -4,7 +4,7 @@ import hashlib
 import sqlite3
 
 import app as app_module
-from mission_control import config, status
+from mission_control import audit, config, db, status
 
 
 def test_mission_renders_without_initializing_database(client, tmp_path):
@@ -38,7 +38,16 @@ def test_public_status_is_coarse_and_redacted(client):
     payload = response.get_json()
     serialized = response.get_data(as_text=True).lower()
     assert payload["human_authority"]["status"] == "Final approval required"
-    assert len(payload["agents"]) == 6
+    assert len(payload["agents"]) == 7
+    assert {family["name"] for family in payload["agents"]} == {
+        "Civic Intelligence",
+        "Jungle Book Intelligence",
+        "Animal Intelligence",
+        "Matrix Intelligence",
+        "Civilisation Intelligence",
+        "Akan Core Intelligence",
+        "Akan Animal Intelligence",
+    }
     for private_key in (
         "actor_id",
         "approval_target",
@@ -99,33 +108,33 @@ def test_public_timeline_uses_allowlist_and_omits_private_fields(
     client, tmp_path, monkeypatch
 ):
     database_path = tmp_path / "initialized.db"
-    connection = sqlite3.connect(database_path)
-    connection.execute(
-        "CREATE TABLE schema_migrations ("
-        "version TEXT PRIMARY KEY, name TEXT, checksum TEXT, applied_at TEXT)"
-    )
-    connection.execute(
-        "INSERT INTO schema_migrations VALUES "
-        "('0001_audit_foundation', '0001_audit_foundation.py', 'test', 'now')"
-    )
-    connection.execute(
-        "CREATE TABLE audit_events ("
-        "event_seq INTEGER PRIMARY KEY, action TEXT, timestamp TEXT, "
-        "actor_id TEXT, target TEXT, correlation_id TEXT)"
-    )
-    connection.execute(
-        "INSERT INTO audit_events VALUES "
-        "(1, 'HUMAN_APPROVED', '2026-08-17T08:00:00Z', "
-        "'private-actor', 'private-target', 'private-correlation')"
-    )
-    connection.execute(
-        "INSERT INTO audit_events VALUES "
-        "(2, 'PRIVATE_ACTION', '2026-08-17T08:01:00Z', "
-        "'private-actor', 'private-target', 'private-correlation')"
-    )
-    connection.commit()
-    connection.close()
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
+    monkeypatch.setattr(config, "OAP_BACKUP_DIR", str(tmp_path / "backups"))
+    db.init_db(assume_yes=True)
+    connection = sqlite3.connect(database_path)
+    audit.append_event(
+        connection,
+        actor="private-actor",
+        actor_type="human_authority",
+        authority_level=0,
+        action="HUMAN_APPROVED",
+        target="private-target",
+        reason="private reason",
+        metadata={},
+        correlation_id="private-correlation",
+    )
+    audit.append_event(
+        connection,
+        actor="private-actor",
+        actor_type="system",
+        authority_level=None,
+        action="PRIVATE_ACTION",
+        target="private-target",
+        reason="private reason",
+        metadata={},
+        correlation_id="private-correlation",
+    )
+    connection.close()
 
     response = client.get("/mission/status")
     serialized = response.get_data(as_text=True)
@@ -138,6 +147,75 @@ def test_public_timeline_uses_allowlist_and_omits_private_fields(
     assert "private-correlation" not in serialized
 
 
+def test_public_approval_summary_uses_coarse_read_only_counts(
+    client,
+    tmp_path,
+    monkeypatch,
+):
+    database_path = tmp_path / "approvals.db"
+    monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
+    monkeypatch.setattr(config, "OAP_BACKUP_DIR", str(tmp_path / "backups"))
+    db.init_db(assume_yes=True)
+    connection = sqlite3.connect(database_path)
+    memory_rows = (
+        (
+            "memory-pending",
+            "request-pending",
+            "founder-1",
+            "GENERAL",
+            "hash-pending",
+            "Pending recommendation",
+            "RECOMMENDATION_READY",
+            "GREEN",
+            "[]",
+            "[]",
+            "2026-08-20T08:00:00+00:00",
+        ),
+        (
+            "memory-approved",
+            "request-approved",
+            "founder-1",
+            "GENERAL",
+            "hash-approved",
+            "Approved recommendation",
+            "RECOMMENDATION_READY",
+            "GREEN",
+            "[]",
+            "[]",
+            "2026-08-20T08:01:00+00:00",
+        ),
+    )
+    connection.executemany(
+        "INSERT INTO smi_memory_records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        memory_rows,
+    )
+    connection.execute(
+        "INSERT INTO smi_approval_receipts VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "receipt-approved",
+            "request-approved",
+            "founder-1",
+            "APPROVED",
+            "2026-08-20T08:02:00+00:00",
+            "2026-08-20T08:17:00+00:00",
+            "digest",
+            "2026-08-20T08:02:01+00:00",
+        ),
+    )
+    connection.commit()
+    connection.close()
+
+    response = client.get("/mission/status")
+    summary = response.get_json()["approval_summary"]
+
+    assert response.status_code == 200
+    assert summary == {
+        "initialized": True,
+        "message": "Read-only approval records available",
+        "counts": {"pending": 1, "approved": 1, "rejected": 0},
+    }
+
+
 def test_mission_routes_register_get_only(client):
     rules = {
         rule.rule: set(rule.methods or ())
@@ -147,7 +225,13 @@ def test_mission_routes_register_get_only(client):
 
     assert rules["/mission"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/agents"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/brain"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/brain/status"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/infrastructure"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/linkup"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/organism"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/status"] == {"GET", "HEAD", "OPTIONS"}
     assert "/mission/chat" not in rules
+    assert "/mission/brain/run" not in rules
     assert "/mission/order" not in rules

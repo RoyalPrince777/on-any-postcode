@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Agent Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-agent-header">
+    <div>
+      <p class="mc-eyebrow">OAP / Agent Intelligence / Read-only</p>
+      <h1>Your OAP Agents</h1>
+      <p>Six Intelligence worlds containing seven owned families. Providers power agents; they never become agents.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.link_dashboard') }}">The Link</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-agent-workspace">
+    <section class="mc-integrity" aria-labelledby="agent-integrity-title">
+      <div>
+        <p class="mc-eyebrow">Registry integrity</p>
+        <h2 id="agent-integrity-title">
+          {% if directory.validation.passed %}OAP agent boundaries verified{% else %}Agent conflict detected{% endif %}
+        </h2>
+        <p>One family per agent. No duplicate identities, approved roles or authority.</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Families</dt><dd>{{ directory.validation.checks.families }}</dd></div>
+        <div><dt>Agents</dt><dd>{{ directory.validation.checks.registered_agents }}</dd></div>
+        <div><dt>Providers</dt><dd>{{ directory.validation.checks.providers }}</dd></div>
+        <div><dt>Role conflicts</dt><dd>{{ directory.validation.checks.duplicate_approved_roles }}</dd></div>
+      </dl>
+      {% if directory.validation.errors %}
+      <ul class="mc-error-list">
+        {% for error in directory.validation.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="agent-search-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Find Intelligence</p>
+          <h2 id="agent-search-title">Agent directory</h2>
+        </div>
+        <span class="mc-lock-badge">Actions locked</span>
+      </div>
+      <form class="mc-agent-search" method="get" action="{{ url_for('mission_control.agent_intelligence') }}">
+        <label for="agent-search-input">Search by agent name, ID or approved role</label>
+        <div>
+          <input
+            id="agent-search-input"
+            name="q"
+            type="search"
+            maxlength="80"
+            value="{{ directory.filters.query }}"
+            placeholder="Search Neo, Akela, NEO-001…"
+          >
+          {% if directory.filters.family_id %}
+          <input type="hidden" name="family" value="{{ directory.filters.family_id }}">
+          {% endif %}
+          <button type="submit">Search directory</button>
+        </div>
+      </form>
+    </section>
+
+    <nav class="mc-family-nav" aria-label="OAP Intelligence families">
+      <a
+        href="{{ url_for('mission_control.agent_intelligence', q=directory.filters.query) }}"
+        {% if not directory.filters.family_id %}aria-current="page"{% endif %}
+      >All families</a>
+      {% for family in directory.families %}
+      <a
+        href="{{ url_for('mission_control.agent_intelligence', family=family.id, q=directory.filters.query) }}"
+        {% if family.selected %}aria-current="page"{% endif %}
+      >{{ family.name }} <span>{{ family.registered_agents }}</span></a>
+      {% endfor %}
+    </nav>
+
+    <section class="mc-panel" aria-labelledby="family-map-title">
+      <p class="mc-eyebrow">Six worlds · seven families</p>
+      <h2 id="family-map-title">OAP Intelligence families</h2>
+      <div class="mc-family-grid" role="list">
+        {% for family in directory.families %}
+        <article class="mc-family-card{% if family.selected %} mc-family-card--selected{% endif %}" role="listitem">
+          <div class="mc-family-card__top">
+            <h3>{{ family.name }}</h3>
+            <span>{{ family.registered_agents }}</span>
+          </div>
+          <p>{{ family.purpose }}</p>
+          <small>{{ family.human_approved_agents }} human-approved · {{ family.proposed_agents }} proposed</small>
+          <small>{{ family.roster_status }}</small>
+          <a href="{{ url_for('mission_control.agent_intelligence', family=family.id) }}">View family agents</a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="registered-agents-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Soul–Mind–Body</p>
+          <h2 id="registered-agents-title">Registered agent identities</h2>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Human approval final</span>
+      </div>
+      {% if directory.agents %}
+      <div class="mc-agent-grid" role="list">
+        {% for agent in directory.agents %}
+        <article class="mc-agent-card" role="listitem" id="agent-{{ agent.agent_id|lower }}">
+          <div class="mc-agent-card__heading">
+            <div>
+              <p class="mc-organ-type">{{ agent.entity_type }}</p>
+              <h3>{{ agent.name }}</h3>
+              <code>{{ agent.agent_id }}</code>
+              <small>{{ agent.registry_status }}</small>
+            </div>
+            <span class="mc-agent-status">{{ agent.runtime_status }}</span>
+          </div>
+          <dl class="mc-agent-summary">
+            <div><dt>Family</dt><dd>{{ directory.families|selectattr('id', 'equalto', agent.family_id)|map(attribute='name')|first }}</dd></div>
+            <div><dt>Role</dt><dd>{{ agent.role or agent.role_status }}</dd></div>
+            <div><dt>SMI connection</dt><dd>{{ agent.brain_region or agent.brain_region_status }}</dd></div>
+            <div><dt>OAP owner</dt><dd>{{ agent.powered_by }}</dd></div>
+            <div><dt>Provider</dt><dd>{{ agent.provider_ids|join(', ') if agent.provider_ids else 'Not assigned' }}</dd></div>
+          </dl>
+          <details class="mc-agent-passport">
+            <summary>View Soul–Mind–Body passport</summary>
+            <div class="mc-passport-grid">
+              <section>
+                <h4>Soul</h4>
+                <p>{{ agent.soul.purpose }}</p>
+                <small>Values: {{ agent.soul['values']|join(', ') }}</small>
+                <small>Alignment: {{ agent.soul.alignment }}</small>
+              </section>
+              <section>
+                <h4>Mind</h4>
+                <p>{{ agent.mind.capabilities|join(', ') }}</p>
+                <small>Memory: {{ agent.mind.memory_access }}</small>
+                <small>Provider: {{ agent.mind.provider_assignment }}</small>
+              </section>
+              <section>
+                <h4>Body</h4>
+                <p>Tools: {{ agent.body.tools|join(', ') if agent.body.tools else 'None connected' }}</p>
+                <small>Actions: {{ agent.body.actions|join(', ') if agent.body.actions else 'None enabled' }}</small>
+                <small>Execution: {{ agent.body.execution }}</small>
+              </section>
+            </div>
+            <div class="mc-passport-governance">
+              <div>
+                <h4>Identity</h4>
+                <p>{{ agent.identity.classification }} · {{ agent.identity.purpose }}</p>
+                <p>Created by: {{ agent.created_by.organisation }} · {{ agent.created_by.authority }}</p>
+                <p>Version: {{ agent.version }} · Organ connection: {{ agent.organ or 'Requires human approval' }}</p>
+              </div>
+              <div>
+                <h4>Advisory permissions</h4>
+                <p>{{ agent.permissions|join(' · ') }}</p>
+              </div>
+              <div>
+                <h4>Restrictions</h4>
+                <ul>{% for restriction in agent.restrictions %}<li>{{ restriction }}</li>{% endfor %}</ul>
+              </div>
+              <div>
+                <h4>Protection and memory</h4>
+                <p>Guardian: {{ agent.guardian }}</p>
+                <p>Supervisor: {{ agent.supervisor }}</p>
+                <p>Memory: {{ agent.memory_system }} · Audit required</p>
+                <p>Authority level: {{ agent.authority.level if agent.authority.level is not none else 'Requires human approval' }}</p>
+              </div>
+            </div>
+          </details>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="mc-notice">No confirmed agents match this filter. Roster additions require human approval.</p>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="provider-layer-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Separate power layer</p>
+          <h2 id="provider-layer-title">Powered by providers</h2>
+        </div>
+        <span class="mc-lock-badge">Not OAP agents</span>
+      </div>
+      <p>Providers may power an agent’s Mind after approval. They never own its Soul, Body, family or authority.</p>
+      <div class="mc-provider-grid" role="list">
+        {% for provider in directory.providers %}
+        <article role="listitem">
+          <h3>{{ provider.name }}</h3>
+          <p>{{ provider.type }}</p>
+          <small>Agent assignment: Not approved</small>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="agent-controls-title">
+      <p class="mc-eyebrow">Governance lock</p>
+      <h2 id="agent-controls-title">Operational controls unavailable</h2>
+      <p class="mc-notice">
+        Identity, Permissions, Guardian, HRM audit and Human Authority approval must all be verified before any agent action control can be added.
+      </p>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ directory.human_authority.status }}</strong>
+      <span>{{ directory.human_authority.message }}</span>
+    </aside>
+  </main>
+</body>
+</html>

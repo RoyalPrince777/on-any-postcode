@@ -15,7 +15,7 @@ ON ANY POSTCODE is a full-stack community platform with:
 - **20+ Database Tables**: Scalable data architecture
 - **Member Management**: User profiles with geographic hierarchy (postcode → country → continent)
 - **World Cup 2026 Integration**: 48-team tournament framework with community features
-- **HRM Council**: Governance structure with AI agents and decision tracking
+- **OAP Intelligence**: Human-governed recommendations, agents and decision tracking
 - **Community Power**: Contribution and reputation system
 
 ---
@@ -23,7 +23,7 @@ ON ANY POSTCODE is a full-stack community platform with:
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.11+
 - pip or pipenv
 
 ### Installation
@@ -56,7 +56,7 @@ cp .env.example .env
 python app.py
 ```
 
-Visit `http://localhost:5000` in your browser.
+Visit `http://localhost:5050` in your browser.
 
 ---
 
@@ -94,7 +94,7 @@ Visit `http://localhost:5000` in your browser.
 **Operations:**
 - `/dispatch` - Delivery dispatch board
 - `/command` - Master control center
-- `/hrm/council` - HRM Council overview
+- `/hrm/council` - Historical path; not registered by the current slice
 - `/hrm/local-ai` - AI memory hub
 
 **Infrastructure:**
@@ -168,12 +168,14 @@ Visit `http://localhost:5000` in your browser.
 - **SIKA Records**: Trust system with contribution types (Contribution Recorded, Trust Earned, Value Manifested, Legacy Recorded)
 - **Verification Levels**: 8 levels from postcode to universe
 
-### HRM Council
-- God Layer and Founder governance
-- Advisory agents: Chancellor, Guardian, Architect, Archivist
-- Neo Team (Execution): Neo, Morpheus, Trinity, Oracle, Architect, Keymaker, Seraph, Tank, Dozer
-- Animal Team (Wisdom): Bee, Elephant, Owl, Gorilla, Lion, Tiger, Panther, Eagle, Dolphin, Horse, Stag
-- AI Partners: GPT, Claude, Gemini, Kimi, Grok, Edge/Copilot
+### OAP Intelligence
+- One SMI brain with internal biological regions and recommendation-only output
+- Six OAP Intelligence worlds containing seven families and 78 Soul–Mind–Body
+  passports: 25 preserved identities plus 53 disabled proposals requiring
+  individual Human Authority approval
+- Neo is the only active approved advisory role; pending roles remain unassigned
+- GPT, Claude, Gemini, Kimi, Grok, Edge/Copilot and Ollama are providers, not agents
+- Intelligence proposes, Guardian protects and Human Authority decides
 
 ### Operations
 - Business network and creator hub
@@ -243,7 +245,7 @@ Global
 │           ├── Postcode
 │           ├── Borough
 │           └── County
-├── Council (HRM Governance)
+├── Intelligence (human-governed recommendations)
 └── Community (Global)
     ├── Community Power
     ├── Businesses
@@ -341,7 +343,7 @@ Environment variables:
 
 **Build Law Process:**
 ```
-Bee collects → HRM records → Local AI summarises → Council reviews → Founder approves
+Bee collects → HRM records → Intelligence proposes → Guardian protects → Human Authority approves
 ```
 
 **Values:**

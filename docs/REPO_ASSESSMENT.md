@@ -1,5 +1,11 @@
 # Repository Assessment — KEEP / UPGRADE / MERGE / REMOVE-DUPLICATE
 
+> Superseded planning snapshot (2026-08-11). Do not treat the observations or
+> next-step list below as current implementation status. The implemented runtime
+> is documented in `mission_control/README.md`; the current duplicate and naming
+> review is `docs/ARCHITECTURE_CONFLICT_AUDIT.md`. This file remains unchanged
+> below this notice for provenance.
+
 Repository: RoyalPrince777/on-any-postcode
 Branch: smi-mission-control-slice (working branch)
 

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +60,11 @@ class HealthCheck:
                 "message": "Database connection OK",
                 "component": "database",
             }
-        except Exception as e:
-            logger.error(f"Database health check failed: {e}")
+        except Exception as exc:  # noqa: BLE001 - health boundary must degrade.
+            logger.error("Database health check failed: %s", exc)
             return {
                 "ok": False,
-                "message": f"Database error: {str(e)}",
+                "message": f"Database error: {exc!s}",
                 "component": "database",
             }
 
@@ -78,11 +78,11 @@ class HealthCheck:
                 "component": "audit_chain",
                 "events_checked": verification["checked"],
             }
-        except Exception as e:
-            logger.error(f"Audit chain health check failed: {e}")
+        except Exception as exc:  # noqa: BLE001 - health boundary must degrade.
+            logger.error("Audit chain health check failed: %s", exc)
             return {
                 "ok": False,
-                "message": f"Audit chain error: {str(e)}",
+                "message": f"Audit chain error: {exc!s}",
                 "component": "audit_chain",
             }
 
@@ -109,10 +109,10 @@ class HealthCheck:
                 "component": "registry",
                 "agent_count": validation["count"],
             }
-        except Exception as e:
-            logger.error(f"Registry health check failed: {e}")
+        except Exception as exc:  # noqa: BLE001 - health boundary must degrade.
+            logger.error("Registry health check failed: %s", exc)
             return {
                 "ok": False,
-                "message": f"Registry error: {str(e)}",
+                "message": f"Registry error: {exc!s}",
                 "component": "registry",
             }

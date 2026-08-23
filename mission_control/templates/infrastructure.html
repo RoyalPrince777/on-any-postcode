@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Infrastructure</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-infrastructure-header">
+    <div>
+      <p class="mc-eyebrow">OAP / Infrastructure / Read-only</p>
+      <h1>Infrastructure</h1>
+      <p>Maps, Weather, eSIM and Connectivity in one bounded system view.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.link_dashboard') }}">The Link</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-infrastructure-workspace">
+    <section class="mc-integrity" aria-labelledby="infrastructure-integrity-title">
+      <div>
+        <p class="mc-eyebrow">Boundary integrity</p>
+        <h2 id="infrastructure-integrity-title">
+          {% if infrastructure.validation.passed %}Infrastructure boundaries verified{% else %}Infrastructure conflict detected{% endif %}
+        </h2>
+        <p>{{ infrastructure.operating_mode.label }}. {{ infrastructure.operating_mode.message }}</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Modules</dt><dd>{{ infrastructure.validation.checks.canonical_modules }}</dd></div>
+        <div><dt>Duplicate IDs</dt><dd>{{ infrastructure.validation.checks.duplicate_ids }}</dd></div>
+        <div><dt>Name conflicts</dt><dd>{{ infrastructure.validation.checks.naming_conflicts }}</dd></div>
+        <div><dt>Overlaps</dt><dd>{{ infrastructure.validation.checks.ownership_overlaps }}</dd></div>
+        <div><dt>Mutations</dt><dd>{{ infrastructure.validation.checks.mutation_controls }}</dd></div>
+      </dl>
+      {% if infrastructure.validation.errors %}
+      <ul class="mc-error-list">
+        {% for error in infrastructure.validation.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="infrastructure-scope-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Locked scope</p>
+          <h2 id="infrastructure-scope-title">Infrastructure modules</h2>
+        </div>
+        <span class="mc-lock-badge">Upgrade-only</span>
+      </div>
+      <p>Each card reports honest readiness. No live provider or service is inferred from this interface.</p>
+      <div class="mc-infrastructure-grid" role="list">
+        {% for module in infrastructure.modules %}
+        <article class="mc-infrastructure-card" id="infrastructure-{{ module.id }}" role="listitem">
+          <div class="mc-infrastructure-card__heading">
+            <div>
+              <p class="mc-organ-type">Infrastructure module {{ "%02d"|format(loop.index) }}</p>
+              <h3>{{ module.name }}</h3>
+            </div>
+            <span class="mc-agent-status">{{ module.status }}</span>
+          </div>
+          <p>{{ module.purpose }}</p>
+          <dl class="mc-infrastructure-facts">
+            <div><dt>Readiness</dt><dd>{{ module.readiness }}</dd></div>
+            <div><dt>Data source</dt><dd>{{ module.data }}</dd></div>
+          </dl>
+          <p class="mc-boundary-note"><strong>Boundary:</strong> {{ module.boundary }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="shared-health-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Linked, not owned</p>
+          <h2 id="shared-health-title">Shared system health</h2>
+        </div>
+        <span class="mc-lock-badge">Mission Control projection</span>
+      </div>
+      <p>This coarse status widget is shared from Mission Control. It is not a fifth Infrastructure module.</p>
+      <div class="mc-status-ribbon" role="list">
+        {% for component in shared_health %}
+        <div class="mc-status mc-status--{{ component.state }}" role="listitem">
+          <span>{{ component.label }}</span>
+          <strong>{{ component.value }}</strong>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="infrastructure-boundaries-title">
+      <p class="mc-eyebrow">Duplicate prevention</p>
+      <h2 id="infrastructure-boundaries-title">Related systems stay separate</h2>
+      <div class="mc-boundary-grid" role="list">
+        {% for system in infrastructure.related_systems %}
+        <article role="listitem">
+          <p class="mc-organ-type">{{ system.owner }}</p>
+          <h3>{{ system.name }}</h3>
+          <p>{{ system.relationship }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="infrastructure-proposals-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Not executed</p>
+          <h2 id="infrastructure-proposals-title">Proposed provider connections</h2>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
+      </div>
+      <div class="mc-proposal-grid" role="list">
+        {% for proposal in infrastructure.proposed_connections %}
+        <article role="listitem">
+          <strong>{{ proposal.status }}</strong>
+          <h3>{{ proposal.title }}</h3>
+          <p>{{ proposal.description }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="infrastructure-controls-title">
+      <p class="mc-eyebrow">Safety lock</p>
+      <h2 id="infrastructure-controls-title">Operational controls unavailable</h2>
+      <p class="mc-notice">
+        Maps and Weather provider calls, eSIM purchase or activation, and Connectivity network changes are not enabled.
+      </p>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: {{ infrastructure.human_authority.status }}</strong>
+      <span>{{ infrastructure.human_authority.message }}</span>
+    </aside>
+  </main>
+</body>
+</html>

@@ -12,31 +12,14 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-INTELLIGENCE_WORLDS = (
-    "GPT Intelligence",
-    "Claude Intelligence",
-    "Gemini Intelligence",
-    "Kimi Intelligence",
-    "Grok Intelligence",
-    "Edge/Copilot Intelligence",
+from .agents import ADVISORY_AGENT_NAMES as ADVISORY_AGENTS
+from .agents import (
+    AGENT_ANATOMY,
+    INTELLIGENCE_FAMILIES,
+    INTELLIGENCE_PROVIDERS,
+    validate_agent_registry,
 )
-
-AGENT_ANATOMY = (
-    {
-        "name": "Soul",
-        "purpose": "Purpose, values, ethics and constitutional alignment.",
-    },
-    {
-        "name": "Mind",
-        "purpose": "Reasoning, contextual understanding and permitted memory access.",
-    },
-    {
-        "name": "Body",
-        "purpose": "Approved tools, interfaces and bounded action capability.",
-    },
-)
-
-ADVISORY_AGENTS = ("Neo", "Akela", "Bagheera", "Gyata", "Shere Khan")
+from .agents import INTELLIGENCE_WORLD_NAMES as INTELLIGENCE_WORLDS
 
 # Named advisors are preserved, but no region or governance-role assignment is
 # approved in this read-only slice.  Assignments must be added only after human
@@ -453,6 +436,12 @@ def validate_architecture(
     if anatomy_names != ("Soul", "Mind", "Body"):
         errors.append("Every agent anatomy must remain Soul, Mind and Body only.")
 
+    agent_validation = validate_agent_registry()
+    if not agent_validation["passed"]:
+        errors.extend(
+            f"Agent registry: {error}" for error in agent_validation["errors"]
+        )
+
     return {
         "passed": not errors,
         "errors": errors,
@@ -460,10 +449,17 @@ def validate_architecture(
             "canonical_systems": len(system_items),
             "smi_regions": len(region_items),
             "intelligence_worlds": len(world_items),
+            "intelligence_families": len(INTELLIGENCE_FAMILIES),
             "duplicate_systems": len(duplicate_ids),
             "duplicate_names": len(duplicate_labels),
             "overlapping_anatomy_roles": len(duplicate_anatomy_roles),
             "duplicate_agent_roles": len(duplicate_agent_roles),
+            "registered_agents": agent_validation["checks"]["registered_agents"],
+            "locked_agent_count": agent_validation["checks"]["locked_agent_count"],
+            "missing_passports": agent_validation["checks"]["missing_passports"],
+            "roster_complete": agent_validation["checks"]["roster_complete"],
+            "proposed_passports": agent_validation["checks"]["proposed_passports"],
+            "registry_ready_for_activation": agent_validation["ready_for_activation"],
             "brain_count": len(brains),
             "final_authority": "Human Authority",
         },
@@ -478,6 +474,8 @@ def get_public_anatomy() -> dict[str, Any]:
         "systems": ORGANISM_SYSTEMS,
         "smi_regions": SMI_REGIONS,
         "intelligence_worlds": INTELLIGENCE_WORLDS,
+        "intelligence_families": INTELLIGENCE_FAMILIES,
+        "intelligence_providers": INTELLIGENCE_PROVIDERS,
         "agent_anatomy": AGENT_ANATOMY,
         "advisory_agents": ADVISORY_AGENTS,
         "governance_law": GOVERNANCE_LAW,

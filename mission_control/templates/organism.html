@@ -14,6 +14,9 @@
       <p>One overall-system anatomy. Every agent keeps Soul–Mind–Body.</p>
     </div>
     <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.link_dashboard') }}">The Link</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
     </div>
@@ -116,10 +119,11 @@
     <div class="mc-two-column">
       <section class="mc-panel" aria-labelledby="intelligence-worlds-title">
         <p class="mc-eyebrow">Preserved network</p>
-        <h2 id="intelligence-worlds-title">Six Intelligence worlds</h2>
+        <h2 id="intelligence-worlds-title">Six OAP Intelligence worlds</h2>
         <ol class="mc-world-list">
           {% for world in anatomy.intelligence_worlds %}<li>{{ world }}</li>{% endfor %}
         </ol>
+        <a class="mc-secondary-link" href="{{ url_for('mission_control.agent_intelligence') }}">Open Agent Intelligence</a>
       </section>
 
       <section class="mc-panel" aria-labelledby="agent-anatomy-title">
@@ -139,6 +143,19 @@
         </p>
       </section>
     </div>
+
+    <section class="mc-panel" aria-labelledby="anatomy-providers-title">
+      <p class="mc-eyebrow">Powered by</p>
+      <h2 id="anatomy-providers-title">Providers are not agents</h2>
+      <div class="mc-provider-grid" role="list">
+        {% for provider in anatomy.intelligence_providers %}
+        <article role="listitem">
+          <h3>{{ provider.name }}</h3>
+          <p>{{ provider.type }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
 
     <section class="mc-panel" aria-labelledby="human-gate-title">
       <div class="mc-section-heading">

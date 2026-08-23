@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: on-any-postcode
+    runtime: python
+    plan: free
+    autoDeployTrigger: "off"
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: OAP_LOCAL_MODE
+        value: "true"
+      - key: OAP_TWO_PERSON_ENABLED
+        value: "false"

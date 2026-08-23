@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
 import logging
+from uuid import uuid4
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
