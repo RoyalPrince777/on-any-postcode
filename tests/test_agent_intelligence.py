@@ -58,10 +58,12 @@ def test_agent_registry_is_unique_safe_and_contains_confirmed_agents():
     assert validation["passed"] is True
     assert validation["ready_for_activation"] is False
     assert validation["errors"] == []
-    assert validation["checks"]["registered_agents"] == 25
+    assert validation["checks"]["registered_agents"] == 78
     assert validation["checks"]["locked_agent_count"] == 78
-    assert validation["checks"]["missing_passports"] == 53
-    assert validation["checks"]["roster_complete"] is False
+    assert validation["checks"]["missing_passports"] == 0
+    assert validation["checks"]["roster_complete"] is True
+    assert validation["checks"]["proposed_passports"] == 53
+    assert validation["checks"]["human_approved_passports"] == 25
     assert validation["checks"]["duplicate_agent_ids"] == 0
     assert validation["checks"]["duplicate_agent_names"] == 0
     assert validation["checks"]["duplicate_approved_roles"] == 0
@@ -104,6 +106,23 @@ def test_unapproved_roles_and_provider_assignments_are_not_invented():
     assert all("EXECUTE" not in agent["permissions"] for agent in agents.AGENT_REGISTRY)
 
 
+def test_53_draft_passports_are_explicitly_disabled_until_individual_approval():
+    proposed = [
+        agent
+        for agent in agents.AGENT_REGISTRY
+        if agent["registry_status"] == "PROPOSED"
+    ]
+
+    assert len(proposed) == 53
+    assert all(agent["status"] == "PROPOSED" for agent in proposed)
+    assert all(agent["role"] is None for agent in proposed)
+    assert all(agent["provider_ids"] == () for agent in proposed)
+    assert all(agent["body"]["tools"] == () for agent in proposed)
+    assert all(agent["body"]["actions"] == () for agent in proposed)
+    assert all(agent["body"]["execution"] == "Disabled" for agent in proposed)
+    assert all("EXECUTE" not in agent["permissions"] for agent in proposed)
+
+
 def test_duplicate_approved_role_is_rejected():
     duplicate_role = {
         **agents.AGENT_REGISTRY[1],
@@ -142,14 +161,16 @@ def test_agent_ui_is_read_only_and_does_not_create_database(
     assert not database_path.exists()
 
 
-def test_family_filter_and_empty_roster_are_honest(client):
+def test_family_filter_reports_proposed_roster_honestly(client):
     matrix = client.get("/mission/agents?family=matrix").get_data(as_text=True)
     civic = client.get("/mission/agents?family=civic").get_data(as_text=True)
 
     assert "Neo" in matrix
     assert "Morpheus" in matrix
     assert 'id="agent-jungle-akela-001"' not in matrix
-    assert "No confirmed agents match this filter" in civic
+    assert "Postcode Beacon" in civic
+    assert "PROPOSED" in civic
+    assert "Disabled — requires human approval" in civic
     assert 'aria-current="page"' in matrix
 
 

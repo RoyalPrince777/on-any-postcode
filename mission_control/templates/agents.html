@@ -80,7 +80,7 @@
       <a
         href="{{ url_for('mission_control.agent_intelligence', family=family.id, q=directory.filters.query) }}"
         {% if family.selected %}aria-current="page"{% endif %}
-      >{{ family.name }} <span>{{ family.confirmed_agents }}</span></a>
+      >{{ family.name }} <span>{{ family.registered_agents }}</span></a>
       {% endfor %}
     </nav>
 
@@ -92,9 +92,10 @@
         <article class="mc-family-card{% if family.selected %} mc-family-card--selected{% endif %}" role="listitem">
           <div class="mc-family-card__top">
             <h3>{{ family.name }}</h3>
-            <span>{{ family.confirmed_agents }}</span>
+            <span>{{ family.registered_agents }}</span>
           </div>
           <p>{{ family.purpose }}</p>
+          <small>{{ family.human_approved_agents }} human-approved · {{ family.proposed_agents }} proposed</small>
           <small>{{ family.roster_status }}</small>
           <a href="{{ url_for('mission_control.agent_intelligence', family=family.id) }}">View family agents</a>
         </article>
@@ -119,6 +120,7 @@
               <p class="mc-organ-type">{{ agent.entity_type }}</p>
               <h3>{{ agent.name }}</h3>
               <code>{{ agent.agent_id }}</code>
+              <small>{{ agent.registry_status }}</small>
             </div>
             <span class="mc-agent-status">{{ agent.runtime_status }}</span>
           </div>

@@ -10,8 +10,9 @@ or activate any architecture component.
 - Fourteen internal SMI regions; Synthetic Mind is an internal organ and
   Brainstem is a bridge.
 - Six distinct OAP Intelligence worlds contain seven families.
-- 25 of the locked 78 agent passports are preserved in code; the remaining 53
-  identities require an authoritative human-approved roster and are not fabricated.
+- All 78 passport slots are represented: 25 preserved identities and 53
+  explicit disabled proposals. Proposed passports have no role, provider,
+  tools or execution path and require individual Human Authority approval.
 - Agent anatomy remains Soul–Mind–Body.
 - External model providers remain separate from OAP agents and Intelligence
   families.

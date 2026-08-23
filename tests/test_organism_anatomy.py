@@ -17,10 +17,12 @@ def test_canonical_architecture_passes_all_integrity_checks():
     assert validation["checks"]["duplicate_agent_roles"] == 0
     assert validation["checks"]["intelligence_worlds"] == 6
     assert validation["checks"]["intelligence_families"] == 7
-    assert validation["checks"]["registered_agents"] == 25
+    assert validation["checks"]["registered_agents"] == 78
     assert validation["checks"]["locked_agent_count"] == 78
-    assert validation["checks"]["missing_passports"] == 53
-    assert validation["checks"]["roster_complete"] is False
+    assert validation["checks"]["missing_passports"] == 0
+    assert validation["checks"]["roster_complete"] is True
+    assert validation["checks"]["proposed_passports"] == 53
+    assert validation["checks"]["registry_ready_for_activation"] is False
     assert validation["checks"]["final_authority"] == "Human Authority"
 
 

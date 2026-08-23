@@ -184,6 +184,24 @@ def _preserved_agent(
     }
 
 
+def _proposed_agent(agent_id: str, name: str, family_id: str) -> dict[str, Any]:
+    """Create a non-operational draft passport pending named human approval."""
+
+    passport = _preserved_agent(agent_id, name, family_id)
+    passport.update(
+        {
+            "registry_status": "PROPOSED",
+            "runtime_status": "Disabled — requires human approval",
+            "status": "PROPOSED",
+        }
+    )
+    passport["soul"] = {
+        **passport["soul"],
+        "purpose": "Proposed OAP identity; purpose requires human approval.",
+    }
+    return passport
+
+
 NEO = {
     "agent_id": "NEO-001",
     "created_by": dict(_CREATED_BY),
@@ -241,7 +259,7 @@ NEO = {
 }
 
 
-AGENT_REGISTRY: tuple[dict[str, Any], ...] = (
+PRESERVED_AGENT_REGISTRY: tuple[dict[str, Any], ...] = (
     NEO,
     _preserved_agent("MATRIX-MORPHEUS-001", "Morpheus", "matrix"),
     _preserved_agent("MATRIX-TRINITY-001", "Trinity", "matrix"),
@@ -288,6 +306,72 @@ AGENT_REGISTRY: tuple[dict[str, Any], ...] = (
         aliases=("Akan Lion",),
     ),
 )
+
+# These names complete the 78-passport implementation target as a reviewable
+# draft. They carry no role, provider, tool, execution permission or runtime
+# activation. Human Authority must approve each identity before PROPOSED can be
+# changed to PRESERVED or ACTIVE.
+PROPOSED_AGENT_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("CIVIC-POSTCODE-BEACON-001", "Postcode Beacon", "civic"),
+    ("CIVIC-BOROUGH-BRIDGE-001", "Borough Bridge", "civic"),
+    ("CIVIC-COUNTY-COMPASS-001", "County Compass", "civic"),
+    ("CIVIC-COUNTRY-LINK-001", "Country Link", "civic"),
+    ("CIVIC-CONTINENT-RELAY-001", "Continent Relay", "civic"),
+    ("CIVIC-COMMUNITY-LISTENER-001", "Community Listener", "civic"),
+    ("CIVIC-SIGNAL-KEEPER-001", "Signal Keeper", "civic"),
+    ("CIVIC-LOCAL-GUIDE-001", "Local Guide", "civic"),
+    ("CIVIC-NEIGHBOURHOOD-VOICE-001", "Neighbourhood Voice", "civic"),
+    ("CIVIC-PUBLIC-SERVICE-001", "Public Service", "civic"),
+    ("CIVIC-BUSINESS-CONNECTOR-001", "Business Connector", "civic"),
+    ("CIVIC-CREATOR-LINK-001", "Creator Link", "civic"),
+    ("CIVIC-YOUTH-VOICE-001", "Youth Voice", "civic"),
+    ("CIVIC-ELDER-VOICE-001", "Elder Voice", "civic"),
+    ("CIVIC-FAMILY-LINK-001", "Family Link", "civic"),
+    ("CIVIC-SAFETY-LIAISON-001", "Safety Liaison", "civic"),
+    ("CIVIC-EVENT-COORDINATOR-001", "Event Coordinator", "civic"),
+    ("CIVIC-TRANSPORT-SCOUT-001", "Transport Scout", "civic"),
+    ("CIVIC-OPPORTUNITY-FINDER-001", "Opportunity Finder", "civic"),
+    ("ANIMAL-BEAR-001", "Bear", "animal"),
+    ("ANIMAL-WOLF-001", "Wolf", "animal"),
+    ("ANIMAL-FOX-001", "Fox", "animal"),
+    ("ANIMAL-SHARK-001", "Shark", "animal"),
+    ("ANIMAL-WHALE-001", "Whale", "animal"),
+    ("ANIMAL-CHEETAH-001", "Cheetah", "animal"),
+    ("ANIMAL-SPIDER-001", "Spider", "animal"),
+    ("ANIMAL-DOLPHIN-001", "Dolphin", "animal"),
+    ("ANIMAL-SNAKE-001", "Snake", "animal"),
+    ("ANIMAL-TIGER-001", "Tiger", "animal"),
+    ("ANIMAL-HORSE-001", "Horse", "animal"),
+    ("ANIMAL-STAG-001", "Stag", "animal"),
+    ("ANIMAL-OCTOPUS-001", "Octopus", "animal"),
+    ("ANIMAL-TURTLE-001", "Turtle", "animal"),
+    ("CIVILISATION-HISTORIAN-001", "Civilisation Historian", "civilisation"),
+    ("CIVILISATION-EDUCATOR-001", "Civilisation Educator", "civilisation"),
+    ("CIVILISATION-INNOVATOR-001", "Civilisation Innovator", "civilisation"),
+    ("CIVILISATION-DIPLOMAT-001", "Civilisation Diplomat", "civilisation"),
+    ("CIVILISATION-STEWARD-001", "Civilisation Steward", "civilisation"),
+    ("CIVILISATION-ARTISAN-001", "Civilisation Artisan", "civilisation"),
+    ("CIVILISATION-FUTURIST-001", "Civilisation Futurist", "civilisation"),
+    ("AKAN-CORE-NANA-001", "Nana", "akan_core"),
+    ("AKAN-ANANSE-001", "Akan Spider", "akan_animal"),
+    ("AKAN-ELEPHANT-001", "Akan Elephant", "akan_animal"),
+    ("AKAN-EAGLE-001", "Akan Eagle", "akan_animal"),
+    ("AKAN-FALCON-001", "Akan Falcon", "akan_animal"),
+    ("AKAN-OWL-001", "Akan Owl", "akan_animal"),
+    ("AKAN-BEE-001", "Akan Bee", "akan_animal"),
+    ("AKAN-PANTHER-001", "Akan Panther", "akan_animal"),
+    ("AKAN-CROCODILE-001", "Akan Crocodile", "akan_animal"),
+    ("AKAN-TORTOISE-001", "Akan Tortoise", "akan_animal"),
+    ("AKAN-ANTELOPE-001", "Akan Antelope", "akan_animal"),
+    ("AKAN-BUFFALO-001", "Akan Buffalo", "akan_animal"),
+    ("AKAN-HORNBILL-001", "Akan Hornbill", "akan_animal"),
+)
+
+PROPOSED_AGENT_REGISTRY = tuple(
+    _proposed_agent(agent_id, name, family_id)
+    for agent_id, name, family_id in PROPOSED_AGENT_SPECS
+)
+AGENT_REGISTRY = PRESERVED_AGENT_REGISTRY + PROPOSED_AGENT_REGISTRY
 
 
 def _normalise(value: str) -> str:
@@ -421,9 +505,12 @@ def validate_agent_registry(
         errors.append("Prohibited or legacy names found: " + ", ".join(banned_names))
 
     roster_complete = len(agent_items) == LOCKED_AGENT_COUNT
+    proposed_passports = sum(
+        item.get("registry_status") == "PROPOSED" for item in agent_items
+    )
     return {
         "passed": not errors,
-        "ready_for_activation": not errors and roster_complete,
+        "ready_for_activation": not errors and roster_complete and not proposed_passports,
         "errors": errors,
         "checks": {
             "worlds": len(INTELLIGENCE_WORLDS),
@@ -432,6 +519,8 @@ def validate_agent_registry(
             "locked_agent_count": LOCKED_AGENT_COUNT,
             "missing_passports": max(LOCKED_AGENT_COUNT - len(agent_items), 0),
             "roster_complete": roster_complete,
+            "proposed_passports": proposed_passports,
+            "human_approved_passports": len(agent_items) - proposed_passports,
             "providers": len(provider_items),
             "duplicate_providers": len(duplicate_provider_ids)
             + len(duplicate_provider_names),
@@ -444,9 +533,15 @@ def validate_agent_registry(
     }
 
 
-def _family_counts(agents: Iterable[Mapping[str, Any]]) -> dict[str, int]:
+def _family_counts(
+    agents: Iterable[Mapping[str, Any]],
+    *,
+    registry_status: str | None = None,
+) -> dict[str, int]:
     counts = {family_id: 0 for family_id in LOCKED_FAMILY_IDS}
     for agent in agents:
+        if registry_status and agent.get("registry_status") != registry_status:
+            continue
         counts[agent["family_id"]] += 1
     return counts
 
@@ -455,12 +550,16 @@ def get_public_family_status() -> list[dict[str, Any]]:
     """Return honest family-level status for the existing gateway cards."""
 
     counts = _family_counts(AGENT_REGISTRY)
+    proposed = _family_counts(AGENT_REGISTRY, registry_status="PROPOSED")
     return [
         {
             "family_id": family["id"],
             "name": family["name"],
             "status": "Not connected",
-            "assignment": f"{counts[family['id']]} confirmed agent(s); no live assignment",
+            "assignment": (
+                f"{counts[family['id']]} passport(s), "
+                f"{proposed[family['id']]} proposed; no live assignment"
+            ),
         }
         for family in INTELLIGENCE_FAMILIES
     ]
@@ -474,6 +573,7 @@ def get_public_agent_directory(
 
     validation = validate_agent_registry()
     counts = _family_counts(AGENT_REGISTRY)
+    proposed = _family_counts(AGENT_REGISTRY, registry_status="PROPOSED")
     search = query.strip().casefold()[:80]
     selected_agents = [
         agent
@@ -490,7 +590,9 @@ def get_public_agent_directory(
     families = [
         {
             **family,
-            "confirmed_agents": counts[family["id"]],
+            "registered_agents": counts[family["id"]],
+            "proposed_agents": proposed[family["id"]],
+            "human_approved_agents": counts[family["id"]] - proposed[family["id"]],
             "selected": family["id"] == family_id,
         }
         for family in INTELLIGENCE_FAMILIES

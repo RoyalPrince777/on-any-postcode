@@ -458,6 +458,8 @@ def validate_architecture(
             "locked_agent_count": agent_validation["checks"]["locked_agent_count"],
             "missing_passports": agent_validation["checks"]["missing_passports"],
             "roster_complete": agent_validation["checks"]["roster_complete"],
+            "proposed_passports": agent_validation["checks"]["proposed_passports"],
+            "registry_ready_for_activation": agent_validation["ready_for_activation"],
             "brain_count": len(brains),
             "final_authority": "Human Authority",
         },

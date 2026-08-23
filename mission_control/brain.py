@@ -88,9 +88,13 @@ def get_public_brain_status() -> dict[str, Any]:
         ),
         _component(
             "Agent Registry",
-            f"{len(AGENT_REGISTRY)} of 78 preserved agents across 7 families",
+            f"{len(AGENT_REGISTRY)} passports across 7 families",
             f"{active_agents} active; no new region roles assigned",
-            "ready" if architecture["checks"].get("roster_complete") else "waiting",
+            (
+                "ready"
+                if architecture["checks"].get("registry_ready_for_activation")
+                else "waiting"
+            ),
             "Agents advise; they do not become organs or final authority.",
         ),
         _component(
