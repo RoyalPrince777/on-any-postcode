@@ -13,7 +13,7 @@ def test_brain_status_reports_one_brain_and_all_regions():
     assert projection["regions"] == 14
     assert projection["families"] == 7
     assert projection["agents"] == 78
-    assert projection["validation"]["checks"]["proposed_passports"] == 53
+    assert projection["validation"]["checks"]["proposed_passports"] == 0
     assert projection["validation"]["checks"]["registry_ready_for_activation"] is False
     assert "EXECUTE" not in projection["allowed_outputs"]
     assert len(projection["processing_cycle"]) == 14

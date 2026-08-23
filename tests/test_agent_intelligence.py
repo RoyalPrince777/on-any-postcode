@@ -62,8 +62,9 @@ def test_agent_registry_is_unique_safe_and_contains_confirmed_agents():
     assert validation["checks"]["locked_agent_count"] == 78
     assert validation["checks"]["missing_passports"] == 0
     assert validation["checks"]["roster_complete"] is True
-    assert validation["checks"]["proposed_passports"] == 53
-    assert validation["checks"]["human_approved_passports"] == 25
+    assert validation["registry_complete"] is True
+    assert validation["checks"]["proposed_passports"] == 0
+    assert validation["checks"]["human_approved_passports"] == 78
     assert validation["checks"]["duplicate_agent_ids"] == 0
     assert validation["checks"]["duplicate_agent_names"] == 0
     assert validation["checks"]["duplicate_approved_roles"] == 0
@@ -95,55 +96,61 @@ def test_neo_passport_preserves_locked_identity_and_authority():
     assert neo["status"] == "ACTIVE"
 
 
-def test_unapproved_roles_and_provider_assignments_are_not_invented():
-    pending_agents = [agent for agent in agents.AGENT_REGISTRY if agent["name"] != "Neo"]
+def test_approved_roles_are_complete_without_provider_assignments():
+    approved_agents = [agent for agent in agents.AGENT_REGISTRY if agent["name"] != "Neo"]
 
-    assert pending_agents
-    assert all(agent["role"] is None for agent in pending_agents)
-    assert all(agent["brain_region"] is None for agent in pending_agents)
+    assert approved_agents
+    assert all(agent["role"] for agent in approved_agents)
+    assert all(agent["role_status"] == "Approved" for agent in approved_agents)
+    assert all(agent["brain_region"] == "SMI advisory interface" for agent in approved_agents)
     assert all(agent["powered_by"] == "ON ANY POSTCODE" for agent in agents.AGENT_REGISTRY)
     assert all(agent["provider_ids"] == () for agent in agents.AGENT_REGISTRY)
     assert all("EXECUTE" not in agent["permissions"] for agent in agents.AGENT_REGISTRY)
-
-
-def test_53_draft_passports_are_explicitly_disabled_until_individual_approval():
-    proposed = [
-        agent
+    assert all(
+        agent["autonomy"]["mode"] == "BOUNDED_ADVISORY"
+        and agent["autonomy"]["can_execute"] is False
         for agent in agents.AGENT_REGISTRY
-        if agent["registry_status"] == "PROPOSED"
-    ]
-
-    assert len(proposed) == 53
-    assert all(agent["status"] == "PROPOSED" for agent in proposed)
-    assert all(agent["role"] is None for agent in proposed)
-    assert all(agent["provider_ids"] == () for agent in proposed)
-    assert all(agent["body"]["tools"] == () for agent in proposed)
-    assert all(agent["body"]["actions"] == () for agent in proposed)
-    assert all(agent["body"]["execution"] == "Disabled" for agent in proposed)
-    assert all("EXECUTE" not in agent["permissions"] for agent in proposed)
+    )
 
 
-def test_proposed_passport_cannot_be_activated_by_field_mutation():
+def test_all_78_approved_passports_remain_runtime_disabled():
+    assert len(agents.AGENT_REGISTRY) == 78
+    assert all(agent["role_status"] == "Approved" for agent in agents.AGENT_REGISTRY)
+    assert all(agent["provider_ids"] == () for agent in agents.AGENT_REGISTRY)
+    assert all(
+        agent["body"]["execution"] in {"Disabled", "Human approval required"}
+        for agent in agents.AGENT_REGISTRY
+    )
+    assert all("EXECUTE" not in agent["permissions"] for agent in agents.AGENT_REGISTRY)
+
+
+def test_approved_passport_cannot_gain_runtime_authority_by_field_mutation():
+    original = next(agent for agent in agents.AGENT_REGISTRY if agent["name"] != "Neo")
     unsafe = {
-        **agents.PROPOSED_AGENT_REGISTRY[0],
+        **original,
         "status": "ACTIVE",
-        "role": "Unapproved Builder",
+        "runtime_status": "Connected",
         "provider_ids": ("gpt",),
+        "permissions": (*original["permissions"], "EXECUTE"),
         "body": {
-            **agents.PROPOSED_AGENT_REGISTRY[0]["body"],
+            **original["body"],
             "tools": ("shell",),
             "actions": ("execute",),
             "execution": "Enabled",
         },
     }
+    registry = tuple(
+        unsafe if agent["agent_id"] == original["agent_id"] else agent
+        for agent in agents.AGENT_REGISTRY
+    )
     validation = agents.validate_agent_registry(
-        agents=(*agents.PRESERVED_AGENT_REGISTRY, unsafe)
+        agents=registry
     )
 
     assert validation["passed"] is False
     assert validation["ready_for_activation"] is False
-    assert validation["checks"]["unsafe_proposals"] == 1
-    assert any("must remain disabled" in error for error in validation["errors"])
+    assert validation["checks"]["unsafe_authority"] == 1
+    assert any("Unsafe agent authority" in error for error in validation["errors"])
 
 
 def test_duplicate_approved_role_is_rejected():
@@ -184,7 +191,7 @@ def test_agent_ui_is_read_only_and_does_not_create_database(
     assert not database_path.exists()
 
 
-def test_family_filter_reports_proposed_roster_honestly(client):
+def test_family_filter_reports_approved_roster_honestly(client):
     matrix = client.get("/mission/agents?family=matrix").get_data(as_text=True)
     civic = client.get("/mission/agents?family=civic").get_data(as_text=True)
 
@@ -192,8 +199,8 @@ def test_family_filter_reports_proposed_roster_honestly(client):
     assert "Morpheus" in matrix
     assert 'id="agent-jungle-akela-001"' not in matrix
     assert "Postcode Beacon" in civic
-    assert "PROPOSED" in civic
-    assert "Disabled — requires human approval" in civic
+    assert "ACTIVE" in civic
+    assert "Bounded autonomous advisory — execution disabled" in civic
     assert 'aria-current="page"' in matrix
 
 
