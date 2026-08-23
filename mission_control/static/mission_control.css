@@ -1109,6 +1109,33 @@
   margin-top: 5px;
 }
 
+.mc-signal-legend {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-top: 1rem;
+}
+
+.mc-signal-chip {
+  align-items: center;
+  background: var(--mc-panel-soft);
+  border: 1px solid var(--mc-line);
+  border-left: 4px solid currentColor;
+  border-radius: 10px;
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.8rem;
+}
+
+.mc-signal-chip--green { color: #62e58b; }
+.mc-signal-chip--yellow { color: #ffe36e; }
+.mc-signal-chip--orange { color: #ffad5c; }
+.mc-signal-chip--red { color: #ff6b6b; }
+.mc-signal-chip--purple { color: #c59cff; }
+.mc-signal-chip--blue { color: #73b7ff; }
+.mc-signal-chip--white { color: #f4f4f4; }
+.mc-signal-chip--black { color: #a5a5a5; }
+
 @media (max-width: 768px) {
   .mc-workspace-header {
     align-items: flex-start;

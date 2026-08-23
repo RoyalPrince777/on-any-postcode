@@ -55,6 +55,19 @@
         {% endfor %}
       </div>
     </section>
+    <section class="mc-panel" aria-labelledby="light-signals-title">
+      <p class="mc-eyebrow">Shared visual language</p>
+      <h2 id="light-signals-title">OAP Light Signals</h2>
+      <p>{{ signals.boundary }}.</p>
+      <div class="mc-signal-legend" role="list" aria-label="OAP status signal meanings">
+        {% for signal in signals.lights %}
+        <div class="mc-signal-chip mc-signal-chip--{{ signal.colour }}" role="listitem">
+          <span aria-hidden="true">{{ signal.emoji }}</span>
+          <strong>{{ signal.label }}</strong>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
     <aside class="mc-authority"><strong>Read-only launch</strong><span>No messaging or execution control is enabled.</span></aside>
   </main>
 </body>
