@@ -495,6 +495,28 @@ def validate_agent_registry(
     if unsafe_agents:
         errors.append("Unsafe agent authority detected: " + ", ".join(unsafe_agents))
 
+    unsafe_proposals = sorted(
+        item["agent_id"]
+        for item in agent_items
+        if item.get("registry_status") == "PROPOSED"
+        and (
+            item.get("status") != "PROPOSED"
+            or item.get("role") is not None
+            or item.get("brain_region") is not None
+            or bool(item.get("provider_ids"))
+            or bool(item.get("body", {}).get("tools"))
+            or bool(item.get("body", {}).get("actions"))
+            or item.get("body", {}).get("execution") != "Disabled"
+            or tuple(item.get("permissions", ()))
+            != ("READ", "ANALYSE", "RECOMMEND")
+        )
+    )
+    if unsafe_proposals:
+        errors.append(
+            "Proposed passports must remain disabled: "
+            + ", ".join(unsafe_proposals)
+        )
+
     canonical_names = family_names + agent_labels
     banned_names = [
         name
@@ -529,6 +551,7 @@ def validate_agent_registry(
             "duplicate_approved_roles": len(duplicate_roles),
             "unknown_families": len(unknown_families),
             "unsafe_authority": len(unsafe_agents),
+            "unsafe_proposals": len(unsafe_proposals),
         },
     }
 

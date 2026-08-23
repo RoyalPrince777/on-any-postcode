@@ -1,2 +1,7 @@
 Flask==3.0.3
 gunicorn==22.0.0
+PyJWT[crypto]>=2.8,<3
+pyotp>=2.9,<3
+qrcode[pil]>=7.4,<9
+slowapi>=0.1.9,<1
+starlette>=0.37,<1

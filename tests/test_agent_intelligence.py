@@ -123,6 +123,29 @@ def test_53_draft_passports_are_explicitly_disabled_until_individual_approval():
     assert all("EXECUTE" not in agent["permissions"] for agent in proposed)
 
 
+def test_proposed_passport_cannot_be_activated_by_field_mutation():
+    unsafe = {
+        **agents.PROPOSED_AGENT_REGISTRY[0],
+        "status": "ACTIVE",
+        "role": "Unapproved Builder",
+        "provider_ids": ("gpt",),
+        "body": {
+            **agents.PROPOSED_AGENT_REGISTRY[0]["body"],
+            "tools": ("shell",),
+            "actions": ("execute",),
+            "execution": "Enabled",
+        },
+    }
+    validation = agents.validate_agent_registry(
+        agents=(*agents.PRESERVED_AGENT_REGISTRY, unsafe)
+    )
+
+    assert validation["passed"] is False
+    assert validation["ready_for_activation"] is False
+    assert validation["checks"]["unsafe_proposals"] == 1
+    assert any("must remain disabled" in error for error in validation["errors"])
+
+
 def test_duplicate_approved_role_is_rejected():
     duplicate_role = {
         **agents.AGENT_REGISTRY[1],

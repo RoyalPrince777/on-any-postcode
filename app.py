@@ -1,9 +1,37 @@
-from flask import Flask, redirect, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request
 
 import mission_control.status as mc_status
 from mission_control import init_app as _mc_init
+from mission_control.agents import validate_agent_registry
+from mission_control.db import db_status
+from mission_control.organism import validate_architecture
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
+
+MAX_PUBLIC_RECORDS = 100
+
+
+def _form_text(name, default, max_length):
+    value = request.form.get(name, default)
+    return str(value).strip()[:max_length]
+
+
+def _prepend_bounded(records, item):
+    records.insert(0, item)
+    del records[MAX_PUBLIC_RECORDS:]
+
+
+@app.after_request
+def _security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), payment=()",
+    )
+    return response
 
 signal_posts = []
 team_messages = []
@@ -104,35 +132,65 @@ def home():
 
 @app.route("/signal", methods=["POST"])
 def signal():
-    signal_posts.insert(0, {
-        "name": request.form.get("name", "OAP"),
-        "body": request.form.get("body", "")
+    _prepend_bounded(signal_posts, {
+        "name": _form_text("name", "OAP", 80),
+        "body": _form_text("body", "", 2000),
     })
     return redirect("/#signal")
 
 @app.route("/room", methods=["POST"])
 def room():
-    team_messages.insert(0, {
-        "room": request.form.get("room", "Team Room"),
-        "name": request.form.get("name", "Visitor"),
-        "message": request.form.get("message", "")
+    _prepend_bounded(team_messages, {
+        "room": _form_text("room", "Team Room", 80),
+        "name": _form_text("name", "Visitor", 80),
+        "message": _form_text("message", "", 2000),
     })
     return redirect("/#teams")
 
 @app.route("/flag", methods=["POST"])
 def flag():
-    team = request.form.get("team", "")
+    team = _form_text("team", "", 120)
     if team:
         flag_counts[team] = flag_counts.get(team, 0) + 1
     return redirect("/#teams")
 
 @app.route("/myworld", methods=["POST"])
 def myworld():
-    profiles.insert(0, {
-        "nickname": request.form.get("nickname", "OAP Visitor"),
-        "country": request.form.get("country", "")
+    _prepend_bounded(profiles, {
+        "nickname": _form_text("nickname", "OAP Visitor", 80),
+        "country": _form_text("country", "", 80),
     })
     return redirect("/#myworld")
+
+
+@app.get("/healthz")
+def healthz():
+    """Return a side-effect-free, non-sensitive deployment readiness check."""
+
+    architecture = validate_architecture()
+    registry = validate_agent_registry()
+    database = db_status()
+    ready = (
+        architecture["passed"]
+        and registry["ready_for_activation"]
+        and bool(database["initialized"])
+    )
+    response = jsonify(
+        status="healthy" if ready else "degraded",
+        live=True,
+        checks={
+            "architecture_integrity": architecture["passed"],
+            "registry_integrity": registry["passed"],
+            "registry_activation_ready": registry["ready_for_activation"],
+            "database_initialized": bool(database["initialized"]),
+        },
+        governance={
+            "human_authority_final": True,
+            "execution_exposed": False,
+        },
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)

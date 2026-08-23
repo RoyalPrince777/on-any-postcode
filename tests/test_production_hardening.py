@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+import app as app_module
+
+
+def test_healthz_is_read_only_redacted_and_fail_closed(client, tmp_path, monkeypatch):
+    database_path = tmp_path / "healthz.db"
+    monkeypatch.setattr(app_module.mc_status.config, "OAP_DATABASE_PATH", str(database_path))
+
+    response = client.get("/healthz")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert payload["live"] is True
+    assert payload["status"] == "degraded"
+    assert payload["checks"]["architecture_integrity"] is True
+    assert payload["checks"]["registry_integrity"] is True
+    assert payload["checks"]["registry_activation_ready"] is False
+    assert payload["governance"] == {
+        "human_authority_final": True,
+        "execution_exposed": False,
+    }
+    assert "db_path" not in response.get_data(as_text=True)
+    assert not database_path.exists()
+    assert client.post("/healthz").status_code == 405
+
+
+def test_security_headers_are_applied_to_public_and_mission_routes(client):
+    for path in ("/", "/healthz", "/mission/", "/mission/agents"):
+        response = client.get(path)
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "DENY"
+        assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+        assert response.headers["Permissions-Policy"] == (
+            "camera=(), microphone=(), geolocation=(), payment=()"
+        )
+
+
+def test_public_in_memory_records_are_bounded_and_input_is_truncated(client):
+    app_module.signal_posts.clear()
+    for index in range(app_module.MAX_PUBLIC_RECORDS + 5):
+        response = client.post(
+            "/signal",
+            data={"name": "N" * 200, "body": f"{index}-" + "B" * 3000},
+        )
+        assert response.status_code == 302
+
+    assert len(app_module.signal_posts) == app_module.MAX_PUBLIC_RECORDS
+    assert len(app_module.signal_posts[0]["name"]) == 80
+    assert len(app_module.signal_posts[0]["body"]) == 2000
