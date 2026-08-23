@@ -1,3 +1,5 @@
+from html import escape
+
 from mission_control import products
 
 
@@ -21,7 +23,7 @@ def test_every_spot_capability_has_a_working_read_only_route(client):
 
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
-        assert capability["name"] in page
+        assert escape(capability["name"]) in page
         assert capability["owner"] in page
         assert capability["status"] in page
         assert client.post(f"/mission/spot/{capability['id']}").status_code == 405
@@ -39,7 +41,7 @@ def test_spot_dashboard_lists_every_capability(client):
 
     assert "Everything in The Spot" in page
     for capability in products.SPOT_CAPABILITIES:
-        assert capability["name"] in page
+        assert escape(capability["name"]) in page
 
 
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():
