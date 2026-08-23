@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private Sovereign SMI</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header mc-private-header">
+    <div>
+      <p class="mc-eyebrow">Restricted / Human Authority / Level 0</p>
+      <h1>Private Sovereign SMI</h1>
+      <p>Sovereign Megaverse Intelligence operational readiness.</p>
+    </div>
+    <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">Public SMI</a>
+  </header>
+  <main class="mc-workspace">
+    <aside class="mc-authority" aria-label="Verified authority">
+      <strong>Verified Human Authority</strong>
+      <span>{{ brain.identity.identity_id }} · Authority level {{ brain.identity.authority_level }}</span>
+    </aside>
+    <section class="mc-panel" aria-labelledby="private-runtime-title">
+      <h2 id="private-runtime-title">Private runtime readiness</h2>
+      <div class="mc-status-ribbon" role="list">
+        <div class="mc-status" role="listitem"><span>Database backend</span><strong>{{ brain.runtime.database_backend }}</strong></div>
+        <div class="mc-status" role="listitem"><span>Database initialized</span><strong>{{ brain.runtime.database_initialized }}</strong></div>
+        <div class="mc-status" role="listitem"><span>Brain storage</span><strong>{{ brain.runtime.brain_runtime_initialized }}</strong></div>
+        <div class="mc-status" role="listitem"><span>Pending migrations</span><strong>{{ brain.runtime.pending_migrations }}</strong></div>
+        <div class="mc-status" role="listitem"><span>Execution exposed</span><strong>{{ brain.runtime.execution_exposed }}</strong></div>
+      </div>
+    </section>
+    <section class="mc-panel" aria-labelledby="private-components-title">
+      <h2 id="private-components-title">Subsystem operations</h2>
+      <div class="mc-brain-grid" role="list">
+        {% for component in brain.components %}
+        <article class="mc-brain-card mc-brain-card--{{ component.state }}" role="listitem">
+          <h3>{{ component.name }}</h3><p>{{ component.runtime }}</p><small>{{ component.boundary }}</small>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="mc-panel" aria-labelledby="private-controls-title">
+      <h2 id="private-controls-title">Sovereign controls</h2>
+      <p class="mc-notice">Controls remain disabled until authenticated approvals, CSRF, MFA and audit persistence are verified.</p>
+    </section>
+  </main>
+</body>
+</html>

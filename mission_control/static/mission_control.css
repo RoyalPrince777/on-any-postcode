@@ -16,6 +16,11 @@
   color: var(--mc-text);
 }
 
+.mc-private-header {
+  border-bottom: 2px solid var(--mc-amber);
+  background: linear-gradient(135deg, #10281a, #3a2b0c);
+}
+
 .mc-gateway *,
 .mc-workspace-body * {
   box-sizing: border-box;

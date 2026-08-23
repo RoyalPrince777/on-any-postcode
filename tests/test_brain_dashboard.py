@@ -31,7 +31,7 @@ def test_brain_dashboard_is_read_only_and_does_not_create_database(
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "SMI Brain Runtime" in page
+    assert "Sovereign Megaverse Intelligence" in page
     assert "Single-brain boundaries verified" in page
     assert "SMI cannot produce EXECUTE" in page
     assert "Zero default Builder actions" in page

@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template, request
+from flask import (
+    Blueprint,
+    current_app,
+    jsonify,
+    make_response,
+    render_template,
+    request,
+)
+
+from oap.contracts import IdentityRecord
 
 from . import agents as agent_registry
 from . import brain, infrastructure, linkup, ollama_chat, organism, status, war_room
@@ -86,8 +95,9 @@ def agent_intelligence():
 
 
 @bp.get("/brain")
+@bp.get("/smi")
 def brain_dashboard():
-    """Render SMI implementation readiness without running a signal."""
+    """Render the redacted public SMI dashboard without running a signal."""
 
     response = make_response(
         render_template(
@@ -99,10 +109,78 @@ def brain_dashboard():
 
 
 @bp.get("/brain/status")
+@bp.get("/smi/status")
 def brain_status():
     """Return a coarse, read-only SMI implementation projection."""
 
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
+
+
+def _resolve_private_identity() -> IdentityRecord | None:
+    """Use an injected canonical resolver; never trust query/header identity."""
+
+    resolver = current_app.extensions.get("oap_identity_resolver")
+    if not callable(resolver):
+        return None
+    identity = resolver(request)
+    return identity if isinstance(identity, IdentityRecord) else None
+
+
+@bp.get("/smi/private")
+def private_smi_dashboard():
+    """Render private SMI operations only after canonical Identity validation."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "authentication_required",
+                        "message": "Private SMI dashboard requires Human Authority.",
+                    }
+                ),
+                403,
+            )
+        )
+    try:
+        projection = brain.get_private_brain_status(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "authorization_denied",
+                        "message": "Private SMI dashboard permission denied.",
+                    }
+                ),
+                403,
+            )
+        )
+    return _no_store(
+        make_response(render_template("smi_private.html", brain=projection))
+    )
+
+
+@bp.get("/smi/private/status")
+def private_smi_status():
+    """Return private operational status through the same strict gate."""
+
+    identity = _resolve_private_identity()
+    if identity is None:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "authentication_required"}),
+                403,
+            )
+        )
+    try:
+        projection = brain.get_private_brain_status(identity)
+    except PermissionError:
+        return _no_store(
+            make_response(jsonify(error={"code": "authorization_denied"}), 403)
+        )
+    return _no_store(make_response(jsonify(projection)))
 
 
 @bp.get("/ollama")
