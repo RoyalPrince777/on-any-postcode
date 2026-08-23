@@ -11,6 +11,8 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.7
       - key: OAP_LOCAL_MODE
-        value: "true"
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
       - key: OAP_TWO_PERSON_ENABLED
         value: "false"
