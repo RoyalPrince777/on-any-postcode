@@ -12,7 +12,7 @@ Current read-only surface:
 - `status.py`: separate public and authorized status projections. Public data
   is coarse and redacted; authorized data fails closed until Identity and
   Permission checks exist.
-- `agents.py`: one canonical registry for six Intelligence worlds containing
+- `agents.py`: one canonical registry for seven Intelligence worlds containing
   seven OAP-owned families, confirmed Soul–Mind–Body passports and separately scoped
   external providers. Unapproved roles and brain assignments remain empty.
 - `infrastructure.py`: the locked Maps, Weather, eSIM and Connectivity scope,
@@ -26,7 +26,7 @@ Current read-only surface:
   code versus runtime connection honestly and never constructs or runs SMI.
 - `organism.py`: canonical Digital Organism registry and duplicate-boundary
   validation. It locks SMI as the single brain, Living Kernel as the heart,
-  the six Intelligence worlds, seven families, agent Soul–Mind–Body, and Human Authority as
+  the seven Intelligence worlds, seven existing families, agent Soul–Mind–Body, and Human Authority as
   the only final authority.
 - `views.py`: GET-only `/mission`, `/mission/agents`,
   `/mission/brain`, `/mission/brain/status`, `/mission/infrastructure`,

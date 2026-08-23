@@ -24,7 +24,10 @@ def test_registry_contains_exactly_78_complete_oap_agents():
     assert LOCKED_AGENT_COUNT == 78
     assert len(AGENT_REGISTRY) == LOCKED_AGENT_COUNT
     assert Counter(agent["family_id"] for agent in AGENT_REGISTRY) == EXPECTED_FAMILY_COUNTS
-    assert len(INTELLIGENCE_WORLDS) == 6
+    assert len(INTELLIGENCE_WORLDS) == 7
+    earth = next(world for world in INTELLIGENCE_WORLDS if world["id"] == "earth")
+    assert earth["name"] == "Earth Intelligence"
+    assert earth["roster_status"].startswith("Approved world")
     assert len(INTELLIGENCE_FAMILIES) == 7
 
 

@@ -71,6 +71,15 @@ INTELLIGENCE_WORLDS: tuple[dict[str, str], ...] = (
     {"id": "akan", "name": "Akan Intelligence"},
     {"id": "matrix", "name": "Matrix Intelligence"},
     {"id": "civilisation", "name": "Civilisation Intelligence"},
+    {
+        "id": "earth",
+        "name": "Earth Intelligence",
+        "purpose": (
+            "Nature, climate, land, water, air, ecosystems, agriculture, resources, "
+            "disaster awareness, sustainability and planetary wellbeing."
+        ),
+        "roster_status": "Approved world — family and agents not yet assigned",
+    },
 )
 LOCKED_WORLD_IDS = tuple(world["id"] for world in INTELLIGENCE_WORLDS)
 INTELLIGENCE_WORLD_NAMES = tuple(world["name"] for world in INTELLIGENCE_WORLDS)

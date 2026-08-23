@@ -5,7 +5,7 @@ import json
 from mission_control import agents, config
 
 
-def test_registry_locks_six_worlds_and_seven_oap_owned_families():
+def test_registry_locks_seven_worlds_and_seven_oap_owned_families():
     assert agents.INTELLIGENCE_WORLD_NAMES == (
         "Civic Intelligence",
         "Jungle Book Intelligence",
@@ -13,6 +13,7 @@ def test_registry_locks_six_worlds_and_seven_oap_owned_families():
         "Akan Intelligence",
         "Matrix Intelligence",
         "Civilisation Intelligence",
+        "Earth Intelligence",
     )
     assert agents.INTELLIGENCE_FAMILY_NAMES == (
         "Civic Intelligence",
@@ -23,7 +24,9 @@ def test_registry_locks_six_worlds_and_seven_oap_owned_families():
         "Akan Core Intelligence",
         "Akan Animal Intelligence",
     )
-    assert len(agents.LOCKED_WORLD_IDS) == 6
+    assert len(agents.LOCKED_WORLD_IDS) == 7
+    assert "earth" in agents.LOCKED_WORLD_IDS
+    assert all(family["world_id"] != "earth" for family in agents.INTELLIGENCE_FAMILIES)
     assert len(agents.LOCKED_FAMILY_IDS) == 7
     assert len(set(agents.LOCKED_FAMILY_IDS)) == 7
     assert {
@@ -178,7 +181,8 @@ def test_agent_ui_is_read_only_and_does_not_create_database(
 
     assert response.status_code == 200
     assert "Your OAP Agents" in page
-    assert "Six worlds · seven families" in page
+    assert "Seven worlds · seven families" in page
+    assert "Earth Intelligence is approved" in page
     assert "Neo" in page
     assert "Akela" in page
     assert "Gyata" in page
