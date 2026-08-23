@@ -9,7 +9,8 @@ or activate any architecture component.
 - One heart and approved-action coordinator: Living Kernel.
 - Fourteen internal SMI regions; Synthetic Mind is an internal organ and
   Brainstem is a bridge.
-- Six distinct OAP Intelligence worlds contain seven families.
+- Seven distinct OAP Intelligence worlds contain seven existing families. Earth
+  Intelligence is additive and approved; no family or agent has been moved into it.
 - All 78 OAP-owned passports are complete and Human Authority-approved, with
   unique identities, roles and responsibilities. Every passport has bounded
   advisory autonomy; provider assignments, approval and execution remain disabled.
@@ -47,6 +48,8 @@ only as a legacy compatibility path and is not registered by this slice.
    outside the deployable source tree. No files were deleted or moved here.
 2. Approve any future agent or SMI-region assignment only after the identity,
    role and responsibility duplicate validators pass. No runtime was activated here.
-3. Approve each Identity source, provider assignment and Builder handler before
+3. Approve an Earth Intelligence family and agent roster before assigning any
+   existing or new agent to that world. The world currently has no family or agent.
+4. Approve each Identity source, provider assignment and Builder handler before
    wiring it to an authenticated operational interface. No public execution
    route was added here.
