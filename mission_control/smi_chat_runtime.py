@@ -177,4 +177,10 @@ def health() -> dict:
             reason = type(exc).__name__
     return {"status":"green" if all(checks.values()) else "degraded",
             "checks":checks,"green":sum(checks.values()),"total":len(checks),
-            "database_reason": reason}
+            "database_reason": reason,
+            "environment": {
+                "revision_present": bool(os.environ.get("OAP_ENV_REVISION")),
+                "database_url_present": bool(os.environ.get("DATABASE_URL")),
+                "oap_neon_url_present": bool(os.environ.get("OAP_NEON_DATABASE_URL")),
+                "encoded_neon_url_present": bool(os.environ.get("OAP_NEON_DATABASE_URL_B64")),
+            }}
