@@ -94,7 +94,7 @@ def test_link_ui_is_read_only_and_does_not_create_database(
     assert "No message composer is registered" in page
     assert 'method="post"' not in page.lower()
     assert client.post("/mission/linkup").status_code == 405
-    assert client.get("/mission/chat").status_code == 404
+    assert client.get("/mission/chat").status_code == 405
     assert not database_path.exists()
 
 

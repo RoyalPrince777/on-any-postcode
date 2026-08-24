@@ -5,20 +5,20 @@ import json
 from mission_control import config, ollama_chat
 
 
-def test_ollama_chat_projection_preserves_provider_and_authority_boundaries():
+def test_smi_chat_projection_preserves_provider_and_authority_boundaries():
     projection = ollama_chat.get_public_ollama_chat()
 
-    assert projection["provider"]["id"] == "ollama"
-    assert projection["provider"]["model"] == "qwen2.5:1.5b"
-    assert projection["provider"]["scope"] == "Loopback only"
+    assert projection["provider"]["id"] == "openai"
+    assert projection["provider"]["model"] == "gpt-5-mini"
+    assert projection["provider"]["scope"] == "Governed cloud provider"
     assert projection["provider"]["agent"] is False
     assert projection["provider"]["authority"] is False
     assert projection["readiness"]["composer_enabled"] is False
-    assert projection["execution"] == "Disabled"
+    assert projection["execution"] == "Recommendation only"
     assert projection["human_authority"]["status"] == "Final approval required"
 
 
-def test_ollama_chat_dashboard_is_read_only_and_does_not_create_database(
+def test_smi_chat_dashboard_is_governed_and_does_not_create_local_database(
     client, tmp_path, monkeypatch
 ):
     database_path = tmp_path / "ollama-chat.db"
@@ -29,12 +29,12 @@ def test_ollama_chat_dashboard_is_read_only_and_does_not_create_database(
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert "OAP Dashboard Chat" in page
-    assert "OAP Mind Assistant Panel" in page
-    assert "qwen2.5:1.5b" in page
-    assert "Ollama is a provider—not an agent" in page
-    assert "Send for recommendation" in page
-    assert "disabled" in page
+    assert "Sovereign Megaverse Intelligence" in page
+    assert "Message OAP Mind" in page
+    assert "Real-time · Streamed" in page
+    assert "Durable · Conversation history" in page
+    assert "Code proposal" in page
+    assert "apply and deploy remain locked" in page
     assert 'method="post"' not in page.lower()
     assert client.post("/mission/ollama").status_code == 405
     assert client.post("/mission/ollama/send").status_code == 404
@@ -50,13 +50,12 @@ def test_ollama_chat_get_never_calls_provider(client, monkeypatch):
     assert client.get("/mission/ollama").status_code == 200
 
 
-def test_non_loopback_ollama_configuration_fails_closed(monkeypatch):
+def test_non_loopback_local_fallback_is_not_reported_ready(monkeypatch):
     monkeypatch.setattr(config, "OLLAMA_URL", "https://example.invalid/api/generate")
 
     projection = ollama_chat.get_public_ollama_chat()
 
-    assert projection["provider"]["scope"] == "Blocked configuration"
-    assert projection["readiness"]["loopback_endpoint"] is False
+    assert projection["readiness"]["local_fallback_loopback"] is False
     assert projection["readiness"]["composer_enabled"] is False
 
 

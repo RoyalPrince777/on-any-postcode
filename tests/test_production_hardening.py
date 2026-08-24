@@ -17,6 +17,9 @@ def test_healthz_is_read_only_redacted_and_fail_closed(client, tmp_path, monkeyp
     assert payload["checks"]["architecture_integrity"] is True
     assert payload["checks"]["registry_integrity"] is True
     assert payload["checks"]["registry_activation_ready"] is False
+    assert payload["checks"]["csrf_protection"] is True
+    assert payload["checks"]["bounded_rate_controls"] is True
+    assert payload["checks"]["session_secret_configured"] is False
     assert payload["governance"] == {
         "human_authority_final": True,
         "execution_exposed": False,
@@ -33,19 +36,38 @@ def test_security_headers_are_applied_to_public_and_mission_routes(client):
         assert response.headers["X-Frame-Options"] == "DENY"
         assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
         assert response.headers["Permissions-Policy"] == (
-            "camera=(), microphone=(), geolocation=(), payment=()"
+            "camera=(self), microphone=(self), geolocation=(), payment=()"
         )
+        assert "default-src 'self'" in response.headers["Content-Security-Policy"]
+        assert response.headers["X-OAP-Request-ID"]
 
 
-def test_public_in_memory_records_are_bounded_and_input_is_truncated(client):
+def test_public_local_records_are_bounded_and_input_is_truncated(
+    client, csrf, monkeypatch
+):
     app_module.signal_posts.clear()
+    monkeypatch.setattr(
+        app_module.web_security.PUBLIC_WRITE_LIMITER, "allow", lambda _key: True
+    )
     for index in range(app_module.MAX_PUBLIC_RECORDS + 5):
         response = client.post(
             "/signal",
-            data={"name": "N" * 200, "body": f"{index}-" + "B" * 3000},
+            data={
+                **csrf,
+                "name": "N" * 200,
+                "body": f"{index}-" + "B" * 3000,
+            },
         )
         assert response.status_code == 302
 
     assert len(app_module.signal_posts) == app_module.MAX_PUBLIC_RECORDS
     assert len(app_module.signal_posts[0]["name"]) == 80
     assert len(app_module.signal_posts[0]["body"]) == 2000
+
+
+def test_public_writes_require_csrf(client):
+    response = client.post("/signal", data={"name": "Neo", "body": "Signal"})
+
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "csrf_failed"
+    assert app_module.signal_posts == []

@@ -14,5 +14,19 @@ services:
         value: "false"
       - key: DATABASE_URL
         sync: false
+      - key: OAP_SESSION_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OAP_AI_PROVIDER
+        value: openai
+      - key: OAP_AI_MODEL
+        value: gpt-5-mini
+      - key: OAP_CHAT_RATE_LIMIT
+        value: "12"
+      - key: OAP_AGENT_REGISTRY_APPROVED
+        value: "true"
+      - key: OAP_ENV_REVISION
+        value: smi-production-gap-fill-v3
       - key: OAP_TWO_PERSON_ENABLED
         value: "false"

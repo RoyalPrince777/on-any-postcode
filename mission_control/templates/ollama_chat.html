@@ -8,9 +8,9 @@
     :root{--green:#35d778;--dark:#06100a;--panel:#102219;--line:#2b4f38;--gold:#d7b759}
     .smi-shell{max-width:1120px;margin:auto;padding:20px}.smi-hero{background:linear-gradient(145deg,#122a1b,#07100a);border:1px solid var(--line);border-radius:22px;padding:24px}
     .qualities{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.quality{border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#0a170f;color:#dff5e6;font-size:.8rem}.lights{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:18px}.light{padding:10px;border:1px solid var(--line);border-radius:12px;background:#09150e;font-size:.78rem}.lamp{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);margin-right:7px}
-    .chatbox{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:var(--panel);overflow:hidden}.messages{min-height:300px;max-height:54vh;overflow:auto;padding:18px}.msg{max-width:82%;padding:12px 14px;border-radius:15px;margin:9px 0;white-space:pre-wrap;line-height:1.5;position:relative}.msg-text{white-space:pre-wrap}.msg-actions{display:flex;justify-content:flex-end;margin-top:8px}.copy{border:1px solid var(--line);border-radius:9px;background:#11251a;color:#dff5e6;padding:6px 10px;cursor:pointer;font:inherit;font-size:.76rem}.copy:hover,.copy:focus{border-color:var(--green)}.user{margin-left:auto;background:#1d5433}.assistant{background:#0a150f;border:1px solid var(--line)}.system{color:#b8c8be;font-size:.85rem}
+	    .workspace-grid{display:grid;grid-template-columns:270px minmax(0,1fr);gap:14px;margin-top:18px}.history{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:14px;min-height:420px}.history-head{display:flex;gap:8px;align-items:center;justify-content:space-between}.history-list{display:grid;gap:8px;margin-top:12px}.history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;border:1px solid var(--line);border-radius:12px;padding:8px;background:#09150e}.history-open{border:0;background:transparent;color:#e8fff0;text-align:left;cursor:pointer;min-width:0}.history-title,.history-preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.history-title{font-weight:800}.history-preview{font-size:.72rem;color:#a9baaf;margin-top:3px}.history-delete{border:0;background:transparent;color:#dca4a4;cursor:pointer}.history-empty{font-size:.82rem;color:#a9baaf}.chatbox{border:1px solid var(--line);border-radius:20px;background:var(--panel);overflow:hidden}.messages{min-height:300px;max-height:54vh;overflow:auto;padding:18px}.msg{max-width:82%;padding:12px 14px;border-radius:15px;margin:9px 0;white-space:pre-wrap;line-height:1.5;position:relative}.msg-text{white-space:pre-wrap}.msg-actions{display:flex;justify-content:flex-end;margin-top:8px}.copy{border:1px solid var(--line);border-radius:9px;background:#11251a;color:#dff5e6;padding:6px 10px;cursor:pointer;font:inherit;font-size:.76rem}.copy:hover,.copy:focus{border-color:var(--green)}.user{margin-left:auto;background:#1d5433}.assistant{background:#0a150f;border:1px solid var(--line)}.system{color:#b8c8be;font-size:.85rem}
     .composer{padding:14px;border-top:1px solid var(--line);display:grid;gap:10px}.composer textarea,.composer input{width:100%;border:1px solid var(--line);border-radius:12px;background:#07100a;color:white;padding:12px;font:inherit}.tool-btn{border:1px solid var(--line);border-radius:11px;background:#11251a;color:#e8fff0;padding:10px 12px;cursor:pointer;font:inherit}.tool-btn.active{border-color:var(--green);box-shadow:0 0 10px #35d77855}.preview{display:none;align-items:center;gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px}.preview.show{display:flex}.preview img{width:64px;height:64px;object-fit:cover;border-radius:9px}.send{border:0;border-radius:12px;background:var(--green);color:#031007;padding:12px 18px;font-weight:900;cursor:pointer}.send:disabled{opacity:.5}.row{display:flex;gap:10px;align-items:center}.row input{max-width:220px}.status{color:#b7c8bd;font-size:.8rem}.navs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.navs a{padding:8px 11px;border:1px solid var(--line);border-radius:999px}
-    @media(max-width:720px){.lights{grid-template-columns:repeat(2,1fr)}.msg{max-width:94%}.row{align-items:stretch;flex-direction:column}.row input{max-width:none}}
+	    @media(max-width:820px){.workspace-grid{grid-template-columns:1fr}.history{min-height:0}.lights{grid-template-columns:repeat(2,1fr)}.msg{max-width:94%}.row{align-items:stretch;flex-direction:column}.row input{max-width:none}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -20,10 +20,16 @@
     <p class="mc-eyebrow">OAP / SOVEREIGN MEGAVERSE INTELLIGENCE</p>
     <h1>SMI — Sovereign Megaverse Intelligence</h1>
     <p>Recommendation-only intelligence. Guardian protects. HRM remembers. Human Authority remains final.</p>
-    <div class="qualities"><span class="quality">🟢 Adaptive · HRM context</span><span class="quality">🟢 Coherent · Constitution checked</span><span class="quality">🟢 Audio · Transcribed</span><span class="quality">🟢 Video · Sampled frames</span><span class="quality">🟢 PDF · Documents</span></div>
+	    <div class="qualities"><span class="quality">🟢 Real-time · Streamed</span><span class="quality">🟢 Durable · Conversation history</span><span class="quality">🟢 Adaptive · HRM context</span><span class="quality">🟢 Coherent · Constitution checked</span><span class="quality">🟢 Audio · Transcribed</span><span class="quality">🟢 Video · Sampled frames</span><span class="quality">🟢 PDF · Documents</span></div>
     <div class="lights" id="lights" aria-label="Live SMI health"></div>
   </section>
-  <section class="chatbox">
+	  <section class="workspace-grid">
+	   <aside class="history" aria-label="SMI conversation history">
+	    <div class="history-head"><strong>Conversations</strong><button class="tool-btn" id="new-chat" type="button">＋ New</button></div>
+	    <p class="history-empty" id="history-status">Loading your signed-session history…</p>
+	    <div class="history-list" id="history-list"></div>
+	   </aside>
+	   <section class="chatbox">
     <div class="messages" id="messages" aria-live="polite">
       <div class="msg assistant">Sovereign Megaverse Intelligence is ready. Ask about OAP architecture, code, infrastructure, products or strategy.</div>
     </div>
@@ -38,20 +44,82 @@
         <button class="tool-btn" id="image-button" type="button">📷 Image</button>
         <button class="tool-btn" id="file-button" type="button">📎 Audio · Video · PDF</button>
         <button class="tool-btn" id="mic-button" type="button">🎙️ Voice</button>
-        <button class="tool-btn active" id="speaker-button" type="button" aria-pressed="true">🔊 Read aloud</button>
+	        <button class="tool-btn active" id="speaker-button" type="button" aria-pressed="true">🔊 Read aloud</button>
+	        <button class="tool-btn" id="code-button" type="button" aria-pressed="false">💻 Code proposal</button>
         <input id="display-name" maxlength="80" value="OAP Founder" aria-label="Display name">
         <span class="status" id="status">All requests pass through Identity, Permission, Guardian and HRM.</span>
         <button class="send" id="send" type="submit">Send to SMI</button>
       </div>
     </form>
-  </section>
+	   </section>
+	  </section>
 </main>
 <script>
-const form=document.getElementById('chat-form'), messages=document.getElementById('messages');
-const send=document.getElementById('send'), statusEl=document.getElementById('status');
-let conversationId=null,stageTimer=null,selectedImage='',selectedAttachment=null,readAloud=true;
+const csrfToken={{ oap_csrf_token|tojson }};
+const streamUrl={{ url_for('mission_control.smi_chat_stream')|tojson }};
+const conversationsUrl={{ url_for('mission_control.smi_conversations')|tojson }};
+const form=document.getElementById('chat-form'),messages=document.getElementById('messages');
+const send=document.getElementById('send'),statusEl=document.getElementById('status');
 const messageInput=document.getElementById('message'),imageInput=document.getElementById('image-input'),mediaInput=document.getElementById('media-input');
-const imageButton=document.getElementById('image-button'),fileButton=document.getElementById('file-button'),micButton=document.getElementById('mic-button'),speakerButton=document.getElementById('speaker-button');
+const imageButton=document.getElementById('image-button'),fileButton=document.getElementById('file-button'),micButton=document.getElementById('mic-button'),speakerButton=document.getElementById('speaker-button'),codeButton=document.getElementById('code-button');
+const historyList=document.getElementById('history-list'),historyStatus=document.getElementById('history-status');
+let conversationId=null,selectedImage='',selectedAttachment=null,readAloud=true,codeMode=false;
+
+function add(text,role){
+ const el=document.createElement('div');el.className='msg '+role;
+ const body=document.createElement('div');body.className='msg-text';body.textContent=text;el.appendChild(body);
+ if(role==='assistant'||role==='system'){
+  const actions=document.createElement('div');actions.className='msg-actions';
+  const copy=document.createElement('button');copy.type='button';copy.className='copy';copy.textContent='Copy';
+  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(body.textContent);copy.textContent='Copied ✓'}catch(error){const range=document.createRange();range.selectNodeContents(body);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);copy.textContent='Selected — tap Copy'}setTimeout(()=>copy.textContent='Copy',1800)});
+  actions.appendChild(copy);el.appendChild(actions);
+ }
+ messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return body;
+}
+
+function resetConversation(){
+ conversationId=null;messages.textContent='';add('Sovereign Megaverse Intelligence is ready. Ask about OAP architecture, code, infrastructure, products or strategy.','assistant');messageInput.focus();statusEl.textContent='New governed conversation ready.';
+}
+
+async function loadConversations(){
+ historyStatus.textContent='Loading your signed-session history…';historyList.textContent='';
+ try{
+  const response=await fetch(conversationsUrl,{cache:'no-store',credentials:'same-origin'}),data=await response.json();
+  if(!response.ok)throw new Error(data.error?.message||'History unavailable');
+  historyStatus.textContent=data.conversations.length?'Up to 50 recent conversations.':'No saved conversations yet.';
+  data.conversations.forEach(item=>{
+   const row=document.createElement('div');row.className='history-item';
+   const open=document.createElement('button');open.type='button';open.className='history-open';
+   const title=document.createElement('span');title.className='history-title';title.textContent=item.title;
+   const preview=document.createElement('span');preview.className='history-preview';preview.textContent=item.preview||item.message_count+' message(s)';
+   open.append(title,preview);open.addEventListener('click',()=>openConversation(item.conversation_id));
+   const remove=document.createElement('button');remove.type='button';remove.className='history-delete';remove.textContent='×';remove.title='Delete conversation';remove.setAttribute('aria-label','Delete '+item.title);
+   remove.addEventListener('click',()=>deleteConversation(item.conversation_id,item.title));row.append(open,remove);historyList.appendChild(row);
+  });
+ }catch(error){historyStatus.textContent=error.message;}
+}
+
+async function openConversation(id){
+ statusEl.textContent='Loading governed conversation…';
+ try{
+  const response=await fetch(conversationsUrl+'/'+encodeURIComponent(id),{cache:'no-store',credentials:'same-origin'}),data=await response.json();
+  if(!response.ok)throw new Error(data.error?.message||'Conversation unavailable');
+  conversationId=data.conversation_id;messages.textContent='';
+  data.messages.forEach(item=>add(item.content,item.role==='user'?'user':item.role==='assistant'?'assistant':'system'));
+  statusEl.textContent='Conversation restored from Neon · Human Authority final';
+ }catch(error){add(error.message,'system');statusEl.textContent='Conversation was not loaded.';}
+}
+
+async function deleteConversation(id,title){
+ if(!window.confirm('Delete “'+title+'”? This removes its messages and keeps an audit receipt.'))return;
+ try{
+  const response=await fetch(conversationsUrl+'/'+encodeURIComponent(id),{method:'DELETE',headers:{'X-OAP-CSRF':csrfToken},credentials:'same-origin'}),data=await response.json();
+  if(!response.ok)throw new Error(data.error?.message||'Delete failed');
+  if(conversationId===id)resetConversation();await loadConversations();statusEl.textContent='Conversation deleted · audit receipt recorded';
+ }catch(error){statusEl.textContent=error.message;}
+}
+
+document.getElementById('new-chat').addEventListener('click',resetConversation);
 imageButton.addEventListener('click',()=>imageInput.click());
 imageInput.addEventListener('change',()=>{
  const file=imageInput.files[0];if(!file)return;
@@ -66,7 +134,7 @@ async function videoFrames(file){
  const url=URL.createObjectURL(file),video=document.createElement('video');video.preload='metadata';video.muted=true;video.src=url;
  try{
   await waitEvent(video,'loadedmetadata');if(!isFinite(video.duration)||video.duration<=0)throw new Error('Video duration unavailable');
-  const frames=[],times=[.1,.5,.9].map(x=>Math.min(video.duration*x,Math.max(video.duration-.05,0)));
+  const frames=[],times=[.1,.5,.9].map(value=>Math.min(video.duration*value,Math.max(video.duration-.05,0)));
   for(const time of times){video.currentTime=time;await waitEvent(video,'seeked');const canvas=document.createElement('canvas'),scale=Math.min(1,768/video.videoWidth);canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);frames.push(canvas.toDataURL('image/jpeg',.72))}
   return frames;
  }finally{URL.revokeObjectURL(url)}
@@ -75,68 +143,52 @@ mediaInput.addEventListener('change',async()=>{
  const file=mediaInput.files[0];if(!file)return;fileButton.disabled=true;statusEl.textContent='Preparing '+file.name+'…';
  try{
   if(file.type.startsWith('video/')){
-   if(file.size>50*1024*1024)throw new Error('Video must be 50 MB or smaller');
-   selectedAttachment={kind:'video',name:file.name,frames:await videoFrames(file)};
+   if(file.size>50*1024*1024)throw new Error('Video must be 50 MB or smaller');selectedAttachment={kind:'video',name:file.name,frames:await videoFrames(file)};
   }else{
-   if(file.size>5*1024*1024)throw new Error('Audio or document must be 5 MB or smaller');
-   const kind=file.type.startsWith('audio/')?'audio':'document';
-   let data=await readDataURL(file);
-   if(kind==='document'&&(data.startsWith('data:;')||data.startsWith('data:application/octet-stream;'))){
-    const ext=file.name.split('.').pop().toLowerCase(),types={pdf:'application/pdf',txt:'text/plain',md:'text/markdown',csv:'text/csv',json:'application/json',html:'text/html',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
-    if(types[ext])data=data.replace(/^data:[^;]*;/,'data:'+types[ext]+';');
-   }
+   if(file.size>5*1024*1024)throw new Error('Audio or document must be 5 MB or smaller');const kind=file.type.startsWith('audio/')?'audio':'document';let data=await readDataURL(file);
+   if(kind==='document'&&(data.startsWith('data:;')||data.startsWith('data:application/octet-stream;'))){const ext=file.name.split('.').pop().toLowerCase(),types={pdf:'application/pdf',txt:'text/plain',md:'text/markdown',csv:'text/csv',json:'application/json',html:'text/html',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};if(types[ext])data=data.replace(/^data:[^;]*;/,'data:'+types[ext]+';')}
    selectedAttachment={kind,name:file.name,data};
   }
-  document.getElementById('media-icon').textContent=selectedAttachment.kind==='video'?'🎬':selectedAttachment.kind==='audio'?'🎧':'📄';
-  document.getElementById('media-name').textContent=file.name;document.getElementById('media-preview').classList.add('show');
-  statusEl.textContent=selectedAttachment.kind==='video'?'Video frames ready for governed review':'Attachment ready for governed review';
- }catch(err){selectedAttachment=null;mediaInput.value='';statusEl.textContent=err.message}
- finally{fileButton.disabled=false}
+  document.getElementById('media-icon').textContent=selectedAttachment.kind==='video'?'🎬':selectedAttachment.kind==='audio'?'🎧':'📄';document.getElementById('media-name').textContent=file.name;document.getElementById('media-preview').classList.add('show');statusEl.textContent=selectedAttachment.kind==='video'?'Video frames ready for governed review':'Attachment ready for governed review';
+ }catch(error){selectedAttachment=null;mediaInput.value='';statusEl.textContent=error.message}finally{fileButton.disabled=false}
 });
 document.getElementById('remove-media').addEventListener('click',()=>{selectedAttachment=null;mediaInput.value='';document.getElementById('media-preview').classList.remove('show')});
 speakerButton.addEventListener('click',()=>{readAloud=!readAloud;speakerButton.classList.toggle('active',readAloud);speakerButton.setAttribute('aria-pressed',String(readAloud));speakerButton.textContent=readAloud?'🔊 Read aloud':'🔇 Read aloud off'});
+codeButton.addEventListener('click',()=>{codeMode=!codeMode;codeButton.classList.toggle('active',codeMode);codeButton.setAttribute('aria-pressed',String(codeMode));messageInput.placeholder=codeMode?'Describe the code change. SMI will propose a diff for Human Authority review.':'Type your recommendation request, or attach an image...';statusEl.textContent=codeMode?'Code proposal mode · apply and deploy remain locked':'Recommendation mode'});
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(Recognition){const recognition=new Recognition();recognition.lang='en-GB';recognition.interimResults=true;
- recognition.onstart=()=>{micButton.classList.add('active');statusEl.textContent='Listening…'};
- recognition.onresult=e=>{messageInput.value=Array.from(e.results).map(r=>r[0].transcript).join('')};
- recognition.onend=()=>{micButton.classList.remove('active');statusEl.textContent='Voice captured — edit or send'};
- recognition.onerror=()=>{micButton.classList.remove('active');statusEl.textContent='Voice input unavailable'};
- micButton.addEventListener('click',()=>recognition.start());
-}else{micButton.disabled=true;micButton.title='Voice input is not supported by this browser'}
-function add(text,role){
- const el=document.createElement('div');el.className='msg '+role;
- const body=document.createElement('div');body.className='msg-text';body.textContent=text;el.appendChild(body);
- if(role==='assistant'||role==='system'){
-  const actions=document.createElement('div');actions.className='msg-actions';
-  const copy=document.createElement('button');copy.type='button';copy.className='copy';copy.textContent='Copy';
-  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(text);copy.textContent='Copied ✓'}catch(e){const range=document.createRange();range.selectNodeContents(body);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);copy.textContent='Selected — tap Copy'}setTimeout(()=>copy.textContent='Copy',1800)});
-  actions.appendChild(copy);el.appendChild(actions);
- }
- messages.appendChild(el);messages.scrollTop=messages.scrollHeight
+if(Recognition){const recognition=new Recognition();recognition.lang='en-GB';recognition.interimResults=true;recognition.onstart=()=>{micButton.classList.add('active');statusEl.textContent='Listening…'};recognition.onresult=event=>{messageInput.value=Array.from(event.results).map(result=>result[0].transcript).join('')};recognition.onend=()=>{micButton.classList.remove('active');statusEl.textContent='Voice captured — edit or send'};recognition.onerror=()=>{micButton.classList.remove('active');statusEl.textContent='Voice input unavailable'};micButton.addEventListener('click',()=>{try{recognition.start()}catch(error){statusEl.textContent='Voice input is already active'}})}else{micButton.disabled=true;micButton.title='Voice input is not supported by this browser'}
+
+function clearAttachments(){selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');selectedAttachment=null;mediaInput.value='';document.getElementById('media-preview').classList.remove('show')}
+function parseEventBlock(block){
+ let eventName='message';const dataLines=[];
+ block.split('\n').forEach(line=>{if(line.startsWith('event:'))eventName=line.slice(6).trim();if(line.startsWith('data:'))dataLines.push(line.slice(5).trim())});
+ if(!dataLines.length)return null;return {event:eventName,data:JSON.parse(dataLines.join('\n'))};
 }
-function startStages(){
- const stages=['👤 Identity verified','🔐 Permission checked','🛡️ Guardian reviewing','🧠 SMI generating recommendation','💾 HRM preparing memory','📜 Audit preparing record'];
- let i=0;statusEl.textContent=stages[i];
- stageTimer=setInterval(()=>{i=Math.min(i+1,stages.length-1);statusEl.textContent=stages[i]},900);
-}
-function stopStages(){if(stageTimer){clearInterval(stageTimer);stageTimer=null}}
 async function loadHealth(){
  try{
-  const r=await fetch('{{ url_for("mission_control.smi_chat_health") }}',{cache:'no-store'}), data=await r.json();
-  const names={database:'Neon',schema:'Schema',provider_key:'Provider Key',provider_assignment:'Provider Assignment',identity:'Identity',permission:'Permission',nexus:'NEXUS',thalamus_input:'Thalamus',agent_registry:'Agent Registry',agent_selection:'Agent Selection',biological_brain:'Biological Brain',aegis:'AEGIS',guardian:'Guardian',war_room:'War Room',hrm:'HRM',conversation_memory:'Conversation Memory',router:'Provider Router',chat_route:'Chat Route',audit:'Audit',human_authority:'Human Authority',execution_locked:'Execution Locked'};
-  document.getElementById('lights').innerHTML=Object.entries(data.checks).map(([k,v])=>'<div class="light"><span class="lamp" style="'+(v?'':'background:#e24d4d;box-shadow:0 0 12px #e24d4d')+'"></span>'+names[k]+'</div>').join('');
- }catch(e){statusEl.textContent='Health check unavailable';}
+  const response=await fetch('{{ url_for("mission_control.smi_chat_health") }}',{cache:'no-store'}),data=await response.json();
+  const names={database:'Neon',schema:'Schema',provider_key:'Provider Key',provider_assignment:'Provider Assignment',identity:'Identity',permission:'Permission',nexus:'NEXUS',thalamus_input:'Thalamus',agent_registry:'Agent Registry',agent_selection:'Agent Selection',biological_brain:'Biological Brain',aegis:'AEGIS',guardian:'Guardian',war_room:'War Room',hrm:'HRM',conversation_memory:'Conversation Memory',router:'Provider Router',chat_route:'Streaming Chat',audit:'Audit',human_authority:'Human Authority',execution_locked:'Execution Locked'};
+  document.getElementById('lights').innerHTML=Object.entries(data.checks).map(([key,value])=>'<div class="light"><span class="lamp" style="'+(value?'':'background:#e24d4d;box-shadow:0 0 12px #e24d4d')+'"></span>'+names[key]+'</div>').join('');
+ }catch(error){statusEl.textContent='Health check unavailable';}
 }
-form.addEventListener('submit',async e=>{
- e.preventDefault();const message=messageInput.value.trim();if(!message&&!selectedImage&&!selectedAttachment)return;
- add((message||'Analyse attached media')+(selectedImage?'\n📷 Image attached':'')+(selectedAttachment?'\n📎 '+selectedAttachment.name:''),'user');messageInput.value='';send.disabled=true;startStages();
+
+form.addEventListener('submit',async event=>{
+ event.preventDefault();const message=messageInput.value.trim();if(!message&&!selectedImage&&!selectedAttachment)return;
+ const userLabel=(message||'Analyse attached media')+(selectedImage?'\n📷 Image attached':'')+(selectedAttachment?'\n📎 '+selectedAttachment.name:'')+(codeMode?'\n💻 Code proposal mode':'');add(userLabel,'user');messageInput.value='';send.disabled=true;statusEl.textContent='Opening governed stream…';
+ let assistantBody=null,completeResult=null,streamError=null;
  try{
-  const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment})});
-  const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Request failed');
-  conversationId=data.conversation_id;add(data.response,'assistant');add('🧠 '+data.task_type+' · '+data.brain_regions+' brain regions · '+data.advisor_ids.length+' approved advisor(s) · Signal '+data.signal_level+(data.war_room.triggered?' · War Room reviewed':'')+' · Adaptive '+data.adaptive.hrm_lessons+' lesson(s) · Coherence '+data.coherent.score+'%','system');if(readAloud&&'speechSynthesis'in window){speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(data.response);speech.lang='en-GB';speechSynthesis.speak(speech)}selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');selectedAttachment=null;mediaInput.value='';document.getElementById('media-preview').classList.remove('show');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
- }catch(err){add(err.message,'system');statusEl.textContent='Request not completed safely';}
- finally{stopStages();send.disabled=false;loadHealth();}
+  const response=await fetch(streamUrl,{method:'POST',headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode})});
+  if(!response.ok){const data=await response.json();throw new Error(data.error?.message||'Request failed')}
+  if(!response.body)throw new Error('Streaming is not supported by this browser');
+  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+  while(true){const chunk=await reader.read();if(chunk.done)break;buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n/g,'\n');let boundary;while((boundary=buffer.indexOf('\n\n'))>=0){const block=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);const parsed=parseEventBlock(block);if(!parsed)continue;if(parsed.event==='stage')statusEl.textContent=parsed.data.label;if(parsed.event==='delta'){if(!assistantBody)assistantBody=add('','assistant');assistantBody.textContent+=parsed.data.delta;messages.scrollTop=messages.scrollHeight}if(parsed.event==='complete')completeResult=parsed.data.result;if(parsed.event==='error')streamError=new Error(parsed.data.message||'Request failed')}}
+  if(streamError)throw streamError;if(!completeResult)throw new Error('The governed response did not finish recording.');
+  const data=completeResult;conversationId=data.conversation_id;if(!assistantBody)assistantBody=add(data.response,'assistant');else assistantBody.textContent=data.response;
+  add('🧠 '+data.task_type+' · '+data.brain_regions+' brain regions · '+data.advisor_ids.length+' approved advisor(s) · Signal '+data.signal_level+(data.war_room.triggered?' · War Room reviewed':'')+' · Adaptive '+data.adaptive.hrm_lessons+' lesson(s) · Coherence '+data.coherent.score+'%'+(data.code_proposal.active?' · Code proposal locked for Human review':''),'system');
+  if(readAloud&&'speechSynthesis'in window){speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(data.response);speech.lang='en-GB';speechSynthesis.speak(speech)}clearAttachments();statusEl.textContent=data.code_proposal.active?'Code proposal ready · Human Authority review required · apply locked':'Recommendation ready · Guardian '+data.guardian+' · HRM and audit recorded';await loadConversations();
+ }catch(error){add(error.message,'system');statusEl.textContent='Request not completed safely';}
+ finally{send.disabled=false;loadHealth();}
 });
-loadHealth();setInterval(loadHealth,30000);
+loadHealth();loadConversations();setInterval(loadHealth,30000);
 </script>
 </body></html>

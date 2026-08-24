@@ -119,7 +119,8 @@ def prepare(value: object, key: str) -> dict[str, Any]:
         frames=value.get("frames")
         if not isinstance(frames,list) or not 1 <= len(frames) <= MAX_VIDEO_FRAMES:
             raise ValueError("video_frames_invalid")
-        content_items=[];digests=[]
+        content_items = []
+        digests = []
         for frame in frames:
             _,raw,_=_decode_data_url(frame,IMAGE_MIMES,MAX_FRAME_BYTES)
             content_items.append({"type":"input_image","image_url":frame,"detail":"low"})

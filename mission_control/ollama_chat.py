@@ -1,4 +1,4 @@
-"""Read-only OAP Dashboard Chat projection for the local Ollama provider."""
+"""Read-only public projection for the governed SMI provider pathway."""
 
 from __future__ import annotations
 
@@ -8,11 +8,10 @@ from urllib.parse import urlparse
 
 from . import config
 from .smi_chat_runtime import health
-from .database import db_status
 
-PROVIDER_ID = "ollama"
-PROVIDER_NAME = "Ollama Local"
-DEFAULT_MODEL = "qwen2.5:1.5b"
+PROVIDER_ID = "openai"
+PROVIDER_NAME = "OpenAI"
+DEFAULT_MODEL = "gpt-5-mini"
 GENERATE_PATH = "/api/generate"
 
 CHAT_PATHWAY = (
@@ -20,7 +19,7 @@ CHAT_PATHWAY = (
     {"step": "Identity", "responsibility": "Validates the human requester"},
     {"step": "Living Kernel", "responsibility": "Checks permission and safety gates"},
     {"step": "SMI Mind", "responsibility": "Forms an advisory prompt"},
-    {"step": "Ollama Local", "responsibility": "Generates provider text only"},
+    {"step": "Approved Provider", "responsibility": "Generates provider text only"},
     {"step": "Guardian", "responsibility": "Reviews the proposed response"},
     {"step": "HRM", "responsibility": "Records the reviewed interaction"},
     {"step": "Human Authority", "responsibility": "Remains the final authority"},
@@ -39,18 +38,17 @@ def _loopback_endpoint() -> bool:
 def get_public_ollama_chat() -> dict[str, Any]:
     """Return non-sensitive readiness without contacting Ollama or writing HRM."""
 
-    database = db_status()
     runtime = health()
     loopback_only = _loopback_endpoint()
     model = re.sub(r"[^a-zA-Z0-9._:-]", "", DEFAULT_MODEL)[:80]
     return {
-        "title": "OAP Dashboard Chat",
-        "panel_name": "OAP Mind Assistant Panel",
+        "title": "OAP Sovereign Megaverse Intelligence Chat",
+        "panel_name": "OAP Mind",
         "provider": {
             "id": PROVIDER_ID,
-            "name": "OpenAI Cloud / Ollama Local",
+            "name": PROVIDER_NAME,
             "model": __import__("os").environ.get("OAP_AI_MODEL", model),
-            "scope": "Hybrid governed provider",
+            "scope": "Governed cloud provider",
             "connected": runtime["checks"]["provider_key"],
             "status": "Connected" if runtime["checks"]["provider_key"] else "Not connected",
             "authority": False,
@@ -60,7 +58,7 @@ def get_public_ollama_chat() -> dict[str, Any]:
         "conversation": (),
         "readiness": {
             "local_mode": config.OAP_LOCAL_MODE,
-            "loopback_endpoint": loopback_only,
+            "local_fallback_loopback": loopback_only,
             "identity_connected": runtime["checks"]["identity"],
             "permission_granted": runtime["checks"]["permission"],
             "provider_assignment_approved": runtime["checks"]["router"],
@@ -71,11 +69,11 @@ def get_public_ollama_chat() -> dict[str, Any]:
         "execution": "Recommendation only",
         "runtime": runtime,
         "activation_gate": (
-            "Identity, REQUEST_RECOMMENDATION permission, an approved Ollama "
+            "Identity, REQUEST_RECOMMENDATION permission, an approved provider "
             "assignment and HRM initialization are required before chat can send."
         ),
         "human_authority": {
             "status": "Final approval required",
-            "message": "Ollama advises only and cannot approve or execute actions.",
+            "message": "SMI providers advise only and cannot approve or execute actions.",
         },
     }

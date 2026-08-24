@@ -2,8 +2,17 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template, request, session
-import uuid
+import json
+
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    make_response,
+    render_template,
+    request,
+    stream_with_context,
+)
 
 from . import agents as agent_registry
 from . import (
@@ -16,6 +25,7 @@ from . import (
     products,
     status,
     smi_chat_runtime,
+    web_security,
 )
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
@@ -33,6 +43,20 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+def _error(code: str, message: str, status_code: int):
+    return _no_store(
+        make_response(jsonify(error={"code": code, "message": message}), status_code)
+    )
+
+
+def _chat_identity() -> str:
+    return web_security.ensure_session_identity()
+
+
+def _chat_rate_allowed(identity_id: str) -> bool:
+    return web_security.CHAT_BURST_LIMITER.allow(identity_id)
 
 
 @bp.get("/")
@@ -120,6 +144,7 @@ def brain_status():
 def ollama_chat_dashboard():
     """Render the local-provider chat shell without contacting the provider."""
 
+    _chat_identity()
     response = make_response(
         render_template(
             "ollama_chat.html",
@@ -132,26 +157,158 @@ def ollama_chat_dashboard():
 @bp.post("/chat")
 def smi_chat_message():
     """Process one governed recommendation request and persist it in HRM."""
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
     payload = request.get_json(silent=True) or {}
-    identity_id = session.get("oap_identity_id")
-    if not identity_id:
-        identity_id = str(uuid.uuid4())
-        session["oap_identity_id"] = identity_id
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    identity_id = _chat_identity()
+    if not _chat_rate_allowed(identity_id):
+        response = _error(
+            "rate_limited", "Too many SMI requests. Wait one minute and try again.", 429
+        )
+        response.headers["Retry-After"] = "60"
+        return response
     try:
         result = smi_chat_runtime.chat(
-            payload.get("message"), identity_id,
+            payload.get("message"),
+            identity_id,
             payload.get("display_name", "OAP Member"),
             payload.get("conversation_id"),
             payload.get("image_data"),
             payload.get("attachment"),
+            code_mode=bool(payload.get("code_mode")),
         )
         return _no_store(make_response(jsonify(result)))
     except ValueError as exc:
-        return _no_store(make_response(jsonify(error={"code":"invalid_request","message":str(exc)}),400))
+        if str(exc) == "chat_rate_limit":
+            response = _error(
+                "rate_limited",
+                "Too many SMI requests. Wait one minute and try again.",
+                429,
+            )
+            response.headers["Retry-After"] = "60"
+            return response
+        return _error("invalid_request", str(exc), 400)
     except PermissionError:
-        return _no_store(make_response(jsonify(error={"code":"permission_denied","message":"REQUEST_RECOMMENDATION permission required"}),403))
-    except RuntimeError as exc:
-        return _no_store(make_response(jsonify(error={"code":"provider_unavailable","message":"SMI provider is temporarily unavailable.","detail":str(exc)[:80]}),503))
+        return _error(
+            "permission_denied", "REQUEST_RECOMMENDATION permission required", 403
+        )
+    except RuntimeError:
+        return _error(
+            "provider_unavailable",
+            "SMI provider is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/chat/stream")
+def smi_chat_stream():
+    """Stream genuine provider deltas, then confirm governed persistence."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    identity_id = _chat_identity()
+    if not _chat_rate_allowed(identity_id):
+        response = _error(
+            "rate_limited", "Too many SMI requests. Wait one minute and try again.", 429
+        )
+        response.headers["Retry-After"] = "60"
+        return response
+
+    def generate():
+        events = smi_chat_runtime.chat_events(
+            payload.get("message"),
+            identity_id,
+            payload.get("display_name", "OAP Member"),
+            payload.get("conversation_id"),
+            payload.get("image_data"),
+            payload.get("attachment"),
+            code_mode=bool(payload.get("code_mode")),
+        )
+        for item in events:
+            event_name = str(item.get("type", "message"))
+            data = {key: value for key, value in item.items() if key != "type"}
+            yield (
+                f"event: {event_name}\n"
+                f"data: {json.dumps(data, ensure_ascii=False, separators=(',', ':'))}\n\n"
+            )
+
+    response = Response(stream_with_context(generate()), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-store, no-transform"
+    response.headers["X-Accel-Buffering"] = "no"
+    response.headers["Connection"] = "keep-alive"
+    return response
+
+
+@bp.get("/conversations")
+def smi_conversations():
+    """List only the current signed-session identity's SMI conversations."""
+
+    try:
+        conversations = smi_chat_runtime.list_conversations(_chat_identity())
+        return _no_store(make_response(jsonify(conversations=conversations)))
+    except RuntimeError:
+        return _error(
+            "conversation_store_unavailable",
+            "Conversation history is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/conversations/<conversation_id>")
+def smi_conversation(conversation_id: str):
+    """Load one owned conversation without exposing another identity's data."""
+
+    try:
+        conversation = smi_chat_runtime.get_conversation(
+            _chat_identity(), conversation_id
+        )
+        return _no_store(make_response(jsonify(conversation)))
+    except ValueError:
+        return _error("invalid_conversation", "Conversation not found.", 404)
+    except RuntimeError:
+        return _error(
+            "conversation_store_unavailable",
+            "Conversation history is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.delete("/conversations/<conversation_id>")
+def delete_smi_conversation(conversation_id: str):
+    """Delete one owned conversation after an explicit CSRF-protected action."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    try:
+        result = smi_chat_runtime.delete_conversation(
+            _chat_identity(), conversation_id
+        )
+        return _no_store(make_response(jsonify(result)))
+    except ValueError:
+        return _error("invalid_conversation", "Conversation not found.", 404)
+    except RuntimeError:
+        return _error(
+            "conversation_store_unavailable",
+            "Conversation history is temporarily unavailable.",
+            503,
+        )
 
 
 @bp.get("/chat/status")
@@ -166,7 +323,7 @@ def infrastructure_dashboard():
 
     response = make_response(
         render_template(
-            "infrastructure.html",
+            "mission_control/infrastructure.html",
             infrastructure=infrastructure.get_public_infrastructure(),
             shared_health=status.get_public_gateway_status()["components"],
         )

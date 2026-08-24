@@ -216,12 +216,11 @@ def test_public_approval_summary_uses_coarse_read_only_counts(
     }
 
 
-def test_mission_routes_register_get_only(client):
-    rules = {
-        rule.rule: set(rule.methods or ())
-        for rule in app_module.app.url_map.iter_rules()
-        if rule.rule.startswith("/mission")
-    }
+def test_mission_routes_keep_execution_locked_and_expose_governed_chat(client):
+    rules: dict[str, set[str]] = {}
+    for rule in app_module.app.url_map.iter_rules():
+        if rule.rule.startswith("/mission"):
+            rules.setdefault(rule.rule, set()).update(rule.methods or ())
 
     assert rules["/mission"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/"] == {"GET", "HEAD", "OPTIONS"}
@@ -232,6 +231,14 @@ def test_mission_routes_register_get_only(client):
     assert rules["/mission/linkup"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/organism"] == {"GET", "HEAD", "OPTIONS"}
     assert rules["/mission/status"] == {"GET", "HEAD", "OPTIONS"}
-    assert "/mission/chat" not in rules
+    assert rules["/mission/chat"] == {"POST", "OPTIONS"}
+    assert rules["/mission/chat/stream"] == {"POST", "OPTIONS"}
+    assert rules["/mission/conversations"] == {"GET", "HEAD", "OPTIONS"}
+    assert rules["/mission/conversations/<conversation_id>"] == {
+        "GET",
+        "HEAD",
+        "DELETE",
+        "OPTIONS",
+    }
     assert "/mission/brain/run" not in rules
     assert "/mission/order" not in rules

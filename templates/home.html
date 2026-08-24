@@ -48,8 +48,9 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 <div class="card"><span class="badge">🇭🇹 Team Check</span><h3>Haiti included</h3><p>Haiti is in Group C.</p></div>
 </div>
 
-<form method="post" action="/signal">
-<input name="name" placeholder="Nickname" aria-label="Nickname">
+	<form method="post" action="/signal">
+	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+	<input name="name" placeholder="Nickname" aria-label="Nickname">
 <textarea name="body" placeholder="Drop OAP Signal..." aria-label="Signal message"></textarea>
 <button type="submit">Post Signal</button>
 </form>
@@ -86,8 +87,9 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 
 <h3>🏳️ Throw Your Flag Up</h3>
 <p>Support: <b>{{ flag_counts.get(name,0) }}</b></p>
-<form method="post" action="/flag">
-<input type="hidden" name="team" value="{{ name }}">
+	<form method="post" action="/flag">
+	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+	<input type="hidden" name="team" value="{{ name }}">
 <button type="submit">Throw {{ flag }} Up</button>
 </form>
 
@@ -95,8 +97,9 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 <p>{{ meaning }}</p>
 
 <h3>⚽ Team Match Room</h3>
-<form method="post" action="/room">
-<input type="hidden" name="room" value="{{ name }} Team Room">
+	<form method="post" action="/room">
+	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+	<input type="hidden" name="room" value="{{ name }} Team Room">
 <input name="name" placeholder="Nickname" aria-label="Nickname for {{ name }} room">
 <input name="message" placeholder="Message for {{ name }}" aria-label="Message for {{ name }}">
 <button type="submit">Post in {{ name }} Room</button>
@@ -152,8 +155,9 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 
 <section id="myworld">
 <h2>👤 My World</h2>
-<form method="post" action="/myworld">
-<input name="nickname" placeholder="Nickname" aria-label="My World nickname">
+	<form method="post" action="/myworld">
+	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+	<input name="nickname" placeholder="Nickname" aria-label="My World nickname">
 <input name="country" placeholder="Country / Flag" aria-label="Country or flag">
 <button type="submit">Enter My World</button>
 </form>

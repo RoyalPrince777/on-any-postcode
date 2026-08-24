@@ -7,7 +7,6 @@ Schema changes require the explicit Flask oap-init-postgres --yes command.
 from __future__ import annotations
 
 import base64
-import hashlib
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -18,7 +17,7 @@ REQUIRED_TABLES = frozenset({
     "oap_identity_roles", "oap_permissions", "oap_role_permissions",
     "oap_guardian_reviews", "audit_events", "smi_memory_records",
     "smi_approval_receipts", "smi_conversations", "smi_messages",
-    "smi_provider_assignments",
+    "smi_provider_assignments", "users", "posts",
 })
 MIGRATION_VERSION = "0002_smi_chat_production"
 MIGRATION_STATEMENTS = (
@@ -47,14 +46,16 @@ MIGRATION_STATEMENTS = (
         permission_id TEXT NOT NULL REFERENCES oap_permissions(permission_id),
         PRIMARY KEY (role_id, permission_id))""",
     """CREATE TABLE IF NOT EXISTS oap_guardian_reviews (
-        review_id UUID PRIMARY KEY, request_id UUID NOT NULL,
+        review_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        request_id UUID NOT NULL,
         identity_id UUID NOT NULL,
         outcome TEXT NOT NULL CHECK (outcome IN ('PASSED','REVIEW_REQUIRED','BLOCKED')),
         reason TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
     """CREATE TABLE IF NOT EXISTS audit_events (
         event_seq BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        event_id UUID NOT NULL UNIQUE, prev_hash TEXT NOT NULL,
+        event_id UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+        prev_hash TEXT NOT NULL,
         curr_hash TEXT NOT NULL UNIQUE, actor_id TEXT NOT NULL,
         actor_type TEXT NOT NULL, authority_level INTEGER,
         action TEXT NOT NULL, target TEXT NOT NULL, reason TEXT NOT NULL,
@@ -63,7 +64,8 @@ MIGRATION_STATEMENTS = (
     "CREATE INDEX IF NOT EXISTS ix_audit_timestamp ON audit_events(timestamp)",
     "CREATE INDEX IF NOT EXISTS ix_audit_correlation ON audit_events(correlation_id)",
     """CREATE TABLE IF NOT EXISTS smi_memory_records (
-        memory_id UUID PRIMARY KEY, request_id UUID NOT NULL UNIQUE,
+        memory_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        request_id UUID NOT NULL UNIQUE,
         identity_id UUID NOT NULL, task_type TEXT NOT NULL,
         content_hash TEXT NOT NULL, summary TEXT NOT NULL,
         output_state TEXT NOT NULL CHECK (output_state IN
@@ -72,13 +74,59 @@ MIGRATION_STATEMENTS = (
         processing_states_json JSONB NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
     """CREATE TABLE IF NOT EXISTS smi_approval_receipts (
-        receipt_id UUID PRIMARY KEY,
+        receipt_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         request_id UUID NOT NULL UNIQUE REFERENCES smi_memory_records(request_id),
         identity_id UUID NOT NULL,
         decision TEXT NOT NULL CHECK (decision IN ('APPROVED','REJECTED')),
         issued_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMPTZ NOT NULL, action_digest TEXT NOT NULL,
         consumed_at TIMESTAMPTZ)""",
+    """CREATE TABLE IF NOT EXISTS smi_conversations (
+        conversation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        identity_id UUID, title TEXT NOT NULL DEFAULT 'SMI Chat',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE TABLE IF NOT EXISTS smi_messages (
+        message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        conversation_id UUID NOT NULL REFERENCES smi_conversations(conversation_id)
+            ON DELETE CASCADE,
+        request_id UUID NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('user','assistant','system')),
+        content TEXT NOT NULL, provider TEXT, model TEXT, guardian_outcome TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE INDEX IF NOT EXISTS ix_smi_messages_conversation
+        ON smi_messages(conversation_id, created_at)""",
+    """CREATE TABLE IF NOT EXISTS smi_provider_assignments (
+        assignment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        agent_id TEXT NOT NULL, provider_id TEXT NOT NULL, model TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('APPROVED','SUSPENDED','REVOKED')),
+        approved_by TEXT NOT NULL,
+        approved_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(agent_id,provider_id,model))""",
+    """INSERT INTO oap_permissions(permission_id,description)
+        VALUES ('REQUEST_RECOMMENDATION','Request a governed SMI recommendation')
+        ON CONFLICT (permission_id) DO NOTHING""",
+    """INSERT INTO smi_provider_assignments
+        (agent_id,provider_id,model,status,approved_by)
+        VALUES ('NEO-001','openai','gpt-5-mini','APPROVED','HUMAN_AUTHORITY')
+        ON CONFLICT (agent_id,provider_id,model) DO NOTHING""",
+    """CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE,
+        username TEXT NOT NULL UNIQUE, display_name TEXT, postcode TEXT,
+        borough TEXT, county TEXT, country TEXT, continent TEXT,
+        status TEXT NOT NULL DEFAULT 'active'
+            CHECK (status IN ('active','suspended','deleted')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE TABLE IF NOT EXISTS posts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL, scope TEXT NOT NULL DEFAULT 'postcode', postcode TEXT,
+        status TEXT NOT NULL DEFAULT 'published',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE INDEX IF NOT EXISTS idx_posts_scope_created
+        ON posts(scope, created_at DESC)""",
 )
 MIGRATION_CHECKSUM = "9a5b1d7c4e2f8a60b3c91d5e7f20486aa6c8e1b35d79f024ce6a8b4d1f73e590"
 

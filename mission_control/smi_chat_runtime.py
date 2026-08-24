@@ -1,8 +1,18 @@
 """Governed SMI Chat runtime: identity, permission, Guardian, provider and HRM."""
 from __future__ import annotations
-import hashlib, json, os, re, uuid
+
+import hashlib
+import hmac
+import json
+import os
+import queue
+import re
+import threading
+import uuid
+from collections.abc import Callable, Iterator
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
+
 from . import live_brain, media_intelligence, postgres_db
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
@@ -11,6 +21,7 @@ MAX_INPUT = 4000
 BLOCKED = (
     r"\b(?:steal|malware|ransomware|credential theft|disable safety|bypass authentication)\b",
 )
+EventEmitter = Callable[[dict], None]
 
 def _clean(value: object, limit: int) -> str:
     return str(value or "").strip()[:limit]
@@ -54,11 +65,23 @@ def _permission(connection, identity_id: str) -> bool:
     ).fetchone()
     return row is not None
 
-def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None, brain: dict | None = None, adaptive_memory: list[str] | None = None, media: dict | None = None) -> str:
-    key=os.environ.get("OPENAI_API_KEY","").strip()
+def _provider(
+    message: str,
+    image_data: str = "",
+    history: list[dict[str, str]] | None = None,
+    brain: dict | None = None,
+    adaptive_memory: list[str] | None = None,
+    media: dict | None = None,
+    *,
+    code_mode: bool = False,
+    on_delta: Callable[[str], None] | None = None,
+) -> str:
+    """Stream provider deltas and return the bounded complete response."""
+
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
-    system=(
+    system = (
         "You are SMI: Sovereign Megaverse Intelligence, the governed intelligence brain "
         "inside the ON ANY POSTCODE (OAP) Digital Organism. Never call yourself a generic AI. "
         "Use OAP language and preserve continuity from the supplied conversation. Lead with a "
@@ -70,220 +93,691 @@ def _provider(message: str, image_data: str = "", history: list[dict[str, str]] 
         "authority and never execute actions. Human Authority remains final. Be concise but "
         "complete, and end with the clearest useful next action when appropriate. "
         "Use the canonical brain routing context below as governed routing metadata, not as "
-        "private chain-of-thought. " + json.dumps({
-            "task_type": (brain or {}).get("task_type"),
-            "approved_advisors": (brain or {}).get("advisor_ids", []),
-            "signal_level": (brain or {}).get("signal_level"),
-            "war_room_triggered": (brain or {}).get("war_room", {}).get("triggered", False),
-            "audited_hrm_lessons": [str(item)[:300] for item in (adaptive_memory or [])[-5:]],
-        }, separators=(",", ":"))
+        "private chain-of-thought. "
+        + json.dumps(
+            {
+                "task_type": (brain or {}).get("task_type"),
+                "approved_advisors": (brain or {}).get("advisor_ids", []),
+                "signal_level": (brain or {}).get("signal_level"),
+                "war_room_triggered": (brain or {})
+                .get("war_room", {})
+                .get("triggered", False),
+                "audited_hrm_lessons": [
+                    str(item)[:300] for item in (adaptive_memory or [])[-5:]
+                ],
+            },
+            separators=(",", ":"),
+        )
     )
-    media=media or {}
-    prompt=message or "Describe and analyse the attached media."
+    if code_mode:
+        system += (
+            " CODE PROPOSAL MODE: provide a reviewable proposal, a unified diff when "
+            "the requested files and change are sufficiently clear, and relevant tests. "
+            "Label assumptions. Never claim the code was applied, committed, merged or "
+            "deployed. End with the exact Human Authority approval boundary."
+        )
+    media = media or {}
+    prompt = message or "Describe and analyse the attached media."
     if media.get("transcript"):
         prompt += "\n\nGoverned audio transcript:\n" + str(media["transcript"])
-    user_content=[{"type":"input_text","text":prompt}]
+    user_content = [{"type": "input_text", "text": prompt}]
     if image_data:
-        user_content.append({"type":"input_image","image_url":image_data,"detail":"auto"})
-    user_content.extend(media.get("content_items",[]))
-    inputs=[{"role":"system","content":[{"type":"input_text","text":system}]}]
+        user_content.append(
+            {
+                "type": "input_image",
+                "image_url": image_data,
+                "detail": "auto",
+            }
+        )
+    user_content.extend(media.get("content_items", []))
+    inputs = [
+        {"role": "system", "content": [{"type": "input_text", "text": system}]}
+    ]
     for item in (history or [])[-12:]:
-        role=item.get("role")
-        content=_clean(item.get("content"),4000)
-        if role in {"user","assistant"} and content:
-            content_type="input_text" if role=="user" else "output_text"
-            inputs.append({"role":role,"content":[{"type":content_type,"text":content}]})
-    inputs.append({"role":"user","content":user_content})
-    payload=json.dumps({
-        "model":MODEL, "input":inputs, "max_output_tokens":900,
-    }).encode()
-    req=urlrequest.Request(
-        "https://api.openai.com/v1/responses", data=payload,
-        headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},
+        role = item.get("role")
+        content = _clean(item.get("content"), 4000)
+        if role in {"user", "assistant"} and content:
+            content_type = "input_text" if role == "user" else "output_text"
+            inputs.append(
+                {
+                    "role": role,
+                    "content": [{"type": content_type, "text": content}],
+                }
+            )
+    inputs.append({"role": "user", "content": user_content})
+    payload = json.dumps(
+        {
+            "model": MODEL,
+            "input": inputs,
+            "max_output_tokens": 1200 if code_mode else 900,
+            "stream": True,
+        }
+    ).encode()
+    req = urlrequest.Request(
+        "https://api.openai.com/v1/responses",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+        },
         method="POST",
     )
+    chunks: list[str] = []
+    completed_response: dict = {}
     try:
-        with urlrequest.urlopen(req, timeout=35) as response:
-            data=json.loads(response.read().decode())
+        with urlrequest.urlopen(req, timeout=55) as response:
+            for raw_line in response:
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                raw_data = line[5:].strip()
+                if not raw_data or raw_data == "[DONE]":
+                    continue
+                try:
+                    event = json.loads(raw_data)
+                except json.JSONDecodeError:
+                    continue
+                event_type = str(event.get("type", ""))
+                if event_type == "response.output_text.delta":
+                    delta = str(event.get("delta", ""))
+                    remaining = 12000 - sum(len(item) for item in chunks)
+                    delta = delta[: max(0, remaining)]
+                    if delta:
+                        chunks.append(delta)
+                        if on_delta is not None:
+                            on_delta(delta)
+                elif event_type == "response.completed":
+                    completed_response = event.get("response") or {}
+                elif event_type in {"error", "response.failed"}:
+                    raise RuntimeError("provider_stream_failed")
     except HTTPError as exc:
         raise RuntimeError(f"provider_http_{exc.code}") from exc
     except (URLError, TimeoutError) as exc:
         raise RuntimeError("provider_unavailable") from exc
-    text=_clean(data.get("output_text"), 12000)
+    text = "".join(chunks).strip()
     if not text:
-        for item in data.get("output",[]):
-            for content in item.get("content",[]):
-                if content.get("type")=="output_text":
-                    text += content.get("text","")
+        text = _clean(completed_response.get("output_text"), 12000)
+        if not text:
+            for item in completed_response.get("output", []):
+                for content in item.get("content", []):
+                    if content.get("type") == "output_text":
+                        text += content.get("text", "")
     if not text.strip():
         raise RuntimeError("provider_empty_response")
+    if not chunks and on_delta is not None:
+        on_delta(text.strip()[:12000])
     return text.strip()[:12000]
 
 def coherence_review(response: str, brain: dict) -> dict:
     """Return explainable alignment checks without exposing private reasoning."""
-    lowered=response.casefold()
-    checks={
+
+    lowered = response.casefold()
+    checks = {
         "substantive": len(response.strip()) >= 20,
         "smi_identity": "generic ai" not in lowered and "as chatgpt" not in lowered,
-        "human_authority": not any(phrase in lowered for phrase in (
-            "i have final authority", "human authority is not final",
-            "i approved my own", "i executed this action",
-        )),
-        "directness": not lowered.lstrip().startswith(("do you mean:", "which of these do you mean")),
-        "governed_state": brain.get("output_state") in {
-            "RECOMMENDATION_READY", "REVIEW_REQUIRED", "BLOCK_REQUEST", "SYSTEM_LOG_ONLY"
+        "human_authority": not any(
+            phrase in lowered
+            for phrase in (
+                "i have final authority",
+                "human authority is not final",
+                "i approved my own",
+                "i executed this action",
+            )
+        ),
+        "directness": not lowered.lstrip().startswith(
+            ("do you mean:", "which of these do you mean")
+        ),
+        "governed_state": brain.get("output_state")
+        in {
+            "RECOMMENDATION_READY",
+            "REVIEW_REQUIRED",
+            "BLOCK_REQUEST",
+            "SYSTEM_LOG_ONLY",
         },
     }
-    passed=all(checks.values())
-    return {"passed":passed,"score":round(100*sum(checks.values())/len(checks)),
-            "checks":checks}
+    passed = all(checks.values())
+    return {
+        "passed": passed,
+        "score": round(100 * sum(checks.values()) / len(checks)),
+        "checks": checks,
+    }
 
-def chat(message: object, identity_id: str, display_name: object, conversation_id: object=None, image_data: object=None, attachment: object=None) -> dict:
-    clean=_clean(message,MAX_INPUT)
-    image=_clean(image_data,7_000_000)
-    if image and not re.match(r"^data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$", image):
+
+def _emit(emitter: EventEmitter | None, event_type: str, **values: object) -> None:
+    if emitter is not None:
+        emitter({"type": event_type, **values})
+
+
+def _chat_rate_limit(connection: object, identity_id: str) -> None:
+    try:
+        configured_limit = int(os.environ.get("OAP_CHAT_RATE_LIMIT", "12"))
+    except ValueError:
+        configured_limit = 12
+    limit = min(60, max(1, configured_limit))
+    row = connection.execute(
+        """SELECT COUNT(*) FROM smi_messages m
+           JOIN smi_conversations c ON c.conversation_id=m.conversation_id
+           WHERE c.identity_id=%s AND m.role='user'
+             AND m.created_at >= CURRENT_TIMESTAMP - INTERVAL '1 minute'""",
+        (identity_id,),
+    ).fetchone()
+    if row and int(row[0]) >= limit:
+        raise ValueError("chat_rate_limit")
+
+
+def _write_audit(
+    connection: object,
+    *,
+    actor_id: str,
+    action: str,
+    target: str,
+    reason: str,
+    correlation_id: str,
+    metadata: dict,
+) -> None:
+    connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+    previous = connection.execute(
+        "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+    ).fetchone()
+    prev_hash = str(previous[0]) if previous else "GENESIS"
+    canonical = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+    curr_hash = hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
+    connection.execute(
+        """INSERT INTO audit_events
+           (prev_hash,curr_hash,actor_id,actor_type,authority_level,
+            action,target,reason,correlation_id,metadata)
+           VALUES (%s,%s,%s,'HUMAN',5,%s,%s,%s,%s,%s::jsonb)""",
+        (
+            prev_hash,
+            curr_hash,
+            actor_id,
+            action,
+            target,
+            reason,
+            correlation_id,
+            canonical,
+        ),
+    )
+
+
+def chat(
+    message: object,
+    identity_id: str,
+    display_name: object,
+    conversation_id: object = None,
+    image_data: object = None,
+    attachment: object = None,
+    *,
+    code_mode: bool = False,
+    on_event: EventEmitter | None = None,
+) -> dict:
+    clean = _clean(message, MAX_INPUT)
+    image = _clean(image_data, 7_000_000)
+    if image and not re.match(
+        r"^data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$", image
+    ):
         raise ValueError("invalid_image")
     if len(image) > 7_000_000:
         raise ValueError("image_too_large")
     if not clean and (image or attachment):
-        clean="Describe and analyse the attached media."
-    name=_clean(display_name,80) or "OAP Member"
-    try: identity=str(uuid.UUID(identity_id))
-    except (ValueError,TypeError): raise ValueError("invalid_identity")
-    request_id=str(uuid.uuid4())
-    outcome,reason=guardian_review(clean)
+        clean = "Describe and analyse the attached media."
+    name = _clean(display_name, 80) or "OAP Member"
+    try:
+        identity = str(uuid.UUID(identity_id))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("invalid_identity") from exc
+    request_id = str(uuid.uuid4())
+    outcome, reason = guardian_review(clean)
+    _emit(on_event, "stage", stage="received", label="Signal received")
     with postgres_db.connect() as connection:
-        _ensure_identity(connection,identity,name)
-        if not _permission(connection,identity):
+        _ensure_identity(connection, identity, name)
+        _emit(on_event, "stage", stage="identity", label="Identity verified")
+        if not _permission(connection, identity):
             raise PermissionError("REQUEST_RECOMMENDATION permission required")
-        provider_key=os.environ.get("OPENAI_API_KEY","").strip()
+        _chat_rate_limit(connection, identity)
+        _emit(on_event, "stage", stage="permission", label="Permission checked")
+        provider_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if not provider_key:
             raise RuntimeError("provider_key_missing")
-        media=media_intelligence.prepare(attachment,provider_key)
-        review_content=clean
+        if attachment:
+            _emit(on_event, "stage", stage="media", label="Media preparing")
+        media = media_intelligence.prepare(attachment, provider_key)
+        review_content = clean
+        if code_mode:
+            review_content = "CODE PROPOSAL REQUEST:\n" + review_content
         if media.get("transcript"):
             review_content += "\n\nAudio transcript: " + str(media["transcript"])
-        conversation=_clean(conversation_id,40)
-        try: conversation=str(uuid.UUID(conversation)) if conversation else str(uuid.uuid4())
-        except ValueError: conversation=str(uuid.uuid4())
-        owner=connection.execute(
+        conversation = _clean(conversation_id, 40)
+        try:
+            conversation = (
+                str(uuid.UUID(conversation)) if conversation else str(uuid.uuid4())
+            )
+        except ValueError:
+            conversation = str(uuid.uuid4())
+        owner = connection.execute(
             "SELECT identity_id FROM smi_conversations WHERE conversation_id=%s",
             (conversation,),
         ).fetchone()
         if owner and str(owner[0]) != identity:
-            conversation=str(uuid.uuid4())
+            conversation = str(uuid.uuid4())
         connection.execute(
             """INSERT INTO smi_conversations(conversation_id,identity_id,title)
                VALUES (%s,%s,%s) ON CONFLICT (conversation_id) DO UPDATE
                SET updated_at=CURRENT_TIMESTAMP""",
-            (conversation,identity,clean[:80] or "SMI Chat"),
+            (conversation, identity, clean[:80] or "SMI Chat"),
         )
-        rows=connection.execute(
+        rows = connection.execute(
             """SELECT m.role,m.content FROM smi_messages m
                JOIN smi_conversations c ON c.conversation_id=m.conversation_id
                WHERE m.conversation_id=%s AND c.identity_id=%s
                ORDER BY m.created_at DESC LIMIT 12""",
-            (conversation,identity),
+            (conversation, identity),
         ).fetchall()
-        history=[{"role":str(row[0]),"content":str(row[1])} for row in reversed(rows)]
-        brain=live_brain.review(
-            request_id=request_id, identity_id=identity, content=review_content,
-            history=history, image_attached=bool(image or media.get("kind")),
+        history = [
+            {"role": str(row[0]), "content": str(row[1])}
+            for row in reversed(rows)
+        ]
+        brain = live_brain.review(
+            request_id=request_id,
+            identity_id=identity,
+            content=review_content,
+            history=history,
+            image_attached=bool(image or media.get("kind")),
         )
-        memory_rows=connection.execute(
+        _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
+        memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records
                WHERE identity_id=%s AND task_type=%s
                ORDER BY created_at DESC LIMIT 5""",
-            (identity,brain["task_type"]),
+            (identity, brain["task_type"]),
         ).fetchall()
-        adaptive_memory=[str(row[0]) for row in reversed(memory_rows)]
+        adaptive_memory = [str(row[0]) for row in reversed(memory_rows)]
         if not brain["passed"]:
-            outcome="BLOCKED"
-            reason=brain["guardian_reason"] or "Canonical Guardian blocked the request."
-        elif outcome=="PASSED":
-            reason=brain["guardian_reason"] or "Canonical SMI review passed."
+            outcome = "BLOCKED"
+            reason = (
+                brain["guardian_reason"] or "Canonical Guardian blocked the request."
+            )
+        elif outcome == "PASSED":
+            reason = brain["guardian_reason"] or "Canonical SMI review passed."
         connection.execute(
-            """INSERT INTO oap_guardian_reviews(request_id,identity_id,outcome,reason)
-               VALUES (%s,%s,%s,%s)""",(request_id,identity,outcome,reason)
+            """INSERT INTO oap_guardian_reviews
+               (request_id,identity_id,outcome,reason) VALUES (%s,%s,%s,%s)""",
+            (request_id, identity, outcome, reason),
         )
-        if outcome=="BLOCKED":
-            response=reason
-            state="BLOCK_REQUEST"
+        provider_completed = False
+        if outcome == "BLOCKED":
+            response = reason
+            state = "BLOCK_REQUEST"
+            _emit(on_event, "delta", delta=response)
         else:
-            response=_provider(clean,image,history,brain,adaptive_memory,media)
-            state=brain["output_state"]
-        coherence=coherence_review(response,brain)
-        if outcome!="BLOCKED" and not coherence["passed"]:
-            outcome="REVIEW_REQUIRED"
-            state="REVIEW_REQUIRED"
-            reason="Coherence review requires Human Authority review."
+            _emit(
+                on_event,
+                "stage",
+                stage="provider",
+                label="SMI streaming recommendation",
+            )
+            response = _provider(
+                clean,
+                image,
+                history,
+                brain,
+                adaptive_memory,
+                media,
+                code_mode=code_mode,
+                on_delta=(
+                    (lambda delta: _emit(on_event, "delta", delta=delta))
+                    if on_event is not None
+                    else None
+                ),
+            )
+            provider_completed = True
+            state = brain["output_state"]
+        coherence = coherence_review(response, brain)
+        if outcome != "BLOCKED" and (code_mode or not coherence["passed"]):
+            outcome = "REVIEW_REQUIRED"
+            state = "REVIEW_REQUIRED"
+            reason = (
+                "Code proposal requires Human Authority review."
+                if code_mode and coherence["passed"]
+                else "Coherence review requires Human Authority review."
+            )
             connection.execute(
                 """UPDATE oap_guardian_reviews SET outcome=%s,reason=%s
-                   WHERE request_id=%s""",(outcome,reason,request_id)
+                   WHERE request_id=%s""",
+                (outcome, reason, request_id),
             )
-        content_hash=hashlib.sha256((clean + ("|image" if image else "") +
-                                    ("|"+str(media.get("sha256")) if media.get("sha256") else "")).encode()).hexdigest()
+        _emit(on_event, "stage", stage="hrm", label="HRM recording governed memory")
+        hash_material = clean + ("|image" if image else "")
+        if media.get("sha256"):
+            hash_material += "|" + str(media["sha256"])
+        if code_mode:
+            hash_material += "|code_proposal"
+        content_hash = hashlib.sha256(hash_material.encode()).hexdigest()
+        processing_states = list(brain["processing_states"])
+        if provider_completed:
+            processing_states.append("PROVIDER_COMPLETED")
+        processing_states.append("HRM_RECORDED")
         connection.execute(
             """INSERT INTO smi_memory_records
                (request_id,identity_id,task_type,content_hash,summary,output_state,
                 signal_level,rationale_json,processing_states_json)
                VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb)""",
-            (request_id,identity,brain["task_type"],content_hash,response[:300],state,
-             brain["signal_level"],
-             json.dumps({"guardian":outcome,"provider":PROVIDER,"image_attached":bool(image),
-                         "media_kind":media.get("kind"),"media_retained":False,
-                         "media_frames":media.get("frame_count",0),
-                         "advisor_ids":brain["advisor_ids"],"war_room":brain["war_room"],
-                         "adaptive_memory_count":len(adaptive_memory),"coherence":coherence}),
-             json.dumps(brain["processing_states"]+["PROVIDER_COMPLETED","HRM_RECORDED"])),
+            (
+                request_id,
+                identity,
+                brain["task_type"],
+                content_hash,
+                response[:300],
+                state,
+                brain["signal_level"],
+                json.dumps(
+                    {
+                        "guardian": outcome,
+                        "provider": PROVIDER,
+                        "image_attached": bool(image),
+                        "media_kind": media.get("kind"),
+                        "media_retained": False,
+                        "media_frames": media.get("frame_count", 0),
+                        "advisor_ids": brain["advisor_ids"],
+                        "war_room": brain["war_room"],
+                        "adaptive_memory_count": len(adaptive_memory),
+                        "coherence": coherence,
+                        "code_proposal": code_mode,
+                    }
+                ),
+                json.dumps(processing_states),
+            ),
         )
         connection.execute(
             """INSERT INTO smi_messages
                (conversation_id,request_id,role,content,guardian_outcome)
                VALUES (%s,%s,'user',%s,%s)""",
-            (conversation,request_id,clean,outcome),
+            (conversation, request_id, clean, outcome),
         )
         connection.execute(
             """INSERT INTO smi_messages
                (conversation_id,request_id,role,content,provider,model,guardian_outcome)
                VALUES (%s,%s,'assistant',%s,%s,%s,%s)""",
-            (conversation,request_id,response,PROVIDER,MODEL,outcome),
+            (conversation, request_id, response, PROVIDER, MODEL, outcome),
         )
-        connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
-        previous = connection.execute(
-            "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
-        ).fetchone()
-        prev_hash = str(previous[0]) if previous else "GENESIS"
-        audit_payload = json.dumps({
-            "request_id": request_id, "identity_id": identity,
-            "action": "SMI_REVIEWED", "guardian": outcome,
-            "provider": PROVIDER, "model": MODEL, "image_attached": bool(image),
-            "media_kind": media.get("kind"), "media_retained": False,
-            "media_frames": media.get("frame_count",0),
-            "task_type": brain["task_type"], "advisor_ids": brain["advisor_ids"],
-            "brain_regions": brain["brain_region_count"], "war_room": brain["war_room"]["triggered"],
-            "adaptive_memory_count": len(adaptive_memory), "coherence_score": coherence["score"],
-        }, sort_keys=True, separators=(",", ":"))
-        curr_hash = hashlib.sha256((prev_hash + audit_payload).encode()).hexdigest()
-        connection.execute(
-            """INSERT INTO audit_events
-               (prev_hash,curr_hash,actor_id,actor_type,authority_level,
-                action,target,reason,correlation_id,metadata)
-               VALUES (%s,%s,%s,'HUMAN',5,'SMI_REVIEWED','SMI_CHAT',%s,%s,%s::jsonb)""",
-            (prev_hash,curr_hash,identity,reason,request_id,audit_payload),
+        audit_metadata = {
+            "request_id": request_id,
+            "identity_id": identity,
+            "action": "SMI_REVIEWED",
+            "guardian": outcome,
+            "provider": PROVIDER,
+            "model": MODEL,
+            "image_attached": bool(image),
+            "media_kind": media.get("kind"),
+            "media_retained": False,
+            "media_frames": media.get("frame_count", 0),
+            "task_type": brain["task_type"],
+            "advisor_ids": brain["advisor_ids"],
+            "brain_regions": brain["brain_region_count"],
+            "war_room": brain["war_room"]["triggered"],
+            "adaptive_memory_count": len(adaptive_memory),
+            "coherence_score": coherence["score"],
+            "code_proposal": code_mode,
+        }
+        _write_audit(
+            connection,
+            actor_id=identity,
+            action="SMI_REVIEWED",
+            target="SMI_CHAT",
+            reason=reason,
+            correlation_id=request_id,
+            metadata=audit_metadata,
         )
         connection.commit()
-    return {"status":"green","request_id":request_id,"conversation_id":conversation,
-            "response":response,"output_state":state,"guardian":outcome,
-            "provider":PROVIDER,"model":MODEL,"human_authority_final":True,
-            "task_type":brain["task_type"],"advisor_ids":brain["advisor_ids"],
-            "brain_regions":brain["brain_region_count"],"signal_level":brain["signal_level"],
-            "war_room":brain["war_room"],"can_execute":False,
-            "adaptive":{"active":True,"hrm_lessons":len(adaptive_memory)},
-            "media":{"kind":media.get("kind"),"filename":media.get("filename"),
-                     "frames":media.get("frame_count",0),"retained":False},
-            "coherent":{"passed":coherence["passed"],"score":coherence["score"]}}
+    return {
+        "status": "green",
+        "request_id": request_id,
+        "conversation_id": conversation,
+        "response": response,
+        "output_state": state,
+        "guardian": outcome,
+        "provider": PROVIDER,
+        "model": MODEL,
+        "human_authority_final": True,
+        "task_type": brain["task_type"],
+        "advisor_ids": brain["advisor_ids"],
+        "brain_regions": brain["brain_region_count"],
+        "signal_level": brain["signal_level"],
+        "war_room": brain["war_room"],
+        "can_execute": False,
+        "adaptive": {"active": True, "hrm_lessons": len(adaptive_memory)},
+        "media": {
+            "kind": media.get("kind"),
+            "filename": media.get("filename"),
+            "frames": media.get("frame_count", 0),
+            "retained": False,
+        },
+        "coherent": {"passed": coherence["passed"], "score": coherence["score"]},
+        "code_proposal": {
+            "active": code_mode,
+            "status": "HUMAN_REVIEW_REQUIRED" if code_mode else "NOT_REQUESTED",
+            "apply_enabled": False,
+            "deploy_enabled": False,
+        },
+    }
 
+
+def chat_events(
+    message: object,
+    identity_id: str,
+    display_name: object,
+    conversation_id: object = None,
+    image_data: object = None,
+    attachment: object = None,
+    *,
+    code_mode: bool = False,
+) -> Iterator[dict]:
+    """Bridge blocking provider I/O to a bounded SSE event iterator."""
+
+    event_queue: queue.Queue[dict] = queue.Queue(maxsize=256)
+
+    def emit(item: dict) -> None:
+        event_queue.put(item, timeout=60)
+
+    def worker() -> None:
+        try:
+            result = chat(
+                message,
+                identity_id,
+                display_name,
+                conversation_id,
+                image_data,
+                attachment,
+                code_mode=code_mode,
+                on_event=emit,
+            )
+            emit({"type": "complete", "result": result})
+        except ValueError as exc:
+            code = "rate_limited" if str(exc) == "chat_rate_limit" else "invalid_request"
+            message_text = (
+                "Too many SMI requests. Wait one minute and try again."
+                if code == "rate_limited"
+                else str(exc)[:120]
+            )
+            emit({"type": "error", "code": code, "message": message_text})
+        except PermissionError:
+            emit(
+                {
+                    "type": "error",
+                    "code": "permission_denied",
+                    "message": "REQUEST_RECOMMENDATION permission required.",
+                }
+            )
+        except RuntimeError:
+            emit(
+                {
+                    "type": "error",
+                    "code": "provider_unavailable",
+                    "message": "SMI is temporarily unavailable. No completion was recorded.",
+                }
+            )
+        except Exception:
+            emit(
+                {
+                    "type": "error",
+                    "code": "internal_error",
+                    "message": "The governed request did not complete safely.",
+                }
+            )
+        finally:
+            event_queue.put({"type": "_done"})
+
+    threading.Thread(target=worker, name="oap-smi-stream", daemon=True).start()
+    while True:
+        try:
+            item = event_queue.get(timeout=15)
+        except queue.Empty:
+            yield {"type": "heartbeat", "status": "working"}
+            continue
+        if item.get("type") == "_done":
+            return
+        yield item
+
+
+def _validated_uuid(value: object, error_code: str) -> str:
+    try:
+        return str(uuid.UUID(str(value)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError(error_code) from exc
+
+
+def list_conversations(identity_id: str) -> list[dict]:
+    identity = _validated_uuid(identity_id, "invalid_identity")
+    with postgres_db.connect(readonly=True) as connection:
+        rows = connection.execute(
+            """SELECT c.conversation_id,c.title,c.updated_at,
+                      (SELECT COUNT(*) FROM smi_messages m
+                       WHERE m.conversation_id=c.conversation_id) AS message_count,
+                      COALESCE((SELECT m.content FROM smi_messages m
+                       WHERE m.conversation_id=c.conversation_id AND m.role='user'
+                       ORDER BY m.created_at DESC LIMIT 1),'') AS preview
+               FROM smi_conversations c
+               WHERE c.identity_id=%s
+               ORDER BY c.updated_at DESC LIMIT 50""",
+            (identity,),
+        ).fetchall()
+    return [
+        {
+            "conversation_id": str(row[0]),
+            "title": str(row[1]),
+            "updated_at": row[2].isoformat(),
+            "message_count": int(row[3]),
+            "preview": str(row[4])[:160],
+        }
+        for row in rows
+    ]
+
+
+def get_conversation(identity_id: str, conversation_id: str) -> dict:
+    identity = _validated_uuid(identity_id, "invalid_identity")
+    conversation = _validated_uuid(conversation_id, "invalid_conversation")
+    with postgres_db.connect(readonly=True) as connection:
+        owner = connection.execute(
+            """SELECT title,updated_at FROM smi_conversations
+               WHERE conversation_id=%s AND identity_id=%s""",
+            (conversation, identity),
+        ).fetchone()
+        if owner is None:
+            raise ValueError("conversation_not_found")
+        rows = connection.execute(
+            """SELECT message_id,role,content,provider,model,guardian_outcome,created_at
+               FROM (
+                 SELECT message_id,role,content,provider,model,guardian_outcome,created_at
+                 FROM smi_messages WHERE conversation_id=%s
+                 ORDER BY created_at DESC LIMIT 200
+               ) recent ORDER BY created_at ASC""",
+            (conversation,),
+        ).fetchall()
+    return {
+        "conversation_id": conversation,
+        "title": str(owner[0]),
+        "updated_at": owner[1].isoformat(),
+        "messages": [
+            {
+                "message_id": str(row[0]),
+                "role": str(row[1]),
+                "content": str(row[2]),
+                "provider": str(row[3]) if row[3] else None,
+                "model": str(row[4]) if row[4] else None,
+                "guardian": str(row[5]) if row[5] else None,
+                "created_at": row[6].isoformat(),
+            }
+            for row in rows
+        ],
+        "human_authority_final": True,
+    }
+
+
+def delete_conversation(identity_id: str, conversation_id: str) -> dict:
+    identity = _validated_uuid(identity_id, "invalid_identity")
+    conversation = _validated_uuid(conversation_id, "invalid_conversation")
+    correlation_id = str(uuid.uuid4())
+    with postgres_db.connect() as connection:
+        row = connection.execute(
+            """SELECT title FROM smi_conversations
+               WHERE conversation_id=%s AND identity_id=%s FOR UPDATE""",
+            (conversation, identity),
+        ).fetchone()
+        if row is None:
+            raise ValueError("conversation_not_found")
+        connection.execute(
+            "DELETE FROM smi_conversations WHERE conversation_id=%s",
+            (conversation,),
+        )
+        _write_audit(
+            connection,
+            actor_id=identity,
+            action="SMI_CONVERSATION_DELETED",
+            target=conversation,
+            reason="Human Authority deleted an owned SMI conversation.",
+            correlation_id=correlation_id,
+            metadata={
+                "action": "SMI_CONVERSATION_DELETED",
+                "conversation_id": conversation,
+                "identity_id": identity,
+                "title_hash": hashlib.sha256(str(row[0]).encode()).hexdigest(),
+            },
+        )
+        connection.commit()
+    return {
+        "status": "deleted",
+        "conversation_id": conversation,
+        "human_authority_final": True,
+    }
+
+
+def _audit_chain_status(connection: object, limit: int = 500) -> dict:
+    rows = connection.execute(
+        """SELECT event_seq,prev_hash,curr_hash,metadata FROM (
+             SELECT event_seq,prev_hash,curr_hash,metadata
+             FROM audit_events ORDER BY event_seq DESC LIMIT %s
+           ) recent ORDER BY event_seq ASC""",
+        (limit,),
+    ).fetchall()
+    previous_hash: str | None = None
+    for index, row in enumerate(rows):
+        sequence = int(row[0])
+        prev_hash = str(row[1])
+        curr_hash = str(row[2])
+        metadata = row[3]
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
+        if index == 0 and sequence == 1 and prev_hash != "GENESIS":
+            return {"verified": False, "events_checked": len(rows)}
+        if previous_hash is not None and prev_hash != previous_hash:
+            return {"verified": False, "events_checked": len(rows)}
+        canonical = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+        expected = hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
+        if not hmac.compare_digest(curr_hash, expected):
+            return {"verified": False, "events_checked": len(rows)}
+        previous_hash = curr_hash
+    return {"verified": True, "events_checked": len(rows)}
 def health() -> dict:
     """Return the truthful OAP 3x7 (21-gate) SMI production readiness result."""
     checks={
@@ -327,7 +821,12 @@ def health() -> dict:
             checks["schema"]=needed <= tables
             checks["hrm"]="smi_memory_records" in tables
             checks["conversation_memory"]={"smi_messages","smi_conversations"} <= tables
-            checks["audit"]="audit_events" in tables
+            audit_chain = (
+                _audit_chain_status(connection)
+                if "audit_events" in tables
+                else {"verified": False, "events_checked": 0}
+            )
+            checks["audit"] = bool(audit_chain["verified"])
             checks["provider_assignment"]=connection.execute(
                 """SELECT 1 FROM smi_provider_assignments
                    WHERE agent_id='NEO-001' AND provider_id='openai'
@@ -349,10 +848,16 @@ def health() -> dict:
             "modalities":{"text":True,"image":True,"audio_transcription":True,
                           "video_sampled_frames":True,"pdf":True,"documents":True,
                           "raw_media_retained":False},
+            "streaming":{"provider_deltas":True,"persistence_before_complete":True,
+                         "heartbeat_seconds":15},
+            "conversation_management":{"list":True,"resume":True,"delete_owned":True,
+                                       "maximum_listed":50,"maximum_loaded_messages":200},
             "environment": {
                 "revision_present": bool(os.environ.get("OAP_ENV_REVISION")),
                 "database_url_present": bool(os.environ.get("DATABASE_URL")),
                 "oap_neon_url_present": bool(os.environ.get("OAP_NEON_DATABASE_URL")),
-                "db_secret_present": bool(os.environ.get("OAP_DB_SECRET_B64") or
-                                          os.environ.get("OAP_NEON_DATABASE_URL_B64")),
+                "encoded_database_url_present": bool(
+                    os.environ.get("OAP_DB_SECRET_B64")
+                    or os.environ.get("OAP_NEON_DATABASE_URL_B64")
+                ),
             }}

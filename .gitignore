@@ -48,10 +48,12 @@ htmlcov/
 *.sqlite3
 *.db-wal
 *.db-shm
+backups/
 
 # Environment
 .env
 .env.local
+.oap_secret
 
 # Logs
 *.log

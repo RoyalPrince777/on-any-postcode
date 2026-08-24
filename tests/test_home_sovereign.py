@@ -25,6 +25,7 @@ def test_home_keeps_legacy_post_forms(client):
 
     for route in ("/signal", "/room", "/flag", "/myworld"):
         assert f'method="post" action="{route}"' in page
+    assert page.count('name="csrf_token"') == 98
 
 
 def test_gateway_has_three_validated_mode_links(client):

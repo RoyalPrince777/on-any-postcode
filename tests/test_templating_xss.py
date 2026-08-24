@@ -3,9 +3,9 @@ from __future__ import annotations
 import mission_control.status as mission_status
 
 
-def test_legacy_user_content_is_escaped(client):
+def test_legacy_user_content_is_escaped(client, csrf):
     attack = '<script>alert("legacy")</script>'
-    client.post("/signal", data={"name": attack, "body": attack})
+    client.post("/signal", data={**csrf, "name": attack, "body": attack})
 
     page = client.get("/").get_data(as_text=True)
 
