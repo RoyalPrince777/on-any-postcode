@@ -8,7 +8,7 @@
     :root{--green:#35d778;--dark:#06100a;--panel:#102219;--line:#2b4f38;--gold:#d7b759}
     .smi-shell{max-width:1120px;margin:auto;padding:20px}.smi-hero{background:linear-gradient(145deg,#122a1b,#07100a);border:1px solid var(--line);border-radius:22px;padding:24px}
     .lights{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:18px}.light{padding:10px;border:1px solid var(--line);border-radius:12px;background:#09150e;font-size:.78rem}.lamp{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);margin-right:7px}
-    .chatbox{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:var(--panel);overflow:hidden}.messages{min-height:300px;max-height:54vh;overflow:auto;padding:18px}.msg{max-width:82%;padding:12px 14px;border-radius:15px;margin:9px 0;white-space:pre-wrap;line-height:1.5}.user{margin-left:auto;background:#1d5433}.assistant{background:#0a150f;border:1px solid var(--line)}.system{color:#b8c8be;font-size:.85rem}
+    .chatbox{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:var(--panel);overflow:hidden}.messages{min-height:300px;max-height:54vh;overflow:auto;padding:18px}.msg{max-width:82%;padding:12px 14px;border-radius:15px;margin:9px 0;white-space:pre-wrap;line-height:1.5;position:relative}.msg-text{white-space:pre-wrap}.msg-actions{display:flex;justify-content:flex-end;margin-top:8px}.copy{border:1px solid var(--line);border-radius:9px;background:#11251a;color:#dff5e6;padding:6px 10px;cursor:pointer;font:inherit;font-size:.76rem}.copy:hover,.copy:focus{border-color:var(--green)}.user{margin-left:auto;background:#1d5433}.assistant{background:#0a150f;border:1px solid var(--line)}.system{color:#b8c8be;font-size:.85rem}
     .composer{padding:14px;border-top:1px solid var(--line);display:grid;gap:10px}.composer textarea,.composer input{width:100%;border:1px solid var(--line);border-radius:12px;background:#07100a;color:white;padding:12px;font:inherit}.send{border:0;border-radius:12px;background:var(--green);color:#031007;padding:12px 18px;font-weight:900;cursor:pointer}.send:disabled{opacity:.5}.row{display:flex;gap:10px;align-items:center}.row input{max-width:220px}.status{color:#b7c8bd;font-size:.8rem}.navs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.navs a{padding:8px 11px;border:1px solid var(--line);border-radius:999px}
     @media(max-width:720px){.lights{grid-template-columns:repeat(2,1fr)}.msg{max-width:94%}.row{align-items:stretch;flex-direction:column}.row input{max-width:none}}
   </style>
@@ -40,8 +40,24 @@
 <script>
 const form=document.getElementById('chat-form'), messages=document.getElementById('messages');
 const send=document.getElementById('send'), statusEl=document.getElementById('status');
-let conversationId=null;
-function add(text,role){const el=document.createElement('div');el.className='msg '+role;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight}
+let conversationId=null,stageTimer=null;
+function add(text,role){
+ const el=document.createElement('div');el.className='msg '+role;
+ const body=document.createElement('div');body.className='msg-text';body.textContent=text;el.appendChild(body);
+ if(role==='assistant'||role==='system'){
+  const actions=document.createElement('div');actions.className='msg-actions';
+  const copy=document.createElement('button');copy.type='button';copy.className='copy';copy.textContent='Copy';
+  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(text);copy.textContent='Copied ✓'}catch(e){const range=document.createRange();range.selectNodeContents(body);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);copy.textContent='Selected — tap Copy'}setTimeout(()=>copy.textContent='Copy',1800)});
+  actions.appendChild(copy);el.appendChild(actions);
+ }
+ messages.appendChild(el);messages.scrollTop=messages.scrollHeight
+}
+function startStages(){
+ const stages=['👤 Identity verified','🔐 Permission checked','🛡️ Guardian reviewing','🧠 SMI generating recommendation','💾 HRM preparing memory','📜 Audit preparing record'];
+ let i=0;statusEl.textContent=stages[i];
+ stageTimer=setInterval(()=>{i=Math.min(i+1,stages.length-1);statusEl.textContent=stages[i]},900);
+}
+function stopStages(){if(stageTimer){clearInterval(stageTimer);stageTimer=null}}
 async function loadHealth(){
  try{
   const r=await fetch('{{ url_for("mission_control.smi_chat_health") }}',{cache:'no-store'}), data=await r.json();
@@ -51,13 +67,13 @@ async function loadHealth(){
 }
 form.addEventListener('submit',async e=>{
  e.preventDefault();const message=document.getElementById('message').value.trim();if(!message)return;
- add(message,'user');document.getElementById('message').value='';send.disabled=true;statusEl.textContent='Identity → Permission → Guardian → SMI → HRM...';
+ add(message,'user');document.getElementById('message').value='';send.disabled=true;startStages();
  try{
   const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId})});
   const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Request failed');
   conversationId=data.conversation_id;add(data.response,'assistant');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
  }catch(err){add(err.message,'system');statusEl.textContent='Request not completed safely';}
- finally{send.disabled=false;loadHealth();}
+ finally{stopStages();send.disabled=false;loadHealth();}
 });
 loadHealth();setInterval(loadHealth,30000);
 </script>
