@@ -155,8 +155,10 @@ def health() -> dict:
             "identity":True,"permission":True,"guardian":True,"hrm":False,
             "router":PROVIDER=="openai","chat_route":True,"streaming_ready":True,
             "audit":False,"human_authority":True}
+    reason = None
     try:
         status=postgres_db.postgres_status()
+        reason = status.get("error")
         checks["database"]=bool(status.get("reachable"))
         with postgres_db.connect(readonly=True) as connection:
             tables={r[0] for r in connection.execute(
@@ -167,7 +169,8 @@ def health() -> dict:
             checks["schema"]=needed <= tables
             checks["hrm"]="smi_memory_records" in tables
             checks["audit"]="audit_events" in tables
-    except Exception:
-        pass
+    except Exception as exc:
+        reason = type(exc).__name__
     return {"status":"green" if all(checks.values()) else "degraded",
-            "checks":checks,"green":sum(checks.values()),"total":len(checks)}
+            "checks":checks,"green":sum(checks.values()),"total":len(checks),
+            "database_reason": reason}
