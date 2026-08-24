@@ -28,7 +28,7 @@
     </div>
     <form class="composer" id="chat-form">
       <label for="message"><strong>Message OAP Mind</strong></label>
-      <textarea id="message" maxlength="4000" rows="4" placeholder="Type your recommendation request..." required></textarea>
+      <textarea id="message" maxlength="4000" rows="4" placeholder="Type your recommendation request, or attach an image..."></textarea>
       <div class="preview" id="image-preview"><img id="preview-img" alt="Selected image preview"><span id="preview-name"></span><button class="tool-btn" id="remove-image" type="button">Remove</button></div>
       <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" capture="environment" hidden>
       <div class="row">
@@ -84,7 +84,7 @@ function stopStages(){if(stageTimer){clearInterval(stageTimer);stageTimer=null}}
 async function loadHealth(){
  try{
   const r=await fetch('{{ url_for("mission_control.smi_chat_health") }}',{cache:'no-store'}), data=await r.json();
-  const names={database:'Neon',schema:'Schema',provider_key:'Provider',identity:'Identity',permission:'Permission',guardian:'Guardian',hrm:'HRM',router:'Router',chat_route:'Chat Route',streaming_ready:'Streaming',audit:'Audit',human_authority:'Authority'};
+  const names={database:'Neon',schema:'Schema',provider_key:'Provider Key',provider_assignment:'Provider Assignment',identity:'Identity',permission:'Permission',nexus:'NEXUS',thalamus_input:'Thalamus',agent_registry:'Agent Registry',agent_selection:'Agent Selection',biological_brain:'Biological Brain',aegis:'AEGIS',guardian:'Guardian',war_room:'War Room',hrm:'HRM',conversation_memory:'Conversation Memory',router:'Provider Router',chat_route:'Chat Route',audit:'Audit',human_authority:'Human Authority',execution_locked:'Execution Locked'};
   document.getElementById('lights').innerHTML=Object.entries(data.checks).map(([k,v])=>'<div class="light"><span class="lamp" style="'+(v?'':'background:#e24d4d;box-shadow:0 0 12px #e24d4d')+'"></span>'+names[k]+'</div>').join('');
  }catch(e){statusEl.textContent='Health check unavailable';}
 }
@@ -94,7 +94,7 @@ form.addEventListener('submit',async e=>{
  try{
   const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId,image_data:selectedImage})});
   const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Request failed');
-  conversationId=data.conversation_id;add(data.response,'assistant');if(readAloud&&'speechSynthesis'in window){speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(data.response);speech.lang='en-GB';speechSynthesis.speak(speech)}selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
+  conversationId=data.conversation_id;add(data.response,'assistant');add('🧠 '+data.task_type+' · '+data.brain_regions+' brain regions · '+data.advisor_ids.length+' approved advisor(s) · Signal '+data.signal_level+(data.war_room.triggered?' · War Room reviewed':''),'system');if(readAloud&&'speechSynthesis'in window){speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(data.response);speech.lang='en-GB';speechSynthesis.speak(speech)}selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
  }catch(err){add(err.message,'system');statusEl.textContent='Request not completed safely';}
  finally{stopStages();send.disabled=false;loadHealth();}
 });
