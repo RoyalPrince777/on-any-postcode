@@ -103,7 +103,7 @@ def prepare(value: object, key: str) -> dict[str, Any]:
         mime,raw,b64=_decode_data_url(value.get("data"),DOCUMENT_MIMES,MAX_FILE_BYTES)
         return {
             "kind":kind,"filename":name,
-            "content_items":[{"type":"input_file","filename":name,"file_data":b64}],
+            "content_items":[{"type":"input_file","filename":name,"file_data":str(value.get("data"))}],
             "transcript":"","sha256":hashlib.sha256(raw).hexdigest(),
             "frame_count":0,"retained":False,"mime":mime,
         }
