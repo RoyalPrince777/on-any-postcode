@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+import sys
 import time
 import uuid
 
@@ -13,6 +15,13 @@ from mission_control.database import db_status
 from mission_control.organism import validate_architecture
 
 app = Flask(__name__)
+REQUEST_LOGGER = logging.getLogger("oap.request")
+if not REQUEST_LOGGER.handlers:
+    request_log_handler = logging.StreamHandler(sys.stdout)
+    request_log_handler.setFormatter(logging.Formatter("%(message)s"))
+    REQUEST_LOGGER.addHandler(request_log_handler)
+REQUEST_LOGGER.setLevel(logging.INFO)
+REQUEST_LOGGER.propagate = False
 SESSION_SECRET_CONFIGURED = bool(os.environ.get("OAP_SESSION_SECRET", "").strip())
 app.config["SECRET_KEY"] = (
     os.environ.get("OAP_SESSION_SECRET", "").strip() or os.urandom(32)
@@ -72,7 +81,7 @@ def _security_headers(response):
     response.headers.setdefault("X-OAP-Request-ID", g.get("oap_request_id", ""))
     started = g.get("oap_request_started")
     duration_ms = round((time.monotonic() - started) * 1000, 2) if started else 0
-    app.logger.info(
+    REQUEST_LOGGER.info(
         json.dumps(
             {
                 "event": "http_request",
@@ -364,7 +373,8 @@ def _readiness_snapshot():
         "csrf_protection": True,
         "bounded_rate_controls": True,
         "smi_3x7_ready": smi["status"] == "green" and smi["green"] == smi["total"],
-        "structured_request_logs": True,
+        "structured_request_logs": bool(REQUEST_LOGGER.handlers)
+        and REQUEST_LOGGER.isEnabledFor(logging.INFO),
     }
     return {
         "checks": checks,
