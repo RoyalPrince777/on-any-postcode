@@ -223,6 +223,7 @@ def status() -> dict[str, Any]:
                 "created_at",
             } <= columns["posts"]
             result["durable"] = result["schema_ready"]
-    except Exception:
+    # A readiness endpoint must degrade safely for every driver/network failure.
+    except Exception:  # noqa: BLE001
         result["error"] = "database_unavailable"
     return result

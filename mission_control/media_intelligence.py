@@ -31,7 +31,7 @@ AUDIO_MIMES = {
 IMAGE_MIMES = {"image/jpeg", "image/png", "image/webp"}
 _DATA_URL = re.compile(
     r"^data:([a-z0-9.+-]+/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$",
-    re.I,
+    re.IGNORECASE,
 )
 
 
@@ -96,11 +96,11 @@ def prepare(value: object, key: str) -> dict[str, Any]:
             "sha256":None,"frame_count":0,"retained":False,
         }
     if not isinstance(value,dict):
-        raise ValueError("invalid_attachment")
+        raise TypeError("invalid_attachment")
     kind=str(value.get("kind","")).strip().lower()
     name=_safe_name(value.get("name"),"attachment")
     if kind=="document":
-        mime,raw,b64=_decode_data_url(value.get("data"),DOCUMENT_MIMES,MAX_FILE_BYTES)
+        mime,raw,_=_decode_data_url(value.get("data"),DOCUMENT_MIMES,MAX_FILE_BYTES)
         return {
             "kind":kind,"filename":name,
             "content_items":[{"type":"input_file","filename":name,"file_data":str(value.get("data"))}],

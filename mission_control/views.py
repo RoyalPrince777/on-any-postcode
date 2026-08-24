@@ -23,8 +23,8 @@ from . import (
     ollama_chat,
     organism,
     products,
-    status,
     smi_chat_runtime,
+    status,
     web_security,
 )
 
@@ -184,7 +184,7 @@ def smi_chat_message():
             code_mode=bool(payload.get("code_mode")),
         )
         return _no_store(make_response(jsonify(result)))
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         if str(exc) == "chat_rate_limit":
             response = _error(
                 "rate_limited",

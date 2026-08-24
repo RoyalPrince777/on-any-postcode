@@ -29,7 +29,7 @@ def _clean(value: object, limit: int) -> str:
 def guardian_review(message: str) -> tuple[str, str]:
     if not message:
         return "BLOCKED", "A message is required."
-    if any(re.search(pattern, message, re.I) for pattern in BLOCKED):
+    if any(re.search(pattern, message, re.IGNORECASE) for pattern in BLOCKED):
         return "BLOCKED", "Guardian blocked a harmful or unauthorized request."
     return "PASSED", "Bounded recommendation request passed Guardian review."
 
@@ -593,7 +593,7 @@ def chat_events(
                 on_event=emit,
             )
             emit({"type": "complete", "result": result})
-        except ValueError as exc:
+        except (TypeError, ValueError) as exc:
             code = "rate_limited" if str(exc) == "chat_rate_limit" else "invalid_request"
             message_text = (
                 "Too many SMI requests. Wait one minute and try again."
@@ -617,7 +617,8 @@ def chat_events(
                     "message": "SMI is temporarily unavailable. No completion was recorded.",
                 }
             )
-        except Exception:
+        # Final thread boundary: convert every unexpected failure into safe SSE.
+        except Exception:  # noqa: BLE001
             emit(
                 {
                     "type": "error",
@@ -806,7 +807,8 @@ def health() -> dict:
         checks["guardian"]=bool(probe["passed"])
         checks["war_room"]="war_room" in probe
         checks["execution_locked"]=probe["can_execute"] is False
-    except Exception as exc:
+    # Health checks must report degradation instead of raising to the caller.
+    except Exception as exc:  # noqa: BLE001
         reason="canonical_brain_"+type(exc).__name__
     try:
         status=postgres_db.postgres_status()
@@ -832,7 +834,8 @@ def health() -> dict:
                    WHERE agent_id='NEO-001' AND provider_id='openai'
                      AND status='APPROVED' LIMIT 1"""
             ).fetchone() is not None
-    except Exception as exc:
+    # Database/driver failures are normalized into a redacted health reason.
+    except Exception as exc:  # noqa: BLE001
         message = str(exc)
         if message in {"DATABASE_URL is not configured", "Neon database URL is not configured",
                        "psycopg is required when DATABASE_URL is configured"}:
