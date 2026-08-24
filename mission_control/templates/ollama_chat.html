@@ -9,7 +9,7 @@
     .smi-shell{max-width:1120px;margin:auto;padding:20px}.smi-hero{background:linear-gradient(145deg,#122a1b,#07100a);border:1px solid var(--line);border-radius:22px;padding:24px}
     .lights{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:18px}.light{padding:10px;border:1px solid var(--line);border-radius:12px;background:#09150e;font-size:.78rem}.lamp{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);margin-right:7px}
     .chatbox{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:var(--panel);overflow:hidden}.messages{min-height:300px;max-height:54vh;overflow:auto;padding:18px}.msg{max-width:82%;padding:12px 14px;border-radius:15px;margin:9px 0;white-space:pre-wrap;line-height:1.5;position:relative}.msg-text{white-space:pre-wrap}.msg-actions{display:flex;justify-content:flex-end;margin-top:8px}.copy{border:1px solid var(--line);border-radius:9px;background:#11251a;color:#dff5e6;padding:6px 10px;cursor:pointer;font:inherit;font-size:.76rem}.copy:hover,.copy:focus{border-color:var(--green)}.user{margin-left:auto;background:#1d5433}.assistant{background:#0a150f;border:1px solid var(--line)}.system{color:#b8c8be;font-size:.85rem}
-    .composer{padding:14px;border-top:1px solid var(--line);display:grid;gap:10px}.composer textarea,.composer input{width:100%;border:1px solid var(--line);border-radius:12px;background:#07100a;color:white;padding:12px;font:inherit}.send{border:0;border-radius:12px;background:var(--green);color:#031007;padding:12px 18px;font-weight:900;cursor:pointer}.send:disabled{opacity:.5}.row{display:flex;gap:10px;align-items:center}.row input{max-width:220px}.status{color:#b7c8bd;font-size:.8rem}.navs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.navs a{padding:8px 11px;border:1px solid var(--line);border-radius:999px}
+    .composer{padding:14px;border-top:1px solid var(--line);display:grid;gap:10px}.composer textarea,.composer input{width:100%;border:1px solid var(--line);border-radius:12px;background:#07100a;color:white;padding:12px;font:inherit}.tool-btn{border:1px solid var(--line);border-radius:11px;background:#11251a;color:#e8fff0;padding:10px 12px;cursor:pointer;font:inherit}.tool-btn.active{border-color:var(--green);box-shadow:0 0 10px #35d77855}.preview{display:none;align-items:center;gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px}.preview.show{display:flex}.preview img{width:64px;height:64px;object-fit:cover;border-radius:9px}.send{border:0;border-radius:12px;background:var(--green);color:#031007;padding:12px 18px;font-weight:900;cursor:pointer}.send:disabled{opacity:.5}.row{display:flex;gap:10px;align-items:center}.row input{max-width:220px}.status{color:#b7c8bd;font-size:.8rem}.navs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.navs a{padding:8px 11px;border:1px solid var(--line);border-radius:999px}
     @media(max-width:720px){.lights{grid-template-columns:repeat(2,1fr)}.msg{max-width:94%}.row{align-items:stretch;flex-direction:column}.row input{max-width:none}}
   </style>
 </head>
@@ -29,7 +29,12 @@
     <form class="composer" id="chat-form">
       <label for="message"><strong>Message OAP Mind</strong></label>
       <textarea id="message" maxlength="4000" rows="4" placeholder="Type your recommendation request..." required></textarea>
+      <div class="preview" id="image-preview"><img id="preview-img" alt="Selected image preview"><span id="preview-name"></span><button class="tool-btn" id="remove-image" type="button">Remove</button></div>
+      <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" capture="environment" hidden>
       <div class="row">
+        <button class="tool-btn" id="image-button" type="button">📷 Image</button>
+        <button class="tool-btn" id="mic-button" type="button">🎙️ Voice</button>
+        <button class="tool-btn active" id="speaker-button" type="button" aria-pressed="true">🔊 Read aloud</button>
         <input id="display-name" maxlength="80" value="OAP Founder" aria-label="Display name">
         <span class="status" id="status">All requests pass through Identity, Permission, Guardian and HRM.</span>
         <button class="send" id="send" type="submit">Send to SMI</button>
@@ -40,7 +45,25 @@
 <script>
 const form=document.getElementById('chat-form'), messages=document.getElementById('messages');
 const send=document.getElementById('send'), statusEl=document.getElementById('status');
-let conversationId=null,stageTimer=null;
+let conversationId=null,stageTimer=null,selectedImage='',readAloud=true;
+const messageInput=document.getElementById('message'),imageInput=document.getElementById('image-input');
+const imageButton=document.getElementById('image-button'),micButton=document.getElementById('mic-button'),speakerButton=document.getElementById('speaker-button');
+imageButton.addEventListener('click',()=>imageInput.click());
+imageInput.addEventListener('change',()=>{
+ const file=imageInput.files[0];if(!file)return;
+ if(file.size>5*1024*1024){statusEl.textContent='Image must be 5 MB or smaller';imageInput.value='';return}
+ const reader=new FileReader();reader.onload=()=>{selectedImage=reader.result;document.getElementById('preview-img').src=selectedImage;document.getElementById('preview-name').textContent=file.name;document.getElementById('image-preview').classList.add('show')};reader.readAsDataURL(file);
+});
+document.getElementById('remove-image').addEventListener('click',()=>{selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show')});
+speakerButton.addEventListener('click',()=>{readAloud=!readAloud;speakerButton.classList.toggle('active',readAloud);speakerButton.setAttribute('aria-pressed',String(readAloud));speakerButton.textContent=readAloud?'🔊 Read aloud':'🔇 Read aloud off'});
+const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(Recognition){const recognition=new Recognition();recognition.lang='en-GB';recognition.interimResults=true;
+ recognition.onstart=()=>{micButton.classList.add('active');statusEl.textContent='Listening…'};
+ recognition.onresult=e=>{messageInput.value=Array.from(e.results).map(r=>r[0].transcript).join('')};
+ recognition.onend=()=>{micButton.classList.remove('active');statusEl.textContent='Voice captured — edit or send'};
+ recognition.onerror=()=>{micButton.classList.remove('active');statusEl.textContent='Voice input unavailable'};
+ micButton.addEventListener('click',()=>recognition.start());
+}else{micButton.disabled=true;micButton.title='Voice input is not supported by this browser'}
 function add(text,role){
  const el=document.createElement('div');el.className='msg '+role;
  const body=document.createElement('div');body.className='msg-text';body.textContent=text;el.appendChild(body);
@@ -66,12 +89,12 @@ async function loadHealth(){
  }catch(e){statusEl.textContent='Health check unavailable';}
 }
 form.addEventListener('submit',async e=>{
- e.preventDefault();const message=document.getElementById('message').value.trim();if(!message)return;
- add(message,'user');document.getElementById('message').value='';send.disabled=true;startStages();
+ e.preventDefault();const message=messageInput.value.trim();if(!message&&!selectedImage)return;
+ add((message||'Analyse attached image')+(selectedImage?'\n📷 Image attached':''),'user');messageInput.value='';send.disabled=true;startStages();
  try{
-  const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId})});
+  const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId,image_data:selectedImage})});
   const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Request failed');
-  conversationId=data.conversation_id;add(data.response,'assistant');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
+  conversationId=data.conversation_id;add(data.response,'assistant');if(readAloud&&'speechSynthesis'in window){speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(data.response);speech.lang='en-GB';speechSynthesis.speak(speech)}selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
  }catch(err){add(err.message,'system');statusEl.textContent='Request not completed safely';}
  finally{stopStages();send.disabled=false;loadHealth();}
 });
