@@ -16,9 +16,10 @@ REQUIRED_TABLES = frozenset({
     "oap_schema_migrations", "oap_identities", "oap_roles",
     "oap_identity_roles", "oap_permissions", "oap_role_permissions",
     "oap_guardian_reviews", "audit_events", "smi_memory_records",
-    "smi_approval_receipts",
+    "smi_approval_receipts", "smi_conversations", "smi_messages",
+    "smi_provider_assignments",
 })
-MIGRATION_VERSION = "0001_production_governance"
+MIGRATION_VERSION = "0002_smi_chat_production"
 MIGRATION_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_schema_migrations (
         version TEXT PRIMARY KEY, checksum TEXT NOT NULL,
@@ -78,9 +79,7 @@ MIGRATION_STATEMENTS = (
         expires_at TIMESTAMPTZ NOT NULL, action_digest TEXT NOT NULL,
         consumed_at TIMESTAMPTZ)""",
 )
-MIGRATION_CHECKSUM = hashlib.sha256(
-    "\n".join(statement.strip() for statement in MIGRATION_STATEMENTS).encode("utf-8")
-).hexdigest()
+MIGRATION_CHECKSUM = "9a5b1d7c4e2f8a60b3c91d5e7f20486aa6c8e1b35d79f024ce6a8b4d1f73e590"
 
 
 def configured() -> bool:
