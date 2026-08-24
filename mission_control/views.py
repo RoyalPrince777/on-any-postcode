@@ -143,6 +143,7 @@ def smi_chat_message():
             payload.get("display_name", "OAP Member"),
             payload.get("conversation_id"),
             payload.get("image_data"),
+            payload.get("attachment"),
         )
         return _no_store(make_response(jsonify(result)))
     except ValueError as exc:
