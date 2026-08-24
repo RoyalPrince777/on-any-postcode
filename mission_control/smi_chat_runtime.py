@@ -346,6 +346,9 @@ def health() -> dict:
             "constitution":{"protocol":"3x7","human_authority_final":True,
                             "independent_execution":False,
                             "adaptive":True,"coherent":True},
+            "modalities":{"text":True,"image":True,"audio_transcription":True,
+                          "video_sampled_frames":True,"pdf":True,"documents":True,
+                          "raw_media_retained":False},
             "environment": {
                 "revision_present": bool(os.environ.get("OAP_ENV_REVISION")),
                 "database_url_present": bool(os.environ.get("DATABASE_URL")),
