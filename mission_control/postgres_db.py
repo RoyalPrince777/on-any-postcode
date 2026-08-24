@@ -84,7 +84,7 @@ MIGRATION_CHECKSUM = "9a5b1d7c4e2f8a60b3c91d5e7f20486aa6c8e1b35d79f024ce6a8b4d1f
 
 
 def _database_url() -> str:
-    encoded = os.environ.get("OAP_NEON_DATABASE_URL_B64", "").strip()
+    encoded = (os.environ.get("OAP_DB_SECRET_B64") or os.environ.get("OAP_NEON_DATABASE_URL_B64", "")).strip()
     if encoded:
         try:
             return base64.b64decode(encoded).decode("utf-8").strip()
