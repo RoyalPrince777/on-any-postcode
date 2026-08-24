@@ -145,6 +145,24 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
                VALUES (%s,%s,'assistant',%s,%s,%s,%s)""",
             (conversation,request_id,response,PROVIDER,MODEL,outcome),
         )
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+        previous = connection.execute(
+            "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+        ).fetchone()
+        prev_hash = str(previous[0]) if previous else "GENESIS"
+        audit_payload = json.dumps({
+            "request_id": request_id, "identity_id": identity,
+            "action": "SMI_REVIEWED", "guardian": outcome,
+            "provider": PROVIDER, "model": MODEL,
+        }, sort_keys=True, separators=(",", ":"))
+        curr_hash = hashlib.sha256((prev_hash + audit_payload).encode()).hexdigest()
+        connection.execute(
+            """INSERT INTO audit_events
+               (prev_hash,curr_hash,actor_id,actor_type,authority_level,
+                action,target,reason,correlation_id,metadata)
+               VALUES (%s,%s,%s,'HUMAN',5,'SMI_REVIEWED','SMI_CHAT',%s,%s,%s::jsonb)""",
+            (prev_hash,curr_hash,identity,reason,request_id,audit_payload),
+        )
         connection.commit()
     return {"status":"green","request_id":request_id,"conversation_id":conversation,
             "response":response,"output_state":state,"guardian":outcome,
@@ -182,5 +200,5 @@ def health() -> dict:
                 "revision_present": bool(os.environ.get("OAP_ENV_REVISION")),
                 "database_url_present": bool(os.environ.get("DATABASE_URL")),
                 "oap_neon_url_present": bool(os.environ.get("OAP_NEON_DATABASE_URL")),
-                "encoded_neon_url_present": bool(os.environ.get("OAP_NEON_DATABASE_URL_B64")),
+                "db_secret_present": bool(os.environ.get("OAP_DB_SECRET_B64") or os.environ.get("OAP_NEON_DATABASE_URL_B64")),
             }}
