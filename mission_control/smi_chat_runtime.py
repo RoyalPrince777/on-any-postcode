@@ -86,7 +86,8 @@ def _provider(message: str, image_data: str = "", history: list[dict[str, str]] 
         role=item.get("role")
         content=_clean(item.get("content"),4000)
         if role in {"user","assistant"} and content:
-            inputs.append({"role":role,"content":[{"type":"input_text","text":content}]})
+            content_type="input_text" if role=="user" else "output_text"
+            inputs.append({"role":role,"content":[{"type":content_type,"text":content}]})
     inputs.append({"role":"user","content":user_content})
     payload=json.dumps({
         "model":MODEL, "input":inputs, "max_output_tokens":900,
