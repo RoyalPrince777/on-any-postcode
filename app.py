@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, redirect, render_template, request, url_for
+import os
 
 import mission_control.status as mc_status
 from mission_control import init_app as _mc_init
@@ -7,6 +8,10 @@ from mission_control.database import db_status
 from mission_control.organism import validate_architecture
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("OAP_SESSION_SECRET") or os.urandom(32)
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("RENDER", "").lower() == "true"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 
 MAX_PUBLIC_RECORDS = 100
