@@ -83,7 +83,7 @@ MIGRATION_CHECKSUM = "9a5b1d7c4e2f8a60b3c91d5e7f20486aa6c8e1b35d79f024ce6a8b4d1f
 
 
 def configured() -> bool:
-    return bool(os.environ.get("DATABASE_URL", "").strip())
+    return bool((os.environ.get("OAP_NEON_DATABASE_URL") or os.environ.get("DATABASE_URL", "")).strip())
 
 
 def _driver():
@@ -97,9 +97,9 @@ def _driver():
 @contextmanager
 def connect(*, readonly: bool = False) -> Iterator[Any]:
     """Open a bounded production connection without exposing its URL."""
-    database_url = os.environ.get("DATABASE_URL", "").strip()
+    database_url = (os.environ.get("OAP_NEON_DATABASE_URL") or os.environ.get("DATABASE_URL", "")).strip()
     if not database_url:
-        raise RuntimeError("DATABASE_URL is not configured")
+        raise RuntimeError("Neon database URL is not configured")
     psycopg = _driver()
     with psycopg.connect(
         database_url, connect_timeout=5,
