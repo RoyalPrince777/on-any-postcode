@@ -31,9 +31,12 @@
       <label for="message"><strong>Message OAP Mind</strong></label>
       <textarea id="message" maxlength="4000" rows="4" placeholder="Type your recommendation request, or attach an image..."></textarea>
       <div class="preview" id="image-preview"><img id="preview-img" alt="Selected image preview"><span id="preview-name"></span><button class="tool-btn" id="remove-image" type="button">Remove</button></div>
+      <div class="preview" id="media-preview"><span id="media-icon">📎</span><span id="media-name"></span><button class="tool-btn" id="remove-media" type="button">Remove</button></div>
       <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" capture="environment" hidden>
+      <input id="media-input" type="file" accept=".pdf,.txt,.md,.csv,.json,.html,.docx,.pptx,.xlsx,audio/mpeg,audio/wav,audio/mp4,audio/webm,audio/ogg,video/mp4,video/webm,video/quicktime" hidden>
       <div class="row">
         <button class="tool-btn" id="image-button" type="button">📷 Image</button>
+        <button class="tool-btn" id="file-button" type="button">📎 Audio · Video · PDF</button>
         <button class="tool-btn" id="mic-button" type="button">🎙️ Voice</button>
         <button class="tool-btn active" id="speaker-button" type="button" aria-pressed="true">🔊 Read aloud</button>
         <input id="display-name" maxlength="80" value="OAP Founder" aria-label="Display name">
@@ -46,9 +49,9 @@
 <script>
 const form=document.getElementById('chat-form'), messages=document.getElementById('messages');
 const send=document.getElementById('send'), statusEl=document.getElementById('status');
-let conversationId=null,stageTimer=null,selectedImage='',readAloud=true;
-const messageInput=document.getElementById('message'),imageInput=document.getElementById('image-input');
-const imageButton=document.getElementById('image-button'),micButton=document.getElementById('mic-button'),speakerButton=document.getElementById('speaker-button');
+let conversationId=null,stageTimer=null,selectedImage='',selectedAttachment=null,readAloud=true;
+const messageInput=document.getElementById('message'),imageInput=document.getElementById('image-input'),mediaInput=document.getElementById('media-input');
+const imageButton=document.getElementById('image-button'),fileButton=document.getElementById('file-button'),micButton=document.getElementById('mic-button'),speakerButton=document.getElementById('speaker-button');
 imageButton.addEventListener('click',()=>imageInput.click());
 imageInput.addEventListener('change',()=>{
  const file=imageInput.files[0];if(!file)return;
@@ -56,6 +59,36 @@ imageInput.addEventListener('change',()=>{
  const reader=new FileReader();reader.onload=()=>{selectedImage=reader.result;document.getElementById('preview-img').src=selectedImage;document.getElementById('preview-name').textContent=file.name;document.getElementById('image-preview').classList.add('show')};reader.readAsDataURL(file);
 });
 document.getElementById('remove-image').addEventListener('click',()=>{selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show')});
+fileButton.addEventListener('click',()=>mediaInput.click());
+function readDataURL(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
+function waitEvent(target,name){return new Promise((resolve,reject)=>{target.addEventListener(name,resolve,{once:true});target.addEventListener('error',reject,{once:true})})}
+async function videoFrames(file){
+ const url=URL.createObjectURL(file),video=document.createElement('video');video.preload='metadata';video.muted=true;video.src=url;
+ try{
+  await waitEvent(video,'loadedmetadata');if(!isFinite(video.duration)||video.duration<=0)throw new Error('Video duration unavailable');
+  const frames=[],times=[.1,.5,.9].map(x=>Math.min(video.duration*x,Math.max(video.duration-.05,0)));
+  for(const time of times){video.currentTime=time;await waitEvent(video,'seeked');const canvas=document.createElement('canvas'),scale=Math.min(1,768/video.videoWidth);canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);frames.push(canvas.toDataURL('image/jpeg',.72))}
+  return frames;
+ }finally{URL.revokeObjectURL(url)}
+}
+mediaInput.addEventListener('change',async()=>{
+ const file=mediaInput.files[0];if(!file)return;fileButton.disabled=true;statusEl.textContent='Preparing '+file.name+'…';
+ try{
+  if(file.type.startsWith('video/')){
+   if(file.size>50*1024*1024)throw new Error('Video must be 50 MB or smaller');
+   selectedAttachment={kind:'video',name:file.name,frames:await videoFrames(file)};
+  }else{
+   if(file.size>5*1024*1024)throw new Error('Audio or document must be 5 MB or smaller');
+   const kind=file.type.startsWith('audio/')?'audio':'document';
+   selectedAttachment={kind,name:file.name,data:await readDataURL(file)};
+  }
+  document.getElementById('media-icon').textContent=selectedAttachment.kind==='video'?'🎬':selectedAttachment.kind==='audio'?'🎧':'📄';
+  document.getElementById('media-name').textContent=file.name;document.getElementById('media-preview').classList.add('show');
+  statusEl.textContent=selectedAttachment.kind==='video'?'Video frames ready for governed review':'Attachment ready for governed review';
+ }catch(err){selectedAttachment=null;mediaInput.value='';statusEl.textContent=err.message}
+ finally{fileButton.disabled=false}
+});
+document.getElementById('remove-media').addEventListener('click',()=>{selectedAttachment=null;mediaInput.value='';document.getElementById('media-preview').classList.remove('show')});
 speakerButton.addEventListener('click',()=>{readAloud=!readAloud;speakerButton.classList.toggle('active',readAloud);speakerButton.setAttribute('aria-pressed',String(readAloud));speakerButton.textContent=readAloud?'🔊 Read aloud':'🔇 Read aloud off'});
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(Recognition){const recognition=new Recognition();recognition.lang='en-GB';recognition.interimResults=true;
@@ -90,12 +123,12 @@ async function loadHealth(){
  }catch(e){statusEl.textContent='Health check unavailable';}
 }
 form.addEventListener('submit',async e=>{
- e.preventDefault();const message=messageInput.value.trim();if(!message&&!selectedImage)return;
- add((message||'Analyse attached image')+(selectedImage?'\n📷 Image attached':''),'user');messageInput.value='';send.disabled=true;startStages();
+ e.preventDefault();const message=messageInput.value.trim();if(!message&&!selectedImage&&!selectedAttachment)return;
+ add((message||'Analyse attached media')+(selectedImage?'\n📷 Image attached':'')+(selectedAttachment?'\n📎 '+selectedAttachment.name:''),'user');messageInput.value='';send.disabled=true;startStages();
  try{
-  const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId,image_data:selectedImage})});
+  const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment})});
   const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Request failed');
-  conversationId=data.conversation_id;add(data.response,'assistant');add('🧠 '+data.task_type+' · '+data.brain_regions+' brain regions · '+data.advisor_ids.length+' approved advisor(s) · Signal '+data.signal_level+(data.war_room.triggered?' · War Room reviewed':'')+' · Adaptive '+data.adaptive.hrm_lessons+' lesson(s) · Coherence '+data.coherent.score+'%','system');if(readAloud&&'speechSynthesis'in window){speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(data.response);speech.lang='en-GB';speechSynthesis.speak(speech)}selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
+  conversationId=data.conversation_id;add(data.response,'assistant');add('🧠 '+data.task_type+' · '+data.brain_regions+' brain regions · '+data.advisor_ids.length+' approved advisor(s) · Signal '+data.signal_level+(data.war_room.triggered?' · War Room reviewed':'')+' · Adaptive '+data.adaptive.hrm_lessons+' lesson(s) · Coherence '+data.coherent.score+'%','system');if(readAloud&&'speechSynthesis'in window){speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(data.response);speech.lang='en-GB';speechSynthesis.speak(speech)}selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');selectedAttachment=null;mediaInput.value='';document.getElementById('media-preview').classList.remove('show');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
  }catch(err){add(err.message,'system');statusEl.textContent='Request not completed safely';}
  finally{stopStages();send.disabled=false;loadHealth();}
 });
