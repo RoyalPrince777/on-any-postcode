@@ -7,7 +7,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 from . import config
-from .db import db_status
+from .smi_chat_runtime import health
+from .database import db_status
 
 PROVIDER_ID = "ollama"
 PROVIDER_NAME = "Ollama Local"
@@ -39,6 +40,7 @@ def get_public_ollama_chat() -> dict[str, Any]:
     """Return non-sensitive readiness without contacting Ollama or writing HRM."""
 
     database = db_status()
+    runtime = health()
     loopback_only = _loopback_endpoint()
     model = re.sub(r"[^a-zA-Z0-9._:-]", "", DEFAULT_MODEL)[:80]
     return {
@@ -46,11 +48,11 @@ def get_public_ollama_chat() -> dict[str, Any]:
         "panel_name": "OAP Mind Assistant Panel",
         "provider": {
             "id": PROVIDER_ID,
-            "name": PROVIDER_NAME,
-            "model": model,
-            "scope": "Loopback only" if loopback_only else "Blocked configuration",
-            "connected": False,
-            "status": "Not connected",
+            "name": "OpenAI Cloud / Ollama Local",
+            "model": __import__("os").environ.get("OAP_AI_MODEL", model),
+            "scope": "Hybrid governed provider",
+            "connected": runtime["checks"]["provider_key"],
+            "status": "Connected" if runtime["checks"]["provider_key"] else "Not connected",
             "authority": False,
             "agent": False,
         },
@@ -59,14 +61,15 @@ def get_public_ollama_chat() -> dict[str, Any]:
         "readiness": {
             "local_mode": config.OAP_LOCAL_MODE,
             "loopback_endpoint": loopback_only,
-            "identity_connected": False,
-            "permission_granted": False,
-            "provider_assignment_approved": False,
-            "hrm_initialized": bool(database["brain_runtime_initialized"]),
-            "composer_enabled": False,
+            "identity_connected": runtime["checks"]["identity"],
+            "permission_granted": runtime["checks"]["permission"],
+            "provider_assignment_approved": runtime["checks"]["router"],
+            "hrm_initialized": runtime["checks"]["hrm"],
+            "composer_enabled": runtime["status"] == "green",
         },
         "allowed_output": "RECOMMENDATION_READY",
-        "execution": "Disabled",
+        "execution": "Recommendation only",
+        "runtime": runtime,
         "activation_gate": (
             "Identity, REQUEST_RECOMMENDATION permission, an approved Ollama "
             "assignment and HRM initialization are required before chat can send."
