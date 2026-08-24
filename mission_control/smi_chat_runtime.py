@@ -54,7 +54,7 @@ def _permission(connection, identity_id: str) -> bool:
     ).fetchone()
     return row is not None
 
-def _provider(message: str) -> str:
+def _provider(message: str, image_data: str = "") -> str:
     key=os.environ.get("OPENAI_API_KEY","").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
@@ -63,11 +63,14 @@ def _provider(message: str) -> str:
         "Be practical, concise and human-first. Never claim final authority or execute actions. "
         "OAP means ON ANY POSTCODE. Human Authority remains final."
     )
+    user_content=[{"type":"input_text","text":message or "Describe and analyse the attached image."}]
+    if image_data:
+        user_content.append({"type":"input_image","image_url":image_data})
     payload=json.dumps({
         "model":MODEL,
         "input":[
             {"role":"system","content":[{"type":"input_text","text":system}]},
-            {"role":"user","content":[{"type":"input_text","text":message}]},
+            {"role":"user","content":user_content},
         ],
         "max_output_tokens":900,
     }).encode()
@@ -93,8 +96,15 @@ def _provider(message: str) -> str:
         raise RuntimeError("provider_empty_response")
     return text.strip()[:12000]
 
-def chat(message: object, identity_id: str, display_name: object, conversation_id: object=None) -> dict:
+def chat(message: object, identity_id: str, display_name: object, conversation_id: object=None, image_data: object=None) -> dict:
     clean=_clean(message,MAX_INPUT)
+    image=_clean(image_data,7_000_000)
+    if image and not re.match(r"^data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$", image):
+        raise ValueError("invalid_image")
+    if len(image) > 7_000_000:
+        raise ValueError("image_too_large")
+    if not clean and image:
+        clean="Describe and analyse this image."
     name=_clean(display_name,80) or "OAP Member"
     try: identity=str(uuid.UUID(identity_id))
     except (ValueError,TypeError): raise ValueError("invalid_identity")
@@ -121,16 +131,16 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             response=reason
             state="BLOCK_REQUEST"
         else:
-            response=_provider(clean)
+            response=_provider(clean,image)
             state="RECOMMENDATION_READY"
-        content_hash=hashlib.sha256(clean.encode()).hexdigest()
+        content_hash=hashlib.sha256((clean + ("|image" if image else "")).encode()).hexdigest()
         connection.execute(
             """INSERT INTO smi_memory_records
                (request_id,identity_id,task_type,content_hash,summary,output_state,
                 signal_level,rationale_json,processing_states_json)
                VALUES (%s,%s,'CHAT_RECOMMENDATION',%s,%s,%s,'GREEN',%s::jsonb,%s::jsonb)""",
             (request_id,identity,content_hash,response[:300],state,
-             json.dumps({"guardian":outcome,"provider":PROVIDER}),
+             json.dumps({"guardian":outcome,"provider":PROVIDER,"image_attached":bool(image)}),
              json.dumps(["IDENTITY","PERMISSION","GUARDIAN","PROVIDER","HRM"])),
         )
         connection.execute(
@@ -153,7 +163,7 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
         audit_payload = json.dumps({
             "request_id": request_id, "identity_id": identity,
             "action": "SMI_REVIEWED", "guardian": outcome,
-            "provider": PROVIDER, "model": MODEL,
+            "provider": PROVIDER, "model": MODEL, "image_attached": bool(image),
         }, sort_keys=True, separators=(",", ":"))
         curr_hash = hashlib.sha256((prev_hash + audit_payload).encode()).hexdigest()
         connection.execute(
