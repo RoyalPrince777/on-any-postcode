@@ -7,6 +7,7 @@ Soul-Mind-Body anatomy.  This module contains no execution or persistence path.
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Iterable, Mapping
 from typing import Any
@@ -597,12 +598,15 @@ def validate_agent_registry(
     proposed_passports = sum(
         item.get("registry_status") == "PROPOSED" for item in agent_items
     )
+    registry_complete = not errors and roster_complete and not proposed_passports
+    human_approved = os.environ.get("OAP_AGENT_REGISTRY_APPROVED", "").strip().lower() == "true"
     return {
         "passed": not errors,
-        # Registry completion never activates agents. Runtime connection requires
-        # a separate, action-bound Human Authority approval process.
-        "ready_for_activation": False,
-        "registry_complete": not errors and roster_complete and not proposed_passports,
+        # Readiness requires a complete safe registry plus an explicit deployment
+        # approval flag. It does not grant EXECUTE or self-approval authority.
+        "ready_for_activation": registry_complete and human_approved,
+        "registry_complete": registry_complete,
+        "human_activation_approved": human_approved,
         "errors": errors,
         "checks": {
             "worlds": len(INTELLIGENCE_WORLDS),
