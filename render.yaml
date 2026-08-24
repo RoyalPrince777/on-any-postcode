@@ -3,30 +3,12 @@ services:
     name: on-any-postcode
     runtime: python
     plan: free
+    region: oregon
+    repo: https://github.com/RoyalPrince777/on-any-postcode
+    branch: main
     autoDeployTrigger: "off"
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+    startCommand: gunicorn app:app
     healthCheckPath: /healthz
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.7
-      - key: OAP_LOCAL_MODE
-        value: "false"
-      - key: DATABASE_URL
-        sync: false
-      - key: OAP_SESSION_SECRET
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OAP_AI_PROVIDER
-        value: openai
-      - key: OAP_AI_MODEL
-        value: gpt-5-mini
-      - key: OAP_CHAT_RATE_LIMIT
-        value: "12"
-      - key: OAP_AGENT_REGISTRY_APPROVED
-        value: "true"
-      - key: OAP_ENV_REVISION
-        value: smi-production-gap-fill-v3
-      - key: OAP_TWO_PERSON_ENABLED
-        value: "false"
+    # Production secrets and governance controls remain dashboard-managed.
+    # Render preserves existing environment variables omitted from a Blueprint.
