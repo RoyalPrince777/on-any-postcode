@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template, request
+from flask import Blueprint, jsonify, make_response, render_template, request, session
+import uuid
 
 from . import agents as agent_registry
 from . import (
@@ -14,6 +15,7 @@ from . import (
     organism,
     products,
     status,
+    smi_chat_runtime,
 )
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
@@ -125,6 +127,35 @@ def ollama_chat_dashboard():
         )
     )
     return _no_store(response)
+
+
+@bp.post("/chat")
+def smi_chat_message():
+    """Process one governed recommendation request and persist it in HRM."""
+    payload = request.get_json(silent=True) or {}
+    identity_id = session.get("oap_identity_id")
+    if not identity_id:
+        identity_id = str(uuid.uuid4())
+        session["oap_identity_id"] = identity_id
+    try:
+        result = smi_chat_runtime.chat(
+            payload.get("message"), identity_id,
+            payload.get("display_name", "OAP Member"),
+            payload.get("conversation_id"),
+        )
+        return _no_store(make_response(jsonify(result)))
+    except ValueError as exc:
+        return _no_store(make_response(jsonify(error={"code":"invalid_request","message":str(exc)}),400))
+    except PermissionError:
+        return _no_store(make_response(jsonify(error={"code":"permission_denied","message":"REQUEST_RECOMMENDATION permission required"}),403))
+    except RuntimeError as exc:
+        return _no_store(make_response(jsonify(error={"code":"provider_unavailable","message":"SMI provider is temporarily unavailable.","detail":str(exc)[:80]}),503))
+
+
+@bp.get("/chat/status")
+def smi_chat_health():
+    """Return genuine coarse health gates without secrets or private records."""
+    return _no_store(make_response(jsonify(smi_chat_runtime.health())))
 
 
 @bp.get("/infrastructure")
