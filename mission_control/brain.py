@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .agents import AGENT_REGISTRY, LOCKED_FAMILY_IDS
-from .db import db_status
+from .database import db_status
 from .organism import (
     APPROVED_STATE_PATH,
     REJECTED_STATE_PATH,
