@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib, json, os, re, uuid
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
-from . import postgres_db
+from . import live_brain, postgres_db
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
 PROVIDER = os.environ.get("OAP_AI_PROVIDER", "openai")
@@ -54,7 +54,7 @@ def _permission(connection, identity_id: str) -> bool:
     ).fetchone()
     return row is not None
 
-def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None) -> str:
+def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None, brain: dict | None = None) -> str:
     key=os.environ.get("OPENAI_API_KEY","").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
@@ -68,7 +68,14 @@ def _provider(message: str, image_data: str = "", history: list[dict[str, str]] 
         "proposes, Guardian protects, Builder creates, Identity validates, Sovereign decides, "
         "HRM remembers, Organism grows. You provide recommendations only, never claim final "
         "authority and never execute actions. Human Authority remains final. Be concise but "
-        "complete, and end with the clearest useful next action when appropriate."
+        "complete, and end with the clearest useful next action when appropriate. "
+        "Use the canonical brain routing context below as governed routing metadata, not as "
+        "private chain-of-thought. " + json.dumps({
+            "task_type": (brain or {}).get("task_type"),
+            "approved_advisors": (brain or {}).get("advisor_ids", []),
+            "signal_level": (brain or {}).get("signal_level"),
+            "war_room_triggered": (brain or {}).get("war_room", {}).get("triggered", False),
+        }, separators=(",", ":"))
     )
     user_content=[{"type":"input_text","text":message or "Describe and analyse the attached image."}]
     if image_data:
@@ -146,6 +153,15 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             (conversation,identity),
         ).fetchall()
         history=[{"role":str(row[0]),"content":str(row[1])} for row in reversed(rows)]
+        brain=live_brain.review(
+            request_id=request_id, identity_id=identity, content=clean,
+            history=history, image_attached=bool(image),
+        )
+        if not brain["passed"]:
+            outcome="BLOCKED"
+            reason=brain["guardian_reason"] or "Canonical Guardian blocked the request."
+        elif outcome=="PASSED":
+            reason=brain["guardian_reason"] or "Canonical SMI review passed."
         connection.execute(
             """INSERT INTO oap_guardian_reviews(request_id,identity_id,outcome,reason)
                VALUES (%s,%s,%s,%s)""",(request_id,identity,outcome,reason)
@@ -154,17 +170,19 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             response=reason
             state="BLOCK_REQUEST"
         else:
-            response=_provider(clean,image,history)
-            state="RECOMMENDATION_READY"
+            response=_provider(clean,image,history,brain)
+            state=brain["output_state"]
         content_hash=hashlib.sha256((clean + ("|image" if image else "")).encode()).hexdigest()
         connection.execute(
             """INSERT INTO smi_memory_records
                (request_id,identity_id,task_type,content_hash,summary,output_state,
                 signal_level,rationale_json,processing_states_json)
-               VALUES (%s,%s,'CHAT_RECOMMENDATION',%s,%s,%s,'GREEN',%s::jsonb,%s::jsonb)""",
-            (request_id,identity,content_hash,response[:300],state,
-             json.dumps({"guardian":outcome,"provider":PROVIDER,"image_attached":bool(image)}),
-             json.dumps(["IDENTITY","PERMISSION","GUARDIAN","PROVIDER","HRM"])),
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb)""",
+            (request_id,identity,brain["task_type"],content_hash,response[:300],state,
+             brain["signal_level"],
+             json.dumps({"guardian":outcome,"provider":PROVIDER,"image_attached":bool(image),
+                         "advisor_ids":brain["advisor_ids"],"war_room":brain["war_room"]}),
+             json.dumps(brain["processing_states"]+["PROVIDER_COMPLETED","HRM_RECORDED"])),
         )
         connection.execute(
             """INSERT INTO smi_messages
@@ -187,6 +205,8 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             "request_id": request_id, "identity_id": identity,
             "action": "SMI_REVIEWED", "guardian": outcome,
             "provider": PROVIDER, "model": MODEL, "image_attached": bool(image),
+            "task_type": brain["task_type"], "advisor_ids": brain["advisor_ids"],
+            "brain_regions": brain["brain_region_count"], "war_room": brain["war_room"]["triggered"],
         }, sort_keys=True, separators=(",", ":"))
         curr_hash = hashlib.sha256((prev_hash + audit_payload).encode()).hexdigest()
         connection.execute(
@@ -199,7 +219,10 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
         connection.commit()
     return {"status":"green","request_id":request_id,"conversation_id":conversation,
             "response":response,"output_state":state,"guardian":outcome,
-            "provider":PROVIDER,"model":MODEL,"human_authority_final":True}
+            "provider":PROVIDER,"model":MODEL,"human_authority_final":True,
+            "task_type":brain["task_type"],"advisor_ids":brain["advisor_ids"],
+            "brain_regions":brain["brain_region_count"],"signal_level":brain["signal_level"],
+            "war_room":brain["war_room"],"can_execute":False}
 
 def health() -> dict:
     checks={"database":False,"schema":False,"provider_key":bool(os.environ.get("OPENAI_API_KEY")),
