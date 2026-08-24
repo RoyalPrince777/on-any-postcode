@@ -170,7 +170,11 @@ def health() -> dict:
             checks["hrm"]="smi_memory_records" in tables
             checks["audit"]="audit_events" in tables
     except Exception as exc:
-        reason = type(exc).__name__
+        message = str(exc)
+        if message in {"DATABASE_URL is not configured", "psycopg is required when DATABASE_URL is configured"}:
+            reason = message
+        else:
+            reason = type(exc).__name__
     return {"status":"green" if all(checks.values()) else "degraded",
             "checks":checks,"green":sum(checks.values()),"total":len(checks),
             "database_reason": reason}
