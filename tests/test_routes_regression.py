@@ -44,5 +44,8 @@ def test_myworld_post_still_works(client, csrf):
     )
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/#myworld")
-    assert app_module.profiles[0] == {"nickname": "Visitor", "country": "Ghana"}
+    assert response.headers["Location"].endswith("/my-world")
+    assert app_module.profiles["11111111-1111-4111-8111-111111111111"] == {
+        "nickname": "Visitor",
+        "country": "Ghana",
+    }

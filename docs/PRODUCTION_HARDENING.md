@@ -4,6 +4,14 @@
 **Last Updated**: 10 August 2026  
 **Status**: READY FOR REVIEW
 
+> **24 August 2026 implementation note:** The active Render slice now uses Neon
+> Postgres for durable production records and Managed Neon Auth for private
+> browser sessions. OAP World is public; My World, SMI and Mission Control are
+> fail-closed behind the verified Neon UUID. The historical proposals below are
+> retained for governance context and must not be mistaken for the active
+> deployment procedure; use `.github/DEPLOYMENT.md` for the current release
+> runbook.
+
 ---
 
 ## Executive Summary

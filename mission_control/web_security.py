@@ -8,12 +8,26 @@ import threading
 import time
 import uuid
 from collections import defaultdict, deque
+from functools import wraps
 from typing import Final
 
-from flask import Request, session
+from flask import (
+    Request,
+    current_app,
+    g,
+    jsonify,
+    make_response,
+    redirect,
+    request,
+    session,
+    url_for,
+)
+
+from . import neon_auth
 
 IDENTITY_SESSION_KEY: Final = "oap_identity_id"
 CSRF_SESSION_KEY: Final = "oap_csrf_token"
+_AUTH_USER_CACHE_KEY: Final = "oap_authenticated_user"
 
 
 def ensure_session_identity() -> str:
@@ -27,6 +41,110 @@ def ensure_session_identity() -> str:
         session[IDENTITY_SESSION_KEY] = identity_id
     session.permanent = True
     return identity_id
+
+
+def auth_cookie_header() -> str:
+    """Return only Neon Auth cookies, never the Flask session cookie."""
+
+    return neon_auth.cookie_header(
+        session.get(neon_auth.AUTH_COOKIE_NAMES_SESSION_KEY),
+        request.cookies,
+        application_cookie_name=str(
+            current_app.config.get("SESSION_COOKIE_NAME", "session")
+        ),
+    )
+
+
+def current_authenticated_user() -> dict[str, object] | None:
+    """Verify the current opaque browser session with Managed Neon Auth."""
+
+    if _AUTH_USER_CACHE_KEY in g:
+        return g.get(_AUTH_USER_CACHE_KEY)
+
+    header = auth_cookie_header()
+    if not header:
+        setattr(g, _AUTH_USER_CACHE_KEY, None)
+        return None
+
+    result = neon_auth.get_session(header)
+    payload = result.payload
+    if not neon_auth.successful(result) or not isinstance(payload, dict):
+        setattr(g, _AUTH_USER_CACHE_KEY, None)
+        return None
+    user = payload.get("user")
+    auth_session = payload.get("session")
+    if not isinstance(user, dict) or not isinstance(auth_session, dict):
+        setattr(g, _AUTH_USER_CACHE_KEY, None)
+        return None
+    try:
+        identity_id = str(uuid.UUID(str(user.get("id"))))
+    except (TypeError, ValueError, AttributeError):
+        setattr(g, _AUTH_USER_CACHE_KEY, None)
+        return None
+    if user.get("banned") is True:
+        setattr(g, _AUTH_USER_CACHE_KEY, None)
+        return None
+
+    normalized: dict[str, object] = {
+        "id": identity_id,
+        "name": str(user.get("name") or "OAP Member")[:120],
+        "email": str(user.get("email") or "")[:320],
+        "email_verified": bool(user.get("emailVerified")),
+    }
+    setattr(g, _AUTH_USER_CACHE_KEY, normalized)
+    return normalized
+
+
+def authenticated_identity() -> str:
+    """Return a provider-verified UUID or fail closed."""
+
+    user = current_authenticated_user()
+    if user is None:
+        raise PermissionError("authentication_required")
+    return str(user["id"])
+
+
+def _private_error(code: str, message: str, status_code: int):
+    response = make_response(
+        jsonify(error={"code": code, "message": message}), status_code
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def login_required(*, api: bool = False):
+    """Require a live Neon Auth session for one private HTML or API route."""
+
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            try:
+                user = current_authenticated_user()
+            except neon_auth.AuthUnavailable:
+                if api:
+                    return _private_error(
+                        "authentication_unavailable",
+                        "Secure identity verification is temporarily unavailable.",
+                        503,
+                    )
+                target = request.full_path.rstrip("?")
+                return redirect(
+                    url_for("auth_page", next=target, auth_error="unavailable")
+                )
+            if user is None:
+                if api:
+                    return _private_error(
+                        "authentication_required",
+                        "Sign in to access this private OAP surface.",
+                        401,
+                    )
+                target = request.full_path.rstrip("?")
+                return redirect(url_for("auth_page", next=target))
+            return view(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
 
 
 def csrf_token() -> str:
@@ -94,3 +212,4 @@ class SlidingWindowLimiter:
 
 CHAT_BURST_LIMITER = SlidingWindowLimiter(limit=12, window_seconds=60)
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60)
+AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=15 * 60)

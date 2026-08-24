@@ -4,12 +4,22 @@ import os
 import sys
 import time
 import uuid
+from urllib import parse as urlparse
 
-from flask import Flask, g, jsonify, redirect, render_template, request, url_for
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
-import mission_control.status as mc_status
 from mission_control import init_app as _mc_init
-from mission_control import public_store, smi_chat_runtime, web_security
+from mission_control import neon_auth, public_store, smi_chat_runtime, web_security
 from mission_control.agents import validate_agent_registry
 from mission_control.database import db_status
 from mission_control.organism import validate_architecture
@@ -40,6 +50,12 @@ MAX_PUBLIC_RECORDS = 100
 def _form_text(name, default, max_length):
     value = request.form.get(name, default)
     return str(value).strip()[:max_length]
+
+
+def _form_secret(name, max_length):
+    """Read a bounded secret without silently changing valid whitespace."""
+
+    return str(request.form.get(name, ""))[:max_length]
 
 
 def _prepend_bounded(records, item):
@@ -99,9 +115,9 @@ def _security_headers(response):
 signal_posts = []
 team_messages = []
 flag_counts = {}
-# These collections are a deliberate local-development fallback only. Production
-# reads and writes the established Neon users/posts schema via public_store.
-profiles = []
+# This identity-keyed collection is a deliberate local-development fallback.
+# Production My World records are owned by verified UUIDs in Neon Postgres.
+profiles = {}
 
 teams = [
     ("A","🇲🇽","Mexico","El Tri","Flag meaning: hope, unity, sacrifice, and ancient identity."),
@@ -217,7 +233,6 @@ def _local_public_snapshot():
         "signal_posts": signal_posts,
         "team_messages": team_messages,
         "flag_counts": flag_counts,
-        "profiles": profiles,
         "durable": False,
     }
 
@@ -231,9 +246,9 @@ def _load_public_snapshot():
         app.logger.warning("durable_public_read_failed")
         return _local_public_snapshot()
 
-@app.route("/")
+@app.get("/")
+@app.get("/world")
 def home():
-    web_security.ensure_session_identity()
     public = _load_public_snapshot()
     return render_template(
         "home.html",
@@ -242,10 +257,224 @@ def home():
         signal_posts=public["signal_posts"],
         team_messages=public["team_messages"],
         flag_counts=public["flag_counts"],
-        profiles=public["profiles"],
         public_persistence=public["durable"],
-        gateway=mc_status.get_public_gateway_status(),
     )
+
+
+def _safe_next(value: object, default: str = "/my-world") -> str:
+    candidate = str(value or "").strip()
+    decoded = urlparse.unquote(candidate)
+    parsed = urlparse.urlsplit(candidate)
+    if (
+        not candidate.startswith("/")
+        or candidate.startswith("//")
+        or decoded.startswith("//")
+        or "\\" in decoded
+        or bool(parsed.scheme)
+        or bool(parsed.netloc)
+        or "\r" in candidate
+        or "\n" in candidate
+        or len(candidate) > 500
+    ):
+        return default
+    return candidate
+
+
+def _auth_page_response(
+    *,
+    status_code: int = 200,
+    error: str | None = None,
+    notice: str | None = None,
+    next_path: str = "/my-world",
+):
+    response = make_response(
+        render_template(
+            "auth.html",
+            auth_configured=neon_auth.status()["valid"],
+            auth_error=error,
+            auth_notice=notice,
+            next_path=_safe_next(next_path),
+        ),
+        status_code,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def _auth_rate_key() -> str:
+    return f"auth:{request.remote_addr or 'unknown'}"
+
+
+def _apply_auth_cookies(response, set_cookie_headers) -> bool:
+    app_cookie_name = str(app.config.get("SESSION_COOKIE_NAME", "session"))
+    upstream_names = neon_auth.cookie_names(set_cookie_headers)
+    safe_names = tuple(name for name in upstream_names if name != app_cookie_name)
+    if not safe_names:
+        return False
+
+    session.clear()
+    session[neon_auth.AUTH_COOKIE_NAMES_SESSION_KEY] = list(safe_names)
+    session.permanent = True
+    for header in set_cookie_headers:
+        scoped = neon_auth.scoped_set_cookie(header)
+        name = header.split("=", 1)[0].strip()
+        if scoped and name in safe_names:
+            response.headers.add("Set-Cookie", scoped)
+    return True
+
+
+@app.get("/auth")
+@app.get("/enter-my-world")
+def auth_page():
+    next_path = _safe_next(request.args.get("next"))
+    try:
+        if web_security.current_authenticated_user() is not None:
+            return redirect(next_path)
+    except neon_auth.AuthUnavailable:
+        pass
+    error = None
+    if request.args.get("auth_error") == "unavailable":
+        error = "Secure identity verification is temporarily unavailable."
+    return _auth_page_response(error=error, next_path=next_path)
+
+
+@app.post("/auth/sign-in")
+def auth_sign_in():
+    next_path = _safe_next(request.form.get("next"))
+    if not web_security.csrf_valid(request):
+        return _auth_page_response(
+            status_code=403,
+            error="The secure session expired. Refresh and try again.",
+            next_path=next_path,
+        )
+    if not web_security.AUTH_BURST_LIMITER.allow(_auth_rate_key()):
+        return _auth_page_response(
+            status_code=429,
+            error="Too many sign-in attempts. Wait 15 minutes and try again.",
+            next_path=next_path,
+        )
+    email = _form_text("email", "", 320).lower()
+    password = _form_secret("password", 1024)
+    if not email or not password:
+        return _auth_page_response(
+            status_code=400,
+            error="Enter your email and password.",
+            next_path=next_path,
+        )
+    try:
+        result = neon_auth.sign_in(email, password)
+    except neon_auth.AuthUnavailable:
+        return _auth_page_response(
+            status_code=503,
+            error="Secure identity verification is temporarily unavailable.",
+            next_path=next_path,
+        )
+    if not neon_auth.successful(result):
+        return _auth_page_response(
+            status_code=401,
+            error="Email or password not recognised.",
+            next_path=next_path,
+        )
+    response = redirect(next_path)
+    if not _apply_auth_cookies(response, result.set_cookie_headers):
+        return _auth_page_response(
+            status_code=502,
+            error="A secure session could not be established. Try again.",
+            next_path=next_path,
+        )
+    return response
+
+
+@app.post("/auth/sign-up")
+def auth_sign_up():
+    next_path = _safe_next(request.form.get("next"))
+    if not web_security.csrf_valid(request):
+        return _auth_page_response(
+            status_code=403,
+            error="The secure session expired. Refresh and try again.",
+            next_path=next_path,
+        )
+    if not web_security.AUTH_BURST_LIMITER.allow(_auth_rate_key()):
+        return _auth_page_response(
+            status_code=429,
+            error="Too many account attempts. Wait 15 minutes and try again.",
+            next_path=next_path,
+        )
+    name = _form_text("name", "", 120)
+    email = _form_text("email", "", 320).lower()
+    password = _form_secret("password", 1024)
+    confirmation = _form_secret("password_confirm", 1024)
+    if not name or not email or len(password) < 8:
+        return _auth_page_response(
+            status_code=400,
+            error="Enter a name, email, and password of at least 8 characters.",
+            next_path=next_path,
+        )
+    if password != confirmation:
+        return _auth_page_response(
+            status_code=400,
+            error="The passwords do not match.",
+            next_path=next_path,
+        )
+    try:
+        result = neon_auth.sign_up(name, email, password)
+    except neon_auth.AuthUnavailable:
+        return _auth_page_response(
+            status_code=503,
+            error="Secure account creation is temporarily unavailable.",
+            next_path=next_path,
+        )
+    if not neon_auth.successful(result):
+        return _auth_page_response(
+            status_code=400,
+            error="The account could not be created with those details.",
+            next_path=next_path,
+        )
+    response = redirect(next_path)
+    if _apply_auth_cookies(response, result.set_cookie_headers):
+        return response
+    return _auth_page_response(
+        notice="Account created. Check your email if verification is requested, then sign in.",
+        next_path=next_path,
+    )
+
+
+@app.post("/auth/sign-out")
+def auth_sign_out():
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    known_names = tuple(
+        session.get(neon_auth.AUTH_COOKIE_NAMES_SESSION_KEY, ())
+        if isinstance(
+            session.get(neon_auth.AUTH_COOKIE_NAMES_SESSION_KEY), (list, tuple)
+        )
+        else ()
+    )
+    cookie_header = web_security.auth_cookie_header()
+    upstream_headers = ()
+    if cookie_header:
+        try:
+            upstream_headers = neon_auth.sign_out(cookie_header).set_cookie_headers
+        except neon_auth.AuthUnavailable:
+            app.logger.warning("neon_auth_sign_out_unavailable")
+    session.clear()
+    response = redirect(url_for("home"))
+    for header in upstream_headers:
+        scoped = neon_auth.scoped_set_cookie(header)
+        if scoped:
+            response.headers.add("Set-Cookie", scoped)
+    for name in known_names:
+        response.set_cookie(
+            str(name),
+            "",
+            max_age=0,
+            expires=0,
+            path="/",
+            secure=app.config["SESSION_COOKIE_SECURE"],
+            httponly=True,
+            samesite="Lax",
+        )
+    return response
 
 @app.get("/the-spot")
 def the_spot_front_door():
@@ -336,11 +565,66 @@ def flag():
         return _public_write_failure()
     return redirect("/#teams")
 
-@app.route("/myworld", methods=["POST"])
+@app.get("/my-world")
+@web_security.login_required()
+def my_world():
+    user = web_security.current_authenticated_user()
+    if user is None:  # pragma: no cover - decorator is the fail-closed gate
+        return redirect(url_for("auth_page"))
+    identity_id = str(user["id"])
+    profile = {
+        "nickname": str(user["name"]),
+        "country": "",
+    }
+    try:
+        if public_store.status()["configured"]:
+            public_store.ensure_authenticated_user(
+                identity_id,
+                email=str(user["email"]),
+                display_name=str(user["name"]),
+            )
+            profile = public_store.get_profile(identity_id) or profile
+        else:
+            profile = profiles.get(identity_id, profile)
+    except public_store.PublicStoreUnavailable:
+        response = make_response(
+            render_template(
+                "my_world.html",
+                auth_user=user,
+                profile=profile,
+                private_store_unavailable=True,
+            ),
+            503,
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    response = make_response(
+        render_template(
+            "my_world.html",
+            auth_user=user,
+            profile=profile,
+            private_store_unavailable=False,
+        )
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@app.get("/myworld")
+@web_security.login_required()
+def myworld_legacy_get():
+    return redirect(url_for("my_world"))
+
+
+@app.post("/myworld")
+@web_security.login_required()
 def myworld():
     if not web_security.csrf_valid(request):
         return _csrf_failure()
-    identity_id = web_security.ensure_session_identity()
+    user = web_security.current_authenticated_user()
+    if user is None:  # pragma: no cover - decorator is the fail-closed gate
+        return redirect(url_for("auth_page"))
+    identity_id = str(user["id"])
     if not web_security.PUBLIC_WRITE_LIMITER.allow(identity_id):
         return _rate_failure()
     item = {
@@ -349,12 +633,17 @@ def myworld():
     }
     try:
         if public_store.status()["configured"]:
+            public_store.ensure_authenticated_user(
+                identity_id,
+                email=str(user["email"]),
+                display_name=str(user["name"]),
+            )
             public_store.update_profile(identity_id, **item)
         else:
-            _prepend_bounded(profiles, item)
+            profiles[identity_id] = item
     except public_store.PublicStoreUnavailable:
         return _public_write_failure()
-    return redirect("/#myworld")
+    return redirect(url_for("my_world"))
 
 
 def _readiness_snapshot():
@@ -363,6 +652,7 @@ def _readiness_snapshot():
     database = db_status()
     community = public_store.status()
     smi = smi_chat_runtime.health()
+    auth = neon_auth.status()
     checks = {
         "architecture_integrity": architecture["passed"],
         "registry_integrity": registry["passed"],
@@ -370,6 +660,11 @@ def _readiness_snapshot():
         "database_initialized": bool(database.get("initialized")),
         "durable_public_store": bool(community["durable"]),
         "session_secret_configured": SESSION_SECRET_CONFIGURED,
+        "neon_auth_configured": auth["valid"],
+        "private_auth_required": os.environ.get(
+            "OAP_AUTH_REQUIRED", "false"
+        ).lower()
+        == "true",
         "csrf_protection": True,
         "bounded_rate_controls": True,
         "smi_3x7_ready": smi["status"] == "green" and smi["green"] == smi["total"],
@@ -383,6 +678,7 @@ def _readiness_snapshot():
         "database": database,
         "community": community,
         "smi": smi,
+        "auth": auth,
     }
 
 
@@ -438,6 +734,7 @@ INFRASTRUCTURE_SECTIONS = [
 
 
 @app.get("/infrastructure")
+@web_security.login_required()
 def infrastructure_dashboard():
     return render_template("infrastructure.html", sections=[
         dict(section, href=url_for("infrastructure_section", section=section["slug"]))
@@ -446,6 +743,7 @@ def infrastructure_dashboard():
 
 
 @app.get("/infrastructure/<section>")
+@web_security.login_required(api=True)
 def infrastructure_section(section):
     selected = next((item for item in INFRASTRUCTURE_SECTIONS if item["slug"] == section), None)
     if selected is None:
@@ -482,6 +780,7 @@ def infrastructure_section(section):
 
 
 @app.get("/api/infrastructure/status")
+@web_security.login_required(api=True)
 def infrastructure_status():
     readiness = _readiness_snapshot()
     ready = all(readiness["checks"].values())

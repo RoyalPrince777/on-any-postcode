@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enter My World · OAP</title>
+  <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif;min-height:100vh}
+    header,main{width:min(980px,calc(100% - 32px));margin:auto}
+    header{padding:30px 0 12px}
+    a{color:#8ed7ff}
+    .eyebrow{color:#61df91;font-weight:800;letter-spacing:.08em}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;padding:20px 0 40px}
+    .card{background:#10281a;border:1px solid #2d7044;border-radius:18px;padding:22px}
+    .private{background:#0c2430;border-color:#4b9abe}
+    label{display:block;margin-top:12px;font-weight:700}
+    input,button{width:100%;padding:12px;margin-top:7px;border:1px solid #397451;border-radius:9px;font:inherit}
+    input{background:#f7fff9;color:#06120b}
+    button{background:#27c267;color:#021;font-weight:800;cursor:pointer}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .notice,.error{padding:13px;border-radius:10px;margin:14px 0}
+    .notice{background:#123b23;border:1px solid #27c267}
+    .error{background:#461b21;border:1px solid #ff7582}
+    .small{opacity:.82;line-height:1.5}
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">PRIVATE · MANAGED NEON AUTH</p>
+    <h1>Enter My World</h1>
+    <p>One secure identity for your My World profile, SMI conversations and Mission Control.</p>
+    <a href="{{ url_for('home') }}">← Return to public OAP World</a>
+    {% if auth_error %}<div class="error" role="alert">{{ auth_error }}</div>{% endif %}
+    {% if auth_notice %}<div class="notice" role="status">{{ auth_notice }}</div>{% endif %}
+    {% if not auth_configured %}
+    <div class="error" role="alert">Secure sign-in is not configured in this environment.</div>
+    {% endif %}
+  </header>
+
+  <main class="grid">
+    <section class="card private" aria-labelledby="sign-in-title">
+      <h2 id="sign-in-title">Sign in</h2>
+      <form method="post" action="{{ url_for('auth_sign_in') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <input type="hidden" name="next" value="{{ next_path }}">
+        <label for="sign-in-email">Email</label>
+        <input id="sign-in-email" name="email" type="email" autocomplete="email" maxlength="320" required>
+        <label for="sign-in-password">Password</label>
+        <input id="sign-in-password" name="password" type="password" autocomplete="current-password" maxlength="1024" required>
+        <button type="submit" {% if not auth_configured %}disabled{% endif %}>Sign in securely</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="sign-up-title">
+      <h2 id="sign-up-title">Create account</h2>
+      <form method="post" action="{{ url_for('auth_sign_up') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <input type="hidden" name="next" value="{{ next_path }}">
+        <label for="sign-up-name">Name</label>
+        <input id="sign-up-name" name="name" autocomplete="name" maxlength="120" required>
+        <label for="sign-up-email">Email</label>
+        <input id="sign-up-email" name="email" type="email" autocomplete="email" maxlength="320" required>
+        <label for="sign-up-password">Password</label>
+        <input id="sign-up-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required>
+        <label for="sign-up-confirm">Confirm password</label>
+        <input id="sign-up-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required>
+        <button type="submit" {% if not auth_configured %}disabled{% endif %}>Create private My World</button>
+      </form>
+      <p class="small">Authentication records and sessions are stored by Managed Neon Auth. OAP never stores your password.</p>
+    </section>
+  </main>
+</body>
+</html>

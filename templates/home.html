@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>OAP TV</title>
+<title>OAP World</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
 <style>
@@ -21,23 +21,44 @@ button{background:#27c267;color:#021;font-weight:bold}
 table{width:100%;border-collapse:collapse;background:#10281a;margin-bottom:15px}
 td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 .team{border-left:5px solid #27c267}
+.zone{border:2px solid #27c267}
+.zone--private{border-color:#8ed7ff;background:#0c2430}
+.button-link{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:bold;padding:11px 15px;border-radius:9px;margin:6px 6px 6px 0}
+.button-link--private{background:#8ed7ff;color:#04131c}
 </style>
 </head>
 <body>
 
 <nav aria-label="Primary navigation">
+<a href="#world">🌍 OAP World</a>
 <a href="#signal">📡 Signal</a>
 <a href="#live">🔴 Live</a>
 <a href="#teams">🌍 Teams</a>
-<a href="#myworld">👤 My World</a>
-<a href="#sovereign">👑 Sovereign</a>
+<a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
+<a href="{{ url_for('linkup_front_door') }}">💬 Link Up</a>
+<a href="{{ url_for('my_world') }}">🔒 My World</a>
 </nav>
 
 <main>
-<section class="hero">
-<h1>📺 OAP TV</h1>
-<h2>Signal → Live → Teams → My World</h2>
+<section class="hero" id="world">
+<h1>🌍 OAP World</h1>
+<h2>One World → One Front Door → Many Systems Inside</h2>
 <p>Born Local. Built Global. Earth is our turf.</p>
+<div class="grid" aria-label="Public and private zones">
+<article class="card zone">
+<span class="badge">PUBLIC</span>
+<h2>OAP World</h2>
+<p>Public Signal, teams, The Spot, The Link and Link Up. No private My World profiles or SMI conversations are published here.</p>
+<a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a>
+<a class="button-link" href="{{ url_for('linkup_front_door') }}">Open Link Up</a>
+</article>
+<article class="card zone zone--private">
+<span class="badge">PRIVATE · NEON AUTH</span>
+<h2>My World</h2>
+<p>Your profile, SMI intelligence, conversations, infrastructure and Mission Control stay behind verified sign-in.</p>
+<a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World securely</a>
+</article>
+</div>
 </section>
 
 <section id="signal">
@@ -153,21 +174,10 @@ td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
 {% endfor %}
 </section>
 
-<section id="myworld">
-<h2>👤 My World</h2>
-	<form method="post" action="/myworld">
-	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-	<input name="nickname" placeholder="Nickname" aria-label="My World nickname">
-<input name="country" placeholder="Country / Flag" aria-label="Country or flag">
-<button type="submit">Enter My World</button>
-</form>
-{% for p in profiles %}
-<div class="card">👤 {{ p.nickname }} | {{ p.country }}</div>
-{% endfor %}
-</section>
-
-<section id="sovereign" aria-labelledby="sovereign-title">
-{% include "mission_control/sovereign_gateway.html" %}
+<section id="privacy-boundary" aria-labelledby="privacy-boundary-title">
+<h2 id="privacy-boundary-title">🔐 Public and private stay separate</h2>
+<p>OAP World can be viewed without an account. My World and every SMI or Mission Control workspace require a live Managed Neon Auth session.</p>
+<a class="button-link button-link--private" href="{{ url_for('auth_page') }}">Sign in or create account</a>
 </section>
 </main>
 

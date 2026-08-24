@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import app as app_module
+from mission_control import config
 
 
 def test_healthz_is_read_only_redacted_and_fail_closed(client, tmp_path, monkeypatch):
     database_path = tmp_path / "healthz.db"
-    monkeypatch.setattr(app_module.mc_status.config, "OAP_DATABASE_PATH", str(database_path))
+    monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
 
     response = client.get("/healthz")
     payload = response.get_json()
@@ -20,6 +21,8 @@ def test_healthz_is_read_only_redacted_and_fail_closed(client, tmp_path, monkeyp
     assert payload["checks"]["csrf_protection"] is True
     assert payload["checks"]["bounded_rate_controls"] is True
     assert payload["checks"]["session_secret_configured"] is False
+    assert payload["checks"]["neon_auth_configured"] is True
+    assert payload["checks"]["private_auth_required"] is True
     assert payload["governance"] == {
         "human_authority_final": True,
         "execution_exposed": False,

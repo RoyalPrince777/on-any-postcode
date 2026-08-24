@@ -1,114 +1,71 @@
-# SMI Production Deployment Guide
+# OAP production deployment: Render + Neon
 
-## Prerequisites
+OAP runs as one Render web service with one public front door and a verified
+private zone. Production secrets remain dashboard-managed and are not committed
+to `render.yaml`.
 
-- PostgreSQL 14+ cluster with HA (primary + 2 replicas)
-- PgBouncer or connection pooling configured
-- AWS Secrets Manager or HashiCorp Vault for secret management
-- Kubernetes cluster OR Docker Swarm for orchestration
-- Prometheus + Grafana for monitoring
-- ELK Stack or Datadog for centralized logging
+## Architecture
 
-## Step-by-Step Deployment
+| Zone | Routes | Access |
+|---|---|---|
+| OAP World | `/`, `/world`, The Spot, The Link, Link Up | Public |
+| Public health | `/livez`, `/healthz`, `/mission/status`, `/mission/chat/status` | Public, redacted |
+| My World | `/my-world`, `POST /myworld` | Managed Neon Auth |
+| SMI | `/mission/ollama`, chat and conversations | Managed Neon Auth + owner UUID |
+| Mission Control | `/mission`, agents, brain, organism, infrastructure | Managed Neon Auth |
 
-### 1. Prepare Secrets
+## Required Render environment
 
-```bash
-# Generate JWT RS256 keys
-openssl genrsa -out /etc/oap/keys/private.pem 2048
-openssl rsa -in /etc/oap/keys/private.pem -pubout -out /etc/oap/keys/public.pem
+Set these through the Render dashboard or a merge-safe environment update. Never
+replace the complete environment map just to add one key.
 
-# Store in Secrets Manager
-aws secretsmanager create-secret \
-  --name oap/human-token \
-  --secret-string "$(openssl rand -base64 32)"
-
-aws secretsmanager create-secret \
-  --name oap/approval-secret \
-  --secret-string "$(openssl rand -base64 64)"
+```text
+DATABASE_URL=<Neon pooled production connection string>
+NEON_AUTH_BASE_URL=<branch-specific Managed Neon Auth URL>
+OAP_AUTH_REQUIRED=true
+OAP_SESSION_SECRET=<unique high-entropy value>
+OPENAI_API_KEY=<provider secret>
+OAP_AI_PROVIDER=openai
+OAP_AI_MODEL=<approved model>
+OAP_AGENT_REGISTRY_APPROVED=true
 ```
 
-### 2. Configure Environment
+`NEON_AUTH_BASE_URL` is configuration, not a credential. Database, provider and
+session secrets must never appear in source, logs, deployment notes or health
+responses.
+
+## Safe release sequence
+
+1. Create a Neon recovery branch from production.
+2. Provision Managed Neon Auth on the production branch.
+3. Verify `neon_auth.user.id` is UUID and the required public OAP schema exists.
+4. Run `python -m compileall -q app.py mission_control oap`.
+5. Run `ruff check app.py mission_control oap tests`.
+6. Run `python -m pytest -q`.
+7. Push the exact reviewed source to `main` and require green GitHub CI.
+8. Merge-add the two Auth environment values on Render without changing existing
+   secret values.
+9. Trigger one manual Render deployment of the reviewed commit.
+10. Verify public routes remain anonymous and private routes return redirect/401.
+11. Verify `/healthz` reports `12/12`, SMI reports `21/21`, and Render logs contain
+    no new errors or `5xx` responses.
+
+## Post-deploy verification
 
 ```bash
-# .env.production
-OAP_ENV=production
-OAP_SMI_DB=postgresql://user:password@postgres.example.com:5432/oap_smi_prod
-OAP_HUMAN_TOKEN=$(aws secretsmanager get-secret-value --secret-id oap/human-token --query SecretString --output text)
-OAP_APPROVAL_SECRET=$(aws secretsmanager get-secret-value --secret-id oap/approval-secret --query SecretString --output text)
-OAP_APPROVAL_TTL_SECONDS=900
-OAP_INTELLIGENCE_WORLDS=world-alpha,world-beta,world-gamma,world-delta,world-epsilon,world-zeta
-OAP_CORS_ORIGINS=https://app.example.com,https://admin.example.com
-JWT_PRIVATE_KEY_PATH=/etc/oap/keys/private.pem
-JWT_PUBLIC_KEY_PATH=/etc/oap/keys/public.pem
+curl -fsS https://on-any-postcode.onrender.com/livez
+curl -fsS https://on-any-postcode.onrender.com/healthz
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  https://on-any-postcode.onrender.com/mission/brain/status
 ```
 
-### 3. Run Database Migrations
+The private API probe must return `401` without a session. Private HTML routes
+must redirect to `/enter-my-world`; public OAP World and product routes must stay
+available.
 
-```bash
-alembic upgrade head
-```
+## Provider hardening after first release
 
-### 4. Deploy Application
-
-**Kubernetes**:
-```bash
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
-```
-
-**Docker Swarm**:
-```bash
-docker stack deploy -c docker-compose.prod.yml oap-smi
-```
-
-### 5. Verify Deployment
-
-```bash
-# Check health
-curl https://app.example.com/health
-
-# Verify audit chain
-curl -H "X-OAP-Human-Token: $OAP_HUMAN_TOKEN" \
-     https://app.example.com/audit/verify
-
-# Test approval flow
-curl -X POST https://app.example.com/run \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Test approval", "requires_execution": true}'
-```
-
----
-
-## Troubleshooting
-
-### Database Connection Failures
-
-```bash
-# Check PostgreSQL connectivity
-psql postgresql://user:password@host:5432/oap_smi_prod -c "SELECT 1"
-
-# Verify PgBouncer
-psql -h localhost -p 6432 -U user oap_smi_prod -c "SELECT 1"
-```
-
-### Audit Chain Breaks
-
-```bash
-# Verify chain integrity
-curl -H "X-OAP-Human-Token: $TOKEN" https://app.example.com/audit/verify
-
-# Check for tampering
-select event_id, event_hash from audit_events order by sequence desc limit 10;
-```
-
-### Approval Timeouts
-
-```bash
-# Check pending approvals
-select * from human_approvals where decision = 'PENDING';
-
-# Extend timeout (if needed)
-update human_approvals set expires_at = NOW() + interval '30 minutes' where approval_id = 'APR-xxx';
-```
+Managed Neon Auth account creation works through the first-party OAP bridge.
+Before a broad public registration campaign, configure branded SMTP and email
+verification in the Neon Console, then test delivery, verification and recovery
+flows with a real controlled account.

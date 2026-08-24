@@ -25,7 +25,7 @@ def test_gateway_status_content_is_escaped(client, monkeypatch):
         lambda: payload,
     )
 
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/mission").get_data(as_text=True)
 
     assert attack not in page
     assert "&lt;img src=x onerror=" in page

@@ -116,6 +116,51 @@ def update_profile(identity_id: str, *, nickname: str, country: str) -> None:
         raise PublicStoreUnavailable("durable_profile_write_failed") from exc
 
 
+def ensure_authenticated_user(
+    identity_id: str, *, email: str, display_name: str
+) -> None:
+    """Link a verified Neon Auth UUID to its established OAP user record."""
+
+    try:
+        with postgres_db.connect() as connection:
+            connection.execute(
+                """INSERT INTO users(
+                       id,username,email,display_name,status
+                   ) VALUES (%s,%s,%s,%s,'active')
+                   ON CONFLICT (id) DO UPDATE SET
+                     email=EXCLUDED.email,
+                     display_name=COALESCE(users.display_name,EXCLUDED.display_name),
+                     status='active',
+                     updated_at=CURRENT_TIMESTAMP""",
+                (
+                    identity_id,
+                    _username(identity_id),
+                    email,
+                    display_name,
+                ),
+            )
+            connection.commit()
+    except Exception as exc:
+        raise PublicStoreUnavailable("authenticated_user_sync_failed") from exc
+
+
+def get_profile(identity_id: str) -> dict[str, str] | None:
+    """Load exactly one authenticated user's private My World projection."""
+
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT display_name,country FROM users
+                   WHERE id=%s AND status='active' LIMIT 1""",
+                (identity_id,),
+            ).fetchone()
+    except Exception as exc:
+        raise PublicStoreUnavailable("private_profile_read_failed") from exc
+    if row is None:
+        return None
+    return {"nickname": str(row[0] or ""), "country": str(row[1] or "")}
+
+
 def _decode_object(raw: object) -> dict[str, str] | None:
     try:
         value = json.loads(str(raw))
@@ -127,7 +172,7 @@ def _decode_object(raw: object) -> dict[str, str] | None:
 
 
 def snapshot() -> dict[str, Any]:
-    """Load only the bounded public projection; never expose user identifiers."""
+    """Load bounded community posts; profiles stay inside private My World."""
 
     try:
         with postgres_db.connect(readonly=True) as connection:
@@ -149,13 +194,6 @@ def snapshot() -> dict[str, Any]:
                    GROUP BY body""",
                 (PUBLIC_FLAG_SCOPE,),
             ).fetchall()
-            profile_rows = connection.execute(
-                """SELECT display_name,country FROM users
-                   WHERE username LIKE %s AND status='active'
-                     AND display_name IS NOT NULL
-                   ORDER BY updated_at DESC LIMIT %s""",
-                (f"{PUBLIC_USERNAME_PREFIX}%", MAX_PUBLIC_RECORDS),
-            ).fetchall()
     except Exception as exc:
         raise PublicStoreUnavailable("durable_public_read_failed") from exc
 
@@ -175,10 +213,6 @@ def snapshot() -> dict[str, Any]:
         "signal_posts": signals,
         "team_messages": messages,
         "flag_counts": {str(row[0]): int(row[1]) for row in flag_rows},
-        "profiles": [
-            {"nickname": str(row[0]), "country": str(row[1] or "")}
-            for row in profile_rows
-        ],
         "durable": True,
     }
 

@@ -1,4 +1,4 @@
-"""Read-only Flask routes for the Mission Control vertical slice."""
+"""Public product routes and authenticated Mission Control routes."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def _error(code: str, message: str, status_code: int):
 
 
 def _chat_identity() -> str:
-    return web_security.ensure_session_identity()
+    return web_security.authenticated_identity()
 
 
 def _chat_rate_allowed(identity_id: str) -> bool:
@@ -61,6 +61,7 @@ def _chat_rate_allowed(identity_id: str) -> bool:
 
 @bp.get("/")
 @bp.get("")
+@web_security.login_required()
 def mission_workspace():
     """Render the non-operational Mission Control workspace."""
 
@@ -91,6 +92,7 @@ def mission_workspace():
 
 
 @bp.get("/agents")
+@web_security.login_required()
 def agent_intelligence():
     """Render the OAP-owned Agent Intelligence directory without actions."""
 
@@ -121,6 +123,7 @@ def agent_intelligence():
 
 
 @bp.get("/brain")
+@web_security.login_required()
 def brain_dashboard():
     """Render SMI implementation readiness without running a signal."""
 
@@ -134,6 +137,7 @@ def brain_dashboard():
 
 
 @bp.get("/brain/status")
+@web_security.login_required(api=True)
 def brain_status():
     """Return a coarse, read-only SMI implementation projection."""
 
@@ -141,6 +145,7 @@ def brain_status():
 
 
 @bp.get("/ollama")
+@web_security.login_required()
 def ollama_chat_dashboard():
     """Render the local-provider chat shell without contacting the provider."""
 
@@ -155,6 +160,7 @@ def ollama_chat_dashboard():
 
 
 @bp.post("/chat")
+@web_security.login_required(api=True)
 def smi_chat_message():
     """Process one governed recommendation request and persist it in HRM."""
     if not web_security.csrf_valid(request):
@@ -207,6 +213,7 @@ def smi_chat_message():
 
 
 @bp.post("/chat/stream")
+@web_security.login_required(api=True)
 def smi_chat_stream():
     """Stream genuine provider deltas, then confirm governed persistence."""
 
@@ -253,6 +260,7 @@ def smi_chat_stream():
 
 
 @bp.get("/conversations")
+@web_security.login_required(api=True)
 def smi_conversations():
     """List only the current signed-session identity's SMI conversations."""
 
@@ -268,6 +276,7 @@ def smi_conversations():
 
 
 @bp.get("/conversations/<conversation_id>")
+@web_security.login_required(api=True)
 def smi_conversation(conversation_id: str):
     """Load one owned conversation without exposing another identity's data."""
 
@@ -287,6 +296,7 @@ def smi_conversation(conversation_id: str):
 
 
 @bp.delete("/conversations/<conversation_id>")
+@web_security.login_required(api=True)
 def delete_smi_conversation(conversation_id: str):
     """Delete one owned conversation after an explicit CSRF-protected action."""
 
@@ -318,6 +328,7 @@ def smi_chat_health():
 
 
 @bp.get("/infrastructure")
+@web_security.login_required()
 def infrastructure_dashboard():
     """Render locked Infrastructure awareness without provider operations."""
 
@@ -401,6 +412,7 @@ def link_dashboard():
 
 
 @bp.get("/organism")
+@web_security.login_required()
 def organism_anatomy():
     """Render the canonical architecture without exposing operational controls."""
 

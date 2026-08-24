@@ -49,8 +49,29 @@ def test_snapshot_projects_only_bounded_public_fields(monkeypatch):
             {"room": "Ghana Team Room", "name": "Visitor", "message": "Hello"}
         ],
         "flag_counts": {"Ghana": 2},
-        "profiles": [{"nickname": "Visitor", "country": "Ghana"}],
         "durable": True,
+    }
+
+
+def test_private_profile_query_is_restricted_to_verified_owner(monkeypatch):
+    identity_id = "11111111-1111-4111-8111-111111111111"
+
+    class ProfileConnection:
+        def execute(self, sql, parameters=None):
+            assert "WHERE id=%s AND status='active'" in sql
+            assert parameters == (identity_id,)
+            return FakeResult((("Private Neo", "Ghana"),))
+
+    @contextmanager
+    def fake_connect(*, readonly=False):
+        assert readonly is True
+        yield ProfileConnection()
+
+    monkeypatch.setattr(public_store.postgres_db, "connect", fake_connect)
+
+    assert public_store.get_profile(identity_id) == {
+        "nickname": "Private Neo",
+        "country": "Ghana",
     }
 
 

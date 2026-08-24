@@ -4,6 +4,22 @@
 
 A comprehensive Flask application implementing a multi-system platform for community engagement, operations management, and global connectivity. Built as "One Brand. One Front Door. One Identity."
 
+## Active production boundary
+
+The current Render service follows **One World → One Front Door → Many Systems
+Inside**:
+
+- **OAP World is public**: `/`, `/world`, Signal, teams, The Spot, The Link and
+  Link Up.
+- **My World is private**: `/my-world` uses Managed Neon Auth and loads only the
+  verified user's Neon profile.
+- **SMI and Mission Control are private**: conversations, intelligence views,
+  infrastructure and internal architecture require that same live Neon session.
+- Public community writes retain CSRF and bounded-rate controls. Private SMI
+  queries use the authenticated Neon UUID as their owner key.
+- Human Authority remains the final decision-maker; no execution endpoint is
+  exposed.
+
 ---
 
 ## 🎯 Overview
@@ -79,17 +95,17 @@ Visit `http://localhost:5050` in your browser.
 ### Core Routes
 
 **Public Pages:**
-- `/` - Homepage with system grid
-- `/<system>` - System overview
-- `/<system>/<module>` - Module details
-- `/world-cup` - World Cup 2026 hub
-- `/world-cup/team/<team>` - Team details
+- `/` and `/world` - OAP World front door
+- `/the-spot` - Public postcode-community product
+- `/the-link` and `/linkup` - Public communication projections
+- `/healthz`, `/livez`, `/mission/status` - Redacted status surfaces
 
 **Member Features:**
-- `/join` - Create account
-- `/enter` - Login
-- `/my-world` - Member dashboard
-- `/leave` - Logout
+- `/auth` - Managed Neon Auth sign-in and account creation
+- `/my-world` - Private, user-owned profile dashboard
+- `/mission` - Private Mission Control
+- `/mission/ollama` - Private SMI chat shell
+- `POST /auth/sign-out` - CSRF-protected sign-out
 
 **Operations:**
 - `/dispatch` - Delivery dispatch board
@@ -141,11 +157,22 @@ Visit `http://localhost:5050` in your browser.
 
 ## 🔐 Security Features
 
-- **HTML Escaping**: All user input sanitized with `escape()`
+- **Managed Identity**: Neon Auth stores users and opaque sessions in the
+  production Neon branch
+- **Public/Private Gate**: Private HTML redirects to sign-in; private APIs fail
+  closed with structured `401` responses
+- **First-Party Cookie Bridge**: Auth cookies are re-scoped to the OAP origin,
+  forced `Secure`, `HttpOnly`, and `SameSite=Lax`, and verified with Neon on each
+  private request
+- **Ownership Filtering**: My World and SMI reads use the verified Neon UUID
+- **HTML Escaping**: Jinja auto-escaping protects rendered user content
 - **Parameterized Queries**: SQL injection prevention via prepared statements
-- **Session Management**: Flask sessions with HTTPONLY and SECURE flags
-- **Password Hashing**: Passwords stored securely (werkzeug.security)
-- **CSRF Protection**: Ready for Flask-WTF integration
+- **Session Management**: Flask and Auth cookies use HTTPONLY and SECURE flags
+- **Password Boundary**: OAP proxies credentials to Managed Neon Auth and never
+  stores passwords
+- **CSRF Protection**: High-entropy signed-session tokens on every state-changing
+  browser route
+- **Rate Controls**: Separate bounded limits for auth, public writes and SMI chat
 - **Audit Logging**: All actions tracked in audit table
 
 ---
