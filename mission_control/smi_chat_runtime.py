@@ -171,7 +171,7 @@ def health() -> dict:
             checks["audit"]="audit_events" in tables
     except Exception as exc:
         message = str(exc)
-        if message in {"DATABASE_URL is not configured", "psycopg is required when DATABASE_URL is configured"}:
+        if message in {"DATABASE_URL is not configured", "Neon database URL is not configured", "psycopg is required when DATABASE_URL is configured"}:
             reason = message
         else:
             reason = type(exc).__name__
