@@ -225,14 +225,38 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             "war_room":brain["war_room"],"can_execute":False}
 
 def health() -> dict:
-    checks={"database":False,"schema":False,"provider_key":bool(os.environ.get("OPENAI_API_KEY")),
-            "identity":True,"permission":True,"guardian":True,"hrm":False,
-            "router":PROVIDER=="openai","chat_route":True,"streaming_ready":True,
-            "audit":False,"human_authority":True}
+    """Return the truthful OAP 3x7 (21-gate) SMI production readiness result."""
+    checks={
+        "database":False, "schema":False,
+        "provider_key":bool(os.environ.get("OPENAI_API_KEY")),
+        "provider_assignment":False, "identity":True, "permission":True,
+        "nexus":False, "thalamus_input":False, "agent_registry":False,
+        "agent_selection":False, "biological_brain":False, "aegis":False,
+        "guardian":False, "war_room":False, "hrm":False,
+        "conversation_memory":False, "router":PROVIDER=="openai",
+        "chat_route":True, "audit":False, "human_authority":True,
+        "execution_locked":True,
+    }
     reason = None
     try:
+        probe=live_brain.review(
+            request_id=str(uuid.uuid4()), identity_id=str(uuid.uuid4()),
+            content="SMI health readiness review", history=[], image_attached=False,
+        )
+        checks["nexus"]=True
+        checks["thalamus_input"]=True
+        checks["agent_registry"]=probe["agent_count"] >= 1
+        checks["agent_selection"]=probe["agent_count"] >= 1
+        checks["biological_brain"]=probe["brain_region_count"] >= 12
+        checks["aegis"]=bool(probe["safety_codes"])
+        checks["guardian"]=bool(probe["passed"])
+        checks["war_room"]="war_room" in probe
+        checks["execution_locked"]=probe["can_execute"] is False
+    except Exception as exc:
+        reason="canonical_brain_"+type(exc).__name__
+    try:
         status=postgres_db.postgres_status()
-        reason = status.get("error")
+        reason = reason or status.get("error")
         checks["database"]=bool(status.get("reachable"))
         with postgres_db.connect(readonly=True) as connection:
             tables={r[0] for r in connection.execute(
@@ -242,19 +266,29 @@ def health() -> dict:
                     "oap_guardian_reviews","smi_provider_assignments"}
             checks["schema"]=needed <= tables
             checks["hrm"]="smi_memory_records" in tables
+            checks["conversation_memory"]={"smi_messages","smi_conversations"} <= tables
             checks["audit"]="audit_events" in tables
+            checks["provider_assignment"]=connection.execute(
+                """SELECT 1 FROM smi_provider_assignments
+                   WHERE agent_id='NEO-001' AND provider_id='openai'
+                     AND status='APPROVED' LIMIT 1"""
+            ).fetchone() is not None
     except Exception as exc:
         message = str(exc)
-        if message in {"DATABASE_URL is not configured", "Neon database URL is not configured", "psycopg is required when DATABASE_URL is configured"}:
+        if message in {"DATABASE_URL is not configured", "Neon database URL is not configured",
+                       "psycopg is required when DATABASE_URL is configured"}:
             reason = message
         else:
-            reason = type(exc).__name__
+            reason = reason or type(exc).__name__
     return {"status":"green" if all(checks.values()) else "degraded",
             "checks":checks,"green":sum(checks.values()),"total":len(checks),
             "database_reason": reason,
+            "constitution":{"protocol":"3x7","human_authority_final":True,
+                            "independent_execution":False},
             "environment": {
                 "revision_present": bool(os.environ.get("OAP_ENV_REVISION")),
                 "database_url_present": bool(os.environ.get("DATABASE_URL")),
                 "oap_neon_url_present": bool(os.environ.get("OAP_NEON_DATABASE_URL")),
-                "db_secret_present": bool(os.environ.get("OAP_DB_SECRET_B64") or os.environ.get("OAP_NEON_DATABASE_URL_B64")),
+                "db_secret_present": bool(os.environ.get("OAP_DB_SECRET_B64") or
+                                          os.environ.get("OAP_NEON_DATABASE_URL_B64")),
             }}
