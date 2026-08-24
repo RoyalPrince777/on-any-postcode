@@ -12,7 +12,7 @@ app.config["SECRET_KEY"] = os.environ.get("OAP_SESSION_SECRET") or os.urandom(32
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("RENDER", "").lower() == "true"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 MAX_PUBLIC_RECORDS = 100
 
@@ -34,7 +34,7 @@ def _security_headers(response):
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault(
         "Permissions-Policy",
-        "camera=(), microphone=(), geolocation=(), payment=()",
+        "camera=(self), microphone=(self), geolocation=(), payment=()",
     )
     return response
 
