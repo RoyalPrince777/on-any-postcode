@@ -60,7 +60,9 @@ def test_private_profile_query_is_restricted_to_verified_owner(monkeypatch):
         def execute(self, sql, parameters=None):
             assert "WHERE id=%s AND status='active'" in sql
             assert parameters == (identity_id,)
-            return FakeResult((("Private Neo", "Ghana"),))
+            return FakeResult(
+                (("Private Neo", "SW1A 1AA", "Westminster", "London", "UK", "Europe"),)
+            )
 
     @contextmanager
     def fake_connect(*, readonly=False):
@@ -71,7 +73,11 @@ def test_private_profile_query_is_restricted_to_verified_owner(monkeypatch):
 
     assert public_store.get_profile(identity_id) == {
         "nickname": "Private Neo",
-        "country": "Ghana",
+        "postcode": "SW1A 1AA",
+        "borough": "Westminster",
+        "county": "London",
+        "country": "UK",
+        "continent": "Europe",
     }
 
 

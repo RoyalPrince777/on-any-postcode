@@ -13,7 +13,14 @@ from collections.abc import Callable, Iterator
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
-from . import live_brain, media_intelligence, postgres_db
+from . import (
+    approval_service,
+    authority,
+    judgement,
+    live_brain,
+    media_intelligence,
+    postgres_db,
+)
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
 PROVIDER = os.environ.get("OAP_AI_PROVIDER", "openai")
@@ -489,6 +496,19 @@ def chat(
                 json.dumps(processing_states),
             ),
         )
+        judgement_review = judgement.assess(
+            brain=brain,
+            response=response,
+            coherence=coherence,
+            provider_completed=provider_completed,
+            provider_id=PROVIDER,
+        )
+        judgement.persist(
+            connection,
+            request_id=request_id,
+            identity_id=identity,
+            review=judgement_review,
+        )
         connection.execute(
             """INSERT INTO smi_messages
                (conversation_id,request_id,role,content,guardian_outcome)
@@ -554,6 +574,17 @@ def chat(
             "retained": False,
         },
         "coherent": {"passed": coherence["passed"], "score": coherence["score"]},
+        "judgement": {
+            "automated_sections": judgement_review["sections_completed"],
+            "human_section": "PENDING",
+            "completed_sections": judgement_review["sections_completed"],
+            "total_sections": judgement_review["total_sections"],
+            "provenance_quality": judgement_review["provenance_quality"],
+            "confidence": judgement_review["confidence"],
+            "constitution_consistent": judgement_review[
+                "constitution_consistent"
+            ],
+        },
         "code_proposal": {
             "active": code_mode,
             "status": "HUMAN_REVIEW_REQUIRED" if code_mode else "NOT_REQUESTED",
@@ -781,58 +812,107 @@ def _audit_chain_status(connection: object, limit: int = 500) -> dict:
     return {"verified": True, "events_checked": len(rows)}
 def health() -> dict:
     """Return the truthful OAP 3x7 (21-gate) SMI production readiness result."""
-    checks={
-        "database":False, "schema":False,
-        "provider_key":bool(os.environ.get("OPENAI_API_KEY")),
-        "provider_assignment":False, "identity":True, "permission":True,
-        "nexus":False, "thalamus_input":False, "agent_registry":False,
-        "agent_selection":False, "biological_brain":False, "aegis":False,
-        "guardian":False, "war_room":False, "hrm":False,
-        "conversation_memory":False, "router":PROVIDER=="openai",
-        "chat_route":True, "audit":False, "human_authority":True,
-        "execution_locked":True,
+    checks = {
+        "database": False,
+        "schema": False,
+        "provider_key": bool(os.environ.get("OPENAI_API_KEY")),
+        "provider_assignment": False,
+        "identity": False,
+        "permission": False,
+        "nexus": False,
+        "thalamus_input": False,
+        "agent_registry": False,
+        "biological_brain": False,
+        "aegis": False,
+        "guardian": False,
+        "war_room": False,
+        "hrm": False,
+        "conversation_memory": False,
+        "judgement_five_sections": False,
+        "router": PROVIDER == "openai",
+        "chat_route": True,
+        "audit": False,
+        "human_authority": False,
+        "approval_receipt": False,
     }
+    invariants = {"execution_locked": True, "human_authority_final": True}
     reason = None
     try:
-        probe=live_brain.review(
-            request_id=str(uuid.uuid4()), identity_id=str(uuid.uuid4()),
-            content="SMI health readiness review", history=[], image_attached=False,
+        probe = live_brain.review(
+            request_id=str(uuid.uuid4()),
+            identity_id=str(uuid.uuid4()),
+            content="SMI health readiness review",
+            history=[],
+            image_attached=False,
         )
-        checks["nexus"]=True
-        checks["thalamus_input"]=True
-        checks["agent_registry"]=probe["agent_count"] >= 1
-        checks["agent_selection"]=probe["agent_count"] >= 1
-        checks["biological_brain"]=probe["brain_region_count"] >= 12
-        checks["aegis"]=bool(probe["safety_codes"])
-        checks["guardian"]=bool(probe["passed"])
-        checks["war_room"]="war_room" in probe
-        checks["execution_locked"]=probe["can_execute"] is False
+        checks["nexus"] = True
+        checks["thalamus_input"] = True
+        checks["agent_registry"] = probe["agent_count"] >= 1
+        checks["biological_brain"] = probe["brain_region_count"] >= 12
+        checks["aegis"] = bool(probe["safety_codes"])
+        checks["guardian"] = bool(probe["passed"])
+        checks["war_room"] = "war_room" in probe
+        invariants["execution_locked"] = probe["can_execute"] is False
     # Health checks must report degradation instead of raising to the caller.
     except Exception as exc:  # noqa: BLE001
-        reason="canonical_brain_"+type(exc).__name__
+        reason = "canonical_brain_" + type(exc).__name__
     try:
-        status=postgres_db.postgres_status()
+        status = postgres_db.postgres_status()
         reason = reason or status.get("error")
-        checks["database"]=bool(status.get("reachable"))
+        checks["database"] = bool(status.get("reachable"))
         with postgres_db.connect(readonly=True) as connection:
-            tables={r[0] for r in connection.execute(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
-            ).fetchall()}
-            needed={"smi_messages","smi_conversations","smi_memory_records",
-                    "oap_guardian_reviews","smi_provider_assignments"}
-            checks["schema"]=needed <= tables
-            checks["hrm"]="smi_memory_records" in tables
-            checks["conversation_memory"]={"smi_messages","smi_conversations"} <= tables
+            tables = {
+                row[0]
+                for row in connection.execute(
+                    """SELECT table_name FROM information_schema.tables
+                       WHERE table_schema='public'"""
+                ).fetchall()
+            }
+            needed = {
+                "smi_messages",
+                "smi_conversations",
+                "smi_memory_records",
+                "smi_judgement_reviews",
+                "smi_approval_receipts",
+                "oap_guardian_reviews",
+                "smi_provider_assignments",
+                "oap_identities",
+                "oap_role_permissions",
+            }
+            checks["schema"] = needed <= tables
+            checks["hrm"] = "smi_memory_records" in tables
+            checks["conversation_memory"] = {
+                "smi_messages",
+                "smi_conversations",
+            } <= tables
+            if "smi_judgement_reviews" in tables:
+                checks["judgement_five_sections"] = connection.execute(
+                    """SELECT 1 FROM smi_judgement_reviews
+                       WHERE sections_completed=5 LIMIT 1"""
+                ).fetchone() is not None
             audit_chain = (
                 _audit_chain_status(connection)
                 if "audit_events" in tables
                 else {"verified": False, "events_checked": 0}
             )
             checks["audit"] = bool(audit_chain["verified"])
-            checks["provider_assignment"]=connection.execute(
+            checks["provider_assignment"] = connection.execute(
                 """SELECT 1 FROM smi_provider_assignments
                    WHERE agent_id='NEO-001' AND provider_id='openai'
                      AND status='APPROVED' LIMIT 1"""
+            ).fetchone() is not None
+            checks["identity"] = connection.execute(
+                """SELECT 1 FROM oap_identities
+                   WHERE status='ACTIVE' LIMIT 1"""
+            ).fetchone() is not None
+            checks["permission"] = connection.execute(
+                """SELECT 1
+                   FROM oap_identities i
+                   JOIN oap_identity_roles ir ON ir.identity_id=i.identity_id
+                   JOIN oap_role_permissions rp ON rp.role_id=ir.role_id
+                   WHERE i.status='ACTIVE'
+                     AND rp.permission_id='REQUEST_RECOMMENDATION'
+                   LIMIT 1"""
             ).fetchone() is not None
     # Database/driver failures are normalized into a redacted health reason.
     except Exception as exc:  # noqa: BLE001
@@ -842,8 +922,19 @@ def health() -> dict:
             reason = message
         else:
             reason = reason or type(exc).__name__
+    try:
+        authority_probe = authority.status()
+        checks["human_authority"] = bool(authority_probe["ready"])
+    except Exception:  # noqa: BLE001
+        reason = reason or "authority_probe_unavailable"
+    try:
+        approval_probe = approval_service.status()
+        checks["approval_receipt"] = bool(approval_probe["ready"])
+    except Exception:  # noqa: BLE001
+        reason = reason or "approval_probe_unavailable"
     return {"status":"green" if all(checks.values()) else "degraded",
             "checks":checks,"green":sum(checks.values()),"total":len(checks),
+            "invariants": invariants,
             "database_reason": reason,
             "constitution":{"protocol":"3x7","human_authority_final":True,
                             "independent_execution":False,

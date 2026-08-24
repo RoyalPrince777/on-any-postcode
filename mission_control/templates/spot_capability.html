@@ -19,11 +19,163 @@
     </div>
   </header>
   <main class="mc-workspace">
+    {% if capability.slug in ('pulse', 'signal') %}
+    <section class="mc-panel" aria-labelledby="signal-feed-title">
+      <p class="mc-eyebrow">Live bounded public feed</p>
+      <h2 id="signal-feed-title">{{ 'OAP Signal' if capability.slug == 'signal' else 'Postcode pulse' }}</h2>
+      {% if capability.slug == 'signal' %}
+      <form method="post" action="{{ url_for('signal') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="spot-signal-name">Nickname</label>
+        <input id="spot-signal-name" name="name" maxlength="80" required>
+        <label for="spot-signal-body">Signal</label>
+        <textarea id="spot-signal-body" name="body" maxlength="2000" required></textarea>
+        <button class="mc-primary" type="submit">Post Signal</button>
+      </form>
+      {% endif %}
+      <div class="mc-agent-grid">
+        {% for post in signal_posts %}
+        <article class="mc-agent-card"><strong>{{ post.name }}</strong><p>{{ post.body }}</p></article>
+        {% else %}
+        <article class="mc-agent-card"><p>No public signals yet.</p></article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if capability.slug == 'postcode-rooms' %}
+    <section class="mc-panel" aria-labelledby="postcode-room-title">
+      <p class="mc-eyebrow">Public room · private messages stay in LinkUp</p>
+      <h2 id="postcode-room-title">Postcode Rooms</h2>
+      <form method="post" action="{{ url_for('postcode_room') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="postcode-room-code">Postcode</label>
+        <input id="postcode-room-code" name="postcode" maxlength="16" value="{{ request.args.get('postcode', '') }}" required>
+        <label for="postcode-room-name">Nickname</label>
+        <input id="postcode-room-name" name="name" maxlength="80" required>
+        <label for="postcode-room-message">Message</label>
+        <textarea id="postcode-room-message" name="message" maxlength="2000" required></textarea>
+        <button class="mc-primary" type="submit">Post to room</button>
+      </form>
+      <div class="mc-agent-grid">
+        {% for item in room_messages if 'Postcode Room' in item.room %}
+        <article class="mc-agent-card"><strong>{{ item.room }}</strong><p>{{ item.name }}: {{ item.message }}</p></article>
+        {% else %}
+        <article class="mc-agent-card"><p>No postcode-room messages yet.</p></article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if capability.slug == 'maps-weather-travel' %}
+    <section class="mc-panel" aria-labelledby="location-lookup-title">
+      <p class="mc-eyebrow">Continent → Country → County → Borough → Postcode</p>
+      <h2 id="location-lookup-title">Live location and weather lookup</h2>
+      <form method="get" action="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">
+        <label for="location-query">Postcode or place</label>
+        <input id="location-query" name="location" maxlength="120" value="{{ request.args.get('location', '') }}" required>
+        <button class="mc-primary" type="submit">Find location</button>
+      </form>
+      {% if location_error %}
+      <p role="alert">That live location could not be resolved safely. Check the spelling and try again.</p>
+      {% endif %}
+      {% if location %}
+      <div class="mc-status-grid" aria-label="Resolved location hierarchy">
+        <article class="mc-status-card"><strong>Continent</strong><span>{{ location.continent }}</span></article>
+        <article class="mc-status-card"><strong>Country</strong><span>{{ location.country }}</span></article>
+        <article class="mc-status-card"><strong>County / region</strong><span>{{ location.county or 'Not returned' }}</span></article>
+        <article class="mc-status-card"><strong>Borough / district</strong><span>{{ location.borough or 'Not returned' }}</span></article>
+        <article class="mc-status-card"><strong>Postcode</strong><span>{{ location.postcode or 'Not returned' }}</span></article>
+      </div>
+      <h3>Current weather</h3>
+      <p>{{ location.weather.temperature }}°C · feels like {{ location.weather.feels_like }}°C · wind {{ location.weather.wind_speed }} km/h</p>
+      <div class="mc-agent-grid">
+        {% for day in location.weather.days %}
+        <article class="mc-agent-card">
+          <strong>{{ day.date }}</strong>
+          <p>{{ day.minimum }}°C to {{ day.maximum }}°C · rain {{ day.rain_chance }}%</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if capability.slug in ('market', 'businesses') %}
+    <section class="mc-panel" aria-labelledby="market-title">
+      <p class="mc-eyebrow">Local listings · checkout separate</p>
+      <h2 id="market-title">{{ 'Live community market' if capability.slug == 'market' else 'Live local-business listings' }}</h2>
+      {% if market_products %}
+      <div class="mc-agent-grid">
+        {% for product in market_products %}
+        <article class="mc-agent-card">
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.description }}</p>
+          <strong>{{ product.currency }} {{ product.price }}</strong>
+          <p>{{ product.seller }} · {{ product.postcode or product.borough or product.country }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No active local listings yet.</p>
+      {% endif %}
+      {% if auth_user and capability.slug == 'market' %}
+      <h3>Create a listing</h3>
+      <form method="post" action="{{ url_for('market_listing_create') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="market-name">Product</label>
+        <input id="market-name" name="name" maxlength="160" required>
+        <label for="market-description">Description</label>
+        <textarea id="market-description" name="description" maxlength="3000"></textarea>
+        <label for="market-price">Price in GBP</label>
+        <input id="market-price" name="price" inputmode="decimal" required>
+        <button class="mc-primary" type="submit">Publish listing</button>
+      </form>
+      {% elif capability.slug == 'market' %}
+      <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to list a product →</a>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if capability.slug == 'sika' %}
+    <section class="mc-panel" aria-labelledby="sika-title">
+      <p class="mc-eyebrow">Contribution credits · not money</p>
+      <h2 id="sika-title">SIKA record</h2>
+      {% if auth_user and sika %}
+      <p><strong>{{ sika.balance }} {{ sika.unit }}</strong></p>
+      <p>Credits are internal contribution and trust-value records. They are not cash, deposits or regulated payment balances.</p>
+      <h3>Submit contribution evidence for review</h3>
+      <form method="post" action="{{ url_for('sika_contribution_request') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="sika-title-field">Contribution</label>
+        <input id="sika-title-field" name="title" maxlength="160" required>
+        <label for="sika-body">Evidence</label>
+        <textarea id="sika-body" name="body" maxlength="5000" required></textarea>
+        <button class="mc-primary" type="submit">Send for review</button>
+      </form>
+      {% else %}
+      <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to view your SIKA record →</a>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if auth_user and workspace and capability.slug not in ('market', 'sika') %}
+    <section class="mc-panel" aria-labelledby="workspace-connection-title">
+      <p class="mc-eyebrow">Private My World connection</p>
+      <h2 id="workspace-connection-title">{{ workspace.icon }} {{ workspace.name }}</h2>
+      <p>{{ workspace.purpose }}</p>
+      <a class="mc-secondary-link" href="{{ url_for('my_world_workspace', workspace_id=workspace.id) }}">Open working space →</a>
+      {% if workspace_records %}
+      <p>{{ workspace_records|length }} recent private record{{ '' if workspace_records|length == 1 else 's' }} available.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
     <section class="mc-panel">
       <p class="mc-eyebrow">Your postcode</p>
-      <h2>Discover more in My World</h2>
-      <p>Sign in to personalise this part of OAP.</p>
-      <a class="mc-secondary-link" href="{{ url_for('auth_page') }}">Enter My World →</a>
+      <h2>{{ 'Continue in My World' if auth_user else 'Discover more in My World' }}</h2>
+      <p>{{ 'Open your private, owner-scoped workspace.' if auth_user else 'Sign in to personalise this part of OAP.' }}</p>
+      <a class="mc-secondary-link" href="{{ url_for('my_world') if auth_user else url_for('auth_page', next=request.path) }}">Enter My World →</a>
     </section>
   </main>
 </body>

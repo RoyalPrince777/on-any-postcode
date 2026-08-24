@@ -24,6 +24,8 @@
     .danger{background:#4a2528!important;color:#fff!important}
     .error{background:#461b21;border:1px solid #ff7582;padding:13px;border-radius:10px}
     .small{opacity:.82;line-height:1.5}
+    .workspace-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+    .workspace-card{display:block;background:#0a1d12;border:1px solid #2d7044;border-radius:14px;padding:15px;color:inherit;text-decoration:none}
   </style>
 </head>
 <body>
@@ -34,6 +36,7 @@
     <nav aria-label="Private My World navigation">
       <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI Chat</a>
       <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission Control</a>
+      <a href="{{ url_for('mission_control.judgement_dashboard') }}">⚖️ Judgement</a>
       <a href="{{ url_for('infrastructure_dashboard') }}">🏗️ Infrastructure</a>
       <a class="secondary" href="{{ url_for('home') }}">🌍 Public OAP World</a>
     </nav>
@@ -51,6 +54,14 @@
         <input id="my-world-nickname" name="nickname" value="{{ profile.nickname }}" maxlength="80" required>
         <label for="my-world-country">Country / flag</label>
         <input id="my-world-country" name="country" value="{{ profile.country }}" maxlength="80">
+        <label for="my-world-continent">Continent</label>
+        <input id="my-world-continent" name="continent" value="{{ profile.continent }}" maxlength="80">
+        <label for="my-world-county">County / region</label>
+        <input id="my-world-county" name="county" value="{{ profile.county }}" maxlength="120">
+        <label for="my-world-borough">Borough / district</label>
+        <input id="my-world-borough" name="borough" value="{{ profile.borough }}" maxlength="120">
+        <label for="my-world-postcode">Postcode</label>
+        <input id="my-world-postcode" name="postcode" value="{{ profile.postcode }}" maxlength="16">
         <button class="button" type="submit">Save My World</button>
       </form>
       {% endif %}
@@ -64,6 +75,19 @@
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <button class="button danger" type="submit">Sign out of My World</button>
       </form>
+    </section>
+
+    <section class="card" aria-labelledby="workspaces-title" style="grid-column:1/-1">
+      <h2 id="workspaces-title">Your 12 private workspaces</h2>
+      <p class="small">Every record is scoped to your verified identity. Public OAP World cannot read it.</p>
+      <div class="workspace-grid">
+        {% for workspace in workspaces %}
+        <a class="workspace-card" href="{{ url_for('my_world_workspace', workspace_id=workspace.id) }}">
+          <strong>{{ workspace.icon }} {{ workspace.name }}</strong>
+          <p class="small">{{ workspace.purpose }}</p>
+        </a>
+        {% endfor %}
+      </div>
     </section>
   </main>
 </body>

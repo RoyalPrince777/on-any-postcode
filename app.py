@@ -21,12 +21,19 @@ from flask import (
 
 from mission_control import init_app as _mc_init
 from mission_control import (
+    approval_service,
+    authority,
+    judgement,
     linkup,
+    location_intelligence,
     neon_auth,
+    product_store,
     products,
     public_store,
     smi_chat_runtime,
+    telemetry,
     web_security,
+    workspaces,
 )
 from mission_control.agents import validate_agent_registry
 from mission_control.database import db_status
@@ -133,6 +140,11 @@ def _security_headers(response):
             separators=(",", ":"),
         )
     )
+    telemetry.record_http_request(
+        path=str(request.url_rule.rule) if request.url_rule else "unmatched",
+        status_code=response.status_code,
+        duration_ms=duration_ms,
+    )
     return response
 
 signal_posts = []
@@ -218,6 +230,39 @@ matches = [
     ("NEXT","17 Jun","L","🇬🇭 Ghana","🇵🇦 Panama","19:00"),
 ]
 
+LOCATION_LEVELS = (
+    {
+        "order": 1,
+        "name": "Continent",
+        "icon": "🌍",
+        "purpose": "Connect every local community to its part of the world.",
+    },
+    {
+        "order": 2,
+        "name": "Country",
+        "icon": "🏳️",
+        "purpose": "National identity, culture, information and shared services.",
+    },
+    {
+        "order": 3,
+        "name": "County / Region",
+        "icon": "🧭",
+        "purpose": "Regional coordination without replacing local ownership.",
+    },
+    {
+        "order": 4,
+        "name": "Borough / District",
+        "icon": "🏙️",
+        "purpose": "The local authority and neighbourhood connection layer.",
+    },
+    {
+        "order": 5,
+        "name": "Postcode",
+        "icon": "📍",
+        "purpose": "The free front door into The Spot and local community life.",
+    },
+)
+
 # Register read-only Mission Control routes and explicit CLI-only DB commands.
 _mc_init(app)
 
@@ -286,13 +331,30 @@ def home():
     public = _load_public_snapshot()
     return render_template(
         "home.html",
-        teams=teams,
-        matches=matches,
+        location_levels=LOCATION_LEVELS,
         signal_posts=public["signal_posts"],
         team_messages=public["team_messages"],
         flag_counts=public["flag_counts"],
         public_persistence=public["durable"],
     )
+
+
+@app.get("/world-cup")
+def world_cup():
+    """Preserve football inside Culture instead of using it as OAP World."""
+
+    public = _load_public_snapshot()
+    response = make_response(
+        render_template(
+            "world_cup.html",
+            teams=teams,
+            matches=matches,
+            team_messages=public["team_messages"],
+            flag_counts=public["flag_counts"],
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def _safe_next(value: object, default: str = "/my-world") -> str:
@@ -526,7 +588,7 @@ def the_spot_front_door():
 
 @app.get("/the-spot/<capability_slug>")
 def spot_capability_front_door(capability_slug):
-    """Render one public Spot experience using presentation-only copy."""
+    """Render one Spot experience and its bounded live function when available."""
 
     capability = products.get_public_spot_capability(capability_slug)
     if capability is None:
@@ -538,8 +600,87 @@ def spot_capability_front_door(capability_slug):
         )
         response.status_code = 404
     else:
+        user = None
+        try:
+            user = web_security.current_authenticated_user()
+        except neon_auth.AuthUnavailable:
+            user = None
+        context = {
+            "location": None,
+            "location_error": None,
+            "market_products": [],
+            "signal_posts": [],
+            "room_messages": [],
+            "sika": None,
+            "workspace": None,
+            "workspace_records": [],
+            "private_unavailable": False,
+        }
+        if capability_slug == "maps-weather-travel" and request.args.get("location"):
+            try:
+                context["location"] = location_intelligence.lookup_with_weather(
+                    request.args.get("location")
+                )
+            except ValueError as exc:
+                context["location_error"] = str(exc)
+            except location_intelligence.LocationUnavailable:
+                context["location_error"] = "live_location_unavailable"
+        if capability_slug in {"pulse", "signal", "postcode-rooms"}:
+            public = _load_public_snapshot()
+            context["signal_posts"] = public["signal_posts"]
+            context["room_messages"] = public["team_messages"]
+        if capability_slug in {"market", "businesses"} and public_store.status()["configured"]:
+            try:
+                context["market_products"] = product_store.list_products()
+            except product_store.ProductStoreUnavailable:
+                context["private_unavailable"] = True
+        workspace_map = {
+            "pulse": "signals",
+            "signal": "signals",
+            "postcode-rooms": "signals",
+            "events": "ecosystem",
+            "discovery": "maps",
+            "businesses": "market",
+            "creators": "tv",
+            "community-progress": "signals",
+            "support": "governance",
+            "maps-weather-travel": "maps",
+            "market": "market",
+            "movement-delivery": "transport",
+            "safety": "governance",
+            "my-world": "identity",
+            "tv-media": "tv",
+            "membership": "ecosystem",
+            "sika": "sika",
+        }
+        workspace_id = workspace_map.get(capability_slug)
+        if user and public_store.status()["configured"]:
+            try:
+                public_store.ensure_authenticated_user(
+                    str(user["id"]),
+                    email=str(user["email"]),
+                    display_name=str(user["name"]),
+                )
+                if capability_slug == "sika":
+                    context["sika"] = product_store.sika_summary(str(user["id"]))
+                if workspace_id:
+                    context["workspace"] = workspaces.get(workspace_id)
+                    context["workspace_records"] = workspaces.list_records(
+                        str(user["id"]), workspace_id, limit=10
+                    )
+            except (
+                public_store.PublicStoreUnavailable,
+                product_store.ProductStoreUnavailable,
+                workspaces.WorkspaceUnavailable,
+            ):
+                context["private_unavailable"] = True
         response = make_response(
-            render_template("spot_capability.html", capability=capability)
+            render_template(
+                "spot_capability.html",
+                capability=capability,
+                auth_user=user,
+                **context,
+            )
         )
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -558,11 +699,138 @@ def the_link_front_door():
 def linkup_front_door():
     """Open LinkUp inside The Link."""
 
+    user = None
+    dashboard = None
+    unavailable = False
+    try:
+        user = web_security.current_authenticated_user()
+    except neon_auth.AuthUnavailable:
+        user = None
+    if user and public_store.status()["configured"]:
+        try:
+            public_store.ensure_authenticated_user(
+                str(user["id"]),
+                email=str(user["email"]),
+                display_name=str(user["name"]),
+            )
+            dashboard = product_store.linkup_dashboard(str(user["id"]))
+        except (
+            public_store.PublicStoreUnavailable,
+            product_store.ProductStoreUnavailable,
+        ):
+            unavailable = True
     response = make_response(
-        render_template("linkup.html", link=linkup.get_public_link_dashboard())
+        render_template(
+            "linkup.html",
+            link=linkup.get_public_link_dashboard(),
+            auth_user=user,
+            dashboard=dashboard,
+            private_unavailable=unavailable,
+        )
     )
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@app.post("/linkup/send")
+@web_security.login_required(api=True)
+def linkup_send():
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    user = web_security.current_authenticated_user()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(str(user["id"])):
+        return _rate_failure()
+    try:
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+        )
+        product_store.send_message(
+            str(user["id"]),
+            request.form.get("recipient_id"),
+            _form_text("body", "", 4000),
+        )
+    except ValueError as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except (
+        public_store.PublicStoreUnavailable,
+        product_store.ProductStoreUnavailable,
+    ):
+        return jsonify(error={"code": "linkup_unavailable"}), 503
+    return redirect(url_for("linkup_front_door"))
+
+
+@app.post("/linkup/messages/<message_id>/read")
+@web_security.login_required(api=True)
+def linkup_read(message_id):
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    user = web_security.current_authenticated_user()
+    try:
+        if not product_store.mark_message_read(str(user["id"]), message_id):
+            return jsonify(error={"code": "message_not_found"}), 404
+    except (ValueError, product_store.ProductStoreUnavailable):
+        return jsonify(error={"code": "message_unavailable"}), 503
+    return redirect(url_for("linkup_front_door"))
+
+
+@app.post("/market/listings")
+@web_security.login_required(api=True)
+def market_listing_create():
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    user = web_security.current_authenticated_user()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(str(user["id"])):
+        return _rate_failure()
+    try:
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+        )
+        product_store.create_product(
+            str(user["id"]),
+            name=request.form.get("name"),
+            description=request.form.get("description"),
+            price=request.form.get("price"),
+        )
+    except ValueError as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except (
+        public_store.PublicStoreUnavailable,
+        product_store.ProductStoreUnavailable,
+    ):
+        return jsonify(error={"code": "market_unavailable"}), 503
+    return redirect(url_for("spot_capability_front_door", capability_slug="market"))
+
+
+@app.post("/sika/contributions")
+@web_security.login_required(api=True)
+def sika_contribution_request():
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    user = web_security.current_authenticated_user()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(str(user["id"])):
+        return _rate_failure()
+    try:
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+        )
+        workspaces.add_record(
+            str(user["id"]),
+            "sika",
+            title=request.form.get("title"),
+            body=request.form.get("body"),
+            status="draft",
+        )
+    except ValueError as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except (public_store.PublicStoreUnavailable, workspaces.WorkspaceUnavailable):
+        return jsonify(error={"code": "sika_unavailable"}), 503
+    return redirect(url_for("spot_capability_front_door", capability_slug="sika"))
 
 
 @app.route("/signal", methods=["POST"])
@@ -610,7 +878,39 @@ def room():
         return _rate_failure()
     except public_store.PublicStoreUnavailable:
         return _public_write_failure()
-    return redirect("/#teams")
+    return redirect("/world-cup#teams")
+
+
+@app.post("/postcode-rooms")
+def postcode_room():
+    """Post to a bounded public postcode room without crossing My World."""
+
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    identity_id = web_security.ensure_session_identity()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(identity_id):
+        return _rate_failure()
+    postcode = " ".join(_form_text("postcode", "", 16).upper().split())
+    if len(postcode) < 2 or not postcode.replace(" ", "").isalnum():
+        return jsonify(error={"code": "invalid_postcode_room"}), 400
+    item = {
+        "room": f"{postcode} Postcode Room",
+        "name": _form_text("name", "Visitor", 80),
+        "message": _form_text("message", "", 2000),
+    }
+    if not item["message"]:
+        return jsonify(error={"code": "message_required"}), 400
+    try:
+        if public_store.status()["configured"]:
+            public_store.add_room_message(identity_id, **item)
+        else:
+            _prepend_bounded(team_messages, item)
+    except ValueError:
+        return _rate_failure()
+    except public_store.PublicStoreUnavailable:
+        return _public_write_failure()
+    query = urlparse.urlencode({"postcode": postcode})
+    return redirect(f"/the-spot/postcode-rooms?{query}")
 
 @app.route("/flag", methods=["POST"])
 def flag():
@@ -631,7 +931,7 @@ def flag():
         return _rate_failure()
     except public_store.PublicStoreUnavailable:
         return _public_write_failure()
-    return redirect("/#teams")
+    return redirect("/world-cup#teams")
 
 @app.get("/my-world")
 @web_security.login_required()
@@ -642,7 +942,11 @@ def my_world():
     identity_id = str(user["id"])
     profile = {
         "nickname": str(user["name"]),
+        "postcode": "",
+        "borough": "",
+        "county": "",
         "country": "",
+        "continent": "",
     }
     try:
         if public_store.status()["configured"]:
@@ -660,6 +964,7 @@ def my_world():
                 "my_world.html",
                 auth_user=user,
                 profile=profile,
+                workspaces=workspaces.WORKSPACES,
                 private_store_unavailable=True,
             ),
             503,
@@ -671,6 +976,7 @@ def my_world():
             "my_world.html",
             auth_user=user,
             profile=profile,
+            workspaces=workspaces.WORKSPACES,
             private_store_unavailable=False,
         )
     )
@@ -697,7 +1003,11 @@ def myworld():
         return _rate_failure()
     item = {
         "nickname": _form_text("nickname", "OAP Visitor", 80),
+        "postcode": _form_text("postcode", "", 16).upper(),
+        "borough": _form_text("borough", "", 120),
+        "county": _form_text("county", "", 120),
         "country": _form_text("country", "", 80),
+        "continent": _form_text("continent", "", 80),
     }
     try:
         if public_store.status()["configured"]:
@@ -712,6 +1022,64 @@ def myworld():
     except public_store.PublicStoreUnavailable:
         return _public_write_failure()
     return redirect(url_for("my_world"))
+
+
+@app.get("/my-world/<workspace_id>")
+@web_security.login_required()
+def my_world_workspace(workspace_id):
+    workspace = workspaces.get(workspace_id)
+    if workspace is None:
+        return jsonify(error={"code": "workspace_not_found"}), 404
+    user = web_security.current_authenticated_user()
+    try:
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+        )
+        records = workspaces.list_records(str(user["id"]), workspace_id)
+    except (public_store.PublicStoreUnavailable, workspaces.WorkspaceUnavailable):
+        return jsonify(error={"code": "workspace_unavailable"}), 503
+    response = make_response(
+        render_template(
+            "workspace.html",
+            workspace=workspace,
+            records=records,
+        )
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@app.post("/my-world/<workspace_id>/records")
+@web_security.login_required(api=True)
+def my_world_workspace_record(workspace_id):
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    workspace = workspaces.get(workspace_id)
+    if workspace is None:
+        return jsonify(error={"code": "workspace_not_found"}), 404
+    user = web_security.current_authenticated_user()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(str(user["id"])):
+        return _rate_failure()
+    try:
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+        )
+        workspaces.add_record(
+            str(user["id"]),
+            workspace_id,
+            title=_form_text("title", "", 160),
+            body=_form_text("body", "", 5000),
+            status=_form_text("status", "active", 16),
+        )
+    except ValueError as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except (public_store.PublicStoreUnavailable, workspaces.WorkspaceUnavailable):
+        return jsonify(error={"code": "workspace_unavailable"}), 503
+    return redirect(url_for("my_world_workspace", workspace_id=workspace_id))
 
 
 def _readiness_snapshot():
@@ -750,6 +1118,24 @@ def _readiness_snapshot():
     }
 
 
+def _platform_health_snapshot():
+    """Return deploy health without conflating it with human/business gates."""
+
+    database = db_status()
+    auth = neon_auth.status()
+    checks = {
+        "database_reachable": bool(database.get("reachable")),
+        "required_schema": bool(database.get("initialized")),
+        "session_secret": SESSION_SECRET_CONFIGURED,
+        "auth_configuration": bool(auth.get("valid")),
+        "private_auth_gate": os.environ.get(
+            "OAP_AUTH_REQUIRED", "false"
+        ).lower()
+        == "true",
+    }
+    return {"ready": all(checks.values()), "checks": checks}
+
+
 @app.get("/livez")
 def livez():
     response = jsonify(status="alive")
@@ -761,45 +1147,161 @@ def livez():
 def healthz():
     """Return only the coarse health state needed by the platform."""
 
-    readiness = _readiness_snapshot()
-    ready = all(readiness["checks"].values())
-    response = jsonify(status="healthy" if ready else "unavailable")
+    platform = _platform_health_snapshot()
+    response = jsonify(status="healthy" if platform["ready"] else "unavailable")
     response.headers["Cache-Control"] = "no-store"
     return response
 
 
-INFRASTRUCTURE_SECTIONS = [
-    {"slug":"command","icon":"🏗️","name":"Infrastructure Command","status":"LIVE","features":["Overall status","Live services","System alerts","Infrastructure activity"]},
-    {"slug":"database","icon":"🗄️","name":"Database","status":"LIVE","features":["Neon Postgres","SQLite local databases","Schema and migrations","Backups and recovery"]},
-    {"slug":"deployment","icon":"🚀","name":"Hosting & Deployment","status":"LIVE","features":["Render services","GitHub deployments","Build status","Deployment history"]},
-    {"slug":"network","icon":"🌐","name":"Network","status":"LIVE","features":["Service ports","API Gateway","NEXUS routing","DNS and connectivity"]},
-    {"slug":"storage","icon":"💾","name":"Storage","status":"LIVE","features":["User files","Media storage","HRM memory","Backup storage"]},
-    {"slug":"security","icon":"🛡️","name":"Security","status":"LIVE","features":["Identity checks","Permissions","Sessions and devices","Guardian audit"]},
-    {"slug":"performance","icon":"📈","name":"Performance","status":"LIVE","features":["Clarity","Performance","Stability","Pace"]},
-    {"slug":"services","icon":"🟢","name":"Service Health","status":"LIVE","features":["OAP World","My World","Link Up","HRM and SIKA"]},
-    {"slug":"local","icon":"📱","name":"Local Infrastructure","status":"READY","features":["Termux","Flask services","Ollama","Offline local-first mode"]},
-    {"slug":"cloud","icon":"☁️","name":"Cloud Infrastructure","status":"LIVE","features":["Neon Postgres","Render","GitHub","Datadog ready"]},
-    {"slug":"monitoring","icon":"📊","name":"Logs & Monitoring","status":"LIVE","features":["Live logs","Errors","Route health","Agent and HRM activity"]},
-    {"slug":"recovery","icon":"♻️","name":"Recovery & Maintenance","status":"READY","features":["Restore points","Database branches","Rollback","Incident history"]},
-]
+INFRASTRUCTURE_SECTION_DEFINITIONS = (
+    {"slug":"command","icon":"🏗️","name":"Infrastructure Command","features":["Overall status","Live services","System alerts","Infrastructure activity"]},
+    {"slug":"database","icon":"🗄️","name":"Database","features":["Neon Postgres","Schema and migrations","HRM memory","Durable community data"]},
+    {"slug":"deployment","icon":"🚀","name":"Hosting & Deployment","features":["Render service","GitHub revision","Build identity","Production mode"]},
+    {"slug":"network","icon":"🌐","name":"Network","features":["Service port","API Gateway","NEXUS routing","Location providers"]},
+    {"slug":"storage","icon":"💾","name":"Storage","features":["Owner-scoped workspaces","Conversation memory","Market records","SIKA ledger"]},
+    {"slug":"security","icon":"🛡️","name":"Security","features":["Neon identity","Permissions","Human Authority","Guardian audit"]},
+    {"slug":"performance","icon":"📈","name":"Performance","features":["Structured request timing","Bounded I/O","Rate controls","Telemetry delivery"]},
+    {"slug":"services","icon":"🟢","name":"Service Health","features":["OAP World","My World","LinkUp","Market and SIKA"]},
+    {"slug":"local","icon":"📱","name":"Local Infrastructure","features":["Termux","Flask services","Ollama","Offline local-first mode"]},
+    {"slug":"cloud","icon":"☁️","name":"Cloud Infrastructure","features":["Neon Postgres","Render","GitHub revision","Datadog"]},
+    {"slug":"monitoring","icon":"📊","name":"Logs & Monitoring","features":["Request logs","Errors","Route health","Datadog metrics"]},
+    {"slug":"recovery","icon":"♻️","name":"Recovery & Maintenance","features":["Restore checkpoint","Database branches","Rollback","Incident history"]},
+)
+
+
+def _section_state(checks):
+    values = tuple(bool(value) for value in checks.values())
+    if values and all(values):
+        return "LIVE"
+    if any(values):
+        return "DEGRADED"
+    return "WAITING"
+
+
+def _infrastructure_sections():
+    readiness = _readiness_snapshot()
+    authority_probe = authority.status()
+    approval_probe = approval_service.status()
+    judgement_probe = judgement.status()
+    product_probe = product_store.status()
+    workspace_probe = workspaces.status()
+    location_probe = location_intelligence.status()
+    datadog_probe = telemetry.status()
+    render_live = os.environ.get("RENDER", "").lower() == "true"
+    revision_present = bool(
+        os.environ.get("RENDER_GIT_COMMIT")
+        or os.environ.get("OAP_ENV_REVISION")
+    )
+    production_mode = os.environ.get("OAP_LOCAL_MODE", "false").lower() != "true"
+    product_tables_ready = bool(product_probe.get("ready"))
+    probe_sets = {
+        "command": {
+            "database": readiness["checks"]["database_initialized"],
+            "identity": authority_probe["active_level_zero"],
+            "judgement": judgement_probe["schema_ready"],
+            "services": product_tables_ready,
+        },
+        "database": {
+            "reachable": readiness["database"].get("reachable", False),
+            "migration": readiness["checks"]["database_initialized"],
+            "community": readiness["checks"]["durable_public_store"],
+            "judgement_schema": judgement_probe["schema_ready"],
+        },
+        "deployment": {
+            "render": render_live,
+            "revision": revision_present,
+            "production": production_mode,
+        },
+        "network": {
+            "nexus": readiness["smi"]["checks"].get("nexus", False),
+            "chat_route": readiness["smi"]["checks"].get("chat_route", False),
+            "location_providers": location_probe["ready"],
+        },
+        "storage": {
+            "workspaces": workspace_probe["ready"],
+            "conversation_memory": readiness["smi"]["checks"].get("conversation_memory", False),
+            "product_tables": product_tables_ready,
+        },
+        "security": {
+            "auth": readiness["checks"]["neon_auth_configured"],
+            "private_gate": readiness["checks"]["private_auth_required"],
+            "human_authority": authority_probe["ready"],
+            "approval_receipt": approval_probe["ready"],
+            "audit": readiness["smi"]["checks"].get("audit", False),
+        },
+        "performance": {
+            "request_logs": readiness["checks"]["structured_request_logs"],
+            "rate_controls": readiness["checks"]["bounded_rate_controls"],
+            "bounded_provider_io": True,
+            "telemetry_delivery": datadog_probe["delivery_verified"],
+        },
+        "services": {
+            "world": True,
+            "my_world": workspace_probe["ready"],
+            "linkup_market_sika": product_tables_ready,
+            "smi": readiness["checks"]["smi_3x7_ready"],
+        },
+        "local": {
+            "flask": True,
+            "local_first_supported": True,
+            "mode_declared": os.environ.get("OAP_LOCAL_MODE", "").lower()
+            in {"true", "false"},
+        },
+        "cloud": {
+            "neon": readiness["database"].get("reachable", False),
+            "render": render_live,
+            "revision": revision_present,
+            "datadog": datadog_probe["ready"],
+        },
+        "monitoring": {
+            "structured_logs": readiness["checks"]["structured_request_logs"],
+            "request_ids": True,
+            "datadog": datadog_probe["ready"],
+        },
+        "recovery": {
+            "checkpoint": bool(os.environ.get("OAP_RECOVERY_CHECKPOINT", "").strip()),
+            "rollback_revision": revision_present,
+        },
+    }
+    sections = []
+    for definition in INFRASTRUCTURE_SECTION_DEFINITIONS:
+        checks = probe_sets[definition["slug"]]
+        state = _section_state(checks)
+        if state == "LIVE" and definition["slug"] in {"local", "recovery"}:
+            state = "READY"
+        sections.append(
+            {
+                **definition,
+                "status": state,
+                "checks": checks,
+                "passed": sum(bool(value) for value in checks.values()),
+                "total": len(checks),
+            }
+        )
+    return sections
 
 
 @app.get("/infrastructure")
 @web_security.login_required()
 def infrastructure_dashboard():
+    sections = _infrastructure_sections()
     return render_template("infrastructure.html", sections=[
         dict(section, href=url_for("infrastructure_section", section=section["slug"]))
-        for section in INFRASTRUCTURE_SECTIONS
-    ])
+        for section in sections
+    ], green=sum(item["status"] in {"LIVE", "READY"} for item in sections), total=len(sections))
 
 
 @app.get("/infrastructure/<section>")
 @web_security.login_required(api=True)
 def infrastructure_section(section):
-    selected = next((item for item in INFRASTRUCTURE_SECTIONS if item["slug"] == section), None)
+    selected = next((item for item in _infrastructure_sections() if item["slug"] == section), None)
     if selected is None:
         return jsonify(status="not_found", section=section), 404
-    checks = {"route": True, "human_authority_final": True}
+    checks = {
+        **selected["checks"],
+        "route": True,
+        "human_authority_final": True,
+    }
     if section == "database":
         database = db_status()
         community = public_store.status()
@@ -834,12 +1336,15 @@ def infrastructure_section(section):
 @web_security.login_required(api=True)
 def infrastructure_status():
     readiness = _readiness_snapshot()
-    ready = all(readiness["checks"].values())
+    sections = _infrastructure_sections()
+    ready = all(item["status"] in {"LIVE", "READY"} for item in sections)
     return jsonify(
         status="live" if ready else "degraded",
-        count=len(INFRASTRUCTURE_SECTIONS),
-        live=sum(item["status"] == "LIVE" for item in INFRASTRUCTURE_SECTIONS),
-        ready=sum(item["status"] == "READY" for item in INFRASTRUCTURE_SECTIONS),
+        count=len(sections),
+        live=sum(item["status"] == "LIVE" for item in sections),
+        ready=sum(item["status"] == "READY" for item in sections),
+        degraded=sum(item["status"] == "DEGRADED" for item in sections),
+        waiting=sum(item["status"] == "WAITING" for item in sections),
         checks=readiness["checks"],
         database={
             "provider": "Neon Postgres",
@@ -855,7 +1360,7 @@ def infrastructure_status():
                 or os.environ.get("OAP_ENV_REVISION")
             ),
         },
-        sections=INFRASTRUCTURE_SECTIONS,
+        sections=sections,
         governance={"human_authority_final":True},
     )
 

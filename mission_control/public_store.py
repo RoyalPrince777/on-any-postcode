@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from . import postgres_db
+from . import authority, postgres_db
 
 PUBLIC_SIGNAL_SCOPE = "oap_signal"
 PUBLIC_ROOM_SCOPE = "oap_team_room"
@@ -99,17 +99,41 @@ def add_flag(identity_id: str, *, team: str) -> None:
     _insert_post(identity_id, scope=PUBLIC_FLAG_SCOPE, body=team)
 
 
-def update_profile(identity_id: str, *, nickname: str, country: str) -> None:
+def update_profile(
+    identity_id: str,
+    *,
+    nickname: str,
+    postcode: str = "",
+    borough: str = "",
+    county: str = "",
+    country: str = "",
+    continent: str = "",
+) -> None:
     try:
         with postgres_db.connect() as connection:
             connection.execute(
-                """INSERT INTO users(id,username,display_name,country,status)
-                   VALUES (%s,%s,%s,%s,'active')
+                """INSERT INTO users(
+                       id,username,display_name,postcode,borough,county,
+                       country,continent,status
+                   ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'active')
                    ON CONFLICT (id) DO UPDATE SET
                      display_name=EXCLUDED.display_name,
+                     postcode=EXCLUDED.postcode,
+                     borough=EXCLUDED.borough,
+                     county=EXCLUDED.county,
                      country=EXCLUDED.country,
+                     continent=EXCLUDED.continent,
                      updated_at=CURRENT_TIMESTAMP""",
-                (identity_id, _username(identity_id), nickname, country),
+                (
+                    identity_id,
+                    _username(identity_id),
+                    nickname,
+                    postcode,
+                    borough,
+                    county,
+                    country,
+                    continent,
+                ),
             )
             connection.commit()
     except Exception as exc:
@@ -117,7 +141,11 @@ def update_profile(identity_id: str, *, nickname: str, country: str) -> None:
 
 
 def ensure_authenticated_user(
-    identity_id: str, *, email: str, display_name: str
+    identity_id: str,
+    *,
+    email: str,
+    display_name: str,
+    email_verified: bool = False,
 ) -> None:
     """Link a verified Neon Auth UUID to its established OAP user record."""
 
@@ -139,6 +167,18 @@ def ensure_authenticated_user(
                     display_name,
                 ),
             )
+            authority.sync_authenticated_identity(
+                connection,
+                identity_id=identity_id,
+                email=email,
+                display_name=display_name,
+                email_verified=email_verified,
+            )
+            connection.execute(
+                """INSERT INTO wallets(user_id,balance,currency_code)
+                   VALUES (%s,0,'SIKA') ON CONFLICT (user_id) DO NOTHING""",
+                (identity_id,),
+            )
             connection.commit()
     except Exception as exc:
         raise PublicStoreUnavailable("authenticated_user_sync_failed") from exc
@@ -150,7 +190,8 @@ def get_profile(identity_id: str) -> dict[str, str] | None:
     try:
         with postgres_db.connect(readonly=True) as connection:
             row = connection.execute(
-                """SELECT display_name,country FROM users
+                """SELECT display_name,postcode,borough,county,country,continent
+                   FROM users
                    WHERE id=%s AND status='active' LIMIT 1""",
                 (identity_id,),
             ).fetchone()
@@ -158,7 +199,14 @@ def get_profile(identity_id: str) -> dict[str, str] | None:
         raise PublicStoreUnavailable("private_profile_read_failed") from exc
     if row is None:
         return None
-    return {"nickname": str(row[0] or ""), "country": str(row[1] or "")}
+    return {
+        "nickname": str(row[0] or ""),
+        "postcode": str(row[1] or ""),
+        "borough": str(row[2] or ""),
+        "county": str(row[3] or ""),
+        "country": str(row[4] or ""),
+        "continent": str(row[5] or ""),
+    }
 
 
 def _decode_object(raw: object) -> dict[str, str] | None:
@@ -244,7 +292,11 @@ def status() -> dict[str, Any]:
                 "id",
                 "username",
                 "display_name",
+                "postcode",
+                "borough",
+                "county",
                 "country",
+                "continent",
                 "status",
                 "updated_at",
             } <= columns["users"] and {

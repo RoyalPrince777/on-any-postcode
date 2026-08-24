@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMI Judgement · OAP</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">SMI / Judgement / Human decision</p>
+      <h1>Judgement 5 + 1</h1>
+      <p>Five explainable automated sections prepare evidence. The sixth section belongs only to Human Authority.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('my_world') }}">My World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="judgement-readiness-title">
+      <p class="mc-eyebrow">Live readiness</p>
+      <h2 id="judgement-readiness-title">{{ judgement_status.automated_sections }}/5 automated · sixth human-only</h2>
+      <div class="mc-status-grid">
+        <article class="mc-status-card">
+          <strong>Schema</strong>
+          <span>{{ 'Ready' if judgement_status.schema_ready else 'Waiting' }}</span>
+        </article>
+        <article class="mc-status-card">
+          <strong>Authority</strong>
+          <span>{{ 'Level 0 verified' if authority.is_human_authority else 'Member view' }}</span>
+        </article>
+        <article class="mc-status-card">
+          <strong>Signed receipts</strong>
+          <span>{{ approval_status.receipts }} recorded</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="judgement-queue-title">
+      <p class="mc-eyebrow">Decision ledger</p>
+      <h2 id="judgement-queue-title">Recommendations awaiting or carrying a decision</h2>
+      {% if reviews %}
+      <div class="mc-agent-grid">
+        {% for review in reviews %}
+        <article class="mc-agent-card">
+          <p class="mc-eyebrow">{{ review.completed_sections }}/{{ review.total_sections }} complete · {{ review.output_state }}</p>
+          <h3>{{ review.summary }}</h3>
+          <p>Evidence: {{ review.provenance_quality }} · Confidence {{ "%.0f"|format(review.confidence * 100) }}%</p>
+          <p>Reversibility: {{ review.reversibility|replace('_', ' ')|title }} · Proportionality: {{ review.proportionality|replace('_', ' ')|title }}</p>
+          <p>Constitution: {{ 'Consistent' if review.constitution_consistent else 'Review required' }}</p>
+          {% if review.human_decision %}
+          <p><strong>Human decision: {{ review.human_decision }}</strong></p>
+          {% elif authority.is_human_authority %}
+          <form method="post" action="{{ url_for('mission_control.judgement_decision', request_id=review.request_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+            <button class="mc-primary" type="submit" name="decision" value="APPROVED">Approve recommendation</button>
+            <button class="mc-secondary" type="submit" name="decision" value="REJECTED">Reject recommendation</button>
+          </form>
+          {% else %}
+          <p>Awaiting level-zero Human Authority.</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No governed recommendation has reached this decision ledger yet.</p>
+      {% endif %}
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Approval records a decision only</strong>
+      <span>SMI cannot execute, consume the receipt, or bypass the Living Kernel.</span>
+    </aside>
+  </main>
+</body>
+</html>

@@ -113,6 +113,7 @@ def review(
     war_room = WarRoomEngine().review(request, analysis, safety, output_state)
     return {
         "passed": safety.passed,
+        "high_impact": high_impact,
         "task_type": task_type,
         "output_state": output_state.value,
         "signal_level": safety.signal_level.value,
@@ -121,11 +122,13 @@ def review(
         "brain_regions": [finding.organ_id for finding in findings] + [organs.corpus_callosum.organ_id],
         "brain_region_count": len(findings) + 1,
         "analysis_summary": analysis.summary,
+        "analysis_confidence": analysis.confidence,
         "safety_codes": [finding.code for finding in safety.findings],
         "guardian_reason": "; ".join(finding.message for finding in safety.findings)[:500],
         "war_room": {
             "triggered": war_room.triggered,
             "recommendation": war_room.recommendation,
+            "scenarios": list(war_room.scenarios),
         },
         "processing_states": [
             "NEXUS_RECEIVED",

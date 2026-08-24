@@ -7,27 +7,34 @@ def test_home_keeps_public_sections_and_draws_explicit_boundary(client):
     assert response.status_code == 200
     page = response.get_data(as_text=True)
     assert 'id="signal"' in page
-    assert 'id="live"' in page
-    assert 'id="teams"' in page
+    assert 'id="location"' in page
     assert 'id="myworld"' not in page
     assert 'id="sovereign"' not in page
     assert "PUBLIC" in page
     assert "PRIVATE" in page
     assert 'href="/my-world"' in page
     assert 'href="/mission"' not in page
-    assert "Your private OAP space" in page
+    assert "Your location hierarchy" in page
     assert "NEON" not in page
     assert "SMI" not in page
-    assert "🇬🇭 Ghana" in page
+    assert 'href="/world-cup"' in page
+
+    sport = client.get("/world-cup").get_data(as_text=True)
+    assert 'id="live"' in sport
+    assert 'id="teams"' in sport
+    assert "🇬🇭 Ghana" in sport
 
 
-def test_home_keeps_only_public_post_forms(client):
-    page = client.get("/").get_data(as_text=True)
+def test_public_home_and_sport_keep_only_public_post_forms(client):
+    home = client.get("/").get_data(as_text=True)
+    sport = client.get("/world-cup").get_data(as_text=True)
 
-    for route in ("/signal", "/room", "/flag"):
-        assert f'method="post" action="{route}"' in page
-    assert 'method="post" action="/myworld"' not in page
-    assert page.count('name="csrf_token"') == 97
+    assert 'method="post" action="/signal"' in home
+    for route in ("/room", "/flag"):
+        assert f'method="post" action="{route}"' in sport
+    assert 'method="post" action="/myworld"' not in home + sport
+    assert home.count('name="csrf_token"') == 1
+    assert sport.count('name="csrf_token"') == 96
 
 
 def test_gateway_has_three_validated_mode_links(client):

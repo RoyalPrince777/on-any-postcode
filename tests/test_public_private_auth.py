@@ -161,8 +161,18 @@ def test_my_world_update_uses_verified_uuid_owner(client, csrf, monkeypatch):
     monkeypatch.setattr(public_store, "status", lambda: {"configured": True})
     monkeypatch.setattr(public_store, "ensure_authenticated_user", lambda *a, **k: None)
 
-    def fake_update(identity_id, *, nickname, country):
-        observed["update"] = (identity_id, nickname, country)
+    def fake_update(
+        identity_id, *, nickname, postcode, borough, county, country, continent
+    ):
+        observed["update"] = {
+            "identity_id": identity_id,
+            "nickname": nickname,
+            "postcode": postcode,
+            "borough": borough,
+            "county": county,
+            "country": country,
+            "continent": continent,
+        }
 
     monkeypatch.setattr(public_store, "update_profile", fake_update)
 
@@ -173,7 +183,15 @@ def test_my_world_update_uses_verified_uuid_owner(client, csrf, monkeypatch):
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/my-world")
-    assert observed["update"] == (AUTH_ID, "Owner", "Ghana")
+    assert observed["update"] == {
+        "identity_id": AUTH_ID,
+        "nickname": "Owner",
+        "postcode": "",
+        "borough": "",
+        "county": "",
+        "country": "Ghana",
+        "continent": "",
+    }
 
 
 def test_anonymous_profile_write_cannot_cross_private_boundary(anonymous_client):

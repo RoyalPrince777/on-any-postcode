@@ -32,9 +32,51 @@
         {% endfor %}
       </div>
     </section>
+    {% if auth_user %}
+    <section class="mc-panel" aria-labelledby="linkup-inbox-title">
+      <p class="mc-eyebrow">Private verified session</p>
+      <h2 id="linkup-inbox-title">Inbox</h2>
+      {% if private_unavailable %}
+      <p role="alert">Your private inbox is temporarily unavailable.</p>
+      {% elif dashboard %}
+      {% if dashboard.directory %}
+      <form method="post" action="{{ url_for('linkup_send') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="linkup-recipient">Person</label>
+        <select id="linkup-recipient" name="recipient_id" required>
+          <option value="">Choose a verified member</option>
+          {% for person in dashboard.directory %}
+          <option value="{{ person.identity_id }}">{{ person.display_name }}{% if person.postcode %} · {{ person.postcode }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <label for="linkup-body">Message</label>
+        <textarea id="linkup-body" name="body" maxlength="4000" required></textarea>
+        <button class="mc-primary" type="submit">Send privately</button>
+      </form>
+      {% else %}
+      <p>No other verified members are available yet.</p>
+      {% endif %}
+      <div class="mc-agent-grid">
+        {% for message in dashboard.messages %}
+        <article class="mc-agent-card">
+          <p class="mc-eyebrow">{{ message.direction|upper }} · {{ message.created_at }}</p>
+          <h3>{{ message.sender }} → {{ message.recipient }}</h3>
+          <p>{{ message.body }}</p>
+          {% if message.direction == 'received' and not message.read %}
+          <form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+            <button class="mc-secondary" type="submit">Mark read</button>
+          </form>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
     <aside class="mc-authority" aria-label="LinkUp privacy">
       <strong>Private by default</strong>
-      <span><a href="{{ url_for('auth_page') }}">Sign in to open LinkUp.</a></span>
+      <span>{% if auth_user %}Messages are shown only to their sender and recipient.{% else %}<a href="{{ url_for('auth_page', next=request.path) }}">Sign in to open LinkUp.</a>{% endif %}</span>
     </aside>
   </main>
 </body>

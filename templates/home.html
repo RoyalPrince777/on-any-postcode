@@ -2,184 +2,77 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>OAP World</title>
+<title>On Any Postcode</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
 body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif}
 nav{position:sticky;top:0;background:#092414;padding:14px;white-space:nowrap;overflow-x:auto;z-index:10}
 nav a{color:white;text-decoration:none;font-weight:bold;margin-right:14px}
-section{padding:22px;border-bottom:1px solid #1d4a2d}
-.hero{background:linear-gradient(135deg,#092414,#14512b)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}
-.card{background:#10281a;border:1px solid #245f38;border-radius:16px;padding:15px;margin:10px 0}
+section{padding:28px max(20px,6vw);border-bottom:1px solid #1d4a2d}
+.hero{min-height:52vh;display:grid;align-content:center;background:radial-gradient(circle at 85% 15%,#24733d 0,transparent 35%),linear-gradient(135deg,#092414,#06120b)}
+.eyebrow{color:#7ef0a3;font-weight:800;letter-spacing:.12em}
+.hero h1{font-size:clamp(3rem,10vw,7rem);line-height:.9;margin:.25em 0}
+.hero p{font-size:clamp(1.1rem,2.4vw,1.6rem);max-width:720px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card{background:#10281a;border:1px solid #245f38;border-radius:16px;padding:18px}
+.level{border-top:5px solid #27c267}
 .badge{background:#27c267;color:#021;padding:5px 9px;border-radius:999px;font-weight:bold;display:inline-block}
+.button-link{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:bold;padding:11px 15px;border-radius:9px;margin:7px 7px 7px 0}
+.button-link--private{background:#8ed7ff;color:#04131c}
+.zone--private{border-color:#8ed7ff;background:#0c2430}
 input,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin:6px 0;border-radius:9px;border:0}
 button{background:#27c267;color:#021;font-weight:bold}
-.flag{font-size:42px}
 .small{opacity:.82}
-table{width:100%;border-collapse:collapse;background:#10281a;margin-bottom:15px}
-td,th{padding:10px;border-bottom:1px solid #245f38;text-align:left}
-.team{border-left:5px solid #27c267}
-.zone{border:2px solid #27c267}
-.zone--private{border-color:#8ed7ff;background:#0c2430}
-.button-link{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:bold;padding:11px 15px;border-radius:9px;margin:6px 6px 6px 0}
-.button-link--private{background:#8ed7ff;color:#04131c}
 </style>
 </head>
 <body>
-
 <nav aria-label="Primary navigation">
-<a href="#world">🌍 OAP World</a>
+<a href="#location">🌍 World</a>
 <a href="#signal">📡 Signal</a>
-<a href="#live">🔴 Live</a>
-<a href="#teams">🌍 Teams</a>
 <a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
-<a href="{{ url_for('linkup_front_door') }}">💬 Link Up</a>
+<a href="{{ url_for('linkup_front_door') }}">💬 LinkUp</a>
 <a href="{{ url_for('my_world') }}">🔒 My World</a>
+<a href="{{ url_for('world_cup') }}">⚽ World Cup</a>
 </nav>
-
 <main>
-<section class="hero" id="world">
-<h1>🌍 OAP World</h1>
-<h2>One World. One Front Door.</h2>
-<p>Born Local. Built Global. Earth is our turf.</p>
-<div class="grid" aria-label="Public and private zones">
-<article class="card zone">
-<span class="badge">PUBLIC</span>
-<h2>OAP World</h2>
-<p>Local news, teams, events, stories and places to connect.</p>
-<a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a>
-<a class="button-link" href="{{ url_for('linkup_front_door') }}">Open Link Up</a>
-</article>
-<article class="card zone zone--private">
-<span class="badge">PRIVATE</span>
-<h2>My World</h2>
-<p>Your private OAP space. Sign in to continue.</p>
-<a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a>
-</article>
+<section class="hero">
+<p class="eyebrow">BORN LOCAL · BUILT GLOBAL</p>
+<h1>ON ANY<br>POSTCODE</h1>
+<p>One human world, entered through the place you live. Start at your postcode and move through borough, county, country and continent.</p>
+<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></div>
+</section>
+<section id="location" aria-labelledby="location-title">
+<p class="eyebrow">THE WORLD, FROM LOCAL OUTWARD</p>
+<h2 id="location-title">Your location hierarchy</h2>
+<div class="grid">
+{% for level in location_levels %}
+<article class="card level"><span class="badge">{{ level.order }}</span><h3>{{ level.icon }} {{ level.name }}</h3><p>{{ level.purpose }}</p></article>
+{% endfor %}
 </div>
 </section>
-
-<section id="signal">
-<h2>📡 OAP Signal</h2>
-<div class="grid">
-<div class="card"><span class="badge">🔥 What's Lit</span><h3>Clean OAP TV is live</h3><p>No Watch Parties. No Predictions. No extra boards.</p></div>
-<div class="card"><span class="badge">🌍 Teams</span><h3>Everything now lives inside Teams</h3><p>Flags, meaning, rooms, fixtures, results, replay, anthem, cards and team book.</p></div>
-<div class="card"><span class="badge">🇭🇹 Team Check</span><h3>Haiti included</h3><p>Haiti is in Group C.</p></div>
+<section aria-labelledby="doors-title">
+<h2 id="doors-title">One front door, clear boundaries</h2>
+<div class="grid" aria-label="Public and private zones">
+<article class="card"><span class="badge">PUBLIC</span><h3>The Spot</h3><p>Local information, culture, services and community discovery for any postcode.</p><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Open The Spot</a></article>
+<article class="card"><span class="badge">PUBLIC</span><h3>LinkUp</h3><p>Find community connections publicly. Private conversations require your account.</p><a class="button-link" href="{{ url_for('linkup_front_door') }}">Open LinkUp</a></article>
+<article class="card zone--private"><span class="badge">PRIVATE</span><h3>My World</h3><p>Your profile, messages, records and twelve private workspaces stay owner-scoped.</p><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></article>
 </div>
-
-	<form method="post" action="/signal">
-	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-	<input name="name" placeholder="Nickname" aria-label="Nickname">
-<textarea name="body" placeholder="Drop OAP Signal..." aria-label="Signal message"></textarea>
+</section>
+<section id="signal" aria-labelledby="signal-title">
+<p class="eyebrow">COMMUNITY PULSE</p>
+<h2 id="signal-title">OAP Signal</h2>
+<form method="post" action="/signal">
+<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+<label for="signal-name">Nickname</label><input id="signal-name" name="name" maxlength="80" placeholder="Nickname">
+<label for="signal-body">Signal</label><textarea id="signal-body" name="body" maxlength="500" placeholder="Share a local signal"></textarea>
 <button type="submit">Post Signal</button>
 </form>
-
-{% for p in signal_posts %}
-<div class="card"><b>{{ p.name }}</b><p>{{ p.body }}</p></div>
-{% endfor %}
-</section>
-
-<section id="live">
-<h2>🔴 Live / Next</h2>
 <div class="grid">
-{% for state,date,group,home,away,score in matches if state != "FT" %}
-<div class="card">
-<b>{{ state }}</b> | {{ date }} | Group {{ group }}
-<h3>{{ home }} 🆚 {{ away }}</h3>
-<p><b>{{ score }}</b></p>
-<p class="small">Tap the team below to enter its match room.</p>
-</div>
-{% endfor %}
+{% for p in signal_posts %}<article class="card"><b>{{ p.name }}</b><p>{{ p.body }}</p></article>{% else %}<article class="card"><p class="small">No public signals yet.</p></article>{% endfor %}
 </div>
 </section>
-
-<section id="teams">
-<h2>🌍 Teams</h2>
-<p class="small">Every nation has a home. Everything lives inside the team.</p>
-
-<div class="grid">
-{% for group,flag,name,nick,meaning in teams %}
-<div class="card team" id="{{ name|replace(' ','-') }}">
-<div class="flag">{{ flag }}</div>
-<h2>{{ name }}</h2>
-<p><b>{{ nick }}</b> | Group {{ group }}</p>
-
-<h3>🏳️ Throw Your Flag Up</h3>
-<p>Support: <b>{{ flag_counts.get(name,0) }}</b></p>
-	<form method="post" action="/flag">
-	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-	<input type="hidden" name="team" value="{{ name }}">
-<button type="submit">Throw {{ flag }} Up</button>
-</form>
-
-<h3>🌍 Flag Meaning</h3>
-<p>{{ meaning }}</p>
-
-<h3>⚽ Team Match Room</h3>
-	<form method="post" action="/room">
-	<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-	<input type="hidden" name="room" value="{{ name }} Team Room">
-<input name="name" placeholder="Nickname" aria-label="Nickname for {{ name }} room">
-<input name="message" placeholder="Message for {{ name }}" aria-label="Message for {{ name }}">
-<button type="submit">Post in {{ name }} Room</button>
-</form>
-
-<h3>📅 Fixtures / Results</h3>
-{% for state,date,mgroup,home,away,score in matches if name in home or name in away %}
-<div class="card">
-<b>{{ state }}</b> | {{ date }} | Group {{ mgroup }}<br>
-{{ home }} 🆚 {{ away }}<br>
-<b>{{ score }}</b>
-</div>
-{% endfor %}
-
-<h3>📜 Replay</h3>
-<p>Key moments and Player of the Match added after verification.</p>
-
-<h3>🎶 Anthem</h3>
-<p>Manual play only. Local owned/licensed files only. No autoplay.</p>
-<button type="button">▶️ {{ name }} Anthem Placeholder</button>
-
-<h3>🃏 Digital Cards</h3>
-<p>Team Card · Hero Card · Legend Card · Icon Card</p>
-
-<h3>📖 Team Book</h3>
-<p>□ Team Card · □ Hero Card · □ Legend Card · □ Icon Card</p>
-</div>
-{% endfor %}
-</div>
-</section>
-
-<section id="tables">
-<h2>📊 Tables</h2>
-{% for g in "ABCDEFGHIJKL" %}
-<h3>Group {{ g }}</h3>
-<table>
-<thead><tr><th scope="col">Team</th><th scope="col">PTS</th></tr></thead>
-<tbody>
-{% for group,flag,name,nick,meaning in teams if group == g %}
-<tr><td>{{ flag }} {{ name }}</td><td>0</td></tr>
-{% endfor %}
-</tbody>
-</table>
-{% endfor %}
-</section>
-
-<section aria-labelledby="latest-team-messages-title">
-<h2 id="latest-team-messages-title">💬 Latest Team Room Messages</h2>
-{% for m in team_messages %}
-<div class="card"><b>{{ m.room }}</b><br>{{ m.name }}: {{ m.message }}</div>
-{% endfor %}
-</section>
-
-<section id="privacy-boundary" aria-labelledby="privacy-boundary-title">
-<h2 id="privacy-boundary-title">🔐 Public and private stay separate</h2>
-<p>OAP World is open to everyone. My World is private to you.</p>
-<a class="button-link button-link--private" href="{{ url_for('auth_page') }}">Sign in or create account</a>
-</section>
+<section aria-labelledby="culture-title"><h2 id="culture-title">Culture and sport remain part of the world</h2><p>Football has its own home; it no longer defines the whole product.</p><a class="button-link" href="{{ url_for('world_cup') }}">Open World Cup</a></section>
 </main>
-
 </body>
 </html>

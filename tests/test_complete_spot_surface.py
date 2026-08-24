@@ -9,11 +9,11 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 16,
+        "capabilities": 17,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 16
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 17
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
@@ -48,6 +48,14 @@ def test_spot_dashboard_lists_every_capability(client):
     assert "Everything in The Spot" in page
     for capability in products.PUBLIC_SPOT_CAPABILITIES:
         assert escape(capability["name"]) in page
+
+
+def test_signal_and_postcode_room_capabilities_have_live_public_forms(client):
+    signal = client.get("/the-spot/signal").get_data(as_text=True)
+    rooms = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
+
+    assert 'method="post" action="/signal"' in signal
+    assert 'method="post" action="/postcode-rooms"' in rooms
 
 
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():

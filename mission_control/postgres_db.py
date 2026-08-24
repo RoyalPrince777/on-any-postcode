@@ -17,9 +17,11 @@ REQUIRED_TABLES = frozenset({
     "oap_identity_roles", "oap_permissions", "oap_role_permissions",
     "oap_guardian_reviews", "audit_events", "smi_memory_records",
     "smi_approval_receipts", "smi_conversations", "smi_messages",
-    "smi_provider_assignments", "users", "posts",
+    "smi_provider_assignments", "smi_judgement_reviews",
+    "oap_workspace_records", "users", "posts", "messages", "products",
+    "wallets", "transactions",
 })
-MIGRATION_VERSION = "0002_smi_chat_production"
+MIGRATION_VERSION = "0003_product_governance"
 MIGRATION_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_schema_migrations (
         version TEXT PRIMARY KEY, checksum TEXT NOT NULL,
@@ -48,7 +50,9 @@ MIGRATION_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_guardian_reviews (
         review_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         request_id UUID NOT NULL,
-        identity_id UUID NOT NULL,
+        identity_id UUID NOT NULL
+            CONSTRAINT oap_guardian_reviews_identity_id_fkey
+            REFERENCES oap_identities(identity_id),
         outcome TEXT NOT NULL CHECK (outcome IN ('PASSED','REVIEW_REQUIRED','BLOCKED')),
         reason TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
@@ -80,7 +84,54 @@ MIGRATION_STATEMENTS = (
         decision TEXT NOT NULL CHECK (decision IN ('APPROVED','REJECTED')),
         issued_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMPTZ NOT NULL, action_digest TEXT NOT NULL,
-        consumed_at TIMESTAMPTZ)""",
+        consumed_at TIMESTAMPTZ,
+        authority_level SMALLINT NOT NULL,
+        nonce TEXT NOT NULL, signature TEXT NOT NULL)""",
+    "ALTER TABLE smi_approval_receipts ADD COLUMN IF NOT EXISTS authority_level SMALLINT",
+    "ALTER TABLE smi_approval_receipts ADD COLUMN IF NOT EXISTS nonce TEXT",
+    "ALTER TABLE smi_approval_receipts ADD COLUMN IF NOT EXISTS signature TEXT",
+    "ALTER TABLE smi_approval_receipts ALTER COLUMN identity_id SET NOT NULL",
+    "ALTER TABLE smi_approval_receipts ALTER COLUMN authority_level SET NOT NULL",
+    "ALTER TABLE smi_approval_receipts ALTER COLUMN nonce SET NOT NULL",
+    "ALTER TABLE smi_approval_receipts ALTER COLUMN signature SET NOT NULL",
+    """ALTER TABLE smi_approval_receipts
+        ADD CONSTRAINT smi_approval_receipts_identity_id_fkey
+        FOREIGN KEY (identity_id) REFERENCES oap_identities(identity_id)""",
+    """ALTER TABLE smi_approval_receipts
+        ADD CONSTRAINT smi_approval_receipts_authority_level_check
+        CHECK (authority_level = 0)""",
+    """CREATE UNIQUE INDEX IF NOT EXISTS ix_smi_approval_nonce
+        ON smi_approval_receipts(nonce) WHERE nonce IS NOT NULL""",
+    """CREATE TABLE IF NOT EXISTS smi_judgement_reviews (
+        request_id UUID PRIMARY KEY REFERENCES smi_memory_records(request_id)
+            ON DELETE CASCADE,
+        identity_id UUID NOT NULL REFERENCES oap_identities(identity_id),
+        evidence_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        provenance_quality TEXT NOT NULL
+            CHECK (provenance_quality IN ('STRONG','ADEQUATE','LIMITED')),
+        confidence DOUBLE PRECISION NOT NULL
+            CHECK (confidence >= 0 AND confidence <= 1),
+        uncertainty_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        counter_case TEXT NOT NULL,
+        consequences_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        reversibility TEXT NOT NULL
+            CHECK (reversibility IN ('REVERSIBLE','REVIEW_REQUIRED')),
+        proportionality TEXT NOT NULL
+            CHECK (proportionality IN ('PROPORTIONATE','REVIEW_REQUIRED')),
+        constitution_consistent BOOLEAN NOT NULL,
+        sections_completed SMALLINT NOT NULL DEFAULT 5
+            CHECK (sections_completed BETWEEN 1 AND 5),
+        human_decision TEXT CHECK (human_decision IN ('APPROVED','REJECTED')),
+        human_identity_id UUID REFERENCES oap_identities(identity_id),
+        human_decided_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CHECK ((human_decision IS NULL AND human_identity_id IS NULL
+                AND human_decided_at IS NULL) OR
+               (human_decision IS NOT NULL AND human_identity_id IS NOT NULL
+                AND human_decided_at IS NOT NULL)))""",
+    """CREATE INDEX IF NOT EXISTS ix_smi_judgement_identity_created
+        ON smi_judgement_reviews(identity_id, created_at DESC)""",
     """CREATE TABLE IF NOT EXISTS smi_conversations (
         conversation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         identity_id UUID, title TEXT NOT NULL DEFAULT 'SMI Chat',
@@ -106,6 +157,9 @@ MIGRATION_STATEMENTS = (
     """INSERT INTO oap_permissions(permission_id,description)
         VALUES ('REQUEST_RECOMMENDATION','Request a governed SMI recommendation')
         ON CONFLICT (permission_id) DO NOTHING""",
+    """INSERT INTO oap_permissions(permission_id,description)
+        VALUES ('APPROVE_RECOMMENDATION','Record a level-zero Human Authority decision')
+        ON CONFLICT (permission_id) DO NOTHING""",
     """INSERT INTO smi_provider_assignments
         (agent_id,provider_id,model,status,approved_by)
         VALUES ('NEO-001','openai','gpt-5-mini','APPROVED','HUMAN_AUTHORITY')
@@ -127,8 +181,70 @@ MIGRATION_STATEMENTS = (
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
     """CREATE INDEX IF NOT EXISTS idx_posts_scope_created
         ON posts(scope, created_at DESC)""",
+    """CREATE TABLE IF NOT EXISTS messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL, read_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CHECK (sender_id <> recipient_id))""",
+    """CREATE INDEX IF NOT EXISTS idx_messages_recipient_created
+        ON messages(recipient_id, created_at DESC)""",
+    """CREATE INDEX IF NOT EXISTS idx_messages_sender_created
+        ON messages(sender_id, created_at DESC)""",
+    """CREATE TABLE IF NOT EXISTS products (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        seller_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        name TEXT NOT NULL, description TEXT,
+        price_minor BIGINT NOT NULL CHECK (price_minor >= 0),
+        currency TEXT NOT NULL DEFAULT 'GBP', active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE INDEX IF NOT EXISTS idx_products_active_created
+        ON products(active, created_at DESC)""",
+    """CREATE TABLE IF NOT EXISTS wallets (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        balance BIGINT NOT NULL DEFAULT 0 CHECK (balance >= 0),
+        currency_code TEXT NOT NULL DEFAULT 'SIKA',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE TABLE IF NOT EXISTS transactions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE RESTRICT,
+        amount BIGINT NOT NULL CHECK (amount <> 0),
+        transaction_type TEXT NOT NULL, reference TEXT NOT NULL UNIQUE,
+        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE INDEX IF NOT EXISTS idx_transactions_wallet_created
+        ON transactions(wallet_id, created_at DESC)""",
+    """CREATE TABLE IF NOT EXISTS oap_workspace_records (
+        record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        identity_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        workspace_id TEXT NOT NULL CHECK (workspace_id IN
+            ('ecosystem','signals','hrm-memory','governance','performance','news',
+             'transport','market','maps','identity','tv','sika')),
+        title TEXT NOT NULL, body TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active'
+            CHECK (status IN ('draft','active','archived')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE INDEX IF NOT EXISTS ix_workspace_identity_dashboard_updated
+        ON oap_workspace_records(identity_id, workspace_id, updated_at DESC)""",
 )
-MIGRATION_CHECKSUM = "9a5b1d7c4e2f8a60b3c91d5e7f20486aa6c8e1b35d79f024ce6a8b4d1f73e590"
+MIGRATION_CHECKSUM = "4fddba35b7e57fc5c4c36700cb10e000a1b56e4cec794b9e26424d34d73f1749"
+
+
+def render_migration_sql() -> str:
+    """Render the exact idempotent SQL used by branch-first migration tooling."""
+
+    statements = [*MIGRATION_STATEMENTS]
+    statements.append(
+        "INSERT INTO oap_schema_migrations(version,checksum) "
+        f"VALUES ('{MIGRATION_VERSION}','{MIGRATION_CHECKSUM}') "
+        "ON CONFLICT (version) DO NOTHING"
+    )
+    return ";\n\n".join(statements) + ";\n"
 
 
 def _database_url() -> str:

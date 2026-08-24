@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ workspace.name }} · My World</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">Private My World workspace</p>
+      <h1>{{ workspace.icon }} {{ workspace.name }}</h1>
+      <p>{{ workspace.purpose }}</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('my_world') }}">My World</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+  <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="new-record-title">
+      <p class="mc-eyebrow">Owner-scoped record</p>
+      <h2 id="new-record-title">Add to {{ workspace.name }}</h2>
+      <form method="post" action="{{ url_for('my_world_workspace_record', workspace_id=workspace.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="workspace-title">Title</label>
+        <input id="workspace-title" name="title" maxlength="160" required>
+        <label for="workspace-body">Record</label>
+        <textarea id="workspace-body" name="body" maxlength="5000" required></textarea>
+        <label for="workspace-status">State</label>
+        <select id="workspace-status" name="status">
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+        </select>
+        <button class="mc-primary" type="submit">Save private record</button>
+      </form>
+    </section>
+    <section class="mc-panel" aria-labelledby="saved-records-title">
+      <p class="mc-eyebrow">Private continuity</p>
+      <h2 id="saved-records-title">Saved records</h2>
+      {% if records %}
+      <div class="mc-agent-grid">
+        {% for record in records %}
+        <article class="mc-agent-card">
+          <p class="mc-eyebrow">{{ record.status|upper }}</p>
+          <h3>{{ record.title }}</h3>
+          <p>{{ record.body }}</p>
+          <small>Updated {{ record.updated_at }}</small>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No private records yet.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

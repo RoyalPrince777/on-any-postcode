@@ -18,11 +18,16 @@ from flask import (
 
 from . import agents as agent_registry
 from . import (
+    approval_service,
+    authority,
     brain,
     infrastructure,
+    judgement,
     ollama_chat,
     organism,
+    postgres_db,
     products,
+    public_store,
     smi_chat_runtime,
     status,
     web_security,
@@ -142,6 +147,97 @@ def brain_status():
     """Return a coarse, read-only SMI implementation projection."""
 
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
+
+
+def _sync_private_identity() -> tuple[dict[str, object], dict[str, object]]:
+    """Ensure the verified Neon UUID has its canonical OAP role binding."""
+
+    user = web_security.current_authenticated_user()
+    if user is None:  # pragma: no cover - decorator is the fail-closed gate.
+        raise PermissionError("authentication_required")
+    public_store.ensure_authenticated_user(
+        str(user["id"]),
+        email=str(user["email"]),
+        display_name=str(user["name"]),
+        email_verified=bool(user.get("email_verified")),
+    )
+    with postgres_db.connect(readonly=True) as connection:
+        record = authority.authority_record(connection, str(user["id"]))
+    return user, record or {"is_human_authority": False, "authority_level": 5}
+
+
+@bp.get("/judgement")
+@web_security.login_required()
+def judgement_dashboard():
+    """Render the five automated sections and sixth human decision gate."""
+
+    try:
+        user, authority_record = _sync_private_identity()
+        reviews = judgement.list_reviews(
+            None if authority_record["is_human_authority"] else str(user["id"])
+        )
+    except (public_store.PublicStoreUnavailable, RuntimeError):
+        return _error(
+            "judgement_unavailable",
+            "The governed decision ledger is temporarily unavailable.",
+            503,
+        )
+    response = make_response(
+        render_template(
+            "judgement.html",
+            reviews=reviews,
+            authority=authority_record,
+            judgement_status=judgement.status(),
+            approval_status=approval_service.status(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.post("/judgement/<request_id>/decision")
+@web_security.login_required(api=True)
+def judgement_decision(request_id: str):
+    """Record one signed level-zero decision; never execute the recommendation."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    try:
+        user, _authority_record = _sync_private_identity()
+        approval_service.record_decision(
+            request_id=request_id,
+            identity_id=str(user["id"]),
+            decision=request.form.get("decision")
+            or (request.get_json(silent=True) or {}).get("decision"),
+        )
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record this decision.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_decision", str(exc), 400)
+    except (approval_service.ApprovalUnavailable, public_store.PublicStoreUnavailable):
+        return _error(
+            "approval_unavailable",
+            "The signed approval receipt could not be recorded safely.",
+            503,
+        )
+    if request.is_json:
+        return _no_store(
+            make_response(
+                jsonify(
+                    status="recorded",
+                    request_id=request_id,
+                    execution_granted=False,
+                )
+            )
+        )
+    return _no_store(make_response(redirect(url_for("mission_control.judgement_dashboard"))))
 
 
 @bp.get("/ollama")
