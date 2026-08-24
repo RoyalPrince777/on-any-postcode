@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib, json, os, re, uuid
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
-from . import live_brain, postgres_db
+from . import live_brain, media_intelligence, postgres_db
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
 PROVIDER = os.environ.get("OAP_AI_PROVIDER", "openai")
@@ -54,7 +54,7 @@ def _permission(connection, identity_id: str) -> bool:
     ).fetchone()
     return row is not None
 
-def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None, brain: dict | None = None, adaptive_memory: list[str] | None = None) -> str:
+def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None, brain: dict | None = None, adaptive_memory: list[str] | None = None, media: dict | None = None) -> str:
     key=os.environ.get("OPENAI_API_KEY","").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
@@ -78,9 +78,14 @@ def _provider(message: str, image_data: str = "", history: list[dict[str, str]] 
             "audited_hrm_lessons": [str(item)[:300] for item in (adaptive_memory or [])[-5:]],
         }, separators=(",", ":"))
     )
-    user_content=[{"type":"input_text","text":message or "Describe and analyse the attached image."}]
+    media=media or {}
+    prompt=message or "Describe and analyse the attached media."
+    if media.get("transcript"):
+        prompt += "\n\nGoverned audio transcript:\n" + str(media["transcript"])
+    user_content=[{"type":"input_text","text":prompt}]
     if image_data:
-        user_content.append({"type":"input_image","image_url":image_data})
+        user_content.append({"type":"input_image","image_url":image_data,"detail":"auto"})
+    user_content.extend(media.get("content_items",[]))
     inputs=[{"role":"system","content":[{"type":"input_text","text":system}]}]
     for item in (history or [])[-12:]:
         role=item.get("role")
@@ -133,15 +138,15 @@ def coherence_review(response: str, brain: dict) -> dict:
     return {"passed":passed,"score":round(100*sum(checks.values())/len(checks)),
             "checks":checks}
 
-def chat(message: object, identity_id: str, display_name: object, conversation_id: object=None, image_data: object=None) -> dict:
+def chat(message: object, identity_id: str, display_name: object, conversation_id: object=None, image_data: object=None, attachment: object=None) -> dict:
     clean=_clean(message,MAX_INPUT)
     image=_clean(image_data,7_000_000)
     if image and not re.match(r"^data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$", image):
         raise ValueError("invalid_image")
     if len(image) > 7_000_000:
         raise ValueError("image_too_large")
-    if not clean and image:
-        clean="Describe and analyse this image."
+    if not clean and (image or attachment):
+        clean="Describe and analyse the attached media."
     name=_clean(display_name,80) or "OAP Member"
     try: identity=str(uuid.UUID(identity_id))
     except (ValueError,TypeError): raise ValueError("invalid_identity")
@@ -151,6 +156,13 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
         _ensure_identity(connection,identity,name)
         if not _permission(connection,identity):
             raise PermissionError("REQUEST_RECOMMENDATION permission required")
+        provider_key=os.environ.get("OPENAI_API_KEY","").strip()
+        if not provider_key:
+            raise RuntimeError("provider_key_missing")
+        media=media_intelligence.prepare(attachment,provider_key)
+        review_content=clean
+        if media.get("transcript"):
+            review_content += "\n\nAudio transcript: " + str(media["transcript"])
         conversation=_clean(conversation_id,40)
         try: conversation=str(uuid.UUID(conversation)) if conversation else str(uuid.uuid4())
         except ValueError: conversation=str(uuid.uuid4())
@@ -175,8 +187,8 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
         ).fetchall()
         history=[{"role":str(row[0]),"content":str(row[1])} for row in reversed(rows)]
         brain=live_brain.review(
-            request_id=request_id, identity_id=identity, content=clean,
-            history=history, image_attached=bool(image),
+            request_id=request_id, identity_id=identity, content=review_content,
+            history=history, image_attached=bool(image or media.get("kind")),
         )
         memory_rows=connection.execute(
             """SELECT summary FROM smi_memory_records
@@ -198,7 +210,7 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             response=reason
             state="BLOCK_REQUEST"
         else:
-            response=_provider(clean,image,history,brain,adaptive_memory)
+            response=_provider(clean,image,history,brain,adaptive_memory,media)
             state=brain["output_state"]
         coherence=coherence_review(response,brain)
         if outcome!="BLOCKED" and not coherence["passed"]:
@@ -209,7 +221,8 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
                 """UPDATE oap_guardian_reviews SET outcome=%s,reason=%s
                    WHERE request_id=%s""",(outcome,reason,request_id)
             )
-        content_hash=hashlib.sha256((clean + ("|image" if image else "")).encode()).hexdigest()
+        content_hash=hashlib.sha256((clean + ("|image" if image else "") +
+                                    ("|"+str(media.get("sha256")) if media.get("sha256") else "")).encode()).hexdigest()
         connection.execute(
             """INSERT INTO smi_memory_records
                (request_id,identity_id,task_type,content_hash,summary,output_state,
@@ -218,6 +231,8 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             (request_id,identity,brain["task_type"],content_hash,response[:300],state,
              brain["signal_level"],
              json.dumps({"guardian":outcome,"provider":PROVIDER,"image_attached":bool(image),
+                         "media_kind":media.get("kind"),"media_retained":False,
+                         "media_frames":media.get("frame_count",0),
                          "advisor_ids":brain["advisor_ids"],"war_room":brain["war_room"],
                          "adaptive_memory_count":len(adaptive_memory),"coherence":coherence}),
              json.dumps(brain["processing_states"]+["PROVIDER_COMPLETED","HRM_RECORDED"])),
@@ -243,6 +258,8 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             "request_id": request_id, "identity_id": identity,
             "action": "SMI_REVIEWED", "guardian": outcome,
             "provider": PROVIDER, "model": MODEL, "image_attached": bool(image),
+            "media_kind": media.get("kind"), "media_retained": False,
+            "media_frames": media.get("frame_count",0),
             "task_type": brain["task_type"], "advisor_ids": brain["advisor_ids"],
             "brain_regions": brain["brain_region_count"], "war_room": brain["war_room"]["triggered"],
             "adaptive_memory_count": len(adaptive_memory), "coherence_score": coherence["score"],
@@ -263,6 +280,8 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             "brain_regions":brain["brain_region_count"],"signal_level":brain["signal_level"],
             "war_room":brain["war_room"],"can_execute":False,
             "adaptive":{"active":True,"hrm_lessons":len(adaptive_memory)},
+            "media":{"kind":media.get("kind"),"filename":media.get("filename"),
+                     "frames":media.get("frame_count",0),"retained":False},
             "coherent":{"passed":coherence["passed"],"score":coherence["score"]}}
 
 def health() -> dict:
