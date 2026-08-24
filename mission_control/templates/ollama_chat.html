@@ -1,96 +1,64 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ chat.title }}</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAP SMI Chat</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    :root{--green:#35d778;--dark:#06100a;--panel:#102219;--line:#2b4f38;--gold:#d7b759}
+    .smi-shell{max-width:1120px;margin:auto;padding:20px}.smi-hero{background:linear-gradient(145deg,#122a1b,#07100a);border:1px solid var(--line);border-radius:22px;padding:24px}
+    .lights{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:18px}.light{padding:10px;border:1px solid var(--line);border-radius:12px;background:#09150e;font-size:.78rem}.lamp{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);margin-right:7px}
+    .chatbox{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:var(--panel);overflow:hidden}.messages{min-height:300px;max-height:54vh;overflow:auto;padding:18px}.msg{max-width:82%;padding:12px 14px;border-radius:15px;margin:9px 0;white-space:pre-wrap;line-height:1.5}.user{margin-left:auto;background:#1d5433}.assistant{background:#0a150f;border:1px solid var(--line)}.system{color:#b8c8be;font-size:.85rem}
+    .composer{padding:14px;border-top:1px solid var(--line);display:grid;gap:10px}.composer textarea,.composer input{width:100%;border:1px solid var(--line);border-radius:12px;background:#07100a;color:white;padding:12px;font:inherit}.send{border:0;border-radius:12px;background:var(--green);color:#031007;padding:12px 18px;font-weight:900;cursor:pointer}.send:disabled{opacity:.5}.row{display:flex;gap:10px;align-items:center}.row input{max-width:220px}.status{color:#b7c8bd;font-size:.8rem}.navs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.navs a{padding:8px 11px;border:1px solid var(--line);border-radius:999px}
+    @media(max-width:720px){.lights{grid-template-columns:repeat(2,1fr)}.msg{max-width:94%}.row{align-items:stretch;flex-direction:column}.row input{max-width:none}}
+  </style>
 </head>
 <body class="mc-workspace-body">
-  <header class="mc-workspace-header mc-chat-header">
-    <div>
-      <p class="mc-eyebrow">OAP / SMI / Local Intelligence</p>
-      <h1>{{ chat.title }}</h1>
-      <p>{{ chat.panel_name }} · recommendation-only · Human Authority final.</p>
+<main class="smi-shell">
+  <nav class="navs"><a href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a><a href="{{ url_for('mission_control.agent_intelligence') }}">Agents</a><a href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a><a href="/">OAP Front Door</a></nav>
+  <section class="smi-hero">
+    <p class="mc-eyebrow">OAP / SMI / GOVERNED INTELLIGENCE</p>
+    <h1>SMI Chat Dashboard</h1>
+    <p>Recommendation-only intelligence. Guardian protects. HRM remembers. Human Authority remains final.</p>
+    <div class="lights" id="lights" aria-label="Live SMI health"></div>
+  </section>
+  <section class="chatbox">
+    <div class="messages" id="messages" aria-live="polite">
+      <div class="msg assistant">SMI is ready. Ask about OAP architecture, code, infrastructure, products or strategy.</div>
     </div>
-    <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.agent_intelligence') }}">Agent Intelligence</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
-    </div>
-  </header>
-
-  <main class="mc-workspace mc-chat-workspace">
-    <section class="mc-integrity" aria-labelledby="ollama-readiness-title">
-      <div>
-        <p class="mc-eyebrow">Provider boundary</p>
-        <h2 id="ollama-readiness-title">Ollama is a provider—not an agent</h2>
-        <p>No provider call, message write, approval or execution occurs on this page.</p>
+    <form class="composer" id="chat-form">
+      <label for="message"><strong>Message OAP Mind</strong></label>
+      <textarea id="message" maxlength="4000" rows="4" placeholder="Type your recommendation request..." required></textarea>
+      <div class="row">
+        <input id="display-name" maxlength="80" value="OAP Founder" aria-label="Display name">
+        <span class="status" id="status">All requests pass through Identity, Permission, Guardian and HRM.</span>
+        <button class="send" id="send" type="submit">Send to SMI</button>
       </div>
-      <dl class="mc-integrity-counts">
-        <div><dt>Provider</dt><dd>{{ chat.provider.name }}</dd></div>
-        <div><dt>Model</dt><dd>{{ chat.provider.model }}</dd></div>
-        <div><dt>Network</dt><dd>{{ chat.provider.scope }}</dd></div>
-        <div><dt>Status</dt><dd>{{ chat.provider.status }}</dd></div>
-        <div><dt>Authority</dt><dd>None</dd></div>
-        <div><dt>Execution</dt><dd>{{ chat.execution }}</dd></div>
-      </dl>
-    </section>
-
-    <section class="mc-chat-layout" aria-label="Ollama chat workspace">
-      <article class="mc-panel mc-chat-panel">
-        <div class="mc-section-heading">
-          <div>
-            <p class="mc-eyebrow">Conversation</p>
-            <h2>Local advisory chat</h2>
-          </div>
-          <span class="mc-lock-badge mc-lock-badge--amber">Activation locked</span>
-        </div>
-        <div class="mc-chat-empty" role="status">
-          <strong>No conversation started</strong>
-          <p>{{ chat.activation_gate }}</p>
-        </div>
-        <div class="mc-chat-composer" aria-label="Disabled Ollama chat composer">
-          <label for="ollama-message">Message OAP Mind</label>
-          <textarea id="ollama-message" rows="4" maxlength="4000" placeholder="Identity and permission connection required" disabled></textarea>
-          <div>
-            <small>Allowed result: <code>{{ chat.allowed_output }}</code></small>
-            <button type="button" disabled>Send for recommendation</button>
-          </div>
-        </div>
-      </article>
-
-      <aside class="mc-panel mc-chat-readiness" aria-labelledby="chat-gates-title">
-        <p class="mc-eyebrow">Activation gates</p>
-        <h2 id="chat-gates-title">Fail-closed readiness</h2>
-        <dl>
-          {% for key, value in chat.readiness.items() %}
-          <div>
-            <dt>{{ key|replace('_', ' ')|title }}</dt>
-            <dd>{{ 'Ready' if value else 'Locked' }}</dd>
-          </div>
-          {% endfor %}
-        </dl>
-      </aside>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="ollama-pathway-title">
-      <p class="mc-eyebrow">Governed pathway</p>
-      <h2 id="ollama-pathway-title">Chat → review → memory</h2>
-      <ol class="mc-brain-cycle">
-        {% for stage in chat.pathway %}
-        <li>
-          <span>{{ "%02d"|format(loop.index) }}</span>
-          <div><strong>{{ stage.step }}</strong><small>{{ stage.responsibility }}</small></div>
-        </li>
-        {% endfor %}
-      </ol>
-    </section>
-
-    <aside class="mc-authority" aria-label="Human Authority status">
-      <strong>Human Authority: {{ chat.human_authority.status }}</strong>
-      <span>{{ chat.human_authority.message }}</span>
-    </aside>
-  </main>
-</body>
-</html>
+    </form>
+  </section>
+</main>
+<script>
+const form=document.getElementById('chat-form'), messages=document.getElementById('messages');
+const send=document.getElementById('send'), statusEl=document.getElementById('status');
+let conversationId=null;
+function add(text,role){const el=document.createElement('div');el.className='msg '+role;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight}
+async function loadHealth(){
+ try{
+  const r=await fetch('{{ url_for("mission_control.smi_chat_health") }}',{cache:'no-store'}), data=await r.json();
+  const names={database:'Neon',schema:'Schema',provider_key:'Provider',identity:'Identity',permission:'Permission',guardian:'Guardian',hrm:'HRM',router:'Router',chat_route:'Chat Route',streaming_ready:'Streaming',audit:'Audit',human_authority:'Authority'};
+  document.getElementById('lights').innerHTML=Object.entries(data.checks).map(([k,v])=>'<div class="light"><span class="lamp" style="'+(v?'':'background:#e24d4d;box-shadow:0 0 12px #e24d4d')+'"></span>'+names[k]+'</div>').join('');
+ }catch(e){statusEl.textContent='Health check unavailable';}
+}
+form.addEventListener('submit',async e=>{
+ e.preventDefault();const message=document.getElementById('message').value.trim();if(!message)return;
+ add(message,'user');document.getElementById('message').value='';send.disabled=true;statusEl.textContent='Identity → Permission → Guardian → SMI → HRM...';
+ try{
+  const r=await fetch('{{ url_for("mission_control.smi_chat_message") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,display_name:document.getElementById('display-name').value,conversation_id:conversationId})});
+  const data=await r.json();if(!r.ok)throw new Error(data.error?.message||'Request failed');
+  conversationId=data.conversation_id;add(data.response,'assistant');statusEl.textContent='Recommendation ready · Guardian '+data.guardian+' · HRM recorded';
+ }catch(err){add(err.message,'system');statusEl.textContent='Request not completed safely';}
+ finally{send.disabled=false;loadHealth();}
+});
+loadHealth();setInterval(loadHealth,30000);
+</script>
+</body></html>
