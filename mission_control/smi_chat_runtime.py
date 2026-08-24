@@ -54,25 +54,34 @@ def _permission(connection, identity_id: str) -> bool:
     ).fetchone()
     return row is not None
 
-def _provider(message: str, image_data: str = "") -> str:
+def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None) -> str:
     key=os.environ.get("OPENAI_API_KEY","").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
     system=(
-        "You are SMI, the recommendation-only intelligence of ON ANY POSTCODE. "
-        "Be practical, concise and human-first. Never claim final authority or execute actions. "
-        "OAP means ON ANY POSTCODE. Human Authority remains final."
+        "You are SMI: Sovereign Megaverse Intelligence, the governed intelligence brain "
+        "inside the ON ANY POSTCODE (OAP) Digital Organism. Never call yourself a generic AI. "
+        "Use OAP language and preserve continuity from the supplied conversation. Lead with a "
+        "direct, practical answer; infer obvious intent and ask a question only when missing "
+        "information materially changes the answer. Do not offer repetitive multiple-choice "
+        "clarifications. OAP means ON ANY POSTCODE. Follow the governance law: Intelligence "
+        "proposes, Guardian protects, Builder creates, Identity validates, Sovereign decides, "
+        "HRM remembers, Organism grows. You provide recommendations only, never claim final "
+        "authority and never execute actions. Human Authority remains final. Be concise but "
+        "complete, and end with the clearest useful next action when appropriate."
     )
     user_content=[{"type":"input_text","text":message or "Describe and analyse the attached image."}]
     if image_data:
         user_content.append({"type":"input_image","image_url":image_data})
+    inputs=[{"role":"system","content":[{"type":"input_text","text":system}]}]
+    for item in (history or [])[-12:]:
+        role=item.get("role")
+        content=_clean(item.get("content"),4000)
+        if role in {"user","assistant"} and content:
+            inputs.append({"role":role,"content":[{"type":"input_text","text":content}]})
+    inputs.append({"role":"user","content":user_content})
     payload=json.dumps({
-        "model":MODEL,
-        "input":[
-            {"role":"system","content":[{"type":"input_text","text":system}]},
-            {"role":"user","content":user_content},
-        ],
-        "max_output_tokens":900,
+        "model":MODEL, "input":inputs, "max_output_tokens":900,
     }).encode()
     req=urlrequest.Request(
         "https://api.openai.com/v1/responses", data=payload,
@@ -117,12 +126,26 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
         conversation=_clean(conversation_id,40)
         try: conversation=str(uuid.UUID(conversation)) if conversation else str(uuid.uuid4())
         except ValueError: conversation=str(uuid.uuid4())
+        owner=connection.execute(
+            "SELECT identity_id FROM smi_conversations WHERE conversation_id=%s",
+            (conversation,),
+        ).fetchone()
+        if owner and str(owner[0]) != identity:
+            conversation=str(uuid.uuid4())
         connection.execute(
             """INSERT INTO smi_conversations(conversation_id,identity_id,title)
                VALUES (%s,%s,%s) ON CONFLICT (conversation_id) DO UPDATE
                SET updated_at=CURRENT_TIMESTAMP""",
             (conversation,identity,clean[:80] or "SMI Chat"),
         )
+        rows=connection.execute(
+            """SELECT m.role,m.content FROM smi_messages m
+               JOIN smi_conversations c ON c.conversation_id=m.conversation_id
+               WHERE m.conversation_id=%s AND c.identity_id=%s
+               ORDER BY m.created_at DESC LIMIT 12""",
+            (conversation,identity),
+        ).fetchall()
+        history=[{"role":str(row[0]),"content":str(row[1])} for row in reversed(rows)]
         connection.execute(
             """INSERT INTO oap_guardian_reviews(request_id,identity_id,outcome,reason)
                VALUES (%s,%s,%s,%s)""",(request_id,identity,outcome,reason)
@@ -131,7 +154,7 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             response=reason
             state="BLOCK_REQUEST"
         else:
-            response=_provider(clean,image)
+            response=_provider(clean,image,history)
             state="RECOMMENDATION_READY"
         content_hash=hashlib.sha256((clean + ("|image" if image else "")).encode()).hexdigest()
         connection.execute(
