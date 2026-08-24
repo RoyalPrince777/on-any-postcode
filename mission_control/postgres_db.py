@@ -6,6 +6,7 @@ Schema changes require the explicit Flask oap-init-postgres --yes command.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import os
 from collections.abc import Iterator
@@ -82,8 +83,18 @@ MIGRATION_STATEMENTS = (
 MIGRATION_CHECKSUM = "9a5b1d7c4e2f8a60b3c91d5e7f20486aa6c8e1b35d79f024ce6a8b4d1f73e590"
 
 
+def _database_url() -> str:
+    encoded = os.environ.get("OAP_NEON_DATABASE_URL_B64", "").strip()
+    if encoded:
+        try:
+            return base64.b64decode(encoded).decode("utf-8").strip()
+        except (ValueError, UnicodeDecodeError):
+            return ""
+    return (os.environ.get("OAP_NEON_DATABASE_URL") or os.environ.get("DATABASE_URL", "")).strip()
+
+
 def configured() -> bool:
-    return bool((os.environ.get("OAP_NEON_DATABASE_URL") or os.environ.get("DATABASE_URL", "")).strip())
+    return bool(_database_url())
 
 
 def _driver():
@@ -97,7 +108,7 @@ def _driver():
 @contextmanager
 def connect(*, readonly: bool = False) -> Iterator[Any]:
     """Open a bounded production connection without exposing its URL."""
-    database_url = (os.environ.get("OAP_NEON_DATABASE_URL") or os.environ.get("DATABASE_URL", "")).strip()
+    database_url = _database_url()
     if not database_url:
         raise RuntimeError("Neon database URL is not configured")
     psycopg = _driver()
