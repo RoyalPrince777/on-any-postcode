@@ -30,7 +30,7 @@ def test_home_and_mission_have_no_duplicate_ids(client):
     agents = client.get("/mission/agents").get_data(as_text=True)
     brain = client.get("/mission/brain").get_data(as_text=True)
     infrastructure = client.get("/mission/infrastructure").get_data(as_text=True)
-    linkup = client.get("/mission/linkup").get_data(as_text=True)
+    linkup = client.get("/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
 
     assert _duplicate_ids(home) == set()
@@ -48,7 +48,7 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     agents = client.get("/mission/agents").get_data(as_text=True)
     brain = client.get("/mission/brain").get_data(as_text=True)
     infrastructure = client.get("/mission/infrastructure").get_data(as_text=True)
-    linkup = client.get("/mission/linkup").get_data(as_text=True)
+    linkup = client.get("/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
 
     assert 'aria-label="Primary navigation"' in home
@@ -61,9 +61,8 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     assert 'aria-label="Human Authority status"' in brain
     assert 'aria-label="Human Authority status"' in infrastructure
     assert 'aria-labelledby="infrastructure-scope-title"' in infrastructure
-    assert 'aria-label="LinkUp views"' in linkup
-    assert 'aria-label="The Link privacy path"' in linkup
-    assert 'aria-label="Human Authority status"' in linkup
+    assert 'aria-label="LinkUp features"' in linkup
+    assert 'aria-label="LinkUp privacy"' in linkup
     assert 'aria-label="OAP governance law"' in organism
     assert 'aria-label="Human Authority status"' in organism
 

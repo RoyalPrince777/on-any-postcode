@@ -13,23 +13,17 @@ def test_healthz_is_read_only_redacted_and_fail_closed(client, tmp_path, monkeyp
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert payload["live"] is True
-    assert payload["status"] == "degraded"
-    assert payload["checks"]["architecture_integrity"] is True
-    assert payload["checks"]["registry_integrity"] is True
-    assert payload["checks"]["registry_activation_ready"] is False
-    assert payload["checks"]["csrf_protection"] is True
-    assert payload["checks"]["bounded_rate_controls"] is True
-    assert payload["checks"]["session_secret_configured"] is False
-    assert payload["checks"]["neon_auth_configured"] is True
-    assert payload["checks"]["private_auth_required"] is True
-    assert payload["governance"] == {
-        "human_authority_final": True,
-        "execution_exposed": False,
-    }
-    assert "db_path" not in response.get_data(as_text=True)
+    assert payload == {"status": "unavailable"}
     assert not database_path.exists()
     assert client.post("/healthz").status_code == 405
+
+
+def test_livez_returns_only_the_coarse_liveness_state(client):
+    response = client.get("/livez")
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.get_json() == {"status": "alive"}
 
 
 def test_security_headers_are_applied_to_public_and_mission_routes(client):

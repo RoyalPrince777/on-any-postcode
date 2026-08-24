@@ -228,31 +228,24 @@ def validate_link_scope(
 
 
 def get_public_link_dashboard() -> dict[str, Any]:
-    """Return an allowlisted shell containing no people or conversations."""
+    """Return only visitor-facing LinkUp copy."""
 
     return {
         "product_name": "LinkUp",
         "tagline": "Simple chat. Talk local. Build global.",
-        "law": "Inside The Spot → The Link → LinkUp. Create bridges, not barriers.",
-        "views": [dict(view) for view in LINK_DASHBOARD_VIEWS],
-        "related_systems": [
-            dict(system) for system in RELATED_COMMUNICATION_BOUNDARIES
+        "law": "The Spot → The Link → LinkUp",
+        "features": [
+            {
+                "name": "People",
+                "purpose": "Find local connections.",
+            },
+            {
+                "name": "Chats",
+                "purpose": "Keep up with private conversations.",
+            },
+            {
+                "name": "Community",
+                "purpose": "Join postcode groups and rooms.",
+            },
         ],
-        "privacy_path": [dict(step) for step in PRIVACY_PATH],
-        "proposed_enablement": [dict(item) for item in PROPOSED_LINK_ENABLEMENT],
-        "validation": validate_link_scope(),
-        "operating_mode": {
-            "label": "Read-only privacy shell",
-            "message": (
-                "No directory identities, room records or private messages "
-                "are loaded."
-            ),
-        },
-        "human_authority": {
-            "status": "Final architecture approval required",
-            "message": (
-                "No communication engine, data connection or send control is "
-                "enabled by this dashboard."
-            ),
-        },
     }

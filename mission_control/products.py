@@ -53,6 +53,105 @@ SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
 )
 LOCKED_SPOT_CAPABILITY_IDS = tuple(item["id"] for item in SPOT_CAPABILITIES)
 
+PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
+    {
+        "source_id": "pulse",
+        "slug": "pulse",
+        "name": "Pulse",
+        "purpose": "See what is happening across your postcode.",
+    },
+    {
+        "source_id": "signal",
+        "slug": "signal",
+        "name": "OAP Signal",
+        "purpose": "Trusted local news, alerts and announcements.",
+    },
+    {
+        "source_id": "postcode-rooms",
+        "slug": "postcode-rooms",
+        "name": "Postcode Rooms",
+        "purpose": "Meet and talk with people in your community.",
+    },
+    {
+        "source_id": "events",
+        "slug": "events",
+        "name": "Events & Experiences",
+        "purpose": "Find local gatherings, sport and culture.",
+    },
+    {
+        "source_id": "discovery",
+        "slug": "discovery",
+        "name": "Local Discovery",
+        "purpose": "Explore useful places and services nearby.",
+    },
+    {
+        "source_id": "businesses",
+        "slug": "businesses",
+        "name": "Local Businesses",
+        "purpose": "Discover postcode businesses, offers and services.",
+    },
+    {
+        "source_id": "creators",
+        "slug": "creators",
+        "name": "Creators",
+        "purpose": "Find local musicians, artists and talent.",
+    },
+    {
+        "source_id": "community-power",
+        "slug": "community-progress",
+        "name": "Community Progress",
+        "purpose": "See participation and positive local action.",
+    },
+    {
+        "source_id": "support",
+        "slug": "support",
+        "name": "Community Support",
+        "purpose": "Find local help, resources and support.",
+    },
+    {
+        "source_id": "infrastructure",
+        "slug": "maps-weather-travel",
+        "name": "Maps, Weather & Travel",
+        "purpose": "Plan routes and stay aware of local conditions.",
+    },
+    {
+        "source_id": "market",
+        "slug": "market",
+        "name": "Local Market",
+        "purpose": "Explore products and community commerce.",
+    },
+    {
+        "source_id": "runner",
+        "slug": "movement-delivery",
+        "name": "Movement & Delivery",
+        "purpose": "Explore local bookings, delivery and travel.",
+    },
+    {
+        "source_id": "safety",
+        "slug": "safety",
+        "name": "Safety & Trust",
+        "purpose": "Find community standards and reporting support.",
+    },
+    {
+        "source_id": "identity",
+        "slug": "my-world",
+        "name": "My World",
+        "purpose": "Your private OAP account and personal space.",
+    },
+    {
+        "source_id": "tv-media",
+        "slug": "tv-media",
+        "name": "OAP TV & Media",
+        "purpose": "Watch local video, music, sport and culture.",
+    },
+    {
+        "source_id": "membership",
+        "slug": "membership",
+        "name": "Membership",
+        "purpose": "Explore free postcode access and membership.",
+    },
+)
+
 
 def _normalise(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.casefold())
@@ -128,24 +227,50 @@ def validate_spot_capabilities(
     }
 
 
-def get_public_spot_capability(capability_id: str) -> dict[str, str] | None:
-    """Resolve an allowlisted Spot capability without side effects."""
+def _public_spot_copy(item: Mapping[str, str]) -> dict[str, str]:
+    return {
+        "slug": str(item["slug"]),
+        "name": str(item["name"]),
+        "purpose": str(item["purpose"]),
+    }
+
+
+def get_public_spot_slug(capability_id: str) -> str | None:
+    """Map a former internal capability ID to its public presentation slug."""
 
     return next(
-        (dict(item) for item in SPOT_CAPABILITIES if item["id"] == capability_id),
+        (
+            str(item["slug"])
+            for item in PUBLIC_SPOT_CAPABILITIES
+            if item["source_id"] == capability_id
+        ),
+        None,
+    )
+
+
+def get_public_spot_capability(capability_slug: str) -> dict[str, str] | None:
+    """Resolve presentation-only public copy without operational metadata."""
+
+    return next(
+        (
+            _public_spot_copy(item)
+            for item in PUBLIC_SPOT_CAPABILITIES
+            if item["slug"] == capability_slug
+        ),
         None,
     )
 
 
 def get_public_product_hierarchy() -> dict[str, Any]:
-    """Return the public product map without identities or conversations."""
+    """Return only names and visitor-facing purposes for the public product."""
 
     return {
-        "products": tuple(dict(item) for item in PRODUCT_HIERARCHY),
-        "capabilities": tuple(dict(item) for item in SPOT_CAPABILITIES),
-        "capability_validation": validate_spot_capabilities(),
-        "validation": validate_product_hierarchy(),
-        "law": "One World → One Front Door → Many Systems Inside",
-        "human_authority": "Human Authority remains final",
-        "execution_enabled": False,
+        "products": tuple(
+            {"id": item["id"], "name": item["name"], "purpose": item["purpose"]}
+            for item in PRODUCT_HIERARCHY
+        ),
+        "capabilities": tuple(
+            _public_spot_copy(item) for item in PUBLIC_SPOT_CAPABILITIES
+        ),
+        "law": "One World. One Front Door.",
     }

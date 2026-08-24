@@ -9,17 +9,17 @@ from flask import (
     Response,
     jsonify,
     make_response,
+    redirect,
     render_template,
     request,
     stream_with_context,
+    url_for,
 )
 
 from . import agents as agent_registry
 from . import (
     brain,
     infrastructure,
-    light_signals,
-    linkup,
     ollama_chat,
     organism,
     products,
@@ -322,8 +322,9 @@ def delete_smi_conversation(conversation_id: str):
 
 
 @bp.get("/chat/status")
+@web_security.login_required(api=True)
 def smi_chat_health():
-    """Return genuine coarse health gates without secrets or private records."""
+    """Return detailed intelligence health only to a signed-in member."""
     return _no_store(make_response(jsonify(smi_chat_runtime.health())))
 
 
@@ -344,71 +345,41 @@ def infrastructure_dashboard():
 
 @bp.get("/spot")
 def spot_dashboard():
-    """Render The Spot as the parent postcode-community product."""
+    """Keep the former product address as a public compatibility redirect."""
 
-    return _no_store(
-        make_response(
-            render_template(
-                "spot.html",
-                hierarchy=products.get_public_product_hierarchy(),
-                signals=light_signals.get_public_light_signals(),
-            )
-        )
-    )
+    return _no_store(make_response(redirect(url_for("the_spot_front_door"))))
 
 
 @bp.get("/spot/<capability_id>")
 def spot_capability(capability_id: str):
-    """Render one allowlisted Spot capability with an honest readiness state."""
+    """Keep former capability addresses as compatibility redirects."""
 
-    capability = products.get_public_spot_capability(capability_id)
-    if capability is None:
-        return _no_store(
-            make_response(
-                jsonify(
-                    error={
-                        "code": "unknown_spot_capability",
-                        "message": "Unsupported Spot capability.",
-                        "allowed_capabilities": list(
-                            products.LOCKED_SPOT_CAPABILITY_IDS
-                        ),
-                    }
-                ),
-                404,
-            )
-        )
+    capability_slug = products.get_public_spot_slug(capability_id)
+    if capability_slug is None:
+        capability_slug = "unavailable"
     return _no_store(
         make_response(
-            render_template("spot_capability.html", capability=capability)
+            redirect(
+                url_for(
+                    "spot_capability_front_door", capability_slug=capability_slug
+                )
+            )
         )
     )
 
 
 @bp.get("/the-link")
 def the_link_dashboard():
-    """Render The Link as the communications gateway inside The Spot."""
+    """Keep the former Link address as a public compatibility redirect."""
 
-    return _no_store(
-        make_response(
-            render_template(
-                "the_link.html",
-                hierarchy=products.get_public_product_hierarchy(),
-            )
-        )
-    )
+    return _no_store(make_response(redirect(url_for("the_link_front_door"))))
 
 
 @bp.get("/linkup")
 def link_dashboard():
-    """Render LinkUp without identities, conversations or send controls."""
+    """Keep the former LinkUp address as a public compatibility redirect."""
 
-    response = make_response(
-        render_template(
-            "linkup.html",
-            link=linkup.get_public_link_dashboard(),
-        )
-    )
-    return _no_store(response)
+    return _no_store(make_response(redirect(url_for("linkup_front_door"))))
 
 
 @bp.get("/organism")
@@ -426,8 +397,9 @@ def organism_anatomy():
 
 
 @bp.get("/status")
+@web_security.login_required(api=True)
 def mission_status():
-    """Return public status only; privileged status remains fail-closed."""
+    """Return the internal status projection only after sign-in."""
 
     scope = request.args.get("scope", "public").strip().lower()
     if scope != "public":

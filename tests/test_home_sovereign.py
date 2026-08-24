@@ -12,10 +12,12 @@ def test_home_keeps_public_sections_and_draws_explicit_boundary(client):
     assert 'id="myworld"' not in page
     assert 'id="sovereign"' not in page
     assert "PUBLIC" in page
-    assert "PRIVATE · NEON AUTH" in page
+    assert "PRIVATE" in page
     assert 'href="/my-world"' in page
     assert 'href="/mission"' not in page
-    assert "No private My World profiles or SMI conversations" in page
+    assert "Your private OAP space" in page
+    assert "NEON" not in page
+    assert "SMI" not in page
     assert "🇬🇭 Ghana" in page
 
 

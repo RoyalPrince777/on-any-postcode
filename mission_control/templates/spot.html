@@ -4,71 +4,44 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAP The Spot</title>
-  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header">
     <div>
-      <p class="mc-eyebrow">OAP World / Postcode community</p>
+      <p class="mc-eyebrow">OAP World / Your postcode</p>
       <h1>The Spot</h1>
-      <p>Your local postcode place. Community, conversations, events and discovery begin here.</p>
+      <p>Your local place for community, events and discovery.</p>
     </div>
     <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.the_link_dashboard') }}">Enter The Link</a>
+      <a class="mc-secondary-link" href="{{ url_for('the_link_front_door') }}">The Link</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
     </div>
   </header>
   <main class="mc-workspace">
-    <section class="mc-integrity">
-      <div>
-        <p class="mc-eyebrow">Product hierarchy</p>
-        <h2>{% if hierarchy.validation.passed %}The Spot boundaries verified{% else %}Hierarchy conflict detected{% endif %}</h2>
-        <p>{{ hierarchy.law }}. {{ hierarchy.human_authority }}.</p>
-      </div>
-      <dl class="mc-integrity-counts">
-        <div><dt>Products</dt><dd>{{ hierarchy.validation.checks.products }}</dd></div>
-        <div><dt>Capabilities</dt><dd>{{ hierarchy.capability_validation.checks.capabilities }}</dd></div>
-        <div><dt>Conflicts</dt><dd>{{ hierarchy.validation.errors|length + hierarchy.capability_validation.errors|length }}</dd></div>
-      </dl>
-    </section>
     <section class="mc-panel">
       <p class="mc-eyebrow">Inside The Spot</p>
       <h2>The Link</h2>
-      <p>The communications gateway connecting postcode communities without duplicating Identity, Signals, Mail or HRM.</p>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.the_link_dashboard') }}">Open The Link →</a>
+      <p>Connect with people, groups and conversations in your community.</p>
+      <a class="mc-secondary-link" href="{{ url_for('the_link_front_door') }}">Open The Link →</a>
     </section>
     <section class="mc-panel" aria-labelledby="spot-capabilities-title">
-      <p class="mc-eyebrow">Complete product surface</p>
+      <p class="mc-eyebrow">Explore locally</p>
       <h2 id="spot-capabilities-title">Everything in The Spot</h2>
       <div class="mc-family-grid" role="list">
         {% for capability in hierarchy.capabilities %}
         <article class="mc-family-card" role="listitem">
-          <div class="mc-family-card__top">
-            <h3>{{ capability.name }}</h3>
-            <span>{{ capability.status }}</span>
-          </div>
+          <h3>{{ capability.name }}</h3>
           <p>{{ capability.purpose }}</p>
-          <small>Owner: {{ capability.owner }}</small>
-          <small>{{ capability.function }}</small>
-          <a href="{{ url_for('mission_control.spot_capability', capability_id=capability.id) }}">Open {{ capability.name }}</a>
+          <a href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">Explore {{ capability.name }}</a>
         </article>
         {% endfor %}
       </div>
     </section>
-    <section class="mc-panel" aria-labelledby="light-signals-title">
-      <p class="mc-eyebrow">Shared visual language</p>
-      <h2 id="light-signals-title">OAP Light Signals</h2>
-      <p>{{ signals.boundary }}.</p>
-      <div class="mc-signal-legend" role="list" aria-label="OAP status signal meanings">
-        {% for signal in signals.lights %}
-        <div class="mc-signal-chip mc-signal-chip--{{ signal.colour }}" role="listitem">
-          <span aria-hidden="true">{{ signal.emoji }}</span>
-          <strong>{{ signal.label }}</strong>
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-    <aside class="mc-authority"><strong>Read-only launch</strong><span>No messaging or execution control is enabled.</span></aside>
+    <aside class="mc-authority">
+      <strong>Make it yours</strong>
+      <span><a href="{{ url_for('auth_page') }}">Sign in to enter My World.</a></span>
+    </aside>
   </main>
 </body>
 </html>

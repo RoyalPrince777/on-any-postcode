@@ -79,49 +79,43 @@ def test_link_ui_is_read_only_and_does_not_create_database(
     database_path = tmp_path / "the-link.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
 
-    response = client.get("/mission/linkup")
+    response = client.get("/linkup")
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "LinkUp boundaries verified" in page
     assert "Simple chat. Talk local. Build global." in page
-    assert "The Spot / The Link / LinkUp" in page
-    assert "Directory, Inbox and Community Power" in page
-    assert "No member identities exposed" in page
-    assert "No private messages exposed" in page
-    assert "No message composer is registered" in page
+    assert "The Spot → The Link → LinkUp" in page
+    assert "Your people. Your chats. Your community." in page
+    assert "Find local connections." in page
+    assert "Keep up with private conversations." in page
     assert 'method="post"' not in page.lower()
-    assert client.post("/mission/linkup").status_code == 405
+    assert client.post("/linkup").status_code == 405
     assert client.get("/mission/chat").status_code == 405
     assert not database_path.exists()
 
 
-def test_link_ui_keeps_related_systems_separate(client):
-    page = client.get("/mission/linkup").get_data(as_text=True)
+def test_link_ui_omits_internal_relationship_and_control_details(client):
+    page = client.get("/linkup").get_data(as_text=True)
 
-    assert "Related systems stay separate" in page
-    assert "Public announcements remain Signals" in page
-    assert "Pulse remains the community heartbeat" in page
-    assert "OAP TV Team Rooms" in page
-    assert "this dashboard does not copy them" in page
-    assert "Mail, Notifications and Broadcasts" in page
-    assert "HRM receives approved audit metadata only" in page
+    for internal_copy in (
+        "Related systems stay separate",
+        "ownership conflict",
+        "mutation controls",
+        "HRM",
+        "Guardian",
+        "Human Authority",
+        "Mission Control",
+    ):
+        assert internal_copy not in page
 
 
-def test_every_link_enablement_proposal_requires_human_approval():
+def test_public_link_projection_is_presentation_only():
     projection = linkup.get_public_link_dashboard()
 
-    assert projection["proposed_enablement"]
-    assert all(
-        proposal["status"] == "Requires human approval"
-        for proposal in projection["proposed_enablement"]
-    )
-    assert (
-        projection["human_authority"]["status"]
-        == "Final architecture approval required"
-    )
+    assert set(projection) == {"product_name", "tagline", "law", "features"}
+    assert all(set(feature) == {"name", "purpose"} for feature in projection["features"])
 
 
 def test_public_link_projection_contains_no_people_or_conversations():
@@ -149,7 +143,7 @@ def test_link_route_does_not_reflect_query_input(client):
     attack = '<script>alert("inbox")</script>'
 
     page = client.get(
-        "/mission/linkup", query_string={"conversation": attack}
+        "/linkup", query_string={"conversation": attack}
     ).get_data(as_text=True)
 
     assert attack not in page

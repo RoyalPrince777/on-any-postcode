@@ -23,10 +23,9 @@ def test_light_signals_are_unique_and_text_labelled():
     assert "not a duplicate OAP Signal system" in signals["boundary"]
 
 
-def test_spot_renders_accessible_signal_legend(client):
-    page = client.get("/mission/spot").get_data(as_text=True)
+def test_spot_does_not_publish_internal_status_legend(client):
+    page = client.get("/the-spot").get_data(as_text=True)
 
-    assert "OAP Light Signals" in page
-    assert "🟣" in page
-    assert "Learning / Processing" in page
-    assert "Visual status language only" in page
+    assert "OAP Light Signals" not in page
+    assert "Learning / Processing" not in page
+    assert "Visual status language only" not in page

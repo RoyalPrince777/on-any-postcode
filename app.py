@@ -14,12 +14,20 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
 
 from mission_control import init_app as _mc_init
-from mission_control import neon_auth, public_store, smi_chat_runtime, web_security
+from mission_control import (
+    linkup,
+    neon_auth,
+    products,
+    public_store,
+    smi_chat_runtime,
+    web_security,
+)
 from mission_control.agents import validate_agent_registry
 from mission_control.database import db_status
 from mission_control.organism import validate_architecture
@@ -67,6 +75,21 @@ def _prepend_bounded(records, item):
 def _request_observability():
     g.oap_request_id = str(uuid.uuid4())
     g.oap_request_started = time.monotonic()
+
+
+@app.before_request
+def _protect_private_assets():
+    if request.endpoint != "mission_control.static":
+        return None
+    try:
+        user = web_security.current_authenticated_user()
+    except neon_auth.AuthUnavailable:
+        user = None
+    if user is not None:
+        return None
+    response = make_response("", 404)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.context_processor
@@ -197,6 +220,17 @@ matches = [
 
 # Register read-only Mission Control routes and explicit CLI-only DB commands.
 _mc_init(app)
+
+
+@app.get("/assets/oap.css")
+def public_stylesheet():
+    """Serve shared presentation styles from a product-neutral public URL."""
+
+    return send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "oap_public.css",
+        max_age=3600,
+    )
 
 
 def _csrf_failure():
@@ -478,23 +512,57 @@ def auth_sign_out():
 
 @app.get("/the-spot")
 def the_spot_front_door():
-    """Open The Spot while keeping one canonical implementation route."""
+    """Render the public postcode-community product without internal details."""
 
-    return redirect(url_for("mission_control.spot_dashboard"))
+    response = make_response(
+        render_template(
+            "spot.html",
+            hierarchy=products.get_public_product_hierarchy(),
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.get("/the-spot/<capability_slug>")
+def spot_capability_front_door(capability_slug):
+    """Render one public Spot experience using presentation-only copy."""
+
+    capability = products.get_public_spot_capability(capability_slug)
+    if capability is None:
+        response = jsonify(
+            error={
+                "code": "not_found",
+                "message": "That Spot experience is unavailable.",
+            }
+        )
+        response.status_code = 404
+    else:
+        response = make_response(
+            render_template("spot_capability.html", capability=capability)
+        )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/the-link")
 def the_link_front_door():
     """Open The Link inside The Spot."""
 
-    return redirect(url_for("mission_control.the_link_dashboard"))
+    response = make_response(render_template("the_link.html"))
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/linkup")
 def linkup_front_door():
     """Open LinkUp inside The Link."""
 
-    return redirect(url_for("mission_control.link_dashboard"))
+    response = make_response(
+        render_template("linkup.html", link=linkup.get_public_link_dashboard())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.route("/signal", methods=["POST"])
@@ -684,35 +752,18 @@ def _readiness_snapshot():
 
 @app.get("/livez")
 def livez():
-    response = jsonify(status="alive", live=True)
+    response = jsonify(status="alive")
     response.headers["Cache-Control"] = "no-store"
     return response
 
 
 @app.get("/healthz")
 def healthz():
-    """Return a side-effect-free, non-sensitive deployment readiness check."""
+    """Return only the coarse health state needed by the platform."""
 
     readiness = _readiness_snapshot()
-    checks = readiness["checks"]
-    ready = all(checks.values())
-    response = jsonify(
-        status="healthy" if ready else "degraded",
-        live=True,
-        ready=ready,
-        checks=checks,
-        green=readiness["green"],
-        total=readiness["total"],
-        smi={
-            "status": readiness["smi"]["status"],
-            "green": readiness["smi"]["green"],
-            "total": readiness["smi"]["total"],
-        },
-        governance={
-            "human_authority_final": True,
-            "execution_exposed": False,
-        },
-    )
+    ready = all(readiness["checks"].values())
+    response = jsonify(status="healthy" if ready else "unavailable")
     response.headers["Cache-Control"] = "no-store"
     return response
 

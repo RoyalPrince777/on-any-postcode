@@ -23,9 +23,9 @@ def test_product_hierarchy_is_unique_and_locked():
 
 def test_public_product_pages_are_read_only(client):
     for path, title in (
-        ("/mission/spot", "The Spot"),
-        ("/mission/the-link", "The Link"),
-        ("/mission/linkup", "LinkUp"),
+        ("/the-spot", "The Spot"),
+        ("/the-link", "The Link"),
+        ("/linkup", "LinkUp"),
     ):
         response = client.get(path)
         assert response.status_code == 200
@@ -33,7 +33,7 @@ def test_public_product_pages_are_read_only(client):
         assert client.post(path).status_code == 405
 
 
-def test_product_front_door_aliases_follow_the_hierarchy(client):
-    assert client.get("/the-spot").headers["Location"].endswith("/mission/spot")
-    assert client.get("/the-link").headers["Location"].endswith("/mission/the-link")
-    assert client.get("/linkup").headers["Location"].endswith("/mission/linkup")
+def test_former_internal_product_addresses_redirect_to_public_routes(client):
+    assert client.get("/mission/spot").headers["Location"].endswith("/the-spot")
+    assert client.get("/mission/the-link").headers["Location"].endswith("/the-link")
+    assert client.get("/mission/linkup").headers["Location"].endswith("/linkup")

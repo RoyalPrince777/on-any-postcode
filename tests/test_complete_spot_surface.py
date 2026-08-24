@@ -17,30 +17,36 @@ def test_complete_spot_capability_registry_has_no_duplicates():
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
-    for capability in products.SPOT_CAPABILITIES:
-        response = client.get(f"/mission/spot/{capability['id']}")
+    for capability in products.PUBLIC_SPOT_CAPABILITIES:
+        response = client.get(f"/the-spot/{capability['slug']}")
         page = response.get_data(as_text=True)
 
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         assert escape(capability["name"]) in page
-        assert capability["owner"] in page
-        assert capability["status"] in page
-        assert client.post(f"/mission/spot/{capability['id']}").status_code == 405
+        assert capability["purpose"] in page
+        assert "Owner:" not in page
+        assert "What remains locked" not in page
+        assert client.post(f"/the-spot/{capability['slug']}").status_code == 405
 
 
 def test_unknown_spot_capability_fails_closed(client):
-    response = client.get("/mission/spot/not-approved")
+    response = client.get("/the-spot/not-approved")
 
     assert response.status_code == 404
-    assert response.get_json()["error"]["code"] == "unknown_spot_capability"
+    assert response.get_json() == {
+        "error": {
+            "code": "not_found",
+            "message": "That Spot experience is unavailable.",
+        }
+    }
 
 
 def test_spot_dashboard_lists_every_capability(client):
-    page = client.get("/mission/spot").get_data(as_text=True)
+    page = client.get("/the-spot").get_data(as_text=True)
 
     assert "Everything in The Spot" in page
-    for capability in products.SPOT_CAPABILITIES:
+    for capability in products.PUBLIC_SPOT_CAPABILITIES:
         assert escape(capability["name"]) in page
 
 

@@ -11,17 +11,17 @@ def test_public_world_and_product_surfaces_remain_anonymous(anonymous_client):
         "/",
         "/world",
         "/healthz",
-        "/mission/status",
-        "/mission/chat/status",
-        "/mission/spot",
-        "/mission/the-link",
-        "/mission/linkup",
+        "/livez",
+        "/auth",
+        "/the-spot",
+        "/the-link",
+        "/linkup",
     ):
         assert anonymous_client.get(path).status_code == 200
 
-    assert anonymous_client.get("/the-spot").status_code == 302
-    assert anonymous_client.get("/the-link").status_code == 302
-    assert anonymous_client.get("/linkup").status_code == 302
+    assert anonymous_client.get("/mission/spot").status_code == 302
+    assert anonymous_client.get("/mission/the-link").status_code == 302
+    assert anonymous_client.get("/mission/linkup").status_code == 302
 
 
 def test_private_html_surfaces_redirect_anonymous_visitors(anonymous_client):
@@ -44,6 +44,8 @@ def test_private_html_surfaces_redirect_anonymous_visitors(anonymous_client):
 def test_private_apis_fail_closed_with_structured_401(anonymous_client):
     for path in (
         "/mission/brain/status",
+        "/mission/status",
+        "/mission/chat/status",
         "/mission/conversations",
         "/infrastructure/services",
         "/api/infrastructure/status",
@@ -56,6 +58,63 @@ def test_private_apis_fail_closed_with_structured_401(anonymous_client):
     chat = anonymous_client.post("/mission/chat", json={"message": "private"})
     assert chat.status_code == 401
     assert chat.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_anonymous_pages_do_not_disclose_internal_architecture(anonymous_client):
+    public_paths = (
+        "/",
+        "/world",
+        "/auth",
+        "/the-spot",
+        "/the-link",
+        "/linkup",
+        "/healthz",
+        "/livez",
+    )
+    public_copy = "\n".join(
+        anonymous_client.get(path).get_data(as_text=True).lower()
+        for path in public_paths
+    )
+
+    for internal_term in (
+        "neon",
+        "postgres",
+        "render.com",
+        "github",
+        "openai",
+        "ollama",
+        "sovereign megaverse intelligence",
+        "smi",
+        "mission control",
+        "mission_control",
+        "infrastructure",
+        "guardian",
+        "hrm",
+        "agent registry",
+        "provider key",
+        "database",
+        "schema",
+        "route conflict",
+        "owner conflict",
+        "mutation control",
+        "execution locked",
+        "human authority",
+    ):
+        assert internal_term not in public_copy
+
+
+def test_anonymous_visitors_receive_only_public_styles(anonymous_client):
+    public_style = anonymous_client.get("/assets/oap.css")
+
+    assert public_style.status_code == 200
+    assert "mission-control" not in public_style.get_data(as_text=True).lower()
+    assert anonymous_client.get(
+        "/mission/static/mission_control.css"
+    ).status_code == 404
+
+
+def test_signed_in_members_can_load_private_styles(client):
+    assert client.get("/mission/static/mission_control.css").status_code == 200
 
 
 def test_public_home_never_renders_private_profile_records(client):

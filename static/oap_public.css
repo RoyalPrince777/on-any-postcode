@@ -1,0 +1,147 @@
+:root {
+  color-scheme: dark;
+  --oap-bg: #06120b;
+  --oap-panel: #10281a;
+  --oap-border: #2d7044;
+  --oap-green: #61df91;
+  --oap-blue: #8ed7ff;
+  --oap-text: #f5fff7;
+  --oap-muted: #b8d6c0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.mc-workspace-body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--oap-bg);
+  color: var(--oap-text);
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--oap-blue);
+}
+
+.mc-workspace-header,
+.mc-workspace {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.mc-workspace-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 48px 0 26px;
+  border-bottom: 1px solid var(--oap-border);
+}
+
+.mc-workspace-header h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  line-height: 1;
+}
+
+.mc-workspace-header p {
+  max-width: 680px;
+  margin: 0;
+}
+
+.mc-eyebrow {
+  color: var(--oap-green);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.mc-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mc-secondary-link {
+  display: inline-block;
+  padding: 10px 14px;
+  border: 1px solid var(--oap-border);
+  border-radius: 999px;
+  color: var(--oap-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mc-secondary-link:hover,
+.mc-secondary-link:focus-visible {
+  border-color: var(--oap-green);
+  outline: none;
+}
+
+.mc-workspace {
+  display: grid;
+  gap: 18px;
+  padding: 24px 0 48px;
+}
+
+.mc-panel,
+.mc-authority {
+  padding: 22px;
+  border: 1px solid var(--oap-border);
+  border-radius: 18px;
+  background: var(--oap-panel);
+}
+
+.mc-panel h2,
+.mc-family-card h3,
+.mc-link-view-card h3 {
+  margin-top: 4px;
+}
+
+.mc-family-grid,
+.mc-link-view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.mc-family-card,
+.mc-link-view-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+  padding: 18px;
+  border: 1px solid #245f38;
+  border-radius: 14px;
+  background: #0b2114;
+}
+
+.mc-family-card p,
+.mc-link-view-card p {
+  color: var(--oap-muted);
+}
+
+.mc-family-card a {
+  margin-top: auto;
+}
+
+.mc-authority {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-color: #4b9abe;
+  background: #0c2430;
+}
+
+@media (max-width: 768px) {
+  .mc-workspace-header,
+  .mc-authority {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -4,41 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAP The Spot — {{ capability.name }}</title>
-  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header">
     <div>
-      <p class="mc-eyebrow">OAP World / The Spot / {{ capability.owner }}</p>
+      <p class="mc-eyebrow">OAP World / The Spot</p>
       <h1>{{ capability.name }}</h1>
       <p>{{ capability.purpose }}</p>
     </div>
     <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.spot_dashboard') }}">Back to The Spot</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.the_link_dashboard') }}">The Link</a>
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">Back to The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
     </div>
   </header>
   <main class="mc-workspace">
-    <section class="mc-integrity">
-      <div>
-        <p class="mc-eyebrow">Honest operational state</p>
-        <h2>{{ capability.status }}</h2>
-        <p>{{ capability.function }}</p>
-      </div>
-      <dl class="mc-integrity-counts">
-        <div><dt>Owner</dt><dd>{{ capability.owner }}</dd></div>
-        <div><dt>Execution</dt><dd>Human-gated</dd></div>
-      </dl>
-    </section>
-    {% if capability.blocked_by %}
     <section class="mc-panel">
-      <p class="mc-eyebrow">Protected boundary</p>
-      <h2>What remains locked</h2>
-      <p>{{ capability.blocked_by }}.</p>
-      <span class="mc-lock-badge mc-lock-badge--amber">Fail closed</span>
+      <p class="mc-eyebrow">Your postcode</p>
+      <h2>Discover more in My World</h2>
+      <p>Sign in to personalise this part of OAP.</p>
+      <a class="mc-secondary-link" href="{{ url_for('auth_page') }}">Enter My World →</a>
     </section>
-    {% endif %}
-    <aside class="mc-authority"><strong>Human Authority final</strong><span>This surface cannot approve, pay, dispatch, expose private data or execute independently.</span></aside>
   </main>
 </body>
 </html>

@@ -28,14 +28,14 @@
 </head>
 <body>
   <header>
-    <p class="eyebrow">PRIVATE · MANAGED NEON AUTH</p>
+    <p class="eyebrow">PRIVATE</p>
     <h1>Enter My World</h1>
-    <p>One secure identity for your My World profile, SMI conversations and Mission Control.</p>
+    <p>Your private OAP account.</p>
     <a href="{{ url_for('home') }}">← Return to public OAP World</a>
     {% if auth_error %}<div class="error" role="alert">{{ auth_error }}</div>{% endif %}
     {% if auth_notice %}<div class="notice" role="status">{{ auth_notice }}</div>{% endif %}
     {% if not auth_configured %}
-    <div class="error" role="alert">Secure sign-in is not configured in this environment.</div>
+    <div class="error" role="alert">Sign-in is temporarily unavailable.</div>
     {% endif %}
   </header>
 
@@ -68,7 +68,7 @@
         <input id="sign-up-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required>
         <button type="submit" {% if not auth_configured %}disabled{% endif %}>Create private My World</button>
       </form>
-      <p class="small">Authentication records and sessions are stored by Managed Neon Auth. OAP never stores your password.</p>
+      <p class="small">OAP does not store your password.</p>
     </section>
   </main>
 </body>
