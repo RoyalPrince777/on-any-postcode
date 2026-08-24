@@ -54,7 +54,7 @@ def _permission(connection, identity_id: str) -> bool:
     ).fetchone()
     return row is not None
 
-def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None, brain: dict | None = None) -> str:
+def _provider(message: str, image_data: str = "", history: list[dict[str, str]] | None = None, brain: dict | None = None, adaptive_memory: list[str] | None = None) -> str:
     key=os.environ.get("OPENAI_API_KEY","").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
@@ -75,6 +75,7 @@ def _provider(message: str, image_data: str = "", history: list[dict[str, str]] 
             "approved_advisors": (brain or {}).get("advisor_ids", []),
             "signal_level": (brain or {}).get("signal_level"),
             "war_room_triggered": (brain or {}).get("war_room", {}).get("triggered", False),
+            "audited_hrm_lessons": [str(item)[:300] for item in (adaptive_memory or [])[-5:]],
         }, separators=(",", ":"))
     )
     user_content=[{"type":"input_text","text":message or "Describe and analyse the attached image."}]
@@ -111,6 +112,25 @@ def _provider(message: str, image_data: str = "", history: list[dict[str, str]] 
     if not text.strip():
         raise RuntimeError("provider_empty_response")
     return text.strip()[:12000]
+
+def coherence_review(response: str, brain: dict) -> dict:
+    """Return explainable alignment checks without exposing private reasoning."""
+    lowered=response.casefold()
+    checks={
+        "substantive": len(response.strip()) >= 20,
+        "smi_identity": "generic ai" not in lowered and "as chatgpt" not in lowered,
+        "human_authority": not any(phrase in lowered for phrase in (
+            "i have final authority", "human authority is not final",
+            "i approved my own", "i executed this action",
+        )),
+        "directness": not lowered.lstrip().startswith(("do you mean:", "which of these do you mean")),
+        "governed_state": brain.get("output_state") in {
+            "RECOMMENDATION_READY", "REVIEW_REQUIRED", "BLOCK_REQUEST", "SYSTEM_LOG_ONLY"
+        },
+    }
+    passed=all(checks.values())
+    return {"passed":passed,"score":round(100*sum(checks.values())/len(checks)),
+            "checks":checks}
 
 def chat(message: object, identity_id: str, display_name: object, conversation_id: object=None, image_data: object=None) -> dict:
     clean=_clean(message,MAX_INPUT)
@@ -157,6 +177,13 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             request_id=request_id, identity_id=identity, content=clean,
             history=history, image_attached=bool(image),
         )
+        memory_rows=connection.execute(
+            """SELECT summary FROM smi_memory_records
+               WHERE identity_id=%s AND task_type=%s
+               ORDER BY created_at DESC LIMIT 5""",
+            (identity,brain["task_type"]),
+        ).fetchall()
+        adaptive_memory=[str(row[0]) for row in reversed(memory_rows)]
         if not brain["passed"]:
             outcome="BLOCKED"
             reason=brain["guardian_reason"] or "Canonical Guardian blocked the request."
@@ -170,8 +197,17 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             response=reason
             state="BLOCK_REQUEST"
         else:
-            response=_provider(clean,image,history,brain)
+            response=_provider(clean,image,history,brain,adaptive_memory)
             state=brain["output_state"]
+        coherence=coherence_review(response,brain)
+        if outcome!="BLOCKED" and not coherence["passed"]:
+            outcome="REVIEW_REQUIRED"
+            state="REVIEW_REQUIRED"
+            reason="Coherence review requires Human Authority review."
+            connection.execute(
+                """UPDATE oap_guardian_reviews SET outcome=%s,reason=%s
+                   WHERE request_id=%s""",(outcome,reason,request_id)
+            )
         content_hash=hashlib.sha256((clean + ("|image" if image else "")).encode()).hexdigest()
         connection.execute(
             """INSERT INTO smi_memory_records
@@ -181,7 +217,8 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             (request_id,identity,brain["task_type"],content_hash,response[:300],state,
              brain["signal_level"],
              json.dumps({"guardian":outcome,"provider":PROVIDER,"image_attached":bool(image),
-                         "advisor_ids":brain["advisor_ids"],"war_room":brain["war_room"]}),
+                         "advisor_ids":brain["advisor_ids"],"war_room":brain["war_room"],
+                         "adaptive_memory_count":len(adaptive_memory),"coherence":coherence}),
              json.dumps(brain["processing_states"]+["PROVIDER_COMPLETED","HRM_RECORDED"])),
         )
         connection.execute(
@@ -207,6 +244,7 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             "provider": PROVIDER, "model": MODEL, "image_attached": bool(image),
             "task_type": brain["task_type"], "advisor_ids": brain["advisor_ids"],
             "brain_regions": brain["brain_region_count"], "war_room": brain["war_room"]["triggered"],
+            "adaptive_memory_count": len(adaptive_memory), "coherence_score": coherence["score"],
         }, sort_keys=True, separators=(",", ":"))
         curr_hash = hashlib.sha256((prev_hash + audit_payload).encode()).hexdigest()
         connection.execute(
@@ -222,7 +260,9 @@ def chat(message: object, identity_id: str, display_name: object, conversation_i
             "provider":PROVIDER,"model":MODEL,"human_authority_final":True,
             "task_type":brain["task_type"],"advisor_ids":brain["advisor_ids"],
             "brain_regions":brain["brain_region_count"],"signal_level":brain["signal_level"],
-            "war_room":brain["war_room"],"can_execute":False}
+            "war_room":brain["war_room"],"can_execute":False,
+            "adaptive":{"active":True,"hrm_lessons":len(adaptive_memory)},
+            "coherent":{"passed":coherence["passed"],"score":coherence["score"]}}
 
 def health() -> dict:
     """Return the truthful OAP 3x7 (21-gate) SMI production readiness result."""
@@ -284,7 +324,8 @@ def health() -> dict:
             "checks":checks,"green":sum(checks.values()),"total":len(checks),
             "database_reason": reason,
             "constitution":{"protocol":"3x7","human_authority_final":True,
-                            "independent_execution":False},
+                            "independent_execution":False,
+                            "adaptive":True,"coherent":True},
             "environment": {
                 "revision_present": bool(os.environ.get("OAP_ENV_REVISION")),
                 "database_url_present": bool(os.environ.get("DATABASE_URL")),
