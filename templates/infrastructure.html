@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07130d">
+  <title>OAP Infrastructure</title>
+  <style>
+    :root{--bg:#050907;--panel:#0c1711;--panel2:#112219;--line:#244532;--gold:#d8b75b;--green:#38d477;--text:#f4f7f5;--muted:#9fb2a6}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#14301f 0,#070d09 38%,#030604 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif;min-height:100vh}
+    a{color:inherit;text-decoration:none}.shell{width:min(1180px,94%);margin:auto;padding:24px 0 60px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.brand{font-weight:900;letter-spacing:.08em}.brand span{color:var(--gold)}
+    .back{border:1px solid var(--line);padding:10px 14px;border-radius:999px;color:var(--muted)}
+    .hero{padding:28px;border:1px solid #2c573d;border-radius:24px;background:linear-gradient(145deg,rgba(17,34,25,.96),rgba(8,16,11,.96));box-shadow:0 22px 70px #0009}
+    h1{font-size:clamp(2rem,6vw,4.4rem);line-height:.96;margin:8px 0 14px}.eyebrow{color:var(--gold);font-weight:800;letter-spacing:.18em;font-size:.78rem}.lead{color:var(--muted);max-width:760px;line-height:1.6}
+    .health{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.pill{padding:9px 13px;border:1px solid var(--line);border-radius:999px;background:#07120c;font-size:.85rem}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green);margin-right:7px}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:20px}.card{position:relative;min-height:230px;padding:22px;border-radius:20px;border:1px solid var(--line);background:linear-gradient(150deg,var(--panel2),var(--panel));transition:.2s}.card:hover{transform:translateY(-3px);border-color:#4f8b65}
+    .num{font-size:.76rem;color:var(--gold);letter-spacing:.14em;font-weight:900}.icon{font-size:1.7rem;margin:18px 0 8px}h2{font-size:1.12rem;margin:0 0 10px}.card ul{padding:0;margin:0;list-style:none;color:var(--muted);font-size:.88rem;line-height:1.68}.state{position:absolute;top:18px;right:18px;color:var(--green);font-size:.72rem;font-weight:900}.footer{text-align:center;color:var(--muted);margin-top:32px;font-size:.82rem}
+    @media(max-width:860px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.shell{width:92%;padding-top:15px}.hero{padding:22px}.grid{grid-template-columns:1fr}.card{min-height:auto}.top{align-items:flex-start}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <nav class="top"><div class="brand">ON ANY <span>POSTCODE</span></div><a class="back" href="/">← Front Door</a></nav>
+  <section class="hero">
+    <div class="eyebrow">OAP DIGITAL ORGANISM · INFRASTRUCTURE</div>
+    <h1>Infrastructure<br>Command</h1>
+    <p class="lead">One live view for the foundations that keep OAP connected, protected, observable and ready to grow. Earth Is Our Turf.</p>
+    <div class="health">
+      <div class="pill"><span class="dot"></span>System Live</div>
+      <div class="pill"><span class="dot"></span>Neon Postgres Live</div>
+      <div class="pill"><span class="dot"></span>Render Live</div>
+      <div class="pill">Human Authority Final</div>
+    </div>
+  </section>
+  <section class="grid" aria-label="Infrastructure systems">
+  {% for item in sections %}
+    <a class="card" id="{{ item.slug }}" href="{{ item.href }}">
+      <div class="state"><span class="dot"></span>{{ item.status }}</div>
+      <div class="num">{{ "%02d"|format(loop.index) }}</div>
+      <div class="icon">{{ item.icon }}</div>
+      <h2>{{ item.name }}</h2>
+      <ul>{% for feature in item.features %}<li>{{ feature }}</li>{% endfor %}</ul>
+    </a>
+  {% endfor %}
+  </section>
+  <div class="footer">Born Local. Built Global. · OAP Infrastructure v1.0</div>
+</main>
+</body>
+</html>
