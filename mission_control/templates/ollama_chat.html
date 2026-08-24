@@ -80,7 +80,12 @@ mediaInput.addEventListener('change',async()=>{
   }else{
    if(file.size>5*1024*1024)throw new Error('Audio or document must be 5 MB or smaller');
    const kind=file.type.startsWith('audio/')?'audio':'document';
-   selectedAttachment={kind,name:file.name,data:await readDataURL(file)};
+   let data=await readDataURL(file);
+   if(kind==='document'&&(data.startsWith('data:;')||data.startsWith('data:application/octet-stream;'))){
+    const ext=file.name.split('.').pop().toLowerCase(),types={pdf:'application/pdf',txt:'text/plain',md:'text/markdown',csv:'text/csv',json:'application/json',html:'text/html',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
+    if(types[ext])data=data.replace(/^data:[^;]*;/,'data:'+types[ext]+';');
+   }
+   selectedAttachment={kind,name:file.name,data};
   }
   document.getElementById('media-icon').textContent=selectedAttachment.kind==='video'?'🎬':selectedAttachment.kind==='audio'?'🎧':'📄';
   document.getElementById('media-name').textContent=file.name;document.getElementById('media-preview').classList.add('show');
