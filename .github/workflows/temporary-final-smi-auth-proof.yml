@@ -1,0 +1,49 @@
+name: Temporary final SMI auth proof
+
+on:
+  push:
+    branches:
+      - fix/smi-auth-entry
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe final public and SMI auth boundary
+        run: |
+          set -euo pipefail
+          code() {
+            curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' "$1"
+          }
+          public_health=$(code https://on-any-postcode.onrender.com/healthz)
+          public_world=$(code https://on-any-postcode.onrender.com/world)
+          public_mission=$(code https://on-any-postcode.onrender.com/mission)
+          smi_health=$(code https://oap-smi.onrender.com/healthz)
+          smi_root=$(code https://oap-smi.onrender.com/)
+          smi_mission=$(code https://oap-smi.onrender.com/mission)
+          smi_entry=$(code 'https://oap-smi.onrender.com/enter-my-world?next=/mission')
+          smi_world=$(code https://oap-smi.onrender.com/world)
+          smi_signup=$(curl --silent --show-error --max-time 30 --request POST --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/auth/sign-up)
+          location=$(curl --silent --show-error --max-time 30 --head https://oap-smi.onrender.com/mission | tr -d '\r' | awk 'BEGIN{IGNORECASE=1} /^location:/{sub(/^location:[[:space:]]*/, ""); print; exit}')
+
+          echo "public health=$public_health world=$public_world mission=$public_mission"
+          echo "smi health=$smi_health root=$smi_root mission=$smi_mission entry=$smi_entry world=$smi_world signup=$smi_signup"
+          echo "smi mission location=$location"
+
+          test "$public_health" = "200"
+          test "$public_world" = "200"
+          test "$public_mission" = "404"
+          test "$smi_health" = "200"
+          test "$smi_root" = "302"
+          test "$smi_mission" = "302"
+          test "$smi_entry" = "200"
+          test "$smi_world" = "404"
+          test "$smi_signup" = "404"
+          case "$location" in
+            /enter-my-world?next=/mission*) ;;
+            *) echo "unexpected mission redirect: $location"; exit 1 ;;
+          esac
