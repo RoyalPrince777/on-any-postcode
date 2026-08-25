@@ -112,3 +112,7 @@ def test_render_blueprint_defines_real_background_worker():
     assert "startCommand: python -m mission_control.organism_worker" in content
     assert "maxShutdownDelaySeconds: 60" in content
     assert "OAP_DB_SECRET_B64" in content
+    assert "fromService:" in content
+    assert "envVarKey: OAP_DB_SECRET_B64" in content
+    assert "name: on-any-postcode" in content
+    assert "type: web\n    name: on-any-postcode" not in content
