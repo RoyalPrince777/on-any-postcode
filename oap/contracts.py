@@ -163,9 +163,19 @@ class ProviderResult:
 
 @dataclass(frozen=True, slots=True)
 class WarRoomReport:
+    """Evidence-backed War Room simulation; never an execution decision."""
+
     triggered: bool
     scenarios: tuple[str, ...]
     recommendation: str
+    evidence: tuple[str, ...] = ()
+    participants: tuple[str, ...] = ()
+    positions: tuple[str, ...] = ()
+    dissent: tuple[str, ...] = ()
+    authority_level: int | None = None
+    human_authority_final: bool = True
+    coherence_conflicts: tuple[str, ...] = ()
+    reversibility_required: bool = True
 
 
 @dataclass(frozen=True, slots=True)
