@@ -22,9 +22,8 @@ class OAPIntelligence(unittest.TestCase):
         r=self.c.get('/api/intelligence')
         self.assertEqual(r.status_code,200)
         self.assertEqual(r.json['parent'],'SMI')
-        self.assertIn('oap_world_intelligence',r.json['children'])
-        self.assertIn('earth_intelligence',r.json['children'])
-        self.assertIn('universe_intelligence',r.json['children'])
+        for child in ['oap_world_intelligence','earth_intelligence','continent_intelligence','country_intelligence','universe_intelligence']:
+            self.assertIn(child,r.json['children'])
 
     def test_adaptive_coherence_contract(self):
         r=self.c.get('/api/intelligence/adaptive-coherence')
@@ -54,11 +53,38 @@ class OAPIntelligence(unittest.TestCase):
         self.assertEqual(r.status_code,200)
         self.assertEqual(r.json['parent'],'OAP World Intelligence')
         self.assertEqual(r.json['scope'],'earth')
+        self.assertIn('continent_intelligence',r.json['children'])
         self.assertTrue(r.json['evidence_first'])
         self.assertTrue(r.json['prediction_requires_verified_sources'])
         self.assertTrue(r.json['adaptive'])
         self.assertTrue(r.json['coherent'])
         self.assertEqual(r.json['authority'],'human_final')
+
+    def test_africa_continent_intelligence(self):
+        r=self.c.get('/api/continent-intelligence?continent=Africa')
+        self.assertEqual(r.status_code,200)
+        self.assertEqual(r.json['parent'],'Earth Intelligence')
+        self.assertEqual(r.json['continent'],'Africa')
+        self.assertEqual(r.json['child'],'Country Intelligence')
+        self.assertIn('sika_africa',r.json['organs'])
+        self.assertIn('movement',r.json['organs'])
+        self.assertFalse(r.json['united_states_of_africa']['government_claim'])
+        self.assertFalse(r.json['united_states_of_africa']['legal_state_claim'])
+        self.assertFalse(r.json['sika_africa']['legal_tender_claim'])
+        self.assertFalse(r.json['sika_africa']['bank_claim'])
+        self.assertEqual(r.json['authority'],'human_final')
+
+    def test_country_intelligence_local_hierarchy(self):
+        r=self.c.get('/api/country-intelligence?continent=Africa&country=Ghana')
+        self.assertEqual(r.status_code,200)
+        self.assertEqual(r.json['parent'],'Continent Intelligence')
+        self.assertEqual(r.json['country'],'Ghana')
+        self.assertEqual(r.json['continent'],'Africa')
+        self.assertEqual(r.json['hierarchy'][0],'country')
+        self.assertEqual(r.json['hierarchy'][-1],'spot')
+        self.assertTrue(r.json['local_first'])
+        self.assertTrue(r.json['no_level_skipping'])
+        self.assertFalse(r.json['precise_location_default'])
 
     def test_universe_intelligence(self):
         r=self.c.get('/api/universe-intelligence')
