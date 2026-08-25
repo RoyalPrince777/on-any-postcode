@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
 from . import postgres_db
@@ -187,7 +187,7 @@ def create_product(
         )
     except (InvalidOperation, ValueError) as exc:
         raise ValueError("invalid_product_price") from exc
-    if amount < 0 or amount > Decimal("1000000"):
+    if amount < 0 or amount > Decimal(1000000):
         raise ValueError("invalid_product_price")
     price_minor = int(amount * 100)
     try:
