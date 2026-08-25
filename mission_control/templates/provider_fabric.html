@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Provider Fabric</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">OAP / SMI / Provider Fabric</p>
+      <h1>{{ fabric.name }}</h1>
+      <p>{{ fabric.law }}</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="provider-summary-title">
+      <p class="mc-eyebrow">Gate 6 · replaceable provider contracts</p>
+      <h2 id="provider-summary-title">Provider readiness</h2>
+      <div class="mc-status-grid">
+        <article class="mc-status-card"><strong>Slots</strong><span>{{ fabric.summary.slots }}</span></article>
+        <article class="mc-status-card"><strong>Wired</strong><span>{{ fabric.summary.wired }}</span></article>
+        <article class="mc-status-card"><strong>Runtime verified</strong><span>{{ fabric.summary.runtime_verified }}</span></article>
+        <article class="mc-status-card"><strong>Provider required</strong><span>{{ fabric.summary.provider_required }}</span></article>
+      </div>
+      <p class="mc-notice">Wired does not mean runtime verified. Configuration never counts as proof by itself.</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="provider-slots-title">
+      <h2 id="provider-slots-title">Capability contracts</h2>
+      <div class="mc-agent-grid">
+        {% for slot in fabric.slots %}
+        <article class="mc-agent-card">
+          <p class="mc-eyebrow">{{ slot.risk|replace('_', ' ')|title }}</p>
+          <h3>{{ slot.name }}</h3>
+          <p>{{ slot.purpose }}</p>
+          <p><strong>{{ slot.status }}</strong></p>
+          <p>Used by: {{ slot.required_for|join(' · ') }}</p>
+          {% if slot.adapters %}
+          <ul>
+            {% for adapter in slot.adapters %}
+            <li>{{ adapter.name }} · {{ adapter.mode|replace('_', ' ') }} · {{ adapter.host }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p>No approved adapter wired.</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="provider-boundary-title">
+      <h2 id="provider-boundary-title">Execution boundary</h2>
+      <div class="mc-status-grid">
+        {% for control, enabled in fabric.execution.items() %}
+        <article class="mc-status-card">
+          <strong>{{ control|replace('_', ' ')|title }}</strong>
+          <span>{{ 'Enabled' if enabled else 'Locked' }}</span>
+        </article>
+        {% endfor %}
+      </div>
+      <p><strong>Human Authority required:</strong> {{ 'Yes' if fabric.human_authority_required else 'No' }}</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="provider-laws-title">
+      <h2 id="provider-laws-title">Provider laws</h2>
+      <ul>
+        {% for principle in fabric.principles %}
+        <li>{{ principle }}</li>
+        {% endfor %}
+      </ul>
+      <p class="mc-notice">No provider activation, payment capture, dispatch, carrier switch or remote eSIM install control exists on this page.</p>
+    </section>
+  </main>
+</body>
+</html>
