@@ -1,28 +1,17 @@
 services:
-  - type: worker
-    name: oap-organism-runtime
+  - type: web
+    name: oap-smi
     runtime: python
-    plan: starter
+    plan: free
     region: oregon
     repo: https://github.com/RoyalPrince777/on-any-postcode
     branch: main
     autoDeployTrigger: "off"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m mission_control.organism_worker
-    maxShutdownDelaySeconds: 60
+    startCommand: gunicorn smi_gateway:app
+    healthCheckPath: /healthz
     envVars:
-      - key: OAP_DB_SECRET_B64
-        fromService:
-          type: web
-          name: on-any-postcode
-          envVarKey: OAP_DB_SECRET_B64
-      - key: OAP_WORKER_POLL_SECONDS
-        value: "2"
-      - key: OAP_WORKER_HEARTBEAT_SECONDS
-        value: "15"
-      - key: OAP_WORKER_SCHEDULER_SECONDS
-        value: "5"
-      - key: OAP_WORKER_RECOVERY_SECONDS
-        value: "30"
-      - key: OAP_WORKER_LEASE_SECONDS
-        value: "60"
+      - key: OAP_PUBLIC_ORIGIN
+        value: "https://on-any-postcode.onrender.com"
+      - key: OAP_SMI_GATEWAY_SECRET
+        sync: false
