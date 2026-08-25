@@ -1,0 +1,34 @@
+name: Temporary Link Up live proof
+
+on:
+  push:
+    branches:
+      - build/linkup-language-law
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe live Link Up language and private boundary
+        run: |
+          set -euo pipefail
+          body=$(mktemp)
+          linkup_code=$(curl --silent --show-error --max-time 30 --output "$body" --write-out '%{http_code}' https://on-any-postcode.onrender.com/linkup)
+          mission_code=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/mission)
+          home=$(mktemp)
+          home_code=$(curl --silent --show-error --max-time 30 --output "$home" --write-out '%{http_code}' https://on-any-postcode.onrender.com/)
+          echo "linkup=$linkup_code home=$home_code public_mission=$mission_code"
+          test "$linkup_code" = "200"
+          test "$home_code" = "200"
+          test "$mission_code" = "404"
+          grep -Fq 'The Spot → The Link → Link Up' "$body"
+          grep -Fq 'Your people. Your Link Ups. Your community.' "$body"
+          grep -Fq 'People → Links → Crews → Link Up' "$body"
+          grep -Fq 'aria-label="Link Up features"' "$body"
+          grep -Fq '>💬 Link Up</a>' "$home"
+          grep -Fq '>Open Link Up</a>' "$home"
+          echo 'live_link_up_language=PASS'
