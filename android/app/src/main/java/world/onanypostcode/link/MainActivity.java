@@ -24,10 +24,16 @@ public class MainActivity extends Activity {
         s.setGeolocationEnabled(true);
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient() {
-            @Override public void onPermissionRequest(PermissionRequest request) { runOnUiThread(request::grant); }
-            @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback cb) { cb.invoke(origin, true, false); }
+            @Override public void onPermissionRequest(PermissionRequest request) {
+                runOnUiThread(() -> request.grant(request.getResources()));
+            }
+            @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback cb) {
+                cb.invoke(origin, true, false);
+            }
         });
         web.loadUrl("https://ownpost-store.onrender.com/link");
     }
-    @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override public void onBackPressed() {
+        if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+    }
 }
