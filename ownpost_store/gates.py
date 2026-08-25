@@ -23,6 +23,7 @@ from event_bridge import register_event_bridge
 from regulated_rails import register_regulated_rails
 from oap_observability import register_observability
 from oap_finalization import register_finalization
+from oap_pillars import register_pillars
 
 if 'spot_family' not in app.blueprints: register_spot_family(app, db, uid)
 if 'royal_oap' not in app.blueprints: register_royal_oap(app, db, uid)
@@ -46,3 +47,4 @@ if 'oap_event_bridge' not in app.blueprints: register_event_bridge(app, db, uid)
 if 'oap_regulated_rails' not in app.blueprints: register_regulated_rails(app)
 if 'oap_observability' not in app.blueprints: register_observability(app, db, uid)
 if 'oap_finalization' not in app.blueprints: register_finalization(app, db, uid)
+if 'oap_pillars' not in app.blueprints: register_pillars(app)
