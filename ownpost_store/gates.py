@@ -22,6 +22,7 @@ from location_bridge import register_location_bridge
 from event_bridge import register_event_bridge
 from regulated_rails import register_regulated_rails
 from oap_observability import register_observability
+from smi_brain import register_smi_brain
 from oap_finalization import register_finalization
 from oap_pillars import register_pillars
 
@@ -46,5 +47,6 @@ if 'oap_location_bridge' not in app.blueprints: register_location_bridge(app)
 if 'oap_event_bridge' not in app.blueprints: register_event_bridge(app, db, uid)
 if 'oap_regulated_rails' not in app.blueprints: register_regulated_rails(app)
 if 'oap_observability' not in app.blueprints: register_observability(app, db, uid)
+if 'oap_smi_brain' not in app.blueprints: register_smi_brain(app, db, uid)
 if 'oap_finalization' not in app.blueprints: register_finalization(app, db, uid)
 if 'oap_pillars' not in app.blueprints: register_pillars(app)
