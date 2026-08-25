@@ -1,0 +1,49 @@
+name: Temporary Provider Fabric live proof
+
+on:
+  push:
+    branches:
+      - build/provider-fabric
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe Provider Fabric privacy boundary
+        run: |
+          set -euo pipefail
+          public_provider_headers=$(mktemp)
+          public_status_headers=$(mktemp)
+          smi_provider_headers=$(mktemp)
+          smi_status_headers=$(mktemp)
+          smi_health_body=$(mktemp)
+
+          public_provider=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$public_provider_headers" --write-out '%{http_code}' https://on-any-postcode.onrender.com/mission/providers)
+          public_status=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$public_status_headers" --write-out '%{http_code}' https://on-any-postcode.onrender.com/mission/providers/status)
+          public_health=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/healthz)
+
+          smi_provider=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$smi_provider_headers" --write-out '%{http_code}' https://oap-smi.onrender.com/mission/providers)
+          smi_status=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$smi_status_headers" --write-out '%{http_code}' https://oap-smi.onrender.com/mission/providers/status)
+          smi_health=$(curl --silent --show-error --max-time 30 --output "$smi_health_body" --write-out '%{http_code}' https://oap-smi.onrender.com/healthz)
+          smi_world=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/world)
+          smi_signup=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/auth/sign-up)
+
+          echo "public_provider=$public_provider public_status=$public_status public_health=$public_health"
+          echo "smi_provider=$smi_provider smi_status=$smi_status smi_health=$smi_health smi_world=$smi_world smi_signup=$smi_signup"
+
+          test "$public_provider" = "404"
+          test "$public_status" = "404"
+          test "$public_health" = "200"
+          test "$smi_provider" = "302"
+          test "$smi_status" = "302"
+          test "$smi_health" = "200"
+          test "$smi_world" = "404"
+          test "$smi_signup" = "404"
+
+          grep -Eiq '^location: /enter-my-world\?next=/mission/providers\r?$' "$smi_provider_headers"
+          grep -Eiq '^location: /enter-my-world\?next=/mission/providers/status\r?$' "$smi_status_headers"
+          echo 'live_provider_fabric_boundary=PASS'
