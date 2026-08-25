@@ -8,6 +8,7 @@ from test_spot_family import SpotFamily
 from test_royal_oap import RoyalOAP
 from test_oap_intelligence import OAPIntelligence
 from test_youth_real_education import YouthRealEducation
+from test_oap_finalization import OAPFinalization
 
 class Gates(unittest.TestCase):
  def setUp(self):
@@ -53,7 +54,7 @@ class Gates(unittest.TestCase):
   r=self.c.get('/api/businesses');self.assertEqual(r.status_code,200);self.assertIn('core is free',r.json['monetization_rule'])
   r=self.c.post('/api/businesses',headers=self.h,json={'name':'CI Business','category':'test','postcode':'SE15'});self.assertEqual(r.status_code,201);self.assertTrue(r.json['monetizable']);self.assertTrue(r.json['core_link_free'])
  def test_public_gate_reads(self):
-  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/education/health','/api/education/tracks','/api/youth-safety/policy']:
+  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/earth-intelligence','/api/universe-intelligence','/api/education/health','/api/education/tracks','/api/youth-safety/policy','/api/readiness/capabilities','/api/readiness']:
    r=self.c.get(p,headers=self.h if p=='/api/spot/me' else {}); self.assertEqual(r.status_code,200,p)
 
 if __name__=='__main__': unittest.main()
