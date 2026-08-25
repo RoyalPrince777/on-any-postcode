@@ -1,0 +1,13 @@
+services:
+  - type: worker
+    name: oap-258-worker
+    runtime: python
+    region: frankfurt
+    plan: starter
+    buildCommand: pip install -r ownpost_store/requirements.txt
+    startCommand: python ownpost_store/worker_258.py
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OAP_258_WORKER_ENABLED
+        value: "true"
