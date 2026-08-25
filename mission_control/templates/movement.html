@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Movement</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">{{ movement.law }}</p>
+      <h1>{{ movement.product_name }}</h1>
+      <p>{{ movement.tagline }}</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='movement-delivery') }}">Movement in The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="movement-services-title">
+      <p class="mc-eyebrow">Ride · E-Bike · Delivery · Booking · Track</p>
+      <h2 id="movement-services-title">Move people and goods through one OAP layer</h2>
+      <div class="mc-agent-grid" role="list" aria-label="OAP Movement services">
+        {% for service in movement.services %}
+        <article class="mc-agent-card" role="listitem">
+          <p class="mc-eyebrow">{{ service.icon }} {{ service.status }}</p>
+          <h3>{{ service.name }}</h3>
+          <p>{{ service.purpose }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="movement-roles-title">
+      <p class="mc-eyebrow">Certified roles stay separate</p>
+      <h2 id="movement-roles-title">Members, drivers, riders, couriers and merchants</h2>
+      <div class="mc-agent-grid" role="list" aria-label="OAP Movement roles">
+        {% for role in movement.roles %}
+        <article class="mc-agent-card" role="listitem">
+          <h3>{{ role.name }}</h3>
+          <p>{{ role.purpose }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="movement-esim-title">
+      <p class="mc-eyebrow">Managed connectivity · provider controlled</p>
+      <h2 id="movement-esim-title">📶 {{ movement.connectivity.name }}</h2>
+      <p>{{ movement.connectivity.purpose }}</p>
+      <p><strong>Status:</strong> {{ movement.connectivity.status }}</p>
+      <div class="mc-agent-grid" role="list" aria-label="eSIM connectivity capabilities">
+        {% for capability in movement.connectivity.capabilities %}
+        <article class="mc-agent-card" role="listitem">
+          <h3>{{ capability.name }}</h3>
+          <p>{{ capability.purpose }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <p>No carrier profile activation, deactivation or switching is exposed until an approved telecom provider is connected.</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="movement-safety-title">
+      <p class="mc-eyebrow">Safety before dispatch</p>
+      <h2 id="movement-safety-title">Movement safeguards</h2>
+      <ul>
+        {% for safeguard in movement.safeguards %}
+        <li>{{ safeguard }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <aside class="mc-authority" aria-label="Movement execution boundary">
+      <strong>Provider-ready, not pretending to be dispatched</strong>
+      <span>Booking drafts are designed, while real dispatch, payment, live tracking and eSIM activation remain off until their approved providers and checks are connected.</span>
+    </aside>
+  </main>
+</body>
+</html>
