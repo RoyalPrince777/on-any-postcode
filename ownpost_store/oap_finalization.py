@@ -24,6 +24,7 @@ CORE_PROBES = [
     ('checkpoints','/api/checkpoints'),
     ('providers','/api/providers'),
     ('regulated_rails','/api/regulated'),
+    ('observability','/api/observability/health'),
     ('spot_family','/api/spot/me'),
     ('royal','/api/royal/health'),
     ('intelligence','/api/intelligence/health'),
