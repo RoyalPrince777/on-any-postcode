@@ -6,6 +6,7 @@ tv=Blueprint('oap_tv',__name__)
 def register_tv(app,db,uid):
     def now(): return int(time.time())
     with db() as c:
+        # Internal channel_id/table names are intentionally retained for migration stability.
         c.execute("create table if not exists oap_tv_channels(id bigserial primary key,owner_id bigint not null,name text not null,slug text not null unique,description text not null default '',scope text not null default 'global',scope_value text,age_rating text not null default 'all',active boolean not null default true,created_at bigint not null)")
         c.execute("create table if not exists oap_tv_shows(id bigserial primary key,channel_id bigint not null,title text not null,description text not null default '',category text not null default 'general',age_rating text not null default 'all',created_at bigint not null)")
         c.execute("create table if not exists oap_tv_episodes(id bigserial primary key,show_id bigint not null,title text not null,description text not null default '',media_url text,thumbnail_url text,duration_seconds integer not null default 0,published boolean not null default false,published_at bigint,created_at bigint not null)")
@@ -18,24 +19,28 @@ def register_tv(app,db,uid):
 
     @tv.get('/api/tv/health')
     def tv_health():
-        return jsonify(ok=True,service='oap-tv',layers=['channels','shows','episodes','schedule','watchlist','views','reactions','discovery'],media_transport='separate')
+        return jsonify(ok=True,service='oap-tv',product_language='My World',layers=['my_world','shows','episodes','schedule','watchlist','views','reactions','discovery'],media_transport='separate')
 
-    @tv.route('/api/tv/channels',methods=['GET','POST'])
-    def channels():
+    def worlds_response(rows):
+        return jsonify(my_worlds=rows,hierarchy=['postcode','borough','county_region','country','continent','global','universe'])
+
+    @tv.route('/api/tv/my-world',methods=['GET','POST'])
+    @tv.route('/api/tv/channels',methods=['GET','POST']) # compatibility alias; UI says My World
+    def my_world():
         with db() as c:
             if request.method=='POST':
                 u=uid()
                 if not u:return jsonify(error='auth_required'),401
                 d=request.get_json(silent=True) or {}; name=str(d.get('name','')).strip()[:120]; slug=str(d.get('slug','')).strip().lower()[:80]
-                if not name or not slug or not slug.replace('-','').isalnum():return jsonify(error='invalid_channel'),400
-                scope=str(d.get('scope','global')).lower();
+                if not name or not slug or not slug.replace('-','').isalnum():return jsonify(error='invalid_my_world'),400
+                scope=str(d.get('scope','global')).lower()
                 if scope not in {'postcode','borough','county','country','continent','global','universe'}:return jsonify(error='invalid_scope'),400
-                r=c.execute('insert into oap_tv_channels(owner_id,name,slug,description,scope,scope_value,age_rating,created_at) values(%s,%s,%s,%s,%s,%s,%s,%s) returning id',(u,name,slug,str(d.get('description',''))[:1000],scope,str(d.get('scope_value',''))[:120],str(d.get('age_rating','all'))[:20],now())).fetchone();return jsonify(ok=True,channel_id=r['id']),201
+                r=c.execute('insert into oap_tv_channels(owner_id,name,slug,description,scope,scope_value,age_rating,created_at) values(%s,%s,%s,%s,%s,%s,%s,%s) returning id',(u,name,slug,str(d.get('description',''))[:1000],scope,str(d.get('scope_value',''))[:120],str(d.get('age_rating','all'))[:20],now())).fetchone();return jsonify(ok=True,my_world_id=r['id']),201
             scope=request.args.get('scope'); val=request.args.get('scope_value')
-            if scope and val: rows=c.execute('select id,name,slug,description,scope,scope_value,age_rating from oap_tv_channels where active=true and scope=%s and scope_value=%s order by id desc limit 100',(scope,val)).fetchall()
-            elif scope: rows=c.execute('select id,name,slug,description,scope,scope_value,age_rating from oap_tv_channels where active=true and scope=%s order by id desc limit 100',(scope,)).fetchall()
-            else: rows=c.execute('select id,name,slug,description,scope,scope_value,age_rating from oap_tv_channels where active=true order by id desc limit 100').fetchall()
-        return jsonify(channels=rows,hierarchy=['postcode','borough','county_region','country','continent','global','universe'])
+            if scope and val: rows=c.execute('select id as my_world_id,name,slug,description,scope,scope_value,age_rating from oap_tv_channels where active=true and scope=%s and scope_value=%s order by id desc limit 100',(scope,val)).fetchall()
+            elif scope: rows=c.execute('select id as my_world_id,name,slug,description,scope,scope_value,age_rating from oap_tv_channels where active=true and scope=%s order by id desc limit 100',(scope,)).fetchall()
+            else: rows=c.execute('select id as my_world_id,name,slug,description,scope,scope_value,age_rating from oap_tv_channels where active=true order by id desc limit 100').fetchall()
+        return worlds_response(rows)
 
     @tv.route('/api/tv/shows',methods=['GET','POST'])
     def shows():
@@ -43,12 +48,13 @@ def register_tv(app,db,uid):
             if request.method=='POST':
                 if not uid():return jsonify(error='auth_required'),401
                 d=request.get_json(silent=True) or {}; title=str(d.get('title','')).strip()[:160]
-                try:cid=int(d.get('channel_id',0))
+                raw=d.get('my_world_id',d.get('channel_id',0))
+                try:cid=int(raw)
                 except:cid=0
                 if not title or cid<=0:return jsonify(error='invalid_show'),400
-                r=c.execute('insert into oap_tv_shows(channel_id,title,description,category,age_rating,created_at) values(%s,%s,%s,%s,%s,%s) returning id',(cid,title,str(d.get('description',''))[:1000],str(d.get('category','general'))[:60],str(d.get('age_rating','all'))[:20],now())).fetchone();return jsonify(ok=True,show_id=r['id']),201
-            cid=request.args.get('channel_id')
-            rows=c.execute('select id,channel_id,title,description,category,age_rating from oap_tv_shows where (%s is null or channel_id=%s) order by id desc limit 100',(int(cid) if cid and cid.isdigit() else None,int(cid) if cid and cid.isdigit() else None)).fetchall()
+                r=c.execute('insert into oap_tv_shows(channel_id,title,description,category,age_rating,created_at) values(%s,%s,%s,%s,%s,%s) returning id',(cid,title,str(d.get('description',''))[:1000],str(d.get('category','general'))[:60],str(d.get('age_rating','all'))[:20],now())).fetchone();return jsonify(ok=True,show_id=r['id'],my_world_id=cid),201
+            wid=request.args.get('my_world_id',request.args.get('channel_id')); cid=int(wid) if wid and wid.isdigit() else None
+            rows=c.execute('select id,channel_id as my_world_id,title,description,category,age_rating from oap_tv_shows where (%s is null or channel_id=%s) order by id desc limit 100',(cid,cid)).fetchall()
         return jsonify(shows=rows)
 
     @tv.route('/api/tv/episodes',methods=['GET','POST'])
@@ -73,13 +79,13 @@ def register_tv(app,db,uid):
             if request.method=='POST':
                 if not uid():return jsonify(error='auth_required'),401
                 d=request.get_json(silent=True) or {}
-                try:cid=int(d.get('channel_id',0));start=int(d['starts_at']);end=int(d['ends_at']);eid=int(d['episode_id']) if d.get('episode_id') else None
+                try:cid=int(d.get('my_world_id',d.get('channel_id',0)));start=int(d['starts_at']);end=int(d['ends_at']);eid=int(d['episode_id']) if d.get('episode_id') else None
                 except:return jsonify(error='invalid_schedule'),400
                 if cid<=0 or end<=start:return jsonify(error='invalid_schedule'),400
                 clash=c.execute("select 1 from oap_tv_schedule where channel_id=%s and status<>'cancelled' and starts_at<%s and ends_at>%s limit 1",(cid,end,start)).fetchone()
                 if clash:return jsonify(error='schedule_conflict'),409
-                r=c.execute("insert into oap_tv_schedule(channel_id,episode_id,title,starts_at,ends_at,live,status,created_at) values(%s,%s,%s,%s,%s,%s,'scheduled',%s) returning id",(cid,eid,str(d.get('title','OAP TV'))[:160],start,end,bool(d.get('live',False)),now())).fetchone();return jsonify(ok=True,schedule_id=r['id']),201
-            t=now(); rows=c.execute("select id,channel_id,episode_id,title,starts_at,ends_at,live,status from oap_tv_schedule where status<>'cancelled' and ends_at>=%s order by starts_at limit 200",(t,)).fetchall()
+                r=c.execute("insert into oap_tv_schedule(channel_id,episode_id,title,starts_at,ends_at,live,status,created_at) values(%s,%s,%s,%s,%s,%s,'scheduled',%s) returning id",(cid,eid,str(d.get('title','OAP TV'))[:160],start,end,bool(d.get('live',False)),now())).fetchone();return jsonify(ok=True,schedule_id=r['id'],my_world_id=cid),201
+            t=now(); rows=c.execute("select id,channel_id as my_world_id,episode_id,title,starts_at,ends_at,live,status from oap_tv_schedule where status<>'cancelled' and ends_at>=%s order by starts_at limit 200",(t,)).fetchall()
         return jsonify(schedule=rows)
 
     @tv.route('/api/tv/watchlist/<int:episode_id>',methods=['POST','DELETE'])
@@ -103,8 +109,7 @@ def register_tv(app,db,uid):
         u=uid();d=request.get_json(silent=True) or {}
         try:progress=max(0,int(d.get('progress_seconds',0)))
         except:return jsonify(error='invalid_progress'),400
-        with db() as c:
-            r=c.execute('insert into oap_tv_views(user_id,episode_id,progress_seconds,completed,created_at,updated_at) values(%s,%s,%s,%s,%s,%s) returning id',(u,episode_id,progress,bool(d.get('completed',False)),now(),now())).fetchone()
+        with db() as c:r=c.execute('insert into oap_tv_views(user_id,episode_id,progress_seconds,completed,created_at,updated_at) values(%s,%s,%s,%s,%s,%s) returning id',(u,episode_id,progress,bool(d.get('completed',False)),now(),now())).fetchone()
         return jsonify(ok=True,view_id=r['id'])
 
     @tv.post('/api/tv/react/<int:episode_id>')
