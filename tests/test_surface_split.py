@@ -49,6 +49,7 @@ def test_smi_gateway_allowlist_is_private_and_sign_in_only():
     assert smi_gateway._allowed("auth") is True
     assert smi_gateway._allowed("auth/sign-in") is True
     assert smi_gateway._allowed("auth/sign-out") is True
+    assert smi_gateway._allowed("enter-my-world") is True
     assert smi_gateway._allowed("healthz") is True
     assert smi_gateway._allowed("assets/oap.css") is True
     assert smi_gateway._allowed("auth/sign-up") is False
