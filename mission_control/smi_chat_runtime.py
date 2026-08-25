@@ -277,6 +277,7 @@ def _write_audit(
     connection: object,
     *,
     actor_id: str,
+    authority_level: int,
     action: str,
     target: str,
     reason: str,
@@ -294,11 +295,12 @@ def _write_audit(
         """INSERT INTO audit_events
            (prev_hash,curr_hash,actor_id,actor_type,authority_level,
             action,target,reason,correlation_id,metadata)
-           VALUES (%s,%s,%s,'HUMAN',5,%s,%s,%s,%s,%s::jsonb)""",
+           VALUES (%s,%s,%s,'HUMAN',%s,%s,%s,%s,%s,%s::jsonb)""",
         (
             prev_hash,
             curr_hash,
             actor_id,
+            int(authority_level),
             action,
             target,
             reason,
@@ -339,6 +341,12 @@ def chat(
     _emit(on_event, "stage", stage="received", label="Signal received")
     with postgres_db.connect() as connection:
         _ensure_identity(connection, identity, name)
+        authority_context = authority.authority_record(connection, identity) or {
+            "identity_id": identity,
+            "authority_level": 5,
+            "permissions": ("REQUEST_RECOMMENDATION",),
+            "is_human_authority": False,
+        }
         _emit(on_event, "stage", stage="identity", label="Identity verified")
         if not _permission(connection, identity):
             raise PermissionError("REQUEST_RECOMMENDATION permission required")
@@ -391,6 +399,7 @@ def chat(
             content=review_content,
             history=history,
             image_attached=bool(image or media.get("kind")),
+            authority_context=authority_context,
         )
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
@@ -536,6 +545,8 @@ def chat(
             "advisor_ids": brain["advisor_ids"],
             "brain_regions": brain["brain_region_count"],
             "war_room": brain["war_room"]["triggered"],
+            "authority_level": brain["authority"]["authority_level"],
+            "human_authority": brain["authority"]["is_human_authority"],
             "adaptive_memory_count": len(adaptive_memory),
             "coherence_score": coherence["score"],
             "code_proposal": code_mode,
@@ -543,6 +554,7 @@ def chat(
         _write_audit(
             connection,
             actor_id=identity,
+            authority_level=int(authority_context.get("authority_level", 5)),
             action="SMI_REVIEWED",
             target="SMI_CHAT",
             reason=reason,
@@ -564,6 +576,7 @@ def chat(
         "advisor_ids": brain["advisor_ids"],
         "brain_regions": brain["brain_region_count"],
         "signal_level": brain["signal_level"],
+        "authority": brain["authority"],
         "war_room": brain["war_room"],
         "can_execute": False,
         "adaptive": {"active": True, "hrm_lessons": len(adaptive_memory)},
@@ -751,6 +764,12 @@ def delete_conversation(identity_id: str, conversation_id: str) -> dict:
     conversation = _validated_uuid(conversation_id, "invalid_conversation")
     correlation_id = str(uuid.uuid4())
     with postgres_db.connect() as connection:
+        authority_context = authority.authority_record(connection, identity) or {
+            "identity_id": identity,
+            "authority_level": 5,
+            "permissions": ("REQUEST_RECOMMENDATION",),
+            "is_human_authority": False,
+        }
         row = connection.execute(
             """SELECT title FROM smi_conversations
                WHERE conversation_id=%s AND identity_id=%s FOR UPDATE""",
@@ -765,14 +784,17 @@ def delete_conversation(identity_id: str, conversation_id: str) -> dict:
         _write_audit(
             connection,
             actor_id=identity,
+            authority_level=int(authority_context.get("authority_level", 5)),
             action="SMI_CONVERSATION_DELETED",
             target=conversation,
-            reason="Human Authority deleted an owned SMI conversation.",
+            reason="Authenticated owner deleted an owned SMI conversation.",
             correlation_id=correlation_id,
             metadata={
                 "action": "SMI_CONVERSATION_DELETED",
                 "conversation_id": conversation,
                 "identity_id": identity,
+                "authority_level": int(authority_context.get("authority_level", 5)),
+                "human_authority": bool(authority_context.get("is_human_authority")),
                 "title_hash": hashlib.sha256(str(row[0]).encode()).hexdigest(),
             },
         )
