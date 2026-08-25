@@ -35,6 +35,20 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="movement-order-title">
+      <p class="mc-eyebrow">Build in order · no skipped dependencies</p>
+      <h2 id="movement-order-title">Movement operations sequence</h2>
+      <div class="mc-agent-grid" role="list" aria-label="Movement build sequence">
+        {% for step in movement.build_order %}
+        <article class="mc-agent-card" role="listitem">
+          <p class="mc-eyebrow">Step {{ step.step }}</p>
+          <h3>{{ step.name }}</h3>
+        </article>
+        {% endfor %}
+      </div>
+      <p>Code readiness, durable schema readiness and external provider execution are reported separately. A built boundary does not pretend that a carrier, payment processor or dispatch operator is connected.</p>
+    </section>
+
     <section class="mc-panel" aria-labelledby="movement-roles-title">
       <p class="mc-eyebrow">Certified roles stay separate</p>
       <h2 id="movement-roles-title">Members, drivers, riders, couriers and merchants</h2>
@@ -65,7 +79,7 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="movement-safety-title">
-      <p class="mc-eyebrow">Safety before dispatch</p>
+      <p class="mc-eyebrow">Safety before execution</p>
       <h2 id="movement-safety-title">Movement safeguards</h2>
       <ul>
         {% for safeguard in movement.safeguards %}
@@ -75,8 +89,8 @@
     </section>
 
     <aside class="mc-authority" aria-label="Movement execution boundary">
-      <strong>Provider-ready, not pretending to be dispatched</strong>
-      <span>Booking drafts are designed, while real dispatch, payment, live tracking and eSIM activation remain off until their approved providers and checks are connected.</span>
+      <strong>Private operations are fail-closed</strong>
+      <span>Authenticated booking, availability, matching, consent, eSIM-request, payment-intent and trip-channel APIs do not activate external dispatch, payment capture or carrier provisioning.</span>
     </aside>
   </main>
 </body>
