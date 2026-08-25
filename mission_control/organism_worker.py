@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from . import authority, postgres_db
+from . import postgres_db
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
@@ -28,11 +28,27 @@ def _heartbeat_job(job: RuntimeJob) -> dict[str, Any]:
 def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     del job
     database = postgres_db.postgres_status()
-    human_authority = authority.status()
+    human_authority_present = False
+    if database.get("initialized"):
+        with postgres_db.connect(readonly=True) as connection:
+            human_authority_present = (
+                connection.execute(
+                    """SELECT 1 FROM oap_identities i
+                       JOIN oap_identity_roles ir ON ir.identity_id=i.identity_id
+                       JOIN oap_roles r ON r.role_id=ir.role_id
+                       JOIN oap_role_permissions rp ON rp.role_id=r.role_id
+                       WHERE i.status='ACTIVE'
+                         AND i.identity_type='HUMAN_AUTHORITY'
+                         AND r.authority_level=0
+                         AND rp.permission_id='APPROVE_RECOMMENDATION'
+                       LIMIT 1"""
+                ).fetchone()
+                is not None
+            )
     return {
         "kind": "runtime_health_probe",
         "database_ready": bool(database.get("initialized")),
-        "human_authority_ready": bool(human_authority.get("ready")),
+        "human_authority_present": human_authority_present,
         "consequential_action": False,
     }
 
@@ -72,12 +88,22 @@ def run() -> int:
 
     store = PostgresRuntimeStore()
     worker_id = _worker_id()
-    revision = os.environ.get("RENDER_GIT_COMMIT", os.environ.get("OAP_ENV_REVISION", "unknown"))[:120]
+    revision = os.environ.get(
+        "RENDER_GIT_COMMIT", os.environ.get("OAP_ENV_REVISION", "unknown")
+    )[:120]
     poll_seconds = _positive_seconds("OAP_WORKER_POLL_SECONDS", 2.0, 0.5, 30.0)
-    heartbeat_seconds = _positive_seconds("OAP_WORKER_HEARTBEAT_SECONDS", 15.0, 5.0, 60.0)
-    scheduler_seconds = _positive_seconds("OAP_WORKER_SCHEDULER_SECONDS", 5.0, 1.0, 60.0)
-    recovery_seconds = _positive_seconds("OAP_WORKER_RECOVERY_SECONDS", 30.0, 10.0, 300.0)
-    lease_seconds = int(_positive_seconds("OAP_WORKER_LEASE_SECONDS", 60.0, 30.0, 300.0))
+    heartbeat_seconds = _positive_seconds(
+        "OAP_WORKER_HEARTBEAT_SECONDS", 15.0, 5.0, 60.0
+    )
+    scheduler_seconds = _positive_seconds(
+        "OAP_WORKER_SCHEDULER_SECONDS", 5.0, 1.0, 60.0
+    )
+    recovery_seconds = _positive_seconds(
+        "OAP_WORKER_RECOVERY_SECONDS", 30.0, 10.0, 300.0
+    )
+    lease_seconds = int(
+        _positive_seconds("OAP_WORKER_LEASE_SECONDS", 60.0, 30.0, 300.0)
+    )
     stop_event = threading.Event()
 
     def request_stop(signum: int, frame: object) -> None:
@@ -135,14 +161,23 @@ def run() -> int:
             handler = HANDLERS.get(job.job_type)
             if handler is None:
                 state = store.fail(job, worker_id, error_code="handler_not_allowlisted")
-                _log("runtime_job_failed", job_id=job.job_id, job_type=job.job_type, state=state)
+                _log(
+                    "runtime_job_failed",
+                    job_id=job.job_id,
+                    job_type=job.job_type,
+                    state=state,
+                )
                 continue
             try:
                 result = handler(job)
                 if result.get("consequential_action") is not False:
                     raise PermissionError("runtime handler crossed authority boundary")
                 store.complete(job, worker_id, result)
-                _log("runtime_job_succeeded", job_id=job.job_id, job_type=job.job_type)
+                _log(
+                    "runtime_job_succeeded",
+                    job_id=job.job_id,
+                    job_type=job.job_type,
+                )
             except Exception as exc:  # noqa: BLE001 - failure becomes retry/DLQ receipt.
                 error_code = f"{type(exc).__name__.casefold()}"[:120]
                 state = store.fail(job, worker_id, error_code=error_code)
