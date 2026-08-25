@@ -23,6 +23,7 @@ CORE_PROBES = [
     ('language','/api/language'),
     ('checkpoints','/api/checkpoints'),
     ('providers','/api/providers'),
+    ('provider_adapters','/api/adapters/health'),
     ('regulated_rails','/api/regulated'),
     ('observability','/api/observability/health'),
     ('spot_family','/api/spot/me'),
