@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-import time
+import os, time
 
 event_bridge = Blueprint('oap_event_bridge', __name__)
 
@@ -24,9 +24,25 @@ def register_event_bridge(app, db, uid):
         r=c.execute('select enabled from oap_pulse_preferences where user_id=%s and category=%s',(user_id,category)).fetchone()
         return True if not r else bool(r['enabled'])
 
+    def founder_id():
+        raw=str(os.getenv('OAP_FOUNDER_USER_ID','')).strip()
+        try:return int(raw) if raw else None
+        except:return None
+
     @event_bridge.get('/api/event-bridge/health')
     def health():
-        return jsonify(ok=True,service='signals-pulse-event-bridge',public_channel='Signals',private_channel='Pulse',precise_public_location=False,preference_aware=True,protected_pulse_categories=sorted(LOCKED_PULSE),authority='human_final')
+        return jsonify(
+            ok=True,
+            service='signals-pulse-event-bridge',
+            public_channel='Signals',
+            private_channel='Pulse',
+            precise_public_location=False,
+            preference_aware=True,
+            protected_pulse_categories=['safety','account'],
+            protected_cross_user_policy='founder_authority_only',
+            founder_authority_configured=founder_id() is not None,
+            authority='human_final'
+        )
 
     @event_bridge.post('/api/event-bridge')
     def emit():
@@ -53,6 +69,14 @@ def register_event_bridge(app, db, uid):
             try: target=int(d.get('target_user_id',u))
             except:return jsonify(error='invalid_target'),400
             category=PRIVATE_CATEGORY[kind]
+            fid=founder_id()
+            if target!=u and category in LOCKED_PULSE and (fid is None or u!=fid):
+                return jsonify(
+                    error='protected_event_authority_required',
+                    category=category,
+                    protected=True,
+                    authority='founder_or_self'
+                ),403
             with db() as c:
                 blocked=c.execute('select 1 from link_blocks where (owner_id=%s and blocked_id=%s) or (owner_id=%s and blocked_id=%s)',(u,target,target,u)).fetchone()
                 if target!=u and blocked:return jsonify(error='blocked'),403
