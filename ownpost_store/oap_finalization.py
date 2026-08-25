@@ -14,12 +14,16 @@ CAPABILITIES = {
     'ride_commercial': {'kind':'legal','required_env':'OAP_RIDE_COMMERCIAL_AUTHORISED','live_when':'licensing_insurance_driver_checks_and_payments_ready'},
     'sika_regulated_payments': {'kind':'legal','required_env':'OAP_SIKA_REGULATED_ENABLED','live_when':'authorised_and_explicitly_enabled'},
     'banking': {'kind':'legal','required_env':'OAP_BANKING_AUTHORISED','live_when':'licensed_and_explicitly_enabled'},
+    'open_banking': {'kind':'legal','required_env':'OAP_OPEN_BANKING_AUTHORISED','live_when':'authorised_partner_consent_tokens_and_audit_ready'},
 }
 
 CORE_PROBES = [
     ('link','/health'),
     ('signals','/api/signals'),
     ('language','/api/language'),
+    ('checkpoints','/api/checkpoints'),
+    ('providers','/api/providers'),
+    ('regulated_rails','/api/regulated'),
     ('spot_family','/api/spot/me'),
     ('royal','/api/royal/health'),
     ('intelligence','/api/intelligence/health'),
