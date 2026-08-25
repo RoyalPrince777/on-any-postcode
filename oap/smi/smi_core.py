@@ -21,6 +21,7 @@ from oap.war_room import WarRoomEngine
 
 from .coherence import CoherenceEngine
 from .context_engine import ContextEngine
+from .evolution_engine import EvolutionEngine
 from .input_manager import InputManager
 from .judge_engine import JudgeEngine
 from .organ_manager import OrganManager
@@ -47,6 +48,7 @@ class SMICore:
         guardian: GuardianEngine,
         judge: JudgeEngine,
         war_room: WarRoomEngine,
+        evolution: EvolutionEngine,
         hrm: HRMCore,
     ) -> None:
         if not hrm.is_ready() or not hrm.audit_ready():
@@ -62,6 +64,7 @@ class SMICore:
         self.guardian = guardian
         self.judge = judge
         self.war_room = war_room
+        self.evolution = evolution
         self.hrm = hrm
         self.input_manager = InputManager()
         self.frontal_lobe = FrontalLobe()
@@ -78,6 +81,7 @@ class SMICore:
             self.aegis.status(),
             self.guardian.status(),
             self.war_room.status(),
+            self.evolution.status(),
             self.hrm.status(),
         )
 
@@ -237,5 +241,6 @@ class SMICore:
             "independent_execute": False,
             "self_model": self_model.as_dict(),
             "coherence": coherence.as_dict(),
+            "controlled_self_improvement": self.evolution.status(),
             "components": components,
         }
