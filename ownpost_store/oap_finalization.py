@@ -18,6 +18,8 @@ CAPABILITIES = {
 
 CORE_PROBES = [
     ('link','/health'),
+    ('signals','/api/signals'),
+    ('language','/api/language'),
     ('spot_family','/api/spot/me'),
     ('royal','/api/royal/health'),
     ('intelligence','/api/intelligence/health'),
