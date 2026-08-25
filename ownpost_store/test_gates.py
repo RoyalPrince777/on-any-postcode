@@ -1,6 +1,7 @@
 import os, unittest, time
 os.environ.setdefault('DATABASE_URL',os.environ.get('DATABASE_URL',''))
 from gates import app
+from test_link_intelligence import LinkIntelligenceTests
 
 class Gates(unittest.TestCase):
  def setUp(self):
