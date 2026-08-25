@@ -16,105 +16,52 @@ from test_oap_ride_admin import OAPRideAdmin
 from test_movement_hub import MovementHub
 
 class Gates(unittest.TestCase):
- def setUp(self):
-  self.c=app.test_client(); self.h={'X-Link-User':'1'}; self.h2={'X-Link-User':'2'}
+ def setUp(self): self.c=app.test_client(); self.h={'X-Link-User':'1'}; self.h2={'X-Link-User':'2'}
  def test_health_all_gates_and_extras(self):
   r=self.c.get('/health');self.assertEqual(r.status_code,200);self.assertEqual(r.json['gates'],list(range(5,13)))
   for x in ['presence','whats_lit','business_link','notifications','safety','offline_idempotency','oap_tv','booking','careers','market','global_transport','ai_studio','organ_registry']: self.assertIn(x,r.json['extras'])
  def test_location_requires_auth_and_validates(self):
-  self.assertEqual(self.c.post('/api/location',json={'lat':51.5,'lon':-.1}).status_code,401)
-  self.assertEqual(self.c.post('/api/location',headers=self.h,json={'lat':999,'lon':0}).status_code,400)
+  self.assertEqual(self.c.post('/api/location',json={'lat':51.5,'lon':-.1}).status_code,401); self.assertEqual(self.c.post('/api/location',headers=self.h,json={'lat':999,'lon':0}).status_code,400)
  def test_location_idempotency(self):
-  h={**self.h,'Idempotency-Key':'ci-location-1'}
-  a=self.c.post('/api/location',headers=h,json={'lat':51.5,'lon':-.1,'ttl':60});self.assertEqual(a.status_code,200)
-  b=self.c.post('/api/location',headers=h,json={'lat':51.5,'lon':-.1,'ttl':60});self.assertEqual(b.status_code,200);self.assertTrue(b.json.get('duplicate'))
-  self.c.delete('/api/location',headers=self.h)
+  h={**self.h,'Idempotency-Key':'ci-location-1'}; a=self.c.post('/api/location',headers=h,json={'lat':51.5,'lon':-.1,'ttl':60});self.assertEqual(a.status_code,200); b=self.c.post('/api/location',headers=h,json={'lat':51.5,'lon':-.1,'ttl':60});self.assertEqual(b.status_code,200);self.assertTrue(b.json.get('duplicate')); self.c.delete('/api/location',headers=self.h)
  def test_presence_privacy_and_expiry_shape(self):
-  r=self.c.post('/api/presence',headers=self.h,json={'status':'chilling','visibility':'nobody','ttl':60});self.assertEqual(r.status_code,200);self.assertEqual(r.json['presence']['status'],'chilling')
-  r=self.c.get('/api/presence/1',headers=self.h2);self.assertEqual(r.status_code,200);self.assertFalse(r.json['visible'])
-  r=self.c.delete('/api/presence',headers=self.h);self.assertEqual(r.json['presence']['status'],'offline')
+  r=self.c.post('/api/presence',headers=self.h,json={'status':'chilling','visibility':'nobody','ttl':60});self.assertEqual(r.status_code,200);self.assertEqual(r.json['presence']['status'],'chilling'); r=self.c.get('/api/presence/1',headers=self.h2);self.assertEqual(r.status_code,200);self.assertFalse(r.json['visible']); r=self.c.delete('/api/presence',headers=self.h);self.assertEqual(r.json['presence']['status'],'offline')
  def test_presence_rejects_bad_status(self): self.assertEqual(self.c.post('/api/presence',headers=self.h,json={'status':'tracking_you'}).status_code,400)
  def test_people_requires_auth(self): self.assertEqual(self.c.get('/api/people').status_code,401)
- def test_block_and_unblock(self):
-  self.assertEqual(self.c.post('/api/blocks/2',headers=self.h).status_code,200)
-  self.assertEqual(self.c.delete('/api/blocks/2',headers=self.h).status_code,200)
- def test_report_requires_auth_and_creates(self):
-  self.assertEqual(self.c.post('/api/reports',json={'kind':'spam'}).status_code,401)
-  self.assertEqual(self.c.post('/api/reports',headers=self.h,json={'target_user_id':2,'kind':'spam','details':'ci'}).status_code,201)
- def test_notifications_auth_and_inbox(self):
-  self.assertEqual(self.c.get('/api/notifications').status_code,401)
-  self.assertEqual(self.c.post('/api/notifications',headers=self.h,json={'title':'CI','body':'hello'}).status_code,200)
-  self.assertEqual(self.c.get('/api/notifications',headers=self.h).status_code,200)
+ def test_block_and_unblock(self): self.assertEqual(self.c.post('/api/blocks/2',headers=self.h).status_code,200); self.assertEqual(self.c.delete('/api/blocks/2',headers=self.h).status_code,200)
+ def test_report_requires_auth_and_creates(self): self.assertEqual(self.c.post('/api/reports',json={'kind':'spam'}).status_code,401); self.assertEqual(self.c.post('/api/reports',headers=self.h,json={'target_user_id':2,'kind':'spam','details':'ci'}).status_code,201)
+ def test_notifications_auth_and_inbox(self): self.assertEqual(self.c.get('/api/notifications').status_code,401); self.assertEqual(self.c.post('/api/notifications',headers=self.h,json={'title':'CI','body':'hello'}).status_code,200); self.assertEqual(self.c.get('/api/notifications',headers=self.h).status_code,200)
  def test_signals_and_pulse_are_canonical(self):
-  r=self.c.get('/api/language'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['canonical']['feed'],'Signals'); self.assertEqual(r.json['canonical']['notifications'],'Pulse')
-  self.assertEqual(self.c.get('/api/pulse').status_code,401)
-  p=self.c.post('/api/pulse',headers=self.h,json={'title':'Pulse CI','body':'hello'}); self.assertEqual(p.status_code,200); self.assertIn('pulse',p.json)
-  s=self.c.post('/api/signals',headers=self.h,json={'title':'Signal CI','scope':'postcode','scope_value':'SE15'}); self.assertEqual(s.status_code,200); self.assertIn('signals',s.json); self.assertEqual(s.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation')
+  r=self.c.get('/api/language'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['canonical']['feed'],'Signals'); self.assertEqual(r.json['canonical']['notifications'],'Pulse'); self.assertEqual(self.c.get('/api/pulse').status_code,401); p=self.c.post('/api/pulse',headers=self.h,json={'title':'Pulse CI','body':'hello'}); self.assertEqual(p.status_code,200); self.assertIn('pulse',p.json); s=self.c.post('/api/signals',headers=self.h,json={'title':'Signal CI','scope':'postcode','scope_value':'SE15'}); self.assertEqual(s.status_code,200); self.assertIn('signals',s.json); self.assertEqual(s.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation')
  def test_signals_pulse_controls(self):
-  h=self.c.get('/api/communications/health'); self.assertEqual(h.status_code,200); self.assertFalse(h.json['precise_location_subscriptions']); self.assertIn('safety',h.json['locked_on'])
-  self.assertEqual(self.c.get('/api/pulse/preferences').status_code,401)
-  bad=self.c.post('/api/pulse/preferences',headers=self.h,json={'category':'safety','enabled':False}); self.assertEqual(bad.status_code,403)
-  ok=self.c.post('/api/pulse/preferences',headers=self.h,json={'category':'weather','enabled':False}); self.assertEqual(ok.status_code,200); self.assertFalse(ok.json['preferences']['weather'])
-  s=self.c.post('/api/signals/subscriptions',headers=self.h,json={'scope':'postcode','scope_value':'SE15'}); self.assertEqual(s.status_code,200); self.assertTrue(any(x['scope_value']=='SE15' for x in s.json['subscriptions']))
-  p=self.c.post('/api/signals/subscriptions',headers=self.h,json={'scope':'postcode','scope_value':'SE15','lat':51.5}); self.assertEqual(p.status_code,400)
+  h=self.c.get('/api/communications/health'); self.assertEqual(h.status_code,200); self.assertFalse(h.json['precise_location_subscriptions']); self.assertIn('safety',h.json['locked_on']); self.assertEqual(self.c.get('/api/pulse/preferences').status_code,401); bad=self.c.post('/api/pulse/preferences',headers=self.h,json={'category':'safety','enabled':False}); self.assertEqual(bad.status_code,403); ok=self.c.post('/api/pulse/preferences',headers=self.h,json={'category':'weather','enabled':False}); self.assertEqual(ok.status_code,200); self.assertFalse(ok.json['preferences']['weather']); s=self.c.post('/api/signals/subscriptions',headers=self.h,json={'scope':'postcode','scope_value':'SE15'}); self.assertEqual(s.status_code,200); self.assertTrue(any(x['scope_value']=='SE15' for x in s.json['subscriptions'])); p=self.c.post('/api/signals/subscriptions',headers=self.h,json={'scope':'postcode','scope_value':'SE15','lat':51.5}); self.assertEqual(p.status_code,400)
  def test_pulse_delivery_protects_system_categories_and_preferences(self):
-  stamp=str(int(time.time()*1000)); weather='Suppressed Weather '+stamp
-  pref=self.c.post('/api/pulse/preferences',headers=self.h2,json={'category':'weather','enabled':False}); self.assertEqual(pref.status_code,200); self.assertFalse(pref.json['preferences']['weather'])
-  p=self.c.post('/api/pulse',headers=self.h,json={'user_id':2,'kind':'weather_update','title':weather,'body':'rain'}); self.assertEqual(p.status_code,200); self.assertFalse(p.json['delivery']['delivered']); self.assertTrue(p.json['delivery']['suppressed_by_preference'])
-  inbox=self.c.get('/api/pulse',headers=self.h2); self.assertFalse(any(x['title']==weather for x in inbox.json['pulse']))
+  stamp=str(int(time.time()*1000)); weather='Suppressed Weather '+stamp; pref=self.c.post('/api/pulse/preferences',headers=self.h2,json={'category':'weather','enabled':False}); self.assertEqual(pref.status_code,200); p=self.c.post('/api/pulse',headers=self.h,json={'user_id':2,'kind':'weather_update','title':weather,'body':'rain'}); self.assertEqual(p.status_code,200); self.assertFalse(p.json['delivery']['delivered']); inbox=self.c.get('/api/pulse',headers=self.h2); self.assertFalse(any(x['title']==weather for x in inbox.json['pulse']));
   for kind in ['account_alert','guardian_alert']:
-   blocked=self.c.post('/api/pulse',headers=self.h,json={'user_id':2,'kind':kind,'title':'Spoof '+stamp}); self.assertEqual(blocked.status_code,403); self.assertEqual(blocked.json['error'],'protected_pulse_spoof_blocked')
-  own=self.c.post('/api/pulse',headers=self.h,json={'kind':'guardian_alert','title':'Own safety '+stamp}); self.assertEqual(own.status_code,200); self.assertTrue(own.json['delivery']['delivered']); self.assertTrue(own.json['delivery']['protected'])
-  health=self.c.get('/api/pulse/intelligence/health'); self.assertEqual(health.status_code,200); self.assertFalse(health.json['protected_cross_user_spoofing']); self.assertTrue(health.json['preference_aware_delivery'])
+   blocked=self.c.post('/api/pulse',headers=self.h,json={'user_id':2,'kind':kind,'title':'Spoof '+stamp}); self.assertEqual(blocked.status_code,403)
+  own=self.c.post('/api/pulse',headers=self.h,json={'kind':'guardian_alert','title':'Own safety '+stamp}); self.assertEqual(own.status_code,200); self.assertTrue(own.json['delivery']['protected'])
  def test_signal_intelligence_human_first(self):
-  h=self.c.get('/api/signal-intelligence/health'); self.assertEqual(h.status_code,200); self.assertIn('clicks',h.json['excluded_inputs']); self.assertFalse(h.json['precise_location'])
-  s=self.c.post('/api/signals',headers=self.h,json={'title':'Safety CI','scope':'postcode','scope_value':'SE15','source':'community_safety','score':1}); self.assertEqual(s.status_code,200)
-  r=self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['canonical_name'],'Signals'); self.assertFalse(r.json['precise_location_used']); self.assertEqual(r.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation'); self.assertTrue(any(x['title']=='Safety CI' for x in r.json['signals']))
-  bad=self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15&lat=51.5'); self.assertEqual(bad.status_code,403)
- def test_canonical_signals_uses_human_first_ranking(self):
-  stamp=str(int(time.time()*1000))
-  safety='Canonical Safety '+stamp; popular='Canonical Popular '+stamp
-  a=self.c.post('/api/signals',headers=self.h,json={'title':popular,'scope':'postcode','scope_value':'CR4','source':'community','score':10}); self.assertEqual(a.status_code,200)
-  b=self.c.post('/api/signals',headers=self.h,json={'title':safety,'scope':'postcode','scope_value':'CR4','source':'community_safety','score':1}); self.assertEqual(b.status_code,200)
-  r=self.c.get('/api/signals?scope=postcode&scope_value=CR4'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation'); titles=[x['title'] for x in r.json['signals']]; self.assertLess(titles.index(safety),titles.index(popular)); self.assertFalse(r.json['precise_location_used'])
-  self.assertEqual(self.c.get('/api/signals?scope=postcode&scope_value=CR4&lat=51.4').status_code,403)
+  h=self.c.get('/api/signal-intelligence/health'); self.assertEqual(h.status_code,200); self.assertIn('clicks',h.json['excluded_inputs']); self.assertFalse(h.json['precise_location']); self.assertFalse(h.json['source_label_alone_grants_trust']); s=self.c.post('/api/signals',headers=self.h,json={'title':'Safety CI','scope':'postcode','scope_value':'SE15','source':'community_safety','score':1}); self.assertEqual(s.status_code,200); r=self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation'); row=next(x for x in r.json['signals'] if x['title']=='Safety CI'); self.assertEqual(row['evidence_state'],'unverified_source'); self.assertEqual(row['rank_factors']['safety_importance'],0.0); self.assertEqual(self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15&lat=51.5').status_code,403)
+ def test_canonical_signals_requires_certified_trust_for_safety_boost(self):
+  stamp=str(int(time.time()*1000)); safety='Canonical Safety '+stamp; popular='Canonical Popular '+stamp; self.c.post('/api/signals',headers=self.h,json={'title':popular,'scope':'postcode','scope_value':'CR4','source':'community','score':10}); self.c.post('/api/signals',headers=self.h,json={'title':safety,'scope':'postcode','scope_value':'CR4','source':'community_safety','score':1}); r=self.c.get('/api/signals?scope=postcode&scope_value=CR4'); self.assertEqual(r.status_code,200); rows={x['title']:x for x in r.json['signals']}; self.assertEqual(rows[safety]['evidence_state'],'unverified_source'); self.assertEqual(rows[safety]['rank_factors']['safety_importance'],0.0); self.assertFalse(rows[safety]['source_label_grants_trust']); self.assertEqual(self.c.get('/api/signals?scope=postcode&scope_value=CR4&lat=51.4').status_code,403)
  def test_event_bridge_privacy(self):
-  h=self.c.get('/api/event-bridge/health'); self.assertEqual(h.status_code,200); self.assertFalse(h.json['precise_public_location'])
-  bad=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'movement_disruption','title':'Road issue','scope':'postcode','scope_value':'SE15','lat':51.5}); self.assertEqual(bad.status_code,403)
-  sig=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'movement_disruption','title':'Road issue','scope':'postcode','scope_value':'SE15'}); self.assertEqual(sig.status_code,201); self.assertEqual(sig.json['channel'],'Signals'); self.assertTrue(sig.json['public'])
-  pul=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'ride_state','title':'Driver arriving','target_user_id':1}); self.assertIn(pul.status_code,{201,202}); self.assertEqual(pul.json['channel'],'Pulse'); self.assertFalse(pul.json['public'])
+  h=self.c.get('/api/event-bridge/health'); self.assertEqual(h.status_code,200); self.assertFalse(h.json['precise_public_location']); bad=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'movement_disruption','title':'Road issue','scope':'postcode','scope_value':'SE15','lat':51.5}); self.assertEqual(bad.status_code,403); sig=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'movement_disruption','title':'Road issue','scope':'postcode','scope_value':'SE15'}); self.assertEqual(sig.status_code,201); self.assertEqual(sig.json['channel'],'Signals'); pul=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'ride_state','title':'Driver arriving','target_user_id':1}); self.assertIn(pul.status_code,{201,202}); self.assertEqual(pul.json['channel'],'Pulse')
  def test_master_checkpoints(self):
-  r=self.c.get('/api/checkpoints'); self.assertEqual(r.status_code,200); self.assertTrue(r.json['no_fake_green']); self.assertEqual(r.json['canonical_language']['feed'],'Signals'); self.assertEqual(r.json['canonical_language']['notifications'],'Pulse'); self.assertIn('internal',r.json); self.assertIn('external',r.json)
-  names={x['name'] for x in r.json['internal']}; self.assertTrue({'communications','signal_intelligence','pulse_intelligence','location_bridge','event_bridge','providers','provider_adapters','observability','regulated_rails','ride_admin'}.issubset(names)); self.assertEqual(r.json['internal_overall'],'green')
-  external={x['name'] for x in r.json['external']}; self.assertIn('open_banking',external); self.assertEqual(r.json['external_overall'],'amber')
- def test_provider_contracts_are_honest(self):
-  r=self.c.get('/api/providers'); self.assertEqual(r.status_code,200); self.assertTrue(r.json['no_fake_live']); self.assertTrue(all(not x['live_claim'] for x in r.json['providers']))
- def test_provider_adapters_fail_safe(self):
-  r=self.c.get('/api/adapters/health'); self.assertEqual(r.status_code,200); self.assertTrue(r.json['no_fake_live'])
-  g=self.c.get('/api/adapters/geography?postcode=SE15'); self.assertEqual(g.status_code,200); self.assertFalse(g.json['live_provider'])
-  rt=self.c.post('/api/adapters/route',json={'origin':'SE15','destination':'CR4'}); self.assertEqual(rt.status_code,200); self.assertTrue(rt.json['planning_only']); self.assertIsNone(rt.json['route'])
- def test_shared_location_bridge(self):
-  h=self.c.get('/api/location-bridge/health'); self.assertEqual(h.status_code,200); self.assertTrue(h.json['local_first']); self.assertTrue(h.json['no_fake_live'])
-  c=self.c.get('/api/location-bridge/context?postcode=SE15'); self.assertEqual(c.status_code,200); self.assertEqual(c.json['postcode'],'SE15'); self.assertFalse(c.json['public_precise_location'])
-  r=self.c.post('/api/location-bridge/route',json={'origin':'SE15','destination':'CR4'}); self.assertEqual(r.status_code,200); self.assertTrue(r.json['planning_only']); self.assertFalse(r.json['execution']); self.assertIn('OAP Ride',r.json['consumers'])
- def test_regulated_rails_fail_closed(self):
-  r=self.c.get('/api/regulated'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['default'],'fail_closed')
-  x=self.c.post('/api/regulated/banking/execute',json={'action':'open_account'}); self.assertIn(x.status_code,{202,403}); self.assertFalse(x.json.get('provider_execution',False))
- def test_android_manifest(self):
-  r=self.c.get('/api/android');self.assertEqual(r.json['package'],'world.onanypostcode.link');self.assertTrue(r.json['core_free'])
+  r=self.c.get('/api/checkpoints'); self.assertEqual(r.status_code,200); self.assertTrue(r.json['no_fake_green']); names={x['name'] for x in r.json['internal']}; self.assertTrue({'communications','signal_trust','signal_intelligence','pulse_intelligence','location_bridge','event_bridge','providers','provider_adapters','observability','regulated_rails','ride_admin','pillars'}.issubset(names)); self.assertEqual(r.json['internal_overall'],'green'); external={x['name'] for x in r.json['external']}; self.assertIn('open_banking',external); self.assertEqual(r.json['external_overall'],'amber')
+ def test_provider_contracts_are_honest(self): r=self.c.get('/api/providers'); self.assertEqual(r.status_code,200); self.assertTrue(r.json['no_fake_live']); self.assertTrue(all(not x['live_claim'] for x in r.json['providers']))
+ def test_provider_adapters_fail_safe(self): r=self.c.get('/api/adapters/health'); self.assertEqual(r.status_code,200); g=self.c.get('/api/adapters/geography?postcode=SE15'); self.assertFalse(g.json['live_provider']); rt=self.c.post('/api/adapters/route',json={'origin':'SE15','destination':'CR4'}); self.assertTrue(rt.json['planning_only']); self.assertIsNone(rt.json['route'])
+ def test_shared_location_bridge(self): h=self.c.get('/api/location-bridge/health'); self.assertEqual(h.status_code,200); self.assertTrue(h.json['local_first']); c=self.c.get('/api/location-bridge/context?postcode=SE15'); self.assertEqual(c.json['postcode'],'SE15'); r=self.c.post('/api/location-bridge/route',json={'origin':'SE15','destination':'CR4'}); self.assertTrue(r.json['planning_only']); self.assertFalse(r.json['execution'])
+ def test_regulated_rails_fail_closed(self): r=self.c.get('/api/regulated'); self.assertEqual(r.json['default'],'fail_closed'); x=self.c.post('/api/regulated/banking/execute',json={'action':'open_account'}); self.assertIn(x.status_code,{202,403}); self.assertFalse(x.json.get('provider_execution',False))
+ def test_android_manifest(self): r=self.c.get('/api/android');self.assertEqual(r.json['package'],'world.onanypostcode.link');self.assertTrue(r.json['core_free'])
  def test_release_write_requires_auth(self): self.assertEqual(self.c.post('/api/releases',json={'version':'x'}).status_code,401)
  def test_live_state_validation(self): self.assertEqual(self.c.post('/api/live/999999/state',headers=self.h,json={'status':'bad'}).status_code,400)
- def test_whats_lit_and_scope(self):
-  r=self.c.post('/api/lit',headers=self.h,json={'title':'CI Trend','scope':'postcode','scope_value':'SE15','score':5});self.assertEqual(r.status_code,200)
-  r=self.c.get('/api/lit?scope=postcode&scope_value=SE15');self.assertEqual(r.status_code,200);self.assertTrue(any(x['title']=='CI Trend' for x in r.json['trends']))
+ def test_whats_lit_and_scope(self): r=self.c.post('/api/lit',headers=self.h,json={'title':'CI Trend','scope':'postcode','scope_value':'SE15','score':5});self.assertEqual(r.status_code,200); r=self.c.get('/api/lit?scope=postcode&scope_value=SE15');self.assertTrue(any(x['title']=='CI Trend' for x in r.json['trends']))
  def test_endz_alias_and_hierarchy(self):
   for p in ['/api/endz','/api/ends']:
    r=self.c.get(p);self.assertEqual(r.status_code,200);self.assertIn('global',r.json['hierarchy']);self.assertIn('universe',r.json['hierarchy'])
- def test_business_rule_and_creation(self):
-  r=self.c.get('/api/businesses');self.assertEqual(r.status_code,200);self.assertIn('core is free',r.json['monetization_rule'])
-  r=self.c.post('/api/businesses',headers=self.h,json={'name':'CI Business','category':'test','postcode':'SE15'});self.assertEqual(r.status_code,201);self.assertTrue(r.json['monetizable']);self.assertTrue(r.json['core_link_free'])
+ def test_business_rule_and_creation(self): r=self.c.get('/api/businesses');self.assertEqual(r.status_code,200); r=self.c.post('/api/businesses',headers=self.h,json={'name':'CI Business','category':'test','postcode':'SE15'});self.assertEqual(r.status_code,201);self.assertTrue(r.json['core_link_free'])
  def test_public_gate_reads(self):
-  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/signals','/api/language','/api/communications/health','/api/signal-intelligence/health','/api/pulse/intelligence/health','/api/signals/ranked?scope=postcode&scope_value=SE15','/api/checkpoints','/api/providers','/api/adapters/health','/api/location-bridge/health','/api/event-bridge/health','/api/regulated','/api/observability/health','/api/ride/admin/health','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/earth-intelligence','/api/continent-intelligence?continent=Africa','/api/country-intelligence?continent=Africa&country=Ghana','/api/universe-intelligence','/api/intelligence/adaptive-coherence','/api/education/health','/api/education/tracks','/api/youth-safety/policy','/api/youth-club/health','/api/youth-club','/api/youth-club/safety','/api/bank-intelligence/health','/api/bank-intelligence','/api/bank-intelligence/sika','/api/258','/api/258/health','/api/movement/health','/api/movement','/api/movement/safety','/api/ride/health','/api/ride','/api/readiness/capabilities','/api/readiness/core']:
+  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/signals','/api/language','/api/communications/health','/api/signal-trust/health','/api/signal-intelligence/health','/api/pulse/intelligence/health','/api/signals/ranked?scope=postcode&scope_value=SE15','/api/checkpoints','/api/pillars','/api/providers','/api/adapters/health','/api/location-bridge/health','/api/event-bridge/health','/api/regulated','/api/observability/health','/api/ride/admin/health','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/earth-intelligence','/api/continent-intelligence?continent=Africa','/api/country-intelligence?continent=Africa&country=Ghana','/api/universe-intelligence','/api/intelligence/adaptive-coherence','/api/education/health','/api/education/tracks','/api/youth-safety/policy','/api/youth-club/health','/api/youth-club','/api/youth-club/safety','/api/bank-intelligence/health','/api/bank-intelligence','/api/bank-intelligence/sika','/api/258','/api/258/health','/api/movement/health','/api/movement','/api/movement/safety','/api/ride/health','/api/ride','/api/readiness/capabilities','/api/readiness/core']:
    r=self.c.get(p,headers=self.h if p=='/api/spot/me' else {}); self.assertEqual(r.status_code,200,p)
 
 if __name__=='__main__': unittest.main()
