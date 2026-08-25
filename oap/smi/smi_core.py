@@ -68,6 +68,19 @@ class SMICore:
         self.self_model = SelfModel()
         self.coherence = CoherenceEngine()
 
+    def _component_statuses(self) -> tuple[dict[str, object], ...]:
+        return (
+            self.nexus.status(),
+            self.identity.status(),
+            self.registry.status(),
+            self.providers.status(),
+            self.organs.status(),
+            self.aegis.status(),
+            self.guardian.status(),
+            self.war_room.status(),
+            self.hrm.status(),
+        )
+
     def process(self, request: BrainRequest) -> Recommendation:
         """Run the locked SMI cycle and return an allowed non-execution state."""
 
@@ -128,7 +141,32 @@ class SMICore:
             safety,
         )
         rationale = (*rationale, advisors.reason)
-        war_room = self.war_room.review(request, analysis, safety, output_state)
+
+        components = self._component_statuses()
+        self_model = self.self_model.observe(components)
+        coherence = self.coherence.evaluate(components)
+        if (
+            (not self_model.overall_ready or not coherence.coherent)
+            and output_state != OutputState.BLOCK_REQUEST
+        ):
+            output_state = OutputState.REVIEW_REQUIRED
+            rationale = (
+                *rationale,
+                "Operational readiness or coherence requires Human Authority review.",
+            )
+
+        war_room = self.war_room.review(
+            request,
+            analysis,
+            safety,
+            output_state,
+            advisor_ids=advisors.agent_ids,
+            provider_results=provider_results,
+            authority_level=identity.authority_level,
+            authority_roles=identity.roles,
+            self_model=self_model.as_dict(),
+            coherence=coherence.as_dict(),
+        )
 
         if safety.passed:
             state.advance(ProcessingState.GUARDIAN_PASSED)
@@ -175,23 +213,15 @@ class SMICore:
                 triggered=True,
                 scenarios=("Resolve the blocking validation finding.",),
                 recommendation="Execution remains blocked.",
+                evidence=(f"early_block={reason}",),
+                dissent=("Validation blocks progression.",),
             ),
         )
         self.hrm.record_recommendation(request, recommendation)
         return recommendation
 
     def status(self) -> dict[str, object]:
-        components = (
-            self.nexus.status(),
-            self.identity.status(),
-            self.registry.status(),
-            self.providers.status(),
-            self.organs.status(),
-            self.aegis.status(),
-            self.guardian.status(),
-            self.war_room.status(),
-            self.hrm.status(),
-        )
+        components = self._component_statuses()
         self_model = self.self_model.observe(components)
         coherence = self.coherence.evaluate(components)
         return {
