@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from mission_control import location_intelligence, provider_fabric
+from mission_control import location_intelligence, provider_fabric, routing
 
 
 def test_provider_fabric_has_locked_capability_slots_and_read_only_adapters():
@@ -12,7 +12,7 @@ def test_provider_fabric_has_locked_capability_slots_and_read_only_adapters():
     assert validation["errors"] == []
     assert validation["checks"] == {
         "slots": 8,
-        "wired_adapters": 3,
+        "wired_adapters": 4,
         "duplicate_slot_ids": 0,
         "duplicate_adapter_ids": 0,
         "unknown_slot_links": 0,
@@ -35,7 +35,7 @@ def test_provider_fabric_has_locked_capability_slots_and_read_only_adapters():
     )
 
 
-def test_runtime_evidence_is_separate_from_wiring(monkeypatch):
+def test_runtime_evidence_is_separate_from_wiring_and_configuration(monkeypatch):
     monkeypatch.setattr(
         location_intelligence,
         "status",
@@ -45,24 +45,33 @@ def test_runtime_evidence_is_separate_from_wiring(monkeypatch):
             "weather_provider_verified": True,
         },
     )
+    monkeypatch.setattr(
+        routing,
+        "status",
+        lambda: {"runtime_verified": False},
+    )
+    monkeypatch.setattr(routing, "configured", lambda: False)
 
     fabric = provider_fabric.get_private_provider_fabric()
     by_id = {item["id"]: item for item in fabric["slots"]}
 
     assert fabric["summary"] == {
         "slots": 8,
-        "wired": 3,
+        "wired": 4,
+        "configured": 3,
         "runtime_verified": 2,
-        "provider_required": 5,
+        "provider_required": 4,
     }
     assert by_id["postcode"]["wired"] is True
+    assert by_id["postcode"]["configured"] is True
     assert by_id["postcode"]["runtime_verified"] is True
     assert by_id["postcode"]["status"] == "Runtime verified"
     assert by_id["geocoding"]["wired"] is True
     assert by_id["geocoding"]["runtime_verified"] is False
     assert by_id["geocoding"]["status"] == "Wired · awaiting runtime evidence"
-    assert by_id["routing"]["wired"] is False
-    assert by_id["routing"]["status"] == "Provider required"
+    assert by_id["routing"]["wired"] is True
+    assert by_id["routing"]["configured"] is False
+    assert by_id["routing"]["status"] == "Adapter wired · endpoint required"
 
 
 def test_consequential_provider_controls_fail_closed():
@@ -81,6 +90,7 @@ def test_unknown_slot_and_mutation_adapter_are_rejected():
         "wired": True,
         "mutation_enabled": True,
         "credential_required": True,
+        "requires_endpoint": True,
     }
     validation = provider_fabric.validate_provider_fabric(
         adapters=(*provider_fabric.WIRED_ADAPTERS, bad_adapter)
@@ -93,6 +103,8 @@ def test_unknown_slot_and_mutation_adapter_are_rejected():
 
 def test_provider_projection_never_contains_secret_material(monkeypatch):
     monkeypatch.setattr(location_intelligence, "status", dict)
+    monkeypatch.setattr(routing, "status", dict)
+    monkeypatch.setattr(routing, "configured", lambda: False)
     serialized = json.dumps(provider_fabric.get_private_provider_fabric()).lower()
 
     for forbidden in (
@@ -109,6 +121,8 @@ def test_provider_projection_never_contains_secret_material(monkeypatch):
 
 def test_private_provider_dashboard_is_read_only(client, monkeypatch):
     monkeypatch.setattr(location_intelligence, "status", dict)
+    monkeypatch.setattr(routing, "status", dict)
+    monkeypatch.setattr(routing, "configured", lambda: False)
 
     response = client.get("/mission/providers")
     page = response.get_data(as_text=True)
@@ -121,6 +135,7 @@ def test_private_provider_dashboard_is_read_only(client, monkeypatch):
     assert "UK Postcode Service" in page
     assert "Global Place Service" in page
     assert "Live Weather Service" in page
+    assert "OSRM-compatible Routing" in page
     assert "Telecom / eSIM" in page
     assert "Payments" in page
     assert "Fleet / dispatch" in page
@@ -140,6 +155,12 @@ def test_provider_status_is_coarse_and_non_operational(client, monkeypatch):
             "weather_provider_verified": True,
         },
     )
+    monkeypatch.setattr(
+        routing,
+        "status",
+        lambda: {"runtime_verified": False},
+    )
+    monkeypatch.setattr(routing, "configured", lambda: False)
 
     response = client.get("/mission/providers/status")
     payload = response.get_json()
@@ -148,7 +169,8 @@ def test_provider_status_is_coarse_and_non_operational(client, monkeypatch):
     assert payload == {
         "architecture_passed": True,
         "slots": 8,
-        "wired": 3,
+        "wired": 4,
+        "configured": 3,
         "runtime_verified": 3,
         "consequential_execution_enabled": False,
         "human_authority_required": True,
