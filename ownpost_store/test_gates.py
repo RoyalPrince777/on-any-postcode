@@ -44,6 +44,11 @@ class Gates(unittest.TestCase):
   self.assertEqual(self.c.get('/api/notifications').status_code,401)
   self.assertEqual(self.c.post('/api/notifications',headers=self.h,json={'title':'CI','body':'hello'}).status_code,200)
   self.assertEqual(self.c.get('/api/notifications',headers=self.h).status_code,200)
+ def test_signals_and_pulse_are_canonical(self):
+  r=self.c.get('/api/language'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['canonical']['feed'],'Signals'); self.assertEqual(r.json['canonical']['notifications'],'Pulse')
+  self.assertEqual(self.c.get('/api/pulse').status_code,401)
+  p=self.c.post('/api/pulse',headers=self.h,json={'title':'Pulse CI','body':'hello'}); self.assertEqual(p.status_code,200); self.assertIn('pulse',p.json)
+  s=self.c.post('/api/signals',headers=self.h,json={'title':'Signal CI','scope':'postcode','scope_value':'SE15'}); self.assertEqual(s.status_code,200); self.assertIn('signals',s.json)
  def test_android_manifest(self):
   r=self.c.get('/api/android');self.assertEqual(r.json['package'],'world.onanypostcode.link');self.assertTrue(r.json['core_free'])
  def test_release_write_requires_auth(self): self.assertEqual(self.c.post('/api/releases',json={'version':'x'}).status_code,401)
@@ -58,7 +63,7 @@ class Gates(unittest.TestCase):
   r=self.c.get('/api/businesses');self.assertEqual(r.status_code,200);self.assertIn('core is free',r.json['monetization_rule'])
   r=self.c.post('/api/businesses',headers=self.h,json={'name':'CI Business','category':'test','postcode':'SE15'});self.assertEqual(r.status_code,201);self.assertTrue(r.json['monetizable']);self.assertTrue(r.json['core_link_free'])
  def test_public_gate_reads(self):
-  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/earth-intelligence','/api/continent-intelligence?continent=Africa','/api/country-intelligence?continent=Africa&country=Ghana','/api/universe-intelligence','/api/intelligence/adaptive-coherence','/api/education/health','/api/education/tracks','/api/youth-safety/policy','/api/youth-club/health','/api/youth-club','/api/youth-club/safety','/api/bank-intelligence/health','/api/bank-intelligence','/api/bank-intelligence/sika','/api/258','/api/258/health','/api/movement/health','/api/movement','/api/movement/safety','/api/ride/health','/api/ride','/api/readiness/capabilities','/api/readiness/core']:
+  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/signals','/api/language','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/earth-intelligence','/api/continent-intelligence?continent=Africa','/api/country-intelligence?continent=Africa&country=Ghana','/api/universe-intelligence','/api/intelligence/adaptive-coherence','/api/education/health','/api/education/tracks','/api/youth-safety/policy','/api/youth-club/health','/api/youth-club','/api/youth-club/safety','/api/bank-intelligence/health','/api/bank-intelligence','/api/bank-intelligence/sika','/api/258','/api/258/health','/api/movement/health','/api/movement','/api/movement/safety','/api/ride/health','/api/ride','/api/readiness/capabilities','/api/readiness/core']:
    r=self.c.get(p,headers=self.h if p=='/api/spot/me' else {}); self.assertEqual(r.status_code,200,p)
 
 if __name__=='__main__': unittest.main()
