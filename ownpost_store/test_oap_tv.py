@@ -1,18 +1,5 @@
-import os, unittest, time
-os.environ.setdefault('DATABASE_URL',os.environ.get('DATABASE_URL',''))
-from flask import Flask
-from psycopg import connect
-from psycopg.rows import dict_row
-from oap_tv import register_tv
-
-DB=os.environ['DATABASE_URL']
-def db(): return connect(DB,autocommit=True,row_factory=dict_row)
-def uid_from_header():
- v=__import__('flask').request.headers.get('X-Link-User','')
- return int(v) if v.isdigit() and int(v)>0 else None
-
-app=Flask(__name__)
-register_tv(app,db,uid_from_header)
+import unittest, time
+from gates import app
 
 class OAPTV(unittest.TestCase):
  def setUp(self): self.c=app.test_client(); self.h={'X-Link-User':'1'}
