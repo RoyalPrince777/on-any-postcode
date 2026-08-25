@@ -764,6 +764,12 @@ def delete_conversation(identity_id: str, conversation_id: str) -> dict:
     conversation = _validated_uuid(conversation_id, "invalid_conversation")
     correlation_id = str(uuid.uuid4())
     with postgres_db.connect() as connection:
+        authority_context = authority.authority_record(connection, identity) or {
+            "identity_id": identity,
+            "authority_level": 5,
+            "permissions": ("REQUEST_RECOMMENDATION",),
+            "is_human_authority": False,
+        }
         row = connection.execute(
             """SELECT title FROM smi_conversations
                WHERE conversation_id=%s AND identity_id=%s FOR UPDATE""",
@@ -778,14 +784,17 @@ def delete_conversation(identity_id: str, conversation_id: str) -> dict:
         _write_audit(
             connection,
             actor_id=identity,
+            authority_level=int(authority_context.get("authority_level", 5)),
             action="SMI_CONVERSATION_DELETED",
             target=conversation,
-            reason="Human Authority deleted an owned SMI conversation.",
+            reason="Authenticated owner deleted an owned SMI conversation.",
             correlation_id=correlation_id,
             metadata={
                 "action": "SMI_CONVERSATION_DELETED",
                 "conversation_id": conversation,
                 "identity_id": identity,
+                "authority_level": int(authority_context.get("authority_level", 5)),
+                "human_authority": bool(authority_context.get("is_human_authority")),
                 "title_hash": hashlib.sha256(str(row[0]).encode()).hexdigest(),
             },
         )
