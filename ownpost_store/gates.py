@@ -54,7 +54,7 @@ def idem_save(c,u,op,payload):
 
 @app.get('/health')
 def health():
- return jsonify(ok=True,service='the-link-gates',gates=list(range(5,13)),extras=['presence','whats_lit','business_link','notifications','safety','offline_idempotency'])
+ return jsonify(ok=True,service='the-link-gates',gates=list(range(5,13)),extras=['presence','whats_lit','business_link','notifications','safety','offline_idempotency','oap_tv','booking','careers','market','global_transport','ai_studio','organ_registry'])
 
 @app.post('/api/location')
 def location():
@@ -258,3 +258,9 @@ def business_link(bid):
   if not c.execute('select 1 from link_businesses where id=%s and active=true',(bid,)).fetchone():return jsonify(error='not_found'),404
   c.execute('insert into link_business_links(user_id,business_id,kind,created_at) values(%s,%s,%s,%s) on conflict do nothing',(u,bid,kind,now()))
  return jsonify(ok=True,commercial=kind in {'book','buy','merchant'})
+
+# Mount specialist product organs into the live service without duplicating database credentials.
+from oap_tv import register_tv
+from oap_core_systems import register_core_systems
+register_tv(app,db,uid)
+register_core_systems(app,db,uid)
