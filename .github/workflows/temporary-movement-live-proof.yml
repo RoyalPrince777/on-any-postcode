@@ -1,0 +1,41 @@
+name: Temporary Movement live proof
+
+on:
+  push:
+    branches:
+      - build/movement-esim
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe live Movement and eSIM boundaries
+        run: |
+          set -euo pipefail
+          movement=$(mktemp)
+          status=$(mktemp)
+          spot=$(mktemp)
+          movement_code=$(curl --silent --show-error --max-time 30 --output "$movement" --write-out '%{http_code}' https://on-any-postcode.onrender.com/movement)
+          status_code=$(curl --silent --show-error --max-time 30 --output "$status" --write-out '%{http_code}' https://on-any-postcode.onrender.com/movement/status)
+          spot_code=$(curl --silent --show-error --max-time 30 --output "$spot" --write-out '%{http_code}' https://on-any-postcode.onrender.com/the-spot/movement-delivery)
+          mission_code=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/mission)
+          echo "movement=$movement_code status=$status_code spot=$spot_code public_mission=$mission_code"
+          test "$movement_code" = "200"
+          test "$status_code" = "200"
+          test "$spot_code" = "200"
+          test "$mission_code" = "404"
+          grep -Fq 'OAP Movement' "$movement"
+          grep -Fq 'OAP Ride' "$movement"
+          grep -Fq 'OAP E-Bike' "$movement"
+          grep -Fq 'OAP Delivery' "$movement"
+          grep -Fq 'OAP eSIM Connectivity' "$movement"
+          grep -Fq 'Provider not connected' "$movement"
+          grep -Fq '"dispatch_enabled":false' "$status"
+          grep -Fq '"esim_activation_enabled":false' "$status"
+          grep -Fq '"esim_provider_connected":false' "$status"
+          grep -Fq 'Open OAP Movement' "$spot"
+          echo 'live_movement_esim=PASS'
