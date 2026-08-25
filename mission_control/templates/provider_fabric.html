@@ -26,10 +26,11 @@
       <div class="mc-status-grid">
         <article class="mc-status-card"><strong>Slots</strong><span>{{ fabric.summary.slots }}</span></article>
         <article class="mc-status-card"><strong>Wired</strong><span>{{ fabric.summary.wired }}</span></article>
+        <article class="mc-status-card"><strong>Configured</strong><span>{{ fabric.summary.configured }}</span></article>
         <article class="mc-status-card"><strong>Runtime verified</strong><span>{{ fabric.summary.runtime_verified }}</span></article>
         <article class="mc-status-card"><strong>Provider required</strong><span>{{ fabric.summary.provider_required }}</span></article>
       </div>
-      <p class="mc-notice">Wired does not mean runtime verified. Configuration never counts as proof by itself.</p>
+      <p class="mc-notice">Wired, configured and runtime verified are three different evidence states. Configuration never counts as proof by itself.</p>
     </section>
 
     <section class="mc-panel" aria-labelledby="provider-slots-title">
@@ -45,7 +46,7 @@
           {% if slot.adapters %}
           <ul>
             {% for adapter in slot.adapters %}
-            <li>{{ adapter.name }} · {{ adapter.mode|replace('_', ' ') }} · {{ adapter.host }}</li>
+            <li>{{ adapter.name }} · {{ adapter.mode|replace('_', ' ') }} · {{ 'configured' if adapter.configured else 'endpoint required' }} · {{ adapter.host }}</li>
             {% endfor %}
           </ul>
           {% else %}
@@ -76,7 +77,7 @@
         <li>{{ principle }}</li>
         {% endfor %}
       </ul>
-      <p class="mc-notice">No provider activation, payment capture, dispatch, carrier switch or remote eSIM install control exists on this page.</p>
+      <p class="mc-notice">No provider activation, payment capture, external dispatch, carrier switch or remote eSIM install control exists on this page.</p>
     </section>
   </main>
 </body>
