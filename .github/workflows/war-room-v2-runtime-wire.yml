@@ -1,0 +1,81 @@
+name: Wire War Room v2 runtime authority
+
+on:
+  push:
+    branches:
+      - build/war-room-v2
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: build/war-room-v2
+      - name: Wire canonical authority into SMI chat runtime
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("mission_control/smi_chat_runtime.py")
+          text = path.read_text()
+
+          replacements = [
+              (
+                  "    actor_id: str,\n    action: str,",
+                  "    actor_id: str,\n    authority_level: int,\n    action: str,",
+              ),
+              (
+                  "           VALUES (%s,%s,%s,'HUMAN',5,%s,%s,%s,%s,%s::jsonb)\"\"\",",
+                  "           VALUES (%s,%s,%s,'HUMAN',%s,%s,%s,%s,%s,%s::jsonb)\"\"\",",
+              ),
+              (
+                  "            actor_id,\n            action,",
+                  "            actor_id,\n            int(authority_level),\n            action,",
+              ),
+              (
+                  "        _ensure_identity(connection, identity, name)\n        _emit(on_event, \"stage\", stage=\"identity\", label=\"Identity verified\")",
+                  "        _ensure_identity(connection, identity, name)\n        authority_context = authority.authority_record(connection, identity) or {\n            \"identity_id\": identity,\n            \"authority_level\": 5,\n            \"permissions\": (\"REQUEST_RECOMMENDATION\",),\n            \"is_human_authority\": False,\n        }\n        _emit(on_event, \"stage\", stage=\"identity\", label=\"Identity verified\")",
+              ),
+              (
+                  "            image_attached=bool(image or media.get(\"kind\")),\n        )",
+                  "            image_attached=bool(image or media.get(\"kind\")),\n            authority_context=authority_context,\n        )",
+              ),
+              (
+                  "            \"war_room\": brain[\"war_room\"][\"triggered\"],\n            \"adaptive_memory_count\": len(adaptive_memory),",
+                  "            \"war_room\": brain[\"war_room\"][\"triggered\"],\n            \"authority_level\": brain[\"authority\"][\"authority_level\"],\n            \"human_authority\": brain[\"authority\"][\"is_human_authority\"],\n            \"adaptive_memory_count\": len(adaptive_memory),",
+              ),
+              (
+                  "            actor_id=identity,\n            action=\"SMI_REVIEWED\",",
+                  "            actor_id=identity,\n            authority_level=int(authority_context.get(\"authority_level\", 5)),\n            action=\"SMI_REVIEWED\",",
+              ),
+              (
+                  "        \"signal_level\": brain[\"signal_level\"],\n        \"war_room\": brain[\"war_room\"],",
+                  "        \"signal_level\": brain[\"signal_level\"],\n        \"authority\": brain[\"authority\"],\n        \"war_room\": brain[\"war_room\"],",
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f"Expected runtime pattern not found: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+          git diff --check
+      - name: Commit runtime wiring
+        run: |
+          if git diff --quiet; then
+            echo "No runtime wiring change required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mission_control/smi_chat_runtime.py
+          git commit -m "Wire canonical authority into War Room v2 runtime"
+          git push origin HEAD:build/war-room-v2
