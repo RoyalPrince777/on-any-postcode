@@ -7,6 +7,7 @@ from oap_intelligence import register_oap_intelligence
 from youth_real_education import register_youth_real_education
 from bank_intelligence import register_bank_intelligence
 from background_258 import register_background_258
+from oap_ride import register_oap_ride
 from oap_finalization import register_finalization
 
 if 'spot_family' not in app.blueprints:
@@ -21,5 +22,7 @@ if 'bank_intelligence' not in app.blueprints:
     register_bank_intelligence(app, db, uid)
 if 'background_258' not in app.blueprints:
     register_background_258(app, db, uid)
+if 'oap_ride' not in app.blueprints:
+    register_oap_ride(app, db, uid)
 if 'oap_finalization' not in app.blueprints:
     register_finalization(app, db, uid)
