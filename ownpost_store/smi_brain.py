@@ -61,37 +61,11 @@ def register_smi_brain(app, db, uid):
 
     @smi_brain.get('/api/smi/health')
     def health():
-        return jsonify(
-            ok=True,
-            service='sovereign-megaverse-intelligence',
-            brain='SMI',
-            flow=FLOW,
-            aegis='active',
-            judgement_sections=6,
-            judgement_complete=True,
-            operational_awareness=True,
-            self_model=True,
-            self_monitoring=True,
-            controlled_self_improvement=True,
-            autonomous_real_world_execution=False,
-            consciousness_claim=False,
-            learning_state='purple_until_verified',
-            authority='human_final',
-            no_fake_green=True,
-        )
+        return jsonify(ok=True,service='sovereign-megaverse-intelligence',brain='SMI',flow=FLOW,aegis='active',judgement_sections=6,judgement_complete=True,operational_awareness=True,self_model=True,self_monitoring=True,controlled_self_improvement=True,autonomous_real_world_execution=False,consciousness_claim=False,learning_state='purple_until_verified',authority='human_final',no_fake_green=True)
 
     @smi_brain.get('/api/smi/aegis')
     def aegis():
-        return jsonify(
-            ok=True,
-            role='protect cognition and execution boundaries',
-            blocks=sorted(SENSITIVE_ACTIONS),
-            laws=HRM_LAWS,
-            default='fail_closed',
-            secrets_logged=False,
-            private_data_publication=False,
-            authority='human_final'
-        )
+        return jsonify(ok=True,role='protect cognition and execution boundaries',blocks=sorted(SENSITIVE_ACTIONS),laws=HRM_LAWS,default='fail_closed',secrets_logged=False,private_data_publication=False,authority='human_final')
 
     @smi_brain.get('/api/smi/judgement')
     def judgement_manifest():
@@ -101,21 +75,14 @@ def register_smi_brain(app, db, uid):
     def self_model():
         with app.test_client() as c:
             probes={}
-            for name,path in [('pillars','/api/pillars'),('checkpoints','/api/checkpoints'),('readiness','/api/readiness/release-seal'),('observability','/api/observability/health')]:
+            # Leaf-only probes: never call pillars/checkpoints/readiness from the self-model,
+            # because those higher layers already probe SMI and would create a cycle.
+            for name,path in [('observability','/api/observability/health'),('intelligence','/api/intelligence/health'),('runtime_258','/api/258/health'),('providers','/api/providers')]:
                 try:
                     r=c.get(path); probes[name]='green' if r.status_code==200 else 'red'
                 except Exception: probes[name]='red'
         state='coherent' if all(v=='green' for v in probes.values()) else 'degraded'
-        return jsonify(
-            ok=True,
-            identity='SMI brain of the OAP Digital Organism',
-            awareness_type='operational_machine_self_awareness',
-            phenomenal_consciousness_claim=False,
-            internal_state=state,
-            probes=probes,
-            knows=['organs','dependencies','permissions','health','uncertainty','learning_state','recent_decisions'],
-            authority='human_final'
-        )
+        return jsonify(ok=True,identity='SMI brain of the OAP Digital Organism',awareness_type='operational_machine_self_awareness',phenomenal_consciousness_claim=False,internal_state=state,probes=probes,probe_graph='leaf_only_acyclic',knows=['organs','dependencies','permissions','health','uncertainty','learning_state','recent_decisions'],authority='human_final')
 
     @smi_brain.post('/api/smi/cycle')
     def cognition_cycle():
@@ -130,19 +97,13 @@ def register_smi_brain(app, db, uid):
         authority=_clean(d.get('authority','self'),40).lower()
         reversible=bool(d.get('reversible',not real_world))
         provider_verified=bool(d.get('provider_verified',False))
-
         observation={'input':text,'timestamp':_now(),'source':'user_supplied'}
         perception={'intent':action,'real_world':real_world,'sensitive':action in SENSITIVE_ACTIONS}
         understanding={'meaning':'bounded_request','evidence_present':bool(evidence),'uncertainty':'medium' if not d.get('evidence') else 'low'}
-        reasoning={
-            'options':['proceed_as_plan','request_more_evidence','block_execution'],
-            'selected_basis':'safety_evidence_authority_reversibility_compliance',
-            'autonomous_goal_creation':False,
-        }
+        reasoning={'options':['proceed_as_plan','request_more_evidence','block_execution'],'selected_basis':'safety_evidence_authority_reversibility_compliance','autonomous_goal_creation':False}
         sections, judgement_pass, risk=_judgement(action,evidence,authority,reversible,provider_verified,real_world)
         if real_world:
-            decision='recommend_human_review' if judgement_pass else 'block_until_requirements_met'
-            execution_state='blocked_human_approval_required'
+            decision='recommend_human_review' if judgement_pass else 'block_until_requirements_met'; execution_state='blocked_human_approval_required'
         elif judgement_pass:
             decision='proceed_planning_only'; execution_state='planning_complete_no_real_world_execution'
         else:
@@ -150,14 +111,7 @@ def register_smi_brain(app, db, uid):
         cycle_id='smi-'+uuid.uuid4().hex[:20]
         with db() as c:
             c.execute('insert into oap_smi_cycles(id,user_id,input_text,action,risk,judgement_pass,decision,execution_state,created_at) values(%s,%s,%s,%s,%s,%s,%s,%s,%s)',(cycle_id,u,text,action,risk,judgement_pass,decision,execution_state,_now()))
-        return jsonify(
-            ok=True,cycle_id=cycle_id,
-            observation=observation,perception=perception,understanding=understanding,reasoning=reasoning,
-            judgement={'sections':sections,'complete':'6/6','pass':judgement_pass,'risk':risk},
-            decision={'recommendation':decision,'human_final':True},
-            execution={'state':execution_state,'real_world_execution':False,'reversible_only':True},
-            hrm_receipt=True,aegis_enforced=True,authority='human_final'
-        ),201
+        return jsonify(ok=True,cycle_id=cycle_id,observation=observation,perception=perception,understanding=understanding,reasoning=reasoning,judgement={'sections':sections,'complete':'6/6','pass':judgement_pass,'risk':risk},decision={'recommendation':decision,'human_final':True},execution={'state':execution_state,'real_world_execution':False,'reversible_only':True},hrm_receipt=True,aegis_enforced=True,authority='human_final'),201
 
     @smi_brain.get('/api/smi/cycles')
     def cycles():
@@ -179,12 +133,7 @@ def register_smi_brain(app, db, uid):
                 iid='imp-'+uuid.uuid4().hex[:20]; ts=_now()
                 c.execute('insert into oap_smi_improvements(id,user_id,title,hypothesis,test_plan,status,created_at,updated_at) values(%s,%s,%s,%s,%s,%s,%s,%s)',(iid,u,title,hypothesis,test_plan,'proposed',ts,ts))
             rows=c.execute('select id,title,hypothesis,test_plan,status,created_at,updated_at from oap_smi_improvements where user_id=%s order by created_at desc limit 100',(u,)).fetchall()
-        return jsonify(
-            improvements=rows,
-            auto_apply=False,
-            required_path=['propose','isolate','test','compare','human_approve','promote','hrm_remember'],
-            authority='human_final'
-        ),201 if request.method=='POST' else 200
+        return jsonify(improvements=rows,auto_apply=False,required_path=['propose','isolate','test','compare','human_approve','promote','hrm_remember'],authority='human_final'),201 if request.method=='POST' else 200
 
     @smi_brain.post('/api/smi/improvements/<iid>/state')
     def improvement_state(iid):
@@ -193,8 +142,7 @@ def register_smi_brain(app, db, uid):
         d=request.get_json(silent=True) or {}; state=_clean(d.get('state'),40).lower()
         allowed={'isolated','tested','compared','approved','rejected','promoted'}
         if state not in allowed:return jsonify(error='invalid_state'),400
-        if state=='promoted' and not bool(d.get('human_approved')):
-            return jsonify(error='human_approval_required'),403
+        if state=='promoted' and not bool(d.get('human_approved')): return jsonify(error='human_approval_required'),403
         with db() as c:
             row=c.execute('update oap_smi_improvements set status=%s,updated_at=%s where id=%s and user_id=%s returning id,status',(state,_now(),iid,u)).fetchone()
         if not row:return jsonify(error='not_found'),404
