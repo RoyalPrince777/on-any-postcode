@@ -1,0 +1,40 @@
+name: THE LINK Android Signing Test
+on:
+  push:
+    branches: [ownpost-store-live]
+    paths:
+      - 'android/**'
+      - '.github/workflows/the-link-signing-test.yml'
+  workflow_dispatch:
+
+jobs:
+  sign-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build unsigned release APK
+        run: gradle -p android assembleRelease
+      - name: Create ephemeral CI signing key
+        run: |
+          keytool -genkeypair -v -keystore ci-test.jks -storepass changeit -keypass changeit -alias thelinktest -keyalg RSA -keysize 2048 -validity 2 -dname "CN=THE LINK CI Test,O=ON ANY POSTCODE,C=GB"
+      - name: Locate apksigner
+        run: echo "APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)" >> "$GITHUB_ENV"
+      - name: Sign release APK with ephemeral test key
+        run: |
+          "$APKSIGNER" sign --ks ci-test.jks --ks-pass pass:changeit --key-pass pass:changeit --ks-key-alias thelinktest --out android/app/build/outputs/apk/release/the-link-ci-signed.apk android/app/build/outputs/apk/release/app-release-unsigned.apk
+      - name: Verify signature and package
+        run: |
+          "$APKSIGNER" verify --verbose --print-certs android/app/build/outputs/apk/release/the-link-ci-signed.apk
+          test -s android/app/build/outputs/apk/release/the-link-ci-signed.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: the-link-ci-signed-apk
+          path: android/app/build/outputs/apk/release/the-link-ci-signed.apk
+          retention-days: 7
