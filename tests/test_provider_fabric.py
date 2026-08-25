@@ -92,7 +92,7 @@ def test_unknown_slot_and_mutation_adapter_are_rejected():
 
 
 def test_provider_projection_never_contains_secret_material(monkeypatch):
-    monkeypatch.setattr(location_intelligence, "status", lambda: {})
+    monkeypatch.setattr(location_intelligence, "status", dict)
     serialized = json.dumps(provider_fabric.get_private_provider_fabric()).lower()
 
     for forbidden in (
@@ -108,7 +108,7 @@ def test_provider_projection_never_contains_secret_material(monkeypatch):
 
 
 def test_private_provider_dashboard_is_read_only(client, monkeypatch):
-    monkeypatch.setattr(location_intelligence, "status", lambda: {})
+    monkeypatch.setattr(location_intelligence, "status", dict)
 
     response = client.get("/mission/providers")
     page = response.get_data(as_text=True)
