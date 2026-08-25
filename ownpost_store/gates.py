@@ -9,6 +9,7 @@ from youth_club import register_youth_club
 from bank_intelligence import register_bank_intelligence
 from background_258 import register_background_258
 from oap_ride import register_oap_ride
+from oap_ride_admin import register_oap_ride_admin
 from movement_hub import register_movement_hub
 from oap_language import register_oap_language
 from oap_checkpoints import register_checkpoints
@@ -33,6 +34,8 @@ if 'background_258' not in app.blueprints:
     register_background_258(app, db, uid)
 if 'oap_ride' not in app.blueprints:
     register_oap_ride(app, db, uid)
+if 'oap_ride_admin' not in app.blueprints:
+    register_oap_ride_admin(app, db, uid)
 if 'oap_movement_hub' not in app.blueprints:
     register_movement_hub(app, db, uid)
 if 'oap_language' not in app.blueprints:
