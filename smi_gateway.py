@@ -36,6 +36,16 @@ _HOP_BY_HOP = {
 }
 
 
+class _NoRedirect(urlrequest.HTTPRedirectHandler):
+    """Return upstream redirects to the browser instead of following them here."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ARG002
+        return None
+
+
+_OPENER = urlrequest.build_opener(_NoRedirect())
+
+
 def _origin() -> str:
     value = os.environ.get("OAP_PUBLIC_ORIGIN", _UPSTREAM_DEFAULT).strip().rstrip("/")
     parsed = urlparse.urlparse(value)
@@ -97,7 +107,7 @@ def _proxy(path: str):
         method=request.method,
     )
     try:
-        upstream = urlrequest.urlopen(upstream_request, timeout=120)
+        upstream = _OPENER.open(upstream_request, timeout=120)
     except urlerror.HTTPError as exc:
         upstream = exc
     except (OSError, TimeoutError, urlerror.URLError):
