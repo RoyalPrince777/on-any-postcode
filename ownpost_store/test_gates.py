@@ -49,7 +49,7 @@ class Gates(unittest.TestCase):
   r=self.c.get('/api/language'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['canonical']['feed'],'Signals'); self.assertEqual(r.json['canonical']['notifications'],'Pulse')
   self.assertEqual(self.c.get('/api/pulse').status_code,401)
   p=self.c.post('/api/pulse',headers=self.h,json={'title':'Pulse CI','body':'hello'}); self.assertEqual(p.status_code,200); self.assertIn('pulse',p.json)
-  s=self.c.post('/api/signals',headers=self.h,json={'title':'Signal CI','scope':'postcode','scope_value':'SE15'}); self.assertEqual(s.status_code,200); self.assertIn('signals',s.json)
+  s=self.c.post('/api/signals',headers=self.h,json={'title':'Signal CI','scope':'postcode','scope_value':'SE15'}); self.assertEqual(s.status_code,200); self.assertIn('signals',s.json); self.assertEqual(s.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation')
  def test_signals_pulse_controls(self):
   h=self.c.get('/api/communications/health'); self.assertEqual(h.status_code,200); self.assertFalse(h.json['precise_location_subscriptions']); self.assertIn('safety',h.json['locked_on'])
   self.assertEqual(self.c.get('/api/pulse/preferences').status_code,401)
@@ -62,6 +62,13 @@ class Gates(unittest.TestCase):
   s=self.c.post('/api/signals',headers=self.h,json={'title':'Safety CI','scope':'postcode','scope_value':'SE15','source':'community_safety','score':1}); self.assertEqual(s.status_code,200)
   r=self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['canonical_name'],'Signals'); self.assertFalse(r.json['precise_location_used']); self.assertEqual(r.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation'); self.assertTrue(any(x['title']=='Safety CI' for x in r.json['signals']))
   bad=self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15&lat=51.5'); self.assertEqual(bad.status_code,403)
+ def test_canonical_signals_uses_human_first_ranking(self):
+  stamp=str(int(time.time()*1000))
+  safety='Canonical Safety '+stamp; popular='Canonical Popular '+stamp
+  a=self.c.post('/api/signals',headers=self.h,json={'title':popular,'scope':'postcode','scope_value':'CR4','source':'community','score':10}); self.assertEqual(a.status_code,200)
+  b=self.c.post('/api/signals',headers=self.h,json={'title':safety,'scope':'postcode','scope_value':'CR4','source':'community_safety','score':1}); self.assertEqual(b.status_code,200)
+  r=self.c.get('/api/signals?scope=postcode&scope_value=CR4'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['ranking_policy'],'human_first_relevance_not_engagement_maximisation'); titles=[x['title'] for x in r.json['signals']]; self.assertLess(titles.index(safety),titles.index(popular)); self.assertFalse(r.json['precise_location_used'])
+  self.assertEqual(self.c.get('/api/signals?scope=postcode&scope_value=CR4&lat=51.4').status_code,403)
  def test_event_bridge_privacy(self):
   h=self.c.get('/api/event-bridge/health'); self.assertEqual(h.status_code,200); self.assertFalse(h.json['precise_public_location'])
   bad=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'movement_disruption','title':'Road issue','scope':'postcode','scope_value':'SE15','lat':51.5}); self.assertEqual(bad.status_code,403)
