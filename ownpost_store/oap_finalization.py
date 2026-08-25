@@ -19,10 +19,14 @@ CORE_PROBES = [
     ('spot_family','/api/spot/me'),
     ('royal','/api/royal/health'),
     ('intelligence','/api/intelligence/health'),
+    ('adaptive_coherence','/api/intelligence/adaptive-coherence'),
     ('world_intelligence','/api/world-intelligence'),
     ('earth_intelligence','/api/earth-intelligence'),
+    ('continent_intelligence','/api/continent-intelligence?continent=Africa'),
+    ('country_intelligence','/api/country-intelligence?continent=Africa&country=Ghana'),
     ('universe_intelligence','/api/universe-intelligence'),
     ('education','/api/education/health'),
+    ('bank_intelligence','/api/bank-intelligence/health'),
 ]
 
 
