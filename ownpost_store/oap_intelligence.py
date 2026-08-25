@@ -8,6 +8,14 @@ WORLD_DOMAINS = ['place','movement','culture','weather_environment','market','ev
 EARTH_DOMAINS = ['continents','countries','oceans','climate','ecosystems','biodiversity','resources','infrastructure','humanity','movement','risk','science']
 UNIVERSE_DOMAINS = ['earth','solar_system','space_weather','astronomy','planetary_science','missions','satellites','cosmology','observation']
 SYSTEM_INTELLIGENCES = ['oap_world_intelligence','earth_intelligence','universe_intelligence','spot_intelligence','link_intelligence','sika_intelligence','movement_intelligence','market_intelligence','media_intelligence','guardian','hrm']
+ADAPTIVE_COHERENCE_RULES = [
+    'adapt_to_verified_evidence',
+    'preserve_hierarchy_and_permissions',
+    'resolve_conflicts_before_propagation',
+    'record_material_changes_in_hrm',
+    'keep_learning_purple_until_verified',
+    'human_final_authority',
+]
 
 
 def register_oap_intelligence(app, db, uid):
@@ -28,7 +36,7 @@ def register_oap_intelligence(app, db, uid):
 
     @oap_intelligence.get('/api/intelligence/health')
     def intelligence_health():
-        return jsonify(ok=True, service='on-any-postcode-intelligence', authority='human_final', autonomous_real_world_execution=False, learning_state='purple_until_verified')
+        return jsonify(ok=True, service='on-any-postcode-intelligence', authority='human_final', autonomous_real_world_execution=False, learning_state='purple_until_verified', adaptive=True, coherent=True)
 
     @oap_intelligence.get('/api/intelligence')
     def intelligence_root():
@@ -37,8 +45,25 @@ def register_oap_intelligence(app, db, uid):
             role='whole_ecosystem_intelligence_coordinator',
             parent='SMI',
             authority='human_final',
+            adaptive=True,
+            coherent=True,
             children=SYSTEM_INTELLIGENCES,
             law=['proof_before_execution','verification_before_sharing','audit_before_automation','human_approval_before_real_world_action'],
+        )
+
+    @oap_intelligence.get('/api/intelligence/adaptive-coherence')
+    def adaptive_coherence():
+        return jsonify(
+            name='Adaptive Coherent Intelligence',
+            role='cross_intelligence_consistency_and_learning_behavior',
+            applies_to=SYSTEM_INTELLIGENCES,
+            adaptive=True,
+            coherent=True,
+            rules=ADAPTIVE_COHERENCE_RULES,
+            conflict_policy='hold_and_reconcile_before_propagation',
+            learning_state='purple_until_verified',
+            autonomous_real_world_execution=False,
+            authority='human_final',
         )
 
     @oap_intelligence.get('/api/world-intelligence')
@@ -50,6 +75,8 @@ def register_oap_intelligence(app, db, uid):
             hierarchy=WORLD_HIERARCHY,
             domains=WORLD_DOMAINS,
             children=['earth_intelligence','spot_intelligence','movement_intelligence'],
+            adaptive=True,
+            coherent=True,
             local_first=True,
             no_level_skipping=True,
             precise_location_default=False,
@@ -65,6 +92,8 @@ def register_oap_intelligence(app, db, uid):
             scope='earth',
             domains=EARTH_DOMAINS,
             child='Universe Intelligence',
+            adaptive=True,
+            coherent=True,
             evidence_first=True,
             prediction_requires_verified_sources=True,
             authority='human_final',
@@ -78,6 +107,8 @@ def register_oap_intelligence(app, db, uid):
             role='space_and_universe_intelligence',
             scope='universe',
             domains=UNIVERSE_DOMAINS,
+            adaptive=True,
+            coherent=True,
             earth_remains_home_context=True,
             evidence_first=True,
             scientific_claims_require_verified_sources=True,
@@ -95,7 +126,7 @@ def register_oap_intelligence(app, db, uid):
         value = str(request.args.get('value','')).strip()[:120]
         if scope not in WORLD_HIERARCHY:
             return jsonify(error='invalid_scope', allowed=WORLD_HIERARCHY), 400
-        context = {'scope':scope,'value':value,'domains':WORLD_DOMAINS,'source_mode':'live_oap_records','prediction':False,'precise_location_used':False}
+        context = {'scope':scope,'value':value,'domains':WORLD_DOMAINS,'source_mode':'live_oap_records','prediction':False,'precise_location_used':False,'adaptive':True,'coherent':True}
         with db() as c:
             if scope == 'postcode' and value:
                 pc=value.upper()
