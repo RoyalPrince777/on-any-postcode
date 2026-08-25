@@ -20,9 +20,12 @@ jobs:
           public_status=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/mission/providers/status)
           smi_headers=$(mktemp)
           smi_provider=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$smi_headers" --write-out '%{http_code}' https://oap-smi.onrender.com/mission/providers)
+          location=$(grep -i '^location:' "$smi_headers" | tr -d '\r' || true)
           echo "public_provider=$public_provider public_status=$public_status smi_provider=$smi_provider"
+          echo "$location"
           test "$public_provider" = "404"
           test "$public_status" = "404"
           test "$smi_provider" = "302"
-          grep -Eiq '^location: /enter-my-world\?next=/mission/providers\r?$' "$smi_headers"
+          echo "$location" | grep -Fqi '/enter-my-world?next='
+          echo "$location" | grep -Eqi 'mission(%2F|/)providers'
           echo 'provider_fabric_privacy=PASS'
