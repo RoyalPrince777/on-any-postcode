@@ -88,7 +88,7 @@ def register_oap_language(app, db, uid):
             service='pulse-intelligence',
             canonical_channel='Pulse',
             ranking_inputs=['personal_importance','unread','freshness'],
-            protected_priority=sorted(PROTECTED_PULSE),
+            protected_priority=['safety','account'],
             protected_cross_user_spoofing=False,
             preference_aware_delivery=True,
             excluded_inputs=['clicks','likes','dwell_time','rage','outrage','streaks','infinite_scroll_pressure'],
