@@ -57,6 +57,22 @@ def test_smi_gateway_allowlist_is_private_and_sign_in_only():
     assert smi_gateway._allowed("market") is False
 
 
+def test_smi_gateway_does_not_follow_upstream_redirects():
+    assert any(
+        isinstance(handler, smi_gateway._NoRedirect)
+        for handler in smi_gateway._OPENER.handlers
+    )
+    handler = smi_gateway._NoRedirect()
+    assert handler.redirect_request(
+        None,
+        None,
+        302,
+        "Found",
+        {},
+        "https://example.test/auth",
+    ) is None
+
+
 def test_smi_gateway_root_redirects_to_private_workspace():
     client = smi_gateway.app.test_client()
     response = client.get("/")
