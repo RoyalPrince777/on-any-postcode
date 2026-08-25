@@ -1,0 +1,61 @@
+name: Wire War Room v2 delete audit authority
+
+on:
+  push:
+    branches:
+      - build/war-room-v2
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: build/war-room-v2
+      - name: Wire canonical authority into conversation delete audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("mission_control/smi_chat_runtime.py")
+          text = path.read_text()
+
+          replacements = [
+              (
+                  "    with postgres_db.connect() as connection:\n        row = connection.execute(\n            \"\"\"SELECT title FROM smi_conversations",
+                  "    with postgres_db.connect() as connection:\n        authority_context = authority.authority_record(connection, identity) or {\n            \"identity_id\": identity,\n            \"authority_level\": 5,\n            \"permissions\": (\"REQUEST_RECOMMENDATION\",),\n            \"is_human_authority\": False,\n        }\n        row = connection.execute(\n            \"\"\"SELECT title FROM smi_conversations",
+              ),
+              (
+                  "            actor_id=identity,\n            action=\"SMI_CONVERSATION_DELETED\",",
+                  "            actor_id=identity,\n            authority_level=int(authority_context.get(\"authority_level\", 5)),\n            action=\"SMI_CONVERSATION_DELETED\",",
+              ),
+              (
+                  "            reason=\"Human Authority deleted an owned SMI conversation.\",",
+                  "            reason=\"Authenticated owner deleted an owned SMI conversation.\",",
+              ),
+              (
+                  "                \"identity_id\": identity,\n                \"title_hash\": hashlib.sha256(str(row[0]).encode()).hexdigest(),",
+                  "                \"identity_id\": identity,\n                \"authority_level\": int(authority_context.get(\"authority_level\", 5)),\n                \"human_authority\": bool(authority_context.get(\"is_human_authority\")),\n                \"title_hash\": hashlib.sha256(str(row[0]).encode()).hexdigest(),",
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f"Expected delete-audit pattern not found: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+          git diff --check
+      - name: Commit delete audit wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mission_control/smi_chat_runtime.py
+          git commit -m "Wire canonical authority into conversation delete audit"
+          git push origin HEAD:build/war-room-v2
