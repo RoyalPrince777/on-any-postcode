@@ -1,0 +1,63 @@
+name: Temporary Movement lint fixer
+
+on:
+  push:
+    branches:
+      - build/movement-operations-v1
+    paths:
+      - .github/workflows/temporary-fix-movement-lint.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: build/movement-operations-v1
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Apply exact lint fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          operations = Path('mission_control/movement_operations.py')
+          text = operations.read_text()
+          text = text.replace('from uuid import UUID, uuid4', 'from uuid import UUID', 1)
+          text = text.replace(
+              '    if not isinstance(value, dict):\n        raise ValueError(f"invalid_{name}")\n    return {',
+              '    if not isinstance(value, dict):\n        raise TypeError(f"invalid_{name}")\n    return {',
+              1,
+          )
+          operations.write_text(text)
+
+          routes = Path('mission_control/movement_routes.py')
+          text = routes.read_text()
+          text = text.replace(
+              '    if not isinstance(value, dict):\n        raise ValueError("json_object_required")',
+              '    if not isinstance(value, dict):\n        raise TypeError("json_object_required")',
+              1,
+          )
+          text = text.replace(
+              '    if isinstance(exc, ValueError):\n        return _error(str(exc) or "invalid_movement_request", "Invalid Movement request.", 400)',
+              '    if isinstance(exc, (TypeError, ValueError)):\n        return _error(str(exc) or "invalid_movement_request", "Invalid Movement request.", 400)',
+              1,
+          )
+          routes.write_text(text)
+          PY
+          python -m pip install ruff
+          ruff check mission_control/movement_operations.py mission_control/movement_routes.py
+          git diff --check
+      - name: Commit fixes
+        run: |
+          git config user.name "RoyalPrince777"
+          git config user.email "actions@users.noreply.github.com"
+          git add mission_control/movement_operations.py mission_control/movement_routes.py
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix Movement lint findings"
+          git push origin HEAD:build/movement-operations-v1
