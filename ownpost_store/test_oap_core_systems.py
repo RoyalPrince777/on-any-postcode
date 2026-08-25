@@ -36,6 +36,10 @@ class OAPCoreSystems(unittest.TestCase):
   rows=b.json['pulse']; titles=[x['title'] for x in rows]; self.assertLess(titles.index(safety),titles.index(general)); sr=next(x for x in rows if x['title']==safety); self.assertEqual(sr['category'],'safety')
   self.assertEqual(self.c.post(f"/api/pulse/{sr['id']}/read",headers=self.h).status_code,200)
   r=self.c.get('/api/pulse',headers=self.h); titles=[x['title'] for x in r.json['pulse']]; self.assertLess(titles.index(safety),titles.index(general))
+ def test_protected_event_bridge_authority(self):
+  h=self.c.get('/api/event-bridge/health'); self.assertEqual(h.status_code,200); self.assertEqual(h.json['protected_cross_user_policy'],'founder_authority_only')
+  bad=self.c.post('/api/event-bridge',headers=self.h2,json={'kind':'guardian_alert','title':'Spoofed safety','target_user_id':1}); self.assertEqual(bad.status_code,403); self.assertEqual(bad.json['error'],'protected_event_authority_required')
+  own=self.c.post('/api/event-bridge',headers=self.h2,json={'kind':'guardian_alert','title':'Own safety','target_user_id':2}); self.assertEqual(own.status_code,201); self.assertTrue(own.json['protected']); self.assertTrue(own.json['delivered'])
  def test_auth_boundaries(self):
   for path in ['/api/transport/journeys','/api/studio/projects']:
    self.assertEqual(self.c.get(path).status_code,401)
