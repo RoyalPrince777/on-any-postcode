@@ -105,14 +105,11 @@ def test_runtime_migration_contains_durable_queue_recovery_and_receipts():
     assert len(organism_runtime.RUNTIME_MIGRATION_CHECKSUM) == 64
 
 
-def test_render_blueprint_defines_real_background_worker():
+def test_free_mode_does_not_provision_a_paid_background_worker():
     content = Path("render.yaml").read_text()
-    assert "type: worker" in content
-    assert "name: oap-organism-runtime" in content
-    assert "startCommand: python -m mission_control.organism_worker" in content
-    assert "maxShutdownDelaySeconds: 60" in content
-    assert "OAP_DB_SECRET_B64" in content
-    assert "fromService:" in content
-    assert "envVarKey: OAP_DB_SECRET_B64" in content
-    assert "name: on-any-postcode" in content
-    assert "type: web\n    name: on-any-postcode" not in content
+    assert "type: worker" not in content
+    assert "plan: starter" not in content
+    assert "name: oap-organism-runtime" not in content
+    assert "name: oap-smi" in content
+    assert "plan: free" in content
+    assert "startCommand: gunicorn smi_gateway:app" in content
