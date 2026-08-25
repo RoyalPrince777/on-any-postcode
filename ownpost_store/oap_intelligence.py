@@ -3,9 +3,11 @@ import time
 
 oap_intelligence = Blueprint('oap_intelligence', __name__)
 
-WORLD_HIERARCHY = ['postcode','borough','county_region','country','continent','global','universe']
+WORLD_HIERARCHY = ['postcode','borough','county_region','country','continent','global','earth','universe']
 WORLD_DOMAINS = ['place','movement','culture','weather_environment','market','events','spot','safety','services']
-SYSTEM_INTELLIGENCES = ['oap_world_intelligence','spot_intelligence','link_intelligence','sika_intelligence','movement_intelligence','market_intelligence','media_intelligence','guardian','hrm']
+EARTH_DOMAINS = ['continents','countries','oceans','climate','ecosystems','biodiversity','resources','infrastructure','humanity','movement','risk','science']
+UNIVERSE_DOMAINS = ['earth','solar_system','space_weather','astronomy','planetary_science','missions','satellites','cosmology','observation']
+SYSTEM_INTELLIGENCES = ['oap_world_intelligence','earth_intelligence','universe_intelligence','spot_intelligence','link_intelligence','sika_intelligence','movement_intelligence','market_intelligence','media_intelligence','guardian','hrm']
 
 
 def register_oap_intelligence(app, db, uid):
@@ -16,6 +18,8 @@ def register_oap_intelligence(app, db, uid):
         rows = [
             ('on_any_postcode_intelligence', None, 'active', 'human_final', 'whole_oap_ecosystem'),
             ('oap_world_intelligence', 'on_any_postcode_intelligence', 'active', 'human_final', 'geography_and_world_context'),
+            ('earth_intelligence', 'oap_world_intelligence', 'active', 'human_final', 'planetary_earth_context'),
+            ('universe_intelligence', 'earth_intelligence', 'active', 'human_final', 'space_and_universe_context'),
             ('spot_intelligence', 'oap_world_intelligence', 'active', 'human_final', 'local_place_context'),
             ('movement_intelligence', 'oap_world_intelligence', 'active', 'human_final', 'people_goods_services_movement'),
         ]
@@ -45,9 +49,39 @@ def register_oap_intelligence(app, db, uid):
             role='geographic_and_world_intelligence',
             hierarchy=WORLD_HIERARCHY,
             domains=WORLD_DOMAINS,
+            children=['earth_intelligence','spot_intelligence','movement_intelligence'],
             local_first=True,
             no_level_skipping=True,
             precise_location_default=False,
+            authority='human_final',
+        )
+
+    @oap_intelligence.get('/api/earth-intelligence')
+    def earth_intelligence():
+        return jsonify(
+            name='Earth Intelligence',
+            parent='OAP World Intelligence',
+            role='planetary_earth_intelligence',
+            scope='earth',
+            domains=EARTH_DOMAINS,
+            child='Universe Intelligence',
+            evidence_first=True,
+            prediction_requires_verified_sources=True,
+            authority='human_final',
+        )
+
+    @oap_intelligence.get('/api/universe-intelligence')
+    def universe_intelligence():
+        return jsonify(
+            name='Universe Intelligence',
+            parent='Earth Intelligence',
+            role='space_and_universe_intelligence',
+            scope='universe',
+            domains=UNIVERSE_DOMAINS,
+            earth_remains_home_context=True,
+            evidence_first=True,
+            scientific_claims_require_verified_sources=True,
+            autonomous_real_world_execution=False,
             authority='human_final',
         )
 
