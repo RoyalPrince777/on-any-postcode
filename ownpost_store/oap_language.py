@@ -17,6 +17,7 @@ PULSE_PRIORITY = {
     'system':0.40,
     'other':0.35,
 }
+PROTECTED_PULSE = {'safety','account'}
 
 
 def pulse_category(kind):
@@ -61,6 +62,11 @@ def rank_pulse_rows(rows, ts=None):
 def register_oap_language(app, db, uid):
     def now(): return int(time.time())
 
+    def pulse_enabled(c,user_id,category):
+        if category in PROTECTED_PULSE:return True
+        r=c.execute('select enabled from oap_pulse_preferences where user_id=%s and category=%s',(user_id,category)).fetchone()
+        return True if not r else bool(r['enabled'])
+
     @language.get('/api/language')
     def language_map():
         return jsonify(
@@ -82,7 +88,9 @@ def register_oap_language(app, db, uid):
             service='pulse-intelligence',
             canonical_channel='Pulse',
             ranking_inputs=['personal_importance','unread','freshness'],
-            protected_priority=['safety','account'],
+            protected_priority=sorted(PROTECTED_PULSE),
+            protected_cross_user_spoofing=False,
+            preference_aware_delivery=True,
             excluded_inputs=['clicks','likes','dwell_time','rage','outrage','streaks','infinite_scroll_pressure'],
             ranking_policy='human_first_personal_priority_not_engagement_maximisation',
             authority='human_final'
@@ -92,18 +100,33 @@ def register_oap_language(app, db, uid):
     def pulse():
         u=uid()
         if not u:return jsonify(error='auth_required'),401
+        delivery=None
         with db() as c:
             if request.method=='POST':
                 d=request.get_json(silent=True) or {}
                 try: target=int(d.get('user_id',u))
                 except: target=u
+                kind=str(d.get('kind','system'))[:40]
+                category=pulse_category(kind)
                 blocked=c.execute('select 1 from link_blocks where (owner_id=%s and blocked_id=%s) or (owner_id=%s and blocked_id=%s)',(u,target,target,u)).fetchone()
                 if target!=u and blocked:return jsonify(error='blocked'),403
-                c.execute('insert into link_notifications(user_id,kind,title,body,created_at) values(%s,%s,%s,%s,%s)',(
-                    target,str(d.get('kind','system'))[:40],str(d.get('title','THE LINK'))[:120],str(d.get('body',''))[:500],now()))
+                if target!=u and category in PROTECTED_PULSE:
+                    return jsonify(error='protected_pulse_spoof_blocked',category=category,delivery='use_authorised_event_bridge'),403
+                enabled=pulse_enabled(c,target,category)
+                if enabled:
+                    c.execute('insert into link_notifications(user_id,kind,title,body,created_at) values(%s,%s,%s,%s,%s)',(
+                        target,kind,str(d.get('title','THE LINK'))[:120],str(d.get('body',''))[:500],now()))
+                delivery={
+                    'target_user_id':target,
+                    'category':category,
+                    'delivered':enabled,
+                    'suppressed_by_preference':not enabled,
+                    'protected':category in PROTECTED_PULSE,
+                }
             rows=c.execute('select id,kind,title,body,read_at,created_at from link_notifications where user_id=%s order by id desc limit 100',(u,)).fetchall()
         return jsonify(
             pulse=rank_pulse_rows(rows),
+            delivery=delivery,
             canonical_name='Pulse',
             legacy_route='/api/notifications',
             ranking_policy='human_first_personal_priority_not_engagement_maximisation',
