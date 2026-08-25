@@ -19,7 +19,7 @@ jobs:
           public_provider_headers=$(mktemp)
           public_status_headers=$(mktemp)
           smi_provider_headers=$(mktemp)
-          smi_status_headers=$(mktemp)
+          smi_status_body=$(mktemp)
           smi_health_body=$(mktemp)
 
           public_provider=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$public_provider_headers" --write-out '%{http_code}' https://on-any-postcode.onrender.com/mission/providers)
@@ -27,7 +27,7 @@ jobs:
           public_health=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/healthz)
 
           smi_provider=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$smi_provider_headers" --write-out '%{http_code}' https://oap-smi.onrender.com/mission/providers)
-          smi_status=$(curl --silent --show-error --max-time 30 --output /dev/null --dump-header "$smi_status_headers" --write-out '%{http_code}' https://oap-smi.onrender.com/mission/providers/status)
+          smi_status=$(curl --silent --show-error --max-time 30 --output "$smi_status_body" --write-out '%{http_code}' https://oap-smi.onrender.com/mission/providers/status)
           smi_health=$(curl --silent --show-error --max-time 30 --output "$smi_health_body" --write-out '%{http_code}' https://oap-smi.onrender.com/healthz)
           smi_world=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/world)
           smi_signup=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/auth/sign-up)
@@ -39,11 +39,11 @@ jobs:
           test "$public_status" = "404"
           test "$public_health" = "200"
           test "$smi_provider" = "302"
-          test "$smi_status" = "302"
+          test "$smi_status" = "401"
           test "$smi_health" = "200"
           test "$smi_world" = "404"
           test "$smi_signup" = "404"
 
           grep -Eiq '^location: /enter-my-world\?next=/mission/providers\r?$' "$smi_provider_headers"
-          grep -Eiq '^location: /enter-my-world\?next=/mission/providers/status\r?$' "$smi_status_headers"
+          grep -Fq 'authentication_required' "$smi_status_body"
           echo 'live_provider_fabric_boundary=PASS'
