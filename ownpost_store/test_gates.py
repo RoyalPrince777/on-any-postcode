@@ -3,13 +3,14 @@ os.environ.setdefault('DATABASE_URL',os.environ.get('DATABASE_URL',''))
 from gates import app
 from test_link_intelligence import LinkIntelligenceTests
 from test_oap_tv import OAPTV
+from test_oap_core_systems import OAPCoreSystems
 
 class Gates(unittest.TestCase):
  def setUp(self):
   self.c=app.test_client(); self.h={'X-Link-User':'1'}; self.h2={'X-Link-User':'2'}
  def test_health_all_gates_and_extras(self):
   r=self.c.get('/health');self.assertEqual(r.status_code,200);self.assertEqual(r.json['gates'],list(range(5,13)))
-  for x in ['presence','whats_lit','business_link','notifications','safety','offline_idempotency']: self.assertIn(x,r.json['extras'])
+  for x in ['presence','whats_lit','business_link','notifications','safety','offline_idempotency','oap_tv','booking','careers','market','global_transport','ai_studio','organ_registry']: self.assertIn(x,r.json['extras'])
  def test_location_requires_auth_and_validates(self):
   self.assertEqual(self.c.post('/api/location',json={'lat':51.5,'lon':-.1}).status_code,401)
   self.assertEqual(self.c.post('/api/location',headers=self.h,json={'lat':999,'lon':0}).status_code,400)
@@ -48,6 +49,6 @@ class Gates(unittest.TestCase):
   r=self.c.get('/api/businesses');self.assertEqual(r.status_code,200);self.assertIn('core is free',r.json['monetization_rule'])
   r=self.c.post('/api/businesses',headers=self.h,json={'name':'CI Business','category':'test','postcode':'SE15'});self.assertEqual(r.status_code,201);self.assertTrue(r.json['monetizable']);self.assertTrue(r.json['core_link_free'])
  def test_public_gate_reads(self):
-  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses']: self.assertEqual(self.c.get(p).status_code,200,p)
+  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self']: self.assertEqual(self.c.get(p).status_code,200,p)
 
 if __name__=='__main__': unittest.main()
