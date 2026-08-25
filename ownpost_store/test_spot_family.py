@@ -1,15 +1,9 @@
-import os, unittest, uuid
-from flask import Flask, request
-from psycopg import connect
-from psycopg.rows import dict_row
+import unittest, uuid
+from gates import app, db, uid
 from spot_family import register_spot_family
-from oap_core_systems import register_core_systems
-DB=os.environ['DATABASE_URL']
-def db(): return connect(DB,autocommit=True,row_factory=dict_row)
-def uid():
- v=request.headers.get('X-Link-User','')
- return int(v) if v.isdigit() and int(v)>0 else None
-app=Flask(__name__); register_core_systems(app,db,uid); register_spot_family(app,db,uid)
+
+if 'spot_family' not in app.blueprints:
+ register_spot_family(app,db,uid)
 
 class SpotFamily(unittest.TestCase):
  def setUp(self):
