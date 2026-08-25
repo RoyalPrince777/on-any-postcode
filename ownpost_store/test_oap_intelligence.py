@@ -15,6 +15,8 @@ class OAPIntelligence(unittest.TestCase):
         self.assertEqual(r.status_code,200)
         self.assertEqual(r.json['authority'],'human_final')
         self.assertFalse(r.json['autonomous_real_world_execution'])
+        self.assertTrue(r.json['adaptive'])
+        self.assertTrue(r.json['coherent'])
 
     def test_parent_child_structure(self):
         r=self.c.get('/api/intelligence')
@@ -24,11 +26,25 @@ class OAPIntelligence(unittest.TestCase):
         self.assertIn('earth_intelligence',r.json['children'])
         self.assertIn('universe_intelligence',r.json['children'])
 
+    def test_adaptive_coherence_contract(self):
+        r=self.c.get('/api/intelligence/adaptive-coherence')
+        self.assertEqual(r.status_code,200)
+        self.assertTrue(r.json['adaptive'])
+        self.assertTrue(r.json['coherent'])
+        self.assertEqual(r.json['conflict_policy'],'hold_and_reconcile_before_propagation')
+        self.assertEqual(r.json['learning_state'],'purple_until_verified')
+        self.assertFalse(r.json['autonomous_real_world_execution'])
+        self.assertEqual(r.json['authority'],'human_final')
+        self.assertIn('adapt_to_verified_evidence',r.json['rules'])
+        self.assertIn('preserve_hierarchy_and_permissions',r.json['rules'])
+
     def test_world_hierarchy_local_first(self):
         r=self.c.get('/api/world-intelligence')
         self.assertEqual(r.status_code,200)
         self.assertTrue(r.json['local_first'])
         self.assertTrue(r.json['no_level_skipping'])
+        self.assertTrue(r.json['adaptive'])
+        self.assertTrue(r.json['coherent'])
         self.assertEqual(r.json['hierarchy'][0],'postcode')
         self.assertEqual(r.json['hierarchy'][-2],'earth')
         self.assertEqual(r.json['hierarchy'][-1],'universe')
@@ -40,6 +56,8 @@ class OAPIntelligence(unittest.TestCase):
         self.assertEqual(r.json['scope'],'earth')
         self.assertTrue(r.json['evidence_first'])
         self.assertTrue(r.json['prediction_requires_verified_sources'])
+        self.assertTrue(r.json['adaptive'])
+        self.assertTrue(r.json['coherent'])
         self.assertEqual(r.json['authority'],'human_final')
 
     def test_universe_intelligence(self):
@@ -49,6 +67,8 @@ class OAPIntelligence(unittest.TestCase):
         self.assertEqual(r.json['scope'],'universe')
         self.assertTrue(r.json['scientific_claims_require_verified_sources'])
         self.assertTrue(r.json['earth_remains_home_context'])
+        self.assertTrue(r.json['adaptive'])
+        self.assertTrue(r.json['coherent'])
         self.assertFalse(r.json['autonomous_real_world_execution'])
         self.assertEqual(r.json['authority'],'human_final')
 
@@ -57,6 +77,8 @@ class OAPIntelligence(unittest.TestCase):
         self.assertEqual(r.status_code,200)
         self.assertFalse(r.json['context']['prediction'])
         self.assertFalse(r.json['context']['precise_location_used'])
+        self.assertTrue(r.json['context']['adaptive'])
+        self.assertTrue(r.json['context']['coherent'])
         self.assertEqual(r.json['context']['source_mode'],'live_oap_records')
 
     def test_invalid_scope_rejected(self):
