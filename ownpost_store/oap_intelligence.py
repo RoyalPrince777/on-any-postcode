@@ -6,8 +6,11 @@ oap_intelligence = Blueprint('oap_intelligence', __name__)
 WORLD_HIERARCHY = ['postcode','borough','county_region','country','continent','global','earth','universe']
 WORLD_DOMAINS = ['place','movement','culture','weather_environment','market','events','spot','safety','services']
 EARTH_DOMAINS = ['continents','countries','oceans','climate','ecosystems','biodiversity','resources','infrastructure','humanity','movement','risk','science']
+CONTINENT_DOMAINS = ['countries','regions','movement','trade','market','culture','nature','education','safety','infrastructure','media','sika','intelligence']
+COUNTRY_DOMAINS = ['regions','counties_districts','boroughs_municipalities','towns_cities','postcodes_localities','movement','services','education','trades','market','culture','nature','safety']
 UNIVERSE_DOMAINS = ['earth','solar_system','space_weather','astronomy','planetary_science','missions','satellites','cosmology','observation']
-SYSTEM_INTELLIGENCES = ['oap_world_intelligence','earth_intelligence','universe_intelligence','spot_intelligence','link_intelligence','sika_intelligence','movement_intelligence','market_intelligence','media_intelligence','guardian','hrm']
+AFRICA_ORGANS = ['united_states_of_africa','sika_africa','africa_intelligence','movement','market','culture','nature','arena','media','education','food_agriculture','energy','housing_infrastructure','jobs_careers','trade_business','safety','tourism_explorer','maps_navigation','the_link','link_up','the_spot']
+SYSTEM_INTELLIGENCES = ['oap_world_intelligence','earth_intelligence','continent_intelligence','country_intelligence','universe_intelligence','spot_intelligence','link_intelligence','sika_intelligence','movement_intelligence','market_intelligence','media_intelligence','guardian','hrm']
 ADAPTIVE_COHERENCE_RULES = [
     'adapt_to_verified_evidence',
     'preserve_hierarchy_and_permissions',
@@ -27,6 +30,8 @@ def register_oap_intelligence(app, db, uid):
             ('on_any_postcode_intelligence', None, 'active', 'human_final', 'whole_oap_ecosystem'),
             ('oap_world_intelligence', 'on_any_postcode_intelligence', 'active', 'human_final', 'geography_and_world_context'),
             ('earth_intelligence', 'oap_world_intelligence', 'active', 'human_final', 'planetary_earth_context'),
+            ('continent_intelligence', 'earth_intelligence', 'active', 'human_final', 'continent_context'),
+            ('country_intelligence', 'continent_intelligence', 'active', 'human_final', 'country_context'),
             ('universe_intelligence', 'earth_intelligence', 'active', 'human_final', 'space_and_universe_context'),
             ('spot_intelligence', 'oap_world_intelligence', 'active', 'human_final', 'local_place_context'),
             ('movement_intelligence', 'oap_world_intelligence', 'active', 'human_final', 'people_goods_services_movement'),
@@ -91,11 +96,63 @@ def register_oap_intelligence(app, db, uid):
             role='planetary_earth_intelligence',
             scope='earth',
             domains=EARTH_DOMAINS,
-            child='Universe Intelligence',
+            children=['continent_intelligence','universe_intelligence'],
             adaptive=True,
             coherent=True,
             evidence_first=True,
             prediction_requires_verified_sources=True,
+            authority='human_final',
+        )
+
+    @oap_intelligence.get('/api/continent-intelligence')
+    def continent_intelligence():
+        continent = str(request.args.get('continent','')).strip()[:80]
+        data = {
+            'name':'Continent Intelligence',
+            'parent':'Earth Intelligence',
+            'role':'continent_level_intelligence',
+            'scope':'continent',
+            'continent':continent or None,
+            'domains':CONTINENT_DOMAINS,
+            'child':'Country Intelligence',
+            'local_first':True,
+            'adaptive':True,
+            'coherent':True,
+            'authority':'human_final',
+        }
+        if continent.lower() == 'africa':
+            data['organs'] = AFRICA_ORGANS
+            data['united_states_of_africa'] = {
+                'status':'future_network_concept',
+                'government_claim':False,
+                'legal_state_claim':False,
+                'role':'continental_cooperation_and_shared_projects',
+            }
+            data['sika_africa'] = {
+                'role':'created_value_treasury_impact_recognition',
+                'legal_tender_claim':False,
+                'bank_claim':False,
+            }
+        return jsonify(data)
+
+    @oap_intelligence.get('/api/country-intelligence')
+    def country_intelligence():
+        country = str(request.args.get('country','')).strip()[:100]
+        continent = str(request.args.get('continent','')).strip()[:80]
+        return jsonify(
+            name='Country Intelligence',
+            parent='Continent Intelligence',
+            role='country_to_locality_intelligence',
+            scope='country',
+            country=country or None,
+            continent=continent or None,
+            domains=COUNTRY_DOMAINS,
+            hierarchy=['country','region_state_province','county_district','borough_municipality','town_city','postcode_locality','spot'],
+            local_first=True,
+            no_level_skipping=True,
+            precise_location_default=False,
+            adaptive=True,
+            coherent=True,
             authority='human_final',
         )
 
