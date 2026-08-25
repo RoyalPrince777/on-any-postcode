@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAP LinkUp</title>
+  <title>OAP Link Up</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 </head>
 <body class="mc-workspace-body">
@@ -22,8 +22,8 @@
   <main class="mc-workspace mc-link-workspace">
     <section class="mc-panel" aria-labelledby="linkup-title">
       <p class="mc-eyebrow">Stay connected</p>
-      <h2 id="linkup-title">Your people. Your chats. Your community.</h2>
-      <div class="mc-link-view-grid" role="list" aria-label="LinkUp features">
+      <h2 id="linkup-title">People → Links → Crews → Link Up</h2>
+      <div class="mc-link-view-grid" role="list" aria-label="Link Up features">
         {% for feature in link.features %}
         <article class="mc-link-view-card" role="listitem">
           <h3>{{ feature.name }}</h3>
@@ -34,27 +34,27 @@
     </section>
     {% if auth_user %}
     <section class="mc-panel" aria-labelledby="linkup-inbox-title">
-      <p class="mc-eyebrow">Private verified session</p>
-      <h2 id="linkup-inbox-title">Inbox</h2>
+      <p class="mc-eyebrow">Private Certified session</p>
+      <h2 id="linkup-inbox-title">Your Link Ups</h2>
       {% if private_unavailable %}
-      <p role="alert">Your private inbox is temporarily unavailable.</p>
+      <p role="alert">Your private Link Ups are temporarily unavailable.</p>
       {% elif dashboard %}
       {% if dashboard.directory %}
       <form method="post" action="{{ url_for('linkup_send') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="linkup-recipient">Person</label>
         <select id="linkup-recipient" name="recipient_id" required>
-          <option value="">Choose a verified member</option>
+          <option value="">Choose a Certified member</option>
           {% for person in dashboard.directory %}
           <option value="{{ person.identity_id }}">{{ person.display_name }}{% if person.postcode %} · {{ person.postcode }}{% endif %}</option>
           {% endfor %}
         </select>
         <label for="linkup-body">Message</label>
         <textarea id="linkup-body" name="body" maxlength="4000" required></textarea>
-        <button class="mc-primary" type="submit">Send privately</button>
+        <button class="mc-primary" type="submit">Start a Link Up</button>
       </form>
       {% else %}
-      <p>No other verified members are available yet.</p>
+      <p>No other Certified members are available yet.</p>
       {% endif %}
       <div class="mc-agent-grid">
         {% for message in dashboard.messages %}
@@ -65,7 +65,7 @@
           {% if message.direction == 'received' and not message.read %}
           <form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}">
             <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-            <button class="mc-secondary" type="submit">Mark read</button>
+            <button class="mc-secondary" type="submit">Mark as seen</button>
           </form>
           {% endif %}
         </article>
@@ -74,9 +74,9 @@
       {% endif %}
     </section>
     {% endif %}
-    <aside class="mc-authority" aria-label="LinkUp privacy">
+    <aside class="mc-authority" aria-label="Link Up privacy">
       <strong>Private by default</strong>
-      <span>{% if auth_user %}Messages are shown only to their sender and recipient.{% else %}<a href="{{ url_for('auth_page', next=request.path) }}">Sign in to open LinkUp.</a>{% endif %}</span>
+      <span>{% if auth_user %}Messages are shown only to their sender and recipient.{% else %}<a href="{{ url_for('auth_page', next=request.path) }}">Sign in to open Link Up.</a>{% endif %}</span>
     </aside>
   </main>
 </body>

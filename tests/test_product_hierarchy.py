@@ -25,7 +25,7 @@ def test_public_product_pages_are_read_only(client):
     for path, title in (
         ("/the-spot", "The Spot"),
         ("/the-link", "The Link"),
-        ("/linkup", "LinkUp"),
+        ("/linkup", "Link Up"),
     ):
         response = client.get(path)
         assert response.status_code == 200

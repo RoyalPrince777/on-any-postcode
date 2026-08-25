@@ -32,6 +32,31 @@ def test_link_dashboard_preserves_three_approved_views():
     }
 
 
+def test_link_up_language_law_is_locked_without_renaming_internal_views():
+    assert linkup.LINK_UP_LANGUAGE_LAW == (
+        "Brand language for identity.",
+        "Human language for conversation.",
+        "Plain language for safety.",
+        "Local character without global confusion.",
+    )
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["product"] == "Link Up"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["conversations"] == "Link Ups"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["group"] == "Crew"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Face Up"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["read"] == "Seen"
+    assert linkup.LINK_UP_PLAIN_SAFETY_TERMS == (
+        "Block",
+        "Report",
+        "Privacy",
+        "Security",
+        "Emergency",
+        "Delete",
+        "Settings",
+    )
+
+
 def test_community_power_is_linked_without_ownership_transfer():
     community_power = next(
         view
@@ -85,11 +110,12 @@ def test_link_ui_is_read_only_and_does_not_create_database(
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "Simple chat. Talk local. Build global." in page
-    assert "The Spot → The Link → LinkUp" in page
-    assert "Your people. Your chats. Your community." in page
-    assert "Find local connections." in page
+    assert "Your people. Your Link Ups. Your community." in page
+    assert "The Spot → The Link → Link Up" in page
+    assert "People → Links → Crews → Link Up" in page
+    assert "Find your people and connections." in page
     assert "Keep up with private conversations." in page
+    assert "Bring selected people together in private groups." in page
     assert 'method="post"' not in page.lower()
     assert client.post("/linkup").status_code == 405
     assert client.get("/mission/chat").status_code == 405
@@ -116,6 +142,12 @@ def test_public_link_projection_is_presentation_only():
 
     assert set(projection) == {"product_name", "tagline", "law", "features"}
     assert all(set(feature) == {"name", "purpose"} for feature in projection["features"])
+    assert projection["product_name"] == "Link Up"
+    assert [feature["name"] for feature in projection["features"]] == [
+        "People",
+        "Link Ups",
+        "Crews",
+    ]
 
 
 def test_public_link_projection_contains_no_people_or_conversations():

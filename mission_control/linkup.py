@@ -1,9 +1,11 @@
 """Canonical, read-only model for the OAP communications dashboard.
 
-LinkUp is the protected conversation product inside The Link communications
-gateway, not a second Messenger engine. Its approved dashboard views are Directory, Inbox and Community Power.
-Community Power is linked into the dashboard without transferring ownership.
-This module exposes no identities, message bodies, persistence or send path.
+Link Up is the protected conversation product inside The Link communications
+gateway, not a second Messenger engine. Its approved internal dashboard views
+remain Directory, Inbox and Community Power so ownership and validation rules
+do not drift when user-facing language evolves. Community Power is linked into
+the dashboard without transferring ownership. This module exposes no
+identities, message bodies, persistence or send path.
 """
 
 from __future__ import annotations
@@ -14,6 +16,54 @@ from typing import Any
 
 COMMUNICATIONS_SYSTEM = "Communications"
 COMMUNITY_POWER_SYSTEM = "Community Power"
+
+# War Room-approved user-language law. Internal ownership names remain stable.
+LINK_UP_LANGUAGE_LAW: tuple[str, ...] = (
+    "Brand language for identity.",
+    "Human language for conversation.",
+    "Plain language for safety.",
+    "Local character without global confusion.",
+)
+
+LINK_UP_PUBLIC_VOCABULARY: dict[str, str] = {
+    "product": "Link Up",
+    "conversations": "Link Ups",
+    "people": "People",
+    "connection": "Link",
+    "connection_request": "Link Request",
+    "group": "Crew",
+    "group_host": "Crew Host",
+    "new_conversation": "Start a Link Up",
+    "join": "Link In",
+    "invite": "Bring In",
+    "leave": "Step Out",
+    "presence": "Around Now",
+    "available": "I'm Free",
+    "delivered": "Landed",
+    "read": "Seen",
+    "voice_note": "Voice",
+    "audio_call": "Call",
+    "video_call": "Face Up",
+    "share_location": "Share My Spot",
+    "live_location": "Live Spot",
+    "short_status": "Now",
+    "status_prompt": "What you on?",
+    "notifications": "Alerts",
+    "announcement": "Signal",
+    "profile": "My Card",
+    "trust_status": "Certified",
+    "trusted_contact": "Trusted Contact",
+}
+
+LINK_UP_PLAIN_SAFETY_TERMS: tuple[str, ...] = (
+    "Block",
+    "Report",
+    "Privacy",
+    "Security",
+    "Emergency",
+    "Delete",
+    "Settings",
+)
 
 LINK_DASHBOARD_VIEWS: tuple[dict[str, str], ...] = (
     {
@@ -118,7 +168,7 @@ PRIVACY_PATH: tuple[dict[str, str], ...] = (
     {"name": "Identity", "action": "Validates the member"},
     {"name": "Permissions", "action": "Scopes conversation access"},
     {"name": "Guardian", "action": "Protects privacy and youth safety"},
-    {"name": "LinkUp", "action": "Presents the approved conversation view"},
+    {"name": "Link Up", "action": "Presents the approved conversation view"},
     {"name": "HRM", "action": "Receives approved audit metadata only"},
 )
 
@@ -228,24 +278,24 @@ def validate_link_scope(
 
 
 def get_public_link_dashboard() -> dict[str, Any]:
-    """Return only visitor-facing LinkUp copy."""
+    """Return only visitor-facing Link Up copy."""
 
     return {
-        "product_name": "LinkUp",
-        "tagline": "Simple chat. Talk local. Build global.",
-        "law": "The Spot → The Link → LinkUp",
+        "product_name": LINK_UP_PUBLIC_VOCABULARY["product"],
+        "tagline": "Your people. Your Link Ups. Your community.",
+        "law": "The Spot → The Link → Link Up",
         "features": [
             {
-                "name": "People",
-                "purpose": "Find local connections.",
+                "name": LINK_UP_PUBLIC_VOCABULARY["people"],
+                "purpose": "Find your people and connections.",
             },
             {
-                "name": "Chats",
+                "name": LINK_UP_PUBLIC_VOCABULARY["conversations"],
                 "purpose": "Keep up with private conversations.",
             },
             {
-                "name": "Community",
-                "purpose": "Join postcode groups and rooms.",
+                "name": "Crews",
+                "purpose": "Bring selected people together in private groups.",
             },
         ],
     }
