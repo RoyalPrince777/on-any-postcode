@@ -23,7 +23,7 @@ def _error(code: str, message: str, status_code: int):
 def _body() -> dict:
     value = request.get_json(silent=True)
     if not isinstance(value, dict):
-        raise ValueError("json_object_required")
+        raise TypeError("json_object_required")
     return value
 
 
@@ -46,7 +46,7 @@ def _operation_error(exc: Exception):
         code = str(exc) or "movement_access_denied"
         status_code = 404 if code in {"booking_not_found"} else 403
         return _error(code, "Movement access is not available for this request.", status_code)
-    if isinstance(exc, ValueError):
+    if isinstance(exc, (TypeError, ValueError)):
         return _error(str(exc) or "invalid_movement_request", "Invalid Movement request.", 400)
     return _error("movement_unavailable", "Movement is temporarily unavailable.", 503)
 

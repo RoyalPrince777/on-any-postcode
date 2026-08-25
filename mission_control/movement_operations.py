@@ -15,7 +15,7 @@ import json
 import re
 from datetime import datetime, timezone
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from . import postgres_db
 
@@ -224,7 +224,7 @@ def normalize_place(value: object, *, name: str) -> dict[str, Any]:
     """Normalize a private booking place without allowing arbitrary JSON blobs."""
 
     if not isinstance(value, dict):
-        raise ValueError(f"invalid_{name}")
+        raise TypeError(f"invalid_{name}")
     return {
         "label": _bounded_text(
             value.get("label"), name=f"{name}_label", maximum=160
