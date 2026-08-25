@@ -22,6 +22,7 @@ from oap.war_room import WarRoomEngine
 from oap.world import WorldEngine
 
 from .context_engine import ContextEngine
+from .evolution_engine import EvolutionEngine
 from .judge_engine import JudgeEngine
 from .organ_manager import OrganManager
 from .providers import ProviderAdapter, ProviderRouter
@@ -57,5 +58,6 @@ def build_smi(
         guardian=GuardianEngine(),
         judge=JudgeEngine(),
         war_room=WarRoomEngine(),
+        evolution=EvolutionEngine(connection),
         hrm=hrm,
     )
