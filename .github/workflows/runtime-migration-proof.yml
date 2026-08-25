@@ -1,0 +1,36 @@
+name: Runtime migration proof
+
+on:
+  push:
+    branches:
+      - build/organism-runtime-24x7
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: build/organism-runtime-24x7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Print canonical runtime migration proof
+        run: |
+          python - <<'PY'
+          import json
+          from mission_control.organism_runtime import (
+              RUNTIME_MIGRATION_CHECKSUM,
+              RUNTIME_MIGRATION_VERSION,
+              RUNTIME_SCHEMA_STATEMENTS,
+          )
+          print('RUNTIME_MIGRATION_PROOF=' + json.dumps({
+              'version': RUNTIME_MIGRATION_VERSION,
+              'checksum': RUNTIME_MIGRATION_CHECKSUM,
+              'statements': list(RUNTIME_SCHEMA_STATEMENTS),
+          }, separators=(',', ':')))
+          PY
