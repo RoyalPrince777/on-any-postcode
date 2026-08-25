@@ -45,7 +45,7 @@
 
     {% if capability.slug == 'postcode-rooms' %}
     <section class="mc-panel" aria-labelledby="postcode-room-title">
-      <p class="mc-eyebrow">Public room · private messages stay in LinkUp</p>
+      <p class="mc-eyebrow">Public room · private messages stay in Link Up</p>
       <h2 id="postcode-room-title">Postcode Rooms</h2>
       <form method="post" action="{{ url_for('postcode_room') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
@@ -98,6 +98,23 @@
         {% endfor %}
       </div>
       {% endif %}
+    </section>
+    {% endif %}
+
+    {% if capability.slug == 'movement-delivery' %}
+    <section class="mc-panel" aria-labelledby="movement-entry-title">
+      <p class="mc-eyebrow">Ride · E-Bike · Delivery · Booking · Track</p>
+      <h2 id="movement-entry-title">OAP Movement</h2>
+      <p>Drivers, riders, e-bikes, couriers, deliveries and future bookings share one governed movement layer.</p>
+      <div class="mc-status-grid" aria-label="Movement entry points">
+        <article class="mc-status-card"><strong>🚗 Ride</strong><span>Passenger journeys and approved drivers.</span></article>
+        <article class="mc-status-card"><strong>🚲 E-Bike</strong><span>Connected fleet, battery and pickup awareness.</span></article>
+        <article class="mc-status-card"><strong>📦 Delivery</strong><span>Local collection, courier and proof-of-delivery flow.</span></article>
+        <article class="mc-status-card"><strong>📅 Booking</strong><span>Plan movement now or for later.</span></article>
+        <article class="mc-status-card"><strong>📶 eSIM</strong><span>Provider-ready managed connectivity for approved work devices.</span></article>
+      </div>
+      <p>Carrier activation, dispatch, payment and live tracking stay off until approved providers and safety checks are connected.</p>
+      <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open OAP Movement →</a>
     </section>
     {% endif %}
 
