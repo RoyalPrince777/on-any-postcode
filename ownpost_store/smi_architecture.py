@@ -16,6 +16,7 @@ CONNECTIONS = [
     'OASIS -> SP Signals -> NEXUS -> OAP Kernel -> SMI',
     'SMI -> Aegis -> cognition cycle -> HRM receipt',
     'Observation -> Perception -> Understanding -> Reasoning -> Judgement -> Decision -> Execution',
+    'SMI -> Resilience -> bounded queues / circuits / recovery / permission edges',
     'SMI -> OAP Intelligence -> World -> Earth -> Continent -> Country -> local hierarchy',
     'SMI -> Movement -> OAP Ride -> OAP Captain',
     'SMI -> Signals/Pulse -> Guardian -> HRM -> Human Final',
@@ -26,10 +27,14 @@ ABILITIES = [
     'judge_evidence_safety_authority_reversibility_compliance','recommend_decisions',
     'plan_without_unapproved_real_world_execution','operational_self_awareness','self_monitoring',
     'propose_controlled_self_improvements','remember_audited_cycles','coordinate_distributed_intelligence',
+    'isolate_workloads','apply_bounded_queue_backpressure','protect_cross_organ_permissions',
+    'quarantine_manipulated_trends','open_provider_circuits_on_repeated_failure','earn_green_only_after_recovery_probe',
 ]
 
 CODE_RECORD = [
     {'module':'smi_brain.py','role':'Aegis, cognition, judgement 6/6, self-model, controlled improvement'},
+    {'module':'smi_architecture.py','role':'brain anatomy, connections, rules, abilities and code record'},
+    {'module':'smi_resilience.py','role':'war-room resilience, isolation, queues, circuits, cache integrity and recovery proof'},
     {'module':'oap_intelligence.py','role':'OAP/World/Earth/Continent/Country/Universe intelligence hierarchy'},
     {'module':'oap_observability.py','role':'private-first internal observability'},
     {'module':'background_258.py','role':'24/7 runtime contract and 25:8 protocol boundary'},
