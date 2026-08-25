@@ -1,18 +1,4 @@
 services:
-  - type: web
-    name: on-any-postcode
-    runtime: python
-    plan: free
-    region: oregon
-    repo: https://github.com/RoyalPrince777/on-any-postcode
-    branch: main
-    autoDeployTrigger: "off"
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
-    healthCheckPath: /healthz
-    # Production secrets and governance controls remain dashboard-managed.
-    # Render preserves existing environment variables omitted from a Blueprint.
-
   - type: worker
     name: oap-organism-runtime
     runtime: python
@@ -26,7 +12,10 @@ services:
     maxShutdownDelaySeconds: 60
     envVars:
       - key: OAP_DB_SECRET_B64
-        sync: false
+        fromService:
+          type: web
+          name: on-any-postcode
+          envVarKey: OAP_DB_SECRET_B64
       - key: OAP_WORKER_POLL_SECONDS
         value: "2"
       - key: OAP_WORKER_HEARTBEAT_SECONDS
