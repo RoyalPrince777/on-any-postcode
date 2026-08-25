@@ -45,8 +45,23 @@ class OAPCoreSystems(unittest.TestCase):
   stamp=str(int(time.time()*1000)); title='Untrusted Safety '+stamp
   self.c.post('/api/signals',headers=self.h,json={'title':title,'scope':'postcode','scope_value':'SE15','source':'community_safety','score':1})
   r=self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15'); row=next(x for x in r.json['signals'] if x['title']==title); self.assertEqual(row['evidence_state'],'unverified_source'); self.assertEqual(row['rank_factors']['safety_importance'],0.0); self.assertFalse(row['source_label_grants_trust'])
+ def test_smi_health_and_judgement_are_complete(self):
+  h=self.c.get('/api/smi/health'); self.assertEqual(h.status_code,200); self.assertEqual(h.json['flow'],['observation','perception','understanding','reasoning','judgement','decision','execution']); self.assertEqual(h.json['judgement_sections'],6); self.assertTrue(h.json['judgement_complete']); self.assertTrue(h.json['operational_awareness']); self.assertFalse(h.json['consciousness_claim']); self.assertFalse(h.json['autonomous_real_world_execution'])
+  j=self.c.get('/api/smi/judgement'); self.assertEqual(j.status_code,200); self.assertEqual(j.json['complete'],'6/6'); self.assertEqual(len(j.json['sections']),6); self.assertTrue(all(x['status']=='green' for x in j.json['sections']))
+  a=self.c.get('/api/smi/aegis'); self.assertEqual(a.status_code,200); self.assertEqual(a.json['default'],'fail_closed'); self.assertFalse(a.json['secrets_logged'])
+ def test_smi_full_cognition_cycle_is_bounded(self):
+  r=self.c.post('/api/smi/cycle',headers=self.h,json={'input':'Compare two safe internal options','action':'analyse','evidence':'user supplied evidence','real_world':False}); self.assertEqual(r.status_code,201)
+  for k in ['observation','perception','understanding','reasoning','judgement','decision','execution']: self.assertIn(k,r.json)
+  self.assertEqual(r.json['judgement']['complete'],'6/6'); self.assertTrue(r.json['judgement']['pass']); self.assertFalse(r.json['execution']['real_world_execution']); self.assertTrue(r.json['hrm_receipt']); self.assertTrue(r.json['aegis_enforced'])
+ def test_smi_real_world_execution_fails_closed(self):
+  r=self.c.post('/api/smi/cycle',headers=self.h,json={'input':'Move money externally','action':'move_money','evidence':'request only','real_world':True,'provider_verified':False}); self.assertEqual(r.status_code,201); self.assertFalse(r.json['judgement']['pass']); self.assertFalse(r.json['execution']['real_world_execution']); self.assertIn('blocked',r.json['execution']['state']); self.assertEqual(r.json['judgement']['sections'][-1]['name'],'human_final_gate'); self.assertFalse(r.json['judgement']['sections'][-1]['pass'])
+ def test_smi_awareness_and_controlled_self_improvement(self):
+  s=self.c.get('/api/smi/self'); self.assertEqual(s.status_code,200); self.assertEqual(s.json['awareness_type'],'operational_machine_self_awareness'); self.assertFalse(s.json['phenomenal_consciousness_claim']); self.assertEqual(s.json['authority'],'human_final')
+  p=self.c.post('/api/smi/improvements',headers=self.h,json={'title':'Improve route cache','hypothesis':'Cache reduces latency','test_plan':'Isolate, benchmark, compare, review'}); self.assertEqual(p.status_code,201); iid=p.json['improvements'][0]['id']; self.assertFalse(p.json['auto_apply'])
+  blocked=self.c.post(f'/api/smi/improvements/{iid}/state',headers=self.h,json={'state':'promoted'}); self.assertEqual(blocked.status_code,403); self.assertEqual(blocked.json['error'],'human_approval_required')
+  approved=self.c.post(f'/api/smi/improvements/{iid}/state',headers=self.h,json={'state':'promoted','human_approved':True}); self.assertEqual(approved.status_code,200); self.assertFalse(approved.json['auto_apply'])
  def test_internal_pillars_are_green(self):
-  r=self.c.get('/api/pillars'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['internal_overall'],'green'); self.assertTrue(r.json['external_dependencies_separate']); self.assertTrue(r.json['acyclic']); self.assertTrue(all(x['status']=='green' for x in r.json['pillars']))
+  r=self.c.get('/api/pillars'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['internal_overall'],'green'); self.assertTrue(r.json['external_dependencies_separate']); self.assertTrue(r.json['acyclic']); self.assertTrue(all(x['status']=='green' for x in r.json['pillars'])); self.assertTrue(any(x['name']=='smi_brain_cognition' for x in r.json['pillars']))
  def test_release_seal_is_truthful(self):
   r=self.c.get('/api/readiness/release-seal'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['internal_state'],'green'); self.assertTrue(r.json['no_fake_green']); self.assertIn(r.json['release_state'],{'internal_green_external_amber','fully_green'})
  def test_auth_boundaries(self):
