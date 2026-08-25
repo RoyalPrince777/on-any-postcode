@@ -13,6 +13,7 @@ from oap_ride_admin import register_oap_ride_admin
 from movement_hub import register_movement_hub
 from oap_language import register_oap_language
 from signal_pulse_controls import register_signal_pulse_controls
+from signal_intelligence import register_signal_intelligence
 from oap_checkpoints import register_checkpoints
 from provider_contracts import register_provider_contracts
 from provider_adapters import register_provider_adapters
@@ -46,6 +47,8 @@ if 'oap_language' not in app.blueprints:
     register_oap_language(app, db, uid)
 if 'oap_signal_pulse_controls' not in app.blueprints:
     register_signal_pulse_controls(app, db, uid)
+if 'oap_signal_intelligence' not in app.blueprints:
+    register_signal_intelligence(app, db)
 if 'oap_checkpoints' not in app.blueprints:
     register_checkpoints(app, db, uid)
 if 'oap_provider_contracts' not in app.blueprints:
