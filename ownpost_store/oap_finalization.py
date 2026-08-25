@@ -21,6 +21,7 @@ CORE_PROBES = [
     ('link','/health'),
     ('signals','/api/signals'),
     ('language','/api/language'),
+    ('communications','/api/communications/health'),
     ('checkpoints','/api/checkpoints'),
     ('providers','/api/providers'),
     ('provider_adapters','/api/adapters/health'),
