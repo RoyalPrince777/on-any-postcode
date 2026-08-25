@@ -46,7 +46,9 @@ class OAPCoreSystems(unittest.TestCase):
   self.c.post('/api/signals',headers=self.h,json={'title':title,'scope':'postcode','scope_value':'SE15','source':'community_safety','score':1})
   r=self.c.get('/api/signals/ranked?scope=postcode&scope_value=SE15'); row=next(x for x in r.json['signals'] if x['title']==title); self.assertEqual(row['evidence_state'],'unverified_source'); self.assertEqual(row['rank_factors']['safety_importance'],0.0); self.assertFalse(row['source_label_grants_trust'])
  def test_internal_pillars_are_green(self):
-  r=self.c.get('/api/pillars'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['internal_overall'],'green'); self.assertTrue(r.json['external_dependencies_separate']); self.assertTrue(all(x['status']=='green' for x in r.json['pillars']))
+  r=self.c.get('/api/pillars'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['internal_overall'],'green'); self.assertTrue(r.json['external_dependencies_separate']); self.assertTrue(r.json['acyclic']); self.assertTrue(all(x['status']=='green' for x in r.json['pillars']))
+ def test_release_seal_is_truthful(self):
+  r=self.c.get('/api/readiness/release-seal'); self.assertEqual(r.status_code,200); self.assertEqual(r.json['internal_state'],'green'); self.assertTrue(r.json['no_fake_green']); self.assertIn(r.json['release_state'],{'internal_green_external_amber','fully_green'})
  def test_auth_boundaries(self):
   for path in ['/api/transport/journeys','/api/studio/projects']:
    self.assertEqual(self.c.get(path).status_code,401)
