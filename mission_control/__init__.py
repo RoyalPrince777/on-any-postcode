@@ -8,6 +8,7 @@ from . import audit as auditmod
 from . import db as dbmod
 from . import organism_runtime, postgres_db, surface_security
 from .movement_routes import bp as movement_bp
+from .provider_views import bp as provider_bp
 from .views import bp
 
 
@@ -78,4 +79,5 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(movement_bp)
+    app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
