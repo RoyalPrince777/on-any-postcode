@@ -12,6 +12,7 @@ from oap_ride import register_oap_ride
 from movement_hub import register_movement_hub
 from oap_language import register_oap_language
 from oap_checkpoints import register_checkpoints
+from provider_contracts import register_provider_contracts
 from oap_finalization import register_finalization
 
 if 'spot_family' not in app.blueprints:
@@ -36,5 +37,7 @@ if 'oap_language' not in app.blueprints:
     register_oap_language(app, db, uid)
 if 'oap_checkpoints' not in app.blueprints:
     register_checkpoints(app, db, uid)
+if 'oap_provider_contracts' not in app.blueprints:
+    register_provider_contracts(app)
 if 'oap_finalization' not in app.blueprints:
     register_finalization(app, db, uid)
