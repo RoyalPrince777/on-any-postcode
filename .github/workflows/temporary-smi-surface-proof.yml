@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Probe free SMI surface
+      - name: Probe final public and SMI split
         run: |
           set -euo pipefail
           probe() {
@@ -21,12 +21,20 @@ jobs:
             code=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' "$url")
             echo "$url $code"
           }
+          probe https://on-any-postcode.onrender.com/healthz
+          probe https://on-any-postcode.onrender.com/world
+          probe https://on-any-postcode.onrender.com/mission
           probe https://oap-smi.onrender.com/healthz
           probe https://oap-smi.onrender.com/
           probe https://oap-smi.onrender.com/mission
           probe https://oap-smi.onrender.com/world
           code=$(curl --silent --show-error --max-time 30 --request POST --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/auth/sign-up)
           echo "https://oap-smi.onrender.com/auth/sign-up POST $code"
+
+          test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/healthz)" = "200"
+          test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/world)" = "200"
+          test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://on-any-postcode.onrender.com/mission)" = "404"
           test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/healthz)" = "200"
+          test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/mission)" = "200"
           test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/world)" = "404"
           test "$(curl --silent --show-error --max-time 30 --request POST --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/auth/sign-up)" = "404"
