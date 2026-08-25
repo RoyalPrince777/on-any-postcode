@@ -8,9 +8,11 @@ from test_spot_family import SpotFamily
 from test_royal_oap import RoyalOAP
 from test_oap_intelligence import OAPIntelligence
 from test_youth_real_education import YouthRealEducation
+from test_youth_club import YouthClub
 from test_bank_intelligence import BankIntelligence
 from test_background_258 import Background258
 from test_oap_ride import OAPRide
+from test_movement_hub import MovementHub
 
 class Gates(unittest.TestCase):
  def setUp(self):
@@ -56,7 +58,7 @@ class Gates(unittest.TestCase):
   r=self.c.get('/api/businesses');self.assertEqual(r.status_code,200);self.assertIn('core is free',r.json['monetization_rule'])
   r=self.c.post('/api/businesses',headers=self.h,json={'name':'CI Business','category':'test','postcode':'SE15'});self.assertEqual(r.status_code,201);self.assertTrue(r.json['monetizable']);self.assertTrue(r.json['core_link_free'])
  def test_public_gate_reads(self):
-  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/earth-intelligence','/api/continent-intelligence?continent=Africa','/api/country-intelligence?continent=Africa&country=Ghana','/api/universe-intelligence','/api/intelligence/adaptive-coherence','/api/education/health','/api/education/tracks','/api/youth-safety/policy','/api/bank-intelligence/health','/api/bank-intelligence','/api/bank-intelligence/sika','/api/258','/api/258/health','/api/ride/health','/api/ride','/api/readiness/capabilities']:
+  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me','/api/royal/health','/api/royal','/api/royal/institutions','/api/intelligence/health','/api/intelligence','/api/world-intelligence','/api/earth-intelligence','/api/continent-intelligence?continent=Africa','/api/country-intelligence?continent=Africa&country=Ghana','/api/universe-intelligence','/api/intelligence/adaptive-coherence','/api/education/health','/api/education/tracks','/api/youth-safety/policy','/api/youth-club/health','/api/youth-club','/api/youth-club/safety','/api/bank-intelligence/health','/api/bank-intelligence','/api/bank-intelligence/sika','/api/258','/api/258/health','/api/movement/health','/api/movement','/api/movement/safety','/api/ride/health','/api/ride','/api/readiness/capabilities','/api/readiness/core']:
    r=self.c.get(p,headers=self.h if p=='/api/spot/me' else {}); self.assertEqual(r.status_code,200,p)
 
 if __name__=='__main__': unittest.main()
