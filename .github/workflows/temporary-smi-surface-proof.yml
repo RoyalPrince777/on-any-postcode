@@ -1,0 +1,32 @@
+name: Temporary SMI surface proof
+
+on:
+  push:
+    branches:
+      - build/free-public-smi-split
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe free SMI surface
+        run: |
+          set -euo pipefail
+          probe() {
+            url="$1"
+            code=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' "$url")
+            echo "$url $code"
+          }
+          probe https://oap-smi.onrender.com/healthz
+          probe https://oap-smi.onrender.com/
+          probe https://oap-smi.onrender.com/mission
+          probe https://oap-smi.onrender.com/world
+          code=$(curl --silent --show-error --max-time 30 --request POST --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/auth/sign-up)
+          echo "https://oap-smi.onrender.com/auth/sign-up POST $code"
+          test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/healthz)" = "200"
+          test "$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/world)" = "404"
+          test "$(curl --silent --show-error --max-time 30 --request POST --output /dev/null --write-out '%{http_code}' https://oap-smi.onrender.com/auth/sign-up)" = "404"
