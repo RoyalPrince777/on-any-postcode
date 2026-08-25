@@ -12,3 +12,28 @@ services:
     healthCheckPath: /healthz
     # Production secrets and governance controls remain dashboard-managed.
     # Render preserves existing environment variables omitted from a Blueprint.
+
+  - type: worker
+    name: oap-organism-runtime
+    runtime: python
+    plan: starter
+    region: oregon
+    repo: https://github.com/RoyalPrince777/on-any-postcode
+    branch: main
+    autoDeployTrigger: "off"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m mission_control.organism_worker
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: OAP_DB_SECRET_B64
+        sync: false
+      - key: OAP_WORKER_POLL_SECONDS
+        value: "2"
+      - key: OAP_WORKER_HEARTBEAT_SECONDS
+        value: "15"
+      - key: OAP_WORKER_SCHEDULER_SECONDS
+        value: "5"
+      - key: OAP_WORKER_RECOVERY_SECONDS
+        value: "30"
+      - key: OAP_WORKER_LEASE_SECONDS
+        value: "60"

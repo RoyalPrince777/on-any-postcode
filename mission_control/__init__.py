@@ -6,13 +6,12 @@ from flask import Flask
 
 from . import audit as auditmod
 from . import db as dbmod
-from . import postgres_db
+from . import organism_runtime, postgres_db
 from .views import bp
 
 
 def init_app(app: Flask) -> None:
-    """Register CLI commands and (later) blueprint with the Flask app."""
-    # Register DB CLI commands
+    """Register CLI commands and the Mission Control blueprint."""
     @app.cli.command("oap-db-status")
     @click.option("--json", "json_out", is_flag=True, default=False, help="JSON output")
     def _db_status(json_out: bool) -> None:  # pragma: no cover - CLI wrapper
@@ -26,8 +25,8 @@ def init_app(app: Flask) -> None:
             print(f"  Schema migrations applied: {len(res['applied'])}")
             if res['pending']:
                 print("  Pending migrations:")
-                for m in res['pending']:
-                    print(f"    - {m['name']} (checksum: {m['checksum']})")
+                for migration in res["pending"]:
+                    print(f"    - {migration['name']} (checksum: {migration['checksum']})")
             else:
                 print("  No pending migrations")
 
@@ -48,6 +47,22 @@ def init_app(app: Flask) -> None:
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
         result = postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)
+        print(json.dumps(result))
+
+    @app.cli.command("oap-runtime-status")
+    def _oap_runtime_status() -> None:
+        import json
+        print(json.dumps(organism_runtime.runtime_status()))
+
+    @app.cli.command("oap-init-runtime")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_runtime(dry_run: bool, yes: bool) -> None:
+        import json
+        result = organism_runtime.init_runtime_schema(
+            dry_run=dry_run,
+            assume_yes=yes,
+        )
         print(json.dumps(result))
 
     @app.cli.command("oap-verify-audit")
