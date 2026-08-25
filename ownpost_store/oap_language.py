@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 import time
+from signal_intelligence import rank_signals, PRECISE_KEYS
 
 language = Blueprint('oap_language', __name__)
 
@@ -47,19 +48,29 @@ def register_oap_language(app, db, uid):
 
     @language.route('/api/signals', methods=['GET','POST'])
     def signals():
-        with db() as c:
-            if request.method=='POST':
-                u=uid(); d=request.get_json(silent=True) or {}
-                if not u:return jsonify(error='auth_required'),401
-                scope=str(d.get('scope','postcode')).lower(); value=str(d.get('scope_value',''))[:100]; title=str(d.get('title',''))[:160]
-                if scope not in {'postcode','borough','county','country','continent','global','universe'} or not title:return jsonify(error='invalid_signal'),400
+        if any(k in request.args for k in PRECISE_KEYS):
+            return jsonify(error='precise_location_ranking_blocked'),403
+        if request.method=='POST':
+            u=uid(); d=request.get_json(silent=True) or {}
+            if not u:return jsonify(error='auth_required'),401
+            scope=str(d.get('scope','postcode')).lower(); value=str(d.get('scope_value',''))[:100]; title=str(d.get('title',''))[:160]
+            if scope not in {'postcode','borough','county','country','continent','global','universe'} or not title:return jsonify(error='invalid_signal'),400
+            if any(k in d for k in PRECISE_KEYS):return jsonify(error='precise_public_location_blocked'),403
+            with db() as c:
                 c.execute('insert into link_trends(title,scope,scope_value,score,source,created_at) values(%s,%s,%s,%s,%s,%s)',(
                     title,scope,value,int(d.get('score',1)),str(d.get('source','community'))[:40],now()))
-            scope=request.args.get('scope','postcode'); value=request.args.get('scope_value','')
-            if value:
-                rows=c.execute('select id,title,scope,scope_value,score,source,created_at from link_trends where scope=%s and scope_value=%s order by score desc,created_at desc limit 100',(scope,value)).fetchall()
-            else:
-                rows=c.execute('select id,title,scope,scope_value,score,source,created_at from link_trends where scope=%s order by score desc,created_at desc limit 100',(scope,)).fetchall()
-        return jsonify(signals=rows,canonical_name='Signals',legacy_route='/api/lit')
+        try:
+            rows=rank_signals(db,request.args.get('scope','postcode'),request.args.get('scope_value',''),request.args.get('limit','100'))
+        except ValueError as e:
+            return jsonify(error=str(e)),400
+        return jsonify(
+            signals=rows,
+            canonical_name='Signals',
+            legacy_route='/api/lit',
+            ranking_policy='human_first_relevance_not_engagement_maximisation',
+            precise_location_used=False,
+            learning_state='purple_until_verified',
+            authority='human_final'
+        )
 
     app.register_blueprint(language)
