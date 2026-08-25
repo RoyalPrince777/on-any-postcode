@@ -8,6 +8,7 @@ INTERNAL = [
     ('signals','/api/signals'),
     ('language','/api/language'),
     ('communications','/api/communications/health'),
+    ('pulse_intelligence','/api/pulse/intelligence/health'),
     ('signal_intelligence','/api/signal-intelligence/health'),
     ('spot','/api/spot/me'),
     ('location_bridge','/api/location-bridge/health'),
