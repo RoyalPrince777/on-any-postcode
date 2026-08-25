@@ -19,6 +19,7 @@ from oap.registry import RegistryEngine
 from oap.state_machine import ProcessingState, RequestStateMachine
 from oap.war_room import WarRoomEngine
 
+from .coherence import CoherenceEngine
 from .context_engine import ContextEngine
 from .input_manager import InputManager
 from .judge_engine import JudgeEngine
@@ -26,6 +27,7 @@ from .organ_manager import OrganManager
 from .organs import FrontalLobe
 from .organs.base import BrainPacket
 from .providers import ProviderRouter
+from .self_model import SelfModel
 
 
 class SMICore:
@@ -63,6 +65,8 @@ class SMICore:
         self.hrm = hrm
         self.input_manager = InputManager()
         self.frontal_lobe = FrontalLobe()
+        self.self_model = SelfModel()
+        self.coherence = CoherenceEngine()
 
     def process(self, request: BrainRequest) -> Recommendation:
         """Run the locked SMI cycle and return an allowed non-execution state."""
@@ -188,12 +192,20 @@ class SMICore:
             self.war_room.status(),
             self.hrm.status(),
         )
+        self_model = self.self_model.observe(components)
+        coherence = self.coherence.evaluate(components)
         return {
             "component": "SMI",
             "brain_count": 1,
-            "ready": all(bool(item.get("ready")) for item in components),
+            "ready": (
+                all(bool(item.get("ready")) for item in components)
+                and self_model.overall_ready
+                and coherence.coherent
+            ),
             "mode": "recommendation_only",
             "allowed_outputs": tuple(state.value for state in OutputState),
             "independent_execute": False,
+            "self_model": self_model.as_dict(),
+            "coherence": coherence.as_dict(),
             "components": components,
         }
