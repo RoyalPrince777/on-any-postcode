@@ -4,8 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from mission_control import organism_runtime
-from mission_control import organism_worker
+from mission_control import organism_runtime, organism_worker
 from mission_control.organism_runtime import RuntimeJob
 
 

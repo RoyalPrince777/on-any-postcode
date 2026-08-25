@@ -7,8 +7,9 @@ import signal
 import socket
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 
 from . import postgres_db
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status

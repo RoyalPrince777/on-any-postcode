@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -579,7 +578,7 @@ def _error_code(value: object) -> str:
 
 def _payload(value: object) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise ValueError("runtime payload must be an object")
+        raise TypeError("runtime payload must be an object")
     try:
         encoded = json.dumps(
             value,
