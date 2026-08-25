@@ -76,6 +76,8 @@ class Gates(unittest.TestCase):
   pul=self.c.post('/api/event-bridge',headers=self.h,json={'kind':'ride_state','title':'Driver arriving','target_user_id':1}); self.assertIn(pul.status_code,{201,202}); self.assertEqual(pul.json['channel'],'Pulse'); self.assertFalse(pul.json['public'])
  def test_master_checkpoints(self):
   r=self.c.get('/api/checkpoints'); self.assertEqual(r.status_code,200); self.assertTrue(r.json['no_fake_green']); self.assertEqual(r.json['canonical_language']['feed'],'Signals'); self.assertEqual(r.json['canonical_language']['notifications'],'Pulse'); self.assertIn('internal',r.json); self.assertIn('external',r.json)
+  names={x['name'] for x in r.json['internal']}; self.assertTrue({'communications','signal_intelligence','location_bridge','event_bridge','providers','provider_adapters','observability','regulated_rails','ride_admin'}.issubset(names)); self.assertEqual(r.json['internal_overall'],'green')
+  external={x['name'] for x in r.json['external']}; self.assertIn('open_banking',external); self.assertEqual(r.json['external_overall'],'amber')
  def test_provider_contracts_are_honest(self):
   r=self.c.get('/api/providers'); self.assertEqual(r.status_code,200); self.assertTrue(r.json['no_fake_live']); self.assertTrue(all(not x['live_claim'] for x in r.json['providers']))
  def test_provider_adapters_fail_safe(self):
