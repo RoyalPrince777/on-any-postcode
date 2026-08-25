@@ -19,7 +19,6 @@ from flask import (
     url_for,
 )
 
-from mission_control import init_app as _mc_init
 from mission_control import (
     approval_service,
     authority,
@@ -35,6 +34,7 @@ from mission_control import (
     web_security,
     workspaces,
 )
+from mission_control import init_app as _mc_init
 from mission_control.agents import validate_agent_registry
 from mission_control.database import db_status
 from mission_control.organism import validate_architecture
