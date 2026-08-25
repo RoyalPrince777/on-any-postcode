@@ -15,6 +15,7 @@ from oap_language import register_oap_language
 from oap_checkpoints import register_checkpoints
 from provider_contracts import register_provider_contracts
 from provider_adapters import register_provider_adapters
+from location_bridge import register_location_bridge
 from regulated_rails import register_regulated_rails
 from oap_observability import register_observability
 from oap_finalization import register_finalization
@@ -47,6 +48,8 @@ if 'oap_provider_contracts' not in app.blueprints:
     register_provider_contracts(app)
 if 'oap_provider_adapters' not in app.blueprints:
     register_provider_adapters(app)
+if 'oap_location_bridge' not in app.blueprints:
+    register_location_bridge(app)
 if 'oap_regulated_rails' not in app.blueprints:
     register_regulated_rails(app)
 if 'oap_observability' not in app.blueprints:
