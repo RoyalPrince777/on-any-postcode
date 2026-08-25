@@ -6,6 +6,7 @@ checkpoints = Blueprint('oap_checkpoints', __name__)
 INTERNAL = [
     ('link','/health'),('signals','/api/signals'),('language','/api/language'),('communications','/api/communications/health'),
     ('pulse_intelligence','/api/pulse/intelligence/health'),('signal_trust','/api/signal-trust/health'),('signal_intelligence','/api/signal-intelligence/health'),
+    ('smi_brain','/api/smi/health'),('smi_aegis','/api/smi/aegis'),('smi_judgement','/api/smi/judgement'),('smi_self','/api/smi/self'),
     ('spot','/api/spot/me'),('location_bridge','/api/location-bridge/health'),('event_bridge','/api/event-bridge/health'),
     ('providers','/api/providers'),('provider_adapters','/api/adapters/health'),('observability','/api/observability/health'),
     ('royal','/api/royal/health'),('intelligence','/api/intelligence/health'),('adaptive_coherence','/api/intelligence/adaptive-coherence'),
