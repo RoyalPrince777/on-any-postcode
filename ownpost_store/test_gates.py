@@ -4,6 +4,7 @@ from gates import app
 from test_link_intelligence import LinkIntelligenceTests
 from test_oap_tv import OAPTV
 from test_oap_core_systems import OAPCoreSystems
+from test_spot_family import SpotFamily
 
 class Gates(unittest.TestCase):
  def setUp(self):
@@ -49,6 +50,7 @@ class Gates(unittest.TestCase):
   r=self.c.get('/api/businesses');self.assertEqual(r.status_code,200);self.assertIn('core is free',r.json['monetization_rule'])
   r=self.c.post('/api/businesses',headers=self.h,json={'name':'CI Business','category':'test','postcode':'SE15'});self.assertEqual(r.status_code,201);self.assertTrue(r.json['monetizable']);self.assertTrue(r.json['core_link_free'])
  def test_public_gate_reads(self):
-  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self']: self.assertEqual(self.c.get(p).status_code,200,p)
+  for p in ['/api/releases','/api/live','/api/poppin','/api/events','/api/endz','/api/lit','/api/businesses','/api/tv/health','/api/core/health','/api/organism/self','/api/spot/me']:
+   r=self.c.get(p,headers=self.h if p=='/api/spot/me' else {}); self.assertEqual(r.status_code,200,p)
 
 if __name__=='__main__': unittest.main()
