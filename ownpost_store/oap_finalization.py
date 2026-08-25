@@ -19,8 +19,9 @@ CAPABILITIES = {
 
 CORE_PROBES = [
     ('link','/health'),('signals','/api/signals'),('language','/api/language'),('communications','/api/communications/health'),
-    ('signal_trust','/api/signal-trust/health'),('signal_intelligence','/api/signal-intelligence/health'),('pillars','/api/pillars'),
-    ('checkpoints','/api/checkpoints'),('providers','/api/providers'),('provider_adapters','/api/adapters/health'),
+    ('signal_trust','/api/signal-trust/health'),('signal_intelligence','/api/signal-intelligence/health'),
+    ('smi_brain','/api/smi/health'),('smi_aegis','/api/smi/aegis'),('smi_judgement','/api/smi/judgement'),('smi_self','/api/smi/self'),
+    ('pillars','/api/pillars'),('checkpoints','/api/checkpoints'),('providers','/api/providers'),('provider_adapters','/api/adapters/health'),
     ('location_bridge','/api/location-bridge/health'),('event_bridge','/api/event-bridge/health'),('regulated_rails','/api/regulated'),
     ('observability','/api/observability/health'),('spot_family','/api/spot/me'),('royal','/api/royal/health'),
     ('intelligence','/api/intelligence/health'),('adaptive_coherence','/api/intelligence/adaptive-coherence'),
