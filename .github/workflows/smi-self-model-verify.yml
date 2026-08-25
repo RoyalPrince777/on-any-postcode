@@ -1,0 +1,28 @@
+name: SMI self-model verification
+
+on:
+  push:
+    branches:
+      - build/smi-self-model-coherence
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install runtime and verification dependencies
+        run: python -m pip install -r requirements.txt pytest ruff
+      - name: Compile SMI changes
+        run: python -m compileall -q oap/smi tests/test_smi_self_model_coherence.py
+      - name: Lint SMI changes
+        run: ruff check oap/smi/self_model.py oap/smi/coherence.py oap/smi/smi_core.py tests/test_smi_self_model_coherence.py
+      - name: Run full governed regression suite
+        run: python -m pytest -q
