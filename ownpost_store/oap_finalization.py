@@ -10,6 +10,8 @@ CAPABILITIES = {
     'transport_realtime': {'kind':'provider','required_env':'OAP_TRANSPORT_PROVIDER','live_when':'configured_and_probed'},
     'education_providers': {'kind':'provider','required_env':'OAP_EDUCATION_PROVIDER','live_when':'configured_and_verified'},
     'observability': {'kind':'provider','required_env':'OAP_OBSERVABILITY_PROVIDER','live_when':'configured_and_probed'},
+    'background_worker_247': {'kind':'infrastructure','required_env':'OAP_258_WORKER_ENABLED','live_when':'worker_heartbeat_verified'},
+    'ride_commercial': {'kind':'legal','required_env':'OAP_RIDE_COMMERCIAL_AUTHORISED','live_when':'licensing_insurance_driver_checks_and_payments_ready'},
     'sika_regulated_payments': {'kind':'legal','required_env':'OAP_SIKA_REGULATED_ENABLED','live_when':'authorised_and_explicitly_enabled'},
     'banking': {'kind':'legal','required_env':'OAP_BANKING_AUTHORISED','live_when':'licensed_and_explicitly_enabled'},
 }
@@ -26,7 +28,11 @@ CORE_PROBES = [
     ('country_intelligence','/api/country-intelligence?continent=Africa&country=Ghana'),
     ('universe_intelligence','/api/universe-intelligence'),
     ('education','/api/education/health'),
+    ('youth_club','/api/youth-club/health'),
     ('bank_intelligence','/api/bank-intelligence/health'),
+    ('background_258','/api/258/health'),
+    ('movement','/api/movement/health'),
+    ('ride','/api/ride/health'),
 ]
 
 
@@ -40,17 +46,22 @@ def register_finalization(app, db, uid):
     with db() as c:
         c.execute("create table if not exists oap_readiness_checks(name text primary key,status text not null,detail text not null,checked_at bigint not null)")
 
-    @finalization.get('/api/readiness/capabilities')
-    def capabilities():
+    def capability_rows():
         rows=[]
         for name,meta in CAPABILITIES.items():
             raw=os.environ.get(meta['required_env'],'').strip()
             if meta['kind']=='legal':
                 status='enabled' if _env_on(meta['required_env']) else 'blocked_pending_authorisation'
+            elif meta['kind']=='infrastructure':
+                status='configured_unverified' if _env_on(meta['required_env']) else 'not_connected'
             else:
                 status='configured_unverified' if raw else 'not_connected'
-            rows.append({'name':name,'kind':meta['kind'],'status':status,'live_claim':False if status!='enabled' else True,'requirement':meta['live_when']})
-        return jsonify(capabilities=rows,no_fake_live_labels=True)
+            rows.append({'name':name,'kind':meta['kind'],'status':status,'live_claim':status=='enabled','requirement':meta['live_when']})
+        return rows
+
+    @finalization.get('/api/readiness/capabilities')
+    def capabilities():
+        return jsonify(capabilities=capability_rows(),no_fake_live_labels=True)
 
     @finalization.get('/api/readiness/core')
     def core_readiness():
@@ -75,14 +86,7 @@ def register_finalization(app, db, uid):
     def readiness():
         with db() as c:
             checks=c.execute('select name,status,detail,checked_at from oap_readiness_checks order by name').fetchall()
-        external=[]
-        for name,meta in CAPABILITIES.items():
-            raw=os.environ.get(meta['required_env'],'').strip()
-            if meta['kind']=='legal':
-                status='enabled' if _env_on(meta['required_env']) else 'blocked_pending_authorisation'
-            else:
-                status='configured_unverified' if raw else 'not_connected'
-            external.append({'name':name,'status':status})
+        external=[{'name':x['name'],'status':x['status'],'kind':x['kind']} for x in capability_rows()]
         return jsonify(
             core_checks=checks,
             external_dependencies=external,
