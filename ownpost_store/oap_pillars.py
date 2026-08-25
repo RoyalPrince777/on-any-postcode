@@ -6,7 +6,7 @@ pillars = Blueprint('oap_pillars', __name__)
 PILLARS = {
  'identity_privacy':['/api/royal/health','/api/organism/self','/api/communications/health'],
  'signals_pulse_trust':['/api/language','/api/signal-intelligence/health','/api/signal-trust/health','/api/event-bridge/health'],
- 'smi_brain_cognition':['/api/smi/health','/api/smi/aegis','/api/smi/judgement','/api/smi/self','/api/smi/architecture'],
+ 'smi_brain_cognition':['/api/smi/health','/api/smi/aegis','/api/smi/judgement','/api/smi/self','/api/smi/architecture','/api/smi/resilience/health'],
  'intelligence_governance':['/api/intelligence/health','/api/intelligence/adaptive-coherence','/api/world-intelligence','/api/earth-intelligence'],
  'place_movement':['/api/location-bridge/health','/api/movement/health','/api/ride/health','/api/ride/admin/health'],
  'youth_education':['/api/education/health','/api/youth-club/health','/api/youth-safety/policy'],
