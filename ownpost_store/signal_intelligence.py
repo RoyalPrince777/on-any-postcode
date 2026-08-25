@@ -47,5 +47,5 @@ def register_signal_intelligence(app, db):
         if any(k in request.args for k in PRECISE_KEYS): return jsonify(error='precise_location_ranking_blocked'),403
         try: rows=rank_signals(db,request.args.get('scope','postcode'),request.args.get('scope_value',''),request.args.get('limit','50'))
         except ValueError as e: return jsonify(error=str(e)),400
-        return jsonify(signals=rows,canonical_name='Signals',ranking_policy='human_first_certified_evidence_not_engagement_maximisation',precise_location_used=False,learning_state='purple_until_verified',authority='human_final')
+        return jsonify(signals=rows,canonical_name='Signals',ranking_policy='human_first_relevance_not_engagement_maximisation',trust_policy='certified_evidence_required_for_authority_boost',precise_location_used=False,learning_state='purple_until_verified',authority='human_final')
     app.register_blueprint(signal_intelligence)
