@@ -28,6 +28,14 @@ class OAPCoreSystems(unittest.TestCase):
   p=self.c.post('/api/studio/projects',headers=self.h,json={'title':'CI Studio'}); self.assertEqual(p.status_code,201); pid=p.json['project_id']
   self.assertEqual(self.c.post(f'/api/studio/projects/{pid}/assets',headers=self.h2,json={'kind':'image','uri':'asset://x'}).status_code,403)
   self.assertEqual(self.c.post(f'/api/studio/projects/{pid}/assets',headers=self.h,json={'kind':'image','uri':'asset://x','provenance':'user','consent_confirmed':True}).status_code,201)
+ def test_pulse_intelligence_is_human_first(self):
+  h=self.c.get('/api/pulse/intelligence/health'); self.assertEqual(h.status_code,200); self.assertIn('clicks',h.json['excluded_inputs']); self.assertEqual(h.json['protected_priority'],['safety','account'])
+  stamp=str(int(time.time()*1000)); general='Pulse General '+stamp; safety='Pulse Safety '+stamp
+  a=self.c.post('/api/pulse',headers=self.h,json={'kind':'system','title':general,'body':'general'}); self.assertEqual(a.status_code,200)
+  b=self.c.post('/api/pulse',headers=self.h,json={'kind':'guardian_alert','title':safety,'body':'safety'}); self.assertEqual(b.status_code,200); self.assertEqual(b.json['ranking_policy'],'human_first_personal_priority_not_engagement_maximisation')
+  rows=b.json['pulse']; titles=[x['title'] for x in rows]; self.assertLess(titles.index(safety),titles.index(general)); sr=next(x for x in rows if x['title']==safety); self.assertEqual(sr['category'],'safety')
+  self.assertEqual(self.c.post(f"/api/pulse/{sr['id']}/read",headers=self.h).status_code,200)
+  r=self.c.get('/api/pulse',headers=self.h); titles=[x['title'] for x in r.json['pulse']]; self.assertLess(titles.index(safety),titles.index(general))
  def test_auth_boundaries(self):
   for path in ['/api/transport/journeys','/api/studio/projects']:
    self.assertEqual(self.c.get(path).status_code,401)
