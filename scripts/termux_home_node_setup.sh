@@ -40,7 +40,9 @@ grep -viE '^[[:space:]]*psycopg\[binary\]' requirements.txt > "$termux_requireme
 "$PYTHON" -m pip install -r "$termux_requirements"
 "$PYTHON" -m pip install 'psycopg<4,>=3.2'
 
-export LD_LIBRARY_PATH="$PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+original_ld_library_path="${LD_LIBRARY_PATH:-}"
+termux_lib_path="$PREFIX/lib${original_ld_library_path:+:$original_ld_library_path}"
+export LD_LIBRARY_PATH="$termux_lib_path"
 PSYCOPG_IMPL=python "$PYTHON" - <<'PY'
 import psycopg
 from psycopg import pq
@@ -68,7 +70,6 @@ case "$database_url" in
 esac
 
 worker_id="termux-$(hostname 2>/dev/null || printf '%s' android)"
-termux_lib_path="$PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 {
   printf 'export OAP_NEON_DATABASE_URL=%q\n' "$database_url"
   printf 'export OAP_WORKER_ID=%q\n' "$worker_id"
