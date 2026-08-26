@@ -5,6 +5,10 @@ must explicitly configure an HTTPS OSRM-compatible endpoint and explicitly allow
 its hostname. Status reads never probe the network. Successful route requests
 record coarse runtime evidence only; no route request dispatches a person,
 vehicle, courier or payment.
+
+Known public demonstration endpoints may be used for bounded verification, but
+are never treated as production-ready routing providers and are blocked from
+normal Movement route requests.
 """
 from __future__ import annotations
 
@@ -19,6 +23,7 @@ from urllib import request as urlrequest
 MAX_RESPONSE_BYTES = 128 * 1024
 ROUTE_TIMEOUT_SECONDS = 6
 ALLOWED_PROFILES = frozenset({"driving", "cycling", "walking"})
+VERIFICATION_ONLY_HOSTS = frozenset({"router.project-osrm.org"})
 _RUNTIME_LOCK = threading.Lock()
 _LAST_SUCCESS: float | None = None
 _LAST_ERROR: str | None = None
@@ -56,6 +61,28 @@ def configured() -> bool:
     """Return whether a routing endpoint passes local configuration validation."""
 
     return bool(_base_url())
+
+
+def provider_tier() -> str:
+    """Classify the configured endpoint without claiming contractual readiness."""
+
+    base = _base_url()
+    if not base:
+        return "unconfigured"
+    host = str(urlparse.urlparse(base).hostname or "").casefold()
+    if host in VERIFICATION_ONLY_HOSTS:
+        return "verification_only"
+    return "production_candidate"
+
+
+def production_ready() -> bool:
+    """Require both a non-demo endpoint and explicit production approval."""
+
+    return (
+        provider_tier() == "production_candidate"
+        and os.environ.get("OAP_ROUTING_PRODUCTION_APPROVED", "").strip().lower()
+        == "true"
+    )
 
 
 def _coordinate(value: object, *, minimum: float, maximum: float, name: str) -> float:
@@ -115,12 +142,15 @@ def route(
     destination_latitude: object,
     destination_longitude: object,
     profile: object = "driving",
+    verification_only: bool = False,
 ) -> dict[str, Any]:
     """Calculate distance and ETA without returning precise route geometry."""
 
     base = _base_url()
     if not base:
         raise RoutingUnavailable("routing_provider_not_configured")
+    if provider_tier() == "verification_only" and not verification_only:
+        raise RoutingUnavailable("routing_provider_verification_only")
     parsed_base = urlparse.urlparse(base)
     expected_host = str(parsed_base.hostname)
     pickup_lat = _coordinate(
@@ -182,6 +212,30 @@ def route(
     }
 
 
+def startup_probe() -> dict[str, Any]:
+    """Optionally verify outbound routing once at app startup using fixed public coordinates."""
+
+    if (
+        os.environ.get("OAP_ROUTING_STARTUP_PROBE", "").strip().lower()
+        != "true"
+    ):
+        return status()
+    if not configured():
+        return status()
+    try:
+        route(
+            pickup_latitude=51.401,
+            pickup_longitude=-0.166,
+            destination_latitude=51.462,
+            destination_longitude=-0.115,
+            profile="driving",
+            verification_only=True,
+        )
+    except (RoutingUnavailable, ValueError):
+        pass
+    return status()
+
+
 def status() -> dict[str, Any]:
     """Return coarse local/runtime evidence without making a network request."""
 
@@ -191,6 +245,12 @@ def status() -> dict[str, Any]:
     return {
         "configured": configured(),
         "runtime_verified": success is not None,
+        "provider_tier": provider_tier(),
+        "production_ready": production_ready(),
+        "startup_probe_enabled": (
+            os.environ.get("OAP_ROUTING_STARTUP_PROBE", "").strip().lower()
+            == "true"
+        ),
         "last_success_epoch": int(success) if success is not None else None,
         "last_error": error,
         "timeout_seconds": ROUTE_TIMEOUT_SECONDS,

@@ -96,3 +96,59 @@ def test_route_fails_closed_when_provider_is_not_configured(monkeypatch):
             destination_latitude=52,
             destination_longitude=0,
         )
+
+
+def test_public_osrm_demo_is_verification_only(monkeypatch):
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://router.project-osrm.org")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "router.project-osrm.org")
+    monkeypatch.delenv("OAP_ROUTING_PRODUCTION_APPROVED", raising=False)
+
+    assert routing.configured() is True
+    assert routing.provider_tier() == "verification_only"
+    assert routing.production_ready() is False
+
+    with pytest.raises(
+        routing.RoutingUnavailable, match="routing_provider_verification_only"
+    ):
+        routing.route(
+            pickup_latitude=51.4,
+            pickup_longitude=-0.2,
+            destination_latitude=51.5,
+            destination_longitude=-0.1,
+        )
+
+
+def test_startup_probe_can_verify_demo_without_enabling_normal_routes(monkeypatch):
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://router.project-osrm.org")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "router.project-osrm.org")
+    monkeypatch.setenv("OAP_ROUTING_STARTUP_PROBE", "true")
+    monkeypatch.setattr(routing, "_LAST_SUCCESS", None)
+    monkeypatch.setattr(routing, "_LAST_ERROR", None)
+    monkeypatch.setattr(
+        routing,
+        "_request_json",
+        lambda url, *, expected_host: {
+            "code": "Ok",
+            "routes": [{"distance": 1234.0, "duration": 300.0}],
+        },
+    )
+
+    state = routing.startup_probe()
+
+    assert state["configured"] is True
+    assert state["runtime_verified"] is True
+    assert state["provider_tier"] == "verification_only"
+    assert state["production_ready"] is False
+    assert state["startup_probe_enabled"] is True
+
+
+def test_production_candidate_requires_explicit_approval(monkeypatch):
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://router.example.test")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "router.example.test")
+    monkeypatch.delenv("OAP_ROUTING_PRODUCTION_APPROVED", raising=False)
+
+    assert routing.provider_tier() == "production_candidate"
+    assert routing.production_ready() is False
+
+    monkeypatch.setenv("OAP_ROUTING_PRODUCTION_APPROVED", "true")
+    assert routing.production_ready() is True
