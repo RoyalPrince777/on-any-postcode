@@ -12,7 +12,9 @@ BOOT_FILE="$BOOT_DIR/10-oap-home-node"
 printf '%s\n' "OAP Home Node setup: bounded OAP CORE + SMI + whole-organism autonomy"
 printf '%s\n' "No deploy, payment, dispatch, permission, carrier, or other consequential authority is enabled."
 
-pkg install -y python git
+# Android/Termux has no compatible psycopg-binary wheel. Install Termux libpq
+# through PostgreSQL and use Psycopg's documented pure-Python implementation.
+pkg install -y python git postgresql
 
 if [[ -d "$REPO_DIR/.git" ]]; then
   printf 'Using existing repository: %s\n' "$REPO_DIR"
@@ -25,8 +27,31 @@ fi
 
 cd "$REPO_DIR"
 python -m venv .venv
-"$REPO_DIR/.venv/bin/python" -m pip install --upgrade pip
-"$REPO_DIR/.venv/bin/python" -m pip install -r requirements.txt
+PYTHON="$REPO_DIR/.venv/bin/python"
+"$PYTHON" -m pip install --upgrade pip
+
+termux_requirements="$(mktemp)"
+cleanup_requirements() {
+  rm -f "$termux_requirements"
+}
+trap cleanup_requirements EXIT
+
+grep -viE '^[[:space:]]*psycopg\[binary\]' requirements.txt > "$termux_requirements"
+"$PYTHON" -m pip install -r "$termux_requirements"
+"$PYTHON" -m pip install 'psycopg<4,>=3.2'
+
+export LD_LIBRARY_PATH="$PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+PSYCOPG_IMPL=python "$PYTHON" - <<'PY'
+import psycopg
+from psycopg import pq
+
+if pq.__impl__ != "python":
+    raise SystemExit(f"Unexpected Psycopg implementation: {pq.__impl__}")
+print(f"Psycopg ready via {pq.__impl__} implementation; libpq={pq.version()}")
+PY
+
+cleanup_requirements
+trap - EXIT
 
 mkdir -p "$ENV_DIR" "$STATE_DIR" "$BOOT_DIR"
 umask 077
@@ -43,10 +68,13 @@ case "$database_url" in
 esac
 
 worker_id="termux-$(hostname 2>/dev/null || printf '%s' android)"
+termux_lib_path="$PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 {
   printf 'export OAP_NEON_DATABASE_URL=%q\n' "$database_url"
   printf 'export OAP_WORKER_ID=%q\n' "$worker_id"
   printf 'export OAP_HOME_REPO=%q\n' "$REPO_DIR"
+  printf 'export PSYCOPG_IMPL=python\n'
+  printf 'export LD_LIBRARY_PATH=%q\n' "$termux_lib_path"
 } > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 unset database_url
@@ -58,6 +86,7 @@ nohup "$REPO_DIR/scripts/termux_home_node_run.sh" >> "$STATE_DIR/boot.log" 2>&1 
 EOF
 chmod 700 "$BOOT_FILE"
 chmod 700 "$REPO_DIR/scripts/termux_home_node_run.sh"
+chmod 700 "$REPO_DIR/scripts/termux_home_node_status.sh"
 
 printf '%s\n' "Setup complete."
 printf '%s\n' "1. Install/open Termux:Boot once if you have not already."
