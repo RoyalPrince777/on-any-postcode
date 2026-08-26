@@ -3,7 +3,14 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import movement, movement_operations, routing, web_security
+from . import (
+    location_intelligence,
+    movement,
+    movement_operations,
+    movement_workspace,
+    routing,
+    web_security,
+)
 
 bp = Blueprint("movement", __name__)
 
@@ -39,9 +46,58 @@ def _write_guard(identity_id: str):
     return None
 
 
+def _resolved_place(
+    body: dict,
+    *,
+    value_key: str,
+    query_key: str,
+    name: str,
+    required: bool = True,
+):
+    """Resolve explicit coordinates or a user-entered postcode/place into a private place."""
+
+    raw = body.get(value_key)
+    if raw is not None:
+        return movement_operations.normalize_place(raw, name=name)
+    query = " ".join(str(body.get(query_key) or "").strip().split())[:120]
+    if not query:
+        if required:
+            raise ValueError(f"{name}_required")
+        return None
+    resolved = location_intelligence.lookup(query)
+    label = str(resolved.get("postcode") or resolved.get("query") or query)[:160]
+    zone = str(
+        resolved.get("postcode")
+        or resolved.get("borough")
+        or resolved.get("county")
+        or ""
+    )[:40]
+    return movement_operations.normalize_place(
+        {
+            "label": label,
+            "zone": zone,
+            "latitude": resolved.get("latitude"),
+            "longitude": resolved.get("longitude"),
+        },
+        name=name,
+    )
+
+
 def _operation_error(exc: Exception):
     if isinstance(exc, routing.RoutingUnavailable):
         return _error(str(exc), "Routing is not available for this request.", 503)
+    if isinstance(exc, location_intelligence.LocationUnavailable):
+        return _error(
+            "location_lookup_unavailable",
+            "Location lookup is temporarily unavailable.",
+            503,
+        )
+    if isinstance(exc, movement_workspace.MovementWorkspaceUnavailable):
+        return _error(
+            "movement_workspace_unavailable",
+            "Movement workspace is temporarily unavailable.",
+            503,
+        )
     if isinstance(exc, PermissionError):
         code = str(exc) or "movement_access_denied"
         status_code = 404 if code in {"booking_not_found"} else 403
@@ -71,6 +127,26 @@ def movement_status():
     return _no_store(make_response(jsonify(movement.get_public_movement_status())))
 
 
+@bp.get("/movement/workspace")
+@web_security.login_required()
+def movement_workspace_home():
+    """Render only the authenticated person's Movement bookings/work state."""
+
+    identity = _private_identity()
+    try:
+        private_snapshot = movement_workspace.snapshot(identity)
+        response = make_response(
+            render_template(
+                "movement_workspace.html",
+                snapshot=private_snapshot,
+                routing_status=routing.status(),
+            )
+        )
+        return _no_store(response)
+    except Exception as exc:  # noqa: BLE001 - keep DB/provider details private.
+        return _operation_error(exc)
+
+
 @bp.post("/movement/route")
 @web_security.login_required(api=True)
 def route_plan():
@@ -81,9 +157,17 @@ def route_plan():
         return guard
     try:
         body = _body()
-        pickup = movement_operations.normalize_place(body.get("pickup"), name="pickup")
-        destination = movement_operations.normalize_place(
-            body.get("destination"), name="destination"
+        pickup = _resolved_place(
+            body,
+            value_key="pickup",
+            query_key="pickup_query",
+            name="pickup",
+        )
+        destination = _resolved_place(
+            body,
+            value_key="destination",
+            query_key="destination_query",
+            name="destination",
         )
         result = routing.route(
             pickup_latitude=pickup["latitude"],
@@ -107,16 +191,26 @@ def create_booking():
         return guard
     try:
         body = _body()
-        pickup = movement_operations.normalize_place(body.get("pickup"), name="pickup")
-        destination_raw = body.get("destination")
-        destination = (
-            movement_operations.normalize_place(destination_raw, name="destination")
-            if destination_raw is not None
-            else None
+        pickup = _resolved_place(
+            body,
+            value_key="pickup",
+            query_key="pickup_query",
+            name="pickup",
+        )
+        destination = _resolved_place(
+            body,
+            value_key="destination",
+            query_key="destination_query",
+            name="destination",
+            required=False,
         )
         service = str(body.get("service_type") or "").strip().casefold()
         route_snapshot = None
-        if destination is not None and service in {"ride", "delivery"} and routing.configured():
+        if (
+            destination is not None
+            and service in {"ride", "delivery"}
+            and routing.production_ready()
+        ):
             route_snapshot = routing.route(
                 pickup_latitude=pickup["latitude"],
                 pickup_longitude=pickup["longitude"],

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Movement · OAP</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">Private · authenticated · fail-closed</p>
+      <h1>My Movement</h1>
+      <p>Book a Ride, E-Bike or Delivery, manage certified work availability, and handle governed match proposals.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Movement</a>
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <aside class="mc-authority" aria-label="Routing readiness">
+      <strong>Routing: {{ 'production ready' if routing_status.production_ready else 'provider required' }}</strong>
+      <span>
+        {% if routing_status.runtime_verified %}Network routing has been runtime-verified.{% else %}Routing has not yet been runtime-verified.{% endif %}
+        {% if routing_status.provider_tier == 'verification_only' %} The current OSRM endpoint is verification-only and is never used to enrich customer bookings.{% endif %}
+      </span>
+    </aside>
+
+    <section class="mc-panel" aria-labelledby="book-title">
+      <p class="mc-eyebrow">Ride · E-Bike · Delivery</p>
+      <h2 id="book-title">Book Movement</h2>
+      <p>Enter a postcode or place. OAP resolves the place without sending your OAP identity to the location provider. A booking can be saved even while production routing or dispatch is unavailable.</p>
+      <form id="movement-booking-form">
+        <label for="service-type">Service</label>
+        <select id="service-type" name="service_type" required>
+          <option value="ride">Ride</option>
+          <option value="ebike">E-Bike</option>
+          <option value="delivery">Delivery</option>
+        </select>
+
+        <label for="pickup-query">Pickup postcode or place</label>
+        <input id="pickup-query" name="pickup_query" maxlength="120" autocomplete="street-address" required>
+
+        <label for="destination-query">Destination postcode or place</label>
+        <input id="destination-query" name="destination_query" maxlength="120" autocomplete="street-address">
+        <p>Destination is required for Ride and Delivery, and optional for E-Bike.</p>
+
+        <label for="scheduled-for">Book for later</label>
+        <input id="scheduled-for" name="scheduled_for" type="datetime-local">
+
+        <button type="submit">Book</button>
+        <p id="booking-result" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="bookings-title">
+      <p class="mc-eyebrow">Private to your identity</p>
+      <h2 id="bookings-title">My Bookings</h2>
+      {% if snapshot.bookings %}
+      <div class="mc-agent-grid" role="list" aria-label="My Movement bookings">
+        {% for booking in snapshot.bookings %}
+        <article class="mc-agent-card" role="listitem">
+          <p class="mc-eyebrow">{{ booking.service_type|upper }} · {{ booking.state }}</p>
+          <h3>{{ booking.pickup_label }}{% if booking.destination_label %} → {{ booking.destination_label }}{% endif %}</h3>
+          <p>{{ booking.pickup_zone }}{% if booking.destination_zone %} → {{ booking.destination_zone }}{% endif %}</p>
+          {% if booking.scheduled_for %}<p>Scheduled: {{ booking.scheduled_for }}</p>{% endif %}
+          {% if booking.route_ready %}
+          <p>Route snapshot: {{ booking.route_distance_m }} m · {{ booking.route_duration_s }} s</p>
+          {% else %}
+          <p>Route enrichment pending a production-approved routing provider.</p>
+          {% endif %}
+          {% if booking.state == 'REQUESTED' %}
+          <button type="button" class="movement-match-button" data-booking-id="{{ booking.booking_id }}">Find certified match</button>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No Movement bookings yet.</p>
+      {% endif %}
+      <p id="match-result" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="member-matches-title">
+      <p class="mc-eyebrow">Proposal before dispatch</p>
+      <h2 id="member-matches-title">My Match Proposals</h2>
+      {% if snapshot.member_matches %}
+      <div class="mc-agent-grid" role="list" aria-label="My Movement match proposals">
+        {% for item in snapshot.member_matches %}
+        <article class="mc-agent-card" role="listitem">
+          <p class="mc-eyebrow">{{ item.worker_role|upper }} · {{ item.proposal_state }}</p>
+          <h3>Booking {{ item.booking_id[:8] }}</h3>
+          <p>{{ item.reason }} · score {{ '%.2f'|format(item.score) }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No match proposals yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="work-title">
+      <p class="mc-eyebrow">Certified roles only</p>
+      <h2 id="work-title">Driver / Rider / Courier Work</h2>
+      {% if snapshot.certified_roles %}
+      <form id="movement-availability-form">
+        <label for="worker-role">Certified role</label>
+        <select id="worker-role" name="role_type" required>
+          {% for role in snapshot.certified_roles %}
+          {% if role == 'MOVEMENT_DRIVER' %}<option value="driver">Driver</option>{% endif %}
+          {% if role == 'MOVEMENT_RIDER' %}<option value="rider">Rider</option>{% endif %}
+          {% if role == 'MOVEMENT_COURIER' %}<option value="courier">Courier</option>{% endif %}
+          {% endfor %}
+        </select>
+        <label for="availability-state">Availability</label>
+        <select id="availability-state" name="state" required>
+          <option value="ONLINE">Go Online</option>
+          <option value="BUSY">Busy</option>
+          <option value="OFFLINE">Go Offline</option>
+        </select>
+        <label for="availability-zone">Coarse zone</label>
+        <input id="availability-zone" name="zone" maxlength="40" placeholder="CR4 / Mitcham">
+        <label for="available-until">Available until</label>
+        <input id="available-until" name="available_until" type="datetime-local">
+        <button type="submit">Update availability</button>
+        <p id="availability-result" role="status" aria-live="polite"></p>
+      </form>
+      {% else %}
+      <p>No certified Driver, Rider or Courier role is attached to this identity. Availability controls stay locked.</p>
+      {% endif %}
+
+      {% if snapshot.availability %}
+      <div class="mc-agent-grid" role="list" aria-label="My worker availability">
+        {% for item in snapshot.availability %}
+        <article class="mc-agent-card" role="listitem">
+          <p class="mc-eyebrow">{{ item.role_type|upper }}</p>
+          <h3>{{ item.state }}</h3>
+          <p>Zone: {{ item.zone or 'Not set' }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="assigned-title">
+      <p class="mc-eyebrow">Human worker acceptance required</p>
+      <h2 id="assigned-title">Assigned Match Proposals</h2>
+      {% if snapshot.worker_matches %}
+      <div class="mc-agent-grid" role="list" aria-label="Assigned Movement match proposals">
+        {% for item in snapshot.worker_matches %}
+        <article class="mc-agent-card" role="listitem">
+          <p class="mc-eyebrow">{{ item.worker_role|upper }} · {{ item.proposal_state }}</p>
+          <h3>{{ item.service_type|upper }} · {{ item.pickup_zone }}{% if item.destination_zone %} → {{ item.destination_zone }}{% endif %}</h3>
+          <p>{{ item.reason }} · score {{ '%.2f'|format(item.score) }}</p>
+          {% if item.proposal_state == 'PROPOSED' %}
+          <button type="button" class="movement-accept-button" data-proposal-id="{{ item.proposal_id }}">Accept match</button>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No assigned match proposals.</p>
+      {% endif %}
+      <p id="accept-result" role="status" aria-live="polite"></p>
+    </section>
+
+    <aside class="mc-authority" aria-label="Movement execution boundary">
+      <strong>Acceptance is not external dispatch</strong>
+      <span>Payment capture, carrier provisioning and external fleet dispatch remain disabled. Tracking remains opt-in and private.</span>
+    </aside>
+  </main>
+
+  <script>
+  (() => {
+    const csrf = {{ oap_csrf_token|tojson }};
+
+    const setResult = (id, text) => {
+      const node = document.getElementById(id);
+      if (node) node.textContent = text;
+    };
+
+    const api = async (path, method, body) => {
+      const headers = {"X-OAP-CSRF": csrf};
+      const options = {method, headers, credentials: "same-origin"};
+      if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(body);
+      }
+      const response = await fetch(path, options);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = payload.error || {};
+        throw new Error(error.message || error.code || `Request failed (${response.status})`);
+      }
+      return payload;
+    };
+
+    const isoFromLocal = (value) => value ? new Date(value).toISOString() : null;
+
+    const bookingForm = document.getElementById("movement-booking-form");
+    if (bookingForm) bookingForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setResult("booking-result", "Saving booking…");
+      const service = document.getElementById("service-type").value;
+      const destination = document.getElementById("destination-query").value.trim();
+      try {
+        await api("/movement/bookings", "POST", {
+          service_type: service,
+          pickup_query: document.getElementById("pickup-query").value.trim(),
+          destination_query: destination || null,
+          scheduled_for: isoFromLocal(document.getElementById("scheduled-for").value),
+          idempotency_key: `movement-${crypto.randomUUID()}`
+        });
+        setResult("booking-result", "Booking saved.");
+        window.location.reload();
+      } catch (error) {
+        setResult("booking-result", error.message);
+      }
+    });
+
+    const availabilityForm = document.getElementById("movement-availability-form");
+    if (availabilityForm) availabilityForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setResult("availability-result", "Updating…");
+      try {
+        await api("/movement/availability", "POST", {
+          role_type: document.getElementById("worker-role").value,
+          state: document.getElementById("availability-state").value,
+          zone: document.getElementById("availability-zone").value.trim(),
+          available_until: isoFromLocal(document.getElementById("available-until").value)
+        });
+        setResult("availability-result", "Availability updated.");
+        window.location.reload();
+      } catch (error) {
+        setResult("availability-result", error.message);
+      }
+    });
+
+    document.querySelectorAll(".movement-match-button").forEach((button) => {
+      button.addEventListener("click", async () => {
+        setResult("match-result", "Checking certified availability…");
+        try {
+          const payload = await api(`/movement/bookings/${button.dataset.bookingId}/match`, "POST");
+          setResult("match-result", payload.match ? "Match proposal created." : "No eligible certified worker is available yet.");
+          window.location.reload();
+        } catch (error) {
+          setResult("match-result", error.message);
+        }
+      });
+    });
+
+    document.querySelectorAll(".movement-accept-button").forEach((button) => {
+      button.addEventListener("click", async () => {
+        setResult("accept-result", "Accepting…");
+        try {
+          await api(`/movement/matches/${button.dataset.proposalId}/accept`, "POST");
+          setResult("accept-result", "Match accepted. External dispatch is still disabled.");
+          window.location.reload();
+        } catch (error) {
+          setResult("accept-result", error.message);
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>
