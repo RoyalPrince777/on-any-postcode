@@ -1,0 +1,40 @@
+name: Temporary routing live proof
+
+on:
+  push:
+    branches:
+      - build/routing-provider-verification
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe routing production boundary
+        run: |
+          set -euo pipefail
+          base='https://on-any-postcode.onrender.com'
+          status_code=$(curl --silent --show-error --max-time 30 --output /tmp/status.json --write-out '%{http_code}' "$base/movement/status")
+          route_code=$(curl --silent --show-error --max-time 30 --output /tmp/route.json --write-out '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' "$base/movement/route")
+          mission_code=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' "$base/mission")
+          echo "status=$status_code route=$route_code mission=$mission_code"
+          test "$status_code" = '200'
+          test "$route_code" = '401'
+          test "$mission_code" = '404'
+          python - <<'PY'
+          import json
+          with open('/tmp/status.json', encoding='utf-8') as f:
+              p=json.load(f)
+          assert p['routing_adapter_configured'] is True, p
+          assert p['routing_runtime_verified'] is True, p
+          assert p['external_dispatch_enabled'] is False, p
+          assert p['payment_capture_enabled'] is False, p
+          assert p['esim_activation_enabled'] is False, p
+          with open('/tmp/route.json', encoding='utf-8') as f:
+              private=json.load(f)
+          assert private['error']['code'] == 'authentication_required', private
+          print('routing_live_proof=PASS')
+          PY
