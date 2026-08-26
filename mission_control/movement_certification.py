@@ -7,7 +7,7 @@ approved by Human Authority.
 """
 from __future__ import annotations
 
-from typing import Any
+import json
 from uuid import UUID
 
 from . import authority, postgres_db
@@ -25,6 +25,7 @@ WORKER_ROLES = frozenset({"driver", "rider", "courier"})
 VEHICLE_TYPES = frozenset(
     {"car", "van", "ebike", "bicycle", "moped", "motorcycle", "none"}
 )
+MOTOR_VEHICLES = frozenset({"car", "van", "moped", "motorcycle"})
 ROLE_VEHICLES = {
     "driver": frozenset({"car", "van"}),
     "rider": frozenset({"ebike", "bicycle", "moped", "motorcycle"}),
@@ -71,7 +72,7 @@ def _text(value: object, *, maximum: int) -> str:
     return " ".join(str(value or "").strip().split())[:maximum]
 
 
-def _declarations(value: object) -> dict[str, bool]:
+def _declarations(value: object, *, vehicle: str) -> dict[str, bool]:
     source = value if isinstance(value, dict) else {}
     normalized = {
         "age_18_or_over": source.get("age_18_or_over") is True,
@@ -81,6 +82,10 @@ def _declarations(value: object) -> dict[str, bool]:
     }
     if not normalized["age_18_or_over"] or not normalized["terms_accepted"]:
         raise ValueError("movement_worker_declarations_required")
+    if vehicle in MOTOR_VEHICLES and (
+        not normalized["licence_declared"] or not normalized["insurance_declared"]
+    ):
+        raise ValueError("motor_vehicle_declarations_required")
     return normalized
 
 
@@ -139,7 +144,7 @@ def submit_application(
     identity = _identity(user.get("id"))
     role = _role(role_type)
     vehicle = _vehicle(vehicle_type, role=role)
-    declaration = _declarations(declarations)
+    declaration = _declarations(declarations, vehicle=vehicle)
     zone = _text(service_zone, maximum=40)
     label = _text(vehicle_label, maximum=80)
     last4 = _text(registration_last4, maximum=4).upper()
@@ -162,6 +167,14 @@ def submit_application(
             ).fetchone()
             if certified is not None:
                 raise ValueError("movement_role_already_certified")
+            active = connection.execute(
+                """SELECT 1 FROM oap_movement_worker_applications
+                   WHERE identity_id=%s AND role_type=%s
+                     AND state NOT IN ('REJECTED','CANCELLED') LIMIT 1""",
+                (identity, role),
+            ).fetchone()
+            if active is not None:
+                raise ValueError("movement_application_already_active")
             row = connection.execute(
                 """INSERT INTO oap_movement_worker_applications(
                        identity_id,role_type,vehicle_type,service_zone,
@@ -174,7 +187,7 @@ def submit_application(
                     role,
                     vehicle,
                     zone,
-                    postgres_db.json_dumps(declaration),
+                    json.dumps(declaration, separators=(",", ":"), sort_keys=True),
                 ),
             ).fetchone()
             application_id = str(row[0])
@@ -189,7 +202,7 @@ def submit_application(
                     vehicle,
                     label,
                     last4,
-                    vehicle in {"ebike"},
+                    vehicle == "ebike",
                 ),
             )
             connection.commit()
