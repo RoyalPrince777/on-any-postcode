@@ -44,7 +44,7 @@ def _health_payload(child: object | None) -> tuple[int, dict[str, Any]]:
 
 def _handler(child: subprocess.Popen[bytes]) -> type[BaseHTTPRequestHandler]:
     class HealthHandler(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:  # noqa: N802 - HTTP handler API.
+        def do_GET(self) -> None:
             if self.path != "/healthz":
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
