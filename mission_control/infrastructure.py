@@ -3,8 +3,10 @@
 Infrastructure owns exactly Maps, Weather, eSIM and Connectivity. Related
 Navigation, Mobility and shared Mission Control health remain outside that
 ownership boundary so this UI cannot become a duplicate routing, transport or
-operations engine. Nothing in this module probes a network, activates a
-service, persists state or exposes credentials.
+operations engine. Public status is evidence-driven: Maps and Weather become
+healthy only after a successful bounded provider response has been observed.
+Nothing in this module probes a network, activates a service, persists state or
+exposes credentials.
 """
 
 from __future__ import annotations
@@ -13,15 +15,17 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from . import location_intelligence
+
 LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
     {
         "id": "maps",
         "name": "Maps",
         "purpose": "Postcode places, local landmarks and map context.",
-        "status": "Not connected",
+        "status": "Configured; runtime proof pending",
         "state": "degraded",
-        "readiness": "Read-only shell ready",
-        "data": "No map provider configured",
+        "readiness": "Bounded location lookup configured",
+        "data": "No successful location provider response observed in this process",
         "boundary": (
             "Provides place context only; it does not create a Navigation or "
             "Mobility engine."
@@ -31,13 +35,13 @@ LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
         "id": "weather",
         "name": "Weather",
         "purpose": "Weather records and local condition awareness.",
-        "status": "Not connected",
+        "status": "Configured; runtime proof pending",
         "state": "degraded",
-        "readiness": "Read-only shell ready",
-        "data": "No live weather provider configured",
+        "readiness": "Bounded weather lookup configured",
+        "data": "No successful weather provider response observed in this process",
         "boundary": (
-            "Shows approved weather records only; alerts and provider calls "
-            "remain unavailable."
+            "Shows bounded weather results only; consequential alerts or provider "
+            "operations remain unavailable."
         ),
     },
     {
@@ -114,10 +118,11 @@ RELATED_SYSTEM_BOUNDARIES: tuple[dict[str, str], ...] = (
 
 PROPOSED_CONNECTIONS: tuple[dict[str, str], ...] = (
     {
-        "title": "Connect Maps and Weather providers",
+        "title": "Review Maps and Weather provider policy",
         "description": (
-            "Select licensed data sources, privacy rules and postcode-level "
-            "display limits before any live provider integration."
+            "Keep the bounded postcode, global-place and weather providers under "
+            "privacy, reliability and production-policy review before expanding "
+            "their use."
         ),
         "status": "Requires human approval",
     },
@@ -152,6 +157,43 @@ def _duplicates(values: Iterable[str]) -> set[str]:
             duplicates.add(value)
         seen.add(value)
     return duplicates
+
+
+def _runtime_modules() -> tuple[list[dict[str, str]], dict[str, object]]:
+    """Overlay runtime delivery evidence without performing network I/O."""
+
+    evidence = location_intelligence.status()
+    maps_verified = bool(
+        evidence.get("postcode_provider_verified")
+        or evidence.get("global_provider_verified")
+    )
+    weather_verified = bool(evidence.get("weather_provider_verified"))
+    modules = [dict(module) for module in LOCKED_INFRASTRUCTURE_MODULES]
+
+    for module in modules:
+        if module["id"] == "maps" and maps_verified:
+            module.update(
+                status="Runtime verified",
+                state="healthy",
+                readiness="Location lookup ready",
+                data="Successful bounded location provider response observed",
+            )
+        elif module["id"] == "weather" and weather_verified:
+            module.update(
+                status="Runtime verified",
+                state="healthy",
+                readiness="Weather lookup ready",
+                data="Successful bounded weather provider response observed",
+            )
+
+    public_evidence: dict[str, object] = {
+        "maps_runtime_verified": maps_verified,
+        "weather_runtime_verified": weather_verified,
+        "spatial_contract": str(evidence.get("spatial_contract") or ""),
+        "network_probe_on_get": False,
+        "evidence_mode": "observed_delivery",
+    }
+    return modules, public_evidence
 
 
 def validate_infrastructure_scope(
@@ -197,7 +239,9 @@ def validate_infrastructure_scope(
             + ", ".join(sorted(overlaps))
         )
     if missing:
-        errors.append("Locked Infrastructure modules missing: " + ", ".join(sorted(missing)))
+        errors.append(
+            "Locked Infrastructure modules missing: " + ", ".join(sorted(missing))
+        )
     if unexpected:
         errors.append(
             "Unapproved Infrastructure modules present: "
@@ -222,14 +266,16 @@ def validate_infrastructure_scope(
 def get_public_infrastructure() -> dict[str, Any]:
     """Return an allowlisted, non-operational Infrastructure projection."""
 
+    modules, runtime_evidence = _runtime_modules()
     return {
-        "modules": [dict(module) for module in LOCKED_INFRASTRUCTURE_MODULES],
+        "modules": modules,
+        "runtime_evidence": runtime_evidence,
         "related_systems": [dict(system) for system in RELATED_SYSTEM_BOUNDARIES],
         "proposed_connections": [dict(item) for item in PROPOSED_CONNECTIONS],
         "validation": validate_infrastructure_scope(),
         "operating_mode": {
             "label": "Read-only awareness",
-            "message": "No provider calls, activation or network changes are enabled.",
+            "message": "No activation, provider mutation or network changes are enabled.",
         },
         "human_authority": {
             "status": "Final approval required",
