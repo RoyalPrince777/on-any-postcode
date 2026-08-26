@@ -3,7 +3,13 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import product_core_services, product_cores, product_store, public_store, web_security
+from . import (
+    product_core_services,
+    product_cores,
+    product_store,
+    public_store,
+    web_security,
+)
 
 bp = Blueprint("product_core_organs", __name__)
 _store = product_cores.PostgresProductCoreStore()
@@ -39,7 +45,7 @@ def _identity(*, sync: bool = False) -> str:
 def _payload() -> dict[str, object]:
     value = request.get_json(silent=True)
     if not isinstance(value, dict):
-        raise ValueError("json_object_required")
+        raise TypeError("json_object_required")
     return value
 
 
@@ -54,9 +60,11 @@ def _handle_write(action):
         return _no_store(make_response(jsonify(action()), 201))
     except PermissionError as exc:
         return _error("permission_denied", str(exc), 403)
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _error("invalid_request", str(exc), 400)
     except (public_store.PublicStoreUnavailable, product_store.ProductStoreUnavailable, RuntimeError):
+        return _error("organ_unavailable", "The OAP organ store is temporarily unavailable.", 503)
+    except Exception:  # noqa: BLE001 - redact storage/provider implementation details.
         return _error("organ_unavailable", "The OAP organ store is temporarily unavailable.", 503)
 
 
@@ -228,7 +236,7 @@ def create_post_request():
         payload = _payload()
         details = payload.get("details")
         if details is not None and not isinstance(details, dict):
-            raise ValueError("post_office_details_must_be_object")
+            raise TypeError("post_office_details_must_be_object")
         return _store.create_post_office_request(
             identity_id=_identity(sync=True),
             service_type=payload.get("service_type"),
