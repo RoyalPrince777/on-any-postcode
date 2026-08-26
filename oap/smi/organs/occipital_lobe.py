@@ -10,7 +10,7 @@ class OccipitalLobe:
 
     def analyse(self, packet: BrainPacket):
         try:
-            visual_count = int(packet.signal.oapdata.get("visual_count", 0) or 0)
+            visual_count = int(packet.signal.oapcore.get("visual_count", 0) or 0)
         except (TypeError, ValueError):
             visual_count = 0
         visual_count = min(max(visual_count, 0), 1_000)

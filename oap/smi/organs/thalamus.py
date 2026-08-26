@@ -1,4 +1,4 @@
-"""Thalamus input filtering and safe OAPDATA routing."""
+"""Thalamus input filtering and safe OAP CORE routing."""
 
 from __future__ import annotations
 
@@ -16,23 +16,23 @@ _PRIVATE_KEYS = {
 }
 
 
-def _redact_private_oapdata(value: Any) -> Any:
+def _redact_private_oapcore(value: Any) -> Any:
     if isinstance(value, dict):
         return {
             key: "<REDACTED>"
             if key.casefold() in _PRIVATE_KEYS
-            else _redact_private_oapdata(item)
+            else _redact_private_oapcore(item)
             for key, item in value.items()
         }
     if isinstance(value, list):
-        return [_redact_private_oapdata(item) for item in value]
+        return [_redact_private_oapcore(item) for item in value]
     return value
 
 
 class Thalamus:
     def receive(self, envelope: NexusEnvelope) -> FocusedSignal:
         request = envelope.request
-        oapdata = _redact_private_oapdata(request.oapdata)
+        oapcore = _redact_private_oapcore(request.oapcore)
         tags = [request.task_type.casefold()]
         if request.high_impact:
             tags.append("high_impact")
@@ -41,7 +41,7 @@ class Thalamus:
             identity_id=request.identity_id,
             task_type=request.task_type,
             content=request.content.strip(),
-            oapdata=oapdata,
+            oapcore=oapcore,
             high_impact=request.high_impact,
             tags=tuple(tags),
         )

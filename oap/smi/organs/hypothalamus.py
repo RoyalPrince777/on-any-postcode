@@ -11,7 +11,7 @@ class Hypothalamus:
     organ_id = "hypothalamus"
 
     def analyse(self, packet: BrainPacket):
-        urgent = packet.signal.high_impact or bool(packet.signal.oapdata.get("urgent"))
+        urgent = packet.signal.high_impact or bool(packet.signal.oapcore.get("urgent"))
         return finding(
             self.organ_id,
             "Elevated priority requires resource and human review."

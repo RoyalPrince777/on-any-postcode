@@ -1,0 +1,1 @@
+OAP CORE replaces OAPDATA as the canonical OAP-owned SMI context name. New code uses `oapcore`. Legacy `oapdata` and `metadata` names are compatibility-only at the contract boundary.

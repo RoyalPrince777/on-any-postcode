@@ -42,13 +42,13 @@ class ApprovalDecision(StrEnum):
 
 @dataclass(frozen=True, slots=True, init=False)
 class BrainRequest:
-    """A signal delivered to SMI through NEXUS with canonical OAPDATA context."""
+    """A signal delivered to SMI through NEXUS with canonical OAP CORE context."""
 
     request_id: str
     identity_id: str
     content: str
     task_type: str = "GENERAL"
-    oapdata: dict[str, Any] = field(default_factory=dict)
+    oapcore: dict[str, Any] = field(default_factory=dict)
     high_impact: bool = False
     created_at: datetime = field(default_factory=utc_now)
 
@@ -58,30 +58,42 @@ class BrainRequest:
         identity_id: str,
         content: str,
         task_type: str = "GENERAL",
-        oapdata: dict[str, Any] | None = None,
+        oapcore: dict[str, Any] | None = None,
         high_impact: bool = False,
         created_at: datetime | None = None,
         *,
+        oapdata: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Create a request using OAPDATA; accept metadata only as a legacy input alias."""
+        """Create a request using OAP CORE; older names are compatibility-only."""
 
-        if oapdata is not None and metadata is not None:
-            raise TypeError("Use oapdata only; do not supply both oapdata and metadata")
-        data = oapdata if oapdata is not None else metadata
+        supplied = sum(value is not None for value in (oapcore, oapdata, metadata))
+        if supplied > 1:
+            raise TypeError(
+                "Use oapcore only; do not supply oapcore with oapdata or metadata"
+            )
+        core = oapcore if oapcore is not None else oapdata
+        if core is None:
+            core = metadata
         object.__setattr__(self, "request_id", request_id)
         object.__setattr__(self, "identity_id", identity_id)
         object.__setattr__(self, "content", content)
         object.__setattr__(self, "task_type", task_type)
-        object.__setattr__(self, "oapdata", {} if data is None else data)
+        object.__setattr__(self, "oapcore", {} if core is None else core)
         object.__setattr__(self, "high_impact", high_impact)
         object.__setattr__(self, "created_at", created_at or utc_now())
 
     @property
-    def metadata(self) -> dict[str, Any]:
-        """Legacy compatibility alias; new OAP code must use ``oapdata``."""
+    def oapdata(self) -> dict[str, Any]:
+        """Legacy compatibility alias; new OAP code must use ``oapcore``."""
 
-        return self.oapdata
+        return self.oapcore
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Legacy compatibility alias; new OAP code must use ``oapcore``."""
+
+        return self.oapcore
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,15 +135,21 @@ class FocusedSignal:
     identity_id: str
     task_type: str
     content: str
-    oapdata: dict[str, Any]
+    oapcore: dict[str, Any]
     high_impact: bool
     tags: tuple[str, ...]
 
     @property
-    def metadata(self) -> dict[str, Any]:
-        """Legacy read alias; OAP brain regions use ``oapdata``."""
+    def oapdata(self) -> dict[str, Any]:
+        """Legacy read alias; OAP brain regions use ``oapcore``."""
 
-        return self.oapdata
+        return self.oapcore
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Legacy read alias; OAP brain regions use ``oapcore``."""
+
+        return self.oapcore
 
 
 @dataclass(frozen=True, slots=True)

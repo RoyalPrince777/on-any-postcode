@@ -164,7 +164,7 @@ def review(
         identity_id=identity_id,
         content=content,
         task_type=task_type,
-        oapdata={"image_attached": image_attached, "interface": "smi_chat"},
+        oapcore={"image_attached": image_attached, "interface": "smi_chat"},
         high_impact=high_impact,
     )
     signal = InputManager().receive(NexusRouter().receive(request))
