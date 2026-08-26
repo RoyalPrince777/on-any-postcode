@@ -19,6 +19,7 @@ from oap.registry import RegistryEngine
 from oap.state_machine import ProcessingState, RequestStateMachine
 from oap.war_room import WarRoomEngine
 
+from .autonomy import SMIAutonomyEngine
 from .coherence import CoherenceEngine
 from .context_engine import ContextEngine
 from .evolution_engine import EvolutionEngine
@@ -70,6 +71,7 @@ class SMICore:
         self.frontal_lobe = FrontalLobe()
         self.self_model = SelfModel()
         self.coherence = CoherenceEngine()
+        self.autonomy = SMIAutonomyEngine()
 
     def _component_statuses(self) -> tuple[dict[str, object], ...]:
         return (
@@ -224,10 +226,28 @@ class SMICore:
         self.hrm.record_recommendation(request, recommendation)
         return recommendation
 
+    def autonomy_cycle(self) -> dict[str, object]:
+        """Run one bounded autonomous SMI review with no execution authority."""
+        components = self._component_statuses()
+        self_model = self.self_model.observe(components)
+        coherence = self.coherence.evaluate(components)
+        return self.autonomy.run_cycle(
+            components=components,
+            self_model=self_model.as_dict(),
+            coherence=coherence.as_dict(),
+            evolution=self.evolution.status(),
+        )
+
     def status(self) -> dict[str, object]:
         components = self._component_statuses()
         self_model = self.self_model.observe(components)
         coherence = self.coherence.evaluate(components)
+        autonomy = self.autonomy.run_cycle(
+            components=components,
+            self_model=self_model.as_dict(),
+            coherence=coherence.as_dict(),
+            evolution=self.evolution.status(),
+        )
         return {
             "component": "SMI",
             "brain_count": 1,
@@ -238,9 +258,14 @@ class SMICore:
             ),
             "mode": "recommendation_only",
             "allowed_outputs": tuple(state.value for state in OutputState),
+            "bounded_autonomous": True,
             "independent_execute": False,
+            "independent_approval": False,
+            "independent_apply": False,
+            "human_authority_final": True,
             "self_model": self_model.as_dict(),
             "coherence": coherence.as_dict(),
+            "autonomy": autonomy,
             "controlled_self_improvement": self.evolution.status(),
             "components": components,
         }
