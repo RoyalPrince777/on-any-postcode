@@ -11,14 +11,14 @@ _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _SAFE_TASK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,63}$")
 
 
-def _metadata_keys_are_text(value: object) -> bool:
+def _oapdata_keys_are_text(value: object) -> bool:
     if isinstance(value, dict):
         return all(
-            isinstance(key, str) and _metadata_keys_are_text(item)
+            isinstance(key, str) and _oapdata_keys_are_text(item)
             for key, item in value.items()
         )
     if isinstance(value, list):
-        return all(_metadata_keys_are_text(item) for item in value)
+        return all(_oapdata_keys_are_text(item) for item in value)
     return True
 
 
@@ -28,8 +28,8 @@ class SignalValidationError(ValueError):
 
 class NexusRouter:
     MAX_CONTENT_LENGTH = 20_000
-    MAX_METADATA_FIELDS = 40
-    MAX_METADATA_BYTES = 50_000
+    MAX_OAPDATA_FIELDS = 40
+    MAX_OAPDATA_BYTES = 50_000
 
     def receive(self, request: BrainRequest) -> NexusEnvelope:
         if not isinstance(request.request_id, str) or not _SAFE_ID.fullmatch(
@@ -46,29 +46,29 @@ class NexusRouter:
             request.task_type
         ):
             raise SignalValidationError("Invalid task type")
-        if not isinstance(request.metadata, dict):
-            raise SignalValidationError("Signal metadata must be an object")
+        if not isinstance(request.oapdata, dict):
+            raise SignalValidationError("Signal OAPDATA must be an object")
         if not isinstance(request.high_impact, bool):
             raise SignalValidationError("High-impact flag must be boolean")
         if not request.content.strip():
             raise SignalValidationError("Signal content is required")
         if len(request.content) > self.MAX_CONTENT_LENGTH:
             raise SignalValidationError("Signal content exceeds the safe limit")
-        if len(request.metadata) > self.MAX_METADATA_FIELDS:
-            raise SignalValidationError("Signal metadata exceeds the safe limit")
-        if not _metadata_keys_are_text(request.metadata):
-            raise SignalValidationError("Signal metadata keys must be text")
+        if len(request.oapdata) > self.MAX_OAPDATA_FIELDS:
+            raise SignalValidationError("Signal OAPDATA exceeds the safe limit")
+        if not _oapdata_keys_are_text(request.oapdata):
+            raise SignalValidationError("Signal OAPDATA keys must be text")
         try:
-            metadata_json = json.dumps(
-                request.metadata,
+            oapdata_json = json.dumps(
+                request.oapdata,
                 separators=(",", ":"),
                 ensure_ascii=False,
                 allow_nan=False,
             )
         except (RecursionError, TypeError, ValueError) as exc:
-            raise SignalValidationError("Signal metadata is not valid JSON") from exc
-        if len(metadata_json.encode("utf-8")) > self.MAX_METADATA_BYTES:
-            raise SignalValidationError("Signal metadata exceeds the safe limit")
+            raise SignalValidationError("Signal OAPDATA is not valid JSON") from exc
+        if len(oapdata_json.encode("utf-8")) > self.MAX_OAPDATA_BYTES:
+            raise SignalValidationError("Signal OAPDATA exceeds the safe limit")
 
         return NexusEnvelope(
             request=request,
@@ -82,4 +82,5 @@ class NexusRouter:
             "ready": True,
             "role": "transport_only",
             "decision_authority": False,
+            "data_language": "OAPDATA",
         }

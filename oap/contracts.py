@@ -40,17 +40,48 @@ class ApprovalDecision(StrEnum):
     REJECTED = "REJECTED"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class BrainRequest:
-    """A signal delivered to SMI through NEXUS."""
+    """A signal delivered to SMI through NEXUS with canonical OAPDATA context."""
 
     request_id: str
     identity_id: str
     content: str
     task_type: str = "GENERAL"
-    metadata: dict[str, Any] = field(default_factory=dict)
+    oapdata: dict[str, Any] = field(default_factory=dict)
     high_impact: bool = False
     created_at: datetime = field(default_factory=utc_now)
+
+    def __init__(
+        self,
+        request_id: str,
+        identity_id: str,
+        content: str,
+        task_type: str = "GENERAL",
+        oapdata: dict[str, Any] | None = None,
+        high_impact: bool = False,
+        created_at: datetime | None = None,
+        *,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """Create a request using OAPDATA; accept metadata only as a legacy input alias."""
+
+        if oapdata is not None and metadata is not None:
+            raise TypeError("Use oapdata only; do not supply both oapdata and metadata")
+        data = oapdata if oapdata is not None else metadata
+        object.__setattr__(self, "request_id", request_id)
+        object.__setattr__(self, "identity_id", identity_id)
+        object.__setattr__(self, "content", content)
+        object.__setattr__(self, "task_type", task_type)
+        object.__setattr__(self, "oapdata", {} if data is None else data)
+        object.__setattr__(self, "high_impact", high_impact)
+        object.__setattr__(self, "created_at", created_at or utc_now())
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Legacy compatibility alias; new OAP code must use ``oapdata``."""
+
+        return self.oapdata
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,9 +123,15 @@ class FocusedSignal:
     identity_id: str
     task_type: str
     content: str
-    metadata: dict[str, Any]
+    oapdata: dict[str, Any]
     high_impact: bool
     tags: tuple[str, ...]
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Legacy read alias; OAP brain regions use ``oapdata``."""
+
+        return self.oapdata
 
 
 @dataclass(frozen=True, slots=True)
