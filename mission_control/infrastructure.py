@@ -239,11 +239,13 @@ def validate_infrastructure_scope(
             + ", ".join(sorted(overlaps))
         )
     if missing:
-        errors.append("Locked Infrastructure modules missing: " + ", ".join(sorted(missing)))
+        errors.append(
+            "Locked Infrastructure modules missing: " + ", ".join(sorted(missing))
+        )
     if unexpected:
         errors.append(
             "Unapproved Infrastructure modules present: "
-            + ", ".join(sorted(unexpected)
+            + ", ".join(sorted(unexpected))
         )
     if mutation_controls:
         errors.append("Infrastructure mutation controls must remain disabled")
