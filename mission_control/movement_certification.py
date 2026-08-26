@@ -119,7 +119,7 @@ def schema_status() -> dict[str, object]:
                 (list(TABLES),),
             ).fetchall()
             result["tables_ready"] = {str(item[0]) for item in table_rows} == TABLES
-    except Exception:
+    except Exception:  # noqa: BLE001 - status must redact backend/provider detail.
         result["error"] = "movement_certification_store_unavailable"
     result["ready"] = bool(
         result["reachable"]
