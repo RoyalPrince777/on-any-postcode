@@ -1,11 +1,12 @@
 """Durable first-party product cores for OAP Music, Market and Post Office.
 
-OAP owns the internal records and workflow state. External DSP distribution,
-licensed audio delivery, royalty payouts, card capture, third-party fulfilment,
-parcel-carrier handoff and physical Post Office activation remain explicitly
-provider/Human-Authority gated.
+This module owns OAP-side workflow records. Existing legacy Market tables are
+preserved untouched; the newer Shopify-style workflow uses an explicit
+`oap_commerce_*` namespace so both generations can coexist safely.
 
-Schema mutation is explicit only; imports and status reads never create tables.
+External DSP distribution, licensed audio delivery, royalty payout, card capture,
+third-party fulfilment, parcel-carrier handoff and physical Post Office activation
+remain provider/Human-Authority gated.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from uuid import UUID
 from . import postgres_db
 
 PRODUCT_CORE_MIGRATION_VERSION = "0006_music_market_post_office"
+LEGACY_MARKET_TABLES = frozenset({"oap_market_items", "oap_market_orders"})
 PRODUCT_CORE_TABLES = frozenset(
     {
         "oap_music_releases",
@@ -26,11 +28,11 @@ PRODUCT_CORE_TABLES = frozenset(
         "oap_music_playlist_items",
         "oap_music_distribution_intents",
         "oap_music_royalty_reports",
-        "oap_market_storefronts",
-        "oap_market_orders",
-        "oap_market_order_items",
-        "oap_market_payment_intents",
-        "oap_market_fulfilment_intents",
+        "oap_commerce_storefronts",
+        "oap_commerce_orders",
+        "oap_commerce_order_items",
+        "oap_commerce_payment_intents",
+        "oap_commerce_fulfilment_intents",
         "oap_post_offices",
         "oap_post_office_requests",
         "oap_post_office_parcels",
@@ -168,7 +170,7 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
     """CREATE INDEX IF NOT EXISTS ix_music_royalty_owner_created
         ON oap_music_royalty_reports(owner_identity_id, created_at DESC)""",
-    """CREATE TABLE IF NOT EXISTS oap_market_storefronts (
+    """CREATE TABLE IF NOT EXISTS oap_commerce_storefronts (
         storefront_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         seller_identity_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT,
         store_name TEXT NOT NULL,
@@ -177,7 +179,7 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
             CHECK (state IN ('DRAFT','REVIEW_REQUIRED','ACTIVE','SUSPENDED','CLOSED')),
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
-    """CREATE TABLE IF NOT EXISTS oap_market_orders (
+    """CREATE TABLE IF NOT EXISTS oap_commerce_orders (
         order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         buyer_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
         seller_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -190,19 +192,19 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(buyer_identity_id,idempotency_key))""",
-    """CREATE INDEX IF NOT EXISTS ix_market_order_buyer_created
-        ON oap_market_orders(buyer_identity_id, created_at DESC)""",
-    """CREATE TABLE IF NOT EXISTS oap_market_order_items (
+    """CREATE INDEX IF NOT EXISTS ix_commerce_order_buyer_created
+        ON oap_commerce_orders(buyer_identity_id, created_at DESC)""",
+    """CREATE TABLE IF NOT EXISTS oap_commerce_order_items (
         order_item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        order_id UUID NOT NULL REFERENCES oap_market_orders(order_id) ON DELETE CASCADE,
+        order_id UUID NOT NULL REFERENCES oap_commerce_orders(order_id) ON DELETE CASCADE,
         product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
         quantity INTEGER NOT NULL CHECK (quantity BETWEEN 1 AND 99),
         unit_price_minor BIGINT NOT NULL CHECK (unit_price_minor >= 0),
         product_name TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
-    """CREATE TABLE IF NOT EXISTS oap_market_payment_intents (
+    """CREATE TABLE IF NOT EXISTS oap_commerce_payment_intents (
         intent_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        order_id UUID NOT NULL UNIQUE REFERENCES oap_market_orders(order_id)
+        order_id UUID NOT NULL UNIQUE REFERENCES oap_commerce_orders(order_id)
             ON DELETE CASCADE,
         amount_minor BIGINT NOT NULL CHECK (amount_minor >= 0),
         currency TEXT NOT NULL,
@@ -211,9 +213,9 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
         provider_reference TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
-    """CREATE TABLE IF NOT EXISTS oap_market_fulfilment_intents (
+    """CREATE TABLE IF NOT EXISTS oap_commerce_fulfilment_intents (
         fulfilment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        order_id UUID NOT NULL UNIQUE REFERENCES oap_market_orders(order_id)
+        order_id UUID NOT NULL UNIQUE REFERENCES oap_commerce_orders(order_id)
             ON DELETE CASCADE,
         state TEXT NOT NULL DEFAULT 'PROVIDER_REQUIRED'
             CHECK (state IN ('PROVIDER_REQUIRED','READY','HANDED_OFF','DELIVERED','CANCELLED','FAILED')),
@@ -316,13 +318,13 @@ def _active_hub(connection: Any, hub: str) -> None:
 
 
 def product_core_schema_status() -> dict[str, Any]:
-    """Read product-core readiness without mutating the database."""
     result: dict[str, Any] = {
         "migration": PRODUCT_CORE_MIGRATION_VERSION,
         "checksum": PRODUCT_CORE_MIGRATION_CHECKSUM,
         "schema_ready": False,
         "tables": 0,
         "expected_tables": len(PRODUCT_CORE_TABLES),
+        "legacy_market_preserved": False,
         "error": None,
     }
     base = postgres_db.postgres_status()
@@ -334,11 +336,11 @@ def product_core_schema_status() -> dict[str, Any]:
             tables = {
                 str(row[0])
                 for row in connection.execute(
-                    "SELECT table_name FROM information_schema.tables "
-                    "WHERE table_schema='public'"
+                    "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
                 ).fetchall()
             }
             result["tables"] = len(PRODUCT_CORE_TABLES & tables)
+            result["legacy_market_preserved"] = LEGACY_MARKET_TABLES <= tables
             if not PRODUCT_CORE_TABLES <= tables:
                 result["error"] = "product_core_schema_pending"
                 return result
@@ -351,15 +353,12 @@ def product_core_schema_status() -> dict[str, Any]:
                 return result
             result["schema_ready"] = True
             return result
-    except Exception:  # noqa: BLE001 - provider/database details stay private.
+    except Exception:  # noqa: BLE001
         result["error"] = "product_core_store_unavailable"
         return result
 
 
-def init_product_core_schema(
-    *, assume_yes: bool = False, dry_run: bool = False
-) -> dict[str, Any]:
-    """Apply product-core schema only after explicit Human Authority invocation."""
+def init_product_core_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, Any]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
     base = postgres_db.postgres_status()
@@ -392,7 +391,6 @@ def init_product_core_schema(
 
 
 def platform_status() -> dict[str, Any]:
-    """Return truthful first-party readiness and external locks."""
     schema = product_core_schema_status()
     core_ready = bool(schema.get("schema_ready"))
     return {
@@ -404,14 +402,13 @@ def platform_status() -> dict[str, Any]:
             for item in PRODUCT_SUITE
         ),
         "blocked_external_actions": BLOCKED_EXTERNAL_ACTIONS,
+        "legacy_market_preserved": bool(schema.get("legacy_market_preserved")),
         "human_authority_final": True,
         "independent_external_execution": False,
     }
 
 
 class PostgresProductCoreStore:
-    """Owner-scoped OAP workflows with external consequential edges disabled."""
-
     def create_release(
         self,
         *,
@@ -515,9 +512,7 @@ class PostgresProductCoreStore:
             "audio_delivery_enabled": False,
         }
 
-    def submit_release_for_review(
-        self, *, owner_identity_id: object, release_id: object
-    ) -> dict[str, Any]:
+    def submit_release_for_review(self, *, owner_identity_id: object, release_id: object) -> dict[str, Any]:
         owner = _uuid(owner_identity_id, "owner_identity_id")
         release = _uuid(release_id, "release_id")
         with postgres_db.connect() as connection:
@@ -576,8 +571,7 @@ class PostgresProductCoreStore:
         with postgres_db.connect() as connection:
             _active_identity(connection, owner)
             row = connection.execute(
-                """INSERT INTO oap_music_playlists
-                   (owner_identity_id,title,visibility)
+                """INSERT INTO oap_music_playlists(owner_identity_id,title,visibility)
                    VALUES (%s,%s,%s)
                    RETURNING playlist_id,title,visibility,created_at""",
                 (owner, title_value, visibility_value),
@@ -605,8 +599,7 @@ class PostgresProductCoreStore:
         with postgres_db.connect() as connection:
             _active_identity(connection, seller)
             row = connection.execute(
-                """INSERT INTO oap_market_storefronts
-                   (seller_identity_id,store_name,slug)
+                """INSERT INTO oap_commerce_storefronts(seller_identity_id,store_name,slug)
                    VALUES (%s,%s,%s)
                    ON CONFLICT (seller_identity_id) DO UPDATE SET
                      store_name=EXCLUDED.store_name,
@@ -660,8 +653,8 @@ class PostgresProductCoreStore:
             existing = connection.execute(
                 """SELECT o.order_id,o.state,o.currency,o.subtotal_minor,o.created_at,
                           o.seller_identity_id,i.product_id,i.quantity
-                   FROM oap_market_orders o
-                   LEFT JOIN oap_market_order_items i ON i.order_id=o.order_id
+                   FROM oap_commerce_orders o
+                   LEFT JOIN oap_commerce_order_items i ON i.order_id=o.order_id
                    WHERE o.buyer_identity_id=%s AND o.idempotency_key=%s
                    LIMIT 1""",
                 (buyer, key),
@@ -678,7 +671,7 @@ class PostgresProductCoreStore:
                 order = existing[:5]
             else:
                 order = connection.execute(
-                    """INSERT INTO oap_market_orders
+                    """INSERT INTO oap_commerce_orders
                        (buyer_identity_id,seller_identity_id,state,currency,
                         subtotal_minor,idempotency_key)
                        VALUES (%s,%s,'PAYMENT_PROVIDER_REQUIRED',%s,%s,%s)
@@ -686,19 +679,19 @@ class PostgresProductCoreStore:
                     (buyer, seller, str(product_row[3]), subtotal, key),
                 ).fetchone()
                 connection.execute(
-                    """INSERT INTO oap_market_order_items
+                    """INSERT INTO oap_commerce_order_items
                        (order_id,product_id,quantity,unit_price_minor,product_name)
                        VALUES (%s,%s,%s,%s,%s)""",
                     (order[0], product, qty, int(product_row[2]), str(product_row[1])),
                 )
                 connection.execute(
-                    """INSERT INTO oap_market_payment_intents
+                    """INSERT INTO oap_commerce_payment_intents
                        (order_id,amount_minor,currency,state)
                        VALUES (%s,%s,%s,'PROVIDER_REQUIRED')""",
                     (order[0], subtotal, str(product_row[3])),
                 )
                 connection.execute(
-                    """INSERT INTO oap_market_fulfilment_intents(order_id,state)
+                    """INSERT INTO oap_commerce_fulfilment_intents(order_id,state)
                        VALUES (%s,'PROVIDER_REQUIRED')""",
                     (order[0],),
                 )
