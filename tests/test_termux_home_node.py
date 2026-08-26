@@ -25,6 +25,14 @@ def test_termux_setup_keeps_database_secret_out_of_repository():
     assert "postgresql://neondb_owner:" not in SETUP
 
 
+def test_termux_setup_uses_android_compatible_psycopg():
+    assert "pkg install -y python git postgresql" in SETUP
+    assert "psycopg\\[binary\\]" in SETUP
+    assert "pip install 'psycopg<4,>=3.2'" in SETUP
+    assert "PSYCOPG_IMPL=python" in SETUP
+    assert "pq.__impl__" in SETUP
+
+
 def test_termux_status_uses_authoritative_runtime_readiness():
     assert "runtime_status" in STATUS
     assert "home_node_process=" in STATUS
