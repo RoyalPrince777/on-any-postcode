@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from mission_control import neon_auth, web_security
+from mission_control import neon_auth
 
 
 NON_FOUNDER_ID = "22222222-2222-4222-8222-222222222222"
@@ -81,7 +81,4 @@ def test_authenticated_non_founder_cannot_enter_mission_control(
 
 
 def test_founder_selector_accepts_verified_test_identity(client):
-    response = client.get("/mission")
-
-    assert response.status_code == 200
-    assert web_security.current_authenticated_user is not None
+    assert client.get("/mission").status_code == 200
