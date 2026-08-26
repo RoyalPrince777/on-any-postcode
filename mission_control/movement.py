@@ -253,6 +253,17 @@ def get_public_movement_status() -> dict[str, Any]:
         "ordered_steps": len(MOVEMENT_BUILD_ORDER),
         "routing_adapter_configured": bool(route_state["configured"]),
         "routing_runtime_verified": bool(route_state["runtime_verified"]),
+        "routing_provider_tier": str(route_state.get("provider_tier", "unconfigured")),
+        "routing_production_provider_approved": bool(
+            route_state.get("production_provider_approved", False)
+        ),
+        "routing_capacity_approved": bool(
+            route_state.get("production_capacity_approved", False)
+        ),
+        "routing_monitoring_approved": bool(
+            route_state.get("production_monitoring_approved", False)
+        ),
+        "routing_production_ready": bool(route_state.get("production_ready", False)),
         "booking_persistence_ready": schema_ready,
         "availability_store_ready": schema_ready,
         "match_proposal_store_ready": schema_ready,

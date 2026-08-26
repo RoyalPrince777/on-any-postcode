@@ -8,7 +8,9 @@ vehicle, courier or payment.
 
 Known public demonstration endpoints may be used for bounded verification, but
 are never treated as production-ready routing providers and are blocked from
-normal Movement route requests.
+normal Movement route requests. A production-candidate endpoint also stays
+fail-closed until routing, capacity and monitoring evidence are explicitly
+approved.
 """
 from __future__ import annotations
 
@@ -31,6 +33,10 @@ _LAST_ERROR: str | None = None
 
 class RoutingUnavailable(RuntimeError):
     """Raised when an approved routing endpoint cannot return a bounded route."""
+
+
+def _flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() == "true"
 
 
 def _allowed_hosts() -> frozenset[str]:
@@ -75,14 +81,52 @@ def provider_tier() -> str:
     return "production_candidate"
 
 
-def production_ready() -> bool:
-    """Require both a non-demo endpoint and explicit production approval."""
+def production_approval_state() -> dict[str, bool]:
+    """Return explicit human/operational evidence gates for a real provider."""
 
-    return (
-        provider_tier() == "production_candidate"
-        and os.environ.get("OAP_ROUTING_PRODUCTION_APPROVED", "").strip().lower()
-        == "true"
-    )
+    return {
+        "provider_approved": _flag("OAP_ROUTING_PRODUCTION_APPROVED"),
+        "capacity_approved": _flag("OAP_ROUTING_CAPACITY_APPROVED"),
+        "monitoring_approved": _flag("OAP_ROUTING_MONITORING_APPROVED"),
+    }
+
+
+def production_gate_approved() -> bool:
+    """Require a non-demo provider plus all explicit production evidence gates."""
+
+    gates = production_approval_state()
+    return provider_tier() == "production_candidate" and all(gates.values())
+
+
+def _runtime_state() -> tuple[float | None, str | None]:
+    with _RUNTIME_LOCK:
+        return _LAST_SUCCESS, _LAST_ERROR
+
+
+def runtime_verified() -> bool:
+    """Return whether the current process has a successful provider proof and no later error."""
+
+    success, error = _runtime_state()
+    return success is not None and error is None
+
+
+def production_ready() -> bool:
+    """Require approved provider operations plus successful runtime evidence."""
+
+    return production_gate_approved() and runtime_verified()
+
+
+def _mark_error(error: str) -> None:
+    with _RUNTIME_LOCK:
+        global _LAST_ERROR
+        _LAST_ERROR = error
+
+
+def _mark_success() -> None:
+    with _RUNTIME_LOCK:
+        global _LAST_SUCCESS, _LAST_ERROR
+        _LAST_SUCCESS = time.time()
+        _LAST_ERROR = None
 
 
 def _coordinate(value: object, *, minimum: float, maximum: float, name: str) -> float:
@@ -117,20 +161,24 @@ def _request_json(url: str, *, expected_host: str) -> dict[str, Any]:
         with urlrequest.urlopen(request, timeout=ROUTE_TIMEOUT_SECONDS) as response:
             final = urlparse.urlparse(response.geturl())
             if final.scheme != "https" or final.hostname != expected_host:
+                _mark_error("routing_redirect_rejected")
                 raise RoutingUnavailable("routing_redirect_rejected")
             body = response.read(MAX_RESPONSE_BYTES + 1)
+    except RoutingUnavailable:
+        raise
     except (OSError, TimeoutError) as exc:
-        with _RUNTIME_LOCK:
-            global _LAST_ERROR
-            _LAST_ERROR = type(exc).__name__
+        _mark_error(type(exc).__name__)
         raise RoutingUnavailable("routing_provider_unavailable") from exc
     if len(body) > MAX_RESPONSE_BYTES:
+        _mark_error("routing_response_too_large")
         raise RoutingUnavailable("routing_response_too_large")
     try:
         payload = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _mark_error("invalid_routing_response")
         raise RoutingUnavailable("invalid_routing_response") from exc
     if not isinstance(payload, dict):
+        _mark_error("invalid_routing_response")
         raise RoutingUnavailable("invalid_routing_response")
     return payload
 
@@ -149,8 +197,12 @@ def route(
     base = _base_url()
     if not base:
         raise RoutingUnavailable("routing_provider_not_configured")
-    if provider_tier() == "verification_only" and not verification_only:
-        raise RoutingUnavailable("routing_provider_verification_only")
+    tier = provider_tier()
+    if not verification_only:
+        if tier == "verification_only":
+            raise RoutingUnavailable("routing_provider_verification_only")
+        if tier == "production_candidate" and not production_gate_approved():
+            raise RoutingUnavailable("routing_provider_not_production_approved")
     parsed_base = urlparse.urlparse(base)
     expected_host = str(parsed_base.hostname)
     pickup_lat = _coordinate(
@@ -172,9 +224,7 @@ def route(
         name="destination_longitude",
     )
     normalized_profile = _profile(profile)
-    coordinates = (
-        f"{pickup_lon},{pickup_lat};{destination_lon},{destination_lat}"
-    )
+    coordinates = f"{pickup_lon},{pickup_lat};{destination_lon},{destination_lat}"
     query = urlparse.urlencode(
         {
             "overview": "false",
@@ -185,23 +235,20 @@ def route(
     url = f"{base}/route/v1/{normalized_profile}/{coordinates}?{query}"
     payload = _request_json(url, expected_host=expected_host)
     if payload.get("code") != "Ok":
-        with _RUNTIME_LOCK:
-            global _LAST_ERROR
-            _LAST_ERROR = "route_not_found"
+        _mark_error("route_not_found")
         raise RoutingUnavailable("route_not_found")
     routes = payload.get("routes")
     if not isinstance(routes, list) or not routes or not isinstance(routes[0], dict):
+        _mark_error("invalid_routing_response")
         raise RoutingUnavailable("invalid_routing_response")
     first = routes[0]
     try:
         distance_m = max(0.0, float(first["distance"]))
         duration_s = max(0.0, float(first["duration"]))
     except (KeyError, TypeError, ValueError) as exc:
+        _mark_error("invalid_routing_response")
         raise RoutingUnavailable("invalid_routing_response") from exc
-    with _RUNTIME_LOCK:
-        global _LAST_SUCCESS
-        _LAST_SUCCESS = time.time()
-        _LAST_ERROR = None
+    _mark_success()
     return {
         "distance_m": round(distance_m, 1),
         "duration_s": round(duration_s, 1),
@@ -215,10 +262,7 @@ def route(
 def startup_probe() -> dict[str, Any]:
     """Optionally verify outbound routing once at app startup using fixed public coordinates."""
 
-    if (
-        os.environ.get("OAP_ROUTING_STARTUP_PROBE", "").strip().lower()
-        != "true"
-    ):
+    if not _flag("OAP_ROUTING_STARTUP_PROBE"):
         return status()
     if not configured():
         return status()
@@ -239,18 +283,18 @@ def startup_probe() -> dict[str, Any]:
 def status() -> dict[str, Any]:
     """Return coarse local/runtime evidence without making a network request."""
 
-    with _RUNTIME_LOCK:
-        success = _LAST_SUCCESS
-        error = _LAST_ERROR
+    success, error = _runtime_state()
+    approvals = production_approval_state()
     return {
         "configured": configured(),
-        "runtime_verified": success is not None,
+        "runtime_verified": success is not None and error is None,
         "provider_tier": provider_tier(),
+        "production_provider_approved": approvals["provider_approved"],
+        "production_capacity_approved": approvals["capacity_approved"],
+        "production_monitoring_approved": approvals["monitoring_approved"],
+        "production_gate_approved": production_gate_approved(),
         "production_ready": production_ready(),
-        "startup_probe_enabled": (
-            os.environ.get("OAP_ROUTING_STARTUP_PROBE", "").strip().lower()
-            == "true"
-        ),
+        "startup_probe_enabled": _flag("OAP_ROUTING_STARTUP_PROBE"),
         "last_success_epoch": int(success) if success is not None else None,
         "last_error": error,
         "timeout_seconds": ROUTE_TIMEOUT_SECONDS,
