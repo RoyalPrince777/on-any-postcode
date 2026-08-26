@@ -7,7 +7,7 @@ This module deliberately exposes two separate projections:
   identity and permission services are integrated.
 
 No function in this module creates a database, applies a migration, writes an
-audit event, or changes operational state.
+audit event, changes operational state or probes a non-loopback network host.
 """
 
 from __future__ import annotations
@@ -18,7 +18,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from . import config
+from oap.guardian.engine import GuardianEngine
+
+from . import config, provider_fabric
 from .agents import get_public_family_status
 from .database import db_status
 
@@ -63,6 +65,50 @@ def _probe_ollama() -> bool:
             return True
     except OSError:
         return False
+
+
+def _guardian_component() -> dict[str, str]:
+    """Report the actual constitutional Guardian gate, not a fixed label."""
+
+    try:
+        guardian = GuardianEngine().status()
+        ready = bool(guardian.get("ready"))
+    except Exception:  # noqa: BLE001 - status must fail closed and stay redacted.
+        ready = False
+    return _component(
+        "Guardian",
+        "Constitutional gate ready" if ready else "Unavailable",
+        "healthy" if ready else "degraded",
+    )
+
+
+def _provider_component() -> tuple[dict[str, str], dict[str, Any]]:
+    """Build a coarse provider status from configuration and observed evidence."""
+
+    try:
+        provider = provider_fabric.get_coarse_provider_status()
+    except Exception:  # noqa: BLE001 - do not leak provider details from status.
+        provider = {
+            "architecture_passed": False,
+            "slots": 0,
+            "wired": 0,
+            "configured": 0,
+            "runtime_verified": 0,
+            "consequential_execution_enabled": False,
+            "human_authority_required": True,
+        }
+    architecture_ready = bool(provider.get("architecture_passed"))
+    configured = int(provider.get("configured") or 0)
+    runtime_verified = int(provider.get("runtime_verified") or 0)
+    value = f"{configured} configured · {runtime_verified} runtime verified"
+    return (
+        _component(
+            "Provider Fabric",
+            value if architecture_ready else "Architecture unavailable",
+            "healthy" if architecture_ready else "degraded",
+        ),
+        provider,
+    )
 
 
 def _public_timeline(db_path: str, initialized: bool) -> list[dict[str, str]]:
@@ -192,20 +238,32 @@ def get_public_gateway_status() -> dict[str, Any]:
             bool(database.get("brain_runtime_initialized")),
         )
 
+    provider_component, provider_summary = _provider_component()
+    local_model_component = (
+        _component(
+            "Local Ollama",
+            "Available" if ollama_available else "Unavailable",
+            "healthy" if ollama_available else "degraded",
+        )
+        if config.OAP_LOCAL_MODE
+        else _component(
+            "Local Ollama",
+            "Optional local model inactive",
+            "healthy",
+        )
+    )
+
     components = [
         _component(
             "Local Mode",
-            "Enabled" if config.OAP_LOCAL_MODE else "Disabled",
-            "healthy" if config.OAP_LOCAL_MODE else "degraded",
+            "Enabled" if config.OAP_LOCAL_MODE else "Disabled by configuration",
+            "healthy",
         ),
         database_component,
         audit_component,
-        _component("Guardian", "Not connected", "degraded"),
-        _component(
-            "Ollama",
-            "Available" if ollama_available else "Degraded",
-            "healthy" if ollama_available else "degraded",
-        ),
+        _guardian_component(),
+        provider_component,
+        local_model_component,
         _component(
             "Approval Queue",
             "Ready" if approval_summary["initialized"] else "Not initialized",
@@ -219,12 +277,19 @@ def get_public_gateway_status() -> dict[str, Any]:
         "mode": "Local Mode" if config.OAP_LOCAL_MODE else "Configured Mode",
         "components": components,
         "agents": agents,
+        "provider_summary": provider_summary,
         "approval_summary": approval_summary,
         "timeline": (
             []
             if database.get("backend") == "postgresql"
             else _public_timeline(database["db_path"], initialized)
         ),
+        "status_truth": {
+            "fixed_live_labels": False,
+            "external_network_probe_on_status": False,
+            "guardian_source": "constitutional_engine",
+            "provider_source": "configuration_and_observed_delivery",
+        },
         "human_authority": {
             "status": "Final approval required",
             "message": "Intelligence proposes. Human Authority approves or rejects.",
