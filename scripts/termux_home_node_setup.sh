@@ -12,8 +12,9 @@ BOOT_FILE="$BOOT_DIR/10-oap-home-node"
 printf '%s\n' "OAP Home Node setup: bounded OAP CORE + SMI + whole-organism autonomy"
 printf '%s\n' "No deploy, payment, dispatch, permission, carrier, or other consequential authority is enabled."
 
-# Android/Termux has no compatible psycopg-binary wheel. Install Termux libpq
-# through PostgreSQL and use Psycopg's documented pure-Python implementation.
+# Android/Termux has no compatible psycopg-binary wheel. The Home Node does not
+# need the Render/web authentication dependency set, so use system libpq plus
+# Psycopg's pure-Python implementation only.
 pkg install -y python git postgresql
 
 if [[ -d "$REPO_DIR/.git" ]]; then
@@ -29,31 +30,29 @@ cd "$REPO_DIR"
 python -m venv .venv
 PYTHON="$REPO_DIR/.venv/bin/python"
 "$PYTHON" -m pip install --upgrade pip
-
-termux_requirements="$(mktemp)"
-cleanup_requirements() {
-  rm -f "$termux_requirements"
-}
-trap cleanup_requirements EXIT
-
-grep -viE '^[[:space:]]*psycopg\[binary\]' requirements.txt > "$termux_requirements"
-"$PYTHON" -m pip install -r "$termux_requirements"
-"$PYTHON" -m pip install 'psycopg<4,>=3.2'
+"$PYTHON" -m pip install -r "$REPO_DIR/requirements-termux-home-node.txt"
 
 original_ld_library_path="${LD_LIBRARY_PATH:-}"
 termux_lib_path="$PREFIX/lib${original_ld_library_path:+:$original_ld_library_path}"
 export LD_LIBRARY_PATH="$termux_lib_path"
 PSYCOPG_IMPL=python "$PYTHON" - <<'PY'
+import sys
+
 import psycopg
 from psycopg import pq
 
 if pq.__impl__ != "python":
     raise SystemExit(f"Unexpected Psycopg implementation: {pq.__impl__}")
-print(f"Psycopg ready via {pq.__impl__} implementation; libpq={pq.version()}")
-PY
 
-cleanup_requirements
-trap - EXIT
+import mission_control.organism_worker  # noqa: E402
+
+for forbidden in ("flask", "jwt", "cryptography"):
+    if forbidden in sys.modules:
+        raise SystemExit(f"Worker preflight unexpectedly loaded web dependency: {forbidden}")
+
+print(f"Psycopg ready via {pq.__impl__} implementation; libpq={pq.version()}")
+print("OAP Home Node worker preflight passed without Flask/JWT/cryptography")
+PY
 
 mkdir -p "$ENV_DIR" "$STATE_DIR" "$BOOT_DIR"
 umask 077

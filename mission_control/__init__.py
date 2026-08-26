@@ -1,28 +1,37 @@
-"""Mission control package initialiser: registers CLI commands with Flask app."""
+"""Mission Control package initialiser.
+
+Web-only dependencies are imported inside ``init_app`` so worker-only runtimes
+such as the Termux OAP Home Node can import ``mission_control.organism_worker``
+without installing Flask, PyJWT crypto extras, or other HTTP surface packages.
+"""
 from __future__ import annotations
 
-import click
-from flask import Flask
+from typing import TYPE_CHECKING
 
-from . import audit as auditmod
-from . import db as dbmod
-from . import (
-    movement_match_safety,
-    movement_operations,
-    organism_runtime,
-    postgres_db,
-    product_cores,
-    routing,
-    surface_security,
-)
-from .movement_routes import bp as movement_bp
-from .product_core_views import bp as product_core_bp
-from .provider_views import bp as provider_bp
-from .views import bp
+if TYPE_CHECKING:
+    from flask import Flask
 
 
 def init_app(app: Flask) -> None:
-    """Register CLI commands and the Mission Control blueprint."""
+    """Register CLI commands and the Mission Control web surface."""
+    import click
+
+    from . import audit as auditmod
+    from . import db as dbmod
+    from . import (
+        movement_match_safety,
+        movement_operations,
+        organism_runtime,
+        postgres_db,
+        product_cores,
+        routing,
+        surface_security,
+    )
+    from .movement_routes import bp as movement_bp
+    from .product_core_views import bp as product_core_bp
+    from .provider_views import bp as provider_bp
+    from .views import bp
+
     # All Movement route calls go through the hardened subclass. It inherits the
     # existing bounded operations and replaces only match certification/race logic.
     movement_operations.STORE = movement_match_safety.STORE
@@ -33,6 +42,7 @@ def init_app(app: Flask) -> None:
         res = dbmod.db_status()
         if json_out:
             import json
+
             print(json.dumps(res))
         else:
             print("OAP Database status:")
@@ -54,6 +64,7 @@ def init_app(app: Flask) -> None:
     @app.cli.command("oap-postgres-status")
     def _oap_postgres_status() -> None:
         import json
+
         print(json.dumps(postgres_db.postgres_status()))
 
     @app.cli.command("oap-init-postgres")
@@ -61,12 +72,14 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", is_flag=True, default=False)
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
+
         result = postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)
         print(json.dumps(result))
 
     @app.cli.command("oap-runtime-status")
     def _oap_runtime_status() -> None:
         import json
+
         print(json.dumps(organism_runtime.runtime_status()))
 
     @app.cli.command("oap-init-runtime")
@@ -74,6 +87,7 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_runtime(dry_run: bool, yes: bool) -> None:
         import json
+
         result = organism_runtime.init_runtime_schema(
             dry_run=dry_run,
             assume_yes=yes,
@@ -83,6 +97,7 @@ def init_app(app: Flask) -> None:
     @app.cli.command("oap-movement-status")
     def _oap_movement_status() -> None:
         import json
+
         print(json.dumps(movement_operations.movement_schema_status()))
 
     @app.cli.command("oap-init-movement")
@@ -90,6 +105,7 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_movement(dry_run: bool, yes: bool) -> None:
         import json
+
         result = movement_operations.init_movement_schema(
             dry_run=dry_run,
             assume_yes=yes,
@@ -99,6 +115,7 @@ def init_app(app: Flask) -> None:
     @app.cli.command("oap-product-cores-status")
     def _oap_product_cores_status() -> None:
         import json
+
         print(json.dumps(product_cores.platform_status()))
 
     @app.cli.command("oap-init-product-cores")
@@ -106,6 +123,7 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_product_cores(dry_run: bool, yes: bool) -> None:
         import json
+
         result = product_cores.init_product_core_schema(
             dry_run=dry_run,
             assume_yes=yes,
