@@ -11,6 +11,7 @@ def test_product_suite_covers_music_market_and_post_office():
     assert products["music"]["core"] == "OAP Tune Core"
     assert "TuneCore + Spotify-style" in products["music"]["own_equivalent"]
     assert products["market"]["name"] == "OAP Market"
+    assert products["market"]["core"] == "OAP Commerce Core"
     assert "Shopify-style" in products["market"]["own_equivalent"]
     assert products["post-office"]["name"] == "OAP Post Office"
 
@@ -82,6 +83,7 @@ def test_platform_status_is_truthful_about_internal_and_external_readiness(monke
             "schema_ready": True,
             "tables": len(product_cores.PRODUCT_CORE_TABLES),
             "expected_tables": len(product_cores.PRODUCT_CORE_TABLES),
+            "legacy_market_preserved": True,
             "error": None,
         },
     )
@@ -89,10 +91,27 @@ def test_platform_status_is_truthful_about_internal_and_external_readiness(monke
     status = product_cores.platform_status()
 
     assert status["ready"] is True
+    assert status["legacy_market_preserved"] is True
     assert status["human_authority_final"] is True
     assert status["independent_external_execution"] is False
     assert all(item["oap_core_ready"] is True for item in status["products"])
     assert all(item["external_edge_ready"] is False for item in status["products"])
+
+
+def test_commerce_namespace_never_overwrites_legacy_market_tables():
+    sql = "\n".join(product_cores.PRODUCT_CORE_SCHEMA_STATEMENTS)
+
+    assert product_cores.LEGACY_MARKET_TABLES == {
+        "oap_market_items",
+        "oap_market_orders",
+    }
+    assert "CREATE TABLE IF NOT EXISTS oap_market_orders" not in sql
+    assert "CREATE TABLE IF NOT EXISTS oap_market_items" not in sql
+    assert "oap_commerce_storefronts" in sql
+    assert "oap_commerce_orders" in sql
+    assert "oap_commerce_order_items" in sql
+    assert "oap_commerce_payment_intents" in sql
+    assert "oap_commerce_fulfilment_intents" in sql
 
 
 def test_schema_contains_durable_first_party_workflows_and_fail_closed_states():
