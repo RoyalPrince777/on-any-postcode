@@ -9,7 +9,7 @@ class ParietalLobe:
     organ_id = "parietal_lobe"
 
     def analyse(self, packet: BrainPacket):
-        location = packet.signal.metadata.get("postcode") or packet.signal.metadata.get(
+        location = packet.signal.oapdata.get("postcode") or packet.signal.oapdata.get(
             "location"
         )
         summary = (
