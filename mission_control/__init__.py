@@ -10,6 +10,7 @@ from . import (
     movement_operations,
     organism_runtime,
     postgres_db,
+    product_cores,
     routing,
     surface_security,
 )
@@ -84,6 +85,22 @@ def init_app(app: Flask) -> None:
     def _oap_init_movement(dry_run: bool, yes: bool) -> None:
         import json
         result = movement_operations.init_movement_schema(
+            dry_run=dry_run,
+            assume_yes=yes,
+        )
+        print(json.dumps(result))
+
+    @app.cli.command("oap-product-cores-status")
+    def _oap_product_cores_status() -> None:
+        import json
+        print(json.dumps(product_cores.platform_status()))
+
+    @app.cli.command("oap-init-product-cores")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_product_cores(dry_run: bool, yes: bool) -> None:
+        import json
+        result = product_cores.init_product_core_schema(
             dry_run=dry_run,
             assume_yes=yes,
         )

@@ -13,6 +13,7 @@ from typing import Any
 from . import postgres_db, routing
 from .movement_operations import movement_schema_status
 from .organism_runtime import runtime_status
+from .product_cores import product_core_schema_status
 
 AUTONOMY_MODE = "BOUNDED_AUTONOMOUS"
 BLOCKED_ACTIONS = (
@@ -74,9 +75,13 @@ def observe() -> dict[str, Any]:
 
 
 def coherence_review() -> dict[str, Any]:
-    """Compare core runtime, Movement and routing readiness without changing them."""
+    """Compare core runtime, product, Movement and routing readiness without changing them."""
     runtime = _safe_snapshot(runtime_status, error_code="runtime_status_unavailable")
     movement = _safe_snapshot(movement_schema_status, error_code="movement_status_unavailable")
+    product_cores = _safe_snapshot(
+        product_core_schema_status,
+        error_code="product_core_status_unavailable",
+    )
     routing_state = _safe_snapshot(routing.status, error_code="routing_status_unavailable")
 
     issues: list[str] = []
@@ -88,6 +93,8 @@ def coherence_review() -> dict[str, Any]:
         issues.append("runtime_dead_letters_present")
     if not movement.get("schema_ready"):
         issues.append("movement_schema_not_ready")
+    if not product_cores.get("schema_ready"):
+        issues.append("product_core_schema_not_ready")
     if routing_state.get("provider_tier") == "production_candidate" and not routing_state.get("production_ready"):
         issues.append("routing_candidate_not_promoted")
 
