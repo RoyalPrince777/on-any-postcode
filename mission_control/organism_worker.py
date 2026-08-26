@@ -11,7 +11,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
-from . import oap_core_autonomy, postgres_db
+from . import oap_core_autonomy, organism_autonomy, postgres_db
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
@@ -23,6 +23,7 @@ def _heartbeat_job(job: RuntimeJob) -> dict[str, Any]:
         "kind": "organism_heartbeat",
         "observed_at": datetime.now(timezone.utc).isoformat(),
         "oap_core_autonomy": oap_core_autonomy.status(),
+        "organism_autonomy": organism_autonomy.status(),
         "consequential_action": False,
     }
 
@@ -47,12 +48,14 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
                 ).fetchone()
                 is not None
             )
-    autonomy_cycle = oap_core_autonomy.run_cycle()
+    oap_core_cycle = oap_core_autonomy.run_cycle()
+    organism_cycle = organism_autonomy.run_cycle()
     return {
         "kind": "runtime_health_probe",
         "database_ready": bool(database.get("initialized")),
         "human_authority_present": human_authority_present,
-        "oap_core_autonomy": autonomy_cycle,
+        "oap_core_autonomy": oap_core_cycle,
+        "organism_autonomy": organism_cycle,
         "consequential_action": False,
     }
 
@@ -134,6 +137,7 @@ def run() -> int:
         independent_authority=False,
         allowed_job_types=sorted(HANDLERS),
         oap_core_autonomy=oap_core_autonomy.status(),
+        organism_autonomy=organism_autonomy.status(),
     )
 
     try:
