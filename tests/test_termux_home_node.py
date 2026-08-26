@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = (ROOT / "scripts" / "termux_home_node_run.sh").read_text()
 SETUP = (ROOT / "scripts" / "termux_home_node_setup.sh").read_text()
