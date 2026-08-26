@@ -108,6 +108,17 @@ def test_schema_contains_durable_first_party_workflows_and_fail_closed_states():
     assert "REVIEW_REQUIRED" in sql
     assert "PLANNED" in sql
     assert "CARRIER_REQUIRED" in sql
+    assert "UNIQUE(owner_identity_id,idempotency_key)" in sql
+    assert "UNIQUE(buyer_identity_id,idempotency_key)" in sql
+    assert "UNIQUE(identity_id,idempotency_key)" in sql
+    assert "OAP-KORADASO" in sql
+    assert "OAP Koradaso Post Office" in sql
+    assert "'Ghana','PLANNED'" in sql
+    assert "'ACTIVE'" not in next(
+        statement
+        for statement in product_cores.PRODUCT_CORE_SCHEMA_STATEMENTS
+        if "OAP-KORADASO" in statement
+    )
     assert len(product_cores.PRODUCT_CORE_MIGRATION_CHECKSUM) == 64
 
 
