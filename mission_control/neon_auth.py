@@ -7,6 +7,7 @@ OAP origin. Every private request is then verified by Neon before use.
 
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import re
@@ -63,6 +64,14 @@ def status() -> dict[str, bool]:
         and not parsed.fragment
     )
     return {"configured": bool(value), "valid": valid}
+
+
+def founder_signup_allowed(email: object) -> bool:
+    """Allow web signup only for the configured private Founder selector."""
+
+    expected = os.environ.get("OAP_HUMAN_AUTHORITY_EMAIL", "").strip().casefold()
+    candidate = str(email or "").strip().casefold()
+    return bool(expected and candidate) and hmac.compare_digest(expected, candidate)
 
 
 def _read_json(response: Any) -> Any:
@@ -135,10 +144,20 @@ def sign_in(email: str, password: str) -> AuthResult:
 
 
 def sign_up(name: str, email: str, password: str) -> AuthResult:
-    return _request(
+    """Create only the configured Founder account and never auto-establish it."""
+
+    if not founder_signup_allowed(email):
+        return AuthResult(status_code=403, payload=None)
+    result = _request(
         "/sign-up/email",
         method="POST",
         payload={"name": name, "email": email, "password": password},
+    )
+    # A newly created identity must verify/sign in explicitly before OAP trusts it.
+    return AuthResult(
+        status_code=result.status_code,
+        payload=result.payload,
+        set_cookie_headers=(),
     )
 
 

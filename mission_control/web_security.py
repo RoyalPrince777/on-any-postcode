@@ -23,7 +23,7 @@ from flask import (
     url_for,
 )
 
-from . import neon_auth
+from . import authority, neon_auth, postgres_db
 
 IDENTITY_SESSION_KEY: Final = "oap_identity_id"
 CSRF_SESSION_KEY: Final = "oap_csrf_token"
@@ -112,8 +112,25 @@ def _private_error(code: str, message: str, status_code: int):
     return response
 
 
+def _mission_authority_allowed(user: dict[str, object]) -> bool:
+    """Require exact Founder selector or persisted level-zero authority."""
+
+    if authority.identity_is_authority(user.get("id")):
+        return True
+    if bool(user.get("email_verified")) and authority.email_is_authority(
+        user.get("email")
+    ):
+        return True
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            record = authority.authority_record(connection, user.get("id"))
+    except Exception:  # noqa: BLE001 - private authority checks fail closed.
+        return False
+    return bool(record and record.get("is_human_authority"))
+
+
 def login_required(*, api: bool = False):
-    """Require a live Neon Auth session for one private HTML or API route."""
+    """Require live Neon Auth; Mission Control additionally requires Founder authority."""
 
     def decorator(view):
         @wraps(view)
@@ -140,6 +157,14 @@ def login_required(*, api: bool = False):
                     )
                 target = request.full_path.rstrip("?")
                 return redirect(url_for("auth_page", next=target))
+            if request.blueprint == "mission_control" and not _mission_authority_allowed(
+                user
+            ):
+                return _private_error(
+                    "human_authority_required",
+                    "This private control surface is restricted.",
+                    403,
+                )
             return view(*args, **kwargs)
 
         return wrapped

@@ -34,6 +34,7 @@ def _configure_test_app(tmp_path, monkeypatch):
     monkeypatch.setenv(
         "NEON_AUTH_BASE_URL", "https://example.neonauth.test/neondb/auth"
     )
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "member@example.test")
     monkeypatch.setenv("OAP_AUTH_REQUIRED", "true")
 
     app_module.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
