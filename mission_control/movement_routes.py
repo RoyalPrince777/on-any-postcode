@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from . import (
     location_intelligence,
     movement,
+    movement_match_safety,
     movement_operations,
     movement_workspace,
     routing,
@@ -281,7 +282,7 @@ def propose_match(booking_id: str):
     if guard := _write_guard(identity):
         return guard
     try:
-        result = movement_operations.STORE.propose_match(
+        result = movement_match_safety.STORE.propose_match(
             booking_id=booking_id,
             member_identity_id=identity,
         )
@@ -306,7 +307,7 @@ def accept_match(proposal_id: str):
     if guard := _write_guard(identity):
         return guard
     try:
-        result = movement_operations.STORE.accept_match(
+        result = movement_match_safety.STORE.accept_match(
             proposal_id=proposal_id,
             worker_identity_id=identity,
         )
