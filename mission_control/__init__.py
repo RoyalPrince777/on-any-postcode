@@ -6,7 +6,13 @@ from flask import Flask
 
 from . import audit as auditmod
 from . import db as dbmod
-from . import movement_operations, organism_runtime, postgres_db, surface_security
+from . import (
+    movement_operations,
+    organism_runtime,
+    postgres_db,
+    routing,
+    surface_security,
+)
 from .movement_routes import bp as movement_bp
 from .provider_views import bp as provider_bp
 from .views import bp
@@ -97,3 +103,4 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(movement_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
+    routing.startup_probe()
