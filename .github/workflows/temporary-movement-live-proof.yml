@@ -1,0 +1,46 @@
+name: Temporary Movement live proof
+
+on:
+  push:
+    branches:
+      - build/movement-operations-v1
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe Movement production boundary
+        run: |
+          set -euo pipefail
+          base='https://on-any-postcode.onrender.com'
+          movement_code=$(curl --silent --show-error --max-time 30 --output /tmp/movement.html --write-out '%{http_code}' "$base/movement")
+          status_code=$(curl --silent --show-error --max-time 30 --output /tmp/status.json --write-out '%{http_code}' "$base/movement/status")
+          private_write_code=$(curl --silent --show-error --max-time 30 --output /tmp/private.json --write-out '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' "$base/movement/bookings")
+          mission_code=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' "$base/mission")
+          echo "movement=$movement_code status=$status_code private_write=$private_write_code mission=$mission_code"
+          test "$movement_code" = '200'
+          test "$status_code" = '200'
+          test "$private_write_code" = '401'
+          test "$mission_code" = '404'
+          grep -Fq 'Movement operations sequence' /tmp/movement.html
+          grep -Fq 'Step 1' /tmp/movement.html
+          grep -Fq 'Step 8' /tmp/movement.html
+          python - <<'PY'
+          import json
+          with open('/tmp/status.json', encoding='utf-8') as f:
+              p=json.load(f)
+          assert p['architecture_passed'] is True
+          assert p['ordered_steps'] == 8
+          for key in ('booking_persistence_ready','availability_store_ready','match_proposal_store_ready','tracking_consent_store_ready','esim_request_store_ready','payment_intent_store_ready','linkup_trip_binding_ready'):
+              assert p[key] is True, (key,p)
+          for key in ('external_dispatch_enabled','payment_capture_enabled','esim_activation_enabled','public_tracking_enabled'):
+              assert p[key] is False, (key,p)
+          with open('/tmp/private.json', encoding='utf-8') as f:
+              private=json.load(f)
+          assert private['error']['code'] == 'authentication_required'
+          print('movement_live_proof=PASS')
+          PY
