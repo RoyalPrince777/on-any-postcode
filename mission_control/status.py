@@ -7,7 +7,7 @@ This module deliberately exposes two separate projections:
   identity and permission services are integrated.
 
 No function in this module creates a database, applies a migration, writes an
-audit event, changes operational state or probes a non-loopback network host.
+audit event, changes operational state or probes a non-loopback provider host.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 from oap.guardian.engine import GuardianEngine
 
-from . import config, provider_fabric
+from . import config, judgement, provider_fabric
 from .agents import get_public_family_status
 from .database import db_status
 
@@ -141,7 +141,7 @@ def _public_timeline(db_path: str, initialized: bool) -> list[dict[str, str]]:
 
 
 def _approval_summary(db_path: str, initialized: bool) -> dict[str, Any]:
-    """Return coarse counts from the action-bound approval ledger."""
+    """Return coarse counts from the SQLite action-bound approval ledger."""
 
     if not initialized:
         return {
@@ -199,6 +199,71 @@ def _approval_summary(db_path: str, initialized: bool) -> dict[str, Any]:
     }
 
 
+def _postgres_approval_summary() -> dict[str, Any]:
+    """Project real Judgement evidence without fabricating a human decision."""
+
+    try:
+        evidence = judgement.status()
+    except Exception:  # noqa: BLE001 - keep database/provider details private.
+        evidence = {
+            "schema_ready": False,
+            "automated_sections": judgement.AUTOMATED_SECTION_COUNT,
+            "total_sections": judgement.TOTAL_SECTION_COUNT,
+            "reviews": 0,
+            "human_decisions": 0,
+            "ready": False,
+            "error": "judgement_store_unavailable",
+        }
+
+    schema_ready = bool(evidence.get("schema_ready"))
+    reviews = int(evidence.get("reviews") or 0)
+    human_decisions = int(evidence.get("human_decisions") or 0)
+    evidence_ready = bool(evidence.get("ready"))
+    if evidence_ready:
+        message = "Human Authority decision evidence available"
+    elif schema_ready:
+        message = "Judgement schema ready; Human Authority evidence pending"
+    else:
+        message = "Judgement records not initialized"
+    return {
+        "initialized": schema_ready,
+        "evidence_ready": evidence_ready,
+        "message": message,
+        "counts": {
+            "reviews": reviews,
+            "human_decisions": human_decisions,
+        },
+        "automated_sections": int(
+            evidence.get("automated_sections") or judgement.AUTOMATED_SECTION_COUNT
+        ),
+        "total_sections": int(
+            evidence.get("total_sections") or judgement.TOTAL_SECTION_COUNT
+        ),
+        "error": evidence.get("error"),
+    }
+
+
+def _approval_component(summary: dict[str, Any]) -> dict[str, str]:
+    """Do not equate schema availability with real Human Authority evidence."""
+
+    if not summary.get("initialized"):
+        return _component("Approval Queue", "Not initialized", "degraded")
+    if "evidence_ready" not in summary:
+        return _component("Approval Queue", "Ready", "healthy")
+    decisions = int(summary.get("counts", {}).get("human_decisions") or 0)
+    if summary.get("evidence_ready"):
+        return _component(
+            "Approval Queue",
+            f"Human Authority evidence verified · {decisions} decisions",
+            "healthy",
+        )
+    return _component(
+        "Approval Queue",
+        f"Schema ready · Human Authority evidence pending · {decisions} decisions",
+        "degraded",
+    )
+
+
 def get_public_gateway_status() -> dict[str, Any]:
     """Build the coarse public status projection without changing state."""
 
@@ -223,15 +288,7 @@ def get_public_gateway_status() -> dict[str, Any]:
     )
     ollama_available = _probe_ollama()
     if database.get("backend") == "postgresql":
-        approval_summary = {
-            "initialized": initialized,
-            "message": (
-                "Read-only approval records available"
-                if initialized
-                else "Mission Control database not initialized"
-            ),
-            "counts": {},
-        }
+        approval_summary = _postgres_approval_summary()
     else:
         approval_summary = _approval_summary(
             database["db_path"],
@@ -268,11 +325,7 @@ def get_public_gateway_status() -> dict[str, Any]:
         _guardian_component(),
         provider_component,
         local_model_component,
-        _component(
-            "Approval Queue",
-            "Ready" if approval_summary["initialized"] else "Not initialized",
-            "healthy" if approval_summary["initialized"] else "degraded",
-        ),
+        _approval_component(approval_summary),
     ]
 
     agents = get_public_family_status()
@@ -293,6 +346,7 @@ def get_public_gateway_status() -> dict[str, Any]:
             "external_network_probe_on_status": False,
             "guardian_source": "constitutional_engine",
             "provider_source": "configuration_and_observed_delivery",
+            "approval_source": "judgement_and_human_authority_evidence",
         },
         "human_authority": {
             "status": "Final approval required",
