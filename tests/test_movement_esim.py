@@ -106,7 +106,15 @@ def test_public_movement_status_is_coarse_and_separates_readiness(
     monkeypatch.setattr(
         routing,
         "status",
-        lambda: {"configured": False, "runtime_verified": False},
+        lambda: {
+            "configured": False,
+            "runtime_verified": False,
+            "provider_tier": "unconfigured",
+            "production_provider_approved": False,
+            "production_capacity_approved": False,
+            "production_monitoring_approved": False,
+            "production_ready": False,
+        },
     )
 
     response = client.get("/movement/status")
@@ -120,6 +128,11 @@ def test_public_movement_status_is_coarse_and_separates_readiness(
         "ordered_steps": 8,
         "routing_adapter_configured": False,
         "routing_runtime_verified": False,
+        "routing_provider_tier": "unconfigured",
+        "routing_production_provider_approved": False,
+        "routing_capacity_approved": False,
+        "routing_monitoring_approved": False,
+        "routing_production_ready": False,
         "booking_persistence_ready": False,
         "availability_store_ready": False,
         "match_proposal_store_ready": False,
