@@ -79,7 +79,7 @@ def applicant_home():
             )
         )
         return _no_store(response)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - page boundary redacts backend detail.
         return _operation_error(exc)
 
 
@@ -106,7 +106,7 @@ def submit_application():
             registration_last4=body.get("registration_last4", ""),
         )
         return _no_store(make_response(jsonify(application=result), 201))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - API boundary redacts backend detail.
         return _operation_error(exc)
 
 
@@ -126,7 +126,7 @@ def authority_home():
             )
         )
         return _no_store(response)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - private boundary redacts backend detail.
         return _operation_error(exc)
 
 
@@ -147,5 +147,5 @@ def review_application(application_id: str):
             reason=body.get("reason"),
         )
         return _no_store(make_response(jsonify(review=result), 200))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - API boundary redacts backend detail.
         return _operation_error(exc)
