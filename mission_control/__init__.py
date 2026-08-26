@@ -6,7 +6,7 @@ from flask import Flask
 
 from . import audit as auditmod
 from . import db as dbmod
-from . import organism_runtime, postgres_db, surface_security
+from . import movement_operations, organism_runtime, postgres_db, surface_security
 from .movement_routes import bp as movement_bp
 from .provider_views import bp as provider_bp
 from .views import bp
@@ -62,6 +62,22 @@ def init_app(app: Flask) -> None:
     def _oap_init_runtime(dry_run: bool, yes: bool) -> None:
         import json
         result = organism_runtime.init_runtime_schema(
+            dry_run=dry_run,
+            assume_yes=yes,
+        )
+        print(json.dumps(result))
+
+    @app.cli.command("oap-movement-status")
+    def _oap_movement_status() -> None:
+        import json
+        print(json.dumps(movement_operations.movement_schema_status()))
+
+    @app.cli.command("oap-init-movement")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_movement(dry_run: bool, yes: bool) -> None:
+        import json
+        result = movement_operations.init_movement_schema(
             dry_run=dry_run,
             assume_yes=yes,
         )

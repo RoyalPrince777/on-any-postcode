@@ -1,23 +1,17 @@
 """Governed provider fabric for OAP external-service integrations.
 
 The provider fabric gives OAP one stable contract for outside services without
-hard-wiring product code to a vendor. It records what capability each provider
-may supply, whether the code path is wired, and whether runtime delivery has
-actually been observed. It never exposes credentials and never turns on a
-real-world mutation merely because configuration exists.
-
-Read-only location and weather providers already used by OAP are represented
-here as wired adapters. Routing, telecom/eSIM, payments, fleet/dispatch and
-other consequential operations remain fail-closed until a lawful provider,
-compliance checks and Human Authority approval are connected.
+hard-wiring product code to a vendor. It records code wiring, local endpoint
+configuration and observed runtime delivery as separate evidence states. It
+never exposes credentials and never enables a consequential mutation merely
+because configuration exists.
 """
-
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from . import location_intelligence
+from . import location_intelligence, routing
 
 HUMAN_APPROVAL_REQUIRED = True
 
@@ -68,7 +62,7 @@ PROVIDER_SLOTS: tuple[dict[str, Any], ...] = (
         "id": "dispatch",
         "name": "Fleet / dispatch",
         "risk": "consequential",
-        "purpose": "Match approved drivers, riders, couriers and fleet assets to governed jobs.",
+        "purpose": "Connect approved drivers, riders, couriers and fleet assets to governed jobs.",
         "required_for": ("OAP Ride", "OAP E-Bike", "OAP Delivery"),
     },
     {
@@ -80,9 +74,9 @@ PROVIDER_SLOTS: tuple[dict[str, Any], ...] = (
     },
 )
 
-# These adapters describe code paths that already exist in production. A wired
-# adapter is not the same as a successful runtime delivery; delivery evidence
-# comes from the provider-specific module and is kept separate below.
+# Wiring describes an application code path, not proof that an endpoint has been
+# configured or reached. Routing deliberately requires a separately allowlisted
+# deployment endpoint before it can make a request.
 WIRED_ADAPTERS: tuple[dict[str, Any], ...] = (
     {
         "id": "postcodes_io",
@@ -93,6 +87,7 @@ WIRED_ADAPTERS: tuple[dict[str, Any], ...] = (
         "wired": True,
         "mutation_enabled": False,
         "credential_required": False,
+        "requires_endpoint": False,
     },
     {
         "id": "open_meteo_geocoding",
@@ -103,6 +98,7 @@ WIRED_ADAPTERS: tuple[dict[str, Any], ...] = (
         "wired": True,
         "mutation_enabled": False,
         "credential_required": False,
+        "requires_endpoint": False,
     },
     {
         "id": "open_meteo_weather",
@@ -113,14 +109,25 @@ WIRED_ADAPTERS: tuple[dict[str, Any], ...] = (
         "wired": True,
         "mutation_enabled": False,
         "credential_required": False,
+        "requires_endpoint": False,
+    },
+    {
+        "id": "osrm_compatible",
+        "slot_id": "routing",
+        "name": "OSRM-compatible Routing",
+        "host": "deployment-configured endpoint",
+        "mode": "read_only",
+        "wired": True,
+        "mutation_enabled": False,
+        "credential_required": False,
+        "requires_endpoint": True,
     },
 )
 
 CONSEQUENTIAL_CONTROLS: dict[str, bool] = {
-    "routing_execution_enabled": False,
+    "external_dispatch_enabled": False,
     "telecom_provisioning_enabled": False,
     "payment_capture_enabled": False,
-    "dispatch_enabled": False,
     "carrier_switch_enabled": False,
     "remote_esim_install_enabled": False,
 }
@@ -138,18 +145,26 @@ def _duplicate_ids(items: Iterable[Mapping[str, Any]]) -> set[str]:
 
 
 def _runtime_evidence() -> dict[str, bool]:
-    """Translate existing location provider evidence into provider slots.
+    """Translate already-recorded provider evidence into capability slots.
 
-    This function performs no network call. It only reads evidence already
-    recorded by location_intelligence after genuine requests.
+    This function performs no network call. It only reads evidence from provider
+    modules after genuine product requests.
     """
 
-    state = location_intelligence.status()
+    location_state = location_intelligence.status()
+    route_state = routing.status()
     return {
-        "postcode": bool(state.get("postcode_provider_verified")),
-        "geocoding": bool(state.get("global_provider_verified")),
-        "weather": bool(state.get("weather_provider_verified")),
+        "postcode": bool(location_state.get("postcode_provider_verified")),
+        "geocoding": bool(location_state.get("global_provider_verified")),
+        "weather": bool(location_state.get("weather_provider_verified")),
+        "routing": bool(route_state.get("runtime_verified")),
     }
+
+
+def _adapter_configured(adapter: Mapping[str, Any]) -> bool:
+    if str(adapter.get("slot_id")) == "routing":
+        return routing.configured()
+    return True
 
 
 def validate_provider_fabric(
@@ -213,13 +228,17 @@ def _slot_projection() -> tuple[dict[str, Any], ...]:
         slot_id = str(slot["id"])
         adapters = adapters_by_slot.get(slot_id, [])
         wired = bool(adapters)
+        configured = any(_adapter_configured(item) for item in adapters)
         runtime_verified = bool(evidence.get(slot_id, False))
         if runtime_verified:
             status = "Runtime verified"
             state = "healthy"
-        elif wired:
+        elif wired and configured:
             status = "Wired · awaiting runtime evidence"
             state = "ready"
+        elif wired:
+            status = "Adapter wired · endpoint required"
+            state = "degraded"
         else:
             status = "Provider required"
             state = "degraded"
@@ -229,6 +248,7 @@ def _slot_projection() -> tuple[dict[str, Any], ...]:
                 "status": status,
                 "state": state,
                 "wired": wired,
+                "configured": configured,
                 "runtime_verified": runtime_verified,
                 "adapters": tuple(
                     {
@@ -236,6 +256,7 @@ def _slot_projection() -> tuple[dict[str, Any], ...]:
                         "name": item["name"],
                         "host": item["host"],
                         "mode": item["mode"],
+                        "configured": _adapter_configured(item),
                         "credential_required": item["credential_required"],
                     }
                     for item in adapters
@@ -246,21 +267,18 @@ def _slot_projection() -> tuple[dict[str, Any], ...]:
 
 
 def get_private_provider_fabric() -> dict[str, Any]:
-    """Return the redacted Mission Control provider view.
-
-    The projection deliberately contains no environment values, API keys,
-    tokens, account identifiers or carrier profile data.
-    """
+    """Return the redacted Mission Control provider view."""
 
     slots = _slot_projection()
     return {
         "name": "OAP Provider Fabric",
-        "law": "Capability contract → provider adapter → evidence → approval → execution",
+        "law": "Capability contract → adapter → configuration → evidence → approval → execution",
         "slots": slots,
         "validation": validate_provider_fabric(),
         "summary": {
             "slots": len(slots),
             "wired": sum(bool(item["wired"]) for item in slots),
+            "configured": sum(bool(item["configured"]) for item in slots),
             "runtime_verified": sum(bool(item["runtime_verified"]) for item in slots),
             "provider_required": sum(not bool(item["wired"]) for item in slots),
         },
@@ -268,10 +286,11 @@ def get_private_provider_fabric() -> dict[str, Any]:
         "human_authority_required": HUMAN_APPROVAL_REQUIRED,
         "principles": (
             "OAP owns the capability contract; providers remain replaceable adapters.",
+            "Code wiring, endpoint configuration and runtime evidence are separate states.",
             "No provider credential or customer/carrier identifier is exposed by status views.",
             "Configuration does not equal runtime proof.",
             "Read-only delivery may be verified independently from consequential execution.",
-            "Payments, telecom provisioning and dispatch require compliance plus Human Authority approval.",
+            "Payments, telecom provisioning and external dispatch require compliance plus Human Authority approval.",
         ),
     }
 
@@ -285,6 +304,7 @@ def get_coarse_provider_status() -> dict[str, Any]:
         "architecture_passed": bool(fabric["validation"]["passed"]),
         "slots": summary["slots"],
         "wired": summary["wired"],
+        "configured": summary["configured"],
         "runtime_verified": summary["runtime_verified"],
         "consequential_execution_enabled": any(CONSEQUENTIAL_CONTROLS.values()),
         "human_authority_required": HUMAN_APPROVAL_REQUIRED,

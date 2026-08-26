@@ -1,12 +1,10 @@
-"""Canonical public model for OAP Movement and provider-ready eSIM connectivity.
+"""Canonical public model for OAP Movement and managed connectivity.
 
-This module defines the product boundary for passenger rides, e-bikes, delivery,
-booking, tracking, driver/rider roles and managed device connectivity. It does
-not dispatch real-world work, charge money or activate carrier profiles.
-Those operations stay fail-closed until approved providers, identity checks,
-compliance and Human Authority gates are connected.
+Movement presents passenger rides, e-bikes, delivery, booking and tracking while
+keeping consequential execution behind provider, compliance and human gates.
+The public projection reports coarse capability readiness only; private booking,
+worker, location, payment and carrier data never appears here.
 """
-
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
@@ -18,7 +16,7 @@ MOVEMENT_SERVICES: tuple[dict[str, str], ...] = (
         "name": "OAP Ride",
         "icon": "🚗",
         "purpose": "Passenger journeys with pickup, destination and governed driver matching.",
-        "status": "Provider required",
+        "status": "Operations foundation ready",
     },
     {
         "id": "ebike",
@@ -32,21 +30,21 @@ MOVEMENT_SERVICES: tuple[dict[str, str], ...] = (
         "name": "OAP Delivery",
         "icon": "📦",
         "purpose": "Collection and delivery for parcels, shopping, food and local merchants.",
-        "status": "Operator required",
+        "status": "Operations foundation ready",
     },
     {
         "id": "booking",
         "name": "Booking",
         "icon": "📅",
         "purpose": "Plan a ride, e-bike or delivery for now or a future time.",
-        "status": "Draft planning only",
+        "status": "Durable schema required",
     },
     {
         "id": "tracking",
         "name": "Track",
         "icon": "📍",
-        "purpose": "Follow an approved journey or delivery without exposing private location publicly.",
-        "status": "Provider required",
+        "purpose": "Share a journey location only with explicit participant consent.",
+        "status": "Private consent boundary ready",
     },
 )
 
@@ -104,7 +102,7 @@ ESIM_CONNECTIVITY: dict[str, Any] = {
         {
             "id": "fleet-awareness",
             "name": "Fleet Awareness",
-            "purpose": "Expose coarse connected/offline readiness for approved devices without publishing precise network identity.",
+            "purpose": "Expose coarse connected/offline readiness without publishing precise network identity.",
         },
     ),
     "provider_controls": {
@@ -116,24 +114,36 @@ ESIM_CONNECTIVITY: dict[str, Any] = {
     },
 }
 
+MOVEMENT_BUILD_ORDER: tuple[dict[str, str], ...] = (
+    {"step": "1", "id": "routing", "name": "Routing provider"},
+    {"step": "2", "id": "booking", "name": "Booking persistence"},
+    {"step": "3", "id": "availability", "name": "Driver / Rider availability"},
+    {"step": "4", "id": "matching", "name": "Governed matching / dispatch"},
+    {"step": "5", "id": "tracking", "name": "Consented live tracking"},
+    {"step": "6", "id": "esim", "name": "eSIM telecom boundary"},
+    {"step": "7", "id": "payments", "name": "Payments"},
+    {"step": "8", "id": "linkup", "name": "Link Up trip communications"},
+)
+
 MOVEMENT_SAFEGUARDS: tuple[str, ...] = (
     "Identity and role certification before driver, rider, courier or merchant work.",
-    "Transport, insurance, licensing and local legal checks before real dispatch.",
-    "Explicit user consent before live location sharing.",
+    "Transport, insurance, licensing and local legal checks before external dispatch.",
+    "Explicit participant consent before any live location point is stored.",
+    "Tracking points expire with the participant's consent window and are never public.",
     "No public exposure of eSIM carrier identifiers, activation data or precise device location.",
     "No autonomous eSIM activation, deactivation or carrier switching.",
-    "No autonomous passenger or delivery dispatch; Human Authority remains final for governed execution policy.",
-    "Payments remain separate until an approved compliant payment provider is connected.",
-    "Link Up can carry protected trip communication without exposing private phone numbers.",
+    "Internal match proposals do not equal external fleet dispatch.",
+    "Payment intents do not authorize or capture money without an approved provider.",
+    "Link Up owns message bodies; Movement stores only a trip-channel binding.",
 )
 
 EXECUTION_BOUNDARY: dict[str, bool] = {
-    "booking_draft_enabled": True,
-    "booking_persistence_enabled": False,
-    "dispatch_enabled": False,
-    "payment_enabled": False,
-    "live_tracking_enabled": False,
+    "external_dispatch_enabled": False,
+    "payment_capture_enabled": False,
     "esim_activation_enabled": False,
+    "carrier_switch_enabled": False,
+    "remote_profile_install_enabled": False,
+    "public_tracking_enabled": False,
     "human_approval_required": True,
 }
 
@@ -150,24 +160,27 @@ def _duplicate_ids(items: Iterable[Mapping[str, Any]]) -> set[str]:
 
 
 def validate_movement_architecture() -> dict[str, Any]:
-    """Validate unique services/roles and fail-closed real-world controls."""
+    """Validate unique services/roles/order and fail-closed external controls."""
 
     service_duplicates = _duplicate_ids(MOVEMENT_SERVICES)
     role_duplicates = _duplicate_ids(MOVEMENT_ROLES)
+    order_duplicates = _duplicate_ids(MOVEMENT_BUILD_ORDER)
     provider_controls = ESIM_CONNECTIVITY["provider_controls"]
-
     privileged_flags = {
-        "dispatch_enabled": EXECUTION_BOUNDARY["dispatch_enabled"],
-        "payment_enabled": EXECUTION_BOUNDARY["payment_enabled"],
-        "live_tracking_enabled": EXECUTION_BOUNDARY["live_tracking_enabled"],
-        "esim_activation_enabled": EXECUTION_BOUNDARY["esim_activation_enabled"],
-        "profile_activation_enabled": provider_controls["profile_activation_enabled"],
-        "profile_deactivation_enabled": provider_controls["profile_deactivation_enabled"],
-        "carrier_switch_enabled": provider_controls["carrier_switch_enabled"],
-        "remote_profile_install_enabled": provider_controls[
-            "remote_profile_install_enabled"
-        ],
+        key: value
+        for key, value in EXECUTION_BOUNDARY.items()
+        if key != "human_approval_required"
     }
+    privileged_flags.update(
+        {
+            "profile_activation_enabled": provider_controls[
+                "profile_activation_enabled"
+            ],
+            "profile_deactivation_enabled": provider_controls[
+                "profile_deactivation_enabled"
+            ],
+        }
+    )
 
     errors: list[str] = []
     if service_duplicates:
@@ -178,8 +191,12 @@ def validate_movement_architecture() -> dict[str, Any]:
         errors.append(
             "Duplicate Movement role IDs: " + ", ".join(sorted(role_duplicates))
         )
+    if order_duplicates:
+        errors.append(
+            "Duplicate Movement build IDs: " + ", ".join(sorted(order_duplicates))
+        )
     if any(privileged_flags.values()):
-        errors.append("Real-world Movement and eSIM controls must remain fail-closed")
+        errors.append("External Movement controls must remain fail-closed")
     if not EXECUTION_BOUNDARY["human_approval_required"]:
         errors.append("Human approval must remain required")
 
@@ -189,10 +206,11 @@ def validate_movement_architecture() -> dict[str, Any]:
         "checks": {
             "services": len(MOVEMENT_SERVICES),
             "roles": len(MOVEMENT_ROLES),
+            "ordered_steps": len(MOVEMENT_BUILD_ORDER),
             "duplicate_service_ids": len(service_duplicates),
             "duplicate_role_ids": len(role_duplicates),
-            "privileged_controls_enabled": sum(privileged_flags.values()),
-            "provider_connected": bool(provider_controls["provider_connected"]),
+            "duplicate_order_ids": len(order_duplicates),
+            "privileged_controls_enabled": sum(bool(v) for v in privileged_flags.values()),
         },
     }
 
@@ -206,6 +224,7 @@ def get_public_movement() -> dict[str, Any]:
         "law": "The Spot → Movement → Ride / E-Bike / Delivery",
         "services": tuple(dict(item) for item in MOVEMENT_SERVICES),
         "roles": tuple(dict(item) for item in MOVEMENT_ROLES),
+        "build_order": tuple(dict(item) for item in MOVEMENT_BUILD_ORDER),
         "connectivity": {
             "name": ESIM_CONNECTIVITY["name"],
             "status": ESIM_CONNECTIVITY["status"],
@@ -220,18 +239,36 @@ def get_public_movement() -> dict[str, Any]:
 
 
 def get_public_movement_status() -> dict[str, Any]:
-    """Return coarse readiness only; never expose carrier/device identifiers."""
+    """Return coarse capability readiness without private identifiers/data."""
+
+    from . import movement_operations, routing
 
     validation = validate_movement_architecture()
+    schema = movement_operations.movement_schema_status()
+    route_state = routing.status()
+    schema_ready = bool(schema["schema_ready"])
     return {
         "product": "OAP Movement",
         "architecture_passed": validation["passed"],
-        "services": len(MOVEMENT_SERVICES),
-        "roles": len(MOVEMENT_ROLES),
-        "esim_provider_connected": False,
-        "dispatch_enabled": EXECUTION_BOUNDARY["dispatch_enabled"],
-        "payment_enabled": EXECUTION_BOUNDARY["payment_enabled"],
-        "live_tracking_enabled": EXECUTION_BOUNDARY["live_tracking_enabled"],
-        "esim_activation_enabled": EXECUTION_BOUNDARY["esim_activation_enabled"],
+        "ordered_steps": len(MOVEMENT_BUILD_ORDER),
+        "routing_adapter_configured": bool(route_state["configured"]),
+        "routing_runtime_verified": bool(route_state["runtime_verified"]),
+        "booking_persistence_ready": schema_ready,
+        "availability_store_ready": schema_ready,
+        "match_proposal_store_ready": schema_ready,
+        "tracking_consent_store_ready": schema_ready,
+        "esim_request_store_ready": schema_ready,
+        "payment_intent_store_ready": schema_ready,
+        "linkup_trip_binding_ready": schema_ready,
+        "external_dispatch_enabled": EXECUTION_BOUNDARY[
+            "external_dispatch_enabled"
+        ],
+        "payment_capture_enabled": EXECUTION_BOUNDARY[
+            "payment_capture_enabled"
+        ],
+        "esim_activation_enabled": EXECUTION_BOUNDARY[
+            "esim_activation_enabled"
+        ],
+        "public_tracking_enabled": EXECUTION_BOUNDARY["public_tracking_enabled"],
         "human_approval_required": EXECUTION_BOUNDARY["human_approval_required"],
     }
