@@ -95,7 +95,7 @@ def snapshot(identity_id: object, *, limit: int = 20) -> dict[str, Any]:
                     ORDER BY role_id""",
                 (identity,),
             ).fetchall()
-    except Exception as exc:  # noqa: BLE001 - never expose provider/DB details.
+    except Exception as exc:
         raise MovementWorkspaceUnavailable("movement_workspace_unavailable") from exc
 
     bookings = []
