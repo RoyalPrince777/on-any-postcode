@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movement Certification · OAP</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">Apply · evidence · Human Authority · external compliance</p>
+      <h1>Movement Certification</h1>
+      <p>Apply to become an OAP Driver, Rider or Courier. Internal approval never replaces legal, insurance, licensing or other external compliance.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('movement.movement_workspace_home') }}">My Movement</a>
+      <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Movement</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <aside class="mc-authority" aria-label="Certification boundary">
+      <strong>Role grant stays locked</strong>
+      <span>Submitting this form is not certification. Human Authority may review the application internally, but Driver/Rider/Courier role activation remains blocked until external compliance is actually verified.</span>
+    </aside>
+
+    <section class="mc-panel" aria-labelledby="apply-title">
+      <p class="mc-eyebrow">No licence number or date of birth requested here</p>
+      <h2 id="apply-title">Apply to work</h2>
+      <form id="movement-certification-form">
+        <label for="cert-role">Role</label>
+        <select id="cert-role" required>
+          <option value="driver">Driver</option>
+          <option value="rider">Rider</option>
+          <option value="courier">Courier</option>
+        </select>
+
+        <label for="cert-vehicle">Vehicle</label>
+        <select id="cert-vehicle" required>
+          <option value="car">Car</option>
+          <option value="van">Van</option>
+          <option value="ebike">E-Bike</option>
+          <option value="bicycle">Bicycle</option>
+          <option value="moped">Moped</option>
+          <option value="motorcycle">Motorcycle</option>
+        </select>
+
+        <label for="cert-zone">Service zone</label>
+        <input id="cert-zone" maxlength="40" placeholder="CR4 / Mitcham">
+
+        <label for="cert-label">Vehicle label</label>
+        <input id="cert-label" maxlength="80" placeholder="Black hatchback / Cargo e-bike">
+
+        <label for="cert-last4">Registration last 4 characters (motor vehicles only)</label>
+        <input id="cert-last4" maxlength="4" autocomplete="off">
+
+        <label><input id="cert-age" type="checkbox" required> I confirm I am 18 or over.</label>
+        <label><input id="cert-terms" type="checkbox" required> I accept the Movement worker terms and understand certification is conditional.</label>
+        <label><input id="cert-licence" type="checkbox"> I declare that I hold any licence required for the role/vehicle.</label>
+        <label><input id="cert-insurance" type="checkbox"> I declare that I hold any insurance required for the role/vehicle.</label>
+
+        <button type="submit">Submit application</button>
+        <p id="cert-result" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="applications-title">
+      <p class="mc-eyebrow">Private to your identity</p>
+      <h2 id="applications-title">My Applications</h2>
+      {% if applications %}
+      <div class="mc-agent-grid" role="list">
+        {% for item in applications %}
+        <article class="mc-agent-card" role="listitem">
+          <p class="mc-eyebrow">{{ item.role_type|upper }} · {{ item.state }}</p>
+          <h3>{{ item.vehicle_type|upper }}{% if item.vehicle_label %} · {{ item.vehicle_label }}{% endif %}</h3>
+          <p>Zone: {{ item.service_zone or 'Not set' }}</p>
+          <p>External compliance: {{ item.external_compliance_state }}</p>
+          <p>Worker role granted: {{ 'Yes' if item.role_granted else 'No' }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No Movement worker applications yet.</p>
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+  (() => {
+    const csrf = {{ oap_csrf_token|tojson }};
+    const result = document.getElementById("cert-result");
+    document.getElementById("movement-certification-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      result.textContent = "Submitting…";
+      const body = {
+        role_type: document.getElementById("cert-role").value,
+        vehicle_type: document.getElementById("cert-vehicle").value,
+        service_zone: document.getElementById("cert-zone").value.trim(),
+        vehicle_label: document.getElementById("cert-label").value.trim(),
+        registration_last4: document.getElementById("cert-last4").value.trim(),
+        declarations: {
+          age_18_or_over: document.getElementById("cert-age").checked,
+          terms_accepted: document.getElementById("cert-terms").checked,
+          licence_declared: document.getElementById("cert-licence").checked,
+          insurance_declared: document.getElementById("cert-insurance").checked
+        }
+      };
+      try {
+        const response = await fetch("/movement/worker-applications", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
+          body: JSON.stringify(body)
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error((payload.error || {}).message || "Application failed.");
+        result.textContent = "Application submitted for Human Authority review.";
+        window.location.reload();
+      } catch (error) {
+        result.textContent = error.message;
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
