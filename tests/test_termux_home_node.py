@@ -34,5 +34,5 @@ def test_termux_status_uses_authoritative_runtime_readiness():
 
 def test_termux_documentation_preserves_human_authority_boundary():
     assert "Human Authority" in DOC
-    assert "does not auto-pull" in DOC
+    assert "does **not** auto-pull" in DOC
     assert "consequential execution disabled" in DOC
