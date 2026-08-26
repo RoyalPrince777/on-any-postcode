@@ -63,5 +63,5 @@ CREATE INDEX IF NOT EXISTS ix_movement_certification_review_application
     ON oap_movement_certification_reviews(application_id, created_at DESC);
 
 INSERT INTO oap_schema_migrations(version,checksum)
-VALUES ('0006_movement_certification','c12f0478ad0bd9ec8f5bb7b1b6865d525acb4a23abc78205eb31e55ba1377c6e')
+VALUES ('0006_movement_certification','b362e77e85358ce48a1ced0b8e55d62c7cc4367267ef54ac8749da80343e972f')
 ON CONFLICT (version) DO NOTHING;
