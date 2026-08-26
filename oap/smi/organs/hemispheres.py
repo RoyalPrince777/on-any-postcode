@@ -23,7 +23,7 @@ class RightHemisphere:
     organ_id = "right_hemisphere"
 
     def analyse(self, packet: BrainPacket):
-        cultural = bool(packet.signal.metadata.get("culture"))
+        cultural = bool(packet.signal.oapdata.get("culture"))
         summary = (
             "Cultural and human-meaning context is present."
             if cultural
