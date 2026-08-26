@@ -1,0 +1,3 @@
+# OAP Termux Home Node runtime only.
+# Keep web/auth packages (including PyJWT[crypto]/cryptography) on the server stack.
+psycopg>=3.2,<4
