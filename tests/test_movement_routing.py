@@ -60,7 +60,9 @@ def test_route_returns_eta_distance_without_geometry_or_dispatch(monkeypatch):
         "distance_m": 1234.6,
         "duration_s": 321.4,
         "profile": "driving",
-        "provider": "OSRM-compatible routing",
+        "provider": "OAP Route Core",
+        "engine_contract": "OSRM-compatible",
+        "provider_ownership": "external_candidate",
         "geometry_exposed": False,
         "dispatch_performed": False,
     }
@@ -69,6 +71,26 @@ def test_route_returns_eta_distance_without_geometry_or_dispatch(monkeypatch):
     assert "steps=false" in captured["url"]
     assert "geometr" not in captured["url"].lower()
     assert routing.production_ready() is True
+
+
+def test_oap_owned_endpoint_is_classified_without_bypassing_gates(monkeypatch):
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://route.oap.example")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "route.oap.example")
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "route.oap.example")
+    monkeypatch.delenv("OAP_ROUTING_PRODUCTION_APPROVED", raising=False)
+    monkeypatch.delenv("OAP_ROUTING_CAPACITY_APPROVED", raising=False)
+    monkeypatch.delenv("OAP_ROUTING_MONITORING_APPROVED", raising=False)
+
+    state = routing.status()
+
+    assert state["component"] == "OAP Route Core"
+    assert state["engine_contract"] == "OSRM-compatible"
+    assert state["provider_tier"] == "production_candidate"
+    assert state["provider_ownership"] == "oap_owned"
+    assert state["oap_owned_endpoint"] is True
+    assert state["production_gate_approved"] is False
+    assert state["production_ready"] is False
+    assert state["dispatch_enabled"] is False
 
 
 def test_route_rejects_invalid_coordinates_and_profile(monkeypatch):
@@ -112,10 +134,12 @@ def test_route_fails_closed_when_provider_is_not_configured(monkeypatch):
 def test_public_osrm_demo_is_verification_only(monkeypatch):
     monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://router.project-osrm.org")
     monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "router.project-osrm.org")
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "router.project-osrm.org")
     monkeypatch.delenv("OAP_ROUTING_PRODUCTION_APPROVED", raising=False)
 
     assert routing.configured() is True
     assert routing.provider_tier() == "verification_only"
+    assert routing.provider_ownership() == "verification_only"
     assert routing.production_ready() is False
 
     with pytest.raises(
@@ -149,6 +173,7 @@ def test_startup_probe_can_verify_demo_without_enabling_normal_routes(monkeypatc
     assert state["configured"] is True
     assert state["runtime_verified"] is True
     assert state["provider_tier"] == "verification_only"
+    assert state["provider_ownership"] == "verification_only"
     assert state["production_gate_approved"] is False
     assert state["production_ready"] is False
     assert state["startup_probe_enabled"] is True
@@ -171,6 +196,7 @@ def test_production_candidate_route_is_blocked_until_all_evidence_gates_pass(
     )
 
     assert routing.provider_tier() == "production_candidate"
+    assert routing.provider_ownership() == "external_candidate"
     assert routing.production_gate_approved() is False
     assert routing.production_ready() is False
 
@@ -219,6 +245,7 @@ def test_candidate_can_be_runtime_verified_before_promotion(monkeypatch):
     state = routing.startup_probe()
 
     assert state["provider_tier"] == "production_candidate"
+    assert state["provider_ownership"] == "external_candidate"
     assert state["runtime_verified"] is True
     assert state["production_gate_approved"] is False
     assert state["production_ready"] is False
