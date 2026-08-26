@@ -1,16 +1,18 @@
 """Bounded, read-only routing adapter for OAP Movement.
 
-The adapter is deliberately provider-shaped rather than vendor-owned. A deployment
-must explicitly configure an HTTPS OSRM-compatible endpoint and explicitly allow
-its hostname. Status reads never probe the network. Successful route requests
-record coarse runtime evidence only; no route request dispatches a person,
-vehicle, courier or payment.
+OAP Route Core owns the routing contract and Movement-facing response. The
+underlying engine is deliberately provider-shaped rather than vendor-owned: a
+deployment must explicitly configure an HTTPS OSRM-compatible endpoint and
+explicitly allow its hostname. Status reads never probe the network. Successful
+route requests record coarse runtime evidence only; no route request dispatches
+a person, vehicle, courier or payment.
 
 Known public demonstration endpoints may be used for bounded verification, but
 are never treated as production-ready routing providers and are blocked from
 normal Movement route requests. A production-candidate endpoint also stays
 fail-closed until routing, capacity and monitoring evidence are explicitly
-approved.
+approved. OAP-owned/self-hosted endpoints can be declared separately from
+external candidates without changing those production evidence gates.
 """
 from __future__ import annotations
 
@@ -22,6 +24,8 @@ from typing import Any
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 
+CORE_NAME = "OAP Route Core"
+ENGINE_CONTRACT = "OSRM-compatible"
 MAX_RESPONSE_BYTES = 128 * 1024
 ROUTE_TIMEOUT_SECONDS = 6
 ALLOWED_PROFILES = frozenset({"driving", "cycling", "walking"})
@@ -39,12 +43,22 @@ def _flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() == "true"
 
 
-def _allowed_hosts() -> frozenset[str]:
+def _host_set(name: str) -> frozenset[str]:
     return frozenset(
         item.strip().casefold()
-        for item in os.environ.get("OAP_OSRM_ALLOWED_HOSTS", "").split(",")
+        for item in os.environ.get(name, "").split(",")
         if item.strip()
     )
+
+
+def _allowed_hosts() -> frozenset[str]:
+    return _host_set("OAP_OSRM_ALLOWED_HOSTS")
+
+
+def _owned_hosts() -> frozenset[str]:
+    """Return endpoints explicitly declared as OAP-owned/self-hosted."""
+
+    return _host_set("OAP_ROUTING_OWNED_HOSTS")
 
 
 def _base_url() -> str:
@@ -79,6 +93,20 @@ def provider_tier() -> str:
     if host in VERIFICATION_ONLY_HOSTS:
         return "verification_only"
     return "production_candidate"
+
+
+def provider_ownership() -> str:
+    """Separate OAP ownership from operational production readiness."""
+
+    base = _base_url()
+    if not base:
+        return "unconfigured"
+    host = str(urlparse.urlparse(base).hostname or "").casefold()
+    if host in VERIFICATION_ONLY_HOSTS:
+        return "verification_only"
+    if host in _owned_hosts():
+        return "oap_owned"
+    return "external_candidate"
 
 
 def production_approval_state() -> dict[str, bool]:
@@ -253,7 +281,9 @@ def route(
         "distance_m": round(distance_m, 1),
         "duration_s": round(duration_s, 1),
         "profile": normalized_profile,
-        "provider": "OSRM-compatible routing",
+        "provider": CORE_NAME,
+        "engine_contract": ENGINE_CONTRACT,
+        "provider_ownership": provider_ownership(),
         "geometry_exposed": False,
         "dispatch_performed": False,
     }
@@ -285,10 +315,15 @@ def status() -> dict[str, Any]:
 
     success, error = _runtime_state()
     approvals = production_approval_state()
+    ownership = provider_ownership()
     return {
+        "component": CORE_NAME,
+        "engine_contract": ENGINE_CONTRACT,
         "configured": configured(),
         "runtime_verified": success is not None and error is None,
         "provider_tier": provider_tier(),
+        "provider_ownership": ownership,
+        "oap_owned_endpoint": ownership == "oap_owned",
         "production_provider_approved": approvals["provider_approved"],
         "production_capacity_approved": approvals["capacity_approved"],
         "production_monitoring_approved": approvals["monitoring_approved"],
@@ -300,4 +335,5 @@ def status() -> dict[str, Any]:
         "timeout_seconds": ROUTE_TIMEOUT_SECONDS,
         "geometry_exposed": False,
         "mutation_enabled": False,
+        "dispatch_enabled": False,
     }
