@@ -49,7 +49,11 @@ def _operation_error(exc: Exception):
             503,
         )
     if isinstance(exc, (TypeError, ValueError)):
-        return _error(str(exc) or "invalid_certification_request", "Invalid certification request.", 400)
+        return _error(
+            str(exc) or "invalid_certification_request",
+            "Invalid certification request.",
+            400,
+        )
     return _error(
         "movement_certification_unavailable",
         "Movement certification is temporarily unavailable.",
@@ -75,7 +79,7 @@ def applicant_home():
             )
         )
         return _no_store(response)
-    except Exception as exc:  # noqa: BLE001 - redact DB/provider detail.
+    except Exception as exc:
         return _operation_error(exc)
 
 
@@ -102,7 +106,7 @@ def submit_application():
             registration_last4=body.get("registration_last4", ""),
         )
         return _no_store(make_response(jsonify(application=result), 201))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _operation_error(exc)
 
 
@@ -122,7 +126,7 @@ def authority_home():
             )
         )
         return _no_store(response)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _operation_error(exc)
 
 
@@ -143,5 +147,5 @@ def review_application(application_id: str):
             reason=body.get("reason"),
         )
         return _no_store(make_response(jsonify(review=result), 200))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _operation_error(exc)
