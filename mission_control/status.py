@@ -242,13 +242,17 @@ def get_public_gateway_status() -> dict[str, Any]:
     local_model_component = (
         _component(
             "Local Ollama",
-            "Available" if ollama_available else "Unavailable",
+            "Available" if ollama_available else "Degraded",
             "healthy" if ollama_available else "degraded",
         )
         if config.OAP_LOCAL_MODE
         else _component(
             "Local Ollama",
-            "Optional local model inactive",
+            (
+                "Available local option"
+                if ollama_available
+                else "Degraded local endpoint · optional in configured mode"
+            ),
             "healthy",
         )
     )
