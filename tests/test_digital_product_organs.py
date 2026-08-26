@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from flask import Flask
 import pytest
+from flask import Flask
 
 from mission_control import product_core_services, product_core_views
 
