@@ -57,6 +57,11 @@ def test_autonomous_cycle_observes_reviews_and_proposes_without_acting(monkeypat
         lambda: {"schema_ready": True},
     )
     monkeypatch.setattr(
+        oap_core_autonomy,
+        "product_core_schema_status",
+        lambda: {"schema_ready": True},
+    )
+    monkeypatch.setattr(
         oap_core_autonomy.routing,
         "status",
         lambda: {
@@ -75,10 +80,39 @@ def test_autonomous_cycle_observes_reviews_and_proposes_without_acting(monkeypat
     assert cycle["recovery"]["destructive_recovery_allowed"] is False
     assert "runtime_dead_letters_present" in cycle["coherence"]["issues"]
     assert "routing_candidate_not_promoted" in cycle["coherence"]["issues"]
+    assert "product_core_schema_not_ready" not in cycle["coherence"]["issues"]
     assert cycle["proposal"]["requires_human_approval"] is True
     assert cycle["proposal"]["sandbox_required"] is True
     assert cycle["proposal"]["reversibility_required"] is True
     assert cycle["proposal"]["independent_apply"] is False
+
+
+def test_product_core_schema_drift_is_visible_to_oap_core(monkeypatch):
+    monkeypatch.setattr(
+        oap_core_autonomy,
+        "runtime_status",
+        lambda: {"schema_ready": True, "worker_fresh": True, "dead_letter": 0},
+    )
+    monkeypatch.setattr(
+        oap_core_autonomy,
+        "movement_schema_status",
+        lambda: {"schema_ready": True},
+    )
+    monkeypatch.setattr(
+        oap_core_autonomy,
+        "product_core_schema_status",
+        lambda: {"schema_ready": False},
+    )
+    monkeypatch.setattr(
+        oap_core_autonomy.routing,
+        "status",
+        lambda: {"provider_tier": "demo", "production_ready": False},
+    )
+
+    review = oap_core_autonomy.coherence_review()
+
+    assert review["coherent"] is False
+    assert "product_core_schema_not_ready" in review["issues"]
 
 
 def test_runtime_heartbeat_carries_autonomy_policy_without_executing():
