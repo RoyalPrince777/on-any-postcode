@@ -1,0 +1,32 @@
+# OPT-IN ONLY — this file is not the active root render.yaml.
+# Applying it creates a paid always-on background worker. Human Authority must
+# explicitly approve that infrastructure/billing decision before deployment.
+services:
+  - type: worker
+    name: oap-organism-runtime
+    runtime: python
+    plan: starter
+    region: oregon
+    repo: https://github.com/RoyalPrince777/on-any-postcode
+    branch: main
+    autoDeployTrigger: "off"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m mission_control.organism_worker
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OAP_LOCAL_MODE
+        value: "false"
+      - key: OAP_WORKER_POLL_SECONDS
+        value: "2"
+      - key: OAP_WORKER_HEARTBEAT_SECONDS
+        value: "15"
+      - key: OAP_WORKER_SCHEDULER_SECONDS
+        value: "5"
+      - key: OAP_WORKER_RECOVERY_SECONDS
+        value: "30"
+      - key: OAP_WORKER_LEASE_SECONDS
+        value: "60"
