@@ -50,6 +50,7 @@ def test_guardian_status_comes_from_constitutional_engine(monkeypatch):
 def test_configured_cloud_mode_is_not_reported_as_degraded(monkeypatch):
     monkeypatch.setattr(status, "db_status", _database_status)
     monkeypatch.setattr(status.config, "OAP_LOCAL_MODE", False)
+    monkeypatch.setattr(status, "_probe_ollama", lambda: False)
     monkeypatch.setattr(
         status.provider_fabric,
         "get_coarse_provider_status",
@@ -75,7 +76,7 @@ def test_configured_cloud_mode_is_not_reported_as_degraded(monkeypatch):
     }
     assert components["Local Ollama"] == {
         "label": "Local Ollama",
-        "value": "Optional local model inactive",
+        "value": "Degraded local endpoint · optional in configured mode",
         "state": "healthy",
     }
 
