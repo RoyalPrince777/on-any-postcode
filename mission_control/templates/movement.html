@@ -15,6 +15,7 @@
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('movement.movement_workspace_home') }}">My Movement</a>
+      <a class="mc-secondary-link" href="{{ url_for('movement_certification.applicant_home') }}">Work with OAP</a>
       <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='movement-delivery') }}">Movement in The Spot</a>
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
@@ -61,6 +62,7 @@
         </article>
         {% endfor %}
       </div>
+      <p><a href="{{ url_for('movement_certification.applicant_home') }}">Apply to work with OAP Movement</a>. Applications require Human Authority review and remain blocked from worker-role activation until real external compliance is verified.</p>
     </section>
 
     <section class="mc-panel" aria-labelledby="movement-esim-title">
