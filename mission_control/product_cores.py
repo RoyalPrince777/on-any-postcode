@@ -1,18 +1,17 @@
 """Durable first-party product cores for OAP Music, Market and Post Office.
 
-The module owns OAP-side records and workflow state. It never distributes music
-to an external DSP, streams copyrighted media from an unapproved store, captures
-money, pays royalties, hands parcels to a carrier or activates a physical Post
-Office. Those consequential edges stay provider/Human-Authority gated.
+OAP owns the internal records and workflow state. External DSP distribution,
+licensed audio delivery, royalty payouts, card capture, third-party fulfilment,
+parcel-carrier handoff and physical Post Office activation remain explicitly
+provider/Human-Authority gated.
 
-Schema mutation is explicit only; status reads never create tables.
+Schema mutation is explicit only; imports and status reads never create tables.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import re
-from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
 
@@ -110,9 +109,10 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
         external_distribution_state TEXT NOT NULL DEFAULT 'PROVIDER_REQUIRED'
             CHECK (external_distribution_state IN
                 ('PROVIDER_REQUIRED','READY','SUBMITTED','DELIVERED','FAILED')),
-        idempotency_key TEXT NOT NULL UNIQUE,
+        idempotency_key TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(owner_identity_id,idempotency_key))""",
     """CREATE INDEX IF NOT EXISTS ix_music_release_owner_created
         ON oap_music_releases(owner_identity_id, created_at DESC)""",
     """CREATE TABLE IF NOT EXISTS oap_music_tracks (
@@ -186,9 +186,10 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
                              'FULFILMENT_PROVIDER_REQUIRED','FULFILLED','CANCELLED','FAILED')),
         currency TEXT NOT NULL DEFAULT 'GBP',
         subtotal_minor BIGINT NOT NULL CHECK (subtotal_minor >= 0),
-        idempotency_key TEXT NOT NULL UNIQUE,
+        idempotency_key TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(buyer_identity_id,idempotency_key))""",
     """CREATE INDEX IF NOT EXISTS ix_market_order_buyer_created
         ON oap_market_orders(buyer_identity_id, created_at DESC)""",
     """CREATE TABLE IF NOT EXISTS oap_market_order_items (
@@ -230,6 +231,9 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
             CHECK (state IN ('PLANNED','PILOT_READY','ACTIVE','SUSPENDED','CLOSED')),
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """INSERT INTO oap_post_offices(code,name,country,state)
+        VALUES ('OAP-KORADASO','OAP Koradaso Post Office','Ghana','PLANNED')
+        ON CONFLICT (code) DO NOTHING""",
     """CREATE TABLE IF NOT EXISTS oap_post_office_requests (
         request_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -241,9 +245,10 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
         state TEXT NOT NULL DEFAULT 'REQUESTED'
             CHECK (state IN ('REQUESTED','REVIEW_REQUIRED','READY','COMPLETED','CANCELLED')),
         details JSONB NOT NULL DEFAULT '{}'::jsonb,
-        idempotency_key TEXT NOT NULL UNIQUE,
+        idempotency_key TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(identity_id,idempotency_key))""",
     """CREATE INDEX IF NOT EXISTS ix_post_request_identity_created
         ON oap_post_office_requests(identity_id, created_at DESC)""",
     """CREATE TABLE IF NOT EXISTS oap_post_office_parcels (
@@ -257,13 +262,14 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
                              'READY_FOR_COLLECTION','COLLECTED','RETURNED','CANCELLED')),
         oap_tracking_code TEXT NOT NULL UNIQUE,
         external_carrier_reference TEXT,
-        idempotency_key TEXT NOT NULL UNIQUE,
+        idempotency_key TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(owner_identity_id,idempotency_key))""",
 )
 
 PRODUCT_CORE_MIGRATION_CHECKSUM = hashlib.sha256(
-    "\n".join(PRODUCT_CORE_SCHEMA_STATEMENTS).encode("utf-8")
+    "\n".join(PRODUCT_CORE_SCHEMA_STATEMENTS).encode()
 ).hexdigest()
 
 
@@ -299,9 +305,18 @@ def _active_identity(connection: Any, identity_id: str) -> None:
         raise PermissionError("active_identity_required")
 
 
+def _active_hub(connection: Any, hub: str) -> None:
+    row = connection.execute(
+        """SELECT 1 FROM oap_post_offices
+           WHERE post_office_id=%s AND state IN ('PILOT_READY','ACTIVE')""",
+        (hub,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("post_office_unavailable")
+
+
 def product_core_schema_status() -> dict[str, Any]:
     """Read product-core readiness without mutating the database."""
-
     result: dict[str, Any] = {
         "migration": PRODUCT_CORE_MIGRATION_VERSION,
         "checksum": PRODUCT_CORE_MIGRATION_CHECKSUM,
@@ -336,7 +351,7 @@ def product_core_schema_status() -> dict[str, Any]:
                 return result
             result["schema_ready"] = True
             return result
-    except Exception:  # noqa: BLE001 - redact database/provider details.
+    except Exception:  # noqa: BLE001 - provider/database details stay private.
         result["error"] = "product_core_store_unavailable"
         return result
 
@@ -345,7 +360,6 @@ def init_product_core_schema(
     *, assume_yes: bool = False, dry_run: bool = False
 ) -> dict[str, Any]:
     """Apply product-core schema only after explicit Human Authority invocation."""
-
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
     base = postgres_db.postgres_status()
@@ -379,7 +393,6 @@ def init_product_core_schema(
 
 def platform_status() -> dict[str, Any]:
     """Return truthful first-party readiness and external locks."""
-
     schema = product_core_schema_status()
     core_ready = bool(schema.get("schema_ready"))
     return {
@@ -387,11 +400,7 @@ def platform_status() -> dict[str, Any]:
         "ready": core_ready,
         "schema": schema,
         "products": tuple(
-            {
-                **item,
-                "oap_core_ready": core_ready,
-                "external_edge_ready": False,
-            }
+            {**item, "oap_core_ready": core_ready, "external_edge_ready": False}
             for item in PRODUCT_SUITE
         ),
         "blocked_external_actions": BLOCKED_EXTERNAL_ACTIONS,
@@ -401,7 +410,7 @@ def platform_status() -> dict[str, Any]:
 
 
 class PostgresProductCoreStore:
-    """Owner-scoped OAP product workflows with consequential edges disabled."""
+    """Owner-scoped OAP workflows with external consequential edges disabled."""
 
     def create_release(
         self,
@@ -419,16 +428,26 @@ class PostgresProductCoreStore:
         key = _idempotency(idempotency_key)
         with postgres_db.connect() as connection:
             _active_identity(connection, owner)
-            row = connection.execute(
-                """INSERT INTO oap_music_releases
-                   (owner_identity_id,title,release_type,idempotency_key)
-                   VALUES (%s,%s,%s,%s)
-                   ON CONFLICT (idempotency_key) DO UPDATE
-                     SET idempotency_key=EXCLUDED.idempotency_key
-                   RETURNING release_id,title,release_type,state,rights_status,
-                             external_distribution_state,created_at""",
-                (owner, title_value, kind, key),
+            existing = connection.execute(
+                """SELECT release_id,title,release_type,state,rights_status,
+                          external_distribution_state,created_at
+                   FROM oap_music_releases
+                   WHERE owner_identity_id=%s AND idempotency_key=%s""",
+                (owner, key),
             ).fetchone()
+            if existing is not None:
+                if str(existing[1]) != title_value or str(existing[2]) != kind:
+                    raise ValueError("idempotency_key_reused")
+                row = existing
+            else:
+                row = connection.execute(
+                    """INSERT INTO oap_music_releases
+                       (owner_identity_id,title,release_type,idempotency_key)
+                       VALUES (%s,%s,%s,%s)
+                       RETURNING release_id,title,release_type,state,rights_status,
+                                 external_distribution_state,created_at""",
+                    (owner, title_value, kind, key),
+                ).fetchone()
             connection.commit()
         return {
             "release_id": str(row[0]),
@@ -471,14 +490,14 @@ class PostgresProductCoreStore:
             if not 1000 <= duration <= 7_200_000:
                 raise ValueError("invalid_duration_ms")
         with postgres_db.connect() as connection:
-            row = connection.execute(
+            release_row = connection.execute(
                 """SELECT state FROM oap_music_releases
                    WHERE release_id=%s AND owner_identity_id=%s FOR UPDATE""",
                 (release, owner),
             ).fetchone()
-            if row is None:
+            if release_row is None:
                 raise PermissionError("release_not_owned")
-            if str(row[0]) not in {"DRAFT", "REVIEW_REQUIRED"}:
+            if str(release_row[0]) not in {"DRAFT", "REVIEW_REQUIRED"}:
                 raise ValueError("release_not_editable")
             track = connection.execute(
                 """INSERT INTO oap_music_tracks
@@ -502,6 +521,12 @@ class PostgresProductCoreStore:
         owner = _uuid(owner_identity_id, "owner_identity_id")
         release = _uuid(release_id, "release_id")
         with postgres_db.connect() as connection:
+            owned = connection.execute(
+                "SELECT state FROM oap_music_releases WHERE release_id=%s AND owner_identity_id=%s",
+                (release, owner),
+            ).fetchone()
+            if owned is None:
+                raise PermissionError("release_not_owned")
             count = connection.execute(
                 "SELECT COUNT(*) FROM oap_music_tracks WHERE release_id=%s",
                 (release,),
@@ -632,46 +657,51 @@ class PostgresProductCoreStore:
             if seller == buyer:
                 raise ValueError("cannot_buy_own_product")
             subtotal = int(product_row[2]) * qty
-            order = connection.execute(
-                """INSERT INTO oap_market_orders
-                   (buyer_identity_id,seller_identity_id,state,currency,
-                    subtotal_minor,idempotency_key)
-                   VALUES (%s,%s,'PAYMENT_PROVIDER_REQUIRED',%s,%s,%s)
-                   ON CONFLICT (idempotency_key) DO UPDATE
-                     SET idempotency_key=EXCLUDED.idempotency_key
-                   RETURNING order_id,state,currency,subtotal_minor,created_at""",
-                (buyer, seller, str(product_row[3]), subtotal, key),
+            existing = connection.execute(
+                """SELECT o.order_id,o.state,o.currency,o.subtotal_minor,o.created_at,
+                          o.seller_identity_id,i.product_id,i.quantity
+                   FROM oap_market_orders o
+                   LEFT JOIN oap_market_order_items i ON i.order_id=o.order_id
+                   WHERE o.buyer_identity_id=%s AND o.idempotency_key=%s
+                   LIMIT 1""",
+                (buyer, key),
             ).fetchone()
-            connection.execute(
-                """INSERT INTO oap_market_order_items
-                   (order_id,product_id,quantity,unit_price_minor,product_name)
-                   SELECT %s,%s,%s,%s,%s
-                   WHERE NOT EXISTS (
-                     SELECT 1 FROM oap_market_order_items
-                     WHERE order_id=%s AND product_id=%s)""",
-                (
-                    order[0],
-                    product,
-                    qty,
-                    int(product_row[2]),
-                    str(product_row[1]),
-                    order[0],
-                    product,
-                ),
-            )
-            connection.execute(
-                """INSERT INTO oap_market_payment_intents
-                   (order_id,amount_minor,currency,state)
-                   VALUES (%s,%s,%s,'PROVIDER_REQUIRED')
-                   ON CONFLICT (order_id) DO NOTHING""",
-                (order[0], subtotal, str(product_row[3])),
-            )
-            connection.execute(
-                """INSERT INTO oap_market_fulfilment_intents(order_id,state)
-                   VALUES (%s,'PROVIDER_REQUIRED')
-                   ON CONFLICT (order_id) DO NOTHING""",
-                (order[0],),
-            )
+            if existing is not None:
+                if (
+                    str(existing[5]) != seller
+                    or str(existing[6]) != product
+                    or int(existing[7]) != qty
+                    or int(existing[3]) != subtotal
+                    or str(existing[2]) != str(product_row[3])
+                ):
+                    raise ValueError("idempotency_key_reused")
+                order = existing[:5]
+            else:
+                order = connection.execute(
+                    """INSERT INTO oap_market_orders
+                       (buyer_identity_id,seller_identity_id,state,currency,
+                        subtotal_minor,idempotency_key)
+                       VALUES (%s,%s,'PAYMENT_PROVIDER_REQUIRED',%s,%s,%s)
+                       RETURNING order_id,state,currency,subtotal_minor,created_at""",
+                    (buyer, seller, str(product_row[3]), subtotal, key),
+                ).fetchone()
+                connection.execute(
+                    """INSERT INTO oap_market_order_items
+                       (order_id,product_id,quantity,unit_price_minor,product_name)
+                       VALUES (%s,%s,%s,%s,%s)""",
+                    (order[0], product, qty, int(product_row[2]), str(product_row[1])),
+                )
+                connection.execute(
+                    """INSERT INTO oap_market_payment_intents
+                       (order_id,amount_minor,currency,state)
+                       VALUES (%s,%s,%s,'PROVIDER_REQUIRED')""",
+                    (order[0], subtotal, str(product_row[3])),
+                )
+                connection.execute(
+                    """INSERT INTO oap_market_fulfilment_intents(order_id,state)
+                       VALUES (%s,'PROVIDER_REQUIRED')""",
+                    (order[0],),
+                )
             connection.commit()
         return {
             "order_id": str(order[0]),
@@ -704,22 +734,30 @@ class PostgresProductCoreStore:
         with postgres_db.connect() as connection:
             _active_identity(connection, identity)
             if hub is not None:
-                exists = connection.execute(
-                    """SELECT 1 FROM oap_post_offices
-                       WHERE post_office_id=%s AND state IN ('PILOT_READY','ACTIVE')""",
-                    (hub,),
-                ).fetchone()
-                if exists is None:
-                    raise ValueError("post_office_unavailable")
-            row = connection.execute(
-                """INSERT INTO oap_post_office_requests
-                   (identity_id,post_office_id,service_type,details,idempotency_key)
-                   VALUES (%s,%s,%s,%s::jsonb,%s)
-                   ON CONFLICT (idempotency_key) DO UPDATE
-                     SET idempotency_key=EXCLUDED.idempotency_key
-                   RETURNING request_id,service_type,state,created_at""",
-                (identity, hub, service, json.dumps(payload), key),
+                _active_hub(connection, hub)
+            existing = connection.execute(
+                """SELECT request_id,service_type,state,created_at,post_office_id,details
+                   FROM oap_post_office_requests
+                   WHERE identity_id=%s AND idempotency_key=%s""",
+                (identity, key),
             ).fetchone()
+            if existing is not None:
+                existing_hub = str(existing[4]) if existing[4] else None
+                if (
+                    str(existing[1]) != service
+                    or existing_hub != hub
+                    or dict(existing[5]) != payload
+                ):
+                    raise ValueError("idempotency_key_reused")
+                row = existing[:4]
+            else:
+                row = connection.execute(
+                    """INSERT INTO oap_post_office_requests
+                       (identity_id,post_office_id,service_type,details,idempotency_key)
+                       VALUES (%s,%s,%s,%s::jsonb,%s)
+                       RETURNING request_id,service_type,state,created_at""",
+                    (identity, hub, service, json.dumps(payload), key),
+                ).fetchone()
             connection.commit()
         return {
             "request_id": str(row[0]),
@@ -744,21 +782,31 @@ class PostgresProductCoreStore:
             raise ValueError("invalid_parcel_direction")
         key = _idempotency(idempotency_key)
         hub = None if post_office_id in (None, "") else _uuid(post_office_id, "post_office_id")
-        tracking_code = "OAP-" + hashlib.sha256(
-            f"{owner}:{key}".encode("utf-8")
-        ).hexdigest()[:20].upper()
+        tracking_code = "OAP-" + hashlib.sha256(f"{owner}:{key}".encode()).hexdigest()[:20].upper()
         with postgres_db.connect() as connection:
             _active_identity(connection, owner)
-            row = connection.execute(
-                """INSERT INTO oap_post_office_parcels
-                   (owner_identity_id,post_office_id,direction,state,
-                    oap_tracking_code,idempotency_key)
-                   VALUES (%s,%s,%s,'CARRIER_REQUIRED',%s,%s)
-                   ON CONFLICT (idempotency_key) DO UPDATE
-                     SET idempotency_key=EXCLUDED.idempotency_key
-                   RETURNING parcel_id,direction,state,oap_tracking_code,created_at""",
-                (owner, hub, direction_value, tracking_code, key),
+            if hub is not None:
+                _active_hub(connection, hub)
+            existing = connection.execute(
+                """SELECT parcel_id,direction,state,oap_tracking_code,created_at,post_office_id
+                   FROM oap_post_office_parcels
+                   WHERE owner_identity_id=%s AND idempotency_key=%s""",
+                (owner, key),
             ).fetchone()
+            if existing is not None:
+                existing_hub = str(existing[5]) if existing[5] else None
+                if str(existing[1]) != direction_value or existing_hub != hub:
+                    raise ValueError("idempotency_key_reused")
+                row = existing[:5]
+            else:
+                row = connection.execute(
+                    """INSERT INTO oap_post_office_parcels
+                       (owner_identity_id,post_office_id,direction,state,
+                        oap_tracking_code,idempotency_key)
+                       VALUES (%s,%s,%s,'CARRIER_REQUIRED',%s,%s)
+                       RETURNING parcel_id,direction,state,oap_tracking_code,created_at""",
+                    (owner, hub, direction_value, tracking_code, key),
+                ).fetchone()
             connection.commit()
         return {
             "parcel_id": str(row[0]),
