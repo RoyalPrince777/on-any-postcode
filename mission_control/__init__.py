@@ -7,6 +7,7 @@ from flask import Flask
 from . import audit as auditmod
 from . import db as dbmod
 from . import (
+    movement_match_safety,
     movement_operations,
     organism_runtime,
     postgres_db,
@@ -22,6 +23,10 @@ from .views import bp
 
 def init_app(app: Flask) -> None:
     """Register CLI commands and the Mission Control blueprint."""
+    # All Movement route calls go through the hardened subclass. It inherits the
+    # existing bounded operations and replaces only match certification/race logic.
+    movement_operations.STORE = movement_match_safety.STORE
+
     @app.cli.command("oap-db-status")
     @click.option("--json", "json_out", is_flag=True, default=False, help="JSON output")
     def _db_status(json_out: bool) -> None:  # pragma: no cover - CLI wrapper
