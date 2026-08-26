@@ -13,7 +13,7 @@ section{padding:28px max(20px,6vw);border-bottom:1px solid #1d4a2d}
 .hero{min-height:52vh;display:grid;align-content:center;background:radial-gradient(circle at 85% 15%,#24733d 0,transparent 35%),linear-gradient(135deg,#092414,#06120b)}
 .eyebrow{color:#7ef0a3;font-weight:800;letter-spacing:.12em}
 .hero h1{font-size:clamp(3rem,10vw,7rem);line-height:.9;margin:.25em 0}
-.hero p{font-size:clamp(1.1rem,2.4vw,1.6rem);max-width:720px}
+.hero p{font-size:clamp(1.1rem,2.4vw,1.6rem);max-width:780px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .card{background:#10281a;border:1px solid #245f38;border-radius:16px;padding:18px}
 .level{border-top:5px solid #27c267}
@@ -39,16 +39,20 @@ button{background:#27c267;color:#021;font-weight:bold}
 <section class="hero">
 <p class="eyebrow">BORN LOCAL · BUILT GLOBAL</p>
 <h1>ON ANY<br>POSTCODE</h1>
-<p>One human world, entered through the place you live. Start at your postcode and move through borough, county, country and continent.</p>
+<p>One human world, entered through the place you live. Start local and move outward: Postcode → Borough → County / Region → Country → Continent → Global → Universe.</p>
 <div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></div>
 </section>
 <section id="location" aria-labelledby="location-title">
 <p class="eyebrow">THE WORLD, FROM LOCAL OUTWARD</p>
-<h2 id="location-title">Your location hierarchy</h2>
+<h2 id="location-title">Your location hierarchy: Postcode to Universe</h2>
 <div class="grid">
-{% for level in location_levels %}
-<article class="card level"><span class="badge">{{ level.order }}</span><h3>{{ level.icon }} {{ level.name }}</h3><p>{{ level.purpose }}</p></article>
-{% endfor %}
+<article class="card level"><span class="badge">1</span><h3>📍 Postcode</h3><p>Your local front door into The Spot, people, activity and community life.</p></article>
+<article class="card level"><span class="badge">2</span><h3>🏙️ Borough / District</h3><p>Your wider local community and civic connection layer.</p></article>
+<article class="card level"><span class="badge">3</span><h3>🧭 County / Region</h3><p>Regional coordination while preserving local ownership.</p></article>
+<article class="card level"><span class="badge">4</span><h3>🏳️ Country</h3><p>National identity, culture, information and shared services.</p></article>
+<article class="card level"><span class="badge">5</span><h3>🌍 Continent</h3><p>Connect countries and local communities across their continent.</p></article>
+<article class="card level"><span class="badge">6</span><h3>🌐 Global</h3><p>One human world connecting every continent without erasing local identity.</p></article>
+<article class="card level"><span class="badge">7</span><h3>✨ Universe</h3><p>The outer OAP spatial tier: every postcode remains connected through one coherent hierarchy.</p></article>
 </div>
 </section>
 <section aria-labelledby="doors-title">

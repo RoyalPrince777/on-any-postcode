@@ -13,6 +13,15 @@ from urllib import request as urlrequest
 MAX_RESPONSE_BYTES = 128 * 1024
 LOOKUP_TIMEOUT_SECONDS = 6
 CACHE_SECONDS = 300
+SPATIAL_LEVELS = (
+    "postcode",
+    "borough",
+    "county",
+    "country",
+    "continent",
+    "global",
+    "universe",
+)
 _UK_POSTCODE = re.compile(
     r"^(?:GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})$", re.IGNORECASE
 )
@@ -54,6 +63,19 @@ def _continent(country_code: object) -> str:
         if code in codes:
             return continent
     return "World"
+
+
+def _with_spatial_tiers(location: dict[str, Any]) -> dict[str, Any]:
+    """Complete every resolved place with OAP's local-to-Universe contract."""
+
+    result = dict(location)
+    result["global"] = "Global"
+    result["universe"] = "Universe"
+    result["hierarchy"] = tuple(
+        {"level": level, "value": str(result.get(level) or "")}
+        for level in SPATIAL_LEVELS
+    )
+    return result
 
 
 def _cached(key: str) -> dict[str, Any] | None:
@@ -111,7 +133,7 @@ def _json(url: str, expected_host: str) -> dict[str, Any]:
 
 
 def lookup(value: object) -> dict[str, Any]:
-    """Resolve a postcode or place into the OAP five-level hierarchy."""
+    """Resolve a postcode or place into OAP's seven-tier spatial hierarchy."""
 
     query = " ".join(str(value or "").strip().split())[:120]
     if len(query) < 2:
@@ -127,22 +149,24 @@ def lookup(value: object) -> dict[str, Any]:
         result = payload.get("result")
         if not isinstance(result, dict):
             raise ValueError("location_not_found")
-        normalized = {
-            "query": query,
-            "postcode": str(result.get("postcode") or query).upper(),
-            "borough": str(result.get("admin_district") or ""),
-            "county": str(
-                result.get("admin_county")
-                or result.get("region")
-                or result.get("parish")
-                or ""
-            ),
-            "country": str(result.get("country") or "United Kingdom"),
-            "continent": "Europe",
-            "latitude": float(result["latitude"]),
-            "longitude": float(result["longitude"]),
-            "provider": "UK postcode service",
-        }
+        normalized = _with_spatial_tiers(
+            {
+                "query": query,
+                "postcode": str(result.get("postcode") or query).upper(),
+                "borough": str(result.get("admin_district") or ""),
+                "county": str(
+                    result.get("admin_county")
+                    or result.get("region")
+                    or result.get("parish")
+                    or ""
+                ),
+                "country": str(result.get("country") or "United Kingdom"),
+                "continent": "Europe",
+                "latitude": float(result["latitude"]),
+                "longitude": float(result["longitude"]),
+                "provider": "UK postcode service",
+            }
+        )
         return _store(cache_key, normalized)
 
     parameters = urlparse.urlencode(
@@ -156,17 +180,21 @@ def lookup(value: object) -> dict[str, Any]:
     if not isinstance(results, list) or not results or not isinstance(results[0], dict):
         raise ValueError("location_not_found")
     item = results[0]
-    normalized = {
-        "query": query,
-        "postcode": str(item.get("postcodes", [""])[0] if item.get("postcodes") else ""),
-        "borough": str(item.get("admin3") or item.get("name") or ""),
-        "county": str(item.get("admin2") or item.get("admin1") or ""),
-        "country": str(item.get("country") or ""),
-        "continent": _continent(item.get("country_code")),
-        "latitude": float(item["latitude"]),
-        "longitude": float(item["longitude"]),
-        "provider": "Global place service",
-    }
+    normalized = _with_spatial_tiers(
+        {
+            "query": query,
+            "postcode": str(
+                item.get("postcodes", [""])[0] if item.get("postcodes") else ""
+            ),
+            "borough": str(item.get("admin3") or item.get("name") or ""),
+            "county": str(item.get("admin2") or item.get("admin1") or ""),
+            "country": str(item.get("country") or ""),
+            "continent": _continent(item.get("country_code")),
+            "latitude": float(item["latitude"]),
+            "longitude": float(item["longitude"]),
+            "provider": "Global place service",
+        }
+    )
     return _store(cache_key, normalized)
 
 
@@ -249,6 +277,8 @@ def status() -> dict[str, object]:
         "postcode_provider_verified": postcode_verified,
         "global_provider_verified": global_verified,
         "weather_provider_verified": weather_verified,
+        "spatial_levels": SPATIAL_LEVELS,
+        "spatial_contract": "POSTCODE_TO_UNIVERSE",
         "bounded_timeout": LOOKUP_TIMEOUT_SECONDS,
         "cache_seconds": CACHE_SECONDS,
         "last_success_epoch": {
