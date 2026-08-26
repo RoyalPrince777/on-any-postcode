@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -5,6 +6,8 @@ RUNNER = (ROOT / "scripts" / "termux_home_node_run.sh").read_text()
 SETUP = (ROOT / "scripts" / "termux_home_node_setup.sh").read_text()
 STATUS = (ROOT / "scripts" / "termux_home_node_status.sh").read_text()
 DOC = (ROOT / "docs" / "TERMUX_HOME_NODE.md").read_text()
+TERMUX_REQUIREMENTS = (ROOT / "requirements-termux-home-node.txt").read_text()
+MISSION_INIT = (ROOT / "mission_control" / "__init__.py").read_text()
 
 
 def test_termux_runner_uses_existing_bounded_worker_without_self_updating():
@@ -25,12 +28,31 @@ def test_termux_setup_keeps_database_secret_out_of_repository():
     assert "postgresql://neondb_owner:" not in SETUP
 
 
-def test_termux_setup_uses_android_compatible_psycopg():
+def test_termux_setup_uses_minimal_android_worker_requirements():
     assert "pkg install -y python git postgresql" in SETUP
-    assert "psycopg\\[binary\\]" in SETUP
-    assert "pip install 'psycopg<4,>=3.2'" in SETUP
+    assert "requirements-termux-home-node.txt" in SETUP
+    assert "requirements.txt" not in SETUP
     assert "PSYCOPG_IMPL=python" in SETUP
     assert "pq.__impl__" in SETUP
+    assert "cryptography" in SETUP
+    assert "psycopg" in TERMUX_REQUIREMENTS
+    assert "binary" not in TERMUX_REQUIREMENTS.casefold()
+    assert "pyjwt" not in TERMUX_REQUIREMENTS.casefold()
+    assert "cryptography" not in TERMUX_REQUIREMENTS.casefold()
+
+
+def test_mission_control_package_keeps_web_imports_out_of_worker_import_path():
+    tree = ast.parse(MISSION_INIT)
+    top_level_imports = []
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            top_level_imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            top_level_imports.append(node.module)
+    assert "flask" not in top_level_imports
+    assert "click" not in top_level_imports
+    assert "from .views import bp" in MISSION_INIT
+    assert MISSION_INIT.index("def init_app") < MISSION_INIT.index("from .views import bp")
 
 
 def test_termux_status_uses_authoritative_runtime_readiness():
