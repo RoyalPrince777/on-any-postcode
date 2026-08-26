@@ -29,6 +29,7 @@ from .organ_manager import OrganManager
 from .organs import FrontalLobe
 from .organs.base import BrainPacket
 from .providers import ProviderRouter
+from .self_improvement_v2 import SelfImprovementV2
 from .self_model import SelfModel
 
 
@@ -72,6 +73,7 @@ class SMICore:
         self.self_model = SelfModel()
         self.coherence = CoherenceEngine()
         self.autonomy = SMIAutonomyEngine()
+        self.self_improvement_v2 = SelfImprovementV2(evolution)
 
     def _component_statuses(self) -> tuple[dict[str, object], ...]:
         return (
@@ -231,12 +233,16 @@ class SMICore:
         components = self._component_statuses()
         self_model = self.self_model.observe(components)
         coherence = self.coherence.evaluate(components)
-        return self.autonomy.run_cycle(
+        cycle = self.autonomy.run_cycle(
             components=components,
             self_model=self_model.as_dict(),
             coherence=coherence.as_dict(),
             evolution=self.evolution.status(),
         )
+        return {
+            **cycle,
+            "self_improvement_v2": self.self_improvement_v2.status(),
+        }
 
     def status(self) -> dict[str, object]:
         components = self._component_statuses()
@@ -267,5 +273,6 @@ class SMICore:
             "coherence": coherence.as_dict(),
             "autonomy": autonomy,
             "controlled_self_improvement": self.evolution.status(),
+            "self_improvement_v2": self.self_improvement_v2.status(),
             "components": components,
         }
