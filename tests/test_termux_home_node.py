@@ -29,16 +29,21 @@ def test_termux_setup_keeps_database_secret_out_of_repository():
 
 
 def test_termux_setup_uses_minimal_android_worker_requirements():
+    active_requirements = [
+        line.strip().casefold()
+        for line in TERMUX_REQUIREMENTS.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
     assert "pkg install -y python git postgresql" in SETUP
     assert "requirements-termux-home-node.txt" in SETUP
     assert "requirements.txt" not in SETUP
     assert "PSYCOPG_IMPL=python" in SETUP
     assert "pq.__impl__" in SETUP
     assert "cryptography" in SETUP
-    assert "psycopg" in TERMUX_REQUIREMENTS
-    assert "binary" not in TERMUX_REQUIREMENTS.casefold()
-    assert "pyjwt" not in TERMUX_REQUIREMENTS.casefold()
-    assert "cryptography" not in TERMUX_REQUIREMENTS.casefold()
+    assert any(line.startswith("psycopg") for line in active_requirements)
+    assert all("binary" not in line for line in active_requirements)
+    assert all("pyjwt" not in line for line in active_requirements)
+    assert all("cryptography" not in line for line in active_requirements)
 
 
 def test_mission_control_package_keeps_web_imports_out_of_worker_import_path():
