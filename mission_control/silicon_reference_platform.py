@@ -8,7 +8,8 @@ provision keys, alter boot configuration, or grant execution authority.
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from .silicon_architecture import (
     HUMAN_AUTHORITY_FINAL,
