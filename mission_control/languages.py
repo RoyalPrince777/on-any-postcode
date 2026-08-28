@@ -13,7 +13,6 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 from urllib.parse import urlsplit
 
-
 CONTINENTS: tuple[dict[str, Any], ...] = (
     {
         "id": "africa",
