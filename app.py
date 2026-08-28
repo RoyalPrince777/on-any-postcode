@@ -278,6 +278,77 @@ def public_stylesheet():
     )
 
 
+@app.get("/manifest.webmanifest")
+def oap_os_manifest():
+    """Expose the install contract for the public OAP Operating System shell."""
+
+    response = send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "manifest.webmanifest",
+        mimetype="application/manifest+json",
+        max_age=3600,
+    )
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@app.get("/service-worker.js")
+def oap_os_service_worker():
+    """Serve the public-only worker at the root scope with prompt updates."""
+
+    response = send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "oap-os-sw.js",
+        mimetype="application/javascript",
+        max_age=0,
+    )
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
+
+
+@app.get("/assets/oap-os.js")
+def oap_os_install_controller():
+    """Serve the bounded browser installation controller."""
+
+    return send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "oap-os.js",
+        mimetype="application/javascript",
+        max_age=3600,
+    )
+
+
+@app.get("/assets/oap-os-icon-<int:size>.png")
+def oap_os_icon(size):
+    """Serve only the two reviewed install-icon sizes."""
+
+    if size not in {192, 512}:
+        response = make_response("", 404)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    return send_from_directory(
+        os.path.join(app.root_path, "static"),
+        f"oap-os-icon-{size}.png",
+        mimetype="image/png",
+        max_age=86400,
+    )
+
+
+@app.get("/offline")
+def oap_os_offline():
+    """Return a static public fallback without opening a session or private store."""
+
+    response = send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "oap-os-offline.html",
+        mimetype="text/html",
+        max_age=3600,
+    )
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
 def _csrf_failure():
     return jsonify(
         error={

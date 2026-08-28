@@ -25,6 +25,7 @@ def test_war_room_rates_every_world_and_digital_organ():
         "postgres_hrm",
         "organism_runtime",
         "home_node",
+        "oap_os_install_shell",
         "route_core",
         "rtl_guardian_nexus",
         "rtl_memory_guard",

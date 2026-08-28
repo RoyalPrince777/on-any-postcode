@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">OAP OS</title>
+  <desc id="desc">ON ANY POSTCODE Operating System icon</desc>
+  <rect width="512" height="512" fill="#06120b"/>
+  <circle cx="256" cy="236" r="168" fill="#092414" stroke="#61df91" stroke-width="20"/>
+  <path d="M256 44l24 48h-48z" fill="#f3c94f"/>
+  <path d="M256 428l-24-48h48z" fill="#f3c94f"/>
+  <text x="256" y="238" fill="#f5fff7" font-family="Arial, sans-serif" font-size="132" font-weight="900" text-anchor="middle">OAP</text>
+  <text x="256" y="322" fill="#61df91" font-family="Arial, sans-serif" font-size="78" font-weight="900" letter-spacing="14" text-anchor="middle">OS</text>
+</svg>

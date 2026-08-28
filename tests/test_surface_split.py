@@ -56,6 +56,8 @@ def test_smi_gateway_allowlist_is_private_and_sign_in_only():
     assert smi_gateway._allowed("world") is False
     assert smi_gateway._allowed("my-world") is False
     assert smi_gateway._allowed("market") is False
+    assert smi_gateway._allowed("manifest.webmanifest") is False
+    assert smi_gateway._allowed("service-worker.js") is False
 
 
 def test_smi_gateway_does_not_follow_upstream_redirects():

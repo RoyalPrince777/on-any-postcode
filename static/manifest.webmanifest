@@ -1,0 +1,58 @@
+{
+  "name": "ON ANY POSTCODE Operating System",
+  "short_name": "OAP OS",
+  "description": "The human-centred, local-first operating layer for ON ANY POSTCODE.",
+  "id": "/?source=oap-os",
+  "start_url": "/?source=oap-os",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#06120b",
+  "theme_color": "#092414",
+  "categories": ["social", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/oap-os-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/oap-os-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "The Spot",
+      "short_name": "The Spot",
+      "description": "Enter the local postcode community.",
+      "url": "/the-spot?source=oap-os-shortcut",
+      "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "The Link",
+      "short_name": "The Link",
+      "description": "Open the OAP communications gateway.",
+      "url": "/the-link?source=oap-os-shortcut",
+      "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Link Up",
+      "short_name": "Link Up",
+      "description": "Open protected OAP conversations.",
+      "url": "/linkup?source=oap-os-shortcut",
+      "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Movement",
+      "short_name": "Movement",
+      "description": "Open OAP movement and travel.",
+      "url": "/movement?source=oap-os-shortcut",
+      "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}
