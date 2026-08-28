@@ -8,8 +8,8 @@ from mission_control.sovereign_digital_soc_v02 import (
     REAL_MMIO_ENABLED,
     REAL_ORGAN_EXECUTION_ENABLED,
     SovereignDigitalSoCV02Simulator,
-    validate_v02_contract,
     v02_contract,
+    validate_v02_contract,
 )
 
 
