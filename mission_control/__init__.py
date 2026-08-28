@@ -19,6 +19,7 @@ def init_app(app: Flask) -> None:
     from . import audit as auditmod
     from . import db as dbmod
     from . import (
+        movement_certification,
         movement_match_safety,
         movement_operations,
         organism_runtime,
@@ -27,6 +28,7 @@ def init_app(app: Flask) -> None:
         routing,
         surface_security,
     )
+    from .movement_certification_routes import bp as movement_certification_bp
     from .movement_routes import bp as movement_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
@@ -130,6 +132,24 @@ def init_app(app: Flask) -> None:
         )
         print(json.dumps(result))
 
+    @app.cli.command("oap-movement-certification-status")
+    def _oap_movement_certification_status() -> None:
+        import json
+
+        print(json.dumps(movement_certification.schema_status()))
+
+    @app.cli.command("oap-init-movement-certification")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_movement_certification(dry_run: bool, yes: bool) -> None:
+        import json
+
+        result = movement_certification.init_schema(
+            dry_run=dry_run,
+            assume_yes=yes,
+        )
+        print(json.dumps(result))
+
     @app.cli.command("oap-verify-audit")
     def _oap_verify_audit() -> None:  # pragma: no cover - CLI wrapper
         ok, report = auditmod.verify_audit()
@@ -142,6 +162,7 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(movement_bp)
+    app.register_blueprint(movement_certification_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(bp, url_prefix="/mission")

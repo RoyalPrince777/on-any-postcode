@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movement Certification · OAP</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">Apply · evidence · Human Authority · external compliance</p>
+      <h1>Movement Certification</h1>
+      <p>Apply to become an OAP Driver, Rider or Courier. Internal approval never replaces legal, insurance, licensing or other external compliance.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('movement.movement_workspace_home') }}">My Movement</a>
+      <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Movement</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <aside class="mc-authority" aria-label="Certification boundary">
+      <strong>Role grant stays locked</strong>
+      <span>Submitting this form is not certification. Human Authority may review the application internally, but Driver/Rider/Courier role activation remains blocked until external compliance is actually verified.</span>
+    </aside>
+
+    <section class="mc-panel" aria-labelledby="notice-title">
+      <p class="mc-eyebrow">Versioned application notice · {{ application_notice.version }}</p>
+      <h2 id="notice-title">What this application does</h2>
+      <p>{{ application_notice.text }}</p>
+      <p><strong>Retention:</strong> scheduled for Human Authority-reviewed deletion after {{ application_notice.retention_days }} days unless you delete a closed application sooner.</p>
+      <p><strong>Notice receipt:</strong> {{ application_notice.digest[:12] }}…</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="apply-title">
+      <p class="mc-eyebrow">No licence number or date of birth requested here</p>
+      <h2 id="apply-title">Apply to work</h2>
+      <form id="movement-certification-form">
+        <label for="cert-role">Role</label>
+        <select id="cert-role" required>
+          <option value="driver">Driver</option>
+          <option value="rider">Rider</option>
+          <option value="courier">Courier</option>
+        </select>
+
+        <label for="cert-vehicle">Vehicle</label>
+        <select id="cert-vehicle" required>
+          <option value="car">Car</option>
+          <option value="van">Van</option>
+          <option value="ebike">E-Bike</option>
+          <option value="bicycle">Bicycle</option>
+          <option value="moped">Moped</option>
+          <option value="motorcycle">Motorcycle</option>
+        </select>
+
+        <label for="cert-zone">Service zone</label>
+        <input id="cert-zone" maxlength="40" placeholder="CR4 / Mitcham">
+
+        <label for="cert-label">Vehicle label — do not enter identifying or sensitive details</label>
+        <input id="cert-label" maxlength="80" placeholder="Black hatchback / Cargo e-bike">
+
+        <label for="cert-last4">Registration last 4 characters (motor vehicles only)</label>
+        <input id="cert-last4" maxlength="4" autocomplete="off">
+
+        <label><input id="cert-age" type="checkbox" required> I confirm I am 18 or over.</label>
+        <label><input id="cert-terms" type="checkbox" required> I accept application notice {{ application_notice.version }} and understand that this is not certification, legal clearance or permission to work.</label>
+        <label><input id="cert-licence" type="checkbox"> I declare that I hold any licence required for the role/vehicle.</label>
+        <label><input id="cert-insurance" type="checkbox"> I declare that I hold any insurance required for the role/vehicle.</label>
+
+        <button type="submit">Submit application</button>
+        <p id="cert-result" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="applications-title">
+      <p class="mc-eyebrow">Private to your identity</p>
+      <h2 id="applications-title">My Applications</h2>
+      {% if applications %}
+      <div class="mc-agent-grid" role="list">
+        {% for item in applications %}
+        <article class="mc-agent-card" role="listitem" data-application-id="{{ item.application_id }}" data-application-state="{{ item.state }}">
+          <p class="mc-eyebrow">{{ item.role_type|upper }} · {{ item.state }}</p>
+          <h3>{{ item.vehicle_type|upper }}{% if item.vehicle_label %} · {{ item.vehicle_label }}{% endif %}</h3>
+          <p>Zone: {{ item.service_zone or 'Not set' }}</p>
+          <p>External compliance: {{ item.external_compliance_state }}</p>
+          <p>Worker role granted: {{ 'Yes' if item.role_granted else 'No' }}</p>
+          <p>Notice: {{ item.terms_version }}</p>
+          <p>Scheduled data expiry: {{ item.retention_expires_at }}</p>
+          {% if item.applicant_message %}
+          <p><strong>Message from OAP:</strong> {{ item.applicant_message }}</p>
+          {% endif %}
+          {% if item.state == 'NEEDS_INFO' %}
+          <label for="response-{{ loop.index }}">Your response — do not include documents, licence numbers, health information or other sensitive data</label>
+          <textarea id="response-{{ loop.index }}" class="cert-applicant-response" maxlength="500" required></textarea>
+          <button type="button" class="cert-resubmit">Resubmit application</button>
+          {% endif %}
+          {% if item.state in ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFO', 'INTERNAL_APPROVED'] %}
+          <button type="button" class="cert-cancel">Withdraw and scrub optional data</button>
+          {% endif %}
+          {% if item.state in ['CANCELLED', 'REJECTED'] %}
+          <button type="button" class="cert-delete">Delete application data</button>
+          {% endif %}
+          <p class="cert-application-result" role="status" aria-live="polite"></p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No Movement worker applications yet.</p>
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+  (() => {
+    const csrf = {{ oap_csrf_token|tojson }};
+    const result = document.getElementById("cert-result");
+    const details = () => ({
+      service_zone: document.getElementById("cert-zone").value.trim(),
+      vehicle_label: document.getElementById("cert-label").value.trim(),
+      registration_last4: document.getElementById("cert-last4").value.trim(),
+      declarations: {
+        age_18_or_over: document.getElementById("cert-age").checked,
+        terms_accepted: document.getElementById("cert-terms").checked,
+        licence_declared: document.getElementById("cert-licence").checked,
+        insurance_declared: document.getElementById("cert-insurance").checked
+      }
+    });
+    const request = async (url, method, body) => {
+      const response = await fetch(url, {
+        method,
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
+        body: body === undefined ? undefined : JSON.stringify(body)
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error((payload.error || {}).message || "Application request failed.");
+      return payload;
+    };
+    document.getElementById("movement-certification-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      result.textContent = "Submitting…";
+      const body = {
+        ...details(),
+        role_type: document.getElementById("cert-role").value,
+        vehicle_type: document.getElementById("cert-vehicle").value
+      };
+      try {
+        await request("/movement/worker-applications", "POST", body);
+        result.textContent = "Application submitted for Human Authority review.";
+        window.location.reload();
+      } catch (error) {
+        result.textContent = error.message;
+      }
+    });
+
+    document.querySelectorAll("[data-application-id]").forEach((card) => {
+      const applicationId = card.dataset.applicationId;
+      const status = card.querySelector(".cert-application-result");
+      const resubmit = card.querySelector(".cert-resubmit");
+      if (resubmit) resubmit.addEventListener("click", async () => {
+        status.textContent = "Resubmitting…";
+        try {
+          const response = card.querySelector(".cert-applicant-response").value.trim();
+          await request(`/movement/worker-applications/${applicationId}/resubmit`, "POST", {
+            ...details(), response_message: response
+          });
+          status.textContent = "Application resubmitted for review.";
+          window.location.reload();
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      });
+
+      const cancel = card.querySelector(".cert-cancel");
+      if (cancel) cancel.addEventListener("click", async () => {
+        if (!window.confirm("Withdraw this application and scrub its optional vehicle and location data?")) return;
+        status.textContent = "Withdrawing…";
+        try {
+          await request(`/movement/worker-applications/${applicationId}/cancel`, "POST", {});
+          status.textContent = "Application withdrawn and optional data scrubbed.";
+          window.location.reload();
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      });
+
+      const remove = card.querySelector(".cert-delete");
+      if (remove) remove.addEventListener("click", async () => {
+        if (!window.confirm("Permanently delete this application and its review data? This cannot be undone.")) return;
+        status.textContent = "Deleting…";
+        try {
+          await request(`/movement/worker-applications/${applicationId}`, "DELETE");
+          status.textContent = "Application data deleted.";
+          window.location.reload();
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>
