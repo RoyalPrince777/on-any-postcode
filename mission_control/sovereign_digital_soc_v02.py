@@ -14,6 +14,7 @@ import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from itertools import pairwise
 from typing import Any
 
 from .organism import BODY_ORGANS
@@ -110,7 +111,7 @@ def validate_v02_contract() -> None:
     }:
         raise ValueError("Interrupt contract drifted")
     ranges = sorted((region["base"], region["base"] + region["size"], region["name"]) for region in MEMORY_MAP)
-    for previous, current in zip(ranges, ranges[1:]):
+    for previous, current in pairwise(ranges):
         if previous[1] > current[0]:
             raise ValueError(f"Memory regions overlap: {previous[2]} and {current[2]}")
 
