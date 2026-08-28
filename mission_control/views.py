@@ -30,6 +30,7 @@ from . import (
     public_store,
     smi_chat_runtime,
     status,
+    war_room,
     web_security,
 )
 
@@ -147,6 +148,28 @@ def brain_status():
     """Return a coarse, read-only SMI implementation projection."""
 
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
+
+
+@bp.get("/war-room")
+@web_security.login_required()
+def war_room_dashboard():
+    """Render the Founder-only evidence dashboard without changing state."""
+
+    response = make_response(
+        render_template(
+            "war_room.html",
+            war_room=war_room.get_war_room_dashboard(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/war-room/status")
+@web_security.login_required(api=True)
+def war_room_status():
+    """Return the same read-only, redacted War Room evidence projection."""
+
+    return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
 
 
 def _sync_private_identity() -> tuple[dict[str, object], dict[str, object]]:

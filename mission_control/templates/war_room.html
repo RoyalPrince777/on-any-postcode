@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP War Room</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body mc-war-room-body">
+  <header class="mc-workspace-header mc-war-room-header">
+    <div>
+      <p class="mc-eyebrow">Founder only / Read-only / Evidence command</p>
+      <h1>OAP War Room</h1>
+      <p>Everything in one governed view: proof, star rating, blocker and next gate.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.judgement_dashboard') }}">Judgement</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace mc-war-room-workspace">
+    <section class="mc-war-command" aria-labelledby="war-command-title">
+      <div class="mc-war-command-copy">
+        <p class="mc-eyebrow">Command picture</p>
+        <h2 id="war-command-title">
+          {% if war_room.validation.passed %}Canonical scope verified{% else %}Conflict requires Human review{% endif %}
+        </h2>
+        <p>{{ war_room.summary.meaning }}</p>
+      </div>
+      <dl class="mc-war-metrics">
+        <div>
+          <dt>Evidence score</dt>
+          <dd>{{ war_room.summary.overall_evidence_score }}%</dd>
+          <small>Portfolio view</small>
+        </div>
+        <div>
+          <dt>Average</dt>
+          <dd>{{ war_room.summary.average_stars }}/5</dd>
+          <small>Across {{ war_room.summary.rated_areas }} areas</small>
+        </div>
+        <div>
+          <dt>Runtime verified</dt>
+          <dd>{{ war_room.summary.runtime_verified }}</dd>
+          <small>Four stars or higher</small>
+        </div>
+        <div>
+          <dt>Certified</dt>
+          <dd>{{ war_room.summary.operationally_certified }}</dd>
+          <small>Five-star evidence</small>
+        </div>
+        <div>
+          <dt>Active conflicts</dt>
+          <dd>{{ war_room.validation.checks.active_conflicts }}</dd>
+          <small>Duplicates included</small>
+        </div>
+      </dl>
+    </section>
+
+    {% if war_room.validation.errors %}
+    <section class="mc-panel mc-war-alert" aria-labelledby="war-errors-title">
+      <h2 id="war-errors-title">Fail-closed findings</h2>
+      <ul>
+        {% for error in war_room.validation.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <section class="mc-panel mc-war-priorities" aria-labelledby="war-priorities-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Impact × readiness</p>
+          <h2 id="war-priorities-title">Highest-value next three</h2>
+          <p>These advance the real organism more than adding another simulated layer.</p>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
+      </div>
+      <ol class="mc-war-priority-grid">
+        {% for item in war_room.top_next %}
+        <li class="mc-war-priority mc-war-priority--{{ item.signal }}">
+          <span class="mc-war-rank">{{ item.rank }}</span>
+          <div>
+            <h3>{{ item.name }}</h3>
+            <p class="mc-war-stars" aria-label="{{ item.stars }} out of 5 stars">{{ item.stars_display }}</p>
+            <p>{{ item.next_gate }}</p>
+            <small>Impact {{ item.impact }}/5 · Human approval required</small>
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="war-rubric-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">No false green</p>
+          <h2 id="war-rubric-title">Five-star evidence law</h2>
+          <p>A later stage cannot skip an earlier missing stage.</p>
+        </div>
+      </div>
+      <ol class="mc-war-rubric">
+        {% for level in war_room.rubric if level.stars > 0 %}
+        <li class="mc-war-rubric--{{ level.signal }}">
+          <span class="mc-war-stars" aria-hidden="true">{{ '★' * level.stars }}{{ '☆' * (5 - level.stars) }}</span>
+          <strong>{{ level.label }}</strong>
+          <small>{{ level.meaning }}</small>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <nav class="mc-war-category-nav" aria-label="War Room categories">
+      {% for category in war_room.categories %}
+      <a href="#{{ category.id }}">
+        <strong>{{ category.name }}</strong>
+        <span>{{ category.count }} areas · {{ category.average_stars }}/5</span>
+      </a>
+      {% endfor %}
+    </nav>
+
+    {% for category in war_room.categories %}
+    <section class="mc-panel mc-war-category" id="{{ category.id }}" aria-labelledby="{{ category.id }}-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">{{ category.count }} rated areas</p>
+          <h2 id="{{ category.id }}-title">{{ category.name }}</h2>
+        </div>
+        <div class="mc-war-category-score">
+          <strong>{{ category.average_stars }}/5</strong>
+          <span>{{ category.runtime_verified }} runtime · {{ category.certified }} certified</span>
+        </div>
+      </div>
+      <div class="mc-war-rating-grid" role="list">
+        {% for item in category["items"] %}
+        <article class="mc-war-rating mc-war-rating--{{ item.signal }}" role="listitem">
+          <div class="mc-war-rating-head">
+            <div>
+              {% if item.parent %}<p class="mc-war-parent">Inside {{ item.parent }}</p>{% endif %}
+              <h3>{{ item.name }}</h3>
+            </div>
+            <span class="mc-war-rating-label">{{ item.label }}</span>
+          </div>
+          <p class="mc-war-stars" aria-label="{{ item.stars }} out of 5 stars">{{ item.stars_display }}</p>
+          <p>{{ item.summary }}</p>
+          {% if item.truth_boundary %}<p class="mc-war-truth">Truth: {{ item.truth_boundary }}</p>{% endif %}
+          <div class="mc-war-next">
+            <span>Next gate</span>
+            <strong>{{ item.next_gate }}</strong>
+          </div>
+          <details class="mc-war-evidence">
+            <summary>View five evidence stages</summary>
+            <ol>
+              {% for stage in item.stages %}
+              <li class="{{ 'is-passed' if stage.passed else 'is-pending' }}">
+                <span aria-hidden="true">{{ '●' if stage.passed else '○' }}</span>
+                <div><strong>{{ stage.stage }}</strong><small>{{ stage.evidence }}</small></div>
+              </li>
+              {% endfor %}
+            </ol>
+          </details>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+
+    <section class="mc-panel" aria-labelledby="war-conflicts-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Duplicate and overlap gate</p>
+          <h2 id="war-conflicts-title">Conflict audit</h2>
+          <p>Aliases and parent/child views are kept distinct from duplicate systems.</p>
+        </div>
+        <span class="mc-lock-badge">{{ war_room.conflict_audit.active_conflict_count }} active</span>
+      </div>
+      <dl class="mc-war-conflict-counts">
+        <div><dt>Duplicate systems</dt><dd>{{ war_room.conflict_audit.duplicate_systems }}</dd></div>
+        <div><dt>Duplicate agent IDs</dt><dd>{{ war_room.conflict_audit.duplicate_agent_ids }}</dd></div>
+        <div><dt>Duplicate agent roles</dt><dd>{{ war_room.conflict_audit.duplicate_agent_roles }}</dd></div>
+        <div><dt>Naming conflicts</dt><dd>{{ war_room.conflict_audit.naming_conflicts }}</dd></div>
+        <div><dt>Kaa registered</dt><dd>{{ 'Yes' if war_room.conflict_audit.kaa_registered else 'No' }}</dd></div>
+      </dl>
+      <div class="mc-war-boundary-grid" role="list">
+        {% for boundary in war_room.conflict_audit.resolved_boundaries %}
+        <article role="listitem">
+          <span>{{ boundary.status }}</span>
+          <h3>{{ boundary.components }}</h3>
+          <p>{{ boundary.resolution }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="war-law-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Locked governance</p>
+          <h2 id="war-law-title">The Organism law</h2>
+        </div>
+        <span class="mc-lock-badge">Human Authority final</span>
+      </div>
+      <ol class="mc-governance-chain">
+        {% for step in war_room.flow %}
+        <li><strong>{{ step.component }}</strong><span>{{ step.role }}</span>{% if step.authority %}<small>{{ step.authority }}</small>{% endif %}</li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority boundary">
+      <strong>Human Authority: {{ war_room.human_authority.status }}</strong>
+      <span>{{ war_room.human_authority.message }}</span>
+      <small>No approve, execute, deploy, migrate, purchase, flash or activate control exists in this War Room.</small>
+    </aside>
+  </main>
+</body>
+</html>

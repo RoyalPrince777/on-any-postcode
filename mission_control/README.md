@@ -28,8 +28,14 @@ Current read-only surface:
   validation. It locks SMI as the single brain, Living Kernel as the heart,
   the seven Intelligence worlds, seven existing families, agent Soul–Mind–Body, and Human Authority as
   the only final authority.
+- `war_room.py`: Founder-only, read-only evidence aggregation for command,
+  Intelligence worlds, all Digital Organs, infrastructure/runtime and silicon.
+  Five-star ratings advance only through approved scope, implementation,
+  verification, runtime proof and operational certification; no later stage may
+  skip an earlier missing gate.
 - `views.py`: GET-only `/mission`, `/mission/agents`,
-  `/mission/brain`, `/mission/brain/status`, `/mission/infrastructure`,
+  `/mission/brain`, `/mission/brain/status`, `/mission/war-room`,
+  `/mission/war-room/status`, `/mission/infrastructure`,
   `/mission/linkup`, `/mission/organism`, and `/mission/status` routes. No
   Mission Control POST or execution routes are registered; `/mission/chat` and
   `/mission/brain/run` are intentionally absent.
