@@ -22,9 +22,23 @@ jobs:
           cache: pip
       - name: Install runtime and verification dependencies
         run: python -m pip install -r requirements.txt pytest ruff
+      - name: Install RTL simulator
+        run: |
+          if ! command -v iverilog >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y iverilog
+          fi
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
         run: ruff check app.py mission_control oap tests
+      - name: Run OAP RTL proof slice
+        run: |
+          iverilog -g2012 -Wall -s tb_oap_guardian_nexus_slice \
+            -o /tmp/oap-rtl-proof \
+            rtl/oap_guardian_nexus_slice.sv \
+            rtl/tb_oap_guardian_nexus_slice.sv
+          vvp /tmp/oap-rtl-proof | tee /tmp/oap-rtl-proof.log
+          grep -q "OAP_RTL_PROOF_SLICE_V0_PASS" /tmp/oap-rtl-proof.log
       - name: Run governed regression suite
         run: python -m pytest -q
