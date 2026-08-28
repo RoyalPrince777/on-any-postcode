@@ -48,5 +48,13 @@ jobs:
             rtl/tb_oap_memory_guard_slice.sv
           vvp /tmp/oap-rtl-memory-guard | tee /tmp/oap-rtl-memory-guard.log
           grep -q "OAP_RTL_MEMORY_GUARD_V0_PASS" /tmp/oap-rtl-memory-guard.log
+      - name: Run OAP RTL trust attestation proof
+        run: |
+          iverilog -g2012 -Wall -s tb_oap_trust_attestation_core \
+            -o /tmp/oap-rtl-attestation \
+            rtl/oap_trust_attestation_core.sv \
+            rtl/tb_oap_trust_attestation_core.sv
+          vvp /tmp/oap-rtl-attestation | tee /tmp/oap-rtl-attestation.log
+          grep -q "OAP_RTL_ATTESTATION_V0_PASS" /tmp/oap-rtl-attestation.log
       - name: Run governed regression suite
         run: python -m pytest -q
