@@ -22,6 +22,9 @@ Current read-only surface:
 - `linkup.py`: the canonical read-only model for The Link. Directory and Inbox
   remain Communications views, while Community Power is linked without an
   ownership transfer. Public output contains no identities or conversations.
+- `languages.py`: the validated, read-only OAP World language hub. It provides
+  seven continent paths, starter lessons, deterministic conjugation drills and
+  reviewed official South London links without learner tracking or provider calls.
 - `brain.py`: coarse SMI implementation and activation readiness. It reports
   code versus runtime connection honestly and never constructs or runs SMI.
 - `organism.py`: canonical Digital Organism registry and duplicate-boundary

@@ -9,11 +9,11 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 17,
+        "capabilities": 18,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 17
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 18
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
