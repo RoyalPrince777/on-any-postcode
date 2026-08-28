@@ -17,6 +17,7 @@ from oap.war_room import WarRoomEngine
 
 from . import (
     agents,
+    authority,
     brain,
     infrastructure,
     judgement,
@@ -344,6 +345,7 @@ def _core_ratings(snapshot: Mapping[str, Mapping[str, Any]]) -> list[dict[str, A
     architecture = snapshot["architecture"]
     brain_status = snapshot["brain"]
     auth_status = snapshot["auth"]
+    authority_status = snapshot["authority"]
     postgres = snapshot["postgres"]
     judgement_status = snapshot["judgement"]
     guardian_status = snapshot["guardian"]
@@ -400,13 +402,14 @@ def _core_ratings(snapshot: Mapping[str, Mapping[str, Any]]) -> list[dict[str, A
                 ),
                 bool(auth_status.get("configured"))
                 and bool(auth_status.get("valid"))
-                and bool(postgres.get("initialized")),
+                and bool(postgres.get("initialized"))
+                and bool(authority_status.get("ready")),
                 human_decisions > 0,
                 (
                     "Founder-only authority boundary approved",
                     "Session, authority and permission adapters implemented",
                     "Auth and public/private regression coverage present",
-                    "Production auth and authority store verified",
+                    "Production Auth, authority store and active level-zero verified",
                     "At least one real Human Authority decision receipt exists",
                 ),
             ),
@@ -1102,6 +1105,7 @@ def _snapshot() -> dict[str, dict[str, Any]]:
     return {
         "architecture": _safe_mapping(organism.get_public_anatomy),
         "agents": _safe_mapping(agents.validate_agent_registry),
+        "authority": _safe_mapping(authority.status),
         "brain": _safe_mapping(brain.get_public_brain_status),
         "infrastructure": _safe_mapping(infrastructure.get_public_infrastructure),
         "judgement": _safe_mapping(judgement.status),
@@ -1140,7 +1144,8 @@ def _conflict_audit(snapshot: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]
     registered_names = {
         str(agent.get("name", "")).casefold() for agent in agents.AGENT_REGISTRY
     }
-    if "kaa" in registered_names:
+    kaa_registered = "kaa" in registered_names
+    if kaa_registered:
         errors.append("Kaa must remain absent unless Human Authority explicitly approves it")
 
     return {
@@ -1173,7 +1178,7 @@ def _conflict_audit(snapshot: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]
             or 0
         ),
         "legacy_term_policy": "Intelligence terminology only in active architecture",
-        "kaa_registered": False,
+        "kaa_registered": kaa_registered,
     }
 
 

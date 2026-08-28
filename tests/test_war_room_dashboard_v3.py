@@ -68,6 +68,44 @@ def test_war_room_top_three_are_impact_and_runtime_gates():
     assert all(item["human_approval_required"] for item in projection["top_next"])
 
 
+def test_identity_cannot_reach_runtime_verified_without_active_authority(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        war_room.neon_auth,
+        "status",
+        lambda: {"configured": True, "valid": True},
+    )
+    monkeypatch.setattr(
+        war_room.postgres_db,
+        "postgres_status",
+        lambda: {
+            "reachable": True,
+            "initialized": True,
+            "checksum_mismatches": [],
+        },
+    )
+    monkeypatch.setattr(
+        war_room.authority,
+        "status",
+        lambda: {
+            "database_reachable": True,
+            "active_level_zero": False,
+            "approval_permission": False,
+            "ready": False,
+        },
+    )
+
+    identity = next(
+        item
+        for item in _ratings(war_room.get_war_room_dashboard())
+        if item["id"] == "identity_authority"
+    )
+
+    assert identity["stars"] == 3
+    assert identity["first_missing_stage"] == "Runtime verified"
+
+
 def test_war_room_conflict_gate_detects_no_active_duplicates_or_kaa():
     audit = war_room.get_war_room_dashboard()["conflict_audit"]
 
