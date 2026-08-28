@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 // OAP RTL Proof Slice v0
 //
 // First hardware-description proof for the OAP Sovereign Digital SoC.
@@ -62,9 +64,9 @@ module oap_guardian_nexus_slice (
     assign irq_nexus    = irq_pending[0];
     assign mmio_ready   = mmio_valid;
 
-    always_comb begin
+    always @* begin
         mmio_rdata = 32'h0000_0000;
-        unique case (mmio_addr)
+        case (mmio_addr)
             REG_STATUS: begin
                 // bit 0: Guardian enforcing (always 1)
                 // bit 1: Human Authority final (always 1)
@@ -90,13 +92,13 @@ module oap_guardian_nexus_slice (
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            guardian_block   <= 1'b0;
-            nexus_tx_valid   <= 1'b0;
+            guardian_block    <= 1'b0;
+            nexus_tx_valid    <= 1'b0;
             nexus_payload_out <= 32'h0000_0000;
             hrm_receipt_valid <= 1'b0;
-            hrm_hash_out     <= 256'h0;
-            irq_pending      <= 3'b000;
-            nexus_tx_count   <= 32'h0000_0000;
+            hrm_hash_out      <= 256'h0;
+            irq_pending       <= 3'b000;
+            nexus_tx_count    <= 32'h0000_0000;
             hrm_receipt_count <= 32'h0000_0000;
         end else begin
             nexus_tx_valid    <= 1'b0;
