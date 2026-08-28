@@ -141,6 +141,15 @@ RESOLVED_BOUNDARIES = (
         "resolution": "OAP CORE is canonical; older names are compatibility aliases only.",
     },
     {
+        "components": "OAP OS / OAP CORE / Living Kernel / Android-Linux",
+        "status": "Resolved",
+        "resolution": (
+            "OAP OS is the installable human-centred operating layer; OAP CORE "
+            "owns technical services, the Living Kernel coordinates governed work, "
+            "and Android/Linux remains the Generation 0 host kernel."
+        ),
+    },
+    {
         "components": "OAP Market / OAP Commerce Core",
         "status": "Resolved",
         "resolution": "Market is the product surface; Commerce Core owns its workflow.",
@@ -794,6 +803,46 @@ def _operations_ratings(snapshot: Mapping[str, Mapping[str, Any]]) -> list[dict[
             ),
             next_gate="Sync the current revision and prove heartbeat, recovery and revision evidence.",
             impact=4,
+        ),
+        _rating(
+            item_id="oap_os_install_shell",
+            name="OAP Operating System Install Shell",
+            category="Infrastructure and runtime",
+            summary=(
+                "Installable public application shell above the Generation 0 "
+                "Android/Linux host."
+            ),
+            stages=_stages(
+                _paths_present(("docs/OAP_OPERATING_SYSTEM_V0.md",)),
+                _paths_present(
+                    (
+                        "static/manifest.webmanifest",
+                        "static/oap-os-sw.js",
+                        "static/oap-os.js",
+                        "static/oap-os-icon-192.png",
+                        "static/oap-os-icon-512.png",
+                    )
+                ),
+                _paths_present(("tests/test_oap_os_install_shell.py",)),
+                False,
+                False,
+                (
+                    "OAP OS application-layer boundary approved",
+                    "Manifest, service worker, install controller and icons implemented",
+                    "Install and private-cache isolation regression proof present",
+                    "Real supported-device installation and update observed",
+                    "Human-approved operational device evidence certified",
+                ),
+            ),
+            next_gate=(
+                "Deploy, install on Android and prove update, recovery and private-cache "
+                "isolation before Android packaging."
+            ),
+            impact=4,
+            truth_boundary=(
+                "OAP OS is not a replacement kernel; private identity, messages, HRM, "
+                "approvals and Mission Control are never offline-cached."
+            ),
         ),
         _rating(
             item_id="route_core",

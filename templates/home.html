@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <title>On Any Postcode</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#092414">
+<meta name="application-name" content="OAP OS">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="{{ url_for('oap_os_manifest') }}">
+<link rel="icon" sizes="192x192" href="{{ url_for('oap_os_icon', size=192) }}">
+<link rel="apple-touch-icon" href="{{ url_for('oap_os_icon', size=192) }}">
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
 body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif}
@@ -21,6 +28,10 @@ section{padding:28px max(20px,6vw);border-bottom:1px solid #1d4a2d}
 .button-link{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:bold;padding:11px 15px;border-radius:9px;margin:7px 7px 7px 0}
 .button-link--private{background:#8ed7ff;color:#04131c}
 .zone--private{border-color:#8ed7ff;background:#0c2430}
+.os-install{margin-top:24px;max-width:780px;border-left:5px solid #7ef0a3}
+.os-install button{width:auto;min-width:190px;padding-inline:18px}
+.os-install button[hidden]{display:none}
+.os-status{color:#b8d6c0;margin-bottom:0}
 input,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin:6px 0;border-radius:9px;border:0}
 button{background:#27c267;color:#021;font-weight:bold}
 .small{opacity:.82}
@@ -41,6 +52,14 @@ button{background:#27c267;color:#021;font-weight:bold}
 <h1>ON ANY<br>POSTCODE</h1>
 <p>One human world, entered through the place you live. Start local and move outward: Postcode → Borough → County / Region → Country → Continent → Global → Universe.</p>
 <div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></div>
+<div class="card os-install" aria-labelledby="oap-os-title">
+<p class="eyebrow">OAP OPERATING SYSTEM · GENERATION 0</p>
+<h2 id="oap-os-title">Install the public OAP OS shell</h2>
+<p>Run OAP as its own app on this device. Private accounts, messages, protected records and decisions remain online-only.</p>
+<button type="button" data-oap-install hidden>Install OAP OS</button>
+<p class="os-status" data-oap-install-status role="status">Checking whether this device can install OAP OS…</p>
+<noscript><p class="os-status">JavaScript is required only for the device installation prompt.</p></noscript>
+</div>
 </section>
 <section id="location" aria-labelledby="location-title">
 <p class="eyebrow">THE WORLD, FROM LOCAL OUTWARD</p>
@@ -78,5 +97,6 @@ button{background:#27c267;color:#021;font-weight:bold}
 </section>
 <section aria-labelledby="culture-title"><h2 id="culture-title">Culture and sport remain part of the world</h2><p>Football has its own home; it no longer defines the whole product.</p><a class="button-link" href="{{ url_for('world_cup') }}">Open World Cup</a></section>
 </main>
+<script defer src="{{ url_for('oap_os_install_controller') }}"></script>
 </body>
 </html>
