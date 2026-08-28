@@ -23,6 +23,7 @@ from mission_control import (
     approval_service,
     authority,
     judgement,
+    languages,
     linkup,
     location_intelligence,
     neon_auth,
@@ -410,6 +411,41 @@ def home():
     )
 
 
+def _world_languages_response():
+    """Render only the validated, read-only OAP World learning projection."""
+
+    validation = languages.validate_language_hub()
+    if not validation["passed"]:
+        response = jsonify(
+            error={
+                "code": "language_hub_unavailable",
+                "message": "World Languages is temporarily unavailable.",
+            }
+        )
+        response.status_code = 503
+    else:
+        response = make_response(
+            render_template(
+                "languages.html",
+                hub=languages.get_public_language_hub(
+                    continent_id=request.args.get("continent"),
+                    lesson_id=request.args.get("lesson"),
+                    drill_id=request.args.get("drill"),
+                ),
+            )
+        )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.get("/languages")
+@app.get("/world/languages")
+def world_languages():
+    """Open the phase-one public language-learning hub."""
+
+    return _world_languages_response()
+
+
 @app.get("/world-cup")
 def world_cup():
     """Preserve football inside Culture instead of using it as OAP World."""
@@ -670,6 +706,8 @@ def spot_capability_front_door(capability_slug):
             }
         )
         response.status_code = 404
+    elif capability_slug == "languages":
+        return _world_languages_response()
     else:
         user = None
         try:

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP World Languages</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body class="mc-workspace-body oap-language-body">
+  <header class="mc-workspace-header oap-language-header">
+    <div>
+      <p class="mc-eyebrow">OAP World / Learning</p>
+      <h1>World Languages</h1>
+      <p>Born local. Learn global. Start with a continent, practise a first lesson and find trusted learning support across South London.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace oap-language-workspace">
+    <section class="mc-panel oap-language-selector" aria-labelledby="continent-selector-title">
+      <p class="mc-eyebrow">Seven continents · one human world</p>
+      <h2 id="continent-selector-title">Choose a continent</h2>
+      <nav class="oap-continent-grid" aria-label="Seven-continent language selector">
+        {% for continent in hub.continents %}
+        <a
+          href="{{ url_for('world_languages', continent=continent.id) }}"
+          {% if continent.id == hub.selected_continent.id %}aria-current="page"{% endif %}
+        >
+          <span aria-hidden="true">{{ continent.icon }}</span>
+          <strong>{{ continent.name }}</strong>
+        </a>
+        {% endfor %}
+      </nav>
+
+      <div class="oap-language-selection" data-continent="{{ hub.selected_continent.id }}">
+        <div>
+          <p class="mc-eyebrow">{{ hub.selected_continent.icon }} {{ hub.selected_continent.name }}</p>
+          <h3>{{ hub.selected_continent.description }}</h3>
+          <p class="oap-language-list"><strong>Explore:</strong> {{ hub.selected_continent.languages|join(' · ') }}</p>
+        </div>
+        <form method="get" action="{{ url_for('world_languages') }}" class="oap-language-form">
+          <label for="language-lesson">Starter lesson</label>
+          <select id="language-lesson" name="lesson">
+            {% for continent in hub.continents %}
+            <optgroup label="{{ continent.name }}">
+              {% for lesson in hub.lessons if lesson.continent_id == continent.id %}
+              <option value="{{ lesson.id }}" {% if lesson.id == hub.selected_lesson.id %}selected{% endif %}>{{ lesson.language }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+          <button type="submit">Open lesson</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="starter-lesson-title">
+      <p class="mc-eyebrow">Starter lesson · {{ hub.selected_lesson.native_name }}</p>
+      <h2 id="starter-lesson-title">{{ hub.selected_lesson.language }}: {{ hub.selected_lesson.title }}</h2>
+      <p>{{ hub.selected_lesson.intro }}</p>
+      <div class="oap-phrase-grid" role="list" aria-label="Starter phrases">
+        {% for item in hub.selected_lesson.phrases %}
+        <article class="oap-phrase-card" role="listitem">
+          <strong lang="{{ hub.selected_lesson.lang }}">{{ item.phrase }}</strong>
+          {% if item.romanisation %}<span>{{ item.romanisation }}</span>{% endif %}
+          <p>{{ item.meaning }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="oap-learning-note">Starter content supports orientation, not fluency. Community and native-speaker review is required before a lesson can become Certified.</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="conjugation-title">
+      <p class="mc-eyebrow">Local-first grammar lab</p>
+      <h2 id="conjugation-title">Verb conjugation</h2>
+      <p>Practise one bounded present-tense table without sending text to an outside service. Languages organise verbs differently, so OAP will add new grammar patterns only after language review.</p>
+      <form method="get" action="{{ url_for('world_languages') }}" class="oap-language-form oap-drill-form">
+        <input type="hidden" name="continent" value="{{ hub.selected_continent.id }}">
+        <input type="hidden" name="lesson" value="{{ hub.selected_lesson.id }}">
+        <label for="conjugation-drill">Choose a verb</label>
+        <select id="conjugation-drill" name="drill">
+          {% for drill in hub.drills %}
+          <option value="{{ drill.id }}" {% if drill.id == hub.selected_drill.id %}selected{% endif %}>{{ drill.language }} · {{ drill.verb }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Load drill</button>
+      </form>
+      <div class="oap-conjugation-card" data-drill="{{ hub.selected_drill.id }}">
+        <h3>{{ hub.selected_drill.language }} · {{ hub.selected_drill.verb }}</h3>
+        <p>{{ hub.selected_drill.tense }}</p>
+        <table>
+          <thead><tr><th scope="col">Person</th><th scope="col">Form</th></tr></thead>
+          <tbody>
+            {% for item in hub.selected_drill.forms %}
+            <tr><th scope="row">{{ item.subject }}</th><td>{{ item.form }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="south-london-title">
+      <p class="mc-eyebrow">South London learning links</p>
+      <h2 id="south-london-title">Continue learning near your postcode</h2>
+      <p>Official council pages are linked directly. Check each page for current course times, cost, age and eligibility information.</p>
+      <div class="mc-family-grid" role="list">
+        {% for resource in hub.resources %}
+        <article class="mc-family-card" role="listitem">
+          <p class="mc-eyebrow">{{ resource.borough }}</p>
+          <h3>{{ resource.name }}</h3>
+          <p>{{ resource.purpose }}</p>
+          <a href="{{ resource.url }}" rel="noopener noreferrer">Open official resource →</a>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="oap-learning-note">Links reviewed {{ hub.resources_reviewed_on }}. OAP does not enrol you or send personal information to these services.</p>
+    </section>
+
+    <aside class="mc-authority oap-language-boundary" aria-label="Language learning privacy boundary">
+      <div>
+        <strong>Public learning only</strong>
+        <span>No account, progress profile, microphone, precise location, advertising tracker or live translation request is used.</span>
+      </div>
+      <div>
+        <strong>Link Up phase two is not active</strong>
+        <span>Conversation translation and practice require separate privacy, youth-safety and accuracy review.</span>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

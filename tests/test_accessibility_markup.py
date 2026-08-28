@@ -32,6 +32,7 @@ def test_home_and_mission_have_no_duplicate_ids(client):
     infrastructure = client.get("/mission/infrastructure").get_data(as_text=True)
     linkup = client.get("/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
+    languages = client.get("/world/languages").get_data(as_text=True)
 
     assert _duplicate_ids(home) == set()
     assert _duplicate_ids(mission) == set()
@@ -40,6 +41,7 @@ def test_home_and_mission_have_no_duplicate_ids(client):
     assert _duplicate_ids(infrastructure) == set()
     assert _duplicate_ids(linkup) == set()
     assert _duplicate_ids(organism) == set()
+    assert _duplicate_ids(languages) == set()
 
 
 def test_navigation_and_authority_landmarks_are_labelled(client):
@@ -50,6 +52,7 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     infrastructure = client.get("/mission/infrastructure").get_data(as_text=True)
     linkup = client.get("/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
+    languages = client.get("/world/languages").get_data(as_text=True)
 
     assert 'aria-label="Primary navigation"' in home
     assert 'aria-label="Public and private zones"' in home
@@ -65,6 +68,8 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     assert 'aria-label="Link Up privacy"' in linkup
     assert 'aria-label="OAP governance law"' in organism
     assert 'aria-label="Human Authority status"' in organism
+    assert 'aria-label="Seven-continent language selector"' in languages
+    assert 'aria-label="Language learning privacy boundary"' in languages
 
 
 def test_mobile_layout_rule_is_present():

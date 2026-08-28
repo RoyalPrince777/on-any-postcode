@@ -138,10 +138,190 @@ a {
   background: #0c2430;
 }
 
+.oap-language-body {
+  background:
+    radial-gradient(circle at 90% 5%, rgb(39 194 103 / 16%), transparent 26rem),
+    var(--oap-bg);
+}
+
+.oap-language-header h1 {
+  max-width: 720px;
+}
+
+.oap-continent-grid,
+.oap-phrase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.oap-continent-grid a {
+  display: grid;
+  min-height: 108px;
+  place-content: center;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--oap-border);
+  border-radius: 14px;
+  background: #0b2114;
+  color: var(--oap-text);
+  text-align: center;
+  text-decoration: none;
+}
+
+.oap-continent-grid a span {
+  font-size: 1.8rem;
+}
+
+.oap-continent-grid a:hover,
+.oap-continent-grid a:focus-visible,
+.oap-continent-grid a[aria-current="page"] {
+  border-color: var(--oap-green);
+  background: #163923;
+  outline: none;
+}
+
+.oap-language-selection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, .55fr);
+  gap: 24px;
+  align-items: end;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--oap-border);
+}
+
+.oap-language-selection h3,
+.oap-conjugation-card h3 {
+  margin: 4px 0 8px;
+}
+
+.oap-language-list,
+.oap-learning-note,
+.oap-conjugation-card > p {
+  color: var(--oap-muted);
+}
+
+.oap-language-form {
+  display: grid;
+  gap: 7px;
+}
+
+.oap-language-form label {
+  font-weight: 700;
+}
+
+.oap-language-form select,
+.oap-language-form button {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--oap-border);
+  border-radius: 9px;
+  font: inherit;
+}
+
+.oap-language-form select {
+  background: #f5fff7;
+  color: #06120b;
+}
+
+.oap-language-form button {
+  background: var(--oap-green);
+  color: #02150a;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.oap-language-form select:focus-visible,
+.oap-language-form button:focus-visible {
+  outline: 3px solid var(--oap-blue);
+  outline-offset: 2px;
+}
+
+.oap-phrase-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.oap-phrase-card,
+.oap-conjugation-card {
+  padding: 18px;
+  border: 1px solid #245f38;
+  border-radius: 14px;
+  background: #0b2114;
+}
+
+.oap-phrase-card strong {
+  display: block;
+  font-size: 1.35rem;
+}
+
+.oap-phrase-card span {
+  color: var(--oap-muted);
+  font-size: .9rem;
+}
+
+.oap-phrase-card p {
+  margin-bottom: 0;
+}
+
+.oap-drill-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  margin: 18px 0;
+}
+
+.oap-drill-form label {
+  grid-column: 1 / -1;
+}
+
+.oap-drill-form button {
+  width: auto;
+  min-width: 130px;
+}
+
+.oap-conjugation-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.oap-conjugation-card th,
+.oap-conjugation-card td {
+  padding: 10px;
+  border-bottom: 1px solid var(--oap-border);
+  text-align: left;
+}
+
+.oap-conjugation-card tbody tr:last-child th,
+.oap-conjugation-card tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.oap-language-boundary span {
+  display: block;
+  max-width: 500px;
+  margin-top: 4px;
+  color: var(--oap-muted);
+}
+
 @media (max-width: 768px) {
   .mc-workspace-header,
   .mc-authority {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .oap-language-selection,
+  .oap-drill-form {
+    grid-template-columns: 1fr;
+  }
+
+  .oap-drill-form label {
+    grid-column: auto;
+  }
+
+  .oap-drill-form button {
+    width: 100%;
   }
 }

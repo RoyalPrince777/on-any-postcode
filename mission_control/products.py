@@ -51,6 +51,7 @@ SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"id": "identity", "name": "Postcode Identity", "owner": "My World", "purpose": "One OAP identity across every Spot.", "status": "Managed identity and five-level profile live", "function": "Uses verified Neon Auth UUID ownership and location fields.", "blocked_by": "Optional higher-assurance verification remains separate"},
     {"id": "tv-media", "name": "OAP TV & Media", "owner": "OAP TV", "purpose": "Local video, live coverage, music, sport and culture.", "status": "Public surface live", "function": "Links the existing OAP TV front door.", "blocked_by": "Creator publishing workflow not connected"},
     {"id": "membership", "name": "Founder & Membership", "owner": "Membership", "purpose": "Free postcode access and approved membership tiers.", "status": "Read-only surface live", "function": "Displays the membership boundary without charging.", "blocked_by": "Identity, entitlement and regulated payment flow required"},
+    {"id": "languages", "name": "World Languages", "owner": "OAP World", "purpose": "Local-first language learning across every continent.", "status": "Public starter surface implemented", "function": "Provides seven continent paths, bounded starter lessons and deterministic conjugation drills.", "blocked_by": "Link Up language tools require separate privacy, youth-safety and accuracy review"},
 )
 LOCKED_SPOT_CAPABILITY_IDS = tuple(item["id"] for item in SPOT_CAPABILITIES)
 
@@ -156,6 +157,12 @@ PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
         "slug": "membership",
         "name": "Membership",
         "purpose": "Explore free postcode access and membership.",
+    },
+    {
+        "source_id": "languages",
+        "slug": "languages",
+        "name": "World Languages",
+        "purpose": "Start with a continent, practise a first lesson and find trusted learning support across South London.",
     },
 )
 

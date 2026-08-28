@@ -42,6 +42,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 <a href="#location">🌍 World</a>
 <a href="#signal">📡 Signal</a>
 <a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
+<a href="{{ url_for('world_languages') }}">🗣️ Languages</a>
 <a href="{{ url_for('linkup_front_door') }}">💬 Link Up</a>
 <a href="{{ url_for('my_world') }}">🔒 My World</a>
 <a href="{{ url_for('world_cup') }}">⚽ World Cup</a>
@@ -78,6 +79,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 <h2 id="doors-title">One front door, clear boundaries</h2>
 <div class="grid" aria-label="Public and private zones">
 <article class="card"><span class="badge">PUBLIC</span><h3>The Spot</h3><p>Local information, culture, services and community discovery for any postcode.</p><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Open The Spot</a></article>
+<article class="card"><span class="badge">PUBLIC</span><h3>World Languages</h3><p>Choose a continent, start a language lesson and find trusted learning support across South London.</p><a class="button-link" href="{{ url_for('world_languages') }}">Start learning</a></article>
 <article class="card"><span class="badge">PUBLIC</span><h3>Link Up</h3><p>Find community connections publicly. Private conversations require your account.</p><a class="button-link" href="{{ url_for('linkup_front_door') }}">Open Link Up</a></article>
 <article class="card zone--private"><span class="badge">PRIVATE</span><h3>My World</h3><p>Your profile, messages, records and twelve private workspaces stay owner-scoped.</p><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></article>
 </div>
