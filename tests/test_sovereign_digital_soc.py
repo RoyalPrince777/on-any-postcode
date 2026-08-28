@@ -1,4 +1,7 @@
-from mission_control.silicon_architecture import BLOCKED_HARDWARE_AUTONOMY, SILICON_GATES
+from mission_control.silicon_architecture import (
+    BLOCKED_HARDWARE_AUTONOMY,
+    SILICON_GATES,
+)
 from mission_control.sovereign_digital_soc import (
     ALL_GATE_KEYS,
     COGNITIVE_AUTHORITY,
