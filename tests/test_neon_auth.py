@@ -127,6 +127,25 @@ def test_founder_signup_fails_closed_without_server_selector(monkeypatch):
         neon_auth.sign_up_founder("private passphrase", "OAP Founder")
 
 
+def test_provider_error_code_never_returns_message_or_user_data():
+    result = neon_auth.AuthResult(
+        status_code=400,
+        payload={
+            "code": "PASSWORD_TOO_SHORT",
+            "message": "private provider detail",
+            "email": "member@example.test",
+        },
+    )
+
+    assert neon_auth.safe_error_code(result) == "PASSWORD_TOO_SHORT"
+    assert neon_auth.safe_error_code(
+        neon_auth.AuthResult(
+            status_code=400,
+            payload={"code": "unsafe code with spaces", "message": "secret"},
+        )
+    ) == "unknown"
+
+
 def test_private_selector_is_normalised_server_side(monkeypatch):
     monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", " Founder@Example.Test ")
 

@@ -9,6 +9,7 @@ final zero-user check with the provider request.
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 from typing import Final, Literal
 
@@ -18,6 +19,7 @@ ACTIVATION_TOKEN_ENV: Final = "OAP_FOUNDER_ACTIVATION_TOKEN"
 MIN_ACTIVATION_TOKEN_LENGTH: Final = 32
 FOUNDER_DISPLAY_NAME: Final = "OAP Founder"
 _ACTIVATION_LOCK_KEY: Final = 5_322_027_026_102_513_474
+LOGGER = logging.getLogger("oap.founder_activation")
 
 ActivationState = Literal["available", "complete", "disabled", "unavailable"]
 ActivationResult = Literal["activated", "complete", "rejected"]
@@ -102,6 +104,11 @@ def activate(password: str) -> ActivationResult:
                 return "activated"
             if neon_auth.successful(result):
                 raise ActivationUnavailable("founder_identity_not_persisted")
+            LOGGER.warning(
+                "founder_activation_provider_rejected status=%s code=%s",
+                result.status_code,
+                neon_auth.safe_error_code(result),
+            )
             return "rejected"
     except neon_auth.AuthUnavailable as exc:
         raise ActivationUnavailable("managed_auth_unavailable") from exc

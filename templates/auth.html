@@ -20,6 +20,8 @@
     input{background:#f7fff9;color:#06120b}
     button{background:#27c267;color:#021;font-weight:800;cursor:pointer}
     button:disabled{opacity:.45;cursor:not-allowed}
+    .show-control{display:flex;align-items:center;gap:9px;margin-top:12px;font-weight:700;cursor:pointer}
+    .show-control input{width:auto;padding:0;margin:0;accent-color:#27c267}
     .notice,.error{padding:13px;border-radius:10px;margin:14px 0}
     .notice{background:#123b23;border:1px solid #27c267}
     .error{background:#461b21;border:1px solid #ff7582}
@@ -51,6 +53,10 @@
         {% endif %}
         <label for="sign-in-password">{{ 'Private password' if founder_only else 'Password' }}</label>
         <input id="sign-in-password" name="password" type="password" autocomplete="current-password" maxlength="1024" required>
+        <label class="show-control" for="show-sign-in-password">
+          <input id="show-sign-in-password" type="checkbox">
+          <span>Show password</span>
+        </label>
         <button type="submit" {% if not auth_configured %}disabled{% endif %}>{{ 'Enter My World' if founder_only else 'Sign in securely' }}</button>
       </form>
     </section>
@@ -69,5 +75,14 @@
     </section>
     {% endif %}
   </main>
+  <script>
+    (() => {
+      const toggle = document.getElementById('show-sign-in-password');
+      const password = document.getElementById('sign-in-password');
+      toggle.addEventListener('change', () => {
+        password.type = toggle.checked ? 'text' : 'password';
+      });
+    })();
+  </script>
 </body>
 </html>

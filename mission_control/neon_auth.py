@@ -238,3 +238,20 @@ def cookie_header(
 
 def successful(result: AuthResult) -> bool:
     return HTTPStatus.OK <= result.status_code < HTTPStatus.MULTIPLE_CHOICES
+
+
+def safe_error_code(result: AuthResult) -> str:
+    """Return only a bounded provider error code, never message or user data."""
+
+    payload = result.payload
+    candidates: list[object] = []
+    if isinstance(payload, dict):
+        candidates.append(payload.get("code"))
+        nested = payload.get("error")
+        if isinstance(nested, dict):
+            candidates.append(nested.get("code"))
+    for candidate in candidates:
+        value = str(candidate or "").strip()
+        if re.fullmatch(r"[A-Za-z0-9_.:-]{1,80}", value):
+            return value
+    return "unknown"

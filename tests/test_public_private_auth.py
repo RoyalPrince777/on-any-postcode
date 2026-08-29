@@ -422,6 +422,8 @@ def test_private_auth_is_password_only_and_has_no_web_signup(
     assert 'name="email"' in business_page
     assert 'type="email"' in business_page
     assert 'action="/auth/sign-up"' not in business_page
+    assert 'id="show-sign-in-password"' in founder_page
+    assert "Show password" in founder_page
 
 
 def test_one_time_founder_activation_keeps_identity_server_side(
@@ -449,6 +451,8 @@ def test_one_time_founder_activation_keeps_identity_server_side(
     assert "member@example.test" not in page
     assert 'name="email"' not in page
     assert 'name="activation_code"' in page
+    assert 'id="show-founder-passwords"' in page
+    assert "Show both password entries" in page
 
     response = anonymous_client.post(
         "/activate-founder",

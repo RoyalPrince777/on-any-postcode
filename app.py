@@ -700,8 +700,9 @@ def activate_founder():
         return _founder_activation_response(
             status_code=400,
             error=(
-                "The Founder identity could not be activated. Choose a different "
-                "private password and try again."
+                "Managed identity rejected those setup details. Use 12–21 letters "
+                "and numbers with uppercase, lowercase and a number, then enter "
+                "the same password twice."
             ),
         )
 
