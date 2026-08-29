@@ -80,6 +80,33 @@ def configured_founder_email() -> str:
     return os.environ.get("OAP_HUMAN_AUTHORITY_EMAIL", "").strip().casefold()
 
 
+def configured_public_origin() -> str:
+    """Return one validated server-controlled HTTPS origin for Auth signup."""
+
+    value = (
+        os.environ.get("OAP_PUBLIC_ORIGIN", "").strip()
+        or os.environ.get("RENDER_EXTERNAL_URL", "").strip()
+    )
+    try:
+        parsed = urlparse.urlparse(value)
+        _ = parsed.port
+    except ValueError:
+        return ""
+    if not (
+        value
+        and parsed.scheme == "https"
+        and bool(parsed.hostname)
+        and not parsed.username
+        and not parsed.password
+        and parsed.path in {"", "/"}
+        and not parsed.params
+        and not parsed.query
+        and not parsed.fragment
+    ):
+        return ""
+    return value[:-1] if value.endswith("/") else value
+
+
 def _read_json(response: Any) -> Any:
     body = response.read(MAX_AUTH_RESPONSE_BYTES + 1)
     if len(body) > MAX_AUTH_RESPONSE_BYTES:
@@ -98,6 +125,7 @@ def _request(
     method: str,
     payload: Mapping[str, object] | None = None,
     cookie_header: str | None = None,
+    origin: str | None = None,
 ) -> AuthResult:
     if path not in _ALLOWED_PATHS:
         raise ValueError("unsupported_auth_path")
@@ -116,6 +144,10 @@ def _request(
         if len(cookie_header.encode("utf-8")) > MAX_COOKIE_HEADER_BYTES:
             raise AuthUnavailable("auth_cookie_header_too_large")
         headers["Cookie"] = cookie_header
+    if origin:
+        if origin != configured_public_origin():
+            raise AuthUnavailable("invalid_auth_origin")
+        headers["Origin"] = origin
 
     request = urlrequest.Request(
         f"{base_url()}{path}", data=body, headers=headers, method=method
@@ -155,10 +187,14 @@ def sign_up_founder(password: str, name: str) -> AuthResult:
     email = configured_founder_email()
     if not email:
         raise AuthUnavailable("founder_selector_not_configured")
+    origin = configured_public_origin()
+    if not origin:
+        raise AuthUnavailable("public_origin_not_configured")
     return _request(
         "/sign-up/email",
         method="POST",
         payload={"name": name, "email": email, "password": password},
+        origin=origin,
     )
 
 

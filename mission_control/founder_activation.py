@@ -56,6 +56,7 @@ def _configuration_ready() -> bool:
         token_configured()
         and neon_auth.status()["valid"]
         and bool(neon_auth.configured_founder_email())
+        and bool(neon_auth.configured_public_origin())
         and postgres_db.configured()
     )
 

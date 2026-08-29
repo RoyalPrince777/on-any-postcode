@@ -93,14 +93,20 @@ def test_server_auth_request_omits_browser_origin_and_bounds_payload(
 
 def test_founder_signup_uses_only_the_server_side_selector(monkeypatch):
     monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", " Founder@Example.Test ")
+    monkeypatch.setenv(
+        "OAP_PUBLIC_ORIGIN", "https://on-any-postcode.onrender.com/"
+    )
     observed = {}
 
-    def fake_request(path, *, method, payload=None, cookie_header=None):
+    def fake_request(
+        path, *, method, payload=None, cookie_header=None, origin=None
+    ):
         observed.update(
             path=path,
             method=method,
             payload=payload,
             cookie_header=cookie_header,
+            origin=origin,
         )
         return neon_auth.AuthResult(status_code=200, payload={"user": {}})
 
@@ -117,6 +123,7 @@ def test_founder_signup_uses_only_the_server_side_selector(monkeypatch):
             "password": "private passphrase",
         },
         "cookie_header": None,
+        "origin": "https://on-any-postcode.onrender.com",
     }
 
 
@@ -125,6 +132,61 @@ def test_founder_signup_fails_closed_without_server_selector(monkeypatch):
 
     with pytest.raises(neon_auth.AuthUnavailable):
         neon_auth.sign_up_founder("private passphrase", "OAP Founder")
+
+
+def test_founder_signup_fails_closed_without_valid_server_origin(monkeypatch):
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://example.test/not-an-origin")
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+
+    with pytest.raises(neon_auth.AuthUnavailable):
+        neon_auth.sign_up_founder("private passphrase", "OAP Founder")
+
+
+def test_founder_signup_sends_validated_origin_but_no_referer(monkeypatch):
+    monkeypatch.setenv(
+        "NEON_AUTH_BASE_URL", "https://example.neonauth.test/neondb/auth"
+    )
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
+    monkeypatch.setenv(
+        "OAP_PUBLIC_ORIGIN", "https://on-any-postcode.onrender.com"
+    )
+    observed = {}
+
+    class Headers:
+        @staticmethod
+        def get_all(_name):
+            return []
+
+    class Response:
+        status = 200
+        headers = Headers()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            del exc_type, exc, traceback
+
+        @staticmethod
+        def read(_limit):
+            return b'{"user":{}}'
+
+    def fake_urlopen(request, timeout):
+        observed.update(request=request, timeout=timeout)
+        return Response()
+
+    monkeypatch.setattr(neon_auth.urlrequest, "urlopen", fake_urlopen)
+
+    result = neon_auth.sign_up_founder("private passphrase", "OAP Founder")
+    request = observed["request"]
+
+    assert result.status_code == 200
+    assert request.get_header("Origin") == (
+        "https://on-any-postcode.onrender.com"
+    )
+    assert request.get_header("Referer") is None
+    assert observed["timeout"] == neon_auth.AUTH_TIMEOUT_SECONDS
 
 
 def test_provider_error_code_never_returns_message_or_user_data():

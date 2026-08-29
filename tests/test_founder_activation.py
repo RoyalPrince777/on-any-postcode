@@ -34,6 +34,7 @@ def _ready(monkeypatch):
     monkeypatch.setenv(
         "NEON_AUTH_BASE_URL", "https://example.neonauth.test/neondb/auth"
     )
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://example.test")
     monkeypatch.setattr(postgres_db, "configured", lambda: True)
 
 
