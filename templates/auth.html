@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Enter My World · OAP</title>
+  <title>{{ 'Enter My World' if founder_only else 'Approved account sign-in' }} · OAP</title>
   <style>
     :root{color-scheme:dark}
     *{box-sizing:border-box}
@@ -28,9 +28,9 @@
 </head>
 <body>
   <header>
-    <p class="eyebrow">PRIVATE</p>
-    <h1>Enter My World</h1>
-    <p>Your private OAP account.</p>
+    <p class="eyebrow">{{ 'PRIVATE · FOUNDER' if founder_only else 'APPROVED ACCOUNT ACTION' }}</p>
+    <h1>{{ 'Enter My World' if founder_only else 'Sign in for this action' }}</h1>
+    <p>Public OAP World is open to browse without an account or password. Sign-in is used only for private access and approved actions such as business monetisation or private messages.</p>
     <a href="{{ url_for('home') }}">← Return to public OAP World</a>
     {% if auth_error %}<div class="error" role="alert">{{ auth_error }}</div>{% endif %}
     {% if auth_notice %}<div class="notice" role="status">{{ auth_notice }}</div>{% endif %}
@@ -41,35 +41,33 @@
 
   <main class="grid">
     <section class="card private" aria-labelledby="sign-in-title">
-      <h2 id="sign-in-title">Sign in</h2>
+      <h2 id="sign-in-title">{{ 'Private password' if founder_only else 'Sign in' }}</h2>
       <form method="post" action="{{ url_for('auth_sign_in') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <input type="hidden" name="next" value="{{ next_path }}">
+        {% if not founder_only %}
         <label for="sign-in-email">Email</label>
         <input id="sign-in-email" name="email" type="email" autocomplete="email" maxlength="320" required>
-        <label for="sign-in-password">Password</label>
+        {% endif %}
+        <label for="sign-in-password">{{ 'Private password' if founder_only else 'Password' }}</label>
         <input id="sign-in-password" name="password" type="password" autocomplete="current-password" maxlength="1024" required>
-        <button type="submit" {% if not auth_configured %}disabled{% endif %}>Sign in securely</button>
+        <button type="submit" {% if not auth_configured %}disabled{% endif %}>{{ 'Enter My World' if founder_only else 'Sign in securely' }}</button>
       </form>
     </section>
 
-    <section class="card" aria-labelledby="sign-up-title">
-      <h2 id="sign-up-title">Create account</h2>
-      <form method="post" action="{{ url_for('auth_sign_up') }}">
-        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-        <input type="hidden" name="next" value="{{ next_path }}">
-        <label for="sign-up-name">Name</label>
-        <input id="sign-up-name" name="name" autocomplete="name" maxlength="120" required>
-        <label for="sign-up-email">Email</label>
-        <input id="sign-up-email" name="email" type="email" autocomplete="email" maxlength="320" required>
-        <label for="sign-up-password">Password</label>
-        <input id="sign-up-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required>
-        <label for="sign-up-confirm">Confirm password</label>
-        <input id="sign-up-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required>
-        <button type="submit" {% if not auth_configured %}disabled{% endif %}>Create private My World</button>
-      </form>
-      <p class="small">OAP does not store your password.</p>
+    {% if founder_only %}
+    <section class="card" aria-labelledby="private-boundary-title">
+      <h2 id="private-boundary-title">Founder-only boundary</h2>
+      <p>Your private identity is selected server-side. This page accepts only your password.</p>
+      <p class="small">There is no public private-account signup. Your password is handled by the managed identity service and is never stored or displayed by OAP.</p>
     </section>
+    {% else %}
+    <section class="card" aria-labelledby="public-access-title">
+      <h2 id="public-access-title">Public access stays free</h2>
+      <p>Reading public pages, maps, learning, events and local listings does not require sign-in.</p>
+      <p class="small">New business and creator accounts require a separate approved onboarding flow; this page does not open public self-signup.</p>
+    </section>
+    {% endif %}
   </main>
 </body>
 </html>

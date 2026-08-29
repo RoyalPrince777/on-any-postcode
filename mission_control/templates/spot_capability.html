@@ -188,12 +188,14 @@
     </section>
     {% endif %}
 
+    {% if capability.slug == 'my-world' %}
     <section class="mc-panel">
       <p class="mc-eyebrow">Your postcode</p>
       <h2>{{ 'Continue in My World' if auth_user else 'Discover more in My World' }}</h2>
-      <p>{{ 'Open your private, owner-scoped workspace.' if auth_user else 'Sign in to personalise this part of OAP.' }}</p>
+      <p>{{ 'Open your private, owner-scoped workspace.' if auth_user else 'Founder sign-in is required only for this private space.' }}</p>
       <a class="mc-secondary-link" href="{{ url_for('my_world') if auth_user else url_for('auth_page', next=request.path) }}">Enter My World →</a>
     </section>
+    {% endif %}
   </main>
 </body>
 </html>

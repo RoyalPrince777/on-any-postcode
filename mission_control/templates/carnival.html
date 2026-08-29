@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Carnival Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <script src="{{ url_for('static', filename='carnival_intelligence.js') }}" defer></script>
+</head>
+<body class="mc-workspace-body oap-carnival-body">
+  <header class="mc-workspace-header oap-carnival-header">
+    <div>
+      <p class="mc-eyebrow">OAP World / Culture / Event mode</p>
+      <h1>Carnival Intelligence</h1>
+      <p>Use official Carnival schedules, maps, travel and safety guidance. This 2026 view adds area orientation and source-labelled public information.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace oap-carnival-workspace">
+    <section class="mc-panel oap-carnival-status" aria-labelledby="carnival-status-title">
+      <div>
+        <p class="mc-eyebrow">{{ hub.event.phase.label }}</p>
+        <h2 id="carnival-status-title">{{ hub.event.name }}</h2>
+        <p>{{ hub.event.phase.message }}</p>
+      </div>
+      <dl class="oap-carnival-proof" aria-label="Carnival information evidence">
+        <div><dt>Evidence</dt><dd>{{ hub.evidence.rating }}</dd></div>
+        <div><dt>Reviewed</dt><dd><time datetime="{{ hub.evidence.reviewed_on }}">{{ hub.evidence.reviewed_on }}</time></dd></div>
+        <div><dt>Valid until</dt><dd><time datetime="{{ hub.event.valid_until }}">1 September 2026, 06:00</time></dd></div>
+      </dl>
+    </section>
+
+    <nav class="oap-carnival-jump" aria-label="Carnival Intelligence sections">
+      <a href="#map">Map</a>
+      <a href="#schedule">Schedule</a>
+      <a href="#layers">Layers</a>
+      <a href="#travel">Travel</a>
+      <a href="#safety">Safety</a>
+      <a href="#sources">Sources</a>
+    </nav>
+
+    <section class="mc-panel" id="map" aria-labelledby="carnival-map-title">
+      <p class="mc-eyebrow">Privacy-controlled orientation</p>
+      <h2 id="carnival-map-title">{{ hub.map.title }}</h2>
+      <p>{{ hub.map.description }}</p>
+      <div
+        class="oap-carnival-map-shell"
+        data-oap-map
+        data-map-url="{{ hub.map.embed_url }}"
+      >
+        <div class="oap-carnival-map-consent">
+          <span class="oap-carnival-map-mark" aria-hidden="true">📍</span>
+          <h3>Load the street map when you choose</h3>
+          <p>No map request, precise location or background tracking occurs before you press the button.</p>
+          <button type="button" data-oap-map-load>Load OpenStreetMap</button>
+          <p class="oap-carnival-map-status" data-oap-map-status role="status" aria-live="polite"></p>
+        </div>
+      </div>
+      <div class="oap-carnival-map-links">
+        <a href="{{ hub.map.open_url }}" rel="noopener noreferrer">Open the wider area in OpenStreetMap →</a>
+        <a href="{{ hub.sources_by_id['rbkc-event-map'].url }}" rel="noopener noreferrer">Open the official event map →</a>
+      </div>
+      <p class="oap-carnival-note">Area orientation only. It does not show a verified live parade position, crowd level or safe route.</p>
+    </section>
+
+    <section class="mc-panel" id="schedule" aria-labelledby="carnival-schedule-title">
+      <p class="mc-eyebrow">Official schedule · not live telemetry</p>
+      <h2 id="carnival-schedule-title">Three event days</h2>
+      <div class="oap-carnival-day-grid" role="list">
+        {% for day in hub.schedule %}
+        <article class="oap-carnival-day" role="listitem">
+          <p class="mc-eyebrow">{{ day.theme }}</p>
+          <h3>{{ day.date }}</h3>
+          <ol>
+            {% for item in day['items'] %}
+            <li>
+              <time>{{ item.time }}</time>
+              <strong>{{ item.name }}</strong>
+              <span>{{ item.place }}</span>
+              <small>Scheduled</small>
+            </li>
+            {% endfor %}
+          </ol>
+          <a href="{{ hub.sources_by_id[day.source_id].url }}" rel="noopener noreferrer">Check official schedule →</a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" id="layers" aria-labelledby="carnival-layers-title">
+      <p class="mc-eyebrow">Official-source layers</p>
+      <h2 id="carnival-layers-title">What the intelligence view covers</h2>
+      <div class="oap-carnival-layer-grid" role="list">
+        {% for layer in hub.layers %}
+        <article class="oap-carnival-layer" role="listitem">
+          <span aria-hidden="true">{{ layer.icon }}</span>
+          <h3>{{ layer.name }}</h3>
+          <p>{{ layer.description }}</p>
+          <a href="{{ hub.sources_by_id[layer.source_id].url }}" rel="noopener noreferrer">Open source →</a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" id="travel" aria-labelledby="carnival-travel-title">
+      <p class="mc-eyebrow">Travel plan · check again before leaving</p>
+      <h2 id="carnival-travel-title">Closures, stations and accessible options</h2>
+      <div class="oap-carnival-alerts" role="list">
+        {% for alert in hub.travel_alerts %}
+        <article class="oap-carnival-alert" role="listitem">
+          <span>{{ alert.level }}</span>
+          <div><h3>{{ alert.title }}</h3><p>{{ alert.detail }}</p></div>
+          <a href="{{ hub.sources_by_id[alert.source_id].url }}" rel="noopener noreferrer">Verify</a>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="oap-carnival-note">OAP does not automatically reroute, dispatch or book travel. Follow signs, stewards and the latest transport instructions on the day.</p>
+    </section>
+
+    <section class="mc-panel" id="safety" aria-labelledby="carnival-safety-title">
+      <p class="mc-eyebrow">Youth-safe public guidance</p>
+      <h2 id="carnival-safety-title">Help without surveillance</h2>
+      <div class="oap-carnival-safety-grid">
+        <div>
+          <h3>Official welfare locations</h3>
+          <ul>
+            {% for location in hub.welfare_locations %}<li>{{ location }}</li>{% endfor %}
+          </ul>
+          <p>For immediate help, speak to an identifiable steward or emergency-service worker. In an emergency call <strong>999</strong>; for a non-emergency call <strong>101</strong>.</p>
+          <a href="{{ hub.sources_by_id['nhc-safety'].url }}" rel="noopener noreferrer">Read official safety guidance →</a>
+        </div>
+        <div class="oap-carnival-boundary">
+          <h3>Hard privacy boundary</h3>
+          <ul>
+            <li>No attendee, child, crew or officer tracking</li>
+            <li>No facial-recognition or tactical policing data</li>
+            <li>No device-location request or movement history</li>
+            <li>No inferred crowd status presented as fact</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="mc-panel" id="sources" aria-labelledby="carnival-sources-title">
+      <p class="mc-eyebrow">Provenance before claims</p>
+      <h2 id="carnival-sources-title">Reviewed official sources</h2>
+      <div class="oap-carnival-source-grid" role="list">
+        {% for source in hub.sources %}
+        <article role="listitem">
+          <h3>{{ source.name }}</h3>
+          <p>{{ source.publisher }}</p>
+          <p>Source update: {{ source.source_updated_on }} · reviewed: {{ source.reviewed_on }}</p>
+          <a href="{{ source.url }}" rel="noopener noreferrer">Open official source →</a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <aside class="mc-authority oap-carnival-governance" aria-label="Carnival Intelligence decision boundary">
+      <div>
+        <strong>Read, compare, recommend</strong>
+        <span>Every claim stays source-labelled and expires closed when the 2026 event window ends.</span>
+      </div>
+      <div>
+        <strong>A person makes the final decision</strong>
+        <span>OAP does not direct emergency response, public movement or operational activity.</span>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

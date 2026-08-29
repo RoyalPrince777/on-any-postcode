@@ -9,11 +9,11 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 18,
+        "capabilities": 19,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 18
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 19
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
@@ -56,6 +56,31 @@ def test_signal_and_postcode_room_capabilities_have_live_public_forms(client):
 
     assert 'method="post" action="/signal"' in signal
     assert 'method="post" action="/postcode-rooms"' in rooms
+
+
+def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
+    public_only = (
+        "pulse",
+        "signal",
+        "postcode-rooms",
+        "events",
+        "discovery",
+        "businesses",
+        "creators",
+        "community-progress",
+        "support",
+        "maps-weather-travel",
+        "movement-delivery",
+        "safety",
+        "tv-media",
+        "membership",
+    )
+    for slug in public_only:
+        page = client.get(f"/the-spot/{slug}").get_data(as_text=True)
+        assert "Sign in to personalise this part of OAP" not in page
+
+    spot = client.get("/the-spot").get_data(as_text=True)
+    assert "No account or password is needed to browse The Spot" in spot
 
 
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():

@@ -112,8 +112,8 @@ def _private_error(code: str, message: str, status_code: int):
     return response
 
 
-def _mission_authority_allowed(user: dict[str, object]) -> bool:
-    """Require exact Founder selector or persisted level-zero authority."""
+def private_authority_allowed(user: dict[str, object]) -> bool:
+    """Require the exact Founder selector or persisted level-zero authority."""
 
     if authority.identity_is_authority(user.get("id")):
         return True
@@ -129,8 +129,8 @@ def _mission_authority_allowed(user: dict[str, object]) -> bool:
     return bool(record and record.get("is_human_authority"))
 
 
-def login_required(*, api: bool = False):
-    """Require live Neon Auth; Mission Control additionally requires Founder authority."""
+def login_required(*, api: bool = False, founder_only: bool = False):
+    """Require live Auth and, where declared, exact Founder authority."""
 
     def decorator(view):
         @wraps(view)
@@ -157,9 +157,8 @@ def login_required(*, api: bool = False):
                     )
                 target = request.full_path.rstrip("?")
                 return redirect(url_for("auth_page", next=target))
-            if request.blueprint == "mission_control" and not _mission_authority_allowed(
-                user
-            ):
+            requires_founder = founder_only or request.blueprint == "mission_control"
+            if requires_founder and not private_authority_allowed(user):
                 return _private_error(
                     "human_authority_required",
                     "This private control surface is restricted.",

@@ -22,6 +22,7 @@ from flask import (
 from mission_control import (
     approval_service,
     authority,
+    carnival_intelligence,
     judgement,
     languages,
     linkup,
@@ -61,6 +62,19 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 MAX_PUBLIC_RECORDS = 100
+FOUNDER_ONLY_PATH_PREFIXES = (
+    "/api/infrastructure",
+    "/infrastructure",
+    "/mission",
+    "/my-world",
+    "/myworld",
+)
+CARNIVAL_CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; "
+    "form-action 'self'; object-src 'none'; img-src 'self' data:; "
+    "media-src 'self'; connect-src 'self'; style-src 'self'; "
+    "script-src 'self'; frame-src https://www.openstreetmap.org"
+)
 
 
 def _form_text(name, default, max_length):
@@ -93,7 +107,7 @@ def _protect_private_assets():
         user = web_security.current_authenticated_user()
     except neon_auth.AuthUnavailable:
         user = None
-    if user is not None:
+    if user is not None and web_security.private_authority_allowed(user):
         return None
     response = make_response("", 404)
     response.headers["Cache-Control"] = "no-store"
@@ -438,12 +452,47 @@ def _world_languages_response():
     return response
 
 
+def _carnival_intelligence_response():
+    """Render only the validated, source-scoped public event projection."""
+
+    validation = carnival_intelligence.validate_carnival_hub()
+    if not validation["passed"]:
+        response = jsonify(
+            error={
+                "code": "carnival_intelligence_unavailable",
+                "message": "Carnival Intelligence is temporarily unavailable.",
+            }
+        )
+        response.status_code = 503
+    else:
+        response = make_response(
+            render_template(
+                "carnival.html",
+                hub=carnival_intelligence.get_public_carnival_hub(),
+            )
+        )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Content-Security-Policy"] = (
+        CARNIVAL_CONTENT_SECURITY_POLICY
+    )
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/languages")
 @app.get("/world/languages")
 def world_languages():
     """Open the phase-one public language-learning hub."""
 
     return _world_languages_response()
+
+
+@app.get("/carnival")
+@app.get("/world/carnival")
+def world_carnival():
+    """Open the read-only OAP Culture/Event Carnival hub."""
+
+    return _carnival_intelligence_response()
 
 
 @app.get("/world-cup")
@@ -483,6 +532,17 @@ def _safe_next(value: object, default: str = "/my-world") -> str:
     return candidate
 
 
+def _founder_only_path(value: object) -> bool:
+    """Classify only explicit private-control destinations as Founder-only."""
+
+    candidate = _safe_next(value)
+    path = urlparse.urlsplit(candidate).path.rstrip("/") or "/"
+    return any(
+        path == prefix or path.startswith(f"{prefix}/")
+        for prefix in FOUNDER_ONLY_PATH_PREFIXES
+    )
+
+
 def _auth_page_response(
     *,
     status_code: int = 200,
@@ -490,13 +550,18 @@ def _auth_page_response(
     notice: str | None = None,
     next_path: str = "/my-world",
 ):
+    founder_only = _founder_only_path(next_path)
+    auth_ready = neon_auth.status()["valid"] and (
+        not founder_only or bool(neon_auth.configured_founder_email())
+    )
     response = make_response(
         render_template(
             "auth.html",
-            auth_configured=neon_auth.status()["valid"],
+            auth_configured=auth_ready,
             auth_error=error,
             auth_notice=notice,
             next_path=_safe_next(next_path),
+            founder_only=founder_only,
         ),
         status_code,
     )
@@ -530,12 +595,16 @@ def _apply_auth_cookies(response, set_cookie_headers) -> bool:
 @app.get("/enter-my-world")
 def auth_page():
     next_path = _safe_next(request.args.get("next"))
+    founder_only = _founder_only_path(next_path)
+    error = None
     try:
-        if web_security.current_authenticated_user() is not None:
-            return redirect(next_path)
+        user = web_security.current_authenticated_user()
+        if user is not None:
+            if not founder_only or web_security.private_authority_allowed(user):
+                return redirect(next_path)
+            error = "This signed-in account cannot open the private Founder space."
     except neon_auth.AuthUnavailable:
         pass
-    error = None
     if request.args.get("auth_error") == "unavailable":
         error = "Secure identity verification is temporarily unavailable."
     return _auth_page_response(error=error, next_path=next_path)
@@ -544,6 +613,7 @@ def auth_page():
 @app.post("/auth/sign-in")
 def auth_sign_in():
     next_path = _safe_next(request.form.get("next"))
+    founder_only = _founder_only_path(next_path)
     if not web_security.csrf_valid(request):
         return _auth_page_response(
             status_code=403,
@@ -556,12 +626,30 @@ def auth_sign_in():
             error="Too many sign-in attempts. Wait 15 minutes and try again.",
             next_path=next_path,
         )
-    email = _form_text("email", "", 320).lower()
     password = _form_secret("password", 1024)
-    if not email or not password:
+    if not password:
         return _auth_page_response(
             status_code=400,
-            error="Enter your email and password.",
+            error=(
+                "Enter your private password."
+                if founder_only
+                else "Enter your email and password."
+            ),
+            next_path=next_path,
+        )
+    email = (
+        neon_auth.configured_founder_email()
+        if founder_only
+        else _form_text("email", "", 320).lower()
+    )
+    if not email:
+        return _auth_page_response(
+            status_code=503 if founder_only else 400,
+            error=(
+                "Private access is temporarily unavailable."
+                if founder_only
+                else "Enter your email and password."
+            ),
             next_path=next_path,
         )
     try:
@@ -575,7 +663,11 @@ def auth_sign_in():
     if not neon_auth.successful(result):
         return _auth_page_response(
             status_code=401,
-            error="Email or password not recognised.",
+            error=(
+                "Private password not recognised."
+                if founder_only
+                else "Email or password not recognised."
+            ),
             next_path=next_path,
         )
     response = redirect(next_path)
@@ -586,60 +678,6 @@ def auth_sign_in():
             next_path=next_path,
         )
     return response
-
-
-@app.post("/auth/sign-up")
-def auth_sign_up():
-    next_path = _safe_next(request.form.get("next"))
-    if not web_security.csrf_valid(request):
-        return _auth_page_response(
-            status_code=403,
-            error="The secure session expired. Refresh and try again.",
-            next_path=next_path,
-        )
-    if not web_security.AUTH_BURST_LIMITER.allow(_auth_rate_key()):
-        return _auth_page_response(
-            status_code=429,
-            error="Too many account attempts. Wait 15 minutes and try again.",
-            next_path=next_path,
-        )
-    name = _form_text("name", "", 120)
-    email = _form_text("email", "", 320).lower()
-    password = _form_secret("password", 1024)
-    confirmation = _form_secret("password_confirm", 1024)
-    if not name or not email or len(password) < 8:
-        return _auth_page_response(
-            status_code=400,
-            error="Enter a name, email, and password of at least 8 characters.",
-            next_path=next_path,
-        )
-    if password != confirmation:
-        return _auth_page_response(
-            status_code=400,
-            error="The passwords do not match.",
-            next_path=next_path,
-        )
-    try:
-        result = neon_auth.sign_up(name, email, password)
-    except neon_auth.AuthUnavailable:
-        return _auth_page_response(
-            status_code=503,
-            error="Secure account creation is temporarily unavailable.",
-            next_path=next_path,
-        )
-    if not neon_auth.successful(result):
-        return _auth_page_response(
-            status_code=400,
-            error="The account could not be created with those details.",
-            next_path=next_path,
-        )
-    response = redirect(next_path)
-    if _apply_auth_cookies(response, result.set_cookie_headers):
-        return response
-    return _auth_page_response(
-        notice="Account created. Check your email if verification is requested, then sign in.",
-        next_path=next_path,
-    )
 
 
 @app.post("/auth/sign-out")
@@ -708,6 +746,8 @@ def spot_capability_front_door(capability_slug):
         response.status_code = 404
     elif capability_slug == "languages":
         return _world_languages_response()
+    elif capability_slug == "carnival":
+        return _carnival_intelligence_response()
     else:
         user = None
         try:
@@ -748,6 +788,7 @@ def spot_capability_front_door(capability_slug):
             "signal": "signals",
             "postcode-rooms": "signals",
             "events": "ecosystem",
+            "carnival": "ecosystem",
             "discovery": "maps",
             "businesses": "market",
             "creators": "tv",
@@ -1043,7 +1084,7 @@ def flag():
     return redirect("/world-cup#teams")
 
 @app.get("/my-world")
-@web_security.login_required()
+@web_security.login_required(founder_only=True)
 def my_world():
     user = web_security.current_authenticated_user()
     if user is None:  # pragma: no cover - decorator is the fail-closed gate
@@ -1063,6 +1104,7 @@ def my_world():
                 identity_id,
                 email=str(user["email"]),
                 display_name=str(user["name"]),
+                store_email=False,
             )
             profile = public_store.get_profile(identity_id) or profile
         else:
@@ -1094,13 +1136,13 @@ def my_world():
 
 
 @app.get("/myworld")
-@web_security.login_required()
+@web_security.login_required(founder_only=True)
 def myworld_legacy_get():
     return redirect(url_for("my_world"))
 
 
 @app.post("/myworld")
-@web_security.login_required()
+@web_security.login_required(founder_only=True)
 def myworld():
     if not web_security.csrf_valid(request):
         return _csrf_failure()
@@ -1124,6 +1166,7 @@ def myworld():
                 identity_id,
                 email=str(user["email"]),
                 display_name=str(user["name"]),
+                store_email=False,
             )
             public_store.update_profile(identity_id, **item)
         else:
@@ -1134,7 +1177,7 @@ def myworld():
 
 
 @app.get("/my-world/<workspace_id>")
-@web_security.login_required()
+@web_security.login_required(founder_only=True)
 def my_world_workspace(workspace_id):
     workspace = workspaces.get(workspace_id)
     if workspace is None:
@@ -1145,6 +1188,7 @@ def my_world_workspace(workspace_id):
             str(user["id"]),
             email=str(user["email"]),
             display_name=str(user["name"]),
+            store_email=False,
         )
         records = workspaces.list_records(str(user["id"]), workspace_id)
     except (public_store.PublicStoreUnavailable, workspaces.WorkspaceUnavailable):
@@ -1161,7 +1205,7 @@ def my_world_workspace(workspace_id):
 
 
 @app.post("/my-world/<workspace_id>/records")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def my_world_workspace_record(workspace_id):
     if not web_security.csrf_valid(request):
         return _csrf_failure()
@@ -1176,6 +1220,7 @@ def my_world_workspace_record(workspace_id):
             str(user["id"]),
             email=str(user["email"]),
             display_name=str(user["name"]),
+            store_email=False,
         )
         workspaces.add_record(
             str(user["id"]),
@@ -1391,7 +1436,7 @@ def _infrastructure_sections():
 
 
 @app.get("/infrastructure")
-@web_security.login_required()
+@web_security.login_required(founder_only=True)
 def infrastructure_dashboard():
     sections = _infrastructure_sections()
     return render_template("infrastructure.html", sections=[
@@ -1401,7 +1446,7 @@ def infrastructure_dashboard():
 
 
 @app.get("/infrastructure/<section>")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def infrastructure_section(section):
     selected = next((item for item in _infrastructure_sections() if item["slug"] == section), None)
     if selected is None:
@@ -1442,7 +1487,7 @@ def infrastructure_section(section):
 
 
 @app.get("/api/infrastructure/status")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def infrastructure_status():
     readiness = _readiness_snapshot()
     sections = _infrastructure_sections()

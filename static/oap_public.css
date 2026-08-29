@@ -305,6 +305,264 @@ a {
   color: var(--oap-muted);
 }
 
+.oap-carnival-body {
+  background:
+    radial-gradient(circle at 88% 4%, rgb(255 185 51 / 16%), transparent 25rem),
+    radial-gradient(circle at 8% 28%, rgb(236 49 91 / 12%), transparent 22rem),
+    var(--oap-bg);
+}
+
+.oap-carnival-header {
+  border-bottom-color: #d39b37;
+}
+
+.oap-carnival-header h1 {
+  max-width: 720px;
+  text-wrap: balance;
+}
+
+.oap-carnival-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .7fr);
+  gap: 24px;
+  border-color: #d39b37;
+  background:
+    linear-gradient(120deg, rgb(236 49 91 / 10%), transparent 42%),
+    var(--oap-panel);
+}
+
+.oap-carnival-status h2 {
+  font-size: clamp(1.8rem, 5vw, 3.1rem);
+}
+
+.oap-carnival-proof {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.oap-carnival-proof div {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #735c2f;
+  border-radius: 10px;
+  background: rgb(4 18 11 / 58%);
+}
+
+.oap-carnival-proof dt {
+  color: #ffd27d;
+  font-weight: 800;
+}
+
+.oap-carnival-proof dd {
+  margin: 0;
+}
+
+.oap-carnival-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.oap-carnival-jump a {
+  padding: 8px 13px;
+  border: 1px solid #735c2f;
+  border-radius: 999px;
+  color: var(--oap-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.oap-carnival-jump a:hover,
+.oap-carnival-jump a:focus-visible {
+  border-color: #ffd27d;
+  outline: 2px solid transparent;
+}
+
+.oap-carnival-map-shell {
+  display: grid;
+  min-height: 420px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid #735c2f;
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, rgb(97 223 145 / 7%) 1px, transparent 1px) 0 0 / 38px 38px,
+    linear-gradient(rgb(97 223 145 / 7%) 1px, transparent 1px) 0 0 / 38px 38px,
+    #071a10;
+}
+
+.oap-carnival-map-shell iframe {
+  width: 100%;
+  height: 420px;
+  border: 0;
+}
+
+.oap-carnival-map-consent {
+  max-width: 520px;
+  padding: 30px;
+  text-align: center;
+}
+
+.oap-carnival-map-mark {
+  display: block;
+  font-size: 3rem;
+}
+
+.oap-carnival-map-consent button {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid #ffd27d;
+  border-radius: 999px;
+  background: #ffd27d;
+  color: #211400;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.oap-carnival-map-consent button:focus-visible {
+  outline: 3px solid var(--oap-blue);
+  outline-offset: 3px;
+}
+
+.oap-carnival-map-status {
+  min-height: 1.5em;
+  color: #ffc0ca;
+}
+
+.oap-carnival-map-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-top: 14px;
+}
+
+.oap-carnival-note {
+  color: var(--oap-muted);
+  font-size: .92rem;
+}
+
+.oap-carnival-day-grid,
+.oap-carnival-layer-grid,
+.oap-carnival-source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.oap-carnival-day,
+.oap-carnival-layer,
+.oap-carnival-source-grid article {
+  padding: 18px;
+  border: 1px solid #315f3f;
+  border-radius: 14px;
+  background: #0b2114;
+}
+
+.oap-carnival-day h3,
+.oap-carnival-layer h3,
+.oap-carnival-source-grid h3 {
+  margin: 4px 0 8px;
+}
+
+.oap-carnival-day ol {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.oap-carnival-day li {
+  display: grid;
+  gap: 2px;
+  padding-top: 12px;
+  border-top: 1px solid #315f3f;
+}
+
+.oap-carnival-day li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.oap-carnival-day time,
+.oap-carnival-day small {
+  color: #ffd27d;
+  font-weight: 800;
+}
+
+.oap-carnival-day span,
+.oap-carnival-layer p,
+.oap-carnival-source-grid p {
+  color: var(--oap-muted);
+}
+
+.oap-carnival-layer > span {
+  font-size: 2rem;
+}
+
+.oap-carnival-alerts {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.oap-carnival-alert {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid #315f3f;
+  border-radius: 12px;
+  background: #0b2114;
+}
+
+.oap-carnival-alert > span {
+  color: #ffd27d;
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.oap-carnival-alert h3,
+.oap-carnival-alert p {
+  margin: 0;
+}
+
+.oap-carnival-alert p {
+  color: var(--oap-muted);
+}
+
+.oap-carnival-safety-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, .7fr);
+  gap: 18px;
+}
+
+.oap-carnival-boundary {
+  padding: 18px;
+  border: 1px solid #d55c70;
+  border-radius: 14px;
+  background: rgb(95 17 36 / 26%);
+}
+
+.oap-carnival-boundary h3 {
+  color: #ffc0ca;
+}
+
+.oap-carnival-governance span {
+  display: block;
+  max-width: 500px;
+  margin-top: 4px;
+  color: var(--oap-muted);
+}
+
 @media (max-width: 768px) {
   .mc-workspace-header,
   .mc-authority {
@@ -323,5 +581,20 @@ a {
 
   .oap-drill-form button {
     width: 100%;
+  }
+
+  .oap-carnival-status,
+  .oap-carnival-safety-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .oap-carnival-map-shell,
+  .oap-carnival-map-shell iframe {
+    min-height: 340px;
+    height: 340px;
+  }
+
+  .oap-carnival-alert {
+    grid-template-columns: 1fr;
   }
 }

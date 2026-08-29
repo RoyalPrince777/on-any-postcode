@@ -33,6 +33,7 @@ def test_home_and_mission_have_no_duplicate_ids(client):
     linkup = client.get("/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
     languages = client.get("/world/languages").get_data(as_text=True)
+    carnival = client.get("/world/carnival").get_data(as_text=True)
 
     assert _duplicate_ids(home) == set()
     assert _duplicate_ids(mission) == set()
@@ -42,6 +43,7 @@ def test_home_and_mission_have_no_duplicate_ids(client):
     assert _duplicate_ids(linkup) == set()
     assert _duplicate_ids(organism) == set()
     assert _duplicate_ids(languages) == set()
+    assert _duplicate_ids(carnival) == set()
 
 
 def test_navigation_and_authority_landmarks_are_labelled(client):
@@ -53,6 +55,7 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     linkup = client.get("/linkup").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
     languages = client.get("/world/languages").get_data(as_text=True)
+    carnival = client.get("/world/carnival").get_data(as_text=True)
 
     assert 'aria-label="Primary navigation"' in home
     assert 'aria-label="Public and private zones"' in home
@@ -70,6 +73,8 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     assert 'aria-label="Human Authority status"' in organism
     assert 'aria-label="Seven-continent language selector"' in languages
     assert 'aria-label="Language learning privacy boundary"' in languages
+    assert 'aria-label="Carnival Intelligence sections"' in carnival
+    assert 'aria-label="Carnival Intelligence decision boundary"' in carnival
 
 
 def test_mobile_layout_rule_is_present():

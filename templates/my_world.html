@@ -32,7 +32,7 @@
   <header>
     <span class="badge">PRIVATE · VERIFIED SESSION</span>
     <h1>👤 My World</h1>
-    <p>Signed in as <strong>{{ auth_user.email }}</strong>. This page and its linked intelligence workspaces are not part of public OAP World.</p>
+    <p><strong>Founder identity confirmed.</strong> This page and its linked intelligence workspaces are not part of public OAP World.</p>
     <nav aria-label="Private My World navigation">
       <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI Chat</a>
       <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission Control</a>
@@ -69,8 +69,8 @@
 
     <section class="card" aria-labelledby="boundary-title">
       <h2 id="boundary-title">Security boundary</h2>
-      <p class="small">Managed Neon Auth verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that same owner ID.</p>
-      <p>Email verification: <strong>{{ 'verified' if auth_user.email_verified else 'provider pending / not required' }}</strong></p>
+      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that same owner ID.</p>
+      <p>Founder authority: <strong>confirmed</strong></p>
       <form method="post" action="{{ url_for('auth_sign_out') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <button class="button danger" type="submit">Sign out of My World</button>

@@ -38,6 +38,7 @@ SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"id": "signal", "name": "OAP Signal", "owner": "OAP Signal", "purpose": "Official alerts, announcements and trusted updates.", "status": "Public posting live", "function": "Uses the existing bounded public Signal feed.", "blocked_by": ""},
     {"id": "postcode-rooms", "name": "Postcode Rooms", "owner": "Communications", "purpose": "Local postcode and community conversations.", "status": "Bounded public postcode rooms live", "function": "Creates postcode-labelled rooms in the durable public feed.", "blocked_by": "Private person-to-person messages stay inside authenticated LinkUp"},
     {"id": "events", "name": "Events & Experiences", "owner": "Events", "purpose": "Local gatherings, sports, culture and matchday activity.", "status": "Directory live", "function": "Provides an approved discovery surface.", "blocked_by": "Bookings require Identity and audited persistence"},
+    {"id": "carnival-intelligence", "name": "Carnival Intelligence", "owner": "Events", "purpose": "Official Carnival schedules, maps, travel and safety guidance.", "status": "Read-only 2026 scheduled-data surface implemented", "function": "Shows reviewed official information without location collection or live-tracking claims.", "blocked_by": "Live floats, crowds and incidents require authorised feeds and separate Human Authority approval"},
     {"id": "discovery", "name": "Local Discovery", "owner": "Explorer", "purpose": "Nearby places, services and useful postcode information.", "status": "Location lookup live", "function": "Resolves postcode and global place hierarchy with bounded provider calls.", "blocked_by": "Turn-by-turn routing remains separate"},
     {"id": "businesses", "name": "Local Businesses", "owner": "Business Registry", "purpose": "Postcode business listings, offers and promotion.", "status": "Directory live", "function": "Separates business discovery from transactions.", "blocked_by": "Verified merchant onboarding not connected"},
     {"id": "creators", "name": "Creators", "owner": "Creator Identity", "purpose": "Local musicians, artists, talent and content creators.", "status": "Directory live", "function": "Provides a creator discovery surface.", "blocked_by": "Verified Creator Identity not connected"},
@@ -50,7 +51,7 @@ SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"id": "safety", "name": "Safety & Trust", "owner": "Trust", "purpose": "Reporting, Guardian protection and community standards.", "status": "Protection surface live", "function": "Explains fail-closed safety boundaries.", "blocked_by": "Authenticated reporting workflow not connected"},
     {"id": "identity", "name": "Postcode Identity", "owner": "My World", "purpose": "One OAP identity across every Spot.", "status": "Managed identity and five-level profile live", "function": "Uses verified Neon Auth UUID ownership and location fields.", "blocked_by": "Optional higher-assurance verification remains separate"},
     {"id": "tv-media", "name": "OAP TV & Media", "owner": "OAP TV", "purpose": "Local video, live coverage, music, sport and culture.", "status": "Public surface live", "function": "Links the existing OAP TV front door.", "blocked_by": "Creator publishing workflow not connected"},
-    {"id": "membership", "name": "Founder & Membership", "owner": "Membership", "purpose": "Free postcode access and approved membership tiers.", "status": "Read-only surface live", "function": "Displays the membership boundary without charging.", "blocked_by": "Identity, entitlement and regulated payment flow required"},
+    {"id": "membership", "name": "Founder & Membership", "owner": "Membership", "purpose": "Free public postcode access and optional approved business services.", "status": "Read-only surface live", "function": "Keeps public browsing free and separates future commercial services without charging.", "blocked_by": "Verified business identity, entitlement and regulated payment flow required"},
     {"id": "languages", "name": "World Languages", "owner": "OAP World", "purpose": "Local-first language learning across every continent.", "status": "Public starter surface implemented", "function": "Provides seven continent paths, bounded starter lessons and deterministic conjugation drills.", "blocked_by": "Link Up language tools require separate privacy, youth-safety and accuracy review"},
 )
 LOCKED_SPOT_CAPABILITY_IDS = tuple(item["id"] for item in SPOT_CAPABILITIES)
@@ -79,6 +80,12 @@ PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
         "slug": "events",
         "name": "Events & Experiences",
         "purpose": "Find local gatherings, sport and culture.",
+    },
+    {
+        "source_id": "carnival-intelligence",
+        "slug": "carnival",
+        "name": "Carnival Intelligence",
+        "purpose": "Use official Carnival schedules, maps, travel and safety guidance.",
     },
     {
         "source_id": "discovery",
@@ -156,7 +163,7 @@ PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
         "source_id": "membership",
         "slug": "membership",
         "name": "Membership",
-        "purpose": "Explore free postcode access and membership.",
+        "purpose": "Explore free public access and optional approved business services.",
     },
     {
         "source_id": "languages",

@@ -81,6 +81,54 @@ def test_private_profile_query_is_restricted_to_verified_owner(monkeypatch):
     }
 
 
+def test_founder_sync_uses_selector_for_authority_but_does_not_store_email(
+    monkeypatch,
+):
+    identity_id = "11111111-1111-4111-8111-111111111111"
+    statements = []
+    authority_sync = {}
+
+    class SyncConnection:
+        def execute(self, sql, parameters=None):
+            statements.append((sql, parameters))
+            return FakeResult()
+
+        @staticmethod
+        def commit():
+            return None
+
+    @contextmanager
+    def fake_connect(*, readonly=False):
+        assert readonly is False
+        yield SyncConnection()
+
+    def fake_authority_sync(connection, **values):
+        assert isinstance(connection, SyncConnection)
+        authority_sync.update(values)
+
+    monkeypatch.setattr(public_store.postgres_db, "connect", fake_connect)
+    monkeypatch.setattr(
+        public_store.authority,
+        "sync_authenticated_identity",
+        fake_authority_sync,
+    )
+
+    public_store.ensure_authenticated_user(
+        identity_id,
+        email="founder@example.test",
+        display_name="Founder",
+        email_verified=True,
+        store_email=False,
+    )
+
+    user_parameters = statements[0][1]
+    assert user_parameters[0] == identity_id
+    assert str(user_parameters[1]).startswith("oap-session-")
+    assert user_parameters[2:] == (None, "Founder")
+    assert authority_sync["email"] == "founder@example.test"
+    assert authority_sync["email_verified"] is True
+
+
 def test_list_conversations_serializes_only_owned_projection(monkeypatch):
     updated_at = datetime(2026, 8, 24, 12, 0, tzinfo=UTC)
 

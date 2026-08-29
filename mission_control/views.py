@@ -183,6 +183,7 @@ def _sync_private_identity() -> tuple[dict[str, object], dict[str, object]]:
         email=str(user["email"]),
         display_name=str(user["name"]),
         email_verified=bool(user.get("email_verified")),
+        store_email=False,
     )
     with postgres_db.connect(readonly=True) as connection:
         record = authority.authority_record(connection, str(user["id"]))
