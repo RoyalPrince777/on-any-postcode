@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 import app as app_module
-from mission_control import neon_auth, products, public_store, web_security
+from mission_control import (
+    founder_activation,
+    neon_auth,
+    products,
+    public_store,
+    web_security,
+)
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
 
@@ -416,6 +422,113 @@ def test_private_auth_is_password_only_and_has_no_web_signup(
     assert 'name="email"' in business_page
     assert 'type="email"' in business_page
     assert 'action="/auth/sign-up"' not in business_page
+
+
+def test_one_time_founder_activation_keeps_identity_server_side(
+    anonymous_client, monkeypatch
+):
+    activation_code = "one-time-founder-activation-code-value-123456"
+    token = "founder-activation-csrf-token-value-123456"
+    monkeypatch.setenv(
+        founder_activation.ACTIVATION_TOKEN_ENV, activation_code
+    )
+    monkeypatch.setattr(founder_activation, "state", lambda: "available")
+    observed = {}
+
+    def fake_activate(password):
+        observed["password"] = password
+        return "activated"
+
+    monkeypatch.setattr(founder_activation, "activate", fake_activate)
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    page_response = anonymous_client.get("/activate-founder")
+    page = page_response.get_data(as_text=True)
+    assert page_response.status_code == 200
+    assert "member@example.test" not in page
+    assert 'name="email"' not in page
+    assert 'name="activation_code"' in page
+
+    response = anonymous_client.post(
+        "/activate-founder",
+        data={
+            "csrf_token": token,
+            "activation_code": activation_code,
+            "email": "attacker@example.test",
+            "password": "  a private passphrase  ",
+            "password_confirmation": "  a private passphrase  ",
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert observed == {"password": "  a private passphrase  "}
+    result_page = response.get_data(as_text=True)
+    assert "Founder identity activated." in result_page
+    assert "member@example.test" not in result_page
+    assert "attacker@example.test" not in result_page
+
+
+def test_founder_activation_rejects_wrong_code_before_provider_call(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.setenv(
+        founder_activation.ACTIVATION_TOKEN_ENV,
+        "correct-founder-activation-code-value-123456",
+    )
+    monkeypatch.setattr(founder_activation, "state", lambda: "available")
+    token = "founder-activation-csrf-token-value-654321"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    def unexpected_activate(_password):
+        raise AssertionError("provider must not be called")
+
+    monkeypatch.setattr(founder_activation, "activate", unexpected_activate)
+    response = anonymous_client.post(
+        "/activate-founder",
+        data={
+            "csrf_token": token,
+            "activation_code": "wrong-code",
+            "password": "a sufficiently long password",
+            "password_confirmation": "a sufficiently long password",
+        },
+    )
+
+    assert response.status_code == 403
+    assert "not recognised" in response.get_data(as_text=True)
+
+
+def test_founder_activation_fails_closed_after_first_user(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.setattr(founder_activation, "state", lambda: "complete")
+
+    get_response = anonymous_client.get("/activate-founder")
+    post_response = anonymous_client.post("/activate-founder")
+
+    assert get_response.status_code == 404
+    assert post_response.status_code == 404
+    assert get_response.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_activation_requires_csrf_before_accepting_secrets(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.setattr(founder_activation, "state", lambda: "available")
+
+    response = anonymous_client.post(
+        "/activate-founder",
+        data={
+            "activation_code": "not-evaluated",
+            "password": "a sufficiently long password",
+            "password_confirmation": "a sufficiently long password",
+        },
+    )
+
+    assert response.status_code == 403
+    assert "secure session expired" in response.get_data(as_text=True).lower()
 
 
 def test_sign_out_forwards_only_auth_cookie_and_clears_session(

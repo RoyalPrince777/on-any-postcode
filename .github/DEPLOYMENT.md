@@ -51,11 +51,19 @@ responses.
    environment variable, source, logs or deployment notes. The browser must
    request only the Founder password; it must not request or display the
    server-side Auth selector.
-9. Trigger one manual Render deployment of the reviewed commit.
-10. Verify every public read route remains anonymous, private anonymous requests
+9. Temporarily merge-add a 32+ character `OAP_FOUNDER_ACTIVATION_TOKEN`, then
+   trigger one manual Render deployment of the reviewed commit.
+10. After that deployment is live, open `/activate-founder` on the main OAP
+    origin and create the Founder password. The route supplies the configured
+    Founder email server-side and refuses to run once any managed Auth user
+    exists.
+11. Bind the resulting exact user UUID to `OAP_HUMAN_AUTHORITY_ID`, remove the
+    activation token, and disable new email/password signup in Neon Auth. Wait
+    for the resulting Render configuration deployment to become live.
+12. Verify every public read route remains anonymous, private anonymous requests
     return redirect/401, and a controlled non-Founder session receives 403 from
     My World, SMI, Mission Control, infrastructure and private assets.
-11. Verify `/healthz` reports `12/12`, SMI reports `21/21`, and Render logs contain
+13. Verify `/healthz` reports `12/12`, SMI reports `21/21`, and Render logs contain
     no new errors or `5xx` responses.
 
 ## Post-deploy verification
@@ -73,9 +81,10 @@ available.
 
 ## Provider hardening after first release
 
-There is no web signup route for the private Founder identity. Provision and
-recover that managed identity out of band; the OAP private login accepts only
-the password. Public browsing must not be tied to registration. Before business
-or creator monetisation opens, implement a separate verified onboarding and
-entitlement flow and test recovery with controlled accounts. Do not turn the
-private login into public self-signup.
+There is no general web signup route for the private Founder identity. The
+zero-user activation ceremony is temporary, code-gated, server-selected, and
+closes after the first identity exists. Remove its token after use. The normal
+OAP private login accepts only the password. Public browsing must not be tied to
+registration. Before business or creator monetisation opens, implement a
+separate verified onboarding and entitlement flow and test recovery with
+controlled accounts. Do not turn the private login into public self-signup.

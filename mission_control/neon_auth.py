@@ -25,7 +25,7 @@ MAX_AUTH_RESPONSE_BYTES: Final = 64 * 1024
 MAX_COOKIE_HEADER_BYTES: Final = 16 * 1024
 _COOKIE_NAME = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 _ALLOWED_PATHS: Final = frozenset(
-    {"/get-session", "/sign-in/email", "/sign-out"}
+    {"/get-session", "/sign-in/email", "/sign-out", "/sign-up/email"}
 )
 
 
@@ -146,6 +146,19 @@ def sign_in(email: str, password: str) -> AuthResult:
         "/sign-in/email",
         method="POST",
         payload={"email": email, "password": password, "rememberMe": True},
+    )
+
+
+def sign_up_founder(password: str, name: str) -> AuthResult:
+    """Create only the server-configured private Founder identity."""
+
+    email = configured_founder_email()
+    if not email:
+        raise AuthUnavailable("founder_selector_not_configured")
+    return _request(
+        "/sign-up/email",
+        method="POST",
+        payload={"name": name, "email": email, "password": password},
     )
 
 

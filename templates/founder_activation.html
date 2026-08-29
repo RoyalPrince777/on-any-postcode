@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activate Founder identity · OAP</title>
+  <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif;min-height:100vh}
+    header,main{width:min(680px,calc(100% - 32px));margin:auto}
+    header{padding:34px 0 12px}
+    a{color:#8ed7ff}
+    .eyebrow{color:#61df91;font-weight:800;letter-spacing:.08em}
+    .card{background:#0c2430;border:1px solid #4b9abe;border-radius:18px;padding:24px;margin:20px 0 40px}
+    label{display:block;margin-top:15px;font-weight:700}
+    input,button{width:100%;padding:12px;margin-top:7px;border:1px solid #397451;border-radius:9px;font:inherit}
+    input{background:#f7fff9;color:#06120b}
+    button{background:#27c267;color:#021;font-weight:800;cursor:pointer;margin-top:20px}
+    .error{background:#461b21;border:1px solid #ff7582;padding:13px;border-radius:10px;margin:14px 0}
+    .small{opacity:.82;line-height:1.5}
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">PRIVATE · ONE-TIME SETUP</p>
+    <h1>Activate Founder identity</h1>
+    <p>This ceremony works only while no managed identity exists. Your configured email stays server-side and is never requested or displayed here.</p>
+    <a href="{{ url_for('home') }}">← Return to public OAP World</a>
+    {% if activation_error %}<div class="error" role="alert">{{ activation_error }}</div>{% endif %}
+  </header>
+
+  <main>
+    <section class="card" aria-labelledby="activation-title">
+      <h2 id="activation-title">Private activation</h2>
+      <form method="post" action="{{ url_for('activate_founder') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="activation-code">One-time activation code</label>
+        <input id="activation-code" name="activation_code" type="password" autocomplete="one-time-code" maxlength="512" spellcheck="false" required>
+        <label for="founder-password">Choose private password</label>
+        <input id="founder-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <label for="founder-password-confirmation">Confirm private password</label>
+        <input id="founder-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <button type="submit">Activate Founder identity</button>
+      </form>
+      <p class="small">The password is sent once to the managed identity service. OAP does not store it, display it, or place it in deployment configuration.</p>
+    </section>
+  </main>
+</body>
+</html>

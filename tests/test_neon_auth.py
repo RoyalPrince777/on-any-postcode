@@ -91,14 +91,40 @@ def test_server_auth_request_omits_browser_origin_and_bounds_payload(
     assert observed["timeout"] == neon_auth.AUTH_TIMEOUT_SECONDS
 
 
-def test_private_web_signup_is_not_an_allowlisted_auth_operation(monkeypatch):
-    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
-    with pytest.raises(ValueError, match="unsupported_auth_path"):
-        neon_auth._request(
-            "/sign-up/email",
-            method="POST",
-            payload={"password": "not-sent"},
+def test_founder_signup_uses_only_the_server_side_selector(monkeypatch):
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", " Founder@Example.Test ")
+    observed = {}
+
+    def fake_request(path, *, method, payload=None, cookie_header=None):
+        observed.update(
+            path=path,
+            method=method,
+            payload=payload,
+            cookie_header=cookie_header,
         )
+        return neon_auth.AuthResult(status_code=200, payload={"user": {}})
+
+    monkeypatch.setattr(neon_auth, "_request", fake_request)
+    result = neon_auth.sign_up_founder("private passphrase", "OAP Founder")
+
+    assert result.status_code == 200
+    assert observed == {
+        "path": "/sign-up/email",
+        "method": "POST",
+        "payload": {
+            "name": "OAP Founder",
+            "email": "founder@example.test",
+            "password": "private passphrase",
+        },
+        "cookie_header": None,
+    }
+
+
+def test_founder_signup_fails_closed_without_server_selector(monkeypatch):
+    monkeypatch.delenv("OAP_HUMAN_AUTHORITY_EMAIL", raising=False)
+
+    with pytest.raises(neon_auth.AuthUnavailable):
+        neon_auth.sign_up_founder("private passphrase", "OAP Founder")
 
 
 def test_private_selector_is_normalised_server_side(monkeypatch):

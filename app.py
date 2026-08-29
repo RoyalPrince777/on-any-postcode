@@ -23,6 +23,7 @@ from mission_control import (
     approval_service,
     authority,
     carnival_intelligence,
+    founder_activation,
     judgement,
     languages,
     linkup,
@@ -75,6 +76,7 @@ CARNIVAL_CONTENT_SECURITY_POLICY = (
     "media-src 'self'; connect-src 'self'; style-src 'self'; "
     "script-src 'self'; frame-src https://www.openstreetmap.org"
 )
+FOUNDER_ACTIVATED_SESSION_KEY = "oap_founder_activation_completed"
 
 
 def _form_text(name, default, max_length):
@@ -569,6 +571,23 @@ def _auth_page_response(
     return response
 
 
+def _founder_activation_response(
+    *, status_code: int = 200, error: str | None = None
+):
+    response = make_response(
+        render_template("founder_activation.html", activation_error=error),
+        status_code,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def _founder_activation_closed(status_code: int = 404):
+    response = make_response("", status_code)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 def _auth_rate_key() -> str:
     return f"auth:{request.remote_addr or 'unknown'}"
 
@@ -607,7 +626,88 @@ def auth_page():
         pass
     if request.args.get("auth_error") == "unavailable":
         error = "Secure identity verification is temporarily unavailable."
-    return _auth_page_response(error=error, next_path=next_path)
+    notice = None
+    if session.pop(FOUNDER_ACTIVATED_SESSION_KEY, False):
+        notice = (
+            "Founder identity activated. Sign in with the private password "
+            "you just chose."
+        )
+    return _auth_page_response(error=error, notice=notice, next_path=next_path)
+
+
+@app.get("/activate-founder")
+def founder_activation_page():
+    activation_state = founder_activation.state()
+    if activation_state in {"complete", "disabled"}:
+        return _founder_activation_closed()
+    if activation_state != "available":
+        return _founder_activation_response(
+            status_code=503,
+            error="Founder activation is temporarily unavailable.",
+        )
+    return _founder_activation_response()
+
+
+@app.post("/activate-founder")
+def activate_founder():
+    activation_state = founder_activation.state()
+    if activation_state in {"complete", "disabled"}:
+        return _founder_activation_closed()
+    if activation_state != "available":
+        return _founder_activation_response(
+            status_code=503,
+            error="Founder activation is temporarily unavailable.",
+        )
+    if not web_security.csrf_valid(request):
+        return _founder_activation_response(
+            status_code=403,
+            error="The secure session expired. Refresh and try again.",
+        )
+    if not web_security.AUTH_BURST_LIMITER.allow(_auth_rate_key()):
+        return _founder_activation_response(
+            status_code=429,
+            error="Too many activation attempts. Wait 15 minutes and try again.",
+        )
+    if not founder_activation.token_allowed(_form_secret("activation_code", 512)):
+        return _founder_activation_response(
+            status_code=403,
+            error="The activation details were not recognised.",
+        )
+
+    password = _form_secret("password", 129)
+    confirmation = _form_secret("password_confirmation", 129)
+    if password != confirmation:
+        return _founder_activation_response(
+            status_code=400,
+            error="The two private password entries do not match.",
+        )
+    if len(password) < 12 or len(password) > 128 or not password.strip():
+        return _founder_activation_response(
+            status_code=400,
+            error="Choose a private password between 12 and 128 characters.",
+        )
+
+    try:
+        result = founder_activation.activate(password)
+    except founder_activation.ActivationUnavailable:
+        return _founder_activation_response(
+            status_code=503,
+            error="Founder activation is temporarily unavailable.",
+        )
+    if result == "complete":
+        return _founder_activation_closed()
+    if result != "activated":
+        return _founder_activation_response(
+            status_code=400,
+            error=(
+                "The Founder identity could not be activated. Choose a different "
+                "private password and try again."
+            ),
+        )
+
+    session[FOUNDER_ACTIVATED_SESSION_KEY] = True
+    session.permanent = True
+    return redirect(url_for("auth_page", next="/my-world"))
 
 
 @app.post("/auth/sign-in")
