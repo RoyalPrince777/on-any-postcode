@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from mission_control import neon_auth
 
 NON_FOUNDER_ID = "22222222-2222-4222-8222-222222222222"
@@ -89,46 +91,20 @@ def test_server_auth_request_omits_browser_origin_and_bounds_payload(
     assert observed["timeout"] == neon_auth.AUTH_TIMEOUT_SECONDS
 
 
-def test_private_signup_rejects_non_founder_before_auth_provider(monkeypatch):
+def test_private_web_signup_is_not_an_allowlisted_auth_operation(monkeypatch):
     monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
-
-    def forbidden_request(*args, **kwargs):
-        del args, kwargs
-        raise AssertionError("non-Founder signup must not contact Neon Auth")
-
-    monkeypatch.setattr(neon_auth, "_request", forbidden_request)
-
-    result = neon_auth.sign_up("Other", "other@example.test", "private password")
-
-    assert result.status_code == 403
-    assert result.set_cookie_headers == ()
-
-
-def test_founder_signup_never_auto_establishes_private_session(monkeypatch):
-    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
-    observed = {}
-
-    def fake_request(path, *, method, payload=None, cookie_header=None):
-        observed.update(
-            path=path,
-            method=method,
-            payload=payload,
-            cookie_header=cookie_header,
-        )
-        return neon_auth.AuthResult(
-            status_code=200,
-            payload={"user": {"id": NON_FOUNDER_ID}},
-            set_cookie_headers=("better-auth.session_token=upstream-session",),
+    with pytest.raises(ValueError, match="unsupported_auth_path"):
+        neon_auth._request(
+            "/sign-up/email",
+            method="POST",
+            payload={"password": "not-sent"},
         )
 
-    monkeypatch.setattr(neon_auth, "_request", fake_request)
 
-    result = neon_auth.sign_up("Founder", "FOUNDER@example.test", "private password")
+def test_private_selector_is_normalised_server_side(monkeypatch):
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", " Founder@Example.Test ")
 
-    assert observed["path"] == "/sign-up/email"
-    assert observed["payload"]["email"] == "FOUNDER@example.test"
-    assert result.status_code == 200
-    assert result.set_cookie_headers == ()
+    assert neon_auth.configured_founder_email() == "founder@example.test"
 
 
 def test_authenticated_non_founder_cannot_enter_mission_control(

@@ -146,8 +146,9 @@ def ensure_authenticated_user(
     email: str,
     display_name: str,
     email_verified: bool = False,
+    store_email: bool = True,
 ) -> None:
-    """Link a verified Neon Auth UUID to its established OAP user record."""
+    """Link a verified UUID while allowing Founder email minimisation."""
 
     try:
         with postgres_db.connect() as connection:
@@ -163,7 +164,7 @@ def ensure_authenticated_user(
                 (
                     identity_id,
                     _username(identity_id),
-                    email,
+                    email if store_email else None,
                     display_name,
                 ),
             )

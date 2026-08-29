@@ -25,7 +25,7 @@ MAX_AUTH_RESPONSE_BYTES: Final = 64 * 1024
 MAX_COOKIE_HEADER_BYTES: Final = 16 * 1024
 _COOKIE_NAME = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 _ALLOWED_PATHS: Final = frozenset(
-    {"/get-session", "/sign-in/email", "/sign-out", "/sign-up/email"}
+    {"/get-session", "/sign-in/email", "/sign-out"}
 )
 
 
@@ -66,12 +66,18 @@ def status() -> dict[str, bool]:
     return {"configured": bool(value), "valid": valid}
 
 
-def founder_signup_allowed(email: object) -> bool:
-    """Allow web signup only for the configured private Founder selector."""
+def founder_email_allowed(email: object) -> bool:
+    """Match the configured private Founder email without disclosing it."""
 
     expected = os.environ.get("OAP_HUMAN_AUTHORITY_EMAIL", "").strip().casefold()
     candidate = str(email or "").strip().casefold()
     return bool(expected and candidate) and hmac.compare_digest(expected, candidate)
+
+
+def configured_founder_email() -> str:
+    """Return the server-side private Auth selector; never render it."""
+
+    return os.environ.get("OAP_HUMAN_AUTHORITY_EMAIL", "").strip().casefold()
 
 
 def _read_json(response: Any) -> Any:
@@ -140,24 +146,6 @@ def sign_in(email: str, password: str) -> AuthResult:
         "/sign-in/email",
         method="POST",
         payload={"email": email, "password": password, "rememberMe": True},
-    )
-
-
-def sign_up(name: str, email: str, password: str) -> AuthResult:
-    """Create only the configured Founder account and never auto-establish it."""
-
-    if not founder_signup_allowed(email):
-        return AuthResult(status_code=403, payload=None)
-    result = _request(
-        "/sign-up/email",
-        method="POST",
-        payload={"name": name, "email": email, "password": password},
-    )
-    # A newly created identity must verify/sign in explicitly before OAP trusts it.
-    return AuthResult(
-        status_code=result.status_code,
-        payload=result.payload,
-        set_cookie_headers=(),
     )
 
 
