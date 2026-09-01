@@ -52,16 +52,6 @@
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="my-world-nickname">Nickname</label>
         <input id="my-world-nickname" name="nickname" value="{{ profile.nickname }}" maxlength="80" required>
-        <label for="my-world-country">Country / flag</label>
-        <input id="my-world-country" name="country" value="{{ profile.country }}" maxlength="80">
-        <label for="my-world-continent">Continent</label>
-        <input id="my-world-continent" name="continent" value="{{ profile.continent }}" maxlength="80">
-        <label for="my-world-county">County / region</label>
-        <input id="my-world-county" name="county" value="{{ profile.county }}" maxlength="120">
-        <label for="my-world-borough">Borough / district</label>
-        <input id="my-world-borough" name="borough" value="{{ profile.borough }}" maxlength="120">
-        <label for="my-world-postcode">Postcode</label>
-        <input id="my-world-postcode" name="postcode" value="{{ profile.postcode }}" maxlength="16">
         <button class="button" type="submit">Save My World</button>
       </form>
       {% endif %}
@@ -69,7 +59,7 @@
 
     <section class="card" aria-labelledby="boundary-title">
       <h2 id="boundary-title">Security boundary</h2>
-      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that same owner ID.</p>
+      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that [...]
       <p>Founder authority: <strong>confirmed</strong></p>
       <form method="post" action="{{ url_for('auth_sign_out') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
