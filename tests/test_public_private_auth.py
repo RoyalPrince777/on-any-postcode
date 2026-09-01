@@ -453,6 +453,8 @@ def test_one_time_founder_activation_keeps_identity_server_side(
     assert 'name="activation_code"' in page
     assert 'id="show-founder-passwords"' in page
     assert "Show both password entries" in page
+    assert "between 12 and 128 characters" in page
+    assert "12–21" not in page
 
     response = anonymous_client.post(
         "/activate-founder",

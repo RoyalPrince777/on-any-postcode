@@ -81,7 +81,7 @@ def configured_founder_email() -> str:
 
 
 def configured_public_origin() -> str:
-    """Return one validated server-controlled HTTPS origin for Auth signup."""
+    """Return one validated server-controlled HTTPS origin for Auth mutations."""
 
     value = (
         os.environ.get("OAP_PUBLIC_ORIGIN", "").strip()
@@ -104,7 +104,16 @@ def configured_public_origin() -> str:
         and not parsed.fragment
     ):
         return ""
-    return value[:-1] if value.endswith("/") else value
+    return value.removesuffix("/")
+
+
+def _required_public_origin() -> str:
+    """Require the exact application origin for every state-changing Auth call."""
+
+    origin = configured_public_origin()
+    if not origin:
+        raise AuthUnavailable("public_origin_not_configured")
+    return origin
 
 
 def _read_json(response: Any) -> Any:
@@ -178,6 +187,7 @@ def sign_in(email: str, password: str) -> AuthResult:
         "/sign-in/email",
         method="POST",
         payload={"email": email, "password": password, "rememberMe": True},
+        origin=_required_public_origin(),
     )
 
 
@@ -187,14 +197,11 @@ def sign_up_founder(password: str, name: str) -> AuthResult:
     email = configured_founder_email()
     if not email:
         raise AuthUnavailable("founder_selector_not_configured")
-    origin = configured_public_origin()
-    if not origin:
-        raise AuthUnavailable("public_origin_not_configured")
     return _request(
         "/sign-up/email",
         method="POST",
         payload={"name": name, "email": email, "password": password},
-        origin=origin,
+        origin=_required_public_origin(),
     )
 
 
@@ -206,7 +213,10 @@ def get_session(cookie_header: str) -> AuthResult:
 
 def sign_out(cookie_header: str) -> AuthResult:
     return _request(
-        "/sign-out", method="POST", cookie_header=cookie_header or None
+        "/sign-out",
+        method="POST",
+        cookie_header=cookie_header or None,
+        origin=_required_public_origin(),
     )
 
 

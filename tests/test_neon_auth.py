@@ -44,12 +44,13 @@ def test_cookie_header_forwards_only_recorded_auth_cookie_names():
     assert header == "better-auth.session_token=opaque"
 
 
-def test_server_auth_request_omits_browser_origin_and_bounds_payload(
+def test_server_auth_request_sends_validated_origin_and_bounds_payload(
     monkeypatch,
 ):
     monkeypatch.setenv(
         "NEON_AUTH_BASE_URL", "https://example.neonauth.test/neondb/auth"
     )
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://example.test/")
     observed = {}
 
     class Headers:
@@ -81,7 +82,7 @@ def test_server_auth_request_omits_browser_origin_and_bounds_payload(
     request = observed["request"]
 
     assert result.payload == {"ok": True}
-    assert request.get_header("Origin") is None
+    assert request.get_header("Origin") == "https://example.test"
     assert request.get_header("Referer") is None
     assert json.loads(request.data) == {
         "email": "member@example.test",
@@ -89,6 +90,45 @@ def test_server_auth_request_omits_browser_origin_and_bounds_payload(
         "rememberMe": True,
     }
     assert observed["timeout"] == neon_auth.AUTH_TIMEOUT_SECONDS
+
+
+def test_sign_in_and_sign_out_fail_closed_without_valid_origin(monkeypatch):
+    monkeypatch.delenv("OAP_PUBLIC_ORIGIN", raising=False)
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+
+    with pytest.raises(neon_auth.AuthUnavailable):
+        neon_auth.sign_in("member@example.test", "secret pass")
+    with pytest.raises(neon_auth.AuthUnavailable):
+        neon_auth.sign_out("better-auth.session_token=opaque")
+
+
+def test_sign_out_sends_validated_origin_with_auth_cookie(monkeypatch):
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://example.test")
+    observed = {}
+
+    def fake_request(
+        path, *, method, payload=None, cookie_header=None, origin=None
+    ):
+        observed.update(
+            path=path,
+            method=method,
+            payload=payload,
+            cookie_header=cookie_header,
+            origin=origin,
+        )
+        return neon_auth.AuthResult(status_code=200, payload={"success": True})
+
+    monkeypatch.setattr(neon_auth, "_request", fake_request)
+    result = neon_auth.sign_out("better-auth.session_token=opaque")
+
+    assert result.status_code == 200
+    assert observed == {
+        "path": "/sign-out",
+        "method": "POST",
+        "payload": None,
+        "cookie_header": "better-auth.session_token=opaque",
+        "origin": "https://example.test",
+    }
 
 
 def test_founder_signup_uses_only_the_server_side_selector(monkeypatch):

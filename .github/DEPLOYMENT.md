@@ -63,8 +63,9 @@ responses.
 12. Verify every public read route remains anonymous, private anonymous requests
     return redirect/401, and a controlled non-Founder session receives 403 from
     My World, SMI, Mission Control, infrastructure and private assets.
-13. Verify `/healthz` reports `12/12`, SMI reports `21/21`, and Render logs contain
-    no new errors or `5xx` responses.
+13. Verify `/livez` reports `alive`, `/healthz` reports `healthy`, the SMI gateway
+    returns the same healthy upstream state, and Render logs contain no new errors
+    or `5xx` responses.
 
 ## Post-deploy verification
 
@@ -73,10 +74,13 @@ curl -fsS https://on-any-postcode.onrender.com/livez
 curl -fsS https://on-any-postcode.onrender.com/healthz
 curl -sS -o /dev/null -w '%{http_code}\n' \
   https://on-any-postcode.onrender.com/mission/brain/status
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  https://oap-smi.onrender.com/mission/brain/status
 ```
 
-The private API probe must return `401` without a session. Private HTML routes
-must redirect to `/enter-my-world`; public OAP World and product routes must stay
+The main-origin Mission probe must return `404`; the same private API through
+the SMI gateway must return `401` without a session. Private HTML routes must
+redirect to `/enter-my-world`; public OAP World and product routes must stay
 available.
 
 ## Provider hardening after first release
