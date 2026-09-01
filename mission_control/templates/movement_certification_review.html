@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movement Certification Review · SMI</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">Human Authority · private · no automatic role grants</p>
+      <h1>Movement Certification Review</h1>
+      <p>Internal review records judgement only. External compliance remains a separate provider-backed gate.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="/mission">Mission Control</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <aside class="mc-authority" aria-label="Role grant boundary">
+      <strong>Internal approval ≠ legal clearance</strong>
+      <span>No Driver, Rider or Courier role is granted from this screen. A future compliance adapter must produce verified external evidence before role activation can be proposed.</span>
+    </aside>
+
+    {% if certification_status.expired_records %}
+    <section class="mc-panel" aria-labelledby="retention-title">
+      <p class="mc-eyebrow">Human-approved retention action</p>
+      <h2 id="retention-title">{{ certification_status.expired_records }} expired application records</h2>
+      <p>Purging deletes the expired applications and their cascading vehicle and review data. It does not change any Movement role.</p>
+      <button id="cert-purge-expired" type="button">Purge expired records</button>
+      <p id="cert-purge-result" role="status" aria-live="polite"></p>
+    </section>
+    {% endif %}
+
+    <section class="mc-panel" aria-labelledby="queue-title">
+      <p class="mc-eyebrow">{{ queue|length }} applications</p>
+      <h2 id="queue-title">Review Queue</h2>
+      {% if queue %}
+      <div class="mc-agent-grid" role="list">
+        {% for item in queue %}
+        <article class="mc-agent-card" role="listitem" data-application-id="{{ item.application_id }}">
+          <p class="mc-eyebrow">{{ item.role_type|upper }} · {{ item.state }}</p>
+          <h3>{{ item.vehicle_type|upper }}{% if item.vehicle_label %} · {{ item.vehicle_label }}{% endif %}</h3>
+          <p>Identity: {{ item.identity_id[:8] }}…</p>
+          <p>Zone: {{ item.service_zone or 'Not set' }}</p>
+          <p>Registration suffix: {{ item.registration_last4 or 'Not supplied' }}</p>
+          <p>External compliance: {{ item.external_compliance_state }}</p>
+          <p>Notice: {{ item.terms_version }}</p>
+          <p>Scheduled data expiry: {{ item.retention_expires_at }}</p>
+          {% if item.applicant_response %}
+          <p><strong>Applicant response:</strong> {{ item.applicant_response }}</p>
+          {% endif %}
+          {% if item.allowed_decisions %}
+          <label for="decision-{{ loop.index }}">Decision</label>
+          <select id="decision-{{ loop.index }}" class="cert-review-decision">
+            {% for decision in item.allowed_decisions %}
+            <option value="{{ decision }}">{{ decision|replace('_', ' ')|title }}</option>
+            {% endfor %}
+          </select>
+          <label for="reason-{{ loop.index }}">Private review reason — do not enter documents, licence numbers, health information or other sensitive data</label>
+          <textarea id="reason-{{ loop.index }}" class="cert-review-reason" maxlength="500" required></textarea>
+          <label for="message-{{ loop.index }}">Applicant-facing message — required for Needs Info</label>
+          <textarea id="message-{{ loop.index }}" class="cert-review-message" maxlength="500"></textarea>
+          <button type="button" class="cert-review-submit">Record review</button>
+          {% else %}
+          <p><strong>Internal review is terminal.</strong> External compliance remains separate and no role is granted.</p>
+          {% endif %}
+          <p class="cert-review-result" role="status" aria-live="polite"></p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No Movement certification applications require review.</p>
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+  (() => {
+    const csrf = {{ oap_csrf_token|tojson }};
+    document.querySelectorAll("[data-application-id]").forEach((card) => {
+      const button = card.querySelector(".cert-review-submit");
+      if (!button) return;
+      button.addEventListener("click", async () => {
+        const result = card.querySelector(".cert-review-result");
+        const decision = card.querySelector(".cert-review-decision").value;
+        const reason = card.querySelector(".cert-review-reason").value.trim();
+        const applicantMessage = card.querySelector(".cert-review-message").value.trim();
+        result.textContent = "Recording…";
+        try {
+          const response = await fetch(`/mission/movement-certification/${card.dataset.applicationId}/review`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
+            body: JSON.stringify({decision, reason, applicant_message: applicantMessage})
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error((payload.error || {}).message || "Review failed.");
+          result.textContent = "Review recorded. Worker role remains locked pending external compliance.";
+          window.location.reload();
+        } catch (error) {
+          result.textContent = error.message;
+        }
+      });
+    });
+
+    const purge = document.getElementById("cert-purge-expired");
+    if (purge) purge.addEventListener("click", async () => {
+      if (!window.confirm("Permanently delete all currently expired certification records?")) return;
+      const result = document.getElementById("cert-purge-result");
+      result.textContent = "Purging expired records…";
+      try {
+        const response = await fetch("/mission/movement-certification/purge-expired", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
+          body: JSON.stringify({confirm: "PURGE_EXPIRED"})
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error((payload.error || {}).message || "Purge failed.");
+        result.textContent = `${payload.purge.deleted} expired records deleted.`;
+        window.location.reload();
+      } catch (error) {
+        result.textContent = error.message;
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
