@@ -81,7 +81,7 @@ def configured_founder_email() -> str:
 
 
 def configured_public_origin() -> str:
-    """Return one validated server-controlled HTTPS origin for Auth mutations."""
+    """Return one validated server-controlled HTTPS origin for Auth signup."""
 
     value = (
         os.environ.get("OAP_PUBLIC_ORIGIN", "").strip()
@@ -104,16 +104,7 @@ def configured_public_origin() -> str:
         and not parsed.fragment
     ):
         return ""
-    return value.removesuffix("/")
-
-
-def _required_public_origin() -> str:
-    """Require the exact application origin for every state-changing Auth call."""
-
-    origin = configured_public_origin()
-    if not origin:
-        raise AuthUnavailable("public_origin_not_configured")
-    return origin
+    return value[:-1] if value.endswith("/") else value
 
 
 def _read_json(response: Any) -> Any:
@@ -134,7 +125,6 @@ def _request(
     method: str,
     payload: Mapping[str, object] | None = None,
     cookie_header: str | None = None,
-    origin: str | None = None,
 ) -> AuthResult:
     if path not in _ALLOWED_PATHS:
         raise ValueError("unsupported_auth_path")
@@ -153,10 +143,6 @@ def _request(
         if len(cookie_header.encode("utf-8")) > MAX_COOKIE_HEADER_BYTES:
             raise AuthUnavailable("auth_cookie_header_too_large")
         headers["Cookie"] = cookie_header
-    if origin:
-        if origin != configured_public_origin():
-            raise AuthUnavailable("invalid_auth_origin")
-        headers["Origin"] = origin
 
     request = urlrequest.Request(
         f"{base_url()}{path}", data=body, headers=headers, method=method
@@ -187,7 +173,6 @@ def sign_in(email: str, password: str) -> AuthResult:
         "/sign-in/email",
         method="POST",
         payload={"email": email, "password": password, "rememberMe": True},
-        origin=_required_public_origin(),
     )
 
 
@@ -201,7 +186,6 @@ def sign_up_founder(password: str, name: str) -> AuthResult:
         "/sign-up/email",
         method="POST",
         payload={"name": name, "email": email, "password": password},
-        origin=_required_public_origin(),
     )
 
 
@@ -213,10 +197,7 @@ def get_session(cookie_header: str) -> AuthResult:
 
 def sign_out(cookie_header: str) -> AuthResult:
     return _request(
-        "/sign-out",
-        method="POST",
-        cookie_header=cookie_header or None,
-        origin=_required_public_origin(),
+        "/sign-out", method="POST", cookie_header=cookie_header or None
     )
 
 
