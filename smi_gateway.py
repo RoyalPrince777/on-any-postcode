@@ -22,6 +22,7 @@ _ALLOWED_REQUEST_HEADERS = {
     "range",
     "user-agent",
     "x-oap-csrf",
+    "x-oap-home-node-token",
 }
 _HOP_BY_HOP = {
     "connection",
