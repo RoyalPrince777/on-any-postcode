@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from . import earth_intelligence
+
 COMPONENTS = (
     "observation",
     "forecast",
@@ -20,33 +22,17 @@ COMPONENTS = (
 )
 
 _WMO_CONDITIONS = {
-    0: ("Clear", "☀️"),
-    1: ("Mainly clear", "🌤️"),
-    2: ("Partly cloudy", "⛅"),
-    3: ("Overcast", "☁️"),
-    45: ("Fog", "🌫️"),
-    48: ("Freezing fog", "🌫️"),
-    51: ("Light drizzle", "🌦️"),
-    53: ("Drizzle", "🌦️"),
-    55: ("Heavy drizzle", "🌧️"),
-    56: ("Freezing drizzle", "🌧️"),
-    57: ("Heavy freezing drizzle", "🌧️"),
-    61: ("Light rain", "🌦️"),
-    63: ("Rain", "🌧️"),
-    65: ("Heavy rain", "🌧️"),
-    66: ("Freezing rain", "🌧️"),
-    67: ("Heavy freezing rain", "🌧️"),
-    71: ("Light snow", "🌨️"),
-    73: ("Snow", "❄️"),
-    75: ("Heavy snow", "❄️"),
-    77: ("Snow grains", "🌨️"),
-    80: ("Light rain showers", "🌦️"),
-    81: ("Rain showers", "🌧️"),
-    82: ("Heavy rain showers", "🌧️"),
-    85: ("Snow showers", "🌨️"),
-    86: ("Heavy snow showers", "❄️"),
-    95: ("Thunderstorm", "⛈️"),
-    96: ("Thunderstorm with hail", "⛈️"),
+    0: ("Clear", "☀️"), 1: ("Mainly clear", "🌤️"), 2: ("Partly cloudy", "⛅"),
+    3: ("Overcast", "☁️"), 45: ("Fog", "🌫️"), 48: ("Freezing fog", "🌫️"),
+    51: ("Light drizzle", "🌦️"), 53: ("Drizzle", "🌦️"), 55: ("Heavy drizzle", "🌧️"),
+    56: ("Freezing drizzle", "🌧️"), 57: ("Heavy freezing drizzle", "🌧️"),
+    61: ("Light rain", "🌦️"), 63: ("Rain", "🌧️"), 65: ("Heavy rain", "🌧️"),
+    66: ("Freezing rain", "🌧️"), 67: ("Heavy freezing rain", "🌧️"),
+    71: ("Light snow", "🌨️"), 73: ("Snow", "❄️"), 75: ("Heavy snow", "❄️"),
+    77: ("Snow grains", "🌨️"), 80: ("Light rain showers", "🌦️"),
+    81: ("Rain showers", "🌧️"), 82: ("Heavy rain showers", "🌧️"),
+    85: ("Snow showers", "🌨️"), 86: ("Heavy snow showers", "❄️"),
+    95: ("Thunderstorm", "⛈️"), 96: ("Thunderstorm with hail", "⛈️"),
     99: ("Severe thunderstorm with hail", "⛈️"),
 }
 
@@ -89,7 +75,7 @@ def _advisory_level(*, code: int | None, precipitation: float | None, wind: floa
 
 
 def enrich(observation: Mapping[str, Any]) -> dict[str, Any]:
-    """Add deterministic Weather Intelligence signals to a live observation."""
+    """Add deterministic Weather Intelligence signals and Earth-world binding."""
 
     result = dict(observation)
     raw_code = observation.get("weather_code")
@@ -132,12 +118,14 @@ def enrich(observation: Mapping[str, Any]) -> dict[str, Any]:
         "observation_time": str(observation.get("time") or ""),
         "spatial_binding": "THE_SPOT_POSTCODE_TO_UNIVERSE",
     }
+    result["earth_intelligence"] = earth_intelligence.from_weather(result)
     return result
 
 
 def status(live_observation_verified: bool) -> dict[str, Any]:
     """Return truthful architecture and delivery state for Weather Intelligence."""
 
+    earth = earth_intelligence.status(weather_ready=bool(live_observation_verified))
     return {
         "name": "OAP Weather Intelligence",
         "architecture_passed": True,
@@ -146,6 +134,8 @@ def status(live_observation_verified: bool) -> dict[str, Any]:
         "live_observation_verified": bool(live_observation_verified),
         "the_spot_connected": True,
         "spatial_binding": "POSTCODE_TO_UNIVERSE",
+        "earth_intelligence": earth,
+        "earth_intelligence_connected": bool(earth["weather_intelligence_connected"]),
         "source_mode": "external_live_bootstrap",
         "first_party_observation_ready": False,
         "external_dependency_present": True,
