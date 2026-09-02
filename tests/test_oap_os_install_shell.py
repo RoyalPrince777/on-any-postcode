@@ -42,6 +42,17 @@ def test_home_exposes_oap_os_install_contract(client):
     assert "protected records and decisions remain online-only" in page
 
 
+def test_install_controller_has_cross_platform_guidance():
+    controller = Path("static/oap-os.js").read_text()
+
+    for platform in ("Android", "iPhone / iPad", "Windows", "macOS", "ChromeOS", "Linux"):
+        assert platform in controller
+    assert "Add to Home Screen" in controller
+    assert "Add to Dock" in controller
+    assert "beforeinstallprompt" in controller
+    assert "navigator.standalone" in controller
+
+
 def test_service_worker_is_root_scoped_and_never_runtime_caches_private_data(client):
     response = client.get("/service-worker.js")
     worker = response.get_data(as_text=True)
