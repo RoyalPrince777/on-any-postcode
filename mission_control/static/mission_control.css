@@ -140,6 +140,21 @@
   margin: 0 0 6px;
 }
 
+.mc-workspace-card {
+  color: var(--mc-text);
+  display: block;
+  text-decoration: none;
+}
+
+.mc-workspace-card:hover {
+  border-color: var(--mc-green);
+}
+
+.mc-workspace-card:focus-visible {
+  outline: 3px solid var(--mc-focus);
+  outline-offset: 3px;
+}
+
 .mc-mode-grid a:hover {
   border-color: var(--mc-green);
 }

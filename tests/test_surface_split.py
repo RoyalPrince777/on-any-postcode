@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from flask import Flask
 
 import smi_gateway
@@ -55,7 +56,11 @@ def test_smi_gateway_allowlist_is_private_and_sign_in_only():
     assert smi_gateway._allowed("auth/sign-up") is False
     assert smi_gateway._allowed("activate-founder") is False
     assert smi_gateway._allowed("world") is False
-    assert smi_gateway._allowed("my-world") is False
+    assert smi_gateway._allowed("my-world") is True
+    assert smi_gateway._allowed("my-world/maps") is True
+    assert smi_gateway._allowed("my-world/maps/records") is True
+    assert smi_gateway._allowed("my-world-other") is False
+    assert smi_gateway._allowed("myworld") is False
     assert smi_gateway._allowed("market") is False
     assert smi_gateway._allowed("manifest.webmanifest") is False
     assert smi_gateway._allowed("service-worker.js") is False
@@ -81,7 +86,23 @@ def test_smi_gateway_root_redirects_to_private_workspace():
     client = smi_gateway.app.test_client()
     response = client.get("/")
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/mission")
+    assert response.headers["Location"].endswith("/mission?mode=mission")
+
+
+def test_smi_gateway_requires_an_exact_https_upstream_origin(monkeypatch):
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://example.test/")
+    assert smi_gateway._origin() == "https://example.test"
+
+    for value in (
+        "http://example.test",
+        "https://example.test/not-an-origin",
+        "https://example.test?redirect=elsewhere",
+        "https://user:password@example.test",
+        "https://example.test:invalid",
+    ):
+        monkeypatch.setenv("OAP_PUBLIC_ORIGIN", value)
+        with pytest.raises(RuntimeError, match="invalid_public_origin"):
+            smi_gateway._origin()
 
 
 def test_render_blueprint_is_free_and_contains_no_paid_worker():

@@ -12,7 +12,7 @@ def test_home_keeps_public_sections_and_draws_explicit_boundary(client):
     assert 'id="sovereign"' not in page
     assert "PUBLIC" in page
     assert "PRIVATE" in page
-    assert 'href="/my-world"' in page
+    assert 'href="/open-my-world"' in page
     assert 'href="/mission"' not in page
     assert "Your location hierarchy" in page
     assert "NEON" not in page

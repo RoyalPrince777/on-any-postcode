@@ -21,8 +21,9 @@
       <a class="mc-secondary-link" href="{{ url_for('provider_fabric.provider_dashboard') }}">Provider Fabric</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.agent_intelligence') }}">Agent Intelligence</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.ollama_chat_dashboard') }}">SMI / Ollama</a>
       <a class="mc-secondary-link" href="{{ url_for('my_world') }}">Return to My World</a>
-      <a class="mc-secondary-link" href="{{ url_for('home') }}">Public OAP World</a>
+      <a class="mc-secondary-link" href="{{ oap_public_home_url }}">Public OAP World</a>
     </div>
   </header>
 
@@ -57,6 +58,20 @@
           <p>{{ agent.status }}</p>
           <small>{{ agent.assignment }}</small>
         </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="ecosystem-forms-title">
+      <h2 id="ecosystem-forms-title">Your 12 private ecosystem forms</h2>
+      <p class="mc-notice">Founder-only and owner-scoped. Public OAP World cannot read these records.</p>
+      <div class="mc-intelligence-grid" role="list">
+        {% for workspace in workspaces %}
+        <a class="mc-intelligence-card mc-workspace-card" href="{{ url_for('my_world_workspace', workspace_id=workspace.id) }}" role="listitem">
+          <h3>{{ workspace.icon }} {{ workspace.name }}</h3>
+          <p>{{ workspace.purpose }}</p>
+          <small>Open private form</small>
+        </a>
         {% endfor %}
       </div>
     </section>

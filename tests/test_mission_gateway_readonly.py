@@ -4,7 +4,7 @@ import hashlib
 import sqlite3
 
 import app as app_module
-from mission_control import audit, config, db, status
+from mission_control import audit, config, db, status, workspaces
 
 
 def test_mission_renders_without_initializing_database(client, tmp_path):
@@ -29,6 +29,17 @@ def test_invalid_mode_returns_structured_400(client):
             "message": "Unsupported Mission Control mode.",
         }
     }
+
+
+def test_mission_checkpoint_exposes_all_twelve_private_ecosystem_forms(client):
+    response = client.get("/mission?mode=mission")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Your 12 private ecosystem forms" in page
+    assert 'href="/mission/ollama"' in page
+    for workspace in workspaces.WORKSPACES:
+        assert f'href="/my-world/{workspace["id"]}"' in page
 
 
 def test_public_status_is_coarse_and_redacted(client):

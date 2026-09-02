@@ -44,7 +44,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 <a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
 <a href="{{ url_for('world_languages') }}">🗣️ Languages</a>
 <a href="{{ url_for('linkup_front_door') }}">💬 Link Up</a>
-<a href="{{ url_for('my_world') }}">🔒 My World</a>
+<a href="{{ founder_entry_url }}">🔒 My World</a>
 <a href="{{ url_for('world_cup') }}">⚽ World Cup</a>
 </nav>
 <main>
@@ -53,7 +53,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 <h1>ON ANY<br>POSTCODE</h1>
 <p>One human world, entered through the place you live. Start local and move outward: Postcode → Borough → County / Region → Country → Continent → Global → Universe.</p>
 <p class="small">Browse public OAP World freely. Passwords are only for private access and approved account actions such as business monetisation.</p>
-<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></div>
+<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link button-link--private" href="{{ founder_entry_url }}">Enter My World</a></div>
 <div class="card os-install" aria-labelledby="oap-os-title">
 <p class="eyebrow">OAP OPERATING SYSTEM · GENERATION 0</p>
 <h2 id="oap-os-title">Install the public OAP OS shell</h2>
@@ -82,7 +82,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 <article class="card"><span class="badge">PUBLIC</span><h3>The Spot</h3><p>Local information, culture, services and community discovery for any postcode.</p><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Open The Spot</a></article>
 <article class="card"><span class="badge">PUBLIC</span><h3>World Languages</h3><p>Choose a continent, start a language lesson and find trusted learning support across South London.</p><a class="button-link" href="{{ url_for('world_languages') }}">Start learning</a></article>
 <article class="card"><span class="badge">PUBLIC</span><h3>Link Up</h3><p>Find community connections publicly. Private conversations require your account.</p><a class="button-link" href="{{ url_for('linkup_front_door') }}">Open Link Up</a></article>
-<article class="card zone--private"><span class="badge">PRIVATE</span><h3>My World</h3><p>Your profile, messages, records and twelve private workspaces stay owner-scoped.</p><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></article>
+<article class="card zone--private"><span class="badge">PRIVATE</span><h3>My World</h3><p>Your messages, records and twelve private ecosystem forms stay owner-scoped.</p><a class="button-link button-link--private" href="{{ founder_entry_url }}">Enter My World</a></article>
 </div>
 </section>
 <section id="signal" aria-labelledby="signal-title">

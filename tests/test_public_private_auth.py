@@ -7,6 +7,7 @@ from mission_control import (
     products,
     public_store,
     web_security,
+    workspaces,
 )
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
@@ -201,32 +202,88 @@ def test_public_home_never_renders_private_profile_records(client):
     assert 'method="post" action="/myworld"' not in page
 
 
-def test_my_world_reads_only_verified_uuid_owner(client, monkeypatch):
-    observed = {}
-    monkeypatch.setattr(public_store, "status", lambda: {"configured": True})
+def test_my_world_opens_without_the_legacy_nickname_profile(client, monkeypatch):
+    def unexpected_profile_call(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("My World landing must not load the legacy profile")
 
-    def fake_sync(identity_id, *, email, display_name, store_email):
-        observed["sync"] = (identity_id, email, display_name, store_email)
-
-    def fake_get(identity_id):
-        observed["read"] = identity_id
-        return {"nickname": "Private Neo", "country": "Ghana"}
-
-    monkeypatch.setattr(public_store, "ensure_authenticated_user", fake_sync)
-    monkeypatch.setattr(public_store, "get_profile", fake_get)
+    monkeypatch.setattr(public_store, "status", unexpected_profile_call)
+    monkeypatch.setattr(
+        public_store, "ensure_authenticated_user", unexpected_profile_call
+    )
+    monkeypatch.setattr(public_store, "get_profile", unexpected_profile_call)
 
     response = client.get("/my-world")
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert observed == {
-        "sync": (AUTH_ID, "member@example.test", "OAP Member", False),
-        "read": AUTH_ID,
-    }
-    assert "Private Neo" in page
-    assert "Ghana" in page
+    assert 'name="nickname"' not in page
+    assert 'method="post" action="/myworld"' not in page
     assert "member@example.test" not in page
     assert "Email verification" not in page
+    assert "Your 12 private ecosystem forms" in page
+    for workspace in workspaces.WORKSPACES:
+        assert f'href="/my-world/{workspace["id"]}"' in page
+
+
+def test_public_home_routes_founder_entry_to_exact_smi_checkpoint(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.setenv(
+        "OAP_SMI_PUBLIC_ORIGIN", "https://private-smi.example.test/"
+    )
+
+    page = anonymous_client.get("/").get_data(as_text=True)
+    entry = anonymous_client.get("/open-my-world")
+
+    assert page.count('href="/open-my-world"') == 3
+    assert "private-smi.example.test" not in page
+    assert entry.status_code == 302
+    assert entry.headers["Location"] == (
+        "https://private-smi.example.test/mission?mode=mission"
+    )
+    assert entry.headers["Cache-Control"] == "no-store"
+
+
+def test_my_world_links_to_exact_private_smi_origin(client, monkeypatch):
+    monkeypatch.setenv(
+        "OAP_SMI_PUBLIC_ORIGIN", "https://private-smi.example.test/"
+    )
+
+    response = client.get("/my-world")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "SMI / Ollama" in page
+    assert 'href="https://private-smi.example.test/mission/ollama"' in page
+    assert (
+        'href="https://private-smi.example.test/mission?mode=mission"' in page
+    )
+    assert 'href="https://private-smi.example.test/mission/judgement"' in page
+    assert (
+        'href="https://private-smi.example.test/mission/infrastructure"' in page
+    )
+    assert 'href="/mission/ollama"' not in page
+    assert 'name="nickname"' not in page
+    assert "Your 12 private ecosystem forms" in page
+
+
+def test_my_world_fails_closed_for_invalid_smi_origin(client, monkeypatch):
+    monkeypatch.setenv(
+        "OAP_SMI_PUBLIC_ORIGIN", "https://private-smi.example.test/not-an-origin"
+    )
+
+    response = client.get("/my-world")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Private SMI entry is unavailable" in page
+    assert "private-smi.example.test/mission" not in page
+
+    entry = client.get("/open-my-world")
+    assert entry.status_code == 503
+    assert entry.headers["Cache-Control"] == "no-store"
+    assert "private-smi.example.test" not in entry.get_data(as_text=True)
 
 
 def test_my_world_update_uses_verified_uuid_owner(client, csrf, monkeypatch):

@@ -33,7 +33,7 @@
     <p class="eyebrow">{{ 'PRIVATE · FOUNDER' if founder_only else 'APPROVED ACCOUNT ACTION' }}</p>
     <h1>{{ 'Enter My World' if founder_only else 'Sign in for this action' }}</h1>
     <p>Public OAP World is open to browse without an account or password. Sign-in is used only for private access and approved actions such as business monetisation or private messages.</p>
-    <a href="{{ url_for('home') }}">← Return to public OAP World</a>
+    <a href="{{ oap_public_home_url }}">← Return to public OAP World</a>
     {% if auth_error %}<div class="error" role="alert">{{ auth_error }}</div>{% endif %}
     {% if auth_notice %}<div class="notice" role="status">{{ auth_notice }}</div>{% endif %}
     {% if not auth_configured %}

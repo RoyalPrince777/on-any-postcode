@@ -28,7 +28,7 @@
     <p class="eyebrow">PRIVATE · ONE-TIME SETUP</p>
     <h1>Activate Founder identity</h1>
     <p>This ceremony works only while no managed identity exists. Your configured email stays server-side and is never requested or displayed here.</p>
-    <a href="{{ url_for('home') }}">← Return to public OAP World</a>
+    <a href="{{ oap_public_home_url }}">← Return to public OAP World</a>
     {% if activation_error %}<div class="error" role="alert">{{ activation_error }}</div>{% endif %}
   </header>
 
