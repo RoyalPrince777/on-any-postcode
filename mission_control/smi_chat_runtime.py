@@ -17,6 +17,13 @@ from .smi_chat_runtime_core import *  # noqa: F401,F403
 _COMPATIBILITY_ENGINE = _core._provider
 
 
+def health() -> dict:
+    """Return core SMI health plus truthful Home Node inference certification."""
+    snapshot = dict(_core.health())
+    snapshot["inference"] = _inference.status(probe=True)
+    return snapshot
+
+
 def _gateway_provider(
     message: str,
     image_data: str = "",
@@ -54,7 +61,7 @@ def _grounded_provider(
 ) -> str:
     return _grounded.grounded_provider(
         _gateway_provider,
-        _core.health,
+        health,
         message,
         image_data,
         history,
