@@ -1,8 +1,8 @@
 # OAP production deployment: Render + Neon
 
-OAP runs as one Render web service with one public front door and a verified
-private zone. Production secrets remain dashboard-managed and are not committed
-to `render.yaml`.
+OAP runs as two Render web services: one public front door and one separate
+private SMI gateway. Production secrets remain dashboard-managed and are not
+committed to `render.yaml`.
 
 ## Architecture
 
@@ -27,6 +27,9 @@ OAP_AUTH_REQUIRED=true
 OAP_SESSION_SECRET=<unique high-entropy value>
 OAP_HUMAN_AUTHORITY_EMAIL=<server-side Founder Auth selector; never rendered>
 OAP_HUMAN_AUTHORITY_ID=<exact verified Founder UUID after setup>
+OAP_PUBLIC_ORIGIN=https://on-any-postcode.onrender.com
+OAP_SMI_PUBLIC_ORIGIN=https://oap-smi.onrender.com
+OAP_SMI_GATEWAY_SECRET=<same 32+ character secret on both Render services>
 OPENAI_API_KEY=<provider secret>
 OAP_AI_PROVIDER=openai
 OAP_AI_MODEL=<approved model>
@@ -36,6 +39,12 @@ OAP_AGENT_REGISTRY_APPROVED=true
 `NEON_AUTH_BASE_URL` is configuration, not a credential. Database, provider and
 session secrets must never appear in source, logs, deployment notes or health
 responses.
+
+The public My World entry must resolve through `OAP_SMI_PUBLIC_ORIGIN` to
+`/mission?mode=mission`; relative `/mission` links on the public service
+intentionally return `404`. The SMI allowlist admits only Auth, Mission, health,
+private assets and the Founder-gated `/my-world` ecosystem-form routes. It must
+not admit public signup or arbitrary public-service routes.
 
 ## Safe release sequence
 

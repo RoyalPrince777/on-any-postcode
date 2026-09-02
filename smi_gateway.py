@@ -47,11 +47,24 @@ _OPENER = urlrequest.build_opener(_NoRedirect())
 
 
 def _origin() -> str:
-    value = os.environ.get("OAP_PUBLIC_ORIGIN", _UPSTREAM_DEFAULT).strip().rstrip("/")
-    parsed = urlparse.urlparse(value)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    value = os.environ.get("OAP_PUBLIC_ORIGIN", _UPSTREAM_DEFAULT).strip()
+    try:
+        parsed = urlparse.urlparse(value)
+        _ = parsed.port
+    except ValueError as exc:
+        raise RuntimeError("invalid_public_origin") from exc
+    if not (
+        parsed.scheme == "https"
+        and parsed.hostname
+        and not parsed.username
+        and not parsed.password
+        and parsed.path in {"", "/"}
+        and not parsed.params
+        and not parsed.query
+        and not parsed.fragment
+    ):
         raise RuntimeError("invalid_public_origin")
-    return value
+    return value.removesuffix("/")
 
 
 def _secret() -> str:
@@ -66,6 +79,8 @@ def _allowed(path: str) -> bool:
     if clean == "/auth/sign-up":
         return False
     if clean == "/mission" or clean.startswith("/mission/"):
+        return True
+    if clean == "/my-world" or clean.startswith("/my-world/"):
         return True
     return clean in {
         "/auth",
@@ -143,7 +158,7 @@ def _proxy(path: str):
 
 @app.get("/")
 def root():
-    return redirect("/mission", code=302)
+    return redirect("/mission?mode=mission", code=302)
 
 
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])

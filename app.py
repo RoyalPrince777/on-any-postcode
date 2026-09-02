@@ -63,6 +63,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 MAX_PUBLIC_RECORDS = 100
+DEFAULT_SMI_PUBLIC_ORIGIN = "https://oap-smi.onrender.com"
 FOUNDER_ONLY_PATH_PREFIXES = (
     "/api/infrastructure",
     "/infrastructure",
@@ -118,7 +119,13 @@ def _protect_private_assets():
 
 @app.context_processor
 def _session_security_context():
-    return {"oap_csrf_token": web_security.csrf_token()}
+    public_origin = neon_auth.configured_public_origin()
+    return {
+        "oap_csrf_token": web_security.csrf_token(),
+        "oap_public_home_url": (
+            f"{public_origin}/" if public_origin else url_for("home")
+        ),
+    }
 
 
 @app.after_request
@@ -419,12 +426,27 @@ def home():
     public = _load_public_snapshot()
     return render_template(
         "home.html",
+        founder_entry_url=url_for("open_my_world"),
         location_levels=LOCATION_LEVELS,
         signal_posts=public["signal_posts"],
         team_messages=public["team_messages"],
         flag_counts=public["flag_counts"],
         public_persistence=public["durable"],
     )
+
+
+@app.get("/open-my-world")
+def open_my_world():
+    """Send the public entry link to the fixed private Mission checkpoint."""
+
+    target = _private_smi_url("/mission?mode=mission")
+    if not target:
+        response = make_response("Private access is temporarily unavailable.", 503)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    response = redirect(target)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def _world_languages_response():
@@ -532,6 +554,40 @@ def _safe_next(value: object, default: str = "/my-world") -> str:
     ):
         return default
     return candidate
+
+
+def _configured_smi_origin() -> str:
+    """Return the exact HTTPS origin for the separate private SMI service."""
+
+    value = os.environ.get(
+        "OAP_SMI_PUBLIC_ORIGIN", DEFAULT_SMI_PUBLIC_ORIGIN
+    ).strip()
+    try:
+        parsed = urlparse.urlparse(value)
+        _ = parsed.port
+    except ValueError:
+        return ""
+    if not (
+        value
+        and parsed.scheme == "https"
+        and bool(parsed.hostname)
+        and not parsed.username
+        and not parsed.password
+        and parsed.path in {"", "/"}
+        and not parsed.params
+        and not parsed.query
+        and not parsed.fragment
+    ):
+        return ""
+    return value.removesuffix("/")
+
+
+def _private_smi_url(path: str) -> str:
+    """Build a fixed-origin private SMI URL without accepting user input."""
+
+    origin = _configured_smi_origin()
+    clean_path = "/" + path.lstrip("/")
+    return f"{origin}{clean_path}" if origin else ""
 
 
 def _founder_only_path(value: object) -> bool:
@@ -1187,49 +1243,17 @@ def flag():
 @app.get("/my-world")
 @web_security.login_required(founder_only=True)
 def my_world():
-    user = web_security.current_authenticated_user()
-    if user is None:  # pragma: no cover - decorator is the fail-closed gate
-        return redirect(url_for("auth_page"))
-    identity_id = str(user["id"])
-    profile = {
-        "nickname": str(user["name"]),
-        "postcode": "",
-        "borough": "",
-        "county": "",
-        "country": "",
-        "continent": "",
+    private_smi_links = {
+        "smi_chat_url": _private_smi_url("/mission/ollama"),
+        "smi_mission_url": _private_smi_url("/mission?mode=mission"),
+        "smi_judgement_url": _private_smi_url("/mission/judgement"),
+        "smi_infrastructure_url": _private_smi_url("/mission/infrastructure"),
     }
-    try:
-        if public_store.status()["configured"]:
-            public_store.ensure_authenticated_user(
-                identity_id,
-                email=str(user["email"]),
-                display_name=str(user["name"]),
-                store_email=False,
-            )
-            profile = public_store.get_profile(identity_id) or profile
-        else:
-            profile = profiles.get(identity_id, profile)
-    except public_store.PublicStoreUnavailable:
-        response = make_response(
-            render_template(
-                "my_world.html",
-                auth_user=user,
-                profile=profile,
-                workspaces=workspaces.WORKSPACES,
-                private_store_unavailable=True,
-            ),
-            503,
-        )
-        response.headers["Cache-Control"] = "no-store"
-        return response
     response = make_response(
         render_template(
             "my_world.html",
-            auth_user=user,
-            profile=profile,
             workspaces=workspaces.WORKSPACES,
-            private_store_unavailable=False,
+            **private_smi_links,
         )
     )
     response.headers["Cache-Control"] = "private, no-store"

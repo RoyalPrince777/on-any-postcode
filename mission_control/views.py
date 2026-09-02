@@ -32,6 +32,7 @@ from . import (
     status,
     war_room,
     web_security,
+    workspaces,
 )
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
@@ -92,6 +93,7 @@ def mission_workspace():
             active_mode=mode,
             allowed_modes=ALLOWED_MODES,
             gateway=status.get_public_gateway_status(),
+            workspaces=workspaces.WORKSPACES,
         )
     )
     return _no_store(response)
