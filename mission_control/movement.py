@@ -241,15 +241,26 @@ def get_public_movement() -> dict[str, Any]:
 def get_public_movement_status() -> dict[str, Any]:
     """Return coarse capability readiness without private identifiers/data."""
 
-    from . import movement_operations, routing
+    from . import movement_intelligence, movement_operations, routing
 
     validation = validate_movement_architecture()
+    intelligence = movement_intelligence.movement_intelligence_status()
     schema = movement_operations.movement_schema_status()
     route_state = routing.status()
     schema_ready = bool(schema["schema_ready"])
     return {
         "product": "OAP Movement",
         "architecture_passed": validation["passed"],
+        "movement_intelligence": intelligence,
+        "movement_intelligence_architecture_passed": bool(intelligence["architecture_passed"]),
+        "movement_intelligence_component_count": int(intelligence["component_count"]),
+        "movement_intelligence_first_party": (
+            not intelligence["first_party_policy"]["production_proprietary_map_api_allowed"]
+            and not intelligence["first_party_policy"]["production_proprietary_routing_api_allowed"]
+            and intelligence["first_party_policy"]["oap_controlled_map_store_required"]
+            and intelligence["first_party_policy"]["oap_controlled_route_engine_required"]
+        ),
+        "movement_intelligence_production_navigation_ready": bool(intelligence["production_navigation_ready"]),
         "ordered_steps": len(MOVEMENT_BUILD_ORDER),
         "routing_adapter_configured": bool(route_state["configured"]),
         "routing_runtime_verified": bool(route_state["runtime_verified"]),
