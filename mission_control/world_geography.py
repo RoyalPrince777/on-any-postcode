@@ -6,6 +6,8 @@ community-room ledger; private messages remain in LinkUp.
 """
 from __future__ import annotations
 
+import re
+
 from flask import Blueprint, jsonify, make_response, redirect, render_template, request, url_for
 
 from . import public_store, sports_intelligence, web_security
@@ -25,7 +27,33 @@ COUNTRY_ANTHEM_TITLES = {
     "Ghana":"God Bless Our Homeland Ghana","South Africa":"National Anthem of South Africa","Morocco":"Cherifian Anthem","Senegal":"Pincez Tous vos Koras, Frappez les Balafons","Egypt":"Bilady, Bilady, Bilady","Algeria":"Kassaman","Tunisia":"Humat al-Hima","Japan":"Kimigayo","South Korea":"Aegukga","Qatar":"As Salam al Amiri","Saudi Arabia":"Aash Al Maleek","United States":"The Star-Spangled Banner","Canada":"O Canada","Mexico":"Himno Nacional Mexicano","Brazil":"Hino Nacional Brasileiro","Argentina":"Himno Nacional Argentino","Colombia":"Himno Nacional de la República de Colombia","Uruguay":"Himno Nacional de Uruguay","Paraguay":"Paraguayos, República o Muerte","Australia":"Advance Australia Fair","New Zealand":"God Defend New Zealand","France":"La Marseillaise","Germany":"Deutschlandlied","Spain":"Marcha Real","Portugal":"A Portuguesa","Netherlands":"Wilhelmus","Belgium":"La Brabançonne","Switzerland":"Swiss Psalm","Austria":"Land der Berge, Land am Strome","Croatia":"Lijepa naša domovino","Czechia":"Kde domov můj","Norway":"Ja, vi elsker dette landet","Sweden":"Du gamla, Du fria","Türkiye":"İstiklâl Marşı","England":"God Save the King","Scotland":"National anthem / sporting anthem surface",
 }
 
-LEVELS = (("continent","🌍","Continent"),("country","🏳️","Country"),("region","🧭","County / Region"),("borough","🏙️","Borough / District"),("postcode","📍","Postcode"))
+LEVELS = (
+    ("continent","🌍","Continent"),
+    ("country","🏳️","Country"),
+    ("region","🧭","County / Region"),
+    ("borough","🏙️","Borough / District"),
+    ("postcode","📍","Postcode"),
+)
+
+LEVEL_CONTENT = {
+    "continent": ("Shared cultures", "Continental sport", "Music", "Food", "Languages", "History", "Humour & fun"),
+    "country": ("National anthem", "National identity", "Sport", "Culture", "Music", "Food", "History", "Humour & fun"),
+    "region": ("Regional sport", "Regional culture", "Music", "History", "Events", "Places", "Humour & fun"),
+    "borough": ("Local sport", "Neighbourhood culture", "Events", "Places", "Community", "Local stories", "Humour & fun"),
+    "postcode": ("The Spot", "Postcode Room", "Pulse", "Signal", "Weather", "Local sport", "Events", "Market", "Places", "Humour & fun"),
+}
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
+
+
+def _continent(continent_slug: str):
+    return next((item for item in CONTINENTS if item["slug"] == continent_slug), None)
+
+
+def _country(continent: dict[str, object], country_slug: str) -> str | None:
+    return next((name for name in continent["countries"] if _slug(str(name)) == country_slug), None)
 
 
 def _snapshot_messages():
@@ -35,17 +63,60 @@ def _snapshot_messages():
         return []
 
 
+def _render(*, selected=None, selected_country=None, local_level=None, local_place=None):
+    return make_response(
+        render_template(
+            "world_geography.html",
+            continents=CONTINENTS,
+            selected=selected,
+            selected_country=selected_country,
+            local_level=local_level,
+            local_place=local_place,
+            level_content=LEVEL_CONTENT,
+            levels=LEVELS,
+            anthem_titles=COUNTRY_ANTHEM_TITLES,
+            slugify=_slug,
+            messages=_snapshot_messages(),
+        ),
+        200,
+    )
+
+
 @bp.get("/world")
 def world_index():
-    return make_response(render_template("world_geography.html", continents=CONTINENTS, selected=None, messages=_snapshot_messages()), 200)
+    return _render()
 
 
 @bp.get("/world/<continent_slug>")
 def continent(continent_slug: str):
-    selected = next((item for item in CONTINENTS if item["slug"] == continent_slug), None)
+    selected = _continent(continent_slug)
     if selected is None:
         return make_response(jsonify(error={"code":"not_found","message":"That continent is unavailable."}), 404)
-    return make_response(render_template("world_geography.html", continents=CONTINENTS, selected=selected, anthem_titles=COUNTRY_ANTHEM_TITLES, messages=_snapshot_messages()), 200)
+    return _render(selected=selected)
+
+
+@bp.get("/world/<continent_slug>/<country_slug>")
+def country(continent_slug: str, country_slug: str):
+    selected = _continent(continent_slug)
+    if selected is None:
+        return make_response(jsonify(error={"code":"not_found","message":"That continent is unavailable."}), 404)
+    selected_country = _country(selected, country_slug)
+    if selected_country is None:
+        return make_response(jsonify(error={"code":"not_found","message":"That country is unavailable in this continent."}), 404)
+
+    local_level = str(request.args.get("level", "")).strip().lower() or None
+    local_place = " ".join(str(request.args.get("place", "")).split())[:120] or None
+    if local_level not in {None, "region", "borough", "postcode"}:
+        return make_response(jsonify(error={"code":"invalid_level","message":"Use region, borough or postcode."}), 400)
+    if bool(local_level) != bool(local_place):
+        return make_response(jsonify(error={"code":"invalid_place","message":"A geography level and place are required together."}), 400)
+
+    return _render(
+        selected=selected,
+        selected_country=selected_country,
+        local_level=local_level,
+        local_place=local_place,
+    )
 
 
 @bp.get("/world/sports/status")
