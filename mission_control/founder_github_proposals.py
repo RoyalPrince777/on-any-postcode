@@ -19,7 +19,12 @@ _SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 
 def _request_id(value: object | None) -> str:
     candidate = str(value or "").strip()
-    return candidate or "github-" + uuid.uuid4().hex
+    if not candidate:
+        return str(uuid.uuid4())
+    try:
+        return str(uuid.UUID(candidate))
+    except (ValueError, AttributeError, TypeError) as exc:
+        raise ValueError("Founder tool request_id must be a UUID") from exc
 
 
 def _branch(value: object) -> str:
@@ -48,25 +53,10 @@ def propose_branch_create(*, branch: str, base_sha: str, request_id: str | None 
     clean_sha = str(base_sha or "").strip()
     if not _SHA.fullmatch(clean_sha):
         raise ValueError("A full 40-character base commit SHA is required")
-    return _proposal(
-        ActionPlan(
-            request_id=_request_id(request_id),
-            action_type="github.branch.create",
-            payload={"branch": clean_branch, "base_sha": clean_sha},
-            requires_human_approval=True,
-        )
-    )
+    return _proposal(ActionPlan(request_id=_request_id(request_id), action_type="github.branch.create", payload={"branch": clean_branch, "base_sha": clean_sha}, requires_human_approval=True))
 
 
-def propose_file_write(
-    *,
-    branch: str,
-    path: str,
-    content: str,
-    message: str,
-    sha: str | None = None,
-    request_id: str | None = None,
-) -> dict[str, Any]:
+def propose_file_write(*, branch: str, path: str, content: str, message: str, sha: str | None = None, request_id: str | None = None) -> dict[str, Any]:
     founder_tool_registry().authorize_capability("github", "file.write", mutation=True)
     clean_branch = _branch(branch)
     clean_path = str(path or "").strip().lstrip("/")
@@ -80,32 +70,13 @@ def propose_file_write(
     clean_sha = str(sha or "").strip()
     if clean_sha and not _SHA.fullmatch(clean_sha):
         raise ValueError("Existing file SHA must be 40 hexadecimal characters")
-    payload: dict[str, Any] = {
-        "branch": clean_branch,
-        "path": clean_path,
-        "content": content,
-        "message": clean_message,
-    }
+    payload: dict[str, Any] = {"branch": clean_branch, "path": clean_path, "content": content, "message": clean_message}
     if clean_sha:
         payload["sha"] = clean_sha
-    return _proposal(
-        ActionPlan(
-            request_id=_request_id(request_id),
-            action_type="github.file.write",
-            payload=payload,
-            requires_human_approval=True,
-        )
-    )
+    return _proposal(ActionPlan(request_id=_request_id(request_id), action_type="github.file.write", payload=payload, requires_human_approval=True))
 
 
-def propose_pull_request(
-    *,
-    head: str,
-    title: str,
-    body: str = "",
-    base: str = "main",
-    request_id: str | None = None,
-) -> dict[str, Any]:
+def propose_pull_request(*, head: str, title: str, body: str = "", base: str = "main", request_id: str | None = None) -> dict[str, Any]:
     founder_tool_registry().authorize_capability("github", "pr.create", mutation=True)
     clean_head = _branch(head)
     clean_base = str(base or "main").strip()
@@ -117,11 +88,4 @@ def propose_pull_request(
         raise ValueError("Pull request title is required and must be at most 160 characters")
     if len(clean_body) > 20_000:
         raise ValueError("Pull request body exceeds governed size limit")
-    return _proposal(
-        ActionPlan(
-            request_id=_request_id(request_id),
-            action_type="github.pr.create",
-            payload={"head": clean_head, "base": "main", "title": clean_title, "body": clean_body},
-            requires_human_approval=True,
-        )
-    )
+    return _proposal(ActionPlan(request_id=_request_id(request_id), action_type="github.pr.create", payload={"head": clean_head, "base": "main", "title": clean_title, "body": clean_body}, requires_human_approval=True))

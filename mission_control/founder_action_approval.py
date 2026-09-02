@@ -6,6 +6,8 @@ audit chain. It does not execute tools. Execution remains a later Kernel/Builder
 
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -19,28 +21,16 @@ _ALLOWED_ACTIONS = frozenset({
 })
 
 
-def record_action_decision(
-    *,
-    request_id: object,
-    identity_id: object,
-    decision: object,
-    action_type: object,
-    action_digest: object,
-    ttl_seconds: int = 900,
-) -> dict[str, object]:
+def record_action_decision(*, request_id: object, identity_id: object, decision: object, action_type: object, action_digest: object, ttl_seconds: int = 900) -> dict[str, object]:
     """Sign one exact Founder tool plan; never grant execution directly."""
-
-    request_value = str(request_id or "").strip()
-    identity_value = str(identity_id or "").strip()
+    try:
+        request_value = str(uuid.UUID(str(request_id)))
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_action_approval_identity_or_request") from exc
     decision_value = str(decision or "").strip().upper()
     action_value = str(action_type or "").strip()
     digest_value = str(action_digest or "").strip().lower()
-    if not request_value or len(request_value) > 128:
-        raise ValueError("invalid_action_request_id")
-    try:
-        identity_value = str(uuid.UUID(identity_value))
-    except (TypeError, ValueError, AttributeError) as exc:
-        raise ValueError("invalid_action_approval_identity") from exc
     if decision_value not in _ALLOWED_DECISIONS:
         raise ValueError("invalid_action_approval_decision")
     if action_value not in _ALLOWED_ACTIONS:
@@ -53,11 +43,35 @@ def record_action_decision(
     expires_at = issued_at + timedelta(seconds=ttl)
     receipt_id = str(uuid.uuid4())
     nonce = uuid.uuid4().hex + uuid.uuid4().hex
+    content_hash = hashlib.sha256((action_value + "|" + digest_value).encode("utf-8")).hexdigest()
 
     with postgres_db.connect() as connection:
         authority_record = authority.require_human_authority(connection, identity_value)
         if int(authority_record["authority_level"]) != 0:
             raise authority.HumanAuthorityRequired("human_authority_level_required")
+
+        existing = connection.execute(
+            "SELECT identity_id,task_type,content_hash FROM smi_memory_records WHERE request_id=%s",
+            (request_value,),
+        ).fetchone()
+        if existing is None:
+            connection.execute(
+                """INSERT INTO smi_memory_records(
+                       request_id,identity_id,task_type,content_hash,summary,
+                       output_state,signal_level,rationale_json,processing_states_json)
+                   VALUES (%s,%s,'FOUNDER_TOOL',%s,%s,'REVIEW_REQUIRED','YELLOW',%s::jsonb,%s::jsonb)""",
+                (
+                    request_value,
+                    identity_value,
+                    content_hash,
+                    f"Founder tool proposal: {action_value}",
+                    json.dumps(["Exact ActionPlan digest bound before Human Authority approval."]),
+                    json.dumps(["RECEIVED","IDENTITY_VERIFIED","SMI_REVIEWED","GUARDIAN_PASSED","HUMAN_REVIEW_REQUIRED"]),
+                ),
+            )
+        elif str(existing[0]) != identity_value or str(existing[1]) != "FOUNDER_TOOL" or str(existing[2]) != content_hash:
+            raise PermissionError("request_id_conflicts_with_existing_record")
+
         signature_values = {
             "receipt_id": receipt_id,
             "request_id": request_value,
@@ -73,19 +87,9 @@ def record_action_decision(
         connection.execute(
             """INSERT INTO smi_approval_receipts(
                    receipt_id,request_id,identity_id,decision,issued_at,
-                   expires_at,action_digest,authority_level,nonce,signature
-               ) VALUES (%s,%s,%s,%s,%s,%s,%s,0,%s,%s)""",
-            (
-                receipt_id,
-                request_value,
-                identity_value,
-                decision_value,
-                issued_at,
-                expires_at,
-                digest_value,
-                nonce,
-                signature,
-            ),
+                   expires_at,action_digest,authority_level,nonce,signature)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,0,%s,%s)""",
+            (receipt_id,request_value,identity_value,decision_value,issued_at,expires_at,digest_value,nonce,signature),
         )
         approval_service._write_audit(
             connection,
