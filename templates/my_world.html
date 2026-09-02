@@ -52,6 +52,9 @@
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="my-world-nickname">Nickname</label>
         <input id="my-world-nickname" name="nickname" value="{{ profile.nickname }}" maxlength="80" required>
+        {% if profile.country %}
+        <p class="small">Country / flag: <strong>{{ profile.country }}</strong></p>
+        {% endif %}
         <button class="button" type="submit">Save My World</button>
       </form>
       {% endif %}
@@ -59,7 +62,7 @@
 
     <section class="card" aria-labelledby="boundary-title">
       <h2 id="boundary-title">Security boundary</h2>
-      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that [...]
+      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that same owner ID.
       <p>Founder authority: <strong>confirmed</strong></p>
       <form method="post" action="{{ url_for('auth_sign_out') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
