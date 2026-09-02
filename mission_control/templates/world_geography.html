@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ON ANY POSTCODE — World</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    .world-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.world-card{border:1px solid var(--mc-line);border-radius:16px;padding:16px;background:var(--mc-panel-soft)}.world-card a{color:var(--mc-text);text-decoration:none}.world-card h2,.world-card h3{margin:.3rem 0}.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--mc-line);border-radius:999px;padding:4px 8px;font-size:.78rem}.country{border-left:4px solid var(--mc-green)}.room-form{display:grid;gap:7px;margin-top:12px}.room-form input,.room-form select,.room-form textarea{width:100%;box-sizing:border-box}.path{font-weight:800}.muted{color:var(--mc-muted)}
+  </style>
+</head>
+<body class="mc-workspace-body">
+<header class="mc-workspace-header">
+  <div>
+    <p class="mc-eyebrow">ON ANY POSTCODE WORLD</p>
+    <h1>🌍 Continent → Country → County / Region → Borough / District → Postcode</h1>
+    <p>Sport is part of culture, not the map. World Cup stays available inside Culture & Sport while every place gets its own identity, fun and public room.</p>
+  </div>
+  <div class="mc-header-actions"><a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a><a class="mc-secondary-link" href="{{ url_for('world_cup') }}">⚽ World Cup</a></div>
+</header>
+<main class="mc-workspace">
+  <section class="mc-panel">
+    <p class="mc-eyebrow">Choose a continent</p>
+    <div class="world-grid">
+      {% for continent in continents %}
+      <article class="world-card">
+        <a href="{{ url_for('world_geography.continent', continent_slug=continent.slug) }}"><h2>{{ continent.icon }} {{ continent.name }}</h2></a>
+        <div class="chips">{% for item in continent.highlights %}<span class="chip">{{ item }}</span>{% endfor %}</div>
+        <p class="muted">{{ continent.countries|length }} current country profiles from the existing Culture & Sport set.</p>
+        <form class="room-form" method="post" action="{{ url_for('world_geography.hierarchy_room') }}">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><input type="hidden" name="level" value="continent"><input type="hidden" name="place" value="{{ continent.name }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+          <input name="name" maxlength="80" placeholder="Nickname" aria-label="Nickname"><textarea name="message" maxlength="500" placeholder="Say something in the {{ continent.name }} room" aria-label="Message"></textarea><button class="mc-primary" type="submit">Open {{ continent.name }} Room</button>
+        </form>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if selected %}
+  <section class="mc-panel">
+    <p class="mc-eyebrow">{{ selected.icon }} {{ selected.name }}</p>
+    <h2>Countries</h2>
+    <p class="path">Continent → Country → County / Region → Borough / District → Postcode</p>
+    <div class="world-grid">
+      {% for country in selected.countries %}
+      <article class="world-card country">
+        <h3>🏳️ {{ country }}</h3>
+        <div class="chips"><span class="chip">🎵 National anthem</span><span class="chip">🏅 Sport</span><span class="chip">🎭 Culture</span><span class="chip">😂 Humour & fun</span><span class="chip">🍲 Food</span><span class="chip">🎶 Music</span></div>
+        <p><strong>Anthem:</strong> {{ anthem_titles.get(country, country ~ ' national anthem') }}</p>
+        <p class="muted">Country pages own national identity and culture. World Cup teams remain linked here as sport content rather than geography.</p>
+        <form class="room-form" method="post" action="{{ url_for('world_geography.hierarchy_room') }}">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><input type="hidden" name="level" value="country"><input type="hidden" name="place" value="{{ country }}"><input type="hidden" name="next" value="{{ request.path }}">
+          <input name="name" maxlength="80" placeholder="Nickname"><textarea name="message" maxlength="500" placeholder="Post in the {{ country }} Country Room"></textarea><button class="mc-primary" type="submit">{{ country }} Country Room</button>
+        </form>
+        <details>
+          <summary>Go more local</summary>
+          <p class="muted">Enter the real place level you want. This keeps the hierarchy ready for any country without hard-coding fake local boundaries.</p>
+          {% for level,label in [('region','County / Region'),('borough','Borough / District'),('postcode','Postcode')] %}
+          <form class="room-form" method="post" action="{{ url_for('world_geography.hierarchy_room') }}">
+            <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><input type="hidden" name="level" value="{{ level }}"><input type="hidden" name="next" value="{{ request.path }}">
+            <label>{{ label }}</label><input name="place" maxlength="120" required placeholder="{{ label }}"><input name="name" maxlength="80" placeholder="Nickname"><textarea name="message" maxlength="500" required placeholder="Message"></textarea><button class="mc-primary" type="submit">Open {{ label }} Room</button>
+          </form>
+          {% endfor %}
+        </details>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="mc-panel">
+    <p class="mc-eyebrow">Public geography rooms</p><h2>Latest room activity</h2>
+    <div class="world-grid">{% for item in messages if 'Room' in item.room %}<article class="world-card"><strong>{{ item.room }}</strong><p>{{ item.name }}: {{ item.message }}</p></article>{% else %}<article class="world-card"><p>No public geography-room messages yet.</p></article>{% endfor %}</div>
+    <p class="muted">These are public community rooms. Private person-to-person and group conversation remains protected in LinkUp.</p>
+  </section>
+</main>
+</body>
+</html>
