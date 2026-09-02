@@ -1,8 +1,9 @@
 """OAP-owned inference gateway for Personal SMI.
 
 The gateway owns routing policy. It prefers an OAP-controlled local/Home Node
-runtime and degrades to a compatibility engine only while that node is not
-certified. Provider brands are not part of Personal SMI identity or authority.
+runtime, then an authenticated outbound Home Node bridge, and degrades to a
+compatibility engine only while first-party inference is not certified.
+Provider brands are not part of Personal SMI identity or authority.
 """
 from __future__ import annotations
 
@@ -15,6 +16,8 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 
+from . import home_node_bridge
+
 LOCAL_URL = os.environ.get(
     "OAP_INFERENCE_LOCAL_URL", "http://127.0.0.1:11434/api/chat"
 ).strip()
@@ -23,6 +26,9 @@ LOCAL_ENABLED = os.environ.get("OAP_INFERENCE_LOCAL_ENABLED", "1").strip().lower
     "0", "false", "no", "off"
 }
 FALLBACK_ENABLED = os.environ.get("OAP_INFERENCE_COMPATIBILITY_FALLBACK", "1").strip().lower() not in {
+    "0", "false", "no", "off"
+}
+BRIDGE_ENABLED = os.environ.get("OAP_HOME_NODE_BRIDGE_ENABLED", "1").strip().lower() not in {
     "0", "false", "no", "off"
 }
 _PROBE_TTL_SECONDS = 30.0
@@ -65,19 +71,23 @@ def _local_messages(message: str, history: list[dict[str, str]] | None, brain: d
     return messages
 
 
-def _call_local(message: str, history: list[dict[str, str]] | None, brain: dict | None,
-                adaptive_memory: list[str] | None, *, code_mode: bool) -> str:
-    if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL:
-        raise RuntimeError("local_inference_disabled")
-    payload = json.dumps({
+def _payload(message: str, history: list[dict[str, str]] | None, brain: dict | None,
+             adaptive_memory: list[str] | None, *, code_mode: bool) -> dict[str, Any]:
+    return {
         "model": LOCAL_MODEL,
         "messages": _local_messages(message, history, brain, adaptive_memory, code_mode=code_mode),
         "stream": False,
         "options": {"temperature": 0.2},
-    }).encode()
+    }
+
+
+def _call_local(message: str, history: list[dict[str, str]] | None, brain: dict | None,
+                adaptive_memory: list[str] | None, *, code_mode: bool) -> str:
+    if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL:
+        raise RuntimeError("local_inference_disabled")
     req = urlrequest.Request(
         LOCAL_URL,
-        data=payload,
+        data=json.dumps(_payload(message, history, brain, adaptive_memory, code_mode=code_mode)).encode(),
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
@@ -94,13 +104,21 @@ def _call_local(message: str, history: list[dict[str, str]] | None, brain: dict 
     return text[:12000]
 
 
+def _call_bridge(message: str, history: list[dict[str, str]] | None, brain: dict | None,
+                 adaptive_memory: list[str] | None, *, code_mode: bool) -> str:
+    if not BRIDGE_ENABLED:
+        raise RuntimeError("home_node_bridge_disabled")
+    return home_node_bridge.submit_inference(
+        _payload(message, history, brain, adaptive_memory, code_mode=code_mode)
+    )
+
+
 def _tags_url() -> str:
     parts = urlsplit(LOCAL_URL)
     return urlunsplit((parts.scheme, parts.netloc, "/api/tags", "", ""))
 
 
 def probe_local(*, force: bool = False) -> dict[str, Any]:
-    """Return bounded proof of Home Node reachability and configured model availability."""
     global _probe_cache
     now = time.monotonic()
     if not force and _probe_cache and now - _probe_cache[0] < _PROBE_TTL_SECONDS:
@@ -118,8 +136,7 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
                 body = json.loads(response.read().decode("utf-8", errors="replace"))
             names = {
                 str(item.get("name") or item.get("model") or "")
-                for item in body.get("models", [])
-                if isinstance(item, dict)
+                for item in body.get("models", []) if isinstance(item, dict)
             }
             result.update(
                 reachable=True,
@@ -138,19 +155,26 @@ def generate(compatibility_engine: Callable[..., str], message: str, image_data:
              history: list[dict[str, str]] | None = None, brain: dict | None = None,
              adaptive_memory: list[str] | None = None, media: dict | None = None, *,
              code_mode: bool = False, on_delta: Callable[[str], None] | None = None) -> str:
-    """Route Personal SMI generation through the OAP-owned policy boundary."""
-    use_local = not image_data and not (media or {}).get("content_items") and not (media or {}).get("transcript")
-    local_error: RuntimeError | None = None
-    if use_local:
+    """Route generation local-direct → outbound bridge → compatibility fallback."""
+    use_first_party = not image_data and not (media or {}).get("content_items") and not (media or {}).get("transcript")
+    first_party_error: RuntimeError | None = None
+    if use_first_party:
         try:
             text = _call_local(message, history, brain, adaptive_memory, code_mode=code_mode)
             if on_delta is not None:
                 on_delta(text)
             return text
         except RuntimeError as exc:
-            local_error = exc
+            first_party_error = exc
+        try:
+            text = _call_bridge(message, history, brain, adaptive_memory, code_mode=code_mode)
+            if on_delta is not None:
+                on_delta(text)
+            return text
+        except RuntimeError as exc:
+            first_party_error = exc
     if not FALLBACK_ENABLED:
-        raise RuntimeError("local_inference_required") from local_error
+        raise RuntimeError("first_party_inference_required") from first_party_error
     return compatibility_engine(
         message, image_data, history, brain, adaptive_memory, media,
         code_mode=code_mode, on_delta=on_delta,
@@ -164,8 +188,10 @@ def status(*, probe: bool = False) -> dict[str, Any]:
         "model": LOCAL_MODEL,
         "reason": "not_probed",
     }
-    sovereign_ready = bool(
-        proof.get("reachable") and proof.get("model_available") and not FALLBACK_ENABLED
+    bridge = home_node_bridge.status()
+    first_party_ready = bool(
+        (proof.get("reachable") and proof.get("model_available"))
+        or (bridge.get("configured") and bridge.get("worker_recently_seen"))
     )
     return {
         "gateway": "OAP Inference Gateway",
@@ -174,7 +200,9 @@ def status(*, probe: bool = False) -> dict[str, Any]:
         "local_url_configured": bool(LOCAL_URL),
         "local_model_configured": bool(LOCAL_MODEL),
         "home_node": proof,
+        "home_node_bridge": bridge,
         "compatibility_fallback_enabled": FALLBACK_ENABLED,
-        "sovereign_inference_ready": sovereign_ready,
+        "first_party_inference_ready": first_party_ready,
+        "sovereign_inference_ready": bool(first_party_ready and not FALLBACK_ENABLED),
         "human_authority_final": True,
     }
