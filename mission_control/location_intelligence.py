@@ -10,7 +10,7 @@ from typing import Any
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 
-from . import weather_intelligence
+from . import earth_intelligence, weather_intelligence
 
 MAX_RESPONSE_BYTES = 128 * 1024
 LOOKUP_TIMEOUT_SECONDS = 6
@@ -263,7 +263,12 @@ def weather(latitude: object, longitude: object) -> dict[str, Any]:
 
 def lookup_with_weather(value: object) -> dict[str, Any]:
     location = lookup(value)
-    return {**location, "weather": weather(location["latitude"], location["longitude"])}
+    local_weather = weather(location["latitude"], location["longitude"])
+    return {
+        **location,
+        "weather": local_weather,
+        "earth_intelligence": earth_intelligence.compose(location, local_weather),
+    }
 
 
 def status() -> dict[str, object]:
@@ -276,6 +281,7 @@ def status() -> dict[str, object]:
     global_verified = "geocoding-api.open-meteo.com" in successes
     weather_verified = "api.open-meteo.com" in successes
     intelligence = weather_intelligence.status(weather_verified)
+    earth = earth_intelligence.status(weather_ready=bool(intelligence["ready"]))
     return {
         "postcode_provider_verified": postcode_verified,
         "global_provider_verified": global_verified,
@@ -285,6 +291,11 @@ def status() -> dict[str, object]:
         "weather_intelligence_component_count": int(intelligence["component_count"]),
         "weather_intelligence_ready": bool(intelligence["ready"]),
         "weather_intelligence_first_party_ready": bool(intelligence["first_party_observation_ready"]),
+        "earth_intelligence": earth,
+        "earth_intelligence_architecture_passed": bool(earth["architecture_passed"]),
+        "earth_intelligence_component_count": int(earth["component_count"]),
+        "earth_intelligence_ready": bool(earth["ready"]),
+        "earth_intelligence_fully_operational": bool(earth["fully_operational"]),
         "spatial_levels": SPATIAL_LEVELS,
         "spatial_contract": "POSTCODE_TO_UNIVERSE",
         "bounded_timeout": LOOKUP_TIMEOUT_SECONDS,
