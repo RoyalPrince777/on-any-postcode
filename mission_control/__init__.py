@@ -33,6 +33,7 @@ def init_app(app: Flask) -> None:
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
     from .views import bp
+    from .world_geography import bp as world_geography_bp
 
     movement_operations.STORE = movement_match_safety.STORE
 
@@ -119,6 +120,7 @@ def init_app(app: Flask) -> None:
                 print(f"  - {line}")
 
     surface_security.register(app)
+    app.register_blueprint(world_geography_bp)
     app.register_blueprint(movement_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
