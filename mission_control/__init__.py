@@ -27,6 +27,7 @@ def init_app(app: Flask) -> None:
         routing,
         surface_security,
     )
+    from .founder_tool_views import bp as founder_tool_bp
     from .movement_routes import bp as movement_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
@@ -69,7 +70,7 @@ def init_app(app: Flask) -> None:
 
     @app.cli.command("oap-init-postgres")
     @click.option("--dry-run", is_flag=True, default=False)
-    @click.option("--yes", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
 
@@ -144,5 +145,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(movement_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
+    app.register_blueprint(founder_tool_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()
