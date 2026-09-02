@@ -10,6 +10,8 @@ from typing import Any
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 
+from . import weather_intelligence
+
 MAX_RESPONSE_BYTES = 128 * 1024
 LOOKUP_TIMEOUT_SECONDS = 6
 CACHE_SECONDS = 300
@@ -199,7 +201,7 @@ def lookup(value: object) -> dict[str, Any]:
 
 
 def weather(latitude: object, longitude: object) -> dict[str, Any]:
-    """Load a small current forecast for already-resolved coordinates."""
+    """Load and interpret a bounded current forecast for resolved coordinates."""
 
     try:
         lat = round(float(latitude), 5)
@@ -232,7 +234,7 @@ def weather(latitude: object, longitude: object) -> dict[str, Any]:
     daily = payload.get("daily")
     if not isinstance(current, dict) or not isinstance(daily, dict):
         raise LocationUnavailable("invalid_weather_response")
-    result = {
+    observation = {
         "temperature": current.get("temperature_2m"),
         "feels_like": current.get("apparent_temperature"),
         "precipitation": current.get("precipitation"),
@@ -256,7 +258,7 @@ def weather(latitude: object, longitude: object) -> dict[str, Any]:
         ][:3],
         "provider": "Live weather service",
     }
-    return _store(cache_key, result)
+    return _store(cache_key, weather_intelligence.enrich(observation))
 
 
 def lookup_with_weather(value: object) -> dict[str, Any]:
@@ -273,10 +275,16 @@ def status() -> dict[str, object]:
     postcode_verified = "api.postcodes.io" in successes
     global_verified = "geocoding-api.open-meteo.com" in successes
     weather_verified = "api.open-meteo.com" in successes
+    intelligence = weather_intelligence.status(weather_verified)
     return {
         "postcode_provider_verified": postcode_verified,
         "global_provider_verified": global_verified,
         "weather_provider_verified": weather_verified,
+        "weather_intelligence": intelligence,
+        "weather_intelligence_architecture_passed": bool(intelligence["architecture_passed"]),
+        "weather_intelligence_component_count": int(intelligence["component_count"]),
+        "weather_intelligence_ready": bool(intelligence["ready"]),
+        "weather_intelligence_first_party_ready": bool(intelligence["first_party_observation_ready"]),
         "spatial_levels": SPATIAL_LEVELS,
         "spatial_contract": "POSTCODE_TO_UNIVERSE",
         "bounded_timeout": LOOKUP_TIMEOUT_SECONDS,
