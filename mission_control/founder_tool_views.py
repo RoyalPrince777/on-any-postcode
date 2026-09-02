@@ -1,8 +1,8 @@
 """Private Founder tool routes for OAP Mind.
 
-Reads execute directly behind the authenticated private boundary. Writes only
-prepare exact Human-reviewable ActionPlans; approval remains separate and no
-GitHub mutation executes from this web surface.
+Reads execute directly behind the authenticated private boundary. Writes prepare
+exact Human-reviewable ActionPlans. Approved execution is delegated only to the
+canonical Living Kernel bridge.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from .founder_github_proposals import (
     propose_file_write,
     propose_pull_request,
 )
+from .founder_kernel_execution import execute_approved_action, status as kernel_execution_status
 
 bp = Blueprint("founder_tools", __name__)
 
@@ -80,6 +81,12 @@ def _csrf_required():
 @web_security.login_required(api=True)
 def github_status():
     return _no_store(make_response(jsonify(FounderGitHubReadAdapter().status())))
+
+
+@bp.get("/tools/github/kernel-status")
+@web_security.login_required(api=True)
+def github_kernel_status():
+    return _no_store(make_response(jsonify(kernel_execution_status())))
 
 
 @bp.get("/tools/github/repository")
@@ -211,4 +218,27 @@ def github_action_approval():
             )
         )
     except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
+@bp.post("/tools/github/execute")
+@web_security.login_required(api=True)
+def github_execute_approved_action():
+    csrf_error = _csrf_required()
+    if csrf_error is not None:
+        return csrf_error
+    try:
+        payload = _json_payload()
+        plan = payload.get("plan")
+        if not isinstance(plan, dict):
+            raise ValueError("Exact approved plan is required")
+        result = execute_approved_action(
+            identity_id=web_security.authenticated_identity(),
+            receipt_id=str(payload.get("receipt_id") or ""),
+            plan_payload=plan,
+        )
+        return _no_store(make_response(jsonify(result)))
+    except PermissionError as exc:
+        return _error(exc, 403)
+    except (ValueError, LookupError, RuntimeError) as exc:
         return _error(exc)
