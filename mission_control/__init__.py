@@ -28,22 +28,20 @@ def init_app(app: Flask) -> None:
         surface_security,
     )
     from .founder_tool_views import bp as founder_tool_bp
+    from .home_node_views import bp as home_node_bp
     from .movement_routes import bp as movement_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
     from .views import bp
 
-    # All Movement route calls go through the hardened subclass. It inherits the
-    # existing bounded operations and replaces only match certification/race logic.
     movement_operations.STORE = movement_match_safety.STORE
 
     @app.cli.command("oap-db-status")
     @click.option("--json", "json_out", is_flag=True, default=False, help="JSON output")
-    def _db_status(json_out: bool) -> None:  # pragma: no cover - CLI wrapper
+    def _db_status(json_out: bool) -> None:  # pragma: no cover
         res = dbmod.db_status()
         if json_out:
             import json
-
             print(json.dumps(res))
         else:
             print("OAP Database status:")
@@ -59,13 +57,12 @@ def init_app(app: Flask) -> None:
     @app.cli.command("oap-init-db")
     @click.option("--dry-run", "dry_run", is_flag=True, default=False)
     @click.option("--yes", "yes", is_flag=True, default=False)
-    def _oap_init_db(dry_run: bool, yes: bool) -> None:  # pragma: no cover - CLI wrapper
+    def _oap_init_db(dry_run: bool, yes: bool) -> None:  # pragma: no cover
         dbmod.init_db(dry_run=dry_run, assume_yes=yes)
 
     @app.cli.command("oap-postgres-status")
     def _oap_postgres_status() -> None:
         import json
-
         print(json.dumps(postgres_db.postgres_status()))
 
     @app.cli.command("oap-init-postgres")
@@ -73,14 +70,11 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
-
-        result = postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)
-        print(json.dumps(result))
+        print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-runtime-status")
     def _oap_runtime_status() -> None:
         import json
-
         print(json.dumps(organism_runtime.runtime_status()))
 
     @app.cli.command("oap-init-runtime")
@@ -88,17 +82,11 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_runtime(dry_run: bool, yes: bool) -> None:
         import json
-
-        result = organism_runtime.init_runtime_schema(
-            dry_run=dry_run,
-            assume_yes=yes,
-        )
-        print(json.dumps(result))
+        print(json.dumps(organism_runtime.init_runtime_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-movement-status")
     def _oap_movement_status() -> None:
         import json
-
         print(json.dumps(movement_operations.movement_schema_status()))
 
     @app.cli.command("oap-init-movement")
@@ -106,17 +94,11 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_movement(dry_run: bool, yes: bool) -> None:
         import json
-
-        result = movement_operations.init_movement_schema(
-            dry_run=dry_run,
-            assume_yes=yes,
-        )
-        print(json.dumps(result))
+        print(json.dumps(movement_operations.init_movement_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-product-cores-status")
     def _oap_product_cores_status() -> None:
         import json
-
         print(json.dumps(product_cores.platform_status()))
 
     @app.cli.command("oap-init-product-cores")
@@ -124,15 +106,10 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_product_cores(dry_run: bool, yes: bool) -> None:
         import json
-
-        result = product_cores.init_product_core_schema(
-            dry_run=dry_run,
-            assume_yes=yes,
-        )
-        print(json.dumps(result))
+        print(json.dumps(product_cores.init_product_core_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-verify-audit")
-    def _oap_verify_audit() -> None:  # pragma: no cover - CLI wrapper
+    def _oap_verify_audit() -> None:  # pragma: no cover
         ok, report = auditmod.verify_audit()
         if ok:
             print("Audit verification: OK")
@@ -146,5 +123,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
+    app.register_blueprint(home_node_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()
