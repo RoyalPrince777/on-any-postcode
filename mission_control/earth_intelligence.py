@@ -1,9 +1,9 @@
 """Runtime projection for the already-approved OAP Earth Intelligence world.
 
 Earth Intelligence is a governed Intelligence world, not an eighth agent family
-and not another OAP World/navigation hierarchy. This module combines verified
-place/weather evidence into a bounded environmental context while keeping
-unconnected Earth domains explicitly unavailable.
+and not another OAP World/navigation hierarchy. This module projects verified
+Weather Intelligence into bounded environmental context and keeps every wider
+Earth domain fail-closed until a real source exists.
 """
 
 from __future__ import annotations
@@ -28,15 +28,7 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-def from_weather(
-    weather: Mapping[str, Any],
-    *,
-    postcode: object = "",
-    borough: object = "",
-    county: object = "",
-    country: object = "",
-    continent: object = "",
-) -> dict[str, Any]:
+def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
     """Project verified Weather Intelligence into bounded Earth context."""
 
     weather_signal = weather.get("intelligence")
@@ -49,13 +41,7 @@ def from_weather(
         "components": COMPONENTS,
         "nature_organ": "OAP Nature",
         "weather_intelligence_connected": weather_ready,
-        "spatial_binding": {
-            "postcode": _text(postcode),
-            "borough": _text(borough),
-            "county": _text(county),
-            "country": _text(country),
-            "continent": _text(continent),
-        },
+        "spatial_binding": "THE_SPOT_POSTCODE_TO_UNIVERSE",
         "current_environment": {
             "condition": _text(weather_signal.get("condition")) if weather_ready else "",
             "advisory_level": _text(weather_signal.get("advisory_level")) if weather_ready else "unavailable",
@@ -81,7 +67,7 @@ def from_weather(
         "human_authority_final": True,
         "can_execute": False,
         "truth_boundary": (
-            "Earth Intelligence is connected to verified place and Weather Intelligence evidence. "
+            "Earth Intelligence currently uses verified place context and Weather Intelligence only. "
             "Water, ecosystem, agriculture, resource and wider disaster feeds remain unconnected "
             "and are never inferred from weather alone."
         ),
@@ -100,6 +86,7 @@ def status(*, weather_ready: bool) -> dict[str, Any]:
         "nature_organ_connected": True,
         "weather_intelligence_connected": bool(weather_ready),
         "the_spot_connected": True,
+        "spatial_binding": "POSTCODE_TO_UNIVERSE",
         "full_earth_runtime_ready": False,
         "human_authority_final": True,
         "can_execute": False,
