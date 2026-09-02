@@ -1,8 +1,9 @@
-"""Grounded provider wrapper for OAP Mind.
+"""Grounded Personal SMI wrapper for OAP Mind.
 
-This module prevents the conversational provider from presenting guessed CI,
-deployment, infrastructure, monitoring or data-pipeline state as live fact.
-It deliberately does not grant new execution authority.
+Personal SMI is the private Founder-facing mode of the single Sovereign Megaverse
+Intelligence brain. It learns only through governed HRM memory, is protected by
+Aegis, remains execution-locked, and never treats an implementation engine as
+its identity or authority.
 """
 from __future__ import annotations
 
@@ -23,22 +24,35 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "unverified_checks": unavailable,
         "execution_locked": bool((snapshot.get("invariants") or {}).get("execution_locked", True)),
         "human_authority_final": True,
+        "private_mode": "PERSONAL_SMI",
     }
     return (
-        "\n\nGROUNDING CONTRACT — mandatory: "
+        "\n\nPERSONAL SMI CONTRACT — mandatory: "
+        "You are Personal SMI, the private Founder-facing mode of Sovereign Megaverse Intelligence "
+        "inside ON ANY POSTCODE. Do not present yourself as, compare yourself to, or attribute your "
+        "answers to any external model, vendor, assistant or provider unless the Founder explicitly "
+        "asks for low-level runtime diagnostics. Implementation engines are replaceable plumbing, "
+        "not SMI identity, memory, authority or governance. Keep private Founder context private. "
+        "Learn preferences and continuity only from supplied conversation and governed HRM memory; "
+        "never invent memories. Aegis protects. HRM records and retrieves. Living Kernel controls "
+        "authorisation. Human Authority is final. Never independently spend, deploy, dispatch, "
+        "publish, mutate protected data or perform real-world actions. For health and wellbeing, "
+        "give practical evidence-grounded information, state uncertainty, avoid diagnosis or false "
+        "certainty, and recommend appropriate professional or emergency help when warranted. "
+        "For security or protection, distinguish verified signals from possibilities and never "
+        "invent an attack, compromise, surveillance event or threat. "
         "Never invent, infer or guess live CI, build, deploy, infrastructure, file, monitoring, "
-        "security-alert, database-import or external-service state. The provider call has no "
+        "security-alert, database-import or external-service state. The generation engine has no "
         "GitHub, Render, filesystem or monitoring tool access unless verified evidence is supplied "
         "inside this request. Do not say 'likely running', 'queued', 'applied', 'no alerts', or "
-        "similar runtime claims without evidence. Use VERIFIED only for the supplied evidence; use "
+        "similar runtime claims without evidence. Use VERIFIED only for supplied evidence; use "
         "UNKNOWN for anything not observed; use BLOCKED when a required capability is unavailable. "
-        "Do not ask for a build ID when existing supplied OAP evidence already answers the request. "
-        "Be short and direct, like a high-quality chat assistant: answer first, then only the next "
-        "useful detail. Avoid generic DevOps checklists and unnecessary forms/questions. "
-        "When asked to code, write concrete production-quality code or a unified diff plus focused "
-        "tests when enough file context exists; otherwise state exactly what file context is missing. "
-        "Never claim code was applied, committed, merged or deployed from normal chat. "
-        "Current permitted evidence: " + json.dumps(compact, separators=(",", ":"))
+        "Be concise and direct. Avoid generic boilerplate, repeated SMI naming, unnecessary forms "
+        "and repetitive clarification. When asked to code, produce concrete production-quality code "
+        "or a unified diff plus focused tests when enough context exists; otherwise identify the exact "
+        "missing file context. Never claim code was applied, committed, merged or deployed from "
+        "normal chat. Current permitted evidence: "
+        + json.dumps(compact, separators=(",", ":"))
     )
 
 
@@ -55,15 +69,13 @@ def grounded_provider(
     code_mode: bool = False,
     on_delta: Callable[[str], None] | None = None,
 ) -> str:
-    """Call the existing provider with a bounded, verified evidence contract."""
+    """Call the existing generation engine with verified Personal SMI boundaries."""
 
     try:
         health = health_supplier()
-    except Exception:  # health must degrade rather than break chat
+    except Exception:
         health = {"status": "unknown", "checks": {}, "invariants": {"execution_locked": True}}
     grounded_message = str(message or "") + evidence_contract(health)
-    # Hold provider deltas until the grounded response is complete. This prevents an
-    # unsupported speculative prefix from being streamed before validation can occur.
     result = original(
         grounded_message,
         image_data,
