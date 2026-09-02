@@ -1,7 +1,8 @@
 """Private Founder tool routes for OAP Mind.
 
 Reads execute directly behind the authenticated private boundary. Writes only
-prepare exact Human-reviewable ActionPlans; they do not execute here.
+prepare exact Human-reviewable ActionPlans; approval remains separate and no
+GitHub mutation executes from this web surface.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, request
 
 from . import web_security
+from .founder_action_approval import record_action_decision
 from .founder_github import FounderGitHubReadAdapter
 from .founder_github_proposals import (
     propose_branch_create,
@@ -176,6 +178,36 @@ def github_propose_pull_request():
                 body=payload.get("body", ""),
                 base=payload.get("base", "main"),
                 request_id=payload.get("request_id"),
+            )
+        )
+    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
+@bp.post("/tools/github/approvals")
+@web_security.login_required(api=True)
+def github_action_approval():
+    csrf_error = _csrf_required()
+    if csrf_error is not None:
+        return csrf_error
+    try:
+        payload = _json_payload()
+        result = record_action_decision(
+            request_id=payload.get("request_id"),
+            identity_id=web_security.authenticated_identity(),
+            decision=payload.get("decision"),
+            action_type=payload.get("action_type"),
+            action_digest=payload.get("action_digest"),
+            ttl_seconds=int(payload.get("ttl_seconds", 900)),
+        )
+        return _no_store(
+            make_response(
+                jsonify(
+                    approval=result,
+                    executed=False,
+                    next_gate="Living Kernel",
+                    human_authority_final=True,
+                )
             )
         )
     except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
