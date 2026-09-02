@@ -39,7 +39,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 </head>
 <body>
 <nav aria-label="Primary navigation">
-<a href="#location">🌍 World</a>
+<a href="{{ url_for('world_geography.world_index') }}">🌍 World</a>
 <a href="#signal">📡 Signal</a>
 <a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
 <a href="{{ url_for('world_languages') }}">🗣️ Languages</a>
@@ -53,7 +53,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 <h1>ON ANY<br>POSTCODE</h1>
 <p>One human world, entered through the place you live. Start local and move outward: Postcode → Borough → County / Region → Country → Continent → Global → Universe.</p>
 <p class="small">Browse public OAP World freely. Passwords are only for private access and approved account actions such as business monetisation.</p>
-<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></div>
+<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link" href="{{ url_for('world_geography.world_index') }}">Explore Continents</a><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></div>
 <div class="card os-install" aria-labelledby="oap-os-title">
 <p class="eyebrow">OAP OPERATING SYSTEM · GENERATION 0</p>
 <h2 id="oap-os-title">Install the public OAP OS shell</h2>
@@ -66,12 +66,13 @@ button{background:#27c267;color:#021;font-weight:bold}
 <section id="location" aria-labelledby="location-title">
 <p class="eyebrow">THE WORLD, FROM LOCAL OUTWARD</p>
 <h2 id="location-title">Your location hierarchy: Postcode to Universe</h2>
+<p><a class="button-link" href="{{ url_for('world_geography.world_index') }}">Open Continent → Country World</a></p>
 <div class="grid">
 <article class="card level"><span class="badge">1</span><h3>📍 Postcode</h3><p>Your local front door into The Spot, people, activity and community life.</p></article>
 <article class="card level"><span class="badge">2</span><h3>🏙️ Borough / District</h3><p>Your wider local community and civic connection layer.</p></article>
 <article class="card level"><span class="badge">3</span><h3>🧭 County / Region</h3><p>Regional coordination while preserving local ownership.</p></article>
-<article class="card level"><span class="badge">4</span><h3>🏳️ Country</h3><p>National identity, culture, information and shared services.</p></article>
-<article class="card level"><span class="badge">5</span><h3>🌍 Continent</h3><p>Connect countries and local communities across their continent.</p></article>
+<article class="card level"><span class="badge">4</span><h3>🏳️ Country</h3><p>National identity, anthems, culture, sport, humour, food, music and shared services.</p></article>
+<article class="card level"><span class="badge">5</span><h3>🌍 Continent</h3><p>Connect countries and local communities across their continent, including public continent rooms.</p></article>
 <article class="card level"><span class="badge">6</span><h3>🌐 Global</h3><p>One human world connecting every continent without erasing local identity.</p></article>
 <article class="card level"><span class="badge">7</span><h3>✨ Universe</h3><p>The outer OAP spatial tier: every postcode remains connected through one coherent hierarchy.</p></article>
 </div>
@@ -98,7 +99,7 @@ button{background:#27c267;color:#021;font-weight:bold}
 {% for p in signal_posts %}<article class="card"><b>{{ p.name }}</b><p>{{ p.body }}</p></article>{% else %}<article class="card"><p class="small">No public signals yet.</p></article>{% endfor %}
 </div>
 </section>
-<section aria-labelledby="culture-title"><h2 id="culture-title">Culture and sport remain part of the world</h2><p>Football has its own home; it no longer defines the whole product.</p><a class="button-link" href="{{ url_for('world_cup') }}">Open World Cup</a></section>
+<section aria-labelledby="culture-title"><h2 id="culture-title">Culture, sport, humour and fun live in the right place</h2><p>World Cup is preserved as a Culture & Sport experience. Countries now belong under continents instead of defining OAP World.</p><a class="button-link" href="{{ url_for('world_geography.world_index') }}">Explore the World</a><a class="button-link" href="{{ url_for('world_cup') }}">Open World Cup</a></section>
 </main>
 <script defer src="{{ url_for('oap_os_install_controller') }}"></script>
 </body>
