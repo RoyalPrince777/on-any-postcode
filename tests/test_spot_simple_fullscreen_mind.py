@@ -23,16 +23,30 @@ def test_spot_is_simple_dashboard_without_inline_forms():
         assert slug in html
 
 
-def test_ollama_chat_is_full_viewport_and_preserves_controls():
-    html = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text()
-    assert "height:100dvh" in html
-    assert "max-width:none" in html
-    assert ".smi-hero{display:none}" in html
-    assert "max-height:none" in html
-    assert 'id="plus-button"' in html
-    assert 'id="mic-button"' in html
-    assert 'id="stop-button"' in html
-    assert 'id="send"' in html
-    assert 'id="thinking"' in html
-    assert 'id="history-list"' in html
-    assert "Code proposal mode" in html
+def test_ollama_chat_is_true_fullscreen_compact_and_preserves_controls():
+    compact = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text()
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
+    combined = compact + base
+
+    assert "position:fixed!important;inset:0!important" in compact
+    assert "height:100dvh!important" in compact
+    assert "min-height:30px!important" in compact
+    assert "max-height:88px!important" in compact
+    assert "composerInput.rows=1" in compact
+    assert "Shift+Enter" not in compact  # keyboard behavior is implemented, not exposed as noisy UI copy.
+    assert "event.key==='Enter'&&!event.shiftKey" in compact
+    assert "mobile-chats-toggle" in compact
+    assert "Working safely" in compact
+    assert "private reasoning is never exposed" in compact
+
+    for control_id in (
+        "plus-button",
+        "code-button",
+        "speaker-button",
+        "mic-button",
+        "stop-button",
+        "send",
+        "thinking",
+        "history-list",
+    ):
+        assert f'id="{control_id}"' in combined
