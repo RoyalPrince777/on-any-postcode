@@ -10,22 +10,22 @@ body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif}nav{
 </style>
 </head>
 <body>
-<nav aria-label="World Cup navigation"><a href="{{ url_for('home') }}">← OAP World</a><a href="#live">Live / Next</a><a href="#teams">Teams</a><a href="#tables">Tables</a></nav>
+<nav aria-label="World Cup navigation"><a href="{{ url_for('home') }}">← OAP World</a><a href="{{ url_for('world_geography.world_index') }}">🌍 Continents</a><a href="#archive">2026 Archive</a><a href="#teams">Teams</a><a href="#tables">Tables</a></nav>
 <main>
-<section class="hero"><h1>⚽ OAP World Cup</h1><p>Teams, fixtures, results, flags and community rooms — preserved inside Culture and Sport.</p></section>
-<section id="live"><h2>Live / Next</h2><div class="grid">
-{% for state,date,group,home,away,score in matches if state != "FT" %}<article class="card"><b>{{ state }}</b> · {{ date }} · Group {{ group }}<h3>{{ home }} 🆚 {{ away }}</h3><p><b>{{ score }}</b></p></article>{% else %}<article class="card">No live or upcoming fixtures.</article>{% endfor %}
-</div></section>
+<section class="hero"><h1>⚽ OAP World Cup</h1><p>World Cup stays inside Culture & Sport. The 2026 tournament is now an archive; live status must come from Sports Intelligence verification rather than hard-coded fixtures.</p></section>
+<section id="archive"><h2>2026 tournament archive</h2><div class="grid">
+{% for state,date,group,home,away,score in matches %}<article class="card"><b>{{ state }}</b> · {{ date }} · Group {{ group }}<h3>{{ home }} 🆚 {{ away }}</h3><p><b>{{ score }}</b></p></article>{% else %}<article class="card">No archived fixture snapshot available.</article>{% endfor %}
+</div><p class="small">Archive data is not labelled live. Current sports data requires a successful official-source verification.</p></section>
 <section id="teams"><h2>Teams</h2><div class="grid">
 {% for group,flag,name,nick,meaning in teams %}
 <article class="card team" id="{{ name|replace(' ','-') }}"><div class="flag">{{ flag }}</div><h2>{{ name }}</h2><p><b>{{ nick }}</b> · Group {{ group }}</p><h3>Flag meaning</h3><p>{{ meaning }}</p><p>Support: <b>{{ flag_counts.get(name,0) }}</b></p>
 <form method="post" action="/flag"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><input type="hidden" name="team" value="{{ name }}"><button type="submit">Throw {{ flag }} Up</button></form>
 <h3>Team room</h3><form method="post" action="/room"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><input type="hidden" name="room" value="{{ name }} Team Room"><input name="name" maxlength="80" placeholder="Nickname" aria-label="Nickname for {{ name }}"><input name="message" maxlength="500" placeholder="Message for {{ name }}" aria-label="Message for {{ name }}"><button type="submit">Post in room</button></form>
-<h3>Fixtures / results</h3>{% for state,date,mgroup,home,away,score in matches if name in home or name in away %}<p><b>{{ state }}</b> · {{ date }} · {{ home }} 🆚 {{ away }} · {{ score }}</p>{% endfor %}
+<h3>Fixtures / results archive</h3>{% for state,date,mgroup,home,away,score in matches if name in home or name in away %}<p><b>{{ state }}</b> · {{ date }} · {{ home }} 🆚 {{ away }} · {{ score }}</p>{% endfor %}
 </article>
 {% endfor %}
 </div></section>
-<section id="tables"><h2>Tables</h2>{% for g in "ABCDEFGHIJKL" %}<h3>Group {{ g }}</h3><table><thead><tr><th scope="col">Team</th><th scope="col">PTS</th></tr></thead><tbody>{% for group,flag,name,nick,meaning in teams if group == g %}<tr><td>{{ flag }} {{ name }}</td><td>0</td></tr>{% endfor %}</tbody></table>{% endfor %}</section>
+<section id="tables"><h2>Tables snapshot</h2>{% for g in "ABCDEFGHIJKL" %}<h3>Group {{ g }}</h3><table><thead><tr><th scope="col">Team</th><th scope="col">PTS</th></tr></thead><tbody>{% for group,flag,name,nick,meaning in teams if group == g %}<tr><td>{{ flag }} {{ name }}</td><td>0</td></tr>{% endfor %}</tbody></table>{% endfor %}<p class="small">This table snapshot is not presented as a verified final standings source.</p></section>
 <section><h2>Latest team-room messages</h2>{% for m in team_messages %}<article class="card"><b>{{ m.room }}</b><p>{{ m.name }}: {{ m.message }}</p></article>{% else %}<p class="small">No team-room messages yet.</p>{% endfor %}</section>
 </main>
 </body>

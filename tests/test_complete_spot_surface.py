@@ -42,12 +42,37 @@ def test_unknown_spot_capability_fails_closed(client):
     }
 
 
-def test_spot_dashboard_lists_every_capability(client):
-    page = client.get("/the-spot").get_data(as_text=True)
+def test_spot_dashboard_lists_every_capability_without_front_door_forms(client):
+    response = client.get("/the-spot")
+    page = response.get_data(as_text=True)
 
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
     assert "Everything in The Spot" in page
+    assert "Your Spot" in page
+    assert "Set / check postcode" in page
+    assert "<form" not in page
     for capability in products.PUBLIC_SPOT_CAPABILITIES:
         assert escape(capability["name"]) in page
+
+
+def test_spot_postcode_anchor_is_bounded_to_the_request_and_links_to_local_data(client):
+    page = client.get("/the-spot?postcode=cr4%201ab").get_data(as_text=True)
+
+    assert "CR4 1AB" in page
+    assert "Local links can now stay anchored to CR4 1AB." in page
+    assert 'href="/the-spot/maps-weather-travel?location=CR4+1AB"' in page
+
+
+def test_spot_priority_cards_use_truthful_visitor_states(client):
+    page = client.get("/the-spot").get_data(as_text=True)
+
+    assert ">Browse<" in page
+    assert ">Local data<" in page
+    assert ">Protected<" in page
+    assert ">Action gated<" in page
+    assert "does not claim checkout, dispatch, payment" in page
+    assert "Fully operational" not in page
 
 
 def test_signal_and_postcode_room_capabilities_have_live_public_forms(client):
