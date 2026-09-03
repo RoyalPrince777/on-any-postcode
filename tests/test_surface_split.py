@@ -7,6 +7,7 @@ from mission_control import surface_security
 
 
 def test_public_origin_hides_all_founder_surfaces_behind_gateway(monkeypatch):
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
     app = Flask(__name__)
     surface_security.register(app)
@@ -54,7 +55,8 @@ def test_public_origin_hides_all_founder_surfaces_behind_gateway(monkeypatch):
         assert allowed.status_code == 200
 
 
-def test_gateway_staging_is_backward_compatible_until_secret_exists(monkeypatch):
+def test_public_surface_fails_closed_even_if_gateway_secret_is_missing(monkeypatch):
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
     app = Flask(__name__)
     surface_security.register(app)
@@ -68,8 +70,9 @@ def test_gateway_staging_is_backward_compatible_until_secret_exists(monkeypatch)
         return "sign-in"
 
     client = app.test_client()
-    assert client.get("/mission").status_code == 200
-    assert client.get("/auth").status_code == 200
+    assert client.get("/mission").status_code == 404
+    assert client.get("/auth").status_code == 404
+    assert client.get("/mission", headers={"X-OAP-SMI-Gateway": "x" * 48}).status_code == 404
 
 
 def test_smi_gateway_allowlist_is_founder_private_only():
