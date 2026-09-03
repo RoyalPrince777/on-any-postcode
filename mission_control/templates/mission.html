@@ -9,12 +9,13 @@
 <body class="mc-workspace-body">
   <header class="mc-workspace-header">
     <div>
-      <p class="mc-eyebrow">OAP / SMI / {{ active_mode|title }}</p>
+      <p class="mc-eyebrow">OAP / Intelligence / {{ active_mode|title }}</p>
       <h1>Mission Control</h1>
       <p>Render-only workspace. No operational controls are enabled.</p>
     </div>
     <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('oap_data.product_dashboard') }}">OAP Data</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">OAP Intelligence</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.war_room_dashboard') }}">War Room</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.the_link_dashboard') }}">The Link</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
