@@ -25,7 +25,7 @@ def _identity() -> str:
 def _payload() -> dict[str, object]:
     data = request.get_json(silent=True) or {}
     if not isinstance(data, dict):
-        raise ValueError("invalid_request")
+        raise TypeError("invalid_request")
     return data
 
 
@@ -35,7 +35,7 @@ def _mutation_guard():
     return None
 
 
-def _value_error(exc: ValueError):
+def _value_error(exc: TypeError | ValueError):
     code = str(exc)
     if code in {"link_blocked", "accepted_link_required", "live_spot_visibility_required"}:
         return _error(code, 403)
@@ -63,7 +63,7 @@ def visibility():
             live_spot=data.get("live_spot", False),
         )
         return _no_store(make_response(jsonify(result)))
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _value_error(exc)
     except link_presence.LinkPresenceUnavailable:
         return _error("link_presence_unavailable", 503)
@@ -81,7 +81,7 @@ def heartbeat():
             _identity(), around_now=data.get("around_now", False)
         )
         return _no_store(make_response(jsonify(result)))
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _value_error(exc)
     except link_presence.LinkPresenceUnavailable:
         return _error("link_presence_unavailable", 503)
@@ -99,7 +99,7 @@ def peer_presence(peer_id: str):
                 )
             )
         )
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _value_error(exc)
     except link_presence.LinkPresenceUnavailable:
         return _error("link_presence_unavailable", 503)
@@ -122,7 +122,7 @@ def live_spot_start():
             duration_minutes=data.get("duration_minutes", 15),
         )
         return _no_store(make_response(jsonify(result)))
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _value_error(exc)
     except link_presence.LinkPresenceUnavailable:
         return _error("live_spot_unavailable", 503)
@@ -136,7 +136,7 @@ def live_spot_read(peer_id: str):
         if spot is None:
             return _error("live_spot_not_active", 404)
         return _no_store(make_response(jsonify(peer_id=peer_id, **spot)))
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _value_error(exc)
     except link_presence.LinkPresenceUnavailable:
         return _error("live_spot_unavailable", 503)
@@ -151,7 +151,7 @@ def live_spot_stop(peer_id: str):
     try:
         stopped = link_presence.stop_live_spot(_identity(), peer_id)
         return _no_store(make_response(jsonify(stopped=stopped)))
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _value_error(exc)
     except link_presence.LinkPresenceUnavailable:
         return _error("live_spot_unavailable", 503)
