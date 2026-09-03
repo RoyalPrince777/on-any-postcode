@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from . import (
+    autonomy_levels,
     oap_core_autonomy,
     organism_autonomy,
     postgres_db,
@@ -148,6 +149,7 @@ def run() -> int:
         revision=revision,
         independent_authority=False,
         allowed_job_types=sorted(HANDLERS),
+        autonomy=autonomy_levels.status(),
         oap_core_autonomy=oap_core_autonomy.status(),
         smi_autonomy=smi_runtime_autonomy.status(),
         organism_autonomy=organism_autonomy.status(),
@@ -190,6 +192,21 @@ def run() -> int:
                     state=state,
                 )
                 continue
+
+            if autonomy_levels.configured_level() == "A3":
+                a3_decision = autonomy_levels.evaluate_a3_runtime_job(job.job_type)
+                if not a3_decision["allowed"]:
+                    state = store.fail(job, worker_id, error_code="a3_policy_blocked")
+                    _log(
+                        "runtime_job_failed",
+                        job_id=job.job_id,
+                        job_type=job.job_type,
+                        state=state,
+                        error_code="a3_policy_blocked",
+                        a3_reason=a3_decision["reason"],
+                    )
+                    continue
+
             try:
                 result = handler(job)
                 if result.get("consequential_action") is not False:
