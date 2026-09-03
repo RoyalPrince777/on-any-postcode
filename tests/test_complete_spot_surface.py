@@ -19,19 +19,14 @@ def test_complete_spot_capability_registry_has_no_duplicates():
 def test_every_spot_capability_has_a_working_read_only_route(client):
     for capability in products.PUBLIC_SPOT_CAPABILITIES:
         response = client.get(f"/the-spot/{capability['slug']}")
-        if capability["slug"] == "pulse":
-            assert response.status_code == 302
-            assert response.headers["Location"].endswith("/pulse")
-            assert response.headers["Cache-Control"] == "no-store"
-            continue
-
         page = response.get_data(as_text=True)
+
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         assert escape(capability["name"]) in page
-        # Carnival and World Languages own richer canonical feature templates;
+        # Pulse, Carnival and World Languages own richer canonical feature templates;
         # generic Spot capabilities render their exact public registry purpose.
-        if capability["slug"] not in {"carnival", "languages"}:
+        if capability["slug"] not in {"pulse", "carnival", "languages"}:
             assert capability["purpose"] in page
         assert "Owner:" not in page
         assert "What remains locked" not in page
@@ -55,7 +50,7 @@ def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(cl
 
     assert "📡 Pulse" in page
     assert "See what’s happening around you." in page
-    assert "pulse_feed" in page
+    assert 'href="/pulse"' in page
     assert "📣 Signal" in page
     assert "🔗 The Link" in page
     assert "🎪 Activity" in page
