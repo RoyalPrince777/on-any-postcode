@@ -103,7 +103,7 @@ def status() -> dict[str, Any]:
                 (list(needed),),
             ).fetchall()
         result["ready"] = needed <= {str(row[0]) for row in rows}
-    except Exception:
+    except Exception:  # noqa: BLE001 - coarse fail-closed readiness only.
         return result
     return result
 
