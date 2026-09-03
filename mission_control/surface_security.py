@@ -13,6 +13,7 @@ _PRIVATE_PATH_PREFIXES = (
     "/enter-my-world",
     "/my-world",
     "/myworld",
+    "/the-spot/my-world",
     "/infrastructure",
     "/api/infrastructure",
 )
