@@ -56,9 +56,7 @@ def _valid_turn_url(value: str) -> bool:
     if parsed.scheme.casefold() not in {"turn", "turns"}:
         return False
     target = parsed.path
-    if not target or "@" in target or parsed.fragment:
-        return False
-    return True
+    return bool(target) and "@" not in target and not parsed.fragment
 
 
 def _turn_urls() -> tuple[str, ...]:
