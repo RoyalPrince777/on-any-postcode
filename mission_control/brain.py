@@ -1,4 +1,4 @@
-"""Coarse public readiness projection for the implemented SMI runtime."""
+"""Coarse public readiness projection for the implemented OAP Intelligence runtime."""
 
 from __future__ import annotations
 
@@ -16,11 +16,11 @@ from .organism import (
 
 PROCESSING_CYCLE = (
     {"step": "NEXUS", "action": "Carries the incoming SP Signal"},
-    {"step": "Thalamus", "action": "Filters input and redacts private metadata"},
+    {"step": "Thalamus", "action": "Filters input and redacts private OAP Data"},
     {"step": "Identity", "action": "Validates an active canonical identity"},
     {"step": "Permissions", "action": "Checks REQUEST_RECOMMENDATION"},
     {"step": "Hippocampus", "action": "Retrieves bounded HRM context"},
-    {"step": "SMI regions", "action": "Analyse logic, meaning, space and risk"},
+    {"step": "OAP Intelligence regions", "action": "Analyse logic, meaning, space and risk"},
     {"step": "Aegis", "action": "Performs rapid deterministic threat checks"},
     {"step": "Guardian", "action": "Protects the constitutional gate"},
     {"step": "Corpus callosum", "action": "Merges internal region findings"},
@@ -49,7 +49,7 @@ def _component(
 
 
 def get_public_brain_status() -> dict[str, Any]:
-    """Return code/readiness facts without constructing or running SMI."""
+    """Return code/readiness facts without constructing or running intelligence."""
 
     database = db_status()
     brain_storage_ready = bool(database.get("brain_runtime_initialized"))
@@ -80,11 +80,11 @@ def get_public_brain_status() -> dict[str, Any]:
             "Stores input hash, reasoning trace, recommendation and outcome.",
         ),
         _component(
-            "SMI biological regions",
+            "OAP Intelligence biological regions",
             f"{len(SMI_REGIONS)} regions implemented",
             "Recommendation-only",
             "ready",
-            "One brain; Synthetic Mind remains an internal organ.",
+            "One OAP Intelligence brain; Synthetic Mind remains an internal organ.",
         ),
         _component(
             "Agent Registry",
@@ -98,11 +98,11 @@ def get_public_brain_status() -> dict[str, Any]:
             "Agents advise; they do not become organs or final authority.",
         ),
         _component(
-            "Provider Router",
-            "Loopback Ollama adapter and explicit router implemented",
+            "OAP Intelligence Runtime",
+            "Loopback Ollama adapter and explicit OAP router implemented",
             f"{assigned_providers} approved assignment(s)",
             "waiting" if not assigned_providers else "ready",
-            "Providers power analysis only; they never become OAP agents.",
+            "Local/OAP-controlled analysis only; no provider becomes an OAP agent.",
         ),
         _component(
             "Aegis and Guardian",
@@ -145,8 +145,8 @@ def get_public_brain_status() -> dict[str, Any]:
         {
             "title": "Apply reviewed migrations",
             "description": (
-                "Initialize the repaired audit chain and SMI runtime tables on an "
-                "approved database backup."
+                "Initialize the repaired audit chain and OAP Intelligence runtime "
+                "tables on an approved database backup."
             ),
             "status": "Requires human approval",
         },
@@ -159,10 +159,10 @@ def get_public_brain_status() -> dict[str, Any]:
             "status": "Requires human approval",
         },
         {
-            "title": "Approve providers and Builder handlers",
+            "title": "Approve OAP Intelligence runtime and Builder handlers",
             "description": (
-                "Assign providers and bounded actions one by one after Guardian, "
-                "privacy and rollback review."
+                "Assign local/OAP-controlled intelligence and bounded actions one "
+                "by one after Guardian, privacy and rollback review."
             ),
             "status": "Requires human approval",
         },
@@ -185,7 +185,8 @@ def get_public_brain_status() -> dict[str, Any]:
             "status": "Final approval required",
             "message": (
                 "Runtime code is implemented, but database activation, identity "
-                "wiring, providers and Builder actions remain unexecuted."
+                "wiring, OAP Intelligence assignments and Builder actions remain "
+                "governed."
             ),
         },
     }

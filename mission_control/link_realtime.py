@@ -1,14 +1,16 @@
 """Governed real-time capability model for OAP Link Up.
 
-This module defines the product contract for Voice, Call, Face Up, sharing,
-presence and OAP Motion. It deliberately does not claim transport or motion
-assets are live: each capability stays fail-closed until its explicit runtime
-gates pass.
+OAP Data names OAP-owned operational data. OAP Intelligence names the
+reasoning/intelligence layer. Generic metadata language is compatibility-only;
+realtime capability gates stay first-party and fail closed.
 """
 from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+
+OAP_DATA_NAME = "OAP Data"
+OAP_INTELLIGENCE_NAME = "OAP Intelligence"
 
 REALTIME_CAPABILITIES: tuple[dict[str, object], ...] = (
     {
@@ -22,7 +24,12 @@ REALTIME_CAPABILITIES: tuple[dict[str, object], ...] = (
         "id": "call",
         "name": "Call",
         "kind": "audio_call",
-        "requires": ("microphone_permission", "signalling", "turn_fallback", "call_audit_metadata"),
+        "requires": (
+            "microphone_permission",
+            "signalling",
+            "turn_fallback",
+            "call_audit_oapdata",
+        ),
         "status": "locked",
     },
     {
@@ -34,7 +41,7 @@ REALTIME_CAPABILITIES: tuple[dict[str, object], ...] = (
             "camera_permission",
             "signalling",
             "turn_fallback",
-            "call_audit_metadata",
+            "call_audit_oapdata",
         ),
         "status": "locked",
     },
@@ -49,7 +56,12 @@ REALTIME_CAPABILITIES: tuple[dict[str, object], ...] = (
         "id": "files",
         "name": "Files",
         "kind": "file_share",
-        "requires": ("private_file_store", "size_limits", "content_type_validation", "guardian_scan"),
+        "requires": (
+            "private_file_store",
+            "size_limits",
+            "content_type_validation",
+            "guardian_scan",
+        ),
         "status": "locked",
     },
     {
@@ -90,6 +102,8 @@ RUNTIME_GATES: dict[str, bool] = {
     "accepted_link_required": True,
     "block_guard": True,
     "explicit_device_permission": True,
+    "first_party_realtime_transport": True,
+    "external_realtime_provider_required": False,
     "phone_number_required": False,
     "public_media_projection": False,
     "record_calls_by_default": False,
@@ -111,18 +125,48 @@ OAP_MOTION_SIGNALS: tuple[dict[str, str], ...] = (
     {"id": "im_free", "name": "I'm Free", "fallback": "🟢", "motion": "soft pulse"},
     {"id": "link_up", "name": "Link Up", "fallback": "🔗", "motion": "join and lock"},
     {"id": "seen", "name": "Seen", "fallback": "👀", "motion": "open once then settle"},
-    {"id": "live_spot", "name": "Live Spot", "fallback": "📍", "motion": "bounded outward pulse"},
+    {
+        "id": "live_spot",
+        "name": "Live Spot",
+        "fallback": "📍",
+        "motion": "bounded outward pulse",
+    },
     {"id": "voice", "name": "Voice", "fallback": "🎙️", "motion": "waveform"},
     {"id": "call", "name": "Call", "fallback": "📞", "motion": "ring"},
     {"id": "face_up", "name": "Face Up", "fallback": "📹", "motion": "frame open"},
     {"id": "bring_in", "name": "Bring In", "fallback": "🤝", "motion": "join"},
-    {"id": "around_now", "name": "Around Now", "fallback": "🌍", "motion": "slow orbit"},
+    {
+        "id": "around_now",
+        "name": "Around Now",
+        "fallback": "🌍",
+        "motion": "slow orbit",
+    },
     {"id": "pulse", "name": "Pulse", "fallback": "⚡", "motion": "heartbeat"},
     {"id": "learning", "name": "Learning", "fallback": "🟣", "motion": "soft glow"},
-    {"id": "thinking", "name": "Thinking", "fallback": "🟡", "motion": "bounded orbit"},
-    {"id": "urgent", "name": "Urgent", "fallback": "🔴", "motion": "controlled double pulse"},
-    {"id": "human_authority", "name": "Human Authority", "fallback": "👑", "motion": "restrained shimmer"},
-    {"id": "mind_working", "name": "Mind Working", "fallback": "🧠", "motion": "node flow"},
+    {
+        "id": "thinking",
+        "name": "Thinking",
+        "fallback": "🟡",
+        "motion": "bounded orbit",
+    },
+    {
+        "id": "urgent",
+        "name": "Urgent",
+        "fallback": "🔴",
+        "motion": "controlled double pulse",
+    },
+    {
+        "id": "human_authority",
+        "name": "Human Authority",
+        "fallback": "👑",
+        "motion": "restrained shimmer",
+    },
+    {
+        "id": "mind_working",
+        "name": "Mind Working",
+        "fallback": "🧠",
+        "motion": "node flow",
+    },
 )
 
 OAP_MOTION_RUNTIME_REQUIREMENTS: tuple[str, ...] = (
