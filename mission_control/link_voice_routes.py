@@ -7,6 +7,8 @@ from . import link_voice, web_security
 
 bp = Blueprint("link_voice", __name__)
 
+VOICE_ERRORS = (TypeError, ValueError, link_voice.LinkVoiceUnavailable)
+
 
 def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
@@ -30,7 +32,7 @@ def _mutation_guard(identity: str):
     return None
 
 
-def _failure(exc: Exception):
+def _failure(exc: TypeError | ValueError | link_voice.LinkVoiceUnavailable):
     code = str(exc) or "voice_unavailable"
     if isinstance(exc, (TypeError, ValueError)):
         if code in {"link_blocked", "accepted_link_required"}:
@@ -38,8 +40,6 @@ def _failure(exc: Exception):
         if code == "voice_too_large":
             return _error(code, 413)
         return _error(code, 400)
-    if isinstance(exc, link_voice.LinkVoiceUnavailable):
-        return _error("voice_unavailable", 503)
     return _error("voice_unavailable", 503)
 
 
@@ -66,7 +66,7 @@ def list_voice():
     try:
         notes = link_voice.list_voice(_identity(), peer_id)
         return _no_store(make_response(jsonify(voices=notes)))
-    except Exception as exc:
+    except VOICE_ERRORS as exc:
         return _failure(exc)
 
 
@@ -91,7 +91,7 @@ def create_voice():
             duration_ms=request.form.get("duration_ms"),
         )
         return _no_store(make_response(jsonify(created), 201))
-    except Exception as exc:
+    except VOICE_ERRORS as exc:
         return _failure(exc)
 
 
@@ -110,7 +110,7 @@ def voice_media(voice_id: str):
         response.headers["X-OAP-Content-SHA256"] = digest
         response.headers["Content-Disposition"] = 'inline; filename="voice"'
         return _no_store(response)
-    except Exception as exc:
+    except VOICE_ERRORS as exc:
         return _failure(exc)
 
 
@@ -125,5 +125,5 @@ def delete_voice(voice_id: str):
         if not deleted:
             return _error("voice_not_found", 404)
         return _no_store(make_response(jsonify(deleted=True)))
-    except Exception as exc:
+    except VOICE_ERRORS as exc:
         return _failure(exc)
