@@ -26,6 +26,10 @@ def gateway_configured() -> bool:
     return len(os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip()) >= 32
 
 
+def public_surface_enforced() -> bool:
+    return os.environ.get("OAP_SURFACE_ROLE", "").strip().casefold() == "public"
+
+
 def gateway_authorized() -> bool:
     expected = os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip()
     supplied = request.headers.get(_GATEWAY_HEADER, "")
@@ -55,10 +59,10 @@ def _private_not_found():
 def register(app: Flask) -> None:
     """Keep Founder routes absent from normal public-origin access.
 
-    Private paths always fail closed unless the dedicated private gateway sends
-    the configured high-entropy gateway credential. There is no staging or
-    missing-secret bypass: an absent/malformed secret means Founder routes remain
-    404 on the public origin.
+    Production public surfaces are explicitly marked ``OAP_SURFACE_ROLE=public``
+    and therefore fail closed even if their gateway secret is missing. A private
+    path is reachable only when the dedicated private gateway supplies the
+    configured high-entropy credential.
     """
     from . import pulse_routes
 
@@ -70,7 +74,9 @@ def register(app: Flask) -> None:
             return None
         if gateway_authorized():
             return None
-        return _private_not_found()
+        if public_surface_enforced() or gateway_configured():
+            return _private_not_found()
+        return None
 
     @app.after_request
     def _scope_link_device_permissions(response):
