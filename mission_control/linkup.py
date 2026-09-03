@@ -1,11 +1,11 @@
-"""Canonical, read-only model for the OAP communications dashboard.
+"""Canonical governed model for OAP Link Up communications.
 
 Link Up is the protected conversation product inside The Link communications
-gateway, not a second Messenger engine. Its approved internal dashboard views
-remain Directory, Inbox and Community Power so ownership and validation rules
-do not drift when user-facing language evolves. Community Power is linked into
-the dashboard without transferring ownership. This module exposes no
-identities, message bodies, persistence or send path.
+gateway, not a second Messenger engine. Its approved dashboard views remain
+Directory, Inbox and Community Power so ownership and validation rules do not
+drift when user-facing language evolves. Public projections expose presentation
+copy only; authenticated message records remain owned by the existing
+Communications product store and are scoped to the signed-in identity.
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from typing import Any
 COMMUNICATIONS_SYSTEM = "Communications"
 COMMUNITY_POWER_SYSTEM = "Community Power"
 
-# War Room-approved user-language law. Internal ownership names remain stable.
 LINK_UP_LANGUAGE_LAW: tuple[str, ...] = (
     "Brand language for identity.",
     "Human language for conversation.",
@@ -72,8 +71,8 @@ LINK_DASHBOARD_VIEWS: tuple[dict[str, str], ...] = (
         "owner": COMMUNICATIONS_SYSTEM,
         "ownership": "owned_view",
         "purpose": "Find verified people and local connections.",
-        "status": "Identity required",
-        "data": "No member identities exposed",
+        "status": "Protected",
+        "data": "Authenticated member projection only",
         "boundary": (
             "People and community connections only; this is not the Agent "
             "Intelligence directory."
@@ -85,8 +84,8 @@ LINK_DASHBOARD_VIEWS: tuple[dict[str, str], ...] = (
         "owner": COMMUNICATIONS_SYSTEM,
         "ownership": "owned_view",
         "purpose": "Private conversation access for authenticated members.",
-        "status": "Unavailable",
-        "data": "No private messages exposed",
+        "status": "Protected",
+        "data": "Sender and recipient scoped messages only",
         "boundary": (
             "A view over approved Communications records, not a second Mail "
             "or Messenger store."
@@ -97,9 +96,9 @@ LINK_DASHBOARD_VIEWS: tuple[dict[str, str], ...] = (
         "name": "Community Power",
         "owner": COMMUNITY_POWER_SYSTEM,
         "ownership": "linked_view",
-        "purpose": "Entry point to community rooms and postcode Pulse Spaces.",
-        "status": "Not connected",
-        "data": "No room or contribution records exposed",
+        "purpose": "Entry point to World Rooms and approved Pulse Spaces.",
+        "status": "Read-only link",
+        "data": "No private room or contribution records exposed",
         "boundary": (
             "A linked entry point only; contribution and reputation records "
             "remain owned by Community Power."
@@ -119,10 +118,10 @@ EXPECTED_VIEW_OWNERS = {
 RELATED_COMMUNICATION_BOUNDARIES: tuple[dict[str, str], ...] = (
     {
         "id": "signals",
-        "name": "Signals",
+        "name": "Signal",
         "owner": "OAP World",
         "relationship": (
-            "Public announcements remain Signals; they are not private "
+            "Public announcements remain Signal; they are not private "
             "conversations or Inbox messages."
         ),
     },
@@ -146,7 +145,7 @@ RELATED_COMMUNICATION_BOUNDARIES: tuple[dict[str, str], ...] = (
     },
     {
         "id": "mail_notifications",
-        "name": "Mail, Notifications and Broadcasts",
+        "name": "Mail, Alerts and Broadcasts",
         "owner": COMMUNICATIONS_SYSTEM,
         "relationship": (
             "They remain sibling Communications modules; Inbox does not "
@@ -172,32 +171,47 @@ PRIVACY_PATH: tuple[dict[str, str], ...] = (
     {"name": "HRM", "action": "Receives approved audit metadata only"},
 )
 
-PROPOSED_LINK_ENABLEMENT: tuple[dict[str, str], ...] = (
+PROTECTED_LINK_RUNTIME: dict[str, object] = {
+    "authenticated_identity_required": True,
+    "csrf_required_for_mutations": True,
+    "sender_recipient_scope": True,
+    "message_persistence": "Postgres Communications store",
+    "rate_limit_enabled": True,
+    "guardian_message_screening": True,
+    "read_receipts": True,
+    "public_message_projection": False,
+    "human_authority_final": True,
+}
+
+REMAINING_LINK_GATES: tuple[dict[str, str], ...] = (
     {
-        "title": "Connect Identity and Permissions",
+        "title": "Blocking and reporting workflow",
         "description": (
-            "Require authenticated identity, conversation membership and "
-            "object-level authorization before Directory or Inbox data exists."
+            "Add durable block/report state, moderation routing and auditable "
+            "Guardian escalation before broader membership rollout."
         ),
-        "status": "Requires human approval",
+        "status": "Not yet certified",
     },
     {
-        "title": "Approve private-message protection",
+        "title": "Private-message retention and encryption policy",
         "description": (
-            "Define encryption, retention, blocking, reporting, rate limits "
-            "and Guardian youth-safety checks before a send control is added."
+            "Certify storage encryption, retention/deletion behaviour and "
+            "backup handling for protected Communications records."
         ),
-        "status": "Requires human approval",
+        "status": "Not yet certified",
     },
     {
-        "title": "Link approved Pulse Spaces",
+        "title": "World Rooms participation",
         "description": (
-            "Reference Community Power rooms without copying contribution, "
+            "Reference approved World Rooms without copying contribution, "
             "reputation or private conversation records."
         ),
-        "status": "Requires human approval",
+        "status": "Not yet certified",
     },
 )
+
+# Compatibility alias for older internal projections.
+PROPOSED_LINK_ENABLEMENT = REMAINING_LINK_GATES
 
 
 def _normalise(value: str) -> str:
@@ -217,7 +231,7 @@ def _duplicates(values: Iterable[str]) -> set[str]:
 def validate_link_scope(
     views: Iterable[Mapping[str, Any]] = LINK_DASHBOARD_VIEWS,
 ) -> dict[str, Any]:
-    """Detect duplicate views, ownership transfers and operational controls."""
+    """Detect duplicate views, ownership transfers and public mutation drift."""
 
     view_list = tuple(views)
     ids = [str(view.get("id", "")).strip().casefold() for view in view_list]
@@ -255,7 +269,7 @@ def validate_link_scope(
             + ", ".join(sorted(set(ownership_conflicts)))
         )
     if mutation_controls:
-        errors.append("The Link mutation controls must remain disabled")
+        errors.append("Public The Link mutation controls must remain disabled")
 
     communication_views = sum(
         view.get("ownership") == "owned_view" for view in view_list
