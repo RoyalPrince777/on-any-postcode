@@ -300,6 +300,39 @@ def identity_allows_signalling(identity_id: object, session_id: object) -> bool:
     return row is not None
 
 
+def list_active(identity_id: object) -> list[dict[str, Any]]:
+    identity = _uuid(identity_id, "invalid_identity")
+    _require_ready()
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT session_id,initiator_id,recipient_id,mode,state,started_at,answered_at
+                   FROM link_call_sessions
+                   WHERE state IN ('ringing','active') AND expires_at>CURRENT_TIMESTAMP
+                     AND (initiator_id=%s OR recipient_id=%s)
+                   ORDER BY started_at DESC LIMIT 20""",
+                (identity, identity),
+            ).fetchall()
+    except Exception as exc:
+        raise LinkCallAuditUnavailable("link_call_list_failed") from exc
+    sessions = []
+    for row in rows:
+        initiator = str(row[1])
+        recipient = str(row[2])
+        sessions.append(
+            {
+                "session_id": str(row[0]),
+                "peer_id": recipient if identity == initiator else initiator,
+                "direction": "outgoing" if identity == initiator else "incoming",
+                "mode": str(row[3]),
+                "state": str(row[4]),
+                "started_at": row[5].isoformat(),
+                "answered_at": row[6].isoformat() if row[6] else None,
+            }
+        )
+    return sessions
+
+
 def purge_expired() -> int:
     try:
         with postgres_db.connect() as connection:
