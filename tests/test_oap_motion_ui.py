@@ -11,6 +11,18 @@ def test_public_link_loads_only_first_party_motion_assets(client):
     assert "https://" not in page
 
 
+def test_link_device_permissions_are_allowed_only_by_route_policy(client):
+    link = client.get("/linkup")
+    home = client.get("/")
+
+    assert link.headers["Permissions-Policy"] == (
+        "camera=(self), microphone=(self), geolocation=(self), payment=()"
+    )
+    assert home.headers["Permissions-Policy"] == (
+        "camera=(self), microphone=(self), geolocation=(), payment=()"
+    )
+
+
 def test_link_composer_keeps_realtime_controls_fail_closed_in_template():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
