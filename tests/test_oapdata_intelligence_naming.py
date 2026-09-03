@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 from mission_control import brain, link_realtime
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
