@@ -5,8 +5,6 @@ import hashlib
 import hmac
 import uuid
 
-import pytest
-
 from mission_control import link_relationships, link_turn
 
 
@@ -35,6 +33,15 @@ def _configure_turn(monkeypatch, *, verified: bool = False):
     monkeypatch.setenv("OAP_LINK_TURN_OWNED", "true")
     monkeypatch.setenv("OAP_LINK_TURN_RELAY_VERIFIED", "true" if verified else "false")
     monkeypatch.setenv("OAP_LINK_TURN_TTL_SECONDS", "300")
+
+
+def _expect_value_error(code, callback):
+    try:
+        callback()
+    except ValueError as exc:
+        assert str(exc) == code
+    else:
+        raise AssertionError(f"expected ValueError: {code}")
 
 
 def test_turn_status_fails_closed_without_oap_owned_configuration(monkeypatch):
@@ -126,14 +133,19 @@ def test_turn_block_guard_stops_before_relationship_lookup(monkeypatch):
     monkeypatch.setattr(
         link_turn.linkup_safety, "blocked_between", lambda _first, _second: True
     )
+
+    def unexpected_relationship_lookup(*_args):
+        raise AssertionError("blocked pair must not reach Link relationship lookup")
+
     monkeypatch.setattr(
         link_turn.link_relationships,
         "accepted_between",
-        lambda *_args: pytest.fail("blocked pair must not reach Link relationship lookup"),
+        unexpected_relationship_lookup,
     )
 
-    with pytest.raises(ValueError, match="link_blocked"):
-        link_turn.issue_credentials(uuid.uuid4(), uuid.uuid4())
+    _expect_value_error(
+        "link_blocked", lambda: link_turn.issue_credentials(uuid.uuid4(), uuid.uuid4())
+    )
 
 
 def test_turn_requires_accepted_link(monkeypatch):
@@ -146,8 +158,10 @@ def test_turn_requires_accepted_link(monkeypatch):
         link_turn.link_relationships, "accepted_between", lambda _first, _second: False
     )
 
-    with pytest.raises(ValueError, match="accepted_link_required"):
-        link_turn.issue_credentials(uuid.uuid4(), uuid.uuid4())
+    _expect_value_error(
+        "accepted_link_required",
+        lambda: link_turn.issue_credentials(uuid.uuid4(), uuid.uuid4()),
+    )
 
 
 def test_turn_ttl_is_bounded(monkeypatch):
@@ -196,9 +210,7 @@ def test_accepted_link_guard_is_pair_scoped_and_expiry_aware(monkeypatch):
     assert params == (first, second, first, second)
 
 
-def test_turn_status_route_is_authenticated_and_secret_free(
-    client, monkeypatch
-):
+def test_turn_status_route_is_authenticated_and_secret_free(client, monkeypatch):
     monkeypatch.setattr(
         link_turn,
         "status",
