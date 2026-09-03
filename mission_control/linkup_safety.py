@@ -29,7 +29,24 @@ SCHEMA_SQL = (
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CHECK (reporter_id <> reported_id))""",
     "CREATE INDEX IF NOT EXISTS idx_linkup_reports_status_created ON linkup_reports(status, created_at DESC)",
+    """CREATE OR REPLACE FUNCTION oap_linkup_block_guard() RETURNS trigger AS $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM linkup_blocks
+                WHERE (blocker_id=NEW.sender_id AND blocked_id=NEW.recipient_id)
+                   OR (blocker_id=NEW.recipient_id AND blocked_id=NEW.sender_id)
+            ) THEN
+                RAISE EXCEPTION 'linkup_blocked_pair';
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql""",
+    "DROP TRIGGER IF EXISTS trg_linkup_block_guard ON messages",
+    """CREATE TRIGGER trg_linkup_block_guard
+        BEFORE INSERT ON messages
+        FOR EACH ROW EXECUTE FUNCTION oap_linkup_block_guard()""",
 )
+
 
 class LinkUpSafetyUnavailable(RuntimeError):
     pass
