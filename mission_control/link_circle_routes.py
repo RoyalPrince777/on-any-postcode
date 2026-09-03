@@ -1,7 +1,15 @@
 """Private OAP Link Circle membership routes."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from . import link_circles, postgres_db, web_security
 
