@@ -36,7 +36,8 @@ def test_link_composer_keeps_runtime_controls_fail_closed_in_template():
     assert 'data-oap-voice-status' in template
     assert 'data-runtime-locked' in template
     assert 'disabled data-runtime-locked' in template
-    assert 'Share <small>locked</small>' in template
+    assert 'Share <small>locked</small>' not in template
+    assert ' Share</button>' in template
     assert '> My Spot<' not in template  # icon precedes the compact label
     assert ' My Spot</button>' in template
     assert 'Live Spot' in template

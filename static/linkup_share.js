@@ -24,10 +24,12 @@
   let statusNode = document.querySelector("[data-oap-share-status]");
   if (!statusNode && shareControls.length) {
     statusNode = document.createElement("p");
-    statusNode.className = "oap-runtime-note";
+    statusNode.className = document.querySelector("[data-linkup-app]")
+      ? "linkup-runtime"
+      : "oap-runtime-note";
     statusNode.dataset.oapShareStatus = "";
     statusNode.setAttribute("role", "status");
-    statusNode.textContent = "Share stays locked until first-party OAP Data Share is ready.";
+    statusNode.textContent = "Share status";
     const voiceStatus = document.querySelector("[data-oap-voice-status]");
     if (voiceStatus) {
       voiceStatus.insertAdjacentElement("afterend", statusNode);
@@ -35,27 +37,34 @@
   }
 
   const lists = [];
-  document.querySelectorAll(".mc-agent-card").forEach((card) => {
-    const peerInput = card.querySelector('input[name="recipient_id"]');
-    const peerId = peerInput?.value || "";
+  const registerList = (host, peerId) => {
     if (!peerId) {
       return;
     }
-    let list = card.querySelector("[data-oap-share-list]");
+    let list = host.querySelector("[data-oap-share-list]");
     if (!list) {
       list = document.createElement("div");
       list.dataset.oapShareList = "";
       list.dataset.recipientId = peerId;
-      list.setAttribute("aria-label", "Private Share items");
-      const voiceList = card.querySelector("[data-oap-voice-list]");
+      list.setAttribute("aria-label", "Shared items");
+      const voiceList = host.querySelector("[data-oap-voice-list]");
       if (voiceList) {
         voiceList.insertAdjacentElement("afterend", list);
       } else {
-        card.appendChild(list);
+        host.appendChild(list);
       }
     }
     lists.push(list);
+  };
+
+  document.querySelectorAll(".mc-agent-card").forEach((card) => {
+    const peerInput = card.querySelector('input[name="recipient_id"]');
+    registerList(card, peerInput?.value || "");
   });
+
+  document
+    .querySelectorAll('.linkup-chat-panel[data-linkup-panel]:not([data-linkup-panel="new"])')
+    .forEach((panel) => registerList(panel, panel.dataset.linkupPanel || ""));
 
   if (!shareControls.length && !lists.length) {
     return;
@@ -164,13 +173,7 @@
     shareControls.forEach((control) => {
       const peerId = recipientFor(control);
       control.disabled = !state.ready || state.busy || !peerId;
-      control.title = state.ready
-        ? "Share a Certified photo, video, PDF or text file with this accepted Link"
-        : "First-party OAP Data Share is not ready";
-      const marker = control.querySelector("small");
-      if (marker) {
-        marker.textContent = control.disabled ? "locked" : "ready";
-      }
+      control.title = state.ready ? "Share" : "Share unavailable";
     });
   };
 
@@ -190,11 +193,11 @@
       container.replaceChildren();
       for (const share of result.shares || []) {
         const item = document.createElement("div");
-        item.className = "oap-share-item";
+        item.className = `oap-share-item ${share.direction === "sent" ? "sent" : "received"}`;
 
         const label = document.createElement("p");
         label.className = "mc-eyebrow";
-        label.textContent = `${share.direction === "sent" ? "OUT" : "IN"} · ${share.kind.toUpperCase()} · ${share.created_at}`;
+        label.textContent = `${share.kind.toUpperCase()} · ${share.created_at}`;
         item.appendChild(label);
 
         const name = document.createElement("p");
@@ -219,7 +222,7 @@
           download.className = "mc-secondary-link";
           download.href = url;
           download.download = share.original_name;
-          download.textContent = `Open ${share.original_name}`;
+          download.textContent = share.original_name;
           item.appendChild(download);
         }
 
@@ -227,7 +230,7 @@
           const remove = document.createElement("button");
           remove.type = "button";
           remove.className = "mc-secondary";
-          remove.textContent = "Delete Share";
+          remove.textContent = "Delete";
           remove.addEventListener("click", async () => {
             remove.disabled = true;
             try {
@@ -236,26 +239,18 @@
                 body: "{}",
               });
               await renderShareList(peerId);
-              setStatus("Share deleted.");
+              setStatus("Deleted");
             } catch (_error) {
               remove.disabled = false;
-              setStatus("Share could not be deleted.");
+              setStatus("Couldn’t delete");
             }
           });
           item.appendChild(remove);
         }
         container.appendChild(item);
       }
-      if (!container.childNodes.length) {
-        const empty = document.createElement("p");
-        empty.textContent = "No Share yet.";
-        container.appendChild(empty);
-      }
     } catch (_error) {
       container.replaceChildren();
-      const unavailable = document.createElement("p");
-      unavailable.textContent = "Share is unavailable for this Link.";
-      container.appendChild(unavailable);
     }
   };
 
@@ -265,7 +260,7 @@
     }
     const peerId = recipientFor(control);
     if (!peerId) {
-      setStatus("Choose a Certified Link first.");
+      setStatus("Choose a person");
       return;
     }
 
@@ -285,17 +280,17 @@
         state.busy = true;
         refreshControls();
         try {
-          setStatus("Share landing…");
+          setStatus("Sharing…");
           await uploadShare(peerId, file);
           await renderShareList(peerId);
-          setStatus("Share landed.");
+          setStatus("Shared");
         } catch (error) {
           if (error.code === "unsupported_share_type") {
-            setStatus("That file type is not Certified for Share.");
+            setStatus("Unsupported file type");
           } else if (error.code === "share_too_large") {
-            setStatus("Share is too large. Nothing was stored.");
+            setStatus("File too large");
           } else {
-            setStatus("Share could not land. Nothing unsafe was stored.");
+            setStatus("Couldn’t share");
           }
         } finally {
           state.busy = false;
@@ -320,11 +315,7 @@
       state.ready = status.ready === true && status.first_party === true;
       state.maxBytes = Number(status.max_share_bytes) || state.maxBytes;
       state.allowed = new Set(status.allowed_mime_types || []);
-      setStatus(
-        state.ready
-          ? "Share is ready. Files stay local to OAP Data until you tap Share."
-          : "Share remains locked until first-party OAP Data Share is ready.",
-      );
+      setStatus(state.ready ? "Share ready" : "Share unavailable");
       refreshControls();
       lists.forEach((node) => {
         const peerId = node.dataset.recipientId || "";
@@ -335,7 +326,7 @@
     })
     .catch(() => {
       state.ready = false;
-      setStatus("Share is unavailable. No file picker will open.");
+      setStatus("Share unavailable");
       refreshControls();
     });
 })();

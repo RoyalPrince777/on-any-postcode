@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from mission_control import config, linkup
 
@@ -91,7 +92,7 @@ def test_duplicate_link_view_is_rejected():
     assert validation["checks"]["naming_conflicts"] == 1
 
 
-def test_public_link_ui_is_simple_and_read_only(anonymous_client, tmp_path, monkeypatch):
+def test_public_link_ui_is_concise_and_read_only(anonymous_client, tmp_path, monkeypatch):
     database_path = tmp_path / "the-link.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
     response = anonymous_client.get("/linkup")
@@ -99,12 +100,26 @@ def test_public_link_ui_is_simple_and_read_only(anonymous_client, tmp_path, monk
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "Simple private chat." in page
-    assert "Message your Links. Voice, Call and Face Up stay inside each chat." in page
+    assert "Private chat." in page
+    assert "Enter My World" in page
+    assert "Message your Links." not in page
+    assert "World Rooms" not in page
     assert "Circle" not in page
     assert 'method="post"' not in page.lower()
     assert anonymous_client.post("/linkup").status_code == 405
     assert not database_path.exists()
+
+
+def test_linkup_template_keeps_policy_copy_off_the_visible_messenger():
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    for copy in (
+        "first-party OAP Data",
+        "accepted Link",
+        "World Rooms",
+        "live outside this messenger",
+        "Private media runtime required",
+    ):
+        assert copy not in page
 
 
 def test_public_link_projection_is_presentation_only():

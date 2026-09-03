@@ -365,10 +365,14 @@ def test_share_browser_controller_is_same_origin_fail_closed_and_syntax_valid():
     assert 'apiJson("/linkup/share/status")' in share_js
     assert 'picker.type = "file"' in share_js
     assert 'credentials: "same-origin"' in share_js
+    assert '.linkup-chat-panel[data-linkup-panel]' in share_js
+    assert '"linkup-runtime"' in share_js
     assert "https://" not in share_js
     assert "http://" not in share_js
     assert "application/octet-stream" not in share_js
-    assert "Private media runtime required" in template
+    assert "first-party OAP Data" not in share_js
+    assert 'title="Share"' in template
+    assert "Private media runtime required" not in template
     assert "disabled data-runtime-locked" in template
 
     node = shutil.which("node")
