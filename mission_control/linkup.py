@@ -51,9 +51,20 @@ LINK_UP_PUBLIC_VOCABULARY: dict[str, str] = {
     "trusted_contact": "Trusted Contact",
 }
 
-LINK_UP_PLAIN_SAFETY_TERMS: tuple[str, ...] = (
-    "Block", "Report", "Privacy", "Security", "Emergency", "Delete", "Settings",
+LINK_UP_PLAIN_CONTROLS: tuple[str, ...] = (
+    "Mute",
+    "Camera",
+    "Speaker",
+    "Answer",
+    "Decline",
+    "End",
+    "Block",
+    "Report",
+    "Privacy",
+    "Delete",
 )
+# Compatibility alias for older checks and imports.
+LINK_UP_PLAIN_SAFETY_TERMS = LINK_UP_PLAIN_CONTROLS
 
 LINK_DASHBOARD_VIEWS: tuple[dict[str, str], ...] = (
     {"id":"directory","name":"Directory","owner":COMMUNICATIONS_SYSTEM,"ownership":"owned_view","purpose":"Find verified people and local connections.","status":"Protected","data":"Authenticated member projection only","boundary":"People and community connections only; this is not the Agent Intelligence directory."},

@@ -44,17 +44,22 @@ def test_link_up_language_law_is_locked_without_renaming_internal_views():
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["group"] == "Circle"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Face Up"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["live_location"] == "Live Spot"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["read"] == "Seen"
-    assert linkup.LINK_UP_PLAIN_SAFETY_TERMS == (
+    assert linkup.LINK_UP_PLAIN_CONTROLS == (
+        "Mute",
+        "Camera",
+        "Speaker",
+        "Answer",
+        "Decline",
+        "End",
         "Block",
         "Report",
         "Privacy",
-        "Security",
-        "Emergency",
         "Delete",
-        "Settings",
     )
+    assert linkup.LINK_UP_PLAIN_SAFETY_TERMS == linkup.LINK_UP_PLAIN_CONTROLS
 
 
 def test_protected_link_runtime_matches_existing_communications_store():
