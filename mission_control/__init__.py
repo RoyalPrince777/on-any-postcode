@@ -20,6 +20,7 @@ def init_app(app: Flask) -> None:
     from . import db as dbmod
     from . import (
         link_call_audit,
+        link_presence,
         link_relationships,
         link_signalling,
         link_turn,
@@ -35,6 +36,7 @@ def init_app(app: Flask) -> None:
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
     from .link_call_routes import bp as link_call_bp
+    from .link_presence_routes import bp as link_presence_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
     from .link_turn_routes import bp as link_turn_bp
@@ -174,6 +176,25 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(link_turn.status()))
 
+    @app.cli.command("oap-link-presence-status")
+    def _oap_link_presence_status() -> None:
+        import json
+        print(json.dumps(link_presence.status()))
+
+    @app.cli.command("oap-init-link-presence")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_presence(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_presence.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-purge-link-presence")
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_purge_link_presence(yes: bool) -> None:
+        if not yes:
+            raise click.ClickException("explicit_confirmation_required")
+        print(link_presence.purge_expired())
+
     @app.cli.command("oap-product-cores-status")
     def _oap_product_cores_status() -> None:
         import json
@@ -203,6 +224,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_call_bp)
     app.register_blueprint(link_signalling_bp)
     app.register_blueprint(link_turn_bp)
+    app.register_blueprint(link_presence_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
