@@ -37,12 +37,13 @@ button{background:#27c267;color:#021;font-weight:bold}
 </head>
 <body>
 <nav aria-label="Primary navigation">
-<a href="#location">🌍 World</a>
-<a href="#signal">📡 Signal</a>
 <a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
-<a href="{{ url_for('world_languages') }}">🗣️ Languages</a>
-<a href="{{ url_for('linkup_front_door') }}">💬 Link Up</a>
-<a href="{{ url_for('world_cup') }}">⚽ World Cup</a>
+<a href="{{ url_for('pulse_feed') }}">📡 Pulse</a>
+<a href="{{ url_for('the_link_front_door') }}">🔗 The Link</a>
+<a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">📣 Signal</a>
+<a href="{{ url_for('spot_capability_front_door', capability_slug='events') }}">🎪 Activity</a>
+<a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">🏪 Market</a>
+<a href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}">🧭 Explorer</a>
 </nav>
 <main>
 <section class="hero">
