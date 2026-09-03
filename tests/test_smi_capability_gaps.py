@@ -1,10 +1,10 @@
-from oap.smi.agi_core import AGICore
 from mission_control import (
     earth_intelligence,
     language_intelligence,
     life_intelligence,
     smi_capabilities,
 )
+from oap.smi.agi_core import AGICore
 
 
 def test_agi_core_is_inside_smi_without_claiming_achieved_agi():
