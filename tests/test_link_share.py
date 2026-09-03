@@ -292,11 +292,13 @@ def test_share_read_rechecks_integrity_and_delete_stays_sender_only(monkeypatch)
     assert params == (share_id, identity)
 
 
-def test_share_routes_require_auth_csrf_and_no_store(client, anonymous_client, monkeypatch):
-    anonymous = anonymous_client.get("/linkup/share/status")
-    assert anonymous.status_code == 401
-    assert anonymous.get_json()["error"]["code"] == "authentication_required"
+def test_share_status_route_rejects_anonymous_access(anonymous_client):
+    response = anonymous_client.get("/linkup/share/status")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
 
+
+def test_share_status_and_upload_are_no_store_and_csrf_guarded(client, monkeypatch):
     monkeypatch.setattr(
         link_voice_routes.link_share,
         "status",
