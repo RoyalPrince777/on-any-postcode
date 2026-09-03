@@ -4,7 +4,7 @@ from __future__ import annotations
 import hmac
 import os
 
-from flask import Flask, make_response, request
+from flask import Flask, Request, make_response, request
 
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
 _PRIVATE_PATH_PREFIXES = (
@@ -21,6 +21,25 @@ _LINK_DEVICE_PATHS = frozenset({"/linkup"})
 _LINK_PERMISSIONS_POLICY = (
     "camera=(self), microphone=(self), geolocation=(self), payment=()"
 )
+_SHARE_UPLOAD_PATH = "/linkup/share"
+_SHARE_REQUEST_MAX_BYTES = 26 * 1024 * 1024
+
+
+class OAPRequest(Request):
+    """Preserve the global request cap while allowing 25 MB Share payloads.
+
+    Multipart framing adds a small amount of request overhead around the file
+    itself, so the Share endpoint receives a 26 MB transport ceiling while the
+    domain layer continues to enforce its 25 MB file limit. Every other route
+    remains governed by the application's normal MAX_CONTENT_LENGTH setting.
+    """
+
+    @property
+    def max_content_length(self) -> int | None:  # type: ignore[override]
+        clean_path = self.path.rstrip("/") or "/"
+        if self.method == "POST" and clean_path == _SHARE_UPLOAD_PATH:
+            return _SHARE_REQUEST_MAX_BYTES
+        return super().max_content_length
 
 
 def gateway_configured() -> bool:
@@ -67,6 +86,7 @@ def register(app: Flask) -> None:
     """
     from . import pulse_routes
 
+    app.request_class = OAPRequest
     pulse_routes.register(app)
 
     @app.before_request
