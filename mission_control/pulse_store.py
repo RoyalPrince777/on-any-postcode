@@ -78,7 +78,7 @@ def _trim_scope(connection: Any, scope: str, limit: int) -> None:
     )
 
 
-def add_post(identity_id: str, *, name: str, body: str) -> str:
+def add_post(identity_id: str, *, name: str, body: str) -> None:
     identity = _uuid(identity_id, "invalid_pulse_identity")
     clean_name = str(name).strip()[:80]
     clean_body = str(body).strip()[:2000]
@@ -93,18 +93,17 @@ def add_post(identity_id: str, *, name: str, body: str) -> str:
         with postgres_db.connect() as connection:
             _ensure_user(connection, identity)
             _check_write_rate(connection, identity)
-            row = connection.execute(
+            connection.execute(
                 """INSERT INTO posts(user_id,body,scope,status)
-                   VALUES (%s,%s,%s,'published') RETURNING id""",
+                   VALUES (%s,%s,%s,'published')""",
                 (identity, payload, PULSE_SCOPE),
-            ).fetchone()
+            )
             _trim_scope(connection, PULSE_SCOPE, MAX_PULSE_RECORDS)
             connection.commit()
     except ValueError:
         raise
     except Exception as exc:
         raise PulseStoreUnavailable("pulse_write_failed") from exc
-    return str(row[0])
 
 
 def add_reaction(identity_id: object, post_id: object, reaction: object) -> str:
@@ -149,7 +148,8 @@ def add_reaction(identity_id: object, post_id: object, reaction: object) -> str:
                 )
                 if existing_id:
                     connection.execute(
-                        "UPDATE posts SET body=%s,created_at=CURRENT_TIMESTAMP WHERE id=%s AND user_id=%s",
+                        """UPDATE posts SET body=%s,created_at=CURRENT_TIMESTAMP
+                           WHERE id=%s AND user_id=%s""",
                         (body, existing_id, identity),
                     )
                 else:
@@ -174,7 +174,7 @@ def add_reply(
     *,
     name: object,
     body: object,
-) -> str:
+) -> None:
     identity = _uuid(identity_id, "invalid_pulse_identity")
     target = _uuid(post_id, "invalid_pulse_post")
     clean_name = str(name or "").strip()[:80]
@@ -192,18 +192,17 @@ def add_reply(
             _check_write_rate(connection, identity)
             if not _target_exists(connection, target):
                 raise ValueError("pulse_post_not_found")
-            row = connection.execute(
+            connection.execute(
                 """INSERT INTO posts(user_id,body,scope,status)
-                   VALUES (%s,%s,%s,'published') RETURNING id""",
+                   VALUES (%s,%s,%s,'published')""",
                 (identity, payload, PULSE_REPLY_SCOPE),
-            ).fetchone()
+            )
             _trim_scope(connection, PULSE_REPLY_SCOPE, MAX_INTERACTION_RECORDS)
             connection.commit()
     except ValueError:
         raise
     except Exception as exc:
         raise PulseStoreUnavailable("pulse_reply_failed") from exc
-    return str(row[0])
 
 
 def list_posts() -> list[dict[str, Any]]:
