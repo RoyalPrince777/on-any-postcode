@@ -33,7 +33,11 @@ def _failure(exc: Exception):
         code = str(exc) or "invalid_signalling_request"
         if code == "signalling_rate_limited":
             return _error(code, 429)
-        if code in {"accepted_link_required", "link_blocked"}:
+        if code in {
+            "accepted_link_required",
+            "active_call_session_required",
+            "link_blocked",
+        }:
             return _error(code, 403)
         return _error(code, 400)
     if isinstance(exc, link_signalling.LinkSignallingUnavailable):
