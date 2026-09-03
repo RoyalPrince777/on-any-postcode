@@ -39,7 +39,7 @@
   <section class="mc-panel" aria-labelledby="create-circle">
     <p class="mc-eyebrow">New Circle</p>
     <h2 id="create-circle">Start a Circle</h2>
-    <form method="post" action="{{ url_for('link_circles.circle_create') }}">
+    <form method="post" action="{{ url_for('.circle_create') }}">
       <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
       <label for="circle-name">Circle name</label>
       <input id="circle-name" name="name" maxlength="80" required placeholder="Name your Circle">
@@ -55,7 +55,7 @@
       <article class="mc-agent-card">
         <h3>{{ invite.circle_name }}</h3>
         <p>{{ invite.inviter }} invited you.</p>
-        <form method="post" action="{{ url_for('link_circles.circle_invite_respond', invite_id=invite.invite_id) }}">
+        <form method="post" action="{{ url_for('.circle_invite_respond', invite_id=invite.invite_id) }}">
           <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
           <button class="mc-primary" type="submit" name="decision" value="accepted">Link In</button>
           <button class="mc-secondary" type="submit" name="decision" value="declined">Decline</button>
@@ -83,7 +83,7 @@
         </ul>
 
         {% if circle.my_role == 'host' %}
-        <form method="post" action="{{ url_for('link_circles.circle_bring_in', circle_id=circle.circle_id) }}">
+        <form method="post" action="{{ url_for('.circle_bring_in', circle_id=circle.circle_id) }}">
           <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
           <label for="bring-in-{{ circle.circle_id }}">Bring In</label>
           <select id="bring-in-{{ circle.circle_id }}" name="invitee_id" required>
@@ -96,7 +96,7 @@
         </form>
         {% endif %}
 
-        <form method="post" action="{{ url_for('link_circles.circle_step_out', circle_id=circle.circle_id) }}">
+        <form method="post" action="{{ url_for('.circle_step_out', circle_id=circle.circle_id) }}">
           <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
           <button class="mc-secondary" type="submit">Step Out</button>
         </form>
