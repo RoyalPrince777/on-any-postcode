@@ -10,7 +10,8 @@ def test_gateway_is_oap_owned_and_local_first():
     assert "OAP_INFERENCE_LOCAL_MODEL" in text
     assert "oap-core:latest" in text
     assert '"local_first": True' in text
-    assert '"compatibility_fallback_present": True' in text
+    assert '"compatibility_fallback_enabled": FALLBACK_ENABLED' in text
+    assert '"first_party_inference_ready": first_party_ready' in text
     assert "Human Authority" in text
 
 
@@ -24,5 +25,7 @@ def test_personal_smi_runtime_routes_through_gateway_before_core_provider():
 
 def test_gateway_does_not_claim_full_provider_removal():
     text = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text()
-    assert "Compatibility fallback" in text or "compatibility fallback" in text
-    assert "can be removed once the Home Node is reachable/certified" in text
+    assert "compatibility engine only while first-party inference is not certified" in text
+    assert "if not FALLBACK_ENABLED" in text
+    assert 'raise RuntimeError("first_party_inference_required")' in text
+    assert '"sovereign_inference_ready": bool(first_party_ready and not FALLBACK_ENABLED)' in text
