@@ -104,6 +104,28 @@ def status() -> dict[str, Any]:
     return result
 
 
+def accepted_between(first_id: object, second_id: object) -> bool:
+    """Return whether two identities currently share an accepted Link."""
+    first = _uuid(first_id, "invalid_identity")
+    second = _uuid(second_id, "invalid_identity")
+    if first == second:
+        return False
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT 1 FROM link_relationships
+                   WHERE LEAST(requester_id,recipient_id)=LEAST(%s::uuid,%s::uuid)
+                     AND GREATEST(requester_id,recipient_id)=GREATEST(%s::uuid,%s::uuid)
+                     AND status='accepted'
+                     AND (link_kind='permanent' OR expires_at>CURRENT_TIMESTAMP)
+                   LIMIT 1""",
+                (first, second, first, second),
+            ).fetchone()
+    except Exception as exc:
+        raise LinkRelationshipsUnavailable("link_relationship_check_failed") from exc
+    return row is not None
+
+
 def request_link(requester_id: object, recipient_id: object, *, link_kind: object = "permanent", purpose_text: object = "", expires_at: object = None) -> str:
     requester = _uuid(requester_id, "invalid_requester")
     recipient = _uuid(recipient_id, "invalid_recipient")
