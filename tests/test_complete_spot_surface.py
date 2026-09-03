@@ -19,8 +19,13 @@ def test_complete_spot_capability_registry_has_no_duplicates():
 def test_every_spot_capability_has_a_working_read_only_route(client):
     for capability in products.PUBLIC_SPOT_CAPABILITIES:
         response = client.get(f"/the-spot/{capability['slug']}")
-        page = response.get_data(as_text=True)
+        if capability["slug"] == "pulse":
+            assert response.status_code == 302
+            assert response.headers["Location"].endswith("/pulse")
+            assert response.headers["Cache-Control"] == "no-store"
+            continue
 
+        page = response.get_data(as_text=True)
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         assert escape(capability["name"]) in page
@@ -50,6 +55,7 @@ def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(cl
 
     assert "📡 Pulse" in page
     assert "See what’s happening around you." in page
+    assert "pulse_feed" in page
     assert "📣 Signal" in page
     assert "🔗 The Link" in page
     assert "🎪 Activity" in page
@@ -75,7 +81,6 @@ def test_signal_and_world_room_capabilities_have_live_public_forms(client):
 
 def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
     public_only = (
-        "pulse",
         "signal",
         "postcode-rooms",
         "events",
@@ -94,6 +99,9 @@ def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
     for slug in public_only:
         page = client.get(f"/the-spot/{slug}").get_data(as_text=True)
         assert "Sign in to personalise this part of OAP" not in page
+
+    pulse = client.get("/pulse").get_data(as_text=True)
+    assert "Sign in to personalise this part of OAP" not in pulse
 
     spot = client.get("/the-spot").get_data(as_text=True)
     assert "Enter My World" not in spot
