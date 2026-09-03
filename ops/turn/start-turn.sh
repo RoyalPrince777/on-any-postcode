@@ -23,8 +23,24 @@ if [[ ! "$OAP_TURN_REALM" =~ ^[A-Za-z0-9.-]{3,253}$ ]]; then
   echo "invalid OAP_TURN_REALM" >&2
   exit 64
 fi
-if [[ ! "$OAP_TURN_EXTERNAL_IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
-  echo "OAP_TURN_EXTERNAL_IP must be a public IPv4 address for v1" >&2
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required to validate the public TURN address" >&2
+  exit 69
+fi
+if ! OAP_TURN_EXTERNAL_IP="$OAP_TURN_EXTERNAL_IP" python3 - <<'PY'
+import ipaddress
+import os
+import sys
+
+try:
+    address = ipaddress.ip_address(os.environ["OAP_TURN_EXTERNAL_IP"])
+except ValueError:
+    sys.exit(1)
+if address.version != 4 or not address.is_global:
+    sys.exit(1)
+PY
+then
+  echo "OAP_TURN_EXTERNAL_IP must be a real globally routable IPv4 address" >&2
   exit 64
 fi
 if [[ ! "$OAP_TURN_SHARED_SECRET" =~ ^[A-Za-z0-9_-]{32,128}$ ]]; then
