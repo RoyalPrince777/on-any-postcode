@@ -54,6 +54,9 @@ def register(app: Flask) -> None:
     itself: the browser still requires an explicit user permission request, and
     the Link runtime remains fail-closed until its own gates are certified.
     """
+    from . import pulse_routes
+
+    pulse_routes.register(app)
 
     @app.before_request
     def _enforce_smi_gateway():

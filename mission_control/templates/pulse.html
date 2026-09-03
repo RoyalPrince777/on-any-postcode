@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Pulse</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    .pulse-shell{max-width:760px;margin:0 auto}.pulse-compose{display:grid;gap:8px}.pulse-compose input,.pulse-compose textarea{width:100%;box-sizing:border-box}.pulse-feed{display:grid;gap:10px;margin-top:14px}.pulse-post{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.pulse-post p{margin:.4rem 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-meta{font-size:.78rem;color:var(--mc-muted)}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">The Spot</p>
+      <h1>📡 Pulse</h1>
+    </div>
+    <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">Back</a>
+  </header>
+  <main class="mc-workspace pulse-shell">
+    <section class="mc-panel">
+      <form class="pulse-compose" method="post" action="{{ url_for('pulse_post') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="pulse-name">Nickname</label>
+        <input id="pulse-name" name="name" maxlength="80" required>
+        <label for="pulse-body">Post</label>
+        <textarea id="pulse-body" name="body" maxlength="2000" rows="3" required placeholder="What’s happening?"></textarea>
+        <button class="mc-primary" type="submit">Post</button>
+      </form>
+    </section>
+
+    <section class="pulse-feed" aria-label="Pulse feed">
+      {% if pulse_unavailable %}
+        <p role="alert">Pulse is unavailable.</p>
+      {% else %}
+        {% for post in pulse_posts %}
+        <article class="pulse-post">
+          <strong>{{ post.name }}</strong>
+          <p>{{ post.body }}</p>
+          <span class="pulse-meta">{{ post.created_at }}</span>
+        </article>
+        {% else %}
+        <p>No Pulse yet.</p>
+        {% endfor %}
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

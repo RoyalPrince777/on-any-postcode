@@ -23,14 +23,10 @@
 
   <main class="mc-workspace">
     <section class="mc-panel spot-hero" aria-labelledby="spot-pulse-title">
-      {% for capability in hierarchy.capabilities %}
-        {% if capability.slug == 'pulse' %}
-        <a class="spot-pulse" href="{{ url_for('spot_capability_front_door', capability_slug='pulse') }}">
-          <strong id="spot-pulse-title">📡 Pulse</strong>
-          <span>See what’s happening around you.</span>
-        </a>
-        {% endif %}
-      {% endfor %}
+      <a class="spot-pulse" href="{{ url_for('pulse_feed') }}">
+        <strong id="spot-pulse-title">📡 Pulse</strong>
+        <span>See what’s happening around you.</span>
+      </a>
 
       <div class="spot-quick" aria-label="Quick access">
         <a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}"><strong>📣 Signal</strong></a>
