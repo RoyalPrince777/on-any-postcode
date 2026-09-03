@@ -14,11 +14,19 @@ def _no_store(response):
 
 
 def _error(code: str, message: str, status: int):
-    return _no_store(make_response(jsonify(error={"code": code, "message": message}), status))
+    return _no_store(
+        make_response(jsonify(error={"code": code, "message": message}), status)
+    )
 
 
 def register(app: Flask) -> None:
     """Register Pulse independently from Signal without creating a second schema."""
+
+    @app.get("/the-spot/pulse")
+    def spot_pulse_compat():
+        response = redirect(url_for("pulse_feed"))
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     @app.get("/pulse")
     def pulse_feed():
@@ -30,7 +38,11 @@ def register(app: Flask) -> None:
             unavailable = True
         return _no_store(
             make_response(
-                render_template("pulse.html", pulse_posts=posts, pulse_unavailable=unavailable),
+                render_template(
+                    "pulse.html",
+                    pulse_posts=posts,
+                    pulse_unavailable=unavailable,
+                ),
                 200,
             )
         )
@@ -45,13 +57,21 @@ def register(app: Flask) -> None:
         name = str(request.form.get("name", "")).strip()[:80]
         body = str(request.form.get("body", "")).strip()[:2000]
         if not name or not body:
-            return _error("pulse_content_required", "Nickname and post are required.", 400)
+            return _error(
+                "pulse_content_required",
+                "Nickname and post are required.",
+                400,
+            )
         try:
             pulse_store.add_post(identity_id, name=name, body=body)
         except ValueError as exc:
             if str(exc) == "pulse_rate_limit":
                 return _error("rate_limited", "Too many posts. Try again shortly.", 429)
-            return _error("pulse_content_required", "Nickname and post are required.", 400)
+            return _error(
+                "pulse_content_required",
+                "Nickname and post are required.",
+                400,
+            )
         except pulse_store.PulseStoreUnavailable:
             return _error("pulse_unavailable", "Pulse is unavailable.", 503)
         return redirect(url_for("pulse_feed"))
