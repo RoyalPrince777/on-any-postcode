@@ -1,9 +1,17 @@
 """Protected OAP Link Around Now and Live Spot routes."""
 from __future__ import annotations
 
+import uuid
+
 from flask import Blueprint, jsonify, make_response, request
 
-from . import link_presence, web_security
+from . import (
+    link_presence,
+    link_relationships,
+    linkup_safety,
+    postgres_db,
+    web_security,
+)
 
 bp = Blueprint("link_presence", __name__)
 
@@ -42,10 +50,49 @@ def _value_error(exc: TypeError | ValueError):
     return _error(code or "invalid_request", 400)
 
 
+def _visibility_state(owner_id: str, peer_id: str) -> dict[str, bool]:
+    try:
+        owner = str(uuid.UUID(owner_id))
+        peer = str(uuid.UUID(peer_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_peer") from exc
+    if owner == peer:
+        raise ValueError("cannot_share_with_self")
+    try:
+        if linkup_safety.blocked_between(owner, peer):
+            raise ValueError("link_blocked")
+        if not link_relationships.accepted_between(owner, peer):
+            raise ValueError("accepted_link_required")
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT around_now,live_spot FROM link_presence_visibility
+                   WHERE owner_id=%s AND viewer_id=%s LIMIT 1""",
+                (owner, peer),
+            ).fetchone()
+    except ValueError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - privacy state must fail closed across DB/guard failures.
+        raise link_presence.LinkPresenceUnavailable("presence_visibility_read_failed") from exc
+    if row is None:
+        return {"around_now": False, "live_spot": False}
+    return {"around_now": bool(row[0]), "live_spot": bool(row[1])}
+
+
 @bp.get("/linkup/presence/status")
 @web_security.login_required(api=True)
 def status():
     return _no_store(make_response(jsonify(link_presence.status())))
+
+
+@bp.get("/linkup/presence/visibility/<peer_id>")
+@web_security.login_required(api=True)
+def visibility_state(peer_id: str):
+    try:
+        return _no_store(make_response(jsonify(_visibility_state(_identity(), peer_id))))
+    except (TypeError, ValueError) as exc:
+        return _value_error(exc)
+    except link_presence.LinkPresenceUnavailable:
+        return _error("link_presence_unavailable", 503)
 
 
 @bp.post("/linkup/presence/visibility")
