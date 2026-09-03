@@ -3,28 +3,19 @@
 
   const csrfToken = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
   const forms = Array.from(document.querySelectorAll("form[data-oap-link-composer]"));
-  const seenForms = Array.from(document.querySelectorAll("form[data-oap-seen-form]"));
-  const globalStatus = document.querySelector("[data-oap-message-runtime-status]");
 
-  if (!forms.length && !seenForms.length) {
+  if (!forms.length) {
     return;
   }
 
   const state = {
     ready: false,
     activityReady: false,
-    typingTtlMs: 8000,
     activeForm: null,
     lastTypingSentAt: 0,
     typingStopTimer: null,
     typingRefreshTimer: null,
     pollTimer: null,
-  };
-
-  const setGlobalStatus = (message) => {
-    if (globalStatus) {
-      globalStatus.textContent = message;
-    }
   };
 
   const recipientFor = (form) => {
@@ -34,9 +25,24 @@
 
   const bodyFor = (form) => form.querySelector('textarea[name="body"]');
 
-  const localStatusFor = (form) => form.querySelector("[data-oap-composer-status]");
+  const ensureStatusNode = (form, attribute, className) => {
+    let node = form.querySelector(`[${attribute}]`);
+    if (node) {
+      return node;
+    }
+    node = document.createElement("p");
+    node.className = className;
+    node.setAttribute(attribute, "");
+    node.setAttribute("role", "status");
+    form.appendChild(node);
+    return node;
+  };
 
-  const typingStatusFor = (form) => form.querySelector("[data-oap-typing-state]");
+  const localStatusFor = (form) =>
+    ensureStatusNode(form, "data-oap-composer-status", "oap-runtime-note");
+
+  const typingStatusFor = (form) =>
+    ensureStatusNode(form, "data-oap-typing-state", "mc-eyebrow");
 
   const apiJson = async (path, options = {}) => {
     const method = options.method || "GET";
@@ -92,24 +98,23 @@
     }
     try {
       const receipts = await apiJson(`/linkup/messages/state?peer_id=${encodeURIComponent(peerId)}`);
-      updateRenderedStates(receipts.messages || []);
+      const messages = receipts.messages || [];
+      updateRenderedStates(messages);
+      const local = localStatusFor(form);
+      if (messages.length && !local.querySelector("button")) {
+        local.textContent = `Latest Link: ${messages[0].state === "seen" ? "Seen" : "Landed"}`;
+      }
     } catch (_error) {
-      // Existing server-rendered receipts remain valid if polling is unavailable.
+      // Existing persisted receipts remain valid if polling is unavailable.
     }
     if (!state.activityReady) {
       return;
     }
     try {
       const activity = await apiJson(`/linkup/activity/typing?peer_id=${encodeURIComponent(peerId)}`);
-      const node = typingStatusFor(form);
-      if (node) {
-        node.textContent = activity.typing ? "Typing…" : "";
-      }
+      typingStatusFor(form).textContent = activity.typing ? "Typing…" : "";
     } catch (_error) {
-      const node = typingStatusFor(form);
-      if (node) {
-        node.textContent = "";
-      }
+      typingStatusFor(form).textContent = "";
     }
   };
 
@@ -218,9 +223,6 @@
 
   const showRetry = (form, payload, message) => {
     const node = localStatusFor(form);
-    if (!node) {
-      return;
-    }
     node.replaceChildren();
     const text = document.createElement("span");
     text.textContent = `${message} `;
@@ -251,9 +253,7 @@
     if (submit) {
       submit.disabled = true;
     }
-    if (localStatus) {
-      localStatus.textContent = "Sending…";
-    }
+    localStatus.textContent = "Sending…";
     stopTyping(form);
     try {
       const result = await apiJson("/linkup/messages", {
@@ -261,14 +261,14 @@
         body: JSON.stringify(payload),
       });
       if (result.state !== "landed" || !result.message_id) {
-        throw new Error("missing_landed_receipt");
+        const error = new Error("missing_landed_receipt");
+        error.code = "missing_landed_receipt";
+        throw error;
       }
       if (textarea && !fixedPayload) {
         textarea.value = "";
       }
-      if (localStatus) {
-        localStatus.textContent = "Landed";
-      }
+      localStatus.textContent = "Landed";
       ensureLocalReceipt(form, payload, result.message_id);
       startPolling(form);
     } catch (error) {
@@ -289,6 +289,8 @@
 
   forms.forEach((form) => {
     const textarea = bodyFor(form);
+    localStatusFor(form);
+    typingStatusFor(form);
     form.addEventListener("submit", (event) => {
       if (!state.ready) {
         return;
@@ -306,34 +308,6 @@
     });
   });
 
-  seenForms.forEach((form) => {
-    form.addEventListener("submit", async (event) => {
-      if (!state.ready) {
-        return;
-      }
-      event.preventDefault();
-      const messageId = form.dataset.messageId || "";
-      if (!messageId) {
-        return;
-      }
-      const button = form.querySelector('button[type="submit"]');
-      if (button) {
-        button.disabled = true;
-      }
-      try {
-        await apiJson(`/linkup/messages/${encodeURIComponent(messageId)}/seen`, {
-          method: "POST",
-          body: "{}",
-        });
-        form.remove();
-      } catch (_error) {
-        if (button) {
-          button.disabled = false;
-        }
-      }
-    });
-  });
-
   window.addEventListener("pagehide", () => {
     if (state.activeForm) {
       stopTyping(state.activeForm);
@@ -347,18 +321,16 @@
     .then((status) => {
       state.ready = status.ready === true && status.first_party === true;
       state.activityReady = status.activity_ready === true;
-      state.typingTtlMs = (Number(status.typing_ttl_seconds) || 8) * 1000;
-      setGlobalStatus(
-        state.ready
-          ? state.activityReady
-            ? "Link → Landed → Seen is ready. Typing activity is private and short-lived."
-            : "Link → Landed → Seen is ready. Typing stays off until OAP Data activity is ready."
-          : "Delivery state remains locked. Existing Link forms stay available as fallback.",
-      );
+      if (state.ready) {
+        forms.forEach((form) => {
+          localStatusFor(form).textContent = state.activityReady
+            ? "Link → Landed → Seen · private typing ready"
+            : "Link → Landed → Seen";
+        });
+      }
     })
     .catch(() => {
       state.ready = false;
       state.activityReady = false;
-      setGlobalStatus("Delivery state is unavailable. Existing Link forms stay fail-safe.");
     });
 })();
