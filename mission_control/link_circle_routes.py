@@ -52,7 +52,7 @@ def _accepted_people(identity: str) -> list[dict[str, str]]:
 
 
 def _notice(code: str):
-    return redirect(url_for("link_circles.circle_page", notice=code), code=303)
+    return redirect(url_for(".circle_page", notice=code), code=303)
 
 
 @bp.get("/linkup/circles/status")
