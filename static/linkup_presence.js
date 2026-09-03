@@ -155,6 +155,19 @@
       }),
     });
 
+  const scheduleSnapshotPrivacyReset = (peerId) => {
+    window.setTimeout(() => {
+      if (state.liveWatches.has(peerId)) {
+        return;
+      }
+      getVisibility(peerId)
+        .then((visibility) => setVisibility(peerId, { ...visibility, live_spot: false }))
+        .catch(() => {
+          // The one-minute location row is already expiry-bounded even if this preference reset cannot land.
+        });
+    }, 65000);
+  };
+
   const stopLiveSpot = async (peerId) => {
     const watchId = state.liveWatches.get(peerId);
     if (watchId !== undefined && navigator.geolocation) {
@@ -210,6 +223,7 @@
         try {
           const position = await positionOnce();
           await publishPosition(peerId, position, 1);
+          scheduleSnapshotPrivacyReset(peerId);
           setStatus("Share My Spot landed for this Link and expires automatically.");
         } catch (error) {
           await setVisibility(peerId, { ...visibility, live_spot: false }).catch(() => {});
