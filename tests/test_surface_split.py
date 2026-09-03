@@ -28,6 +28,10 @@ def test_public_origin_hides_all_founder_surfaces_behind_gateway(monkeypatch):
     def my_world():
         return "private"
 
+    @app.get("/the-spot/my-world")
+    def spot_my_world():
+        return "private"
+
     @app.get("/infrastructure")
     def infrastructure():
         return "private"
@@ -42,6 +46,7 @@ def test_public_origin_hides_all_founder_surfaces_behind_gateway(monkeypatch):
         "/auth",
         "/enter-my-world",
         "/my-world",
+        "/the-spot/my-world",
         "/infrastructure",
         "/api/infrastructure/status",
     ):
@@ -69,9 +74,14 @@ def test_public_surface_fails_closed_even_if_gateway_secret_is_missing(monkeypat
     def auth():
         return "sign-in"
 
+    @app.get("/the-spot/my-world")
+    def spot_my_world():
+        return "private"
+
     client = app.test_client()
     assert client.get("/mission").status_code == 404
     assert client.get("/auth").status_code == 404
+    assert client.get("/the-spot/my-world").status_code == 404
     assert client.get("/mission", headers={"X-OAP-SMI-Gateway": "x" * 48}).status_code == 404
 
 
