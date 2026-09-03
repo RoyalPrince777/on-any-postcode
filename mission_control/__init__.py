@@ -19,6 +19,7 @@ def init_app(app: Flask) -> None:
     from . import audit as auditmod
     from . import db as dbmod
     from . import (
+        link_relationships,
         linkup_safety,
         movement_match_safety,
         movement_operations,
@@ -30,6 +31,7 @@ def init_app(app: Flask) -> None:
     )
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
+    from .link_relationship_routes import bp as link_relationship_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .movement_routes import bp as movement_bp
     from .product_core_views import bp as product_core_bp
@@ -110,6 +112,18 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(linkup_safety.init_schema(dry_run=dry_run, assume_yes=yes)))
 
+    @app.cli.command("oap-link-relationships-status")
+    def _oap_link_relationships_status() -> None:
+        import json
+        print(json.dumps(link_relationships.status()))
+
+    @app.cli.command("oap-init-link-relationships")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_relationships(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_relationships.init_schema(dry_run=dry_run, assume_yes=yes)))
+
     @app.cli.command("oap-product-cores-status")
     def _oap_product_cores_status() -> None:
         import json
@@ -135,6 +149,7 @@ def init_app(app: Flask) -> None:
     surface_security.register(app)
     app.register_blueprint(movement_bp)
     app.register_blueprint(linkup_safety_bp)
+    app.register_blueprint(link_relationship_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
