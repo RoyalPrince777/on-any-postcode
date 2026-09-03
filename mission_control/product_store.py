@@ -7,7 +7,7 @@ import uuid
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
-from . import postgres_db
+from . import link_relationships, linkup_safety, postgres_db
 
 MAX_MESSAGES_PER_MINUTE = 20
 MAX_LISTINGS_PER_HOUR = 20
@@ -26,6 +26,26 @@ def _identity(value: object, code: str = "invalid_identity") -> str:
         return str(uuid.UUID(str(value)))
     except (TypeError, ValueError, AttributeError) as exc:
         raise ValueError(code) from exc
+
+
+def _link_guard(first_id: object, second_id: object) -> tuple[str, str]:
+    first = _identity(first_id)
+    second = _identity(second_id, "invalid_recipient")
+    if first == second:
+        raise ValueError("cannot_message_self")
+    try:
+        if linkup_safety.blocked_between(first, second):
+            raise ValueError("link_blocked")
+        if not link_relationships.accepted_between(first, second):
+            raise ValueError("accepted_link_required")
+    except ValueError:
+        raise
+    except (
+        linkup_safety.LinkUpSafetyUnavailable,
+        link_relationships.LinkRelationshipsUnavailable,
+    ) as exc:
+        raise ProductStoreUnavailable("linkup_guard_unavailable") from exc
+    return first, second
 
 
 def linkup_dashboard(identity_id: object) -> dict[str, Any]:
@@ -77,6 +97,12 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
             ),
             "body": str(row[3]),
             "read": row[4] is not None,
+            "state": (
+                "seen"
+                if str(row[1]) == identity and row[4] is not None
+                else "landed" if str(row[1]) == identity else "received"
+            ),
+            "seen_at": row[4].isoformat() if row[4] else None,
             "created_at": row[5].isoformat(),
         }
         for row in message_rows
@@ -89,7 +115,11 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
             {
                 "other_identity_id": other_id,
                 "display_name": people.get(other_id, {}).get("display_name")
-                or (message["recipient"] if message["direction"] == "sent" else message["sender"]),
+                or (
+                    message["recipient"]
+                    if message["direction"] == "sent"
+                    else message["sender"]
+                ),
                 "postcode": people.get(other_id, {}).get("postcode", ""),
                 "unread_count": 0,
                 "latest_at": message["created_at"],
@@ -107,11 +137,8 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
 
 
 def send_message(sender_id: object, recipient_id: object, body: object) -> str:
-    sender = _identity(sender_id, "invalid_sender")
-    recipient = _identity(recipient_id, "invalid_recipient")
+    sender, recipient = _link_guard(sender_id, recipient_id)
     message = str(body or "").strip()[:4000]
-    if sender == recipient:
-        raise ValueError("cannot_message_self")
     if not message:
         raise ValueError("message_required")
     if _BLOCKED_MESSAGE.search(message):
@@ -150,6 +177,14 @@ def mark_message_read(identity_id: object, message_id: object) -> bool:
     identity = _identity(identity_id)
     message = _identity(message_id, "invalid_message")
     try:
+        with postgres_db.connect(readonly=True) as connection:
+            existing = connection.execute(
+                "SELECT sender_id FROM messages WHERE id=%s AND recipient_id=%s LIMIT 1",
+                (message, identity),
+            ).fetchone()
+        if existing is None:
+            return False
+        _link_guard(identity, str(existing[0]))
         with postgres_db.connect() as connection:
             row = connection.execute(
                 """UPDATE messages SET read_at=COALESCE(read_at,CURRENT_TIMESTAMP)
@@ -157,9 +192,39 @@ def mark_message_read(identity_id: object, message_id: object) -> bool:
                 (message, identity),
             ).fetchone()
             connection.commit()
+    except ValueError:
+        raise
     except Exception as exc:
         raise ProductStoreUnavailable("linkup_read_receipt_failed") from exc
     return row is not None
+
+
+def message_states(
+    identity_id: object, peer_id: object, *, limit: int = 100
+) -> list[dict[str, object]]:
+    """Return only the current identity's outgoing Landed/Seen receipts."""
+
+    identity, peer = _link_guard(identity_id, peer_id)
+    bounded_limit = max(1, min(int(limit), 100))
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT id,read_at,created_at FROM messages
+                   WHERE sender_id=%s AND recipient_id=%s
+                   ORDER BY created_at DESC LIMIT %s""",
+                (identity, peer, bounded_limit),
+            ).fetchall()
+    except Exception as exc:
+        raise ProductStoreUnavailable("linkup_state_failed") from exc
+    return [
+        {
+            "message_id": str(row[0]),
+            "state": "seen" if row[1] is not None else "landed",
+            "seen_at": row[1].isoformat() if row[1] else None,
+            "landed_at": row[2].isoformat(),
+        }
+        for row in rows
+    ]
 
 
 def list_products(*, limit: int = 100) -> list[dict[str, Any]]:
@@ -193,14 +258,18 @@ def list_products(*, limit: int = 100) -> list[dict[str, Any]]:
     ]
 
 
-def create_product(seller_id: object, *, name: object, description: object, price: object) -> str:
+def create_product(
+    seller_id: object, *, name: object, description: object, price: object
+) -> str:
     seller = _identity(seller_id)
     name_value = str(name or "").strip()[:160]
     description_value = str(description or "").strip()[:3000]
     if not name_value:
         raise ValueError("product_name_required")
     try:
-        amount = Decimal(str(price or "").strip()).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        amount = Decimal(str(price or "").strip()).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
     except (InvalidOperation, ValueError) as exc:
         raise ValueError("invalid_product_price") from exc
     if amount < 0 or amount > Decimal(1000000):
@@ -208,7 +277,9 @@ def create_product(seller_id: object, *, name: object, description: object, pric
     price_minor = int(amount * 100)
     try:
         with postgres_db.connect() as connection:
-            active = connection.execute("SELECT 1 FROM users WHERE id=%s AND status='active'", (seller,)).fetchone()
+            active = connection.execute(
+                "SELECT 1 FROM users WHERE id=%s AND status='active'", (seller,)
+            ).fetchone()
             if active is None:
                 raise ValueError("seller_unavailable")
             recent = connection.execute(
@@ -258,7 +329,12 @@ def sika_summary(identity_id: object) -> dict[str, Any]:
         "money": False,
         "updated_at": wallet[3].isoformat() if wallet else None,
         "transactions": [
-            {"amount": int(row[0]), "type": str(row[1]), "reference": str(row[2]), "created_at": row[4].isoformat()}
+            {
+                "amount": int(row[0]),
+                "type": str(row[1]),
+                "reference": str(row[2]),
+                "created_at": row[4].isoformat(),
+            }
             for row in rows
         ],
     }
