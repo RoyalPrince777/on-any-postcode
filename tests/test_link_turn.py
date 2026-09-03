@@ -7,7 +7,6 @@ import uuid
 
 from mission_control import link_relationships, link_turn
 
-
 TURN_ENV_KEYS = (
     "OAP_LINK_TURN_URLS",
     "OAP_LINK_TURN_SHARED_SECRET",
