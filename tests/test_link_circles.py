@@ -186,10 +186,12 @@ def test_circle_dashboard_never_returns_message_or_media_content(monkeypatch):
     assert calls == 3
 
 
-def test_circle_status_requires_auth_and_is_fail_closed(anonymous_client, client, monkeypatch):
+def test_circle_status_requires_auth(anonymous_client):
     anonymous = anonymous_client.get("/linkup/circles/status")
     assert anonymous.status_code == 401
 
+
+def test_circle_status_is_fail_closed_for_authenticated_member(client, monkeypatch):
     monkeypatch.setattr(link_circle_routes.link_circles, "status", lambda: {"ready": False})
     response = client.get("/linkup/circles/status")
     assert response.status_code == 200
