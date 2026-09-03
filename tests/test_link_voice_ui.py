@@ -17,7 +17,8 @@ def test_linkup_surface_exposes_voice_without_unlocking_generic_share():
     assert "data-oap-voice-stop" in template
     assert "data-oap-voice-list" in template
     assert "data-oap-voice-status" in template
-    assert "> Share</button>" in template
+    assert 'title="Share"' in template
+    assert " Share</button>" in template
     assert "Share <small>locked</small>" not in template
     assert "disabled data-runtime-locked" in template
 
