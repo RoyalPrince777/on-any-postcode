@@ -6,7 +6,7 @@
   <title>OAP Pulse</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .pulse-shell{max-width:760px;margin:0 auto}.pulse-compose{display:grid;gap:8px}.pulse-compose input,.pulse-compose textarea{width:100%;box-sizing:border-box}.pulse-feed{display:grid;gap:10px;margin-top:14px}.pulse-post{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.pulse-post p{margin:.4rem 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-meta{font-size:.78rem;color:var(--mc-muted)}
+    .pulse-shell{max-width:760px;margin:0 auto}.pulse-compose{display:grid;gap:8px}.pulse-compose input,.pulse-compose textarea,.pulse-reply-form input,.pulse-reply-form textarea{width:100%;box-sizing:border-box}.pulse-feed{display:grid;gap:10px;margin-top:14px}.pulse-post{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.pulse-post>p{margin:.4rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-meta{font-size:.78rem;color:var(--mc-muted)}.pulse-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.pulse-actions form{margin:0}.pulse-action{border:1px solid var(--mc-line);border-radius:999px;background:transparent;color:var(--mc-text);padding:6px 9px;cursor:pointer}.pulse-action:hover,.pulse-action:focus-visible{border-color:var(--mc-green);outline:none}.pulse-replies{margin-top:10px}.pulse-replies summary{cursor:pointer;font-weight:700}.pulse-reply-list{display:grid;gap:7px;margin:9px 0}.pulse-reply{border-left:2px solid var(--mc-line);padding-left:9px}.pulse-reply p{margin:.2rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-reply-form{display:grid;gap:6px;margin-top:9px}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -38,6 +38,39 @@
           <strong>{{ post.name }}</strong>
           <p>{{ post.body }}</p>
           <span class="pulse-meta">{{ post.created_at }}</span>
+
+          <div class="pulse-actions" aria-label="React to this Pulse">
+            {% for reaction, label in pulse_reactions.items() %}
+            <form method="post" action="{{ url_for('pulse_reaction', post_id=post.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+              <input type="hidden" name="reaction" value="{{ reaction }}">
+              <button class="pulse-action" type="submit">{{ label }}{% if post.reactions[reaction] %} {{ post.reactions[reaction] }}{% endif %}</button>
+            </form>
+            {% endfor %}
+          </div>
+
+          <details class="pulse-replies">
+            <summary>Replies{% if post.replies %} ({{ post.replies|length }}){% endif %}</summary>
+            <div class="pulse-reply-list">
+              {% for reply in post.replies %}
+              <div class="pulse-reply">
+                <strong>{{ reply.name }}</strong>
+                <p>{{ reply.body }}</p>
+                <span class="pulse-meta">{{ reply.created_at }}</span>
+              </div>
+              {% else %}
+              <span class="pulse-meta">No replies yet.</span>
+              {% endfor %}
+            </div>
+            <form class="pulse-reply-form" method="post" action="{{ url_for('pulse_reply', post_id=post.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+              <label for="reply-name-{{ loop.index }}">Nickname</label>
+              <input id="reply-name-{{ loop.index }}" name="name" maxlength="80" required>
+              <label for="reply-body-{{ loop.index }}">Reply</label>
+              <textarea id="reply-body-{{ loop.index }}" name="body" maxlength="500" rows="2" required></textarea>
+              <button class="mc-secondary" type="submit">Reply</button>
+            </form>
+          </details>
         </article>
         {% else %}
         <p>No Pulse yet.</p>
