@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, request
 
 from . import link_activity, product_store, public_store, web_security
+from .link_circle_routes import bp as link_circle_bp
 
 bp = Blueprint("link_message_state", __name__)
 
@@ -159,3 +160,7 @@ def typing_update():
         return _no_store(make_response(jsonify(typing=current)))
     except MESSAGE_ERRORS as exc:
         return _failure(exc)
+
+
+# Circle is a protected membership child of Link Up, not a second messaging engine.
+bp.register_blueprint(link_circle_bp)
