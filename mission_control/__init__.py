@@ -24,6 +24,7 @@ def init_app(app: Flask) -> None:
         link_relationships,
         link_signalling,
         link_turn,
+        link_voice,
         linkup_safety,
         movement_match_safety,
         movement_operations,
@@ -40,6 +41,7 @@ def init_app(app: Flask) -> None:
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
     from .link_turn_routes import bp as link_turn_bp
+    from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .movement_routes import bp as movement_bp
     from .oap_data_views import bp as oap_data_bp
@@ -195,6 +197,18 @@ def init_app(app: Flask) -> None:
             raise click.ClickException("explicit_confirmation_required")
         print(link_presence.purge_expired())
 
+    @app.cli.command("oap-link-voice-status")
+    def _oap_link_voice_status() -> None:
+        import json
+        print(json.dumps(link_voice.status()))
+
+    @app.cli.command("oap-init-link-voice")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_voice(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_voice.init_schema(dry_run=dry_run, assume_yes=yes)))
+
     @app.cli.command("oap-product-cores-status")
     def _oap_product_cores_status() -> None:
         import json
@@ -225,6 +239,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_signalling_bp)
     app.register_blueprint(link_turn_bp)
     app.register_blueprint(link_presence_bp)
+    app.register_blueprint(link_voice_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
