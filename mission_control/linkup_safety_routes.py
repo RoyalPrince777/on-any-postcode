@@ -1,7 +1,7 @@
 """Authenticated Link Up Block/Report routes."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, redirect, request
 
 from . import linkup_safety, web_security
 
@@ -45,6 +45,11 @@ def _failure(exc: Exception):
     return _error("linkup_safety_unavailable", 503)
 
 
+def _back_to_linkup():
+    response = make_response(redirect("/linkup"))
+    return _no_store(response)
+
+
 @bp.get("/linkup/safety/status")
 @web_security.login_required(api=True)
 def safety_status():
@@ -62,6 +67,19 @@ def create_block():
         body = _body()
         linkup_safety.block(identity, body.get("member_id"))
         return _no_store(make_response(jsonify(blocked=True), 201))
+    except Exception as exc:  # noqa: BLE001
+        return _failure(exc)
+
+
+@bp.post("/linkup/blocks/<member_id>/browser")
+@web_security.login_required(api=True)
+def block_member(member_id: str):
+    identity = _identity()
+    if guard := _guard(identity):
+        return guard
+    try:
+        linkup_safety.block(identity, member_id)
+        return _back_to_linkup()
     except Exception as exc:  # noqa: BLE001
         return _failure(exc)
 
@@ -87,13 +105,20 @@ def create_report():
         return guard
     try:
         body = _body()
-        report_id = linkup_safety.report(
-            identity,
-            body.get("member_id"),
-            message_id=body.get("message_id"),
-            reason=body.get("reason"),
-            detail=body.get("detail", ""),
-        )
+        report_id = linkup_safety.report(identity, body.get("member_id"), message_id=body.get("message_id"), reason=body.get("reason"), detail=body.get("detail", ""))
         return _no_store(make_response(jsonify(report_id=report_id, status="open"), 201))
+    except Exception as exc:  # noqa: BLE001
+        return _failure(exc)
+
+
+@bp.post("/linkup/reports/<message_id>/<member_id>/browser")
+@web_security.login_required(api=True)
+def report_message(message_id: str, member_id: str):
+    identity = _identity()
+    if guard := _guard(identity):
+        return guard
+    try:
+        linkup_safety.report(identity, member_id, message_id=message_id, reason=request.form.get("reason"), detail=request.form.get("detail", ""))
+        return _back_to_linkup()
     except Exception as exc:  # noqa: BLE001
         return _failure(exc)

@@ -71,6 +71,9 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
                 "direction": "sent" if str(row[1]) == identity else "received",
                 "sender": str(row[6]),
                 "recipient": str(row[7]),
+                "other_identity_id": (
+                    str(row[2]) if str(row[1]) == identity else str(row[1])
+                ),
                 "body": str(row[3]),
                 "read": row[4] is not None,
                 "created_at": row[5].isoformat(),
@@ -277,4 +280,3 @@ def status() -> dict[str, object]:
     except Exception:  # noqa: BLE001
         result["error"] = "product_store_unavailable"
     return result
-
