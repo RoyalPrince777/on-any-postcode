@@ -11,7 +11,7 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
-from . import linkup_safety, postgres_db
+from . import link_call_audit, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_signalling_v1"
 EVENT_TTL_MINUTES = 5
@@ -116,6 +116,26 @@ def _accepted_between(connection, first: str, second: str) -> bool:
     return row is not None
 
 
+def _call_pair_allowed(first: str, second: str, session: str) -> None:
+    try:
+        if not link_call_audit.session_allows_signalling(first, second, session):
+            raise ValueError("active_call_session_required")
+    except ValueError:
+        raise
+    except link_call_audit.LinkCallAuditUnavailable as exc:
+        raise LinkSignallingUnavailable("link_call_audit_unavailable") from exc
+
+
+def _call_identity_allowed(identity: str, session: str) -> None:
+    try:
+        if not link_call_audit.identity_allows_signalling(identity, session):
+            raise ValueError("active_call_session_required")
+    except ValueError:
+        raise
+    except link_call_audit.LinkCallAuditUnavailable as exc:
+        raise LinkSignallingUnavailable("link_call_audit_unavailable") from exc
+
+
 def publish(
     sender_id: object,
     recipient_id: object,
@@ -134,6 +154,7 @@ def publish(
     try:
         if linkup_safety.blocked_between(sender, recipient):
             raise ValueError("link_blocked")
+        _call_pair_allowed(sender, recipient, session)
         with postgres_db.connect() as connection:
             if not _accepted_between(connection, sender, recipient):
                 raise ValueError("accepted_link_required")
@@ -159,6 +180,8 @@ def publish(
         raise
     except linkup_safety.LinkUpSafetyUnavailable as exc:
         raise LinkSignallingUnavailable("link_signalling_safety_unavailable") from exc
+    except LinkSignallingUnavailable:
+        raise
     except Exception as exc:
         raise LinkSignallingUnavailable("link_signalling_publish_failed") from exc
     return str(row[0])
@@ -168,6 +191,7 @@ def list_events(identity_id: object, *, session_id: object, limit: int = 100) ->
     identity = _uuid(identity_id, "invalid_identity")
     session = _uuid(session_id, "invalid_signalling_session")
     safe_limit = min(100, max(1, int(limit)))
+    _call_identity_allowed(identity, session)
     try:
         with postgres_db.connect(readonly=True) as connection:
             rows = connection.execute(
