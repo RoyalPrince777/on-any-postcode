@@ -338,3 +338,15 @@
       refreshControls();
     });
 })();
+
+(() => {
+  "use strict";
+  if (document.querySelector('script[data-oap-share-loader]')) {
+    return;
+  }
+  const script = document.createElement("script");
+  script.src = "/static/linkup_share.js";
+  script.defer = true;
+  script.dataset.oapShareLoader = "";
+  document.head.appendChild(script);
+})();
