@@ -41,7 +41,7 @@ def test_link_up_language_law_is_locked_without_renaming_internal_views():
     )
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["product"] == "Link Up"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["conversations"] == "Link Ups"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["group"] == "Crew"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["group"] == "Circle"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Face Up"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
@@ -132,7 +132,7 @@ def test_link_ui_is_read_only_and_does_not_create_database(
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert "Your people. Your Link Ups. Your community." in page
     assert "The Spot → The Link → Link Up" in page
-    assert "People → Links → Crews → Link Up" in page
+    assert "People → Links → Circles → Link Up" in page
     assert "Find your people and connections." in page
     assert "Keep up with private conversations." in page
     assert "Bring selected people together in private groups." in page
@@ -166,7 +166,7 @@ def test_public_link_projection_is_presentation_only():
     assert [feature["name"] for feature in projection["features"]] == [
         "People",
         "Link Ups",
-        "Crews",
+        "Circles",
     ]
 
 
