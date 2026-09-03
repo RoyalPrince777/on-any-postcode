@@ -3,17 +3,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_spot_is_simple_dashboard_without_inline_forms():
+def test_spot_is_simple_pulse_first_home_without_inline_forms():
     html = (ROOT / "mission_control" / "templates" / "spot.html").read_text()
-    assert "Open what you need" in html
-    assert "More in The Spot" in html
-    assert "Browse first; open a form only when you choose an action." in html
+    assert "📡 Pulse" in html
+    assert "See what’s happening around you." in html
+    assert "🌍 World Rooms" in html
+    assert "More" in html
+    assert "Carnival Intelligence" not in html
+    assert "Open what you need" not in html
+    assert "Browse first; open a form only when you choose an action." not in html
     assert "<form" not in html
     for slug in (
         "pulse",
         "signal",
-        "maps-weather-travel",
-        "movement-delivery",
+        "postcode-rooms",
         "events",
         "market",
         "discovery",
