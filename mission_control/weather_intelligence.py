@@ -7,7 +7,8 @@ fabricates an observation when the upstream live source is unavailable.
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from . import earth_intelligence
 
