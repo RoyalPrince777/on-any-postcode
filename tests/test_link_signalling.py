@@ -54,9 +54,9 @@ def _allow_call_session(monkeypatch):
         lambda _first, _second, _session: True,
     )
     monkeypatch.setattr(
-        link_signalling.link_call_audit,
-        "identity_allows_signalling",
-        lambda _identity, _session: True,
+        link_signalling.link_signalling_guard,
+        "validate_read",
+        lambda _identity, _session: str(uuid.uuid4()),
     )
 
 
@@ -210,11 +210,14 @@ def test_publish_is_bounded_and_purges_expired_events(monkeypatch):
     assert insert_call[1][0:4] == (session_id, sender, recipient, "offer")
 
 
-def test_list_events_requires_active_call_before_signalling_database(monkeypatch):
+def test_list_events_requires_current_read_guard_before_signalling_database(monkeypatch):
+    def reject(_identity, _session):
+        raise ValueError("active_call_session_required")
+
     monkeypatch.setattr(
-        link_signalling.link_call_audit,
-        "identity_allows_signalling",
-        lambda _identity, _session: False,
+        link_signalling.link_signalling_guard,
+        "validate_read",
+        reject,
     )
     monkeypatch.setattr(
         link_signalling.postgres_db,
