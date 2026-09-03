@@ -109,12 +109,27 @@ def test_pulse_page_is_public_simple_and_separate_from_signal(anonymous_client, 
     assert "Signal feed" not in page
 
 
-def test_legacy_spot_pulse_redirects_to_canonical_feed(anonymous_client):
-    response = anonymous_client.get("/the-spot/pulse")
+def test_legacy_spot_pulse_uses_same_separate_feed(anonymous_client, monkeypatch):
+    monkeypatch.setattr(
+        pulse_routes.pulse_store,
+        "list_posts",
+        lambda: [
+            {
+                "name": "Mitcham",
+                "body": "Spot Pulse",
+                "created_at": "now",
+            }
+        ],
+    )
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/pulse")
+    response = anonymous_client.get("/the-spot/pulse")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
+    assert "📡 Pulse" in page
+    assert "Spot Pulse" in page
+    assert 'action="/signal"' not in page
 
 
 def test_pulse_post_is_csrf_guarded(client, monkeypatch):
