@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from flask import Flask, jsonify, make_response, redirect, render_template, request, url_for
+from flask import (
+    Flask,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from . import pulse_store, web_security
 
