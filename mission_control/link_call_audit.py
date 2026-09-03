@@ -16,7 +16,6 @@ SCHEMA_VERSION = "link_call_audit_v1"
 MIN_RETENTION_DAYS = 1
 MAX_RETENTION_DAYS = 90
 ALLOWED_MODES = frozenset({"call", "face_up"})
-ACTIVE_STATES = frozenset({"ringing", "active"})
 FINAL_OUTCOMES = frozenset({"completed", "cancelled", "declined", "failed"})
 
 SCHEMA_SQL = (
@@ -184,16 +183,25 @@ def answer_session(identity_id: object, session_id: object) -> bool:
     _require_ready()
     try:
         with postgres_db.connect() as connection:
+            pending = connection.execute(
+                """SELECT initiator_id FROM link_call_sessions
+                   WHERE session_id=%s AND recipient_id=%s AND state='ringing'
+                     AND expires_at>CURRENT_TIMESTAMP
+                   FOR UPDATE""",
+                (session, identity),
+            ).fetchone()
+            if pending is None:
+                connection.commit()
+                return False
+            _relationship_guard(identity, str(pending[0]))
             row = connection.execute(
                 """UPDATE link_call_sessions
                    SET state='active',answered_at=CURRENT_TIMESTAMP
                    WHERE session_id=%s AND recipient_id=%s AND state='ringing'
                      AND expires_at>CURRENT_TIMESTAMP
-                   RETURNING initiator_id""",
+                   RETURNING session_id""",
                 (session, identity),
             ).fetchone()
-            if row is not None:
-                _relationship_guard(identity, str(row[0]))
             connection.commit()
     except ValueError:
         raise
@@ -267,6 +275,25 @@ def session_allows_signalling(
                      AND GREATEST(initiator_id,recipient_id)=GREATEST(%s::uuid,%s::uuid)
                    LIMIT 1""",
                 (session, first, second, first, second),
+            ).fetchone()
+    except Exception as exc:
+        raise LinkCallAuditUnavailable("link_call_session_check_failed") from exc
+    return row is not None
+
+
+def identity_allows_signalling(identity_id: object, session_id: object) -> bool:
+    identity = _uuid(identity_id, "invalid_identity")
+    session = _uuid(session_id, "invalid_call_session")
+    _require_ready()
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT 1 FROM link_call_sessions
+                   WHERE session_id=%s AND state IN ('ringing','active')
+                     AND expires_at>CURRENT_TIMESTAMP
+                     AND (initiator_id=%s OR recipient_id=%s)
+                   LIMIT 1""",
+                (session, identity, identity),
             ).fetchone()
     except Exception as exc:
         raise LinkCallAuditUnavailable("link_call_session_check_failed") from exc
