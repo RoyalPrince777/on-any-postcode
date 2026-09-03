@@ -13,5 +13,7 @@ services:
     envVars:
       - key: OAP_PUBLIC_ORIGIN
         value: "https://on-any-postcode.onrender.com"
+      - key: OAP_SURFACE_ROLE
+        value: "private-gateway"
       - key: OAP_SMI_GATEWAY_SECRET
         sync: false
