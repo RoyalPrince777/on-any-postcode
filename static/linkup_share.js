@@ -1,10 +1,61 @@
 (() => {
   "use strict";
 
+  if (window.__OAP_LINK_SHARE_V1__) {
+    return;
+  }
+  window.__OAP_LINK_SHARE_V1__ = true;
+
   const csrfToken = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
-  const statusNode = document.querySelector("[data-oap-share-status]");
-  const shareControls = Array.from(document.querySelectorAll("[data-oap-share-control]"));
-  const lists = Array.from(document.querySelectorAll("[data-oap-share-list]"));
+  const lockedCandidates = Array.from(document.querySelectorAll("button[data-runtime-locked]"));
+  const shareControls = lockedCandidates.filter((button) => {
+    const label = button.textContent.replace(/\s+/g, " ").trim();
+    return label === "Share" || label.startsWith("Share ");
+  });
+
+  shareControls.forEach((control) => {
+    control.dataset.oapShareControl = "";
+    control.removeAttribute("data-runtime-locked");
+    if (!control.dataset.recipientId && !control.dataset.recipientSource && !control.closest("form")) {
+      control.dataset.recipientSource = "#linkup-recipient";
+    }
+  });
+
+  let statusNode = document.querySelector("[data-oap-share-status]");
+  if (!statusNode && shareControls.length) {
+    statusNode = document.createElement("p");
+    statusNode.className = "oap-runtime-note";
+    statusNode.dataset.oapShareStatus = "";
+    statusNode.setAttribute("role", "status");
+    statusNode.textContent = "Share stays locked until first-party OAP Data Share is ready.";
+    const voiceStatus = document.querySelector("[data-oap-voice-status]");
+    if (voiceStatus) {
+      voiceStatus.insertAdjacentElement("afterend", statusNode);
+    }
+  }
+
+  const lists = [];
+  document.querySelectorAll(".mc-agent-card").forEach((card) => {
+    const peerInput = card.querySelector('input[name="recipient_id"]');
+    const peerId = peerInput?.value || "";
+    if (!peerId) {
+      return;
+    }
+    let list = card.querySelector("[data-oap-share-list]");
+    if (!list) {
+      list = document.createElement("div");
+      list.dataset.oapShareList = "";
+      list.dataset.recipientId = peerId;
+      list.setAttribute("aria-label", "Private Share items");
+      const voiceList = card.querySelector("[data-oap-voice-list]");
+      if (voiceList) {
+        voiceList.insertAdjacentElement("afterend", list);
+      } else {
+        card.appendChild(list);
+      }
+    }
+    lists.push(list);
+  });
 
   if (!shareControls.length && !lists.length) {
     return;
@@ -29,7 +80,18 @@
       return direct;
     }
     const selector = control.dataset.recipientSource || "";
-    return selector ? document.querySelector(selector)?.value || "" : "";
+    if (selector) {
+      return document.querySelector(selector)?.value || "";
+    }
+    const form = control.closest("form");
+    if (form) {
+      return (
+        form.querySelector('select[name="recipient_id"]')?.value ||
+        form.querySelector('input[name="recipient_id"]')?.value ||
+        ""
+      );
+    }
+    return document.querySelector("#linkup-recipient")?.value || "";
   };
 
   const apiJson = async (path, options = {}) => {
@@ -102,6 +164,9 @@
     shareControls.forEach((control) => {
       const peerId = recipientFor(control);
       control.disabled = !state.ready || state.busy || !peerId;
+      control.title = state.ready
+        ? "Share a Certified photo, video, PDF or text file with this accepted Link"
+        : "First-party OAP Data Share is not ready";
       const marker = control.querySelector("small");
       if (marker) {
         marker.textContent = control.disabled ? "locked" : "ready";
