@@ -30,7 +30,14 @@ def test_linkup_block_and_report_reject_self_target_before_database_access():
         linkup_safety.report(identity, identity, reason="safety")
 
 
-def test_linkup_safety_routes_are_protected(client):
-    assert client.get("/linkup/safety/status").status_code in {302, 401}
-    assert client.post("/linkup/blocks", json={"member_id": "x"}).status_code in {302, 401}
-    assert client.post("/linkup/reports", json={"member_id": "x", "reason": "safety"}).status_code in {302, 401}
+def test_linkup_safety_routes_require_csrf_for_mutation(client):
+    status = client.get("/linkup/safety/status")
+    block = client.post("/linkup/blocks", json={"member_id": "x"})
+    report = client.post(
+        "/linkup/reports", json={"member_id": "x", "reason": "safety"}
+    )
+
+    assert status.status_code == 200
+    assert status.headers["Cache-Control"] == "no-store"
+    assert block.status_code == 403
+    assert report.status_code == 403
