@@ -8,16 +8,17 @@ def test_gateway_has_truthful_home_node_certification():
     assert "def probe_local" in code
     assert "configured_model_missing" in code
     assert "compatibility_fallback_enabled" in code
+    assert "first_party_inference_ready" in code
     assert "sovereign_inference_ready" in code
     assert "OAP_INFERENCE_COMPATIBILITY_FALLBACK" in code
-    assert "local_inference_required" in code
+    assert "first_party_inference_required" in code
 
 
-def test_sovereign_ready_requires_local_proof_and_no_fallback():
+def test_sovereign_ready_requires_first_party_proof_and_no_fallback():
     code = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text()
-    assert 'proof.get("reachable")' in code
-    assert 'proof.get("model_available")' in code
-    assert "not FALLBACK_ENABLED" in code
+    assert 'proof.get("reachable") and proof.get("model_available")' in code
+    assert 'bridge.get("configured") and bridge.get("worker_recently_seen")' in code
+    assert "first_party_ready and not FALLBACK_ENABLED" in code
 
 
 def test_private_chat_health_exposes_inference_certification():
