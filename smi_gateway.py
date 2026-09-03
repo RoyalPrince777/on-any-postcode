@@ -68,6 +68,14 @@ def _allowed(path: str) -> bool:
         return False
     if clean == "/mission" or clean.startswith("/mission/"):
         return True
+    if clean == "/my-world" or clean.startswith("/my-world/"):
+        return True
+    if clean == "/myworld" or clean.startswith("/myworld/"):
+        return True
+    if clean == "/infrastructure" or clean.startswith("/infrastructure/"):
+        return True
+    if clean == "/api/infrastructure" or clean.startswith("/api/infrastructure/"):
+        return True
     return clean in {
         "/auth",
         "/auth/sign-in",
@@ -144,7 +152,7 @@ def _proxy(path: str):
 
 @app.get("/")
 def root():
-    return redirect("/mission", code=302)
+    return redirect("/auth", code=302)
 
 
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
