@@ -19,6 +19,7 @@ def init_app(app: Flask) -> None:
     from . import audit as auditmod
     from . import db as dbmod
     from . import (
+        link_call_audit,
         link_relationships,
         link_signalling,
         link_turn,
@@ -33,6 +34,7 @@ def init_app(app: Flask) -> None:
     )
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
+    from .link_call_routes import bp as link_call_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
     from .link_turn_routes import bp as link_turn_bp
@@ -128,6 +130,25 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(link_relationships.init_schema(dry_run=dry_run, assume_yes=yes)))
 
+    @app.cli.command("oap-link-call-audit-status")
+    def _oap_link_call_audit_status() -> None:
+        import json
+        print(json.dumps(link_call_audit.status()))
+
+    @app.cli.command("oap-init-link-call-audit")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_call_audit(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_call_audit.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-purge-link-call-audit")
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_purge_link_call_audit(yes: bool) -> None:
+        if not yes:
+            raise click.ClickException("explicit_confirmation_required")
+        print(link_call_audit.purge_expired())
+
     @app.cli.command("oap-link-signalling-status")
     def _oap_link_signalling_status() -> None:
         import json
@@ -178,6 +199,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(movement_bp)
     app.register_blueprint(linkup_safety_bp)
     app.register_blueprint(link_relationship_bp)
+    app.register_blueprint(link_call_bp)
     app.register_blueprint(link_signalling_bp)
     app.register_blueprint(link_turn_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
