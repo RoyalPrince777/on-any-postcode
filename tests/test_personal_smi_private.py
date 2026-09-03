@@ -2,7 +2,6 @@ from pathlib import Path
 
 from mission_control import smi_chat_grounded
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
