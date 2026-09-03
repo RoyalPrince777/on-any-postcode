@@ -6,63 +6,60 @@
   <title>OAP The Spot</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .spot-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.spot-quick a{display:block;border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:16px;color:var(--mc-text);text-decoration:none;min-height:116px}.spot-quick a:hover,.spot-quick a:focus-visible{border-color:var(--mc-green);outline:none}.spot-quick strong{display:block;font-size:1.02rem;margin-bottom:6px}.spot-quick span{color:var(--mc-muted);font-size:.88rem;line-height:1.4}.spot-more{margin-top:12px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:720px}.spot-note{color:var(--mc-muted);font-size:.88rem}
+    .spot-hero{display:grid;gap:12px}.spot-pulse{display:block;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft);padding:20px;color:var(--mc-text);text-decoration:none}.spot-pulse:hover,.spot-pulse:focus-visible{border-color:var(--mc-green);outline:none}.spot-pulse strong{display:block;font-size:1.25rem;margin-bottom:5px}.spot-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.spot-quick a,.spot-world{display:block;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-quick a:hover,.spot-quick a:focus-visible,.spot-world:hover,.spot-world:focus-visible{border-color:var(--mc-green);outline:none}.spot-quick strong{display:block}.spot-more{margin-top:4px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:680px}
   </style>
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header">
     <div class="spot-intro">
-      <p class="mc-eyebrow">OAP World / Your postcode</p>
+      <p class="mc-eyebrow">📍 Your Spot</p>
       <h1>The Spot</h1>
-      <p>Everything local in one place. Browse first; open a form only when you choose an action.</p>
       <div class="spot-bar">
-        <a href="{{ url_for('the_link_front_door') }}">🔗 The Link</a>
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
-        <a href="{{ url_for('auth_page') }}">🔒 My World</a>
+        <a href="{{ url_for('auth_page') }}">👤 My World</a>
       </div>
     </div>
   </header>
+
   <main class="mc-workspace">
-    <section class="mc-panel" aria-labelledby="spot-now-title">
-      <p class="mc-eyebrow">Your local dashboard</p>
-      <h2 id="spot-now-title">Open what you need</h2>
-      <div class="spot-quick" role="list">
-        {% for capability in hierarchy.capabilities %}
-          {% if capability.slug in ('pulse','signal','maps-weather-travel','movement-delivery','events','market','discovery','my-world') %}
-          <a role="listitem" href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">
-            <strong>{% if capability.slug == 'pulse' %}📡{% elif capability.slug == 'signal' %}📣{% elif capability.slug == 'maps-weather-travel' %}🌦️{% elif capability.slug == 'movement-delivery' %}🚗{% elif capability.slug == 'events' %}🎪{% elif capability.slug == 'market' %}🏪{% elif capability.slug == 'discovery' %}🧭{% elif capability.slug == 'my-world' %}👤{% endif %} {{ capability.name }}</strong>
-            <span>{{ capability.purpose }}</span>
-          </a>
-          {% endif %}
-        {% endfor %}
+    <section class="mc-panel spot-hero" aria-labelledby="spot-pulse-title">
+      {% for capability in hierarchy.capabilities %}
+        {% if capability.slug == 'pulse' %}
+        <a class="spot-pulse" href="{{ url_for('spot_capability_front_door', capability_slug='pulse') }}">
+          <strong id="spot-pulse-title">📡 Pulse</strong>
+          <span>See what’s happening around you.</span>
+        </a>
+        {% endif %}
+      {% endfor %}
+
+      <div class="spot-quick" aria-label="Quick access">
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}"><strong>📣 Signal</strong></a>
+        <a href="{{ url_for('the_link_front_door') }}"><strong>🔗 The Link</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='events') }}"><strong>🎪 Activity</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}"><strong>🏪 Market</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Explorer</strong></a>
       </div>
     </section>
 
-    <section class="mc-panel" aria-labelledby="spot-link-title">
-      <p class="mc-eyebrow">People</p>
-      <h2 id="spot-link-title">The Link → LinkUp</h2>
-      <p>Public community connection starts in The Link. Private person-to-person and group conversation stays protected inside LinkUp.</p>
-      <a class="mc-secondary-link" href="{{ url_for('the_link_front_door') }}">Open The Link →</a>
+    <section class="mc-panel" aria-labelledby="spot-world-title">
+      <a class="spot-world" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">
+        <strong id="spot-world-title">🌍 World Rooms</strong>
+        <span>Postcode → Borough → County / Region → Country → Continent → Global</span>
+      </a>
     </section>
 
     <section class="mc-panel">
       <details class="spot-more">
-        <summary>More in The Spot</summary>
-        <p class="spot-note">These stay available without filling the main screen with extra controls.</p>
+        <summary>More</summary>
         <div class="spot-more-grid">
           {% for capability in hierarchy.capabilities %}
-            {% if capability.slug not in ('pulse','signal','maps-weather-travel','movement-delivery','events','market','discovery','my-world') %}
+            {% if capability.slug not in ('pulse','signal','postcode-rooms','events','market','discovery','carnival') %}
             <a href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">{{ capability.name }}</a>
             {% endif %}
           {% endfor %}
         </div>
       </details>
     </section>
-
-    <aside class="mc-authority">
-      <strong>Simple public access</strong>
-      <span>No account is needed to browse The Spot. Sign-in appears only when a protected action actually needs it.</span>
-    </aside>
   </main>
 </body>
 </html>

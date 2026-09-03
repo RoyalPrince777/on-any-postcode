@@ -45,13 +45,23 @@ def test_unknown_spot_capability_fails_closed(client):
     }
 
 
-def test_spot_dashboard_lists_every_capability(client):
+def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(client):
     page = client.get("/the-spot").get_data(as_text=True)
 
-    assert "Open what you need" in page
-    assert "More in The Spot" in page
-    for capability in products.PUBLIC_SPOT_CAPABILITIES:
-        assert escape(capability["name"]) in page
+    assert "📡 Pulse" in page
+    assert "See what’s happening around you." in page
+    assert "📣 Signal" in page
+    assert "🔗 The Link" in page
+    assert "🎪 Activity" in page
+    assert "🏪 Market" in page
+    assert "🧭 Explorer" in page
+    assert "🌍 World Rooms" in page
+    assert "More" in page
+    assert "Carnival Intelligence" not in page
+    assert "LinkUp" not in page
+    assert "group conversation" not in page
+    assert "Your local dashboard" not in page
+    assert "Open what you need" not in page
 
 
 def test_signal_and_world_room_capabilities_have_live_public_forms(client):
@@ -86,12 +96,20 @@ def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
         assert "Sign in to personalise this part of OAP" not in page
 
     spot = client.get("/the-spot").get_data(as_text=True)
-    assert "No account is needed to browse The Spot" in spot
-    assert "Sign-in appears only when a protected action actually needs it" in spot
+    assert "Enter My World" not in spot
+    assert "Sign-in appears only when a protected action actually needs it" not in spot
 
 
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():
-    sensitive = {"postcode-rooms", "support", "market", "distribution", "runner", "identity", "membership"}
+    sensitive = {
+        "postcode-rooms",
+        "support",
+        "market",
+        "distribution",
+        "runner",
+        "identity",
+        "membership",
+    }
     by_id = {item["id"]: item for item in products.SPOT_CAPABILITIES}
 
     assert all(by_id[item_id]["blocked_by"] for item_id in sensitive)
@@ -99,7 +117,9 @@ def test_sensitive_spot_functions_are_not_misrepresented_as_live():
 
 
 def test_distribution_reuses_existing_post_core_boundary():
-    distribution = next(item for item in products.SPOT_CAPABILITIES if item["id"] == "distribution")
+    distribution = next(
+        item for item in products.SPOT_CAPABILITIES if item["id"] == "distribution"
+    )
 
     assert distribution["name"] == "OAP Distribution"
     assert distribution["owner"] == "OAP Post Core"
