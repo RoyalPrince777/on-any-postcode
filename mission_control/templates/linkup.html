@@ -20,7 +20,7 @@
 <div class="linkup-app" data-linkup-app data-chat-open="false">
   <header class="linkup-topbar">
     <a href="{{ url_for('the_link_front_door') }}" aria-label="Back to The Link">‹</a>
-    <h1>Link Up</h1>
+    <h1>{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</h1>
     <a href="{{ url_for('home') }}" aria-label="OAP World">OAP</a>
   </header>
 
@@ -127,13 +127,13 @@
                 <input type="hidden" name="recipient_id" value="{{ thread.other_identity_id }}">
                 <div class="linkup-composer">
                   <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
-                  <textarea name="body" maxlength="4000" required rows="1" placeholder="Message"></textarea>
+                  <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
                   <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
                   <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop Voice">■</button>
                   <button class="mc-primary linkup-send" type="submit">Send</button>
                 </div>
                 <div class="linkup-tray" data-oap-tray data-open="false">
-                  <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
+                  <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-id="{{ thread.other_identity_id }}" title="Private media runtime required">{{ motion_icon('share', 'oap-motion-share') }} Share <small>locked</small></button>
                   <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} My Spot</button>
                   <button class="mc-secondary" type="button" disabled data-oap-around-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('around-now', 'oap-motion-around') }} Around Now</button>
                   <button class="mc-secondary" type="button" disabled data-oap-live-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} Live Spot</button>
@@ -160,13 +160,13 @@
               </select>
               <div class="linkup-composer">
                 <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
-                <textarea name="body" maxlength="4000" required rows="1" placeholder="Message"></textarea>
+                <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
                 <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-source="#linkup-recipient" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
                 <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-source="#linkup-recipient" aria-label="Stop Voice">■</button>
                 <button class="mc-primary linkup-send" type="submit">Send</button>
               </div>
               <div class="linkup-tray" data-oap-tray data-open="false">
-                <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-source="#linkup-recipient">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
+                <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-source="#linkup-recipient" title="Private media runtime required">{{ motion_icon('share', 'oap-motion-share') }} Share <small>locked</small></button>
                 <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-source="#linkup-recipient">{{ motion_icon('live-spot', 'oap-motion-spot') }} My Spot</button>
               </div>
             </form>
