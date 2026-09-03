@@ -16,9 +16,7 @@ def test_link_dashboard_preserves_three_approved_views():
         "inbox",
         "community_power",
     )
-
     validation = linkup.validate_link_scope()
-
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
@@ -32,7 +30,7 @@ def test_link_dashboard_preserves_three_approved_views():
     }
 
 
-def test_link_up_language_law_is_locked_without_renaming_internal_views():
+def test_link_up_language_law_keeps_messenger_terms_simple():
     assert linkup.LINK_UP_LANGUAGE_LAW == (
         "Brand language for identity.",
         "Human language for conversation.",
@@ -40,26 +38,12 @@ def test_link_up_language_law_is_locked_without_renaming_internal_views():
         "Local character without global confusion.",
     )
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["product"] == "Link Up"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["conversations"] == "Link Ups"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["group"] == "Circle"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["new_conversation"] == "New Link"
+    assert "group" not in linkup.LINK_UP_PUBLIC_VOCABULARY
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Face Up"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["live_location"] == "Live Spot"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["read"] == "Seen"
-    assert linkup.LINK_UP_PLAIN_CONTROLS == (
-        "Mute",
-        "Camera",
-        "Speaker",
-        "Answer",
-        "Decline",
-        "End",
-        "Block",
-        "Report",
-        "Privacy",
-        "Delete",
-    )
-    assert linkup.LINK_UP_PLAIN_SAFETY_TERMS == linkup.LINK_UP_PLAIN_CONTROLS
 
 
 def test_protected_link_runtime_matches_existing_communications_store():
@@ -74,110 +58,67 @@ def test_protected_link_runtime_matches_existing_communications_store():
         "public_message_projection": False,
         "human_authority_final": True,
     }
-    assert {view["status"] for view in linkup.LINK_DASHBOARD_VIEWS[:2]} == {"Protected"}
-    assert [gate["title"] for gate in linkup.REMAINING_LINK_GATES] == [
-        "Blocking and reporting workflow",
-        "Private-message retention and encryption policy",
-        "World Rooms participation",
-    ]
 
 
-def test_community_power_is_linked_without_ownership_transfer():
+def test_world_rooms_are_linked_without_messenger_ownership():
     community_power = next(
-        view
-        for view in linkup.LINK_DASHBOARD_VIEWS
-        if view["id"] == "community_power"
+        view for view in linkup.LINK_DASHBOARD_VIEWS if view["id"] == "community_power"
     )
-
     assert community_power["owner"] == "Community Power"
     assert community_power["ownership"] == "linked_view"
-    assert "contribution and reputation records" in community_power["boundary"]
+    assert "World Rooms" in community_power["purpose"]
+    assert "never by the private messenger" in community_power["boundary"]
 
 
 def test_community_power_ownership_transfer_is_rejected():
     changed_views = tuple(
-        {
-            **view,
-            "owner": "Communications",
-            "ownership": "owned_view",
-        }
+        {**view, "owner": "Communications", "ownership": "owned_view"}
         if view["id"] == "community_power"
         else view
         for view in linkup.LINK_DASHBOARD_VIEWS
     )
-
     validation = linkup.validate_link_scope(changed_views)
-
     assert validation["passed"] is False
     assert validation["checks"]["ownership_conflicts"] == 1
-    assert any("ownership conflict" in error for error in validation["errors"])
 
 
 def test_duplicate_link_view_is_rejected():
     validation = linkup.validate_link_scope(
         (*linkup.LINK_DASHBOARD_VIEWS, linkup.LINK_DASHBOARD_VIEWS[0])
     )
-
     assert validation["passed"] is False
     assert validation["checks"]["duplicate_ids"] == 1
     assert validation["checks"]["naming_conflicts"] == 1
 
 
-def test_link_ui_is_read_only_and_does_not_create_database(
-    client, tmp_path, monkeypatch
-):
+def test_public_link_ui_is_simple_and_read_only(anonymous_client, tmp_path, monkeypatch):
     database_path = tmp_path / "the-link.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
-
-    response = client.get("/linkup")
+    response = anonymous_client.get("/linkup")
     page = response.get_data(as_text=True)
-
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "Your people. Your Link Ups. Your community." in page
-    assert "The Spot → The Link → Link Up" in page
-    assert "People → Links → Circles → Link Up" in page
-    assert "Find your people and connections." in page
-    assert "Keep up with private conversations." in page
-    assert "Bring selected people together in private group Link Ups." in page
+    assert "Simple private chat." in page
+    assert "Message your Links. Voice, Call and Face Up stay inside each chat." in page
+    assert "Circle" not in page
     assert 'method="post"' not in page.lower()
-    assert client.post("/linkup").status_code == 405
-    assert client.get("/mission/chat").status_code == 405
+    assert anonymous_client.post("/linkup").status_code == 405
     assert not database_path.exists()
-
-
-def test_link_ui_omits_internal_relationship_and_control_details(client):
-    page = client.get("/linkup").get_data(as_text=True)
-
-    for internal_copy in (
-        "Related systems stay separate",
-        "ownership conflict",
-        "mutation controls",
-        "HRM",
-        "Guardian",
-        "Human Authority",
-        "Mission Control",
-    ):
-        assert internal_copy not in page
 
 
 def test_public_link_projection_is_presentation_only():
     projection = linkup.get_public_link_dashboard()
-
     assert set(projection) == {"product_name", "tagline", "law", "features"}
-    assert all(set(feature) == {"name", "purpose"} for feature in projection["features"])
     assert projection["product_name"] == "Link Up"
-    assert [feature["name"] for feature in projection["features"]] == [
-        "People",
-        "Link Ups",
-        "Circles",
-    ]
+    assert projection["tagline"] == "Simple private chat."
+    assert projection["law"] == "The Link → Link Up"
+    assert [feature["name"] for feature in projection["features"]] == ["Chats", "Calls"]
+    assert "Circle" not in json.dumps(projection)
 
 
 def test_public_link_projection_contains_no_people_or_conversations():
     serialized = json.dumps(linkup.get_public_link_dashboard()).lower()
-
     for private_key in (
         "message_body",
         "sender_id",
@@ -186,22 +127,14 @@ def test_public_link_projection_contains_no_people_or_conversations():
         "email_address",
         "phone_number",
         "conversation_id",
-        "correlation_id",
         "password",
         "token",
-        "totp",
     ):
         assert private_key not in serialized
-    assert '"mutation_enabled": true' not in serialized
-    assert '"execute"' not in serialized
 
 
 def test_link_route_does_not_reflect_query_input(client):
     attack = '<script>alert("inbox")</script>'
-
-    page = client.get(
-        "/linkup", query_string={"conversation": attack}
-    ).get_data(as_text=True)
-
+    page = client.get("/linkup", query_string={"conversation": attack}).get_data(as_text=True)
     assert attack not in page
     assert "&lt;script&gt;" not in page

@@ -6,183 +6,178 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAP Link Up</title>
+  <title>Link Up</title>
   {% if auth_user %}<meta name="oap-csrf-token" content="{{ oap_csrf_token }}">{% endif %}
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='oap_motion.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='linkup_messenger.css') }}">
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='linkup_messenger.js') }}" defer></script>
 </head>
-<body class="mc-workspace-body">
-<header class="mc-workspace-header mc-link-header">
-  <div>
-    <p class="mc-eyebrow">{{ link.law }}</p>
-    <h1>{{ link.product_name }}</h1>
-    <p>{{ link.tagline }}</p>
-  </div>
-  <div class="mc-header-actions">
-    <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
-    <a class="mc-secondary-link" href="{{ url_for('the_link_front_door') }}">The Link</a>
-    <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
-  </div>
-</header>
+<body>
+<div class="linkup-app" data-linkup-app data-chat-open="false">
+  <header class="linkup-topbar">
+    <a href="{{ url_for('the_link_front_door') }}" aria-label="Back to The Link">‹</a>
+    <h1>{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</h1>
+    <a href="{{ url_for('home') }}" aria-label="OAP World">OAP</a>
+  </header>
 
-<main class="mc-workspace mc-link-workspace">
-  <section class="mc-panel" aria-labelledby="linkup-title">
-    <p class="mc-eyebrow">Stay connected</p>
-    <h2 id="linkup-title">People → Links → Circles → Link Up</h2>
-    <div class="mc-link-view-grid" role="list" aria-label="Link Up features">
-      {% for feature in link.features %}
-      <article class="mc-link-view-card" role="listitem"><h3>{{ feature.name }}</h3><p>{{ feature.purpose }}</p></article>
-      {% endfor %}
-    </div>
-    <div class="oap-motion-showcase" aria-label="OAP Motion preview">
-      <span class="oap-motion-chip">{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</span>
-      <span class="oap-motion-chip">{{ motion_icon('voice', 'oap-motion-voice') }} Voice</span>
-      <span class="oap-motion-chip">{{ motion_icon('face-up', 'oap-motion-face') }} Face Up</span>
-      <span class="oap-motion-chip">{{ motion_icon('around-now', 'oap-motion-around') }} Around Now</span>
-      <span class="oap-motion-chip">{{ motion_icon('live-spot', 'oap-motion-spot') }} Live Spot</span>
-      <span class="oap-motion-chip">{{ motion_icon('seen', 'oap-motion-seen') }} Seen</span>
-    </div>
-  </section>
-
-  {% if auth_user %}
-  <section class="mc-panel" aria-labelledby="linkup-inbox-title">
-    <p class="mc-eyebrow">Private Certified session</p>
-    <h2 id="linkup-inbox-title">Your Link Ups</h2>
-
-    <div class="oap-link-capabilities" aria-label="Real-time Link controls">
-      <button class="oap-link-capability" type="button" disabled data-oap-voice-control data-recipient-source="#linkup-recipient" title="Record Voice for the selected accepted Link">{{ motion_icon('voice', 'oap-motion-voice') }} Voice <small>locked</small></button>
-      <button class="oap-link-capability" type="button" hidden disabled data-oap-voice-stop data-recipient-source="#linkup-recipient">■ Stop Voice</button>
-      <button class="oap-link-capability" type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-source="#linkup-recipient" title="Choose a Certified member and pass every Call gate">{{ motion_icon('call', 'oap-motion-call') }} Call <small>locked</small></button>
-      <button class="oap-link-capability" type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-source="#linkup-recipient" title="Choose a Certified member and pass every Face Up gate">{{ motion_icon('face-up', 'oap-motion-face') }} Face Up <small>locked</small></button>
-      <button class="oap-link-capability" type="button" disabled data-runtime-locked title="Private media runtime required">{{ motion_icon('share', 'oap-motion-share') }} Share <small>locked</small></button>
-      <button class="oap-link-capability" type="button" disabled data-oap-around-control data-recipient-source="#linkup-recipient" title="Share Around Now only with the selected accepted Link">{{ motion_icon('around-now', 'oap-motion-around') }} Around Now <small>locked</small></button>
-      <button class="oap-link-capability" type="button" disabled data-oap-live-spot-control data-recipient-source="#linkup-recipient" title="Start a private time-bounded Live Spot with the selected accepted Link">{{ motion_icon('live-spot', 'oap-motion-spot') }} Live Spot <small>locked</small></button>
-      <button class="oap-link-capability" type="button" hidden disabled data-oap-live-spot-stop data-recipient-source="#linkup-recipient" title="Stop Live Spot now">■ Stop Live Spot</button>
-    </div>
-    <p class="oap-runtime-note" data-oap-voice-status role="status">Voice stays locked until first-party OAP Data Voice is ready.</p>
-    <p class="oap-runtime-note" data-oap-call-status role="status">Call and Face Up stay locked until Call audit, signalling and verified OAP TURN are ready.</p>
-    <p class="oap-runtime-note" data-oap-presence-status role="status">Around Now and Live Spot stay locked until OAP Data presence is ready.</p>
-    <div data-oap-incoming-calls hidden aria-live="polite"></div>
-    <div data-oap-call-stage hidden>
-      <p class="mc-eyebrow" data-oap-call-stage-label>Private Link session</p>
-      <video data-oap-remote-video autoplay playsinline hidden></video>
-      <video data-oap-local-video autoplay muted playsinline hidden></video>
-      <audio data-oap-remote-audio autoplay hidden></audio>
-      <button class="mc-secondary" type="button" data-oap-hangup>End Call</button>
-    </div>
-
-    {% if private_unavailable %}
-      <p role="alert">Your private Link Ups are temporarily unavailable.</p>
-    {% elif dashboard %}
-      {% if dashboard.directory %}
-      <form method="post" action="{{ url_for('linkup_send') }}" data-oap-link-composer>
-        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-        <label for="linkup-recipient">Person</label>
-        <select id="linkup-recipient" name="recipient_id" required>
-          <option value="">Choose a Certified member</option>
-          {% for person in dashboard.directory %}
-          <option value="{{ person.identity_id }}">{{ person.display_name }}{% if person.postcode %} · {{ person.postcode }}{% endif %}</option>
-          {% endfor %}
-        </select>
-        <label for="linkup-body">Link</label>
-        <div class="oap-link-composer">
-          <button class="oap-composer-plus mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="Add to Link">+</button>
-          <textarea id="linkup-body" name="body" maxlength="4000" required placeholder="Type a Link…"></textarea>
-          <button class="oap-voice-button mc-secondary" type="button" disabled data-oap-voice-control data-recipient-source="#linkup-recipient" aria-label="Record Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
-          <button class="oap-stop-button mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-source="#linkup-recipient" aria-label="Stop Voice">■</button>
-          <button class="oap-send-button mc-primary" type="submit">Send Link</button>
-          <div class="oap-composer-tray" data-oap-tray data-open="false">
-            <button class="mc-secondary" type="button" disabled data-runtime-locked>{{ motion_icon('share', 'oap-motion-share') }} Share</button>
-            <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-source="#linkup-recipient">{{ motion_icon('live-spot', 'oap-motion-spot') }} Share My Spot</button>
-            <button class="mc-secondary" type="button" disabled data-runtime-locked>{{ motion_icon('motion') }} OAP Motion</button>
-          </div>
+  {% if not auth_user %}
+    <main class="linkup-login">
+      <h2>Simple private chat.</h2>
+      <p>Message your Links. Voice, Call and Face Up stay inside each chat.</p>
+      <a class="mc-primary" href="{{ url_for('auth_page') }}">Enter My World</a>
+    </main>
+  {% else %}
+    <main class="linkup-shell" aria-label="Private Link Up messenger">
+      <aside class="linkup-list" aria-label="Chats">
+        <div class="linkup-list-head">
+          <input class="linkup-search" type="search" placeholder="Search chats" aria-label="Search chats" data-linkup-search>
+          <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
-      </form>
-      {% else %}
-      <p>No other Certified members are available yet.</p>
-      {% endif %}
 
-      {% if dashboard.threads %}
-      <div class="mc-agent-grid" aria-label="Private conversations">
-        {% for thread in dashboard.threads %}
-        <article class="mc-agent-card">
-          <p class="mc-eyebrow">PRIVATE LINK{% if thread.unread_count %} · {{ thread.unread_count }} UNSEEN{% endif %}</p>
-          <h3>{{ thread.display_name }}{% if thread.postcode %} · {{ thread.postcode }}{% endif %}</h3>
-          <div class="mc-header-actions" aria-label="Private real-time controls with {{ thread.display_name }}">
-            <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('voice', 'oap-motion-voice') }} Voice</button>
-            <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}">■ Stop Voice</button>
-            <button class="mc-secondary" type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('call', 'oap-motion-call') }} Call</button>
-            <button class="mc-secondary" type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('face-up', 'oap-motion-face') }} Face Up</button>
-            <button class="mc-secondary" type="button" disabled data-oap-around-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('around-now', 'oap-motion-around') }} Around Now</button>
-            <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} Share My Spot</button>
-            <button class="mc-secondary" type="button" disabled data-oap-live-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} Live Spot</button>
-            <button class="mc-secondary" type="button" hidden disabled data-oap-live-spot-stop data-recipient-id="{{ thread.other_identity_id }}">■ Stop Live Spot</button>
-          </div>
-          <div data-oap-voice-list data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice with {{ thread.display_name }}"></div>
-          <div>
-            {% for message in thread.messages %}
-            <div>
-              <p class="mc-eyebrow">{{ message.direction|upper }} · {{ message.created_at }}</p>
-              <p>{{ message.body }}</p>
-              {% if message.direction == 'received' and not message.read %}
-              <form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-                <button class="mc-secondary" type="submit">Mark as Seen</button>
-              </form>
-              {% endif %}
-              {% if message.other_identity_id %}
-              <details>
-                <summary>Safety</summary>
-                <form method="post" action="{{ url_for('linkup_safety.block_member', member_id=message.other_identity_id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-                  <button class="mc-secondary" type="submit">Block</button>
-                </form>
-                <form method="post" action="{{ url_for('linkup_safety.report_message', message_id=message.message_id, member_id=message.other_identity_id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-                  <label for="reason-{{ message.message_id }}">Reason</label>
-                  <select id="reason-{{ message.message_id }}" name="reason" required>
-                    <option value="">Choose</option><option value="harassment">Harassment</option><option value="spam">Spam</option><option value="threat">Threat or safety concern</option><option value="other">Other</option>
-                  </select>
-                  <label for="detail-{{ message.message_id }}">Details (optional)</label>
-                  <textarea id="detail-{{ message.message_id }}" name="detail" maxlength="2000"></textarea>
-                  <button class="mc-secondary" type="submit">Report</button>
-                </form>
-              </details>
-              {% endif %}
-            </div>
-            {% endfor %}
-          </div>
-          <form method="post" action="{{ url_for('linkup_send') }}" data-oap-link-composer>
-            <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-            <input type="hidden" name="recipient_id" value="{{ thread.other_identity_id }}">
-            <label for="reply-{{ thread.other_identity_id }}">Link {{ thread.display_name }}</label>
-            <div class="oap-link-composer">
-              <button class="oap-composer-plus mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="Add to Link">+</button>
-              <textarea id="reply-{{ thread.other_identity_id }}" name="body" maxlength="4000" required placeholder="Type a Link…"></textarea>
-              <button class="oap-voice-button mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Record Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
-              <button class="oap-stop-button mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop Voice">■</button>
-              <button class="oap-send-button mc-primary" type="submit">Send Link</button>
-              <div class="oap-composer-tray" data-oap-tray data-open="false">
-                <button class="mc-secondary" type="button" disabled data-runtime-locked>{{ motion_icon('share', 'oap-motion-share') }} Share</button>
-                <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} Share My Spot</button>
-                <button class="mc-secondary" type="button" disabled data-runtime-locked>{{ motion_icon('motion') }} OAP Motion</button>
+        {% if private_unavailable %}
+          <p class="linkup-empty" role="alert">Chats are temporarily unavailable.</p>
+        {% elif dashboard and dashboard.threads %}
+          {% for thread in dashboard.threads %}
+          <button class="linkup-thread-button" type="button" data-linkup-thread="{{ thread.other_identity_id }}" data-search="{{ thread.display_name }} {{ thread.postcode or '' }}" data-active="{{ 'true' if loop.first else 'false' }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
+            <span class="linkup-avatar">{{ thread.display_name[:1]|upper }}</span>
+            <span class="linkup-thread-main">
+              <strong>{{ thread.display_name }}</strong>
+              <span>{% if thread.messages %}{{ thread.messages[-1].body }}{% else %}Start a Link{% endif %}</span>
+            </span>
+            {% if thread.unread_count %}<span class="linkup-unread">{{ thread.unread_count }}</span>{% endif %}
+          </button>
+          {% endfor %}
+        {% else %}
+          <p class="linkup-empty">No chats yet. Tap + to start one.</p>
+        {% endif %}
+        <p class="linkup-world-note">World Rooms — postcode, borough, country, continent and global — live outside this messenger.</p>
+      </aside>
+
+      <section class="linkup-chat" aria-label="Open chat">
+        <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
+        <div class="linkup-call-stage" data-oap-call-stage hidden>
+          <p data-oap-call-stage-label>Private Link session</p>
+          <video data-oap-remote-video autoplay playsinline hidden></video>
+          <video data-oap-local-video autoplay muted playsinline hidden></video>
+          <audio data-oap-remote-audio autoplay hidden></audio>
+          <button class="mc-secondary" type="button" data-oap-hangup>End</button>
+        </div>
+        <p class="linkup-runtime" data-oap-voice-status role="status">Voice status</p>
+        <p class="linkup-runtime" data-oap-call-status role="status">Call and Face Up status</p>
+        <p class="linkup-runtime" data-oap-presence-status role="status">Presence status</p>
+
+        {% if dashboard and dashboard.threads %}
+          {% for thread in dashboard.threads %}
+          <article class="linkup-chat-panel" data-linkup-panel="{{ thread.other_identity_id }}" data-active="{{ 'true' if loop.first else 'false' }}">
+            <header class="linkup-chat-head">
+              <button class="linkup-icon-btn linkup-back" type="button" data-linkup-back aria-label="Back to chats">‹</button>
+              <span class="linkup-avatar">{{ thread.display_name[:1]|upper }}</span>
+              <span class="linkup-chat-name">
+                <strong>{{ thread.display_name }}</strong>
+                <small>{% if thread.postcode %}{{ thread.postcode }} · {% endif %}private Link</small>
+              </span>
+              <span class="linkup-chat-actions">
+                <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
+                <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
+              </span>
+            </header>
+
+            <div class="linkup-messages">
+              <div data-oap-voice-list data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice with {{ thread.display_name }}"></div>
+              {% for message in thread.messages %}
+              <div class="linkup-message {{ 'outgoing' if message.direction == 'sent' else 'incoming' }}">
+                <p>{{ message.body }}</p>
+                <div class="linkup-meta">
+                  <span>{{ message.created_at }}</span>
+                  {% if message.direction == 'sent' %}
+                    <span data-oap-message-state data-message-id="{{ message.message_id }}" data-state="{{ 'seen' if message.read else 'landed' }}">{{ 'Seen' if message.read else 'Landed' }}</span>
+                  {% elif not message.read %}
+                    <form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                      <button class="linkup-icon-btn" type="submit">Seen</button>
+                    </form>
+                  {% endif %}
+                </div>
+                {% if message.other_identity_id %}
+                <details>
+                  <summary>⋯</summary>
+                  <form method="post" action="{{ url_for('linkup_safety.block_member', member_id=message.other_identity_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                    <button class="mc-secondary" type="submit">Block</button>
+                  </form>
+                  <form method="post" action="{{ url_for('linkup_safety.report_message', message_id=message.message_id, member_id=message.other_identity_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                    <select name="reason" required aria-label="Report reason"><option value="">Report…</option><option value="harassment">Harassment</option><option value="spam">Spam</option><option value="threat">Threat or safety concern</option><option value="other">Other</option></select>
+                    <textarea name="detail" maxlength="2000" placeholder="Details (optional)" aria-label="Report details"></textarea>
+                    <button class="mc-secondary" type="submit">Report</button>
+                  </form>
+                </details>
+                {% endif %}
               </div>
+              {% endfor %}
             </div>
-          </form>
-        </article>
-        {% endfor %}
-      </div>
-      {% else %}
-      <p>No private conversations yet.</p>
-      {% endif %}
-    {% endif %}
-  </section>
-  {% endif %}
 
-  <aside class="mc-authority" aria-label="Link Up privacy"><strong>Private by default</strong><span>{% if auth_user %}Conversation threads are derived from Links involving only you and the other participant. Block and Report remain private safety actions.{% else %}Enter My World to open your private Link Up conversations.{% endif %}</span></aside>
-</main>
+            <div class="linkup-composer-wrap">
+              <form method="post" action="{{ url_for('linkup_send') }}" data-oap-link-composer>
+                <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                <input type="hidden" name="recipient_id" value="{{ thread.other_identity_id }}">
+                <div class="linkup-composer">
+                  <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
+                  <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
+                  <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
+                  <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop Voice">■</button>
+                  <button class="mc-primary linkup-send" type="submit">Send</button>
+                </div>
+                <div class="linkup-tray" data-oap-tray data-open="false">
+                  <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-id="{{ thread.other_identity_id }}" title="Private media runtime required">{{ motion_icon('share', 'oap-motion-share') }} Share <small>locked</small></button>
+                  <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} My Spot</button>
+                  <button class="mc-secondary" type="button" disabled data-oap-around-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('around-now', 'oap-motion-around') }} Around Now</button>
+                  <button class="mc-secondary" type="button" disabled data-oap-live-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} Live Spot</button>
+                  <button class="mc-secondary" type="button" hidden disabled data-oap-live-spot-stop data-recipient-id="{{ thread.other_identity_id }}">Stop Live Spot</button>
+                </div>
+              </form>
+            </div>
+          </article>
+          {% endfor %}
+        {% endif %}
+
+        <article class="linkup-chat-panel" data-linkup-panel="new" data-active="{{ 'true' if not (dashboard and dashboard.threads) else 'false' }}">
+          <header class="linkup-chat-head">
+            <button class="linkup-icon-btn linkup-back" type="button" data-linkup-back aria-label="Back to chats">‹</button>
+            <span class="linkup-chat-name"><strong>New Link</strong><small>Choose a person</small></span>
+          </header>
+          <div class="linkup-new-panel">
+          {% if dashboard and dashboard.directory %}
+            <form method="post" action="{{ url_for('linkup_send') }}" data-oap-link-composer>
+              <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+              <select id="linkup-recipient" name="recipient_id" required aria-label="Person">
+                <option value="">Choose a Certified member</option>
+                {% for person in dashboard.directory %}<option value="{{ person.identity_id }}">{{ person.display_name }}{% if person.postcode %} · {{ person.postcode }}{% endif %}</option>{% endfor %}
+              </select>
+              <div class="linkup-composer">
+                <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
+                <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
+                <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-source="#linkup-recipient" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
+                <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-source="#linkup-recipient" aria-label="Stop Voice">■</button>
+                <button class="mc-primary linkup-send" type="submit">Send</button>
+              </div>
+              <div class="linkup-tray" data-oap-tray data-open="false">
+                <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-source="#linkup-recipient" title="Private media runtime required">{{ motion_icon('share', 'oap-motion-share') }} Share <small>locked</small></button>
+                <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-source="#linkup-recipient">{{ motion_icon('live-spot', 'oap-motion-spot') }} My Spot</button>
+              </div>
+            </form>
+          {% else %}
+            <p>No other Certified members are available yet.</p>
+          {% endif %}
+          </div>
+        </article>
+      </section>
+    </main>
+  {% endif %}
+</div>
 </body>
 </html>
