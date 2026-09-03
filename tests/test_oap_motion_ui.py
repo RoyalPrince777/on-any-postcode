@@ -23,16 +23,19 @@ def test_link_device_permissions_are_allowed_only_by_route_policy(client):
     )
 
 
-def test_link_composer_keeps_realtime_controls_fail_closed_in_template():
+def test_link_composer_keeps_uncertified_controls_fail_closed_in_template():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert 'data-oap-link-composer' in template
     assert 'data-oap-plus' in template
     assert 'placeholder="Type a Link…"' in template
     assert '>Send Link<' in template
-    assert 'Voice locked until runtime certification' in template
+    assert 'data-oap-voice-control' in template
+    assert 'data-oap-voice-stop' in template
+    assert 'data-oap-voice-status' in template
     assert 'data-runtime-locked' in template
     assert 'disabled data-runtime-locked' in template
+    assert 'Share <small>locked</small>' in template
     assert 'Share My Spot' in template
     assert 'Live Spot' in template
 
