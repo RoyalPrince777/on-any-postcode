@@ -221,18 +221,22 @@ def test_acknowledge_can_delete_only_the_recipient_event(monkeypatch):
     assert connection.committed is True
 
 
-def test_signalling_routes_are_authenticated_and_fail_closed(
-    client, anonymous_client, monkeypatch
-):
-    anonymous = anonymous_client.get("/linkup/signalling/status")
-    assert anonymous.status_code == 401
+def test_signalling_status_route_rejects_anonymous_access(anonymous_client):
+    response = anonymous_client.get("/linkup/signalling/status")
 
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_signalling_status_route_is_coarse_and_fail_closed(client, monkeypatch):
     monkeypatch.setattr(
         link_signalling_routes.link_signalling,
         "status",
         lambda: {"configured": True, "ready": False},
     )
+
     response = client.get("/linkup/signalling/status")
+
     assert response.status_code == 200
     assert response.get_json() == {"ready": False}
     assert response.headers["Cache-Control"] == "no-store"
