@@ -113,7 +113,7 @@ def status() -> dict[str, Any]:
             "link_presence_state",
             "link_presence_visibility",
         ]
-    except Exception:
+    except Exception:  # noqa: BLE001 - readiness must stay fail-closed.
         return result
     result["ready"] = bool(result["schema_ready"])
     return result
@@ -128,7 +128,7 @@ def set_visibility(
 ) -> dict[str, bool]:
     owner, viewer = _peer_guard(owner_id, viewer_id)
     if not isinstance(around_now, bool) or not isinstance(live_spot, bool):
-        raise ValueError("invalid_visibility")
+        raise TypeError("invalid_visibility")
     try:
         with postgres_db.connect() as connection:
             connection.execute(
@@ -154,7 +154,7 @@ def set_visibility(
 def heartbeat(identity_id: object, *, around_now: object) -> dict[str, object]:
     identity = _uuid(identity_id, "invalid_identity")
     if not isinstance(around_now, bool):
-        raise ValueError("invalid_around_now")
+        raise TypeError("invalid_around_now")
     try:
         with postgres_db.connect() as connection:
             connection.execute(
