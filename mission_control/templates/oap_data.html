@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Data</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">ON ANY POSTCODE / Private Product</p>
+      <h1>OAP Data</h1>
+      <p>Your first-party operational data product. OAP Intelligence receives only governed OAP Data projections.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">OAP Intelligence</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="oap-data-status-title">
+      <p class="mc-eyebrow">{{ oap_data.mode }}</p>
+      <h2 id="oap-data-status-title">Owned by {{ oap_data.owner }}</h2>
+      <div class="mc-status-ribbon" role="list">
+        <div class="mc-status mc-status--ready" role="listitem"><span>Product</span><strong>{{ oap_data.product }}</strong></div>
+        <div class="mc-status mc-status--ready" role="listitem"><span>Intelligence consumer</span><strong>{{ oap_data.consumer }}</strong></div>
+        <div class="mc-status mc-status--ready" role="listitem"><span>Internal core</span><strong>{{ oap_data.core }}</strong></div>
+        <div class="mc-status mc-status--ready" role="listitem"><span>Raw private records exposed</span><strong>No</strong></div>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="oap-data-law-title">
+      <h2 id="oap-data-law-title">OAP Data law</h2>
+      <ol class="mc-timeline">
+        {% for rule in oap_data.law %}
+        <li><span>{{ rule }}</span></li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="oap-data-domains-title">
+      <h2 id="oap-data-domains-title">OAP Data domains</h2>
+      <div class="mc-intelligence-grid" role="list">
+        {% for domain in oap_data.domains %}
+        <article class="mc-intelligence-card" role="listitem">
+          <h3>{{ domain.name }}</h3>
+          <p>{{ domain.purpose }}</p>
+          <small>{{ domain.boundary }}</small>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="oap-data-first-party-title">
+      <h2 id="oap-data-first-party-title">First-party boundary</h2>
+      <p>OAP Data does not require an external analytics service, external tracking service, or external realtime-data provider.</p>
+      <p>Destructive data actions remain disabled on this surface. Human Authority stays final.</p>
+    </section>
+
+    <aside class="mc-authority" aria-label="OAP Data authority">
+      <strong>Private by default</strong>
+      <span>This dashboard exposes product structure and readiness only. It does not expose private record values.</span>
+    </aside>
+  </main>
+</body>
+</html>
