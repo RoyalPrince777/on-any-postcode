@@ -35,8 +35,8 @@ def test_ollama_chat_is_true_fullscreen_compact_and_preserves_controls():
     assert "Shift+Enter" not in compact  # keyboard behavior is implemented, not exposed as noisy UI copy.
     assert "event.key==='Enter'&&!event.shiftKey" in compact
     assert "mobile-chats-toggle" in compact
-    assert "Working safely" in compact
-    assert "private reasoning is never exposed" in compact
+    assert "Shows operational state only; private chain-of-thought is never exposed." in compact
+    assert "private reasoning stays private" in compact
 
     for control_id in (
         "plus-button",
