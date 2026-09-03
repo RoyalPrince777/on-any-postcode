@@ -122,7 +122,7 @@ def test_public_movement_status_is_coarse_and_separates_readiness(
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert payload == {
+    expected = {
         "product": "OAP Movement",
         "architecture_passed": True,
         "ordered_steps": 8,
@@ -146,6 +146,17 @@ def test_public_movement_status_is_coarse_and_separates_readiness(
         "public_tracking_enabled": False,
         "human_approval_required": True,
     }
+    for key, value in expected.items():
+        assert payload[key] == value
+
+    assert payload["movement_intelligence_architecture_passed"] is True
+    assert payload["movement_intelligence_component_count"] == 11
+    assert payload["movement_intelligence_first_party"] is True
+    assert payload["movement_intelligence_production_navigation_ready"] is False
+    intelligence = payload["movement_intelligence"]
+    assert intelligence["name"] == "OAP Movement Intelligence"
+    assert intelligence["production_navigation_ready"] is False
+    assert intelligence["first_party_policy"]["oap_controlled_route_engine_required"] is True
 
 
 def test_spot_movement_surface_links_into_dedicated_product(client):

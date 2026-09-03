@@ -73,7 +73,7 @@ def grounded_provider(
 
     try:
         health = health_supplier()
-    except Exception:
+    except Exception:  # noqa: BLE001 -- any health failure must degrade to fail-closed UNKNOWN
         health = {"status": "unknown", "checks": {}, "invariants": {"execution_locked": True}}
     grounded_message = str(message or "") + evidence_contract(health)
     result = original(

@@ -18,7 +18,6 @@ from oap.contracts import (
     SignalLevel,
 )
 
-
 _SIGNAL_WEIGHT = {
     SignalLevel.GREEN: 0,
     SignalLevel.WHITE: 0,

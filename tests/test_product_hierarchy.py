@@ -17,7 +17,7 @@ def test_product_hierarchy_is_unique_and_locked():
     ] == [
         ("The Spot", ""),
         ("The Link", "the_spot"),
-        ("LinkUp", "the_link"),
+        ("Link Up", "the_link"),
     ]
 
 

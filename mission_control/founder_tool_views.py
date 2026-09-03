@@ -17,7 +17,8 @@ from .founder_github_proposals import (
     propose_file_write,
     propose_pull_request,
 )
-from .founder_kernel_execution import execute_approved_action, status as kernel_execution_status
+from .founder_kernel_execution import execute_approved_action
+from .founder_kernel_execution import status as kernel_execution_status
 
 bp = Blueprint("founder_tools", __name__)
 
@@ -67,7 +68,7 @@ def _error(exc: Exception, status_code: int = 400):
 def _json_payload() -> dict:
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
-        raise ValueError("JSON object payload is required")
+        raise TypeError("JSON object payload is required")
     return payload
 
 
@@ -94,7 +95,7 @@ def github_kernel_status():
 def github_repository():
     try:
         return _result(FounderGitHubReadAdapter().repository_summary())
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -105,7 +106,7 @@ def github_file():
         path = request.args.get("path", "")
         ref = request.args.get("ref", "main")
         return _result(FounderGitHubReadAdapter().read_file(path, ref=ref))
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -116,7 +117,7 @@ def github_search():
         query = request.args.get("q", "")
         limit = request.args.get("limit", "10")
         return _result(FounderGitHubReadAdapter().search_code(query, limit=int(limit)))
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -125,7 +126,7 @@ def github_search():
 def github_diff(pull_request_number: int):
     try:
         return _result(FounderGitHubReadAdapter().pull_request_diff(pull_request_number))
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -144,7 +145,7 @@ def github_propose_branch():
                 request_id=payload.get("request_id"),
             )
         )
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -166,7 +167,7 @@ def github_propose_file_write():
                 request_id=payload.get("request_id"),
             )
         )
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -187,7 +188,7 @@ def github_propose_pull_request():
                 request_id=payload.get("request_id"),
             )
         )
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -217,7 +218,7 @@ def github_action_approval():
                 )
             )
         )
-    except (ValueError, PermissionError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
         return _error(exc)
 
 
@@ -231,7 +232,7 @@ def github_execute_approved_action():
         payload = _json_payload()
         plan = payload.get("plan")
         if not isinstance(plan, dict):
-            raise ValueError("Exact approved plan is required")
+            raise TypeError("Exact approved plan is required")
         result = execute_approved_action(
             identity_id=web_security.authenticated_identity(),
             receipt_id=str(payload.get("receipt_id") or ""),
@@ -240,5 +241,5 @@ def github_execute_approved_action():
         return _no_store(make_response(jsonify(result)))
     except PermissionError as exc:
         return _error(exc, 403)
-    except (ValueError, LookupError, RuntimeError) as exc:
+    except (TypeError, ValueError, LookupError, RuntimeError) as exc:
         return _error(exc)

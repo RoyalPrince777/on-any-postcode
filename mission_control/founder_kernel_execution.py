@@ -13,7 +13,17 @@ import uuid
 from datetime import timezone
 from typing import Any
 
-from oap.contracts import ActionPlan, ApprovalDecision, ApprovalReceipt, IdentityRecord, OutputState, Recommendation, SignalLevel, WarRoomReport, action_plan_digest
+from oap.contracts import (
+    ActionPlan,
+    ApprovalDecision,
+    ApprovalReceipt,
+    IdentityRecord,
+    OutputState,
+    Recommendation,
+    SignalLevel,
+    WarRoomReport,
+    action_plan_digest,
+)
 from oap.hrm import ApprovalReceiptReplay
 from oap.identity import IdentityEngine
 from oap.kernel import BuilderRegistry, HumanApprovalAuthority, LivingKernel
