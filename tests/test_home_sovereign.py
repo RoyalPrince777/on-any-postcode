@@ -26,6 +26,30 @@ def test_home_keeps_public_sections_without_private_founder_entry(client):
     assert "🇬🇭 Ghana" in sport
 
 
+def test_public_main_menu_uses_locked_seven_items(client):
+    page = client.get("/").get_data(as_text=True)
+    nav = page.split('<nav aria-label="Primary navigation">', 1)[1].split("</nav>", 1)[0]
+
+    expected = (
+        ("/the-spot", "📍 The Spot"),
+        ("/pulse", "📡 Pulse"),
+        ("/the-link", "🔗 The Link"),
+        ("/the-spot/signal", "📣 Signal"),
+        ("/the-spot/events", "🎪 Activity"),
+        ("/the-spot/market", "🏪 Market"),
+        ("/the-spot/discovery", "🧭 Explorer"),
+    )
+    assert nav.count("<a ") == 7
+    for href, label in expected:
+        assert f'href="{href}"' in nav
+        assert label in nav
+
+    for old_label in ("🌍 World", "🗣️ Languages", "💬 Link Up", "⚽ World Cup"):
+        assert old_label not in nav
+    assert "My World" not in nav
+    assert "Founder" not in nav
+
+
 def test_public_home_and_sport_keep_only_public_post_forms(client):
     home = client.get("/").get_data(as_text=True)
     sport = client.get("/world-cup").get_data(as_text=True)
