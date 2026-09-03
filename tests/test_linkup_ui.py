@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from mission_control import config, linkup
 
@@ -110,7 +111,7 @@ def test_public_link_ui_is_concise_and_read_only(anonymous_client, tmp_path, mon
 
 
 def test_linkup_template_keeps_policy_copy_off_the_visible_messenger():
-    page = open("mission_control/templates/linkup.html", encoding="utf-8").read()
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
     for copy in (
         "first-party OAP Data",
         "accepted Link",
