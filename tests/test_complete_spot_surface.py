@@ -24,10 +24,9 @@ def test_every_spot_capability_has_a_working_read_only_route(client):
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         assert escape(capability["name"]) in page
-        # Carnival has its own canonical reviewed schedule surface rather than the
-        # generic Spot capability template. Every other capability renders the
-        # exact presentation copy from the public registry.
-        if capability["slug"] != "carnival":
+        # Carnival and World Languages own richer canonical feature templates;
+        # generic Spot capabilities render their exact public registry purpose.
+        if capability["slug"] not in {"carnival", "languages"}:
             assert capability["purpose"] in page
         assert "Owner:" not in page
         assert "What remains locked" not in page
