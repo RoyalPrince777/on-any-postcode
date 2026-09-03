@@ -91,10 +91,10 @@ def test_duplicate_link_view_is_rejected():
     assert validation["checks"]["naming_conflicts"] == 1
 
 
-def test_public_link_ui_is_simple_and_read_only(client, tmp_path, monkeypatch):
+def test_public_link_ui_is_simple_and_read_only(anonymous_client, tmp_path, monkeypatch):
     database_path = tmp_path / "the-link.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
-    response = client.get("/linkup")
+    response = anonymous_client.get("/linkup")
     page = response.get_data(as_text=True)
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
@@ -103,7 +103,7 @@ def test_public_link_ui_is_simple_and_read_only(client, tmp_path, monkeypatch):
     assert "Message your Links. Voice, Call and Face Up stay inside each chat." in page
     assert "Circle" not in page
     assert 'method="post"' not in page.lower()
-    assert client.post("/linkup").status_code == 405
+    assert anonymous_client.post("/linkup").status_code == 405
     assert not database_path.exists()
 
 
