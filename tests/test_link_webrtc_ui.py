@@ -1,9 +1,23 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_webrtc_controller_has_valid_javascript_syntax():
+    node = shutil.which("node")
+    if node is None:
+        return
+    subprocess.run(
+        [node, "--check", str(ROOT / "static" / "linkup_realtime.js")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_webrtc_controller_uses_only_first_party_runtime_gates():
