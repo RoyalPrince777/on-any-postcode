@@ -86,7 +86,7 @@ def status() -> dict[str, Any]:
             ).fetchall()
         result["tables"] = sorted(str(row[0]) for row in rows)
         result["ready"] = result["tables"] == ["linkup_blocks", "linkup_reports"]
-    except Exception:
+    except Exception:  # noqa: BLE001 - readiness stays fail-closed and redacted.
         return result
     return result
 
