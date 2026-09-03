@@ -21,6 +21,7 @@ def init_app(app: Flask) -> None:
     from . import (
         link_relationships,
         link_signalling,
+        link_turn,
         linkup_safety,
         movement_match_safety,
         movement_operations,
@@ -34,6 +35,7 @@ def init_app(app: Flask) -> None:
     from .home_node_views import bp as home_node_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
+    from .link_turn_routes import bp as link_turn_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .movement_routes import bp as movement_bp
     from .product_core_views import bp as product_core_bp
@@ -145,6 +147,11 @@ def init_app(app: Flask) -> None:
             raise click.ClickException("explicit_confirmation_required")
         print(link_signalling.purge_expired())
 
+    @app.cli.command("oap-link-turn-status")
+    def _oap_link_turn_status() -> None:
+        import json
+        print(json.dumps(link_turn.status()))
+
     @app.cli.command("oap-product-cores-status")
     def _oap_product_cores_status() -> None:
         import json
@@ -172,6 +179,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(linkup_safety_bp)
     app.register_blueprint(link_relationship_bp)
     app.register_blueprint(link_signalling_bp)
+    app.register_blueprint(link_turn_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
