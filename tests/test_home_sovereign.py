@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-def test_home_keeps_public_sections_and_draws_explicit_boundary(client):
+def test_home_keeps_public_sections_without_private_founder_entry(client):
     response = client.get("/")
 
     assert response.status_code == 200
@@ -11,8 +11,9 @@ def test_home_keeps_public_sections_and_draws_explicit_boundary(client):
     assert 'id="myworld"' not in page
     assert 'id="sovereign"' not in page
     assert "PUBLIC" in page
-    assert "PRIVATE" in page
-    assert 'href="/my-world"' in page
+    assert "PRIVATE" not in page
+    assert 'href="/my-world"' not in page
+    assert "Enter My World" not in page
     assert 'href="/mission"' not in page
     assert "Your location hierarchy" in page
     assert "NEON" not in page
