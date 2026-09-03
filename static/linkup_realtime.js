@@ -48,6 +48,7 @@
 
   const state = {
     ready: false,
+    busy: false,
     current: null,
     peer: null,
     mode: null,
@@ -114,7 +115,8 @@
 
   const refreshControls = () => {
     callControls.forEach((control) => {
-      const canUse = state.ready && !state.current && Boolean(recipientFor(control));
+      const canUse =
+        state.ready && !state.busy && !state.current && Boolean(recipientFor(control));
       control.disabled = !canUse;
       const marker = control.querySelector("small");
       if (marker) {
@@ -158,6 +160,7 @@
     state.pc = null;
     stopLocalMedia();
     resetMediaElements();
+    state.busy = false;
     state.current = null;
     state.peer = null;
     state.mode = null;
@@ -364,6 +367,7 @@
     state.localStream = localStream;
     state.pc = pc;
     state.pendingIce = [];
+    state.busy = false;
 
     localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
     pc.ontrack = attachRemoteTrack;
@@ -412,7 +416,7 @@
   };
 
   const startOutgoing = async (control) => {
-    if (!state.ready || state.current) {
+    if (!state.ready || state.busy || state.current) {
       return;
     }
     const peerId = recipientFor(control);
@@ -421,9 +425,11 @@
       setStatus("Choose a Certified member first.");
       return;
     }
-    callControls.forEach((button) => {
-      button.disabled = true;
-    });
+    state.busy = true;
+    refreshControls();
+    if (incomingNode) {
+      incomingNode.hidden = true;
+    }
     setStatus(mode === "face_up" ? "Starting Face Up…" : "Starting Call…");
     let sessionId = null;
     try {
@@ -451,6 +457,14 @@
   };
 
   const declineIncoming = async (session) => {
+    if (state.busy || state.current) {
+      return;
+    }
+    state.busy = true;
+    refreshControls();
+    if (incomingNode) {
+      incomingNode.hidden = true;
+    }
     try {
       await sendSignalFor(session.session_id, session.peer_id, "hangup", { reason: "declined" });
     } catch (_error) {
@@ -461,12 +475,19 @@
     } catch (_error) {
       setStatus("Incoming Call could not be closed cleanly.");
     }
+    state.busy = false;
+    refreshControls();
     scheduleIncomingPoll(250);
   };
 
   const answerIncoming = async (session) => {
-    if (state.current) {
+    if (state.busy || state.current) {
       return;
+    }
+    state.busy = true;
+    refreshControls();
+    if (incomingNode) {
+      incomingNode.hidden = true;
     }
     setStatus(session.mode === "face_up" ? "Answering Face Up…" : "Answering Call…");
     try {
@@ -525,7 +546,7 @@
 
   const pollIncoming = async () => {
     state.incomingTimer = null;
-    if (!state.ready || state.current) {
+    if (!state.ready || state.busy || state.current) {
       return;
     }
     try {
@@ -543,7 +564,7 @@
     if (state.incomingTimer) {
       window.clearTimeout(state.incomingTimer);
     }
-    if (state.ready && !state.current) {
+    if (state.ready && !state.busy && !state.current) {
       state.incomingTimer = window.setTimeout(pollIncoming, delay);
     }
   }
