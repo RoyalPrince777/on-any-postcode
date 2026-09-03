@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
@@ -147,7 +148,7 @@ def test_pulse_post_is_csrf_guarded(client, monkeypatch):
     assert called == []
 
 
-def test_pulse_post_lands_in_pulse_store(client, csrf, monkeypatch):
+def test_pulse_post_lands_under_public_session_identity(client, csrf, monkeypatch):
     observed = {}
 
     def fake_add(identity_id, *, name, body):
@@ -162,8 +163,7 @@ def test_pulse_post_lands_in_pulse_store(client, csrf, monkeypatch):
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/pulse")
-    assert observed == {
-        "identity_id": "11111111-1111-4111-8111-111111111111",
-        "name": "Mitcham",
-        "body": "What’s happening",
-    }
+    assert observed["name"] == "Mitcham"
+    assert observed["body"] == "What’s happening"
+    assert observed["identity_id"] != "11111111-1111-4111-8111-111111111111"
+    uuid.UUID(observed["identity_id"])
