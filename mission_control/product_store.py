@@ -29,7 +29,7 @@ def _identity(value: object, code: str = "invalid_identity") -> str:
 
 
 def linkup_dashboard(identity_id: object) -> dict[str, Any]:
-    """Return a private directory and only messages involving this identity."""
+    """Return a private directory and conversation threads for this identity only."""
 
     identity = _identity(identity_id)
     try:
@@ -49,43 +49,64 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
                    JOIN users sender ON sender.id=m.sender_id
                    JOIN users recipient ON recipient.id=m.recipient_id
                    WHERE m.sender_id=%s OR m.recipient_id=%s
-                   ORDER BY m.created_at DESC LIMIT 100""",
+                   ORDER BY m.created_at DESC LIMIT 200""",
                 (identity, identity),
             ).fetchall()
     except Exception as exc:
         raise ProductStoreUnavailable("linkup_read_failed") from exc
-    return {
-        "directory": [
+
+    directory = [
+        {
+            "identity_id": str(row[0]),
+            "display_name": str(row[1]),
+            "postcode": str(row[2] or ""),
+            "borough": str(row[3] or ""),
+            "country": str(row[4] or ""),
+        }
+        for row in directory_rows
+    ]
+    people = {person["identity_id"]: person for person in directory}
+    messages = [
+        {
+            "message_id": str(row[0]),
+            "direction": "sent" if str(row[1]) == identity else "received",
+            "sender": str(row[6]),
+            "recipient": str(row[7]),
+            "other_identity_id": (
+                str(row[2]) if str(row[1]) == identity else str(row[1])
+            ),
+            "body": str(row[3]),
+            "read": row[4] is not None,
+            "created_at": row[5].isoformat(),
+        }
+        for row in message_rows
+    ]
+    grouped: dict[str, dict[str, Any]] = {}
+    for message in messages:
+        other_id = str(message["other_identity_id"])
+        thread = grouped.setdefault(
+            other_id,
             {
-                "identity_id": str(row[0]),
-                "display_name": str(row[1]),
-                "postcode": str(row[2] or ""),
-                "borough": str(row[3] or ""),
-                "country": str(row[4] or ""),
-            }
-            for row in directory_rows
-        ],
-        "messages": [
-            {
-                "message_id": str(row[0]),
-                "direction": "sent" if str(row[1]) == identity else "received",
-                "sender": str(row[6]),
-                "recipient": str(row[7]),
-                "other_identity_id": (
-                    str(row[2]) if str(row[1]) == identity else str(row[1])
-                ),
-                "body": str(row[3]),
-                "read": row[4] is not None,
-                "created_at": row[5].isoformat(),
-            }
-            for row in message_rows
-        ],
-    }
+                "other_identity_id": other_id,
+                "display_name": people.get(other_id, {}).get("display_name")
+                or (message["recipient"] if message["direction"] == "sent" else message["sender"]),
+                "postcode": people.get(other_id, {}).get("postcode", ""),
+                "unread_count": 0,
+                "latest_at": message["created_at"],
+                "messages": [],
+            },
+        )
+        thread["messages"].append(message)
+        if message["direction"] == "received" and not message["read"]:
+            thread["unread_count"] += 1
+    threads = list(grouped.values())
+    for thread in threads:
+        thread["messages"].reverse()
+    threads.sort(key=lambda item: str(item["latest_at"]), reverse=True)
+    return {"directory": directory, "messages": messages, "threads": threads}
 
 
-def send_message(
-    sender_id: object, recipient_id: object, body: object
-) -> str:
+def send_message(sender_id: object, recipient_id: object, body: object) -> str:
     sender = _identity(sender_id, "invalid_sender")
     recipient = _identity(recipient_id, "invalid_recipient")
     message = str(body or "").strip()[:4000]
@@ -172,22 +193,14 @@ def list_products(*, limit: int = 100) -> list[dict[str, Any]]:
     ]
 
 
-def create_product(
-    seller_id: object,
-    *,
-    name: object,
-    description: object,
-    price: object,
-) -> str:
+def create_product(seller_id: object, *, name: object, description: object, price: object) -> str:
     seller = _identity(seller_id)
     name_value = str(name or "").strip()[:160]
     description_value = str(description or "").strip()[:3000]
     if not name_value:
         raise ValueError("product_name_required")
     try:
-        amount = Decimal(str(price or "").strip()).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        amount = Decimal(str(price or "").strip()).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     except (InvalidOperation, ValueError) as exc:
         raise ValueError("invalid_product_price") from exc
     if amount < 0 or amount > Decimal(1000000):
@@ -195,10 +208,7 @@ def create_product(
     price_minor = int(amount * 100)
     try:
         with postgres_db.connect() as connection:
-            active = connection.execute(
-                "SELECT 1 FROM users WHERE id=%s AND status='active'",
-                (seller,),
-            ).fetchone()
+            active = connection.execute("SELECT 1 FROM users WHERE id=%s AND status='active'", (seller,)).fetchone()
             if active is None:
                 raise ValueError("seller_unavailable")
             recent = connection.execute(
@@ -209,9 +219,8 @@ def create_product(
             if recent and int(recent[0]) >= MAX_LISTINGS_PER_HOUR:
                 raise ValueError("market_rate_limit")
             row = connection.execute(
-                """INSERT INTO products(
-                       seller_id,name,description,price_minor,currency,active
-                   ) VALUES (%s,%s,%s,%s,'GBP',TRUE) RETURNING id""",
+                """INSERT INTO products(seller_id,name,description,price_minor,currency,active)
+                   VALUES (%s,%s,%s,%s,'GBP',TRUE) RETURNING id""",
                 (seller, name_value, description_value, price_minor),
             ).fetchone()
             connection.commit()
@@ -249,12 +258,7 @@ def sika_summary(identity_id: object) -> dict[str, Any]:
         "money": False,
         "updated_at": wallet[3].isoformat() if wallet else None,
         "transactions": [
-            {
-                "amount": int(row[0]),
-                "type": str(row[1]),
-                "reference": str(row[2]),
-                "created_at": row[4].isoformat(),
-            }
+            {"amount": int(row[0]), "type": str(row[1]), "reference": str(row[2]), "created_at": row[4].isoformat()}
             for row in rows
         ],
     }
