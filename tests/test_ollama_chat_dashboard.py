@@ -34,7 +34,7 @@ def test_smi_chat_dashboard_is_governed_and_does_not_create_local_database(
     assert "Message OAP Mind" in page
     assert "Conversation history" in page
     assert "Code proposal" in page
-    assert "apply and deploy remain locked" in page
+    assert "Human Authority" in page
     assert "private chain-of-thought is never exposed" in page
     assert 'method="post"' not in page.lower()
     assert client.post("/mission/ollama").status_code == 405
