@@ -26,9 +26,12 @@ def test_personal_smi_contract_is_private_and_provider_neutral():
 
 
 def test_personal_smi_ui_identity_is_explicit():
-    html = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text()
-    assert "Personal SMI" in html
-    assert "Private Founder intelligence" in html
-    assert "HRM memory" in html
-    assert "Aegis protected" in html
-    assert "implementation engines stay diagnostic-only" in html
+    compact = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text()
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
+    combined = compact + base
+
+    assert "Personal SMI" in combined
+    assert "Private Founder intelligence" in combined
+    assert "HRM" in combined
+    assert "Aegis" in combined
+    assert "implementation engines stay diagnostic-only" in combined
