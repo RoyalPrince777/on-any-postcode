@@ -11,7 +11,7 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
-from . import link_call_audit, linkup_safety, postgres_db
+from . import link_call_audit, link_signalling_guard, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_signalling_v1"
 EVENT_TTL_MINUTES = 5
@@ -128,11 +128,10 @@ def _call_pair_allowed(first: str, second: str, session: str) -> None:
 
 def _call_identity_allowed(identity: str, session: str) -> None:
     try:
-        if not link_call_audit.identity_allows_signalling(identity, session):
-            raise ValueError("active_call_session_required")
+        link_signalling_guard.validate_read(identity, session)
     except ValueError:
         raise
-    except link_call_audit.LinkCallAuditUnavailable as exc:
+    except link_signalling_guard.LinkSignallingGuardUnavailable as exc:
         raise LinkSignallingUnavailable("link_call_audit_unavailable") from exc
 
 
