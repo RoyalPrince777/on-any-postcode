@@ -48,7 +48,7 @@
         <summary>More</summary>
         <div class="spot-more-grid">
           {% for capability in hierarchy.capabilities %}
-            {% if capability.slug not in ('pulse','signal','postcode-rooms','events','market','discovery','carnival') %}
+            {% if capability.slug not in ('pulse','signal','postcode-rooms','events','market','discovery','carnival','my-world') %}
             <a href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">{{ capability.name }}</a>
             {% endif %}
           {% endfor %}
