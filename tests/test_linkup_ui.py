@@ -100,8 +100,9 @@ def test_public_link_ui_is_concise_and_read_only(anonymous_client, tmp_path, mon
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "Private chat." in page
-    assert "Enter My World" in page
+    assert "Link Up is private." in page
+    assert "Enter My World" not in page
+    assert 'href="/auth"' not in page
     assert "Message your Links." not in page
     assert "World Rooms" not in page
     assert "Circle" not in page

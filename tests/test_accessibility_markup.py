@@ -58,7 +58,7 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     carnival = client.get("/world/carnival").get_data(as_text=True)
 
     assert 'aria-label="Primary navigation"' in home
-    assert 'aria-label="Public and private zones"' in home
+    assert 'aria-label="Public OAP World areas"' in home
     assert 'aria-label="Mission Control modes"' in mission
     assert 'aria-current="page"' in mission
     assert 'aria-label="OAP Intelligence families"' in agents

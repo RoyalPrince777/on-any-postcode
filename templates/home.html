@@ -26,8 +26,6 @@ section{padding:28px max(20px,6vw);border-bottom:1px solid #1d4a2d}
 .level{border-top:5px solid #27c267}
 .badge{background:#27c267;color:#021;padding:5px 9px;border-radius:999px;font-weight:bold;display:inline-block}
 .button-link{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:bold;padding:11px 15px;border-radius:9px;margin:7px 7px 7px 0}
-.button-link--private{background:#8ed7ff;color:#04131c}
-.zone--private{border-color:#8ed7ff;background:#0c2430}
 .os-install{margin-top:24px;max-width:780px;border-left:5px solid #7ef0a3}
 .os-install button{width:auto;min-width:190px;padding-inline:18px}
 .os-install button[hidden]{display:none}
@@ -44,7 +42,6 @@ button{background:#27c267;color:#021;font-weight:bold}
 <a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
 <a href="{{ url_for('world_languages') }}">🗣️ Languages</a>
 <a href="{{ url_for('linkup_front_door') }}">💬 Link Up</a>
-<a href="{{ url_for('my_world') }}">🔒 My World</a>
 <a href="{{ url_for('world_cup') }}">⚽ World Cup</a>
 </nav>
 <main>
@@ -52,12 +49,12 @@ button{background:#27c267;color:#021;font-weight:bold}
 <p class="eyebrow">BORN LOCAL · BUILT GLOBAL</p>
 <h1>ON ANY<br>POSTCODE</h1>
 <p>One human world, entered through the place you live. Start local and move outward: Postcode → Borough → County / Region → Country → Continent → Global → Universe.</p>
-<p class="small">Browse public OAP World freely. Passwords are only for private access and approved account actions such as business monetisation.</p>
-<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></div>
+<p class="small">Browse public OAP World freely.</p>
+<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a></div>
 <div class="card os-install" aria-labelledby="oap-os-title">
 <p class="eyebrow">OAP OPERATING SYSTEM · GENERATION 0</p>
 <h2 id="oap-os-title">Install the public OAP OS shell</h2>
-<p>Run OAP as its own app on this device. Private accounts, messages, protected records and decisions remain online-only.</p>
+<p>Run OAP as its own app on this device.</p>
 <button type="button" data-oap-install hidden>Install OAP OS</button>
 <p class="os-status" data-oap-install-status role="status">Checking whether this device can install OAP OS…</p>
 <noscript><p class="os-status">JavaScript is required only for the device installation prompt.</p></noscript>
@@ -77,12 +74,11 @@ button{background:#27c267;color:#021;font-weight:bold}
 </div>
 </section>
 <section aria-labelledby="doors-title">
-<h2 id="doors-title">One front door, clear boundaries</h2>
-<div class="grid" aria-label="Public and private zones">
+<h2 id="doors-title">One public front door</h2>
+<div class="grid" aria-label="Public OAP World areas">
 <article class="card"><span class="badge">PUBLIC</span><h3>The Spot</h3><p>Local information, culture, services and community discovery for any postcode.</p><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Open The Spot</a></article>
 <article class="card"><span class="badge">PUBLIC</span><h3>World Languages</h3><p>Choose a continent, start a language lesson and find trusted learning support across South London.</p><a class="button-link" href="{{ url_for('world_languages') }}">Start learning</a></article>
-<article class="card"><span class="badge">PUBLIC</span><h3>Link Up</h3><p>Find community connections publicly. Private conversations require your account.</p><a class="button-link" href="{{ url_for('linkup_front_door') }}">Open Link Up</a></article>
-<article class="card zone--private"><span class="badge">PRIVATE</span><h3>My World</h3><p>Your profile, messages, records and twelve private workspaces stay owner-scoped.</p><a class="button-link button-link--private" href="{{ url_for('my_world') }}">Enter My World</a></article>
+<article class="card"><span class="badge">PUBLIC</span><h3>Link Up</h3><p>Open the communications area without exposing private account entry on this address.</p><a class="button-link" href="{{ url_for('linkup_front_door') }}">Open Link Up</a></article>
 </div>
 </section>
 <section id="signal" aria-labelledby="signal-title">
