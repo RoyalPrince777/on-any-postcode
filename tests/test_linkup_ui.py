@@ -135,7 +135,7 @@ def test_link_ui_is_read_only_and_does_not_create_database(
     assert "People → Links → Circles → Link Up" in page
     assert "Find your people and connections." in page
     assert "Keep up with private conversations." in page
-    assert "Bring selected people together in private groups." in page
+    assert "Bring selected people together in private group Link Ups." in page
     assert 'method="post"' not in page.lower()
     assert client.post("/linkup").status_code == 405
     assert client.get("/mission/chat").status_code == 405
