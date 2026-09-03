@@ -16,6 +16,10 @@ _PRIVATE_PATH_PREFIXES = (
     "/infrastructure",
     "/api/infrastructure",
 )
+_LINK_DEVICE_PATHS = frozenset({"/linkup"})
+_LINK_PERMISSIONS_POLICY = (
+    "camera=(self), microphone=(self), geolocation=(self), payment=()"
+)
 
 
 def gateway_configured() -> bool:
@@ -37,13 +41,18 @@ def _is_private_path(path: str) -> bool:
 
 
 def register(app: Flask) -> None:
-    """Hide Founder authentication and private dashboards from the public origin.
+    """Hide Founder surfaces and keep device capability permissions route-scoped.
 
     Once the SMI gateway secret is configured, protected paths can only be
     reached through the private gateway that supplies the shared header. Direct
     requests to the public origin receive a non-advertising 404. Before the
     secret exists, behavior stays backward compatible so rollout cannot lock out
     Human Authority during staging.
+
+    Link Up is the only public-origin route allowed to ask the browser for
+    camera, microphone or geolocation. This policy grants no device access by
+    itself: the browser still requires an explicit user permission request, and
+    the Link runtime remains fail-closed until its own gates are certified.
     """
 
     @app.before_request
@@ -56,4 +65,11 @@ def register(app: Flask) -> None:
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
+        return response
+
+    @app.after_request
+    def _scope_link_device_permissions(response):
+        clean_path = request.path.rstrip("/") or "/"
+        if clean_path in _LINK_DEVICE_PATHS:
+            response.headers["Permissions-Policy"] = _LINK_PERMISSIONS_POLICY
         return response
