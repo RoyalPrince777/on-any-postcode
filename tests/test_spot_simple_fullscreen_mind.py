@@ -8,6 +8,7 @@ def test_spot_is_simple_pulse_first_home_without_inline_forms():
     assert "📡 Pulse" in html
     assert "See what’s happening around you." in html
     assert "🌍 World Rooms" in html
+    assert "👤 My World" in html
     assert "More" in html
     assert "Carnival Intelligence" not in html
     assert "Open what you need" not in html
@@ -20,7 +21,6 @@ def test_spot_is_simple_pulse_first_home_without_inline_forms():
         "events",
         "market",
         "discovery",
-        "my-world",
     ):
         assert slug in html
 
