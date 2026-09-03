@@ -71,7 +71,7 @@ def _visibility_state(owner_id: str, peer_id: str) -> dict[str, bool]:
             ).fetchone()
     except ValueError:
         raise
-    except Exception as exc:  # noqa: BLE001 - privacy state must fail closed across DB/guard failures.
+    except Exception as exc:
         raise link_presence.LinkPresenceUnavailable("presence_visibility_read_failed") from exc
     if row is None:
         return {"around_now": False, "live_spot": False}
