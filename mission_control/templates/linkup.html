@@ -26,8 +26,7 @@
 
   {% if not auth_user %}
     <main class="linkup-login">
-      <h2>Simple private chat.</h2>
-      <p>Message your Links. Voice, Call and Face Up stay inside each chat.</p>
+      <h2>Private chat.</h2>
       <a class="mc-primary" href="{{ url_for('auth_page') }}">Enter My World</a>
     </main>
   {% else %}
@@ -39,7 +38,7 @@
         </div>
 
         {% if private_unavailable %}
-          <p class="linkup-empty" role="alert">Chats are temporarily unavailable.</p>
+          <p class="linkup-empty" role="alert">Chats are unavailable.</p>
         {% elif dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
           <button class="linkup-thread-button" type="button" data-linkup-thread="{{ thread.other_identity_id }}" data-search="{{ thread.display_name }} {{ thread.postcode or '' }}" data-active="{{ 'true' if loop.first else 'false' }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
@@ -54,20 +53,19 @@
         {% else %}
           <p class="linkup-empty">No chats yet. Tap + to start one.</p>
         {% endif %}
-        <p class="linkup-world-note">World Rooms — postcode, borough, country, continent and global — live outside this messenger.</p>
       </aside>
 
       <section class="linkup-chat" aria-label="Open chat">
         <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
         <div class="linkup-call-stage" data-oap-call-stage hidden>
-          <p data-oap-call-stage-label>Private Link session</p>
+          <p data-oap-call-stage-label>Call</p>
           <video data-oap-remote-video autoplay playsinline hidden></video>
           <video data-oap-local-video autoplay muted playsinline hidden></video>
           <audio data-oap-remote-audio autoplay hidden></audio>
           <button class="mc-secondary" type="button" data-oap-hangup>End</button>
         </div>
         <p class="linkup-runtime" data-oap-voice-status role="status">Voice status</p>
-        <p class="linkup-runtime" data-oap-call-status role="status">Call and Face Up status</p>
+        <p class="linkup-runtime" data-oap-call-status role="status">Call status</p>
         <p class="linkup-runtime" data-oap-presence-status role="status">Presence status</p>
 
         {% if dashboard and dashboard.threads %}
@@ -78,7 +76,7 @@
               <span class="linkup-avatar">{{ thread.display_name[:1]|upper }}</span>
               <span class="linkup-chat-name">
                 <strong>{{ thread.display_name }}</strong>
-                <small>{% if thread.postcode %}{{ thread.postcode }} · {% endif %}private Link</small>
+                {% if thread.postcode %}<small>{{ thread.postcode }}</small>{% endif %}
               </span>
               <span class="linkup-chat-actions">
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
@@ -133,7 +131,7 @@
                   <button class="mc-primary linkup-send" type="submit">Send</button>
                 </div>
                 <div class="linkup-tray" data-oap-tray data-open="false">
-                  <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-id="{{ thread.other_identity_id }}" title="Private media runtime required">{{ motion_icon('share', 'oap-motion-share') }} Share <small>locked</small></button>
+                  <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-id="{{ thread.other_identity_id }}" title="Share">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
                   <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} My Spot</button>
                   <button class="mc-secondary" type="button" disabled data-oap-around-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('around-now', 'oap-motion-around') }} Around Now</button>
                   <button class="mc-secondary" type="button" disabled data-oap-live-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} Live Spot</button>
@@ -166,12 +164,12 @@
                 <button class="mc-primary linkup-send" type="submit">Send</button>
               </div>
               <div class="linkup-tray" data-oap-tray data-open="false">
-                <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-source="#linkup-recipient" title="Private media runtime required">{{ motion_icon('share', 'oap-motion-share') }} Share <small>locked</small></button>
+                <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-source="#linkup-recipient" title="Share">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
                 <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-source="#linkup-recipient">{{ motion_icon('live-spot', 'oap-motion-spot') }} My Spot</button>
               </div>
             </form>
           {% else %}
-            <p>No other Certified members are available yet.</p>
+            <p>No one available yet.</p>
           {% endif %}
           </div>
         </article>
