@@ -350,3 +350,15 @@
   script.dataset.oapShareLoader = "";
   document.head.appendChild(script);
 })();
+
+(() => {
+  "use strict";
+  if (document.querySelector('script[data-oap-message-loader]')) {
+    return;
+  }
+  const script = document.createElement("script");
+  script.src = "/static/linkup_messages.js";
+  script.defer = true;
+  script.dataset.oapMessageLoader = "";
+  document.head.appendChild(script);
+})();
