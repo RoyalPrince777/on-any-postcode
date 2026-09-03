@@ -39,7 +39,8 @@ def test_home_exposes_oap_os_install_contract(client):
     assert 'data-oap-install hidden' in page
     assert 'src="/assets/oap-os.js"' in page
     assert "OAP OPERATING SYSTEM · GENERATION 0" in page
-    assert "protected records and decisions remain online-only" in page
+    assert "Run OAP as its own app on this device." in page
+    assert "protected records" not in page
 
 
 def test_install_controller_has_cross_platform_guidance():
