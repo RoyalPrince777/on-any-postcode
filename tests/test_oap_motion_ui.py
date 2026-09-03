@@ -7,7 +7,7 @@ def test_public_link_loads_only_first_party_motion_assets(client):
     assert "/static/oap_motion.css" in page
     assert "/static/linkup_realtime.js" in page
     assert "/static/oap_motion.svg#link-up" in page
-    assert "OAP Motion preview" in page
+    assert "OAP Motion preview" not in page
     assert "https://" not in page
 
 
@@ -23,21 +23,24 @@ def test_link_device_permissions_are_allowed_only_by_route_policy(client):
     )
 
 
-def test_link_composer_keeps_uncertified_controls_fail_closed_in_template():
+def test_link_composer_keeps_runtime_controls_fail_closed_in_template():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert 'data-oap-link-composer' in template
     assert 'data-oap-plus' in template
     assert 'placeholder="Type a Link…"' in template
-    assert '>Send Link<' in template
+    assert '>Send<' in template
+    assert '>Send Link<' not in template
     assert 'data-oap-voice-control' in template
     assert 'data-oap-voice-stop' in template
     assert 'data-oap-voice-status' in template
     assert 'data-runtime-locked' in template
     assert 'disabled data-runtime-locked' in template
     assert 'Share <small>locked</small>' in template
-    assert 'Share My Spot' in template
+    assert '> My Spot<' not in template  # icon precedes the compact label
+    assert ' My Spot</button>' in template
     assert 'Live Spot' in template
+    assert 'Circle' not in template
 
 
 def test_oap_motion_css_has_static_reduced_motion_fallback():
