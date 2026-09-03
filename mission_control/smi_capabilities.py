@@ -11,7 +11,12 @@ from typing import Any
 
 from oap.smi.agi_core import AGICore
 
-from . import earth_intelligence, language_intelligence, life_intelligence, movement_intelligence
+from . import (
+    earth_intelligence,
+    language_intelligence,
+    life_intelligence,
+    movement_intelligence,
+)
 from .agents import INTELLIGENCE_WORLDS
 
 CROSS_SYSTEM_CAPABILITIES: tuple[dict[str, str], ...] = (
