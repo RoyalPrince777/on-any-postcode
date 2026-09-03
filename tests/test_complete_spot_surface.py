@@ -9,11 +9,11 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 19,
+        "capabilities": 20,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 19
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 20
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
@@ -70,6 +70,7 @@ def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
         "community-progress",
         "support",
         "maps-weather-travel",
+        "distribution",
         "movement-delivery",
         "safety",
         "tv-media",
@@ -84,8 +85,18 @@ def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
 
 
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():
-    sensitive = {"postcode-rooms", "support", "market", "runner", "identity", "membership"}
+    sensitive = {"postcode-rooms", "support", "market", "distribution", "runner", "identity", "membership"}
     by_id = {item["id"]: item for item in products.SPOT_CAPABILITIES}
 
     assert all(by_id[item_id]["blocked_by"] for item_id in sensitive)
     assert all("Fully operational" not in item["status"] for item in by_id.values())
+
+
+def test_distribution_reuses_existing_post_core_boundary():
+    distribution = next(item for item in products.SPOT_CAPABILITIES if item["id"] == "distribution")
+
+    assert distribution["name"] == "OAP Distribution"
+    assert distribution["owner"] == "OAP Post Core"
+    assert "parcel" in distribution["purpose"].lower()
+    assert "second delivery engine" in distribution["function"]
+    assert distribution["blocked_by"]
