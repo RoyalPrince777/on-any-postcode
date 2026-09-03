@@ -34,4 +34,5 @@ def test_personal_smi_ui_identity_is_explicit():
     assert "Private Founder intelligence" in combined
     assert "HRM" in combined
     assert "Aegis" in combined
-    assert "implementation engines stay diagnostic-only" in combined
+    assert "private chain-of-thought is never exposed" in combined
+    assert "Operational status only, never private reasoning" in combined
