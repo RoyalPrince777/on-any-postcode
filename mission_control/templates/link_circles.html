@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Circles</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body class="mc-workspace-body">
+<header class="mc-workspace-header">
+  <div>
+    <p class="mc-eyebrow">The Link → Link Up → Circle</p>
+    <h1>Circles</h1>
+    <p>Bring selected Links together privately.</p>
+  </div>
+  <div class="mc-header-actions">
+    <a class="mc-secondary-link" href="{{ url_for('linkup_front_door') }}">Link Up</a>
+    <a class="mc-secondary-link" href="{{ url_for('the_link_front_door') }}">The Link</a>
+    <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+  </div>
+</header>
+
+<main class="mc-workspace">
+  {% if notice %}<section class="mc-panel" role="status"><strong>{{ notice|replace('-', ' ')|title }}</strong></section>{% endif %}
+
+  <section class="mc-panel" aria-labelledby="circle-law">
+    <p class="mc-eyebrow">Private by default</p>
+    <h2 id="circle-law">Circle membership first</h2>
+    <p>Bring In requires a current accepted Link. Link In rechecks that Link and Block state. Circle membership is capped at {{ circle_data.max_members }}.</p>
+    <p><strong>Circle messages, Voice, Call and Face Up remain locked</strong> until Circle membership is separately certified for those runtimes.</p>
+  </section>
+
+  {% if not circle_ready %}
+  <section class="mc-panel" role="alert">
+    <h2>Circles are locked</h2>
+    <p>OAP Data Circle tables are not ready. No membership action can run.</p>
+  </section>
+  {% else %}
+  <section class="mc-panel" aria-labelledby="create-circle">
+    <p class="mc-eyebrow">New Circle</p>
+    <h2 id="create-circle">Start a Circle</h2>
+    <form method="post" action="{{ url_for('link_message_state.link_circles.circle_create') }}">
+      <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+      <label for="circle-name">Circle name</label>
+      <input id="circle-name" name="name" maxlength="80" required placeholder="Name your Circle">
+      <button class="mc-primary" type="submit">Start Circle</button>
+    </form>
+  </section>
+
+  <section class="mc-panel" aria-labelledby="circle-invites">
+    <p class="mc-eyebrow">Bring In</p>
+    <h2 id="circle-invites">Pending invitations</h2>
+    {% if circle_data.invites %}
+      {% for invite in circle_data.invites %}
+      <article class="mc-agent-card">
+        <h3>{{ invite.circle_name }}</h3>
+        <p>{{ invite.inviter }} invited you.</p>
+        <form method="post" action="{{ url_for('link_message_state.link_circles.circle_invite_respond', invite_id=invite.invite_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+          <button class="mc-primary" type="submit" name="decision" value="accepted">Link In</button>
+          <button class="mc-secondary" type="submit" name="decision" value="declined">Decline</button>
+        </form>
+      </article>
+      {% endfor %}
+    {% else %}
+      <p>No pending Circle invitations.</p>
+    {% endif %}
+  </section>
+
+  <section class="mc-panel" aria-labelledby="my-circles">
+    <p class="mc-eyebrow">Your Circles</p>
+    <h2 id="my-circles">Membership</h2>
+    {% if circle_data.circles %}
+    <div class="mc-agent-grid">
+      {% for circle in circle_data.circles %}
+      <article class="mc-agent-card">
+        <p class="mc-eyebrow">{{ circle.my_role|upper }} · {{ circle.members|length }}/{{ circle_data.max_members }}</p>
+        <h3>{{ circle.name }}</h3>
+        <ul>
+          {% for member in circle.members %}
+          <li>{{ member.display_name }}{% if member.role == 'host' %} · Circle Host{% endif %}</li>
+          {% endfor %}
+        </ul>
+
+        {% if circle.my_role == 'host' %}
+        <form method="post" action="{{ url_for('link_message_state.link_circles.circle_bring_in', circle_id=circle.circle_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+          <label for="bring-in-{{ circle.circle_id }}">Bring In</label>
+          <select id="bring-in-{{ circle.circle_id }}" name="invitee_id" required>
+            <option value="">Choose an accepted Link</option>
+            {% for person in accepted_people %}
+            <option value="{{ person.identity_id }}">{{ person.display_name }}{% if person.postcode %} · {{ person.postcode }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <button class="mc-secondary" type="submit">Bring In</button>
+        </form>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('link_message_state.link_circles.circle_step_out', circle_id=circle.circle_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+          <button class="mc-secondary" type="submit">Step Out</button>
+        </form>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+      <p>No Circles yet.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+</main>
+</body>
+</html>
