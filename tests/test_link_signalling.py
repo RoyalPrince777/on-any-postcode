@@ -47,6 +47,19 @@ class _Context:
         return False
 
 
+def _allow_call_session(monkeypatch):
+    monkeypatch.setattr(
+        link_signalling.link_call_audit,
+        "session_allows_signalling",
+        lambda _first, _second, _session: True,
+    )
+    monkeypatch.setattr(
+        link_signalling.link_call_audit,
+        "identity_allows_signalling",
+        lambda _identity, _session: True,
+    )
+
+
 def test_signalling_schema_is_explicit_ephemeral_and_media_free():
     dry_run = link_signalling.init_schema(dry_run=True)
     joined = "\n".join(dry_run["statements"])
@@ -103,10 +116,36 @@ def test_signalling_block_guard_runs_before_database(monkeypatch):
         )
 
 
+def test_signalling_requires_active_call_before_signalling_database(monkeypatch):
+    monkeypatch.setattr(
+        link_signalling.linkup_safety, "blocked_between", lambda _first, _second: False
+    )
+    monkeypatch.setattr(
+        link_signalling.link_call_audit,
+        "session_allows_signalling",
+        lambda _first, _second, _session: False,
+    )
+    monkeypatch.setattr(
+        link_signalling.postgres_db,
+        "connect",
+        lambda *args, **kwargs: pytest.fail("signalling database must stay untouched"),
+    )
+
+    with pytest.raises(ValueError, match="active_call_session_required"):
+        link_signalling.publish(
+            uuid.uuid4(),
+            uuid.uuid4(),
+            session_id=uuid.uuid4(),
+            event_type="offer",
+            payload={"sdp": "bounded"},
+        )
+
+
 def test_signalling_requires_an_accepted_nonexpired_link(monkeypatch):
     monkeypatch.setattr(
         link_signalling.linkup_safety, "blocked_between", lambda _first, _second: False
     )
+    _allow_call_session(monkeypatch)
     connection = _Connection(
         lambda query, _params: _Result(row=None)
         if "FROM link_relationships" in query
@@ -138,6 +177,7 @@ def test_publish_is_bounded_and_purges_expired_events(monkeypatch):
     monkeypatch.setattr(
         link_signalling.linkup_safety, "blocked_between", lambda _first, _second: False
     )
+    _allow_call_session(monkeypatch)
 
     def handler(query, _params):
         if "FROM link_relationships" in query:
@@ -170,12 +210,29 @@ def test_publish_is_bounded_and_purges_expired_events(monkeypatch):
     assert insert_call[1][0:4] == (session_id, sender, recipient, "offer")
 
 
+def test_list_events_requires_active_call_before_signalling_database(monkeypatch):
+    monkeypatch.setattr(
+        link_signalling.link_call_audit,
+        "identity_allows_signalling",
+        lambda _identity, _session: False,
+    )
+    monkeypatch.setattr(
+        link_signalling.postgres_db,
+        "connect",
+        lambda *args, **kwargs: pytest.fail("signalling database must stay untouched"),
+    )
+
+    with pytest.raises(ValueError, match="active_call_session_required"):
+        link_signalling.list_events(uuid.uuid4(), session_id=uuid.uuid4())
+
+
 def test_list_events_is_scoped_to_recipient_and_session(monkeypatch):
     identity = str(uuid.uuid4())
     sender = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
     event_id = str(uuid.uuid4())
     created_at = datetime.now(timezone.utc)
+    _allow_call_session(monkeypatch)
 
     def handler(query, params):
         assert "WHERE recipient_id=%s AND session_id=%s" in query
