@@ -23,7 +23,7 @@ def _require_human_authority() -> None:
             authority.require_human_authority(connection, str(user["id"]))
     except authority.HumanAuthorityRequired:
         raise
-    except Exception as exc:  # noqa: BLE001 - private product must fail closed.
+    except Exception as exc:
         raise authority.AuthorityUnavailable("oap_data_authority_unavailable") from exc
 
 
