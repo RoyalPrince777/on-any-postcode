@@ -1,4 +1,4 @@
-"""Network-facing boundary between public OAP and private SMI surfaces."""
+"""Network-facing boundary between public OAP and private Founder surfaces."""
 from __future__ import annotations
 
 import hmac
@@ -23,13 +23,17 @@ _LINK_PERMISSIONS_POLICY = (
 
 
 def gateway_configured() -> bool:
-    return bool(os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip())
+    return len(os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip()) >= 32
 
 
 def gateway_authorized() -> bool:
     expected = os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip()
     supplied = request.headers.get(_GATEWAY_HEADER, "")
-    return bool(expected and supplied) and hmac.compare_digest(expected, supplied)
+    return (
+        len(expected) >= 32
+        and bool(supplied)
+        and hmac.compare_digest(expected, supplied)
+    )
 
 
 def _is_private_path(path: str) -> bool:
@@ -40,35 +44,33 @@ def _is_private_path(path: str) -> bool:
     )
 
 
+def _private_not_found():
+    response = make_response("", 404)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
+
+
 def register(app: Flask) -> None:
-    """Hide Founder surfaces and keep device capability permissions route-scoped.
+    """Keep Founder routes absent from normal public-origin access.
 
-    Once the SMI gateway secret is configured, protected paths can only be
-    reached through the private gateway that supplies the shared header. Direct
-    requests to the public origin receive a non-advertising 404. Before the
-    secret exists, behavior stays backward compatible so rollout cannot lock out
-    Human Authority during staging.
-
-    Link Up is the only public-origin route allowed to ask the browser for
-    camera, microphone or geolocation. This policy grants no device access by
-    itself: the browser still requires an explicit user permission request, and
-    the Link runtime remains fail-closed until its own gates are certified.
+    Private paths always fail closed unless the dedicated private gateway sends
+    the configured high-entropy gateway credential. There is no staging or
+    missing-secret bypass: an absent/malformed secret means Founder routes remain
+    404 on the public origin.
     """
     from . import pulse_routes
 
     pulse_routes.register(app)
 
     @app.before_request
-    def _enforce_smi_gateway():
+    def _enforce_private_origin_boundary():
         if not _is_private_path(request.path):
             return None
-        if not gateway_configured() or gateway_authorized():
+        if gateway_authorized():
             return None
-        response = make_response("", 404)
-        response.headers["Cache-Control"] = "no-store"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        return response
+        return _private_not_found()
 
     @app.after_request
     def _scope_link_device_permissions(response):
