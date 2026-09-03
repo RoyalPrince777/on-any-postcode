@@ -66,7 +66,7 @@ def list_voice():
     try:
         notes = link_voice.list_voice(_identity(), peer_id)
         return _no_store(make_response(jsonify(voices=notes)))
-    except Exception as exc:  # noqa: BLE001 - route maps the governed domain failures.
+    except Exception as exc:
         return _failure(exc)
 
 
@@ -91,7 +91,7 @@ def create_voice():
             duration_ms=request.form.get("duration_ms"),
         )
         return _no_store(make_response(jsonify(created), 201))
-    except Exception as exc:  # noqa: BLE001 - route maps the governed domain failures.
+    except Exception as exc:
         return _failure(exc)
 
 
@@ -110,7 +110,7 @@ def voice_media(voice_id: str):
         response.headers["X-OAP-Content-SHA256"] = digest
         response.headers["Content-Disposition"] = 'inline; filename="voice"'
         return _no_store(response)
-    except Exception as exc:  # noqa: BLE001 - route maps the governed domain failures.
+    except Exception as exc:
         return _failure(exc)
 
 
@@ -125,5 +125,5 @@ def delete_voice(voice_id: str):
         if not deleted:
             return _error("voice_not_found", 404)
         return _no_store(make_response(jsonify(deleted=True)))
-    except Exception as exc:  # noqa: BLE001 - route maps the governed domain failures.
+    except Exception as exc:
         return _failure(exc)
