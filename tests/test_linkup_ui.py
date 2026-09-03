@@ -57,6 +57,26 @@ def test_link_up_language_law_is_locked_without_renaming_internal_views():
     )
 
 
+def test_protected_link_runtime_matches_existing_communications_store():
+    assert linkup.PROTECTED_LINK_RUNTIME == {
+        "authenticated_identity_required": True,
+        "csrf_required_for_mutations": True,
+        "sender_recipient_scope": True,
+        "message_persistence": "Postgres Communications store",
+        "rate_limit_enabled": True,
+        "guardian_message_screening": True,
+        "read_receipts": True,
+        "public_message_projection": False,
+        "human_authority_final": True,
+    }
+    assert {view["status"] for view in linkup.LINK_DASHBOARD_VIEWS[:2]} == {"Protected"}
+    assert [gate["title"] for gate in linkup.REMAINING_LINK_GATES] == [
+        "Blocking and reporting workflow",
+        "Private-message retention and encryption policy",
+        "World Rooms participation",
+    ]
+
+
 def test_community_power_is_linked_without_ownership_transfer():
     community_power = next(
         view
