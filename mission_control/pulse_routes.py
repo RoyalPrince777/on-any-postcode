@@ -22,14 +22,7 @@ def _error(code: str, message: str, status: int):
 def register(app: Flask) -> None:
     """Register Pulse independently from Signal without creating a second schema."""
 
-    @app.get("/the-spot/pulse")
-    def spot_pulse_compat():
-        response = redirect(url_for("pulse_feed"))
-        response.headers["Cache-Control"] = "no-store"
-        return response
-
-    @app.get("/pulse")
-    def pulse_feed():
+    def _render_pulse():
         unavailable = False
         try:
             posts = pulse_store.list_posts()
@@ -46,6 +39,14 @@ def register(app: Flask) -> None:
                 200,
             )
         )
+
+    @app.get("/the-spot/pulse")
+    def spot_pulse_compat():
+        return _render_pulse()
+
+    @app.get("/pulse")
+    def pulse_feed():
+        return _render_pulse()
 
     @app.post("/pulse")
     def pulse_post():
