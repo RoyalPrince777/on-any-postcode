@@ -7,30 +7,9 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 PRODUCT_HIERARCHY: tuple[dict[str, str], ...] = (
-    {
-        "id": "the_spot",
-        "name": "The Spot",
-        "route": "/the-spot",
-        "parent_id": "",
-        "purpose": "The public community front door from world scale down to local postcode life.",
-        "owner": "OAP World",
-    },
-    {
-        "id": "the_link",
-        "name": "The Link",
-        "route": "/the-link",
-        "parent_id": "the_spot",
-        "purpose": "The communications gateway inside The Spot.",
-        "owner": "Communications",
-    },
-    {
-        "id": "linkup",
-        "name": "Link Up",
-        "route": "/linkup",
-        "parent_id": "the_link",
-        "purpose": "Protected person-to-person and crew conversation inside The Link.",
-        "owner": "Communications",
-    },
+    {"id": "the_spot", "name": "The Spot", "route": "/the-spot", "parent_id": "", "purpose": "The public community front door from world scale down to local postcode life.", "owner": "OAP World"},
+    {"id": "the_link", "name": "The Link", "route": "/the-link", "parent_id": "the_spot", "purpose": "The communications gateway inside The Spot.", "owner": "Communications"},
+    {"id": "linkup", "name": "Link Up", "route": "/linkup", "parent_id": "the_link", "purpose": "Protected person-to-person and crew conversation inside The Link.", "owner": "Communications"},
 )
 
 WORLD_ROOM_LEVELS: tuple[dict[str, str], ...] = (
@@ -56,6 +35,7 @@ SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"id": "support", "name": "Community Support", "owner": "Humanitarian Support", "purpose": "Local needs, resources and community assistance.", "status": "Read-only surface live", "function": "Shows the protected support entry point.", "blocked_by": "Safeguarding, verification and case privacy required"},
     {"id": "infrastructure", "name": "Maps, Weather & Travel", "owner": "Infrastructure", "purpose": "Maps, weather, routes and movement awareness.", "status": "Live location and weather lookup", "function": "Resolves hierarchy and current forecast without external browser scripts.", "blocked_by": "First-party turn-by-turn navigation remains separate"},
     {"id": "market", "name": "Market", "owner": "OAP Market", "purpose": "Products and community commerce.", "status": "Live owner-scoped listings", "function": "Authenticated sellers can publish listings; payments remain separate.", "blocked_by": "Checkout requires merchant verification and regulated payments"},
+    {"id": "distribution", "name": "OAP Distribution", "owner": "OAP Post Core", "purpose": "Distribution, parcel, collection, access-hub and fulfilment coordination between commerce and movement.", "status": "Governed distribution core registered; operational handoff remains fail-closed", "function": "Uses the existing OAP Post Core as the logistics/distribution organ instead of creating a second delivery engine.", "blocked_by": "Parcel-carrier handoff, physical Post Office activation and live fulfilment require approved operators, Identity, audit and Human Authority"},
     {"id": "sika", "name": "SIKA", "owner": "SIKA Core", "purpose": "Contribution, trust and internal value records.", "status": "Owner-scoped ledger live", "function": "Shows contribution credits and review requests without representing SIKA as money.", "blocked_by": "Credit awards require audited Human Authority-approved rules"},
     {"id": "runner", "name": "Movement & Delivery", "owner": "Operations", "purpose": "Bookings, delivery, riders, drivers and local movement.", "status": "Read-only surface live", "function": "Shows operational scope without dispatching work.", "blocked_by": "Identity, payments, location safety and Builder handlers required"},
     {"id": "safety", "name": "Safety & Trust", "owner": "Trust", "purpose": "Reporting, Guardian protection and community standards.", "status": "Protection surface live", "function": "Explains fail-closed safety boundaries.", "blocked_by": "Authenticated reporting and escalation workflow not connected"},
@@ -79,6 +59,7 @@ PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"source_id": "support", "slug": "support", "name": "Community Support", "purpose": "Find help, resources and support."},
     {"source_id": "infrastructure", "slug": "maps-weather-travel", "name": "Maps, Weather & Travel", "purpose": "Plan routes and stay aware of local conditions."},
     {"source_id": "market", "slug": "market", "name": "Market", "purpose": "Explore products and community commerce."},
+    {"source_id": "distribution", "slug": "distribution", "name": "OAP Distribution", "purpose": "Coordinate fulfilment, parcels, collection and access hubs through OAP Post Core."},
     {"source_id": "sika", "slug": "sika", "name": "SIKA", "purpose": "View contribution and trust-value records."},
     {"source_id": "runner", "slug": "movement-delivery", "name": "Movement & Delivery", "purpose": "Explore bookings, delivery and travel."},
     {"source_id": "safety", "slug": "safety", "name": "Safety & Trust", "purpose": "Find community standards and reporting support."},
