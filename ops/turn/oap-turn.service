@@ -1,0 +1,31 @@
+[Unit]
+Description=OAP first-party Coturn relay
+Documentation=https://github.com/coturn/coturn
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=turnserver
+Group=turnserver
+EnvironmentFile=/etc/oap-turn/oap-turn.env
+RuntimeDirectory=oap-turn
+RuntimeDirectoryMode=0700
+ExecStart=/usr/local/lib/oap-turn/start-turn.sh
+Restart=on-failure
+RestartSec=3s
+LimitNOFILE=262144
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
