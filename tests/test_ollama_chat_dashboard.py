@@ -29,7 +29,8 @@ def test_smi_chat_dashboard_is_governed_and_does_not_create_local_database(
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert "Sovereign Megaverse Intelligence" in page
+    assert "Personal SMI" in page
+    assert "Private Founder intelligence" in page
     assert "Message OAP Mind" in page
     assert "Real-time · Streamed" in page
     assert "Durable · Conversation history" in page
