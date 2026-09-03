@@ -40,6 +40,7 @@ def init_app(app: Flask) -> None:
     from .link_turn_routes import bp as link_turn_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .movement_routes import bp as movement_bp
+    from .oap_data_views import bp as oap_data_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
     from .views import bp
@@ -206,5 +207,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
     app.register_blueprint(home_node_bp, url_prefix="/mission")
+    app.register_blueprint(oap_data_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()
