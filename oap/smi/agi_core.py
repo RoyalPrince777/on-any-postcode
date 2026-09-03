@@ -115,6 +115,13 @@ _TASK_DEFAULTS: dict[str, tuple[str, ...]] = {
     "GENERAL": ("matrix",),
 }
 
+# Some specialist capabilities are only coherent with context from another
+# specialist. Movement always needs a place model, so Earth is added whenever
+# Movement is selected. This is dependency routing, not extra authority.
+_DOMAIN_DEPENDENCIES: dict[str, tuple[str, ...]] = {
+    "movement": ("earth",),
+}
+
 
 def _dedupe(values: Iterable[str]) -> tuple[str, ...]:
     seen: set[str] = set()
@@ -143,6 +150,9 @@ class AGICore:
             if hit:
                 selected.append(domain_id)
                 matches[domain_id] = hit[:5]
+        selected_ids = _dedupe(selected)
+        for domain_id in selected_ids:
+            selected.extend(_DOMAIN_DEPENDENCIES.get(domain_id, ()))
         domain_ids = _dedupe(selected)
         by_id = {str(item["id"]): item for item in _DOMAIN_RULES}
         return {
