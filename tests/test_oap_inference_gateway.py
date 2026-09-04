@@ -38,11 +38,12 @@ def test_gateway_does_not_claim_full_provider_removal():
 def test_capability_fabric_combines_functions_without_provider_identity_or_authority():
     snapshot = capability_status()
     assert snapshot["ready"] is True
-    assert snapshot["capability_count"] >= 15
+    assert snapshot["capability_count"] >= 26
     assert snapshot["provider_neutral"] is True
     assert snapshot["copies_provider_identity"] is False
     assert snapshot["copies_private_prompts"] is False
     assert snapshot["copies_model_weights"] is False
+    assert snapshot["copies_proprietary_architecture"] is False
     assert snapshot["external_provider_authority"] is False
     capabilities = select_capabilities(
         "TECHNICAL",
@@ -54,6 +55,22 @@ def test_capability_fabric_combines_functions_without_provider_identity_or_autho
     assert "advisor_challenger" in capabilities
     assert "cited_live_research" in capabilities
     assert "evidence_first" in capabilities
+
+
+def test_expanded_fabric_routes_swarm_steering_skills_and_multimodal_work():
+    capabilities = select_capabilities(
+        "TECHNICAL",
+        (
+            "Use a swarm of subagents in isolated worktrees, let me steer mid-stream, "
+            "learn a reusable skill from this video and analyse spatial geometry"
+        ),
+        limit=12,
+    )
+    assert "scale_out_swarm" in capabilities
+    assert "workspace_isolation" in capabilities
+    assert "live_steering" in capabilities
+    assert "skill_distillation" in capabilities
+    assert "multimodal_spatial_reasoning" in capabilities
 
 
 def test_gateway_enriches_all_provider_paths_with_oap_capabilities():
