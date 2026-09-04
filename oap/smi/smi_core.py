@@ -19,6 +19,7 @@ from oap.registry import RegistryEngine
 from oap.state_machine import ProcessingState, RequestStateMachine
 from oap.war_room import WarRoomEngine
 
+from .agi_core import AGICore
 from .autonomy import SMIAutonomyEngine
 from .coherence import CoherenceEngine
 from .context_engine import ContextEngine
@@ -70,6 +71,7 @@ class SMICore:
         self.hrm = hrm
         self.input_manager = InputManager()
         self.frontal_lobe = FrontalLobe()
+        self.agi_core = AGICore()
         self.self_model = SelfModel()
         self.coherence = CoherenceEngine()
         self.autonomy = SMIAutonomyEngine()
@@ -82,6 +84,7 @@ class SMICore:
             self.registry.status(),
             self.providers.status(),
             self.organs.status(),
+            self.agi_core.status(),
             self.aegis.status(),
             self.guardian.status(),
             self.war_room.status(),
@@ -127,6 +130,7 @@ class SMICore:
             return self._block_early(request, state, permission.reason)
         state.advance(ProcessingState.IDENTITY_VERIFIED)
 
+        agi_route = self.agi_core.route(request.content, request.task_type)
         context = self.context.load(signal)
         advisors = self.registry.select_advisors(signal.task_type)
         provider_results = self.providers.route(signal)
@@ -148,7 +152,11 @@ class SMICore:
             analysis,
             safety,
         )
-        rationale = (*rationale, advisors.reason)
+        rationale = (
+            *rationale,
+            advisors.reason,
+            "AGI Core specialist route: " + ", ".join(agi_route["domains"]) + ".",
+        )
 
         components = self._component_statuses()
         self_model = self.self_model.observe(components)
@@ -269,6 +277,7 @@ class SMICore:
             "independent_approval": False,
             "independent_apply": False,
             "human_authority_final": True,
+            "agi_core": self.agi_core.status(),
             "self_model": self_model.as_dict(),
             "coherence": coherence.as_dict(),
             "autonomy": autonomy,

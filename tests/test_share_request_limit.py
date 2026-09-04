@@ -1,6 +1,6 @@
 from flask import Flask, request
 
-from mission_control.surface_security import OAPRequest, _SHARE_REQUEST_MAX_BYTES
+from mission_control.surface_security import _SHARE_REQUEST_MAX_BYTES, OAPRequest
 
 
 def _app() -> Flask:
