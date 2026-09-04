@@ -1,12 +1,19 @@
 from datetime import UTC, datetime, timedelta
 
-import pytest
-
 from mission_control import postgres_db, travel_supply_core
 from oap.smi import travel_agency
 
 
 VALID_ID = "11111111-1111-4111-8111-111111111111"
+
+
+def _assert_raises(exception_type, message, callback, *args, **kwargs):
+    try:
+        callback(*args, **kwargs)
+    except exception_type as exc:
+        assert message in str(exc)
+    else:
+        raise AssertionError(f"Expected {exception_type.__name__}: {message}")
 
 
 def _base_not_ready(monkeypatch):
@@ -52,8 +59,11 @@ def test_supply_core_schema_is_explicit_checksum_gated_and_non_destructive(monke
     assert "commission_state TEXT NOT NULL DEFAULT 'PROVIDER_REQUIRED'" in sql
     assert len(travel_supply_core.SUPPLY_CORE_MIGRATION_CHECKSUM) == 64
 
-    with pytest.raises(RuntimeError, match="Explicit human approval required"):
-        travel_supply_core.init_supply_core_schema()
+    _assert_raises(
+        RuntimeError,
+        "Explicit human approval required",
+        travel_supply_core.init_supply_core_schema,
+    )
 
     monkeypatch.setattr(postgres_db, "postgres_status", lambda: {"initialized": True})
     dry_run = travel_supply_core.init_supply_core_schema(
@@ -67,47 +77,55 @@ def test_supply_core_schema_is_explicit_checksum_gated_and_non_destructive(monke
 def test_supplier_certification_requires_human_authority():
     store = travel_supply_core.PostgresTravelSupplyStore()
 
-    with pytest.raises(PermissionError, match="human_authority_approval_required"):
-        store.certify_supplier(
-            supplier_id=VALID_ID,
-            human_authority_approved=False,
-        )
+    _assert_raises(
+        PermissionError,
+        "human_authority_approval_required",
+        store.certify_supplier,
+        supplier_id=VALID_ID,
+        human_authority_approved=False,
+    )
 
 
 def test_input_validation_fails_before_any_database_write():
     store = travel_supply_core.PostgresTravelSupplyStore()
 
-    with pytest.raises(ValueError, match="invalid_supplier_type"):
-        store.create_supplier(
-            owner_identity_id=VALID_ID,
-            display_name="Example",
-            supplier_type="not-real",
-        )
+    _assert_raises(
+        ValueError,
+        "invalid_supplier_type",
+        store.create_supplier,
+        owner_identity_id=VALID_ID,
+        display_name="Example",
+        supplier_type="not-real",
+    )
 
-    with pytest.raises(ValueError, match="inventory_window_invalid"):
-        store.set_inventory_slot(
-            owner_identity_id=VALID_ID,
-            listing_id=VALID_ID,
-            starts_at=datetime.now(UTC),
-            ends_at=datetime.now(UTC) - timedelta(hours=1),
-            capacity_total=1,
-            price_minor=1000,
-            currency="GBP",
-            price_basis="per person",
-        )
+    _assert_raises(
+        ValueError,
+        "inventory_window_invalid",
+        store.set_inventory_slot,
+        owner_identity_id=VALID_ID,
+        listing_id=VALID_ID,
+        starts_at=datetime.now(UTC),
+        ends_at=datetime.now(UTC) - timedelta(hours=1),
+        capacity_total=1,
+        price_minor=1000,
+        currency="GBP",
+        price_basis="per person",
+    )
 
     future = datetime.now(UTC) + timedelta(days=1)
-    with pytest.raises(ValueError, match="invalid_currency"):
-        store.set_inventory_slot(
-            owner_identity_id=VALID_ID,
-            listing_id=VALID_ID,
-            starts_at=future,
-            ends_at=future + timedelta(hours=1),
-            capacity_total=1,
-            price_minor=1000,
-            currency="POUNDS",
-            price_basis="per person",
-        )
+    _assert_raises(
+        ValueError,
+        "invalid_currency",
+        store.set_inventory_slot,
+        owner_identity_id=VALID_ID,
+        listing_id=VALID_ID,
+        starts_at=future,
+        ends_at=future + timedelta(hours=1),
+        capacity_total=1,
+        price_minor=1000,
+        currency="POUNDS",
+        price_basis="per person",
+    )
 
 
 def test_travel_agency_exposes_oap_direct_marketplace_without_false_live_claims(
