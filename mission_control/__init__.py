@@ -37,6 +37,7 @@ def init_app(app: Flask) -> None:
     )
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
+    from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
     from .link_message_routes import bp as link_message_bp
     from .link_presence_routes import bp as link_presence_bp
@@ -267,5 +268,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
     app.register_blueprint(home_node_bp, url_prefix="/mission")
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
+    app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()

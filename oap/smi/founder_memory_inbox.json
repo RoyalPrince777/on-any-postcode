@@ -68,5 +68,25 @@
     "supersedes": [],
     "tags": ["smi", "research-intelligence", "evidence", "provenance", "verification", "founder-approved"],
     "created_at": "2026-09-04T09:05:00+00:00"
+  },
+  {
+    "source_kind": "founder_decision",
+    "memory_class": "ARCHITECTURE",
+    "summary": "Build the full OAP-owned ISAC Spatial Intelligence software path inspired by open 5G/O-RAN research patterns: authorised SRS/I-Q ingestion, local CIR/channel feature extraction, calibration-based positioning, environment-change detection, occupancy heatmaps, collision-risk analysis, Guardian RF minimisation, Matrix RF events and a Founder-only spatial dashboard. OpenAirInterface/FlexRIC/LLC E2SM are replaceable adapter foundations only. Raw RF remains local and Matrix receives bounded abstractions. Do not claim a live radio testbed or centimetre/sub-metre accuracy until real hardware, calibration and measured evidence are connected and certified.",
+    "source_reference": "founder-chat-decision-2026-09-04-isac-spatial-intelligence",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["isac", "matrix-rf", "guardian-rf", "srs", "positioning", "o-ran", "founder-approved"],
+    "created_at": "2026-09-04T09:20:00+00:00"
+  },
+  {
+    "source_kind": "approved_historical_backfill",
+    "memory_class": "EVIDENCE",
+    "summary": "BubbleRAN 2026 public documentation demonstrates an external ISAC reference pattern using OpenAirInterface 5G SA, FlexRIC Near-RT RIC, O-RAN Low Layer Control service-model access to uplink SRS I/Q and channel/CIR processing for real-time positioning, environment/object detection and occupancy/collision use cases. Treat this as research evidence only, not an OAP dependency, identity or accuracy guarantee.",
+    "source_reference": "bubbleran.com/news/isac-with-mx-pdk; bubbleran.com/docs/v3.0.0/user-guide/xapp-training/lab10 reviewed 2026-09-04",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["research", "isac", "openairinterface", "flexric", "srs", "evidence"],
+    "created_at": "2026-09-04T09:21:00+00:00"
   }
 ]
