@@ -1,4 +1,4 @@
-"""Civilian humanitarian emergency connectivity for SMI Technology Intelligence.
+"""Civilian humanitarian emergency connectivity for International Humanitarian Intelligence.
 
 This module is for life-saving civilian communication in disasters and armed conflict.
 It does not support targeting, surveillance, weapons, military command, troop tracking,
@@ -188,7 +188,7 @@ def humanitarian_path_plan() -> dict[str, Any]:
 
 
 def humanitarian_connectivity_status() -> dict[str, Any]:
-    """Return live production readiness for the civilian humanitarian emergency layer."""
+    """Return live production readiness for the civilian humanitarian connectivity child."""
 
     runtime = connectivity_runtime_status()
     maps = humanitarian_map_intelligence_status()
@@ -203,8 +203,11 @@ def humanitarian_connectivity_status() -> dict[str, Any]:
         for feature in HUMANITARIAN_FEATURES
     )
     return {
-        "id": "international_humanitarian_connectivity",
-        "name": "International Humanitarian Connectivity Intelligence",
+        "id": "humanitarian_connectivity",
+        "name": "Humanitarian Connectivity Intelligence",
+        "legacy_id": "international_humanitarian_connectivity",
+        "legacy_name": "International Humanitarian Connectivity Intelligence",
+        "parent": "International Humanitarian Intelligence",
         "mode": "civilian_emergency_production",
         "demo_mode": False,
         "production_software_ready": production_path,
