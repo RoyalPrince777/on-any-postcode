@@ -92,7 +92,8 @@ def test_technology_intelligence_exposes_humanitarian_as_supported_child():
     assert humanitarian["map_intelligence_bound"] is True
     assert humanitarian["maps"]["map_intelligence_bound"] is True
     assert umbrella["name"] == "International Humanitarian Intelligence"
-    assert umbrella["section_count"] == 9
+    assert umbrella["section_count"] == 10
+    assert umbrella["world_crisis"]["architecture_ready"] is True
     assert umbrella["legal"]["architecture_ready"] is True
     assert status["humanitarian_parent"] == "International Humanitarian Intelligence"
     assert status["intelligence_world_count_added"] == 0
