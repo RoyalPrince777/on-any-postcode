@@ -25,22 +25,34 @@ CROSS_SYSTEM_CAPABILITIES: tuple[dict[str, str], ...] = (
     {
         "id": "language",
         "name": "Language Intelligence",
-        "purpose": "Communication, language learning, translation assistance and cultural language context.",
+        "purpose": (
+            "Communication, language learning, translation assistance and cultural "
+            "language context."
+        ),
     },
     {
         "id": "life",
         "name": "Life Intelligence",
-        "purpose": "Real facts, real skills and practical Adult/Youth education through Community Power.",
+        "purpose": (
+            "Real facts, real skills and practical Adult/Youth education through "
+            "Community Power."
+        ),
     },
     {
         "id": "movement",
         "name": "Movement Intelligence",
-        "purpose": "People, goods, services, routes, transport, logistics and movement conditions.",
+        "purpose": (
+            "People, goods, services, routes, transport, logistics and movement "
+            "conditions."
+        ),
     },
     {
         "id": "multimodal",
         "name": "Multimodal Intelligence",
-        "purpose": "Governed image, document, audio and sampled-video understanding through existing SMI media preparation.",
+        "purpose": (
+            "Governed image, document, audio and sampled-video understanding through "
+            "existing SMI media preparation."
+        ),
     },
 )
 
@@ -49,31 +61,47 @@ SMI_INTERNAL_CAPABILITIES: tuple[dict[str, str], ...] = (
         "id": "agi_core",
         "name": "AGI Core",
         "kind": "capability_layer",
-        "purpose": "Routes and synthesises across specialist intelligence without claiming achieved AGI.",
+        "purpose": (
+            "Routes and synthesises across specialist intelligence without claiming "
+            "achieved AGI."
+        ),
     },
     {
         "id": "command_intelligence",
-        "name": "SMI Command Intelligence",
-        "kind": "bounded_command_capability_chain",
-        "purpose": "SGI → TGI → OGI → DGI → PGI → RGI advisory command review with no action authority.",
+        "name": "SMI General Intelligence Command",
+        "kind": "bounded_general_intelligence_layer",
+        "purpose": (
+            "Nine-core path AGI → SGI → TGI → OGI → DGI → PGI → RGI → AdGI → "
+            "MGI, supported by CGI, CoGI, EGI, LGI, TeGI and ReGI, with no action "
+            "authority."
+        ),
     },
     {
         "id": "sovereign_controls",
-        "name": "SMI Sovereign Control Plane",
-        "kind": "fail_closed_control_plane",
-        "purpose": "Central technical ownership, approval, audit, egress, emergency-halt and execution boundaries.",
+        "name": "SMI Master Sovereign Control Plane",
+        "kind": "fail_closed_proof_based_control_plane",
+        "purpose": (
+            "Central technical ownership, approval, custody, audit, egress, recovery, "
+            "supply-chain, emergency-halt and execution boundaries."
+        ),
     },
     {
         "id": "synthetic_mind",
         "name": "Synthetic Mind Intelligence",
         "kind": "internal_organ",
-        "purpose": "Synthetic reasoning and provider/advisor synthesis inside the single SMI brain.",
+        "purpose": (
+            "Synthetic reasoning and provider/advisor synthesis inside the single SMI "
+            "brain."
+        ),
     },
     {
         "id": "biological_brain",
         "name": "Biological Brain Anatomy",
         "kind": "internal_regions",
-        "purpose": "Real brain-inspired routing, memory, risk, planning, integration and coordination regions.",
+        "purpose": (
+            "Real brain-inspired routing, memory, risk, planning, integration and "
+            "coordination regions."
+        ),
     },
     {
         "id": "hrm",
@@ -85,7 +113,10 @@ SMI_INTERNAL_CAPABILITIES: tuple[dict[str, str], ...] = (
         "id": "judgement",
         "name": "Judgement",
         "kind": "decision_review",
-        "purpose": "Five automated evidence/review sections plus the Human Authority decision section.",
+        "purpose": (
+            "Five automated evidence/review sections plus the Human Authority decision "
+            "section."
+        ),
     },
     {
         "id": "war_room",
@@ -103,19 +134,27 @@ SMI_INTERNAL_CAPABILITIES: tuple[dict[str, str], ...] = (
         "id": "providers",
         "name": "Provider Fabric",
         "kind": "provider_layer",
-        "purpose": "Approved local/cloud model providers remain providers, never OAP agents or authority.",
+        "purpose": (
+            "Approved local/cloud model providers remain providers, never OAP agents or "
+            "authority. Master mode permits local providers only."
+        ),
     },
     {
         "id": "agents",
         "name": "Agent Registry",
         "kind": "advisory_workers",
-        "purpose": "Soul–Mind–Body advisory agents with one family each and bounded roles.",
+        "purpose": (
+            "Soul–Mind–Body advisory agents with one family each and bounded roles."
+        ),
     },
     {
         "id": "execution",
         "name": "Living Kernel / Builder Boundary",
         "kind": "human_gated_execution",
-        "purpose": "Only recorded Human Authority approval can cross into consequential execution.",
+        "purpose": (
+            "Only recorded Human Authority approval can cross into consequential "
+            "execution."
+        ),
     },
 )
 
@@ -132,26 +171,55 @@ def validate_smi_capabilities() -> dict[str, Any]:
     if len(internal_ids) != len(set(internal_ids)):
         errors.append("Internal SMI capability IDs must be unique")
     if set(cross_ids) & set(world_ids):
-        errors.append("Cross-system capabilities must not silently become Intelligence worlds")
+        errors.append(
+            "Cross-system capabilities must not silently become Intelligence worlds"
+        )
 
     agi = AGICore().status()
-    if agi["brain_count"] != 0 or agi["independent_execute"] or agi["independent_approval"]:
+    if (
+        agi["brain_count"] != 0
+        or agi["independent_execute"]
+        or agi["independent_approval"]
+    ):
         errors.append("AGI Core escaped its bounded capability-layer role")
     if agi["agi_achieved"] or agi["general_intelligence_certified"]:
         errors.append("Architecture must not claim achieved/certified AGI without proof")
 
     command = CommandIntelligence().status()
-    expected_command_path = ("sgi", "tgi", "ogi", "dgi", "pgi", "rgi")
+    expected_command_path = (
+        "sgi",
+        "tgi",
+        "ogi",
+        "dgi",
+        "pgi",
+        "rgi",
+        "adgi",
+        "mgi",
+    )
+    expected_core_path = ("agi", *expected_command_path)
+    expected_support = ("cgi", "cogi", "egi", "lgi", "tegi", "regi")
     if command["brain_count"] != 0:
         errors.append("Command Intelligence must not create another SMI brain")
     if command["command_path"] != expected_command_path:
-        errors.append("SMI command path must remain SGI → TGI → OGI → DGI → PGI → RGI")
+        errors.append("SMI command path must preserve the locked eight command stages")
+    if command["core_path"] != expected_core_path:
+        errors.append("SMI core path must remain AGI plus eight command capabilities")
+    if command["supporting_ids"] != expected_support:
+        errors.append("SMI supporting General Intelligence set must remain the locked six")
+    if command["core_general_intelligence_count"] != 9:
+        errors.append("SMI must expose exactly nine core General Intelligence capabilities")
+    if command["supporting_count"] != 6:
+        errors.append("SMI must expose exactly six supporting General Intelligences")
     if command["independent_execute"] or command["independent_approval"]:
         errors.append("Command Intelligence must remain advisory and human-gated")
     if command["prediction_claims_fact"]:
         errors.append("PGI forecasts must never be represented as facts")
     if not command["fail_closed_resilience"]:
         errors.append("RGI must preserve fail-closed resilience")
+    if command["adaptive_mutates_approved_action"]:
+        errors.append("AdGI must never silently mutate an approved consequential action")
+    if command["meta_decision_authority"]:
+        errors.append("MGI must not become a decision authority")
 
     sovereign = SovereignControlPlane().status()
     if sovereign["brain_count"] != 0:
@@ -160,10 +228,16 @@ def validate_smi_capabilities() -> dict[str, Any]:
         errors.append("Sovereign controls must not become an authority holder")
     if sovereign["external_provider_egress_default"] != "deny":
         errors.append("External provider egress must default to deny")
+    if sovereign["master_mode_external_provider_egress"] != "local_only":
+        errors.append("Master Sovereignty mode must restrict model providers to local")
     if sovereign["secret_export"]:
         errors.append("Sovereign controls must never enable secret export")
     if not sovereign["human_authority_final"]:
         errors.append("Human Authority must remain final")
+    if sovereign["full_sovereignty_claim"] and not sovereign[
+        "master_full_sovereignty_active"
+    ]:
+        errors.append("Full sovereignty must never be claimed without full attestation")
 
     specialist = {
         "earth": earth_intelligence.status(weather_ready=False),
@@ -183,9 +257,19 @@ def validate_smi_capabilities() -> dict[str, Any]:
             "brain_count_added_by_agi": agi["brain_count"],
             "brain_count_added_by_command_intelligence": command["brain_count"],
             "brain_count_added_by_sovereign_controls": sovereign["brain_count"],
+            "core_general_intelligence": command[
+                "core_general_intelligence_count"
+            ],
             "command_stages": command["stage_count"],
+            "supporting_general_intelligence": command["supporting_count"],
+            "total_general_intelligence_capabilities": command[
+                "total_general_intelligence_capabilities"
+            ],
             "external_provider_egress_default": sovereign[
                 "external_provider_egress_default"
+            ],
+            "master_full_sovereignty_active": sovereign[
+                "master_full_sovereignty_active"
             ],
             "human_authority_final": True,
         },
@@ -194,13 +278,23 @@ def validate_smi_capabilities() -> dict[str, Any]:
 
 def smi_capability_status() -> dict[str, Any]:
     validation = validate_smi_capabilities()
+    sovereign = SovereignControlPlane().status()
+    command = CommandIntelligence().status()
     return {
         "name": "Sovereign Megaverse Intelligence",
+        "master_tier_name": "Master Full Sovereignty Megaverse Intelligence",
         "architecture_passed": validation["passed"],
         "validation": validation,
         "agi_core": AGICore().status(),
-        "command_intelligence": CommandIntelligence().status(),
-        "sovereign_controls": SovereignControlPlane().status(),
+        "command_intelligence": command,
+        "sovereign_controls": sovereign,
+        "master_full_sovereignty_active": sovereign[
+            "master_full_sovereignty_active"
+        ],
+        "core_general_intelligence_count": command[
+            "core_general_intelligence_count"
+        ],
+        "supporting_general_intelligence_count": command["supporting_count"],
         "intelligence_worlds": tuple(dict(item) for item in INTELLIGENCE_WORLDS),
         "cross_system_capabilities": CROSS_SYSTEM_CAPABILITIES,
         "internal_capabilities": SMI_INTERNAL_CAPABILITIES,
