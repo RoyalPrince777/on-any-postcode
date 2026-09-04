@@ -1,5 +1,5 @@
+import importlib
 from datetime import UTC, datetime, timedelta
-from importlib import import_module
 
 from mission_control import postgres_db, travel_supply_core
 
@@ -131,7 +131,7 @@ def test_input_validation_fails_before_any_database_write():
 def test_travel_agency_exposes_oap_direct_marketplace_without_false_live_claims(
     monkeypatch,
 ):
-    travel_agency = import_module("oap.smi.travel_agency")
+    travel_agency = importlib.import_module("oap.smi.travel_agency")
     _base_not_ready(monkeypatch)
     current = travel_agency.status()
 
