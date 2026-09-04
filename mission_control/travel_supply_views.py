@@ -3,7 +3,12 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import partner_supply, travel_marketplace, web_security
+from . import (
+    partner_supply,
+    travel_marketplace,
+    travel_supply_policy,
+    web_security,
+)
 from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
@@ -62,6 +67,49 @@ def _buyer_write(operation):
     return _no_store(make_response(jsonify(result)))
 
 
+def _hybrid_catalogue(
+    *,
+    category: object = None,
+    country: object = None,
+    limit: object = 24,
+) -> dict:
+    """Build the OAP-owned catalogue with Direct supply deliberately first."""
+
+    direct = travel_marketplace.public_offers(
+        category=category,
+        country=country,
+        limit=limit,
+    )
+    try:
+        partner = partner_supply.public_offers(category=category, limit=limit)
+    except ValueError:
+        # OAP Direct supports a wider category set than current partner adapters.
+        # A partner that cannot serve the requested category is simply optional.
+        partner = {
+            "component": "OAP Partner Supply",
+            "ready": True,
+            "offers": [],
+            "count": 0,
+            "filtered_out_for_category": True,
+            "external_provider_authority": False,
+        }
+    policy = travel_supply_policy.public_policy()
+    return {
+        "component": "OAP Travel Catalogue",
+        "direct": direct,
+        "partner": partner,
+        "direct_count": int(direct.get("count", 0)),
+        "partner_count": int(partner.get("count", 0)),
+        "source_order": list(travel_supply_policy.PREFERRED_SOURCE_ORDER),
+        "policy": policy,
+        "booking_com_required": policy["booking_com_required"],
+        "partner_supply_is_replaceable": True,
+        "automatic_quality_ranking_across_unmatched_offers": False,
+        "external_provider_authority": False,
+        "human_authority_final": True,
+    }
+
+
 def _operator_snapshot() -> dict:
     """Decorate the bounded Founder snapshot with non-secret operator defaults."""
 
@@ -90,7 +138,30 @@ def _operator_snapshot() -> dict:
         "listing_title": active_listing.get("title", "") if active_listing else "",
     }
     snapshot["partner_supply"] = partner_supply.status()
+    snapshot["travel_policy"] = travel_supply_policy.public_policy()
     return snapshot
+
+
+@bp.get("/travel")
+def public_travel():
+    """Render the sovereign hybrid OAP Travel catalogue."""
+
+    try:
+        catalogue = _hybrid_catalogue(
+            category=request.args.get("category"),
+            limit=request.args.get("limit", "24"),
+        )
+    except ValueError as exc:
+        catalogue = {
+            "component": "OAP Travel Catalogue",
+            "direct": {"offers": [], "count": 0},
+            "partner": {"offers": [], "count": 0},
+            "direct_count": 0,
+            "partner_count": 0,
+            "policy": travel_supply_policy.public_policy(),
+            "error": str(exc),
+        }
+    return _no_store(make_response(render_template("travel.html", catalogue=catalogue)))
 
 
 @bp.get("/travel/direct")
@@ -170,32 +241,16 @@ def public_partner_offers():
 
 @bp.get("/travel/api/catalogue")
 def public_catalogue():
-    """Return direct and partner supply as explicit groups, never fake one source."""
+    """Return Direct and Partner Supply as explicit, ordered source groups."""
 
-    category = request.args.get("category")
-    limit = request.args.get("limit", "24")
-    country = request.args.get("country")
     try:
-        direct = travel_marketplace.public_offers(
-            category=category,
-            country=country,
-            limit=limit,
+        result = _hybrid_catalogue(
+            category=request.args.get("category"),
+            country=request.args.get("country"),
+            limit=request.args.get("limit", "24"),
         )
-        partner = partner_supply.public_offers(category=category, limit=limit)
     except ValueError as exc:
         return _error("invalid_catalogue_filter", str(exc)[:120], 400)
-    result = {
-        "component": "OAP Travel Catalogue",
-        "direct": direct,
-        "partner": partner,
-        "direct_count": int(direct.get("count", 0)),
-        "partner_count": int(partner.get("count", 0)),
-        "booking_com_required": False,
-        "partner_supply_is_replaceable": True,
-        "automatic_quality_ranking_across_unmatched_offers": False,
-        "external_provider_authority": False,
-        "human_authority_final": True,
-    }
     return _no_store(make_response(jsonify(result)))
 
 
