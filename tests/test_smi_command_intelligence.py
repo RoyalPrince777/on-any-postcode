@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from mission_control import live_brain, smi_capabilities
 from oap.smi.command_intelligence import CommandIntelligence
 
