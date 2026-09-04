@@ -38,7 +38,7 @@ def test_gateway_does_not_claim_full_provider_removal():
 def test_capability_fabric_combines_functions_without_provider_identity_or_authority():
     snapshot = capability_status()
     assert snapshot["ready"] is True
-    assert snapshot["capability_count"] >= 26
+    assert snapshot["capability_count"] >= 36
     assert snapshot["provider_neutral"] is True
     assert snapshot["copies_provider_identity"] is False
     assert snapshot["copies_private_prompts"] is False
@@ -71,6 +71,33 @@ def test_expanded_fabric_routes_swarm_steering_skills_and_multimodal_work():
     assert "live_steering" in capabilities
     assert "skill_distillation" in capabilities
     assert "multimodal_spatial_reasoning" in capabilities
+
+
+def test_human_capability_cluster_routes_memory_governance_synthesis_and_media():
+    capabilities = select_capabilities(
+        "GENERAL",
+        (
+            "Jog memory and recover forgotten decisions, use agent governance, find gaps, "
+            "synthesise experts, support speech intelligence and visual human cues"
+        ),
+        limit=12,
+    )
+    assert "memory_reconstruction" in capabilities
+    assert "agent_governance" in capabilities
+    assert "gap_adversarial_review" in capabilities
+    assert "multi_expert_synthesis" in capabilities
+    assert "voice_speech_intelligence" in capabilities
+    assert "visual_human_cues" in capabilities
+
+
+def test_human_capability_cluster_keeps_sensitive_boundaries_off():
+    snapshot = capability_status()
+    assert snapshot["unauthorised_impersonation"] is False
+    assert snapshot["covert_psychological_manipulation"] is False
+    assert snapshot["biometric_identity_profiling"] is False
+    assert snapshot["autonomous_trading_or_value_transfer"] is False
+    assert snapshot["control_bypass_or_exploitation"] is False
+    assert snapshot["human_authority_final"] is True
 
 
 def test_gateway_enriches_all_provider_paths_with_oap_capabilities():
