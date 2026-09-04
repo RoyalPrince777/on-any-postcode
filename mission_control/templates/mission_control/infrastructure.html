@@ -73,7 +73,7 @@
 
     <section class="mc-panel" aria-labelledby="shared-health-title">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Shared health</p><h2 id="shared-health-title">Shared system health</h2></div><span class="mc-lock-badge">Observed</span></div>
-      <p>This coarse status widget is shared from Mission Control. It is not another Infrastructure module.</p>
+      <p>This coarse status widget is shared from Mission Control. It is not a fifth Infrastructure module.</p>
       <div class="mc-status-ribbon" role="list">{% for component in shared_health %}<div class="mc-status mc-status--{{ component.state }}" role="listitem"><span>{{ component.label }}</span><strong>{{ component.value }}</strong></div>{% endfor %}</div>
     </section>
 
