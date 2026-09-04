@@ -1,11 +1,6 @@
-from pathlib import Path
-
-
-ROOT = Path(__file__).resolve().parents[1]
-
-
 def _text(path: str) -> str:
-    return (ROOT / path).read_text(encoding="utf-8")
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
 
 
 def test_mission_control_prioritises_real_booking_and_private_controls():
