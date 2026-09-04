@@ -1,9 +1,9 @@
-from pathlib import Path
-
 from mission_control import travel_supply_views
 
 
-ROOT = Path(__file__).resolve().parents[1]
+def _template() -> str:
+    with open("mission_control/templates/travel_supply_control.html", encoding="utf-8") as handle:
+        return handle.read()
 
 
 def test_operator_snapshot_prefers_certified_supplier_and_active_listing(monkeypatch):
@@ -45,9 +45,7 @@ def test_operator_snapshot_prefers_certified_supplier_and_active_listing(monkeyp
 
 
 def test_booking_control_removes_uuid_copying_from_primary_lane():
-    page = (ROOT / "mission_control/templates/travel_supply_control.html").read_text(
-        encoding="utf-8"
-    )
+    page = _template()
 
     assert "No UUID copying is needed" in page
     assert "supply.operator.owner_identity_id" in page
@@ -59,9 +57,7 @@ def test_booking_control_removes_uuid_copying_from_primary_lane():
 
 
 def test_booking_control_public_links_escape_private_gateway():
-    page = (ROOT / "mission_control/templates/travel_supply_control.html").read_text(
-        encoding="utf-8"
-    )
+    page = _template()
 
     public_origin = "https://on-any-postcode.onrender.com"
     assert f'href="{public_origin}/travel/direct"' in page
@@ -71,10 +67,12 @@ def test_booking_control_public_links_escape_private_gateway():
 
 
 def test_booking_control_keeps_external_provider_truth_boundary():
-    page = (ROOT / "mission_control/templates/travel_supply_control.html").read_text(
-        encoding="utf-8"
-    )
+    page = _template()
 
     assert "Maximum life is 24 hours" in page
     assert "not booking authority" in page
-    assert "Payment capture, OAP Pass issuance and commission settlement remain separately governed" in page
+    assert (
+        "Payment capture, OAP Pass issuance and commission settlement remain "
+        "separately governed"
+        in page
+    )
