@@ -35,6 +35,9 @@ const personalSubtitle=document.querySelector('.chat-head .chat-subtitle');
 if(personalTitle)personalTitle.textContent='Personal SMI';
 if(personalSubtitle)personalSubtitle.textContent='Private Founder intelligence · HRM · Aegis';
 document.title='Personal SMI · OAP Mind';
+const publicOapOrigin='https://on-any-postcode.onrender.com/';
+const publicFrontDoor=Array.from(document.querySelectorAll('.navs a')).find(link=>link.textContent.trim()==='OAP Front Door');
+if(publicFrontDoor){publicFrontDoor.href=publicOapOrigin;publicFrontDoor.rel='noopener'}
 
 const composerInput=document.getElementById('message');
 if(composerInput){
