@@ -4,6 +4,8 @@ The signal language is owned by ON ANY POSTCODE. It provides one machine-readabl
 state vocabulary for OAP interfaces, War Room projections and intelligence
 status. It does not probe networks, infer success, approve actions or grant
 authority. Purple is reserved for Learning and is never a warning/verdict colour.
+The canonical core contains exactly 21 signals. Orange Busy / High Load remains
+a workload modifier, not a 22nd core state.
 """
 
 from __future__ import annotations
@@ -14,7 +16,6 @@ LIVE_SIGNALS: tuple[dict[str, str], ...] = (
     {"id": "healthy", "emoji": "🟢", "label": "Healthy", "group": "health", "meaning": "Healthy and safe to proceed within the stated boundary."},
     {"id": "starting", "emoji": "🔵", "label": "Starting", "group": "activity", "meaning": "Starting or warming up; readiness is not yet complete."},
     {"id": "warning", "emoji": "🟡", "label": "Warning", "group": "health", "meaning": "Attention required; keep review open until evidence closes the gap."},
-    {"id": "busy", "emoji": "🟠", "label": "Busy", "group": "activity", "meaning": "Actively occupied or under elevated workload."},
     {"id": "critical", "emoji": "🔴", "label": "Critical", "group": "health", "meaning": "Critical condition; fail closed or stop consequential progression."},
     {"id": "offline", "emoji": "⚪", "label": "Offline", "group": "system", "meaning": "Unavailable or not connected."},
     {"id": "learning", "emoji": "🟣", "label": "Learning", "group": "cognition", "meaning": "Learning or adapting from evidence. Purple is not a warning signal."},
@@ -31,13 +32,17 @@ LIVE_SIGNALS: tuple[dict[str, str], ...] = (
     {"id": "improving", "emoji": "📈", "label": "Improving", "group": "state", "meaning": "Measured improvement is underway."},
     {"id": "alert", "emoji": "🚨", "label": "Alert", "group": "state", "meaning": "An alert requires attention or review."},
     {"id": "complete", "emoji": "✅", "label": "Complete", "group": "state", "meaning": "The stated bounded task or gate is complete."},
-    {"id": "working", "emoji": "⏳", "label": "Working", "group": "activity", "meaning": "Work is actively in progress."},
+    {"id": "working", "emoji": "⏳", "label": "Active / Working", "group": "activity", "meaning": "Work is actively in progress."},
     {"id": "idle", "emoji": "💤", "label": "Idle", "group": "activity", "meaning": "Available but not currently active."},
+)
+
+WORKLOAD_MODIFIERS: tuple[dict[str, str], ...] = (
+    {"id": "busy_high_load", "emoji": "🟠", "label": "Busy / High Load", "meaning": "Workload intensity modifier used with a core state such as Active / Working."},
 )
 
 SIGNAL_GROUPS: tuple[dict[str, Any], ...] = (
     {"id": "health", "name": "Health", "signals": ("healthy", "warning", "critical", "mind_healthy", "body_healthy", "soul_healthy")},
-    {"id": "activity", "name": "Activity", "signals": ("busy", "starting", "working", "idle")},
+    {"id": "activity", "name": "Activity", "signals": ("starting", "working", "idle")},
     {"id": "cognition", "name": "Cognition", "signals": ("thinking", "learning", "synchronising")},
     {"id": "system", "name": "System", "signals": ("connected", "high_performance", "memory_active", "offline")},
     {"id": "state", "name": "State", "signals": ("protected", "improving", "alert", "complete", "maintenance")},
@@ -78,6 +83,9 @@ ALIASES = {
     "configured": "warning",
     "amber": "warning",
     "yellow": "warning",
+    "busy": "working",
+    "active": "working",
+    "high_load": "working",
     "in_progress": "working",
     "processing": "working",
     "sync": "synchronising",
@@ -126,6 +134,8 @@ def validate_signal_language() -> dict[str, Any]:
     ids = tuple(item["id"] for item in LIVE_SIGNALS)
     emojis = {item["id"]: item["emoji"] for item in LIVE_SIGNALS}
     errors: list[str] = []
+    if len(ids) != 21:
+        errors.append("OAP core live signal set must contain exactly 21 signals")
     if len(ids) != len(set(ids)):
         errors.append("Duplicate OAP live signal IDs")
     if emojis.get("learning") != "🟣":
@@ -138,10 +148,13 @@ def validate_signal_language() -> dict[str, Any]:
         errors.append("Critical must remain red")
     if any(item["emoji"] == "🟣" and item["id"] != "learning" for item in LIVE_SIGNALS):
         errors.append("Purple is reserved for Learning")
+    if any(item["emoji"] == "🟠" for item in LIVE_SIGNALS):
+        errors.append("Orange Busy / High Load must remain a modifier, not a core signal")
     return {
         "passed": not errors,
         "errors": tuple(errors),
         "signal_count": len(LIVE_SIGNALS),
+        "modifier_count": len(WORKLOAD_MODIFIERS),
         "first_party_only": True,
         "owner": "ON ANY POSTCODE",
     }
@@ -153,7 +166,9 @@ def public_legend() -> dict[str, Any]:
         "name": "OAP Live Signal Legend",
         "owner": "ON ANY POSTCODE",
         "first_party_only": True,
+        "core_signal_count": 21,
         "signals": LIVE_SIGNALS,
+        "workload_modifiers": WORKLOAD_MODIFIERS,
         "groups": SIGNAL_GROUPS,
         "mind_body_soul": MIND_BODY_SOUL_SIGNALS,
         "verdict_rules": {
@@ -163,6 +178,7 @@ def public_legend() -> dict[str, Any]:
             "learning": "🟣",
             "learning_is_verdict": False,
             "purple_reserved_for_learning": True,
+            "orange_is_workload_modifier": True,
         },
         "external_identity_allowed": False,
         "external_authority_allowed": False,

@@ -14,8 +14,29 @@ def test_live_signal_language_is_first_party_complete_and_unique():
     assert legend["can_approve"] is False
     assert legend["can_execute"] is False
     assert legend["validation"]["passed"] is True
-    assert len(ids) == 22
+    assert legend["core_signal_count"] == 21
+    assert legend["validation"]["signal_count"] == 21
+    assert len(ids) == 21
     assert len(ids) == len(set(ids))
+    assert "busy" not in ids
+
+
+def test_busy_is_preserved_as_orange_workload_modifier():
+    legend = live_signals.public_legend()
+    modifiers = legend["workload_modifiers"]
+
+    assert modifiers == (
+        {
+            "id": "busy_high_load",
+            "emoji": "🟠",
+            "label": "Busy / High Load",
+            "meaning": "Workload intensity modifier used with a core state such as Active / Working.",
+        },
+    )
+    assert legend["validation"]["modifier_count"] == 1
+    assert legend["verdict_rules"]["orange_is_workload_modifier"] is True
+    assert live_signals.get_signal("busy")["id"] == "working"
+    assert live_signals.get_signal("high_load")["id"] == "working"
 
 
 def test_learning_is_the_only_purple_signal_and_never_a_verdict():
@@ -38,6 +59,7 @@ def test_existing_runtime_words_resolve_without_false_green():
     assert live_signals.resolve_runtime_signal("degraded", status="Not connected")["id"] == "offline"
     assert live_signals.resolve_runtime_signal("error")["id"] == "critical"
     assert live_signals.resolve_runtime_signal("learning")["id"] == "learning"
+    assert live_signals.resolve_runtime_signal("busy")["id"] == "working"
     assert live_signals.resolve_runtime_signal("unknown-state")["id"] == "warning"
 
 
