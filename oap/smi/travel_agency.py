@@ -1,22 +1,24 @@
 """OAP Travel Agency truth/status composition.
 
 This is not a separate Intelligence World or SMI brain. It composes the reusable
-Intelligence Capability Registry with the replaceable travel-supply adapter layer
-and exposes truthful commercial readiness without granting execution authority.
+Intelligence Capability Registry, first-party OAP Booking Core and replaceable
+travel-supply adapter layer, exposing truthful commercial readiness without
+granting execution authority.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from . import intelligence_capability_registry, supply_integration
+from . import booking_orchestrator, intelligence_capability_registry, supply_integration
 
-TRAVEL_AGENCY_REVISION = "2026-09-04-v1"
+TRAVEL_AGENCY_REVISION = "2026-09-04-v2"
 
 
 def status() -> dict[str, Any]:
     registry = intelligence_capability_registry.status()
     supply = supply_integration.status()
+    booking_core = booking_orchestrator.status()
 
     live_supply = bool(supply["live_supply_connected"])
     booking_live = bool(supply["booking_transactions_live"])
@@ -28,6 +30,11 @@ def status() -> dict[str, Any]:
             "id": "capability_registry",
             "ready": bool(registry["registry_software_ready"]),
             "required_for": "all_travel_intelligence",
+        },
+        {
+            "id": "oap_booking_core",
+            "ready": bool(booking_core["first_party_booking_orchestration_ready"]),
+            "required_for": "oap_owned_booking_journey_and_human_confirmation",
         },
         {
             "id": "supply_adapter_framework",
@@ -65,6 +72,9 @@ def status() -> dict[str, Any]:
         "brain": False,
         "brain_count_added": 0,
         "capability_registry_ready": registry["registry_software_ready"],
+        "oap_booking_core_ready": booking_core["first_party_booking_orchestration_ready"],
+        "oap_owns_booking_experience": booking_core["owns_booking_experience"],
+        "oap_owns_supplier_inventory": booking_core["owns_supplier_inventory"],
         "supply_adapter_framework_ready": supply["adapter_framework_ready"],
         "live_supply_search_ready": live_supply,
         "booking_transactions_live": booking_live,
@@ -88,8 +98,9 @@ def status() -> dict[str, Any]:
         "production_payment_claim_allowed": payment_live,
         "production_commission_claim_allowed": commission_live,
         "truth_boundary": (
-            "OAP Travel Agency may compare and plan using verified supplier evidence. "
-            "It may not claim a live supplier search, confirmed booking, captured payment "
+            "OAP owns the booking experience, intent state and confirmation journey. "
+            "External providers may supply inventory and external booking destinations. "
+            "OAP may not claim a live supplier search, confirmed booking, captured payment "
             "or earned commission until the corresponding governed runtime gate is green."
         ),
     }
