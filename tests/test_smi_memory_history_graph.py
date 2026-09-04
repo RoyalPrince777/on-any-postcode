@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from mission_control import smi_chat_runtime
-from oap.smi.knowledge_graph import graph_memory_items, status as graph_status
-from oap.smi.memory_history import historical_memory_items, status as history_status
-from oap.smi.memory_orchestrator import compose_text_memory, status as memory_status
-from oap.smi.memory_sync import MemorySyncPacket, status as sync_status, validate_packet
+from oap.smi.knowledge_graph import graph_memory_items
+from oap.smi.knowledge_graph import status as graph_status
+from oap.smi.memory_history import historical_memory_items
+from oap.smi.memory_history import status as history_status
+from oap.smi.memory_orchestrator import compose_text_memory
+from oap.smi.memory_orchestrator import status as memory_status
+from oap.smi.memory_sync import MemorySyncPacket, validate_packet
+from oap.smi.memory_sync import status as sync_status
 
 
 def test_history_is_bounded_and_never_canonical_authority():
