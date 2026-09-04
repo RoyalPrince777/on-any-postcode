@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Face Up Spatial — OAP Mission Control</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">OAP / 6G-7G Lab / Spatial Presence</p>
+      <h1>Face Up Spatial</h1>
+      <p>Volumetric telepresence software with current-network fallback and future-radio evidence gates.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('isac_spatial.dashboard') }}">ISAC Spatial</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace', mode='mission') }}">Mission Control</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-panel">
+      <h2>Presence pipeline</h2>
+      <ol class="mc-timeline">
+        {% for stage in presence.pipeline %}<li><span>{{ stage }}</span></li>{% endfor %}
+      </ol>
+    </section>
+
+    <section class="mc-panel">
+      <h2>Software readiness</h2>
+      <div class="mc-status-ribbon" role="list">
+        <div class="mc-status mc-status--live" role="listitem"><span>Software core</span><strong>{{ 'READY' if presence.software_ready else 'BLOCKED' }}</strong></div>
+        <div class="mc-status mc-status--live" role="listitem"><span>Semantic compression</span><strong>{{ 'READY' if presence.semantic_compression_ready else 'BLOCKED' }}</strong></div>
+        <div class="mc-status mc-status--live" role="listitem"><span>Adaptive QoS</span><strong>{{ 'READY' if presence.adaptive_qos_ready else 'BLOCKED' }}</strong></div>
+        <div class="mc-status mc-status--live" role="listitem"><span>Matrix projection</span><strong>PRIVACY REDUCED</strong></div>
+      </div>
+    </section>
+
+    <section class="mc-panel">
+      <h2>Radio research</h2>
+      <p><strong>OAP experimental cmWave envelope:</strong> {{ presence.oap_experimental_cmwave_ghz[0] }}–{{ presence.oap_experimental_cmwave_ghz[1] }} GHz</p>
+      <p>This is an OAP research envelope, not a claim that the final 6G standard has selected 7–21 GHz.</p>
+      <p><strong>D-band research:</strong> {{ presence.d_band_ghz[0] }}–{{ presence.d_band_ghz[1] }} GHz · <strong>sub-THz research:</strong> {{ presence.sub_thz_research_ghz[0] }}–{{ presence.sub_thz_research_ghz[1] }} GHz</p>
+    </section>
+
+    <section class="mc-panel">
+      <h2>Physical evidence gates</h2>
+      <div class="mc-status-ribbon" role="list">
+        <div class="mc-status mc-status--{{ 'live' if presence.capture_hardware_proven else 'warning' }}" role="listitem"><span>Capture hardware</span><strong>{{ 'PROVEN' if presence.capture_hardware_proven else 'EVIDENCE NEEDED' }}</strong></div>
+        <div class="mc-status mc-status--{{ 'live' if presence.spatial_display_hardware_proven else 'warning' }}" role="listitem"><span>Spatial display</span><strong>{{ 'PROVEN' if presence.spatial_display_hardware_proven else 'EVIDENCE NEEDED' }}</strong></div>
+        <div class="mc-status mc-status--{{ 'live' if presence.oap_7_21_radio_hardware_proven else 'warning' }}" role="listitem"><span>7–21 GHz radio</span><strong>{{ 'PROVEN' if presence.oap_7_21_radio_hardware_proven else 'EVIDENCE NEEDED' }}</strong></div>
+        <div class="mc-status mc-status--{{ 'live' if presence.live_6g_network_proven else 'warning' }}" role="listitem"><span>Live 6G network</span><strong>{{ 'PROVEN' if presence.live_6g_network_proven else 'NOT CLAIMED' }}</strong></div>
+      </div>
+    </section>
+
+    <section class="mc-panel">
+      <h2>Guardian Presence</h2>
+      <p>No raw-media export by default. No persistent biometric clone. No hidden-person tracking. No through-wall person tracking. No autonomous radio control.</p>
+    </section>
+
+    <aside class="mc-authority"><strong>Human Authority: FINAL</strong><span>{{ presence.truth_boundary }}</span></aside>
+  </main>
+</body>
+</html>
