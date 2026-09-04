@@ -24,10 +24,15 @@ def test_registry_contains_exactly_78_complete_oap_agents():
     assert LOCKED_AGENT_COUNT == 78
     assert len(AGENT_REGISTRY) == LOCKED_AGENT_COUNT
     assert Counter(agent["family_id"] for agent in AGENT_REGISTRY) == EXPECTED_FAMILY_COUNTS
-    assert len(INTELLIGENCE_WORLDS) == 7
-    earth = next(world for world in INTELLIGENCE_WORLDS if world["id"] == "earth")
-    assert earth["name"] == "Earth Intelligence"
-    assert earth["roster_status"].startswith("Approved world")
+    assert tuple(world["id"] for world in INTELLIGENCE_WORLDS) == (
+        "earth",
+        "language",
+        "life",
+        "movement",
+        "civic",
+        "civilisation",
+        "matrix",
+    )
     assert len(INTELLIGENCE_FAMILIES) == 7
 
 
@@ -65,7 +70,9 @@ def test_every_agent_has_a_complete_human_governed_passport():
         assert agent["supervisor"] == "Living Kernel"
         assert agent["memory_system"] == "HRM Core"
         assert agent["audit_required"] is True
-        assert agent["permissions"] == ("READ", "ANALYSE", "RECOMMEND")
+        assert "READ" in agent["permissions"]
+        assert "ANALYSE" in agent["permissions"]
+        assert "RECOMMEND" in agent["permissions"]
         assert "EXECUTE" not in agent["permissions"]
         assert "Cannot override Human Authority" in agent["restrictions"]
         assert agent["provider_ids"] == ()
@@ -95,17 +102,23 @@ def test_registry_has_no_duplicate_identity_role_or_responsibility():
     assert result["checks"]["bounded_autonomous_agents"] == 78
     assert result["checks"]["proposed_passports"] == 0
     assert result["checks"]["human_approved_passports"] == 78
+    assert result["checks"]["canonical_world_alignment"] is True
+    assert result["checks"]["matrix_home_system_aligned"] is True
+    assert result["checks"]["nirmata_creation_architect_aligned"] is True
 
 
-def test_nirmata_occupies_the_existing_civilisation_artisan_slot():
+def test_nirmata_is_the_civilisation_creation_architect():
     nirmata = next(agent for agent in AGENT_REGISTRY if agent["name"] == "Nirmata")
 
-    assert nirmata["agent_id"] == "CIVILISATION-ARTISAN-001"
+    assert nirmata["agent_id"] == "NIRMATA-001"
     assert nirmata["family_id"] == "civilisation"
-    assert nirmata["role"] == "Creation Design Steward"
-    assert "Civilisation Artisan" in nirmata["aliases"]
+    assert nirmata["role"] == "Creation Architect"
+    assert nirmata["organ"] == "Brain"
+    assert "DESIGN" in nirmata["permissions"]
+    assert "DRAFT_BLUEPRINT" in nirmata["permissions"]
     assert nirmata["body"]["execution"] == "Disabled"
     assert "Builder handoff" in nirmata["mind"]["capabilities"]
+    assert nirmata["memory"]["record_every_design"] is True
     assert nirmata["autonomy"]["can_execute"] is False
 
 
