@@ -15,15 +15,22 @@ def test_6g_connectivity_routes_to_technology_and_matrix():
     assert route["human_authority_final"] is True
 
 
-def test_technology_registry_keeps_6g_nested_and_non_executing():
+def test_technology_registry_keeps_6g_nested_production_and_non_executing():
     status = technology_intelligence.technology_intelligence_status()
     smi = smi_capabilities.smi_capability_status()
+    smi_technology = smi["specialist_status"]["technology"]
+
     assert status["name"] == "Technology Intelligence"
     assert status["connectivity"]["name"] == "Connectivity Intelligence"
     assert status["connectivity"]["6g"]["name"] == "6G Intelligence"
+    assert status["runtime_mode"] == "production"
+    assert status["demo_mode"] is False
+    assert status["connectivity"]["runtime"]["simulation_success_allowed"] is False
     assert status["6g_architecture_ready"] is True
     assert status["6g_production_network_ready"] is False
     assert status["intelligence_world_count_added"] == 0
     assert status["network_execution_authority"] is False
     assert smi["validation"]["checks"]["intelligence_worlds"] == 7
-    assert smi["specialist_status"]["technology"] == status
+    assert smi_technology["runtime_mode"] == "production"
+    assert smi_technology["demo_mode"] is False
+    assert smi_technology["network_execution_authority"] is False
