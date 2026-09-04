@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='private_command.css') }}">
   <style>
-    .align-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}.align-card{border:1px solid var(--oap-command-line);border-radius:18px;padding:16px;background:var(--oap-command-panel-2)}.align-card h3{margin:.25rem 0 .45rem}.align-card p{color:var(--oap-command-muted);line-height:1.5}.world-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px}.world{border:1px solid var(--oap-command-line);border-radius:15px;padding:13px;background:rgba(5,17,10,.68)}.world strong{display:block;margin-bottom:5px}.world small{color:var(--oap-command-muted);line-height:1.4}.gap-list{display:grid;gap:7px;padding:0;list-style:none}.gap-list li{border-left:3px solid #e2c16a;padding:8px 10px;background:rgba(226,193,106,.06);border-radius:0 10px 10px 0;color:#d6ceb3}.truth-box{border-left:4px solid var(--oap-command-gold);padding:13px 15px;background:rgba(226,193,106,.08);border-radius:0 13px 13px 0;line-height:1.55;color:#ddd5bb}.state{font-size:1.45rem;font-weight:900}.mini{color:var(--oap-command-muted);font-size:.8rem}
+    .align-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}.align-card{border:1px solid var(--oap-command-line);border-radius:18px;padding:16px;background:var(--oap-command-panel-2)}.align-card h3{margin:.25rem 0 .45rem}.align-card p{color:var(--oap-command-muted);line-height:1.5}.world-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px}.world{border:1px solid var(--oap-command-line);border-radius:15px;padding:13px;background:rgba(5,17,10,.68)}.world strong{display:block;margin-bottom:5px}.world small{color:var(--oap-command-muted);line-height:1.4}.gap-list{display:grid;gap:7px;padding:0;list-style:none}.gap-list li{border-left:3px solid #e2c16a;padding:8px 10px;background:rgba(226,193,106,.06);border-radius:0 10px 10px 0;color:#d6ceb3}.truth-box{border-left:4px solid var(--oap-command-gold);padding:13px 15px;background:rgba(226,193,106,.08);border-radius:0 13px 13px 0;line-height:1.55;color:#ddd5bb}.state{font-size:1.45rem;font-weight:900}.mini{color:var(--oap-command-muted);font-size:.8rem}.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid var(--oap-command-line);border-radius:999px;padding:6px 9px;font-size:.76rem;color:#cbd8cf;background:#07140d}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -16,14 +16,14 @@
     <section class="oap-command-hero-modern">
       <p class="oap-command-kicker">SMI · Alignment Intelligence · Technical Sovereignty</p>
       <h1 class="oap-command-title">Alignment & Sovereignty</h1>
-      <p class="oap-command-copy">One evidence view for architecture alignment, bounded autonomy, provider authority and technical sovereignty. This is technical control evidence—not a claim of governmental or legal sovereignty.</p>
+      <p class="oap-command-copy">One evidence view for architecture alignment, governed autonomy, AI behaviour, provider authority and technical sovereignty. This is technical control evidence—not a claim of governmental or legal sovereignty.</p>
       <div class="oap-command-metrics">
         <div class="oap-command-metric"><small>SMI brain</small><strong>1 · SINGLE</strong></div>
         <div class="oap-command-metric"><small>Intelligence Worlds</small><strong>{{ capability_registry.world_count }} / 7</strong></div>
         <div class="oap-command-metric"><small>Capabilities</small><strong>{{ capability_registry.capability_count }}</strong></div>
         <div class="oap-command-metric"><small>Registered agents</small><strong>{{ agent_count }}</strong></div>
         <div class="oap-command-metric"><small>Autonomy</small><strong>{{ autonomy.configured_level }}</strong></div>
-        <div class="oap-command-metric"><small>Sovereignty grade</small><strong>{{ sovereignty.sovereignty_grade }}</strong></div>
+        <div class="oap-command-metric"><small>Reasoning</small><strong>3 → 7 → 21</strong></div>
       </div>
     </section>
 
@@ -37,13 +37,23 @@
       </div>
     </section>
 
-    <section class="oap-command-panel-modern" style="margin-top:16px" aria-labelledby="a3-title">
-      <div class="mc-section-heading"><div><p class="mc-eyebrow">A3 · bounded autonomy</p><h2 id="a3-title">Autonomy controller</h2></div><span class="mc-lock-badge">{{ autonomy.configured_level }}</span></div>
+    <section class="oap-command-panel-modern" style="margin-top:16px" aria-labelledby="a4-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">A4 · supervised autonomy</p><h2 id="a4-title">Autonomy controller</h2></div><span class="mc-lock-badge">{{ autonomy.configured_level }}</span></div>
       <div class="align-grid">
-        <article class="align-card"><h3>A3 state</h3><p class="state {{ 'oap-command-status-good' if autonomy.a3_execution_enabled else 'oap-command-status-amber' }}">{{ '🟢 ENABLED' if autonomy.a3_execution_enabled else '🟡 NOT ACTIVE' }}</p><p>Only pre-authorised, reversible, audited runtime actions are allowed.</p></article>
-        <article class="align-card"><h3>Allowed A3 actions</h3><p>{% for action in autonomy.a3_pilot_actions %}<strong>{{ action }}</strong>{% if not loop.last %}<br>{% endif %}{% endfor %}</p></article>
-        <article class="align-card"><h3>A4 / A5</h3><p class="state">🔒 LOCKED</p><p>Longer supervised or broad autonomous operation is not enabled.</p></article>
-        <article class="align-card"><h3>Consequential actions</h3><p class="state">🔒 HUMAN GATE</p><p>No autonomous payments, deploys, public publishing, auth changes, production migrations or real-world dispatch.</p></article>
+        <article class="align-card"><h3>A4 state</h3><p class="state {{ 'oap-command-status-good' if autonomy.a4_enabled else 'oap-command-status-amber' }}">{{ '🟢 ENABLED' if autonomy.a4_enabled else '🟡 NOT ACTIVE' }}</p><p>Longer supervised workflows may use only the same pre-authorised reversible A3 runtime actions.</p></article>
+        <article class="align-card"><h3>Workflow bounds</h3><p><strong>Max {{ autonomy.a4_max_workflow_steps }} steps</strong><br>Checkpoint every {{ autonomy.a4_checkpoint_every }} steps<br>Audit + supervision required</p></article>
+        <article class="align-card"><h3>Allowed runtime actions</h3><p>{% for action in autonomy.a4_workflow_actions %}<strong>{{ action }}</strong>{% if not loop.last %}<br>{% endif %}{% endfor %}</p></article>
+        <article class="align-card"><h3>A5 / consequential</h3><p class="state">🔒 LOCKED</p><p>No autonomous payments, deploys, public publishing, auth changes, production migrations, permission changes or real-world dispatch.</p></article>
+      </div>
+    </section>
+
+    <section class="oap-command-panel-modern" style="margin-top:16px" aria-labelledby="behaviour-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">AI behaviour</p><h2 id="behaviour-title">Personal SMI response discipline</h2></div><span class="mc-lock-badge">{{ behaviour.revision }}</span></div>
+      <div class="align-grid">
+        <article class="align-card"><h3>Answer style</h3><p class="state oap-command-status-good">🟢 ANSWER FIRST</p><p>Concise by default. No repeated SMI prefix or generic self-introduction.</p></article>
+        <article class="align-card"><h3>Adaptive depth</h3><p class="state">3 → 7 → 21</p><p>Simple → material/complex → high-risk or War Room review.</p></article>
+        <article class="align-card"><h3>Truth discipline</h3><div class="chips">{% for label in behaviour.truth_labels %}<span class="chip">{{ label }}</span>{% endfor %}</div><p>Facts, inference, unknowns and blocked capabilities stay separate.</p></article>
+        <article class="align-card"><h3>Thinking visibility</h3><p class="state">SAFE STATUS ONLY</p><p>Process stages may be shown; hidden chain-of-thought and private scratch work are never exposed.</p></article>
       </div>
     </section>
 
@@ -55,10 +65,7 @@
         <article class="align-card"><h3>Master full active</h3><p class="state {{ 'oap-command-status-good' if sovereignty.master_full_sovereignty_active else 'oap-command-status-amber' }}">{{ '🟢 PROVEN' if sovereignty.master_full_sovereignty_active else '🟡 NOT CLAIMED' }}</p></article>
         <article class="align-card"><h3>Emergency halt</h3><p class="state {{ 'oap-command-status-red' if sovereignty.emergency_halt_active else 'oap-command-status-good' }}">{{ '🔴 ACTIVE' if sovereignty.emergency_halt_active else '🟢 CLEAR' }}</p></article>
       </div>
-      {% if sovereignty.master_runtime_gaps %}
-      <h3>Evidence gaps before Master Full can turn green</h3>
-      <ul class="gap-list">{% for gap in sovereignty.master_runtime_gaps %}<li>{{ gap.replace('_',' ')|title }}</li>{% endfor %}</ul>
-      {% endif %}
+      {% if sovereignty.master_runtime_gaps %}<h3>Evidence gaps before Master Full can turn green</h3><ul class="gap-list">{% for gap in sovereignty.master_runtime_gaps %}<li>{{ gap.replace('_',' ')|title }}</li>{% endfor %}</ul>{% endif %}
       <p class="truth-box"><strong>No fake sovereignty claim.</strong> Master Full only becomes active when custody, local model, self-hosted infrastructure, egress control, recovery, first-party observability and supply-chain attestations are actually proven.</p>
     </section>
 
