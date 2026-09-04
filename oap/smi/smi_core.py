@@ -33,6 +33,7 @@ from .organs.base import BrainPacket
 from .providers import ProviderRouter
 from .self_improvement_v2 import SelfImprovementV2
 from .self_model import SelfModel
+from .sovereign_controls import SovereignControlPlane
 
 
 class SMICore:
@@ -74,6 +75,7 @@ class SMICore:
         self.frontal_lobe = FrontalLobe()
         self.agi_core = AGICore()
         self.command_intelligence = CommandIntelligence()
+        self.sovereign_controls = SovereignControlPlane()
         self.self_model = SelfModel()
         self.coherence = CoherenceEngine()
         self.autonomy = SMIAutonomyEngine()
@@ -88,6 +90,7 @@ class SMICore:
             self.organs.status(),
             self.agi_core.status(),
             self.command_intelligence.status(),
+            self.sovereign_controls.status(),
             self.aegis.status(),
             self.guardian.status(),
             self.war_room.status(),
@@ -169,6 +172,11 @@ class SMICore:
             + " → ".join(str(item).upper() for item in command_review["command_path"])
             + ".",
         )
+        if self.sovereign_controls.emergency_halt_active():
+            rationale = (
+                *rationale,
+                "Sovereign emergency halt is active; consequential execution is disabled.",
+            )
 
         components = self._component_statuses()
         self_model = self.self_model.observe(components)
@@ -291,6 +299,7 @@ class SMICore:
             "human_authority_final": True,
             "agi_core": self.agi_core.status(),
             "command_intelligence": self.command_intelligence.status(),
+            "sovereign_controls": self.sovereign_controls.status(),
             "self_model": self_model.as_dict(),
             "coherence": coherence.as_dict(),
             "autonomy": autonomy,
