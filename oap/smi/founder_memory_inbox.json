@@ -48,5 +48,15 @@
     "supersedes": [],
     "tags": ["research", "kimi", "qwen", "minimax", "glm", "deepseek", "yi", "seed", "evidence"],
     "created_at": "2026-09-04T08:41:00+00:00"
+  },
+  {
+    "source_kind": "founder_decision",
+    "memory_class": "ARCHITECTURE",
+    "summary": "Add an OAP Human Capability cluster to SMI based on useful AI skill patterns: Memory Reconstruction, Creation and Communication, Pattern Reconstruction, Agent Governance, Gap and Adversarial Review, Financial Analysis, Human Context, Multi-Expert Synthesis, Voice and Speech Intelligence, and Visual Human-Cue Intelligence. Preserve provenance, authorship and consent. Do not enable unauthorised impersonation, covert psychological manipulation, biometric identity profiling, autonomous trading/value transfer, or control bypass/exploitation.",
+    "source_reference": "founder-chat-decision-2026-09-04-human-capability-cluster",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["smi", "human-capability", "memory", "synthesis", "voice", "vision", "governance", "founder-approved"],
+    "created_at": "2026-09-04T08:50:00+00:00"
   }
 ]
