@@ -18,6 +18,7 @@ from . import (
     language_intelligence,
     life_intelligence,
     movement_intelligence,
+    technology_intelligence,
 )
 from .agents import INTELLIGENCE_WORLDS
 
@@ -44,6 +45,14 @@ CROSS_SYSTEM_CAPABILITIES: tuple[dict[str, str], ...] = (
         "purpose": (
             "People, goods, services, routes, transport, logistics and movement "
             "conditions."
+        ),
+    },
+    {
+        "id": "technology",
+        "name": "Technology Intelligence",
+        "purpose": (
+            "Technology, compute, devices and Connectivity Intelligence, including a "
+            "bounded 6G Intelligence capability without production-network claims."
         ),
     },
     {
@@ -244,6 +253,7 @@ def validate_smi_capabilities() -> dict[str, Any]:
         "language": language_intelligence.language_intelligence_status(),
         "life": life_intelligence.life_intelligence_status(),
         "movement": movement_intelligence.movement_intelligence_status(),
+        "technology": technology_intelligence.technology_intelligence_status(),
     }
     if not all(bool(item.get("architecture_passed")) for item in specialist.values()):
         errors.append("One or more specialist Intelligence architecture checks failed")
@@ -303,6 +313,7 @@ def smi_capability_status() -> dict[str, Any]:
             "language": language_intelligence.language_intelligence_status(),
             "life": life_intelligence.life_intelligence_status(),
             "movement": movement_intelligence.movement_intelligence_status(),
+            "technology": technology_intelligence.technology_intelligence_status(),
         },
         "human_authority_final": True,
         "independent_execution": False,

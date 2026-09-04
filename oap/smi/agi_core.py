@@ -54,6 +54,16 @@ _DOMAIN_RULES: tuple[dict[str, object], ...] = (
         ),
     },
     {
+        "id": "technology",
+        "name": "Technology Intelligence",
+        "kind": "cross_system_capability",
+        "keywords": (
+            "technology", "connectivity", "6g", "5g", "esim", "edge ai",
+            "edge compute", "mesh network", "satellite connectivity", "network",
+            "telecom", "device-to-device", "device to device", "radio access",
+        ),
+    },
+    {
         "id": "civic",
         "name": "Civic Intelligence",
         "kind": "intelligence_world",
@@ -117,9 +127,11 @@ _TASK_DEFAULTS: dict[str, tuple[str, ...]] = {
 
 # Some specialist capabilities are only coherent with context from another
 # specialist. Movement always needs a place model, so Earth is added whenever
-# Movement is selected. This is dependency routing, not extra authority.
+# Movement is selected. Technology uses Matrix for systems/compute context.
+# This is dependency routing, not extra authority.
 _DOMAIN_DEPENDENCIES: dict[str, tuple[str, ...]] = {
     "movement": ("earth",),
+    "technology": ("matrix",),
 }
 
 
