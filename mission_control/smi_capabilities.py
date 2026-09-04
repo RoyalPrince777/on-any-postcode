@@ -15,6 +15,7 @@ from oap.smi.sovereign_controls import SovereignControlPlane
 
 from . import (
     earth_intelligence,
+    international_humanitarian_intelligence,
     language_intelligence,
     life_intelligence,
     movement_intelligence,
@@ -53,6 +54,14 @@ CROSS_SYSTEM_CAPABILITIES: tuple[dict[str, str], ...] = (
         "purpose": (
             "Technology, compute, devices and Connectivity Intelligence, including a "
             "bounded 6G Intelligence capability without production-network claims."
+        ),
+    },
+    {
+        "id": "international_humanitarian",
+        "name": "International Humanitarian Intelligence",
+        "purpose": (
+            "Civilian humanitarian connectivity, maps, health, aid, reunification, "
+            "warnings, accessibility, safety and evidence-bounded legal/protection review."
         ),
     },
     {
@@ -254,6 +263,7 @@ def validate_smi_capabilities() -> dict[str, Any]:
         "life": life_intelligence.life_intelligence_status(),
         "movement": movement_intelligence.movement_intelligence_status(),
         "technology": technology_intelligence.technology_intelligence_status(),
+        "international_humanitarian": international_humanitarian_intelligence.international_humanitarian_intelligence_status(),
     }
     if not all(bool(item.get("architecture_passed")) for item in specialist.values()):
         errors.append("One or more specialist Intelligence architecture checks failed")
@@ -314,6 +324,7 @@ def smi_capability_status() -> dict[str, Any]:
             "life": life_intelligence.life_intelligence_status(),
             "movement": movement_intelligence.movement_intelligence_status(),
             "technology": technology_intelligence.technology_intelligence_status(),
+            "international_humanitarian": international_humanitarian_intelligence.international_humanitarian_intelligence_status(),
         },
         "human_authority_final": True,
         "independent_execution": False,
