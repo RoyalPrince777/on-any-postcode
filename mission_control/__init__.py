@@ -52,6 +52,7 @@ def init_app(app: Flask) -> None:
     from .oap_data_views import bp as oap_data_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
+    from .travel_supply_views import bp as travel_supply_bp
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
@@ -284,6 +285,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_presence_bp)
     app.register_blueprint(link_voice_bp)
     app.register_blueprint(link_message_bp)
+    app.register_blueprint(travel_supply_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
