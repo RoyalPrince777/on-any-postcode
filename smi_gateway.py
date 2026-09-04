@@ -83,6 +83,7 @@ def _allowed(path: str) -> bool:
         "/enter-my-world",
         "/assets/oap.css",
         "/healthz",
+        "/api/smi/thinking-certification",
     }
 
 

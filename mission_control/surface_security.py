@@ -16,6 +16,7 @@ _PRIVATE_PATH_PREFIXES = (
     "/the-spot/my-world",
     "/infrastructure",
     "/api/infrastructure",
+    "/api/smi",
 )
 _LINK_DEVICE_PATHS = frozenset({"/linkup"})
 _LINK_PERMISSIONS_POLICY = (
@@ -84,10 +85,11 @@ def register(app: Flask) -> None:
     path is reachable only when the dedicated private gateway supplies the
     configured high-entropy credential.
     """
-    from . import pulse_routes
+    from . import pulse_routes, smi_certification_routes
 
     app.request_class = OAPRequest
     pulse_routes.register(app)
+    app.register_blueprint(smi_certification_routes.bp)
 
     @app.before_request
     def _enforce_private_origin_boundary():
