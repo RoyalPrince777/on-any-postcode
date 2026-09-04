@@ -13,6 +13,7 @@ integrations and production evidence exist.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -274,7 +275,14 @@ _CAPABILITIES: tuple[IntelligenceCapability, ...] = (
         "Coordinate civilian protection, verified emergency context, accessibility, aid information and dignity-first response.",
         ("earth", "language", "life", "movement", "civic", "matrix"),
         ("humanitarian", "emergency", "disaster", "outbreak", "refugee", "aid", "civilian"),
-        dependencies=("alignment", "place", "weather_environment", "disruption", "communication", "compliance"),
+        dependencies=(
+            "alignment",
+            "place",
+            "weather_environment",
+            "disruption",
+            "communication",
+            "compliance",
+        ),
     ),
     IntelligenceCapability(
         "compliance",
@@ -310,6 +318,11 @@ def capabilities_for_world(world_id: str) -> tuple[IntelligenceCapability, ...]:
     return tuple(item for item in _CAPABILITIES if clean in item.world_ids)
 
 
+def _term_matches(text: str, term: str) -> bool:
+    pattern = rf"(?<!\w){re.escape(term)}(?!\w)"
+    return re.search(pattern, text) is not None
+
+
 def select_capabilities(
     query: str,
     *,
@@ -329,17 +342,22 @@ def select_capabilities(
     for index, item in enumerate(_CAPABILITIES):
         if allowed_worlds and not (allowed_worlds & set(item.world_ids)):
             continue
-        score = sum(term in text for term in item.trigger_terms)
+        score = sum(_term_matches(text, term) for term in item.trigger_terms)
         if score:
             ranked.append((score, -index, item))
     ranked.sort(reverse=True)
     selected = [entry[2].capability_id for entry in ranked[:safe_limit]]
     if selected and "alignment" not in selected:
-        selected.append("alignment")
+        if len(selected) >= safe_limit:
+            selected[-1] = "alignment"
+        else:
+            selected.append("alignment")
     return tuple(dict.fromkeys(selected))[:safe_limit]
 
 
-def validate_registry(runtime_world_ids: tuple[str, ...] | list[str] = LOCKED_WORLD_IDS) -> dict[str, Any]:
+def validate_registry(
+    runtime_world_ids: tuple[str, ...] | list[str] = LOCKED_WORLD_IDS,
+) -> dict[str, Any]:
     """Validate the registry against the seven-World constitutional boundary."""
 
     runtime_worlds = tuple(str(item) for item in runtime_world_ids)
@@ -369,9 +387,13 @@ def validate_registry(runtime_world_ids: tuple[str, ...] | list[str] = LOCKED_WO
     if len(ids) != len(set(ids)) or len(names) != len(set(names)):
         errors.append("Capability IDs and names must be unique")
     if unknown_worlds:
-        errors.append("Capability references unknown Intelligence Worlds: " + ", ".join(unknown_worlds))
+        errors.append(
+            "Capability references unknown Intelligence Worlds: " + ", ".join(unknown_worlds)
+        )
     if unknown_dependencies:
-        errors.append("Capability references unknown dependencies: " + ", ".join(unknown_dependencies))
+        errors.append(
+            "Capability references unknown dependencies: " + ", ".join(unknown_dependencies)
+        )
     return {
         "passed": not errors,
         "errors": tuple(errors),
@@ -390,7 +412,9 @@ def validate_registry(runtime_world_ids: tuple[str, ...] | list[str] = LOCKED_WO
     }
 
 
-def status(runtime_world_ids: tuple[str, ...] | list[str] = LOCKED_WORLD_IDS) -> dict[str, Any]:
+def status(
+    runtime_world_ids: tuple[str, ...] | list[str] = LOCKED_WORLD_IDS,
+) -> dict[str, Any]:
     """Return registry architecture status without claiming live commerce supply."""
 
     validation = validate_registry(runtime_world_ids)
@@ -401,7 +425,9 @@ def status(runtime_world_ids: tuple[str, ...] | list[str] = LOCKED_WORLD_IDS) ->
         item.capability_id for item in _CAPABILITIES if item.supply_integration_required
     )
     regulated_required = tuple(
-        item.capability_id for item in _CAPABILITIES if item.regulated_integration_required
+        item.capability_id
+        for item in _CAPABILITIES
+        if item.regulated_integration_required
     )
     return {
         "component": "OAP Intelligence Capability Registry",
