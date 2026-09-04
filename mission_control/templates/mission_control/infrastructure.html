@@ -33,7 +33,7 @@
         <p class="mc-eyebrow">Boundary integrity</p>
         <h2 id="infrastructure-integrity-title">{% if infrastructure.validation.passed %}Infrastructure boundaries verified{% else %}Infrastructure conflict detected{% endif %}</h2>
         <p>{{ infrastructure.operating_mode.label }}. {{ infrastructure.operating_mode.message }}</p>
-        <p class="infra-note">OAP owns its control model and intelligence. External information remains replaceable evidence, never OAP authority.</p>
+        <p class="infra-note">OAP owns the system, intelligence, signal language and health model. Outside information can only be replaceable evidence and never OAP identity or authority.</p>
       </div>
       <dl class="mc-integrity-counts">
         <div><dt>Modules</dt><dd>{{ infrastructure.validation.checks.canonical_modules }}</dd></div>
@@ -72,7 +72,7 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="shared-health-title">
-      <div class="mc-section-heading"><div><p class="mc-eyebrow">Shared health</p><h2 id="shared-health-title">Mission Control signals</h2></div><span class="mc-lock-badge">Observed</span></div>
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Shared health</p><h2 id="shared-health-title">Shared system health</h2></div><span class="mc-lock-badge">Observed</span></div>
       <p>This coarse status widget is shared from Mission Control. It is not another Infrastructure module.</p>
       <div class="mc-status-ribbon" role="list">{% for component in shared_health %}<div class="mc-status mc-status--{{ component.state }}" role="listitem"><span>{{ component.label }}</span><strong>{{ component.value }}</strong></div>{% endfor %}</div>
     </section>
