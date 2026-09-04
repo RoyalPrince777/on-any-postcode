@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from oap.smi.founder_memory_channel import synced_memory_items
-from oap.smi.research_intelligence import CAPABILITY_IDS, RESEARCH_STAGES, depth_for_complexity
+from oap.smi.research_intelligence import (
+    CAPABILITY_IDS,
+    RESEARCH_STAGES,
+    depth_for_complexity,
+)
 from oap.smi.research_intelligence import status as research_status
 
 
