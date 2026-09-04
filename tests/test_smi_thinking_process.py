@@ -75,6 +75,25 @@ def test_completion_summary_uses_runtime_evidence_without_private_reasoning():
     assert summary["human_authority_final"] is True
 
 
+def test_redundant_smi_identity_prefix_is_removed_without_changing_answer():
+    assert smi_chat_runtime._strip_identity_prefix("SMI: Use the bounded path.") == "Use the bounded path."
+    assert smi_chat_runtime._strip_identity_prefix("Personal SMI — Use the bounded path.") == "Use the bounded path."
+    assert smi_chat_runtime._strip_identity_prefix("Use the bounded path.") == "Use the bounded path."
+
+
+def test_enhanced_coherence_rejects_private_reasoning_disclosure():
+    brain = {"output_state": "RECOMMENDATION_READY"}
+    safe = smi_chat_runtime._enhanced_coherence_review("Use the bounded path first.", brain)
+    unsafe = smi_chat_runtime._enhanced_coherence_review(
+        "Here is my chain of thought: hidden reasoning follows.", brain
+    )
+
+    assert safe["passed"] is True
+    assert safe["checks"]["private_reasoning_protected"] is True
+    assert unsafe["passed"] is False
+    assert unsafe["checks"]["private_reasoning_protected"] is False
+
+
 def test_facade_chat_translates_and_deduplicates_stage_events(monkeypatch):
     low_level = (
         {"type": "stage", "stage": "received", "label": "Signal received"},
