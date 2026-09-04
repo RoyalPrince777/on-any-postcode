@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAP Direct · Travel & Experience</title>
+  <style>
+    :root{color-scheme:dark;background:#07110d;color:#f5f7f6;font-family:Inter,system-ui,sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:#07110d;color:#f5f7f6}main{max-width:1180px;margin:auto;padding:24px}
+    a{color:inherit}.hero{padding:34px 0 22px}.eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:#8dd7ad}
+    h1{font-size:clamp(2rem,6vw,4rem);margin:.3rem 0 .7rem;line-height:.95}.sub{max-width:760px;color:#b9c9c1;line-height:1.5}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 28px}.filters input,.filters select,.filters button{border:1px solid #29483a;background:#0d1b15;color:#fff;border-radius:12px;padding:12px 14px}
+    .filters button{cursor:pointer;background:#153d2a}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}.card{border:1px solid #1f3a2d;background:#0b1712;border-radius:18px;padding:18px}
+    .badge{display:inline-block;border:1px solid #315b46;border-radius:999px;padding:5px 9px;color:#9edbb7;font-size:.75rem}.price{font-size:1.5rem;font-weight:800;margin:.8rem 0 .2rem}.muted{color:#9eb0a7;font-size:.9rem}.place{font-weight:650;margin:.8rem 0}.empty{border:1px dashed #355245;border-radius:18px;padding:28px;color:#b6c5bd}.truth{margin-top:30px;border-top:1px solid #20382d;padding-top:18px;color:#91a69c;font-size:.88rem}
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div class="eyebrow">ON ANY POSTCODE · OAP Direct</div>
+    <h1>Discover. Book. Move. Experience.</h1>
+    <p class="sub">First-party OAP Direct supply from Certified suppliers. Only active, future availability with real stored pricing is shown here. External suppliers can remain optional underneath OAP.</p>
+  </section>
+  <form class="filters" method="get" action="/travel/direct">
+    <select name="category" aria-label="Category">
+      <option value="">All experiences</option>
+      {% for value in ['stay','attraction','activity','car_rental','transport','event'] %}
+      <option value="{{ value }}" {% if request.args.get('category') == value %}selected{% endif %}>{{ value.replace('_',' ')|title }}</option>
+      {% endfor %}
+    </select>
+    <input name="country" value="{{ request.args.get('country','') }}" placeholder="Country" maxlength="120">
+    <button type="submit">Discover</button>
+  </form>
+  {% if marketplace.error %}<div class="empty">{{ marketplace.error }}</div>{% endif %}
+  {% if marketplace.offers %}
+  <section class="grid" aria-label="Available OAP Direct offers">
+    {% for offer in marketplace.offers %}
+    <article class="card">
+      <span class="badge">Certified · {{ offer.category.replace('_',' ')|title }}</span>
+      <h2>{{ offer.title }}</h2>
+      <div class="place">{{ offer.place_label }} · {{ offer.country }}</div>
+      {% if offer.description %}<p class="muted">{{ offer.description }}</p>{% endif %}
+      <div class="price">{{ '%.2f'|format(offer.unit_price_minor / 100) }} {{ offer.currency }}</div>
+      <div class="muted">{{ offer.price_basis }} · {{ offer.available_quantity }} available</div>
+      <div class="muted">From {{ offer.starts_at[:16].replace('T',' ') }} → {{ offer.ends_at[:16].replace('T',' ') }}</div>
+      <div class="muted">Supplier: {{ offer.supplier_name }}</div>
+    </article>
+    {% endfor %}
+  </section>
+  {% elif not marketplace.error %}
+  <div class="empty">No Certified OAP Direct inventory is live yet. The marketplace is ready and will show real supply here as soon as a Certified supplier publishes availability.</div>
+  {% endif %}
+  <p class="truth">OAP Direct shows observed supplier availability and pricing, not inferred inventory. Payment capture, Pass issuance and commission settlement remain separately governed until their production gates are certified.</p>
+</main>
+</body>
+</html>
