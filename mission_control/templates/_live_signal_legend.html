@@ -2,24 +2,25 @@
   <div class="mc-section-heading">
     <div>
       <p class="mc-eyebrow">First-party OAP language</p>
-      <h2 id="oap-live-signal-title">OAP Live Signal Legend</h2>
+      <h2 id="oap-live-signal-title">OAP Live Signal Legend — 21 Core</h2>
       <p>One OAP-owned state language across Infrastructure, SMI and War Room. 🟣 is reserved for Learning and is never a warning verdict.</p>
     </div>
-    <span class="mc-lock-badge">ON ANY POSTCODE</span>
+    <span class="mc-lock-badge">21 Core Signals</span>
   </div>
   {% set signals = [
-    ('🟢','Healthy'), ('🔵','Starting'), ('🟡','Warning'), ('🟠','Busy'),
-    ('🔴','Critical'), ('⚪','Offline'), ('🟣','Learning'), ('🟤','Maintenance'),
-    ('⚡','High Performance'), ('📡','Connected'), ('🔄','Synchronising'), ('💾','Memory Active'),
-    ('🧠','Thinking'), ('❤️','Mind Healthy'), ('💪','Body Healthy'), ('✨','Soul Healthy'),
-    ('🛡','Protected'), ('📈','Improving'), ('🚨','Alert'), ('✅','Complete'),
-    ('⏳','Working'), ('💤','Idle')
+    ('🟢','Healthy'), ('🔵','Starting'), ('🟡','Warning'), ('🔴','Critical'),
+    ('⚪','Offline'), ('🟣','Learning'), ('🟤','Maintenance'), ('⚡','High Performance'),
+    ('📡','Connected'), ('🔄','Synchronising'), ('💾','Memory Active'), ('🧠','Thinking'),
+    ('❤️','Mind Healthy'), ('💪','Body Healthy'), ('✨','Soul Healthy'), ('🛡','Protected'),
+    ('📈','Improving'), ('🚨','Alert'), ('✅','Complete'), ('⏳','Active / Working'),
+    ('💤','Idle')
   ] %}
-  <div class="mc-status-ribbon" role="list" aria-label="OAP Live Signal Legend">
+  <div class="mc-status-ribbon" role="list" aria-label="OAP 21 Core Live Signals">
     {% for emoji, label in signals %}
     <div class="mc-status" role="listitem"><span>{{ emoji }}</span><strong>{{ label }}</strong></div>
     {% endfor %}
   </div>
+  <p class="mc-war-truth"><strong>Workload modifier:</strong> 🟠 Busy / High Load can accompany a core state such as ⏳ Active / Working. It does not count as a 22nd core signal.</p>
   <p class="mc-war-truth"><strong>Verdict boundary:</strong> 🟢 healthy/proceed · 🟡 warning/review open · 🔴 critical/stop · 🟣 learning/adapting from evidence.</p>
   <p class="mc-war-truth"><strong>Mind:</strong> 🧠 thinking · 📚 learning · 🔍 analysing · 🎯 planning · 💡 ideas · 📖 knowledge &nbsp; <strong>Body:</strong> ⚙ executing · 📡 sending · 📥 receiving · 🔄 processing · 🏃 working · 🛠 building &nbsp; <strong>Soul:</strong> ❤️ ethics · ⚖ governance · 🛡 safety · 🤝 community · 🌍 human/world alignment.</p>
 </section>
