@@ -3,8 +3,8 @@
 This module sits on the existing first-party OAP Supply Core. It adds no schema,
 brain, Intelligence World or autonomous commercial authority. Public discovery
 only returns Certified supplier + ACTIVE listing + ACTIVE future inventory.
-All marketplace writes are Founder-authorised web operations and all payment,
-Pass and commission execution remains separately gated.
+All marketplace writes are authenticated, human-triggered web operations and all
+payment, Pass and commission execution remains separately gated.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any
 
 from . import postgres_db, travel_supply_core
 
-DIRECT_MARKETPLACE_REVISION = "2026-09-04-v1"
+DIRECT_MARKETPLACE_REVISION = "2026-09-04-v2"
 _PUBLIC_LIMIT_MAX = 50
 _FOUNDER_LIMIT_MAX = 100
 _STORE = travel_supply_core.PostgresTravelSupplyStore()
@@ -310,4 +310,56 @@ def set_inventory(payload: dict[str, Any]) -> dict[str, Any]:
         price_minor=payload.get("price_minor"),
         currency=payload.get("currency"),
         price_basis=payload.get("price_basis"),
+    )
+
+
+def quote_direct(payload: dict[str, Any]) -> dict[str, Any]:
+    """Re-read a live OAP Direct slot before any capacity is held."""
+
+    return _STORE.quote(
+        listing_id=payload.get("listing_id"),
+        starts_at=payload.get("starts_at"),
+        ends_at=payload.get("ends_at"),
+        quantity=payload.get("quantity", 1),
+    )
+
+
+def create_buyer_hold(
+    payload: dict[str, Any], *, buyer_identity_id: str
+) -> dict[str, Any]:
+    """Create a short, capacity-backed hold for the authenticated buyer only."""
+
+    return _STORE.create_hold(
+        buyer_identity_id=buyer_identity_id,
+        listing_id=payload.get("listing_id"),
+        starts_at=payload.get("starts_at"),
+        ends_at=payload.get("ends_at"),
+        quantity=payload.get("quantity", 1),
+        idempotency_key=payload.get("idempotency_key"),
+        hold_minutes=15,
+    )
+
+
+def create_buyer_reservation(
+    payload: dict[str, Any], *, buyer_identity_id: str
+) -> dict[str, Any]:
+    """Convert the authenticated buyer's live hold into a pending reservation."""
+
+    return _STORE.create_reservation(
+        buyer_identity_id=buyer_identity_id,
+        hold_id=payload.get("hold_id"),
+        human_confirmed=payload.get("human_confirmed") is True,
+    )
+
+
+def confirm_supplier_reservation(
+    payload: dict[str, Any], *, owner_identity_id: str
+) -> dict[str, Any]:
+    """Let the authenticated supplier owner confirm a pending reservation."""
+
+    return _STORE.confirm_reservation(
+        owner_identity_id=owner_identity_id,
+        reservation_id=payload.get("reservation_id"),
+        supplier_confirmation_reference=payload.get("supplier_confirmation_reference"),
+        supplier_confirmed=payload.get("supplier_confirmed") is True,
     )

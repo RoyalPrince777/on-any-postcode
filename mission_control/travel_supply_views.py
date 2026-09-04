@@ -44,6 +44,24 @@ def _founder_write(operation):
     return _no_store(make_response(jsonify(result)))
 
 
+def _buyer_write(operation):
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    try:
+        payload = _json_payload()
+        result = operation(
+            payload,
+            buyer_identity_id=web_security.authenticated_identity(),
+        )
+    except PermissionError as exc:
+        return _error("booking_not_authorized", str(exc)[:140], 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_booking_request", str(exc)[:140], 400)
+    except RuntimeError as exc:
+        return _error("booking_runtime_unavailable", str(exc)[:140], 503)
+    return _no_store(make_response(jsonify(result)))
+
+
 def _operator_snapshot() -> dict:
     """Decorate the bounded Founder snapshot with non-secret operator defaults."""
 
@@ -107,6 +125,35 @@ def public_offers():
     except ValueError as exc:
         return _error("invalid_discovery_filter", str(exc)[:120], 400)
     return _no_store(make_response(jsonify(result)))
+
+
+@bp.post("/travel/direct/api/quote")
+def direct_quote():
+    """Re-check price and capacity without creating a reservation or hold."""
+
+    try:
+        result = travel_marketplace.quote_direct(_json_payload())
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_booking_quote", str(exc)[:140], 400)
+    except RuntimeError as exc:
+        return _error("booking_runtime_unavailable", str(exc)[:140], 503)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.post("/travel/direct/api/hold")
+@web_security.login_required(api=True)
+def direct_hold():
+    """Place a 15-minute capacity hold for the authenticated buyer."""
+
+    return _buyer_write(travel_marketplace.create_buyer_hold)
+
+
+@bp.post("/travel/direct/api/reservations")
+@web_security.login_required(api=True)
+def direct_reservation():
+    """Convert the buyer's hold after an explicit Human confirmation click."""
+
+    return _buyer_write(travel_marketplace.create_buyer_reservation)
 
 
 @bp.get("/travel/partner/api/offers")
@@ -219,3 +266,23 @@ def activate_listing():
 @web_security.login_required(api=True, founder_only=True)
 def set_inventory():
     return _founder_write(travel_marketplace.set_inventory)
+
+
+@bp.post("/mission/supply/reservations/confirm")
+@web_security.login_required(api=True, founder_only=True)
+def confirm_reservation():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    try:
+        payload = _json_payload()
+        result = travel_marketplace.confirm_supplier_reservation(
+            payload,
+            owner_identity_id=web_security.authenticated_identity(),
+        )
+    except PermissionError as exc:
+        return _error("supplier_confirmation_not_authorized", str(exc)[:140], 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_supplier_confirmation", str(exc)[:140], 400)
+    except RuntimeError as exc:
+        return _error("booking_runtime_unavailable", str(exc)[:140], 503)
+    return _no_store(make_response(jsonify(result)))
