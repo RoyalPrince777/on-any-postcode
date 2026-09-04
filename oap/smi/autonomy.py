@@ -1,9 +1,9 @@
 """Bounded autonomous review for Sovereign Megaverse Intelligence.
 
 SMI may observe its own reported component state, check coherence, verify its
-Founder-approved memory layers, identify recovery attention and propose controlled
-improvements. It never gains independent authority to approve, execute, promote,
-deploy or perform consequential real-world actions.
+Founder-approved memory and capability layers, identify recovery attention and
+propose controlled improvements. It never gains independent authority to approve,
+execute, promote, deploy or perform consequential real-world actions.
 """
 
 from __future__ import annotations
@@ -12,6 +12,8 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .canonical_memory import status as canonical_memory_status
+from .capability_fabric import status as capability_fabric_status
+from .founder_memory_channel import status as founder_channel_status
 from .knowledge_graph import status as graph_status
 from .memory_history import status as history_status
 from .memory_orchestrator import status as orchestrator_status
@@ -42,6 +44,8 @@ class SMIAutonomyEngine:
     def status(self) -> dict[str, Any]:
         memory = canonical_memory_status()
         orchestrator = orchestrator_status()
+        capability_fabric = capability_fabric_status()
+        founder_channel = founder_channel_status()
         return {
             "component": "SMI Autonomy",
             "mode": AUTONOMY_MODE,
@@ -49,12 +53,15 @@ class SMIAutonomyEngine:
             "automatic_observation": True,
             "automatic_coherence_review": True,
             "automatic_memory_integrity_review": True,
+            "automatic_capability_integrity_review": True,
             "automatic_recovery_review": True,
             "automatic_improvement_proposals": True,
             "canonical_memory_ready": bool(memory.get("ready")),
             "canonical_memory_revision": memory.get("revision"),
             "canonical_memory_digest": memory.get("digest"),
             "memory_orchestrator_ready": bool(orchestrator.get("ready")),
+            "capability_fabric_ready": bool(capability_fabric.get("ready")),
+            "founder_memory_channel_ready": bool(founder_channel.get("ready")),
             "independent_execution": False,
             "independent_approval": False,
             "independent_apply": False,
@@ -85,16 +92,26 @@ class SMIAutonomyEngine:
         }
 
     def memory_review(self) -> dict[str, Any]:
-        """Verify memory-layer integrity without mutating HRM, history or code."""
+        """Verify governed memory/capability integrity without mutating state."""
 
         canonical = canonical_memory_status()
         history = history_status()
         graph = graph_status()
         orchestrator = orchestrator_status()
         sync = sync_status()
+        founder_channel = founder_channel_status()
+        capability_fabric = capability_fabric_status()
         ready = all(
             bool(item.get("ready"))
-            for item in (canonical, history, graph, orchestrator, sync)
+            for item in (
+                canonical,
+                history,
+                graph,
+                orchestrator,
+                sync,
+                founder_channel,
+                capability_fabric,
+            )
         )
         return {
             "kind": "smi_autonomous_memory_review",
@@ -108,6 +125,17 @@ class SMIAutonomyEngine:
             "graph_node_count": int(graph.get("node_count", 0) or 0),
             "graph_edge_count": int(graph.get("edge_count", 0) or 0),
             "context_cap": int(orchestrator.get("context_cap", 21) or 21),
+            "founder_channel_revision": founder_channel.get("revision"),
+            "founder_channel_packets": int(
+                founder_channel.get("accepted_packet_count", 0) or 0
+            ),
+            "github_memory_channel_connected": bool(
+                founder_channel.get("github_audited_transport_connected")
+            ),
+            "capability_fabric_revision": capability_fabric.get("revision"),
+            "capability_count": int(
+                capability_fabric.get("capability_count", 0) or 0
+            ),
             "latest_founder_correction_wins": bool(
                 canonical.get("latest_founder_correction_wins")
             ),
@@ -115,6 +143,7 @@ class SMIAutonomyEngine:
                 sync.get("direct_chatgpt_transport_connected")
             ),
             "raw_chat_auto_ingestion": bool(sync.get("raw_chat_auto_ingestion")),
+            "external_provider_authority": False,
             "read_only": True,
             "consequential_action": False,
         }
@@ -143,6 +172,8 @@ class SMIAutonomyEngine:
                 "recheck_coherence",
                 "verify_canonical_memory_digest",
                 "verify_history_graph_integrity",
+                "verify_founder_memory_channel",
+                "verify_capability_fabric",
                 "retry_nonconsequential_analysis",
             ),
             "destructive_recovery_allowed": False,
@@ -165,7 +196,7 @@ class SMIAutonomyEngine:
         if not coherence.get("coherent"):
             issues.append("coherence_conflict")
         if memory is not None and not memory.get("ready"):
-            issues.append("governed_memory_integrity")
+            issues.append("governed_memory_or_capability_integrity")
 
         proposed = tuple(f"review:{issue}" for issue in issues[:16])
         if not proposed:

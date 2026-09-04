@@ -16,6 +16,9 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 
+from oap.smi.capability_fabric import capability_descriptions, select_capabilities
+from oap.smi.capability_fabric import status as capability_fabric_status
+
 from . import home_node_bridge
 
 LOCAL_URL = os.environ.get(
@@ -23,20 +26,55 @@ LOCAL_URL = os.environ.get(
 ).strip()
 LOCAL_MODEL = os.environ.get("OAP_INFERENCE_LOCAL_MODEL", "oap-core:latest").strip()
 LOCAL_ENABLED = os.environ.get("OAP_INFERENCE_LOCAL_ENABLED", "1").strip().lower() not in {
-    "0", "false", "no", "off"
+    "0",
+    "false",
+    "no",
+    "off",
 }
-FALLBACK_ENABLED = os.environ.get("OAP_INFERENCE_COMPATIBILITY_FALLBACK", "1").strip().lower() not in {
-    "0", "false", "no", "off"
+FALLBACK_ENABLED = os.environ.get(
+    "OAP_INFERENCE_COMPATIBILITY_FALLBACK", "1"
+).strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
 }
 BRIDGE_ENABLED = os.environ.get("OAP_HOME_NODE_BRIDGE_ENABLED", "1").strip().lower() not in {
-    "0", "false", "no", "off"
+    "0",
+    "false",
+    "no",
+    "off",
 }
 _PROBE_TTL_SECONDS = 30.0
 _probe_cache: tuple[float, dict[str, Any]] | None = None
 
 
-def _local_messages(message: str, history: list[dict[str, str]] | None, brain: dict | None,
-                    adaptive_memory: list[str] | None, *, code_mode: bool) -> list[dict[str, str]]:
+def _enrich_brain(message: str, brain: dict | None) -> dict[str, Any]:
+    """Attach OAP-owned task capabilities without granting execution authority."""
+
+    enriched: dict[str, Any] = dict(brain or {})
+    capability_ids = select_capabilities(
+        str(enriched.get("task_type") or "GENERAL"),
+        message,
+        high_impact=bool(enriched.get("high_impact")),
+    )
+    enriched["intelligence_capabilities"] = list(capability_ids)
+    enriched["intelligence_capability_descriptions"] = list(
+        capability_descriptions(capability_ids)
+    )
+    enriched["external_provider_authority"] = False
+    enriched["human_authority_final"] = True
+    return enriched
+
+
+def _local_messages(
+    message: str,
+    history: list[dict[str, str]] | None,
+    brain: dict | None,
+    adaptive_memory: list[str] | None,
+    *,
+    code_mode: bool,
+) -> list[dict[str, str]]:
     system = (
         "You are Personal SMI, the private Founder-facing mode of Sovereign Megaverse "
         "Intelligence inside ON ANY POSTCODE. Be direct and concise. HRM is the memory "
@@ -45,7 +83,9 @@ def _local_messages(message: str, history: list[dict[str, str]] | None, brain: d
         "public surfaces. Health and wellbeing guidance is informational, evidence-grounded "
         "and non-diagnostic. Security claims must distinguish verified evidence from possibility. "
         "You may recommend and write reviewable code, but never claim an apply, commit, merge, "
-        "deploy, payment, dispatch or other protected action occurred unless verified evidence says it did."
+        "deploy, payment, dispatch or other protected action occurred unless verified evidence "
+        "says it did. Use the OAP intelligence capabilities supplied in routing context as "
+        "task strategies, not as proof that a tool/provider was actually used."
     )
     if code_mode:
         system += (
@@ -55,13 +95,25 @@ def _local_messages(message: str, history: list[dict[str, str]] | None, brain: d
     routing = {
         "task_type": (brain or {}).get("task_type"),
         "signal_level": (brain or {}).get("signal_level"),
-        "war_room_triggered": (brain or {}).get("war_room", {}).get("triggered", False),
+        "war_room_triggered": (brain or {}).get("war_room", {}).get(
+            "triggered", False
+        ),
+        "intelligence_capabilities": (brain or {}).get(
+            "intelligence_capabilities", ()
+        ),
+        "capability_guidance": (brain or {}).get(
+            "intelligence_capability_descriptions", ()
+        ),
         "hrm_lessons": [str(item)[:300] for item in (adaptive_memory or [])[-5:]],
     }
-    messages: list[dict[str, str]] = [{
-        "role": "system",
-        "content": system + "\nRouting context: " + json.dumps(routing, separators=(",", ":")),
-    }]
+    messages: list[dict[str, str]] = [
+        {
+            "role": "system",
+            "content": system
+            + "\nRouting context: "
+            + json.dumps(routing, separators=(",", ":")),
+        }
+    ]
     for item in (history or [])[-12:]:
         role = str(item.get("role", ""))
         content = str(item.get("content", ""))[:4000]
@@ -71,23 +123,43 @@ def _local_messages(message: str, history: list[dict[str, str]] | None, brain: d
     return messages
 
 
-def _payload(message: str, history: list[dict[str, str]] | None, brain: dict | None,
-             adaptive_memory: list[str] | None, *, code_mode: bool) -> dict[str, Any]:
+def _payload(
+    message: str,
+    history: list[dict[str, str]] | None,
+    brain: dict | None,
+    adaptive_memory: list[str] | None,
+    *,
+    code_mode: bool,
+) -> dict[str, Any]:
     return {
         "model": LOCAL_MODEL,
-        "messages": _local_messages(message, history, brain, adaptive_memory, code_mode=code_mode),
+        "messages": _local_messages(
+            message,
+            history,
+            brain,
+            adaptive_memory,
+            code_mode=code_mode,
+        ),
         "stream": False,
         "options": {"temperature": 0.2},
     }
 
 
-def _call_local(message: str, history: list[dict[str, str]] | None, brain: dict | None,
-                adaptive_memory: list[str] | None, *, code_mode: bool) -> str:
+def _call_local(
+    message: str,
+    history: list[dict[str, str]] | None,
+    brain: dict | None,
+    adaptive_memory: list[str] | None,
+    *,
+    code_mode: bool,
+) -> str:
     if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL:
         raise RuntimeError("local_inference_disabled")
     req = urlrequest.Request(
         LOCAL_URL,
-        data=json.dumps(_payload(message, history, brain, adaptive_memory, code_mode=code_mode)).encode(),
+        data=json.dumps(
+            _payload(message, history, brain, adaptive_memory, code_mode=code_mode)
+        ).encode(),
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
@@ -98,14 +170,22 @@ def _call_local(message: str, history: list[dict[str, str]] | None, brain: dict 
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
     except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
         raise RuntimeError("local_inference_unavailable") from exc
-    text = str((body.get("message") or {}).get("content", "")).strip() or str(body.get("response", "")).strip()
+    text = str((body.get("message") or {}).get("content", "")).strip() or str(
+        body.get("response", "")
+    ).strip()
     if not text:
         raise RuntimeError("local_inference_empty")
     return text[:12000]
 
 
-def _call_bridge(message: str, history: list[dict[str, str]] | None, brain: dict | None,
-                 adaptive_memory: list[str] | None, *, code_mode: bool) -> str:
+def _call_bridge(
+    message: str,
+    history: list[dict[str, str]] | None,
+    brain: dict | None,
+    adaptive_memory: list[str] | None,
+    *,
+    code_mode: bool,
+) -> str:
     if not BRIDGE_ENABLED:
         raise RuntimeError("home_node_bridge_disabled")
     return home_node_bridge.submit_inference(
@@ -130,18 +210,25 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
         "reason": "local_inference_disabled" if not LOCAL_ENABLED else "unverified",
     }
     if LOCAL_ENABLED and LOCAL_URL and LOCAL_MODEL:
-        req = urlrequest.Request(_tags_url(), headers={"Accept": "application/json"}, method="GET")
+        req = urlrequest.Request(
+            _tags_url(),
+            headers={"Accept": "application/json"},
+            method="GET",
+        )
         try:
             with urlrequest.urlopen(req, timeout=1.0) as response:
                 body = json.loads(response.read().decode("utf-8", errors="replace"))
             names = {
                 str(item.get("name") or item.get("model") or "")
-                for item in body.get("models", []) if isinstance(item, dict)
+                for item in body.get("models", [])
+                if isinstance(item, dict)
             }
             result.update(
                 reachable=True,
                 model_available=LOCAL_MODEL in names,
-                reason="verified" if LOCAL_MODEL in names else "configured_model_missing",
+                reason=(
+                    "verified" if LOCAL_MODEL in names else "configured_model_missing"
+                ),
             )
         except HTTPError as exc:
             result["reason"] = f"local_probe_http_{exc.code}"
@@ -151,23 +238,49 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
     return result
 
 
-def generate(compatibility_engine: Callable[..., str], message: str, image_data: str = "",
-             history: list[dict[str, str]] | None = None, brain: dict | None = None,
-             adaptive_memory: list[str] | None = None, media: dict | None = None, *,
-             code_mode: bool = False, on_delta: Callable[[str], None] | None = None) -> str:
-    """Route generation local-direct → outbound bridge → compatibility fallback."""
-    use_first_party = not image_data and not (media or {}).get("content_items") and not (media or {}).get("transcript")
+def generate(
+    compatibility_engine: Callable[..., str],
+    message: str,
+    image_data: str = "",
+    history: list[dict[str, str]] | None = None,
+    brain: dict | None = None,
+    adaptive_memory: list[str] | None = None,
+    media: dict | None = None,
+    *,
+    code_mode: bool = False,
+    on_delta: Callable[[str], None] | None = None,
+) -> str:
+    """Route generation local-direct -> outbound bridge -> compatibility fallback."""
+
+    enriched_brain = _enrich_brain(message, brain)
+    use_first_party = (
+        not image_data
+        and not (media or {}).get("content_items")
+        and not (media or {}).get("transcript")
+    )
     first_party_error: RuntimeError | None = None
     if use_first_party:
         try:
-            text = _call_local(message, history, brain, adaptive_memory, code_mode=code_mode)
+            text = _call_local(
+                message,
+                history,
+                enriched_brain,
+                adaptive_memory,
+                code_mode=code_mode,
+            )
             if on_delta is not None:
                 on_delta(text)
             return text
         except RuntimeError as exc:
             first_party_error = exc
         try:
-            text = _call_bridge(message, history, brain, adaptive_memory, code_mode=code_mode)
+            text = _call_bridge(
+                message,
+                history,
+                enriched_brain,
+                adaptive_memory,
+                code_mode=code_mode,
+            )
             if on_delta is not None:
                 on_delta(text)
             return text
@@ -176,18 +289,28 @@ def generate(compatibility_engine: Callable[..., str], message: str, image_data:
     if not FALLBACK_ENABLED:
         raise RuntimeError("first_party_inference_required") from first_party_error
     return compatibility_engine(
-        message, image_data, history, brain, adaptive_memory, media,
-        code_mode=code_mode, on_delta=on_delta,
+        message,
+        image_data,
+        history,
+        enriched_brain,
+        adaptive_memory,
+        media,
+        code_mode=code_mode,
+        on_delta=on_delta,
     )
 
 
 def status(*, probe: bool = False) -> dict[str, Any]:
-    proof = probe_local() if probe else {
-        "reachable": None,
-        "model_available": None,
-        "model": LOCAL_MODEL,
-        "reason": "not_probed",
-    }
+    proof = (
+        probe_local()
+        if probe
+        else {
+            "reachable": None,
+            "model_available": None,
+            "model": LOCAL_MODEL,
+            "reason": "not_probed",
+        }
+    )
     bridge = home_node_bridge.status()
     first_party_ready = bool(
         (proof.get("reachable") and proof.get("model_available"))
@@ -201,6 +324,7 @@ def status(*, probe: bool = False) -> dict[str, Any]:
         "local_model_configured": bool(LOCAL_MODEL),
         "home_node": proof,
         "home_node_bridge": bridge,
+        "capability_fabric": capability_fabric_status(),
         "compatibility_fallback_enabled": FALLBACK_ENABLED,
         "first_party_inference_ready": first_party_ready,
         "sovereign_inference_ready": bool(first_party_ready and not FALLBACK_ENABLED),

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from mission_control import smi_chat_runtime
+from oap.smi.founder_memory_channel import status as founder_channel_status
+from oap.smi.founder_memory_channel import synced_memory_items
 from oap.smi.knowledge_graph import graph_memory_items
 from oap.smi.knowledge_graph import status as graph_status
 from oap.smi.memory_history import historical_memory_items
@@ -39,35 +41,59 @@ def test_graph_encodes_current_oap_relationships_without_people_profiles():
     assert len(items) == 4
 
 
+def test_founder_memory_channel_is_real_audited_transport_not_raw_chat_sync():
+    snapshot = founder_channel_status()
+    assert snapshot["ready"] is True
+    assert snapshot["github_audited_transport_connected"] is True
+    assert snapshot["direct_chatgpt_http_connected"] is False
+    assert snapshot["always_on_raw_chat_sync"] is False
+    assert snapshot["packet_count"] >= 3
+    assert snapshot["rejected_packet_count"] == 0
+    assert snapshot["automatic_canonical_promotion"] is False
+    items = synced_memory_items(
+        "TECHNICAL",
+        query="combine best AI coding research multimodal capabilities",
+        limit=3,
+    )
+    assert len(items) == 3
+    assert all(item.memory_id.startswith("founder-sync:") for item in items)
+    assert all(item.summary.startswith("FOUNDER-APPROVED SYNC CONTEXT") for item in items)
+
+
 def test_orchestrator_keeps_21_cap_and_authority_order():
     snapshot = memory_status()
     assert snapshot["ready"] is True
     assert snapshot["context_cap"] == 21
     assert snapshot["canonical_budget"] == 10
-    assert snapshot["historical_budget"] == 4
-    assert snapshot["graph_budget"] == 3
-    assert snapshot["dynamic_hrm_budget"] == 4
+    assert snapshot["historical_budget"] == 3
+    assert snapshot["graph_budget"] == 2
+    assert snapshot["founder_sync_budget"] == 3
+    assert snapshot["dynamic_hrm_budget"] == 3
+    assert snapshot["github_memory_channel_connected"] is True
+    assert snapshot["direct_chatgpt_http_connected"] is False
     assert snapshot["raw_chat_dump"] is False
     items = compose_text_memory(
         "TECHNICAL",
-        query="Review Matrix OAP Maps architecture",
+        query="Review Matrix OAP Maps architecture and AI capability fabric",
         dynamic=["one", "two", "three", "four", "five"],
     )
     assert len(items) == 21
-    assert items[-4:] == ("two", "three", "four", "five")
+    assert items[-3:] == ("three", "four", "five")
+    assert any(item.startswith("FOUNDER-APPROVED SYNC CONTEXT") for item in items)
 
 
 def test_live_smi_provider_receives_all_governed_memory_layers():
     items = smi_chat_runtime._canonical_provider_memory(
         {"task_type": "TECHNICAL"},
         ["old HRM", "recent HRM"],
-        query="Explain Matrix OAP Maps and Guardian",
+        query="Explain Matrix OAP Maps Guardian and AI capability fabric",
     )
     assert len(items) <= 21
     assert any(item.startswith("HISTORY ONLY") for item in items)
     assert any(item.startswith("RELATIONSHIP") for item in items)
+    assert any(item.startswith("FOUNDER-APPROVED SYNC CONTEXT") for item in items)
     assert items[-2:] == ["old HRM", "recent HRM"]
-    assert not any("raw chat" in item.casefold() for item in items)
+    assert not any("raw chat dump" in item.casefold() for item in items)
 
 
 def test_sync_contract_accepts_only_explicit_founder_approved_candidates():
@@ -102,7 +128,7 @@ def test_sync_contract_accepts_only_explicit_founder_approved_candidates():
     assert "founder_approval_required" in rejected["errors"]
 
 
-def test_sync_status_is_truthful_about_external_transport_gap():
+def test_sync_status_remains_truthful_about_direct_transport_gap():
     snapshot = sync_status()
     assert snapshot["ready"] is True
     assert snapshot["direct_chatgpt_transport_connected"] is False
