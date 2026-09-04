@@ -14,6 +14,8 @@ import re
 import threading
 from collections.abc import Callable, Iterator
 
+from oap.smi.canonical_memory import canonical_memory_items, status as canonical_memory_status
+
 from . import oap_inference_gateway as _inference
 from . import smi_chat_grounded as _grounded
 from . import smi_chat_runtime_core as _core
@@ -65,10 +67,11 @@ _PRIVATE_REASONING_DISCLOSURE = (
 
 
 def health() -> dict:
-    """Return core SMI health plus truthful Home Node inference certification."""
+    """Return core SMI health plus truthful Home Node and memory certification."""
     snapshot = dict(_core.health())
     snapshot["inference"] = _inference.status(probe=True)
     snapshot["thinking_process"] = _thinking.validate()
+    snapshot["canonical_memory"] = canonical_memory_status()
     return snapshot
 
 
@@ -153,6 +156,20 @@ def _strip_identity_prefix(response: object) -> str:
     return cleaned or text
 
 
+def _canonical_provider_memory(
+    brain: dict | None,
+    adaptive_memory: list[str] | None,
+) -> list[str]:
+    """Merge immutable project truth with recent audited HRM lessons."""
+
+    task_type = str((brain or {}).get("task_type") or "GENERAL")
+    canonical = [
+        item.summary for item in canonical_memory_items(task_type, limit=14)
+    ]
+    dynamic = [str(item)[:600] for item in (adaptive_memory or [])[-7:]]
+    return (canonical + dynamic)[:21]
+
+
 def _grounded_provider(
     message: str,
     image_data: str = "",
@@ -165,6 +182,7 @@ def _grounded_provider(
     on_delta: Callable[[str], None] | None = None,
 ) -> str:
     grounded_message = _with_world_crisis_context(message, brain)
+    governed_memory = _canonical_provider_memory(brain, adaptive_memory)
     result = _grounded.grounded_provider(
         _gateway_provider,
         health,
@@ -172,7 +190,7 @@ def _grounded_provider(
         image_data,
         history,
         brain,
-        adaptive_memory,
+        governed_memory,
         media,
         code_mode=code_mode,
         on_delta=None,
@@ -283,6 +301,7 @@ def chat(
         "chain_of_thought_exposed": contract["chain_of_thought_exposed"],
         "human_authority_final": contract["human_authority_final"],
     }
+    enriched["canonical_memory"] = canonical_memory_status()
     return enriched
 
 
