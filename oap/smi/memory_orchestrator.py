@@ -48,8 +48,16 @@ def compose_text_memory(
 ) -> tuple[str, ...]:
     """Text-only equivalent for the live generation provider."""
 
-    static = compose_memory(task_type, query=query, dynamic=(), limit=17)
+    safe_limit = min(max(int(limit), 1), TOTAL_CONTEXT_CAP)
     recent_dynamic = tuple(str(item)[:600] for item in dynamic)[-DYNAMIC_BUDGET:]
+    if len(recent_dynamic) > safe_limit:
+        recent_dynamic = recent_dynamic[-safe_limit:]
+    static_limit = safe_limit - len(recent_dynamic)
+    static = (
+        compose_memory(task_type, query=query, dynamic=(), limit=static_limit)
+        if static_limit > 0
+        else ()
+    )
     return tuple(item.summary for item in static) + recent_dynamic
 
 
