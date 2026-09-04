@@ -1,6 +1,6 @@
 """Unified read-only capability registry for Sovereign Megaverse Intelligence.
 
-This projection joins the locked seven Intelligence worlds with cross-system
+This projection joins the locked seven Intelligence Worlds with cross-system
 capabilities without turning those capabilities into extra worlds, agent
 families, brains or authority holders.
 """
@@ -23,31 +23,10 @@ from . import (
 )
 from .agents import INTELLIGENCE_WORLDS
 
+# Language, Life and Movement are canonical Intelligence Worlds. They must not
+# also appear here as cross-system capabilities. Technology, International
+# Humanitarian and Multimodal remain specialist capabilities spanning worlds.
 CROSS_SYSTEM_CAPABILITIES: tuple[dict[str, str], ...] = (
-    {
-        "id": "language",
-        "name": "Language Intelligence",
-        "purpose": (
-            "Communication, language learning, translation assistance and cultural "
-            "language context."
-        ),
-    },
-    {
-        "id": "life",
-        "name": "Life Intelligence",
-        "purpose": (
-            "Real facts, real skills and practical Adult/Youth education through "
-            "Community Power."
-        ),
-    },
-    {
-        "id": "movement",
-        "name": "Movement Intelligence",
-        "purpose": (
-            "People, goods, services, routes, transport, logistics and movement "
-            "conditions."
-        ),
-    },
     {
         "id": "technology",
         "name": "Technology Intelligence",
@@ -182,15 +161,26 @@ def validate_smi_capabilities() -> dict[str, Any]:
     cross_ids = [item["id"] for item in CROSS_SYSTEM_CAPABILITIES]
     internal_ids = [item["id"] for item in SMI_INTERNAL_CAPABILITIES]
     errors: list[str] = []
+    expected_world_ids = [
+        "earth",
+        "language",
+        "life",
+        "movement",
+        "civic",
+        "civilisation",
+        "matrix",
+    ]
+    if world_ids != expected_world_ids:
+        errors.append("The canonical seven Intelligence Worlds are misaligned")
     if len(world_ids) != 7 or len(world_ids) != len(set(world_ids)):
-        errors.append("The seven Intelligence worlds must remain exactly seven and unique")
+        errors.append("The seven Intelligence Worlds must remain exactly seven and unique")
     if len(cross_ids) != len(set(cross_ids)):
         errors.append("Cross-system Intelligence capability IDs must be unique")
     if len(internal_ids) != len(set(internal_ids)):
         errors.append("Internal SMI capability IDs must be unique")
     if set(cross_ids) & set(world_ids):
         errors.append(
-            "Cross-system capabilities must not silently become Intelligence worlds"
+            "Cross-system capabilities must not silently become Intelligence Worlds"
         )
 
     agi = AGICore().status()

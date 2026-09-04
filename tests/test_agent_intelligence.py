@@ -7,13 +7,13 @@ from mission_control import agents, config
 
 def test_registry_locks_seven_worlds_and_seven_oap_owned_families():
     assert agents.INTELLIGENCE_WORLD_NAMES == (
-        "Civic Intelligence",
-        "Jungle Book Intelligence",
-        "Animal Intelligence",
-        "Akan Intelligence",
-        "Matrix Intelligence",
-        "Civilisation Intelligence",
         "Earth Intelligence",
+        "Language Intelligence",
+        "Life Intelligence",
+        "Movement Intelligence",
+        "Civic Intelligence",
+        "Civilisation Intelligence",
+        "Matrix Intelligence",
     )
     assert agents.INTELLIGENCE_FAMILY_NAMES == (
         "Civic Intelligence",
@@ -25,15 +25,26 @@ def test_registry_locks_seven_worlds_and_seven_oap_owned_families():
         "Akan Animal Intelligence",
     )
     assert len(agents.LOCKED_WORLD_IDS) == 7
-    assert "earth" in agents.LOCKED_WORLD_IDS
-    assert all(family["world_id"] != "earth" for family in agents.INTELLIGENCE_FAMILIES)
+    assert set(agents.LOCKED_WORLD_IDS) == {
+        "earth",
+        "language",
+        "life",
+        "movement",
+        "civic",
+        "civilisation",
+        "matrix",
+    }
     assert len(agents.LOCKED_FAMILY_IDS) == 7
     assert len(set(agents.LOCKED_FAMILY_IDS)) == 7
-    assert {
-        family["world_id"]
-        for family in agents.INTELLIGENCE_FAMILIES
-        if family["id"].startswith("akan_")
-    } == {"akan"}
+
+    families = {family["id"]: family for family in agents.INTELLIGENCE_FAMILIES}
+    assert families["jungle_book"]["world_id"] == "life"
+    assert families["animal"]["world_id"] == "life"
+    assert families["matrix"]["world_id"] == "matrix"
+    assert families["matrix"]["home_system"] == "Matrix System"
+    assert families["akan_core"]["world_id"] == "civilisation"
+    assert families["akan_animal"]["world_id"] == "civilisation"
+    assert families["akan_animal"]["cross_world_ids"] == ("life",)
 
 
 def test_providers_are_separate_from_oap_agents_and_families():
@@ -72,7 +83,10 @@ def test_agent_registry_is_unique_safe_and_contains_confirmed_agents():
     assert validation["checks"]["duplicate_agent_names"] == 0
     assert validation["checks"]["duplicate_approved_roles"] == 0
     assert validation["checks"]["duplicate_providers"] == 0
-    assert {"Neo", "Akela", "Bagheera", "Gyata", "Shere Khan"} <= names
+    assert validation["checks"]["canonical_world_alignment"] is True
+    assert validation["checks"]["matrix_home_system_aligned"] is True
+    assert validation["checks"]["nirmata_creation_architect_aligned"] is True
+    assert {"Neo", "Akela", "Bagheera", "Gyata", "Shere Khan", "Nirmata"} <= names
     assert "Kaa" not in names
 
 
@@ -99,13 +113,34 @@ def test_neo_passport_preserves_locked_identity_and_authority():
     assert neo["status"] == "ACTIVE"
 
 
+def test_nirmata_passport_is_canonical_and_non_executing():
+    nirmata = next(agent for agent in agents.AGENT_REGISTRY if agent["name"] == "Nirmata")
+
+    assert nirmata["agent_id"] == "NIRMATA-001"
+    assert nirmata["family_id"] == "civilisation"
+    assert nirmata["role"] == "Creation Architect"
+    assert nirmata["organ"] == "Brain"
+    assert nirmata["brain_region"].startswith("Civilisation Intelligence")
+    assert nirmata["permissions"] == (
+        "READ",
+        "ANALYSE",
+        "DESIGN",
+        "RECOMMEND",
+        "DRAFT_BLUEPRINT",
+    )
+    assert nirmata["body"]["execution"] == "Disabled"
+    assert nirmata["memory"]["record_every_design"] is True
+    assert nirmata["autonomy"]["can_execute"] is False
+
+
 def test_approved_roles_are_complete_without_provider_assignments():
     approved_agents = [agent for agent in agents.AGENT_REGISTRY if agent["name"] != "Neo"]
+    standard_agents = [agent for agent in approved_agents if agent["name"] != "Nirmata"]
 
     assert approved_agents
     assert all(agent["role"] for agent in approved_agents)
     assert all(agent["role_status"] == "Approved" for agent in approved_agents)
-    assert all(agent["brain_region"] == "SMI advisory interface" for agent in approved_agents)
+    assert all(agent["brain_region"] == "SMI advisory interface" for agent in standard_agents)
     assert all(agent["powered_by"] == "ON ANY POSTCODE" for agent in agents.AGENT_REGISTRY)
     assert all(agent["provider_ids"] == () for agent in agents.AGENT_REGISTRY)
     assert all("EXECUTE" not in agent["permissions"] for agent in agents.AGENT_REGISTRY)
@@ -128,7 +163,9 @@ def test_all_78_approved_passports_remain_runtime_disabled():
 
 
 def test_approved_passport_cannot_gain_runtime_authority_by_field_mutation():
-    original = next(agent for agent in agents.AGENT_REGISTRY if agent["name"] != "Neo")
+    original = next(
+        agent for agent in agents.AGENT_REGISTRY if agent["name"] not in {"Neo", "Nirmata"}
+    )
     unsafe = {
         **original,
         "status": "ACTIVE",
@@ -146,9 +183,7 @@ def test_approved_passport_cannot_gain_runtime_authority_by_field_mutation():
         unsafe if agent["agent_id"] == original["agent_id"] else agent
         for agent in agents.AGENT_REGISTRY
     )
-    validation = agents.validate_agent_registry(
-        agents=registry
-    )
+    validation = agents.validate_agent_registry(agents=registry)
 
     assert validation["passed"] is False
     assert validation["ready_for_activation"] is False
