@@ -98,5 +98,15 @@
     "supersedes": [],
     "tags": ["international-humanitarian", "emergency-tracker", "gdacs", "who", "unhcr", "matrix", "guardian", "founder-approved"],
     "created_at": "2026-09-04T09:45:00+00:00"
+  },
+  {
+    "source_kind": "founder_decision",
+    "memory_class": "ARCHITECTURE",
+    "summary": "Build OAP Spatial Presence with the Face Up Spatial experience: authorised multi-view/depth/LiDAR capture, Matrix spatial reconstruction, OAP Edge semantic compression, Guardian Presence, Nexus spatial transport, adaptive QoS, session-scoped digital-twin representation and XR/light-field/volumetric/2D rendering. Use current Wi-Fi, fibre, 5G/5G-Advanced, mesh and NTN fallbacks now. Set 7-21 GHz as the OAP experimental cmWave research envelope, not a claim about the final standardized 6G band. Keep D-band/sub-THz and photonic wireless as evidence-gated research paths. No persistent biometric clone, covert person tracking, raw-media export by default or autonomous radio control. Human Authority remains final.",
+    "source_reference": "founder-chat-decision-2026-09-04-spatial-presence-7-21",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["spatial-presence", "face-up-spatial", "6g", "7-21-ghz", "xr", "volumetric", "guardian", "matrix", "nexus", "founder-approved"],
+    "created_at": "2026-09-04T10:20:00+00:00"
   }
 ]

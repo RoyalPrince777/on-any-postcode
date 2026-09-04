@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from oap.contracts import MemoryItem, OutputState
 
-GRAPH_REVISION = "2026-09-04-v1"
+GRAPH_REVISION = "2026-09-04-v2"
 _GRAPH_TIMESTAMP = datetime(2026, 9, 4, tzinfo=timezone.utc)
 
 _EDGES: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
@@ -31,6 +31,18 @@ _EDGES: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("HRM", "provides", "Temporal Memory", ("GENERAL", "TECHNICAL")),
     ("Guardian", "governs", "Matrix RF Intelligence", ("GENERAL", "TECHNICAL", "MONITORING")),
     ("Matrix RF Intelligence", "belongs_inside", "Matrix", ("GENERAL", "TECHNICAL", "MONITORING")),
+    ("OAP Spatial Presence", "experience", "Face Up Spatial", ("GENERAL", "TECHNICAL", "COMMUNITY")),
+    ("Face Up Spatial", "uses", "Authorised Spatial Capture", ("GENERAL", "TECHNICAL", "COMMUNITY")),
+    ("Authorised Spatial Capture", "feeds", "Matrix Spatial Reconstruction", ("GENERAL", "TECHNICAL")),
+    ("Matrix Spatial Reconstruction", "feeds", "OAP Edge Semantic Compression", ("GENERAL", "TECHNICAL")),
+    ("OAP Edge Semantic Compression", "passes_through", "Guardian Presence", ("GENERAL", "TECHNICAL")),
+    ("Guardian Presence", "governs", "Nexus Spatial Transport", ("GENERAL", "TECHNICAL")),
+    ("Nexus Spatial Transport", "feeds", "Face Up Spatial Render", ("GENERAL", "TECHNICAL", "COMMUNITY")),
+    ("Face Up Spatial Render", "presents_through", "Oasis", ("GENERAL", "TECHNICAL", "COMMUNITY")),
+    ("OAP 6G/7G Lab", "researches", "OAP 7-21 GHz Experimental Envelope", ("GENERAL", "TECHNICAL", "STRATEGY")),
+    ("OAP 7-21 GHz Experimental Envelope", "is_not", "Final 6G Standard Band", ("GENERAL", "TECHNICAL", "STRATEGY")),
+    ("OAP 6G/7G Lab", "researches", "D-band and sub-THz", ("GENERAL", "TECHNICAL", "STRATEGY")),
+    ("OAP 6G/7G Lab", "researches", "Photonic Wireless", ("GENERAL", "TECHNICAL", "STRATEGY")),
     ("OAP Maps 2D", "means", "Street", ("GENERAL", "TECHNICAL", "COMMUNITY")),
     ("OAP Maps 3D", "means", "World", ("GENERAL", "TECHNICAL", "COMMUNITY")),
     ("OAP Maps 4D", "means", "Time", ("GENERAL", "TECHNICAL", "COMMUNITY")),
@@ -69,21 +81,10 @@ _EDGES: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
 
 
 def _tokens(value: str) -> set[str]:
-    return {
-        token
-        for token in value.casefold().replace("/", " ").replace("-", " ").split()
-        if len(token) > 2
-    }
+    return {token for token in value.casefold().replace("/", " ").replace("-", " ").split() if len(token) > 2}
 
 
-def graph_memory_items(
-    task_type: str | None = None,
-    *,
-    query: str = "",
-    limit: int = 4,
-) -> tuple[MemoryItem, ...]:
-    """Return compact relationship statements relevant to task/query."""
-
+def graph_memory_items(task_type: str | None = None, *, query: str = "", limit: int = 4) -> tuple[MemoryItem, ...]:
     task = str(task_type or "GENERAL").strip().upper() or "GENERAL"
     safe_limit = min(max(int(limit), 1), 8)
     query_tokens = _tokens(query)
