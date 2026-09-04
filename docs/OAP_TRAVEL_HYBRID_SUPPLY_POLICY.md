@@ -1,39 +1,41 @@
-# OAP Travel — Hybrid Supply Policy
+# OAP Travel — Direct Supply + External Lookup Policy
 
 ## War Room decision
 
-OAP Travel uses a hybrid supply model.
+OAP Travel persists **OAP Direct only**.
 
 Canonical flow:
 
-`OAP Travel → OAP Supply Intelligence → {OAP Direct | Partner Supply} → OAP Compare → OAP Booking → Reservation / Handoff`
+`OAP Travel → OAP Direct → Certified Supplier → Listing → Pictures → Availability → Pricing → OAP Booking → Reservation`
 
-## Locked rule
+Optional research flow:
 
-> No external supplier may become indispensable to OAP Travel.
+`Human request → External lookup → Compare/reference → discard or re-fetch later`
 
-This applies to Booking.com and every future external inventory source.
+## Locked rules
+
+> No external travel service is an OAP partner by default.
+
+> External lookup data is not imported as OAP Direct inventory.
+
+> No external source may become indispensable to OAP Travel.
+
+Booking.com may be queried on demand through an available lookup surface when the Founder asks. That lookup does not create a Booking.com partnership, Render integration, OAP inventory record, booking handoff or payment authority.
 
 ## Source classes
 
-- **🟢 OAP Direct** — inventory supplied through OAP's first-party marketplace.
-- **👑 Certified OAP Supplier** — supplier with a direct OAP relationship and Certified OAP state.
-- **🔗 Partner Supply** — external inventory with explicit provider provenance and a replaceable-provider boundary.
+- **🟢 OAP Direct** — persisted supply through OAP's first-party marketplace.
+- **👑 Certified OAP Supplier** — supplier with a direct Certified OAP relationship.
+- **🔎 External Lookup** — transient reference/search evidence only; never OAP Direct supply.
 
-## Source order
+## Listing media
 
-OAP Direct is preferred and shown first. Partner Supply follows as launch acceleration and additional choice. OAP does not pretend unmatched offers are equivalent and does not automatically quality-rank unlike supply.
+OAP Direct listing pictures are first-party OAP media. Supported image types are JPEG, PNG and WebP. Images are attached to a real OAP listing, integrity-hashed, bounded to eight pictures per listing and served only when the associated listing and supplier are public and Certified.
 
-## Phases
-
-1. Booking.com + OAP Direct.
-2. Recruit OAP Direct suppliers aggressively.
-3. Prefer OAP Direct where comparable.
-4. Add multiple replaceable external supply sources.
-5. Booking.com becomes optional rather than critical.
+OAP does not copy external provider photography into OAP Direct without an independent right to use that media.
 
 ## Authority boundary
 
-External providers supply evidence/inventory only. They do not become OAP authority, SMI, an Intelligence World, an agent, or the owner of OAP Booking. OAP Direct reservations use the OAP-owned hold/reservation flow. Partner offers remain an external handoff unless and until a separately certified provider execution path exists.
+External services do not become OAP authority, SMI, an Intelligence World, an agent, supplier authority, OAP Booking, payment execution or platform ownership. OAP Direct reservations use the OAP-owned quote, hold and reservation flow.
 
 Payment capture, OAP Pass issuance and commission settlement remain separately governed production gates.
