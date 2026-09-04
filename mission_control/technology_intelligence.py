@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from .connectivity_runtime import connectivity_runtime_status
+from .six_g_war_room import six_g_war_room_status
 
 CONNECTIVITY_CAPABILITIES: tuple[dict[str, Any], ...] = (
     {
@@ -91,6 +92,7 @@ def technology_intelligence_status() -> dict[str, Any]:
     ids = tuple(item["id"] for item in CONNECTIVITY_CAPABILITIES)
     section_ids = tuple(item["id"] for item in TECHNOLOGY_SECTIONS)
     runtime = connectivity_runtime_status()
+    war_room = six_g_war_room_status()
     architecture_passed = (
         len(ids) == len(set(ids))
         and len(section_ids) == len(set(section_ids))
@@ -98,6 +100,8 @@ def technology_intelligence_status() -> dict[str, Any]:
         and "connectivity" in section_ids
         and runtime["mode"] == "production"
         and runtime["demo_mode"] is False
+        and war_room["mode"] == "production_evidence_review"
+        and war_room["demo_mode"] is False
     )
     six_g = dict(next(item for item in CONNECTIVITY_CAPABILITIES if item["id"] == "6g"))
     six_g.update(
@@ -106,6 +110,7 @@ def technology_intelligence_status() -> dict[str, Any]:
             "testbed_ready": runtime["6g_testbed_ready"],
             "production_network_ready": runtime["6g_production_network_ready"],
             "imt_2030_standard_finalized": runtime["imt_2030_standard_finalized"],
+            "war_room": war_room,
         }
     )
     return {
@@ -125,10 +130,12 @@ def technology_intelligence_status() -> dict[str, Any]:
             "capabilities": CONNECTIVITY_CAPABILITIES,
             "6g": six_g,
             "runtime": runtime,
+            "war_room": war_room,
             "local_first_preference": True,
             "fallback_required": True,
             "privacy_preserving_telemetry": True,
         },
+        "6g_war_room": war_room,
         "6g_architecture_ready": True,
         "6g_intelligence_runtime_ready": runtime["6g_intelligence_runtime_ready"],
         "6g_testbed_ready": runtime["6g_testbed_ready"],
@@ -142,8 +149,8 @@ def technology_intelligence_status() -> dict[str, Any]:
         "can_execute": False,
         "human_authority_final": True,
         "truth_boundary": (
-            "Connectivity Intelligence is production software, not a demo. A live 6G "
-            "network is only reported after fresh signed local radio evidence and "
-            "finalized IMT-2030 standards; otherwise it fails closed."
+            "Connectivity Intelligence and its 6G War Room are production software, "
+            "not a demo. A live 6G network is only reported after fresh signed local "
+            "radio evidence and finalized IMT-2030 standards; otherwise it fails closed."
         ),
     }
