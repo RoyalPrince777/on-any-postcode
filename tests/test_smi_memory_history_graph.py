@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from mission_control import smi_chat_runtime
 from oap.smi.knowledge_graph import graph_memory_items, status as graph_status
 from oap.smi.memory_history import historical_memory_items, status as history_status
 from oap.smi.memory_orchestrator import compose_text_memory, status as memory_status
@@ -50,6 +51,19 @@ def test_orchestrator_keeps_21_cap_and_authority_order():
     )
     assert len(items) == 21
     assert items[-4:] == ("two", "three", "four", "five")
+
+
+def test_live_smi_provider_receives_all_governed_memory_layers():
+    items = smi_chat_runtime._canonical_provider_memory(
+        {"task_type": "TECHNICAL"},
+        ["old HRM", "recent HRM"],
+        query="Explain Matrix OAP Maps and Guardian",
+    )
+    assert len(items) <= 21
+    assert any(item.startswith("HISTORY ONLY") for item in items)
+    assert any(item.startswith("RELATIONSHIP") for item in items)
+    assert items[-2:] == ["old HRM", "recent HRM"]
+    assert not any("raw chat" in item.casefold() for item in items)
 
 
 def test_sync_contract_accepts_only_explicit_founder_approved_candidates():
