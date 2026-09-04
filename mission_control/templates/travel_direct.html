@@ -6,13 +6,7 @@
   <title>OAP Direct · Travel & Experience</title>
   <style>
     :root{color-scheme:dark;background:#07110d;color:#f5f7f6;font-family:Inter,system-ui,sans-serif}
-    *{box-sizing:border-box}body{margin:0;background:#07110d;color:#f5f7f6}main{max-width:1180px;margin:auto;padding:24px}
-    a{color:inherit}.hero{padding:34px 0 22px}.eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:#8dd7ad}
-    h1{font-size:clamp(2rem,6vw,4rem);margin:.3rem 0 .7rem;line-height:.95}.sub{max-width:760px;color:#b9c9c1;line-height:1.5}
-    .filters{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 28px}.filters input,.filters select,.filters button{border:1px solid #29483a;background:#0d1b15;color:#fff;border-radius:12px;padding:12px 14px}
-    .filters button{cursor:pointer;background:#153d2a}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}.card{border:1px solid #1f3a2d;background:#0b1712;border-radius:18px;padding:18px}
-    .badge{display:inline-block;border:1px solid #315b46;border-radius:999px;padding:5px 9px;color:#9edbb7;font-size:.75rem}.badge.certified{border-color:#7d6a36;color:#f2d986}.price{font-size:1.5rem;font-weight:800;margin:.8rem 0 .2rem}.muted{color:#9eb0a7;font-size:.9rem}.place{font-weight:650;margin:.8rem 0}.empty{border:1px dashed #355245;border-radius:18px;padding:28px;color:#b6c5bd}.truth{margin-top:30px;border-top:1px solid #20382d;padding-top:18px;color:#91a69c;font-size:.88rem}
-    .booking{margin-top:14px;padding-top:12px;border-top:1px solid #20382d}.booking-row{display:flex;gap:8px;align-items:end}.booking label{font-size:.75rem;color:#a9bbb2}.booking input{width:78px;border:1px solid #315344;background:#08140e;color:white;border-radius:9px;padding:9px}.book-button,.confirm-button{border:1px solid #357d52;background:#154c31;color:white;border-radius:10px;padding:10px 13px;font-weight:800;cursor:pointer}.confirm-button{margin-top:8px;background:#6b5220;border-color:#a78842}.book-button:disabled,.confirm-button:disabled{opacity:.5;cursor:not-allowed}.booking-status{min-height:1.3em;margin-top:9px;color:#a7cdb8;font-size:.8rem;white-space:pre-wrap}.booking-status.error{color:#ffb3b3}.booking-status.success{color:#aef1c5}
+    *{box-sizing:border-box}body{margin:0;background:#07110d;color:#f5f7f6}main{max-width:1180px;margin:auto;padding:24px}a{color:inherit}.hero{padding:34px 0 22px}.eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:#8dd7ad}h1{font-size:clamp(2rem,6vw,4rem);margin:.3rem 0 .7rem;line-height:.95}.sub{max-width:800px;color:#b9c9c1;line-height:1.5}.filters{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 28px}.filters input,.filters select,.filters button{border:1px solid #29483a;background:#0d1b15;color:#fff;border-radius:12px;padding:12px 14px}.filters button{cursor:pointer;background:#153d2a}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:14px}.card{border:1px solid #1f3a2d;background:#0b1712;border-radius:18px;overflow:hidden}.card-body{padding:18px}.cover{aspect-ratio:16/10;background:#06100b;overflow:hidden;display:grid;place-items:center;border-bottom:1px solid #1f3a2d}.cover img{width:100%;height:100%;object-fit:cover}.cover-empty{color:#7f9188;font-size:.82rem}.thumbs{display:flex;gap:6px;overflow-x:auto;margin:9px 0 2px}.thumbs img{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid #315b46}.badge{display:inline-block;border:1px solid #315b46;border-radius:999px;padding:5px 9px;color:#9edbb7;font-size:.75rem}.badge.certified{border-color:#7d6a36;color:#f2d986}.price{font-size:1.5rem;font-weight:800;margin:.8rem 0 .2rem}.muted{color:#9eb0a7;font-size:.9rem}.place{font-weight:650;margin:.8rem 0}.empty{border:1px dashed #355245;border-radius:18px;padding:28px;color:#b6c5bd}.truth{margin-top:30px;border-top:1px solid #20382d;padding-top:18px;color:#91a69c;font-size:.88rem}.booking{margin-top:14px;padding-top:12px;border-top:1px solid #20382d}.booking-row{display:flex;gap:8px;align-items:end}.booking label{font-size:.75rem;color:#a9bbb2}.booking input{width:78px;border:1px solid #315344;background:#08140e;color:white;border-radius:9px;padding:9px}.book-button,.confirm-button{border:1px solid #357d52;background:#154c31;color:white;border-radius:10px;padding:10px 13px;font-weight:800;cursor:pointer}.confirm-button{margin-top:8px;background:#6b5220;border-color:#a78842}.book-button:disabled,.confirm-button:disabled{opacity:.5;cursor:not-allowed}.booking-status{min-height:1.3em;margin-top:9px;color:#a7cdb8;font-size:.8rem;white-space:pre-wrap}.booking-status.error{color:#ffb3b3}.booking-status.success{color:#aef1c5}
   </style>
 </head>
 <body>
@@ -20,86 +14,38 @@
   <section class="hero">
     <div class="eyebrow">ON ANY POSTCODE · OAP Direct</div>
     <h1>Discover. Book. Move. Experience.</h1>
-    <p class="sub">First-party OAP Direct supply from Certified suppliers. Only active, future availability with real stored pricing is shown here. External suppliers remain optional underneath OAP. <a href="/travel">View the full OAP Travel catalogue</a>.</p>
+    <p class="sub">First-party OAP Direct supply from Certified suppliers. Only active future availability with real stored pricing is shown. External marketplace data is research-only and never becomes an OAP partner feed. <a href="/travel">Open OAP Travel</a>.</p>
   </section>
   <form class="filters" method="get" action="/travel/direct">
-    <select name="category" aria-label="Category">
-      <option value="">All experiences</option>
-      {% for value in ['stay','attraction','activity','car_rental','transport','event'] %}
-      <option value="{{ value }}" {% if request.args.get('category') == value %}selected{% endif %}>{{ value.replace('_',' ')|title }}</option>
-      {% endfor %}
-    </select>
-    <input name="country" value="{{ request.args.get('country','') }}" placeholder="Country" maxlength="120">
-    <button type="submit">Discover</button>
+    <select name="category" aria-label="Category"><option value="">All experiences</option>{% for value in ['stay','attraction','activity','car_rental','transport','event'] %}<option value="{{ value }}" {% if request.args.get('category') == value %}selected{% endif %}>{{ value.replace('_',' ')|title }}</option>{% endfor %}</select>
+    <input name="country" value="{{ request.args.get('country','') }}" placeholder="Country" maxlength="120"><button type="submit">Discover</button>
   </form>
   {% if marketplace.error %}<div class="empty">{{ marketplace.error }}</div>{% endif %}
   {% if marketplace.offers %}
   <section class="grid" aria-label="Available OAP Direct offers">
     {% for offer in marketplace.offers %}
     <article class="card" data-booking-card data-listing-id="{{ offer.listing_id }}" data-starts-at="{{ offer.starts_at }}" data-ends-at="{{ offer.ends_at }}" data-currency="{{ offer.currency }}">
-      <span class="badge">🟢 OAP Direct · {{ offer.category.replace('_',' ')|title }}</span>
-      <span class="badge certified">👑 Certified OAP Supplier</span>
-      <h2>{{ offer.title }}</h2>
-      <div class="place">{{ offer.place_label }} · {{ offer.country }}</div>
-      {% if offer.description %}<p class="muted">{{ offer.description }}</p>{% endif %}
-      <div class="price">{{ '%.2f'|format(offer.unit_price_minor / 100) }} {{ offer.currency }}</div>
-      <div class="muted">{{ offer.price_basis }} · {{ offer.available_quantity }} available</div>
-      <div class="muted">From {{ offer.starts_at[:16].replace('T',' ') }} → {{ offer.ends_at[:16].replace('T',' ') }}</div>
-      <div class="muted">Supplier: {{ offer.supplier_name }}</div>
-      <div class="booking">
-        <div class="booking-row">
-          <label>Qty<input class="booking-qty" type="number" min="1" max="{{ offer.available_quantity }}" value="1"></label>
-          <button class="book-button" type="button">Check & hold</button>
-        </div>
-        <div class="booking-status" aria-live="polite"></div>
+      <div class="cover">{% if offer.cover_photo_url %}<img src="{{ offer.cover_photo_url }}" alt="{{ offer.photos[0].alt_text or offer.title }}" loading="lazy">{% else %}<span class="cover-empty">Listing photo not added yet</span>{% endif %}</div>
+      <div class="card-body">
+        <span class="badge">🟢 OAP Direct · {{ offer.category.replace('_',' ')|title }}</span> <span class="badge certified">👑 Certified OAP Supplier</span>
+        <h2>{{ offer.title }}</h2><div class="place">{{ offer.place_label }} · {{ offer.country }}</div>{% if offer.description %}<p class="muted">{{ offer.description }}</p>{% endif %}
+        {% if offer.photos|length > 1 %}<div class="thumbs" aria-label="Listing photos">{% for photo in offer.photos[1:5] %}<img src="{{ photo.public_path }}" alt="{{ photo.alt_text or offer.title }}" loading="lazy">{% endfor %}</div>{% endif %}
+        <div class="price">{{ '%.2f'|format(offer.unit_price_minor / 100) }} {{ offer.currency }}</div><div class="muted">{{ offer.price_basis }} · {{ offer.available_quantity }} available · {{ offer.photo_count }} photo{{ '' if offer.photo_count == 1 else 's' }}</div>
+        <div class="muted">From {{ offer.starts_at[:16].replace('T',' ') }} → {{ offer.ends_at[:16].replace('T',' ') }}</div><div class="muted">Supplier: {{ offer.supplier_name }}</div>
+        <div class="booking"><div class="booking-row"><label>Qty<input class="booking-qty" type="number" min="1" max="{{ offer.available_quantity }}" value="1"></label><button class="book-button" type="button">Check & hold</button></div><div class="booking-status" aria-live="polite"></div></div>
       </div>
     </article>
     {% endfor %}
   </section>
-  {% elif not marketplace.error %}
-  <div class="empty">No Certified OAP Direct inventory is live yet. The marketplace is ready and will show real supply here as soon as a Certified supplier publishes availability.</div>
-  {% endif %}
-  <p class="truth">Booking flow: live quote → 15-minute capacity hold → explicit Human confirmation → pending supplier confirmation → supplier confirmation. Payment capture, Pass issuance and commission settlement remain separately governed until their production gates are certified.</p>
+  {% elif not marketplace.error %}<div class="empty">No Certified OAP Direct inventory is live yet. Create a genuine listing, add authorised photos, activate it and publish availability.</div>{% endif %}
+  <p class="truth">Booking flow: live quote → 15-minute capacity hold → explicit Human confirmation → pending supplier confirmation → supplier confirmation. Listing photos require explicit usage rights. Payment capture, Pass issuance and commission settlement remain separately governed.</p>
 </main>
 <script>
 const bookingCsrf={{ oap_csrf_token|tojson }};
-async function bookingPost(endpoint,payload,withCsrf=false){
-  const headers={'Content-Type':'application/json'};
-  if(withCsrf)headers['X-OAP-CSRF']=bookingCsrf;
-  const response=await fetch(endpoint,{method:'POST',headers,body:JSON.stringify(payload)});
-  let body;try{body=await response.json()}catch(_){body={error:{message:'Unexpected response'}}}
-  return {response,body};
-}
+async function bookingPost(endpoint,payload,withCsrf=false){const headers={'Content-Type':'application/json'};if(withCsrf)headers['X-OAP-CSRF']=bookingCsrf;const response=await fetch(endpoint,{method:'POST',headers,body:JSON.stringify(payload)});let body;try{body=await response.json()}catch(_){body={error:{message:'Unexpected response'}}}return {response,body}}
 function money(minor,currency){return `${(Number(minor)/100).toFixed(2)} ${currency}`}
 function idempotency(){return globalThis.crypto?.randomUUID?.()||`oap-${Date.now()}-${Math.random().toString(16).slice(2)}`}
-for(const card of document.querySelectorAll('[data-booking-card]')){
-  const button=card.querySelector('.book-button');
-  const qtyInput=card.querySelector('.booking-qty');
-  const status=card.querySelector('.booking-status');
-  button.addEventListener('click',async()=>{
-    button.disabled=true;status.className='booking-status';status.textContent='Checking live price and availability…';
-    const quantity=Number(qtyInput.value||1);
-    const base={listing_id:card.dataset.listingId,starts_at:card.dataset.startsAt,ends_at:card.datasetEndsAt||card.dataset.endsAt,quantity};
-    try{
-      const quote=await bookingPost('/travel/direct/api/quote',base);
-      if(!quote.response.ok){status.classList.add('error');status.textContent=quote.body?.error?.message||'Offer is no longer available.';button.disabled=false;return}
-      const quoteText=`${money(quote.body.total_price_minor,quote.body.currency)} · ${quantity} requested`;
-      if(!window.confirm(`Place a 15-minute OAP hold for ${quoteText}? No payment will be taken.`)){status.textContent='Hold cancelled. Nothing changed.';button.disabled=false;return}
-      status.textContent='Creating 15-minute hold…';
-      const hold=await bookingPost('/travel/direct/api/hold',{...base,idempotency_key:idempotency()},true);
-      if(hold.response.status===401){status.classList.add('error');status.textContent='Enter My World is required before OAP can hold inventory. Open /auth, sign in, then return here.';button.disabled=false;return}
-      if(!hold.response.ok){status.classList.add('error');status.textContent=hold.body?.error?.message||'Hold could not be created.';button.disabled=false;return}
-      status.textContent=`HELD until ${new Date(hold.body.expires_at).toLocaleTimeString()} · ${money(hold.body.amount_minor,hold.body.currency)}. Confirm below to create the reservation.`;
-      const confirm=document.createElement('button');confirm.type='button';confirm.className='confirm-button';confirm.textContent='Human Confirm · Create reservation';card.querySelector('.booking').append(confirm);
-      confirm.addEventListener('click',async()=>{
-        confirm.disabled=true;status.textContent='Recording your booking confirmation…';
-        const reservation=await bookingPost('/travel/direct/api/reservations',{hold_id:hold.body.hold_id,human_confirmed:true},true);
-        if(!reservation.response.ok){status.classList.add('error');status.textContent=reservation.body?.error?.message||'Reservation could not be created.';confirm.disabled=false;return}
-        status.classList.add('success');status.textContent=`Reservation ${reservation.body.state}. Supplier confirmation is still required. No payment has been captured.`;confirm.remove();
-      });
-    }catch(error){status.classList.add('error');status.textContent=String(error);button.disabled=false}
-  });
-}
+for(const card of document.querySelectorAll('[data-booking-card]')){const button=card.querySelector('.book-button'),qtyInput=card.querySelector('.booking-qty'),status=card.querySelector('.booking-status');button.addEventListener('click',async()=>{button.disabled=true;status.className='booking-status';status.textContent='Checking live price and availability…';const quantity=Number(qtyInput.value||1);const base={listing_id:card.dataset.listingId,starts_at:card.dataset.startsAt,ends_at:card.dataset.endsAt,quantity};try{const quote=await bookingPost('/travel/direct/api/quote',base);if(!quote.response.ok){status.classList.add('error');status.textContent=quote.body?.error?.message||'Offer is no longer available.';button.disabled=false;return}const quoteText=`${money(quote.body.total_price_minor,quote.body.currency)} · ${quantity} requested`;if(!window.confirm(`Place a 15-minute OAP hold for ${quoteText}? No payment will be taken.`)){status.textContent='Hold cancelled. Nothing changed.';button.disabled=false;return}status.textContent='Creating 15-minute hold…';const hold=await bookingPost('/travel/direct/api/hold',{...base,idempotency_key:idempotency()},true);if(hold.response.status===401){status.classList.add('error');status.textContent='Enter My World is required before OAP can hold inventory. Open /auth, sign in, then return here.';button.disabled=false;return}if(!hold.response.ok){status.classList.add('error');status.textContent=hold.body?.error?.message||'Hold could not be created.';button.disabled=false;return}status.textContent=`HELD until ${new Date(hold.body.expires_at).toLocaleTimeString()} · ${money(hold.body.amount_minor,hold.body.currency)}. Confirm below to create the reservation.`;const confirm=document.createElement('button');confirm.type='button';confirm.className='confirm-button';confirm.textContent='Human Confirm · Create reservation';card.querySelector('.booking').append(confirm);confirm.addEventListener('click',async()=>{confirm.disabled=true;status.textContent='Recording your booking confirmation…';const reservation=await bookingPost('/travel/direct/api/reservations',{hold_id:hold.body.hold_id,human_confirmed:true},true);if(!reservation.response.ok){status.classList.add('error');status.textContent=reservation.body?.error?.message||'Reservation could not be created.';confirm.disabled=false;return}status.classList.add('success');status.textContent=`Reservation ${reservation.body.state}. Supplier confirmation is still required. No payment has been captured.`;confirm.remove()})}catch(error){status.classList.add('error');status.textContent=String(error);button.disabled=false}})}
 </script>
 </body>
 </html>
