@@ -39,7 +39,7 @@ THINKING_STAGES: tuple[dict[str, str], ...] = (
     {
         "id": "evidence",
         "name": "Evidence",
-        "signal": "connected",
+        "signal": "working",
         "public_label": "Checking evidence, freshness and unknowns",
         "purpose": "Separate verified evidence, inference and unknown state; lower confidence when proof is missing.",
     },
