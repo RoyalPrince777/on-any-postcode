@@ -1,16 +1,14 @@
-"""Governed provider-neutral travel supply integration for OAP.
+"""Governed provider-neutral external travel lookup contract for OAP.
 
-This module defines the OAP-owned contract between Intelligence capabilities and
-replaceable external travel-supply providers. Providers are evidence/supply
-sources only: they are never SMI, Intelligence Worlds, agents or authority.
+External services can provide fresh reference/search evidence on demand. They are
+not OAP partners, are not persisted into the OAP Direct catalogue, and never gain
+booking, payment, identity, supplier or platform authority.
 
-The first declared provider profile is Booking.com because the connected
-assistant surface can search stays, attractions and car rentals. That does not
-prove the Render runtime has a credentialed supplier/API connection. Runtime
-connection, live-search certification, booking execution and commercial terms
-therefore remain separate fail-closed gates.
+Booking.com remains declared only as an optional lookup profile because the
+connected assistant surface can query it when the Founder asks. That does not
+prove the Render runtime has a Booking.com API connection and does not create an
+OAP commercial partnership.
 """
-
 from __future__ import annotations
 
 import os
@@ -20,7 +18,7 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
 
-SUPPLY_INTEGRATION_REVISION = "2026-09-04-v1"
+SUPPLY_INTEGRATION_REVISION = "2026-09-04-v2"
 
 SUPPORTED_CATEGORIES: tuple[str, ...] = (
     "stay",
@@ -62,10 +60,10 @@ _PROVIDERS: tuple[SupplyProvider, ...] = (
     SupplyProvider(
         provider_id="booking_com",
         name="Booking.com",
-        provider_type="replaceable_external_supply_provider",
+        provider_type="optional_on_demand_external_lookup",
         categories=SUPPORTED_CATEGORIES,
         supports_search=True,
-        supports_booking_handoff=True,
+        supports_booking_handoff=False,
         supports_direct_booking=False,
         supports_payment=False,
         external_authority=False,
@@ -93,24 +91,19 @@ def _https_url(value: str) -> bool:
 
 
 def providers() -> tuple[SupplyProvider, ...]:
-    """Return the immutable provider declarations."""
+    """Return immutable external lookup declarations."""
 
     return _PROVIDERS
 
 
 def provider(provider_id: str) -> SupplyProvider | None:
-    """Return one provider declaration."""
+    """Return one optional external lookup declaration."""
 
     return _PROVIDER_BY_ID.get(str(provider_id or "").strip().casefold())
 
 
 def normalize_offer(payload: Mapping[str, Any]) -> SupplyOffer:
-    """Validate and normalize one externally sourced offer.
-
-    Current price/availability evidence must carry provider provenance, a source
-    URL and an observation timestamp. This prevents OAP from inventing a live
-    quote when no supplier evidence exists.
-    """
+    """Validate one externally observed lookup result without making it OAP supply."""
 
     provider_id = str(payload.get("provider_id") or "").strip().casefold()
     provider_item = provider(provider_id)
@@ -180,11 +173,13 @@ def normalize_offer(payload: Mapping[str, Any]) -> SupplyOffer:
 
 
 def offer_record(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Return a Matrix/SMI-safe provider-evidence record."""
+    """Return a Matrix/SMI-safe transient lookup evidence record."""
 
     offer = normalize_offer(payload)
     return {
         **asdict(offer),
+        "source_kind": "external_lookup_only",
+        "persistent_oap_supply": False,
         "observed_not_inferred": True,
         "provider_authority": False,
         "oap_authority": True,
@@ -195,12 +190,7 @@ def offer_record(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def runtime_provider_status(provider_id: str) -> dict[str, Any]:
-    """Return fail-closed runtime readiness for one provider.
-
-    Environment flags are attestations only; they do not themselves execute a
-    provider request. Production gates should set them only after the matching
-    adapter/probe and commercial approval have been verified.
-    """
+    """Return fail-closed runtime readiness for one optional lookup source."""
 
     item = provider(provider_id)
     if item is None:
@@ -208,15 +198,6 @@ def runtime_provider_status(provider_id: str) -> dict[str, Any]:
     prefix = f"OAP_SUPPLY_{provider_id.upper()}"
     connected = _truthy(os.getenv(f"{prefix}_CONNECTED"))
     search_certified = connected and _truthy(os.getenv(f"{prefix}_SEARCH_CERTIFIED"))
-    commercial_terms_certified = _truthy(
-        os.getenv(f"{prefix}_COMMERCIAL_TERMS_CERTIFIED")
-    )
-    booking_certified = (
-        connected
-        and commercial_terms_certified
-        and item.supports_direct_booking
-        and _truthy(os.getenv(f"{prefix}_BOOKING_CERTIFIED"))
-    )
     return {
         "provider_id": item.provider_id,
         "name": item.name,
@@ -224,17 +205,19 @@ def runtime_provider_status(provider_id: str) -> dict[str, Any]:
         "categories": item.categories,
         "runtime_connected": connected,
         "live_search_certified": search_certified,
-        "commercial_terms_certified": commercial_terms_certified,
-        "direct_booking_certified": booking_certified,
-        "booking_handoff_supported": item.supports_booking_handoff,
-        "payment_supported": item.supports_payment,
+        "commercial_terms_certified": False,
+        "direct_booking_certified": False,
+        "booking_handoff_supported": False,
+        "payment_supported": False,
+        "persistent_import_allowed": False,
+        "partner_relationship": False,
         "external_authority": False,
         "human_authority_final": True,
     }
 
 
 def validate_supply_integration() -> dict[str, Any]:
-    """Validate provider declarations and OAP authority boundaries."""
+    """Validate lookup declarations and OAP authority boundaries."""
 
     ids = tuple(item.provider_id for item in _PROVIDERS)
     errors: list[str] = []
@@ -242,18 +225,17 @@ def validate_supply_integration() -> dict[str, Any]:
         errors.append("Supply provider IDs must be unique")
     for item in _PROVIDERS:
         if not item.categories or not set(item.categories) <= set(SUPPORTED_CATEGORIES):
-            errors.append(f"Provider {item.provider_id} has invalid supply categories")
+            errors.append(f"Provider {item.provider_id} has invalid lookup categories")
         if item.external_authority:
             errors.append(f"Provider {item.provider_id} cannot hold OAP authority")
-        if item.supports_payment:
-            errors.append(
-                f"Provider {item.provider_id} payment support must be integrated separately"
-            )
+        if item.supports_booking_handoff or item.supports_direct_booking or item.supports_payment:
+            errors.append(f"Lookup source {item.provider_id} cannot execute OAP commerce")
     return {
         "passed": not errors,
         "errors": tuple(errors),
         "provider_count": len(_PROVIDERS),
         "provider_ids_unique": len(ids) == len(set(ids)),
+        "persistent_partner_supply": False,
         "creates_intelligence_worlds": False,
         "creates_agents": False,
         "creates_brain": False,
@@ -264,15 +246,14 @@ def validate_supply_integration() -> dict[str, Any]:
 
 
 def status() -> dict[str, Any]:
-    """Return truthful travel-supply readiness."""
+    """Return truthful external lookup readiness."""
 
     validation = validate_supply_integration()
     runtime = tuple(runtime_provider_status(item.provider_id) for item in _PROVIDERS)
     connected = tuple(item for item in runtime if item["runtime_connected"])
     searchable = tuple(item for item in runtime if item["live_search_certified"])
-    booking = tuple(item for item in runtime if item["direct_booking_certified"])
     return {
-        "component": "OAP Travel Supply Integration Layer",
+        "component": "OAP External Travel Lookup Layer",
         "revision": SUPPLY_INTEGRATION_REVISION,
         "adapter_framework_ready": validation["passed"],
         "validation": validation,
@@ -281,21 +262,21 @@ def status() -> dict[str, Any]:
         "provider_count": len(runtime),
         "runtime_connected_count": len(connected),
         "live_search_provider_count": len(searchable),
-        "direct_booking_provider_count": len(booking),
-        "live_supply_connected": bool(searchable),
-        "booking_transactions_live": bool(booking),
+        "direct_booking_provider_count": 0,
+        "live_supply_connected": False,
+        "booking_transactions_live": False,
         "payment_transactions_live": False,
         "commission_settlement_live": False,
-        "booking_handoff_architecture_ready": validation["passed"],
+        "booking_handoff_architecture_ready": False,
+        "persistent_partner_supply": False,
         "provider_neutral": True,
         "external_provider_authority": False,
         "human_authority_final": True,
         "observed_at": datetime.now(UTC).isoformat(),
         "truth_boundary": (
-            "The OAP provider-neutral adapter, offer schema and provenance checks are "
-            "implemented. A connected assistant-side provider tool is not evidence of a "
-            "credentialed Render runtime integration. Live supply remains false until a "
-            "runtime adapter and search probe are certified; booking, payment and "
-            "commission settlement require separate governed gates."
+            "External services are optional on-demand lookup sources only. OAP does not "
+            "persist their search results as Partner Supply and does not route OAP booking, "
+            "payment or supplier authority through them. Assistant-side lookup access is "
+            "separate from the OAP Render runtime."
         ),
     }

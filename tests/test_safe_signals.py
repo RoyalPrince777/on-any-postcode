@@ -92,7 +92,9 @@ def test_youth_mentorship_must_be_youth_safe():
 def test_civic_and_source_links_require_https():
     with pytest.raises(ValueError, match="source_url_must_be_https"):
         safe_signals._https("http://example.org/item", "source_url")
-    assert safe_signals._https("https://example.org/item", "source_url").startswith("https://")
+    assert safe_signals._https("https://example.org/item", "source_url").startswith(
+        "https://"
+    )
 
 
 def test_public_safe_signal_routes_are_registered_without_breaking_travel():
@@ -105,5 +107,6 @@ def test_public_safe_signal_routes_are_registered_without_breaking_travel():
     assert "/civic-voice" in rules
     assert "/mentorship" in rules
     assert "/travel/direct" in rules
-    assert "/travel/partner/api/offers" in rules
+    assert "/travel/api/catalogue" in rules
+    assert "/travel/partner/api/offers" not in rules
     assert "/mission/safe-signals/status" in rules

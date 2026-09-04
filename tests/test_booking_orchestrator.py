@@ -24,7 +24,7 @@ def _offer(**overrides):
     return payload
 
 
-def test_oap_booking_core_prepares_intent_but_does_not_book():
+def test_oap_booking_core_can_prepare_reference_intent_but_does_not_book():
     intent = booking_orchestrator.prepare_booking_intent(
         _offer(),
         now=datetime(2026, 9, 4, 11, 5, tzinfo=UTC),
@@ -39,22 +39,19 @@ def test_oap_booking_core_prepares_intent_but_does_not_book():
     assert intent.pass_issuance_authorized is False
 
 
-def test_human_approval_creates_handoff_not_false_confirmation():
+def test_human_approval_of_external_lookup_does_not_create_booking_handoff():
     intent = booking_orchestrator.prepare_booking_intent(
         _offer(),
         now=datetime(2026, 9, 4, 11, 5, tzinfo=UTC),
     )
     approved = booking_orchestrator.confirm_booking_intent(intent, human_approved=True)
-    handoff = booking_orchestrator.booking_handoff(approved)
 
-    assert approved.state == "handoff_ready"
+    assert approved.state == "approved_waiting_supply"
     assert approved.human_confirmed is True
-    assert handoff["state"] == "external_supplier_handoff"
-    assert handoff["reservation_confirmed"] is False
-    assert handoff["payment_captured"] is False
-    assert handoff["pass_issued"] is False
-    assert handoff["provider_authority"] is False
-    assert handoff["human_authority_final"] is True
+    assert approved.booking_execution_authorized is False
+    assert approved.payment_execution_authorized is False
+    with pytest.raises(ValueError, match="booking_handoff_not_ready"):
+        booking_orchestrator.booking_handoff(approved)
 
 
 def test_declined_booking_intent_cannot_handoff():
@@ -102,6 +99,7 @@ def test_oap_owns_booking_experience_not_external_inventory(monkeypatch):
     assert booking["first_party_booking_orchestration_ready"] is True
     assert booking["owns_booking_experience"] is True
     assert booking["owns_supplier_inventory"] is False
+    assert booking["supplier_handoff_ready"] is False
     assert booking["direct_booking_execution_ready"] is False
     assert booking["payment_execution_ready"] is False
     assert booking["creates_intelligence_worlds"] is False

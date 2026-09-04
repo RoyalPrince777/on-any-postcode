@@ -1,10 +1,9 @@
 """First-party OAP Booking Core.
 
 OAP owns the booking journey, state machine, comparison and confirmation logic.
-External suppliers remain replaceable inventory/evidence sources with zero OAP
-authority. This module can prepare and approve booking handoffs, but it cannot
-claim that a reservation, payment, pass or supplier commission has completed
-without separately certified runtime evidence.
+External travel services may provide transient lookup evidence, but they are not
+OAP partners and are not OAP booking handoff destinations. OAP Direct owns the
+persisted quote, hold and reservation path.
 """
 
 from __future__ import annotations
@@ -17,7 +16,7 @@ from typing import Any
 
 from . import supply_integration
 
-BOOKING_CORE_REVISION = "2026-09-04-v1"
+BOOKING_CORE_REVISION = "2026-09-04-v2"
 DEFAULT_MAX_OFFER_AGE_SECONDS = 900
 
 
@@ -69,7 +68,7 @@ def offer_freshness(
     now: datetime | None = None,
     max_age_seconds: int = DEFAULT_MAX_OFFER_AGE_SECONDS,
 ) -> dict[str, Any]:
-    """Return evidence freshness for an externally observed supplier offer."""
+    """Return evidence freshness for one externally observed lookup result."""
 
     offer = supply_integration.normalize_offer(payload)
     current = _now_utc(now)
@@ -94,7 +93,7 @@ def prepare_booking_intent(
     now: datetime | None = None,
     max_age_seconds: int = DEFAULT_MAX_OFFER_AGE_SECONDS,
 ) -> BookingIntent:
-    """Prepare an OAP-owned booking intent from verified supplier evidence."""
+    """Prepare a non-executing comparison intent from verified lookup evidence."""
 
     offer = supply_integration.normalize_offer(payload)
     if offer.availability_state not in {"available", "limited"}:
@@ -132,7 +131,7 @@ def prepare_booking_intent(
 
 
 def confirm_booking_intent(intent: BookingIntent, *, human_approved: bool) -> BookingIntent:
-    """Record Human Authority approval without pretending a supplier booking occurred."""
+    """Record Human approval without turning lookup data into OAP supply."""
 
     if intent.state != "awaiting_human_confirmation":
         raise ValueError("booking_intent_not_awaiting_confirmation")
@@ -147,7 +146,7 @@ def confirm_booking_intent(intent: BookingIntent, *, human_approved: bool) -> Bo
 
 
 def booking_handoff(intent: BookingIntent) -> dict[str, Any]:
-    """Return a safe external supplier handoff; this is not a confirmed reservation."""
+    """Legacy fail-closed handoff helper for a provider that explicitly supports it."""
 
     if intent.state != "handoff_ready" or not intent.human_confirmed:
         raise ValueError("booking_handoff_not_ready")
@@ -166,19 +165,20 @@ def booking_handoff(intent: BookingIntent) -> dict[str, Any]:
         "provider_authority": False,
         "human_authority_final": True,
         "truth_boundary": (
-            "This handoff opens the supplier evidence/booking destination. It does not "
-            "prove that a reservation, payment or pass has completed inside OAP."
+            "A handoff is only available for a separately declared provider contract. "
+            "Current Booking.com lookup-only policy does not enable this path."
         ),
     }
 
 
 def intent_record(intent: BookingIntent) -> dict[str, Any]:
-    """Return an auditable non-PII booking-intent record."""
+    """Return an auditable non-PII lookup/comparison intent record."""
 
     return {
         **asdict(intent),
         "oap_owned_booking_state": True,
         "supplier_inventory_external": True,
+        "persistent_oap_supply": False,
         "provider_authority": False,
         "guardian_gate_required": True,
         "human_authority_final": True,
@@ -188,7 +188,7 @@ def intent_record(intent: BookingIntent) -> dict[str, Any]:
 def status() -> dict[str, Any]:
     """Return truthful readiness for OAP Booking Core."""
 
-    supply = supply_integration.status()
+    lookup = supply_integration.status()
     return {
         "component": "OAP Booking Core",
         "revision": BOOKING_CORE_REVISION,
@@ -196,9 +196,11 @@ def status() -> dict[str, Any]:
         "offer_freshness_validation_ready": True,
         "booking_intent_state_machine_ready": True,
         "human_confirmation_gate_ready": True,
-        "supplier_handoff_ready": bool(supply["booking_handoff_architecture_ready"]),
-        "live_supply_search_ready": bool(supply["live_supply_connected"]),
-        "direct_booking_execution_ready": bool(supply["booking_transactions_live"]),
+        "supplier_handoff_ready": False,
+        "external_lookup_framework_ready": bool(lookup["adapter_framework_ready"]),
+        "external_lookup_persisted": False,
+        "live_supply_search_ready": False,
+        "direct_booking_execution_ready": False,
         "payment_execution_ready": False,
         "pass_issuance_ready": False,
         "commission_settlement_ready": False,
@@ -212,9 +214,9 @@ def status() -> dict[str, Any]:
         "guardian_gate_required": True,
         "human_authority_final": True,
         "truth_boundary": (
-            "OAP owns the booking experience and booking-intent orchestration. External "
-            "providers may supply inventory and booking destinations. A real reservation, "
-            "payment, pass or commission is not live until its separate governed runtime "
-            "integration and production evidence are certified."
+            "OAP Booking owns the OAP Direct booking experience. External travel lookups "
+            "can inform comparison but do not become OAP inventory or booking handoffs. "
+            "Real OAP reservations use the first-party Supply Core quote, hold and "
+            "reservation flow; payment, Pass and settlement remain separate gates."
         ),
     }

@@ -1,18 +1,17 @@
 """OAP Direct marketplace discovery and Founder-controlled supply operations.
 
-This module sits on the existing first-party OAP Supply Core. It adds no schema,
-brain, Intelligence World or autonomous commercial authority. Public discovery
-only returns Certified supplier + ACTIVE listing + ACTIVE future inventory.
-All marketplace writes are authenticated, human-triggered web operations and all
-payment, Pass and commission execution remains separately gated.
+This module sits on the first-party OAP Supply Core. Public discovery only
+returns Certified supplier + ACTIVE listing + ACTIVE future inventory. Listing
+pictures are first-party OAP media; external provider photography is not copied
+into OAP Direct.
 """
 from __future__ import annotations
 
 from typing import Any
 
-from . import postgres_db, travel_supply_core
+from . import listing_media, postgres_db, travel_supply_core
 
-DIRECT_MARKETPLACE_REVISION = "2026-09-04-v2"
+DIRECT_MARKETPLACE_REVISION = "2026-09-04-v3"
 _PUBLIC_LIMIT_MAX = 50
 _FOUNDER_LIMIT_MAX = 100
 _STORE = travel_supply_core.PostgresTravelSupplyStore()
@@ -31,6 +30,18 @@ def _optional_text(value: object, maximum: int) -> str | None:
     if not text:
         return None
     return text[:maximum]
+
+
+def _attach_media(items: list[dict[str, Any]]) -> None:
+    media_map = listing_media.listing_media(
+        tuple(str(item.get("listing_id") or "") for item in items)
+    )
+    for item in items:
+        media = media_map.get(str(item.get("listing_id") or ""), [])
+        item["media"] = media
+        item["media_count"] = len(media)
+        item["cover_image_url"] = media[0]["public_url"] if media else None
+        item["cover_image_alt"] = media[0]["alt_text"] if media else ""
 
 
 def public_offers(
@@ -116,6 +127,7 @@ def public_offers(
                 "provider_authority": False,
             }
         )
+    _attach_media(offers)
     return {
         "component": "OAP Direct",
         "revision": DIRECT_MARKETPLACE_REVISION,
@@ -136,6 +148,7 @@ def founder_snapshot(*, limit: object = 40) -> dict[str, Any]:
         "component": "OAP Direct Supplier Control",
         "revision": DIRECT_MARKETPLACE_REVISION,
         "core": core,
+        "listing_media": listing_media.status(),
         "suppliers": [],
         "listings": [],
         "inventory": [],
@@ -214,6 +227,7 @@ def founder_snapshot(*, limit: object = 40) -> dict[str, Any]:
         }
         for row in listings
     ]
+    _attach_media(result["listings"])
     result["inventory"] = [
         {
             "slot_id": str(row[0]),

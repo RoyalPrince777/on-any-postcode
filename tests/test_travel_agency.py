@@ -44,11 +44,13 @@ def test_travel_agency_preserves_smi_boundaries(monkeypatch):
     assert current["human_authority_final"] is True
 
 
-def test_travel_agency_keeps_transactions_fail_closed_without_runtime_supply(monkeypatch):
+def test_travel_agency_keeps_transactions_fail_closed_without_direct_supply(monkeypatch):
     _clear_supply_env(monkeypatch)
     current = travel_agency.status()
 
     assert current["live_supply_search_ready"] is False
+    assert current["external_live_supply_ready"] is False
+    assert current["external_lookup_persisted"] is False
     assert current["booking_transactions_live"] is False
     assert current["payment_transactions_live"] is False
     assert current["commission_settlement_live"] is False
@@ -58,14 +60,14 @@ def test_travel_agency_keeps_transactions_fail_closed_without_runtime_supply(mon
 
     gate_states = {gate["id"]: gate["ready"] for gate in current["gates"]}
     assert gate_states["capability_registry"] is True
-    assert gate_states["supply_adapter_framework"] is True
-    assert gate_states["live_supply_search"] is False
+    assert gate_states["external_lookup_framework"] is True
+    assert gate_states["live_direct_supply"] is False
     assert gate_states["booking_execution"] is False
     assert gate_states["payment_execution"] is False
     assert gate_states["commission_settlement"] is False
 
 
-def test_live_search_certification_does_not_imply_booking(monkeypatch):
+def test_connected_external_lookup_does_not_become_oap_supply_or_booking(monkeypatch):
     monkeypatch.setenv("OAP_SUPPLY_BOOKING_COM_CONNECTED", "1")
     monkeypatch.setenv("OAP_SUPPLY_BOOKING_COM_SEARCH_CERTIFIED", "1")
     monkeypatch.setenv("OAP_SUPPLY_BOOKING_COM_COMMERCIAL_TERMS_CERTIFIED", "1")
@@ -73,7 +75,11 @@ def test_live_search_certification_does_not_imply_booking(monkeypatch):
 
     current = travel_agency.status()
 
-    assert current["live_supply_search_ready"] is True
+    assert current["runtime_external_search_ready"] is True
+    assert current["external_lookup_mode"] == "on_demand_only"
+    assert current["external_lookup_persisted"] is False
+    assert current["live_supply_search_ready"] is False
+    assert current["external_live_supply_ready"] is False
     assert current["booking_transactions_live"] is False
     assert current["payment_transactions_live"] is False
     assert current["commission_settlement_live"] is False

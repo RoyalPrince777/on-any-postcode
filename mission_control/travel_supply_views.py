@@ -1,14 +1,9 @@
-"""OAP Direct, Partner Supply and registered public ecosystem surfaces."""
+"""OAP Direct travel, booking and first-party listing media surfaces."""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import (
-    partner_supply,
-    travel_marketplace,
-    travel_supply_policy,
-    web_security,
-)
+from . import listing_media, travel_marketplace, travel_supply_policy, web_security
 from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
@@ -67,43 +62,33 @@ def _buyer_write(operation):
     return _no_store(make_response(jsonify(result)))
 
 
-def _hybrid_catalogue(
+def _catalogue(
     *,
     category: object = None,
     country: object = None,
     limit: object = 24,
 ) -> dict:
-    """Build the OAP-owned catalogue with Direct supply deliberately first."""
+    """Build the OAP-owned catalogue with no persisted Partner Supply lane."""
 
     direct = travel_marketplace.public_offers(
         category=category,
         country=country,
         limit=limit,
     )
-    try:
-        partner = partner_supply.public_offers(category=category, limit=limit)
-    except ValueError:
-        # OAP Direct supports a wider category set than current partner adapters.
-        # A partner that cannot serve the requested category is simply optional.
-        partner = {
-            "component": "OAP Partner Supply",
-            "ready": True,
-            "offers": [],
-            "count": 0,
-            "filtered_out_for_category": True,
-            "external_provider_authority": False,
-        }
     policy = travel_supply_policy.public_policy()
     return {
         "component": "OAP Travel Catalogue",
         "direct": direct,
-        "partner": partner,
         "direct_count": int(direct.get("count", 0)),
-        "partner_count": int(partner.get("count", 0)),
         "source_order": list(travel_supply_policy.PREFERRED_SOURCE_ORDER),
         "policy": policy,
-        "booking_com_required": policy["booking_com_required"],
-        "partner_supply_is_replaceable": True,
+        "external_lookup": {
+            "mode": "on_demand_only",
+            "persisted": False,
+            "partner_supply": False,
+            "booking_authority": False,
+            "payment_authority": False,
+        },
         "automatic_quality_ranking_across_unmatched_offers": False,
         "external_provider_authority": False,
         "human_authority_final": True,
@@ -137,28 +122,33 @@ def _operator_snapshot() -> dict:
         "listing_id": active_listing.get("listing_id", "") if active_listing else "",
         "listing_title": active_listing.get("title", "") if active_listing else "",
     }
-    snapshot["partner_supply"] = partner_supply.status()
     snapshot["travel_policy"] = travel_supply_policy.public_policy()
+    snapshot["external_lookup"] = {
+        "mode": "on_demand_only",
+        "stored_partner_offers": 0,
+        "booking_com_partner": False,
+        "provider_authority": False,
+    }
     return snapshot
 
 
 @bp.get("/travel")
 def public_travel():
-    """Render the sovereign hybrid OAP Travel catalogue."""
+    """Render OAP Travel with OAP Direct as the only persisted catalogue."""
 
     try:
-        catalogue = _hybrid_catalogue(
+        catalogue = _catalogue(
             category=request.args.get("category"),
+            country=request.args.get("country"),
             limit=request.args.get("limit", "24"),
         )
     except ValueError as exc:
         catalogue = {
             "component": "OAP Travel Catalogue",
             "direct": {"offers": [], "count": 0},
-            "partner": {"offers": [], "count": 0},
             "direct_count": 0,
-            "partner_count": 0,
             "policy": travel_supply_policy.public_policy(),
+            "external_lookup": {"mode": "on_demand_only", "persisted": False},
             "error": str(exc),
         }
     return _no_store(make_response(render_template("travel.html", catalogue=catalogue)))
@@ -198,6 +188,26 @@ def public_offers():
     return _no_store(make_response(jsonify(result)))
 
 
+@bp.get("/travel/direct/media/<media_id>")
+def direct_listing_media(media_id: str):
+    """Serve one picture only when its OAP Direct listing is public."""
+
+    try:
+        image = listing_media.read_public_image(media_id)
+    except (ValueError, PermissionError):
+        return _error("listing_image_not_found", "Listing image not found.", 404)
+    except RuntimeError:
+        return _error("listing_media_unavailable", "Listing media is unavailable.", 503)
+    response = make_response(image["content"])
+    response.headers["Content-Type"] = image["mime_type"]
+    response.headers["Content-Length"] = str(len(image["content"]))
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-OAP-Content-SHA256"] = image["content_sha256"]
+    response.set_etag(image["content_sha256"])
+    return response.make_conditional(request)
+
+
 @bp.post("/travel/direct/api/quote")
 def direct_quote():
     """Re-check price and capacity without creating a reservation or hold."""
@@ -227,24 +237,12 @@ def direct_reservation():
     return _buyer_write(travel_marketplace.create_buyer_reservation)
 
 
-@bp.get("/travel/partner/api/offers")
-def public_partner_offers():
-    try:
-        result = partner_supply.public_offers(
-            category=request.args.get("category"),
-            limit=request.args.get("limit", "24"),
-        )
-    except ValueError as exc:
-        return _error("invalid_partner_filter", str(exc)[:120], 400)
-    return _no_store(make_response(jsonify(result)))
-
-
 @bp.get("/travel/api/catalogue")
 def public_catalogue():
-    """Return Direct and Partner Supply as explicit, ordered source groups."""
+    """Return OAP Direct plus transparent on-demand lookup policy metadata."""
 
     try:
-        result = _hybrid_catalogue(
+        result = _catalogue(
             category=request.args.get("category"),
             country=request.args.get("country"),
             limit=request.args.get("limit", "24"),
@@ -275,18 +273,6 @@ def founder_status():
     return _no_store(make_response(jsonify(_operator_snapshot())))
 
 
-@bp.get("/mission/supply/partner/status")
-@web_security.login_required(api=True, founder_only=True)
-def founder_partner_status():
-    return _no_store(make_response(jsonify(partner_supply.status())))
-
-
-@bp.post("/mission/supply/partner/import")
-@web_security.login_required(api=True, founder_only=True)
-def founder_partner_import():
-    return _founder_write(partner_supply.import_snapshot)
-
-
 @bp.post("/mission/supply/suppliers")
 @web_security.login_required(api=True, founder_only=True)
 def create_supplier():
@@ -309,6 +295,35 @@ def certify_supplier():
 @web_security.login_required(api=True, founder_only=True)
 def create_listing():
     return _founder_write(travel_marketplace.create_listing)
+
+
+@bp.post("/mission/supply/listings/media")
+@web_security.login_required(api=True, founder_only=True)
+def add_listing_media():
+    """Upload one Founder-owned OAP Direct picture using multipart form data."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    image = request.files.get("image")
+    if image is None:
+        return _error("listing_image_required", "Choose an image.", 400)
+    content = image.read(listing_media.MAX_IMAGE_BYTES + 1)
+    try:
+        result = listing_media.add_image(
+            owner_identity_id=web_security.authenticated_identity(),
+            listing_id=request.form.get("listing_id"),
+            mime_type=image.mimetype,
+            original_name=image.filename,
+            content=content,
+            alt_text=request.form.get("alt_text", ""),
+        )
+    except PermissionError as exc:
+        return _error("listing_image_not_authorized", str(exc)[:140], 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_listing_image", str(exc)[:140], 400)
+    except RuntimeError as exc:
+        return _error("listing_media_unavailable", str(exc)[:140], 503)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.post("/mission/supply/listings/activate")
