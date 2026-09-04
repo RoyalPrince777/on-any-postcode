@@ -9,10 +9,11 @@ without separately certified runtime evidence.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from hashlib import sha256
-from typing import Any, Mapping
+from typing import Any
 
 from . import supply_integration
 
@@ -58,7 +59,7 @@ def _now_utc(now: datetime | None = None) -> datetime:
 
 
 def _intent_id(provider_id: str, category: str, source_offer_id: str, observed_at: str) -> str:
-    seed = "|".join((provider_id, category, source_offer_id, observed_at))
+    seed = f"{provider_id}|{category}|{source_offer_id}|{observed_at}"
     return "oap-book-" + sha256(seed.encode("utf-8")).hexdigest()[:16]
 
 
