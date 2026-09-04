@@ -1,0 +1,32 @@
+[
+  {
+    "source_kind": "founder_decision",
+    "memory_class": "ARCHITECTURE",
+    "summary": "SMI should combine the strongest useful AI capability patterns into an OAP-owned intelligence fabric without copying provider branding, private prompts, product identity or model internals. SMI remains the brain and external providers, when used, remain replaceable tools/advisors with no authority.",
+    "source_reference": "founder-chat-decision-2026-09-04-intelligence-fabric",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["smi", "capability-fabric", "provider-neutral", "founder-approved"],
+    "created_at": "2026-09-04T08:30:00+00:00"
+  },
+  {
+    "source_kind": "approved_historical_backfill",
+    "memory_class": "EVIDENCE",
+    "summary": "Current AI ecosystem research supports these useful patterns for OAP: adaptive/agentic coding with review and advisor passes; million-token-class long-context synthesis and multimodal tool use; real-time web-grounded retrieval with citations; efficient thinking/non-thinking routing; live web/social signal retrieval; structured tool orchestration and context compaction. Treat these as capability references, not claims that one provider is universally best.",
+    "source_reference": "official-provider-docs-review-2026-09-04",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["research", "ai-capabilities", "coding", "multimodal", "retrieval", "tools"],
+    "created_at": "2026-09-04T08:31:00+00:00"
+  },
+  {
+    "source_kind": "founder_decision",
+    "memory_class": "ARCHITECTURE",
+    "summary": "OAP Intelligence Fabric capability set should include adaptive 3/7/21 reasoning, agentic code review, advisor/challenger review, long-context synthesis, multimodal fusion, cited live research, parallel retrieval, live signal awareness, cost-aware routing, tool orchestration, structured output, context compaction, evidence-first verification, local-first failover and safe process telemetry.",
+    "source_reference": "founder-chat-decision-2026-09-04-capability-set",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["smi", "capabilities", "canonical-candidate", "founder-approved"],
+    "created_at": "2026-09-04T08:32:00+00:00"
+  }
+]
