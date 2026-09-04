@@ -9,9 +9,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import booking_orchestrator, intelligence_capability_registry, supply_integration
+from . import (
+    booking_orchestrator,
+    intelligence_capability_registry,
+    supply_integration,
+    supply_source_policy,
+)
 
-TRAVEL_AGENCY_REVISION = "2026-09-04-v3"
+TRAVEL_AGENCY_REVISION = "2026-09-04-v4"
 
 
 def _direct_supply_status() -> dict[str, Any]:
@@ -43,6 +48,7 @@ def status() -> dict[str, Any]:
     external_supply = supply_integration.status()
     booking_core = booking_orchestrator.status()
     direct_supply = _direct_supply_status()
+    source_policy = supply_source_policy.status()
 
     external_live = bool(external_supply["live_supply_connected"])
     direct_live = bool(direct_supply["live_direct_supply"])
@@ -69,6 +75,11 @@ def status() -> dict[str, Any]:
             "id": "oap_booking_core",
             "ready": bool(booking_core["first_party_booking_orchestration_ready"]),
             "required_for": "oap_owned_booking_journey_and_human_confirmation",
+        },
+        {
+            "id": "supplier_independence_policy",
+            "ready": bool(source_policy["policy_ready"]),
+            "required_for": "external_supplier_replaceability_and_oap_direct_preference",
         },
         {
             "id": "oap_supply_core_software",
@@ -129,16 +140,30 @@ def status() -> dict[str, Any]:
         "brain_count_added": 0,
         "capability_registry_ready": registry["registry_software_ready"],
         "oap_booking_core_ready": booking_core["first_party_booking_orchestration_ready"],
+        "supplier_independence_policy_ready": source_policy["policy_ready"],
         "oap_supply_core_software_ready": direct_supply["software_ready"],
         "oap_supply_core_schema_ready": direct_supply["schema_ready"],
         "oap_owns_booking_experience": True,
         "oap_owns_supplier_inventory": False,
         "oap_owns_direct_supplier_inventory_system": True,
         "oap_owns_external_supplier_inventory": False,
+        "oap_direct_preferred_when_comparable": source_policy[
+            "oap_direct_preferred_when_comparable"
+        ],
+        "external_suppliers_optional": source_policy["external_suppliers_optional"],
+        "single_external_provider_dependency_allowed": source_policy[
+            "single_external_provider_dependency_allowed"
+        ],
+        "booking_com_required": source_policy["booking_com_required"],
+        "preferred_supply_source_order": source_policy["preferred_source_order"],
         "supply_adapter_framework_ready": external_supply["adapter_framework_ready"],
         "live_supply_search_ready": live_supply,
         "external_live_supply_ready": external_live,
         "direct_live_supply_ready": direct_live,
+        "live_inventory_survives_external_provider_loss": direct_live,
+        "architecture_survives_external_provider_loss": bool(
+            source_policy["policy_ready"] and direct_supply["software_ready"]
+        ),
         "booking_transactions_live": booking_live,
         "payment_transactions_live": payment_live,
         "pass_issuance_live": bool(direct_supply["pass_issuance_live"]),
@@ -170,9 +195,10 @@ def status() -> dict[str, Any]:
         "production_commission_claim_allowed": commission_live,
         "truth_boundary": (
             "OAP owns its booking experience and first-party direct-supplier inventory "
-            "system, but suppliers retain ownership of their underlying inventory. External "
-            "providers remain optional supply sources. A live availability, reservation, "
-            "captured payment, issued Pass or earned commission may only be claimed when "
-            "its corresponding governed runtime evidence is present."
+            "system, but suppliers retain ownership of their underlying inventory. OAP "
+            "Direct is preferred when offers are otherwise comparable. External providers "
+            "remain optional and replaceable; Booking.com is not required for OAP Travel. "
+            "A live availability, reservation, captured payment, issued Pass or earned "
+            "commission may only be claimed when its governed runtime evidence is present."
         ),
     }
