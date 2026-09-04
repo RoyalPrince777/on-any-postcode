@@ -141,7 +141,7 @@ def process_contract() -> dict[str, Any]:
 
 def _bounded_score(value: object) -> int | None:
     try:
-        score = int(round(float(value)))
+        score = round(float(value))
     except (TypeError, ValueError):
         return None
     return min(100, max(0, score))
