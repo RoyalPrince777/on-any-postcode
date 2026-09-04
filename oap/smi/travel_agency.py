@@ -132,6 +132,7 @@ def status() -> dict[str, Any]:
         "oap_supply_core_software_ready": direct_supply["software_ready"],
         "oap_supply_core_schema_ready": direct_supply["schema_ready"],
         "oap_owns_booking_experience": True,
+        "oap_owns_supplier_inventory": False,
         "oap_owns_direct_supplier_inventory_system": True,
         "oap_owns_external_supplier_inventory": False,
         "supply_adapter_framework_ready": external_supply["adapter_framework_ready"],
@@ -169,8 +170,9 @@ def status() -> dict[str, Any]:
         "production_commission_claim_allowed": commission_live,
         "truth_boundary": (
             "OAP owns its booking experience and first-party direct-supplier inventory "
-            "system. External providers remain optional supply sources. A live availability, "
-            "reservation, captured payment, issued Pass or earned commission may only be "
-            "claimed when its corresponding governed runtime evidence is present."
+            "system, but suppliers retain ownership of their underlying inventory. External "
+            "providers remain optional supply sources. A live availability, reservation, "
+            "captured payment, issued Pass or earned commission may only be claimed when "
+            "its corresponding governed runtime evidence is present."
         ),
     }
