@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import queue
+import re
 import threading
 from collections.abc import Callable, Iterator
 
@@ -26,6 +27,7 @@ from .smi_chat_runtime_core import *
 urlrequest = _core.urlrequest
 _provider = _core._provider
 _COMPATIBILITY_ENGINE = _core._provider
+_CORE_COHERENCE_REVIEW = _core.coherence_review
 
 _WORLD_CRISIS_TERMS = (
     "world crisis",
@@ -47,6 +49,18 @@ _WORLD_CRISIS_TERMS = (
     "famine",
     "food crisis",
     "water crisis",
+)
+
+_IDENTITY_PREFIX = re.compile(
+    r"^\s*(?:(?:personal\s+)?smi|sovereign\s+megaverse\s+intelligence)\s*[:\-–—]\s*",
+    re.IGNORECASE,
+)
+_PRIVATE_REASONING_DISCLOSURE = (
+    "here is my chain of thought",
+    "my hidden chain of thought",
+    "my private chain of thought",
+    "my internal token reasoning",
+    "my private scratch work",
 )
 
 
@@ -131,6 +145,14 @@ def _with_world_crisis_context(message: str, brain: dict | None) -> str:
     )
 
 
+def _strip_identity_prefix(response: object) -> str:
+    """Remove a redundant SMI self-label without changing substantive content."""
+
+    text = str(response or "").strip()
+    cleaned = _IDENTITY_PREFIX.sub("", text, count=1).strip()
+    return cleaned or text
+
+
 def _grounded_provider(
     message: str,
     image_data: str = "",
@@ -143,7 +165,7 @@ def _grounded_provider(
     on_delta: Callable[[str], None] | None = None,
 ) -> str:
     grounded_message = _with_world_crisis_context(message, brain)
-    return _grounded.grounded_provider(
+    result = _grounded.grounded_provider(
         _gateway_provider,
         health,
         grounded_message,
@@ -153,13 +175,36 @@ def _grounded_provider(
         adaptive_memory,
         media,
         code_mode=code_mode,
-        on_delta=on_delta,
+        on_delta=None,
     )
+    cleaned = _strip_identity_prefix(result)
+    if on_delta is not None:
+        on_delta(cleaned)
+    return cleaned
 
 
-# Core chat resolves _provider from its own module at runtime. This replaces only
-# the inference route; governance and persistence remain in the existing core.
+def _enhanced_coherence_review(response: str, brain: dict) -> dict:
+    """Extend core coherence with directness and private-reasoning boundaries."""
+
+    base = _CORE_COHERENCE_REVIEW(response, brain)
+    lowered = response.casefold()
+    checks = dict(base["checks"])
+    checks["no_redundant_identity_prefix"] = _strip_identity_prefix(response) == response.strip()
+    checks["private_reasoning_protected"] = not any(
+        phrase in lowered for phrase in _PRIVATE_REASONING_DISCLOSURE
+    )
+    passed = all(checks.values())
+    return {
+        "passed": passed,
+        "score": round(100 * sum(checks.values()) / len(checks)),
+        "checks": checks,
+    }
+
+
+# Core chat resolves these symbols from its own module at runtime. Replace only
+# the inference and coherence policy routes; persistence/governance remain core.
 _core._provider = _grounded_provider
+_core.coherence_review = _enhanced_coherence_review
 
 
 def _thinking_event_adapter(
