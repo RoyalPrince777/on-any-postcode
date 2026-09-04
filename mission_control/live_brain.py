@@ -27,6 +27,7 @@ from oap.smi.judge_engine import JudgeEngine
 from oap.smi.organ_manager import OrganManager
 from oap.smi.organs.base import BrainPacket
 from oap.smi.self_model import SelfModel
+from oap.smi.sovereign_controls import SovereignControlPlane
 from oap.war_room.engine import WarRoomEngine
 
 _HIGH_IMPACT_PHRASES = (
@@ -186,6 +187,8 @@ def review(
         agi_route,
         high_impact=high_impact,
     )
+    sovereign_controls = SovereignControlPlane()
+    sovereign_status = sovereign_controls.status()
     context = ContextSnapshot(
         memories=_memory_context(history),
         world_state={
@@ -195,6 +198,12 @@ def review(
             "is_human_authority": is_human_authority,
             "agi_domains": agi_route["domains"],
             "command_path": command_review["command_path"],
+            "sovereign_policy_fingerprint": sovereign_status[
+                "policy_fingerprint"
+            ],
+            "sovereign_emergency_halt": sovereign_status[
+                "emergency_halt_active"
+            ],
         },
         retrieved_at=utc_now(),
     )
@@ -222,6 +231,7 @@ def review(
         organs.status(),
         agi_core.status(),
         command_intelligence.status(),
+        sovereign_status,
         aegis.status(),
         guardian.status(),
         war_room_engine.status(),
@@ -279,6 +289,7 @@ def review(
             "decision_authority": False,
             "execution_authority": False,
         },
+        "sovereign_controls": sovereign_status,
         "brain_regions": [finding.organ_id for finding in findings]
         + [organs.corpus_callosum.organ_id],
         "brain_region_count": len(findings) + 1,
@@ -314,6 +325,7 @@ def review(
             "PERMISSION_VERIFIED",
             "AGI_ROUTED",
             "COMMAND_INTELLIGENCE_REVIEWED",
+            "SOVEREIGN_CONTROLS_REVIEWED",
             "AGENTS_SELECTED",
             "BIOLOGICAL_BRAIN_REVIEWED",
             "AEGIS_REVIEWED",

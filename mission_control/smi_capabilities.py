@@ -11,6 +11,7 @@ from typing import Any
 
 from oap.smi.agi_core import AGICore
 from oap.smi.command_intelligence import CommandIntelligence
+from oap.smi.sovereign_controls import SovereignControlPlane
 
 from . import (
     earth_intelligence,
@@ -55,6 +56,12 @@ SMI_INTERNAL_CAPABILITIES: tuple[dict[str, str], ...] = (
         "name": "SMI Command Intelligence",
         "kind": "bounded_command_capability_chain",
         "purpose": "SGI → TGI → OGI → DGI → PGI → RGI advisory command review with no action authority.",
+    },
+    {
+        "id": "sovereign_controls",
+        "name": "SMI Sovereign Control Plane",
+        "kind": "fail_closed_control_plane",
+        "purpose": "Central technical ownership, approval, audit, egress, emergency-halt and execution boundaries.",
     },
     {
         "id": "synthetic_mind",
@@ -126,6 +133,7 @@ def validate_smi_capabilities() -> dict[str, Any]:
         errors.append("Internal SMI capability IDs must be unique")
     if set(cross_ids) & set(world_ids):
         errors.append("Cross-system capabilities must not silently become Intelligence worlds")
+
     agi = AGICore().status()
     if agi["brain_count"] != 0 or agi["independent_execute"] or agi["independent_approval"]:
         errors.append("AGI Core escaped its bounded capability-layer role")
@@ -145,6 +153,18 @@ def validate_smi_capabilities() -> dict[str, Any]:
     if not command["fail_closed_resilience"]:
         errors.append("RGI must preserve fail-closed resilience")
 
+    sovereign = SovereignControlPlane().status()
+    if sovereign["brain_count"] != 0:
+        errors.append("Sovereign controls must not create another SMI brain")
+    if sovereign["independent_execute"] or sovereign["independent_approval"]:
+        errors.append("Sovereign controls must not become an authority holder")
+    if sovereign["external_provider_egress_default"] != "deny":
+        errors.append("External provider egress must default to deny")
+    if sovereign["secret_export"]:
+        errors.append("Sovereign controls must never enable secret export")
+    if not sovereign["human_authority_final"]:
+        errors.append("Human Authority must remain final")
+
     specialist = {
         "earth": earth_intelligence.status(weather_ready=False),
         "language": language_intelligence.language_intelligence_status(),
@@ -162,7 +182,11 @@ def validate_smi_capabilities() -> dict[str, Any]:
             "internal_capabilities": len(internal_ids),
             "brain_count_added_by_agi": agi["brain_count"],
             "brain_count_added_by_command_intelligence": command["brain_count"],
+            "brain_count_added_by_sovereign_controls": sovereign["brain_count"],
             "command_stages": command["stage_count"],
+            "external_provider_egress_default": sovereign[
+                "external_provider_egress_default"
+            ],
             "human_authority_final": True,
         },
     }
@@ -176,6 +200,7 @@ def smi_capability_status() -> dict[str, Any]:
         "validation": validation,
         "agi_core": AGICore().status(),
         "command_intelligence": CommandIntelligence().status(),
+        "sovereign_controls": SovereignControlPlane().status(),
         "intelligence_worlds": tuple(dict(item) for item in INTELLIGENCE_WORLDS),
         "cross_system_capabilities": CROSS_SYSTEM_CAPABILITIES,
         "internal_capabilities": SMI_INTERNAL_CAPABILITIES,
