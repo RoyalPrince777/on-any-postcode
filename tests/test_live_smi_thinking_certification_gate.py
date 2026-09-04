@@ -12,7 +12,6 @@ EXPECTED_REVISION = "8cda4a51d248"
 class _NoRedirect(urlrequest.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         del req, fp, code, msg, headers, newurl
-        return None
 
 
 def _fetch(url: str) -> tuple[int, dict[str, str], str]:
