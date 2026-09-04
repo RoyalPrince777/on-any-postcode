@@ -21,6 +21,7 @@ AUTONOMY_LEVELS = {
 }
 
 DEFAULT_AUTONOMY_LEVEL = "A3"
+INVALID_AUTONOMY_FALLBACK = "A2"
 A3_PILOT_ACTIONS = frozenset({"RUNTIME_HEARTBEAT", "RUNTIME_HEALTH_PROBE"})
 A3_FORBIDDEN_DOMAINS = frozenset(
     {
@@ -37,9 +38,12 @@ A3_FORBIDDEN_DOMAINS = frozenset(
 
 
 def configured_level() -> str:
-    """Return the explicit autonomy level, defaulting to the bounded A3 pilot."""
-    level = os.environ.get("OAP_AUTONOMY_LEVEL", DEFAULT_AUTONOMY_LEVEL).strip().upper()
-    return level if level in AUTONOMY_LEVELS else DEFAULT_AUTONOMY_LEVEL
+    """Default to bounded A3; invalid explicit values fail closed to A2."""
+    raw = os.environ.get("OAP_AUTONOMY_LEVEL")
+    if raw is None or not raw.strip():
+        return DEFAULT_AUTONOMY_LEVEL
+    level = raw.strip().upper()
+    return level if level in AUTONOMY_LEVELS else INVALID_AUTONOMY_FALLBACK
 
 
 def evaluate_a3_runtime_job(job_type: str) -> dict[str, object]:
