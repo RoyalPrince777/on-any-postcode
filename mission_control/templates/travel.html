@@ -5,81 +5,52 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>OAP Travel</title>
   <style>
-    :root{color-scheme:dark;--bg:#06100b;--panel:#0a1811;--line:#294b39;--text:#f4fff7;--muted:#9fb4a7;--green:#42df82;--gold:#d8ba65;font-family:Inter,system-ui,sans-serif}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#153522 0,#08140e 32%,var(--bg) 74%);color:var(--text)}main{max-width:1240px;margin:auto;padding:24px}a{color:inherit}
-    .hero{padding:38px 0 18px}.eyebrow{font-size:.76rem;letter-spacing:.16em;text-transform:uppercase;color:#8fe3b1;font-weight:900}h1{font-size:clamp(2.4rem,7vw,5rem);line-height:.92;letter-spacing:-.05em;margin:.35rem 0 .8rem}.sub{max-width:820px;color:#b7c9bf;line-height:1.55}
-    .law{margin:18px 0;padding:14px 16px;border:1px solid #6d5c2f;border-radius:14px;background:#1c1709;color:#e3d6a8;font-weight:750}.legend{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0 24px}.badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:.74rem}.badge.direct{border-color:#397a53;color:#a8efc2}.badge.certified{border-color:#7d6a36;color:#f2d986}.badge.partner{border-color:#3d5872;color:#b6d7f2}.badge.provider{color:#c8d5cf}
-    .filters{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 28px}.filters select,.filters button{border:1px solid var(--line);background:#0b1b13;color:white;border-radius:12px;padding:11px 13px}.filters button{cursor:pointer;background:#174c31;font-weight:800}
-    .section-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin:30px 0 12px}.section-head h2{margin:0;font-size:1.6rem}.section-head p{margin:0;color:var(--muted);font-size:.85rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.card{border:1px solid #213d2e;background:var(--panel);border-radius:18px;padding:18px}.card.partner-card{border-color:#294153}.card h3{font-size:1.22rem;margin:.75rem 0 .4rem}.place{font-weight:700;margin:.65rem 0}.price{font-size:1.45rem;font-weight:900;margin:.75rem 0 .2rem}.muted{color:var(--muted);font-size:.88rem;line-height:1.45}.empty{border:1px dashed #345343;border-radius:16px;padding:24px;color:#b5c7bd}.action{display:inline-block;margin-top:13px;border:1px solid #34794f;background:#15482f;border-radius:10px;padding:10px 13px;text-decoration:none;font-weight:850}.action.partner-action{border-color:#405c76;background:#14293a}.truth{margin:34px 0 8px;padding-top:18px;border-top:1px solid #21382d;color:#93a99d;font-size:.86rem;line-height:1.5}
+    :root{color-scheme:dark;--bg:#050d09;--panel:#091810;--line:#294b39;--text:#f4fff7;--muted:#9fb4a7;--green:#42df82;--gold:#d8ba65;font-family:Inter,system-ui,sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#153522 0,#08140e 32%,var(--bg) 74%);color:var(--text)}main{max-width:1240px;margin:auto;padding:24px}a{color:inherit}.hero{padding:38px 0 18px}.eyebrow{font-size:.76rem;letter-spacing:.16em;text-transform:uppercase;color:#8fe3b1;font-weight:900}h1{font-size:clamp(2.4rem,7vw,5rem);line-height:.92;letter-spacing:-.05em;margin:.35rem 0 .8rem}.sub{max-width:830px;color:#b7c9bf;line-height:1.55}.law{margin:18px 0;padding:14px 16px;border:1px solid #6d5c2f;border-radius:14px;background:#1c1709;color:#e3d6a8;font-weight:750}.legend{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0 24px}.badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:.74rem}.badge.direct{border-color:#397a53;color:#a8efc2}.badge.certified{border-color:#7d6a36;color:#f2d986}.filters{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 28px}.filters select,.filters input,.filters button{border:1px solid var(--line);background:#0b1b13;color:white;border-radius:12px;padding:11px 13px}.filters button{cursor:pointer;background:#174c31;font-weight:800}.section-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin:30px 0 12px}.section-head h2{margin:0;font-size:1.6rem}.section-head p{margin:0;color:var(--muted);font-size:.85rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.card{border:1px solid #213d2e;background:var(--panel);border-radius:20px;overflow:hidden}.card-body{padding:17px}.cover{aspect-ratio:16/10;background:#07110c;display:grid;place-items:center;overflow:hidden;border-bottom:1px solid #21382d}.cover img{width:100%;height:100%;object-fit:cover}.cover-empty{color:#74877c;font-size:.83rem}.thumbs{display:flex;gap:6px;margin-top:9px;overflow:auto}.thumbs img{width:62px;height:46px;object-fit:cover;border-radius:8px;border:1px solid #2f5440}.card h3{font-size:1.22rem;margin:.75rem 0 .4rem}.place{font-weight:700;margin:.65rem 0}.price{font-size:1.45rem;font-weight:900;margin:.75rem 0 .2rem}.muted{color:var(--muted);font-size:.88rem;line-height:1.45}.empty{border:1px dashed #345343;border-radius:16px;padding:24px;color:#b5c7bd}.action{display:inline-block;margin-top:13px;border:1px solid #34794f;background:#15482f;border-radius:10px;padding:10px 13px;text-decoration:none;font-weight:850}.truth{margin:34px 0 8px;padding-top:18px;border-top:1px solid #21382d;color:#93a99d;font-size:.86rem;line-height:1.5}.research{border:1px solid #2c4538;border-radius:16px;padding:16px;background:#07140d;margin-top:25px}
   </style>
 </head>
 <body>
 <main>
   <section class="hero">
     <div class="eyebrow">ON ANY POSTCODE · OAP TRAVEL</div>
-    <h1>One OAP journey. Multiple replaceable supply sources.</h1>
-    <p class="sub">OAP Direct is the sovereign supply lane. Partner inventory can accelerate launch and widen choice, but it remains underneath OAP and never becomes the platform foundation.</p>
-    <div class="law">OAP Rule: No external supplier may become indispensable to OAP Travel.</div>
-    <div class="legend" aria-label="Supply labels">
-      <span class="badge direct">🟢 OAP Direct</span>
-      <span class="badge certified">👑 Certified OAP Supplier</span>
-      <span class="badge partner">🔗 Partner Supply</span>
-    </div>
+    <h1>OAP Direct. Your suppliers. Your booking journey.</h1>
+    <p class="sub">Only directly onboarded Certified OAP Suppliers appear in this catalogue. External marketplace information can be fetched on demand for research or comparison, but it is not Partner Supply and it does not become OAP inventory.</p>
+    <div class="law">OAP Rule: external marketplace data may inform a decision, but only OAP Direct supply enters the OAP catalogue and reservation path.</div>
+    <div class="legend" aria-label="Supply labels"><span class="badge direct">🟢 OAP Direct</span><span class="badge certified">👑 Certified OAP Supplier</span></div>
   </section>
 
   <form class="filters" method="get" action="/travel">
-    <select name="category" aria-label="Category">
-      <option value="">All travel</option>
-      {% for value in ['stay','attraction','activity','car_rental','transport','event'] %}
-      <option value="{{ value }}" {% if request.args.get('category') == value %}selected{% endif %}>{{ value.replace('_',' ')|title }}</option>
-      {% endfor %}
-    </select>
+    <select name="category" aria-label="Category"><option value="">All travel</option>{% for value in ['stay','attraction','activity','car_rental','transport','event'] %}<option value="{{ value }}" {% if request.args.get('category') == value %}selected{% endif %}>{{ value.replace('_',' ')|title }}</option>{% endfor %}</select>
+    <input name="country" value="{{ request.args.get('country','') }}" placeholder="Country" aria-label="Country">
     <button type="submit">Explore OAP Travel</button>
   </form>
 
   <section aria-labelledby="direct-title">
-    <div class="section-head"><div><h2 id="direct-title">OAP Direct</h2><p>Preferred first-party marketplace supply.</p></div><p>{{ catalogue.direct_count }} live</p></div>
+    <div class="section-head"><div><h2 id="direct-title">OAP Direct</h2><p>Certified first-party marketplace supply.</p></div><p>{{ catalogue.direct_count }} live</p></div>
     {% if catalogue.direct.offers %}
     <div class="grid">
       {% for offer in catalogue.direct.offers %}
       <article class="card">
-        <span class="badge direct">🟢 OAP Direct</span>
-        <span class="badge certified">👑 Certified OAP Supplier</span>
-        <h3>{{ offer.title }}</h3>
-        <div class="place">{{ offer.place_label }} · {{ offer.country }}</div>
-        {% if offer.description %}<p class="muted">{{ offer.description }}</p>{% endif %}
-        <div class="price">{{ '%.2f'|format(offer.unit_price_minor / 100) }} {{ offer.currency }}</div>
-        <div class="muted">{{ offer.price_basis }} · {{ offer.available_quantity }} available</div>
-        <div class="muted">Supplier: {{ offer.supplier_name }}</div>
-        <a class="action" href="/travel/direct?category={{ offer.category }}&country={{ offer.country|urlencode }}">Book with OAP</a>
+        <div class="cover">{% if offer.cover_photo_url %}<img src="{{ offer.cover_photo_url }}" alt="{{ offer.photos[0].alt_text or offer.title }}" loading="lazy">{% else %}<span class="cover-empty">Listing photo not added yet</span>{% endif %}</div>
+        <div class="card-body">
+          <span class="badge direct">🟢 OAP Direct</span> <span class="badge certified">👑 Certified OAP Supplier</span>
+          <h3>{{ offer.title }}</h3>
+          <div class="place">{{ offer.place_label }} · {{ offer.country }}</div>
+          {% if offer.description %}<p class="muted">{{ offer.description }}</p>{% endif %}
+          {% if offer.photos|length > 1 %}<div class="thumbs" aria-label="Listing photos">{% for photo in offer.photos[1:5] %}<img src="{{ photo.public_path }}" alt="{{ photo.alt_text or offer.title }}" loading="lazy">{% endfor %}</div>{% endif %}
+          <div class="price">{{ '%.2f'|format(offer.unit_price_minor / 100) }} {{ offer.currency }}</div>
+          <div class="muted">{{ offer.price_basis }} · {{ offer.available_quantity }} available · {{ offer.photo_count }} photo{{ '' if offer.photo_count == 1 else 's' }}</div>
+          <div class="muted">Supplier: {{ offer.supplier_name }}</div>
+          <a class="action" href="/travel/direct?category={{ offer.category }}&country={{ offer.country|urlencode }}">Book with OAP</a>
+        </div>
       </article>
       {% endfor %}
     </div>
-    {% else %}<div class="empty">No matching OAP Direct inventory is live yet. Direct supplier recruitment remains the priority.</div>{% endif %}
+    {% else %}<div class="empty">No matching OAP Direct inventory is live yet. Create a real listing, add authorised photos, activate it, then publish genuine availability and pricing.</div>{% endif %}
   </section>
 
-  <section aria-labelledby="partner-title">
-    <div class="section-head"><div><h2 id="partner-title">Partner Supply</h2><p>Launch acceleration and extra choice from replaceable external sources.</p></div><p>{{ catalogue.partner_count }} live</p></div>
-    {% if catalogue.partner.offers %}
-    <div class="grid">
-      {% for offer in catalogue.partner.offers %}
-      <article class="card partner-card">
-        <span class="badge partner">🔗 Partner Supply</span>
-        <span class="badge provider">{{ 'Booking.com' if offer.provider_id == 'booking_com' else offer.provider_id.replace('_',' ')|title }}</span>
-        <h3>{{ offer.title }}</h3>
-        <div class="place">{{ offer.place_label }}</div>
-        {% if offer.total_price_minor is not none and offer.currency %}<div class="price">{{ '%.2f'|format(offer.total_price_minor / 100) }} {{ offer.currency }}</div>{% endif %}
-        <div class="muted">{{ offer.availability_state|title }}{% if offer.price_basis %} · {{ offer.price_basis }}{% endif %}</div>
-        <div class="muted">Observed {{ offer.observed_at[:16].replace('T',' ') }} · expires {{ offer.expires_at[:16].replace('T',' ') }}</div>
-        <a class="action partner-action" href="{{ offer.source_url }}" rel="noopener noreferrer">Continue to partner ↗</a>
-        <p class="muted">External handoff. OAP does not treat this as an OAP Direct reservation or payment.</p>
-      </article>
-      {% endfor %}
-    </div>
-    {% else %}<div class="empty">No fresh Partner Supply is available for this category right now. OAP Travel continues to operate without it.</div>{% endif %}
-  </section>
-
-  <p class="truth">Supply order is deliberate: OAP Direct first, Partner Supply second. OAP does not automatically rank unmatched offers as equivalent. Booking.com and future providers remain optional, replaceable inventory sources with zero OAP authority. Human Authority remains final.</p>
+  <section class="research"><strong>🔎 External Data Fetch</strong><p class="muted">Research-only. When requested, external travel information can be fetched separately and compared with OAP Direct. It is not stored here as a partner feed and does not create an OAP supplier relationship.</p></section>
+  <p class="truth">Only Certified supplier + ACTIVE listing + ACTIVE future inventory is public. Listing photos are first-party OAP records and require explicit rights confirmation. Buyer identity is not exposed. Human Authority remains final.</p>
 </main>
 </body>
 </html>
