@@ -271,6 +271,7 @@ def test_duplicate_request_is_idempotent_and_does_not_add_memory():
 def test_provider_router_uses_only_explicit_approved_assignment():
     class FakeProvider:
         provider_id = "fake-local"
+        sovereign_scope = "local"
 
         def analyse(self, signal):
             return ProviderResult(
@@ -310,6 +311,7 @@ def test_provider_router_uses_only_explicit_approved_assignment():
 def test_provider_failure_degrades_without_crashing_smi():
     class FailingProvider:
         provider_id = "failing-local"
+        sovereign_scope = "local"
 
         def analyse(self, signal):
             del signal
