@@ -34,6 +34,7 @@ def init_app(app: Flask) -> None:
         product_cores,
         routing,
         surface_security,
+        travel_supply_core,
     )
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
@@ -243,6 +244,25 @@ def init_app(app: Flask) -> None:
     def _oap_init_product_cores(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(product_cores.init_product_core_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-travel-supply-status")
+    def _oap_travel_supply_status() -> None:
+        import json
+        print(json.dumps(travel_supply_core.status()))
+
+    @app.cli.command("oap-init-travel-supply")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_travel_supply(dry_run: bool, yes: bool) -> None:
+        import json
+        print(
+            json.dumps(
+                travel_supply_core.init_supply_core_schema(
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
 
     @app.cli.command("oap-verify-audit")
     def _oap_verify_audit() -> None:  # pragma: no cover
