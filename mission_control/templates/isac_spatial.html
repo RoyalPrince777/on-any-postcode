@@ -5,22 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAP ISAC Spatial Intelligence</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='private_command.css') }}">
+  <style>
+    .isac-hero{margin:14px 0 16px}.isac-hero h1{margin:.2rem 0 .5rem}.isac-command-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px;margin-top:15px}.isac-command-summary div{border:1px solid var(--oap-command-line);border-radius:14px;padding:12px;background:rgba(5,17,10,.72)}.isac-command-summary small{display:block;color:var(--oap-command-muted);margin-bottom:4px}.isac-command-summary strong{font-size:1.05rem}
+  </style>
 </head>
 <body class="mc-workspace-body">
-  <header class="mc-workspace-header">
-    <div>
-      <p class="mc-eyebrow">OAP / Connectivity Intelligence / Matrix RF / Guardian RF</p>
-      <h1>ISAC Spatial Intelligence</h1>
-      <p>Authorised radio sensing → local interpretation → privacy reduction → Matrix RF.</p>
-    </div>
-    <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
-    </div>
-  </header>
+  {% include '_command_nav.html' %}
+  <main class="oap-command-dashboard">
+    <section class="oap-command-hero-modern isac-hero">
+      <p class="oap-command-kicker">OAP · Connectivity Intelligence · Matrix RF · Guardian RF</p>
+      <h1 class="oap-command-title">ISAC Spatial Intelligence</h1>
+      <p class="oap-command-copy">Authorised radio sensing → local interpretation → privacy reduction → Matrix RF. Software capability is separated from physical-radio evidence so the dashboard never turns laboratory assumptions into live claims.</p>
+      <div class="isac-command-summary" id="isac-summary">
+        <div><small>Software</small><strong>{{ "🟢 READY" if isac.software_ready else "🔴 BLOCKED" }}</strong></div>
+        <div><small>Radio</small><strong>{{ "🟢 LIVE" if isac.live_radio_connected else "🟡 NOT CONNECTED" }}</strong></div>
+        <div><small>Calibration</small><strong>{{ isac.calibration_points }}</strong></div>
+        <div><small>Model</small><strong>{{ "TRAINED" if isac.model_trained else "WAITING" }}</strong></div>
+        <div><small>Accuracy</small><strong>{{ "CERTIFIED" if isac.accuracy_claim_certified else "UNCLAIMED" }}</strong></div>
+      </div>
+    </section>
 
-  <main class="mc-workspace">
     <section class="mc-integrity" aria-labelledby="isac-integrity-title">
       <div>
         <p class="mc-eyebrow">Truth boundary</p>
@@ -28,21 +33,17 @@
         <p>OAP can process authorised SRS/CSI-style measurements now. It does not claim a live radio testbed or certified positioning accuracy without measured evidence.</p>
         <p class="mc-war-truth">Raw RF remains local. Matrix receives bounded spatial events only. No biometric identity, covert tracking or hidden-emotion inference.</p>
       </div>
-      <dl class="mc-integrity-counts" id="isac-summary">
-        <div><dt>Software</dt><dd>{{ "READY" if isac.software_ready else "BLOCKED" }}</dd></div>
-        <div><dt>Radio</dt><dd>{{ "LIVE" if isac.live_radio_connected else "NOT CONNECTED" }}</dd></div>
-        <div><dt>Calibration</dt><dd>{{ isac.calibration_points }}</dd></div>
-        <div><dt>Model</dt><dd>{{ "TRAINED" if isac.model_trained else "WAITING" }}</dd></div>
-        <div><dt>Accuracy</dt><dd>{{ "CERTIFIED" if isac.accuracy_claim_certified else "UNCLAIMED" }}</dd></div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Devices</dt><dd id="active-device-count">{{ isac.dashboard.active_device_count }}</dd></div>
+        <div><dt>Features</dt><dd>{{ isac.fixed_feature_dimension }}</dd></div>
+        <div><dt>Risks</dt><dd id="collision-count">{{ isac.dashboard.collision_risks|length }}</dd></div>
+        <div><dt>Events</dt><dd id="event-count">{{ isac.dashboard.recent_events|length }}</dd></div>
       </dl>
     </section>
 
     <section class="mc-panel" aria-labelledby="isac-pipeline-title">
       <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">OAP-owned pipeline</p>
-          <h2 id="isac-pipeline-title">Radio → Edge → Guardian RF → Matrix RF</h2>
-        </div>
+        <div><p class="mc-eyebrow">OAP-owned pipeline</p><h2 id="isac-pipeline-title">Radio → Edge → Guardian RF → Matrix RF</h2></div>
         <span class="mc-lock-badge">Human Authority final</span>
       </div>
       <div class="mc-boundary-grid" role="list">
@@ -54,10 +55,7 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="isac-readiness-title">
-      <div class="mc-section-heading">
-        <div><p class="mc-eyebrow">Physical testbed gates</p><h2 id="isac-readiness-title">What remains before measured RF claims</h2></div>
-        <span class="mc-lock-badge mc-lock-badge--amber">Evidence required</span>
-      </div>
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Physical testbed gates</p><h2 id="isac-readiness-title">What remains before measured RF claims</h2></div><span class="mc-lock-badge mc-lock-badge--amber">Evidence required</span></div>
       <div class="mc-proposal-grid" role="list" id="isac-gates">
         {% if isac.remaining_physical_gates %}
           {% for gate in isac.remaining_physical_gates %}<article role="listitem"><strong>OPEN</strong><p>{{ gate }}</p></article>{% endfor %}
@@ -68,22 +66,18 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="isac-world-title">
-      <div class="mc-section-heading">
-        <div><p class="mc-eyebrow">Privacy-reduced live state</p><h2 id="isac-world-title">Matrix RF spatial dashboard</h2></div>
-        <span class="mc-lock-badge">No raw RF</span>
-      </div>
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Privacy-reduced live state</p><h2 id="isac-world-title">Matrix RF spatial dashboard</h2></div><span class="mc-lock-badge">No raw RF</span></div>
       <div class="mc-infrastructure-grid" id="isac-world-state">
-        <article class="mc-infrastructure-card"><p class="mc-organ-type">Devices</p><h3 id="active-device-count">{{ isac.dashboard.active_device_count }}</h3><p>Authorised devices with current spatial observations.</p></article>
+        <article class="mc-infrastructure-card"><p class="mc-organ-type">Devices</p><h3>{{ isac.dashboard.active_device_count }}</h3><p>Authorised devices with current spatial observations.</p></article>
         <article class="mc-infrastructure-card"><p class="mc-organ-type">Feature dimensions</p><h3>{{ isac.fixed_feature_dimension }}</h3><p>Stable OAP feature contract for calibration and inference.</p></article>
-        <article class="mc-infrastructure-card"><p class="mc-organ-type">Collision risks</p><h3 id="collision-count">{{ isac.dashboard.collision_risks|length }}</h3><p>Proximity conflicts from calibrated estimates only.</p></article>
-        <article class="mc-infrastructure-card"><p class="mc-organ-type">Recent events</p><h3 id="event-count">{{ isac.dashboard.recent_events|length }}</h3><p>Bounded Matrix RF events retained in this runtime snapshot.</p></article>
+        <article class="mc-infrastructure-card"><p class="mc-organ-type">Collision risks</p><h3>{{ isac.dashboard.collision_risks|length }}</h3><p>Proximity conflicts from calibrated estimates only.</p></article>
+        <article class="mc-infrastructure-card"><p class="mc-organ-type">Recent events</p><h3>{{ isac.dashboard.recent_events|length }}</h3><p>Bounded Matrix RF events retained in this runtime snapshot.</p></article>
       </div>
       <p class="mc-boundary-note" id="isac-refresh-state">Live status refreshes every 5 seconds while this Founder-only page is open.</p>
     </section>
 
     <section class="mc-panel" aria-labelledby="isac-privacy-title">
-      <p class="mc-eyebrow">Guardian RF</p>
-      <h2 id="isac-privacy-title">Permanent sensing boundaries</h2>
+      <p class="mc-eyebrow">Guardian RF</p><h2 id="isac-privacy-title">Permanent sensing boundaries</h2>
       <div class="mc-boundary-grid" role="list">
         <article role="listitem"><h3>Raw RF</h3><p>Local-only by default; never exposed in Matrix dashboard events.</p></article>
         <article role="listitem"><h3>People</h3><p>No biometric identity, covert personal tracking or through-wall personal surveillance.</p></article>
