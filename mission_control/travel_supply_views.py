@@ -1,11 +1,13 @@
-"""OAP Direct and governed Partner Supply discovery/control surfaces."""
+"""OAP Direct, Partner Supply and registered public ecosystem surfaces."""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import partner_supply, travel_marketplace, web_security
+from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
+bp.register_blueprint(safe_signals_bp)
 
 
 def _no_store(response):
