@@ -9,7 +9,6 @@ from oap.hrm import HRMCore, initialize_brain_schema
 from oap.smi.canonical_memory import (
     CANONICAL_MEMORY_DIGEST,
     CANONICAL_MEMORY_REVISION,
-    canonical_memory_items,
     status,
 )
 from oap.smi.context_engine import ContextEngine
@@ -53,7 +52,9 @@ def test_context_engine_merges_canonical_and_dynamic_memory_with_21_cap():
     context = engine.load(signal)
     assert 1 <= len(context.memories) <= 21
     assert any(item.memory_id.startswith("canonical:") for item in context.memories)
-    assert any("SMI" in item.summary or "OAP" in item.summary for item in context.memories)
+    assert any(
+        "SMI" in item.summary or "OAP" in item.summary for item in context.memories
+    )
 
 
 def test_live_provider_memory_includes_canonical_truth_and_recent_hrm():
