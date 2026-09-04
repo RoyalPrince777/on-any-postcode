@@ -135,7 +135,7 @@ def test_war_room_dashboard_is_founder_only_read_only_and_does_not_create_db(
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "OAP War Room" in page
+    assert "OAP Master War Room" in page
     assert "Highest-value next three" in page
     assert "78 Agent Passports" in page
     assert "RTL Memory Guard / IOMMU" in page
@@ -147,6 +147,58 @@ def test_war_room_dashboard_is_founder_only_read_only_and_does_not_create_db(
     assert anonymous_client.get("/mission/war-room").status_code == 302
     assert anonymous_client.get("/mission/war-room/status").status_code == 401
     assert not database_path.exists()
+
+
+def test_master_war_room_page_locks_full_seven_star_blueprint(client):
+    response = client.get("/mission/war-room")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    for checkpoint in (
+        "⭐ 1 · Purpose",
+        "⭐ 2 · Architecture",
+        "⭐ 3 · Functionality",
+        "⭐ 4 · Safety & Governance",
+        "⭐ 5 · Connectivity & Data",
+        "⭐ 6 · Resilience & Operations",
+        "⭐ 7 · Real-world Readiness",
+    ):
+        assert checkpoint in page
+
+    for required in (
+        "3 / 7 / 21 War Room protocol",
+        "Observe → Challenge → Resolve",
+        "Normal is not enough",
+        "Cross-world capability registry",
+        "Travel Intelligence",
+        "Movement Intelligence",
+        "Booking Intelligence",
+        "Events Intelligence",
+        "Humanitarian Intelligence",
+        "Compliance Intelligence",
+        "Master boards",
+        "Nexus Board",
+        "Laboratory Board",
+        "Challenge chamber",
+        "Builder",
+        "Operator",
+        "Challenger",
+        "Master command card",
+        "PROCEED simulation",
+        "FAILURE simulation",
+        "RECOVERY simulation",
+        "Evidence returns to HRM",
+        "No evidence = no green. No test = no star.",
+        "SMI · exactly 7 Intelligence Worlds",
+        "Nexus is the nervous/connective system",
+        "Oasis is the environment/presentation layer",
+    ):
+        assert required in page
+
+    # The Master layer must remain read-only. Human decisions are displayed as
+    # possible outcomes only; the War Room never exposes an execution form.
+    assert 'method="post"' not in page.lower()
+    assert "This page itself exposes no execution control" in page
 
 
 def test_war_room_status_is_redacted_and_preserves_human_authority(client):
