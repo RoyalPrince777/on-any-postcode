@@ -9,6 +9,8 @@ def test_mission_control_prioritises_real_booking_and_private_controls():
     chat = page.index("mission_control.ollama_chat_dashboard")
     war_room = page.index("mission_control.war_room_dashboard")
     assert booking < chat < war_room
+    assert "isac_spatial.dashboard" in page
+    assert "provider_fabric.alignment_dashboard" in page
     assert "mission_control.judgement_dashboard" in page
     assert "mission_control.infrastructure_dashboard" in page
     assert "humanitarian_tracker.dashboard" in page
@@ -32,9 +34,43 @@ def test_infrastructure_menu_uses_private_working_routes():
     assert "travel_supply.founder_dashboard" in page
     assert "mission_control.ollama_chat_dashboard" in page
     assert "mission_control.war_room_dashboard" in page
+    assert "isac_spatial.dashboard" in page
+    assert "provider_fabric.alignment_dashboard" in page
     assert "mission_control.judgement_dashboard" in page
     assert "the_link_dashboard" not in page
     assert "https://on-any-postcode.onrender.com/" in page
+
+
+def test_isac_is_part_of_the_private_command_surface():
+    page = _text("mission_control/templates/isac_spatial.html")
+    assert "_command_nav.html" in page
+    assert "Matrix RF spatial dashboard" in page
+    assert "Software live · physical radio evidence fail-closed" in page
+    assert "No biometric identity" in page
+    assert "Human Authority remains final" in page
+
+
+def test_alignment_dashboard_keeps_single_brain_and_seven_world_truth():
+    page = _text("mission_control/templates/alignment_sovereignty.html")
+    assert "SMI brain" in page
+    assert "1 · SINGLE" in page
+    assert "No 8th World" in page
+    assert "Provider authority" in page
+    assert "0 · NONE" in page
+    assert "A4 / A5" in page
+    assert "LOCKED" in page
+    assert "No fake sovereignty claim" in page
+    assert "Human Authority final" in page
+
+
+def test_alignment_route_is_founder_only_and_renders(client):
+    response = client.get("/mission/alignment")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "Alignment &amp; Sovereignty" in page or "Alignment & Sovereignty" in page
+    assert "26" in page
+    assert "78" in page
+    assert "7" in page
 
 
 def test_sovereignty_deck_does_not_fake_execution_controls():
