@@ -4,6 +4,9 @@ from mission_control import humanitarian_connectivity, technology_intelligence
 def test_humanitarian_status_is_civilian_production_and_non_executing():
     status = humanitarian_connectivity.humanitarian_connectivity_status()
 
+    assert status["name"] == "Humanitarian Connectivity Intelligence"
+    assert status["legacy_name"] == "International Humanitarian Connectivity Intelligence"
+    assert status["parent"] == "International Humanitarian Intelligence"
     assert status["mode"] == "civilian_emergency_production"
     assert status["demo_mode"] is False
     assert status["civilian_only"] is True
@@ -75,15 +78,20 @@ def test_public_warning_requires_verified_source():
     assert allowed["accepted"] is True
 
 
-def test_technology_intelligence_exposes_humanitarian_emergency_layer():
+def test_technology_intelligence_exposes_humanitarian_as_supported_child():
     status = technology_intelligence.technology_intelligence_status()
     humanitarian = status["international_humanitarian_connectivity"]
+    umbrella = status["international_humanitarian_intelligence"]
     capability_ids = tuple(item["id"] for item in status["connectivity"]["capabilities"])
 
     assert "humanitarian_emergency" in capability_ids
-    assert humanitarian["name"] == "International Humanitarian Connectivity Intelligence"
+    assert humanitarian["name"] == "Humanitarian Connectivity Intelligence"
+    assert humanitarian["parent"] == "International Humanitarian Intelligence"
     assert humanitarian["civilian_only"] is True
     assert humanitarian["international_reach_claim"] is False
     assert humanitarian["map_intelligence_bound"] is True
     assert humanitarian["maps"]["map_intelligence_bound"] is True
+    assert umbrella["name"] == "International Humanitarian Intelligence"
+    assert umbrella["section_count"] == 8
+    assert status["humanitarian_parent"] == "International Humanitarian Intelligence"
     assert status["intelligence_world_count_added"] == 0
