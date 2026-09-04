@@ -42,7 +42,10 @@
         <div><dt>Overlaps</dt><dd>{{ infrastructure.validation.checks.ownership_overlaps }}</dd></div>
         <div><dt>Mutations</dt><dd>{{ infrastructure.validation.checks.mutation_controls }}</dd></div>
       </dl>
+      {% if infrastructure.validation.errors %}<ul class="mc-error-list">{% for error in infrastructure.validation.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
     </section>
+
+    {% include "_live_signal_legend.html" %}
 
     <section class="mc-panel" aria-labelledby="infrastructure-scope-title">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Live readiness</p><h2 id="infrastructure-scope-title">Infrastructure modules</h2></div><span class="mc-lock-badge">Evidence bound</span></div>
@@ -65,17 +68,30 @@
       <p>{{ infrastructure.intelligence.signal.emoji }} {{ infrastructure.intelligence.signal.label }} · {{ infrastructure.intelligence.mode }}</p>
       <p>{{ infrastructure.intelligence.truth_boundary }}</p>
       <div class="mc-boundary-grid" role="list">{% for focus in infrastructure.intelligence.focuses %}<article role="listitem"><p class="mc-organ-type">{{ focus.signal.emoji }} {{ focus.signal.label }}</p><h3>{{ focus.name }}</h3><p>{{ focus.purpose }}</p><p class="mc-boundary-note"><strong>Evidence:</strong> {{ focus.evidence }}</p></article>{% endfor %}</div>
+      <div class="mc-proposal-grid" role="list">{% for recommendation in infrastructure.intelligence.recommendations %}<article role="listitem"><strong>Recommendation</strong><p>{{ recommendation }}</p></article>{% endfor %}</div>
     </section>
 
     <section class="mc-panel" aria-labelledby="shared-health-title">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Shared health</p><h2 id="shared-health-title">Mission Control signals</h2></div><span class="mc-lock-badge">Observed</span></div>
+      <p>This coarse status widget is shared from Mission Control. It is not another Infrastructure module.</p>
       <div class="mc-status-ribbon" role="list">{% for component in shared_health %}<div class="mc-status mc-status--{{ component.state }}" role="listitem"><span>{{ component.label }}</span><strong>{{ component.value }}</strong></div>{% endfor %}</div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="infrastructure-boundaries-title">
+      <p class="mc-eyebrow">Duplicate prevention</p>
+      <h2 id="infrastructure-boundaries-title">Related systems stay separate</h2>
+      <div class="mc-boundary-grid" role="list">{% for system in infrastructure.related_systems %}<article role="listitem"><p class="mc-organ-type">{{ system.owner }}</p><h3>{{ system.name }}</h3><p>{{ system.relationship }}</p></article>{% endfor %}</div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="infrastructure-proposals-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Not executed</p><h2 id="infrastructure-proposals-title">First-party build gates</h2></div><span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span></div>
+      <div class="mc-proposal-grid" role="list">{% for proposal in infrastructure.first_party_build_gates %}<article role="listitem"><strong>{{ proposal.status }}</strong><h3>{{ proposal.title }}</h3><p>{{ proposal.description }}</p></article>{% endfor %}</div>
     </section>
 
     <section class="mc-panel" aria-labelledby="infrastructure-controls-title">
       <p class="mc-eyebrow">Real control boundary</p>
-      <h2 id="infrastructure-controls-title">Human-gated infrastructure</h2>
-      <p class="mc-notice">This page now gives working navigation and live readiness. Maps/Weather source mutation, eSIM purchase or activation, and network changes remain separately gated until an actual first-party execution path is certified. No fake toggle is shown.</p>
+      <h2 id="infrastructure-controls-title">Operational controls unavailable for unproven mutations</h2>
+      <p class="mc-notice">The navigation and readiness controls on this page are live. Maps/Weather source mutation, eSIM purchase or activation, and Connectivity network changes remain separately gated until an actual first-party execution path is certified. No fake toggle is shown.</p>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.judgement_dashboard') }}">Open Judgement Gate</a>
     </section>
 
