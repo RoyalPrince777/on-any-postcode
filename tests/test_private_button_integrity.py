@@ -82,17 +82,20 @@ def test_data_action_buttons_have_post_routes():
     assert failures == []
 
 
-def test_private_operator_surfaces_do_not_send_public_buttons_to_private_root():
-    protected_operator_templates = (
+def test_private_operator_surfaces_use_real_public_origin():
+    directly_linked_templates = (
         TEMPLATE_ROOT / "mission.html",
-        TEMPLATE_ROOT / "ollama_chat_base.html",
         TEMPLATE_ROOT / "travel_supply_control.html",
         TEMPLATE_ROOT / "mission_control" / "infrastructure.html",
     )
-    for template in protected_operator_templates:
+    for template in directly_linked_templates:
         text = template.read_text(encoding="utf-8")
         assert 'href="/"' not in text, template.name
         assert f'href="{PUBLIC_ORIGIN}/' in text, template.name
+
+    smi_wrapper = (TEMPLATE_ROOT / "ollama_chat.html").read_text(encoding="utf-8")
+    assert f"const publicOapOrigin='{PUBLIC_ORIGIN}/'" in smi_wrapper
+    assert "publicFrontDoor.href=publicOapOrigin" in smi_wrapper
 
 
 def test_a3_is_bounded_and_ready_for_runtime_health_only(monkeypatch):
