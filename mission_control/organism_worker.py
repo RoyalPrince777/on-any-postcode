@@ -193,19 +193,19 @@ def run() -> int:
                 )
                 continue
 
-            if autonomy_levels.configured_level() == "A3":
-                a3_decision = autonomy_levels.evaluate_a3_runtime_job(job.job_type)
-                if not a3_decision["allowed"]:
-                    state = store.fail(job, worker_id, error_code="a3_policy_blocked")
-                    _log(
-                        "runtime_job_failed",
-                        job_id=job.job_id,
-                        job_type=job.job_type,
-                        state=state,
-                        error_code="a3_policy_blocked",
-                        a3_reason=a3_decision["reason"],
-                    )
-                    continue
+            autonomy_decision = autonomy_levels.evaluate_runtime_job(job.job_type)
+            if not autonomy_decision["allowed"]:
+                state = store.fail(job, worker_id, error_code="autonomy_policy_blocked")
+                _log(
+                    "runtime_job_failed",
+                    job_id=job.job_id,
+                    job_type=job.job_type,
+                    state=state,
+                    error_code="autonomy_policy_blocked",
+                    autonomy_level=autonomy_decision["configured_level"],
+                    autonomy_reason=autonomy_decision["reason"],
+                )
+                continue
 
             try:
                 result = handler(job)
@@ -216,6 +216,8 @@ def run() -> int:
                     "runtime_job_succeeded",
                     job_id=job.job_id,
                     job_type=job.job_type,
+                    autonomy_level=autonomy_decision["configured_level"],
+                    a4_supervision_required=autonomy_decision["supervision_required"],
                 )
             except Exception as exc:  # noqa: BLE001 - failure becomes retry/DLQ receipt.
                 error_code = f"{type(exc).__name__.casefold()}"[:120]
