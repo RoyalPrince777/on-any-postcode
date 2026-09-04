@@ -8,7 +8,8 @@ FlexRIC and O-RAN LLC E2SM are treated as replaceable adapters, not OAP authorit
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from oap.isac import ISACSpatialService, SRSFrame
 
@@ -80,7 +81,7 @@ def add_authorised_calibration(payload: Mapping[str, object]) -> dict[str, objec
 
     frame_payload = payload.get("frame")
     if not isinstance(frame_payload, Mapping):
-        raise ValueError("calibration_frame_required")
+        raise TypeError("calibration_frame_required")
     frame = SRSFrame.from_payload(frame_payload)
     point = _SERVICE.add_calibration_from_frame(
         frame,
