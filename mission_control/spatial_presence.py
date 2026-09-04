@@ -19,9 +19,10 @@ from __future__ import annotations
 
 import os
 import secrets
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
-from typing import Any, Mapping
+from typing import Any
 
 SPATIAL_PRESENCE_REVISION = "2026-09-04-v1"
 OAP_EXPERIMENTAL_CMWAVE_GHZ = (7.0, 21.0)
@@ -30,94 +31,27 @@ SUB_THz_GHZ = (90.0, 300.0)
 MAX_ACTIVE_SESSIONS = 32
 
 CAPTURE_ADAPTERS: tuple[dict[str, str], ...] = (
-    {
-        "id": "multi_view_rgbd",
-        "name": "Multi-view RGB-D Capture",
-        "role": "Fuse authorised multi-camera colour and depth views into geometry.",
-    },
-    {
-        "id": "lidar_depth",
-        "name": "LiDAR / Depth Capture",
-        "role": "Provide authorised geometry and depth samples for spatial reconstruction.",
-    },
-    {
-        "id": "monocular_fallback",
-        "name": "Monocular Camera Fallback",
-        "role": "Provide a lower-fidelity fallback when multi-view depth hardware is unavailable.",
-    },
-    {
-        "id": "isac_environment",
-        "name": "ISAC Environment Context",
-        "role": "Optionally contribute privacy-reduced environment context; never covert identity sensing.",
-    },
+    {"id": "multi_view_rgbd", "name": "Multi-view RGB-D Capture", "role": "Fuse authorised multi-camera colour and depth views into geometry."},
+    {"id": "lidar_depth", "name": "LiDAR / Depth Capture", "role": "Provide authorised geometry and depth samples for spatial reconstruction."},
+    {"id": "monocular_fallback", "name": "Monocular Camera Fallback", "role": "Provide a lower-fidelity fallback when multi-view depth hardware is unavailable."},
+    {"id": "isac_environment", "name": "ISAC Environment Context", "role": "Optionally contribute privacy-reduced environment context; never covert identity sensing."},
 )
 
 DISPLAY_ADAPTERS: tuple[dict[str, str], ...] = (
-    {
-        "id": "xr_headset",
-        "name": "XR Headset / Smart Glasses",
-        "role": "Render stereoscopic session-scoped spatial presence.",
-    },
-    {
-        "id": "light_field",
-        "name": "Light-field Display",
-        "role": "Render multi-view spatial presence without requiring a wearable.",
-    },
-    {
-        "id": "volumetric",
-        "name": "Volumetric Display",
-        "role": "Render supported volumetric geometry when compatible hardware exists.",
-    },
-    {
-        "id": "2d_fallback",
-        "name": "2D Face Up Fallback",
-        "role": "Keep the conversation usable on ordinary displays and weak networks.",
-    },
+    {"id": "xr_headset", "name": "XR Headset / Smart Glasses", "role": "Render stereoscopic session-scoped spatial presence."},
+    {"id": "light_field", "name": "Light-field Display", "role": "Render multi-view spatial presence without requiring a wearable."},
+    {"id": "volumetric", "name": "Volumetric Display", "role": "Render supported volumetric geometry when compatible hardware exists."},
+    {"id": "2d_fallback", "name": "2D Face Up Fallback", "role": "Keep the conversation usable on ordinary displays and weak networks."},
 )
 
 TRANSPORT_PATHS: tuple[dict[str, object], ...] = (
-    {
-        "id": "local_lan",
-        "name": "Local LAN / Wi-Fi",
-        "operational_today": True,
-        "priority": 10,
-    },
-    {
-        "id": "fiber_edge",
-        "name": "Fibre + OAP Edge",
-        "operational_today": True,
-        "priority": 9,
-    },
-    {
-        "id": "5g",
-        "name": "5G / 5G-Advanced",
-        "operational_today": True,
-        "priority": 8,
-    },
-    {
-        "id": "mesh_d2d",
-        "name": "Mesh / Device-to-Device",
-        "operational_today": True,
-        "priority": 6,
-    },
-    {
-        "id": "ntn",
-        "name": "NTN / Satellite Fallback",
-        "operational_today": True,
-        "priority": 4,
-    },
-    {
-        "id": "oap_7_21_research",
-        "name": "OAP 7-21 GHz Experimental Research",
-        "operational_today": False,
-        "priority": 3,
-    },
-    {
-        "id": "d_band_sub_thz_research",
-        "name": "D-band / sub-THz Extreme-Capacity Research",
-        "operational_today": False,
-        "priority": 2,
-    },
+    {"id": "local_lan", "name": "Local LAN / Wi-Fi", "operational_today": True, "priority": 10},
+    {"id": "fiber_edge", "name": "Fibre + OAP Edge", "operational_today": True, "priority": 9},
+    {"id": "5g", "name": "5G / 5G-Advanced", "operational_today": True, "priority": 8},
+    {"id": "mesh_d2d", "name": "Mesh / Device-to-Device", "operational_today": True, "priority": 6},
+    {"id": "ntn", "name": "NTN / Satellite Fallback", "operational_today": True, "priority": 4},
+    {"id": "oap_7_21_research", "name": "OAP 7-21 GHz Experimental Research", "operational_today": False, "priority": 3},
+    {"id": "d_band_sub_thz_research", "name": "D-band / sub-THz Extreme-Capacity Research", "operational_today": False, "priority": 2},
 )
 
 
@@ -169,31 +103,17 @@ def _choose_display(requested: str) -> str:
 
 
 def semantic_compression_plan(*, available_mbps: float, latency_ms: float) -> dict[str, Any]:
-    """Return a deterministic privacy-aware level-of-detail plan.
-
-    The plan deliberately avoids a requirement to transmit every captured point. The
-    highest fidelity is reserved for interaction-critical geometry while static scene
-    context is cached or represented semantically.
-    """
-
+    """Return a deterministic privacy-aware level-of-detail plan."""
     bandwidth = max(_float(available_mbps, 0.0), 0.0)
     latency = max(_float(latency_ms, 999.0), 0.0)
     if bandwidth >= 500 and latency <= 30:
-        profile = "spatial_ultra"
-        geometry_hz = 60
-        target_mbps = min(bandwidth * 0.65, 1200.0)
+        profile, geometry_hz, target_mbps = "spatial_ultra", 60, min(bandwidth * 0.65, 1200.0)
     elif bandwidth >= 100 and latency <= 80:
-        profile = "spatial_high"
-        geometry_hz = 30
-        target_mbps = min(bandwidth * 0.60, 300.0)
+        profile, geometry_hz, target_mbps = "spatial_high", 30, min(bandwidth * 0.60, 300.0)
     elif bandwidth >= 25 and latency <= 150:
-        profile = "spatial_adaptive"
-        geometry_hz = 20
-        target_mbps = min(bandwidth * 0.55, 80.0)
+        profile, geometry_hz, target_mbps = "spatial_adaptive", 20, min(bandwidth * 0.55, 80.0)
     else:
-        profile = "face_up_2d_fallback"
-        geometry_hz = 0
-        target_mbps = min(max(bandwidth * 0.45, 0.5), 12.0)
+        profile, geometry_hz, target_mbps = "face_up_2d_fallback", 0, min(max(bandwidth * 0.45, 0.5), 12.0)
     return {
         "profile": profile,
         "target_mbps": round(target_mbps, 2),
@@ -209,8 +129,6 @@ def semantic_compression_plan(*, available_mbps: float, latency_ms: float) -> di
 
 
 def choose_transport(*, available: tuple[str, ...] | list[str] = (), research_radio_evidence: bool = False) -> str:
-    """Choose a local/current transport before future-radio research paths."""
-
     supplied = {str(item).strip().casefold() for item in available if str(item).strip()}
     if not supplied:
         supplied = {"local_lan", "fiber_edge", "5g"}
@@ -226,8 +144,6 @@ def choose_transport(*, available: tuple[str, ...] | list[str] = (), research_ra
 
 
 def create_session(payload: Mapping[str, object]) -> dict[str, Any]:
-    """Create one bounded Face Up Spatial session after explicit capture consent."""
-
     if not bool(payload.get("consent")):
         raise PermissionError("spatial_capture_consent_required")
     participant_ref = str(payload.get("participant_ref") or "").strip()[:96]
@@ -242,14 +158,9 @@ def create_session(payload: Mapping[str, object]) -> dict[str, Any]:
     if isinstance(requested_paths, (str, bytes)):
         requested_paths = (str(requested_paths),)
     if not isinstance(requested_paths, (tuple, list)):
-        raise ValueError("available_transports_must_be_list")
-    research_evidence = bool(payload.get("research_radio_evidence")) and _truthy_env(
-        "OAP_SPATIAL_RADIO_EVIDENCE"
-    )
-    transport = choose_transport(
-        available=[str(item) for item in requested_paths],
-        research_radio_evidence=research_evidence,
-    )
+        raise TypeError("available_transports_must_be_list")
+    research_evidence = bool(payload.get("research_radio_evidence")) and _truthy_env("OAP_SPATIAL_RADIO_EVIDENCE")
+    transport = choose_transport(available=[str(item) for item in requested_paths], research_radio_evidence=research_evidence)
     session = SpatialSession(
         session_id="fsp_" + secrets.token_hex(8),
         participant_ref=participant_ref,
@@ -263,8 +174,7 @@ def create_session(payload: Mapping[str, object]) -> dict[str, Any]:
     )
     _ACTIVE_SESSIONS[session.session_id] = session
     while len(_ACTIVE_SESSIONS) > MAX_ACTIVE_SESSIONS:
-        oldest = next(iter(_ACTIVE_SESSIONS))
-        _ACTIVE_SESSIONS.pop(oldest, None)
+        _ACTIVE_SESSIONS.pop(next(iter(_ACTIVE_SESSIONS)), None)
     return {
         "accepted": True,
         "session": asdict(session),
@@ -291,13 +201,7 @@ def create_session(payload: Mapping[str, object]) -> dict[str, Any]:
 def end_session(session_id: str) -> dict[str, Any]:
     clean = str(session_id or "").strip()
     existed = _ACTIVE_SESSIONS.pop(clean, None) is not None
-    return {
-        "ended": existed,
-        "session_id": clean,
-        "raw_media_persisted": False,
-        "biometric_profile_persisted": False,
-        "human_authority_final": True,
-    }
+    return {"ended": existed, "session_id": clean, "raw_media_persisted": False, "biometric_profile_persisted": False, "human_authority_final": True}
 
 
 def spatial_presence_status() -> dict[str, Any]:
@@ -316,15 +220,7 @@ def spatial_presence_status() -> dict[str, Any]:
         "capture_adapters": CAPTURE_ADAPTERS,
         "display_adapters": DISPLAY_ADAPTERS,
         "transport_paths": TRANSPORT_PATHS,
-        "pipeline": (
-            "Authorised Spatial Capture",
-            "Matrix Spatial Reconstruction",
-            "OAP Edge Semantic Compression",
-            "Guardian Presence",
-            "Nexus Spatial Transport",
-            "Face Up Spatial Render",
-            "Oasis Presentation",
-        ),
+        "pipeline": ("Authorised Spatial Capture", "Matrix Spatial Reconstruction", "OAP Edge Semantic Compression", "Guardian Presence", "Nexus Spatial Transport", "Face Up Spatial Render", "Oasis Presentation"),
         "semantic_compression_ready": True,
         "adaptive_qos_ready": True,
         "digital_twin_mode": "session_scoped_spatial_representation",
@@ -352,9 +248,5 @@ def spatial_presence_status() -> dict[str, Any]:
         "autonomous_radio_control": False,
         "external_provider_authority": False,
         "human_authority_final": True,
-        "truth_boundary": (
-            "The Face Up Spatial software pipeline is implemented and can degrade to current "
-            "2D/5G/Wi-Fi/fibre paths. Actual volumetric capture/display hardware, OAP 7-21 GHz "
-            "research radios, D-band/sub-THz radios and a live 6G network remain evidence-gated."
-        ),
+        "truth_boundary": "The Face Up Spatial software pipeline is implemented and can degrade to current 2D/5G/Wi-Fi/fibre paths. Actual volumetric capture/display hardware, OAP 7-21 GHz research radios, D-band/sub-THz radios and a live 6G network remain evidence-gated.",
     }
