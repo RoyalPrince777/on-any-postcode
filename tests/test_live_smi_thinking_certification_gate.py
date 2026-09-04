@@ -10,7 +10,8 @@ EXPECTED_REVISION = "8cda4a51d248"
 
 
 class _NoRedirect(urlrequest.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ARG002
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        del req, fp, code, msg, headers, newurl
         return None
 
 
