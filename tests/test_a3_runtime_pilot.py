@@ -21,6 +21,14 @@ def test_a2_can_still_be_explicitly_selected(monkeypatch):
     assert decision["human_authority_final"] is True
 
 
+def test_invalid_autonomy_configuration_fails_closed_to_a2(monkeypatch):
+    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A9")
+    assert autonomy_levels.configured_level() == "A2"
+    decision = autonomy_levels.evaluate_a3_runtime_job("RUNTIME_HEARTBEAT")
+    assert decision["allowed"] is False
+    assert decision["reason"] == "a3_not_enabled"
+
+
 def test_a3_pilot_allows_only_existing_nonconsequential_runtime_jobs(monkeypatch):
     monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A3")
     assert autonomy_levels.A3_PILOT_ACTIONS == organism_runtime.ALLOWED_JOB_TYPES
