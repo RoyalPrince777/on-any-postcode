@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from mission_control import infrastructure_intelligence, live_signals, technology_intelligence
+from mission_control import (
+    infrastructure_intelligence,
+    live_signals,
+    technology_intelligence,
+)
 
 
 def test_infrastructure_intelligence_is_first_party_bounded_and_not_a_new_world():
