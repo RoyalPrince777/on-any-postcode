@@ -9,9 +9,9 @@
 <body class="mc-workspace-body">
   <header class="mc-workspace-header mc-infrastructure-header">
     <div>
-      <p class="mc-eyebrow">OAP / Infrastructure / Read-only</p>
+      <p class="mc-eyebrow">OAP / Infrastructure / First-party / Read-only</p>
       <h1>Infrastructure</h1>
-      <p>Maps, Weather, eSIM and Connectivity in one bounded system view.</p>
+      <p>Maps, Weather, eSIM and Connectivity with OAP-owned signals and Infrastructure Intelligence.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
@@ -30,6 +30,7 @@
           {% if infrastructure.validation.passed %}Infrastructure boundaries verified{% else %}Infrastructure conflict detected{% endif %}
         </h2>
         <p>{{ infrastructure.operating_mode.label }}. {{ infrastructure.operating_mode.message }}</p>
+        <p class="mc-war-truth">First-party rule: OAP owns the system, intelligence, signal language and health model. Outside information can only be replaceable evidence and never OAP identity or authority.</p>
       </div>
       <dl class="mc-integrity-counts">
         <div><dt>Modules</dt><dd>{{ infrastructure.validation.checks.canonical_modules }}</dd></div>
@@ -45,6 +46,35 @@
       {% endif %}
     </section>
 
+    {% include "_live_signal_legend.html" %}
+
+    <section class="mc-panel" aria-labelledby="infrastructure-intelligence-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">SMI / Technology Intelligence / First-party</p>
+          <h2 id="infrastructure-intelligence-title">{{ infrastructure.intelligence.name }}</h2>
+          <p>{{ infrastructure.intelligence.signal.emoji }} {{ infrastructure.intelligence.signal.label }} · {{ infrastructure.intelligence.mode }}</p>
+        </div>
+        <span class="mc-lock-badge">Advisory only</span>
+      </div>
+      <p>{{ infrastructure.intelligence.truth_boundary }}</p>
+      <div class="mc-boundary-grid" role="list">
+        {% for focus in infrastructure.intelligence.focuses %}
+        <article role="listitem">
+          <p class="mc-organ-type">{{ focus.signal.emoji }} {{ focus.signal.label }}</p>
+          <h3>{{ focus.name }}</h3>
+          <p>{{ focus.purpose }}</p>
+          <p class="mc-boundary-note"><strong>Evidence:</strong> {{ focus.evidence }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="mc-proposal-grid" role="list">
+        {% for recommendation in infrastructure.intelligence.recommendations %}
+        <article role="listitem"><strong>Recommendation</strong><p>{{ recommendation }}</p></article>
+        {% endfor %}
+      </div>
+    </section>
+
     <section class="mc-panel" aria-labelledby="infrastructure-scope-title">
       <div class="mc-section-heading">
         <div>
@@ -53,21 +83,21 @@
         </div>
         <span class="mc-lock-badge">Upgrade-only</span>
       </div>
-      <p>Each card reports honest readiness. No live provider or service is inferred from this interface.</p>
+      <p>Each card reports honest readiness. A successful outside evidence response never transfers ownership or authority away from OAP.</p>
       <div class="mc-infrastructure-grid" role="list">
         {% for module in infrastructure.modules %}
         <article class="mc-infrastructure-card" id="infrastructure-{{ module.id }}" role="listitem">
           <div class="mc-infrastructure-card__heading">
             <div>
               <p class="mc-organ-type">Infrastructure module {{ "%02d"|format(loop.index) }}</p>
-              <h3>{{ module.name }}</h3>
+              <h3>{{ module.signal.emoji }} {{ module.name }}</h3>
             </div>
-            <span class="mc-agent-status">{{ module.status }}</span>
+            <span class="mc-agent-status">{{ module.signal.label }} · {{ module.status }}</span>
           </div>
           <p>{{ module.purpose }}</p>
           <dl class="mc-infrastructure-facts">
             <div><dt>Readiness</dt><dd>{{ module.readiness }}</dd></div>
-            <div><dt>Data source</dt><dd>{{ module.data }}</dd></div>
+            <div><dt>Evidence</dt><dd>{{ module.data }}</dd></div>
           </dl>
           <p class="mc-boundary-note"><strong>Boundary:</strong> {{ module.boundary }}</p>
         </article>
@@ -112,12 +142,12 @@
       <div class="mc-section-heading">
         <div>
           <p class="mc-eyebrow">Not executed</p>
-          <h2 id="infrastructure-proposals-title">Proposed provider connections</h2>
+          <h2 id="infrastructure-proposals-title">First-party build gates</h2>
         </div>
         <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
       </div>
       <div class="mc-proposal-grid" role="list">
-        {% for proposal in infrastructure.proposed_connections %}
+        {% for proposal in infrastructure.first_party_build_gates %}
         <article role="listitem">
           <strong>{{ proposal.status }}</strong>
           <h3>{{ proposal.title }}</h3>
@@ -131,7 +161,7 @@
       <p class="mc-eyebrow">Safety lock</p>
       <h2 id="infrastructure-controls-title">Operational controls unavailable</h2>
       <p class="mc-notice">
-        Maps and Weather provider calls, eSIM purchase or activation, and Connectivity network changes are not enabled.
+        Maps or Weather source mutation, eSIM purchase or activation, and Connectivity network changes are not enabled.
       </p>
     </section>
 
