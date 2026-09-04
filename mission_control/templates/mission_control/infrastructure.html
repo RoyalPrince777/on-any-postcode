@@ -3,22 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAP Infrastructure</title>
+  <title>OAP Infrastructure Control</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    .infra-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.infra-nav a{border:1px solid #2e5d40;border-radius:999px;padding:8px 11px;color:inherit;text-decoration:none;font-size:.78rem}.infra-nav a:hover{border-color:#39e57f}.infra-deck{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.infra-module{border:1px solid #285039;border-radius:17px;padding:15px;background:#08170e}.infra-module h3{margin:.35rem 0}.infra-module dl{display:grid;gap:6px}.infra-module dl div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #1d3827;padding-top:6px}.infra-module dt{color:#91a79a}.infra-note{border-left:3px solid #d7b85d;padding:11px 13px;background:#201a0b;border-radius:0 10px 10px 0}
+  </style>
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header mc-infrastructure-header">
     <div>
-      <p class="mc-eyebrow">OAP / Infrastructure / First-party / Read-only</p>
+      <p class="mc-eyebrow">OAP · PRIVATE INFRASTRUCTURE CONTROL</p>
       <h1>Infrastructure</h1>
-      <p>Maps, Weather, eSIM and Connectivity with OAP-owned signals and Infrastructure Intelligence.</p>
-    </div>
-    <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.the_link_dashboard') }}">The Link</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
-      <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
+      <p>Maps, Weather, eSIM and Connectivity truth state. No dead public redirects in this private menu.</p>
+      <nav class="infra-nav" aria-label="Private infrastructure navigation">
+        <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission Control</a>
+        <a href="{{ url_for('travel_supply.founder_dashboard') }}">🏨 Booking & Supply</a>
+        <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI Chat</a>
+        <a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ War Room</a>
+        <a href="{{ url_for('mission_control.judgement_dashboard') }}">⚖️ Judgement</a>
+        <a href="{{ url_for('mission_control.brain_dashboard') }}">🧬 SMI Brain</a>
+        <a href="https://on-any-postcode.onrender.com/">🌍 Public OAP World ↗</a>
+      </nav>
     </div>
   </header>
 
@@ -26,11 +31,9 @@
     <section class="mc-integrity" aria-labelledby="infrastructure-integrity-title">
       <div>
         <p class="mc-eyebrow">Boundary integrity</p>
-        <h2 id="infrastructure-integrity-title">
-          {% if infrastructure.validation.passed %}Infrastructure boundaries verified{% else %}Infrastructure conflict detected{% endif %}
-        </h2>
+        <h2 id="infrastructure-integrity-title">{% if infrastructure.validation.passed %}Infrastructure boundaries verified{% else %}Infrastructure conflict detected{% endif %}</h2>
         <p>{{ infrastructure.operating_mode.label }}. {{ infrastructure.operating_mode.message }}</p>
-        <p class="mc-war-truth">First-party rule: OAP owns the system, intelligence, signal language and health model. Outside information can only be replaceable evidence and never OAP identity or authority.</p>
+        <p class="infra-note">OAP owns the system, intelligence, signal language and health model. Outside information can only be replaceable evidence and never OAP identity or authority.</p>
       </div>
       <dl class="mc-integrity-counts">
         <div><dt>Modules</dt><dd>{{ infrastructure.validation.checks.canonical_modules }}</dd></div>
@@ -39,136 +42,60 @@
         <div><dt>Overlaps</dt><dd>{{ infrastructure.validation.checks.ownership_overlaps }}</dd></div>
         <div><dt>Mutations</dt><dd>{{ infrastructure.validation.checks.mutation_controls }}</dd></div>
       </dl>
-      {% if infrastructure.validation.errors %}
-      <ul class="mc-error-list">
-        {% for error in infrastructure.validation.errors %}<li>{{ error }}</li>{% endfor %}
-      </ul>
-      {% endif %}
+      {% if infrastructure.validation.errors %}<ul class="mc-error-list">{% for error in infrastructure.validation.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
     </section>
 
     {% include "_live_signal_legend.html" %}
 
-    <section class="mc-panel" aria-labelledby="infrastructure-intelligence-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">SMI / Technology Intelligence / First-party</p>
-          <h2 id="infrastructure-intelligence-title">{{ infrastructure.intelligence.name }}</h2>
-          <p>{{ infrastructure.intelligence.signal.emoji }} {{ infrastructure.intelligence.signal.label }} · {{ infrastructure.intelligence.mode }}</p>
-        </div>
-        <span class="mc-lock-badge">Advisory only</span>
-      </div>
-      <p>{{ infrastructure.intelligence.truth_boundary }}</p>
-      <div class="mc-boundary-grid" role="list">
-        {% for focus in infrastructure.intelligence.focuses %}
-        <article role="listitem">
-          <p class="mc-organ-type">{{ focus.signal.emoji }} {{ focus.signal.label }}</p>
-          <h3>{{ focus.name }}</h3>
-          <p>{{ focus.purpose }}</p>
-          <p class="mc-boundary-note"><strong>Evidence:</strong> {{ focus.evidence }}</p>
-        </article>
-        {% endfor %}
-      </div>
-      <div class="mc-proposal-grid" role="list">
-        {% for recommendation in infrastructure.intelligence.recommendations %}
-        <article role="listitem"><strong>Recommendation</strong><p>{{ recommendation }}</p></article>
-        {% endfor %}
-      </div>
-    </section>
-
     <section class="mc-panel" aria-labelledby="infrastructure-scope-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Locked scope</p>
-          <h2 id="infrastructure-scope-title">Infrastructure modules</h2>
-        </div>
-        <span class="mc-lock-badge">Upgrade-only</span>
-      </div>
-      <p>Each card reports honest readiness. A successful outside evidence response never transfers ownership or authority away from OAP.</p>
-      <div class="mc-infrastructure-grid" role="list">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Live readiness</p><h2 id="infrastructure-scope-title">Infrastructure modules</h2></div><span class="mc-lock-badge">Evidence bound</span></div>
+      <div class="infra-deck" role="list">
         {% for module in infrastructure.modules %}
-        <article class="mc-infrastructure-card" id="infrastructure-{{ module.id }}" role="listitem">
-          <div class="mc-infrastructure-card__heading">
-            <div>
-              <p class="mc-organ-type">Infrastructure module {{ "%02d"|format(loop.index) }}</p>
-              <h3>{{ module.signal.emoji }} {{ module.name }}</h3>
-            </div>
-            <span class="mc-agent-status">{{ module.signal.label }} · {{ module.status }}</span>
-          </div>
+        <article class="infra-module" id="infrastructure-{{ module.id }}" role="listitem">
+          <p class="mc-organ-type">{{ module.signal.emoji }} {{ module.signal.label }}</p>
+          <h3>{{ module.name }}</h3>
           <p>{{ module.purpose }}</p>
-          <dl class="mc-infrastructure-facts">
-            <div><dt>Readiness</dt><dd>{{ module.readiness }}</dd></div>
-            <div><dt>Evidence</dt><dd>{{ module.data }}</dd></div>
-          </dl>
+          <dl><div><dt>Readiness</dt><dd>{{ module.readiness }}</dd></div><div><dt>Status</dt><dd>{{ module.status }}</dd></div></dl>
+          <p class="mc-boundary-note"><strong>Evidence:</strong> {{ module.data }}</p>
           <p class="mc-boundary-note"><strong>Boundary:</strong> {{ module.boundary }}</p>
         </article>
         {% endfor %}
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="infrastructure-intelligence-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">SMI · Technology Intelligence</p><h2 id="infrastructure-intelligence-title">{{ infrastructure.intelligence.name }}</h2></div><span class="mc-lock-badge">Advisory</span></div>
+      <p>{{ infrastructure.intelligence.signal.emoji }} {{ infrastructure.intelligence.signal.label }} · {{ infrastructure.intelligence.mode }}</p>
+      <p>{{ infrastructure.intelligence.truth_boundary }}</p>
+      <div class="mc-boundary-grid" role="list">{% for focus in infrastructure.intelligence.focuses %}<article role="listitem"><p class="mc-organ-type">{{ focus.signal.emoji }} {{ focus.signal.label }}</p><h3>{{ focus.name }}</h3><p>{{ focus.purpose }}</p><p class="mc-boundary-note"><strong>Evidence:</strong> {{ focus.evidence }}</p></article>{% endfor %}</div>
+      <div class="mc-proposal-grid" role="list">{% for recommendation in infrastructure.intelligence.recommendations %}<article role="listitem"><strong>Recommendation</strong><p>{{ recommendation }}</p></article>{% endfor %}</div>
+    </section>
+
     <section class="mc-panel" aria-labelledby="shared-health-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Linked, not owned</p>
-          <h2 id="shared-health-title">Shared system health</h2>
-        </div>
-        <span class="mc-lock-badge">Mission Control projection</span>
-      </div>
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Shared health</p><h2 id="shared-health-title">Shared system health</h2></div><span class="mc-lock-badge">Observed</span></div>
       <p>This coarse status widget is shared from Mission Control. It is not a fifth Infrastructure module.</p>
-      <div class="mc-status-ribbon" role="list">
-        {% for component in shared_health %}
-        <div class="mc-status mc-status--{{ component.state }}" role="listitem">
-          <span>{{ component.label }}</span>
-          <strong>{{ component.value }}</strong>
-        </div>
-        {% endfor %}
-      </div>
+      <div class="mc-status-ribbon" role="list">{% for component in shared_health %}<div class="mc-status mc-status--{{ component.state }}" role="listitem"><span>{{ component.label }}</span><strong>{{ component.value }}</strong></div>{% endfor %}</div>
     </section>
 
     <section class="mc-panel" aria-labelledby="infrastructure-boundaries-title">
       <p class="mc-eyebrow">Duplicate prevention</p>
       <h2 id="infrastructure-boundaries-title">Related systems stay separate</h2>
-      <div class="mc-boundary-grid" role="list">
-        {% for system in infrastructure.related_systems %}
-        <article role="listitem">
-          <p class="mc-organ-type">{{ system.owner }}</p>
-          <h3>{{ system.name }}</h3>
-          <p>{{ system.relationship }}</p>
-        </article>
-        {% endfor %}
-      </div>
+      <div class="mc-boundary-grid" role="list">{% for system in infrastructure.related_systems %}<article role="listitem"><p class="mc-organ-type">{{ system.owner }}</p><h3>{{ system.name }}</h3><p>{{ system.relationship }}</p></article>{% endfor %}</div>
     </section>
 
     <section class="mc-panel" aria-labelledby="infrastructure-proposals-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Not executed</p>
-          <h2 id="infrastructure-proposals-title">First-party build gates</h2>
-        </div>
-        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
-      </div>
-      <div class="mc-proposal-grid" role="list">
-        {% for proposal in infrastructure.first_party_build_gates %}
-        <article role="listitem">
-          <strong>{{ proposal.status }}</strong>
-          <h3>{{ proposal.title }}</h3>
-          <p>{{ proposal.description }}</p>
-        </article>
-        {% endfor %}
-      </div>
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Not executed</p><h2 id="infrastructure-proposals-title">First-party build gates</h2></div><span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span></div>
+      <div class="mc-proposal-grid" role="list">{% for proposal in infrastructure.first_party_build_gates %}<article role="listitem"><strong>{{ proposal.status }}</strong><h3>{{ proposal.title }}</h3><p>{{ proposal.description }}</p></article>{% endfor %}</div>
     </section>
 
     <section class="mc-panel" aria-labelledby="infrastructure-controls-title">
-      <p class="mc-eyebrow">Safety lock</p>
-      <h2 id="infrastructure-controls-title">Operational controls unavailable</h2>
-      <p class="mc-notice">
-        Maps or Weather source mutation, eSIM purchase or activation, and Connectivity network changes are not enabled.
-      </p>
+      <p class="mc-eyebrow">Real control boundary</p>
+      <h2 id="infrastructure-controls-title">Operational controls unavailable for unproven mutations</h2>
+      <p class="mc-notice">The navigation and readiness controls on this page are live. Maps/Weather source mutation, eSIM purchase or activation, and Connectivity network changes remain separately gated until an actual first-party execution path is certified. No fake toggle is shown.</p>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.judgement_dashboard') }}">Open Judgement Gate</a>
     </section>
 
-    <aside class="mc-authority" aria-label="Human Authority status">
-      <strong>Human Authority: {{ infrastructure.human_authority.status }}</strong>
-      <span>{{ infrastructure.human_authority.message }}</span>
-    </aside>
+    <aside class="mc-authority" aria-label="Human Authority status"><strong>Human Authority: {{ infrastructure.human_authority.status }}</strong><span>{{ infrastructure.human_authority.message }}</span></aside>
   </main>
 </body>
 </html>

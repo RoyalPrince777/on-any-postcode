@@ -6,45 +6,28 @@
   <title>My World · OAP</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    :root{color-scheme:dark}
-    *{box-sizing:border-box}
-    body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif}
-    header,main{width:min(1080px,calc(100% - 32px));margin:auto}
-    header{padding:28px 0 10px}
-    nav{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
-    nav a,.button{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:800;padding:11px 14px;border:0;border-radius:9px}
-    .secondary{background:#8ed7ff!important;color:#04131c!important}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;padding:12px 0 40px}
-    .card{background:#10281a;border:1px solid #2d7044;border-radius:18px;padding:20px}
-    .private{background:#0c2430;border-color:#4b9abe}
-    .badge{display:inline-block;background:#8ed7ff;color:#04131c;padding:5px 9px;border-radius:999px;font-weight:800}
-    label{display:block;margin-top:12px;font-weight:700}
-    input{width:100%;padding:11px;margin-top:7px;border:0;border-radius:9px;font:inherit;background:#f7fff9;color:#06120b}
-    button{cursor:pointer;font:inherit}
-    .danger{background:#4a2528!important;color:#fff!important}
-    .error{background:#461b21;border:1px solid #ff7582;padding:13px;border-radius:10px}
-    .small{opacity:.82;line-height:1.5}
-    .workspace-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-    .workspace-card{display:block;background:#0a1d12;border:1px solid #2d7044;border-radius:14px;padding:15px;color:inherit;text-decoration:none}
+    :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif}header,main{width:min(1080px,calc(100% - 32px));margin:auto}header{padding:28px 0 10px}nav{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}nav a,.button{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:800;padding:11px 14px;border:0;border-radius:9px}.secondary{background:#8ed7ff!important;color:#04131c!important}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;padding:12px 0 40px}.card{background:#10281a;border:1px solid #2d7044;border-radius:18px;padding:20px}.private{background:#0c2430;border-color:#4b9abe}.badge{display:inline-block;background:#8ed7ff;color:#04131c;padding:5px 9px;border-radius:999px;font-weight:800}label{display:block;margin-top:12px;font-weight:700}input{width:100%;padding:11px;margin-top:7px;border:0;border-radius:9px;font:inherit;background:#f7fff9;color:#06120b}button{cursor:pointer;font:inherit}.danger{background:#4a2528!important;color:#fff!important}.error{background:#461b21;border:1px solid #ff7582;padding:13px;border-radius:10px}.small{opacity:.82;line-height:1.5}.command-card{border-color:#3c8253;background:linear-gradient(145deg,#0c2516,#0b1a11)}
   </style>
 </head>
 <body>
   <header>
-    <span class="badge">PRIVATE · VERIFIED SESSION</span>
+    <span class="badge">PRIVATE · FOUNDER SESSION</span>
     <h1>👤 My World</h1>
-    <p><strong>Founder identity confirmed.</strong> This page and its linked intelligence workspaces are not part of public OAP World.</p>
+    <p><strong>Your private identity and profile.</strong> Operational work now lives in Mission Control instead of cluttering Profile.</p>
     <nav aria-label="Private My World navigation">
-      <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI Chat</a>
       <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission Control</a>
+      <a href="{{ url_for('travel_supply.founder_dashboard') }}">🏨 Booking & Supply</a>
+      <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI Chat</a>
+      <a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ War Room</a>
       <a href="{{ url_for('mission_control.judgement_dashboard') }}">⚖️ Judgement</a>
-      <a href="{{ url_for('infrastructure_dashboard') }}">🏗️ Infrastructure</a>
-      <a class="secondary" href="{{ url_for('home') }}">🌍 Public OAP World</a>
+      <a href="{{ url_for('mission_control.infrastructure_dashboard') }}">🏗️ Infrastructure</a>
+      <a class="secondary" href="https://on-any-postcode.onrender.com/">🌍 Public OAP World ↗</a>
     </nav>
   </header>
 
   <main class="grid">
     <section class="card private" aria-labelledby="profile-title">
-      <h2 id="profile-title">Your private profile</h2>
+      <h2 id="profile-title">Private profile</h2>
       {% if private_store_unavailable %}
       <p class="error" role="alert">Your private Neon profile is temporarily unavailable. No fallback copy was published.</p>
       {% else %}
@@ -52,35 +35,26 @@
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="my-world-nickname">Nickname</label>
         <input id="my-world-nickname" name="nickname" value="{{ profile.nickname }}" maxlength="80" required>
-        {% if profile.country %}
-        <p class="small">Country / flag: <strong>{{ profile.country }}</strong></p>
-        {% endif %}
+        {% if profile.country %}<p class="small">Country / flag: <strong>{{ profile.country }}</strong></p>{% endif %}
         <button class="button" type="submit">Save My World</button>
       </form>
       {% endif %}
     </section>
 
+    <section class="card command-card" aria-labelledby="command-title">
+      <h2 id="command-title">Private command</h2>
+      <p class="small">Booking, SMI, War Room, Judgement and Infrastructure are controlled from Mission Control. Your existing workspace records are preserved; they are simply removed from this Profile surface.</p>
+      <a class="button" href="{{ url_for('mission_control.mission_workspace') }}">Open Mission Control</a>
+    </section>
+
     <section class="card" aria-labelledby="boundary-title">
       <h2 id="boundary-title">Security boundary</h2>
-      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that same owner ID.
+      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that same owner ID.</p>
       <p>Founder authority: <strong>confirmed</strong></p>
       <form method="post" action="{{ url_for('auth_sign_out') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <button class="button danger" type="submit">Sign out of My World</button>
       </form>
-    </section>
-
-    <section class="card" aria-labelledby="workspaces-title" style="grid-column:1/-1">
-      <h2 id="workspaces-title">Your 12 private workspaces</h2>
-      <p class="small">Every record is scoped to your verified identity. Public OAP World cannot read it.</p>
-      <div class="workspace-grid">
-        {% for workspace in workspaces %}
-        <a class="workspace-card" href="{{ url_for('my_world_workspace', workspace_id=workspace.id) }}">
-          <strong>{{ workspace.icon }} {{ workspace.name }}</strong>
-          <p class="small">{{ workspace.purpose }}</p>
-        </a>
-        {% endfor %}
-      </div>
     </section>
   </main>
 </body>
