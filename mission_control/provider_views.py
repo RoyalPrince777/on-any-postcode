@@ -7,7 +7,7 @@ from flask import Blueprint, jsonify, make_response, render_template
 from oap.smi import intelligence_capability_registry, sovereign_controls
 
 from . import agents as agent_registry
-from . import autonomy_levels, provider_fabric, web_security
+from . import ai_behaviour, autonomy_levels, provider_fabric, web_security
 
 bp = Blueprint("provider_fabric", __name__, template_folder="templates")
 
@@ -22,7 +22,6 @@ def _no_store(response):
 @web_security.login_required()
 def provider_dashboard():
     """Render provider readiness without exposing credentials or controls."""
-
     response = make_response(
         render_template(
             "provider_fabric.html",
@@ -36,7 +35,6 @@ def provider_dashboard():
 @web_security.login_required(api=True)
 def provider_status():
     """Return coarse provider readiness only to a signed-in identity."""
-
     return _no_store(make_response(jsonify(provider_fabric.get_coarse_provider_status())))
 
 
@@ -44,18 +42,19 @@ def provider_status():
 @web_security.login_required(founder_only=True)
 def alignment_dashboard():
     """Render evidence-based SMI alignment and technical sovereignty state."""
-
     sovereignty = sovereign_controls.SovereignControlPlane().status()
     capability_registry = intelligence_capability_registry.status(
         agent_registry.LOCKED_WORLD_IDS
     )
     autonomy = autonomy_levels.status()
+    behaviour = ai_behaviour.status()
     response = make_response(
         render_template(
             "alignment_sovereignty.html",
             sovereignty=sovereignty,
             capability_registry=capability_registry,
             autonomy=autonomy,
+            behaviour=behaviour,
             worlds=agent_registry.INTELLIGENCE_WORLDS,
             agent_count=agent_registry.LOCKED_AGENT_COUNT,
         )
@@ -67,12 +66,12 @@ def alignment_dashboard():
 @web_security.login_required(api=True, founder_only=True)
 def alignment_status():
     """Return the same redacted alignment evidence for private status polling."""
-
     sovereignty = sovereign_controls.SovereignControlPlane().status()
     capability_registry = intelligence_capability_registry.status(
         agent_registry.LOCKED_WORLD_IDS
     )
     autonomy = autonomy_levels.status()
+    behaviour = ai_behaviour.status()
     return _no_store(
         make_response(
             jsonify(
@@ -82,6 +81,7 @@ def alignment_status():
                 capability_count=capability_registry["capability_count"],
                 capability_alignment=capability_registry["validation"]["passed"],
                 autonomy=autonomy,
+                ai_behaviour=behaviour,
                 sovereignty=sovereignty,
                 provider_authority=False,
                 human_authority_final=True,

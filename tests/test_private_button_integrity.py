@@ -98,18 +98,22 @@ def test_private_operator_surfaces_use_real_public_origin():
     assert "publicFrontDoor.href=publicOapOrigin" in smi_wrapper
 
 
-def test_a3_is_bounded_and_ready_for_runtime_health_only(monkeypatch):
-    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A3")
+def test_a4_is_bounded_and_does_not_expand_runtime_authority(monkeypatch):
+    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A4")
     status = autonomy_levels.status()
 
-    assert status["configured_level"] == "A3"
+    assert status["configured_level"] == "A4"
     assert status["a3_execution_enabled"] is True
     assert status["a3_policy_ready"] is True
-    assert set(status["a3_pilot_actions"]) == {
+    assert status["a4_policy_ready"] is True
+    assert status["a4_enabled"] is True
+    assert set(status["a4_workflow_actions"]) == {
         "RUNTIME_HEARTBEAT",
         "RUNTIME_HEALTH_PROBE",
     }
-    assert status["a4_enabled"] is False
+    assert status["a4_max_workflow_steps"] == 21
+    assert status["a4_checkpoint_every"] == 3
+    assert status["a4_expands_action_authority"] is False
     assert status["a5_enabled"] is False
     assert status["consequential_action_allowed"] is False
     assert status["human_authority_final"] is True
