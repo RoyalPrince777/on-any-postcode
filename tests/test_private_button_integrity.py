@@ -4,9 +4,11 @@ import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.routing import RequestRedirect
+
 import app as app_module
 from mission_control import autonomy_levels
-
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_ROOT = ROOT / "mission_control" / "templates"
@@ -33,9 +35,12 @@ def _registered_methods(path: str) -> set[str]:
     for method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
         try:
             adapter.match(path, method=method)
-        except Exception:
+        except RequestRedirect:
+            methods.add(method)
+        except (MethodNotAllowed, NotFound):
             continue
-        methods.add(method)
+        else:
+            methods.add(method)
     return methods
 
 
