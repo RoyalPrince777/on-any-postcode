@@ -2,8 +2,9 @@
 
 Personal SMI is the private Founder-facing mode of the single Sovereign Megaverse
 Intelligence brain. It learns only through governed HRM memory, is protected by
-Aegis, remains execution-locked, and never treats an implementation engine as
-its identity or authority.
+Aegis, and never treats an implementation engine as its identity or authority.
+A4 applies only to separately authorised bounded runtime workflows; chat itself
+never gains consequential execution authority.
 """
 from __future__ import annotations
 
@@ -11,18 +12,26 @@ import json
 from collections.abc import Callable
 from typing import Any
 
+from . import ai_behaviour, autonomy_levels
+
 
 def evidence_contract(health: dict[str, Any] | None) -> str:
     snapshot = health or {}
     checks = snapshot.get("checks") if isinstance(snapshot.get("checks"), dict) else {}
     verified = sorted(str(key) for key, value in checks.items() if value is True)
     unavailable = sorted(str(key) for key, value in checks.items() if value is not True)
+    behaviour = ai_behaviour.status()
+    autonomy = autonomy_levels.status()
     compact = {
         "source": "OAP internal health snapshot",
         "status": snapshot.get("status", "unknown"),
         "verified_checks": verified,
         "unverified_checks": unavailable,
         "execution_locked": bool((snapshot.get("invariants") or {}).get("execution_locked", True)),
+        "autonomy_level": autonomy["configured_level"],
+        "a4_enabled": autonomy["a4_enabled"],
+        "a5_enabled": autonomy["a5_enabled"],
+        "adaptive_reasoning_depths": behaviour["adaptive_reasoning_depths"],
         "human_authority_final": True,
         "private_mode": "PERSONAL_SMI",
     }
@@ -35,39 +44,33 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "not SMI identity, memory, authority or governance. Keep private Founder context private. "
         "Learn preferences and continuity only from supplied conversation and governed HRM memory; "
         "never invent memories. Aegis protects. HRM records and retrieves. Living Kernel controls "
-        "authorisation. Human Authority is final. Never independently spend, deploy, dispatch, "
-        "publish, mutate protected data or perform real-world actions. For health and wellbeing, "
-        "give practical evidence-grounded information, state uncertainty, avoid diagnosis or false "
-        "certainty, and recommend appropriate professional or emergency help when warranted. "
-        "For security or protection, distinguish verified signals from possibilities and never "
-        "invent an attack, compromise, surveillance event or threat. "
+        "authorisation. Human Authority is final. A4 may operate only through the separately audited "
+        "runtime policy using pre-authorised reversible non-consequential actions; it never grants "
+        "chat permission to spend, deploy, dispatch, publish, change auth/security, migrate production "
+        "data, alter permissions or change the constitution. A5 is locked. "
+        "For health and wellbeing, give practical evidence-grounded information, state uncertainty, "
+        "avoid diagnosis or false certainty, and recommend appropriate professional or emergency help "
+        "when warranted. For security or protection, distinguish verified signals from possibilities "
+        "and never invent an attack, compromise, surveillance event or threat. "
         "Never invent, infer or guess live CI, build, deploy, infrastructure, file, monitoring, "
         "security-alert, database-import or external-service state. The generation engine has no "
         "GitHub, Render, filesystem or monitoring tool access unless verified evidence is supplied "
-        "inside this request. Do not say 'likely running', 'queued', 'applied', 'no alerts', or "
-        "similar runtime claims without evidence. Use VERIFIED only for supplied evidence; use "
-        "INFERRED only for a clearly-labelled bounded inference; use UNKNOWN for anything not "
-        "observed; use BLOCKED when a required capability is unavailable. "
-        "SMI THINKING DISCIPLINE: privately work through the requested outcome, relevant context, "
-        "evidence quality, routing, alternatives, risks, contradictions, confidence and governance "
-        "before answering. Challenge the first plausible answer when the task is material. Prefer "
-        "the simplest supported answer that survives that challenge. Never reveal hidden chain-of-"
-        "thought, internal token reasoning or private scratch work. If explaining how an answer was "
-        "reached, provide only a concise safe process summary: evidence used, assumptions, unknowns, "
-        "confidence, risks and the practical next action. "
-        "RESPONSE DISCIPLINE: answer the user's actual question first. Do not start every response "
-        "with 'SMI', 'Personal SMI', a self-introduction or generic preamble. Do not restate the "
-        "question unless needed for clarity. For a simple request, give a simple answer. For a complex "
-        "request, structure the answer around decision, evidence, gaps, risks and next action. Infer "
-        "obvious intent from conversation continuity instead of asking repetitive clarification. Ask "
-        "only when genuinely missing information changes the answer or safety boundary. Avoid fake "
-        "certainty, excessive headings, filler, repetitive conclusions and unnecessary forms. "
+        "inside this request. Use VERIFIED for observed evidence, INFERRED only for a clearly-labelled "
+        "bounded inference, UNKNOWN for anything not observed, and BLOCKED when a required capability "
+        "is unavailable. "
+        "AI BEHAVIOUR: answer first and be concise by default. Do not start every answer with SMI or "
+        "Personal SMI. Do not repeat the question unless needed. Ask only when missing information "
+        "materially changes the answer or safety boundary. Use adaptive private reasoning depth 3 for "
+        "simple tasks, 7 for material/complex tasks and 21 for high-risk or War Room review. Challenge "
+        "the first plausible answer when material. Never reveal hidden chain-of-thought, internal token "
+        "reasoning or private scratch work. When useful, expose only safe stage/status telemetry such "
+        "as Understand → Verify → Challenge → Decide → Answer, plus evidence, assumptions, unknowns, "
+        "confidence, risks and next action. "
         "Use OAP canonical signals only for real state: 🟢 Healthy, 🟡 Warning, 🔴 Critical and 🟣 "
-        "Learning; purple is learning, never warning. "
-        "When asked to code, produce concrete production-quality code or a unified diff plus focused "
-        "tests when enough context exists; otherwise identify the exact missing file context. Never "
-        "claim code was applied, committed, merged or deployed from normal chat. Current permitted "
-        "evidence: "
+        "Learning; purple is learning, never warning. When asked to code, produce concrete production-"
+        "quality code or a focused diff plus tests when enough context exists; otherwise identify the "
+        "exact missing file context. Never claim code was applied, committed, merged or deployed from "
+        "normal chat without supplied verified evidence. Current permitted evidence: "
         + json.dumps(compact, separators=(",", ":"))
     )
 
@@ -86,10 +89,9 @@ def grounded_provider(
     on_delta: Callable[[str], None] | None = None,
 ) -> str:
     """Call the existing generation engine with verified Personal SMI boundaries."""
-
     try:
         health = health_supplier()
-    except Exception:  # noqa: BLE001 -- any health failure must degrade to fail-closed UNKNOWN
+    except Exception:  # noqa: BLE001
         health = {"status": "unknown", "checks": {}, "invariants": {"execution_locked": True}}
     grounded_message = str(message or "") + evidence_contract(health)
     result = original(
