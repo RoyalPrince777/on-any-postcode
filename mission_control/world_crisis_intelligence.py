@@ -95,7 +95,7 @@ def _fetch_json(url: str, *, timeout: float) -> dict[str, Any]:
         body = response.read(2_000_000)
     payload = json.loads(body.decode("utf-8"))
     if not isinstance(payload, dict):
-        raise ValueError("source_payload_not_object")
+        raise TypeError("source_payload_not_object")
     return payload
 
 
