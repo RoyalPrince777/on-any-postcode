@@ -165,10 +165,10 @@ def test_circle_dashboard_never_returns_message_or_media_content(monkeypatch):
     assert "media" not in flattened
 
 
-def test_circle_status_route_is_detached_for_anonymous_user(anonymous_client):
-    assert anonymous_client.get("/linkup/circles/status").status_code == 404
+def test_circle_status_route_denies_anonymous_user(anonymous_client):
+    assert anonymous_client.get("/linkup/circles/status").status_code == 401
 
 
-def test_circle_page_and_mutation_routes_are_detached_for_member(client):
-    assert client.get("/linkup/circles").status_code == 404
-    assert client.post("/linkup/circles", data={"name": "Family"}).status_code == 404
+def test_circle_page_exists_for_member_and_mutation_requires_csrf(client):
+    assert client.get("/linkup/circles").status_code == 200
+    assert client.post("/linkup/circles", data={"name": "Family"}).status_code == 403
