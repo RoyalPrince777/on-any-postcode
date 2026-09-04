@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from oap.smi.agi_core import AGICore
+from oap.smi.command_intelligence import CommandIntelligence
 
 from . import (
     earth_intelligence,
@@ -48,6 +49,12 @@ SMI_INTERNAL_CAPABILITIES: tuple[dict[str, str], ...] = (
         "name": "AGI Core",
         "kind": "capability_layer",
         "purpose": "Routes and synthesises across specialist intelligence without claiming achieved AGI.",
+    },
+    {
+        "id": "command_intelligence",
+        "name": "SMI Command Intelligence",
+        "kind": "bounded_command_capability_chain",
+        "purpose": "SGI → TGI → OGI → DGI → PGI → RGI advisory command review with no action authority.",
     },
     {
         "id": "synthetic_mind",
@@ -125,6 +132,19 @@ def validate_smi_capabilities() -> dict[str, Any]:
     if agi["agi_achieved"] or agi["general_intelligence_certified"]:
         errors.append("Architecture must not claim achieved/certified AGI without proof")
 
+    command = CommandIntelligence().status()
+    expected_command_path = ("sgi", "tgi", "ogi", "dgi", "pgi", "rgi")
+    if command["brain_count"] != 0:
+        errors.append("Command Intelligence must not create another SMI brain")
+    if command["command_path"] != expected_command_path:
+        errors.append("SMI command path must remain SGI → TGI → OGI → DGI → PGI → RGI")
+    if command["independent_execute"] or command["independent_approval"]:
+        errors.append("Command Intelligence must remain advisory and human-gated")
+    if command["prediction_claims_fact"]:
+        errors.append("PGI forecasts must never be represented as facts")
+    if not command["fail_closed_resilience"]:
+        errors.append("RGI must preserve fail-closed resilience")
+
     specialist = {
         "earth": earth_intelligence.status(weather_ready=False),
         "language": language_intelligence.language_intelligence_status(),
@@ -141,6 +161,8 @@ def validate_smi_capabilities() -> dict[str, Any]:
             "cross_system_capabilities": len(cross_ids),
             "internal_capabilities": len(internal_ids),
             "brain_count_added_by_agi": agi["brain_count"],
+            "brain_count_added_by_command_intelligence": command["brain_count"],
+            "command_stages": command["stage_count"],
             "human_authority_final": True,
         },
     }
@@ -153,6 +175,7 @@ def smi_capability_status() -> dict[str, Any]:
         "architecture_passed": validation["passed"],
         "validation": validation,
         "agi_core": AGICore().status(),
+        "command_intelligence": CommandIntelligence().status(),
         "intelligence_worlds": tuple(dict(item) for item in INTELLIGENCE_WORLDS),
         "cross_system_capabilities": CROSS_SYSTEM_CAPABILITIES,
         "internal_capabilities": SMI_INTERNAL_CAPABILITIES,
