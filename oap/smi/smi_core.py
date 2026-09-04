@@ -22,6 +22,7 @@ from oap.war_room import WarRoomEngine
 from .agi_core import AGICore
 from .autonomy import SMIAutonomyEngine
 from .coherence import CoherenceEngine
+from .command_intelligence import CommandIntelligence
 from .context_engine import ContextEngine
 from .evolution_engine import EvolutionEngine
 from .input_manager import InputManager
@@ -72,6 +73,7 @@ class SMICore:
         self.input_manager = InputManager()
         self.frontal_lobe = FrontalLobe()
         self.agi_core = AGICore()
+        self.command_intelligence = CommandIntelligence()
         self.self_model = SelfModel()
         self.coherence = CoherenceEngine()
         self.autonomy = SMIAutonomyEngine()
@@ -85,6 +87,7 @@ class SMICore:
             self.providers.status(),
             self.organs.status(),
             self.agi_core.status(),
+            self.command_intelligence.status(),
             self.aegis.status(),
             self.guardian.status(),
             self.war_room.status(),
@@ -131,6 +134,12 @@ class SMICore:
         state.advance(ProcessingState.IDENTITY_VERIFIED)
 
         agi_route = self.agi_core.route(request.content, request.task_type)
+        command_review = self.command_intelligence.review(
+            request.content,
+            request.task_type,
+            agi_route,
+            high_impact=request.high_impact,
+        )
         context = self.context.load(signal)
         advisors = self.registry.select_advisors(signal.task_type)
         provider_results = self.providers.route(signal)
@@ -156,6 +165,9 @@ class SMICore:
             *rationale,
             advisors.reason,
             "AGI Core specialist route: " + ", ".join(agi_route["domains"]) + ".",
+            "SMI command path: "
+            + " → ".join(str(item).upper() for item in command_review["command_path"])
+            + ".",
         )
 
         components = self._component_statuses()
@@ -278,6 +290,7 @@ class SMICore:
             "independent_apply": False,
             "human_authority_final": True,
             "agi_core": self.agi_core.status(),
+            "command_intelligence": self.command_intelligence.status(),
             "self_model": self_model.as_dict(),
             "coherence": coherence.as_dict(),
             "autonomy": autonomy,

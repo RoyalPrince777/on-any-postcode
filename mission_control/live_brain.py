@@ -19,7 +19,9 @@ from oap.guardian.engine import GuardianEngine
 from oap.nexus.router import NexusRouter
 from oap.permissions.engine import PermissionEngine
 from oap.registry.engine import RegistryEngine
+from oap.smi.agi_core import AGICore
 from oap.smi.coherence import CoherenceEngine
+from oap.smi.command_intelligence import CommandIntelligence
 from oap.smi.input_manager import InputManager
 from oap.smi.judge_engine import JudgeEngine
 from oap.smi.organ_manager import OrganManager
@@ -175,6 +177,15 @@ def review(
     permission = PermissionEngine().authorize_identity(identity)
     registry = RegistryEngine(AGENT_REGISTRY, LOCKED_FAMILY_IDS)
     advisors = registry.select_advisors(task_type)
+    agi_core = AGICore()
+    agi_route = agi_core.route(content, task_type)
+    command_intelligence = CommandIntelligence()
+    command_review = command_intelligence.review(
+        content,
+        task_type,
+        agi_route,
+        high_impact=high_impact,
+    )
     context = ContextSnapshot(
         memories=_memory_context(history),
         world_state={
@@ -182,6 +193,8 @@ def review(
             "human_authority_final": True,
             "authority_level": identity.authority_level,
             "is_human_authority": is_human_authority,
+            "agi_domains": agi_route["domains"],
+            "command_path": command_review["command_path"],
         },
         retrieved_at=utc_now(),
     )
@@ -207,6 +220,8 @@ def review(
     components = (
         registry.status(),
         organs.status(),
+        agi_core.status(),
+        command_intelligence.status(),
         aegis.status(),
         guardian.status(),
         war_room_engine.status(),
@@ -244,6 +259,26 @@ def review(
         "signal_level": safety.signal_level.value,
         "advisor_ids": list(advisors.agent_ids),
         "agent_count": len(advisors.agent_ids),
+        "agi_route": {
+            "domain_ids": list(agi_route["domain_ids"]),
+            "domains": list(agi_route["domains"]),
+            "cross_domain": agi_route["cross_domain"],
+            "synthesis_required": agi_route["synthesis_required"],
+            "decision_authority": False,
+            "execution_authority": False,
+        },
+        "command_intelligence": {
+            "command_path": list(command_review["command_path"]),
+            "stages": list(command_review["stages"]),
+            "human_review_required": command_review["human_review_required"],
+            "war_room_next": command_review["war_room_next"],
+            "judgement_next": command_review["judgement_next"],
+            "guardian_boundary_preserved": command_review[
+                "guardian_boundary_preserved"
+            ],
+            "decision_authority": False,
+            "execution_authority": False,
+        },
         "brain_regions": [finding.organ_id for finding in findings]
         + [organs.corpus_callosum.organ_id],
         "brain_region_count": len(findings) + 1,
@@ -277,6 +312,8 @@ def review(
             "NEXUS_RECEIVED",
             "IDENTITY_VERIFIED",
             "PERMISSION_VERIFIED",
+            "AGI_ROUTED",
+            "COMMAND_INTELLIGENCE_REVIEWED",
             "AGENTS_SELECTED",
             "BIOLOGICAL_BRAIN_REVIEWED",
             "AEGIS_REVIEWED",
