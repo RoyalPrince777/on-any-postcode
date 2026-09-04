@@ -1,9 +1,9 @@
-"""OAP Direct public discovery and Founder-only supplier control surfaces."""
+"""OAP Direct and governed Partner Supply discovery/control surfaces."""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import travel_marketplace, web_security
+from . import partner_supply, travel_marketplace, web_security
 
 bp = Blueprint("travel_supply", __name__)
 
@@ -76,6 +76,49 @@ def public_offers():
     return _no_store(make_response(jsonify(result)))
 
 
+@bp.get("/travel/partner/api/offers")
+def public_partner_offers():
+    try:
+        result = partner_supply.public_offers(
+            category=request.args.get("category"),
+            limit=request.args.get("limit", "24"),
+        )
+    except ValueError as exc:
+        return _error("invalid_partner_filter", str(exc)[:120], 400)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/travel/api/catalogue")
+def public_catalogue():
+    """Return direct and partner supply as explicit groups, never fake one source."""
+
+    category = request.args.get("category")
+    limit = request.args.get("limit", "24")
+    country = request.args.get("country")
+    try:
+        direct = travel_marketplace.public_offers(
+            category=category,
+            country=country,
+            limit=limit,
+        )
+        partner = partner_supply.public_offers(category=category, limit=limit)
+    except ValueError as exc:
+        return _error("invalid_catalogue_filter", str(exc)[:120], 400)
+    result = {
+        "component": "OAP Travel Catalogue",
+        "direct": direct,
+        "partner": partner,
+        "direct_count": int(direct.get("count", 0)),
+        "partner_count": int(partner.get("count", 0)),
+        "booking_com_required": False,
+        "partner_supply_is_replaceable": True,
+        "automatic_quality_ranking_across_unmatched_offers": False,
+        "external_provider_authority": False,
+        "human_authority_final": True,
+    }
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.get("/mission/supply")
 @web_security.login_required(founder_only=True)
 def founder_dashboard():
@@ -94,7 +137,21 @@ def founder_dashboard():
 @bp.get("/mission/supply/status")
 @web_security.login_required(api=True, founder_only=True)
 def founder_status():
-    return _no_store(make_response(jsonify(travel_marketplace.founder_snapshot())))
+    result = travel_marketplace.founder_snapshot()
+    result["partner_supply"] = partner_supply.status()
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/mission/supply/partner/status")
+@web_security.login_required(api=True, founder_only=True)
+def founder_partner_status():
+    return _no_store(make_response(jsonify(partner_supply.status())))
+
+
+@bp.post("/mission/supply/partner/import")
+@web_security.login_required(api=True, founder_only=True)
+def founder_partner_import():
+    return _founder_write(partner_supply.import_snapshot)
 
 
 @bp.post("/mission/supply/suppliers")
