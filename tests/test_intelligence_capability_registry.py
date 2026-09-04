@@ -1,3 +1,4 @@
+from mission_control import smi_capabilities
 from oap.smi.intelligence_capability_registry import (
     COMMERCIAL_JOURNEY,
     LOCKED_WORLD_IDS,
@@ -96,3 +97,15 @@ def test_system_boundary_contract_stays_locked():
     assert current["validation"]["nexus_connected"] is True
     assert current["validation"]["oasis_presentation_layer"] is True
     assert current["validation"]["guardian_gate_required"] is True
+
+
+def test_smi_status_exposes_registry_without_changing_world_count():
+    current = smi_capabilities.smi_capability_status()
+    registry = current["intelligence_capability_registry"]
+    assert current["architecture_passed"] is True
+    assert len(current["intelligence_worlds"]) == 7
+    assert registry["capability_count"] == 26
+    assert registry["brain_count_added"] == 0
+    assert registry["creates_intelligence_worlds"] is False
+    assert registry["creates_agents"] is False
+    assert current["validation"]["checks"]["reusable_intelligence_capabilities"] == 26
