@@ -42,8 +42,8 @@ AUTHORITATIVE_SOURCE_REGISTRY: tuple[dict[str, Any], ...] = (
         "name": "World Health Organization Emergencies",
         "owner": "World Health Organization",
         "role": "Authoritative health emergencies, outbreak news and situation reports",
-        "machine_readable": False,
-        "production_fetch": False,
+        "machine_readable": True,
+        "production_fetch": True,
         "auth_required": False,
     },
     {
@@ -52,7 +52,7 @@ AUTHORITATIVE_SOURCE_REGISTRY: tuple[dict[str, Any], ...] = (
         "owner": "UNHCR",
         "role": "Refugee, displacement and statelessness data",
         "machine_readable": True,
-        "production_fetch": False,
+        "production_fetch": True,
         "auth_required": False,
     },
     {
@@ -62,7 +62,7 @@ AUTHORITATIVE_SOURCE_REGISTRY: tuple[dict[str, Any], ...] = (
         "role": "Curated humanitarian reports, disasters and country context",
         "machine_readable": True,
         "production_fetch": False,
-        "auth_required": True,
+        "auth_required": False,
         "activation_requirement": "pre_approved_appname",
     },
 )
@@ -222,41 +222,11 @@ def fetch_gdacs_crises(
 
 
 def world_crisis_snapshot(*, live_fetch: bool = True) -> dict[str, Any]:
-    """Return the current civilian world-crisis awareness snapshot."""
+    """Return the multi-source civilian humanitarian emergency snapshot."""
 
-    gdacs = fetch_gdacs_crises() if live_fetch else {
-        "source": "gdacs",
-        "live": False,
-        "error": "live_fetch_disabled",
-        "event_count": 0,
-        "events": (),
-        "fetched_at": None,
-    }
-    live_sources = tuple(source for source in ("gdacs",) if gdacs["live"])
-    return {
-        "id": "world_crisis_emergency",
-        "name": "World Crisis Emergency Intelligence",
-        "parent": "International Humanitarian Intelligence",
-        "mode": "live_civilian_crisis_awareness",
-        "demo_mode": False,
-        "live_source_count": len(live_sources),
-        "live_sources": live_sources,
-        "live_data_ready": bool(live_sources),
-        "gdacs": gdacs,
-        "event_count": gdacs["event_count"],
-        "events": gdacs["events"],
-        "map_ready": True,
-        "legal_review_required_for_consequential_action": True,
-        "public_warning_source_verification_required": True,
-        "precise_civilian_location_public": False,
-        "individual_tracking": False,
-        "military_overlays": False,
-        "targeting": False,
-        "surveillance": False,
-        "autonomous_dispatch": False,
-        "autonomous_broadcast": False,
-        "human_authority_final": True,
-    }
+    from .humanitarian_emergency_tracker import humanitarian_emergency_snapshot
+
+    return humanitarian_emergency_snapshot(live_fetch=live_fetch)
 
 
 def world_crisis_intelligence_status() -> dict[str, Any]:
@@ -281,10 +251,12 @@ def world_crisis_intelligence_status() -> dict[str, Any]:
         "categories": WORLD_CRISIS_CATEGORIES,
         "source_count": len(AUTHORITATIVE_SOURCE_REGISTRY),
         "sources": AUTHORITATIVE_SOURCE_REGISTRY,
-        "live_machine_source_enabled": "gdacs",
-        "who_emergency_context_ready": True,
-        "unhcr_context_ready": True,
+        "live_machine_sources_enabled": ("gdacs", "who", "unhcr"),
+        "gdacs_emergency_fetch_ready": True,
+        "who_emergency_fetch_ready": True,
+        "unhcr_displacement_context_ready": True,
         "reliefweb_requires_preapproved_appname": True,
+        "multi_source_tracker_bound": True,
         "map_ready": True,
         "legal_intelligence_bound": True,
         "civilian_only": True,
@@ -299,8 +271,8 @@ def world_crisis_intelligence_status() -> dict[str, Any]:
         "independent_approval": False,
         "human_authority_final": True,
         "truth_boundary": (
-            "World Crisis Intelligence can fetch current authoritative disaster alerts from "
-            "GDACS now. WHO, UNHCR and ReliefWeb remain authoritative context/source families; "
-            "their live machine ingestion must be separately proven before being marked live."
+            "World Crisis Intelligence delegates live snapshots to the governed International "
+            "Humanitarian Emergency Tracker. GDACS, WHO and UNHCR source availability is verified "
+            "at runtime; ReliefWeb remains gated until a pre-approved appname is configured."
         ),
     }
