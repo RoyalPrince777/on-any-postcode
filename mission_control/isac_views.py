@@ -1,10 +1,10 @@
-"""Founder-only OAP ISAC Spatial Intelligence web surface."""
+"""Founder-only OAP ISAC Spatial Intelligence and Spatial Presence web surfaces."""
 
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import isac_spatial_intelligence, web_security
+from . import isac_spatial_intelligence, spatial_presence, web_security
 
 bp = Blueprint("isac_spatial", __name__)
 
@@ -24,8 +24,6 @@ def _error(code: str, message: str, status_code: int):
 @bp.get("")
 @web_security.login_required(founder_only=True)
 def dashboard():
-    """Render current spatial intelligence state without inventing radio data."""
-
     response = make_response(
         render_template(
             "isac_spatial.html",
@@ -38,18 +36,12 @@ def dashboard():
 @bp.get("/status")
 @web_security.login_required(api=True, founder_only=True)
 def status():
-    """Return read-only ISAC readiness and privacy-reduced spatial state."""
-
-    return _no_store(
-        make_response(jsonify(isac_spatial_intelligence.isac_spatial_status()))
-    )
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.isac_spatial_status())))
 
 
 @bp.post("/ingest")
 @web_security.login_required(api=True, founder_only=True)
 def ingest():
-    """Founder-authorised development ingest for SRS/CSI adapter payloads."""
-
     if not web_security.csrf_valid(request):
         return _error("csrf_failed", "The secure session expired.", 403)
     payload = request.get_json(silent=True)
@@ -58,11 +50,7 @@ def ingest():
     try:
         result = isac_spatial_intelligence.ingest_authorised_payload(payload)
     except PermissionError:
-        return _error(
-            "rf_measurement_not_authorised",
-            "Explicit authorised=true is required for RF measurement ingestion.",
-            403,
-        )
+        return _error("rf_measurement_not_authorised", "Explicit authorised=true is required for RF measurement ingestion.", 403)
     except (TypeError, ValueError) as exc:
         return _error("invalid_rf_measurement", str(exc)[:120], 400)
     return _no_store(make_response(jsonify(result)))
@@ -71,8 +59,6 @@ def ingest():
 @bp.post("/calibrate")
 @web_security.login_required(api=True, founder_only=True)
 def calibrate():
-    """Add one explicit local calibration observation; never infer coordinates."""
-
     if not web_security.csrf_valid(request):
         return _error("csrf_failed", "The secure session expired.", 403)
     payload = request.get_json(silent=True)
@@ -81,11 +67,51 @@ def calibrate():
     try:
         result = isac_spatial_intelligence.add_authorised_calibration(payload)
     except PermissionError:
-        return _error(
-            "rf_measurement_not_authorised",
-            "Explicit authorised=true is required for calibration RF data.",
-            403,
-        )
+        return _error("rf_measurement_not_authorised", "Explicit authorised=true is required for calibration RF data.", 403)
     except (TypeError, ValueError) as exc:
         return _error("invalid_calibration", str(exc)[:120], 400)
     return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/presence")
+@web_security.login_required(founder_only=True)
+def spatial_presence_dashboard():
+    return _no_store(
+        make_response(
+            render_template(
+                "spatial_presence.html",
+                presence=spatial_presence.spatial_presence_status(),
+            )
+        )
+    )
+
+
+@bp.get("/presence/status")
+@web_security.login_required(api=True, founder_only=True)
+def spatial_presence_status():
+    return _no_store(make_response(jsonify(spatial_presence.spatial_presence_status())))
+
+
+@bp.post("/presence/session")
+@web_security.login_required(api=True, founder_only=True)
+def spatial_presence_session():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = spatial_presence.create_session(payload)
+    except PermissionError:
+        return _error("capture_consent_required", "Explicit participant capture consent is required.", 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_spatial_session", str(exc)[:120], 400)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.delete("/presence/session/<session_id>")
+@web_security.login_required(api=True, founder_only=True)
+def spatial_presence_end_session(session_id: str):
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    return _no_store(make_response(jsonify(spatial_presence.end_session(session_id))))
