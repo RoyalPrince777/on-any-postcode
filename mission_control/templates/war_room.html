@@ -9,9 +9,9 @@
 <body class="mc-workspace-body mc-war-room-body">
   <header class="mc-workspace-header mc-war-room-header">
     <div>
-      <p class="mc-eyebrow">Founder only / Read-only / Evidence command</p>
+      <p class="mc-eyebrow">Founder only / First-party / Read-only / Evidence command</p>
       <h1>OAP War Room</h1>
-      <p>Everything in one governed view: proof, star rating, blocker and next gate.</p>
+      <p>Everything in one governed view: proof, star rating, blocker, signal and next gate.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
@@ -29,6 +29,7 @@
           {% if war_room.validation.passed %}Canonical scope verified{% else %}Conflict requires Human review{% endif %}
         </h2>
         <p>{{ war_room.summary.meaning }}</p>
+        <p class="mc-war-truth">First-party rule: OAP owns the War Room, scoring, signal language and judgement model. Outside information is evidence only and cannot become OAP identity, authority or execution.</p>
       </div>
       <dl class="mc-war-metrics">
         <div>
@@ -68,6 +69,8 @@
     </section>
     {% endif %}
 
+    {% include "_live_signal_legend.html" %}
+
     <section class="mc-panel" aria-labelledby="war-a3-title">
       <div class="mc-section-heading">
         <div>
@@ -91,7 +94,7 @@
       </div>
       <ol class="mc-war-priority-grid">
         {% for item in war_room.top_next %}
-        <li class="mc-war-priority mc-war-priority--{{ item.signal }}">
+        <li class="mc-war-priority mc-war-priority--{{ 'yellow' if item.signal == 'purple' else item.signal }}">
           <span class="mc-war-rank">{{ item.rank }}</span>
           <div>
             <h3>{{ item.name }}</h3>
@@ -108,15 +111,17 @@
       <div class="mc-section-heading">
         <div>
           <p class="mc-eyebrow">No false green</p>
-          <h2 id="war-rubric-title">Five-star evidence law</h2>
-          <p>A later stage cannot skip an earlier missing stage.</p>
+          <h2 id="war-rubric-title">Five-stage evidence law</h2>
+          <p>A later stage cannot skip an earlier missing stage. 🟣 remains Learning only; proof-verified is shown as 🔵 until runtime evidence reaches green.</p>
         </div>
       </div>
       <ol class="mc-war-rubric">
         {% for level in war_room.rubric if level.stars > 0 %}
-        <li class="mc-war-rubric--{{ level.signal }}">
+        {% set display_signal = 'yellow' if level.signal == 'purple' else level.signal %}
+        {% set display_icon = '🔵' if level.signal == 'purple' else ('🟢' if level.signal == 'green' else ('🟡' if level.signal == 'yellow' else ('🟠' if level.signal == 'amber' else '🔴'))) %}
+        <li class="mc-war-rubric--{{ display_signal }}">
           <span class="mc-war-stars" aria-hidden="true">{{ '★' * level.stars }}{{ '☆' * (5 - level.stars) }}</span>
-          <strong>{{ level.label }}</strong>
+          <strong>{{ display_icon }} {{ level.label }}</strong>
           <small>{{ level.meaning }}</small>
         </li>
         {% endfor %}
@@ -146,13 +151,15 @@
       </div>
       <div class="mc-war-rating-grid" role="list">
         {% for item in category["items"] %}
-        <article class="mc-war-rating mc-war-rating--{{ item.signal }}" role="listitem">
+        {% set display_signal = 'yellow' if item.signal == 'purple' else item.signal %}
+        {% set display_icon = '🔵' if item.signal == 'purple' else ('🟢' if item.signal == 'green' else ('🟡' if item.signal == 'yellow' else ('🟠' if item.signal == 'amber' else '🔴'))) %}
+        <article class="mc-war-rating mc-war-rating--{{ display_signal }}" role="listitem">
           <div class="mc-war-rating-head">
             <div>
               {% if item.parent %}<p class="mc-war-parent">Inside {{ item.parent }}</p>{% endif %}
               <h3>{{ item.name }}</h3>
             </div>
-            <span class="mc-war-rating-label">{{ item.label }}</span>
+            <span class="mc-war-rating-label">{{ display_icon }} {{ item.label }}</span>
           </div>
           <p class="mc-war-stars" aria-label="{{ item.stars }} out of 5 stars">{{ item.stars_display }}</p>
           <p>{{ item.summary }}</p>

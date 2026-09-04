@@ -3,10 +3,10 @@
 Infrastructure owns exactly Maps, Weather, eSIM and Connectivity. Related
 Navigation, Mobility and shared Mission Control health remain outside that
 ownership boundary so this UI cannot become a duplicate routing, transport or
-operations engine. Public status is evidence-driven: Maps and Weather become
-healthy only after a successful bounded provider response has been observed.
-Nothing in this module probes a network, activates a service, persists state or
-exposes credentials.
+operations engine. Public status is evidence-driven. The OAP Live Signal
+language and Infrastructure Intelligence are first-party OAP capabilities;
+outside sources may contribute replaceable evidence only and never OAP identity,
+authority or execution rights.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from . import location_intelligence
+from . import infrastructure_intelligence, live_signals, location_intelligence
 
 LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
     {
@@ -25,7 +25,7 @@ LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
         "status": "Configured; runtime proof pending",
         "state": "degraded",
         "readiness": "Bounded location lookup configured",
-        "data": "No successful location provider response observed in this process",
+        "data": "No successful bounded location evidence observed in this process",
         "boundary": (
             "Provides place context only; it does not create a Navigation or "
             "Mobility engine."
@@ -38,9 +38,9 @@ LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
         "status": "Configured; runtime proof pending",
         "state": "degraded",
         "readiness": "Bounded weather lookup configured",
-        "data": "No successful weather provider response observed in this process",
+        "data": "No successful bounded weather evidence observed in this process",
         "boundary": (
-            "Shows bounded weather results only; consequential alerts or provider "
+            "Shows bounded weather results only; consequential alerts or external "
             "operations remain unavailable."
         ),
     },
@@ -48,10 +48,10 @@ LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
         "id": "esim",
         "name": "eSIM",
         "purpose": "Telecom and eSIM service-readiness records.",
-        "status": "Provider required",
+        "status": "OAP carrier capability required",
         "state": "degraded",
         "readiness": "Activation unavailable",
-        "data": "No lawful telecom provider approved",
+        "data": "No lawful first-party carrier capability proven",
         "boundary": (
             "Readiness records only; purchase, provisioning and activation "
             "controls are not registered."
@@ -64,7 +64,7 @@ LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
         "status": "Not connected",
         "state": "degraded",
         "readiness": "Status-only shell ready",
-        "data": "No connectivity source configured",
+        "data": "No first-party connectivity evidence source configured",
         "boundary": (
             "No network control, credentials, Wi-Fi or satellite service is "
             "asserted by this interface."
@@ -116,33 +116,49 @@ RELATED_SYSTEM_BOUNDARIES: tuple[dict[str, str], ...] = (
     },
 )
 
-PROPOSED_CONNECTIONS: tuple[dict[str, str], ...] = (
+FIRST_PARTY_BUILD_GATES: tuple[dict[str, str], ...] = (
     {
-        "title": "Review Maps and Weather provider policy",
+        "title": "Build OAP-owned Maps and Weather evidence path",
         "description": (
-            "Keep the bounded postcode, global-place and weather providers under "
-            "privacy, reliability and production-policy review before expanding "
-            "their use."
+            "Keep OAP ownership of the map, weather, classification, state and UI layers. "
+            "Any outside data used for evidence must remain replaceable data only and may "
+            "not become OAP identity or authority."
         ),
         "status": "Requires human approval",
     },
     {
-        "title": "Approve an eSIM service pathway",
+        "title": "Build OAP eSIM carrier readiness path",
         "description": (
-            "Confirm a lawful telecom partner, Identity checks, consent, "
-            "billing boundaries and Guardian review before activation exists."
+            "Do not expose activation until OAP can prove a lawful carrier capability, "
+            "identity checks, consent, billing boundaries and Guardian review."
         ),
         "status": "Requires human approval",
     },
     {
-        "title": "Define Connectivity integrations",
+        "title": "Build OAP Connectivity evidence path",
         "description": (
-            "Approve each provider-backed network source before adding Wi-Fi, "
-            "carrier or satellite status beyond this empty shell."
+            "Create first-party connection-state, reachability and continuity evidence. "
+            "Outside network data may be validation input only and cannot control OAP."
         ),
         "status": "Requires human approval",
     },
 )
+
+# Compatibility name retained for existing callers; the contents are now explicitly
+# first-party build gates rather than provider-control proposals.
+PROPOSED_CONNECTIONS = FIRST_PARTY_BUILD_GATES
+
+FIRST_PARTY_POLICY = {
+    "owner": "ON ANY POSTCODE",
+    "oap_owns_system": True,
+    "oap_owns_intelligence": True,
+    "oap_owns_signal_language": True,
+    "oap_owns_health_model": True,
+    "external_identity_allowed": False,
+    "external_authority_allowed": False,
+    "external_source_role": "replaceable_data_only_when_needed",
+    "human_authority_final": True,
+}
 
 
 def _normalise(value: str) -> str:
@@ -159,7 +175,7 @@ def _duplicates(values: Iterable[str]) -> set[str]:
     return duplicates
 
 
-def _runtime_modules() -> tuple[list[dict[str, str]], dict[str, object]]:
+def _runtime_modules() -> tuple[list[dict[str, Any]], dict[str, object]]:
     """Overlay runtime delivery evidence without performing network I/O."""
 
     evidence = location_intelligence.status()
@@ -168,7 +184,7 @@ def _runtime_modules() -> tuple[list[dict[str, str]], dict[str, object]]:
         or evidence.get("global_provider_verified")
     )
     weather_verified = bool(evidence.get("weather_provider_verified"))
-    modules = [dict(module) for module in LOCKED_INFRASTRUCTURE_MODULES]
+    modules: list[dict[str, Any]] = [dict(module) for module in LOCKED_INFRASTRUCTURE_MODULES]
 
     for module in modules:
         if module["id"] == "maps" and maps_verified:
@@ -176,15 +192,18 @@ def _runtime_modules() -> tuple[list[dict[str, str]], dict[str, object]]:
                 status="Runtime verified",
                 state="healthy",
                 readiness="Location lookup ready",
-                data="Successful bounded location provider response observed",
+                data="Successful bounded location evidence observed",
             )
         elif module["id"] == "weather" and weather_verified:
             module.update(
                 status="Runtime verified",
                 state="healthy",
                 readiness="Weather lookup ready",
-                data="Successful bounded weather provider response observed",
+                data="Successful bounded weather evidence observed",
             )
+        module["signal"] = live_signals.resolve_runtime_signal(
+            module.get("state"), status=module.get("status")
+        )
 
     public_evidence: dict[str, object] = {
         "maps_runtime_verified": maps_verified,
@@ -192,6 +211,7 @@ def _runtime_modules() -> tuple[list[dict[str, str]], dict[str, object]]:
         "spatial_contract": str(evidence.get("spatial_contract") or ""),
         "network_probe_on_get": False,
         "evidence_mode": "observed_delivery",
+        "outside_source_is_authority": False,
     }
     return modules, public_evidence
 
@@ -267,21 +287,26 @@ def get_public_infrastructure() -> dict[str, Any]:
     """Return an allowlisted, non-operational Infrastructure projection."""
 
     modules, runtime_evidence = _runtime_modules()
-    return {
+    projection: dict[str, Any] = {
         "modules": modules,
         "runtime_evidence": runtime_evidence,
         "related_systems": [dict(system) for system in RELATED_SYSTEM_BOUNDARIES],
-        "proposed_connections": [dict(item) for item in PROPOSED_CONNECTIONS],
+        "proposed_connections": [dict(item) for item in FIRST_PARTY_BUILD_GATES],
+        "first_party_build_gates": [dict(item) for item in FIRST_PARTY_BUILD_GATES],
+        "first_party_policy": dict(FIRST_PARTY_POLICY),
+        "signal_legend": live_signals.public_legend(),
         "validation": validate_infrastructure_scope(),
         "operating_mode": {
             "label": "Read-only awareness",
-            "message": "No activation, provider mutation or network changes are enabled.",
+            "message": "No activation, infrastructure mutation or network changes are enabled.",
         },
         "human_authority": {
             "status": "Final approval required",
             "message": (
-                "Every provider connection or operational control requires "
+                "Every connection, activation or operational control requires "
                 "recorded Human Authority approval."
             ),
         },
     }
+    projection["intelligence"] = infrastructure_intelligence.review(projection)
+    return projection
