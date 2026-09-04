@@ -47,15 +47,19 @@ def test_founder_memory_channel_is_real_audited_transport_not_raw_chat_sync():
     assert snapshot["github_audited_transport_connected"] is True
     assert snapshot["direct_chatgpt_http_connected"] is False
     assert snapshot["always_on_raw_chat_sync"] is False
-    assert snapshot["packet_count"] >= 3
+    assert snapshot["packet_count"] >= 5
     assert snapshot["rejected_packet_count"] == 0
+    assert snapshot["latest_relevant_founder_packet_wins_ties"] is True
     assert snapshot["automatic_canonical_promotion"] is False
     items = synced_memory_items(
         "TECHNICAL",
-        query="combine best AI coding research multimodal capabilities",
+        query="Kimi Qwen swarm subagents multimodal spatial capability expansion",
         limit=3,
     )
     assert len(items) == 3
+    joined = " ".join(item.summary for item in items)
+    assert "scale-out swarm" in joined
+    assert "Qwen" in joined or "Kimi" in joined
     assert all(item.memory_id.startswith("founder-sync:") for item in items)
     assert all(item.summary.startswith("FOUNDER-APPROVED SYNC CONTEXT") for item in items)
 

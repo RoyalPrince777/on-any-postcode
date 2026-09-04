@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-CAPABILITY_FABRIC_REVISION = "2026-09-04-v1"
+CAPABILITY_FABRIC_REVISION = "2026-09-04-v2"
 
 
 @dataclass(frozen=True)
@@ -118,6 +118,72 @@ _CAPABILITIES: tuple[Capability, ...] = (
         ("thinking", "progress", "time", "telemetry", "process", "stage"),
         ("GENERAL", "TECHNICAL", "MONITORING"),
     ),
+    Capability(
+        "scale_out_swarm",
+        "Split suitable large objectives into bounded parallel sub-agent work, merge results, detect duplication and preserve one governed final answer.",
+        ("swarm", "parallel agents", "subagents", "sub-agents", "batch", "large task"),
+        ("GENERAL", "TECHNICAL", "STRATEGY", "MONITORING"),
+    ),
+    Capability(
+        "persistent_subagents",
+        "Keep approved specialist-agent task state resumable across a longer workflow so follow-up work does not restart from zero.",
+        ("background agent", "persistent agent", "resume agent", "follow up", "long task"),
+        ("GENERAL", "TECHNICAL", "STRATEGY"),
+    ),
+    Capability(
+        "live_steering",
+        "Allow Human Authority to redirect or correct an in-progress bounded workflow without discarding all useful completed work.",
+        ("steer", "redirect", "change direction", "correct while", "mid-stream"),
+        ("GENERAL", "TECHNICAL", "STRATEGY"),
+    ),
+    Capability(
+        "budget_aware_handoff",
+        "Track token, time and compute budgets; stop cleanly when limits are reached and produce a compact handoff state for continuation.",
+        ("budget", "token limit", "time limit", "handoff", "continue later", "resource limit"),
+        ("GENERAL", "TECHNICAL", "STRATEGY", "MONITORING"),
+    ),
+    Capability(
+        "workspace_isolation",
+        "Run parallel implementation experiments in isolated workspaces or branches to reduce conflicts before governed integration.",
+        ("worktree", "isolated", "parallel branch", "sandbox", "conflict"),
+        ("TECHNICAL",),
+    ),
+    Capability(
+        "skill_distillation",
+        "Turn approved source material such as documents, code, demonstrations or videos into reusable OAP skills with provenance and review gates.",
+        ("learn", "skill", "tutorial", "video", "reusable", "distill"),
+        ("GENERAL", "TECHNICAL", "CULTURE", "STRATEGY"),
+    ),
+    Capability(
+        "long_horizon_delivery",
+        "Maintain goal, dependencies, checkpoints and verification across complex multi-step work rather than optimising only the next response.",
+        ("long horizon", "end to end", "multi-step", "complex workflow", "deliver", "project"),
+        ("GENERAL", "TECHNICAL", "STRATEGY"),
+    ),
+    Capability(
+        "multimodal_spatial_reasoning",
+        "Reason jointly over visual scenes, video time, geometry, spatial relationships and text while preserving uncertainty and provenance.",
+        ("spatial", "geometry", "scene", "video understanding", "map", "visual reasoning"),
+        ("GENERAL", "TECHNICAL", "COMMUNITY", "CULTURE"),
+    ),
+    Capability(
+        "realtime_audio_visual",
+        "Support governed low-latency audio-visual interaction patterns that combine what is heard, seen and happening over time.",
+        ("real time voice", "realtime voice", "audio visual", "full duplex", "camera", "listen and see"),
+        ("GENERAL", "TECHNICAL", "COMMUNITY"),
+    ),
+    Capability(
+        "artifact_workflows",
+        "Produce and review useful document, spreadsheet, presentation, code and media artifacts through structured task stages rather than chat-only output.",
+        ("document", "spreadsheet", "presentation", "office", "artifact", "report", "slides"),
+        ("GENERAL", "TECHNICAL", "STRATEGY", "CULTURE"),
+    ),
+    Capability(
+        "context_tiering",
+        "Choose between compact, standard, large-context and retrieval-backed paths based on task size instead of forcing every request through maximum context.",
+        ("million tokens", "huge context", "massive document", "large codebase", "context window"),
+        ("GENERAL", "TECHNICAL", "STRATEGY"),
+    ),
 )
 
 
@@ -173,6 +239,7 @@ def status() -> dict[str, object]:
         "copies_provider_identity": False,
         "copies_private_prompts": False,
         "copies_model_weights": False,
+        "copies_proprietary_architecture": False,
         "external_provider_authority": False,
         "local_first": True,
         "human_authority_final": True,

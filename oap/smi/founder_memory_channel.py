@@ -19,7 +19,7 @@ from oap.contracts import MemoryItem, OutputState
 
 from .memory_sync import MemorySyncPacket, validate_packet
 
-CHANNEL_REVISION = "2026-09-04-v1"
+CHANNEL_REVISION = "2026-09-04-v2"
 _INBOX_PATH = Path(__file__).with_name("founder_memory_inbox.json")
 
 
@@ -80,7 +80,8 @@ def synced_memory_items(
             )
         )
         score = len(query_tokens & _tokens(searchable)) if query_tokens else 0
-        candidates.append((score, -index, validated))
+        # Latest Founder-approved packet wins on relevance ties.
+        candidates.append((score, index, validated))
     candidates.sort(reverse=True)
     selected = [item[2] for item in candidates[:safe_limit]]
     memories: list[MemoryItem] = []
@@ -127,6 +128,7 @@ def status() -> dict[str, object]:
         "packet_count": len(records),
         "accepted_packet_count": accepted,
         "rejected_packet_count": rejected,
+        "latest_relevant_founder_packet_wins_ties": True,
         "automatic_canonical_promotion": False,
         "founder_approval_required": True,
         "ci_and_deploy_required": True,

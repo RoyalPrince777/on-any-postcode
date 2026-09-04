@@ -28,5 +28,25 @@
     "supersedes": [],
     "tags": ["smi", "capabilities", "canonical-candidate", "founder-approved"],
     "created_at": "2026-09-04T08:32:00+00:00"
+  },
+  {
+    "source_kind": "founder_decision",
+    "memory_class": "ARCHITECTURE",
+    "summary": "Expand the OAP Intelligence Fabric with provider-neutral patterns observed across Kimi/Moonshot, Qwen, MiniMax, GLM, DeepSeek, Yi/01.AI and ByteDance Seed: scale-out swarm parallelism, persistent/resumable subagents, live Human Authority steering, budget-aware handoff, isolated parallel workspaces, approved media-to-skill distillation, long-horizon delivery, multimodal spatial/video reasoning, governed real-time audio-visual interaction, structured artifact workflows and context tiering. Do not copy brand identity, hidden prompts, model weights, proprietary attention architectures or provider-specific product design.",
+    "source_reference": "founder-chat-decision-2026-09-04-east-asia-capability-expansion",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["smi", "capability-fabric", "swarm", "agents", "multimodal", "founder-approved"],
+    "created_at": "2026-09-04T08:40:00+00:00"
+  },
+  {
+    "source_kind": "approved_historical_backfill",
+    "memory_class": "EVIDENCE",
+    "summary": "Official 2026 documentation supports the added capability patterns: Kimi documents K3 with 1M context and large-scale Agent Swarm; Qwen Code documents persistent background agents, live steering, isolated worktrees, video-to-skill learning, budget-aware goal handoffs and very-long-context options; MiniMax M3 documents 1M context with native multimodality and coding/agentic work; GLM-5.x documents long-horizon coding and agent workflows with 1M context; DeepSeek V4 emphasizes enhanced agent capabilities; 01.AI emphasizes enterprise and sovereign AI deployment; ByteDance Seed2.1 and SeedRealtime emphasize long-horizon delivery, multimodal/spatial/video understanding and full-duplex audio-visual interaction. These are evidence references only, not OAP dependencies or authority sources.",
+    "source_reference": "kimi.com;qwenlm.github.io;alibabacloud.com;minimax.io;bigmodel.cn;deepseek.com;01.ai;seed.bytedance.com reviewed 2026-09-04",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["research", "kimi", "qwen", "minimax", "glm", "deepseek", "yi", "seed", "evidence"],
+    "created_at": "2026-09-04T08:41:00+00:00"
   }
 ]
