@@ -74,7 +74,7 @@ def test_infrastructure_ui_is_read_only_and_does_not_create_database(
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert "Infrastructure boundaries verified" in page
     assert "Maps, Weather, eSIM and Connectivity" in page
-    assert "No lawful telecom provider approved" in page
+    assert "No lawful first-party carrier capability proven" in page
     assert "Activation unavailable" in page
     assert "Operational controls unavailable" in page
     assert 'method="post"' not in page.lower()
