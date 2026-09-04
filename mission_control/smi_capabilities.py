@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from oap.smi import intelligence_capability_registry
 from oap.smi.agi_core import AGICore
 from oap.smi.command_intelligence import CommandIntelligence
 from oap.smi.sovereign_controls import SovereignControlPlane
@@ -183,6 +184,10 @@ def validate_smi_capabilities() -> dict[str, Any]:
             "Cross-system capabilities must not silently become Intelligence Worlds"
         )
 
+    reusable_registry = intelligence_capability_registry.validate_registry(tuple(world_ids))
+    if not reusable_registry["passed"]:
+        errors.extend(reusable_registry["errors"])
+
     agi = AGICore().status()
     if (
         agi["brain_count"] != 0
@@ -264,6 +269,9 @@ def validate_smi_capabilities() -> dict[str, Any]:
             "intelligence_worlds": len(world_ids),
             "cross_system_capabilities": len(cross_ids),
             "internal_capabilities": len(internal_ids),
+            "reusable_intelligence_capabilities": reusable_registry["capability_count"],
+            "reusable_registry_preserves_seven_worlds": reusable_registry["passed"],
+            "brain_count_added_by_reusable_registry": reusable_registry["brain_count_added"],
             "brain_count_added_by_agi": agi["brain_count"],
             "brain_count_added_by_command_intelligence": command["brain_count"],
             "brain_count_added_by_sovereign_controls": sovereign["brain_count"],
@@ -290,6 +298,8 @@ def smi_capability_status() -> dict[str, Any]:
     validation = validate_smi_capabilities()
     sovereign = SovereignControlPlane().status()
     command = CommandIntelligence().status()
+    world_ids = tuple(str(item["id"]) for item in INTELLIGENCE_WORLDS)
+    reusable_registry = intelligence_capability_registry.status(world_ids)
     return {
         "name": "Sovereign Megaverse Intelligence",
         "master_tier_name": "Master Full Sovereignty Megaverse Intelligence",
@@ -306,6 +316,7 @@ def smi_capability_status() -> dict[str, Any]:
         ],
         "supporting_general_intelligence_count": command["supporting_count"],
         "intelligence_worlds": tuple(dict(item) for item in INTELLIGENCE_WORLDS),
+        "intelligence_capability_registry": reusable_registry,
         "cross_system_capabilities": CROSS_SYSTEM_CAPABILITIES,
         "internal_capabilities": SMI_INTERNAL_CAPABILITIES,
         "specialist_status": {
