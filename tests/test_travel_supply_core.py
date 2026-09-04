@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
+from importlib import import_module
 
 from mission_control import postgres_db, travel_supply_core
-from oap.smi import travel_agency
 
 
 VALID_ID = "11111111-1111-4111-8111-111111111111"
@@ -131,6 +131,7 @@ def test_input_validation_fails_before_any_database_write():
 def test_travel_agency_exposes_oap_direct_marketplace_without_false_live_claims(
     monkeypatch,
 ):
+    travel_agency = import_module("oap.smi.travel_agency")
     _base_not_ready(monkeypatch)
     current = travel_agency.status()
 
