@@ -92,6 +92,7 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
         "mode": "civilian_humanitarian_production",
         "demo_mode": False,
         "architecture_ready": architecture_ready,
+        "architecture_passed": architecture_ready,
         "brain_count": 0,
         "intelligence_world_count_added": 0,
         "section_count": len(INTERNATIONAL_HUMANITARIAN_SECTIONS),
