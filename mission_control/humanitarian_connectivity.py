@@ -3,8 +3,8 @@
 This module is for life-saving civilian communication in disasters and armed conflict.
 It does not support targeting, surveillance, weapons, military command, troop tracking,
 offensive cyber operations, or autonomous transmission. It prepares bounded,
-privacy-minimised communication envelopes and connectivity recommendations while
-keeping Human Authority final.
+privacy-minimised communication envelopes, map context and connectivity recommendations
+while keeping Human Authority final.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from .connectivity_runtime import connectivity_runtime_status
+from .humanitarian_map_intelligence import humanitarian_map_intelligence_status
 
 HUMANITARIAN_PRIORITIES: tuple[dict[str, Any], ...] = (
     {"id": "life_safety", "name": "Life Safety / SOS", "priority": 0},
@@ -24,14 +25,54 @@ HUMANITARIAN_PRIORITIES: tuple[dict[str, Any], ...] = (
 )
 
 HUMANITARIAN_FEATURES: tuple[dict[str, str], ...] = (
-    {"id": "sos_queue", "name": "Offline-first SOS Queue", "purpose": "Prepare life-safety messages for store-and-forward delivery when links recover."},
-    {"id": "multi_access", "name": "Multi-access Emergency Path Planner", "purpose": "Prefer available local/mobile paths and require mesh, roaming or satellite fallback."},
-    {"id": "medical_priority", "name": "Medical Priority", "purpose": "Keep urgent medical communication ahead of non-life-safety traffic."},
-    {"id": "family_reunification", "name": "Family Reunification", "purpose": "Prepare privacy-minimised reconnect messages for separated families."},
-    {"id": "multilingual_alerts", "name": "Multilingual Public Alerts", "purpose": "Prepare alert content for later governed language and accessibility handling."},
-    {"id": "data_minimisation", "name": "Humanitarian Data Minimisation", "purpose": "Avoid unnecessary identity, precise location and sensitive personal data."},
-    {"id": "civilian_distinction", "name": "Civilian / Military Distinction Guard", "purpose": "Reject military, targeting, surveillance and weapon-support purposes."},
-    {"id": "misinformation_guard", "name": "Public Warning Evidence Guard", "purpose": "Require source verification before broad public-warning dissemination."},
+    {
+        "id": "sos_queue",
+        "name": "Offline-first SOS Queue",
+        "purpose": "Prepare life-safety messages for store-and-forward delivery when links recover.",
+    },
+    {
+        "id": "multi_access",
+        "name": "Multi-access Emergency Path Planner",
+        "purpose": "Prefer available local/mobile paths and require mesh, roaming or satellite fallback.",
+    },
+    {
+        "id": "humanitarian_maps",
+        "name": "Humanitarian Map Intelligence",
+        "purpose": (
+            "Bind civilian emergency communications to OAP Map, Place, Route, "
+            "accessibility, hazard and connectivity context."
+        ),
+    },
+    {
+        "id": "medical_priority",
+        "name": "Medical Priority",
+        "purpose": "Keep urgent medical communication ahead of non-life-safety traffic.",
+    },
+    {
+        "id": "family_reunification",
+        "name": "Family Reunification",
+        "purpose": "Prepare privacy-minimised reconnect messages for separated families.",
+    },
+    {
+        "id": "multilingual_alerts",
+        "name": "Multilingual Public Alerts",
+        "purpose": "Prepare alert content for later governed language and accessibility handling.",
+    },
+    {
+        "id": "data_minimisation",
+        "name": "Humanitarian Data Minimisation",
+        "purpose": "Avoid unnecessary identity, precise location and sensitive personal data.",
+    },
+    {
+        "id": "civilian_distinction",
+        "name": "Civilian / Military Distinction Guard",
+        "purpose": "Reject military, targeting, surveillance and weapon-support purposes.",
+    },
+    {
+        "id": "misinformation_guard",
+        "name": "Public Warning Evidence Guard",
+        "purpose": "Require source verification before broad public-warning dissemination.",
+    },
 )
 
 BLOCKED_MILITARY_PURPOSE_PHRASES = (
@@ -125,6 +166,7 @@ def humanitarian_path_plan() -> dict[str, Any]:
 
     runtime = connectivity_runtime_status()
     current_path = bool(runtime["production_software_ready"])
+    maps = humanitarian_map_intelligence_status()
     return {
         "current_production_path_observed": current_path,
         "preferred_order": (
@@ -135,9 +177,12 @@ def humanitarian_path_plan() -> dict[str, Any]:
             "satellite_fallback",
             "offline_store_and_forward",
         ),
+        "map_context_ready": maps["architecture_ready"],
+        "production_navigation_ready": maps["production_navigation_ready"],
         "second_independent_path_required": True,
         "offline_store_and_forward_required": True,
         "autonomous_network_switching": False,
+        "autonomous_navigation": False,
         "human_authority_final": True,
     }
 
@@ -146,6 +191,7 @@ def humanitarian_connectivity_status() -> dict[str, Any]:
     """Return live production readiness for the civilian humanitarian emergency layer."""
 
     runtime = connectivity_runtime_status()
+    maps = humanitarian_map_intelligence_status()
     production_path = bool(runtime["production_software_ready"])
     feature_matrix = tuple(
         {
@@ -168,6 +214,9 @@ def humanitarian_connectivity_status() -> dict[str, Any]:
         "feature_count": len(feature_matrix),
         "priorities": HUMANITARIAN_PRIORITIES,
         "path_plan": humanitarian_path_plan(),
+        "maps": maps,
+        "map_intelligence_bound": maps["map_intelligence_bound"],
+        "production_navigation_ready": maps["production_navigation_ready"],
         "civilian_only": True,
         "military_command": False,
         "targeting": False,
@@ -179,7 +228,8 @@ def humanitarian_connectivity_status() -> dict[str, Any]:
         "network_execution_authority": False,
         "human_authority_final": True,
         "truth_boundary": (
-            "Live production humanitarian communications software; no claim of global carrier "
-            "reach, live 6G radio, or autonomous emergency dispatch."
+            "Live production humanitarian communications and Map Intelligence software; "
+            "no claim of global carrier reach, live humanitarian map feeds, production-safe "
+            "navigation, live 6G radio or autonomous emergency dispatch."
         ),
     }
