@@ -11,9 +11,12 @@ from collections.abc import Iterable
 
 from oap.contracts import MemoryItem
 
-from .canonical_memory import canonical_memory_items, status as canonical_status
-from .knowledge_graph import graph_memory_items, status as graph_status
-from .memory_history import historical_memory_items, status as history_status
+from .canonical_memory import canonical_memory_items
+from .canonical_memory import status as canonical_status
+from .knowledge_graph import graph_memory_items
+from .knowledge_graph import status as graph_status
+from .memory_history import historical_memory_items
+from .memory_history import status as history_status
 
 TOTAL_CONTEXT_CAP = 21
 CANONICAL_BUDGET = 10
