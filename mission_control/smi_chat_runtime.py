@@ -14,8 +14,10 @@ import re
 import threading
 from collections.abc import Callable, Iterator
 
-from oap.smi.canonical_memory import canonical_memory_items
 from oap.smi.canonical_memory import status as canonical_memory_status
+from oap.smi.memory_orchestrator import compose_text_memory
+from oap.smi.memory_orchestrator import status as governed_memory_status
+from oap.smi.memory_sync import status as memory_sync_status
 
 from . import oap_inference_gateway as _inference
 from . import smi_chat_grounded as _grounded
@@ -68,11 +70,13 @@ _PRIVATE_REASONING_DISCLOSURE = (
 
 
 def health() -> dict:
-    """Return core SMI health plus truthful Home Node and memory certification."""
+    """Return core SMI health plus truthful inference and memory certification."""
     snapshot = dict(_core.health())
     snapshot["inference"] = _inference.status(probe=True)
     snapshot["thinking_process"] = _thinking.validate()
     snapshot["canonical_memory"] = canonical_memory_status()
+    snapshot["governed_memory"] = governed_memory_status()
+    snapshot["memory_sync"] = memory_sync_status()
     return snapshot
 
 
@@ -160,15 +164,20 @@ def _strip_identity_prefix(response: object) -> str:
 def _canonical_provider_memory(
     brain: dict | None,
     adaptive_memory: list[str] | None,
+    *,
+    query: str = "",
 ) -> list[str]:
-    """Merge immutable project truth with recent audited HRM lessons."""
+    """Compose canonical truth, history, graph context and recent audited HRM."""
 
     task_type = str((brain or {}).get("task_type") or "GENERAL")
-    canonical = [
-        item.summary for item in canonical_memory_items(task_type, limit=14)
-    ]
-    dynamic = [str(item)[:600] for item in (adaptive_memory or [])[-7:]]
-    return (canonical + dynamic)[:21]
+    return list(
+        compose_text_memory(
+            task_type,
+            query=query,
+            dynamic=adaptive_memory or (),
+            limit=21,
+        )
+    )
 
 
 def _grounded_provider(
@@ -183,7 +192,11 @@ def _grounded_provider(
     on_delta: Callable[[str], None] | None = None,
 ) -> str:
     grounded_message = _with_world_crisis_context(message, brain)
-    governed_memory = _canonical_provider_memory(brain, adaptive_memory)
+    governed_memory = _canonical_provider_memory(
+        brain,
+        adaptive_memory,
+        query=message,
+    )
     result = _grounded.grounded_provider(
         _gateway_provider,
         health,
@@ -303,6 +316,8 @@ def chat(
         "human_authority_final": contract["human_authority_final"],
     }
     enriched["canonical_memory"] = canonical_memory_status()
+    enriched["governed_memory"] = governed_memory_status()
+    enriched["memory_sync"] = memory_sync_status()
     return enriched
 
 
