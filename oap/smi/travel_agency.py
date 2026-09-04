@@ -16,7 +16,7 @@ from . import (
     supply_source_policy,
 )
 
-TRAVEL_AGENCY_REVISION = "2026-09-04-v4"
+TRAVEL_AGENCY_REVISION = "2026-09-04-v5"
 
 
 def _direct_supply_status() -> dict[str, Any]:
@@ -43,14 +43,34 @@ def _direct_supply_status() -> dict[str, Any]:
         }
 
 
+def _partner_supply_status() -> dict[str, Any]:
+    """Read audited partner snapshots without claiming direct provider connectivity."""
+
+    try:
+        from mission_control import partner_supply
+
+        return partner_supply.status()
+    except Exception:  # noqa: BLE001
+        return {
+            "schema_ready": False,
+            "active_snapshot_count": 0,
+            "live_offer_count": 0,
+            "external_provider_authority": False,
+            "human_authority_final": True,
+        }
+
+
 def status() -> dict[str, Any]:
     registry = intelligence_capability_registry.status()
     external_supply = supply_integration.status()
     booking_core = booking_orchestrator.status()
     direct_supply = _direct_supply_status()
+    partner_supply = _partner_supply_status()
     source_policy = supply_source_policy.status()
 
-    external_live = bool(external_supply["live_supply_connected"])
+    runtime_external_live = bool(external_supply["live_supply_connected"])
+    partner_live = int(partner_supply["live_offer_count"]) > 0
+    external_live = runtime_external_live or partner_live
     direct_live = bool(direct_supply["live_direct_supply"])
     live_supply = external_live or direct_live
     external_booking = bool(external_supply["booking_transactions_live"])
@@ -95,6 +115,11 @@ def status() -> dict[str, Any]:
             "id": "supply_adapter_framework",
             "ready": bool(external_supply["adapter_framework_ready"]),
             "required_for": "replaceable_external_supplier_normalisation",
+        },
+        {
+            "id": "partner_snapshot_store",
+            "ready": bool(partner_supply["schema_ready"]),
+            "required_for": "audited_short_lived_external_catalogue_evidence",
         },
         {
             "id": "live_supply_search",
@@ -143,6 +168,7 @@ def status() -> dict[str, Any]:
         "supplier_independence_policy_ready": source_policy["policy_ready"],
         "oap_supply_core_software_ready": direct_supply["software_ready"],
         "oap_supply_core_schema_ready": direct_supply["schema_ready"],
+        "partner_supply_schema_ready": partner_supply["schema_ready"],
         "oap_owns_booking_experience": True,
         "oap_owns_supplier_inventory": False,
         "oap_owns_direct_supplier_inventory_system": True,
@@ -159,6 +185,10 @@ def status() -> dict[str, Any]:
         "supply_adapter_framework_ready": external_supply["adapter_framework_ready"],
         "live_supply_search_ready": live_supply,
         "external_live_supply_ready": external_live,
+        "runtime_external_search_ready": runtime_external_live,
+        "partner_snapshot_supply_ready": partner_live,
+        "active_partner_snapshot_count": partner_supply["active_snapshot_count"],
+        "live_partner_offer_count": partner_supply["live_offer_count"],
         "direct_live_supply_ready": direct_live,
         "live_inventory_survives_external_provider_loss": direct_live,
         "architecture_survives_external_provider_loss": bool(
@@ -198,7 +228,9 @@ def status() -> dict[str, Any]:
             "system, but suppliers retain ownership of their underlying inventory. OAP "
             "Direct is preferred when offers are otherwise comparable. External providers "
             "remain optional and replaceable; Booking.com is not required for OAP Travel. "
-            "A live availability, reservation, captured payment, issued Pass or earned "
-            "commission may only be claimed when its governed runtime evidence is present."
+            "Audited partner snapshots may prove temporary availability/pricing without "
+            "claiming a direct Render-side provider connection or booking authority. A live "
+            "reservation, captured payment, issued Pass or earned commission may only be "
+            "claimed when its separately governed runtime evidence is present."
         ),
     }
