@@ -5,14 +5,19 @@ import json
 from mission_control import config, ollama_chat
 
 
-def test_smi_chat_projection_preserves_provider_and_authority_boundaries():
+def test_smi_chat_projection_preserves_inference_and_authority_boundaries():
     projection = ollama_chat.get_public_ollama_chat()
 
     assert projection["provider"]["id"] == "openai"
     assert projection["provider"]["model"] == "gpt-5-mini"
-    assert projection["provider"]["scope"] == "Governed cloud provider"
+    assert projection["provider"]["scope"] == "Replaceable governed inference plumbing"
     assert projection["provider"]["agent"] is False
     assert projection["provider"]["authority"] is False
+    assert projection["provider"]["identity"] is False
+    assert projection["thinking_process"]["stage_count"] == 7
+    assert projection["thinking_process"]["private_reasoning_exposed"] is False
+    assert projection["thinking_process"]["chain_of_thought_exposed"] is False
+    assert projection["readiness"]["thinking_process_ready"] is True
     assert projection["readiness"]["composer_enabled"] is False
     assert projection["execution"] == "Recommendation only"
     assert projection["human_authority"]["status"] == "Final approval required"
@@ -35,7 +40,8 @@ def test_smi_chat_dashboard_is_governed_and_does_not_create_local_database(
     assert "Conversation history" in page
     assert "Code proposal" in page
     assert "Human Authority" in page
-    assert "private chain-of-thought is never exposed" in page
+    assert "Thinking Process" in page
+    assert "private chain-of-thought" in page
     assert 'method="post"' not in page.lower()
     assert client.post("/mission/ollama").status_code == 405
     assert client.post("/mission/ollama/send").status_code == 404
