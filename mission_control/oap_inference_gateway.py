@@ -16,8 +16,7 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 
-from oap.smi.capability_fabric import capability_descriptions
-from oap.smi.capability_fabric import select_capabilities
+from oap.smi.capability_fabric import capability_descriptions, select_capabilities
 from oap.smi.capability_fabric import status as capability_fabric_status
 
 from . import home_node_bridge
