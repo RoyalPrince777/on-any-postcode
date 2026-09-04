@@ -14,7 +14,8 @@ import re
 import threading
 from collections.abc import Callable, Iterator
 
-from oap.smi.canonical_memory import canonical_memory_items, status as canonical_memory_status
+from oap.smi.canonical_memory import canonical_memory_items
+from oap.smi.canonical_memory import status as canonical_memory_status
 
 from . import oap_inference_gateway as _inference
 from . import smi_chat_grounded as _grounded
