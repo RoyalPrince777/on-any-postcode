@@ -178,7 +178,7 @@ def fetch_gdacs_crises(
     url = f"{GDACS_ENDPOINT}?{query}"
     try:
         payload = _fetch_json(url, timeout=_bounded_timeout() if timeout is None else timeout)
-    except Exception as exc:  # network/source failures must become explicit fail-closed status
+    except Exception as exc:  # noqa: BLE001 -- source boundary must fail closed
         return {
             "source": "gdacs",
             "live": False,
