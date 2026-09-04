@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAP Direct · Supplier Control</title>
+  <style>
+    :root{color-scheme:dark;background:#07110d;color:#f5f7f6;font-family:Inter,system-ui,sans-serif}*{box-sizing:border-box}
+    body{margin:0;background:#07110d}main{max-width:1260px;margin:auto;padding:24px}h1{font-size:clamp(2rem,5vw,3.8rem);margin:.25rem 0}.eyebrow{color:#8dd7ad;letter-spacing:.14em;text-transform:uppercase;font-size:.76rem}.muted{color:#9fb1a8}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin:20px 0}.card,.panel{border:1px solid #214032;background:#0b1712;border-radius:18px;padding:18px}.metric{font-size:1.7rem;font-weight:800}.good{color:#85e0aa}.amber{color:#f0c778}details{border:1px solid #214032;border-radius:14px;padding:14px;background:#0a1510;margin:10px 0}summary{cursor:pointer;font-weight:700}label{display:block;color:#a9bbb2;font-size:.82rem;margin-top:10px}input,select,button{width:100%;border:1px solid #315344;background:#0d1d16;color:white;border-radius:10px;padding:11px;margin-top:5px}button{background:#15462f;cursor:pointer;font-weight:700}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.records{overflow:auto}.records table{width:100%;border-collapse:collapse;min-width:720px}.records th,.records td{text-align:left;padding:9px;border-bottom:1px solid #1d3329;font-size:.86rem}.result{white-space:pre-wrap;color:#a7cdb8;font-family:ui-monospace,monospace;font-size:.8rem;margin-top:10px}.truth{border-left:3px solid #315b46;padding-left:12px;color:#9fb1a8}
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Founder · OAP Direct Supplier Control</div>
+  <h1>Supply → Availability → Reservation</h1>
+  <p class="muted">Create real direct suppliers without depending on Booking.com. Supplier certification and listing activation remain Human Authority actions.</p>
+
+  <section class="grid">
+    <div class="card"><div class="muted">Schema</div><div class="metric {{ 'good' if supply.core.schema_ready else 'amber' }}">{{ 'LIVE' if supply.core.schema_ready else 'PENDING' }}</div></div>
+    <div class="card"><div class="muted">Certified suppliers</div><div class="metric">{{ supply.core.certified_supplier_count }}</div></div>
+    <div class="card"><div class="muted">Active listings</div><div class="metric">{{ supply.core.active_listing_count }}</div></div>
+    <div class="card"><div class="muted">Live inventory</div><div class="metric">{{ supply.core.live_inventory_slot_count }}</div></div>
+    <div class="card"><div class="muted">Confirmed reservations</div><div class="metric">{{ supply.core.confirmed_reservation_count }}</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Founder actions</h2>
+    <p class="truth">Use real active OAP identity UUIDs only. No fake supplier records are seeded automatically.</p>
+
+    <details open><summary>1 · Create or update supplier</summary>
+      <form data-endpoint="/mission/supply/suppliers">
+        <div class="row"><label>Owner identity UUID<input name="owner_identity_id" required></label><label>Display name<input name="display_name" required maxlength="180"></label><label>Type<select name="supplier_type"><option>accommodation</option><option>experience</option><option>mobility</option><option>venue</option><option>mixed</option></select></label></div>
+        <button>Create supplier</button><div class="result"></div>
+      </form>
+    </details>
+
+    <details><summary>2 · Submit supplier for review</summary>
+      <form data-endpoint="/mission/supply/suppliers/review">
+        <div class="row"><label>Owner identity UUID<input name="owner_identity_id" required></label><label>Supplier UUID<input name="supplier_id" required></label></div>
+        <button>Send to review</button><div class="result"></div>
+      </form>
+    </details>
+
+    <details><summary>3 · Certify supplier + terms</summary>
+      <form data-endpoint="/mission/supply/suppliers/certify" data-human="1">
+        <div class="row"><label>Supplier UUID<input name="supplier_id" required></label><label>Commission bps<input name="commission_basis_points" type="number" min="0" max="10000" value="0"></label><label>Service fee bps<input name="service_fee_basis_points" type="number" min="0" max="10000" value="0"></label><label>Terms version<input name="terms_version" value="v1"></label></div>
+        <button>Human Authority · Certify</button><div class="result"></div>
+      </form>
+    </details>
+
+    <details><summary>4 · Create listing</summary>
+      <form data-endpoint="/mission/supply/listings">
+        <div class="row"><label>Owner identity UUID<input name="owner_identity_id" required></label><label>Supplier UUID<input name="supplier_id" required></label><label>Category<select name="category"><option>stay</option><option>attraction</option><option>activity</option><option>car_rental</option><option>transport</option><option>event</option></select></label><label>Title<input name="title" required></label><label>Place<input name="place_label" required></label><label>Country<input name="country" required></label><label>Postcode<input name="postcode"></label><label>Borough<input name="borough"></label><label>Idempotency key<input name="idempotency_key" required placeholder="supplier-listing-001"></label></div>
+        <label>Description<input name="description"></label><button>Create listing</button><div class="result"></div>
+      </form>
+    </details>
+
+    <details><summary>5 · Activate listing</summary>
+      <form data-endpoint="/mission/supply/listings/activate" data-human="1">
+        <div class="row"><label>Owner identity UUID<input name="owner_identity_id" required></label><label>Listing UUID<input name="listing_id" required></label></div>
+        <button>Human Authority · Activate</button><div class="result"></div>
+      </form>
+    </details>
+
+    <details><summary>6 · Publish availability + pricing</summary>
+      <form data-endpoint="/mission/supply/inventory">
+        <div class="row"><label>Owner identity UUID<input name="owner_identity_id" required></label><label>Listing UUID<input name="listing_id" required></label><label>Starts at<input name="starts_at" type="datetime-local" required></label><label>Ends at<input name="ends_at" type="datetime-local" required></label><label>Capacity<input name="capacity_total" type="number" min="1" value="1" required></label><label>Price minor units<input name="price_minor" type="number" min="0" value="0" required></label><label>Currency<input name="currency" value="GBP" maxlength="3" required></label><label>Price basis<input name="price_basis" value="per booking" required></label></div>
+        <button>Publish availability</button><div class="result"></div>
+      </form>
+    </details>
+  </section>
+
+  <section class="panel records"><h2>Suppliers</h2><table><tr><th>Name</th><th>Type</th><th>State</th><th>Terms</th><th>Supplier ID</th></tr>{% for x in supply.suppliers %}<tr><td>{{ x.display_name }}</td><td>{{ x.supplier_type }}</td><td>{{ x.state }}</td><td>{{ x.commercial_terms_state }}</td><td>{{ x.supplier_id }}</td></tr>{% else %}<tr><td colspan="5">No suppliers yet.</td></tr>{% endfor %}</table></section>
+  <section class="panel records"><h2>Listings</h2><table><tr><th>Title</th><th>Category</th><th>Place</th><th>State</th><th>Listing ID</th></tr>{% for x in supply.listings %}<tr><td>{{ x.title }}</td><td>{{ x.category }}</td><td>{{ x.place_label }}, {{ x.country }}</td><td>{{ x.state }}</td><td>{{ x.listing_id }}</td></tr>{% else %}<tr><td colspan="5">No listings yet.</td></tr>{% endfor %}</table></section>
+  <section class="panel records"><h2>Inventory</h2><table><tr><th>Listing</th><th>Window</th><th>Capacity</th><th>Price</th><th>State</th></tr>{% for x in supply.inventory %}<tr><td>{{ x.listing_title }}</td><td>{{ x.starts_at[:16] }} → {{ x.ends_at[:16] }}</td><td>{{ x.capacity_total }} / held {{ x.capacity_held }} / confirmed {{ x.capacity_confirmed }}</td><td>{{ '%.2f'|format(x.price_minor / 100) }} {{ x.currency }}</td><td>{{ x.state }}</td></tr>{% else %}<tr><td colspan="5">No inventory yet.</td></tr>{% endfor %}</table></section>
+  <section class="panel records"><h2>Reservations</h2><table><tr><th>Listing</th><th>Supplier</th><th>Qty</th><th>State</th><th>Payment</th><th>Pass</th></tr>{% for x in supply.reservations %}<tr><td>{{ x.listing_title }}</td><td>{{ x.supplier_name }}</td><td>{{ x.quantity }}</td><td>{{ x.state }}</td><td>{{ x.payment_state }}</td><td>{{ x.pass_state }}</td></tr>{% else %}<tr><td colspan="6">No reservations yet.</td></tr>{% endfor %}</table></section>
+
+  <p class="truth">Public discovery: <a href="/travel/direct">/travel/direct</a>. Only Certified supplier + ACTIVE listing + ACTIVE future inventory is exposed. Buyer identity is not included in the public feed.</p>
+</main>
+<script>
+const csrf={{ csrf_token|tojson }};
+for(const form of document.querySelectorAll('form[data-endpoint]')){
+  form.addEventListener('submit',async(e)=>{
+    e.preventDefault(); const out=form.querySelector('.result'); out.textContent='Working…';
+    const data=Object.fromEntries(new FormData(form).entries());
+    if(form.dataset.human==='1') data.human_authority_approved=true;
+    for(const k of ['commission_basis_points','service_fee_basis_points','capacity_total','price_minor']) if(k in data) data[k]=Number(data[k]);
+    try{const r=await fetch(form.dataset.endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-OAP-CSRF':csrf},body:JSON.stringify(data)});const body=await r.json();out.textContent=JSON.stringify(body,null,2);if(r.ok)setTimeout(()=>location.reload(),700)}catch(err){out.textContent=String(err)}
+  });
+}
+</script>
+</body>
+</html>
