@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 CONNECTIVITY_CAPABILITIES: tuple[dict[str, Any], ...] = (
     {
         "id": "6g",
