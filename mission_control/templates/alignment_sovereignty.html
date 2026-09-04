@@ -43,7 +43,7 @@
         <article class="align-card"><h3>A4 state</h3><p class="state {{ 'oap-command-status-good' if autonomy.a4_enabled else 'oap-command-status-amber' }}">{{ '🟢 ENABLED' if autonomy.a4_enabled else '🟡 NOT ACTIVE' }}</p><p>Longer supervised workflows may use only the same pre-authorised reversible A3 runtime actions.</p></article>
         <article class="align-card"><h3>Workflow bounds</h3><p><strong>Max {{ autonomy.a4_max_workflow_steps }} steps</strong><br>Checkpoint every {{ autonomy.a4_checkpoint_every }} steps<br>Audit + supervision required</p></article>
         <article class="align-card"><h3>Allowed runtime actions</h3><p>{% for action in autonomy.a4_workflow_actions %}<strong>{{ action }}</strong>{% if not loop.last %}<br>{% endif %}{% endfor %}</p></article>
-        <article class="align-card"><h3>A5 / consequential</h3><p class="state">🔒 LOCKED</p><p>No autonomous payments, deploys, public publishing, auth changes, production migrations, permission changes or real-world dispatch.</p></article>
+        <article class="align-card"><h3>A4 / A5 boundary</h3><p class="state">A4 🟢 · A5 🔒</p><p>A4 stays inside bounded supervised runtime work. A5 broad autonomy and all consequential actions remain locked.</p></article>
       </div>
     </section>
 
