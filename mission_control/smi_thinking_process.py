@@ -81,23 +81,32 @@ def _stage(stage_id: str) -> dict[str, str]:
     return next(item for item in THINKING_STAGES if item["id"] == stage_id)
 
 
+def stage_event(stage_id: object, *, source_stage: object = "runtime") -> dict[str, Any]:
+    """Return one safe observable stage event from the canonical seven-stage process."""
+
+    requested = str(stage_id or "").strip().casefold()
+    valid_ids = {item["id"] for item in THINKING_STAGES}
+    resolved = requested if requested in valid_ids else "understand"
+    definition = _stage(resolved)
+    signal = live_signals.get_signal(definition["signal"])
+    return {
+        "stage": resolved,
+        "stage_name": definition["name"],
+        "label": f"{signal['emoji']} {definition['public_label']}",
+        "summary": definition["purpose"],
+        "signal": signal,
+        "source_stage": str(source_stage or "runtime")[:80],
+        "private_reasoning_exposed": False,
+        "chain_of_thought": False,
+    }
+
+
 def public_stage_event(core_stage: object, fallback_label: object = "") -> dict[str, Any]:
     """Translate one low-level runtime event into a safe SMI work-stage event."""
 
     raw = str(core_stage or "").strip().casefold()
     stage_id = CORE_EVENT_STAGE_MAP.get(raw, "understand")
-    definition = _stage(stage_id)
-    signal = live_signals.get_signal(definition["signal"])
-    return {
-        "stage": stage_id,
-        "stage_name": definition["name"],
-        "label": f"{signal['emoji']} {definition['public_label']}",
-        "summary": definition["purpose"],
-        "signal": signal,
-        "source_stage": raw or str(fallback_label or "runtime"),
-        "private_reasoning_exposed": False,
-        "chain_of_thought": False,
-    }
+    return stage_event(stage_id, source_stage=raw or fallback_label or "runtime")
 
 
 def process_contract() -> dict[str, Any]:
@@ -210,7 +219,8 @@ def validate() -> dict[str, Any]:
         errors.append("SMI Thinking Process must contain exactly seven observable stages")
     if len(ids) != len(set(ids)):
         errors.append("SMI Thinking Process stage IDs must be unique")
-    if any(item["signal"] not in {signal["id"] for signal in live_signals.LIVE_SIGNALS} for item in THINKING_STAGES):
+    canonical_signal_ids = {signal["id"] for signal in live_signals.LIVE_SIGNALS}
+    if any(item["signal"] not in canonical_signal_ids for item in THINKING_STAGES):
         errors.append("Every SMI Thinking Process stage must use a canonical OAP core signal")
     return {
         "passed": not errors,
