@@ -4,8 +4,10 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, request
 
 from . import link_activity, product_store, public_store, web_security
+from .link_circle_routes import bp as link_circle_bp
 
 bp = Blueprint("link_message_state", __name__)
+bp.register_blueprint(link_circle_bp)
 
 MESSAGE_ERRORS = (
     TypeError,
