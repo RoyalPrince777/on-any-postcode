@@ -1,4 +1,4 @@
-"""Governed OAP autonomy levels and the first bounded A3 pilot policy.
+"""Governed OAP autonomy levels and the bounded A3 runtime policy.
 
 A3 means a pre-authorised, reversible, audited and fail-closed action may run
 without a fresh Human Authority approval for every individual occurrence.
@@ -20,7 +20,7 @@ AUTONOMY_LEVELS = {
     "A5": "Broad autonomous operation",
 }
 
-DEFAULT_AUTONOMY_LEVEL = "A2"
+DEFAULT_AUTONOMY_LEVEL = "A3"
 A3_PILOT_ACTIONS = frozenset({"RUNTIME_HEARTBEAT", "RUNTIME_HEALTH_PROBE"})
 A3_FORBIDDEN_DOMAINS = frozenset(
     {
@@ -37,13 +37,13 @@ A3_FORBIDDEN_DOMAINS = frozenset(
 
 
 def configured_level() -> str:
-    """Return the explicit autonomy level, failing closed to A2."""
+    """Return the explicit autonomy level, defaulting to the bounded A3 pilot."""
     level = os.environ.get("OAP_AUTONOMY_LEVEL", DEFAULT_AUTONOMY_LEVEL).strip().upper()
     return level if level in AUTONOMY_LEVELS else DEFAULT_AUTONOMY_LEVEL
 
 
 def evaluate_a3_runtime_job(job_type: str) -> dict[str, object]:
-    """Evaluate one runtime job against the first A3 pilot boundary."""
+    """Evaluate one runtime job against the A3 allowlist and hard boundaries."""
     normalized = str(job_type).strip().upper()
     level = configured_level()
     allowlisted = normalized in A3_PILOT_ACTIONS and normalized in ALLOWED_JOB_TYPES
