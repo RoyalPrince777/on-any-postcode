@@ -5,91 +5,83 @@ import pytest
 from oap.smi import supply_integration
 
 
-def _offer(**overrides):
+def _observation(**overrides):
     payload = {
-        "provider_id": "booking_com",
+        "source_name": "External Travel Source",
         "category": "stay",
-        "source_offer_id": "stay-123",
         "title": "Example Stay",
         "place_label": "London, United Kingdom",
-        "availability_state": "available",
         "observed_at": datetime.now(UTC).isoformat(),
-        "source_url": "https://www.booking.com/example",
-        "currency": "GBP",
-        "total_price": 250.0,
-        "price_basis": "2 nights total",
+        "source_url": "https://example.com/stay/123",
     }
     payload.update(overrides)
     return payload
 
 
-def test_provider_registry_is_replaceable_and_has_no_oap_authority():
+def test_external_provider_registry_is_intentionally_empty():
     validation = supply_integration.validate_supply_integration()
-    providers = supply_integration.providers()
 
     assert validation["passed"] is True
+    assert supply_integration.providers() == ()
+    assert validation["provider_count"] == 0
+    assert validation["external_data_fetch_allowed"] is True
+    assert validation["external_catalogue_ingest_allowed"] is False
+    assert validation["external_provider_authority"] is False
     assert validation["creates_intelligence_worlds"] is False
     assert validation["creates_agents"] is False
     assert validation["creates_brain"] is False
-    assert validation["external_provider_authority"] is False
-    assert len(providers) == 1
-    assert providers[0].provider_id == "booking_com"
-    assert providers[0].categories == ("stay", "attraction", "car_rental")
-    assert providers[0].external_authority is False
-    assert providers[0].supports_direct_booking is False
-    assert providers[0].supports_payment is False
 
 
-def test_offer_requires_source_provenance_and_observation_time():
-    record = supply_integration.offer_record(_offer())
+def test_external_observation_keeps_research_boundary():
+    record = supply_integration.external_observation_record(_observation())
 
-    assert record["provider_id"] == "booking_com"
-    assert record["observed_not_inferred"] is True
-    assert record["provider_authority"] is False
-    assert record["oap_authority"] is True
+    assert record["source_name"] == "External Travel Source"
+    assert record["research_only"] is True
+    assert record["catalogue_ingest_authorized"] is False
     assert record["booking_execution_authorized"] is False
     assert record["payment_execution_authorized"] is False
+    assert record["external_provider_authority"] is False
+    assert record["human_authority_final"] is True
 
+
+def test_external_observation_requires_https_and_observation_time():
     with pytest.raises(ValueError, match="https_source_url_required"):
-        supply_integration.normalize_offer(_offer(source_url="http://example.com"))
+        supply_integration.normalize_external_observation(
+            _observation(source_url="http://example.com")
+        )
 
     with pytest.raises(ValueError, match="valid_observed_at_required"):
-        supply_integration.normalize_offer(_offer(observed_at="not-a-time"))
-
-
-def test_price_requires_currency_and_basis():
-    with pytest.raises(ValueError, match="iso_currency_required_for_price"):
-        supply_integration.normalize_offer(_offer(currency=None))
-
-    with pytest.raises(ValueError, match="price_basis_required"):
-        supply_integration.normalize_offer(_offer(price_basis=None))
-
-    with pytest.raises(ValueError, match="total_price_cannot_be_negative"):
-        supply_integration.normalize_offer(_offer(total_price=-1))
-
-
-def test_unknown_provider_and_category_fail_closed():
-    with pytest.raises(ValueError, match="unknown_supply_provider"):
-        supply_integration.normalize_offer(_offer(provider_id="unknown"))
+        supply_integration.normalize_external_observation(
+            _observation(observed_at="not-a-time")
+        )
 
     with pytest.raises(ValueError, match="unsupported_supply_category"):
-        supply_integration.normalize_offer(_offer(category="flight"))
+        supply_integration.normalize_external_observation(
+            _observation(category="flight")
+        )
 
 
-def test_runtime_supply_defaults_to_disconnected(monkeypatch):
-    for suffix in (
-        "CONNECTED",
-        "SEARCH_CERTIFIED",
-        "COMMERCIAL_TERMS_CERTIFIED",
-        "BOOKING_CERTIFIED",
-    ):
-        monkeypatch.delenv(f"OAP_SUPPLY_BOOKING_COM_{suffix}", raising=False)
+def test_unregistered_marketplace_offer_cannot_enter_catalogue():
+    with pytest.raises(ValueError, match="unknown_supply_provider"):
+        supply_integration.normalize_offer(
+            {
+                "provider_id": "booking_com",
+                "category": "stay",
+                "source_offer_id": "stay-123",
+                "title": "Example Stay",
+                "place_label": "London",
+                "availability_state": "available",
+                "observed_at": datetime.now(UTC).isoformat(),
+                "source_url": "https://example.com/stay/123",
+            }
+        )
 
+
+def test_runtime_status_has_no_external_commercial_provider():
     current = supply_integration.status()
-    provider = current["providers"][0]
 
     assert current["adapter_framework_ready"] is True
-    assert current["provider_count"] == 1
+    assert current["provider_count"] == 0
     assert current["runtime_connected_count"] == 0
     assert current["live_search_provider_count"] == 0
     assert current["direct_booking_provider_count"] == 0
@@ -97,24 +89,7 @@ def test_runtime_supply_defaults_to_disconnected(monkeypatch):
     assert current["booking_transactions_live"] is False
     assert current["payment_transactions_live"] is False
     assert current["commission_settlement_live"] is False
-    assert provider["runtime_connected"] is False
-    assert provider["live_search_certified"] is False
-    assert provider["direct_booking_certified"] is False
+    assert current["external_data_fetch_allowed"] is True
+    assert current["external_catalogue_ingest_allowed"] is False
     assert current["external_provider_authority"] is False
     assert current["human_authority_final"] is True
-
-
-def test_connected_search_does_not_grant_booking_or_payment(monkeypatch):
-    monkeypatch.setenv("OAP_SUPPLY_BOOKING_COM_CONNECTED", "1")
-    monkeypatch.setenv("OAP_SUPPLY_BOOKING_COM_SEARCH_CERTIFIED", "1")
-    monkeypatch.setenv("OAP_SUPPLY_BOOKING_COM_COMMERCIAL_TERMS_CERTIFIED", "1")
-    monkeypatch.setenv("OAP_SUPPLY_BOOKING_COM_BOOKING_CERTIFIED", "1")
-
-    current = supply_integration.status()
-    provider = current["providers"][0]
-
-    assert current["live_supply_connected"] is True
-    assert provider["live_search_certified"] is True
-    assert provider["direct_booking_certified"] is False
-    assert current["booking_transactions_live"] is False
-    assert current["payment_transactions_live"] is False
