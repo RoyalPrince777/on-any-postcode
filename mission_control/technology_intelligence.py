@@ -13,7 +13,9 @@ from typing import Any
 from .connectivity_runtime import connectivity_runtime_status
 from .humanitarian_connectivity import humanitarian_connectivity_status
 from .infrastructure_intelligence import infrastructure_intelligence_status
-from .international_humanitarian_intelligence import international_humanitarian_intelligence_status
+from .international_humanitarian_intelligence import (
+    international_humanitarian_intelligence_status,
+)
 from .isac_spatial_intelligence import isac_spatial_status
 from .six_g_war_room import six_g_war_room_status
 from .spatial_presence import spatial_presence_status
@@ -98,16 +100,18 @@ def technology_intelligence_status() -> dict[str, Any]:
         and international_humanitarian["architecture_ready"] is True
     )
     six_g = dict(next(item for item in CONNECTIVITY_CAPABILITIES if item["id"] == "6g"))
-    six_g.update({
-        "runtime_ready": runtime["6g_intelligence_runtime_ready"],
-        "testbed_ready": runtime["6g_testbed_ready"],
-        "production_network_ready": runtime["6g_production_network_ready"],
-        "imt_2030_standard_finalized": runtime["imt_2030_standard_finalized"],
-        "war_room": war_room,
-        "isac_spatial": isac,
-        "spatial_presence": presence,
-        "humanitarian_connectivity": humanitarian,
-    })
+    six_g.update(
+        {
+            "runtime_ready": runtime["6g_intelligence_runtime_ready"],
+            "testbed_ready": runtime["6g_testbed_ready"],
+            "production_network_ready": runtime["6g_production_network_ready"],
+            "imt_2030_standard_finalized": runtime["imt_2030_standard_finalized"],
+            "war_room": war_room,
+            "isac_spatial": isac,
+            "spatial_presence": presence,
+            "humanitarian_connectivity": humanitarian,
+        }
+    )
     return {
         "id": "technology",
         "name": "Technology Intelligence",
