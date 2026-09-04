@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template
+
 from oap.smi import intelligence_capability_registry, sovereign_controls
 
 from . import agents as agent_registry
