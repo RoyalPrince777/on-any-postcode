@@ -9,7 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import booking_orchestrator, intelligence_capability_registry, supply_integration, supply_source_policy
+from . import (
+    booking_orchestrator,
+    intelligence_capability_registry,
+    supply_integration,
+    supply_source_policy,
+)
 
 TRAVEL_AGENCY_REVISION = "2026-09-04-v6"
 
