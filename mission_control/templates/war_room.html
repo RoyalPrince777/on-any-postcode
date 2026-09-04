@@ -3,15 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAP War Room</title>
+  <title>OAP Master War Room</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    .mc-master-grid,.mc-master-gates,.mc-master-boards,.mc-master-capabilities,.mc-master-scenarios,.mc-master-challenge{display:grid;gap:12px}.mc-master-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}.mc-master-gates{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.mc-master-boards{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.mc-master-capabilities{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}.mc-master-scenarios,.mc-master-challenge{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.mc-master-card,.mc-master-gate,.mc-master-board,.mc-master-capability,.mc-master-scenario,.mc-master-role{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(255,255,255,.035)}.mc-master-card strong,.mc-master-gate strong,.mc-master-board strong,.mc-master-role strong{display:block;margin-bottom:5px}.mc-master-kicker{font-size:.76rem;text-transform:uppercase;letter-spacing:.12em;opacity:.72}.mc-master-target{font-size:2rem;font-weight:800}.mc-master-rule{border-left:4px solid currentColor;padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.045);font-weight:700}.mc-master-chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.mc-master-chain span{padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:999px}.mc-master-chain b{opacity:.55}.mc-master-status{display:inline-block;margin-top:8px;font-size:.78rem;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.15)}.mc-master-note{opacity:.76;font-size:.88rem}.mc-master-section details{margin-top:10px}.mc-master-section summary{cursor:pointer;font-weight:700}.mc-master-decision{display:flex;flex-wrap:wrap;gap:8px}.mc-master-decision span{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.14)}
+  </style>
 </head>
 <body class="mc-workspace-body mc-war-room-body">
   <header class="mc-workspace-header mc-war-room-header">
     <div>
       <p class="mc-eyebrow">Founder only / First-party / Read-only / Evidence command</p>
-      <h1>OAP War Room</h1>
-      <p>Everything in one governed view: proof, star rating, blocker, signal and next gate.</p>
+      <h1>OAP Master War Room</h1>
+      <p>Whole-organism simulation, evidence, resilience and 7★ readiness command view.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
@@ -22,216 +25,172 @@
   </header>
 
   <main class="mc-workspace mc-war-room-workspace">
+    <section class="mc-panel mc-master-section" aria-labelledby="master-status-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Master command picture</p>
+          <h2 id="master-status-title">7★ whole-organism readiness</h2>
+          <p>The target is 7/7★. A checkpoint only turns Certified when its required evidence exists; target state is never substituted for live proof.</p>
+        </div>
+        <span class="mc-lock-badge">Human Authority final</span>
+      </div>
+      <div class="mc-master-grid">
+        <article class="mc-master-card"><span class="mc-master-kicker">Target</span><strong class="mc-master-target">7/7★</strong><small>Whole organism</small></article>
+        <article class="mc-master-card"><span class="mc-master-kicker">Current evidence</span><strong class="mc-master-target">{{ war_room.summary.overall_evidence_score }}%</strong><small>{{ war_room.summary.rated_areas }} rated areas</small></article>
+        <article class="mc-master-card"><span class="mc-master-kicker">Guardian</span><strong>{{ '🟢 Scope clear' if war_room.validation.passed else '🔴 Review required' }}</strong><small>{{ war_room.validation.checks.active_conflicts }} active conflicts</small></article>
+        <article class="mc-master-card"><span class="mc-master-kicker">Authority</span><strong>👑 Human Authority</strong><small>No consequential execution from this page</small></article>
+        <article class="mc-master-card"><span class="mc-master-kicker">Adaptive depth</span><strong>3 / 7 / 21</strong><small>Instant · Full · Deep</small></article>
+        <article class="mc-master-card"><span class="mc-master-kicker">Mode</span><strong>Read-only simulation</strong><small>Evidence and recommendation only</small></article>
+      </div>
+      <p class="mc-master-rule">No evidence = no green. No test = no star. No Human Authority approval = no consequential execution.</p>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-chain-title">
+      <p class="mc-eyebrow">Canonical command chain</p>
+      <h2 id="master-chain-title">Correct system placement</h2>
+      <div class="mc-master-chain" aria-label="OAP Master War Room command chain">
+        <span>👑 Human Authority</span><b>→</b><span>🧠 SMI · exactly 7 Intelligence Worlds</span><b>→</b><span>🚨 Master War Room</span><b>↔</b><span>🛡 Guardian</span><b>↔</b><span>🔗 Nexus</span><b>↔</b><span>🔲 Matrix</span><b>↔</b><span>🧬 HRM</span><b>↔</b><span>🌱 Living Kernel</span><b>↔</b><span>🧪 Laboratory</span><b>→</b><span>⚙️ Governed operations</span><b>→</b><span>✨ Oasis / products</span>
+      </div>
+      <p class="mc-master-note">Matrix remains one Intelligence World and owns its Matrix Intelligence agents. Nexus is the nervous/connective system. Oasis is the environment/presentation layer. Neither Nexus nor Oasis becomes an Intelligence World.</p>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-gates-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Seven independent checkpoints</p><h2 id="master-gates-title">Master 7★ gates</h2><p>These are readiness dimensions, not a replacement for the existing sequential five-stage evidence ladder below.</p></div></div>
+      <div class="mc-master-gates">
+        <article class="mc-master-gate"><strong>⭐ 1 · Purpose</strong><p>Human benefit, need, ownership and clear scope.</p><span class="mc-master-status">Evidence required</span></article>
+        <article class="mc-master-gate"><strong>⭐ 2 · Architecture</strong><p>Correct World, organ, core, capability, product and authority boundary.</p><span class="mc-master-status">Evidence required</span></article>
+        <article class="mc-master-gate"><strong>⭐ 3 · Functionality</strong><p>Real bounded implementation proves the intended function.</p><span class="mc-master-status">Test required</span></article>
+        <article class="mc-master-gate"><strong>⭐ 4 · Safety & Governance</strong><p>Guardian, privacy, permissions, youth and constitutional boundaries pass.</p><span class="mc-master-status">Guardian required</span></article>
+        <article class="mc-master-gate"><strong>⭐ 5 · Connectivity & Data</strong><p>Nexus dependencies, durable data, provenance and interfaces are healthy.</p><span class="mc-master-status">Runtime evidence required</span></article>
+        <article class="mc-master-gate"><strong>⭐ 6 · Resilience & Operations</strong><p>Pressure, failure, recovery, observability and reversibility are proven.</p><span class="mc-master-status">Stress proof required</span></article>
+        <article class="mc-master-gate"><strong>⭐ 7 · Real-world Readiness</strong><p>Live outcome evidence and required Human Authority approval exist.</p><span class="mc-master-status">Certification required</span></article>
+      </div>
+      <p class="mc-master-note">Checkpoint lifecycle: ⚪ Unknown → 🔴 Blocked → 🟠 Building → 🟡 Conditional → 🟢 Certified.</p>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-depth-title">
+      <p class="mc-eyebrow">Adaptive reasoning depth</p><h2 id="master-depth-title">3 / 7 / 21 War Room protocol</h2>
+      <div class="mc-master-grid">
+        <article class="mc-master-card"><strong>⚡ 3 · Instant</strong><p>Use the smallest three sufficient perspectives for routine, reversible decisions.</p></article>
+        <article class="mc-master-card"><strong>🧠 7 · Full</strong><p>Bring all relevant Intelligence Worlds into consequential cross-system review.</p></article>
+        <article class="mc-master-card"><strong>🔬 21 · Deep</strong><p>Three passes × seven Worlds: Observe → Challenge → Resolve.</p></article>
+      </div>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-lenses-title">
+      <p class="mc-eyebrow">Seven review lenses</p><h2 id="master-lenses-title">Every major scenario is challenged seven ways</h2>
+      <div class="mc-master-gates">
+        <article class="mc-master-gate"><strong>① Purpose & Human Benefit ❤️</strong><p>Why does this exist and who genuinely benefits?</p></article>
+        <article class="mc-master-gate"><strong>② Truth & Evidence 🔎</strong><p>Is the information real, current, sourced and sufficiently verified?</p></article>
+        <article class="mc-master-gate"><strong>③ Safety & Guardian 🛡️</strong><p>What privacy, safety, youth, humanitarian or abuse boundary could fail?</p></article>
+        <article class="mc-master-gate"><strong>④ Architecture & Alignment 🧠</strong><p>Is it correctly placed, coherent and aligned without duplication or drift?</p></article>
+        <article class="mc-master-gate"><strong>⑤ Operations & Resilience ⚙️</strong><p>Dependencies, performance, degradation, recovery and reversibility.</p></article>
+        <article class="mc-master-gate"><strong>⑥ Value & Sustainability 💷</strong><p>Created Value, cost, revenue, resources and sustainable operation.</p></article>
+        <article class="mc-master-gate"><strong>⑦ Authority & Accountability 👑</strong><p>Who approves, who executes, what is recorded and how is it audited?</p></article>
+      </div>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-scenarios-title">
+      <p class="mc-eyebrow">Scenario engine</p><h2 id="master-scenarios-title">Normal is not enough</h2>
+      <div class="mc-master-scenarios">
+        <article class="mc-master-scenario"><strong>🟢 Normal</strong><p>Expected operation.</p></article>
+        <article class="mc-master-scenario"><strong>🟡 Pressure</strong><p>Heavy demand or degraded dependency.</p></article>
+        <article class="mc-master-scenario"><strong>🟠 Failure</strong><p>Primary component unavailable.</p></article>
+        <article class="mc-master-scenario"><strong>🔴 Cascade</strong><p>Multiple connected failures.</p></article>
+        <article class="mc-master-scenario"><strong>🔵 Recovery</strong><p>Restore safely without corrupting state.</p></article>
+        <article class="mc-master-scenario"><strong>🛡️ Adversarial</strong><p>Fraud, manipulation, abuse or hostile input.</p></article>
+        <article class="mc-master-scenario"><strong>🕊️ Humanitarian</strong><p>Civilian-first crisis behaviour with protected location and dignity boundaries.</p></article>
+      </div>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-capabilities-title">
+      <p class="mc-eyebrow">Cross-world capability registry</p><h2 id="master-capabilities-title">Reusable intelligence — not extra Worlds</h2>
+      <div class="mc-master-capabilities">
+        {% for capability in ['Alignment','Laboratory','Travel','Movement','Booking','Events','Place','Stay','Transport','Experience','Availability','Pricing','Commerce','Payment','Identity & Trust','Access','Weather & Environment','Disruption','Communication','Recommendation','Itinerary','Agency','Customer Service','Reputation','Humanitarian','Compliance'] %}
+        <article class="mc-master-capability"><strong>{{ capability }} Intelligence</strong><span class="mc-master-status">Capability</span></article>
+        {% endfor %}
+      </div>
+      <p class="mc-master-note">Travel Agency is a commercial product above Travel + Booking + Commerce. Movement remains broader mobility intelligence. Booking Core owns reservations. Activity/Adventure remains the public OAP language while Events Intelligence can remain the internal technical capability.</p>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-boards-title">
+      <p class="mc-eyebrow">Whole-organism scan</p><h2 id="master-boards-title">Master boards</h2>
+      <div class="mc-master-boards">
+        {% for board in ['🌐 Organism Board','🧠 Intelligence Board','🤖 Agent Board','🔗 Nexus Board','🛡 Guardian Board','🧬 HRM Board','🧪 Laboratory Board','🏗 Infrastructure Board','📦 Product Board','💷 Value Board','🕊 Humanitarian Board','⚠️ Risk Register','📜 Decision Log','🔍 Audit Log'] %}
+        <article class="mc-master-board"><strong>{{ board }}</strong><span class="mc-master-status">Read-only projection</span></article>
+        {% endfor %}
+      </div>
+      <details><summary>Whole-organism scan path</summary><p>Soul → Mind → Body → World → Organ → System → Core → Intelligence → Agent → Capability → Product → Service → Infrastructure → Data → Human.</p></details>
+      <details><summary>Nexus dependency proof</summary><p>Input → Source → Intelligence → Agent → Core → API → Database → Infrastructure → Product → Human. Dependency states: 🟢 healthy · 🟡 degraded · 🔴 broken · ⚪ unknown · 🔒 isolated.</p></details>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-challenge-title">
+      <p class="mc-eyebrow">Challenge chamber</p><h2 id="master-challenge-title">No major recommendation goes unchallenged</h2>
+      <div class="mc-master-challenge">
+        <article class="mc-master-role"><strong>🏗 Builder</strong><p>Strongest case for doing it.</p></article>
+        <article class="mc-master-role"><strong>🛡 Guardian</strong><p>Strongest safety and governance challenge.</p></article>
+        <article class="mc-master-role"><strong>⚙️ Operator</strong><p>Can it actually run and recover?</p></article>
+        <article class="mc-master-role"><strong>🧪 Challenger</strong><p>What is overlooked or contradictory?</p></article>
+        <article class="mc-master-role"><strong>❤️ Human</strong><p>Does it genuinely serve people?</p></article>
+      </div>
+      <p class="mc-master-note">These are review roles, not five new authorities or autonomous agents.</p>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-lab-title">
+      <p class="mc-eyebrow">Laboratory boundary</p><h2 id="master-lab-title">Simulation cannot leak into production</h2>
+      <div class="mc-master-chain"><span>War Room question</span><b>→</b><span>Laboratory</span><b>→</b><span>Experiment</span><b>→</b><span>Simulation</span><b>→</b><span>Evidence</span><b>→</b><span>Evaluation</span><b>→</b><span>War Room</span></div>
+      <p class="mc-war-truth">Synthetic records must remain marked simulation and isolated from production. War Room cannot deploy, spend, book, pay, dispatch, publish, migrate, activate or silently raise agent authority.</p>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-output-title">
+      <p class="mc-eyebrow">Standard decision output</p><h2 id="master-output-title">Master command card</h2>
+      <div class="mc-master-grid">
+        <article class="mc-master-card"><strong>WAR ROOM ID</strong><small>Scenario/version identifier</small></article><article class="mc-master-card"><strong>DEPTH</strong><small>3 / 7 / 21</small></article><article class="mc-master-card"><strong>TARGET</strong><small>System/change under review</small></article><article class="mc-master-card"><strong>CURRENT</strong><small>X / 7★ with evidence</small></article><article class="mc-master-card"><strong>CONFIDENCE</strong><small>Bounded confidence, not certainty</small></article><article class="mc-master-card"><strong>GUARDIAN</strong><small>🟢 Clear · 🟡 Conditional · 🔴 Block · 👑 Escalate</small></article><article class="mc-master-card"><strong>DEPENDENCIES</strong><small>Healthy/degraded/broken/unknown/isolated</small></article><article class="mc-master-card"><strong>BLOCKERS / GAPS</strong><small>Count plus evidence</small></article><article class="mc-master-card"><strong>REVERSIBILITY</strong><small>High / medium / low</small></article><article class="mc-master-card"><strong>HUMAN IMPACT</strong><small>Civilian and user impact</small></article><article class="mc-master-card"><strong>RECOMMENDATION</strong><small>Proceed / conditional / hold / reject</small></article><article class="mc-master-card"><strong>TARGET STATE</strong><small>7/7★ 🟢 Certified</small></article>
+      </div>
+      <div class="mc-master-decision" aria-label="War Room simulation outcomes"><span>🟢 PROCEED simulation</span><span>🟡 HOLD simulation</span><span>🔴 REJECT simulation</span><span>🟠 FAILURE simulation</span><span>🔵 RECOVERY simulation</span></div>
+      <p class="mc-war-truth">Human Authority decision set: APPROVE · APPROVE WITH CONDITIONS · HOLD · REJECT. This page itself exposes no execution control.</p>
+    </section>
+
+    <section class="mc-panel mc-master-section" aria-labelledby="master-after-title">
+      <p class="mc-eyebrow">After-action learning</p><h2 id="master-after-title">Evidence returns to HRM</h2>
+      <div class="mc-master-chain"><span>Decision</span><b>→</b><span>Governed execution</span><b>→</b><span>Receipt</span><b>→</b><span>Observe</span><b>→</b><span>Expected vs actual</span><b>→</b><span>Incident / gap</span><b>→</b><span>HRM lesson</span><b>→</b><span>Capability improvement</span><b>→</b><span>Re-certification</span></div>
+      <p class="mc-master-note">HRM records evidence, decisions, outcomes and lessons — never private chain-of-thought.</p>
+    </section>
+
     <section class="mc-war-command" aria-labelledby="war-command-title">
       <div class="mc-war-command-copy">
-        <p class="mc-eyebrow">Command picture</p>
-        <h2 id="war-command-title">
-          {% if war_room.validation.passed %}Canonical scope verified{% else %}Conflict requires Human review{% endif %}
-        </h2>
+        <p class="mc-eyebrow">Existing evidence engine</p>
+        <h2 id="war-command-title">{% if war_room.validation.passed %}Canonical scope verified{% else %}Conflict requires Human review{% endif %}</h2>
         <p>{{ war_room.summary.meaning }}</p>
         <p class="mc-war-truth">First-party rule: OAP owns the War Room, scoring, signal language and judgement model. Outside information is evidence only and cannot become OAP identity, authority or execution.</p>
       </div>
       <dl class="mc-war-metrics">
-        <div>
-          <dt>Evidence score</dt>
-          <dd>{{ war_room.summary.overall_evidence_score }}%</dd>
-          <small>Portfolio view</small>
-        </div>
-        <div>
-          <dt>Average</dt>
-          <dd>{{ war_room.summary.average_stars }}/5</dd>
-          <small>Across {{ war_room.summary.rated_areas }} areas</small>
-        </div>
-        <div>
-          <dt>Runtime verified</dt>
-          <dd>{{ war_room.summary.runtime_verified }}</dd>
-          <small>Four stars or higher</small>
-        </div>
-        <div>
-          <dt>Certified</dt>
-          <dd>{{ war_room.summary.operationally_certified }}</dd>
-          <small>Five-star evidence</small>
-        </div>
-        <div>
-          <dt>Active conflicts</dt>
-          <dd>{{ war_room.validation.checks.active_conflicts }}</dd>
-          <small>Duplicates included</small>
-        </div>
+        <div><dt>Evidence score</dt><dd>{{ war_room.summary.overall_evidence_score }}%</dd><small>Portfolio view</small></div>
+        <div><dt>Legacy evidence average</dt><dd>{{ war_room.summary.average_stars }}/5</dd><small>Sequential implementation evidence</small></div>
+        <div><dt>Runtime verified</dt><dd>{{ war_room.summary.runtime_verified }}</dd><small>Four stars or higher</small></div>
+        <div><dt>Certified</dt><dd>{{ war_room.summary.operationally_certified }}</dd><small>Five-stage evidence certification</small></div>
+        <div><dt>Active conflicts</dt><dd>{{ war_room.validation.checks.active_conflicts }}</dd><small>Duplicates included</small></div>
       </dl>
     </section>
 
-    {% if war_room.validation.errors %}
-    <section class="mc-panel mc-war-alert" aria-labelledby="war-errors-title">
-      <h2 id="war-errors-title">Fail-closed findings</h2>
-      <ul>
-        {% for error in war_room.validation.errors %}<li>{{ error }}</li>{% endfor %}
-      </ul>
-    </section>
-    {% endif %}
-
+    {% if war_room.validation.errors %}<section class="mc-panel mc-war-alert" aria-labelledby="war-errors-title"><h2 id="war-errors-title">Fail-closed findings</h2><ul>{% for error in war_room.validation.errors %}<li>{{ error }}</li>{% endfor %}</ul></section>{% endif %}
     {% include "_live_signal_legend.html" %}
 
-    <section class="mc-panel" aria-labelledby="war-a3-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">A3 bounded pilot</p>
-          <h2 id="war-a3-title">Policy ready · runtime proof still required</h2>
-          <p>Only <code>RUNTIME_HEARTBEAT</code> and <code>RUNTIME_HEALTH_PROBE</code> are eligible. The 24/7 Organism Runtime card must show a fresh worker heartbeat before A3 is treated as operational.</p>
-        </div>
-        <span class="mc-lock-badge mc-lock-badge--amber">A2 until worker activation</span>
-      </div>
-      <p class="mc-war-truth">A4 / A5 remain locked. Human Authority remains final; money, migrations, auth, dispatch, publishing and unreviewed deploys remain outside A3.</p>
-    </section>
+    <section class="mc-panel" aria-labelledby="war-a3-title"><div class="mc-section-heading"><div><p class="mc-eyebrow">A3 bounded pilot</p><h2 id="war-a3-title">Policy ready · runtime proof still required</h2><p>Only <code>RUNTIME_HEARTBEAT</code> and <code>RUNTIME_HEALTH_PROBE</code> are eligible. The 24/7 Organism Runtime card must show a fresh worker heartbeat before A3 is treated as operational.</p></div><span class="mc-lock-badge mc-lock-badge--amber">A2 until worker activation</span></div><p class="mc-war-truth">A4 / A5 remain locked. Human Authority remains final; money, migrations, auth, dispatch, publishing and unreviewed deploys remain outside A3.</p></section>
 
-    <section class="mc-panel mc-war-priorities" aria-labelledby="war-priorities-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Impact × readiness</p>
-          <h2 id="war-priorities-title">Highest-value next three</h2>
-          <p>These advance the real organism more than adding another simulated layer.</p>
-        </div>
-        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
-      </div>
-      <ol class="mc-war-priority-grid">
-        {% for item in war_room.top_next %}
-        <li class="mc-war-priority mc-war-priority--{{ 'yellow' if item.signal == 'purple' else item.signal }}">
-          <span class="mc-war-rank">{{ item.rank }}</span>
-          <div>
-            <h3>{{ item.name }}</h3>
-            <p class="mc-war-stars" aria-label="{{ item.stars }} out of 5 stars">{{ item.stars_display }}</p>
-            <p>{{ item.next_gate }}</p>
-            <small>Impact {{ item.impact }}/5 · Human approval required</small>
-          </div>
-        </li>
-        {% endfor %}
-      </ol>
-    </section>
+    <section class="mc-panel mc-war-priorities" aria-labelledby="war-priorities-title"><div class="mc-section-heading"><div><p class="mc-eyebrow">Impact × readiness</p><h2 id="war-priorities-title">Highest-value next three</h2><p>These advance the real organism more than adding another simulated layer.</p></div><span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span></div><ol class="mc-war-priority-grid">{% for item in war_room.top_next %}<li class="mc-war-priority mc-war-priority--{{ 'yellow' if item.signal == 'purple' else item.signal }}"><span class="mc-war-rank">{{ item.rank }}</span><div><h3>{{ item.name }}</h3><p class="mc-war-stars" aria-label="{{ item.stars }} out of 5 stars">{{ item.stars_display }}</p><p>{{ item.next_gate }}</p><small>Impact {{ item.impact }}/5 · Human approval required</small></div></li>{% endfor %}</ol></section>
 
-    <section class="mc-panel" aria-labelledby="war-rubric-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">No false green</p>
-          <h2 id="war-rubric-title">Five-stage evidence law</h2>
-          <p>A later stage cannot skip an earlier missing stage. 🟣 remains Learning only; proof-verified is shown as 🔵 until runtime evidence reaches green.</p>
-        </div>
-      </div>
-      <ol class="mc-war-rubric">
-        {% for level in war_room.rubric if level.stars > 0 %}
-        {% set display_signal = 'yellow' if level.signal == 'purple' else level.signal %}
-        {% set display_icon = '🔵' if level.signal == 'purple' else ('🟢' if level.signal == 'green' else ('🟡' if level.signal == 'yellow' else ('🟠' if level.signal == 'amber' else '🔴'))) %}
-        <li class="mc-war-rubric--{{ display_signal }}">
-          <span class="mc-war-stars" aria-hidden="true">{{ '★' * level.stars }}{{ '☆' * (5 - level.stars) }}</span>
-          <strong>{{ display_icon }} {{ level.label }}</strong>
-          <small>{{ level.meaning }}</small>
-        </li>
-        {% endfor %}
-      </ol>
-    </section>
+    <section class="mc-panel" aria-labelledby="war-rubric-title"><div class="mc-section-heading"><div><p class="mc-eyebrow">No false green</p><h2 id="war-rubric-title">Five-stage implementation evidence law</h2><p>This legacy sequential ladder remains the runtime evidence engine underneath the independent Master 7★ readiness gates.</p></div></div><ol class="mc-war-rubric">{% for level in war_room.rubric if level.stars > 0 %}{% set display_signal = 'yellow' if level.signal == 'purple' else level.signal %}{% set display_icon = '🔵' if level.signal == 'purple' else ('🟢' if level.signal == 'green' else ('🟡' if level.signal == 'yellow' else ('🟠' if level.signal == 'amber' else '🔴'))) %}<li class="mc-war-rubric--{{ display_signal }}"><span class="mc-war-stars" aria-hidden="true">{{ '★' * level.stars }}{{ '☆' * (5 - level.stars) }}</span><strong>{{ display_icon }} {{ level.label }}</strong><small>{{ level.meaning }}</small></li>{% endfor %}</ol></section>
 
-    <nav class="mc-war-category-nav" aria-label="War Room categories">
-      {% for category in war_room.categories %}
-      <a href="#{{ category.id }}">
-        <strong>{{ category.name }}</strong>
-        <span>{{ category.count }} areas · {{ category.average_stars }}/5</span>
-      </a>
-      {% endfor %}
-    </nav>
+    <nav class="mc-war-category-nav" aria-label="War Room categories">{% for category in war_room.categories %}<a href="#{{ category.id }}"><strong>{{ category.name }}</strong><span>{{ category.count }} areas · {{ category.average_stars }}/5</span></a>{% endfor %}</nav>
 
-    {% for category in war_room.categories %}
-    <section class="mc-panel mc-war-category" id="{{ category.id }}" aria-labelledby="{{ category.id }}-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">{{ category.count }} rated areas</p>
-          <h2 id="{{ category.id }}-title">{{ category.name }}</h2>
-        </div>
-        <div class="mc-war-category-score">
-          <strong>{{ category.average_stars }}/5</strong>
-          <span>{{ category.runtime_verified }} runtime · {{ category.certified }} certified</span>
-        </div>
-      </div>
-      <div class="mc-war-rating-grid" role="list">
-        {% for item in category["items"] %}
-        {% set display_signal = 'yellow' if item.signal == 'purple' else item.signal %}
-        {% set display_icon = '🔵' if item.signal == 'purple' else ('🟢' if item.signal == 'green' else ('🟡' if item.signal == 'yellow' else ('🟠' if item.signal == 'amber' else '🔴'))) %}
-        <article class="mc-war-rating mc-war-rating--{{ display_signal }}" role="listitem">
-          <div class="mc-war-rating-head">
-            <div>
-              {% if item.parent %}<p class="mc-war-parent">Inside {{ item.parent }}</p>{% endif %}
-              <h3>{{ item.name }}</h3>
-            </div>
-            <span class="mc-war-rating-label">{{ display_icon }} {{ item.label }}</span>
-          </div>
-          <p class="mc-war-stars" aria-label="{{ item.stars }} out of 5 stars">{{ item.stars_display }}</p>
-          <p>{{ item.summary }}</p>
-          {% if item.truth_boundary %}<p class="mc-war-truth">Truth: {{ item.truth_boundary }}</p>{% endif %}
-          <div class="mc-war-next">
-            <span>Next gate</span>
-            <strong>{{ item.next_gate }}</strong>
-          </div>
-          <details class="mc-war-evidence">
-            <summary>View five evidence stages</summary>
-            <ol>
-              {% for stage in item.stages %}
-              <li class="{{ 'is-passed' if stage.passed else 'is-pending' }}">
-                <span aria-hidden="true">{{ '●' if stage.passed else '○' }}</span>
-                <div><strong>{{ stage.stage }}</strong><small>{{ stage.evidence }}</small></div>
-              </li>
-              {% endfor %}
-            </ol>
-          </details>
-        </article>
-        {% endfor %}
-      </div>
-    </section>
-    {% endfor %}
+    {% for category in war_room.categories %}<section class="mc-panel mc-war-category" id="{{ category.id }}" aria-labelledby="{{ category.id }}-title"><div class="mc-section-heading"><div><p class="mc-eyebrow">{{ category.count }} rated areas</p><h2 id="{{ category.id }}-title">{{ category.name }}</h2></div><div class="mc-war-category-score"><strong>{{ category.average_stars }}/5</strong><span>{{ category.runtime_verified }} runtime · {{ category.certified }} certified</span></div></div><div class="mc-war-rating-grid" role="list">{% for item in category["items"] %}{% set display_signal = 'yellow' if item.signal == 'purple' else item.signal %}{% set display_icon = '🔵' if item.signal == 'purple' else ('🟢' if item.signal == 'green' else ('🟡' if item.signal == 'yellow' else ('🟠' if item.signal == 'amber' else '🔴'))) %}<article class="mc-war-rating mc-war-rating--{{ display_signal }}" role="listitem"><div class="mc-war-rating-head"><div>{% if item.parent %}<p class="mc-war-parent">Inside {{ item.parent }}</p>{% endif %}<h3>{{ item.name }}</h3></div><span class="mc-war-rating-label">{{ display_icon }} {{ item.label }}</span></div><p class="mc-war-stars" aria-label="{{ item.stars }} out of 5 stars">{{ item.stars_display }}</p><p>{{ item.summary }}</p>{% if item.truth_boundary %}<p class="mc-war-truth">Truth: {{ item.truth_boundary }}</p>{% endif %}<div class="mc-war-next"><span>Next gate</span><strong>{{ item.next_gate }}</strong></div><details class="mc-war-evidence"><summary>View five evidence stages</summary><ol>{% for stage in item.stages %}<li class="{{ 'is-passed' if stage.passed else 'is-pending' }}"><span aria-hidden="true">{{ '●' if stage.passed else '○' }}</span><div><strong>{{ stage.stage }}</strong><small>{{ stage.evidence }}</small></div></li>{% endfor %}</ol></details></article>{% endfor %}</div></section>{% endfor %}
 
-    <section class="mc-panel" aria-labelledby="war-conflicts-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Duplicate and overlap gate</p>
-          <h2 id="war-conflicts-title">Conflict audit</h2>
-          <p>Aliases and parent/child views are kept distinct from duplicate systems.</p>
-        </div>
-        <span class="mc-lock-badge">{{ war_room.conflict_audit.active_conflict_count }} active</span>
-      </div>
-      <dl class="mc-war-conflict-counts">
-        <div><dt>Duplicate systems</dt><dd>{{ war_room.conflict_audit.duplicate_systems }}</dd></div>
-        <div><dt>Duplicate agent IDs</dt><dd>{{ war_room.conflict_audit.duplicate_agent_ids }}</dd></div>
-        <div><dt>Duplicate agent roles</dt><dd>{{ war_room.conflict_audit.duplicate_agent_roles }}</dd></div>
-        <div><dt>Naming conflicts</dt><dd>{{ war_room.conflict_audit.naming_conflicts }}</dd></div>
-        <div><dt>Kaa registered</dt><dd>{{ 'Yes' if war_room.conflict_audit.kaa_registered else 'No' }}</dd></div>
-      </dl>
-      <div class="mc-war-boundary-grid" role="list">
-        {% for boundary in war_room.conflict_audit.resolved_boundaries %}
-        <article role="listitem">
-          <span>{{ boundary.status }}</span>
-          <h3>{{ boundary.components }}</h3>
-          <p>{{ boundary.resolution }}</p>
-        </article>
-        {% endfor %}
-      </div>
-    </section>
+    <section class="mc-panel" aria-labelledby="war-conflicts-title"><div class="mc-section-heading"><div><p class="mc-eyebrow">Duplicate and overlap gate</p><h2 id="war-conflicts-title">Conflict audit</h2><p>Aliases and parent/child views are kept distinct from duplicate systems.</p></div><span class="mc-lock-badge">{{ war_room.conflict_audit.active_conflict_count }} active</span></div><dl class="mc-war-conflict-counts"><div><dt>Duplicate systems</dt><dd>{{ war_room.conflict_audit.duplicate_systems }}</dd></div><div><dt>Duplicate agent IDs</dt><dd>{{ war_room.conflict_audit.duplicate_agent_ids }}</dd></div><div><dt>Duplicate agent roles</dt><dd>{{ war_room.conflict_audit.duplicate_agent_roles }}</dd></div><div><dt>Naming conflicts</dt><dd>{{ war_room.conflict_audit.naming_conflicts }}</dd></div><div><dt>Kaa registered</dt><dd>{{ 'Yes' if war_room.conflict_audit.kaa_registered else 'No' }}</dd></div></dl><div class="mc-war-boundary-grid" role="list">{% for boundary in war_room.conflict_audit.resolved_boundaries %}<article role="listitem"><span>{{ boundary.status }}</span><h3>{{ boundary.components }}</h3><p>{{ boundary.resolution }}</p></article>{% endfor %}</div></section>
 
-    <section class="mc-panel" aria-labelledby="war-law-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Locked governance</p>
-          <h2 id="war-law-title">The Organism law</h2>
-        </div>
-        <span class="mc-lock-badge">Human Authority final</span>
-      </div>
-      <ol class="mc-governance-chain">
-        {% for step in war_room.flow %}
-        <li><strong>{{ step.component }}</strong><span>{{ step.role }}</span>{% if step.authority %}<small>{{ step.authority }}</small>{% endif %}</li>
-        {% endfor %}
-      </ol>
-    </section>
+    <section class="mc-panel" aria-labelledby="war-law-title"><div class="mc-section-heading"><div><p class="mc-eyebrow">Locked governance</p><h2 id="war-law-title">The Organism law</h2></div><span class="mc-lock-badge">Human Authority final</span></div><ol class="mc-governance-chain">{% for step in war_room.flow %}<li><strong>{{ step.component }}</strong><span>{{ step.role }}</span>{% if step.authority %}<small>{{ step.authority }}</small>{% endif %}</li>{% endfor %}</ol></section>
 
-    <aside class="mc-authority" aria-label="Human Authority boundary">
-      <strong>Human Authority: {{ war_room.human_authority.status }}</strong>
-      <span>{{ war_room.human_authority.message }}</span>
-      <small>No approve, execute, deploy, migrate, purchase, flash or activate control exists in this War Room.</small>
-    </aside>
+    <aside class="mc-authority" aria-label="Human Authority boundary"><strong>Human Authority: {{ war_room.human_authority.status }}</strong><span>{{ war_room.human_authority.message }}</span><small>No approve, execute, deploy, migrate, purchase, flash or activate control exists in this War Room.</small></aside>
   </main>
 </body>
 </html>
