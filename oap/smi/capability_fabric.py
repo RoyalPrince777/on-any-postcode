@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-CAPABILITY_FABRIC_REVISION = "2026-09-04-v2"
+CAPABILITY_FABRIC_REVISION = "2026-09-04-v3"
 
 
 @dataclass(frozen=True)
@@ -184,6 +184,67 @@ _CAPABILITIES: tuple[Capability, ...] = (
         ("million tokens", "huge context", "massive document", "large codebase", "context window"),
         ("GENERAL", "TECHNICAL", "STRATEGY"),
     ),
+    Capability(
+        "memory_reconstruction",
+        "Recover forgotten project context, timelines and superseded decisions from governed memory while preserving provenance and current-vs-historical authority.",
+        ("memory reviver", "recover memory", "forgotten", "jog memory", "what did we decide", "timeline"),
+        ("GENERAL", "TECHNICAL", "STRATEGY", "CULTURE"),
+    ),
+    Capability(
+        "creation_communication",
+        "Turn rough human ideas into clear finished communication in an approved style while preserving authorship, attribution and truth boundaries.",
+        ("ghost writer", "ghostwriter", "write for me", "draft", "rewrite", "brand voice"),
+        ("GENERAL", "STRATEGY", "COMMUNITY", "CULTURE"),
+    ),
+    Capability(
+        "pattern_reconstruction",
+        "Study public or authorised systems, extract useful abstract patterns and build an original OAP solution without cloning protected product identity or assets.",
+        ("world copier", "recreate pattern", "study competitor", "inspired by", "rebuild", "reverse engineer workflow"),
+        ("GENERAL", "TECHNICAL", "STRATEGY"),
+    ),
+    Capability(
+        "agent_governance",
+        "Register, scope, supervise and audit agents through Guardian, Living Kernel and Human Authority with no unregistered self-expansion.",
+        ("robots gatekeeper", "agent governance", "agent permission", "agent registry", "supervise agents", "gatekeeper"),
+        ("GENERAL", "TECHNICAL", "STRATEGY", "MONITORING"),
+    ),
+    Capability(
+        "gap_adversarial_review",
+        "Find gaps, contradictions, unsafe assumptions and defensive attack surfaces without providing bypass, exploitation or control-evasion capability.",
+        ("loophole finder", "find gaps", "gap analysis", "adversarial review", "stress test", "weakness"),
+        ("GENERAL", "TECHNICAL", "STRATEGY", "MONITORING"),
+    ),
+    Capability(
+        "financial_analysis",
+        "Perform evidence-led market, scenario and risk analysis without autonomous trading, value transfer, personalised guarantees or profit promises.",
+        ("hedge fund at home", "market analysis", "portfolio analysis", "financial scenario", "risk model", "investment research"),
+        ("GENERAL", "STRATEGY", "MONITORING"),
+        requires_fresh_evidence=True,
+    ),
+    Capability(
+        "human_context",
+        "Adapt communication to explicit conversational and visible context without covert psychological profiling, manipulation or unsupported emotion inference.",
+        ("emotion engineer", "human context", "tone", "communication cues", "accessibility cues", "adapt tone"),
+        ("GENERAL", "COMMUNITY", "CULTURE"),
+    ),
+    Capability(
+        "multi_expert_synthesis",
+        "Combine approved specialist agents and sources, surface meaningful disagreement, rank evidence and produce one coherent governed synthesis.",
+        ("expert synthesizer", "expert synthesis", "multiple experts", "specialist opinions", "consensus", "synthesise experts"),
+        ("GENERAL", "TECHNICAL", "STRATEGY", "MONITORING"),
+    ),
+    Capability(
+        "voice_speech_intelligence",
+        "Support speech recognition, translation, accessibility and authorised voice generation without unauthorised voice cloning, impersonation or deceptive identity use.",
+        ("voice thief", "speech intelligence", "voice translation", "speech recognition", "authorised voice", "voice accessibility"),
+        ("GENERAL", "TECHNICAL", "COMMUNITY", "CULTURE"),
+    ),
+    Capability(
+        "visual_human_cues",
+        "Describe visible actions, expressions and accessibility-relevant cues from authorised imagery without identity recognition, biometric profiling or claims about hidden mental state.",
+        ("face reader", "visual human cues", "visible expression", "body language", "accessibility visual", "facial expression"),
+        ("GENERAL", "TECHNICAL", "COMMUNITY", "CULTURE"),
+    ),
 )
 
 
@@ -210,6 +271,8 @@ def select_capabilities(
             "advisor_challenger",
             "evidence_first",
             "structured_output",
+            "gap_adversarial_review",
+            "financial_analysis",
         }:
             score += 3
         if score:
@@ -240,6 +303,11 @@ def status() -> dict[str, object]:
         "copies_private_prompts": False,
         "copies_model_weights": False,
         "copies_proprietary_architecture": False,
+        "unauthorised_impersonation": False,
+        "covert_psychological_manipulation": False,
+        "biometric_identity_profiling": False,
+        "autonomous_trading_or_value_transfer": False,
+        "control_bypass_or_exploitation": False,
         "external_provider_authority": False,
         "local_first": True,
         "human_authority_final": True,
