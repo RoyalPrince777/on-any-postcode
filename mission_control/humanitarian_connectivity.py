@@ -34,26 +34,21 @@ HUMANITARIAN_FEATURES: tuple[dict[str, str], ...] = (
     {"id": "misinformation_guard", "name": "Public Warning Evidence Guard", "purpose": "Require source verification before broad public-warning dissemination."},
 )
 
-PROHIBITED_PURPOSE_TOKENS = frozenset(
-    {
-        "targeting",
-        "target",
-        "weapon",
-        "weapons",
-        "strike",
-        "fire-control",
-        "fire_control",
-        "surveillance",
-        "troop",
-        "combatant",
-        "military-intelligence",
-        "military_intelligence",
-        "offensive-cyber",
-        "offensive_cyber",
-        "battlefield",
-        "kill-chain",
-        "kill_chain",
-    }
+BLOCKED_MILITARY_PURPOSE_PHRASES = (
+    "target coordinates",
+    "target location",
+    "select target",
+    "strike target",
+    "strike planning",
+    "weapon guidance",
+    "fire control",
+    "track troops",
+    "track combatants",
+    "military surveillance",
+    "military intelligence",
+    "offensive cyber",
+    "kill chain",
+    "battlefield targeting",
 )
 
 
@@ -63,26 +58,10 @@ def _priority(purpose: str) -> dict[str, Any] | None:
 
 
 def _contains_prohibited_purpose(value: str) -> bool:
-    normalized = value.casefold().replace("/", " ").replace("_", " ").replace("-", " ")
-    tokens = set(normalized.split())
-    blocked_single_words = {
-        "target",
-        "targeting",
-        "weapon",
-        "weapons",
-        "strike",
-        "surveillance",
-        "troop",
-        "combatant",
-        "battlefield",
-    }
-    blocked_phrases = {
-        "fire control",
-        "military intelligence",
-        "offensive cyber",
-        "kill chain",
-    }
-    return bool(tokens & blocked_single_words) or any(phrase in normalized for phrase in blocked_phrases)
+    normalized = " ".join(
+        value.casefold().replace("/", " ").replace("_", " ").replace("-", " ").split()
+    )
+    return any(phrase in normalized for phrase in BLOCKED_MILITARY_PURPOSE_PHRASES)
 
 
 def prepare_humanitarian_message(
