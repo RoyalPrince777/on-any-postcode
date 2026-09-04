@@ -1,42 +1,35 @@
-"""OAP-owned supply-source independence policy.
+"""OAP-owned travel source independence policy.
 
-OAP Direct is the preferred first-party supply path. External travel suppliers
-may accelerate inventory, but no single provider may become required for OAP
-Travel to exist, reason, discover direct supply, or preserve its booking journey.
+OAP Direct is the persisted first-party supply path. External travel services may
+be queried as optional reference data, but they do not become OAP partners,
+persisted inventory or booking execution dependencies.
 """
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-SUPPLY_SOURCE_POLICY_REVISION = "2026-09-04-v1"
+SUPPLY_SOURCE_POLICY_REVISION = "2026-09-04-v2"
 DIRECT_SOURCE_ID = "oap_direct"
-EXTERNAL_SOURCE_CLASS = "replaceable_external_supply"
+EXTERNAL_SOURCE_CLASS = "external_lookup_only"
 
 
 def source_priority(*, source_id: str, source_kind: str) -> int:
-    """Return a stable preference class without inventing commercial quality.
-
-    Direct supply wins only the source-independence tie-break. Price, suitability,
-    availability and user requirements must still be compared by the caller.
-    """
+    """Return a stable preference class without inventing commercial quality."""
 
     normalized_id = str(source_id or "").strip().casefold()
     normalized_kind = str(source_kind or "").strip().casefold()
     if normalized_id == DIRECT_SOURCE_ID or normalized_kind == "oap_direct":
         return 0
-    if normalized_kind in {"external", EXTERNAL_SOURCE_CLASS}:
+    if normalized_kind in {"external", EXTERNAL_SOURCE_CLASS, "external_lookup"}:
         return 100
     return 200
 
 
-def rank_comparable_sources(offers: Sequence[Mapping[str, Any]]) -> tuple[dict[str, Any], ...]:
-    """Rank already-comparable offers by OAP source preference.
-
-    This function must only receive offers that the caller has already determined
-    are comparable for the user's requested category, dates and requirements. It
-    never claims that a higher-priced direct offer is automatically better.
-    """
+def rank_comparable_sources(
+    offers: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Rank already-comparable reference results by OAP source preference."""
 
     normalized: list[dict[str, Any]] = []
     for index, offer in enumerate(offers):
@@ -56,18 +49,21 @@ def rank_comparable_sources(offers: Sequence[Mapping[str, Any]]) -> tuple[dict[s
 
 
 def status() -> dict[str, Any]:
-    """Return the locked War Room supply-independence policy."""
+    """Return the locked War Room source-independence policy."""
 
     return {
         "component": "OAP Supply Source Policy",
         "revision": SUPPLY_SOURCE_POLICY_REVISION,
         "policy_ready": True,
         "oap_direct_preferred_when_comparable": True,
-        "external_suppliers_allowed": True,
+        "external_suppliers_allowed": False,
         "external_suppliers_optional": True,
+        "external_lookup_allowed": True,
+        "external_lookup_persisted": False,
         "single_external_provider_dependency_allowed": False,
         "booking_com_required": False,
-        "preferred_source_order": (DIRECT_SOURCE_ID, EXTERNAL_SOURCE_CLASS),
+        "booking_com_partner": False,
+        "preferred_source_order": (DIRECT_SOURCE_ID,),
         "provider_brand_controls_oap_experience": False,
         "external_provider_authority": False,
         "creates_intelligence_worlds": False,
@@ -76,8 +72,8 @@ def status() -> dict[str, Any]:
         "guardian_gate_required": True,
         "human_authority_final": True,
         "truth_boundary": (
-            "OAP Direct is preferred when offers are otherwise comparable. External "
-            "suppliers can expand inventory but remain replaceable. No provider is "
-            "required for OAP identity, intelligence, governance or first-party supply."
+            "OAP Direct is the only persisted travel supply lane. External travel sites "
+            "may be queried on demand for reference, but their results are not imported "
+            "as OAP inventory and they never receive OAP booking or platform authority."
         ),
     }
