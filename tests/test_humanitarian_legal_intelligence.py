@@ -1,4 +1,5 @@
 from mission_control import humanitarian_legal_intelligence
+from oap.smi.agi_core import AGICore
 
 
 def test_humanitarian_legal_architecture_covers_full_regime_stack_without_authority():
@@ -159,3 +160,18 @@ def test_humanitarian_data_classifier_uses_highest_required_protection_level():
     assert sensitive["human_review_required"] is True
     assert life_critical["level"] == 4
     assert life_critical["precise_location_public"] is False
+
+
+def test_agi_routes_humanitarian_legal_terms_to_canonical_specialist():
+    route = AGICore().route(
+        "Review Geneva Conventions, refugee law and the law of the land for civilian aid.",
+        "GENERAL",
+    )
+
+    assert "international_humanitarian" in route["domain_ids"]
+    assert "earth" in route["domain_ids"]
+    assert "life" in route["domain_ids"]
+    assert "humanitarian law" in route["matches"]["international_humanitarian"] or "geneva convention" in route["matches"]["international_humanitarian"]
+    assert route["decision_authority"] is False
+    assert route["execution_authority"] is False
+    assert route["human_authority_final"] is True
