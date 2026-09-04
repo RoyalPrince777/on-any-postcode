@@ -13,7 +13,8 @@ def test_world_crisis_architecture_is_live_civilian_and_non_executing():
     assert status["architecture_ready"] is True
     assert status["category_count"] == 8
     assert status["source_count"] == 4
-    assert status["live_machine_source_enabled"] == "gdacs"
+    assert status["live_machine_sources_enabled"] == ("gdacs", "who", "unhcr")
+    assert status["multi_source_tracker_bound"] is True
     assert status["map_ready"] is True
     assert status["legal_intelligence_bound"] is True
     assert status["civilian_only"] is True
@@ -105,5 +106,5 @@ def test_world_crisis_snapshot_never_claims_live_when_fetch_disabled():
     assert result["live_source_count"] == 0
     assert result["event_count"] == 0
     assert result["autonomous_dispatch"] is False
-    assert result["autonomous_broadcast"] is False
+    assert result["autonomous_public_warning"] is False
     assert result["human_authority_final"] is True
