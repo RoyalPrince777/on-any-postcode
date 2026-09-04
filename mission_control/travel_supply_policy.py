@@ -1,44 +1,41 @@
 """Canonical OAP Travel supply policy.
 
-OAP owns the travel catalogue, comparison and booking journey. Direct suppliers
-are preferred. External providers are replaceable supply sources and may never
-become an authority or indispensable dependency.
+Only directly onboarded Certified OAP Suppliers enter the OAP Travel catalogue.
+External travel information may still be fetched on demand for research or
+comparison, but it is not treated as Partner Supply, imported catalogue inventory
+or booking authority.
 """
 from __future__ import annotations
 
 from typing import Any
 
-TRAVEL_SUPPLY_POLICY_REVISION = "2026-09-04-v1"
-
-NO_EXTERNAL_SUPPLIER_INDISPENSABLE = True
-BOOKING_COM_REQUIRED = False
+TRAVEL_SUPPLY_POLICY_REVISION = "2026-09-04-v2"
 DIRECT_SUPPLY_PREFERRED = True
-PREFERRED_SOURCE_ORDER: tuple[str, ...] = ("oap_direct", "partner_supply")
+EXTERNAL_DATA_FETCH_ALLOWED = True
+EXTERNAL_CATALOGUE_IMPORT_ALLOWED = False
+PREFERRED_SOURCE_ORDER: tuple[str, ...] = ("oap_direct",)
 
 SOURCE_LABELS = {
     "oap_direct": "🟢 OAP Direct",
     "certified_oap_supplier": "👑 Certified OAP Supplier",
-    "partner_supply": "🔗 Partner Supply",
 }
 
 PHASES: tuple[dict[str, str], ...] = (
-    {"phase": "1", "strategy": "Booking.com + OAP Direct"},
-    {"phase": "2", "strategy": "Recruit OAP Direct suppliers aggressively"},
-    {"phase": "3", "strategy": "Prefer OAP Direct where comparable"},
-    {"phase": "4", "strategy": "Add multiple replaceable partner sources"},
-    {"phase": "5", "strategy": "Booking.com becomes optional rather than critical"},
+    {"phase": "1", "strategy": "Build OAP Direct supplier inventory"},
+    {"phase": "2", "strategy": "Recruit and certify real OAP suppliers"},
+    {"phase": "3", "strategy": "Expand availability, pricing and listing media"},
+    {"phase": "4", "strategy": "Use external data only as on-demand research context"},
+    {"phase": "5", "strategy": "Keep OAP Travel independent of external marketplaces"},
 )
 
 
 def public_policy() -> dict[str, Any]:
-    """Return non-secret policy metadata for public catalogue transparency."""
-
     return {
         "revision": TRAVEL_SUPPLY_POLICY_REVISION,
-        "model": "hybrid_oap_travel",
-        "no_external_supplier_indispensable": NO_EXTERNAL_SUPPLIER_INDISPENSABLE,
-        "booking_com_required": BOOKING_COM_REQUIRED,
+        "model": "oap_direct_only_catalogue",
         "direct_supply_preferred": DIRECT_SUPPLY_PREFERRED,
+        "external_data_fetch_allowed": EXTERNAL_DATA_FETCH_ALLOWED,
+        "external_catalogue_import_allowed": EXTERNAL_CATALOGUE_IMPORT_ALLOWED,
         "preferred_source_order": list(PREFERRED_SOURCE_ORDER),
         "source_labels": dict(SOURCE_LABELS),
         "external_provider_authority": False,
