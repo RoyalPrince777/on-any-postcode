@@ -1,15 +1,18 @@
 """Bounded autonomous review for Sovereign Megaverse Intelligence.
 
-SMI may observe its own reported component state, check coherence, identify
-recovery attention and propose controlled improvements without waiting for a
-user request. It never gains independent authority to approve, execute,
-promote, deploy or perform consequential real-world actions.
+SMI may observe its own reported component state, check coherence, verify the
+Founder-approved canonical memory manifest, identify recovery attention and
+propose controlled improvements without waiting for a user request. It never
+gains independent authority to approve, execute, promote, deploy or perform
+consequential real-world actions.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from typing import Any
+
+from .canonical_memory import status as canonical_memory_status
 
 AUTONOMY_MODE = "BOUNDED_AUTONOMOUS"
 BLOCKED_ACTIONS = (
@@ -31,17 +34,22 @@ BLOCKED_ACTIONS = (
 
 
 class SMIAutonomyEngine:
-    """Run non-consequential SMI thought/review cycles from observed state."""
+    """Run non-consequential SMI review cycles from observed state."""
 
     def status(self) -> dict[str, Any]:
+        memory = canonical_memory_status()
         return {
             "component": "SMI Autonomy",
             "mode": AUTONOMY_MODE,
             "configured": True,
             "automatic_observation": True,
             "automatic_coherence_review": True,
+            "automatic_memory_integrity_review": True,
             "automatic_recovery_review": True,
             "automatic_improvement_proposals": True,
+            "canonical_memory_ready": bool(memory.get("ready")),
+            "canonical_memory_revision": memory.get("revision"),
+            "canonical_memory_digest": memory.get("digest"),
             "independent_execution": False,
             "independent_approval": False,
             "independent_apply": False,
@@ -71,6 +79,29 @@ class SMIAutonomyEngine:
             "consequential_action": False,
         }
 
+    def memory_review(self) -> dict[str, Any]:
+        """Verify manifest integrity/provenance without mutating HRM or code."""
+
+        memory = canonical_memory_status()
+        return {
+            "kind": "smi_autonomous_memory_review",
+            "ready": bool(memory.get("ready")),
+            "revision": memory.get("revision"),
+            "record_count": int(memory.get("record_count", 0) or 0),
+            "digest": memory.get("digest"),
+            "latest_founder_correction_wins": bool(
+                memory.get("latest_founder_correction_wins")
+            ),
+            "private_chain_of_thought_included": bool(
+                memory.get("private_chain_of_thought_included")
+            ),
+            "credentials_or_secrets_included": bool(
+                memory.get("credentials_or_secrets_included")
+            ),
+            "read_only": True,
+            "consequential_action": False,
+        }
+
     def coherence_review(self, coherence: Mapping[str, object]) -> dict[str, Any]:
         conflicts = tuple(coherence.get("conflicts", ()))
         return {
@@ -93,6 +124,7 @@ class SMIAutonomyEngine:
             "safe_actions": (
                 "reobserve_component_state",
                 "recheck_coherence",
+                "verify_canonical_memory_digest",
                 "retry_nonconsequential_analysis",
             ),
             "destructive_recovery_allowed": False,
@@ -105,6 +137,7 @@ class SMIAutonomyEngine:
         observation: Mapping[str, object],
         coherence: Mapping[str, object],
         evolution: Mapping[str, object],
+        memory: Mapping[str, object] | None = None,
     ) -> dict[str, Any]:
         issues: list[str] = []
         for component in observation.get("degraded_components", ()):
@@ -113,6 +146,8 @@ class SMIAutonomyEngine:
             issues.append(f"unknown:{component}")
         if not coherence.get("coherent"):
             issues.append("coherence_conflict")
+        if memory is not None and not memory.get("ready"):
+            issues.append("canonical_memory_integrity")
 
         proposed = tuple(f"review:{issue}" for issue in issues[:16])
         if not proposed:
@@ -140,13 +175,20 @@ class SMIAutonomyEngine:
     ) -> dict[str, Any]:
         records = tuple(components)
         observation = self.observe(records, self_model)
+        memory = self.memory_review()
         coherence_result = self.coherence_review(coherence)
         recovery = self.recovery_review(observation)
-        proposal = self.improvement_proposal(observation, coherence_result, evolution)
+        proposal = self.improvement_proposal(
+            observation,
+            coherence_result,
+            evolution,
+            memory,
+        )
         return {
             "kind": "smi_autonomy_cycle",
             "mode": AUTONOMY_MODE,
             "observation": observation,
+            "memory": memory,
             "coherence": coherence_result,
             "recovery": recovery,
             "proposal": proposal,

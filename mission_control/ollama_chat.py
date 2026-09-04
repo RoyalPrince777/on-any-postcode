@@ -36,10 +36,29 @@ def _loopback_endpoint() -> bool:
     }
 
 
+def _public_runtime(runtime: dict[str, Any]) -> dict[str, Any]:
+    """Project runtime health without exposing private integrity metadata."""
+
+    projected = dict(runtime)
+    memory = runtime.get("canonical_memory")
+    if isinstance(memory, dict):
+        projected["canonical_memory"] = {
+            "ready": bool(memory.get("ready")),
+            "revision": memory.get("revision"),
+            "record_count": int(memory.get("record_count", 0) or 0),
+            "latest_founder_correction_wins": bool(
+                memory.get("latest_founder_correction_wins")
+            ),
+            "human_authority_final": bool(memory.get("human_authority_final")),
+        }
+    return projected
+
+
 def get_public_ollama_chat() -> dict[str, Any]:
     """Return non-sensitive readiness without contacting inference or writing HRM."""
 
     runtime = health()
+    public_runtime = _public_runtime(runtime)
     loopback_only = _loopback_endpoint()
     model = re.sub(r"[^a-zA-Z0-9._:-]", "", DEFAULT_MODEL)[:80]
     return {
@@ -71,7 +90,7 @@ def get_public_ollama_chat() -> dict[str, Any]:
         },
         "allowed_output": "RECOMMENDATION_READY",
         "execution": "Recommendation only",
-        "runtime": runtime,
+        "runtime": public_runtime,
         "activation_gate": (
             "Identity, REQUEST_RECOMMENDATION permission, an approved inference route "
             "and HRM initialization are required before chat can send."
