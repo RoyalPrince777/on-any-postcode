@@ -1,4 +1,4 @@
-from mission_control import smi_capabilities
+from mission_control import live_brain, smi_capabilities
 from oap.smi.command_intelligence import CommandIntelligence
 
 
@@ -67,3 +67,28 @@ def test_smi_registry_keeps_seven_worlds_and_registers_command_chain():
     )
     assert status["human_authority_final"] is True
     assert status["independent_execution"] is False
+
+
+def test_live_smi_brain_exposes_agi_and_command_chain_without_execution_authority():
+    result = live_brain.review(
+        request_id="live-command-v1",
+        identity_id="00000000-0000-0000-0000-000000000009",
+        content="Plan the next bounded OAP Maps proof in Mitcham.",
+        history=[],
+        image_attached=False,
+    )
+    assert result["agi_route"]["execution_authority"] is False
+    assert result["command_intelligence"]["command_path"] == [
+        "sgi",
+        "tgi",
+        "ogi",
+        "dgi",
+        "pgi",
+        "rgi",
+    ]
+    assert result["command_intelligence"]["decision_authority"] is False
+    assert result["command_intelligence"]["execution_authority"] is False
+    assert "AGI_ROUTED" in result["processing_states"]
+    assert "COMMAND_INTELLIGENCE_REVIEWED" in result["processing_states"]
+    assert result["can_execute"] is False
+    assert result["human_authority_final"] is True
