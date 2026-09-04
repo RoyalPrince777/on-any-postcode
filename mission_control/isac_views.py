@@ -22,7 +22,7 @@ def _error(code: str, message: str, status_code: int):
 
 
 @bp.get("")
-@web_security.login_required()
+@web_security.login_required(founder_only=True)
 def dashboard():
     """Render current spatial intelligence state without inventing radio data."""
 
@@ -36,7 +36,7 @@ def dashboard():
 
 
 @bp.get("/status")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def status():
     """Return read-only ISAC readiness and privacy-reduced spatial state."""
 
@@ -46,7 +46,7 @@ def status():
 
 
 @bp.post("/ingest")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def ingest():
     """Founder-authorised development ingest for SRS/CSI adapter payloads."""
 
@@ -69,7 +69,7 @@ def ingest():
 
 
 @bp.post("/calibrate")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def calibrate():
     """Add one explicit local calibration observation; never infer coordinates."""
 
