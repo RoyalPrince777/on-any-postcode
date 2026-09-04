@@ -3,6 +3,7 @@ from mission_control import (
     language_intelligence,
     life_intelligence,
     smi_capabilities,
+    technology_intelligence,
 )
 from oap.smi.agi_core import AGICore
 
@@ -55,6 +56,25 @@ def test_life_intelligence_separates_adult_youth_and_covers_trade_families():
     assert status["can_execute"] is False
 
 
+def test_technology_intelligence_contains_bounded_6g_under_connectivity():
+    status = technology_intelligence.technology_intelligence_status()
+    connectivity = status["connectivity"]
+    capability_ids = {item["id"] for item in connectivity["capabilities"]}
+    assert status["architecture_passed"] is True
+    assert status["brain_count"] == 0
+    assert status["intelligence_world_count_added"] == 0
+    assert "6g" in capability_ids
+    assert connectivity["6g"]["name"] == "6G Intelligence"
+    assert status["6g_architecture_ready"] is True
+    assert status["6g_production_network_ready"] is False
+    assert status["telecom_operator_claim"] is False
+    assert status["autonomous_esim_provisioning"] is False
+    assert status["autonomous_radio_control"] is False
+    assert status["network_execution_authority"] is False
+    assert status["can_execute"] is False
+    assert status["human_authority_final"] is True
+
+
 def test_earth_our_turf_local_to_global_is_canonical_while_legacy_binding_remains_compatible():
     status = earth_intelligence.status(weather_ready=False)
     place = status["place_model"]
@@ -80,8 +100,9 @@ def test_specialist_capabilities_do_not_mutate_locked_seven_worlds():
     status = smi_capabilities.smi_capability_status()
     assert validation["passed"] is True
     assert validation["checks"]["intelligence_worlds"] == 7
-    assert validation["checks"]["cross_system_capabilities"] == 4
+    assert validation["checks"]["cross_system_capabilities"] == 5
     assert validation["checks"]["brain_count_added_by_agi"] == 0
+    assert status["specialist_status"]["technology"]["6g_architecture_ready"] is True
     assert status["agi_core"]["agi_achieved"] is False
     assert status["independent_execution"] is False
     assert status["human_authority_final"] is True
