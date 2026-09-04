@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAP Alignment & Sovereignty</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='private_command.css') }}">
+  <style>
+    .align-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}.align-card{border:1px solid var(--oap-command-line);border-radius:18px;padding:16px;background:var(--oap-command-panel-2)}.align-card h3{margin:.25rem 0 .45rem}.align-card p{color:var(--oap-command-muted);line-height:1.5}.world-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px}.world{border:1px solid var(--oap-command-line);border-radius:15px;padding:13px;background:rgba(5,17,10,.68)}.world strong{display:block;margin-bottom:5px}.world small{color:var(--oap-command-muted);line-height:1.4}.gap-list{display:grid;gap:7px;padding:0;list-style:none}.gap-list li{border-left:3px solid #e2c16a;padding:8px 10px;background:rgba(226,193,106,.06);border-radius:0 10px 10px 0;color:#d6ceb3}.truth-box{border-left:4px solid var(--oap-command-gold);padding:13px 15px;background:rgba(226,193,106,.08);border-radius:0 13px 13px 0;line-height:1.55;color:#ddd5bb}.state{font-size:1.45rem;font-weight:900}.mini{color:var(--oap-command-muted);font-size:.8rem}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  {% include '_command_nav.html' %}
+  <main class="oap-command-dashboard">
+    <section class="oap-command-hero-modern">
+      <p class="oap-command-kicker">SMI · Alignment Intelligence · Technical Sovereignty</p>
+      <h1 class="oap-command-title">Alignment & Sovereignty</h1>
+      <p class="oap-command-copy">One evidence view for architecture alignment, bounded autonomy, provider authority and technical sovereignty. This is technical control evidence—not a claim of governmental or legal sovereignty.</p>
+      <div class="oap-command-metrics">
+        <div class="oap-command-metric"><small>SMI brain</small><strong>1 · SINGLE</strong></div>
+        <div class="oap-command-metric"><small>Intelligence Worlds</small><strong>{{ capability_registry.world_count }} / 7</strong></div>
+        <div class="oap-command-metric"><small>Capabilities</small><strong>{{ capability_registry.capability_count }}</strong></div>
+        <div class="oap-command-metric"><small>Registered agents</small><strong>{{ agent_count }}</strong></div>
+        <div class="oap-command-metric"><small>Autonomy</small><strong>{{ autonomy.configured_level }}</strong></div>
+        <div class="oap-command-metric"><small>Sovereignty grade</small><strong>{{ sovereignty.sovereignty_grade }}</strong></div>
+      </div>
+    </section>
+
+    <section class="oap-command-panel-modern" style="margin-top:16px" aria-labelledby="alignment-integrity">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Alignment integrity</p><h2 id="alignment-integrity">Constitutional architecture check</h2></div><span class="mc-lock-badge">Human Authority final</span></div>
+      <div class="align-grid">
+        <article class="align-card"><span class="mini">Single brain</span><div class="state oap-command-status-good">🟢 SMI</div><p>No second brain is created by capabilities, providers, agents, Matrix, Nexus or Oasis.</p></article>
+        <article class="align-card"><span class="mini">Seven-World lock</span><div class="state {{ 'oap-command-status-good' if capability_registry.validation.passed else 'oap-command-status-red' }}">{{ '🟢 ALIGNED' if capability_registry.validation.passed else '🔴 REVIEW' }}</div><p>Earth · Language · Life · Movement · Civic · Civilisation · Matrix.</p></article>
+        <article class="align-card"><span class="mini">Provider authority</span><div class="state oap-command-status-good">0 · NONE</div><p>Providers supply bounded capability or evidence only. They do not become OAP authority.</p></article>
+        <article class="align-card"><span class="mini">Execution default</span><div class="state oap-command-status-good">DENY</div><p>Consequential execution stays behind exact governed approval and audit boundaries.</p></article>
+      </div>
+    </section>
+
+    <section class="oap-command-panel-modern" style="margin-top:16px" aria-labelledby="a3-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">A3 · bounded autonomy</p><h2 id="a3-title">Autonomy controller</h2></div><span class="mc-lock-badge">{{ autonomy.configured_level }}</span></div>
+      <div class="align-grid">
+        <article class="align-card"><h3>A3 state</h3><p class="state {{ 'oap-command-status-good' if autonomy.a3_execution_enabled else 'oap-command-status-amber' }}">{{ '🟢 ENABLED' if autonomy.a3_execution_enabled else '🟡 NOT ACTIVE' }}</p><p>Only pre-authorised, reversible, audited runtime actions are allowed.</p></article>
+        <article class="align-card"><h3>Allowed A3 actions</h3><p>{% for action in autonomy.a3_pilot_actions %}<strong>{{ action }}</strong>{% if not loop.last %}<br>{% endif %}{% endfor %}</p></article>
+        <article class="align-card"><h3>A4 / A5</h3><p class="state">🔒 LOCKED</p><p>Longer supervised or broad autonomous operation is not enabled.</p></article>
+        <article class="align-card"><h3>Consequential actions</h3><p class="state">🔒 HUMAN GATE</p><p>No autonomous payments, deploys, public publishing, auth changes, production migrations or real-world dispatch.</p></article>
+      </div>
+    </section>
+
+    <section class="oap-command-panel-modern" style="margin-top:16px" aria-labelledby="sovereignty-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Evidence-based sovereignty</p><h2 id="sovereignty-title">Master sovereignty truth state</h2></div><span class="mc-lock-badge {{ '' if sovereignty.master_full_sovereignty_active else 'mc-lock-badge--amber' }}">{{ 'MASTER FULL' if sovereignty.master_full_sovereignty_active else 'CONTROLLED / UNPROVEN' }}</span></div>
+      <div class="align-grid">
+        <article class="align-card"><h3>Architecture</h3><p class="state {{ 'oap-command-status-good' if sovereignty.ready else 'oap-command-status-red' }}">{{ '🟢 READY' if sovereignty.ready else '🔴 BLOCKED' }}</p></article>
+        <article class="align-card"><h3>Master mode requested</h3><p class="state">{{ 'YES' if sovereignty.master_mode_requested else 'NO' }}</p></article>
+        <article class="align-card"><h3>Master full active</h3><p class="state {{ 'oap-command-status-good' if sovereignty.master_full_sovereignty_active else 'oap-command-status-amber' }}">{{ '🟢 PROVEN' if sovereignty.master_full_sovereignty_active else '🟡 NOT CLAIMED' }}</p></article>
+        <article class="align-card"><h3>Emergency halt</h3><p class="state {{ 'oap-command-status-red' if sovereignty.emergency_halt_active else 'oap-command-status-good' }}">{{ '🔴 ACTIVE' if sovereignty.emergency_halt_active else '🟢 CLEAR' }}</p></article>
+      </div>
+      {% if sovereignty.master_runtime_gaps %}
+      <h3>Evidence gaps before Master Full can turn green</h3>
+      <ul class="gap-list">{% for gap in sovereignty.master_runtime_gaps %}<li>{{ gap.replace('_',' ')|title }}</li>{% endfor %}</ul>
+      {% endif %}
+      <p class="truth-box"><strong>No fake sovereignty claim.</strong> Master Full only becomes active when custody, local model, self-hosted infrastructure, egress control, recovery, first-party observability and supply-chain attestations are actually proven.</p>
+    </section>
+
+    <section class="oap-command-panel-modern" style="margin-top:16px" aria-labelledby="world-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Exactly seven</p><h2 id="world-title">Intelligence Worlds</h2></div><span class="mc-lock-badge">No 8th World</span></div>
+      <div class="world-grid">{% for world in worlds %}<article class="world"><strong>{{ world.name }}</strong><small>{{ world.purpose }}</small></article>{% endfor %}</div>
+    </section>
+  </main>
+</body>
+</html>
