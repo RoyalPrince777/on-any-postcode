@@ -12,6 +12,9 @@ from typing import Any
 
 from .connectivity_runtime import connectivity_runtime_status
 from .humanitarian_connectivity import humanitarian_connectivity_status
+from .international_humanitarian_intelligence import (
+    international_humanitarian_intelligence_status,
+)
 from .six_g_war_room import six_g_war_room_status
 
 CONNECTIVITY_CAPABILITIES: tuple[dict[str, Any], ...] = (
@@ -27,11 +30,12 @@ CONNECTIVITY_CAPABILITIES: tuple[dict[str, Any], ...] = (
     },
     {
         "id": "humanitarian_emergency",
-        "name": "International Humanitarian Connectivity Intelligence",
-        "kind": "civilian_emergency_connectivity",
+        "name": "Humanitarian Connectivity Intelligence",
+        "kind": "civilian_emergency_connectivity_child",
         "purpose": (
-            "Prioritize civilian life-safety communication, medical needs, public warnings, "
-            "family reunification, essential aid and accessible communications during crises."
+            "Provide connectivity support to International Humanitarian Intelligence for "
+            "civilian life-safety communication, medical needs, public warnings, family "
+            "reunification, essential aid and accessible communications during crises."
         ),
     },
     {
@@ -104,6 +108,7 @@ def technology_intelligence_status() -> dict[str, Any]:
     runtime = connectivity_runtime_status()
     war_room = six_g_war_room_status()
     humanitarian = humanitarian_connectivity_status()
+    international_humanitarian = international_humanitarian_intelligence_status()
     architecture_passed = (
         len(ids) == len(set(ids))
         and len(section_ids) == len(set(section_ids))
@@ -117,6 +122,8 @@ def technology_intelligence_status() -> dict[str, Any]:
         and humanitarian["mode"] == "civilian_emergency_production"
         and humanitarian["demo_mode"] is False
         and humanitarian["civilian_only"] is True
+        and international_humanitarian["mode"] == "civilian_humanitarian_production"
+        and international_humanitarian["architecture_ready"] is True
     )
     six_g = dict(next(item for item in CONNECTIVITY_CAPABILITIES if item["id"] == "6g"))
     six_g.update(
@@ -126,7 +133,7 @@ def technology_intelligence_status() -> dict[str, Any]:
             "production_network_ready": runtime["6g_production_network_ready"],
             "imt_2030_standard_finalized": runtime["imt_2030_standard_finalized"],
             "war_room": war_room,
-            "humanitarian": humanitarian,
+            "humanitarian_connectivity": humanitarian,
         }
     )
     return {
@@ -153,7 +160,9 @@ def technology_intelligence_status() -> dict[str, Any]:
             "privacy_preserving_telemetry": True,
         },
         "6g_war_room": war_room,
+        "international_humanitarian_intelligence": international_humanitarian,
         "international_humanitarian_connectivity": humanitarian,
+        "humanitarian_parent": "International Humanitarian Intelligence",
         "6g_architecture_ready": True,
         "6g_intelligence_runtime_ready": runtime["6g_intelligence_runtime_ready"],
         "6g_testbed_ready": runtime["6g_testbed_ready"],
@@ -167,8 +176,8 @@ def technology_intelligence_status() -> dict[str, Any]:
         "can_execute": False,
         "human_authority_final": True,
         "truth_boundary": (
-            "Connectivity Intelligence, its 6G War Room and humanitarian emergency layer are "
-            "production software, not demos. Humanitarian mode is civilian-only. A live 6G "
-            "network still requires signed radio evidence and finalized IMT-2030 standards."
+            "Technology and Connectivity Intelligence provide supporting infrastructure to "
+            "International Humanitarian Intelligence. Humanitarian mode is civilian-only. "
+            "A live 6G network still requires signed radio evidence and finalized IMT-2030 standards."
         ),
     }
