@@ -1,9 +1,11 @@
 """Technology Intelligence specialist capability for SMI.
 
 Technology Intelligence is a cross-system capability, not an Intelligence world,
-second brain, telecom operator, or execution authority. Connectivity Intelligence
-runs as production software with real runtime evidence and keeps 6G network claims
-fail-closed until actual signed radio proof and finalized standards exist.
+second brain, telecom operator, infrastructure operator, or execution authority.
+Connectivity Intelligence runs as production software with real runtime evidence
+and keeps 6G network claims fail-closed until actual signed radio proof and
+finalized standards exist. Infrastructure Intelligence is first-party OAP
+analysis and never grants an outside source OAP identity or authority.
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ from typing import Any
 
 from .connectivity_runtime import connectivity_runtime_status
 from .humanitarian_connectivity import humanitarian_connectivity_status
+from .infrastructure_intelligence import infrastructure_intelligence_status
 from .international_humanitarian_intelligence import (
     international_humanitarian_intelligence_status,
 )
@@ -97,6 +100,11 @@ TECHNOLOGY_SECTIONS: tuple[dict[str, str], ...] = (
         "name": "Systems Intelligence",
         "purpose": "Software, runtime and infrastructure interoperability context.",
     },
+    {
+        "id": "infrastructure",
+        "name": "Infrastructure Intelligence",
+        "purpose": "First-party infrastructure health, dependency, continuity and recovery intelligence.",
+    },
 )
 
 
@@ -109,12 +117,18 @@ def technology_intelligence_status() -> dict[str, Any]:
     war_room = six_g_war_room_status()
     humanitarian = humanitarian_connectivity_status()
     international_humanitarian = international_humanitarian_intelligence_status()
+    infrastructure_ai = infrastructure_intelligence_status()
     architecture_passed = (
         len(ids) == len(set(ids))
         and len(section_ids) == len(set(section_ids))
         and "6g" in ids
         and "humanitarian_emergency" in ids
         and "connectivity" in section_ids
+        and "infrastructure" in section_ids
+        and infrastructure_ai["architecture_ready"] is True
+        and infrastructure_ai["brain_count"] == 0
+        and infrastructure_ai["intelligence_world_count_added"] == 0
+        and infrastructure_ai["first_party_policy"]["external_authority_allowed"] is False
         and runtime["mode"] == "production"
         and runtime["demo_mode"] is False
         and war_room["mode"] == "production_evidence_review"
@@ -147,6 +161,7 @@ def technology_intelligence_status() -> dict[str, Any]:
         "brain_count": 0,
         "intelligence_world_count_added": 0,
         "sections": TECHNOLOGY_SECTIONS,
+        "infrastructure": infrastructure_ai,
         "connectivity": {
             "id": "connectivity",
             "name": "Connectivity Intelligence",
@@ -168,16 +183,20 @@ def technology_intelligence_status() -> dict[str, Any]:
         "6g_testbed_ready": runtime["6g_testbed_ready"],
         "6g_production_network_ready": runtime["6g_production_network_ready"],
         "telecom_operator_claim": False,
+        "infrastructure_operator_claim": False,
         "autonomous_esim_provisioning": False,
         "autonomous_radio_control": False,
         "network_execution_authority": False,
+        "infrastructure_execution_authority": False,
         "independent_execute": False,
         "independent_approval": False,
         "can_execute": False,
         "human_authority_final": True,
         "truth_boundary": (
-            "Technology and Connectivity Intelligence provide supporting infrastructure to "
-            "International Humanitarian Intelligence. Humanitarian mode is civilian-only. "
-            "A live 6G network still requires signed radio evidence and finalized IMT-2030 standards."
+            "Technology, Infrastructure and Connectivity Intelligence are OAP-owned "
+            "advisory capabilities. Outside sources may contribute replaceable data only "
+            "and never gain OAP identity, authority or execution rights. Humanitarian mode "
+            "is civilian-only. A live 6G network still requires signed radio evidence and "
+            "finalized IMT-2030 standards."
         ),
     }
