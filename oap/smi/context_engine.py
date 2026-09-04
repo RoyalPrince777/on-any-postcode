@@ -1,4 +1,4 @@
-"""Load bounded canonical, HRM and world context for SMI."""
+"""Load bounded canonical, historical, graph, HRM and world context for SMI."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from oap.contracts import ContextSnapshot, FocusedSignal, utc_now
 from oap.hrm import HRMCore
 from oap.world import WorldEngine
 
-from .canonical_memory import canonical_memory_items
+from .memory_orchestrator import compose_memory
 
 
 class ContextEngine:
@@ -15,12 +15,16 @@ class ContextEngine:
         self.world = world
 
     def load(self, signal: FocusedSignal) -> ContextSnapshot:
-        """Load canonical Founder-approved memory plus recent audited HRM context."""
+        """Load governed OAP memory with canonical truth always taking priority."""
 
-        canonical = canonical_memory_items(signal.task_type, limit=14)
-        dynamic = self.hrm.retrieve_context(signal.task_type, limit=7)
+        dynamic = self.hrm.retrieve_context(signal.task_type, limit=4)
         return ContextSnapshot(
-            memories=(canonical + dynamic)[:21],
+            memories=compose_memory(
+                signal.task_type,
+                query=signal.content,
+                dynamic=dynamic,
+                limit=21,
+            ),
             world_state=self.world.snapshot(),
             retrieved_at=utc_now(),
         )

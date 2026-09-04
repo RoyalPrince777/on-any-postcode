@@ -1,10 +1,9 @@
 """Bounded autonomous review for Sovereign Megaverse Intelligence.
 
-SMI may observe its own reported component state, check coherence, verify the
-Founder-approved canonical memory manifest, identify recovery attention and
-propose controlled improvements without waiting for a user request. It never
-gains independent authority to approve, execute, promote, deploy or perform
-consequential real-world actions.
+SMI may observe its own reported component state, check coherence, verify its
+Founder-approved memory layers, identify recovery attention and propose controlled
+improvements. It never gains independent authority to approve, execute, promote,
+deploy or perform consequential real-world actions.
 """
 
 from __future__ import annotations
@@ -13,6 +12,10 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .canonical_memory import status as canonical_memory_status
+from .knowledge_graph import status as graph_status
+from .memory_history import status as history_status
+from .memory_orchestrator import status as orchestrator_status
+from .memory_sync import status as sync_status
 
 AUTONOMY_MODE = "BOUNDED_AUTONOMOUS"
 BLOCKED_ACTIONS = (
@@ -38,6 +41,7 @@ class SMIAutonomyEngine:
 
     def status(self) -> dict[str, Any]:
         memory = canonical_memory_status()
+        orchestrator = orchestrator_status()
         return {
             "component": "SMI Autonomy",
             "mode": AUTONOMY_MODE,
@@ -50,6 +54,7 @@ class SMIAutonomyEngine:
             "canonical_memory_ready": bool(memory.get("ready")),
             "canonical_memory_revision": memory.get("revision"),
             "canonical_memory_digest": memory.get("digest"),
+            "memory_orchestrator_ready": bool(orchestrator.get("ready")),
             "independent_execution": False,
             "independent_approval": False,
             "independent_apply": False,
@@ -80,24 +85,36 @@ class SMIAutonomyEngine:
         }
 
     def memory_review(self) -> dict[str, Any]:
-        """Verify manifest integrity/provenance without mutating HRM or code."""
+        """Verify memory-layer integrity without mutating HRM, history or code."""
 
-        memory = canonical_memory_status()
+        canonical = canonical_memory_status()
+        history = history_status()
+        graph = graph_status()
+        orchestrator = orchestrator_status()
+        sync = sync_status()
+        ready = all(
+            bool(item.get("ready"))
+            for item in (canonical, history, graph, orchestrator, sync)
+        )
         return {
             "kind": "smi_autonomous_memory_review",
-            "ready": bool(memory.get("ready")),
-            "revision": memory.get("revision"),
-            "record_count": int(memory.get("record_count", 0) or 0),
-            "digest": memory.get("digest"),
+            "ready": ready,
+            "canonical_revision": canonical.get("revision"),
+            "canonical_record_count": int(canonical.get("record_count", 0) or 0),
+            "canonical_digest": canonical.get("digest"),
+            "historical_revision": history.get("revision"),
+            "historical_record_count": int(history.get("record_count", 0) or 0),
+            "graph_revision": graph.get("revision"),
+            "graph_node_count": int(graph.get("node_count", 0) or 0),
+            "graph_edge_count": int(graph.get("edge_count", 0) or 0),
+            "context_cap": int(orchestrator.get("context_cap", 21) or 21),
             "latest_founder_correction_wins": bool(
-                memory.get("latest_founder_correction_wins")
+                canonical.get("latest_founder_correction_wins")
             ),
-            "private_chain_of_thought_included": bool(
-                memory.get("private_chain_of_thought_included")
+            "direct_external_transport_connected": bool(
+                sync.get("direct_chatgpt_transport_connected")
             ),
-            "credentials_or_secrets_included": bool(
-                memory.get("credentials_or_secrets_included")
-            ),
+            "raw_chat_auto_ingestion": bool(sync.get("raw_chat_auto_ingestion")),
             "read_only": True,
             "consequential_action": False,
         }
@@ -125,6 +142,7 @@ class SMIAutonomyEngine:
                 "reobserve_component_state",
                 "recheck_coherence",
                 "verify_canonical_memory_digest",
+                "verify_history_graph_integrity",
                 "retry_nonconsequential_analysis",
             ),
             "destructive_recovery_allowed": False,
@@ -147,7 +165,7 @@ class SMIAutonomyEngine:
         if not coherence.get("coherent"):
             issues.append("coherence_conflict")
         if memory is not None and not memory.get("ready"):
-            issues.append("canonical_memory_integrity")
+            issues.append("governed_memory_integrity")
 
         proposed = tuple(f"review:{issue}" for issue in issues[:16])
         if not proposed:
