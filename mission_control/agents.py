@@ -23,8 +23,12 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from . import agents_legacy as _legacy
-from .agents_legacy import *  # noqa: F403 - compatibility surface intentionally preserved.
 
+ADVISORY_AGENT_NAMES = _legacy.ADVISORY_AGENT_NAMES
+AGENT_ANATOMY = _legacy.AGENT_ANATOMY
+INTELLIGENCE_PROVIDERS = _legacy.INTELLIGENCE_PROVIDERS
+LOCKED_AGENT_COUNT = _legacy.LOCKED_AGENT_COUNT
+NEO = _legacy.NEO
 
 INTELLIGENCE_WORLDS: tuple[dict[str, Any], ...] = (
     {
@@ -88,7 +92,6 @@ INTELLIGENCE_WORLDS: tuple[dict[str, Any], ...] = (
 LOCKED_WORLD_IDS = tuple(world["id"] for world in INTELLIGENCE_WORLDS)
 INTELLIGENCE_WORLD_NAMES = tuple(world["name"] for world in INTELLIGENCE_WORLDS)
 
-
 _FAMILY_ALIGNMENT: dict[str, dict[str, Any]] = {
     "civic": {
         "world_id": "civic",
@@ -134,7 +137,6 @@ INTELLIGENCE_FAMILIES: tuple[dict[str, Any], ...] = tuple(
 )
 LOCKED_FAMILY_IDS = tuple(family["id"] for family in INTELLIGENCE_FAMILIES)
 INTELLIGENCE_FAMILY_NAMES = tuple(family["name"] for family in INTELLIGENCE_FAMILIES)
-
 
 ORGANISM_NON_AGENT_SYSTEMS: tuple[dict[str, str], ...] = (
     {"id": "oasis", "name": "OASIS", "kind": "environment"},
@@ -259,7 +261,7 @@ AGENT_SPECS = tuple(
 def validate_agent_registry(
     families: Iterable[Mapping[str, Any]] = INTELLIGENCE_FAMILIES,
     agents: Iterable[Mapping[str, Any]] = AGENT_REGISTRY,
-    providers: Iterable[Mapping[str, str]] = INTELLIGENCE_PROVIDERS,  # noqa: F405
+    providers: Iterable[Mapping[str, str]] = INTELLIGENCE_PROVIDERS,
 ) -> dict[str, Any]:
     """Validate the preserved roster plus canonical world/system alignment."""
 
@@ -274,7 +276,16 @@ def validate_agent_registry(
     errors = list(base["errors"])
 
     world_ids = tuple(world["id"] for world in INTELLIGENCE_WORLDS)
-    if world_ids != ("earth", "language", "life", "movement", "civic", "civilisation", "matrix"):
+    expected_world_ids = (
+        "earth",
+        "language",
+        "life",
+        "movement",
+        "civic",
+        "civilisation",
+        "matrix",
+    )
+    if world_ids != expected_world_ids:
         errors.append("The locked seven Intelligence Worlds are misaligned.")
     if len(set(world_ids)) != 7:
         errors.append("Intelligence World identifiers must be unique.")
@@ -317,7 +328,7 @@ def validate_agent_registry(
     result = dict(base)
     result["errors"] = errors
     result["passed"] = passed
-    result["registry_complete"] = passed and len(agent_items) == LOCKED_AGENT_COUNT  # noqa: F405
+    result["registry_complete"] = passed and len(agent_items) == LOCKED_AGENT_COUNT
     result["ready_for_activation"] = (
         result["registry_complete"] and bool(base["human_activation_approved"])
     )
@@ -327,7 +338,9 @@ def validate_agent_registry(
         "canonical_world_alignment": passed and not unknown_worlds,
         "non_agent_systems": len(ORGANISM_NON_AGENT_SYSTEMS),
         "matrix_home_system_aligned": matrix_family["home_system"] == "Matrix System",
-        "nirmata_creation_architect_aligned": bool(nirmata and nirmata["agent_id"] == "NIRMATA-001"),
+        "nirmata_creation_architect_aligned": bool(
+            nirmata and nirmata["agent_id"] == "NIRMATA-001"
+        ),
     }
     return result
 
@@ -398,8 +411,8 @@ def get_public_agent_directory(
         "worlds": INTELLIGENCE_WORLDS,
         "families": families,
         "agents": selected_agents,
-        "providers": INTELLIGENCE_PROVIDERS,  # noqa: F405
-        "agent_anatomy": AGENT_ANATOMY,  # noqa: F405
+        "providers": INTELLIGENCE_PROVIDERS,
+        "agent_anatomy": AGENT_ANATOMY,
         "non_agent_systems": ORGANISM_NON_AGENT_SYSTEMS,
         "validation": validation,
         "filters": {"family_id": family_id, "query": query.strip()[:80]},
