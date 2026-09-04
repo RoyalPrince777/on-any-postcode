@@ -27,13 +27,13 @@
         <span class="oap-live-pill">● PRIVATE LIVE</span>
       </div>
 
-      <div class="oap-header-actions" aria-label="Mission modes">
+      <nav class="oap-header-actions" aria-label="Mission Control modes">
         {% for mode in allowed_modes %}
         <a href="{{ url_for('mission_control.mission_workspace', mode=mode) }}" {% if mode == active_mode %}aria-current="page"{% endif %}>{{ mode|title }}</a>
         {% endfor %}
         <a href="{{ url_for('my_world') }}">My World</a>
         <a href="https://on-any-postcode.onrender.com/">Public OAP World ↗</a>
-      </div>
+      </nav>
 
       <div class="oap-control-grid" aria-label="Live private controls">
         <a class="oap-control oap-control--primary" href="{{ url_for('travel_supply.founder_dashboard') }}"><span class="sig">🏨</span><strong>Booking & Supply</strong><small>Certified suppliers, listings, availability, pricing, Partner Supply and reservation readiness.</small></a>
@@ -44,6 +44,8 @@
         <a class="oap-control" href="{{ url_for('mission_control.brain_dashboard') }}"><span class="sig">🧬</span><strong>SMI Brain</strong><small>Single-brain intelligence architecture, capability readiness and bounded cognition.</small></a>
         <a class="oap-control" href="{{ url_for('mission_control.infrastructure_dashboard') }}"><span class="sig">🏗️</span><strong>Infrastructure</strong><small>Maps, Weather, connectivity and first-party infrastructure truth state.</small></a>
         <a class="oap-control" href="{{ url_for('humanitarian_tracker.dashboard') }}"><span class="sig">🌍</span><strong>Humanitarian</strong><small>Civilian-only emergency awareness, protection and verified humanitarian signals.</small></a>
+        <a class="oap-control" href="{{ url_for('provider_fabric.provider_dashboard') }}"><span class="sig">🔌</span><strong>Provider Fabric</strong><small>Configured local/external capability providers remain replaceable and have zero OAP authority.</small></a>
+        <a class="oap-control" href="{{ url_for('mission_control.agent_intelligence') }}"><span class="sig">🧩</span><strong>Agents</strong><small>Bounded advisory workers inside the single SMI architecture.</small></a>
       </div>
     </section>
 
@@ -54,6 +56,12 @@
         <div class="mc-status mc-status--{{ component.state }}" role="listitem"><span>{{ component.label }}</span><strong>{{ component.value }}</strong></div>
         {% endfor %}
       </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="workspace-approval-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Governed decision evidence</p><h2 id="workspace-approval-title">Approval awareness</h2></div><a class="mc-secondary-link" href="{{ url_for('mission_control.judgement_dashboard') }}">Open Judgement</a></div>
+      <p class="mc-notice">{{ gateway.approval_summary.message }}</p>
+      <p>Approval records are evidence only. A recorded approval never silently deploys, spends, publishes or mutates production state.</p>
     </section>
 
     <section class="mc-panel" id="sovereignty-controls" aria-labelledby="sovereignty-title">
@@ -76,6 +84,15 @@
         <article class="mc-intelligence-card" role="listitem"><h3>{{ agent.name }}</h3><p>{{ agent.status }}</p><small>{{ agent.assignment }}</small></article>
         {% endfor %}
       </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="workspace-timeline-title">
+      <h2 id="workspace-timeline-title">Audited timeline</h2>
+      {% if gateway.timeline %}
+      <ol class="mc-timeline">{% for event in gateway.timeline %}<li><span>{{ event.summary }}</span><time>{{ event.timestamp }}</time></li>{% endfor %}</ol>
+      {% else %}
+      <p class="mc-notice">No public timeline entries available.</p>
+      {% endif %}
     </section>
 
     <aside class="mc-authority" aria-label="Human Authority status"><strong>Human Authority: {{ gateway.human_authority.status }}</strong><span>{{ gateway.human_authority.message }}</span></aside>
