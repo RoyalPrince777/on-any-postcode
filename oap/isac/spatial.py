@@ -12,9 +12,9 @@ only bounded spatial abstractions, confidence, provenance and freshness metadata
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Iterable, Mapping, Sequence
 
 FEATURE_DIMENSIONS = 32
 MAX_SUBCARRIERS = 256
@@ -50,7 +50,7 @@ def _quantile(values: Sequence[float], fraction: float) -> float:
     if not values:
         return 0.0
     ordered = sorted(values)
-    index = min(max(int(round((len(ordered) - 1) * fraction)), 0), len(ordered) - 1)
+    index = min(max(round((len(ordered) - 1) * fraction), 0), len(ordered) - 1)
     return ordered[index]
 
 
@@ -108,13 +108,17 @@ class SRSFrame:
     authorised: bool = False
 
     @classmethod
-    def from_payload(cls, payload: Mapping[str, object]) -> "SRSFrame":
+    def from_payload(cls, payload: Mapping[str, object]) -> SRSFrame:
         raw_antennas = payload.get("antenna_iq") or payload.get("antennas") or ()
         antennas: list[tuple[tuple[float, float], ...]] = []
-        if isinstance(raw_antennas, Sequence) and not isinstance(raw_antennas, (str, bytes)):
+        if isinstance(raw_antennas, Sequence) and not isinstance(
+            raw_antennas, (str, bytes)
+        ):
             for raw_antenna in raw_antennas[:MAX_ANTENNAS]:
                 samples: list[tuple[float, float]] = []
-                if isinstance(raw_antenna, Sequence) and not isinstance(raw_antenna, (str, bytes)):
+                if isinstance(raw_antenna, Sequence) and not isinstance(
+                    raw_antenna, (str, bytes)
+                ):
                     for raw_sample in raw_antenna[:MAX_SUBCARRIERS]:
                         if isinstance(raw_sample, Mapping):
                             samples.append(
@@ -128,13 +132,21 @@ class SRSFrame:
                             and not isinstance(raw_sample, (str, bytes))
                             and len(raw_sample) >= 2
                         ):
-                            samples.append((_finite(raw_sample[0]), _finite(raw_sample[1])))
+                            samples.append(
+                                (_finite(raw_sample[0]), _finite(raw_sample[1]))
+                            )
                 if samples:
                     antennas.append(tuple(samples))
         return cls(
             source=str(payload.get("source") or "unknown")[:80],
-            device_ref=str(payload.get("device_ref") or payload.get("ue_ref") or "anonymous-device")[:96],
-            cell_ref=str(payload.get("cell_ref") or payload.get("gnb_ref") or "unknown-cell")[:96],
+            device_ref=str(
+                payload.get("device_ref")
+                or payload.get("ue_ref")
+                or "anonymous-device"
+            )[:96],
+            cell_ref=str(
+                payload.get("cell_ref") or payload.get("gnb_ref") or "unknown-cell"
+            )[:96],
             antenna_iq=tuple(antennas),
             timestamp=str(payload.get("timestamp") or _utc_iso())[:64],
             noise_power=max(_finite(payload.get("noise_power")), 0.0),
@@ -204,7 +216,9 @@ def extract_spatial_features(frame: SRSFrame) -> tuple[float, ...]:
     all_phases: list[float] = []
 
     for antenna in frame.antenna_iq:
-        complex_samples = tuple(complex(i_value, q_value) for i_value, q_value in antenna)
+        complex_samples = tuple(
+            complex(i_value, q_value) for i_value, q_value in antenna
+        )
         magnitudes = tuple(abs(sample) for sample in complex_samples)
         phases = tuple(_phase(sample.real, sample.imag) for sample in complex_samples)
         cir = _inverse_dft_magnitudes(complex_samples)
@@ -219,7 +233,10 @@ def extract_spatial_features(frame: SRSFrame) -> tuple[float, ...]:
             total = sum(cir) or 1.0
             centroid = sum(index * value for index, value in enumerate(cir)) / total
             spread = math.sqrt(
-                sum(((index - centroid) ** 2) * value for index, value in enumerate(cir))
+                sum(
+                    ((index - centroid) ** 2) * value
+                    for index, value in enumerate(cir)
+                )
                 / total
             )
             cir_centroids.append(centroid / max(len(cir), 1))
@@ -314,14 +331,35 @@ class LocalPositioningModel:
                 provenance=frame.source,
             )
         ranked = sorted(
-            ((_vector_distance(features, point.features), point) for point in self._points),
+            (
+                (_vector_distance(features, point.features), point)
+                for point in self._points
+            ),
             key=lambda item: item[0],
         )[: min(3, len(self._points))]
         weights = tuple(1.0 / max(distance, 1e-6) for distance, _point in ranked)
         total_weight = sum(weights) or 1.0
-        x_m = sum(weight * point.x_m for weight, (_distance, point) in zip(weights, ranked)) / total_weight
-        y_m = sum(weight * point.y_m for weight, (_distance, point) in zip(weights, ranked)) / total_weight
-        z_m = sum(weight * point.z_m for weight, (_distance, point) in zip(weights, ranked)) / total_weight
+        x_m = (
+            sum(
+                weight * point.x_m
+                for weight, (_distance, point) in zip(weights, ranked)
+            )
+            / total_weight
+        )
+        y_m = (
+            sum(
+                weight * point.y_m
+                for weight, (_distance, point) in zip(weights, ranked)
+            )
+            / total_weight
+        )
+        z_m = (
+            sum(
+                weight * point.z_m
+                for weight, (_distance, point) in zip(weights, ranked)
+            )
+            / total_weight
+        )
         nearest_distance, nearest = ranked[0]
         confidence = max(0.0, min(1.0, 1.0 / (1.0 + nearest_distance)))
         return PositionEstimate(
@@ -378,12 +416,17 @@ class ISACSpatialService:
         previous = self._last_features.get(frame.device_ref)
         change_score = 0.0
         if previous is not None:
-            change_score = min(_vector_distance(features, previous) / math.sqrt(FEATURE_DIMENSIONS), 1.0)
+            change_score = min(
+                _vector_distance(features, previous) / math.sqrt(FEATURE_DIMENSIONS),
+                1.0,
+            )
         estimate = self.model.predict(frame, features)
         self._last_features[frame.device_ref] = features
         self._last_estimates[frame.device_ref] = estimate
         event = MatrixRFEvent(
-            event_type="position_estimate" if estimate.calibrated else "rf_spatial_observation",
+            event_type=(
+                "position_estimate" if estimate.calibrated else "rf_spatial_observation"
+            ),
             device_ref=frame.device_ref,
             zone=estimate.zone,
             x_m=estimate.x_m,
@@ -408,12 +451,19 @@ class ISACSpatialService:
             "guardian_rf_passed": True,
         }
 
-    def collision_risks(self, threshold_m: float = DEFAULT_COLLISION_DISTANCE_M) -> tuple[dict[str, object], ...]:
+    def collision_risks(
+        self, threshold_m: float = DEFAULT_COLLISION_DISTANCE_M
+    ) -> tuple[dict[str, object], ...]:
         located = [item for item in self._last_estimates.values() if item.calibrated]
         risks: list[dict[str, object]] = []
         for index, left in enumerate(located):
             for right in located[index + 1 :]:
-                if left.x_m is None or left.y_m is None or right.x_m is None or right.y_m is None:
+                if (
+                    left.x_m is None
+                    or left.y_m is None
+                    or right.x_m is None
+                    or right.y_m is None
+                ):
                     continue
                 distance = math.hypot(left.x_m - right.x_m, left.y_m - right.y_m)
                 if distance <= threshold_m:
@@ -423,7 +473,9 @@ class ISACSpatialService:
                             "right_device_ref": right.device_ref,
                             "distance_m": round(distance, 3),
                             "threshold_m": threshold_m,
-                            "confidence": round(min(left.confidence, right.confidence), 4),
+                            "confidence": round(
+                                min(left.confidence, right.confidence), 4
+                            ),
                         }
                     )
         return tuple(risks)
