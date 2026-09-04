@@ -72,5 +72,6 @@ def test_public_travel_is_direct_only_and_can_render_oap_media():
         assert "cover_image_url" in page
         assert "Certified OAP Supplier" in page
     assert "catalogue.partner" not in travel
-    assert "Partner Supply" not in travel
+    assert "partner-card" not in travel
+    assert "partner-title" not in travel
     assert "Fetch when needed. Do not import." in travel
