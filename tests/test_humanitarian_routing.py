@@ -30,3 +30,19 @@ def test_humanitarian_map_request_routes_to_movement_earth_technology_and_matrix
     assert route["decision_authority"] is False
     assert route["execution_authority"] is False
     assert route["human_authority_final"] is True
+
+
+def test_world_crisis_request_routes_to_international_humanitarian_with_context():
+    route = AGICore().route(
+        "Emergency world crisis: monitor floods, outbreaks and refugee emergency risks now.",
+        "MONITORING",
+    )
+
+    assert "international_humanitarian" in route["domain_ids"]
+    assert "earth" in route["domain_ids"]
+    assert "life" in route["domain_ids"]
+    assert "matrix" in route["domain_ids"]
+    assert "world crisis" in route["matches"]["international_humanitarian"]
+    assert route["decision_authority"] is False
+    assert route["execution_authority"] is False
+    assert route["human_authority_final"] is True

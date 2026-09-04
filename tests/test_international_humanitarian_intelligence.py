@@ -11,8 +11,9 @@ def test_international_humanitarian_is_single_canonical_civilian_umbrella():
     assert status["architecture_ready"] is True
     assert status["brain_count"] == 0
     assert status["intelligence_world_count_added"] == 0
-    assert status["section_count"] == 9
+    assert status["section_count"] == 10
     assert section_ids == (
+        "world_crisis",
         "connectivity",
         "maps",
         "health",
@@ -23,6 +24,7 @@ def test_international_humanitarian_is_single_canonical_civilian_umbrella():
         "civilian_safety",
         "legal",
     )
+    assert status["world_crisis_live_fetch_available"] is True
     assert status["human_authority_final"] is True
     assert status["independent_execute"] is False
     assert status["independent_approval"] is False
@@ -31,6 +33,10 @@ def test_international_humanitarian_is_single_canonical_civilian_umbrella():
 def test_all_humanitarian_children_keep_civilian_safety_boundaries():
     status = international_humanitarian_intelligence.international_humanitarian_intelligence_status()
 
+    assert status["world_crisis"]["parent"] == "International Humanitarian Intelligence"
+    assert status["world_crisis"]["civilian_only"] is True
+    assert status["world_crisis"]["targeting"] is False
+    assert status["world_crisis"]["surveillance"] is False
     assert status["connectivity"]["parent"] == "International Humanitarian Intelligence"
     assert status["connectivity"]["civilian_only"] is True
     assert status["maps"]["civilian_only"] is True
