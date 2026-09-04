@@ -1,14 +1,9 @@
-"""OAP Direct, Partner Supply and registered public ecosystem surfaces."""
+"""OAP Direct travel marketplace and Founder-controlled supply surfaces."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template, request
+from flask import Blueprint, Response, jsonify, make_response, render_template, request
 
-from . import (
-    partner_supply,
-    travel_marketplace,
-    travel_supply_policy,
-    web_security,
-)
+from . import listing_media, travel_marketplace, travel_supply_policy, web_security
 from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
@@ -67,52 +62,47 @@ def _buyer_write(operation):
     return _no_store(make_response(jsonify(result)))
 
 
-def _hybrid_catalogue(
-    *,
-    category: object = None,
-    country: object = None,
-    limit: object = 24,
-) -> dict:
-    """Build the OAP-owned catalogue with Direct supply deliberately first."""
-
-    direct = travel_marketplace.public_offers(
-        category=category,
-        country=country,
-        limit=limit,
+def _enrich_photos(marketplace: dict) -> dict:
+    offers = list(marketplace.get("offers") or [])
+    photos = listing_media.photo_map(
+        str(offer.get("listing_id") or "") for offer in offers
     )
-    try:
-        partner = partner_supply.public_offers(category=category, limit=limit)
-    except ValueError:
-        # OAP Direct supports a wider category set than current partner adapters.
-        # A partner that cannot serve the requested category is simply optional.
-        partner = {
-            "component": "OAP Partner Supply",
-            "ready": True,
-            "offers": [],
-            "count": 0,
-            "filtered_out_for_category": True,
-            "external_provider_authority": False,
-        }
+    for offer in offers:
+        listing_id = str(offer.get("listing_id") or "")
+        gallery = photos.get(listing_id, [])
+        offer["photos"] = gallery
+        offer["photo_count"] = len(gallery)
+        offer["cover_photo_url"] = gallery[0]["public_path"] if gallery else ""
+    marketplace["offers"] = offers
+    marketplace["listing_media"] = listing_media.status()
+    return marketplace
+
+
+def _catalogue(*, category: object = None, country: object = None, limit: object = 24) -> dict:
+    direct = _enrich_photos(
+        travel_marketplace.public_offers(
+            category=category,
+            country=country,
+            limit=limit,
+        )
+    )
     policy = travel_supply_policy.public_policy()
     return {
         "component": "OAP Travel Catalogue",
         "direct": direct,
-        "partner": partner,
         "direct_count": int(direct.get("count", 0)),
-        "partner_count": int(partner.get("count", 0)),
         "source_order": list(travel_supply_policy.PREFERRED_SOURCE_ORDER),
         "policy": policy,
-        "booking_com_required": policy["booking_com_required"],
-        "partner_supply_is_replaceable": True,
-        "automatic_quality_ranking_across_unmatched_offers": False,
+        "external_data_fetch_allowed": policy["external_data_fetch_allowed"],
+        "external_catalogue_import_allowed": policy[
+            "external_catalogue_import_allowed"
+        ],
         "external_provider_authority": False,
         "human_authority_final": True,
     }
 
 
 def _operator_snapshot() -> dict:
-    """Decorate the bounded Founder snapshot with non-secret operator defaults."""
-
     snapshot = travel_marketplace.founder_snapshot()
     suppliers = list(snapshot.get("suppliers") or [])
     certified = next(
@@ -125,10 +115,18 @@ def _operator_snapshot() -> dict:
         suppliers[0] if suppliers else None,
     )
     listings = list(snapshot.get("listings") or [])
+    photo_map = listing_media.photo_map(
+        str(item.get("listing_id") or "") for item in listings
+    )
+    for item in listings:
+        gallery = photo_map.get(str(item.get("listing_id") or ""), [])
+        item["photos"] = gallery
+        item["photo_count"] = len(gallery)
     active_listing = next(
         (item for item in listings if item.get("state") == "ACTIVE"),
         listings[0] if listings else None,
     )
+    snapshot["listings"] = listings
     snapshot["operator"] = {
         "supplier_ready": certified is not None,
         "owner_identity_id": certified.get("owner_identity_id", "") if certified else "",
@@ -137,27 +135,24 @@ def _operator_snapshot() -> dict:
         "listing_id": active_listing.get("listing_id", "") if active_listing else "",
         "listing_title": active_listing.get("title", "") if active_listing else "",
     }
-    snapshot["partner_supply"] = partner_supply.status()
+    snapshot["listing_media"] = listing_media.status()
     snapshot["travel_policy"] = travel_supply_policy.public_policy()
     return snapshot
 
 
 @bp.get("/travel")
 def public_travel():
-    """Render the sovereign hybrid OAP Travel catalogue."""
-
     try:
-        catalogue = _hybrid_catalogue(
+        catalogue = _catalogue(
             category=request.args.get("category"),
+            country=request.args.get("country"),
             limit=request.args.get("limit", "24"),
         )
     except ValueError as exc:
         catalogue = {
             "component": "OAP Travel Catalogue",
             "direct": {"offers": [], "count": 0},
-            "partner": {"offers": [], "count": 0},
             "direct_count": 0,
-            "partner_count": 0,
             "policy": travel_supply_policy.public_policy(),
             "error": str(exc),
         }
@@ -167,10 +162,12 @@ def public_travel():
 @bp.get("/travel/direct")
 def public_marketplace():
     try:
-        offers = travel_marketplace.public_offers(
-            category=request.args.get("category"),
-            country=request.args.get("country"),
-            limit=request.args.get("limit", "24"),
+        offers = _enrich_photos(
+            travel_marketplace.public_offers(
+                category=request.args.get("category"),
+                country=request.args.get("country"),
+                limit=request.args.get("limit", "24"),
+            )
         )
     except ValueError as exc:
         offers = {
@@ -188,20 +185,36 @@ def public_marketplace():
 @bp.get("/travel/direct/api/offers")
 def public_offers():
     try:
-        result = travel_marketplace.public_offers(
-            category=request.args.get("category"),
-            country=request.args.get("country"),
-            limit=request.args.get("limit", "24"),
+        result = _enrich_photos(
+            travel_marketplace.public_offers(
+                category=request.args.get("category"),
+                country=request.args.get("country"),
+                limit=request.args.get("limit", "24"),
+            )
         )
     except ValueError as exc:
         return _error("invalid_discovery_filter", str(exc)[:120], 400)
     return _no_store(make_response(jsonify(result)))
 
 
+@bp.get("/travel/direct/photos/<photo_id>")
+def public_listing_photo(photo_id: str):
+    try:
+        item = listing_media.public_photo(photo_id)
+    except ValueError:
+        item = None
+    if item is None:
+        return _error("listing_photo_not_found", "Listing photo not found.", 404)
+    data, content_type, digest = item
+    response = Response(data, mimetype=content_type)
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    response.headers["ETag"] = f'"{digest}"'
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @bp.post("/travel/direct/api/quote")
 def direct_quote():
-    """Re-check price and capacity without creating a reservation or hold."""
-
     try:
         result = travel_marketplace.quote_direct(_json_payload())
     except (TypeError, ValueError) as exc:
@@ -214,37 +227,28 @@ def direct_quote():
 @bp.post("/travel/direct/api/hold")
 @web_security.login_required(api=True)
 def direct_hold():
-    """Place a 15-minute capacity hold for the authenticated buyer."""
-
     return _buyer_write(travel_marketplace.create_buyer_hold)
 
 
 @bp.post("/travel/direct/api/reservations")
 @web_security.login_required(api=True)
 def direct_reservation():
-    """Convert the buyer's hold after an explicit Human confirmation click."""
-
     return _buyer_write(travel_marketplace.create_buyer_reservation)
 
 
 @bp.get("/travel/partner/api/offers")
-def public_partner_offers():
-    try:
-        result = partner_supply.public_offers(
-            category=request.args.get("category"),
-            limit=request.args.get("limit", "24"),
-        )
-    except ValueError as exc:
-        return _error("invalid_partner_filter", str(exc)[:120], 400)
-    return _no_store(make_response(jsonify(result)))
+def retired_partner_offers():
+    return _error(
+        "partner_supply_removed",
+        "Partner Supply is not part of OAP Travel. External data is fetched on demand only.",
+        410,
+    )
 
 
 @bp.get("/travel/api/catalogue")
 def public_catalogue():
-    """Return Direct and Partner Supply as explicit, ordered source groups."""
-
     try:
-        result = _hybrid_catalogue(
+        result = _catalogue(
             category=request.args.get("category"),
             country=request.args.get("country"),
             limit=request.args.get("limit", "24"),
@@ -278,13 +282,21 @@ def founder_status():
 @bp.get("/mission/supply/partner/status")
 @web_security.login_required(api=True, founder_only=True)
 def founder_partner_status():
-    return _no_store(make_response(jsonify(partner_supply.status())))
+    return _error(
+        "partner_supply_removed",
+        "External marketplace partnerships are disabled for OAP Travel.",
+        410,
+    )
 
 
 @bp.post("/mission/supply/partner/import")
 @web_security.login_required(api=True, founder_only=True)
 def founder_partner_import():
-    return _founder_write(partner_supply.import_snapshot)
+    return _error(
+        "partner_supply_removed",
+        "External marketplace data cannot be imported as OAP Partner Supply.",
+        410,
+    )
 
 
 @bp.post("/mission/supply/suppliers")
@@ -309,6 +321,12 @@ def certify_supplier():
 @web_security.login_required(api=True, founder_only=True)
 def create_listing():
     return _founder_write(travel_marketplace.create_listing)
+
+
+@bp.post("/mission/supply/listings/photos")
+@web_security.login_required(api=True, founder_only=True)
+def add_listing_photo():
+    return _founder_write(listing_media.add_photo)
 
 
 @bp.post("/mission/supply/listings/activate")
