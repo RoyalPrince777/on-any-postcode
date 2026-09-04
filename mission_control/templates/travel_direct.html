@@ -11,7 +11,7 @@
     h1{font-size:clamp(2rem,6vw,4rem);margin:.3rem 0 .7rem;line-height:.95}.sub{max-width:760px;color:#b9c9c1;line-height:1.5}
     .filters{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 28px}.filters input,.filters select,.filters button{border:1px solid #29483a;background:#0d1b15;color:#fff;border-radius:12px;padding:12px 14px}
     .filters button{cursor:pointer;background:#153d2a}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}.card{border:1px solid #1f3a2d;background:#0b1712;border-radius:18px;padding:18px}
-    .badge{display:inline-block;border:1px solid #315b46;border-radius:999px;padding:5px 9px;color:#9edbb7;font-size:.75rem}.price{font-size:1.5rem;font-weight:800;margin:.8rem 0 .2rem}.muted{color:#9eb0a7;font-size:.9rem}.place{font-weight:650;margin:.8rem 0}.empty{border:1px dashed #355245;border-radius:18px;padding:28px;color:#b6c5bd}.truth{margin-top:30px;border-top:1px solid #20382d;padding-top:18px;color:#91a69c;font-size:.88rem}
+    .badge{display:inline-block;border:1px solid #315b46;border-radius:999px;padding:5px 9px;color:#9edbb7;font-size:.75rem}.badge.certified{border-color:#7d6a36;color:#f2d986}.price{font-size:1.5rem;font-weight:800;margin:.8rem 0 .2rem}.muted{color:#9eb0a7;font-size:.9rem}.place{font-weight:650;margin:.8rem 0}.empty{border:1px dashed #355245;border-radius:18px;padding:28px;color:#b6c5bd}.truth{margin-top:30px;border-top:1px solid #20382d;padding-top:18px;color:#91a69c;font-size:.88rem}
     .booking{margin-top:14px;padding-top:12px;border-top:1px solid #20382d}.booking-row{display:flex;gap:8px;align-items:end}.booking label{font-size:.75rem;color:#a9bbb2}.booking input{width:78px;border:1px solid #315344;background:#08140e;color:white;border-radius:9px;padding:9px}.book-button,.confirm-button{border:1px solid #357d52;background:#154c31;color:white;border-radius:10px;padding:10px 13px;font-weight:800;cursor:pointer}.confirm-button{margin-top:8px;background:#6b5220;border-color:#a78842}.book-button:disabled,.confirm-button:disabled{opacity:.5;cursor:not-allowed}.booking-status{min-height:1.3em;margin-top:9px;color:#a7cdb8;font-size:.8rem;white-space:pre-wrap}.booking-status.error{color:#ffb3b3}.booking-status.success{color:#aef1c5}
   </style>
 </head>
@@ -20,7 +20,7 @@
   <section class="hero">
     <div class="eyebrow">ON ANY POSTCODE · OAP Direct</div>
     <h1>Discover. Book. Move. Experience.</h1>
-    <p class="sub">First-party OAP Direct supply from Certified suppliers. Only active, future availability with real stored pricing is shown here. External suppliers can remain optional underneath OAP.</p>
+    <p class="sub">First-party OAP Direct supply from Certified suppliers. Only active, future availability with real stored pricing is shown here. External suppliers remain optional underneath OAP. <a href="/travel">View the full OAP Travel catalogue</a>.</p>
   </section>
   <form class="filters" method="get" action="/travel/direct">
     <select name="category" aria-label="Category">
@@ -37,7 +37,8 @@
   <section class="grid" aria-label="Available OAP Direct offers">
     {% for offer in marketplace.offers %}
     <article class="card" data-booking-card data-listing-id="{{ offer.listing_id }}" data-starts-at="{{ offer.starts_at }}" data-ends-at="{{ offer.ends_at }}" data-currency="{{ offer.currency }}">
-      <span class="badge">Certified · {{ offer.category.replace('_',' ')|title }}</span>
+      <span class="badge">🟢 OAP Direct · {{ offer.category.replace('_',' ')|title }}</span>
+      <span class="badge certified">👑 Certified OAP Supplier</span>
       <h2>{{ offer.title }}</h2>
       <div class="place">{{ offer.place_label }} · {{ offer.country }}</div>
       {% if offer.description %}<p class="muted">{{ offer.description }}</p>{% endif %}
@@ -78,7 +79,7 @@ for(const card of document.querySelectorAll('[data-booking-card]')){
   button.addEventListener('click',async()=>{
     button.disabled=true;status.className='booking-status';status.textContent='Checking live price and availability…';
     const quantity=Number(qtyInput.value||1);
-    const base={listing_id:card.dataset.listingId,starts_at:card.dataset.startsAt,ends_at:card.dataset.endsAt,quantity};
+    const base={listing_id:card.dataset.listingId,starts_at:card.dataset.startsAt,ends_at:card.datasetEndsAt||card.dataset.endsAt,quantity};
     try{
       const quote=await bookingPost('/travel/direct/api/quote',base);
       if(!quote.response.ok){status.classList.add('error');status.textContent=quote.body?.error?.message||'Offer is no longer available.';button.disabled=false;return}
