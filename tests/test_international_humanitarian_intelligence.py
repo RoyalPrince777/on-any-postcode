@@ -11,7 +11,7 @@ def test_international_humanitarian_is_single_canonical_civilian_umbrella():
     assert status["architecture_ready"] is True
     assert status["brain_count"] == 0
     assert status["intelligence_world_count_added"] == 0
-    assert status["section_count"] == 8
+    assert status["section_count"] == 9
     assert section_ids == (
         "connectivity",
         "maps",
@@ -21,6 +21,7 @@ def test_international_humanitarian_is_single_canonical_civilian_umbrella():
         "public_warning",
         "accessibility",
         "civilian_safety",
+        "legal",
     )
     assert status["human_authority_final"] is True
     assert status["independent_execute"] is False
@@ -44,16 +45,24 @@ def test_all_humanitarian_children_keep_civilian_safety_boundaries():
     assert status["civilian_safety"]["surveillance"] is False
     assert status["civilian_safety"]["weapon_support"] is False
     assert status["civilian_safety"]["offensive_cyber"] is False
+    assert status["legal"]["parent"] == "International Humanitarian Intelligence"
+    assert status["legal"]["legal_advice_claim"] is False
+    assert status["legal"]["law_of_the_jungle"]["legal_authority"] is False
 
 
-def test_physical_and_external_readiness_claims_remain_evidence_gated():
+def test_physical_external_and_legal_readiness_claims_remain_evidence_gated():
     status = international_humanitarian_intelligence.international_humanitarian_intelligence_status()
 
     assert status["international_reach_claim"] is False
     assert status["live_humanitarian_data_feeds_claim"] is False
+    assert status["live_jurisdiction_legal_feed_claim"] is False
+    assert status["legal_advice_claim"] is False
     assert status["health"]["live_clinical_service_claim"] is False
     assert status["aid_essentials"]["live_global_supply_feed_claim"] is False
     assert status["accessibility"]["live_translation_claim"] is False
+    assert status["legal"]["live_jurisdiction_database_ready"] is False
+    assert status["legal"]["live_treaty_status_feed_ready"] is False
+    assert status["legal"]["live_sanctions_feed_ready"] is False
     assert status["autonomous_dispatch"] is False
     assert status["autonomous_transmission"] is False
     assert status["network_execution_authority"] is False

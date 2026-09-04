@@ -2,9 +2,10 @@
 
 International Humanitarian Intelligence is the parent capability for civilian emergency
 communications, maps, health information, essential aid, family reunification, public
-warnings, accessibility and civilian safety. It does not create a new SMI brain or
-Intelligence world and has no military, targeting, surveillance or autonomous execution
-authority. Human Authority remains final.
+warnings, accessibility, civilian safety and humanitarian legal/protection review. It does
+not create a new SMI brain or Intelligence world and has no military, targeting,
+surveillance, legal-adjudication or autonomous execution authority. Human Authority remains
+final for OAP decisions.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 from .humanitarian_connectivity import humanitarian_connectivity_status
+from .humanitarian_legal_intelligence import humanitarian_legal_intelligence_status
 from .humanitarian_map_intelligence import humanitarian_map_intelligence_status
 
 INTERNATIONAL_HUMANITARIAN_SECTIONS: tuple[dict[str, str], ...] = (
@@ -55,6 +57,11 @@ INTERNATIONAL_HUMANITARIAN_SECTIONS: tuple[dict[str, str], ...] = (
         "name": "Civilian Safety Intelligence",
         "purpose": "Enforce civilian-only boundaries, data minimisation and no targeting, surveillance, weapons or military command.",
     },
+    {
+        "id": "legal",
+        "name": "Humanitarian Legal Intelligence",
+        "purpose": "Resolve potentially applicable IHL, human-rights, refugee, disaster, domestic, customary and specialist protection frameworks without issuing final legal advice.",
+    },
 )
 
 
@@ -63,16 +70,20 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
 
     connectivity = humanitarian_connectivity_status()
     maps = humanitarian_map_intelligence_status()
+    legal = humanitarian_legal_intelligence_status()
     section_ids = tuple(item["id"] for item in INTERNATIONAL_HUMANITARIAN_SECTIONS)
     architecture_ready = (
         len(section_ids) == len(set(section_ids))
-        and len(section_ids) == 8
+        and len(section_ids) == 9
         and connectivity["mode"] == "civilian_emergency_production"
         and connectivity["demo_mode"] is False
         and connectivity["civilian_only"] is True
         and maps["mode"] == "civilian_emergency_map_production"
         and maps["demo_mode"] is False
         and maps["civilian_only"] is True
+        and legal["architecture_ready"] is True
+        and legal["civilian_only"] is True
+        and legal["legal_advice_claim"] is False
     )
     return {
         "id": "international_humanitarian",
@@ -81,6 +92,7 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
         "mode": "civilian_humanitarian_production",
         "demo_mode": False,
         "architecture_ready": architecture_ready,
+        "architecture_passed": architecture_ready,
         "brain_count": 0,
         "intelligence_world_count_added": 0,
         "section_count": len(INTERNATIONAL_HUMANITARIAN_SECTIONS),
@@ -126,10 +138,13 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
             "weapon_support": False,
             "offensive_cyber": False,
         },
+        "legal": legal,
         "production_software_ready": bool(connectivity["production_software_ready"]),
         "production_navigation_ready": bool(maps["production_navigation_ready"]),
         "international_reach_claim": False,
         "live_humanitarian_data_feeds_claim": False,
+        "live_jurisdiction_legal_feed_claim": False,
+        "legal_advice_claim": False,
         "autonomous_dispatch": False,
         "autonomous_transmission": False,
         "network_execution_authority": False,
@@ -139,6 +154,7 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
         "truth_boundary": (
             "International Humanitarian Intelligence is the live production software umbrella. "
             "Its child capabilities remain evidence-gated for physical navigation, worldwide "
-            "carrier/satellite reach, live clinical services and live global humanitarian feeds."
+            "carrier/satellite reach, live clinical services, live global humanitarian feeds and "
+            "jurisdiction-specific legal conclusions."
         ),
     }

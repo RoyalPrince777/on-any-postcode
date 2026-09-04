@@ -100,9 +100,13 @@ def test_specialist_capabilities_do_not_mutate_locked_seven_worlds():
     status = smi_capabilities.smi_capability_status()
     assert validation["passed"] is True
     assert validation["checks"]["intelligence_worlds"] == 7
-    assert validation["checks"]["cross_system_capabilities"] == 5
+    assert validation["checks"]["cross_system_capabilities"] == 6
     assert validation["checks"]["brain_count_added_by_agi"] == 0
     assert status["specialist_status"]["technology"]["6g_architecture_ready"] is True
+    humanitarian = status["specialist_status"]["international_humanitarian"]
+    assert humanitarian["architecture_passed"] is True
+    assert humanitarian["legal"]["architecture_ready"] is True
+    assert humanitarian["legal"]["law_of_the_jungle"]["legal_authority"] is False
     assert status["agi_core"]["agi_achieved"] is False
     assert status["independent_execution"] is False
     assert status["human_authority_final"] is True
