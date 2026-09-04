@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 from .humanitarian_connectivity import humanitarian_connectivity_status
+from .humanitarian_emergency_tracker import humanitarian_emergency_tracker_status
 from .humanitarian_legal_intelligence import humanitarian_legal_intelligence_status
 from .humanitarian_map_intelligence import humanitarian_map_intelligence_status
 from .world_crisis_intelligence import world_crisis_intelligence_status
@@ -75,6 +76,7 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
     """Return the canonical International Humanitarian Intelligence hierarchy."""
 
     world_crisis = world_crisis_intelligence_status()
+    emergency_tracker = humanitarian_emergency_tracker_status()
     connectivity = humanitarian_connectivity_status()
     maps = humanitarian_map_intelligence_status()
     legal = humanitarian_legal_intelligence_status()
@@ -85,6 +87,10 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
         and world_crisis["architecture_ready"] is True
         and world_crisis["demo_mode"] is False
         and world_crisis["civilian_only"] is True
+        and emergency_tracker["architecture_ready"] is True
+        and emergency_tracker["civilian_only"] is True
+        and emergency_tracker["targeting"] is False
+        and emergency_tracker["surveillance"] is False
         and connectivity["mode"] == "civilian_emergency_production"
         and connectivity["demo_mode"] is False
         and connectivity["civilian_only"] is True
@@ -108,6 +114,7 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
         "section_count": len(INTERNATIONAL_HUMANITARIAN_SECTIONS),
         "sections": INTERNATIONAL_HUMANITARIAN_SECTIONS,
         "world_crisis": world_crisis,
+        "emergency_tracker": emergency_tracker,
         "connectivity": connectivity,
         "maps": maps,
         "health": {
@@ -153,6 +160,10 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
         "production_software_ready": bool(connectivity["production_software_ready"]),
         "production_navigation_ready": bool(maps["production_navigation_ready"]),
         "world_crisis_live_fetch_available": True,
+        "multi_source_emergency_tracker_ready": True,
+        "humanitarian_tracker_founder_dashboard_ready": True,
+        "humanitarian_tracker_smi_context_ready": True,
+        "runtime_source_health_required": True,
         "international_reach_claim": False,
         "live_humanitarian_data_feeds_claim": False,
         "live_jurisdiction_legal_feed_claim": False,
@@ -164,9 +175,11 @@ def international_humanitarian_intelligence_status() -> dict[str, Any]:
         "independent_approval": False,
         "human_authority_final": True,
         "truth_boundary": (
-            "International Humanitarian Intelligence includes a live GDACS world-crisis fetch "
-            "path. Physical navigation, worldwide carrier/satellite reach, live clinical feeds, "
-            "additional global humanitarian feeds and jurisdiction-specific legal conclusions "
-            "remain evidence-gated until their own runtime proofs pass."
+            "International Humanitarian Intelligence includes a governed multi-source emergency "
+            "tracker with GDACS disaster alerts, WHO Disease Outbreak News and UNHCR displacement "
+            "context adapters. Each source is verified at runtime and failures fail closed. "
+            "ReliefWeb remains gated until a pre-approved appname is configured. Physical navigation, "
+            "worldwide carrier/satellite reach, live clinical feeds and jurisdiction-specific legal "
+            "conclusions remain evidence-gated until their own runtime proofs pass."
         ),
     }

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Humanitarian Emergency Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">OAP / SMI / International Humanitarian Intelligence / Founder-only</p>
+      <h1>Humanitarian Emergency Tracker</h1>
+      <p>Live civilian-only emergency awareness from authoritative public sources.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-primary-link" href="{{ url_for('humanitarian_tracker.status', refresh=1) }}">Refresh source evidence</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.infrastructure_dashboard') }}">Infrastructure</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-integrity" aria-labelledby="humanitarian-integrity-title">
+      <div>
+        <p class="mc-eyebrow">Civilian protection boundary</p>
+        <h2 id="humanitarian-integrity-title">
+          {% if tracker.tracking_ready %}Live humanitarian tracking active{% else %}No authoritative live source currently reachable{% endif %}
+        </h2>
+        <p>Guardian rules: civilian-only, source-verified, no military overlays, no target lists, no individual tracking, no autonomous dispatch or public warning.</p>
+      </div>
+      <dl class="mc-integrity-counts">
+        <div><dt>Live sources</dt><dd>{{ tracker.live_source_count }}</dd></div>
+        <div><dt>Tracked events</dt><dd>{{ tracker.event_count }}</dd></div>
+        <div><dt>Cache</dt><dd>{{ tracker.cache_seconds }}s</dd></div>
+        <div><dt>Human Authority</dt><dd>FINAL</dd></div>
+      </dl>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="humanitarian-source-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Source health</p>
+          <h2 id="humanitarian-source-title">Authoritative emergency sources</h2>
+        </div>
+        <span class="mc-lock-badge">Fail closed</span>
+      </div>
+      <div class="mc-boundary-grid" role="list">
+        {% for source_id, source in tracker.source_states.items() %}
+        <article role="listitem">
+          <p class="mc-organ-type">{{ source_id }}</p>
+          <h3>{% if source.live %}🟢 LIVE{% elif source.configured %}🟡 CONFIGURED{% else %}🟠 GATED / UNAVAILABLE{% endif %}</h3>
+          <p>Fetched: {{ source.fetched_at or 'not fetched' }}</p>
+          {% if source.event_count is defined %}<p>Events: {{ source.event_count }}</p>{% endif %}
+          {% if source.row_count is defined %}<p>Context rows: {{ source.row_count }}</p>{% endif %}
+          {% if source.error %}<p class="mc-boundary-note">{{ source.error }}</p>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="humanitarian-category-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">World-state summary</p>
+          <h2 id="humanitarian-category-title">Emergency categories</h2>
+        </div>
+        <span class="mc-lock-badge">Observed public evidence</span>
+      </div>
+      {% if tracker.category_counts %}
+      <div class="mc-status-ribbon" role="list">
+        {% for category, count in tracker.category_counts.items() %}
+        <div class="mc-status mc-status--green" role="listitem"><span>{{ category|replace('_', ' ')|title }}</span><strong>{{ count }}</strong></div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="mc-notice">No current events were returned by reachable sources.</p>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="humanitarian-events-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Live evidence board</p>
+          <h2 id="humanitarian-events-title">Current humanitarian signals</h2>
+        </div>
+        <span class="mc-lock-badge">Maximum {{ tracker.event_count }}</span>
+      </div>
+      {% if tracker.events %}
+      <div class="mc-infrastructure-grid" role="list">
+        {% for event in tracker.events %}
+        <article class="mc-infrastructure-card" role="listitem">
+          <div class="mc-infrastructure-card__heading">
+            <div>
+              <p class="mc-organ-type">{{ event.source }} / {{ event.category }}</p>
+              <h3>{{ event.name }}</h3>
+            </div>
+            <span class="mc-agent-status">{{ event.alert_level }}</span>
+          </div>
+          {% if event.countries %}<p><strong>Countries:</strong> {{ event.countries|join(', ') }}</p>{% endif %}
+          {% if event.from_date %}<p><strong>Date:</strong> {{ event.from_date }}</p>{% endif %}
+          {% if event.summary %}<p>{{ event.summary }}</p>{% endif %}
+          {% if event.geometry %}<p class="mc-boundary-note"><strong>Coarse location:</strong> {{ event.geometry.latitude }}, {{ event.geometry.longitude }}</p>{% endif %}
+          <p class="mc-boundary-note"><strong>Provenance:</strong> {{ event.source }} / {{ event.source_event_id }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="mc-notice">No live emergency signals are currently available. Source failures are not converted into invented events.</p>
+      {% endif %}
+    </section>
+
+    {% if tracker.country_counts %}
+    <section class="mc-panel" aria-labelledby="humanitarian-country-title">
+      <p class="mc-eyebrow">Coarse country context</p>
+      <h2 id="humanitarian-country-title">Countries appearing in current signals</h2>
+      <div class="mc-status-ribbon" role="list">
+        {% for item in tracker.country_counts %}
+        <div class="mc-status mc-status--green" role="listitem"><span>{{ item.country }}</span><strong>{{ item.event_count }}</strong></div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="mc-panel" aria-labelledby="humanitarian-matrix-title">
+      <p class="mc-eyebrow">Matrix / Guardian</p>
+      <h2 id="humanitarian-matrix-title">Matrix-ready humanitarian world state</h2>
+      <p>{{ tracker.matrix_events|length }} privacy-reduced emergency events are prepared for Matrix. Precise civilian locations, individual identities and raw sensitive source data are excluded.</p>
+      <p class="mc-notice">This tracker supports awareness and recommendations. It does not certify routes as safe, dispatch aid, contact civilians, issue legal conclusions or broadcast emergency warnings autonomously.</p>
+    </section>
+
+    <aside class="mc-authority" aria-label="Human Authority status">
+      <strong>Human Authority: FINAL</strong>
+      <span>Humanitarian intelligence may observe, verify, synthesise and recommend only.</span>
+    </aside>
+  </main>
+
+  <script>
+    window.setTimeout(function () { window.location.reload(); }, Math.max(60000, {{ tracker.cache_seconds|int }} * 1000));
+  </script>
+</body>
+</html>
