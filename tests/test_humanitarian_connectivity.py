@@ -16,8 +16,10 @@ def test_humanitarian_status_is_civilian_production_and_non_executing():
     assert status["autonomous_transmission"] is False
     assert status["network_execution_authority"] is False
     assert status["human_authority_final"] is True
-    assert status["feature_count"] == 8
+    assert status["feature_count"] == 9
     assert len(status["priorities"]) == 7
+    assert status["map_intelligence_bound"] is True
+    assert status["maps"]["architecture_ready"] is True
 
 
 def test_life_safety_message_is_prepared_not_transmitted():
@@ -82,4 +84,6 @@ def test_technology_intelligence_exposes_humanitarian_emergency_layer():
     assert humanitarian["name"] == "International Humanitarian Connectivity Intelligence"
     assert humanitarian["civilian_only"] is True
     assert humanitarian["international_reach_claim"] is False
+    assert humanitarian["map_intelligence_bound"] is True
+    assert humanitarian["maps"]["map_intelligence_bound"] is True
     assert status["intelligence_world_count_added"] == 0
