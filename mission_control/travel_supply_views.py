@@ -44,6 +44,37 @@ def _founder_write(operation):
     return _no_store(make_response(jsonify(result)))
 
 
+def _operator_snapshot() -> dict:
+    """Decorate the bounded Founder snapshot with non-secret operator defaults."""
+
+    snapshot = travel_marketplace.founder_snapshot()
+    suppliers = list(snapshot.get("suppliers") or [])
+    certified = next(
+        (
+            item
+            for item in suppliers
+            if item.get("state") == "CERTIFIED"
+            and item.get("commercial_terms_state") == "CERTIFIED"
+        ),
+        suppliers[0] if suppliers else None,
+    )
+    listings = list(snapshot.get("listings") or [])
+    active_listing = next(
+        (item for item in listings if item.get("state") == "ACTIVE"),
+        listings[0] if listings else None,
+    )
+    snapshot["operator"] = {
+        "supplier_ready": certified is not None,
+        "owner_identity_id": certified.get("owner_identity_id", "") if certified else "",
+        "supplier_id": certified.get("supplier_id", "") if certified else "",
+        "supplier_name": certified.get("display_name", "") if certified else "",
+        "listing_id": active_listing.get("listing_id", "") if active_listing else "",
+        "listing_title": active_listing.get("title", "") if active_listing else "",
+    }
+    snapshot["partner_supply"] = partner_supply.status()
+    return snapshot
+
+
 @bp.get("/travel/direct")
 def public_marketplace():
     try:
@@ -124,7 +155,7 @@ def public_catalogue():
 @bp.get("/mission/supply")
 @web_security.login_required(founder_only=True)
 def founder_dashboard():
-    snapshot = travel_marketplace.founder_snapshot()
+    snapshot = _operator_snapshot()
     return _no_store(
         make_response(
             render_template(
@@ -139,9 +170,7 @@ def founder_dashboard():
 @bp.get("/mission/supply/status")
 @web_security.login_required(api=True, founder_only=True)
 def founder_status():
-    result = travel_marketplace.founder_snapshot()
-    result["partner_supply"] = partner_supply.status()
-    return _no_store(make_response(jsonify(result)))
+    return _no_store(make_response(jsonify(_operator_snapshot())))
 
 
 @bp.get("/mission/supply/partner/status")
