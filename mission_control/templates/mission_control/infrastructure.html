@@ -5,29 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAP Infrastructure Control</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='private_command.css') }}">
   <style>
     .infra-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.infra-nav a{border:1px solid #2e5d40;border-radius:999px;padding:8px 11px;color:inherit;text-decoration:none;font-size:.78rem}.infra-nav a:hover{border-color:#39e57f}.infra-deck{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.infra-module{border:1px solid #285039;border-radius:17px;padding:15px;background:#08170e}.infra-module h3{margin:.35rem 0}.infra-module dl{display:grid;gap:6px}.infra-module dl div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #1d3827;padding-top:6px}.infra-module dt{color:#91a79a}.infra-note{border-left:3px solid #d7b85d;padding:11px 13px;background:#201a0b;border-radius:0 10px 10px 0}
   </style>
 </head>
 <body class="mc-workspace-body">
-  <header class="mc-workspace-header mc-infrastructure-header">
-    <div>
-      <p class="mc-eyebrow">OAP · PRIVATE INFRASTRUCTURE CONTROL</p>
-      <h1>Infrastructure</h1>
-      <p>Maps, Weather, eSIM and Connectivity truth state. No dead public redirects in this private menu.</p>
+  {% include '_command_nav.html' %}
+  <main class="oap-command-dashboard">
+    <section class="oap-command-hero-modern">
+      <p class="oap-command-kicker">OAP · Private Infrastructure Control</p>
+      <h1 class="oap-command-title">Infrastructure</h1>
+      <p class="oap-command-copy">Maps, Weather, eSIM and Connectivity truth state. Real readiness and evidence only—no dead public redirects and no fake operational toggles.</p>
       <nav class="infra-nav" aria-label="Private infrastructure navigation">
         <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission Control</a>
         <a href="{{ url_for('travel_supply.founder_dashboard') }}">🏨 Booking & Supply</a>
         <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI Chat</a>
         <a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ War Room</a>
+        <a href="{{ url_for('isac_spatial.dashboard') }}">📡 ISAC</a>
+        <a href="{{ url_for('provider_fabric.alignment_dashboard') }}">◎ Alignment & Sovereignty</a>
         <a href="{{ url_for('mission_control.judgement_dashboard') }}">⚖️ Judgement</a>
         <a href="{{ url_for('mission_control.brain_dashboard') }}">🧬 SMI Brain</a>
         <a href="https://on-any-postcode.onrender.com/">🌍 Public OAP World ↗</a>
       </nav>
-    </div>
-  </header>
+    </section>
 
-  <main class="mc-workspace mc-infrastructure-workspace">
     <section class="mc-integrity" aria-labelledby="infrastructure-integrity-title">
       <div>
         <p class="mc-eyebrow">Boundary integrity</p>
@@ -53,8 +55,7 @@
         {% for module in infrastructure.modules %}
         <article class="infra-module" id="infrastructure-{{ module.id }}" role="listitem">
           <p class="mc-organ-type">{{ module.signal.emoji }} {{ module.signal.label }}</p>
-          <h3>{{ module.name }}</h3>
-          <p>{{ module.purpose }}</p>
+          <h3>{{ module.name }}</h3><p>{{ module.purpose }}</p>
           <dl><div><dt>Readiness</dt><dd>{{ module.readiness }}</dd></div><div><dt>Status</dt><dd>{{ module.status }}</dd></div></dl>
           <p class="mc-boundary-note"><strong>Evidence:</strong> {{ module.data }}</p>
           <p class="mc-boundary-note"><strong>Boundary:</strong> {{ module.boundary }}</p>
@@ -78,8 +79,7 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="infrastructure-boundaries-title">
-      <p class="mc-eyebrow">Duplicate prevention</p>
-      <h2 id="infrastructure-boundaries-title">Related systems stay separate</h2>
+      <p class="mc-eyebrow">Duplicate prevention</p><h2 id="infrastructure-boundaries-title">Related systems stay separate</h2>
       <div class="mc-boundary-grid" role="list">{% for system in infrastructure.related_systems %}<article role="listitem"><p class="mc-organ-type">{{ system.owner }}</p><h3>{{ system.name }}</h3><p>{{ system.relationship }}</p></article>{% endfor %}</div>
     </section>
 
@@ -89,8 +89,7 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="infrastructure-controls-title">
-      <p class="mc-eyebrow">Real control boundary</p>
-      <h2 id="infrastructure-controls-title">Operational controls unavailable for unproven mutations</h2>
+      <p class="mc-eyebrow">Real control boundary</p><h2 id="infrastructure-controls-title">Operational controls unavailable for unproven mutations</h2>
       <p class="mc-notice">The navigation and readiness controls on this page are live. Maps/Weather source mutation, eSIM purchase or activation, and Connectivity network changes remain separately gated until an actual first-party execution path is certified. No fake toggle is shown.</p>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.judgement_dashboard') }}">Open Judgement Gate</a>
     </section>
