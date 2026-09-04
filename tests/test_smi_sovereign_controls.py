@@ -3,6 +3,10 @@ from __future__ import annotations
 import pytest
 
 from mission_control import live_brain, smi_capabilities
+from oap.contracts import BrainRequest, ProviderResult
+from oap.nexus import NexusRouter
+from oap.smi.input_manager import InputManager
+from oap.smi.providers import ProviderRouter
 from oap.smi.sovereign_controls import (
     SovereignControlPlane,
     SovereignControlViolation,
@@ -103,6 +107,47 @@ def test_external_provider_egress_defaults_to_deny(monkeypatch):
 
     monkeypatch.setenv("OAP_SOVEREIGN_EXTERNAL_PROVIDER_ALLOWLIST", "openai")
     assert controls.provider_allowed("openai", local=False) is True
+
+
+def test_provider_router_blocks_external_adapter_until_allowlisted(monkeypatch):
+    class ExternalProvider:
+        provider_id = "external-test"
+        sovereign_scope = "external"
+
+        def analyse(self, signal):
+            return ProviderResult(
+                provider_id=self.provider_id,
+                available=True,
+                text=f"External advisory for {signal.request_id}",
+            )
+
+    signal = InputManager().receive(
+        NexusRouter().receive(
+            BrainRequest(
+                request_id="sovereign-provider-1",
+                identity_id="founder-1",
+                content="Review provider sovereignty.",
+                task_type="ARCHITECTURE",
+            )
+        )
+    )
+    router = ProviderRouter(
+        adapters=(ExternalProvider(),),
+        approved_assignments={"architecture": "external-test"},
+    )
+
+    monkeypatch.delenv("OAP_SOVEREIGN_EXTERNAL_PROVIDER_ALLOWLIST", raising=False)
+    blocked = router.route(signal)[0]
+    assert blocked.available is False
+    assert blocked.error_code == "sovereign_provider_blocked"
+
+    monkeypatch.setenv(
+        "OAP_SOVEREIGN_EXTERNAL_PROVIDER_ALLOWLIST",
+        "external-test",
+    )
+    allowed = router.route(signal)[0]
+    assert allowed.available is True
+    assert allowed.error_code is None
 
 
 def test_policy_fingerprint_is_stable_for_locked_policy(monkeypatch):
