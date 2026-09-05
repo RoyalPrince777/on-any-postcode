@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Local Map · UK</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    :root{color-scheme:dark}.local-map-body{margin:0;min-height:100vh;background:#050806;color:#f5fff7;overflow-x:hidden}.map-shell{position:relative;min-height:100vh;padding:18px;box-sizing:border-box;background:radial-gradient(circle at 22% 30%,rgba(57,255,136,.22),transparent 24%),radial-gradient(circle at 78% 38%,rgba(215,183,89,.16),transparent 20%),linear-gradient(135deg,#06120b,#07140d 55%,#020403)}.map-stage{position:fixed;inset:0;overflow:hidden}.map-grid{position:absolute;inset:-20%;background-image:linear-gradient(rgba(126,240,163,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(126,240,163,.07) 1px,transparent 1px);background-size:52px 52px;transform:perspective(800px) rotateX(58deg) translateY(13%);transform-origin:center 60%;opacity:.9}.road{position:absolute;height:8px;border-radius:999px;background:linear-gradient(90deg,transparent,#7ef0a3,#d7b759,#7ef0a3,transparent);box-shadow:0 0 18px rgba(126,240,163,.28)}.road.r1{left:8%;right:10%;top:47%;transform:rotate(-11deg)}.road.r2{left:12%;right:22%;top:64%;transform:rotate(18deg);opacity:.72}.road.r3{left:24%;right:8%;top:28%;transform:rotate(33deg);opacity:.45}.pulse-ring{position:absolute;left:45%;top:45%;width:180px;height:180px;margin:-90px;border:1px solid rgba(126,240,163,.5);border-radius:50%;box-shadow:0 0 80px rgba(126,240,163,.12)}.pin{position:absolute;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid rgba(126,240,163,.65);border-radius:999px;background:rgba(5,16,10,.88);backdrop-filter:blur(12px);font-weight:900;color:#fff;box-shadow:0 10px 40px rgba(0,0,0,.25)}.pin-main{left:42%;top:41%}.pin-a{left:21%;top:57%}.pin-b{left:61%;top:31%}.pin-c{left:70%;top:62%}.pin-d{left:31%;top:25%}.cockpit{position:relative;z-index:2;display:grid;grid-template-columns:minmax(280px,360px) 1fr minmax(300px,420px);gap:14px;min-height:calc(100vh - 36px)}.panel{border:1px solid rgba(126,240,163,.24);border-radius:26px;background:rgba(4,10,7,.72);backdrop-filter:blur(18px);box-shadow:0 22px 90px rgba(0,0,0,.35);padding:18px}.panel h1,.panel h2,.panel h3{margin:.2rem 0}.eyebrow{color:#7ef0a3;text-transform:uppercase;letter-spacing:.14em;font-size:.76rem;font-weight:900}.search input,.search select{width:100%;box-sizing:border-box;margin:8px 0 12px;padding:13px 14px;border-radius:16px;border:1px solid rgba(126,240,163,.35);background:#07140d;color:#fff}.btn-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.map-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-radius:999px;border:1px solid rgba(126,240,163,.34);background:rgba(7,20,13,.88);color:#fff;text-decoration:none;font-weight:900}.map-btn.primary{background:#7ef0a3;color:#06120b;border-color:#7ef0a3}.big-readout{position:absolute;left:50%;top:20px;transform:translateX(-50%);z-index:3;border:1px solid rgba(215,183,89,.55);background:rgba(33,27,11,.72);border-radius:22px;padding:13px 18px;text-align:center;backdrop-filter:blur(16px)}.route-card{margin-top:auto;align-self:end}.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{border:1px solid rgba(126,240,163,.18);border-radius:18px;padding:12px;background:rgba(7,20,13,.72)}.metric strong{display:block;font-size:1.2rem}.place-list{display:grid;gap:10px;max-height:54vh;overflow:auto;padding-right:4px}.place{border:1px solid rgba(126,240,163,.18);border-radius:18px;background:rgba(7,20,13,.68);padding:13px}.place p{margin:.28rem 0;color:#dbeee0}.signal{display:inline-flex;padding:4px 8px;border-radius:999px;border:1px solid rgba(215,183,89,.45);color:#d7b759;font-weight:900;font-size:.78rem}.dock{position:fixed;z-index:5;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px;max-width:calc(100vw - 24px);overflow:auto;border:1px solid rgba(126,240,163,.22);border-radius:999px;background:rgba(4,10,7,.86);padding:10px;backdrop-filter:blur(18px)}.lock{border-left:4px solid #d7b759;background:rgba(33,27,11,.76);border-radius:0 14px 14px 0;padding:12px;color:#f3e8be}.category-strip{display:flex;flex-wrap:wrap;gap:7px}.cat{border:1px solid rgba(126,240,163,.2);border-radius:999px;padding:7px 9px;background:rgba(7,20,13,.64);font-size:.82rem}.center-space{position:relative}.compass{position:absolute;right:16px;top:16px;border:1px solid rgba(126,240,163,.35);border-radius:50%;width:74px;height:74px;display:grid;place-items:center;background:rgba(4,10,7,.66);backdrop-filter:blur(14px);font-weight:900}.scope{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(42vw,480px);height:min(42vw,480px);border:1px dashed rgba(126,240,163,.32);border-radius:50%;box-shadow:inset 0 0 100px rgba(126,240,163,.07)}@media (max-width:1050px){.cockpit{grid-template-columns:1fr}.center-space{min-height:420px}.big-readout{position:relative;left:auto;top:auto;transform:none;margin-bottom:12px}.dock{position:relative;left:auto;bottom:auto;transform:none;border-radius:24px;justify-content:flex-start;margin:16px 0 0}.map-stage{position:absolute}.map-shell{padding-bottom:24px}.place-list{max-height:none}}
+  </style>
+</head>
+<body class="local-map-body">
+  <div class="map-shell">
+    <div class="map-stage" aria-hidden="true">
+      <div class="map-grid"></div>
+      <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div>
+      <div class="pulse-ring"></div>
+      <div class="pin pin-main">📍 {{ local_map.area_key|title }}</div>
+      <div class="pin pin-a">🏪 Shops</div>
+      <div class="pin pin-b">🚦 Signals</div>
+      <div class="pin pin-c">🚗 Route</div>
+      <div class="pin pin-d">🏢 Business</div>
+    </div>
+
+    <div class="big-readout">
+      <div class="eyebrow">UK Local Map</div>
+      <strong>{{ local_map.area_key|title }} → {{ local_map.route.to|title }}</strong><br>
+      <span>{{ local_map.route.distance_km or 'Proof needed' }} km · {{ local_map.route.eta_minutes or 'ETA proof needed' }} min · {{ local_map.route.traffic_style_signal|title }}</span>
+    </div>
+
+    <main class="cockpit">
+      <section class="panel search" aria-labelledby="map-search-title">
+        <p class="eyebrow">Search + route</p>
+        <h1 id="map-search-title">OAP Local Map</h1>
+        <p>UK-first local businesses, shops, roads, alleys, routes and traffic-style signals.</p>
+        <form method="get" action="{{ url_for('travel_supply.public_atlas') }}">
+          <label for="location">Area / postcode</label>
+          <input id="location" name="location" maxlength="120" value="{{ local_map.query }}" placeholder="Mitcham, CR4, Battersea, SE15…">
+          <label for="to">Route to</label>
+          <input id="to" name="to" maxlength="120" value="{{ local_map.route.to|title }}" placeholder="London Bridge">
+          <label for="category">Layer</label>
+          <select id="category" name="category">
+            <option value="all">All local</option>
+            {% for category in local_map.categories.keys() %}
+            <option value="{{ category }}">{{ category.replace('_',' ')|title }}</option>
+            {% endfor %}
+          </select>
+          <button class="map-btn primary" type="submit">Search Map</button>
+        </form>
+        <div class="btn-row">
+          <a class="map-btn" href="{{ url_for('travel_supply.public_atlas') }}?location=Mitcham&to=London%20Bridge">Mitcham</a>
+          <a class="map-btn" href="{{ url_for('travel_supply.public_atlas') }}?location=Battersea&to=Mitcham">Battersea</a>
+          <a class="map-btn" href="{{ url_for('travel_supply.public_atlas') }}?location=Nunhead&to=London%20Bridge">Nunhead</a>
+          <a class="map-btn" href="{{ url_for('travel_supply.public_atlas') }}?location=King%27s%20Cross&to=Mitcham">King’s Cross</a>
+        </div>
+        <div class="lock" style="margin-top:14px"><strong>Unlocked:</strong> local search, shops, businesses, roads, alleys, route proof, traffic-style signals. <strong>Payment remains locked.</strong></div>
+      </section>
+
+      <section class="center-space" aria-label="Map cockpit view">
+        <div class="compass">N<br>🟢</div>
+        <div class="scope"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="around-title">
+        <p class="eyebrow">Around here</p>
+        <h2 id="around-title">Live-ready local layer</h2>
+        <div class="metric-grid">
+          <div class="metric"><strong>{{ local_map.point_count }}</strong><span>local points</span></div>
+          <div class="metric"><strong>{{ local_map.route.traffic_style_signal|title }}</strong><span>traffic signal</span></div>
+          <div class="metric"><strong>{{ 'On' if local_map.unlocks.open_data_lookup_enabled else 'Off' }}</strong><span>open data gate</span></div>
+          <div class="metric"><strong>{{ 'Locked' if not local_map.safety.payment_capture_enabled else 'On' }}</strong><span>payment</span></div>
+        </div>
+        <h3>Layers</h3>
+        <div class="category-strip">
+          {% for category, count in local_map.categories.items() %}
+          <span class="cat">{{ category.replace('_',' ')|title }} · {{ count }}</span>
+          {% endfor %}
+        </div>
+        <h3>Places</h3>
+        <div class="place-list">
+          {% for point in local_map.points %}
+          <article class="place">
+            <span class="signal">{{ point.signal|title }}</span>
+            <h3>{{ point.name }}</h3>
+            <p>{{ point.description }}</p>
+            <p>{{ point.category.replace('_',' ')|title }} · {{ point.postcode }} · {{ point.borough }}</p>
+            <p>Source: {{ point.source }} · {{ point.source_timestamp }}</p>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+
+    <nav class="dock" aria-label="Map controls">
+      <a class="map-btn primary" href="{{ url_for('travel_supply.public_local_map_api') }}?location={{ local_map.query|urlencode }}&to={{ local_map.route.to|urlencode }}">Local API</a>
+      <a class="map-btn" href="{{ url_for('movement.route_proof_public') }}?from={{ local_map.area_key|urlencode }}&to={{ local_map.route.to|urlencode }}&profile={{ local_map.route.profile|urlencode }}">Route Proof</a>
+      <a class="map-btn" href="{{ url_for('movement.request_preview_public') }}?from={{ local_map.area_key|urlencode }}&to={{ local_map.route.to|urlencode }}&purpose=local_business_route">Request Preview</a>
+      <a class="map-btn" href="{{ url_for('travel_supply.public_marketplace') }}">Direct</a>
+      <a class="map-btn" href="{{ url_for('movement.movement_home') }}">Movement</a>
+      <a class="map-btn" href="{{ url_for('travel_supply.public_atlas_live_source_api') }}?location={{ local_map.query|urlencode }}">Live Source</a>
+    </nav>
+  </div>
+</body>
+</html>
