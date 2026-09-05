@@ -8,6 +8,7 @@ from . import (
     movement,
     movement_match_safety,
     movement_operations,
+    movement_proof,
     movement_workspace,
     routing,
     web_security,
@@ -116,6 +117,12 @@ def movement_home():
         render_template(
             "movement.html",
             movement=movement.get_public_movement(),
+            movement_proof=movement_proof.status(),
+            sample_route=movement_proof.route_proof(
+                request.args.get("from") or "Mitcham",
+                request.args.get("to") or "London Bridge",
+                request.args.get("profile") or "driving",
+            ),
         )
     )
     return _no_store(response)
@@ -125,7 +132,50 @@ def movement_home():
 def movement_status():
     """Expose only coarse readiness without private booking/device data."""
 
-    return _no_store(make_response(jsonify(movement.get_public_movement_status())))
+    status = movement.get_public_movement_status()
+    status["proof"] = movement_proof.status()
+    return _no_store(make_response(jsonify(status)))
+
+
+@bp.get("/movement/route-proof")
+def public_route_proof():
+    """Return a public-safe Movement estimate from explicit area names only."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                movement_proof.route_proof(
+                    request.args.get("from") or request.args.get("origin") or "Mitcham",
+                    request.args.get("to") or request.args.get("destination") or "London Bridge",
+                    request.args.get("profile") or "driving",
+                )
+            )
+        )
+    )
+
+
+@bp.get("/movement/request-preview")
+def movement_request_preview():
+    """Preview a request receipt without storing, charging or dispatching."""
+
+    receipt = movement_proof.request_receipt(
+        {
+            "origin": request.args.get("from") or request.args.get("origin") or "Mitcham",
+            "destination": request.args.get("to") or request.args.get("destination") or "London Bridge",
+            "purpose": request.args.get("purpose") or "movement_request",
+            "profile": request.args.get("profile") or "driving",
+        }
+    )
+    return _no_store(make_response(jsonify(receipt)))
+
+
+@bp.get("/mission/war-room/movement/proof")
+@bp.get("/mission/movement/proof")
+@web_security.login_required(api=True, founder_only=True)
+def founder_movement_proof():
+    """Return the private-safe Movement proof status for War Room."""
+
+    return _no_store(make_response(jsonify(movement_proof.status())))
 
 
 @bp.get("/movement/workspace")
