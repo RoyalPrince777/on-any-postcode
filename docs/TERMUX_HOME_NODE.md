@@ -10,6 +10,8 @@ The Home Node does not enable deployment, publication, payment capture, money tr
 
 The node deliberately does **not** auto-pull GitHub changes. Updating the running revision remains an explicit Human Authority action.
 
+On every bounded worker spawn, the supervisor reads the current checked-out Git revision into `OAP_ENV_REVISION` before launching the child. This keeps runtime revision evidence aligned with the code already present on disk; it does not fetch, pull, deploy, or otherwise change that code.
+
 ## Requirements
 
 - Android device with Termux installed from a supported source.
