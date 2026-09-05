@@ -66,6 +66,46 @@ SOURCE_ADAPTERS = (
     },
 )
 
+OPEN_DATA_ADAPTER_CONTRACT = {
+    "component": "OAP Atlas Open Data Adapter Contract",
+    "mode": "governed_source_fetcher",
+    "public": True,
+    "private_state_exposed": False,
+    "hidden_tracking": False,
+    "external_marketplace_authority": False,
+    "payment_capture_enabled": False,
+    "dispatch_enabled": False,
+    "confirmed_booking_enabled": False,
+    "allowed_sources": (
+        "OAP first-party places",
+        "Founder-approved local places",
+        "local council / tourism open data",
+        "OpenStreetMap / Overpass-style public places",
+        "weather / safety / travel signals with timestamp",
+    ),
+    "fetch_rules": {
+        "timeout_seconds": 8,
+        "max_results_per_source": 25,
+        "requires_source_name": True,
+        "requires_source_timestamp": True,
+        "requires_attribution": True,
+        "requires_category_mapping": True,
+        "requires_public_safe_fields_only": True,
+        "no_user_background_tracking": True,
+        "no_precise_user_location_without_consent": True,
+    },
+    "green_gate": {
+        "seeded_places_can_be_area_green": True,
+        "live_claim_requires_live_fetch_success": True,
+        "live_claim_requires_timestamp": True,
+        "live_claim_requires_attribution": True,
+        "blocks_fake_live_claim": True,
+        "blocks_hidden_tracking": True,
+        "blocks_payment_capture": True,
+        "blocks_dispatch": True,
+    },
+}
+
 SEED_PLACES = (
     {"name":"Mitcham Town Centre","area_key":"mitcham","category":"shops","type":"town_centre","postcode":"CR4","borough":"Merton","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Local shops, services and everyday movement starting point.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
     {"name":"Mitcham Common","area_key":"mitcham","category":"parks_nature","type":"green_space","postcode":"CR4","borough":"Merton / Croydon / Sutton edge","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Green space, walking, wellbeing and nature signal.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":False,"oap_certified":False},
@@ -155,6 +195,25 @@ def _proofed_place(place: dict[str, object], generated_at: str) -> dict[str, obj
     return enriched
 
 
+def open_data_adapter_status(query: object = None) -> dict[str, object]:
+    """Return the governed open-data adapter contract without fetching externally."""
+
+    generated_at = _now()
+    area_key = _canonical_area(query)
+    return {
+        **OPEN_DATA_ADAPTER_CONTRACT,
+        "area_key": area_key,
+        "generated_at": generated_at,
+        "fetch_enabled": False,
+        "last_fetch_status": "not_run_in_request",
+        "last_fetch_timestamp": None,
+        "results_imported": 0,
+        "source_backed_live_places": 0,
+        "can_claim_live_now": False,
+        "next_step": "Enable a controlled server-side fetcher with attribution, timeout and HRM receipt after Founder approval.",
+    }
+
+
 def area_overview(query: object = None) -> dict[str, object]:
     """Return public-safe area intelligence for OAP Atlas."""
 
@@ -208,6 +267,7 @@ def area_overview(query: object = None) -> dict[str, object]:
         "places": places,
         "source_health": {
             "adapters": SOURCE_ADAPTERS,
+            "open_data_adapter": open_data_adapter_status(query),
             "source_order": ("OAP first-party", "Founder-approved", "public/open data", "OpenStreetMap future adapter"),
             "source": primary.get("source", "OAP search placeholder"),
             "source_timestamp": generated_at,
@@ -246,6 +306,7 @@ def status() -> dict[str, object]:
     """Return private-safe status for War Room and proof runners."""
 
     sample = area_overview("Mitcham")
+    adapter = open_data_adapter_status("Mitcham")
     return {
         "component": "Map Intelligence + Movement Area Engine",
         "public_surface": "/atlas",
@@ -254,6 +315,7 @@ def status() -> dict[str, object]:
         "category_count": len(CATEGORIES),
         "source_adapter_count": len(SOURCE_ADAPTERS),
         "source_adapters": SOURCE_ADAPTERS,
+        "open_data_adapter": adapter,
         "sample_area": sample["area_key"],
         "source_backed_count": sample["source_health"]["source_backed_count"],
         "live_source_count": sample["source_health"]["live_source_count"],
@@ -266,5 +328,5 @@ def status() -> dict[str, object]:
         "dispatch_enabled": False,
         "payment_capture_enabled": False,
         "confirmed_booking_enabled": False,
-        "next_gate": "Connect governed OpenStreetMap/local-open-data fetchers with timestamped source proof before claiming fully live area data.",
+        "next_gate": "Enable governed OpenStreetMap/local-open-data fetchers with timestamped source proof, attribution, HRM receipt and Founder approval before claiming fully live area data.",
     }
