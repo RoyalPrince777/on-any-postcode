@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-PROOF_RUNNER_VERSION = 1
+PROOF_RUNNER_VERSION = 2
 
 SAFE_PUBLIC_ROUTES: tuple[str, ...] = (
     "/travel",
@@ -132,6 +132,79 @@ PROOF_STEPS: tuple[dict[str, str], ...] = (
     },
 )
 
+PARALLEL_TASKS: tuple[dict[str, object], ...] = (
+    {
+        "id": "task_01_route_matrix",
+        "name": "Route Matrix",
+        "lane": "routes",
+        "covers": ("route_matrix",),
+        "state": "queued_for_live_probe",
+        "signal": "yellow",
+        "safe_action": "Collect status codes for public and private routes without mutating state.",
+        "green_when": "All public routes return 200/302 as expected and private routes fail closed for anonymous users.",
+    },
+    {
+        "id": "task_02_private_guard",
+        "name": "Private Guard",
+        "lane": "guardian",
+        "covers": ("private_fail_closed",),
+        "state": "queued_for_live_probe",
+        "signal": "yellow",
+        "safe_action": "Check Founder-only surfaces for fail-closed responses.",
+        "green_when": "Anonymous access cannot read Direct Intelligence, movement workspace, supply controls, private receipts or media.",
+    },
+    {
+        "id": "task_03_map_source",
+        "name": "Map Source Health",
+        "lane": "map",
+        "covers": ("map_source_health",),
+        "state": "queued_for_source_probe",
+        "signal": "yellow",
+        "safe_action": "Read map/source status, timestamp and stale-data label only.",
+        "green_when": "Source, timestamp, stale-data boundary and no-fake-live-route rule are present.",
+    },
+    {
+        "id": "task_04_movement_schema",
+        "name": "Movement Schema",
+        "lane": "movement",
+        "covers": ("movement_schema",),
+        "state": "queued_for_schema_probe",
+        "signal": "yellow",
+        "safe_action": "Read movement schema status without running migrations or creating bookings.",
+        "green_when": "Request, match, consent, tracking and Link Up binding stores are proven ready.",
+    },
+    {
+        "id": "task_05_direct_supply",
+        "name": "Direct Supply",
+        "lane": "direct",
+        "covers": ("direct_supplier", "direct_inventory"),
+        "state": "queued_for_supply_probe",
+        "signal": "yellow",
+        "safe_action": "Read supplier, listing and inventory readiness without importing third-party inventory.",
+        "green_when": "A Founder-certified supplier, active listing, terms record and timestamped availability exist.",
+    },
+    {
+        "id": "task_06_pictures_lifecycle",
+        "name": "Pictures + Lifecycle",
+        "lane": "direct",
+        "covers": ("direct_listing_photos", "quote_hold_reservation", "supplier_confirmation"),
+        "state": "queued_for_lifecycle_probe",
+        "signal": "yellow",
+        "safe_action": "Read photo, quote, hold, request and supplier-confirmation proof without confirming reservations.",
+        "green_when": "Certified photos, safe quote/hold, reservation request and authorised supplier confirmation receipt are proven.",
+    },
+    {
+        "id": "task_07_hrm_green_gate",
+        "name": "HRM + Green Gate",
+        "lane": "memory_green_gate",
+        "covers": ("hrm_receipts", "green_gate_live"),
+        "state": "queued_for_receipt_probe",
+        "signal": "yellow",
+        "safe_action": "Read HRM receipt readiness and Green Gate aggregation without writing approvals.",
+        "green_when": "Consequential actions have HRM receipts and Green Gate reads live evidence rather than fixed labels.",
+    },
+)
+
 HARD_BLOCKS: tuple[dict[str, str], ...] = (
     {"id": "a5", "name": "A5 autonomy", "state": "locked", "signal": "red"},
     {"id": "dispatch", "name": "Real-world dispatch", "state": "locked", "signal": "red"},
@@ -143,10 +216,25 @@ HARD_BLOCKS: tuple[dict[str, str], ...] = (
 )
 
 
-def status() -> dict[str, Any]:
-    """Return the current safe proof-runner projection."""
+def _summary() -> dict[str, int]:
     building = sum(1 for step in PROOF_STEPS if step["state"] == "building")
     certified = sum(1 for step in PROOF_STEPS if step["state"] == "certified")
+    task_green = sum(1 for task in PARALLEL_TASKS if task["signal"] == "green")
+    return {
+        "total_steps": len(PROOF_STEPS),
+        "certified": certified,
+        "building": building,
+        "hard_blocks": len(HARD_BLOCKS),
+        "parallel_tasks": len(PARALLEL_TASKS),
+        "parallel_tasks_green": task_green,
+        "score_percent": round((certified / len(PROOF_STEPS)) * 100) if PROOF_STEPS else 0,
+    }
+
+
+def status() -> dict[str, Any]:
+    """Return the current safe proof-runner projection."""
+    summary = _summary()
+    building = summary["building"]
     return {
         "component": "Maps + Movement + Direct Proof Runner",
         "version": PROOF_RUNNER_VERSION,
@@ -156,6 +244,7 @@ def status() -> dict[str, Any]:
         "signal": "yellow" if building else "green",
         "no_fake_green": True,
         "human_authority_final": True,
+        "parallel_execution_model": "seven_safe_read_only_lanes",
         "can_execute": False,
         "can_approve": False,
         "payment_capture_enabled": False,
@@ -164,14 +253,9 @@ def status() -> dict[str, Any]:
         "private_media_leak_allowed": False,
         "safe_public_routes": SAFE_PUBLIC_ROUTES,
         "founder_private_routes": FOUNDER_PRIVATE_ROUTES,
+        "parallel_tasks": PARALLEL_TASKS,
         "proof_steps": PROOF_STEPS,
         "hard_blocks": HARD_BLOCKS,
-        "summary": {
-            "total_steps": len(PROOF_STEPS),
-            "certified": certified,
-            "building": building,
-            "hard_blocks": len(HARD_BLOCKS),
-            "score_percent": round((certified / len(PROOF_STEPS)) * 100) if PROOF_STEPS else 0,
-        },
-        "next_gate": "Wire live HTTP, schema, supplier, photo, inventory, HRM and Green Gate probes into this runner.",
+        "summary": summary,
+        "next_gate": "Attach live probes to the seven lanes, then certify only the checks with real evidence.",
     }
