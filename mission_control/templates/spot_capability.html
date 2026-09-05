@@ -94,7 +94,7 @@
         <article class="mc-status-card"><strong>🚶 Movement</strong><span>Routes and trip planning stay evidence-bound and consent-first.</span></article>
         <article class="mc-status-card"><strong>🧾 Direct Request</strong><span>Request interest now; confirmed booking requires supplier receipt.</span></article>
       </div>
-      <p><a class="mc-secondary-link" href="{{ url_for('travel_supply.travel_direct') if 'travel_supply.travel_direct' else '/travel/direct' }}">Open OAP Direct →</a> <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open Movement →</a></p>
+      <p><a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">Open OAP Direct →</a> <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open Movement →</a></p>
       {% if location_error %}
       <p role="alert">That place could not be resolved safely. Check the spelling and try again.</p>
       {% endif %}
