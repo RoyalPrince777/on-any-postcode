@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>On Any Postcode</title>
+<title>ON ANY POSTCODE · OAP World</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#092414">
 <meta name="application-name" content="OAP OS">
@@ -13,89 +13,74 @@
 <link rel="apple-touch-icon" href="{{ url_for('oap_os_icon', size=192) }}">
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
-body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif}
-nav{position:sticky;top:0;background:#092414;padding:14px;white-space:nowrap;overflow-x:auto;z-index:10}
-nav a{color:white;text-decoration:none;font-weight:bold;margin-right:14px}
-section{padding:28px max(20px,6vw);border-bottom:1px solid #1d4a2d}
-.hero{min-height:52vh;display:grid;align-content:center;background:radial-gradient(circle at 85% 15%,#24733d 0,transparent 35%),linear-gradient(135deg,#092414,#06120b)}
-.eyebrow{color:#7ef0a3;font-weight:800;letter-spacing:.12em}
-.hero h1{font-size:clamp(3rem,10vw,7rem);line-height:.9;margin:.25em 0}
-.hero p{font-size:clamp(1.1rem,2.4vw,1.6rem);max-width:780px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-.card{background:#10281a;border:1px solid #245f38;border-radius:16px;padding:18px}
-.level{border-top:5px solid #27c267}
-.badge{background:#27c267;color:#021;padding:5px 9px;border-radius:999px;font-weight:bold;display:inline-block}
-.button-link{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:bold;padding:11px 15px;border-radius:9px;margin:7px 7px 7px 0}
-.os-install{margin-top:24px;max-width:780px;border-left:5px solid #7ef0a3}
-.os-install button{width:auto;min-width:190px;padding-inline:18px}
-.os-install button[hidden]{display:none}
-.os-status{color:#b8d6c0;margin-bottom:0}
-input,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin:6px 0;border-radius:9px;border:0}
-button{background:#27c267;color:#021;font-weight:bold}
-.small{opacity:.82}
+:root{--bg:#06120b;--panel:#10281a;--panel2:#0b1c12;--line:#245f38;--green:#27c267;--glow:#7ef0a3;--text:#f5fff7;--muted:#b8d6c0;--lock:#f4c95d;}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 84% 8%,rgba(39,194,103,.26),transparent 34%),linear-gradient(135deg,#06120b,#0a180f 46%,#020603);color:var(--text);font-family:Arial,sans-serif}a{color:inherit}.topbar{position:sticky;top:0;z-index:10;background:rgba(6,18,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px max(18px,5vw);display:flex;gap:12px;align-items:center;justify-content:space-between}.brand{font-weight:900;letter-spacing:.08em}.nav{display:flex;gap:10px;overflow-x:auto;white-space:nowrap}.nav a,.button-link{display:inline-flex;align-items:center;gap:8px;background:#123321;border:1px solid var(--line);color:white;text-decoration:none;font-weight:800;padding:10px 13px;border-radius:999px}.nav a:hover,.button-link:hover{border-color:var(--glow)}main{padding:0}.hero{min-height:58vh;display:grid;align-content:center;padding:42px max(20px,7vw);border-bottom:1px solid var(--line)}.eyebrow{color:var(--glow);font-weight:900;letter-spacing:.14em;text-transform:uppercase}.hero h1{font-size:clamp(3.2rem,10vw,7.8rem);line-height:.88;margin:.2em 0}.hero p{font-size:clamp(1.05rem,2.2vw,1.45rem);max-width:880px;color:var(--muted)}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.button-primary{background:var(--green);color:#021;border-color:var(--green)}section{padding:30px max(20px,7vw);border-bottom:1px solid var(--line)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:20px;padding:18px;min-height:150px}.card h3{margin:.35em 0}.badge{display:inline-block;background:var(--green);color:#021;padding:5px 9px;border-radius:999px;font-weight:900;font-size:.78rem}.badge-lock{background:var(--lock);color:#211700}.status{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.status .card{min-height:auto}.small{color:var(--muted);font-size:.95rem}.route{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--glow);word-break:break-word}.os-install button{width:auto;min-width:180px;padding:11px 16px;border-radius:999px;border:0;background:var(--green);color:#021;font-weight:900}.os-install button[hidden]{display:none}.os-status{color:var(--muted)}
 </style>
 </head>
 <body>
-<nav aria-label="Primary navigation">
+<header class="topbar">
+<div class="brand">ON ANY POSTCODE</div>
+<nav class="nav" aria-label="Primary navigation">
 <a href="{{ url_for('the_spot_front_door') }}">📍 The Spot</a>
 <a href="{{ url_for('pulse_feed') }}">📡 Pulse</a>
 <a href="{{ url_for('the_link_front_door') }}">🔗 The Link</a>
-<a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">📣 Signal</a>
-<a href="{{ url_for('spot_capability_front_door', capability_slug='events') }}">🎪 Activity</a>
-<a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">🏪 Market</a>
-<a href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}">🧭 Explorer</a>
+<a href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">🌍 OAP Atlas</a>
+<a href="/mission?mode=mission">🧠 SMI</a>
 </nav>
+</header>
 <main>
-<section class="hero">
-<p class="eyebrow">BORN LOCAL · BUILT GLOBAL</p>
-<h1>ON ANY<br>POSTCODE</h1>
-<p>One human world, entered through the place you live. Start local and move outward: Postcode → Borough → County / Region → Country → Continent → Global → Universe.</p>
-<p class="small">Browse public OAP World freely.</p>
-<div><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a></div>
-<div class="card os-install" aria-labelledby="oap-os-title">
-<p class="eyebrow">OAP OPERATING SYSTEM · GENERATION 0</p>
-<h2 id="oap-os-title">Install the public OAP OS shell</h2>
-<p>Run OAP as its own app on this device.</p>
+<section class="hero" aria-labelledby="hero-title">
+<p class="eyebrow">Born Local · Built Global</p>
+<h1 id="hero-title">OAP WORLD</h1>
+<p>One public front door. Many systems inside. Start from your postcode and move outward through a clean human-first world.</p>
+<div class="actions">
+<a class="button-link button-primary" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a>
+<a class="button-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open OAP Atlas</a>
+<a class="button-link" href="/mission?mode=mission">Founder SMI</a>
+</div>
+</section>
+<section aria-labelledby="atlas-title">
+<p class="eyebrow">OAP Atlas</p>
+<h2 id="atlas-title">Earth to postcode dashboard</h2>
+<p class="small">Atlas shows the OAP place order. Live map/source claims stay locked until timestamped source proof exists.</p>
+<div class="grid">
+<article class="card"><span class="badge">1</span><h3>🌍 Earth</h3><p class="small">One human world.</p></article>
+{% for level in location_levels %}
+<article class="card"><span class="badge">{{ level.order + 1 }}</span><h3>{{ level.icon }} {{ level.name }}</h3><p class="small">{{ level.purpose }}</p></article>
+{% endfor %}
+<article class="card"><span class="badge">7</span><h3>📍 The Spot</h3><p class="small">The postcode front door into local life.</p></article>
+</div>
+</section>
+<section aria-labelledby="systems-title">
+<p class="eyebrow">One Front Door · Many Systems</p>
+<h2 id="systems-title">Core OAP World systems</h2>
+<div class="grid">
+<article class="card"><span class="badge">PUBLIC</span><h3>📍 The Spot</h3><p class="small">Community, places, signals and local life.</p><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Open</a></article>
+<article class="card"><span class="badge">PUBLIC</span><h3>🌍 OAP Atlas</h3><p class="small">Continent to postcode place dashboard.</p><a class="button-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open</a></article>
+<article class="card"><span class="badge">PUBLIC</span><h3>🔗 The Link</h3><p class="small">Opportunities and Link Up communication.</p><a class="button-link" href="{{ url_for('the_link_front_door') }}">Open</a></article>
+<article class="card"><span class="badge">PUBLIC</span><h3>📡 Pulse</h3><p class="small">Public feed and community energy.</p><a class="button-link" href="{{ url_for('pulse_feed') }}">Open</a></article>
+<article class="card"><span class="badge">PUBLIC</span><h3>🏪 Market</h3><p class="small">Local commerce surface. Payment capture remains locked.</p><a class="button-link" href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">Open</a></article>
+<article class="card"><span class="badge-lock">PRIVATE</span><h3>🧠 SMI</h3><p class="small">Founder-only intelligence, Kernel, Guardian, HRM and Green Gate.</p><a class="button-link" href="/mission?mode=mission">Open SMI</a></article>
+</div>
+</section>
+<section aria-labelledby="status-title">
+<p class="eyebrow">Clean Status</p>
+<h2 id="status-title">Green means proven</h2>
+<div class="status">
+<article class="card"><span class="badge">🟢</span><h3>OAP World</h3><p class="small">Public front door is live.</p></article>
+<article class="card"><span class="badge">🟢</span><h3>SMI Access</h3><p class="small">Private route exists; Founder gate controls entry.</p></article>
+<article class="card"><span class="badge-lock">🔒</span><h3>A5</h3><p class="small">A5-ready UI can show, but real A5 autonomy stays locked.</p></article>
+<article class="card"><span class="badge-lock">🔒</span><h3>Money / Dispatch</h3><p class="small">Payment capture, real-world dispatch and confirmed claims stay blocked without proof.</p></article>
+</div>
+</section>
+<section class="os-install" aria-labelledby="oap-os-title">
+<p class="eyebrow">OAP OS</p>
+<h2 id="oap-os-title">Install the public OAP shell</h2>
+<p class="small">Run OAP as its own app on this device.</p>
 <button type="button" data-oap-install hidden>Install OAP OS</button>
-<p class="os-status" data-oap-install-status role="status">Checking whether this device can install OAP OS…</p>
-<noscript><p class="os-status">JavaScript is required only for the device installation prompt.</p></noscript>
-</div>
+<p class="os-status" data-oap-install-status role="status">Checking install support…</p>
+<noscript><p class="os-status">JavaScript is only needed for the install prompt.</p></noscript>
 </section>
-<section id="location" aria-labelledby="location-title">
-<p class="eyebrow">THE WORLD, FROM LOCAL OUTWARD</p>
-<h2 id="location-title">Your location hierarchy: Postcode to Universe</h2>
-<div class="grid">
-<article class="card level"><span class="badge">1</span><h3>📍 Postcode</h3><p>Your local front door into The Spot, people, activity and community life.</p></article>
-<article class="card level"><span class="badge">2</span><h3>🏙️ Borough / District</h3><p>Your wider local community and civic connection layer.</p></article>
-<article class="card level"><span class="badge">3</span><h3>🧭 County / Region</h3><p>Regional coordination while preserving local ownership.</p></article>
-<article class="card level"><span class="badge">4</span><h3>🏳️ Country</h3><p>National identity, culture, information and shared services.</p></article>
-<article class="card level"><span class="badge">5</span><h3>🌍 Continent</h3><p>Connect countries and local communities across their continent.</p></article>
-<article class="card level"><span class="badge">6</span><h3>🌐 Global</h3><p>One human world connecting every continent without erasing local identity.</p></article>
-<article class="card level"><span class="badge">7</span><h3>✨ Universe</h3><p>The outer OAP spatial tier: every postcode remains connected through one coherent hierarchy.</p></article>
-</div>
-</section>
-<section aria-labelledby="doors-title">
-<h2 id="doors-title">One public front door</h2>
-<div class="grid" aria-label="Public OAP World areas">
-<article class="card"><span class="badge">PUBLIC</span><h3>The Spot</h3><p>Local information, culture, services and community discovery for any postcode.</p><a class="button-link" href="{{ url_for('the_spot_front_door') }}">Open The Spot</a></article>
-<article class="card"><span class="badge">PUBLIC</span><h3>World Languages</h3><p>Choose a continent, start a language lesson and find trusted learning support across South London.</p><a class="button-link" href="{{ url_for('world_languages') }}">Start learning</a></article>
-<article class="card"><span class="badge">PUBLIC</span><h3>Link Up</h3><p>Open the communications area without exposing private account entry on this address.</p><a class="button-link" href="{{ url_for('linkup_front_door') }}">Open Link Up</a></article>
-</div>
-</section>
-<section id="signal" aria-labelledby="signal-title">
-<p class="eyebrow">COMMUNITY PULSE</p>
-<h2 id="signal-title">OAP Signal</h2>
-<form method="post" action="/signal">
-<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-<label for="signal-name">Nickname</label><input id="signal-name" name="name" maxlength="80" placeholder="Nickname">
-<label for="signal-body">Signal</label><textarea id="signal-body" name="body" maxlength="500" placeholder="Share a local signal"></textarea>
-<button type="submit">Post Signal</button>
-</form>
-<div class="grid">
-{% for p in signal_posts %}<article class="card"><b>{{ p.name }}</b><p>{{ p.body }}</p></article>{% else %}<article class="card"><p class="small">No public signals yet.</p></article>{% endfor %}
-</div>
-</section>
-<section aria-labelledby="culture-title"><h2 id="culture-title">Culture and sport remain part of the world</h2><p>Football has its own home; it no longer defines the whole product.</p><a class="button-link" href="{{ url_for('world_cup') }}">Open World Cup</a></section>
 </main>
 <script defer src="{{ url_for('oap_os_install_controller') }}"></script>
 </body>
