@@ -36,6 +36,7 @@ def init_app(app: Flask) -> None:
         surface_security,
         travel_supply_core,
     )
+    from .checkpoint_views import bp as checkpoint_bp
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
@@ -293,5 +294,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
+    app.register_blueprint(checkpoint_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()
