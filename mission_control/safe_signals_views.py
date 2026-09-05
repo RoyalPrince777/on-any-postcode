@@ -1,9 +1,9 @@
 """Public Safe Signals boards and Founder-only governed write routes."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template, request
+from flask import Blueprint, jsonify, make_response, redirect, render_template, request
 
-from . import safe_signals, web_security
+from . import maps_movement_direct_proof_runner, safe_signals, web_security
 
 bp = Blueprint("safe_signals", __name__)
 _STORE = safe_signals.SafeSignalsStore()
@@ -63,6 +63,20 @@ def _signals_board(kind: str | None, title: str):
             )
         )
     )
+
+
+@bp.get("/atlas")
+@bp.get("/map")
+@bp.get("/maps")
+@bp.get("/oap-atlas")
+def atlas_alias():
+    """Make the public OAP Atlas map screen obvious and easy to open."""
+
+    target = "/the-spot/maps-weather-travel"
+    query = request.query_string.decode("utf-8", errors="ignore")
+    if query:
+        target = f"{target}?{query}"
+    return redirect(target, code=302)
 
 
 @bp.get("/signals")
@@ -149,6 +163,67 @@ def mentorship_api():
     except (TypeError, ValueError) as exc:
         return _error("invalid_mentorship_filter", str(exc)[:120], 400)
     return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/mission/map-movement/status")
+@bp.get("/mission/maps-movement/status")
+@bp.get("/mission/war-room/map-movement/status")
+@web_security.login_required(api=True, founder_only=True)
+def founder_map_movement_status():
+    """Expose a private, read-only Map Intelligence + Movement projection."""
+
+    proof = maps_movement_direct_proof_runner.status()
+    route_matrix = dict(proof.get("route_matrix") or {})
+    summary = dict(proof.get("summary") or {})
+    return _no_store(
+        make_response(
+            jsonify(
+                component="Map Intelligence + Movement",
+                public=False,
+                founder_only=True,
+                oap_atlas={
+                    "visible_screen": True,
+                    "public_aliases": ("/atlas", "/map", "/maps", "/oap-atlas"),
+                    "canonical_route": "/the-spot/maps-weather-travel",
+                    "location_search": True,
+                    "attractions_panel": True,
+                    "direct_request_panel": True,
+                    "movement_panel": True,
+                    "live_claim_requires_source_timestamp": True,
+                },
+                movement={
+                    "public_route": "/movement",
+                    "status_route": "/movement/status",
+                    "direct_request_binding": True,
+                    "dispatch_enabled": False,
+                    "hidden_tracking_enabled": False,
+                    "consent_required_for_live_spot": True,
+                },
+                direct={
+                    "public_route": "/travel/direct",
+                    "offers_api": "/travel/direct/api/offers",
+                    "quote_api": "/travel/direct/api/quote",
+                    "confirmed_reservation_requires_supplier_receipt": True,
+                    "payment_capture_enabled": False,
+                },
+                route_matrix={
+                    "target_count": route_matrix.get("target_count"),
+                    "public_target_count": route_matrix.get("public_target_count"),
+                    "private_target_count": route_matrix.get("private_target_count"),
+                    "live_capture_present": route_matrix.get("live_capture_present"),
+                    "certified": route_matrix.get("certified"),
+                },
+                proof_summary=summary,
+                hard_locks={
+                    "payment_capture": False,
+                    "real_world_dispatch": False,
+                    "hidden_tracking": False,
+                    "private_media_exposure": False,
+                    "public_claim_without_proof": False,
+                },
+            )
+        )
+    )
 
 
 @bp.get("/mission/safe-signals/status")
