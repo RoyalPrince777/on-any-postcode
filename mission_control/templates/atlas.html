@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Atlas · What’s in the area</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    .atlas-map{position:relative;min-height:340px;border:1px solid #245f38;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 25% 30%,rgba(53,215,120,.35),transparent 18%),radial-gradient(circle at 72% 45%,rgba(215,183,89,.24),transparent 20%),linear-gradient(135deg,#07140d,#10281a 48%,#06120b)}
+    .atlas-gridlines{position:absolute;inset:0;background-image:linear-gradient(rgba(126,240,163,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(126,240,163,.08) 1px,transparent 1px);background-size:42px 42px;opacity:.75}.atlas-pin{position:absolute;display:inline-flex;gap:6px;align-items:center;padding:8px 10px;border-radius:999px;border:1px solid #7ef0a3;background:#06120bee;color:#f5fff7;font-weight:900;font-size:.82rem}.pin-earth{left:8%;top:12%}.pin-spot{left:45%;top:42%}.pin-direct{left:62%;top:63%}.pin-movement{left:22%;top:68%}.atlas-safe{position:absolute;right:12px;bottom:12px;left:12px;border:1px solid #d7b759;background:#211b0bee;border-radius:16px;padding:12px;color:#e6dcb7}.category-pill{display:inline-flex;margin:4px;padding:8px 10px;border:1px solid #245f38;border-radius:999px;background:#10281a}.place-card{min-height:190px}.route{font-family:ui-monospace,Menlo,Consolas,monospace;color:#7ef0a3;word-break:break-word}.actions-row{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.truth-lock{border-left:4px solid #d7b759;background:#211b0b;padding:12px 14px;border-radius:0 12px 12px 0;color:#e6dcb7}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">OAP Atlas · Map Intelligence + Movement</p>
+      <h1>What’s in the area</h1>
+      <p>Search a postcode or place, see the local hierarchy, places, attractions, Movement and OAP Direct request path.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">OAP Direct</a>
+      <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Movement</a>
+    </div>
+  </header>
+  <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="atlas-search-title">
+      <p class="mc-eyebrow">Search</p>
+      <h2 id="atlas-search-title">Area lookup</h2>
+      <form method="get" action="{{ url_for('travel_supply.public_atlas') }}">
+        <label for="area-query">Postcode or place</label>
+        <input id="area-query" name="location" maxlength="120" value="{{ area.query }}" placeholder="Mitcham, CR4, Battersea, SE15, Begoro…" required>
+        <button class="mc-primary" type="submit">Search Area</button>
+      </form>
+      <div class="actions-row">
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}?location=Mitcham">Mitcham</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}?location=South%20London">South London</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}?location=Battersea">Battersea</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}?location=Nunhead">Nunhead</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}?location=Begoro">Begoro</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}?location=KORADASO">KORADASO</a>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="map-screen-title">
+      <p class="mc-eyebrow">Visible map screen</p>
+      <h2 id="map-screen-title">{{ area.hierarchy.spot }}</h2>
+      <div class="atlas-map" role="img" aria-label="OAP Atlas visual map deck">
+        <div class="atlas-gridlines"></div>
+        <span class="atlas-pin pin-earth">🌍 {{ area.hierarchy.continent }}</span>
+        <span class="atlas-pin pin-spot">📍 {{ area.hierarchy.postcode }}</span>
+        <span class="atlas-pin pin-direct">🧾 OAP Direct</span>
+        <span class="atlas-pin pin-movement">🚶 Movement</span>
+        <div class="atlas-safe">No hidden tracking. No payment capture. No confirmed booking claim without supplier receipt.</div>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="hierarchy-title">
+      <p class="mc-eyebrow">Hierarchy</p>
+      <h2 id="hierarchy-title">Place order</h2>
+      <div class="mc-status-grid">
+        <article class="mc-status-card"><strong>🌍 Continent</strong><span>{{ area.hierarchy.continent }}</span></article>
+        <article class="mc-status-card"><strong>🏳️ Country</strong><span>{{ area.hierarchy.country }}</span></article>
+        <article class="mc-status-card"><strong>🧭 County / Region</strong><span>{{ area.hierarchy.county_region }}</span></article>
+        <article class="mc-status-card"><strong>🏙️ Borough / District</strong><span>{{ area.hierarchy.borough_district }}</span></article>
+        <article class="mc-status-card"><strong>📍 Postcode</strong><span>{{ area.hierarchy.postcode }}</span></article>
+        <article class="mc-status-card"><strong>🏠 The Spot</strong><span>{{ area.hierarchy.spot }}</span></article>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="categories-title">
+      <p class="mc-eyebrow">What’s in the area</p>
+      <h2 id="categories-title">Categories</h2>
+      {% for category, count in area.categories.items() %}
+        <span class="category-pill">{{ category.replace('_', ' ').title() }} · {{ count }}</span>
+      {% endfor %}
+    </section>
+
+    <section class="mc-panel" aria-labelledby="places-title">
+      <p class="mc-eyebrow">Places</p>
+      <h2 id="places-title">Area places</h2>
+      <div class="mc-agent-grid">
+        {% for place in area.places %}
+        <article class="mc-agent-card place-card">
+          <h3>{{ place.name }}</h3>
+          <p>{{ place.description }}</p>
+          <p><strong>{{ place.category.replace('_', ' ').title() }}</strong> · {{ place.type.replace('_', ' ').title() }}</p>
+          <p>{{ place.borough }} · {{ place.postcode }} · {{ place.country }}</p>
+          <p>Movement: {{ 'ready' if place.movement_ready else 'building' }} · Direct: {{ 'request available' if place.direct_request_available else 'not active' }}</p>
+          <p class="route">Source: {{ place.source }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="movement-direct-title">
+      <p class="mc-eyebrow">Movement + Direct</p>
+      <h2 id="movement-direct-title">Move, request, prove</h2>
+      <div class="mc-status-grid">
+        <article class="mc-status-card"><strong>🚶 Movement</strong><span>Route planning: {{ 'ready' if area.movement.route_planning_enabled else 'building' }}. Dispatch: locked.</span></article>
+        <article class="mc-status-card"><strong>🧾 OAP Direct</strong><span>Request: {{ 'available' if area.direct.request_available else 'building' }}. Confirmation: supplier receipt required.</span></article>
+        <article class="mc-status-card"><strong>📡 Source Health</strong><span>{{ area.source_health.source }} · {{ area.source_health.source_timestamp }}</span></article>
+        <article class="mc-status-card"><strong>🟢 Green Gate</strong><span>{{ 'Area can show as seeded' if area.green_gate.can_mark_area_green else 'Building' }}. Live claim remains locked.</span></article>
+      </div>
+      <div class="actions-row">
+        <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open Movement</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">Open OAP Direct</a>
+        <a class="mc-secondary-link" href="{{ url_for('safe_signals.signals_board') }}">Open 21 Signals</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_area_api') }}?location={{ area.query|urlencode }}">Area API</a>
+      </div>
+      <p class="truth-lock"><strong>Truth lock:</strong> seeded area intelligence can be visible; fully live area data needs governed source adapters, timestamps and proof.</p>
+    </section>
+  </main>
+</body>
+</html>
