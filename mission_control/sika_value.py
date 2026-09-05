@@ -50,6 +50,15 @@ class WalletCard:
     detail: str
 
 
+@dataclass(frozen=True)
+class MoneyFlow:
+    id: str
+    emoji: str
+    label: str
+    state: str
+    detail: str
+
+
 SIKA_DOCTRINE = (
     "SIKA is OAP internal value, trust, badges, receipts, loyalty, membership "
     "and community contribution. Real-money movement stays with regulated "
@@ -60,6 +69,13 @@ WALLET_DOCTRINE = (
     "SIKA Wallet UI can use bank-style cards, balances, pots, statements and "
     "receipts, but every balance is non-cash internal value unless a regulated "
     "provider is connected later."
+)
+
+FINAL_MONEY_MODEL = (
+    "People pay OAP for real services. People can earn real money on OAP. "
+    "Real money pays out through regulated rails to a real bank account. "
+    "SIKA records value, rewards, receipts, credits, trust, badges and status. "
+    "SIKA points are not withdrawable cash in v1."
 )
 
 COMPLIANCE_LOCKS: tuple[StatusLight, ...] = (
@@ -108,15 +124,69 @@ COMPLIANCE_LOCKS: tuple[StatusLight, ...] = (
 )
 
 BADGES: tuple[Badge, ...] = (
-    Badge("founder", "👑", "Founder", "Human Authority", "Founder-only command identity."),
-    Badge("member", "🟢", "Member", "Signed-in OAP users", "Active OAP community identity."),
-    Badge("sika", "💎", "SIKA Active", "Members and creators", "Internal reward and receipt status."),
-    Badge("certified", "🛡️", "Certified", "Approved profiles", "OAP-reviewed trust marker."),
-    Badge("creator", "🎤", "Creator", "Artists and media", "Creator profile and promotion tools."),
-    Badge("business", "🛍️", "Business", "Local businesses", "Postcode commerce identity."),
-    Badge("supplier", "🏨", "Supplier", "Booking/travel supply", "OAP Direct readiness identity."),
-    Badge("youth_safe", "🧒", "Youth Safe", "Protected youth contexts", "Extra protected boundary."),
-    Badge("ambassador", "🌍", "Ambassador", "Community leaders", "Postcode to global role."),
+    Badge(
+        "founder",
+        "👑",
+        "Founder",
+        "Human Authority",
+        "Founder-only command identity.",
+    ),
+    Badge(
+        "member",
+        "🟢",
+        "Member",
+        "Signed-in OAP users",
+        "Active OAP community identity.",
+    ),
+    Badge(
+        "sika",
+        "💎",
+        "SIKA Active",
+        "Members and creators",
+        "Internal reward and receipt status.",
+    ),
+    Badge(
+        "certified",
+        "🛡️",
+        "Certified",
+        "Approved profiles",
+        "OAP-reviewed trust marker.",
+    ),
+    Badge(
+        "creator",
+        "🎤",
+        "Creator",
+        "Artists and media",
+        "Creator profile and promotion tools.",
+    ),
+    Badge(
+        "business",
+        "🛍️",
+        "Business",
+        "Local businesses",
+        "Postcode commerce identity.",
+    ),
+    Badge(
+        "supplier",
+        "🏨",
+        "Supplier",
+        "Booking/travel supply",
+        "OAP Direct readiness identity.",
+    ),
+    Badge(
+        "youth_safe",
+        "🧒",
+        "Youth Safe",
+        "Protected youth contexts",
+        "Extra protected boundary.",
+    ),
+    Badge(
+        "ambassador",
+        "🌍",
+        "Ambassador",
+        "Community leaders",
+        "Postcode to global role.",
+    ),
 )
 
 REVENUE_STREAMS: tuple[RevenueStream, ...] = (
@@ -188,6 +258,22 @@ WALLET_CARDS: tuple[WalletCard, ...] = (
         "Shows earned SIKA points, receipts and contribution value; not deposits.",
     ),
     WalletCard(
+        "earnings_view",
+        "💷",
+        "Earnings",
+        "Real sales only",
+        "provider_needed",
+        "Shows real service earnings recorded for provider payout, not SIKA cash.",
+    ),
+    WalletCard(
+        "payout_view",
+        "🏦",
+        "Payout to Bank",
+        "Regulated rails only",
+        "provider_needed",
+        "Withdrawals/payouts go to real bank accounts through regulated rails.",
+    ),
+    WalletCard(
         "membership_pot",
         "👑",
         "Membership Pot",
@@ -250,6 +336,36 @@ VALUE_ACTIONS = {
     ],
 }
 
+MONEY_FLOWS: tuple[MoneyFlow, ...] = (
+    MoneyFlow(
+        "customer_payment",
+        "💳",
+        "Customer pays OAP",
+        "provider_required",
+        "Services are paid through regulated payment providers, not SIKA points.",
+    ),
+    MoneyFlow(
+        "real_earnings",
+        "💷",
+        "Creator/business earns",
+        "provider_required",
+        "Real earnings come from real services, sales, bookings or listings.",
+    ),
+    MoneyFlow(
+        "provider_payout",
+        "🏦",
+        "Payout to bank",
+        "provider_required",
+        "Withdrawals must be paid to a real bank account through regulated rails.",
+    ),
+    MoneyFlow(
+        "sika_record",
+        "💎",
+        "SIKA records value",
+        "ready",
+        "SIKA records rewards, credits, receipts, badges, trust and status.",
+    ),
+)
 
 SAFE_WALLET_RULES = {
     "allowed": [
@@ -259,12 +375,14 @@ SAFE_WALLET_RULES = {
         "statements and receipts",
         "badges and membership tiers",
         "rewards and discounts",
-        "regulated provider handoff later",
+        "service payments through regulated providers",
+        "creator, business and supplier earnings records",
+        "regulated provider payout handoff later",
     ],
     "blocked": [
         "customer deposits",
-        "cash-out",
-        "payment initiation",
+        "SIKA points cash-out",
+        "unregulated payment initiation",
         "stored monetary value",
         "interest or yield",
         "bank account claims",
@@ -284,11 +402,16 @@ def status() -> dict[str, object]:
         "ready": True,
         "sika_doctrine": SIKA_DOCTRINE,
         "wallet_doctrine": WALLET_DOCTRINE,
+        "final_money_model": FINAL_MONEY_MODEL,
         "financial_authority": "locked",
         "real_money_movement": False,
         "cash_out_allowed": False,
         "customer_deposits_allowed": False,
         "payment_initiation_allowed": False,
+        "service_payments_allowed_via_provider": True,
+        "real_earnings_allowed_via_provider": True,
+        "payout_to_bank_allowed_via_provider": True,
+        "sika_points_withdrawable": False,
         "bank_provider_required": True,
         "human_authority_final": True,
         "a4_money_movement_allowed": False,
@@ -296,6 +419,7 @@ def status() -> dict[str, object]:
         "badges": _asdict_many(BADGES),
         "revenue_streams": _asdict_many(REVENUE_STREAMS),
         "wallet_cards": _asdict_many(WALLET_CARDS),
+        "money_flows": _asdict_many(MONEY_FLOWS),
         "safe_wallet_rules": SAFE_WALLET_RULES,
         "value_actions": VALUE_ACTIONS,
     }
@@ -306,9 +430,11 @@ def wallet() -> dict[str, object]:
         "component": "SIKA Wallet UI",
         "style_reference": "Monzo / Chase / Tide / Revolut-style card layout",
         "doctrine": WALLET_DOCTRINE,
+        "final_money_model": FINAL_MONEY_MODEL,
         "cards": _asdict_many(WALLET_CARDS),
+        "money_flows": _asdict_many(MONEY_FLOWS),
         "rules": SAFE_WALLET_RULES,
-        "real_money_notice": "No deposits, no cash-out, no payment movement in v1.",
+        "real_money_notice": "No deposits or SIKA cash-out in v1.",
     }
 
 
@@ -331,7 +457,10 @@ def my_card(
         "sika_status": "Active internal value layer",
         "membership_tier": "Founder" if founder else "Member",
         "certification": "Founder Final" if founder else "OAP Member",
-        "privacy_note": "This is not government ID, bank ID, payment card, passport or driving licence.",
+        "privacy_note": (
+            "This is not government ID, bank ID, payment card, passport "
+            "or driving licence."
+        ),
         "tagline": "Born Local. Built Global.",
         "badges": badges,
         "share_ready": True,
