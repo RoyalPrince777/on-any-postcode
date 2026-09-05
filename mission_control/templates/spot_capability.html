@@ -11,7 +11,7 @@
     <div>
       <p class="mc-eyebrow">OAP World / The Spot</p>
       <h1>{{ 'OAP Atlas' if capability.slug == 'maps-weather-travel' else capability.name }}</h1>
-      <p>{{ 'Continent to postcode dashboard with live-source proof boundaries.' if capability.slug == 'maps-weather-travel' else capability.purpose }}</p>
+      <p>{{ 'Places, attractions, weather signals, movement and OAP Direct requests from continent to postcode.' if capability.slug == 'maps-weather-travel' else capability.purpose }}</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">Back to The Spot</a>
@@ -45,9 +45,9 @@
 
     {% if capability.slug == 'postcode-rooms' %}
     <section class="mc-panel" aria-labelledby="world-room-title">
-      <p class="mc-eyebrow">Sovereign local structure · public rooms only</p>
+      <p class="mc-eyebrow">Local structure · public rooms only</p>
       <h2 id="world-room-title">World Rooms</h2>
-      <p>Move through the real OAP geography. Private person-to-person communication stays inside The Link → Link Up.</p>
+      <p>Move through the real OAP geography. Person-to-person communication stays inside The Link → Link Up.</p>
       <div class="mc-status-grid" aria-label="World Rooms hierarchy">
         <article class="mc-status-card"><strong>🌍 Global</strong><span>Worldwide community layer.</span></article>
         <article class="mc-status-card"><strong>🌐 Continent</strong><span>Africa, Asia, Europe, North America, South America, Oceania and Antarctica.</span></article>
@@ -58,7 +58,6 @@
         <article class="mc-status-card"><strong>🏠 Local Room</strong><span>The closest public community room.</span></article>
       </div>
       <h3>Post to your local room</h3>
-      <p>The existing bounded postcode posting path remains as a compatibility layer while broader certified-geography participation is completed.</p>
       <form method="post" action="{{ url_for('postcode_room') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="postcode-room-code">Postcode</label>
@@ -81,14 +80,21 @@
 
     {% if capability.slug == 'maps-weather-travel' %}
     <section class="mc-panel" aria-labelledby="location-lookup-title">
-      <p class="mc-eyebrow">OAP Atlas · Continent → Country → County / Region → Borough / District → Postcode</p>
-      <h2 id="location-lookup-title">Place lookup</h2>
-      <p>Atlas can resolve place hierarchy and weather where the configured source returns safe data. Live-source claims require a timestamp and source-health proof.</p>
+      <p class="mc-eyebrow">OAP Atlas · live-ready place layer</p>
+      <h2 id="location-lookup-title">Find places, attractions and Direct requests</h2>
+      <p>Search a postcode or place. Atlas resolves the hierarchy and can show weather where source data is available. Attractions and Direct requests are public-safe entry points; confirmed bookings and payment capture stay locked until supplier proof exists.</p>
       <form method="get" action="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">
         <label for="location-query">Postcode or place</label>
-        <input id="location-query" name="location" maxlength="120" value="{{ request.args.get('location', '') }}" required>
+        <input id="location-query" name="location" maxlength="120" value="{{ request.args.get('location', '') }}" placeholder="Mitcham, London, Begoro…" required>
         <button class="mc-primary" type="submit">Search OAP Atlas</button>
       </form>
+      <div class="mc-status-grid" aria-label="OAP Atlas live-ready actions">
+        <article class="mc-status-card"><strong>🗺️ Place</strong><span>Continent → country → county/region → borough/district → postcode.</span></article>
+        <article class="mc-status-card"><strong>🎡 Attractions</strong><span>Local attractions, activities, stays and venues can be listed through OAP Direct.</span></article>
+        <article class="mc-status-card"><strong>🚶 Movement</strong><span>Routes and trip planning stay evidence-bound and consent-first.</span></article>
+        <article class="mc-status-card"><strong>🧾 Direct Request</strong><span>Request interest now; confirmed booking requires supplier receipt.</span></article>
+      </div>
+      <p><a class="mc-secondary-link" href="{{ url_for('travel_supply.travel_direct') if 'travel_supply.travel_direct' else '/travel/direct' }}">Open OAP Direct →</a> <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open Movement →</a></p>
       {% if location_error %}
       <p role="alert">That place could not be resolved safely. Check the spelling and try again.</p>
       {% endif %}
@@ -116,22 +122,12 @@
       <p class="mc-eyebrow">OAP Music / Media · Creator-first · Rights-safe</p>
       <h2 id="media-suite-title">{{ capability.name }}</h2>
       <p>OAP Music is the destination. OAP Player is the listening experience. OAP Radio is the voice. OAP Distribution is the release engine.</p>
-      <div class="mc-status-grid" aria-label="OAP media stack">
-        <article class="mc-status-card"><strong>🎵 OAP Music</strong><span>Artist pages, song pages, albums, mixtapes, playlists and creator campaigns.</span></article>
-        <article class="mc-status-card"><strong>▶️ OAP Player</strong><span>Own Spotify-style experience for cleared OAP audio. Streams build attention, not the main money.</span></article>
-        <article class="mc-status-card"><strong>📻 OAP Radio</strong><span>Postcode radio, live shows, culture, interviews, shout-outs and public-safe community signals.</span></article>
-        <article class="mc-status-card"><strong>📦 OAP Distribution</strong><span>Release preparation, rights proof, campaign pages, merch bundles and SIKA value records.</span></article>
-      </div>
-      <h3>Money path</h3>
-      <p>Memberships, merch, events, direct support, creator stores, campaign pages, local business promotions and SIKA contribution records. No stream-penny dependency. No guaranteed earnings.</p>
-      <h3>Safety lock</h3>
-      <p>Only owned, licensed, royalty-free or artist-cleared audio/video belongs here. External platform delivery stays locked until real approved aggregator, API or legal routes exist.</p>
     </section>
     {% endif %}
 
     {% if capability.slug == 'movement-delivery' %}
     <section class="mc-panel" aria-labelledby="movement-entry-title">
-      <p class="mc-eyebrow">Movement Intelligence · request, route, deliver · dispatch locked</p>
+      <p class="mc-eyebrow">Movement · request, route, deliver</p>
       <h2 id="movement-entry-title">OAP Movement</h2>
       <p>Drivers, riders, e-bikes, couriers, deliveries and future Direct requests share one governed movement layer.</p>
       <div class="mc-status-grid" aria-label="Movement entry points">
@@ -139,9 +135,7 @@
         <article class="mc-status-card"><strong>🚲 E-Bike</strong><span>Connected fleet, battery and pickup awareness.</span></article>
         <article class="mc-status-card"><strong>📦 Delivery</strong><span>Local collection, courier and proof-of-delivery flow.</span></article>
         <article class="mc-status-card"><strong>📅 Direct Request</strong><span>Plan movement now or later without pretending confirmation.</span></article>
-        <article class="mc-status-card"><strong>📶 eSIM</strong><span>Provider-ready managed connectivity for approved work devices.</span></article>
       </div>
-      <p>Carrier activation, dispatch, payment and live tracking stay off until approved providers and safety checks are connected.</p>
       <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open OAP Movement →</a>
     </section>
     {% endif %}
@@ -156,9 +150,7 @@
         <article class="mc-agent-card"><h3>{{ product.name }}</h3><p>{{ product.description }}</p><strong>{{ product.currency }} {{ product.price }}</strong><p>{{ product.seller }} · {{ product.postcode or product.borough or product.country }}</p></article>
         {% endfor %}
       </div>
-      {% else %}
-      <p>No active local listings yet.</p>
-      {% endif %}
+      {% else %}<p>No active local listings yet.</p>{% endif %}
       {% if auth_user and capability.slug == 'market' %}
       <h3>Create a listing</h3>
       <form method="post" action="{{ url_for('market_listing_create') }}">
@@ -181,13 +173,6 @@
       {% if auth_user and sika %}
       <p><strong>{{ sika.balance }} {{ sika.unit }}</strong></p>
       <p>Credits are internal contribution and trust-value records. They are not cash, deposits or regulated payment balances.</p>
-      <h3>Submit contribution evidence for review</h3>
-      <form method="post" action="{{ url_for('sika_contribution_request') }}">
-        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-        <label for="sika-title-field">Contribution</label><input id="sika-title-field" name="title" maxlength="160" required>
-        <label for="sika-body">Evidence</label><textarea id="sika-body" name="body" maxlength="5000" required></textarea>
-        <button class="mc-primary" type="submit">Send for review</button>
-      </form>
       {% else %}
       <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to view your SIKA record →</a>
       {% endif %}
@@ -196,11 +181,11 @@
 
     {% if auth_user and workspace and capability.slug not in ('market', 'sika') %}
     <section class="mc-panel" aria-labelledby="workspace-connection-title">
-      <p class="mc-eyebrow">Private My World connection</p>
+      <p class="mc-eyebrow">My World connection</p>
       <h2 id="workspace-connection-title">{{ workspace.icon }} {{ workspace.name }}</h2>
       <p>{{ workspace.purpose }}</p>
       <a class="mc-secondary-link" href="{{ url_for('my_world_workspace', workspace_id=workspace.id) }}">Open working space →</a>
-      {% if workspace_records %}<p>{{ workspace_records|length }} recent private record{{ '' if workspace_records|length == 1 else 's' }} available.</p>{% endif %}
+      {% if workspace_records %}<p>{{ workspace_records|length }} recent record{{ '' if workspace_records|length == 1 else 's' }} available.</p>{% endif %}
     </section>
     {% endif %}
 
@@ -208,7 +193,7 @@
     <section class="mc-panel">
       <p class="mc-eyebrow">Your OAP identity</p>
       <h2>{{ 'Continue in My World' if auth_user else 'Discover more in My World' }}</h2>
-      <p>{{ 'Open your private, owner-scoped workspace.' if auth_user else 'Founder sign-in is required only for this private space.' }}</p>
+      <p>{{ 'Open your owner-scoped workspace.' if auth_user else 'Sign in is required for this space.' }}</p>
       <a class="mc-secondary-link" href="{{ url_for('my_world') if auth_user else url_for('auth_page', next=request.path) }}">Enter My World →</a>
     </section>
     {% endif %}
