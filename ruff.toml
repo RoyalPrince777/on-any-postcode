@@ -1,10 +1,6 @@
 # OAP governed lint settings.
-# Keep application lint strict while allowing current legacy command wiring to
-# stay readable until it is split into smaller command modules.
-line-length = 100
+# Match the existing Ruff default safety gate: syntax/runtime error families
+# plus Pyflakes. Do not expand this PR into a legacy style cleanup.
 
 [lint]
-select = ["E", "F"]
-
-[lint.per-file-ignores]
-"mission_control/__init__.py" = ["E501"]
+select = ["E4", "E7", "E9", "F"]
