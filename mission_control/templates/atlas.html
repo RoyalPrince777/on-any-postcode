@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
     .atlas-map{position:relative;min-height:340px;border:1px solid #245f38;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 25% 30%,rgba(53,215,120,.35),transparent 18%),radial-gradient(circle at 72% 45%,rgba(215,183,89,.24),transparent 20%),linear-gradient(135deg,#07140d,#10281a 48%,#06120b)}
-    .atlas-gridlines{position:absolute;inset:0;background-image:linear-gradient(rgba(126,240,163,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(126,240,163,.08) 1px,transparent 1px);background-size:42px 42px;opacity:.75}.atlas-pin{position:absolute;display:inline-flex;gap:6px;align-items:center;padding:8px 10px;border-radius:999px;border:1px solid #7ef0a3;background:#06120bee;color:#f5fff7;font-weight:900;font-size:.82rem}.pin-earth{left:8%;top:12%}.pin-spot{left:45%;top:42%}.pin-direct{left:62%;top:63%}.pin-movement{left:22%;top:68%}.atlas-safe{position:absolute;right:12px;bottom:12px;left:12px;border:1px solid #d7b759;background:#211b0bee;border-radius:16px;padding:12px;color:#e6dcb7}.category-pill{display:inline-flex;margin:4px;padding:8px 10px;border:1px solid #245f38;border-radius:999px;background:#10281a}.place-card{min-height:190px}.route{font-family:ui-monospace,Menlo,Consolas,monospace;color:#7ef0a3;word-break:break-word}.actions-row{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.truth-lock{border-left:4px solid #d7b759;background:#211b0b;padding:12px 14px;border-radius:0 12px 12px 0;color:#e6dcb7}
+    .atlas-gridlines{position:absolute;inset:0;background-image:linear-gradient(rgba(126,240,163,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(126,240,163,.08) 1px,transparent 1px);background-size:42px 42px;opacity:.75}.atlas-pin{position:absolute;display:inline-flex;gap:6px;align-items:center;padding:8px 10px;border-radius:999px;border:1px solid #7ef0a3;background:#06120bee;color:#f5fff7;font-weight:900;font-size:.82rem}.pin-earth{left:8%;top:12%}.pin-spot{left:45%;top:42%}.pin-direct{left:62%;top:63%}.pin-movement{left:22%;top:68%}.atlas-safe{position:absolute;right:12px;bottom:12px;left:12px;border:1px solid #d7b759;background:#211b0bee;border-radius:16px;padding:12px;color:#e6dcb7}.category-pill{display:inline-flex;margin:4px;padding:8px 10px;border:1px solid #245f38;border-radius:999px;background:#10281a}.place-card{min-height:210px}.route{font-family:ui-monospace,Menlo,Consolas,monospace;color:#7ef0a3;word-break:break-word}.actions-row{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.truth-lock{border-left:4px solid #d7b759;background:#211b0b;padding:12px 14px;border-radius:0 12px 12px 0;color:#e6dcb7}.proof-pill{display:inline-flex;margin:4px;padding:7px 9px;border:1px solid #245f38;border-radius:999px;background:#07140d;font-size:.85rem}.proof-green{border-color:#7ef0a3}.proof-yellow{border-color:#d7b759}.proof-red{border-color:#ff6b6b}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -56,6 +56,25 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="proof-title">
+      <p class="mc-eyebrow">Source proof</p>
+      <h2 id="proof-title">Adapter status</h2>
+      <span class="proof-pill proof-green">Seeded places: {{ area.source_health.seeded_count }}</span>
+      <span class="proof-pill proof-green">Source-backed: {{ area.source_health.source_backed_count }}</span>
+      <span class="proof-pill proof-yellow">Live-source: {{ area.source_health.live_source_count }}</span>
+      <span class="proof-pill proof-yellow">Fetch: {{ area.source_health.open_data_adapter.last_fetch_status }}</span>
+      <span class="proof-pill proof-yellow">Can claim live: {{ 'yes' if area.source_health.open_data_adapter.can_claim_live_now else 'no' }}</span>
+      <div class="mc-status-grid">
+        {% for adapter in area.source_health.adapters %}
+        <article class="mc-status-card">
+          <strong>{{ '🟢' if adapter.signal == 'green' else '🟡' }} {{ adapter.name }}</strong>
+          <span>{{ adapter.state }} · {{ adapter.authority }}</span>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="truth-lock"><strong>Next proof gate:</strong> {{ area.source_health.open_data_adapter.next_step }}</p>
+    </section>
+
     <section class="mc-panel" aria-labelledby="hierarchy-title">
       <p class="mc-eyebrow">Hierarchy</p>
       <h2 id="hierarchy-title">Place order</h2>
@@ -88,7 +107,8 @@
           <p><strong>{{ place.category.replace('_', ' ').title() }}</strong> · {{ place.type.replace('_', ' ').title() }}</p>
           <p>{{ place.borough }} · {{ place.postcode }} · {{ place.country }}</p>
           <p>Movement: {{ 'ready' if place.movement_ready else 'building' }} · Direct: {{ 'request available' if place.direct_request_available else 'not active' }}</p>
-          <p class="route">Source: {{ place.source }}</p>
+          <p>Proof: {{ place.proof_lane }} · {{ place.freshness }} · confidence {{ place.confidence }}</p>
+          <p class="route">Source: {{ place.source }} · {{ place.source_timestamp }}</p>
         </article>
         {% endfor %}
       </div>
