@@ -49,6 +49,7 @@ def init_app(app: Flask) -> None:
     from .link_turn_routes import bp as link_turn_bp
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
+    from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
     from .movement_routes import bp as movement_bp
     from .oap_data_views import bp as oap_data_bp
     from .product_core_views import bp as product_core_bp
@@ -169,7 +170,7 @@ def init_app(app: Flask) -> None:
     @app.cli.command("oap-init-link-signalling")
     @click.option("--dry-run", is_flag=True, default=False)
     @click.option("--yes", "yes", is_flag=True, default=False)
-    def _oap_init_link_signalling(dry_run: bool, yes: bool) -> None:
+    def _oap_link_signalling(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(link_signalling.init_schema(dry_run=dry_run, assume_yes=yes)))
 
@@ -295,5 +296,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
     app.register_blueprint(checkpoint_bp, url_prefix="/mission")
+    app.register_blueprint(maps_movement_direct_proof_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()
