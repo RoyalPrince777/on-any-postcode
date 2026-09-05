@@ -11,16 +11,16 @@
 <link rel="apple-touch-icon" href="{{ url_for('oap_os_icon', size=192) }}">
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
-:root{--bg:#06120b;--panel:#10281a;--line:#245f38;--green:#27c267;--glow:#7ef0a3;--text:#f5fff7;--muted:#b8d6c0;--gold:#f4c95d}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 78% 12%,rgba(39,194,103,.22),transparent 30%),linear-gradient(135deg,#06120b,#07140d 58%,#020603);color:var(--text);font-family:Arial,sans-serif}a{color:inherit}.topbar{position:sticky;top:0;z-index:10;background:rgba(6,18,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px max(18px,6vw);display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:900;letter-spacing:.1em}.nav{display:flex;gap:10px;overflow-x:auto;white-space:nowrap}.nav a,.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;background:#123321;color:white;text-decoration:none;font-weight:900;padding:10px 13px}.btn.primary{background:var(--green);color:#021;border-color:var(--green)}.hero{min-height:68vh;display:grid;align-content:center;padding:54px max(20px,8vw)}.eyebrow{color:var(--glow);font-weight:900;text-transform:uppercase;letter-spacing:.14em}.hero h1{font-size:clamp(3rem,10vw,7.5rem);line-height:.9;margin:.18em 0}.hero p{font-size:clamp(1.05rem,2.2vw,1.42rem);max-width:780px;color:var(--muted)}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}.products{padding:10px max(20px,8vw) 50px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.card{border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,var(--panel),#07140d);padding:20px;min-height:170px}.card h2{margin:.2em 0}.small{color:var(--muted)}.status{display:inline-flex;padding:5px 9px;border-radius:999px;background:var(--green);color:#021;font-weight:900;font-size:.78rem}.lock{border-left:4px solid var(--gold);background:#211b0b;border-radius:0 14px 14px 0;padding:14px;color:#e6dcb7;margin-top:18px}.os-install{padding:26px max(20px,8vw);border-top:1px solid var(--line)}.os-install button{padding:11px 16px;border-radius:999px;border:0;background:var(--green);color:#021;font-weight:900}.os-install button[hidden]{display:none}.os-status{color:var(--muted)}
+:root{--bg:#06120b;--panel:#10281a;--line:#245f38;--green:#27c267;--glow:#7ef0a3;--text:#f5fff7;--muted:#b8d6c0;--gold:#f4c95d}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 78% 12%,rgba(39,194,103,.22),transparent 30%),linear-gradient(135deg,#06120b,#07140d 58%,#020603);color:var(--text);font-family:Arial,sans-serif}a{color:inherit}.topbar{position:sticky;top:0;z-index:10;background:rgba(6,18,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px max(18px,6vw);display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:900;letter-spacing:.1em}.nav{display:flex;gap:10px;overflow-x:auto;white-space:nowrap}.nav a,.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;background:#123321;color:white;text-decoration:none;font-weight:900;padding:10px 13px}.btn.primary{background:var(--green);color:#021;border-color:var(--green)}.hero{min-height:68vh;display:grid;align-content:center;padding:54px max(20px,8vw)}.eyebrow{color:var(--glow);font-weight:900;text-transform:uppercase;letter-spacing:.14em}.hero h1{font-size:clamp(3rem,10vw,7.5rem);line-height:.9;margin:.18em 0}.hero p{font-size:clamp(1.05rem,2.2vw,1.42rem);max-width:820px;color:var(--muted)}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}.products{padding:10px max(20px,8vw) 50px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.card{border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,var(--panel),#07140d);padding:20px;min-height:170px}.card h2{margin:.2em 0}.small{color:var(--muted)}.status{display:inline-flex;padding:5px 9px;border-radius:999px;background:var(--green);color:#021;font-weight:900;font-size:.78rem}.wait{background:var(--gold)}.lock{border-left:4px solid var(--gold);background:#211b0b;border-radius:0 14px 14px 0;padding:14px;color:#e6dcb7;margin-top:18px}.os-install{padding:26px max(20px,8vw);border-top:1px solid var(--line)}.os-install button{padding:11px 16px;border-radius:999px;border:0;background:var(--green);color:#021;font-weight:900}.os-install button[hidden]{display:none}.os-status{color:var(--muted)}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand">ON ANY POSTCODE</div>
   <nav class="nav" aria-label="Primary">
-    <a href="{{ url_for('travel_supply.public_atlas') }}">Creps &amp; Routes</a>
-    <a href="{{ url_for('movement.movement_home') }}">Movement</a>
-    <a href="{{ url_for('travel_supply.public_marketplace') }}">Direct</a>
+    <a href="{{ url_for('travel_supply.public_atlas') }}">On Any Place</a>
+    <a href="{{ url_for('movement.movement_home') }}">On Any Route</a>
+    <a href="{{ url_for('travel_supply.public_marketplace') }}">OAP Direct</a>
     <a href="{{ url_for('the_link_front_door') }}">The Link</a>
   </nav>
 </header>
@@ -28,21 +28,25 @@
 <section class="hero" aria-labelledby="hero-title">
   <p class="eyebrow">Born Local · Built Global</p>
   <h1 id="hero-title">ON ANY POSTCODE</h1>
-  <p>One clean public front door. Search UK places, routes, local businesses, shops and safe movement without public system noise.</p>
+  <p>One clean public front door. Find UK places, check routes, request travel, discover events and move through local businesses without public system noise.</p>
   <div class="actions">
-    <a class="btn primary" href="{{ url_for('travel_supply.public_atlas') }}">Open Creps &amp; Routes</a>
-    <a class="btn" href="{{ url_for('movement.movement_home') }}">Open Movement</a>
-    <a class="btn" href="{{ url_for('travel_supply.public_marketplace') }}">Open Direct</a>
+    <a class="btn primary" href="{{ url_for('travel_supply.public_atlas') }}">Open On Any Place</a>
+    <a class="btn" href="{{ url_for('movement.movement_home') }}">Open On Any Route</a>
+    <a class="btn" href="{{ url_for('travel_supply.public_marketplace') }}">Open OAP Direct</a>
   </div>
-  <p class="lock"><strong>Public rule:</strong> keep it simple. No private system names, no internal debug, no fake live claims, no payment capture.</p>
+  <p class="lock"><strong>Public rule:</strong> simple outside, intelligent inside. No private system names, no internal debug, no fake live claims, no payment capture.</p>
 </section>
 <section class="products" aria-labelledby="products-title">
   <p class="eyebrow">Main functions</p>
-  <h2 id="products-title">Use what matters first</h2>
+  <h2 id="products-title">Maps · Travel · Movement · Spots</h2>
   <div class="grid">
-    <article class="card"><span class="status">LIVE</span><h2>🗺️ Creps &amp; Routes</h2><p class="small">UK-wide local businesses, shops, roads, alleys, routes and traffic-style signals.</p><a class="btn" href="{{ url_for('travel_supply.public_atlas') }}">Open</a></article>
-    <article class="card"><span class="status">LIVE</span><h2>🚶 Movement</h2><p class="small">Route proof, request preview and consent-only movement boundaries. Dispatch stays locked.</p><a class="btn" href="{{ url_for('movement.movement_home') }}">Open</a></article>
-    <article class="card"><span class="status">LIVE</span><h2>🏪 Direct</h2><p class="small">Local listings, stays, venues and requests. Confirmation needs supplier receipt.</p><a class="btn" href="{{ url_for('travel_supply.public_marketplace') }}">Open</a></article>
+    <article class="card"><span class="status">LIVE SURFACE</span><h2>🗺️ On Any Place</h2><p class="small">UK-wide places, shops, local businesses, venues, open-data lookup, source proof and safe map discovery.</p><a class="btn" href="{{ url_for('travel_supply.public_atlas') }}">Open</a></article>
+    <article class="card"><span class="status">LIVE SURFACE</span><h2>🛣️ On Any Route</h2><p class="small">Route proof, route preview, traffic-style signals, Movement request preview and consent-only Live Spot boundary.</p><a class="btn" href="{{ url_for('movement.movement_home') }}">Open</a></article>
+    <article class="card"><span class="status wait">LOCKED NAME</span><h2>🚘 On Any Ride</h2><p class="small">Private-hire style ride program. Request/interest flow can prepare, but real operator dispatch stays licence/proof locked.</p><a class="btn" href="{{ url_for('movement.movement_home') }}?mode=ride">Preview</a></article>
+    <article class="card"><span class="status wait">LOCKED NAME</span><h2>📦 On Any Drop</h2><p class="small">Delivery and courier direction. Drop requests can preview; driver assignment and payment stay locked.</p><a class="btn" href="{{ url_for('movement.movement_home') }}?mode=drop">Preview</a></article>
+    <article class="card"><span class="status wait">BUILDING</span><h2>📡 Live Pattern</h2><p class="small">Events, traffic-style pressure, crowd flow, disruption, what’s on and open-now signals. No live claim without proof.</p><a class="btn" href="{{ url_for('travel_supply.public_atlas') }}?category=traffic_signals">Open</a></article>
+    <article class="card"><span class="status">LIVE SURFACE</span><h2>🏪 OAP Direct</h2><p class="small">Listings, stays, venues, supplier requests and quotes. Confirmation needs supplier receipt; payment remains locked.</p><a class="btn" href="{{ url_for('travel_supply.public_marketplace') }}">Open</a></article>
+    <article class="card"><span class="status">LIVE SURFACE</span><h2>📍 Spots</h2><p class="small">Named places inside UK areas: high streets, markets, venues, parks, hubs and useful local points.</p><a class="btn" href="{{ url_for('travel_supply.public_atlas') }}?category=local_businesses">Open</a></article>
     <article class="card"><span class="status">LIVE</span><h2>🔗 The Link</h2><p class="small">Opportunities and Link Up communication using OAP language.</p><a class="btn" href="{{ url_for('the_link_front_door') }}">Open</a></article>
   </div>
 </section>
