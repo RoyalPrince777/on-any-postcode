@@ -110,6 +110,24 @@
     </section>
     {% endif %}
 
+    {% if capability.slug in ('music', 'player', 'radio', 'distribution') %}
+    <section class="mc-panel" aria-labelledby="media-suite-title">
+      <p class="mc-eyebrow">OAP Music / Media · Creator-first · Rights-safe</p>
+      <h2 id="media-suite-title">{{ capability.name }}</h2>
+      <p>OAP Music is the destination. OAP Player is the listening experience. OAP Radio is the voice. OAP Distribution is the release engine.</p>
+      <div class="mc-status-grid" aria-label="OAP media stack">
+        <article class="mc-status-card"><strong>🎵 OAP Music</strong><span>Artist pages, song pages, albums, mixtapes, playlists and creator campaigns.</span></article>
+        <article class="mc-status-card"><strong>▶️ OAP Player</strong><span>Own Spotify-style experience for cleared OAP audio. Streams build attention, not the main money.</span></article>
+        <article class="mc-status-card"><strong>📻 OAP Radio</strong><span>Postcode radio, live shows, culture, interviews, shout-outs and public-safe community signals.</span></article>
+        <article class="mc-status-card"><strong>📦 OAP Distribution</strong><span>Release preparation, rights proof, campaign pages, merch bundles and SIKA value records.</span></article>
+      </div>
+      <h3>Money path</h3>
+      <p>Memberships, merch, events, direct support, creator stores, campaign pages, local business promotions and SIKA contribution records. No stream-penny dependency. No guaranteed earnings.</p>
+      <h3>Safety lock</h3>
+      <p>Only owned, licensed, royalty-free or artist-cleared audio/video belongs here. External platform delivery stays locked until real approved aggregator, API or legal routes exist.</p>
+    </section>
+    {% endif %}
+
     {% if capability.slug == 'movement-delivery' %}
     <section class="mc-panel" aria-labelledby="movement-entry-title">
       <p class="mc-eyebrow">Ride · E-Bike · Delivery · Booking · Track</p>
