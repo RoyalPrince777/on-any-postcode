@@ -1,7 +1,7 @@
 """Founder-only read-only routes for OAP Atlas + Movement + Direct proof runner."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import maps_movement_direct_proof_runner, web_security
 
@@ -12,6 +12,37 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.app_errorhandler(404)
+def clean_oap_not_found(error):
+    """Return a quiet OAP fallback for unmatched paths without leaking private state."""
+
+    wants_json = "application/json" in str(request.headers.get("Accept", ""))
+    private_probe = request.path.startswith(
+        ("/mission", "/my-world", "/myworld", "/infrastructure", "/api/infrastructure")
+    )
+    if wants_json:
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "oap_path_not_found",
+                        "message": "This OAP path is not open.",
+                        "private_state_exposed": False,
+                        "private_probe": private_probe,
+                        "safe_next": "/mission" if private_probe else "/",
+                    }
+                ),
+                404,
+            )
+        )
+    return _no_store(
+        make_response(
+            render_template("oap_404.html", private_probe=private_probe),
+            404,
+        )
+    )
 
 
 @bp.get("/proof-runner/maps-movement-direct")
@@ -177,6 +208,57 @@ def smi_level_a5_atlas_movement_direct_projection():
                     },
                 },
                 proof_runner=proof,
+            )
+        )
+    )
+
+
+@bp.get("/smi/debug")
+@bp.get("/war-room/smi/debug")
+@bp.get("/war-room/actions/smi-debug")
+@web_security.login_required(api=True)
+def private_smi_debug_projection():
+    """Return safe private SMI debug state without secrets, logs or private records."""
+
+    proof = maps_movement_direct_proof_runner.status()
+    route_matrix = dict(proof.get("route_matrix") or {})
+    summary = dict(proof.get("summary") or {})
+    return _no_store(
+        make_response(
+            jsonify(
+                component="SMI Debug",
+                public=False,
+                founder_only=True,
+                safe_for_screen=True,
+                secrets_exposed=False,
+                private_records_exposed=False,
+                smi_public_exposure_blocked=True,
+                active_level="A4 supervised",
+                next_level="A5 locked level",
+                signals_core=21,
+                route_matrix={
+                    "target_count": route_matrix.get("target_count"),
+                    "public_target_count": route_matrix.get("public_target_count"),
+                    "private_target_count": route_matrix.get("private_target_count"),
+                    "live_capture_present": route_matrix.get("live_capture_present"),
+                    "anonymous_capture_present": route_matrix.get("anonymous_capture_present"),
+                    "certified": route_matrix.get("certified"),
+                },
+                proof_summary=summary,
+                buttons={
+                    "real_action_required": True,
+                    "locked_state_allowed": True,
+                    "fake_button_green_allowed": False,
+                },
+                hard_locks={
+                    "self_approval": False,
+                    "payment_capture": False,
+                    "real_world_dispatch": False,
+                    "confirmed_reservation_claim": False,
+                    "hidden_tracking": False,
+                    "private_media_exposure": False,
+                    "public_claim_without_proof": False,
+                },
             )
         )
     )
