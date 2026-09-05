@@ -25,7 +25,7 @@
 <a href="{{ url_for('pulse_feed') }}">📡 Pulse</a>
 <a href="{{ url_for('the_link_front_door') }}">🔗 The Link</a>
 <a href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">🌍 OAP Atlas</a>
-<a href="/mission?mode=mission">🧠 SMI</a>
+<a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">🟢 21 Signals</a>
 </nav>
 </header>
 <main>
@@ -36,7 +36,7 @@
 <div class="actions">
 <a class="button-link button-primary" href="{{ url_for('the_spot_front_door') }}">Enter The Spot</a>
 <a class="button-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open OAP Atlas</a>
-<a class="button-link" href="/mission?mode=mission">Founder SMI</a>
+<a class="button-link" href="{{ url_for('the_link_front_door') }}">Open The Link</a>
 </div>
 </section>
 <section aria-labelledby="atlas-title">
@@ -60,7 +60,17 @@
 <article class="card"><span class="badge">PUBLIC</span><h3>🔗 The Link</h3><p class="small">Opportunities and Link Up communication.</p><a class="button-link" href="{{ url_for('the_link_front_door') }}">Open</a></article>
 <article class="card"><span class="badge">PUBLIC</span><h3>📡 Pulse</h3><p class="small">Public feed and community energy.</p><a class="button-link" href="{{ url_for('pulse_feed') }}">Open</a></article>
 <article class="card"><span class="badge">PUBLIC</span><h3>🏪 Market</h3><p class="small">Local commerce surface. Payment capture remains locked.</p><a class="button-link" href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">Open</a></article>
-<article class="card"><span class="badge-lock">PRIVATE</span><h3>🧠 SMI</h3><p class="small">Founder-only intelligence, Kernel, Guardian, HRM and Green Gate.</p><a class="button-link" href="/mission?mode=mission">Open SMI</a></article>
+<article class="card"><span class="badge-lock">PRIVATE</span><h3>🧠 SMI / Kernel</h3><p class="small">Founder intelligence is not exposed on the public front door. Use the private SMI service only.</p></article>
+</div>
+</section>
+<section aria-labelledby="signals-title">
+<p class="eyebrow">OAP Signals</p>
+<h2 id="signals-title">21 clean signals</h2>
+<div class="status">
+<article class="card"><span class="badge">🟢</span><h3>Healthy</h3><p class="small">Proven and safe inside its boundary.</p></article>
+<article class="card"><span class="badge">🟡</span><h3>Warning</h3><p class="small">Building or awaiting proof.</p></article>
+<article class="card"><span class="badge">🔴</span><h3>Critical</h3><p class="small">Blocked, unsafe, failed or needs stop.</p></article>
+<article class="card"><span class="badge">🟣</span><h3>Learning</h3><p class="small">Learning only. Purple is not a warning.</p></article>
 </div>
 </section>
 <section aria-labelledby="status-title">
@@ -68,7 +78,7 @@
 <h2 id="status-title">Green means proven</h2>
 <div class="status">
 <article class="card"><span class="badge">🟢</span><h3>OAP World</h3><p class="small">Public front door is live.</p></article>
-<article class="card"><span class="badge">🟢</span><h3>SMI Access</h3><p class="small">Private route exists; Founder gate controls entry.</p></article>
+<article class="card"><span class="badge-lock">⚫</span><h3>SMI Access</h3><p class="small">Private service only. Not public OAP World content.</p></article>
 <article class="card"><span class="badge-lock">🔒</span><h3>A5</h3><p class="small">A5-ready UI can show, but real A5 autonomy stays locked.</p></article>
 <article class="card"><span class="badge-lock">🔒</span><h3>Money / Dispatch</h3><p class="small">Payment capture, real-world dispatch and confirmed claims stay blocked without proof.</p></article>
 </div>
