@@ -1,8 +1,9 @@
-"""Founder-only checkpoint surfaces for War Room, Movement, Booking and Map Intelligence.
+"""Founder-only Intelligence status surfaces for Movement, Booking and Maps.
 
-These endpoints provide direct, openable proof checkpoints. They do not dispatch,
-reserve, charge, migrate, approve, track people secretly or expose private
-operational data.
+Clean app addresses expose status and proof state without noisy internal wording.
+Legacy checkpoint paths remain as compatibility aliases only. These endpoints do
+not dispatch, reserve, charge, migrate, approve, track people secretly or expose
+private operational data.
 """
 from __future__ import annotations
 
@@ -35,7 +36,7 @@ def _no_store(response):
 def _safe(call, fallback: dict[str, Any]) -> dict[str, Any]:
     try:
         value = call()
-    except Exception:  # noqa: BLE001 - checkpoint dashboards must fail closed.
+    except Exception:  # noqa: BLE001 - status dashboards must fail closed.
         return dict(fallback)
     return dict(value) if isinstance(value, Mapping) else dict(fallback)
 
@@ -135,7 +136,7 @@ def _movement_payload(base: dict[str, Any]) -> dict[str, Any]:
     return {
         **base,
         "id": "movement-intelligence",
-        "name": "Movement Intelligence Checkpoint",
+        "name": "Movement Intelligence",
         "organism_position": "SMI Command → War Room → Movement / Map Control",
         "state": "guarded" if summary["building"] == 0 and summary["attention"] == 0 else "building",
         "signal": "green" if summary["building"] == 0 and summary["attention"] == 0 else "yellow",
@@ -153,7 +154,7 @@ def _movement_payload(base: dict[str, Any]) -> dict[str, Any]:
         "safe_public_routes": ("/movement", "/movement/status"),
         "private_routes": ("/movement/workspace", "/movement/route", "/movement/bookings", "/movement/bookings/<booking_id>/match", "/movement/bookings/<booking_id>/tracking/consent", "/movement/bookings/<booking_id>/tracking/points", "/movement/bookings/<booking_id>/payment-intents", "/movement/bookings/<booking_id>/link-up"),
         "locked_until_proven": ("unsafe dispatch", "hidden tracking", "covert location collection", "public precise location leakage", "production route claims without provider/capacity/monitoring proof", "payment capture"),
-        "next_checkpoint": "Live route matrix, HRM movement receipt, no-consent failure proof and Green Gate proof.",
+        "next_gate": "Live route matrix, HRM movement receipt, no-consent failure proof and Green Gate proof.",
     }
 
 
@@ -179,14 +180,14 @@ def _booking_payload(base: dict[str, Any]) -> dict[str, Any]:
         _state_line(check_id="booking_inventory", label="Availability / inventory", passed=supply_ready, building=not supply_ready, route="/mission/supply/inventory", proof="Inventory is Founder/supplier controlled, not scraped third-party authority.", next_gate="Prove active inventory for one certified listing."),
         _state_line(check_id="booking_supplier_confirmation", label="Supplier reservation confirmation", passed=supply_ready, building=not supply_ready, route="/mission/supply/reservations/confirm", proof="Confirmed reservation requires authorised supplier/Founder confirmation.", next_gate="Prove confirmed reservation receipt and safe buyer state."),
         _state_line(check_id="booking_external_import", label="External marketplace import", locked=True, route="/mission/supply/partner/import", proof="Partner Supply import is removed/blocked; external data is research context only.", next_gate="Keep blocked unless Human Authority approves a governed supplier path."),
-        _state_line(check_id="booking_payment_capture", label="Payment capture", locked=True, proof="No booking checkpoint may claim captured payment without compliant provider and receipts.", next_gate="Approved payment provider, legal checks, refund flow, audit receipts."),
+        _state_line(check_id="booking_payment_capture", label="Payment capture", locked=True, proof="No booking status may claim captured payment without compliant provider and receipts.", next_gate="Approved payment provider, legal checks, refund flow, audit receipts."),
         _state_line(check_id="booking_reservation_claim", label="Public confirmed reservation claim", locked=True, proof="Public claim remains locked until supplier proof, availability proof and confirmation receipt exist.", next_gate="Certified supplier + inventory + confirmed reservation + HRM receipt."),
     )
     summary = _summarise(lines)
     return {
         **base,
         "id": "booking-intelligence",
-        "name": "Booking Intelligence Checkpoint",
+        "name": "Booking Intelligence",
         "organism_position": "SMI Command → War Room → Booking / Travel Supply Control",
         "state": "guarded" if summary["building"] == 0 and summary["attention"] == 0 else "building",
         "signal": "green" if summary["building"] == 0 and summary["attention"] == 0 else "yellow",
@@ -206,7 +207,7 @@ def _booking_payload(base: dict[str, Any]) -> dict[str, Any]:
         "safe_public_routes": ("/travel", "/travel/direct", "/travel/api/catalogue", "/travel/direct/api/offers", "/travel/direct/api/quote"),
         "private_routes": ("/travel/direct/api/hold", "/travel/direct/api/reservations", "/mission/supply", "/mission/supply/status", "/mission/supply/suppliers", "/mission/supply/suppliers/review", "/mission/supply/suppliers/certify", "/mission/supply/listings", "/mission/supply/listings/activate", "/mission/supply/inventory", "/mission/supply/reservations/confirm"),
         "locked_until_proven": ("confirmed reservation claims", "payment capture", "supplier settlement", "external marketplace import", "third-party booking authority", "uncertified supplier inventory"),
-        "next_checkpoint": "Certified supplier, active listing, availability, hold, reservation, confirmation and HRM booking receipt.",
+        "next_gate": "Certified supplier, active listing, availability, hold, reservation, confirmation and HRM booking receipt.",
     }
 
 
@@ -234,7 +235,7 @@ def _map_payload(base: dict[str, Any]) -> dict[str, Any]:
     return {
         **base,
         "id": "map-intelligence",
-        "name": "Map Intelligence Checkpoint",
+        "name": "Map Intelligence",
         "organism_position": "SMI Command → War Room → Movement / Map Control → Parietal-Spatial Cortex",
         "state": "guarded" if summary["building"] == 0 and summary["attention"] == 0 else "building",
         "signal": "green" if summary["building"] == 0 and summary["attention"] == 0 else "yellow",
@@ -253,7 +254,7 @@ def _map_payload(base: dict[str, Any]) -> dict[str, Any]:
         "safe_public_routes": ("/the-spot/maps-weather-travel", "/the-spot/maps-weather-travel?location=Mitcham"),
         "private_routes": ("/movement/route", "/movement/bookings/<booking_id>/tracking/consent", "/movement/bookings/<booking_id>/tracking/points"),
         "locked_until_proven": ("hidden tracking", "covert location collection", "public precise private location", "fake live-route claims", "production routing claims without source/capacity/monitoring proof"),
-        "next_checkpoint": "Live route proof, source-health timestamp, stale-data guard, HRM map receipt and Green Gate certification.",
+        "next_gate": "Live route proof, source-health timestamp, stale-data guard, HRM map receipt and Green Gate certification.",
     }
 
 
@@ -268,7 +269,7 @@ def _combined_payload(base: dict[str, Any]) -> dict[str, Any]:
     return {
         **base,
         "id": "movement-booking-map",
-        "name": "Movement + Booking + Map Intelligence Master Checkpoint",
+        "name": "Movement + Booking + Map Intelligence",
         "organism_position": "SMI Command → War Room → Movement / Booking / Maps / Green Gate",
         "state": "building" if green < total else "guarded",
         "signal": "yellow" if green < total else "green",
@@ -287,28 +288,42 @@ def _combined_payload(base: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _checkpoint_payload(checkpoint_id: str) -> dict[str, Any]:
+def _status_payload(status_id: str) -> dict[str, Any]:
     base = _base()
-    if checkpoint_id == "movement-intelligence":
+    if status_id == "movement-intelligence":
         return _movement_payload(base)
-    if checkpoint_id == "booking-intelligence":
+    if status_id == "booking-intelligence":
         return _booking_payload(base)
-    if checkpoint_id in {"map-intelligence", "maps-intelligence", "maps"}:
+    if status_id in {"map-intelligence", "maps-intelligence", "maps"}:
         return _map_payload(base)
-    if checkpoint_id in {"movement-booking", "movement-and-booking", "movement-booking-map", "movement-booking-maps"}:
+    if status_id in {"movement-booking", "movement-and-booking", "movement-booking-map", "movement-booking-maps"}:
         return _combined_payload(base)
-    raise ValueError("unknown_checkpoint")
+    raise ValueError("unknown_status")
 
 
-@bp.get("/checkpoints")
+def _status_response(status_id: str):
+    try:
+        payload = _status_payload(status_id.strip().casefold())
+    except ValueError:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "unknown_status", "message": "Unknown Intelligence status."}),
+                404,
+            )
+        )
+    return _no_store(make_response(jsonify(payload)))
+
+
+@bp.get("/intelligence")
+@bp.get("/intelligence-status")
 @web_security.login_required(api=True, founder_only=True)
-def checkpoints_index():
-    """Return all direct checkpoint links."""
-    checkpoints = ("movement-intelligence", "booking-intelligence", "map-intelligence", "movement-booking-map")
+def intelligence_index():
+    """Return clean Founder-only Intelligence status links."""
+    statuses = ("movement-intelligence", "booking-intelligence", "map-intelligence", "movement-booking-map")
     return _no_store(
         make_response(
             jsonify(
-                checkpoints=[_checkpoint_payload(item) for item in checkpoints],
+                intelligence=[_status_payload(item) for item in statuses],
                 war_room="/mission/war-room",
                 no_fake_green=True,
             )
@@ -316,18 +331,46 @@ def checkpoints_index():
     )
 
 
-@bp.get("/checkpoints/<checkpoint_id>")
-@bp.get("/war-room/checkpoints/<checkpoint_id>")
+@bp.get("/movement-intelligence")
+@bp.get("/booking-intelligence")
+@bp.get("/map-intelligence")
+@bp.get("/maps-intelligence")
+@bp.get("/maps")
+@bp.get("/movement-booking")
+@bp.get("/movement-booking-map")
+@bp.get("/movement-booking-maps")
 @web_security.login_required(api=True, founder_only=True)
-def checkpoint_detail(checkpoint_id: str):
-    """Return one Founder-only checkpoint without mutating state."""
-    try:
-        payload = _checkpoint_payload(checkpoint_id.strip().casefold())
-    except ValueError:
-        return _no_store(
-            make_response(
-                jsonify(error={"code": "unknown_checkpoint", "message": "Unknown checkpoint."}),
-                404,
-            )
-        )
-    return _no_store(make_response(jsonify(payload)))
+def clean_intelligence_status():
+    """Return one clean Founder-only Intelligence status surface."""
+    from flask import request
+
+    return _status_response(request.path.rsplit("/", 1)[-1])
+
+
+@bp.get("/war-room/movement-intelligence")
+@bp.get("/war-room/booking-intelligence")
+@bp.get("/war-room/map-intelligence")
+@bp.get("/war-room/maps-intelligence")
+@bp.get("/war-room/maps")
+@bp.get("/war-room/movement-booking-map")
+@web_security.login_required(api=True, founder_only=True)
+def clean_war_room_intelligence_status():
+    """Return one clean War Room Intelligence status surface."""
+    from flask import request
+
+    return _status_response(request.path.rsplit("/", 1)[-1])
+
+
+@bp.get("/checkpoints")
+@web_security.login_required(api=True, founder_only=True)
+def legacy_checkpoints_index():
+    """Compatibility alias for older internal status links."""
+    return intelligence_index()
+
+
+@bp.get("/checkpoints/<status_id>")
+@bp.get("/war-room/checkpoints/<status_id>")
+@web_security.login_required(api=True, founder_only=True)
+def legacy_status_detail(status_id: str):
+    """Compatibility alias for older internal status links."""
+    return _status_response(status_id)
