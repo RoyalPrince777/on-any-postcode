@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Card · OAP</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    body{background:#06120b;color:#ecfff2}.wrap{max-width:860px;margin:0 auto;padding:18px}.card{border:1px solid #39e57f88;border-radius:30px;padding:24px;background:linear-gradient(145deg,#07140d,#12381f);box-shadow:0 24px 80px #0009;position:relative;overflow:hidden}.card:before{content:"ON ANY POSTCODE";position:absolute;right:-18px;top:18px;color:#ffffff08;font-size:4rem;font-weight:1000;letter-spacing:-.07em}.eyebrow{color:#d7b85d;font-weight:900;text-transform:uppercase;letter-spacing:.15em;font-size:.75rem}.name{font-size:clamp(2.4rem,8vw,5.2rem);line-height:.9;margin:.3rem 0;letter-spacing:-.07em}.meta{color:#a8baaf}.chips{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{border:1px solid #285039;border-radius:999px;padding:8px 11px;background:#07140d;font-weight:800}.footer{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-top:24px;border-top:1px solid #285039;padding-top:16px}.qr{width:96px;height:96px;border:1px dashed #d7b85d;border-radius:18px;display:grid;place-items:center;color:#d7b85d;text-align:center;font-size:.7rem}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions a{border:1px solid #285039;border-radius:999px;padding:9px 12px;text-decoration:none;color:#ecfff2;background:#0a1d12;font-weight:800}.notice{border-left:3px solid #d7b85d;padding:12px 14px;background:#211b0b;border-radius:0 14px 14px 0;color:#f0df9c;margin-top:16px}@media(max-width:620px){.wrap{padding:10px}.card{padding:17px}.footer{display:block}.qr{margin-top:14px;width:100%;height:76px}.actions a{flex:1;text-align:center}}
+  </style>
+</head>
+<body>
+  {% include '_command_nav.html' %}
+  <main class="wrap">
+    <section class="card" aria-labelledby="my-card-title">
+      <p class="eyebrow">{{ card.component }} · {{ card.subtitle }}</p>
+      <h1 id="my-card-title" class="name">{{ card.display_name }}</h1>
+      <p class="meta">{{ card.handle }} · {{ card.circle }}</p>
+      <div class="chips">
+        {% for badge in card.badges %}<span class="chip">{{ badge.emoji }} {{ badge.label }}</span>{% endfor %}
+      </div>
+      <p><strong>{{ card.membership_tier }}</strong> · {{ card.sika_status }} · {{ card.certification }}</p>
+      <p class="notice">{{ card.privacy_note }}</p>
+      <div class="footer">
+        <div><p class="eyebrow">{{ card.tagline }}</p><p class="meta">Share-ready identity layer. QR link comes later after privacy review.</p></div>
+        <div class="qr">QR<br>LOCKED</div>
+      </div>
+    </section>
+    <nav class="actions">
+      <a href="{{ url_for('sika_value.dashboard') }}">💎 SIKA</a>
+      <a href="{{ url_for('my_world') }}">👤 My World</a>
+      <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission</a>
+    </nav>
+  </main>
+</body>
+</html>
