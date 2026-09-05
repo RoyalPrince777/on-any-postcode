@@ -8,7 +8,7 @@
   <style>
     body{margin:0;background:radial-gradient(circle at 82% 12%,rgba(39,194,103,.22),transparent 32%),linear-gradient(135deg,#06120b,#081a10 48%,#020603);color:#f5fff7;font-family:Arial,sans-serif;min-height:100vh;display:grid;place-items:center;padding:22px}
     .panel{width:min(760px,100%);border:1px solid #245f38;border-radius:24px;background:linear-gradient(180deg,#10281a,#07140d);padding:28px;box-shadow:0 24px 70px #0008}
-    .eyebrow{color:#7ef0a3;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.code{font-size:clamp(4rem,20vw,9rem);line-height:.8;margin:0;color:#27c267}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.btn{display:inline-flex;text-decoration:none;color:#021;background:#27c267;padding:11px 15px;border-radius:999px;font-weight:900}.btn.secondary{background:#123321;color:#f5fff7;border:1px solid #245f38}.small{color:#b8d6c0}.lock{border-left:4px solid #d7b85d;background:#211b0b;padding:12px 14px;border-radius:0 12px 12px 0;margin-top:16px;color:#e6dcb7}
+    .eyebrow{color:#7ef0a3;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.code{font-size:clamp(4rem,20vw,9rem);line-height:.8;margin:0;color:#27c267}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.btn{display:inline-flex;text-decoration:none;color:#021;background:#27c267;padding:11px 15px;border-radius:999px;font-weight:900}.btn.secondary{background:#123321;color:#f5fff7;border:1px solid #245f38}.small{color:#b8d6c0}.note{border-left:4px solid #d7b85d;background:#211b0b;padding:12px 14px;border-radius:0 12px 12px 0;margin-top:16px;color:#e6dcb7}
   </style>
 </head>
 <body>
@@ -16,13 +16,13 @@
     <p class="eyebrow">OAP World · Clean fallback</p>
     <p class="code">404</p>
     <h1 id="not-found-title">This path is not open.</h1>
-    <p class="small">The route may have moved, be private, or not be built yet. OAP fails closed instead of exposing private SMI, Kernel, HRM, War Room or dashboard state.</p>
+    <p class="small">The page may have moved or may not be ready yet. Use the public OAP routes below.</p>
     <div class="actions">
       <a class="btn" href="{{ url_for('home') }}">Return to OAP World</a>
       <a class="btn secondary" href="{{ url_for('the_spot_front_door') }}">Open The Spot</a>
       <a class="btn secondary" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open OAP Atlas</a>
     </div>
-    <p class="lock"><strong>Private command routes stay private.</strong> Founder-only SMI pages must be opened from the private SMI service with the correct session.</p>
+    <p class="note"><strong>Clean route rule:</strong> broken public paths should guide people back to OAP World without showing internal system details.</p>
   </main>
 </body>
 </html>
