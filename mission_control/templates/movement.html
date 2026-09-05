@@ -15,15 +15,50 @@
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('movement.movement_workspace_home') }}">My Movement</a>
-      <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='movement-delivery') }}">Movement in The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}">OAP Atlas</a>
+      <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">OAP Direct</a>
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
     </div>
   </header>
 
   <main class="mc-workspace">
+    <section class="mc-panel" aria-labelledby="movement-proof-title">
+      <p class="mc-eyebrow">Movement Proof · request only · no dispatch</p>
+      <h2 id="movement-proof-title">Route proof preview</h2>
+      <form method="get" action="{{ url_for('movement.movement_home') }}">
+        <label for="movement-from">From</label>
+        <input id="movement-from" name="from" maxlength="120" value="{{ sample_route.origin.label }}" placeholder="Mitcham, CR4, Begoro…" required>
+        <label for="movement-to">To</label>
+        <input id="movement-to" name="to" maxlength="120" value="{{ sample_route.destination.label }}" placeholder="London Bridge, King's Cross…" required>
+        <label for="movement-profile">Movement type</label>
+        <select id="movement-profile" name="profile">
+          <option value="driving" {{ 'selected' if sample_route.profile == 'driving' else '' }}>Driving</option>
+          <option value="walking" {{ 'selected' if sample_route.profile == 'walking' else '' }}>Walking</option>
+          <option value="cycling" {{ 'selected' if sample_route.profile == 'cycling' else '' }}>Cycling</option>
+          <option value="transit" {{ 'selected' if sample_route.profile == 'transit' else '' }}>Public transport</option>
+        </select>
+        <button class="mc-primary" type="submit">Check Route Proof</button>
+      </form>
+      <div class="mc-status-grid" aria-label="Movement route proof">
+        <article class="mc-status-card"><strong>📍 From</strong><span>{{ sample_route.origin.label }} · {{ sample_route.origin.postcode }}</span></article>
+        <article class="mc-status-card"><strong>🎯 To</strong><span>{{ sample_route.destination.label }} · {{ sample_route.destination.postcode }}</span></article>
+        <article class="mc-status-card"><strong>🧭 Distance</strong><span>{{ sample_route.distance_km if sample_route.distance_km is not none else 'Needs source' }} km</span></article>
+        <article class="mc-status-card"><strong>⏱️ Estimate</strong><span>{{ sample_route.estimated_minutes if sample_route.estimated_minutes is not none else 'Needs source' }} min · {{ sample_route.profile_label }}</span></article>
+        <article class="mc-status-card"><strong>🧾 Proof</strong><span>{{ sample_route.proof_status }} · {{ sample_route.proof_id }}</span></article>
+        <article class="mc-status-card"><strong>🛡️ Locks</strong><span>Dispatch off · payment off · no hidden tracking</span></article>
+      </div>
+      <p class="mc-eyebrow">{{ sample_route.source }} · {{ sample_route.source_timestamp }}</p>
+      <p>
+        <a class="mc-secondary-link" href="{{ url_for('movement.public_route_proof') }}?from={{ sample_route.origin.label|urlencode }}&to={{ sample_route.destination.label|urlencode }}&profile={{ sample_route.profile }}">Open route proof API</a>
+        <a class="mc-secondary-link" href="{{ url_for('movement.movement_request_preview') }}?from={{ sample_route.origin.label|urlencode }}&to={{ sample_route.destination.label|urlencode }}&profile={{ sample_route.profile }}">Preview request receipt</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}?location={{ sample_route.origin.label|urlencode }}">Open in OAP Atlas</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">Open OAP Direct</a>
+      </p>
+    </section>
+
     <section class="mc-panel" aria-labelledby="movement-services-title">
-      <p class="mc-eyebrow">Ride · E-Bike · Delivery · Booking · Track</p>
+      <p class="mc-eyebrow">Ride · E-Bike · Delivery · Direct Request · Live Spot</p>
       <h2 id="movement-services-title">Move people and goods through one OAP layer</h2>
       <div class="mc-agent-grid" role="list" aria-label="OAP Movement services">
         {% for service in movement.services %}
@@ -34,6 +69,20 @@
         </article>
         {% endfor %}
       </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="movement-proof-status-title">
+      <p class="mc-eyebrow">Proof status</p>
+      <h2 id="movement-proof-status-title">Atlas + Direct + Movement</h2>
+      <div class="mc-status-grid">
+        <article class="mc-status-card"><strong>🗺️ Atlas</strong><span>{{ 'connected' if movement_proof.movement_to_atlas_connected else 'building' }}</span></article>
+        <article class="mc-status-card"><strong>🧾 Direct</strong><span>{{ 'connected' if movement_proof.movement_to_direct_connected else 'building' }}</span></article>
+        <article class="mc-status-card"><strong>🚶 Route proof</strong><span>{{ 'ready' if movement_proof.route_proof_ready else 'building' }}</span></article>
+        <article class="mc-status-card"><strong>📨 Request preview</strong><span>{{ 'ready' if movement_proof.request_preview_ready else 'building' }}</span></article>
+        <article class="mc-status-card"><strong>📍 Live Spot</strong><span>{{ movement_proof.consent_live_spot_boundary }}</span></article>
+        <article class="mc-status-card"><strong>🔒 Dispatch</strong><span>{{ 'enabled' if movement_proof.dispatch_enabled else 'locked' }}</span></article>
+      </div>
+      <p>{{ movement_proof.next_gate }}</p>
     </section>
 
     <section class="mc-panel" aria-labelledby="movement-order-title">
