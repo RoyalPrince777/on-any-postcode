@@ -6,7 +6,7 @@
   <title>OAP The Spot</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .spot-hero{display:grid;gap:12px}.spot-pulse{display:block;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft);padding:20px;color:var(--mc-text);text-decoration:none}.spot-pulse:hover,.spot-pulse:focus-visible{border-color:var(--mc-green);outline:none}.spot-pulse strong{display:block;font-size:1.25rem;margin-bottom:5px}.spot-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.spot-quick a,.spot-world{display:block;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-quick a:hover,.spot-quick a:focus-visible,.spot-world:hover,.spot-world:focus-visible{border-color:var(--mc-green);outline:none}.spot-quick strong{display:block}.spot-more{margin-top:4px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:680px}
+    .spot-hero{display:grid;gap:12px}.spot-pulse{display:block;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft);padding:20px;color:var(--mc-text);text-decoration:none}.spot-pulse:hover,.spot-pulse:focus-visible{border-color:var(--mc-green);outline:none}.spot-pulse strong{display:block;font-size:1.25rem;margin-bottom:5px}.spot-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.spot-quick a,.spot-world{display:block;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-quick a:hover,.spot-quick a:focus-visible,.spot-world:hover,.spot-world:focus-visible{border-color:var(--mc-green);outline:none}.spot-quick strong{display:block}.spot-more{margin-top:4px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:680px}.spot-media{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.spot-media a{display:block;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-media a:hover,.spot-media a:focus-visible{border-color:var(--mc-green);outline:none}.spot-note{margin:0;color:var(--mc-muted)}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -14,6 +14,7 @@
     <div class="spot-intro">
       <p class="mc-eyebrow">📍 Your Spot</p>
       <h1>The Spot</h1>
+      <p class="spot-note">Community HQ inside OAP World. The Link lives here; Music, Radio, Player and Distribution connect without exposing private controls.</p>
       <div class="spot-bar">
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
       </div>
@@ -36,6 +37,18 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="spot-media-title">
+      <p class="mc-eyebrow">🎵 OAP Music / Media</p>
+      <h2 id="spot-media-title">Own player. Own radio. Own release engine.</h2>
+      <p>Streams build attention. Money paths stay with memberships, merch, events, direct support, creator stores, campaigns and SIKA value records.</p>
+      <div class="spot-media" aria-label="OAP Music and Media modules">
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='music') }}"><strong>🎵 OAP Music</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='player') }}"><strong>▶️ OAP Player</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}"><strong>📻 OAP Radio</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}"><strong>📦 OAP Distribution</strong></a>
+      </div>
+    </section>
+
     <section class="mc-panel" aria-labelledby="spot-world-title">
       <a class="spot-world" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">
         <strong id="spot-world-title">🌍 World Rooms</strong>
@@ -48,7 +61,7 @@
         <summary>More</summary>
         <div class="spot-more-grid">
           {% for capability in hierarchy.capabilities %}
-            {% if capability.slug not in ('pulse','signal','postcode-rooms','events','market','discovery','carnival','my-world') %}
+            {% if capability.slug not in ('pulse','signal','postcode-rooms','events','market','discovery','carnival','my-world','music','player','radio','distribution') %}
             <a href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">{{ capability.name }}</a>
             {% endif %}
           {% endfor %}
