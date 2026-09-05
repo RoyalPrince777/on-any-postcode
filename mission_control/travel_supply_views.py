@@ -1,9 +1,9 @@
 """OAP Direct travel marketplace and Founder-controlled supply surfaces."""
 from __future__ import annotations
 
-from flask import Blueprint, Response, jsonify, make_response, render_template, request
+from flask import Blueprint, Response, jsonify, make_response, redirect, render_template, request, url_for
 
-from . import listing_media, travel_marketplace, travel_supply_policy, web_security
+from . import area_intelligence, listing_media, travel_marketplace, travel_supply_policy, web_security
 from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
@@ -138,6 +138,42 @@ def _operator_snapshot() -> dict:
     snapshot["listing_media"] = listing_media.status()
     snapshot["travel_policy"] = travel_supply_policy.public_policy()
     return snapshot
+
+
+@bp.get("/atlas")
+@bp.get("/map")
+@bp.get("/maps")
+@bp.get("/oap-atlas")
+def public_atlas():
+    """Render the visible first-party OAP Atlas area screen."""
+
+    area = area_intelligence.area_overview(
+        request.args.get("location") or request.args.get("area") or "Mitcham"
+    )
+    return _no_store(make_response(render_template("atlas.html", area=area)))
+
+
+@bp.get("/atlas/api/area")
+@bp.get("/maps/api/area")
+def public_area_api():
+    """Return public-safe area intelligence for the requested place."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                area_intelligence.area_overview(
+                    request.args.get("location") or request.args.get("area") or "Mitcham"
+                )
+            )
+        )
+    )
+
+
+@bp.get("/atlas/old")
+def public_atlas_legacy_redirect():
+    """Quiet compatibility route for older Atlas entry points."""
+
+    return redirect(url_for("travel_supply.public_atlas"), code=302)
 
 
 @bp.get("/travel")
@@ -277,6 +313,16 @@ def founder_dashboard():
 @web_security.login_required(api=True, founder_only=True)
 def founder_status():
     return _no_store(make_response(jsonify(_operator_snapshot())))
+
+
+@bp.get("/mission/map-movement/status")
+@bp.get("/mission/maps-movement/status")
+@bp.get("/mission/war-room/map-movement/status")
+@web_security.login_required(api=True, founder_only=True)
+def founder_map_movement_status():
+    """Return Map Intelligence + Movement area status without private records."""
+
+    return _no_store(make_response(jsonify(area_intelligence.status())))
 
 
 @bp.get("/mission/supply/partner/status")
