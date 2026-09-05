@@ -24,7 +24,7 @@
         <div>
           <p class="mc-eyebrow">OAP · PRIVATE FOUNDER COMMAND · {{ active_mode|upper }}</p>
           <h1 id="oap-command-title">SMI Mission Control</h1>
-          <p>Private command surface for OAP OS. Human Authority remains final. A5-ready visibility is allowed; A5 autonomy stays locked.</p>
+          <p>Private command surface for OAP OS. SMI is the intelligence; A-levels are operating levels. Human Authority remains final.</p>
         </div>
         <span class="oap-live-pill">● PRIVATE LIVE</span>
       </div>
@@ -44,8 +44,8 @@
         <a class="oap-control oap-control--primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><span class="sig">🧠</span><strong>Personal SMI Chat</strong><small>Founder intelligence, HRM memory, safe Thinking Process stages, voice, files and code mode.</small></a>
         <a class="oap-control oap-control--primary" href="{{ url_for('mission_control.war_room_dashboard') }}"><span class="sig">⚔️</span><strong>Operational War Room</strong><small>Evidence review, 3/7/21 reasoning, risk, receipts and Founder-approved command preparation.</small></a>
         <a class="oap-control oap-control--primary" href="{{ url_for('isac_spatial.dashboard') }}"><span class="sig">📡</span><strong>ISAC Spatial</strong><small>Authorised sensing, Guardian RF, Matrix RF spatial state and physical-evidence gates.</small></a>
-        <a class="oap-control oap-control--primary" href="{{ url_for('provider_fabric.alignment_dashboard') }}"><span class="sig">◎</span><strong>Alignment & Sovereignty</strong><small>One brain, seven Worlds, A4 live boundary, A5-ready locked state and evidence-based sovereignty grade.</small></a>
-        <a class="oap-control oap-control--locked" href="{{ url_for('provider_fabric.alignment_dashboard') }}"><span class="sig">🔒</span><strong>A5 Ready · Locked</strong><small>May review all proof, propose actions and prepare command packs. Cannot self-approve, deploy, spend, dispatch or confirm.</small></a>
+        <a class="oap-control oap-control--primary" href="{{ url_for('provider_fabric.alignment_dashboard') }}"><span class="sig">◎</span><strong>Alignment & Sovereignty</strong><small>One brain, seven Worlds, A4 live boundary, SMI Level A5 locked state and evidence-based sovereignty grade.</small></a>
+        <a class="oap-control oap-control--locked" href="{{ url_for('provider_fabric.alignment_dashboard') }}"><span class="sig">🔒</span><strong>SMI Level A5</strong><small>Operating level only. SMI may review proof and prepare command packs. It cannot self-approve, deploy, spend, dispatch or confirm.</small></a>
         <a class="oap-control" href="{{ url_for('mission_control.judgement_dashboard') }}"><span class="sig">⚖️</span><strong>Judgement Gate</strong><small>Real signed Human Authority decisions. Recording approval does not silently execute an action.</small></a>
         <a class="oap-control" href="{{ url_for('mission_control.mission_workspace', mode='sovereign') }}#sovereignty-controls"><span class="sig">👑</span><strong>Sovereignty Controls</strong><small>Fail-closed authority, execution, audit, egress and emergency-halt boundaries.</small></a>
         <a class="oap-control" href="{{ url_for('mission_control.brain_dashboard') }}"><span class="sig">🧬</span><strong>SMI Brain</strong><small>Single-brain intelligence architecture, capability readiness and bounded cognition.</small></a>
@@ -76,7 +76,8 @@
       <div class="oap-sovereignty-grid">
         <div class="oap-sovereignty-cell"><strong>Execution</strong><span>Default deny. Consequential execution requires the governed approval path.</span></div>
         <div class="oap-sovereignty-cell"><strong>Approval</strong><span>Signed Human Authority decisions live in Judgement; agents and providers cannot approve themselves.</span></div>
-        <div class="oap-sovereignty-cell"><strong>A5</strong><span>A5 can organise, score and prepare. It cannot execute or override Guardian, Kernel, Green Gate or Founder proof.</span></div>
+        <div class="oap-sovereignty-cell"><strong>SMI Level A5</strong><span>A5 is an SMI operating level. It can organise, score and prepare. It cannot execute or override Guardian, Kernel, Green Gate or Founder proof.</span></div>
+        <div class="oap-sovereignty-cell"><strong>Future A6 / A7</strong><span>A6 and A7 are future locked levels. They require proof, audit, observability, rollback and explicit Human Authority before any activation.</span></div>
         <div class="oap-sovereignty-cell"><strong>Provider authority</strong><span>Zero. Providers supply bounded capability and never become OAP authority.</span></div>
         <div class="oap-sovereignty-cell"><strong>Audit</strong><span>Consequential decisions remain auditable and evidence-bound.</span></div>
         <div class="oap-sovereignty-cell"><strong>Emergency halt</strong><span>Runtime sovereignty includes an emergency execution-halt boundary; this UI does not fake a toggle.</span></div>
