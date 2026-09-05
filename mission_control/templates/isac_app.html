@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP ISAC Command App</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='private_command.css') }}">
+  <style>
+    .isac-app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}.isac-app-card{border:1px solid var(--oap-command-line);border-radius:16px;padding:14px;background:rgba(5,17,10,.72)}.isac-app-card small{display:block;color:var(--oap-command-muted);margin-bottom:6px}.isac-app-card strong{font-size:1.1rem}.isac-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.isac-actions button,.isac-actions a{border:1px solid var(--oap-command-line);border-radius:999px;padding:10px 13px;background:#092011;color:var(--oap-command-text);font:inherit;text-decoration:none;cursor:pointer}.isac-actions button:hover,.isac-actions a:hover{border-color:#35d778}.isac-actions button:disabled{opacity:.55;cursor:not-allowed}.isac-output{white-space:pre-wrap;overflow:auto;max-height:360px;border:1px solid var(--oap-command-line);border-radius:16px;padding:14px;background:#06100a;color:#dfffe9}.isac-check-list{display:grid;gap:8px}.isac-check{display:flex;justify-content:space-between;gap:12px;border:1px solid var(--oap-command-line);border-radius:12px;padding:9px;background:rgba(8,24,13,.72)}.isac-check span:last-child{font-weight:900}.isac-safe-note{border-left:4px solid #35d778;padding:10px 12px;background:rgba(53,215,120,.08);border-radius:12px}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  {% include '_command_nav.html' %}
+  <main class="oap-command-dashboard">
+    <section class="oap-command-hero-modern">
+      <p class="oap-command-kicker">OAP · ISAC · SOFTWARE APP GREEN · HARDWARE FAIL-CLOSED</p>
+      <h1 class="oap-command-title">ISAC Command App</h1>
+      <p class="oap-command-copy">Founder-only working software app for ISAC status, Guardian RF checks, Matrix RF events, calibration gates, proof checks and safe test data. It does not claim live radio hardware or accuracy without real evidence.</p>
+      <div class="isac-app-grid" id="isac-cards">
+        <article class="isac-app-card"><small>Software App</small><strong>{{ "🟢 GREEN" if isac.software_app_green else "🟡 BUILDING" }}</strong></article>
+        <article class="isac-app-card"><small>Hardware RF</small><strong>{{ "🟢 GREEN" if isac.hardware_green else "🔴 LOCKED" }}</strong></article>
+        <article class="isac-app-card"><small>Raw RF In Matrix</small><strong>{{ "🔴 BAD" if isac.raw_rf_in_matrix else "🟢 NO" }}</strong></article>
+        <article class="isac-app-card"><small>Guardian RF</small><strong>{{ "🟢 ACTIVE" if isac.guardian_rf_minimisation else "🔴 BLOCKED" }}</strong></article>
+        <article class="isac-app-card"><small>Calibration Points</small><strong id="calibration-count">{{ isac.calibration_points }}</strong></article>
+        <article class="isac-app-card"><small>Active Devices</small><strong id="device-count">{{ isac.dashboard.active_device_count }}</strong></article>
+        <article class="isac-app-card"><small>Recent Events</small><strong id="event-count">{{ isac.dashboard.recent_events|length }}</strong></article>
+        <article class="isac-app-card"><small>Overall</small><strong id="overall-state">{{ isac.overall_status }}</strong></article>
+      </div>
+    </section>
+
+    <section class="mc-panel">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Controls</p><h2>Working ISAC app controls</h2></div><span class="mc-lock-badge">Founder-only</span></div>
+      <div class="isac-actions">
+        <button id="refresh" type="button">↻ Refresh ISAC</button>
+        <button id="proof" type="button">🟢 Run Proof Check</button>
+        <button id="seed" type="button">🧪 Seed Software Test</button>
+        <a href="{{ url_for('isac_spatial.dashboard') }}">📡 Spatial Dashboard</a>
+        <a href="{{ url_for('isac_spatial.spatial_presence_dashboard') }}">🧭 Spatial Presence</a>
+      </div>
+      <p class="isac-safe-note">Software tests use authorised fixture data only. This proves the app pipeline, not live RF hardware. Hardware and public accuracy claims stay locked until real evidence exists.</p>
+    </section>
+
+    <section class="mc-panel">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Green Gate</p><h2>Software checks</h2></div><span class="mc-lock-badge">No fake green</span></div>
+      <div class="isac-check-list" id="check-list">
+        {% for key, value in isac.software_checks.items() %}
+          <div class="isac-check"><span>{{ key.replace('_', ' ') }}</span><span>{{ "🟢" if value else "🟡" }}</span></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Status Output</p><h2>Live app result</h2></div><span class="mc-lock-badge mc-lock-badge--amber">Safe snapshot</span></div>
+      <pre class="isac-output" id="output">Ready. Choose Refresh, Proof Check or Seed Software Test.</pre>
+    </section>
+  </main>
+
+<script>
+(() => {
+  const root = document;
+  const csrfToken = {{ oap_csrf_token|tojson }};
+  const statusUrl = {{ url_for('isac_spatial.app_status')|tojson }};
+  const proofUrl = {{ url_for('isac_spatial.app_proof_check')|tojson }};
+  const seedUrl = {{ url_for('isac_spatial.app_seed_software_test')|tojson }};
+  const output = root.getElementById('output');
+  const refresh = root.getElementById('refresh');
+  const proof = root.getElementById('proof');
+  const seed = root.getElementById('seed');
+  const deviceCount = root.getElementById('device-count');
+  const calibrationCount = root.getElementById('calibration-count');
+  const eventCount = root.getElementById('event-count');
+  const overallState = root.getElementById('overall-state');
+  const checkList = root.getElementById('check-list');
+  function safeString(data){return JSON.stringify(data, null, 2)}
+  function render(data){
+    const app = data.app_status || data;
+    const dashboard = app.dashboard || {};
+    deviceCount.textContent = dashboard.active_device_count ?? 0;
+    calibrationCount.textContent = app.calibration_points ?? dashboard.calibration_points ?? 0;
+    eventCount.textContent = (dashboard.recent_events || []).length;
+    overallState.textContent = app.overall_status || app.mode || 'unknown';
+    if(app.software_checks){
+      checkList.textContent = '';
+      Object.entries(app.software_checks).forEach(([key,value]) => {
+        const row = document.createElement('div');
+        row.className = 'isac-check';
+        const label = document.createElement('span');
+        label.textContent = key.replaceAll('_',' ');
+        const state = document.createElement('span');
+        state.textContent = value ? '🟢' : '🟡';
+        row.append(label,state);
+        checkList.append(row);
+      });
+    }
+    output.textContent = safeString(data);
+  }
+  async function call(url, method){
+    [refresh,proof,seed].forEach(btn => btn.disabled = true);
+    output.textContent = 'Running ISAC control…';
+    try{
+      const response = await fetch(url, {method, credentials:'same-origin', cache:'no-store', headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken}, body: method === 'POST' ? '{}' : undefined});
+      const data = await response.json();
+      render(data);
+    }catch(error){
+      output.textContent = 'ISAC control failed safely: ' + String(error && error.message ? error.message : error);
+    }finally{
+      [refresh,proof,seed].forEach(btn => btn.disabled = false);
+    }
+  }
+  refresh.addEventListener('click', () => call(statusUrl, 'GET'));
+  proof.addEventListener('click', () => call(proofUrl, 'POST'));
+  seed.addEventListener('click', () => call(seedUrl, 'POST'));
+})();
+</script>
+</body>
+</html>
