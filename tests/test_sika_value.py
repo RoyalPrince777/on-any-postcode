@@ -12,6 +12,7 @@ def test_sika_status_keeps_money_powers_locked():
     assert status["bank_provider_required"] is True
     assert status["human_authority_final"] is True
     assert status["a4_money_movement_allowed"] is False
+    assert status["sika_points_withdrawable"] is False
 
     lock_ids = {item["id"] for item in status["status_lights"]}
     expected = {
@@ -23,6 +24,20 @@ def test_sika_status_keeps_money_powers_locked():
         "human_authority",
     }
     assert expected.issubset(lock_ids)
+
+
+def test_provider_money_flows_are_allowed_without_sika_cashout():
+    status = sika_value.status()
+    flow_ids = {flow["id"] for flow in status["money_flows"]}
+
+    assert status["service_payments_allowed_via_provider"] is True
+    assert status["real_earnings_allowed_via_provider"] is True
+    assert status["payout_to_bank_allowed_via_provider"] is True
+    assert status["sika_points_withdrawable"] is False
+    assert "customer_payment" in flow_ids
+    assert "real_earnings" in flow_ids
+    assert "provider_payout" in flow_ids
+    assert "sika_record" in flow_ids
 
 
 def test_my_card_is_oap_identity_not_legal_or_bank_id():
@@ -55,10 +70,12 @@ def test_wallet_ui_is_bank_style_without_bank_powers():
     assert wallet["component"] == "SIKA Wallet UI"
     assert "Monzo" in wallet["style_reference"]
     assert "sika_balance" in card_ids
+    assert "earnings_view" in card_ids
+    assert "payout_view" in card_ids
     assert "membership_pot" in card_ids
     assert "bank_link" in card_ids
     assert "customer deposits" in blocked
-    assert "cash-out" in blocked
-    assert "payment initiation" in blocked
+    assert "SIKA points cash-out" in blocked
+    assert "unregulated payment initiation" in blocked
     assert "stored monetary value" in blocked
     assert "interest or yield" in blocked
