@@ -6,7 +6,7 @@
   <title>Compliance Locks · SIKA · OAP</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    body{background:#06120b;color:#ecfff2}.wrap{max-width:980px;margin:0 auto;padding:18px}.hero,.lock{border:1px solid #285039;border-radius:24px;padding:18px;background:#0a1d12}.hero{background:linear-gradient(145deg,#06120b,#211b0b)}h1{font-size:clamp(2.2rem,7vw,4.6rem);letter-spacing:-.06em;margin:.2rem 0}.eyebrow{color:#d7b85d;font-weight:900;text-transform:uppercase;letter-spacing:.14em;font-size:.75rem}.locks{display:grid;gap:10px;margin-top:14px}.lock{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.lock p{color:#a8baaf;margin:.4rem 0 0}.state{border:1px solid #6b5720;border-radius:999px;padding:8px 11px;color:#f0df9c;background:#211b0b;font-weight:900}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions a{border:1px solid #285039;border-radius:999px;padding:9px 12px;text-decoration:none;color:#ecfff2;background:#07140d;font-weight:800}.notice{border-left:3px solid #d7b85d;padding:12px 14px;background:#211b0b;border-radius:0 14px 14px 0;color:#f0df9c;margin-top:14px}@media(max-width:620px){.wrap{padding:10px}.lock{display:block}.state{display:inline-block;margin-top:8px}.actions a{flex:1;text-align:center}}
+    body{background:#06120b;color:#ecfff2}.wrap{max-width:980px;margin:0 auto;padding:18px}.hero,.lock{border:1px solid #285039;border-radius:24px;padding:18px;background:#0a1d12}.hero{background:linear-gradient(145deg,#06120b,#211b0b)}h1{font-size:clamp(2.2rem,7vw,4.6rem);letter-spacing:-.06em;margin:.2rem 0}.eyebrow{color:#d7b85d;font-weight:900;text-transform:uppercase;letter-spacing:.14em;font-size:.75rem}.locks{display:grid;gap:10px;margin-top:14px}.lock{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.lock p{color:#a8baaf;margin:.4rem 0 0}.state{border:1px solid #6b5720;border-radius:999px;padding:8px 11px;color:#f0df9c;background:#211b0b;font-weight:900}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions a{border:1px solid #285039;border-radius:999px;padding:9px 12px;text-decoration:none;color:#ecfff2;background:#07140d;font-weight:800}.notice{border-left:3px solid #d7b85d;padding:12px 14px;background:#211b0b;border-radius:0 14px 14px 0;color:#f0df9c;margin-top:14px}.rule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px}.rule{border:1px solid #285039;border-radius:18px;padding:14px;background:#07140d}.rule small{color:#a8baaf}@media(max-width:620px){.wrap{padding:10px}.lock{display:block}.state{display:inline-block;margin-top:8px}.actions a{flex:1;text-align:center}}
   </style>
 </head>
 <body>
@@ -16,8 +16,13 @@
       <p class="eyebrow">OAP · SIKA · Compliance Locks</p>
       <h1>Locked Means Protected</h1>
       <p>{{ sika.sika_doctrine }}</p>
+      <p>{{ sika.wallet_doctrine }}</p>
       <p class="notice">SIKA v1 is value, trust, badges and receipts. It is not government ID, bank ID, payment card, e-money, crypto, stablecoin, deposit, investment or legal tender.</p>
       <nav class="actions"><a href="{{ url_for('sika_value.dashboard') }}">💎 SIKA</a><a href="{{ url_for('sika_value.revenue') }}">💷 Revenue</a><a href="{{ url_for('sika_value.my_card') }}">🪪 My Card</a></nav>
+    </section>
+    <section class="rule-grid" aria-label="Safe wallet rules">
+      <article class="rule"><h2>Allowed look</h2><small>{{ sika.safe_wallet_rules.allowed|join(' · ') }}</small></article>
+      <article class="rule"><h2>Blocked powers</h2><small>{{ sika.safe_wallet_rules.blocked|join(' · ') }}</small></article>
     </section>
     <section class="locks" aria-label="Compliance locks">
       {% for item in sika.status_lights %}
