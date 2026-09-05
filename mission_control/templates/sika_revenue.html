@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue · SIKA · OAP</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    body{background:#06120b;color:#ecfff2}.wrap{max-width:1120px;margin:0 auto;padding:18px}.hero,.stream{border:1px solid #285039;border-radius:24px;padding:18px;background:#0a1d12}.hero{background:linear-gradient(145deg,#06120b,#102516)}h1{font-size:clamp(2.2rem,7vw,4.6rem);letter-spacing:-.06em;margin:.2rem 0}.eyebrow{color:#d7b85d;font-weight:900;text-transform:uppercase;letter-spacing:.14em;font-size:.75rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}.stream small,.hero p{color:#a8baaf;line-height:1.45}.state-ready{color:#a7ffc4}.state-needs_finish_pack,.state-later{color:#ffc985}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions a{border:1px solid #285039;border-radius:999px;padding:9px 12px;text-decoration:none;color:#ecfff2;background:#07140d;font-weight:800}@media(max-width:620px){.wrap{padding:10px}.grid{grid-template-columns:1fr}.actions a{flex:1;text-align:center}}
+  </style>
+</head>
+<body>
+  {% include '_command_nav.html' %}
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">OAP · Revenue Engine · No Ads</p>
+      <h1>Revenue</h1>
+      <p>Monetise through memberships, creators, businesses, market, experiences and OAP Direct — without selling personal data, fake aid, panic, or bank powers.</p>
+      <nav class="actions"><a href="{{ url_for('sika_value.dashboard') }}">💎 SIKA</a><a href="{{ url_for('sika_value.my_card') }}">🪪 My Card</a><a href="{{ url_for('sika_value.compliance') }}">⚖️ Locks</a></nav>
+    </section>
+    <section class="grid" aria-label="Revenue streams">
+      {% for stream in sika.revenue_streams %}
+      <article class="stream">
+        <p class="eyebrow">{{ stream.emoji }} {{ stream.state|replace('_',' ') }}</p>
+        <h2>{{ stream.label }}</h2>
+        <p><strong>{{ stream.price_hint }}</strong></p>
+        <small>{{ stream.summary }}</small>
+      </article>
+      {% endfor %}
+    </section>
+  </main>
+</body>
+</html>
