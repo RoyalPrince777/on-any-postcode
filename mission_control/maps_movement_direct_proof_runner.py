@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-PROOF_RUNNER_VERSION = 4
+PROOF_RUNNER_VERSION = 5
 
 PUBLIC_PRODUCT_NAME = "OAP Atlas"
 PRIVATE_INTELLIGENCE_NAME = "Map Intelligence"
@@ -55,6 +55,29 @@ FOUNDER_PRIVATE_ROUTES: tuple[str, ...] = (
     "/movement/workspace",
     "/movement/route",
     "/movement/bookings",
+)
+
+ROUTE_MATRIX_CONTRACT: tuple[dict[str, object], ...] = (
+    *(
+        {
+            "route": route,
+            "surface": "public",
+            "method": "GET",
+            "expected_statuses": (200, 302),
+            "must_not_expose_private_state": True,
+        }
+        for route in SAFE_PUBLIC_ROUTES
+    ),
+    *(
+        {
+            "route": route,
+            "surface": "founder_private",
+            "method": "GET",
+            "expected_anonymous_statuses": (302, 401, 403, 404),
+            "must_fail_closed_for_anonymous": True,
+        }
+        for route in FOUNDER_PRIVATE_ROUTES
+    ),
 )
 
 HARD_BLOCKS: tuple[dict[str, str], ...] = (
@@ -108,6 +131,29 @@ def _lane(
     }
 
 
+def route_matrix_status() -> dict[str, object]:
+    """Return the read-only Route Matrix capture contract."""
+    public = tuple(item for item in ROUTE_MATRIX_CONTRACT if item["surface"] == "public")
+    private = tuple(item for item in ROUTE_MATRIX_CONTRACT if item["surface"] == "founder_private")
+    return {
+        "component": "Route Matrix",
+        "mode": "read_only_capture_contract",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "public_targets": public,
+        "private_targets": private,
+        "target_count": len(ROUTE_MATRIX_CONTRACT),
+        "public_target_count": len(public),
+        "private_target_count": len(private),
+        "live_capture_present": False,
+        "anonymous_capture_present": False,
+        "founder_capture_present": False,
+        "certified": False,
+        "signal": "yellow",
+        "no_fake_green": True,
+        "next_gate": "Capture live HTTP status results and attach them as evidence before certifying Route Matrix.",
+    }
+
+
 def proof_lanes() -> tuple[dict[str, object], ...]:
     """Return proof lanes with explicit evidence instead of fixed green labels."""
 
@@ -115,19 +161,21 @@ def proof_lanes() -> tuple[dict[str, object], ...]:
         present=(
             "public_route_targets_declared",
             "private_route_targets_declared",
+            "route_matrix_contract_declared",
             "expected_public_status_policy_declared",
             "expected_private_fail_closed_policy_declared",
         ),
         required=(
             "public_route_targets_declared",
             "private_route_targets_declared",
+            "route_matrix_contract_declared",
             "expected_public_status_policy_declared",
             "expected_private_fail_closed_policy_declared",
             "live_public_status_results",
             "live_private_status_results",
         ),
         notes=(
-            "Targets are ready for probe execution.",
+            "Targets and expected status policies are ready for probe execution.",
             "Green requires captured live HTTP status evidence, not route names alone.",
         ),
     )
@@ -337,6 +385,7 @@ def status() -> dict[str, Any]:
         "private_intelligence_name": PRIVATE_INTELLIGENCE_NAME,
         "combined_surface_name": COMBINED_SURFACE_NAME,
         "location_hierarchy": LOCATION_HIERARCHY,
+        "route_matrix": route_matrix_status(),
         "state": "building" if building else "certified",
         "signal": "yellow" if building else "green",
         "no_fake_green": True,
