@@ -20,7 +20,7 @@
         {% for badge in card.badges %}<span class="chip">{{ badge.emoji }} {{ badge.label }}</span>{% endfor %}
       </div>
       <p><strong>{{ card.membership_tier }}</strong> · {{ card.sika_status }} · {{ card.certification }}</p>
-      <p class="notice">{{ card.privacy_note }}</p>
+      <p class="notice">{{ card.privacy_note }} It may sit beside SIKA Wallet UI, but it never becomes a payment card.</p>
       <div class="footer">
         <div><p class="eyebrow">{{ card.tagline }}</p><p class="meta">Share-ready identity layer. QR link comes later after privacy review.</p></div>
         <div class="qr">QR<br>LOCKED</div>
