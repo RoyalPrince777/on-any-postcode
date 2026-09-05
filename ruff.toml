@@ -1,0 +1,10 @@
+# OAP governed lint settings.
+# Keep application lint strict while allowing current legacy command wiring to
+# stay readable until it is split into smaller command modules.
+line-length = 100
+
+[lint]
+select = ["E", "F"]
+
+[lint.per-file-ignores]
+"mission_control/__init__.py" = ["E501"]
