@@ -9,11 +9,11 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 20,
+        "capabilities": 23,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 20
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 23
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
@@ -57,6 +57,11 @@ def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(cl
     assert "🏪 Market" in page
     assert "🧭 Explorer" in page
     assert "🌍 World Rooms" in page
+    assert "🎵 OAP Music" in page
+    assert "▶️ OAP Player" in page
+    assert "📻 OAP Radio" in page
+    assert "📦 OAP Distribution" in page
+    assert "Streams build attention" in page
     assert "More" in page
     assert "Carnival Intelligence" not in page
     assert "LinkUp" not in page
@@ -85,6 +90,9 @@ def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
         "community-progress",
         "support",
         "maps-weather-travel",
+        "music",
+        "player",
+        "radio",
         "distribution",
         "movement-delivery",
         "safety",
@@ -108,6 +116,9 @@ def test_sensitive_spot_functions_are_not_misrepresented_as_live():
         "postcode-rooms",
         "support",
         "market",
+        "music",
+        "player",
+        "radio",
         "distribution",
         "runner",
         "identity",
@@ -119,13 +130,13 @@ def test_sensitive_spot_functions_are_not_misrepresented_as_live():
     assert all("Fully operational" not in item["status"] for item in by_id.values())
 
 
-def test_distribution_reuses_existing_post_core_boundary():
-    distribution = next(
-        item for item in products.SPOT_CAPABILITIES if item["id"] == "distribution"
-    )
+def test_oap_media_stack_rejects_stream_money_dependency():
+    by_id = {item["id"]: item for item in products.SPOT_CAPABILITIES}
 
-    assert distribution["name"] == "OAP Distribution"
-    assert distribution["owner"] == "OAP Post Core"
-    assert "parcel" in distribution["purpose"].lower()
-    assert "second delivery engine" in distribution["function"]
-    assert distribution["blocked_by"]
+    assert by_id["music"]["owner"] == "OAP Music / Media"
+    assert by_id["player"]["name"] == "OAP Player"
+    assert "stream-money dependency rejected" in by_id["player"]["status"]
+    assert by_id["radio"]["name"] == "OAP Radio"
+    assert by_id["distribution"]["owner"] == "OAP Music / Media"
+    assert "release engine" in by_id["distribution"]["purpose"]
+    assert "External Spotify" in by_id["distribution"]["blocked_by"]
