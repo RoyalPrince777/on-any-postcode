@@ -52,6 +52,7 @@ def init_app(app: Flask) -> None:
     from .oap_data_views import bp as oap_data_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
+    from .sika_value_views import bp as sika_value_bp
     from .travel_supply_views import bp as travel_supply_bp
     from .views import bp
 
@@ -256,14 +257,13 @@ def init_app(app: Flask) -> None:
     @click.option("--yes", "yes", is_flag=True, default=False)
     def _oap_init_travel_supply(dry_run: bool, yes: bool) -> None:
         import json
-        print(
-            json.dumps(
-                travel_supply_core.init_supply_core_schema(
-                    dry_run=dry_run,
-                    assume_yes=yes,
-                )
-            )
-        )
+        print(json.dumps(travel_supply_core.init_supply_core_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-sika-value-status")
+    def _oap_sika_value_status() -> None:
+        import json
+        from . import sika_value
+        print(json.dumps(sika_value.status()))
 
     @app.cli.command("oap-verify-audit")
     def _oap_verify_audit() -> None:  # pragma: no cover
@@ -293,5 +293,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
+    app.register_blueprint(sika_value_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()
