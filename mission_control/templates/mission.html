@@ -10,7 +10,7 @@
     :root{--deck-green:#39e57f;--deck-gold:#d7b85d;--deck-line:#285039;--deck-panel:#07140d;--deck-panel2:#0a1d12}
     .oap-command-hero{border:1px solid var(--deck-line);border-radius:22px;padding:20px;background:linear-gradient(145deg,#06120b,#0b2114);box-shadow:0 18px 55px #0008,inset 0 0 30px #39e57f0b}
     .oap-command-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}.oap-command-top h1{margin:.2rem 0 .4rem;font-size:clamp(2rem,7vw,4.8rem);letter-spacing:-.05em}.oap-live-pill{border:1px solid #317d50;border-radius:999px;padding:8px 12px;color:#aef2c7;background:#0a2818;font-weight:900;font-size:.75rem;box-shadow:0 0 22px #39e57f22}
-    .oap-control-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:18px}.oap-control{display:block;text-decoration:none;color:inherit;border:1px solid var(--deck-line);border-radius:18px;padding:16px;background:var(--deck-panel2);min-height:142px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.oap-control:hover,.oap-control:focus{transform:translateY(-2px);border-color:var(--deck-green);box-shadow:0 12px 28px #0007,0 0 18px #39e57f1c}.oap-control--primary{border-color:#3d8c58;background:linear-gradient(145deg,#0b2a18,#0a1d12)}.oap-control strong{display:block;font-size:1.05rem;margin:8px 0 5px}.oap-control small{display:block;color:#9eb2a5;line-height:1.45}.oap-control .sig{font-size:1.35rem}
+    .oap-control-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:18px}.oap-control{display:block;text-decoration:none;color:inherit;border:1px solid var(--deck-line);border-radius:18px;padding:16px;background:var(--deck-panel2);min-height:142px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.oap-control:hover,.oap-control:focus{transform:translateY(-2px);border-color:var(--deck-green);box-shadow:0 12px 28px #0007,0 0 18px #39e57f1c}.oap-control--primary{border-color:#3d8c58;background:linear-gradient(145deg,#0b2a18,#0a1d12)}.oap-control--sika{border-color:#80652a;background:linear-gradient(145deg,#211b0b,#0a1d12)}.oap-control strong{display:block;font-size:1.05rem;margin:8px 0 5px}.oap-control small{display:block;color:#9eb2a5;line-height:1.45}.oap-control .sig{font-size:1.35rem}
     .oap-sovereignty-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.oap-sovereignty-cell{border:1px solid var(--deck-line);border-radius:14px;padding:13px;background:var(--deck-panel)}.oap-sovereignty-cell strong{display:block;margin-bottom:4px}.oap-sovereignty-cell span{color:#a8baaf;font-size:.8rem;line-height:1.4}.oap-truth{border-left:3px solid var(--deck-gold);padding:12px 14px;background:#211b0b;border-radius:0 12px 12px 0;color:#e6dcb7}.oap-header-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.oap-header-actions a{border:1px solid var(--deck-line);border-radius:999px;padding:8px 11px;text-decoration:none;color:inherit;font-size:.78rem}.oap-header-actions a:hover{border-color:var(--deck-green)}
     @media(max-width:620px){.mc-workspace{padding-left:10px!important;padding-right:10px!important}.oap-command-hero{padding:15px}.oap-control-grid{grid-template-columns:1fr 1fr}.oap-control{min-height:132px;padding:13px}.oap-control small{font-size:.72rem}}
     @media(max-width:420px){.oap-control-grid{grid-template-columns:1fr}}
@@ -24,7 +24,7 @@
         <div>
           <p class="mc-eyebrow">OAP · PRIVATE FOUNDER COMMAND · {{ active_mode|upper }}</p>
           <h1 id="oap-command-title">Mission Control</h1>
-          <p>One private command surface for real OAP controls. Human Authority remains final.</p>
+          <p>A4 Live · A5 Locked · Founder Final. Clean command surface for OAP controls.</p>
         </div>
         <span class="oap-live-pill">● PRIVATE LIVE</span>
       </div>
@@ -33,6 +33,8 @@
         {% for mode in allowed_modes %}
         <a href="{{ url_for('mission_control.mission_workspace', mode=mode) }}" {% if mode == active_mode %}aria-current="page"{% endif %}>{{ mode|title }}</a>
         {% endfor %}
+        <a href="{{ url_for('sika_value.dashboard') }}">SIKA</a>
+        <a href="{{ url_for('sika_value.my_card') }}">My Card</a>
         <a href="{{ url_for('provider_fabric.alignment_dashboard') }}">Alignment & Sovereignty</a>
         <a href="{{ url_for('provider_fabric.provider_dashboard') }}">Provider Fabric</a>
         <a href="{{ url_for('my_world') }}">My World</a>
@@ -40,11 +42,13 @@
       </nav>
 
       <div class="oap-control-grid" aria-label="Live private controls">
+        <a class="oap-control oap-control--sika" href="{{ url_for('sika_value.dashboard') }}"><span class="sig">💎</span><strong>SIKA Value</strong><small>Internal value, badges, receipts, rewards, memberships and monetisation locks. No bank powers.</small></a>
+        <a class="oap-control oap-control--sika" href="{{ url_for('sika_value.my_card') }}"><span class="sig">🪪</span><strong>My Card</strong><small>OAP identity card for My World: roles, badges, SIKA status and share-ready community identity.</small></a>
         <a class="oap-control oap-control--primary" href="{{ url_for('travel_supply.founder_dashboard') }}"><span class="sig">🏨</span><strong>Booking & Supply</strong><small>Certified OAP suppliers, listings, first-party pictures, availability, pricing and reservation readiness.</small></a>
         <a class="oap-control oap-control--primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><span class="sig">🧠</span><strong>Personal SMI Chat</strong><small>Founder intelligence, HRM memory, safe Thinking Process stages, voice, files and code mode.</small></a>
         <a class="oap-control oap-control--primary" href="{{ url_for('mission_control.war_room_dashboard') }}"><span class="sig">⚔️</span><strong>War Room</strong><small>Evidence, challenge, 3/7/21 review, risk and consequence analysis before consequential action.</small></a>
         <a class="oap-control oap-control--primary" href="{{ url_for('isac_spatial.dashboard') }}"><span class="sig">📡</span><strong>ISAC Spatial</strong><small>Authorised sensing, Guardian RF, Matrix RF spatial state and physical-evidence gates.</small></a>
-        <a class="oap-control oap-control--primary" href="{{ url_for('provider_fabric.alignment_dashboard') }}"><span class="sig">◎</span><strong>Alignment & Sovereignty</strong><small>One brain, seven Worlds, A3 boundaries, provider authority and evidence-based sovereignty grade.</small></a>
+        <a class="oap-control oap-control--primary" href="{{ url_for('provider_fabric.alignment_dashboard') }}"><span class="sig">◎</span><strong>Alignment & Sovereignty</strong><small>One brain, seven Worlds, A4 boundaries, provider authority and evidence-based sovereignty grade.</small></a>
         <a class="oap-control" href="{{ url_for('mission_control.judgement_dashboard') }}"><span class="sig">⚖️</span><strong>Judgement Gate</strong><small>Real signed Human Authority decisions. Recording approval does not silently execute an action.</small></a>
         <a class="oap-control" href="{{ url_for('mission_control.mission_workspace', mode='sovereign') }}#sovereignty-controls"><span class="sig">👑</span><strong>Sovereignty Controls</strong><small>Fail-closed authority, execution, audit, egress and emergency-halt boundaries.</small></a>
         <a class="oap-control" href="{{ url_for('mission_control.brain_dashboard') }}"><span class="sig">🧬</span><strong>SMI Brain</strong><small>Single-brain intelligence architecture, capability readiness and bounded cognition.</small></a>
@@ -76,30 +80,12 @@
         <div class="oap-sovereignty-cell"><strong>Execution</strong><span>Default deny. Consequential execution requires the governed approval path.</span></div>
         <div class="oap-sovereignty-cell"><strong>Approval</strong><span>Signed Human Authority decisions live in Judgement; agents and providers cannot approve themselves.</span></div>
         <div class="oap-sovereignty-cell"><strong>Provider authority</strong><span>Zero. Providers supply bounded capability and never become OAP authority.</span></div>
-        <div class="oap-sovereignty-cell"><strong>Audit</strong><span>Consequential decisions remain auditable and evidence-bound.</span></div>
+        <div class="oap-sovereignty-cell"><strong>SIKA / Money</strong><span>Real-money movement remains blocked. SIKA v1 is internal value, not a bank.</span></div>
         <div class="oap-sovereignty-cell"><strong>Emergency halt</strong><span>Runtime sovereignty includes an emergency execution-halt boundary; this UI does not fake a toggle.</span></div>
         <div class="oap-sovereignty-cell"><strong>Production mutation</strong><span>Still separately gated. A dashboard click never silently deploys, spends or mutates production data.</span></div>
       </div>
       <p class="oap-truth"><strong>Sovereignty means technical control with evidence.</strong> Hosted infrastructure is not labelled fully self-sovereign unless custody, egress, recovery, local models, observability and supply-chain attestations are actually proven.</p>
       <a class="mc-secondary-link" href="{{ url_for('provider_fabric.alignment_dashboard') }}">Open full Alignment & Sovereignty evidence</a>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="workspace-intelligence-title">
-      <h2 id="workspace-intelligence-title">OAP Intelligence families</h2>
-      <div class="mc-intelligence-grid" role="list">
-        {% for agent in gateway.agents %}
-        <article class="mc-intelligence-card" role="listitem"><h3>{{ agent.name }}</h3><p>{{ agent.status }}</p><small>{{ agent.assignment }}</small></article>
-        {% endfor %}
-      </div>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="workspace-timeline-title">
-      <h2 id="workspace-timeline-title">Audited timeline</h2>
-      {% if gateway.timeline %}
-      <ol class="mc-timeline">{% for event in gateway.timeline %}<li><span>{{ event.summary }}</span><time>{{ event.timestamp }}</time></li>{% endfor %}</ol>
-      {% else %}
-      <p class="mc-notice">No public timeline entries available.</p>
-      {% endif %}
     </section>
 
     <aside class="mc-authority" aria-label="Human Authority status"><strong>Human Authority: {{ gateway.human_authority.status }}</strong><span>{{ gateway.human_authority.message }}</span></aside>
