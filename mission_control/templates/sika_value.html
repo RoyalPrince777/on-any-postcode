@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIKA Value · OAP</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    :root{--sika-green:#39e57f;--sika-gold:#d7b85d;--sika-bg:#06120b;--sika-panel:#0a1d12;--sika-line:#285039;--sika-muted:#a8baaf}
+    body{background:radial-gradient(circle at top,#0c2a19,var(--sika-bg));color:#ecfff2}.sika-shell{max-width:1180px;margin:0 auto;padding:18px}.sika-hero{border:1px solid var(--sika-line);border-radius:26px;padding:22px;background:linear-gradient(145deg,#06120b,#102516);box-shadow:0 22px 70px #0008}.sika-hero h1{font-size:clamp(2.2rem,7vw,5rem);line-height:.92;margin:.2rem 0;letter-spacing:-.06em}.sika-eyebrow{color:var(--sika-gold);font-weight:900;text-transform:uppercase;letter-spacing:.14em;font-size:.76rem}.sika-pill-row,.sika-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.sika-pill,.sika-actions a{border:1px solid var(--sika-line);border-radius:999px;padding:8px 12px;background:#082014;color:#dfffea;text-decoration:none;font-size:.82rem;font-weight:800}.sika-pill--live{border-color:#3fa35f;color:#b6ffd0}.sika-pill--lock{border-color:#846824;color:#f0df9c}.sika-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px}.sika-card{border:1px solid var(--sika-line);border-radius:20px;padding:16px;background:var(--sika-panel);box-shadow:inset 0 0 20px #39e57f08}.sika-card h2,.sika-card h3{margin:.2rem 0 .45rem}.sika-card small,.sika-card p{color:var(--sika-muted);line-height:1.45}.sika-card strong{color:#fff}.sika-card--gold{border-color:#6b5720;background:linear-gradient(145deg,#211b0b,#0a1d12)}.my-card{position:relative;overflow:hidden;border:1px solid #5fcd7d;border-radius:26px;padding:20px;background:linear-gradient(145deg,#07140d,#12381f);box-shadow:0 18px 60px #0008}.my-card:after{content:"";position:absolute;inset:auto -20% -35% auto;width:70%;height:70%;border-radius:50%;background:#39e57f18;filter:blur(40px)}.badge-cloud{display:flex;gap:8px;flex-wrap:wrap}.badge-chip{border:1px solid var(--sika-line);border-radius:999px;padding:7px 10px;background:#07140d;font-size:.8rem}.wallet-card{min-height:160px;border:1px solid #5fcd7d66;border-radius:24px;padding:16px;background:linear-gradient(145deg,#082014,#07140d);box-shadow:0 15px 45px #0006}.wallet-card strong{display:block;font-size:1.2rem}.wallet-balance{font-size:1.65rem;font-weight:1000;letter-spacing:-.04em}.lock-list{display:grid;gap:8px}.lock-row{display:flex;justify-content:space-between;gap:10px;border:1px solid #294c38;border-radius:14px;padding:10px;background:#07140d}.lock-row span{color:var(--sika-muted);font-size:.78rem}.state-live{color:#a7ffc4}.state-locked,.state-blocked,.state-partner_needed{color:#f3dc8c}.state-needs_finish_pack,.state-later{color:#ffc985}@media(max-width:720px){.sika-shell{padding:10px}.sika-hero{padding:16px}.sika-grid{grid-template-columns:1fr}.lock-row{display:block}.sika-actions a{flex:1;text-align:center}}
+  </style>
+</head>
+<body>
+  {% include '_command_nav.html' %}
+  <main class="sika-shell">
+    <section class="sika-hero">
+      <p class="sika-eyebrow">OAP · SIKA WALLET UI · FOUNDER SAFE</p>
+      <h1>SIKA Value</h1>
+      <p>{{ sika.sika_doctrine }}</p>
+      <p>{{ sika.wallet_doctrine }}</p>
+      <div class="sika-pill-row">
+        <span class="sika-pill sika-pill--live">💎 Value Layer Live</span>
+        <span class="sika-pill sika-pill--lock">🔒 Deposits Locked</span>
+        <span class="sika-pill sika-pill--lock">🔒 Cash-out Locked</span>
+        <span class="sika-pill sika-pill--lock">🚫 A4 Money Movement Blocked</span>
+      </div>
+      <nav class="sika-actions" aria-label="SIKA sections">
+        <a href="{{ url_for('sika_value.my_card') }}">🪪 My Card</a>
+        <a href="{{ url_for('sika_value.revenue') }}">💷 Revenue</a>
+        <a href="{{ url_for('sika_value.compliance') }}">⚖️ Compliance Locks</a>
+        <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission</a>
+      </nav>
+    </section>
+
+    <section class="sika-grid" aria-label="SIKA command cards">
+      <article class="my-card">
+        <p class="sika-eyebrow">{{ my_card.component }}</p>
+        <h2>{{ my_card.display_name }}</h2>
+        <p>{{ my_card.handle }} · {{ my_card.circle }}</p>
+        <div class="badge-cloud">
+          {% for badge in my_card.badges %}<span class="badge-chip">{{ badge.emoji }} {{ badge.label }}</span>{% endfor %}
+        </div>
+        <p><strong>{{ my_card.sika_status }}</strong><br>{{ my_card.privacy_note }}</p>
+      </article>
+
+      <article class="sika-card sika-card--gold"><h2>💎 SIKA Value</h2><p>Internal points, badges, rewards, receipts, loyalty, contribution and membership status. No cash-out in v1.</p></article>
+      <article class="sika-card"><h2>🪪 My Card</h2><p>Identity card for My World: roles, badges, SIKA status, membership and OAP community identity. Not legal ID.</p></article>
+      <article class="sika-card"><h2>💷 Monetisation</h2><p>Memberships, creator profiles, business listings, market, experiences and OAP Direct Booking finish pack.</p></article>
+      <article class="sika-card"><h2>🏦 Bank Link</h2><p>Provider-needed only. OAP does not collect raw bank logins or initiate payments in this layer.</p></article>
+    </section>
+
+    <section class="sika-grid" aria-label="SIKA wallet cards">
+      {% for card in sika.wallet_cards %}
+      <article class="wallet-card">
+        <p class="sika-eyebrow">{{ card.emoji }} {{ card.state|replace('_',' ') }}</p>
+        <strong>{{ card.label }}</strong>
+        <p class="wallet-balance">{{ card.balance_label }}</p>
+        <small>{{ card.detail }}</small>
+      </article>
+      {% endfor %}
+    </section>
+
+    <section class="sika-grid">
+      <article class="sika-card">
+        <h2>Earn SIKA</h2>
+        <div class="badge-cloud">{% for item in sika.value_actions.earn %}<span class="badge-chip">{{ item }}</span>{% endfor %}</div>
+      </article>
+      <article class="sika-card">
+        <h2>Use SIKA</h2>
+        <div class="badge-cloud">{% for item in sika.value_actions.redeem %}<span class="badge-chip">{{ item }}</span>{% endfor %}</div>
+      </article>
+    </section>
+
+    <section class="sika-card" style="margin-top:16px">
+      <h2>Compliance Locks</h2>
+      <div class="lock-list">
+        {% for item in sika.status_lights %}
+        <div class="lock-row"><strong>{{ item.label }} · <span class="state-{{ item.state }}">{{ item.value }}</span></strong><span>{{ item.detail }}</span></div>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>
