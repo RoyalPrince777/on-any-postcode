@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, Response, jsonify, make_response, redirect, render_template, request, url_for
 
-from . import area_intelligence, listing_media, travel_marketplace, travel_supply_policy, web_security
+from . import area_intelligence, atlas_live_sources, listing_media, travel_marketplace, travel_supply_policy, web_security
 from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
@@ -169,6 +169,22 @@ def public_area_api():
     )
 
 
+@bp.get("/atlas/api/live-source")
+@bp.get("/maps/api/live-source")
+def public_atlas_live_source_api():
+    """Return governed live-source status/results without tracking the user."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                atlas_live_sources.fetch_places(
+                    request.args.get("location") or request.args.get("area") or "Mitcham"
+                )
+            )
+        )
+    )
+
+
 @bp.get("/atlas/old")
 def public_atlas_legacy_redirect():
     """Quiet compatibility route for older Atlas entry points."""
@@ -322,7 +338,18 @@ def founder_status():
 def founder_map_movement_status():
     """Return Map Intelligence + Movement area status without private records."""
 
-    return _no_store(make_response(jsonify(area_intelligence.status())))
+    status = area_intelligence.status()
+    status["live_source_adapter"] = atlas_live_sources.status()
+    return _no_store(make_response(jsonify(status)))
+
+
+@bp.get("/mission/map-movement/live-source-status")
+@bp.get("/mission/war-room/map-movement/live-source-status")
+@web_security.login_required(api=True, founder_only=True)
+def founder_map_live_source_status():
+    """Return the live-source adapter state for War Room proof checks."""
+
+    return _no_store(make_response(jsonify(atlas_live_sources.status())))
 
 
 @bp.get("/mission/supply/partner/status")
