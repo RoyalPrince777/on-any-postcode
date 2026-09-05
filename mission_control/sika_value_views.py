@@ -17,7 +17,7 @@ def _no_store(response):
 def _founder_flag() -> bool:
     try:
         user = web_security.current_authenticated_user()
-    except Exception:  # pragma: no cover - route decorator handles fail-closed auth.
+    except Exception:  # pragma: no cover
         user = None
     if user is None:
         return False
@@ -78,14 +78,24 @@ def my_card():
 def revenue():
     """Render monetisation streams separately from bank/payment powers."""
     return _no_store(
-        make_response(render_template("sika_revenue.html", sika=sika_value.status()))
+        make_response(
+            render_template(
+                "sika_revenue.html",
+                sika=sika_value.status(),
+            )
+        )
     )
 
 
 @bp.get("/sika/compliance")
 @web_security.login_required(founder_only=True)
 def compliance():
-    """Render compliance locks that keep SIKA v1 out of regulated money movement."""
+    """Render compliance locks that keep SIKA v1 outside money movement."""
     return _no_store(
-        make_response(render_template("sika_compliance.html", sika=sika_value.status()))
+        make_response(
+            render_template(
+                "sika_compliance.html",
+                sika=sika_value.status(),
+            )
+        )
     )
