@@ -3,7 +3,15 @@ from __future__ import annotations
 
 from flask import Blueprint, Response, jsonify, make_response, redirect, render_template, request, url_for
 
-from . import area_intelligence, atlas_live_sources, listing_media, travel_marketplace, travel_supply_policy, web_security
+from . import (
+    area_intelligence,
+    atlas_live_sources,
+    listing_media,
+    local_map_intelligence,
+    travel_marketplace,
+    travel_supply_policy,
+    web_security,
+)
 from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
@@ -144,19 +152,48 @@ def _operator_snapshot() -> dict:
 @bp.get("/map")
 @bp.get("/maps")
 @bp.get("/oap-atlas")
+@bp.get("/local-map")
+@bp.get("/uk-map")
+@bp.get("/business-map")
+@bp.get("/traffic-map")
 def public_atlas():
-    """Render the visible first-party OAP Atlas area screen."""
+    """Render the clean UK-first local map cockpit."""
 
-    area = area_intelligence.area_overview(
-        request.args.get("location") or request.args.get("area") or "Mitcham"
+    local_map = local_map_intelligence.local_map(
+        request.args.get("location") or request.args.get("area") or "Mitcham",
+        category=request.args.get("category") or "all",
+        start=request.args.get("from"),
+        end=request.args.get("to") or "London Bridge",
+        profile=request.args.get("profile") or "driving",
     )
-    return _no_store(make_response(render_template("atlas.html", area=area)))
+    return _no_store(make_response(render_template("local_map.html", local_map=local_map)))
+
+
+@bp.get("/atlas/api/local-map")
+@bp.get("/maps/api/local-map")
+@bp.get("/local-map/api")
+def public_local_map_api():
+    """Return UK-first local businesses, routes and traffic-style signals."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                local_map_intelligence.local_map(
+                    request.args.get("location") or request.args.get("area") or "Mitcham",
+                    category=request.args.get("category") or "all",
+                    start=request.args.get("from"),
+                    end=request.args.get("to") or "London Bridge",
+                    profile=request.args.get("profile") or "driving",
+                )
+            )
+        )
+    )
 
 
 @bp.get("/atlas/api/area")
 @bp.get("/maps/api/area")
 def public_area_api():
-    """Return public-safe area intelligence for the requested place."""
+    """Return legacy public-safe area intelligence for compatibility."""
 
     return _no_store(
         make_response(
@@ -340,7 +377,17 @@ def founder_map_movement_status():
 
     status = area_intelligence.status()
     status["live_source_adapter"] = atlas_live_sources.status()
+    status["local_map"] = local_map_intelligence.status()
     return _no_store(make_response(jsonify(status)))
+
+
+@bp.get("/mission/local-map/status")
+@bp.get("/mission/war-room/local-map/status")
+@web_security.login_required(api=True, founder_only=True)
+def founder_local_map_status():
+    """Return UK local map feature unlocks for War Room proof checks."""
+
+    return _no_store(make_response(jsonify(local_map_intelligence.status())))
 
 
 @bp.get("/mission/map-movement/live-source-status")
