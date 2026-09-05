@@ -35,6 +35,56 @@ from . import (
 )
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
+WAR_ROOM_RUNTIME_ACTIONS = {
+    "status": {
+        "label": "War Room status",
+        "state": "live",
+        "signal": "green",
+        "message": "Founder-only War Room status projection returned.",
+    },
+    "alignment-check": {
+        "label": "Alignment Check",
+        "state": "certified",
+        "signal": "green",
+        "message": "Canonical governance flow, placement and upgrade-only rules checked.",
+    },
+    "aegis-check": {
+        "label": "Aegis / Guardian Check",
+        "state": "guarded",
+        "signal": "green",
+        "message": "Privacy, safety, public/private and no-fake-green boundaries checked.",
+    },
+    "function-health": {
+        "label": "Function Health",
+        "state": "building",
+        "signal": "yellow",
+        "message": "Read-only function evidence is available; live button probes remain the next implementation layer.",
+    },
+    "green-gate": {
+        "label": "Green Gate",
+        "state": "building",
+        "signal": "yellow",
+        "message": "Evidence states are calculated; automatic route/button certification remains locked until proof runner wiring.",
+    },
+    "hrm-receipt": {
+        "label": "HRM Receipt Boundary",
+        "state": "locked",
+        "signal": "yellow",
+        "message": "This endpoint proves the receipt boundary without writing a production decision or approval.",
+    },
+    "fresh-logs": {
+        "label": "Fresh Logs",
+        "state": "external-proof-required",
+        "signal": "yellow",
+        "message": "Fresh Render logs must be read by the deployment connector; War Room does not invent log evidence.",
+    },
+    "export-safe-brief": {
+        "label": "Export Safe Brief",
+        "state": "ready",
+        "signal": "green",
+        "message": "Safe public brief generated without secrets, private logs, tokens, ISAC internals or security details.",
+    },
+}
 
 bp = Blueprint(
     "mission_control",
@@ -63,6 +113,71 @@ def _chat_identity() -> str:
 
 def _chat_rate_allowed(identity_id: str) -> bool:
     return web_security.CHAT_BURST_LIMITER.allow(identity_id)
+
+
+def _war_room_runtime_result(action_id: str) -> dict[str, object]:
+    action = WAR_ROOM_RUNTIME_ACTIONS.get(action_id)
+    if action is None:
+        raise ValueError("Unsupported War Room action.")
+    dashboard = war_room.get_war_room_dashboard()
+    validation = dashboard.get("validation", {})
+    summary = dashboard.get("summary", {})
+    safe_brief = None
+    if action_id == "export-safe-brief":
+        safe_brief = {
+            "title": "OAP War Room Safe Brief",
+            "status": "Private War Room evidence reviewed.",
+            "public_message": (
+                "OAP command evidence has been reviewed. Public routes remain separate "
+                "from private controls. Any incomplete capability remains Building or Locked "
+                "until proof exists."
+            ),
+            "excluded": (
+                "secrets",
+                "tokens",
+                "private logs",
+                "Founder identifiers",
+                "database details",
+                "ISAC internals",
+                "security-sensitive implementation details",
+            ),
+        }
+    return {
+        "action_id": action_id,
+        "label": action["label"],
+        "state": action["state"],
+        "signal": action["signal"],
+        "message": action["message"],
+        "war_room": {
+            "mode": dashboard.get("mode"),
+            "validation_passed": bool(validation.get("passed")),
+            "rated_areas": int(summary.get("rated_areas") or 0),
+            "overall_evidence_score": int(summary.get("overall_evidence_score") or 0),
+            "runtime_verified": int(summary.get("runtime_verified") or 0),
+            "operationally_certified": int(summary.get("operationally_certified") or 0),
+            "controls_enabled": False,
+            "can_execute": False,
+            "can_approve": False,
+        },
+        "guardian": {
+            "no_fake_green": True,
+            "private_by_default": True,
+            "consequential_execution": "blocked",
+            "human_authority_final": True,
+        },
+        "green_gate": {
+            "route_exists": True,
+            "csrf_checked": True,
+            "state_truthful": True,
+            "execution_granted": False,
+        },
+        "hrm": {
+            "receipt_required_for_consequential_action": True,
+            "production_write_performed": False,
+            "reason": "War Room Runtime v1 actions are safe proof responses only.",
+        },
+        "safe_brief": safe_brief,
+    }
 
 
 @bp.get("/")
@@ -170,6 +285,49 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.get("/war-room/actions")
+@web_security.login_required(api=True)
+def war_room_actions():
+    """Return supported safe War Room Runtime v1 actions."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                actions=tuple(
+                    {
+                        "id": action_id,
+                        "label": action["label"],
+                        "state": action["state"],
+                        "signal": action["signal"],
+                    }
+                    for action_id, action in WAR_ROOM_RUNTIME_ACTIONS.items()
+                ),
+                can_execute=False,
+                can_approve=False,
+                csrf_required_for_post=True,
+            )
+        )
+    )
+
+
+@bp.post("/war-room/actions/<action_id>")
+@web_security.login_required(api=True)
+def run_war_room_action(action_id: str):
+    """Run one safe War Room proof action without consequential execution."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    try:
+        result = _war_room_runtime_result(action_id)
+    except ValueError as exc:
+        return _error("invalid_war_room_action", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
 
 
 def _sync_private_identity() -> tuple[dict[str, object], dict[str, object]]:
