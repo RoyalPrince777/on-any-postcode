@@ -23,175 +23,66 @@ CATEGORIES = (
     "youth_safe",
 )
 
-SEED_PLACES = (
+SOURCE_ADAPTERS = (
     {
-        "name": "Mitcham Town Centre",
-        "area_key": "mitcham",
-        "category": "shops",
-        "type": "town_centre",
-        "postcode": "CR4",
-        "borough": "Merton",
-        "county_region": "Greater London",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "description": "Local shops, services and everyday movement starting point.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
+        "id": "oap_first_party",
+        "name": "OAP first-party places",
+        "state": "ready",
+        "signal": "green",
+        "authority": "OAP controlled",
+        "can_mark_live": True,
     },
     {
-        "name": "Mitcham Common",
-        "area_key": "mitcham",
-        "category": "parks_nature",
-        "type": "green_space",
-        "postcode": "CR4",
-        "borough": "Merton / Croydon / Sutton edge",
-        "county_region": "Greater London",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "description": "Green space, walking, wellbeing and nature signal.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": False,
-        "oap_certified": False,
+        "id": "founder_approved",
+        "name": "Founder-approved local places",
+        "state": "ready",
+        "signal": "green",
+        "authority": "Founder controlled",
+        "can_mark_live": True,
     },
     {
-        "name": "South London Culture Route",
-        "area_key": "south london",
-        "category": "music_culture",
-        "type": "culture_route",
-        "postcode": "SE / SW / CR",
-        "borough": "South London",
-        "county_region": "Greater London",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "description": "Music, creator, food, sport and community culture route.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
+        "id": "local_open_data",
+        "name": "Local council / tourism open data",
+        "state": "adapter_ready",
+        "signal": "yellow",
+        "authority": "external public source, no marketplace authority",
+        "can_mark_live": False,
     },
     {
-        "name": "Battersea Power Station Area",
-        "area_key": "battersea",
-        "category": "attractions",
-        "type": "attraction_area",
-        "postcode": "SW11",
-        "borough": "Wandsworth",
-        "county_region": "Greater London",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "description": "Public attraction, shopping, food, riverside movement and venue area.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
+        "id": "openstreetmap",
+        "name": "OpenStreetMap places",
+        "state": "adapter_ready",
+        "signal": "yellow",
+        "authority": "open map data, source proof required",
+        "can_mark_live": False,
     },
     {
-        "name": "Nunhead Local Spot",
-        "area_key": "nunhead",
-        "category": "food",
-        "type": "local_area",
-        "postcode": "SE15",
-        "borough": "Southwark / Peckham edge",
-        "county_region": "Greater London",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "description": "Local food, shops, parks and South London culture.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
-    },
-    {
-        "name": "King's Cross Movement Hub",
-        "area_key": "king's cross",
-        "category": "transport_movement",
-        "type": "transport_hub",
-        "postcode": "N1C",
-        "borough": "Camden / Islington edge",
-        "county_region": "Greater London",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "description": "Rail, underground, walking links, food, events and meeting point.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
-    },
-    {
-        "name": "London Bridge Riverside",
-        "area_key": "london bridge",
-        "category": "attractions",
-        "type": "riverside_area",
-        "postcode": "SE1",
-        "borough": "Southwark",
-        "county_region": "Greater London",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "description": "River, food, culture, movement links and public attractions.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
-    },
-    {
-        "name": "Begoro / KORADASO Heritage Spot",
-        "area_key": "begoro",
-        "category": "music_culture",
-        "type": "heritage_area",
-        "postcode": "Begoro",
-        "borough": "Fanteakwa area",
-        "county_region": "Eastern Region",
-        "country": "Ghana",
-        "continent": "Africa",
-        "description": "Akan, Akyem, Begoro and KORADASO heritage anchor for OAP expansion.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
-    },
-    {
-        "name": "KORADASO Royal Heritage Route",
-        "area_key": "koradaso",
-        "category": "attractions",
-        "type": "heritage_route",
-        "postcode": "KORADASO",
-        "borough": "Akyem / Begoro area",
-        "county_region": "Eastern Region",
-        "country": "Ghana",
-        "continent": "Africa",
-        "description": "Founder heritage, culture, storytelling and future Direct experiences.",
-        "source": "OAP founder seed",
-        "youth_safe": True,
-        "movement_ready": True,
-        "direct_request_available": True,
-        "oap_certified": False,
+        "id": "weather_safety",
+        "name": "Weather / safety / travel signals",
+        "state": "source_bound",
+        "signal": "yellow",
+        "authority": "source timestamp required",
+        "can_mark_live": False,
     },
 )
 
+SEED_PLACES = (
+    {"name":"Mitcham Town Centre","area_key":"mitcham","category":"shops","type":"town_centre","postcode":"CR4","borough":"Merton","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Local shops, services and everyday movement starting point.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+    {"name":"Mitcham Common","area_key":"mitcham","category":"parks_nature","type":"green_space","postcode":"CR4","borough":"Merton / Croydon / Sutton edge","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Green space, walking, wellbeing and nature signal.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":False,"oap_certified":False},
+    {"name":"South London Culture Route","area_key":"south london","category":"music_culture","type":"culture_route","postcode":"SE / SW / CR","borough":"South London","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Music, creator, food, sport and community culture route.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+    {"name":"Battersea Power Station Area","area_key":"battersea","category":"attractions","type":"attraction_area","postcode":"SW11","borough":"Wandsworth","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Public attraction, shopping, food, riverside movement and venue area.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+    {"name":"Nunhead Local Spot","area_key":"nunhead","category":"food","type":"local_area","postcode":"SE15","borough":"Southwark / Peckham edge","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Local food, shops, parks and South London culture.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+    {"name":"King's Cross Movement Hub","area_key":"king's cross","category":"transport_movement","type":"transport_hub","postcode":"N1C","borough":"Camden / Islington edge","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"Rail, underground, walking links, food, events and meeting point.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+    {"name":"London Bridge Riverside","area_key":"london bridge","category":"attractions","type":"riverside_area","postcode":"SE1","borough":"Southwark","county_region":"Greater London","country":"United Kingdom","continent":"Europe","description":"River, food, culture, movement links and public attractions.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+    {"name":"Begoro / KORADASO Heritage Spot","area_key":"begoro","category":"music_culture","type":"heritage_area","postcode":"Begoro","borough":"Fanteakwa area","county_region":"Eastern Region","country":"Ghana","continent":"Africa","description":"Akan, Akyem, Begoro and KORADASO heritage anchor for OAP expansion.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+    {"name":"KORADASO Royal Heritage Route","area_key":"koradaso","category":"attractions","type":"heritage_route","postcode":"KORADASO","borough":"Akyem / Begoro area","county_region":"Eastern Region","country":"Ghana","continent":"Africa","description":"Founder heritage, culture, storytelling and future Direct experiences.","source":"OAP founder seed","source_tier":"founder_approved","youth_safe":True,"movement_ready":True,"direct_request_available":True,"oap_certified":False},
+)
+
 KEY_ALIASES = {
-    "cr4": "mitcham",
-    "m town": "mitcham",
-    "m-town": "mitcham",
-    "south london": "south london",
-    "sw11": "battersea",
-    "se15": "nunhead",
-    "n1c": "king's cross",
-    "kings cross": "king's cross",
-    "king cross": "king's cross",
-    "se1": "london bridge",
-    "koradaso": "koradaso",
-    "begoro": "begoro",
+    "cr4": "mitcham", "m town": "mitcham", "m-town": "mitcham",
+    "south london": "south london", "sw11": "battersea", "se15": "nunhead",
+    "n1c": "king's cross", "kings cross": "king's cross", "king cross": "king's cross",
+    "se1": "london bridge", "koradaso": "koradaso", "begoro": "begoro",
 }
 
 
@@ -218,16 +109,7 @@ def _canonical_area(query: object) -> str:
 def _matches(area_key: str, place: dict[str, object]) -> bool:
     haystack = " ".join(
         str(place.get(field, ""))
-        for field in (
-            "area_key",
-            "name",
-            "postcode",
-            "borough",
-            "county_region",
-            "country",
-            "continent",
-            "description",
-        )
+        for field in ("area_key", "name", "postcode", "borough", "county_region", "country", "continent", "description")
     ).lower()
     return area_key in haystack or str(place.get("area_key")) == area_key
 
@@ -245,44 +127,75 @@ def _category_counts(places: Iterable[dict[str, object]]) -> dict[str, int]:
     return counts
 
 
+def _adapter_state(source_tier: object) -> dict[str, object]:
+    tier = str(source_tier or "founder_approved")
+    return next((dict(item) for item in SOURCE_ADAPTERS if item["id"] == tier), dict(SOURCE_ADAPTERS[0]))
+
+
+def _proofed_place(place: dict[str, object], generated_at: str) -> dict[str, object]:
+    enriched = dict(place)
+    adapter = _adapter_state(enriched.get("source_tier"))
+    source_present = bool(enriched.get("source"))
+    hierarchy_present = all(bool(enriched.get(key)) for key in ("country", "continent", "postcode"))
+    source_backed = adapter["id"] in {"oap_first_party", "founder_approved"} and source_present
+    enriched.update(
+        source_adapter=adapter["id"],
+        source_adapter_state=adapter["state"],
+        source_timestamp=generated_at,
+        source_backed=source_backed,
+        live_source_backed=False,
+        freshness="current_session_seed" if source_backed else "awaiting_source",
+        proof_lane="green" if source_backed and hierarchy_present else "yellow",
+        confidence="medium" if source_backed else "low",
+        can_show_publicly=True,
+        can_claim_live=False,
+        no_hidden_tracking=True,
+        external_provider_authority=False,
+    )
+    return enriched
+
+
 def area_overview(query: object = None) -> dict[str, object]:
     """Return public-safe area intelligence for OAP Atlas."""
 
+    generated_at = _now()
     area_key = _canonical_area(query)
     places = [dict(place) for place in SEED_PLACES if _matches(area_key, place)]
     if not places:
-        places = [
-            {
-                "name": str(query or "Search area").strip() or "Search area",
-                "area_key": area_key,
-                "category": "oap_direct",
-                "type": "area_placeholder",
-                "postcode": "Not returned",
-                "borough": "Not returned",
-                "county_region": "Not returned",
-                "country": "Not returned",
-                "continent": "Not returned",
-                "description": "Area search accepted. Add first-party listings or source proof to make this place green.",
-                "source": "OAP search placeholder",
-                "youth_safe": False,
-                "movement_ready": False,
-                "direct_request_available": True,
-                "oap_certified": False,
-            }
-        ]
+        places = [{
+            "name": str(query or "Search area").strip() or "Search area",
+            "area_key": area_key,
+            "category": "oap_direct",
+            "type": "area_placeholder",
+            "postcode": "Not returned",
+            "borough": "Not returned",
+            "county_region": "Not returned",
+            "country": "Not returned",
+            "continent": "Not returned",
+            "description": "Area search accepted. Add first-party listings or source proof to make this place green.",
+            "source": "OAP search placeholder",
+            "source_tier": "local_open_data",
+            "youth_safe": False,
+            "movement_ready": False,
+            "direct_request_available": True,
+            "oap_certified": False,
+        }]
 
+    places = [_proofed_place(place, generated_at) for place in places]
     primary = places[0]
+    source_backed_count = sum(1 for place in places if place.get("source_backed"))
+    live_source_count = sum(1 for place in places if place.get("live_source_backed"))
     return {
         "component": "OAP Atlas Area Intelligence",
         "query": str(query or "Mitcham").strip() or "Mitcham",
         "area_key": area_key,
-        "generated_at": _now(),
+        "generated_at": generated_at,
         "public": True,
         "private_state_exposed": False,
         "hidden_tracking": False,
-        "live_claim": False,
+        "live_claim": live_source_count > 0,
         "live_ready": True,
-        "proof_status": "seeded" if primary.get("source") == "OAP founder seed" else "building",
+        "proof_status": "source_backed_seed" if source_backed_count else "building",
         "hierarchy": {
             "continent": primary.get("continent", "Not returned"),
             "country": primary.get("country", "Not returned"),
@@ -294,15 +207,20 @@ def area_overview(query: object = None) -> dict[str, object]:
         "categories": _category_counts(places),
         "places": places,
         "source_health": {
+            "adapters": SOURCE_ADAPTERS,
             "source_order": ("OAP first-party", "Founder-approved", "public/open data", "OpenStreetMap future adapter"),
             "source": primary.get("source", "OAP search placeholder"),
-            "source_timestamp": _now(),
+            "source_timestamp": generated_at,
+            "source_backed_count": source_backed_count,
+            "live_source_count": live_source_count,
+            "seeded_count": len(places),
             "external_provider_authority": False,
             "requires_live_source_to_claim_live": True,
         },
         "movement": {
             "ready": any(bool(place.get("movement_ready")) for place in places),
             "route_planning_enabled": True,
+            "area_to_movement_connected": True,
             "real_world_dispatch_enabled": False,
             "hidden_location_tracking_enabled": False,
             "consent_required_for_live_spot": True,
@@ -314,10 +232,8 @@ def area_overview(query: object = None) -> dict[str, object]:
             "supplier_receipt_required": True,
         },
         "green_gate": {
-            "can_mark_area_green": all(
-                bool(primary.get(field))
-                for field in ("name", "category", "source", "country", "continent")
-            ),
+            "can_mark_area_green": source_backed_count > 0 and all(bool(primary.get(field)) for field in ("name", "category", "source", "country", "continent")),
+            "can_mark_live_green": live_source_count > 0,
             "blocks_fake_live_claim": True,
             "blocks_hidden_tracking": True,
             "blocks_payment_capture": True,
@@ -336,7 +252,11 @@ def status() -> dict[str, object]:
         "api_surface": "/atlas/api/area",
         "seed_place_count": len(SEED_PLACES),
         "category_count": len(CATEGORIES),
+        "source_adapter_count": len(SOURCE_ADAPTERS),
+        "source_adapters": SOURCE_ADAPTERS,
         "sample_area": sample["area_key"],
+        "source_backed_count": sample["source_health"]["source_backed_count"],
+        "live_source_count": sample["source_health"]["live_source_count"],
         "live_ready": True,
         "live_claim": False,
         "hidden_tracking": False,
@@ -346,5 +266,5 @@ def status() -> dict[str, object]:
         "dispatch_enabled": False,
         "payment_capture_enabled": False,
         "confirmed_booking_enabled": False,
-        "next_gate": "Attach governed live/open-data source adapters and timestamped proof before claiming fully live area data.",
+        "next_gate": "Connect governed OpenStreetMap/local-open-data fetchers with timestamped source proof before claiming fully live area data.",
     }
