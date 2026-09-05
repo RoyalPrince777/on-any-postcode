@@ -24,6 +24,16 @@ def alignment_status():
     return _no_store(make_response(jsonify(alignment_check.status())))
 
 
+@bp.get("/war-room/thinking-signals")
+@bp.get("/war-room/actions/thinking-signals")
+@bp.get("/smi/thinking-signals")
+@web_security.login_required(api=True, founder_only=True)
+def thinking_signals():
+    """Return private-safe visible SMI thinking/status signals."""
+
+    return _no_store(make_response(jsonify(alignment_check.thinking_signals())))
+
+
 @bp.get("/war-room/debug/simple-task")
 @bp.get("/war-room/actions/simple-task-debug")
 @web_security.login_required(api=True, founder_only=True)
@@ -47,7 +57,7 @@ def not_found_debug():
     pack["checks"] = {
         "public_404_simple": True,
         "public_404_has_private_debug": False,
-        "public_404_routes": ("/", "/atlas", "/movement", "/travel/direct"),
+        "public_404_routes": ("/", "/on-any-place", "/movement", "/travel/direct"),
         "war_room_owns_debug": True,
     }
     return _no_store(make_response(jsonify(pack)))
