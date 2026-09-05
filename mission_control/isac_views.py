@@ -33,10 +33,45 @@ def dashboard():
     return _no_store(response)
 
 
+@bp.get("/app")
+@web_security.login_required(founder_only=True)
+def app_dashboard():
+    response = make_response(
+        render_template(
+            "isac_app.html",
+            isac=isac_spatial_intelligence.isac_app_status(),
+            oap_csrf_token=web_security.csrf_token(),
+        )
+    )
+    return _no_store(response)
+
+
 @bp.get("/status")
 @web_security.login_required(api=True, founder_only=True)
 def status():
     return _no_store(make_response(jsonify(isac_spatial_intelligence.isac_spatial_status())))
+
+
+@bp.get("/app/status")
+@web_security.login_required(api=True, founder_only=True)
+def app_status():
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.isac_app_status())))
+
+
+@bp.post("/app/proof-check")
+@web_security.login_required(api=True, founder_only=True)
+def app_proof_check():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.run_isac_proof_check())))
+
+
+@bp.post("/app/seed-software-test")
+@web_security.login_required(api=True, founder_only=True)
+def app_seed_software_test():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.seed_software_app_test())))
 
 
 @bp.post("/ingest")
