@@ -1,9 +1,11 @@
-"""UK-first On Any Place intelligence.
+"""UK-first On Any Place / Map Intelligence.
 
 This layer keeps the public map focused on UK places, businesses, routes,
-spots, travel requests and Live Pattern signals. It is public-safe: no hidden
-user tracking, no payment capture, no automatic dispatch, and no copied
-third-party branding. Live claims require timestamped source proof.
+spots, travel requests and Live Pattern signals. Travel and Movement sit inside
+Map Intelligence so the user journey is place-first, route-aware and proof-gated.
+It is public-safe: no hidden user tracking, no payment capture, no automatic
+dispatch, and no copied third-party branding. Live claims require timestamped
+source proof.
 """
 from __future__ import annotations
 
@@ -13,13 +15,31 @@ from typing import Iterable
 
 PROGRAMS = {
     "company": "ON ANY POSTCODE",
+    "map_intelligence": "Map Intelligence",
     "places": "On Any Place",
     "routes": "On Any Route",
+    "travel": "Travel",
+    "movement": "Movement",
     "ride": "On Any Ride",
     "drop": "On Any Drop",
     "pattern": "Live Pattern",
     "direct": "OAP Direct",
     "private_checker": "War Room Simulation",
+}
+
+MAP_INTELLIGENCE_STRUCTURE = {
+    "root": "On Any Place",
+    "private_brain": "Map Intelligence",
+    "public_rule": "Places first. Travel and Movement sit inside the map, not outside it.",
+    "layers": {
+        "places": "Shops, food, businesses, parks, venues, attractions and Spots.",
+        "travel": "OAP Direct requests, venues, stays, attractions and travel supply proof.",
+        "movement": "On Any Route, walking, cycling, driving, transit-style preview and route proof.",
+        "ride": "On Any Ride request preview; licence, payment and dispatch locked.",
+        "drop": "On Any Drop request preview; courier assignment, payment and dispatch locked.",
+        "live_pattern": "Traffic-style, event, crowd and open-now signals; true live claims require timestamps.",
+    },
+    "green_rule": "Map Intelligence cannot go overall green until map tiles, route geometry, source-backed UK data, events/open-now proof and War Room proof-runner pass.",
 }
 
 UK_CATEGORIES = (
@@ -37,6 +57,7 @@ UK_CATEGORIES = (
     "music_culture",
     "venues",
     "events",
+    "travel_requests",
     "transport",
     "roads",
     "alleys",
@@ -51,12 +72,16 @@ UK_CATEGORIES = (
 
 FEATURE_UNLOCKS = {
     "uk_first": True,
+    "map_intelligence_root": True,
+    "travel_inside_map_intelligence": True,
+    "movement_inside_map_intelligence": True,
     "on_any_place_surface": True,
     "on_any_route_preview": True,
     "on_any_ride_preview": True,
     "on_any_drop_preview": True,
     "live_pattern_surface": True,
     "spots_layer": True,
+    "travel_request_preview": True,
     "local_business_search": True,
     "shop_layer": True,
     "place_layer": True,
@@ -81,9 +106,11 @@ LOCAL_POINTS = (
     {"name":"London Road Mitcham","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"roads","kind":"main road","signal":"watch","description":"Main movement spine for shops, buses, routes and local access.","source":"OAP founder seed","live":False},
     {"name":"Mitcham Local Alley Links","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"alleys","kind":"pedestrian link","signal":"review","description":"Small walking cuts and local links; needs source proof before live guidance.","source":"OAP founder seed","live":False},
     {"name":"Mitcham Business Row","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"local_businesses","kind":"business cluster","signal":"steady","description":"Local business discovery lane for shops, services, food and owner claim flow later.","source":"OAP founder seed","live":False},
+    {"name":"Mitcham Travel Direct Lane","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"travel_requests","kind":"travel inside map","signal":"review","description":"Travel requests sit inside Map Intelligence through OAP Direct. Supplier proof, confirmation and payment stay locked.","source":"OAP founder seed","live":False},
+    {"name":"Mitcham Movement Lane","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"transport","kind":"movement inside map","signal":"watch","description":"Movement sits inside Map Intelligence as route proof, consent-only requests and On Any Route preview.","source":"OAP founder seed","live":False},
     {"name":"Mitcham Events Lane","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"events","kind":"events program","signal":"watch","description":"What’s on, activity, venues and local event routes. Public live event claims require source proof.","source":"OAP founder seed","live":False},
-    {"name":"On Any Ride Preview","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"ride_requests","kind":"ride request preview","signal":"review","description":"Private-hire style request direction. Operator licence, driver assignment and payment remain locked.","source":"OAP founder seed","live":False},
-    {"name":"On Any Drop Preview","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"drop_requests","kind":"drop request preview","signal":"review","description":"Delivery and courier request direction. Assignment and payment remain locked.","source":"OAP founder seed","live":False},
+    {"name":"On Any Ride Preview","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"ride_requests","kind":"ride request preview","signal":"review","description":"Private-hire style request direction inside Map Intelligence. Operator licence, driver assignment and payment remain locked.","source":"OAP founder seed","live":False},
+    {"name":"On Any Drop Preview","area":"Mitcham","postcode":"CR4","borough":"Merton","category":"drop_requests","kind":"drop request preview","signal":"review","description":"Delivery and courier request direction inside Map Intelligence. Assignment and payment remain locked.","source":"OAP founder seed","live":False},
     {"name":"Tooting / Mitcham Road Links","area":"South London","postcode":"SW17 / CR4","borough":"Wandsworth / Merton","category":"traffic_signals","kind":"route pressure","signal":"watch","description":"Live Pattern lane for route pressure, traffic-style signals and disruption proof.","source":"OAP founder seed","live":False},
     {"name":"Battersea Power Station Area","area":"Battersea","postcode":"SW11","borough":"Wandsworth","category":"attractions","kind":"destination area","signal":"busy","description":"Food, shops, attraction, riverside routes, venues and parking demand.","source":"OAP founder seed","live":False},
     {"name":"Nunhead Local Shops","area":"Nunhead","postcode":"SE15","borough":"Southwark","category":"local_businesses","kind":"local parade","signal":"steady","description":"Food, independent shops and South London neighbourhood services.","source":"OAP founder seed","live":False},
@@ -169,6 +196,7 @@ def points_for(query: object = None, *, category: object = None) -> list[dict[st
             dispatch=False,
             direct_request_available=True,
             movement_ready=True,
+            map_intelligence_layer=True,
         )
     return points
 
@@ -211,6 +239,8 @@ def route_proof(start: object = None, end: object = None, *, profile: object = "
     proof_id = sha256(f"{origin}|{destination}|{profile_key}|{generated_at[:16]}".encode()).hexdigest()[:16]
     return {
         "component": PROGRAMS["routes"],
+        "parent": PROGRAMS["map_intelligence"],
+        "inside": PROGRAMS["places"],
         "proof_id": proof_id,
         "from": origin,
         "to": destination,
@@ -236,6 +266,8 @@ def request_preview(start: object = None, end: object = None, *, purpose: object
     route = route_proof(start, end)
     return {
         "component": "On Any Request Preview",
+        "parent": PROGRAMS["map_intelligence"],
+        "inside": PROGRAMS["places"],
         "request_state": "preview_only",
         "purpose": str(purpose or "on_any_route")[:80],
         "route": route,
@@ -256,8 +288,9 @@ def local_map(query: object = None, *, category: object = None, start: object = 
     route = route_proof(start or area_key, end or "London Bridge", profile=profile)
     return {
         "component": PROGRAMS["places"],
+        "parent": PROGRAMS["map_intelligence"],
         "programs": PROGRAMS,
-        "mode": "uk_first_places_routes_travel_spots",
+        "mode": "uk_first_map_intelligence_places_travel_movement",
         "query": str(query or area_key),
         "area_key": area_key,
         "country_scope": "United Kingdom",
@@ -266,14 +299,19 @@ def local_map(query: object = None, *, category: object = None, start: object = 
         "brand_style": "OAP cockpit map",
         "third_party_branding_used": False,
         "public_noise_removed": True,
+        "map_intelligence": MAP_INTELLIGENCE_STRUCTURE,
         "sections": {
             "maps": PROGRAMS["places"],
-            "travel": PROGRAMS["direct"],
-            "movement": PROGRAMS["routes"],
-            "ride": PROGRAMS["ride"],
-            "drop": PROGRAMS["drop"],
-            "spots": "Spots",
-            "events": PROGRAMS["pattern"],
+            "inside_map_intelligence": {
+                "travel": PROGRAMS["travel"],
+                "movement": PROGRAMS["movement"],
+                "route": PROGRAMS["routes"],
+                "direct": PROGRAMS["direct"],
+                "ride": PROGRAMS["ride"],
+                "drop": PROGRAMS["drop"],
+                "spots": "Spots",
+                "events": PROGRAMS["pattern"],
+            },
         },
         "points": points,
         "point_count": len(points),
@@ -306,7 +344,7 @@ def local_map(query: object = None, *, category: object = None, start: object = 
 def status() -> dict[str, object]:
     sample = local_map("Mitcham")
     return {
-        "component": "On Any Place Status",
+        "component": "Map Intelligence Status",
         "programs": PROGRAMS,
         "country_scope": "United Kingdom",
         "public_surface": "/atlas",
@@ -315,6 +353,9 @@ def status() -> dict[str, object]:
         "place_api": "/atlas/api/local-map",
         "route_proof_api": "/movement/route-proof",
         "request_preview_api": "/movement/request-preview",
+        "map_intelligence": MAP_INTELLIGENCE_STRUCTURE,
+        "travel_inside_map_intelligence": True,
+        "movement_inside_map_intelligence": True,
         "feature_unlocks": FEATURE_UNLOCKS,
         "point_count": len(LOCAL_POINTS),
         "category_count": len(UK_CATEGORIES),
@@ -325,5 +366,5 @@ def status() -> dict[str, object]:
         "hidden_tracking_enabled": False,
         "live_traffic_claim": False,
         "overall_green": False,
-        "reason_not_green": "Surface and sections are live-ready, but real map tiles, full UK data, turn-by-turn, live traffic and event proof are not complete.",
+        "reason_not_green": "Map Intelligence has Travel and Movement nested inside it, but real map tiles, full UK data, turn-by-turn, live traffic and event proof are not complete.",
     }
