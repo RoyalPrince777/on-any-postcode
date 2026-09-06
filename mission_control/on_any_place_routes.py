@@ -26,14 +26,14 @@ def _with_defaults(path: str) -> dict[str, object]:
         values.setdefault("category", "spots")
     elif path.endswith("events"):
         values.setdefault("category", "events")
-    elif path.endswith("on-any-route") or path.endswith("routes"):
+    elif path.endswith(("on-any-route", "routes")):
         values.setdefault("category", "routes")
     elif path.endswith("travel"):
         values.setdefault("category", "travel_requests")
-    elif path.endswith("on-any-ride") or path.endswith("ride"):
+    elif path.endswith(("on-any-ride", "ride")):
         values.setdefault("profile", "ride")
         values.setdefault("category", "ride_requests")
-    elif path.endswith("on-any-drop") or path.endswith("drop"):
+    elif path.endswith(("on-any-drop", "drop")):
         values.setdefault("profile", "drop")
         values.setdefault("category", "drop_requests")
     elif path.endswith("live-pattern"):
