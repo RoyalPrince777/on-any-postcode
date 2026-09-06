@@ -8,6 +8,7 @@ from . import (
     alignment_check,
     master_upgrade_contract,
     smi_brain_evidence_protocol,
+    smi_brain_evidence_runner,
     smi_brain_protocol,
     smi_brain_score21,
     smi_completion_contract,
@@ -61,6 +62,36 @@ def smi_brain_evidence_status():
     """Return the Founder-only SMI Brain 14 x 7 evidence completion protocol."""
 
     return _no_store(make_response(jsonify(smi_brain_evidence_protocol.completion_check(request.args.get("part")))))
+
+
+@bp.get("/war-room/smi-brain/evidence-runner")
+@bp.get("/war-room/actions/smi-brain-evidence-runner")
+@bp.get("/smi/brain/evidence-runner")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_evidence_runner_status():
+    """Return the Founder-only SMI Brain live evidence runner catalogue."""
+
+    return _no_store(make_response(jsonify(smi_brain_evidence_runner.runner_status())))
+
+
+@bp.get("/war-room/smi-brain/evidence-runner/run")
+@bp.get("/war-room/actions/smi-brain-evidence-runner-run")
+@bp.get("/smi/brain/evidence-runner/run")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_evidence_runner_run():
+    """Run a bounded Founder-only evidence proof check without external execution."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                smi_brain_evidence_runner.run(
+                    part=request.args.get("part"),
+                    gate=request.args.get("gate"),
+                    command=request.args.get("command"),
+                )
+            )
+        )
+    )
 
 
 @bp.get("/war-room/smi-brain")
