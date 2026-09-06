@@ -35,6 +35,8 @@ MATRIX_EXTENDED_CANDIDATES: tuple[dict[str, str], ...] = (
 
 ANIMAL_REVIEW_CANDIDATES: tuple[dict[str, str], ...] = (
     {"name": "Cat", "position": "Silent Detail Hunter / Independent Pattern Watcher", "status": "passport_review"},
+    {"name": "Tygress", "position": "Focused Huntress / Precision Pressure Watch", "status": "passport_review"},
+    {"name": "Lioness", "position": "Protective Pride Strategist / Family Pack Guardian", "status": "passport_review"},
 )
 
 REMOVED_MATRIX_CANDIDATES: tuple[dict[str, str], ...] = (
@@ -66,6 +68,8 @@ POSITION_LOCKS: dict[str, str] = {
     "Agent Smith": "Candidate final integrity challenger; not yet registered as Matrix core",
     "Twinz": "Candidate dual-path mirror for parallel consistency checks",
     "Cat": "Animal Intelligence candidate; silent detail hunter and independent pattern watcher",
+    "Tygress": "Animal Intelligence candidate; focused huntress and precision pressure watch",
+    "Lioness": "Animal Intelligence candidate; protective pride strategist and family pack guardian",
     "Mouse": "Removed unless needed; may only return as Animal Intelligence micro-detail scout after War Room proof",
     "Cypher": "Removed Matrix candidate; not available for passport review",
 }
@@ -151,7 +155,7 @@ def passport_audit() -> dict[str, Any]:
         },
         "green_gate": {
             "pass": False,
-            "reason": "Extended candidates need passport entries, tests, HRM receipt and Founder approval before full green.",
+            "reason": "Extended and animal candidates need passport entries, tests, HRM receipt and Founder approval before full green.",
         },
         "founder_decision_needed": True,
     }
@@ -162,11 +166,11 @@ def war_room_recommendation() -> dict[str, Any]:
 
     audit = passport_audit()
     return {
-        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports. Cypher is removed and Mouse is removed unless a future Animal Intelligence micro-detail role is proven necessary. Cat is now held in Animal Intelligence passport review.",
+        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports. Cypher is removed and Mouse is removed unless a future Animal Intelligence micro-detail role is proven necessary. Cat, Tygress and Lioness are held in Animal Intelligence passport review.",
         "decision_options": (
             "Hold Matrix Core at 7 and keep candidates in review",
             "Create passports for selected Matrix Extended candidates after War Room review",
-            "Review Cat as Animal Intelligence before any registration",
+            "Review Cat, Tygress and Lioness as Animal Intelligence before any registration",
             "Keep Mouse removed unless Ant/Bee/Spider/Cat cannot cover the micro-detail scout role",
             "Keep Cypher removed unless Founder re-approves a safer replacement role",
             "Reject any candidate that duplicates an existing family or system organ",
