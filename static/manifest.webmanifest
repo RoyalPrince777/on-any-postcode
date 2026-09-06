@@ -1,9 +1,9 @@
 {
   "name": "ON ANY POSTCODE",
   "short_name": "OAP",
-  "description": "One clean local-first front door for places, routes, Direct requests and The Link.",
-  "id": "/?source=oap-install",
-  "start_url": "/?source=oap-install",
+  "description": "The clean public front door for ON ANY POSTCODE.",
+  "id": "/?source=oap",
+  "start_url": "/?source=oap",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -16,8 +16,8 @@
     {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ],
   "shortcuts": [
-    {"name": "On Any Place", "short_name": "Place", "description": "Open places, routes, Travel, Movement and Live Pattern proof.", "url": "/on-any-place?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
+    {"name": "On Any Place", "short_name": "Place", "description": "Open Map Intelligence through the approved public door.", "url": "/on-any-place?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
     {"name": "OAP Direct", "short_name": "Direct", "description": "Open Direct requests, listings, venues and supplier proof.", "url": "/travel/direct?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "The Link", "short_name": "Link", "description": "Open OAP opportunities and Link Up.", "url": "/the-link?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]}
+    {"name": "The Link", "short_name": "Link", "description": "Open the OAP Link gateway.", "url": "/the-link?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]}
   ]
 }
