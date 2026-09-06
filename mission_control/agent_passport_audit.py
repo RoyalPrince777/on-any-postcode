@@ -27,11 +27,15 @@ MATRIX_EXTENDED_CANDIDATES: tuple[dict[str, str], ...] = (
     {"name": "Tank", "position": "Pressure Shield / Defence Support", "status": "passport_review"},
     {"name": "Dozer", "position": "Blocker Clearing / Path Opening", "status": "passport_review"},
     {"name": "Switch", "position": "Mode Switch / State Change Checker", "status": "passport_review"},
-    {"name": "Cypher", "position": "Betrayal-Risk / False Comfort Detector", "status": "passport_review"},
-    {"name": "Mouse", "position": "Detail Builder / Small Feature Scout", "status": "passport_review"},
+    {"name": "Mouse", "position": "Detail Builder / Small Feature Scout", "status": "hold_review"},
     {"name": "Apoc", "position": "Failure Warning / Collapse Signal", "status": "passport_review"},
     {"name": "Ghost", "position": "Stealth Observer / Quiet Path Watcher", "status": "passport_review"},
     {"name": "Niobe", "position": "Route Captain / Movement Command", "status": "passport_review"},
+    {"name": "Twinz", "position": "Dual-Path Mirror / Parallel Consistency Check", "status": "passport_review"},
+)
+
+REMOVED_MATRIX_CANDIDATES: tuple[dict[str, str], ...] = (
+    {"name": "Cypher", "reason": "Founder removed candidate after War Room duplicate-risk review", "status": "removed_by_founder"},
 )
 
 WAR_ROOM_PASSPORT_CHECKS: tuple[str, ...] = (
@@ -56,6 +60,9 @@ POSITION_LOCKS: dict[str, str] = {
     "HRM Core": "Memory; not an agent",
     "Neo": "Matrix Kernel Sentinel close to SMI and Nexus",
     "Agent Smith": "Candidate final integrity challenger; not yet registered as Matrix core",
+    "Twinz": "Candidate dual-path mirror for parallel consistency checks",
+    "Mouse": "Hold-review candidate; detail scout role needs sharper boundary",
+    "Cypher": "Removed Matrix candidate; not available for passport review",
 }
 
 
@@ -112,6 +119,7 @@ def passport_audit() -> dict[str, Any]:
             "status_light": "yellow",
             "meaning": "Candidate layer for War Room passport review; not counted as registered Matrix core yet.",
             "candidates": MATRIX_EXTENDED_CANDIDATES,
+            "removed_candidates": REMOVED_MATRIX_CANDIDATES,
             "already_registered_as_core": candidate_already_registered,
         },
         "position_locks": POSITION_LOCKS,
@@ -138,10 +146,12 @@ def war_room_recommendation() -> dict[str, Any]:
 
     audit = passport_audit()
     return {
-        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports.",
+        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports. Cypher is removed and Mouse remains on hold-review.",
         "decision_options": (
             "Hold Matrix Core at 7 and keep candidates in review",
             "Create passports for selected Matrix Extended candidates after War Room review",
+            "Keep Mouse on hold-review until its detail-scout boundary is sharper",
+            "Keep Cypher removed unless Founder re-approves a safer replacement role",
             "Reject any candidate that duplicates an existing family or system organ",
         ),
         "audit": audit,
