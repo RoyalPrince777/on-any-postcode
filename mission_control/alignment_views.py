@@ -7,6 +7,7 @@ from . import (
     ai_behaviour_protocol,
     alignment_check,
     master_upgrade_contract,
+    smi_brain_protocol,
     smi_completion_contract,
     war_room_simulation_actions,
     web_security,
@@ -19,6 +20,28 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.get("/war-room/smi-brain")
+@bp.get("/war-room/actions/smi-brain")
+@bp.get("/smi/brain/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_status():
+    """Return the Founder-only SMI Brain 14 x 7 status board."""
+
+    return _no_store(make_response(jsonify(smi_brain_protocol.brain_status())))
+
+
+@bp.get("/war-room/smi-brain/simulate")
+@bp.get("/war-room/actions/smi-brain-simulate")
+@bp.get("/smi/brain/simulate")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_simulation():
+    """Start the safe War Room simulation for the 14 brain parts up to 7/7."""
+
+    return _no_store(
+        make_response(jsonify(smi_brain_protocol.simulation(request.args.get("stage"))))
+    )
 
 
 @bp.get("/war-room/ai-behaviour")
