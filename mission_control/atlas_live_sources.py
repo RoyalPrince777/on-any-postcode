@@ -12,8 +12,8 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Iterable
 
 MAX_RESULTS = 12
 TIMEOUT_SECONDS = 5
