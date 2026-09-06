@@ -6,71 +6,56 @@
   <title>Private SMI</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    :root{--smi-green:#39e57f;--smi-gold:#d7b85d;--smi-line:#254834;--smi-bg:#050b08;--smi-card:#09170f;--smi-card2:#0b2014;--smi-text:#eef8f1;--smi-soft:#9eb6a8;--smi-red:#ff6767;--smi-yellow:#f1d36b;--smi-purple:#b795ff}
-    *{box-sizing:border-box}body{margin:0;background:var(--smi-bg);color:var(--smi-text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.smi-app{max-width:1120px;margin:0 auto;padding:16px}.smi-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}.smi-kicker{margin:0 0 6px;color:var(--smi-green);text-transform:uppercase;letter-spacing:.14em;font-size:.72rem;font-weight:900}.smi-top h1{margin:0;font-size:clamp(2rem,8vw,4.4rem);letter-spacing:-.06em;line-height:.95}.smi-top p{max-width:720px;color:var(--smi-soft);font-size:1rem;line-height:1.45}.smi-nav{display:flex;gap:8px;flex-wrap:wrap}.smi-nav a,.smi-btn{min-height:44px;display:inline-flex;align-items:center;gap:7px;padding:10px 12px;border:1px solid var(--smi-line);border-radius:999px;color:inherit;text-decoration:none;background:#07120c;font-weight:800}.smi-nav a:hover,.smi-btn:hover{border-color:var(--smi-green)}.smi-signal-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}.smi-signal{border:1px solid var(--smi-line);border-radius:16px;padding:12px;background:var(--smi-card)}.smi-signal small{display:block;color:var(--smi-soft);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em}.smi-signal strong{display:block;margin-top:4px;font-size:1rem}.smi-signal--green{border-color:#2f8f55}.smi-signal--yellow{border-color:#7f6d25}.smi-signal--lock{border-color:#806c2d}.smi-main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,.8fr);gap:14px}.smi-panel{border:1px solid var(--smi-line);border-radius:22px;background:linear-gradient(145deg,var(--smi-card),#06110b);padding:16px}.smi-panel h2{margin:0 0 6px;font-size:1.35rem}.smi-panel p{color:var(--smi-soft);line-height:1.45}.smi-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.smi-control{display:block;min-height:112px;padding:14px;border:1px solid var(--smi-line);border-radius:18px;background:var(--smi-card2);color:inherit;text-decoration:none}.smi-control:hover{border-color:var(--smi-green)}.smi-control strong{display:block;font-size:1.05rem;margin-bottom:6px}.smi-control small{display:block;color:var(--smi-soft);line-height:1.35}.smi-control--main{border-color:#2f8f55;background:linear-gradient(145deg,#0c2b19,#08150d)}.smi-control--warn{border-color:#7f6d25}.smi-list{display:grid;gap:8px;margin-top:12px}.smi-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border:1px solid var(--smi-line);border-radius:14px;background:#07120c}.smi-row span{color:var(--smi-soft);font-size:.9rem}.smi-row strong{text-align:right}.smi-truth{margin-top:12px;border-left:4px solid var(--smi-gold);background:#211b0b;border-radius:0 14px 14px 0;padding:12px;color:#efe1ad;font-weight:800}.smi-footer{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.smi-mini{border:1px solid var(--smi-line);border-radius:16px;padding:12px;background:#07120c}.smi-mini strong{display:block;margin-bottom:5px}.smi-mini span{color:var(--smi-soft);font-size:.86rem;line-height:1.35}.smi-action-line{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.smi-start{border-color:#2f8f55;box-shadow:0 0 0 1px #39e57f20 inset}@media(max-width:820px){.smi-main{grid-template-columns:1fr}.smi-signal-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.smi-footer{grid-template-columns:1fr}}@media(max-width:520px){.smi-app{padding:10px}.smi-controls{grid-template-columns:1fr}.smi-signal-strip{grid-template-columns:1fr}.smi-nav a{width:100%;justify-content:center}.smi-top h1{font-size:2.6rem}}
+    :root{--bg:#050806;--card:#09140d;--card2:#0d1e13;--line:#244832;--green:#39e57f;--gold:#d7b85d;--muted:#9fb5a8;--text:#f0faf3;--red:#ff6666;--purple:#b795ff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.smi{max-width:980px;margin:0 auto;padding:16px 12px 88px}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.k{margin:0 0 5px;color:var(--green);font-weight:900;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}.top h1{margin:0;font-size:clamp(2.4rem,10vw,5rem);line-height:.92;letter-spacing:-.07em}.top p{margin:8px 0 0;max-width:650px;color:var(--muted);line-height:1.42}.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid #2c7e4e;border-radius:999px;padding:9px 12px;background:#092015;font-weight:900}.lights{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0}.light{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:10px}.light small{display:block;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em}.light strong{display:block;margin-top:4px}.green{border-color:#2c8c52}.lock{border-color:#7a682b}.main{border:1px solid var(--line);border-radius:24px;background:linear-gradient(145deg,#09160e,#06100a);padding:16px}.main h2{margin:0 0 6px;font-size:1.5rem}.main p{margin:0;color:var(--muted);line-height:1.45}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.control{display:block;min-height:112px;border:1px solid var(--line);border-radius:18px;background:var(--card2);padding:15px;color:inherit;text-decoration:none}.control:hover,.control:focus{border-color:var(--green);outline:none}.control strong{display:block;font-size:1.08rem;margin-bottom:6px}.control small{display:block;color:var(--muted);line-height:1.35}.control.primary{border-color:#2c8c52;background:linear-gradient(145deg,#0f301c,#0a160f)}.control.gold{border-color:#7a682b}.truth{margin-top:12px;border-left:4px solid var(--gold);background:#1e180b;border-radius:0 14px 14px 0;padding:12px;color:#efe2ad;font-weight:800}.split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.box{border:1px solid var(--line);border-radius:16px;background:#07110b;padding:12px}.box strong{display:block;margin-bottom:6px}.box span{display:block;color:var(--muted);line-height:1.35}.bottom{position:fixed;left:0;right:0;bottom:0;background:#050806e8;border-top:1px solid var(--line);backdrop-filter:blur(10px);padding:8px;display:flex;gap:7px;justify-content:center;z-index:20}.bottom a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:8px 10px;background:#08140d;color:inherit;text-decoration:none;font-weight:900;font-size:.82rem}@media(max-width:720px){.lights{grid-template-columns:repeat(2,minmax(0,1fr))}.controls,.split{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}@media(max-width:420px){.smi{padding-left:10px;padding-right:10px}.top h1{font-size:3rem}.light{padding:9px}.control{min-height:96px}}
   </style>
 </head>
 <body>
-  <main class="smi-app">
-    <header class="smi-top">
+  <main class="smi">
+    <header class="top">
       <div>
-        <p class="smi-kicker">👑 Founder private app</p>
+        <p class="k">👑 Founder private</p>
         <h1>SMI</h1>
-        <p>One clean control room. Ask the brain, check proof, read signals, open receipts, and send decisions to Judgement. No noisy demo layer.</p>
+        <p>Easy access. Use the brain, check the live lights, open proof, read receipts and move to the next gate.</p>
       </div>
-      <nav class="smi-nav" aria-label="Private SMI navigation">
-        <a href="/mission?mode=mission" aria-current="page">🧠 SMI</a>
-        <a href="/war-room">⚔️ War Room</a>
-        <a href="/smi/brain/status">🧬 Brain</a>
-        <a href="/judgement">👑 Judgement</a>
-      </nav>
+      <span class="pill">🔒 Private gate</span>
     </header>
 
-    <section class="smi-signal-strip" aria-label="Live SMI signals">
-      <div class="smi-signal smi-signal--green"><small>App</small><strong>🟢 Private live</strong></div>
-      <div class="smi-signal smi-signal--yellow"><small>SMI</small><strong>🟣 Learning</strong></div>
-      <div class="smi-signal smi-signal--green"><small>Local proof</small><strong>🟢 7/7</strong></div>
-      <div class="smi-signal smi-signal--lock"><small>Authority</small><strong>🔒 Founder only</strong></div>
+    <section class="lights" aria-label="SMI live lights">
+      <div class="light green"><small>SMI</small><strong>🟢 Live</strong></div>
+      <div class="light green"><small>OAP World</small><strong>🟢 Live</strong></div>
+      <div class="light green"><small>Receipts</small><strong>🟢 Local</strong></div>
+      <div class="light lock"><small>Neon</small><strong>🔒 Not claimed</strong></div>
+      <div class="light lock"><small>Full Green</small><strong>🔒 Locked</strong></div>
     </section>
 
-    <section class="smi-main">
-      <div class="smi-panel smi-start" aria-labelledby="start-title">
-        <p class="smi-kicker">Start here</p>
-        <h2 id="start-title">Real controls</h2>
-        <p>These open working private routes. They check state, run bounded proof, show receipts, or prepare a Founder decision. They do not secretly deploy, spend, dispatch, track, or approve.</p>
-        <div class="smi-controls">
-          <a class="smi-control smi-control--main" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Ask SMI</strong><small>Open the private SMI chat and get straight to the point.</small></a>
-          <a class="smi-control smi-control--main" href="/smi/brain/evidence-runner/run?command=war_room"><strong>⚔️ Run Proof</strong><small>Run the bounded War Room proof frame now.</small></a>
-          <a class="smi-control" href="/smi/thinking-signals"><strong>📡 Signals</strong><small>Show current mode, stage, confidence, Guardian and HRM state.</small></a>
-          <a class="smi-control" href="/smi/brain/receipts"><strong>💾 Receipts</strong><small>Read local HRM-style and Matrix learning proof receipts.</small></a>
-          <a class="smi-control" href="/smi/brain/evidence"><strong>⭐ Evidence</strong><small>Check the 14 × 7 SMI Brain evidence board.</small></a>
-          <a class="smi-control smi-control--warn" href="/smi/brain/evidence-runner/run?command=recovery_test"><strong>🔄 Recovery</strong><small>Check fallback, recovery and resume path.</small></a>
-        </div>
+    <section class="main" aria-labelledby="start-title">
+      <p class="k">Start here</p>
+      <h2 id="start-title">Private SMI Control</h2>
+      <p>Five clear doors. No board wall. No demo language. No hidden execution.</p>
+      <div class="controls" aria-label="Main SMI controls">
+        <a class="control primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Ask SMI</strong><small>Open private chat and get straight answers.</small></a>
+        <a class="control primary" href="{{ url_for('mission_control.war_room_dashboard') }}"><strong>⚔️ War Room</strong><small>Check risk, proof, recovery and next move.</small></a>
+        <a class="control" href="/smi/thinking-signals"><strong>📡 Signals</strong><small>See status signals without private chain-of-thought.</small></a>
+        <a class="control" href="/smi/brain/receipts"><strong>💾 Receipts</strong><small>Read local HRM and Matrix receipt status.</small></a>
+        <a class="control gold" href="/smi/deep-dive/simulate?command=next_gate"><strong>➡️ Next Gate</strong><small>Show the smallest safe move forward.</small></a>
+        <a class="control" href="{{ url_for('mission_control.judgement_dashboard') }}"><strong>👑 Judgement</strong><small>Human Authority decision area.</small></a>
       </div>
-
-      <aside class="smi-panel" aria-labelledby="status-title">
-        <p class="smi-kicker">Now</p>
-        <h2 id="status-title">Status</h2>
-        <div class="smi-list">
-          <div class="smi-row"><span>Brain protocol</span><strong>🟢 Live</strong></div>
-          <div class="smi-row"><span>Evidence runner</span><strong>🟢 Live</strong></div>
-          <div class="smi-row"><span>Receipts</span><strong>🟢 Local</strong></div>
-          <div class="smi-row"><span>Guardian</span><strong>🛡 Required</strong></div>
-          <div class="smi-row"><span>Neon mirror</span><strong>🔒 Not claimed</strong></div>
-        </div>
-        <p class="smi-truth">Full product green stays locked until production checks and Founder final.</p>
-        <div class="smi-action-line">
-          <a class="smi-btn" href="/smi/brain/evidence-runner/run?command=next_gate">➡️ Next Gate</a>
-          <a class="smi-btn" href="/smi/brain/evidence-runner/run?command=guardian_check">🛡 Guardian</a>
-        </div>
-      </aside>
+      <p class="truth">Truth lock: these controls open checks, proof, receipts and judgement. They do not secretly deploy, spend, dispatch, track, mutate production or approve themselves.</p>
     </section>
 
-    <section class="smi-footer" aria-label="Private SMI boundaries">
-      <div class="smi-mini"><strong>✅ What works here</strong><span>Brain checks, proof run, signals, receipts, recovery checks and decision preparation.</span></div>
-      <div class="smi-mini"><strong>🔒 What stays locked</strong><span>Production mutation, payments, dispatch, tracking, self-approval and fake green claims.</span></div>
-      <div class="smi-mini"><strong>👑 Final decision</strong><span>SMI recommends. War Room checks. Guardian protects. Founder decides.</span></div>
+    <section class="split" aria-label="SMI summary">
+      <div class="box"><strong>🟢 Working now</strong><span>SMI chat, War Room, evidence runner, local receipts, signals and Founder-only gates.</span></div>
+      <div class="box"><strong>🔒 Still missing</strong><span>Production Neon mirror proof, acceptance tests, rollback proof and final Founder certification.</span></div>
     </section>
   </main>
+
+  <nav class="bottom" aria-label="Quick access">
+    <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Ask SMI</a>
+    <a href="{{ url_for('mission_control.war_room_dashboard') }}">War Room</a>
+    <a href="/smi/thinking-signals">Signals</a>
+    <a href="/smi/brain/receipts">Receipts</a>
+    <a href="/smi/deep-dive/simulate?command=next_gate">Next Gate</a>
+  </nav>
 </body>
 </html>
