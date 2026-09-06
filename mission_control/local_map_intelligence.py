@@ -42,6 +42,34 @@ MAP_INTELLIGENCE_STRUCTURE = {
     "green_rule": "Map Intelligence cannot go overall green until map tiles, route geometry, source-backed UK data, events/open-now proof and War Room proof-runner pass.",
 }
 
+MAP_SEEING_LAYERS = {
+    "principle": "Map Intelligence sees the world through layered proof, not one magic provider.",
+    "google_waze_tesla_lesson": {
+        "google_style": "imagery, Street View-style observations, business/place data, user reports, authority data and AI change detection",
+        "waze_style": "driver movement, crowd reports, hazards, closures and partner/authority feeds",
+        "tesla_style": "onboard map, vehicle GPS, online routing, live traffic visualisation and vehicle/charger state",
+        "oap_style": "open map data, first-party local proof, Founder-approved seeds, public open data, consent-only Live Spot and HRM receipts",
+    },
+    "oap_layers": {
+        "base_map": "OpenStreetMap/open map geometry, local tiles later, offline-friendly where possible.",
+        "imagery_reference": "Optional aerial/satellite/photo references only when licensed/source-backed; no copied third-party branding.",
+        "place_data": "Shops, food, businesses, venues, parks, attractions, stations and Spots.",
+        "movement_data": "Routes, distance, ETA, route pressure and source-backed geometry.",
+        "travel_data": "Direct requests, stays, venues, attractions and supplier proof.",
+        "live_pattern": "Traffic-style, events, crowd pressure, disruption and open-now signals with timestamps.",
+        "proof_layer": "Source name, source timestamp, freshness, confidence, stale warning and proof_id.",
+        "consent_layer": "Live Spot/location features require permission, expiry, stop/delete and no silent tracking.",
+        "green_gate": "No live claim, full-green claim, payment, dispatch or confirmation without proof.",
+    },
+    "hard_locks": {
+        "payment_capture_enabled": False,
+        "automatic_dispatch_enabled": False,
+        "hidden_tracking_enabled": False,
+        "fake_live_claim_enabled": False,
+        "third_party_branding_used": False,
+    },
+}
+
 UK_CATEGORIES = (
     "all",
     "shops",
@@ -73,6 +101,15 @@ UK_CATEGORIES = (
 FEATURE_UNLOCKS = {
     "uk_first": True,
     "map_intelligence_root": True,
+    "map_seeing_layers": True,
+    "base_map_layer_defined": True,
+    "place_data_layer_defined": True,
+    "movement_data_layer_defined": True,
+    "travel_data_layer_defined": True,
+    "live_pattern_layer_defined": True,
+    "proof_layer_defined": True,
+    "consent_layer_defined": True,
+    "green_gate_layer_defined": True,
     "travel_inside_map_intelligence": True,
     "movement_inside_map_intelligence": True,
     "on_any_place_surface": True,
@@ -251,6 +288,7 @@ def route_proof(start: object = None, end: object = None, *, profile: object = "
         "source": "OAP UK seed route matrix",
         "source_timestamp": generated_at,
         "proof_state": proof_state,
+        "seeing_layers": ("movement_data", "proof_layer", "green_gate"),
         "live_traffic_claim": False,
         "live_route_geometry": False,
         "turn_by_turn_enabled": False,
@@ -268,6 +306,7 @@ def request_preview(start: object = None, end: object = None, *, purpose: object
         "component": "On Any Request Preview",
         "parent": PROGRAMS["map_intelligence"],
         "inside": PROGRAMS["places"],
+        "seeing_layers": ("travel_data", "movement_data", "consent_layer", "proof_layer", "green_gate"),
         "request_state": "preview_only",
         "purpose": str(purpose or "on_any_route")[:80],
         "route": route,
@@ -300,9 +339,12 @@ def local_map(query: object = None, *, category: object = None, start: object = 
         "third_party_branding_used": False,
         "public_noise_removed": True,
         "map_intelligence": MAP_INTELLIGENCE_STRUCTURE,
+        "map_seeing_layers": MAP_SEEING_LAYERS,
         "sections": {
             "maps": PROGRAMS["places"],
             "inside_map_intelligence": {
+                "base_map": "Base map / open geometry",
+                "places": PROGRAMS["places"],
                 "travel": PROGRAMS["travel"],
                 "movement": PROGRAMS["movement"],
                 "route": PROGRAMS["routes"],
@@ -311,6 +353,9 @@ def local_map(query: object = None, *, category: object = None, start: object = 
                 "drop": PROGRAMS["drop"],
                 "spots": "Spots",
                 "events": PROGRAMS["pattern"],
+                "proof": "Proof layer",
+                "consent": "Consent layer",
+                "green_gate": "Green Gate",
             },
         },
         "points": points,
@@ -354,6 +399,7 @@ def status() -> dict[str, object]:
         "route_proof_api": "/movement/route-proof",
         "request_preview_api": "/movement/request-preview",
         "map_intelligence": MAP_INTELLIGENCE_STRUCTURE,
+        "map_seeing_layers": MAP_SEEING_LAYERS,
         "travel_inside_map_intelligence": True,
         "movement_inside_map_intelligence": True,
         "feature_unlocks": FEATURE_UNLOCKS,
@@ -366,5 +412,5 @@ def status() -> dict[str, object]:
         "hidden_tracking_enabled": False,
         "live_traffic_claim": False,
         "overall_green": False,
-        "reason_not_green": "Map Intelligence has Travel and Movement nested inside it, but real map tiles, full UK data, turn-by-turn, live traffic and event proof are not complete.",
+        "reason_not_green": "Map Intelligence now has seeing layers plus Travel and Movement nested inside it, but real map tiles, full UK data, turn-by-turn, live traffic and event proof are not complete.",
     }
