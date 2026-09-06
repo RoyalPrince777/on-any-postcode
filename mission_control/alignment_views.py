@@ -8,6 +8,7 @@ from . import (
     alignment_check,
     master_upgrade_contract,
     smi_brain_protocol,
+    smi_brain_score21,
     smi_completion_contract,
     war_room_simulation_actions,
     web_security,
@@ -42,6 +43,16 @@ def smi_brain_simulation():
     return _no_store(
         make_response(jsonify(smi_brain_protocol.simulation(request.args.get("stage"))))
     )
+
+
+@bp.get("/war-room/smi-brain/score")
+@bp.get("/war-room/actions/smi-brain-score")
+@bp.get("/smi/brain/score")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_score():
+    """Return the Founder-only 3 + 7 + 7 = 17/21 SMI Brain score."""
+
+    return _no_store(make_response(jsonify(smi_brain_score21.score21_status())))
 
 
 @bp.get("/war-room/ai-behaviour")
