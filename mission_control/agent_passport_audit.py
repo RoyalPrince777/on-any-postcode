@@ -39,9 +39,14 @@ ANIMAL_REVIEW_CANDIDATES: tuple[dict[str, str], ...] = (
     {"name": "Lioness", "position": "Protective Pride Strategist / Family Pack Guardian", "status": "passport_review"},
 )
 
+JUNGLE_BOOK_REVIEW_CANDIDATES: tuple[dict[str, str], ...] = (
+    {"name": "Baloo", "position": "Calm Mentor / Wellbeing and Recovery Guide", "status": "passport_review"},
+    {"name": "King Louie", "position": "Influence Watch / Crowd Energy and Ego Pressure Review", "status": "passport_review"},
+    {"name": "Bandar Log", "position": "Noise Swarm / Distraction Pattern Detector", "status": "passport_review"},
+)
+
 REMOVED_MATRIX_CANDIDATES: tuple[dict[str, str], ...] = (
     {"name": "Cypher", "reason": "Founder removed candidate after War Room duplicate-risk review", "status": "removed_by_founder"},
-    {"name": "Mouse", "reason": "Founder removed from active Matrix review unless a future micro-detail role is proven necessary; Ant/Bee/Spider/Cat cover stronger animal-intelligence alternatives", "status": "removed_unless_needed"},
 )
 
 WAR_ROOM_PASSPORT_CHECKS: tuple[str, ...] = (
@@ -70,7 +75,9 @@ POSITION_LOCKS: dict[str, str] = {
     "Cat": "Animal Intelligence candidate; silent detail hunter and independent pattern watcher",
     "Tygress": "Animal Intelligence candidate; focused huntress and precision pressure watch",
     "Lioness": "Animal Intelligence candidate; protective pride strategist and family pack guardian",
-    "Mouse": "Removed unless needed; may only return as Animal Intelligence micro-detail scout after War Room proof",
+    "Baloo": "Jungle Book Intelligence candidate; calm mentor for wellbeing, recovery and grounded support",
+    "King Louie": "Jungle Book Intelligence candidate; influence watch for crowd energy, ego pressure and imitation risk",
+    "Bandar Log": "Jungle Book Intelligence candidate; noise swarm detector for distraction, copycat chatter and unstable group signal",
     "Cypher": "Removed Matrix candidate; not available for passport review",
 }
 
@@ -112,6 +119,11 @@ def passport_audit() -> dict[str, Any]:
         for item in ANIMAL_REVIEW_CANDIDATES
         if item["name"] in registry_names
     )
+    jungle_book_candidate_already_registered = tuple(
+        item["name"]
+        for item in JUNGLE_BOOK_REVIEW_CANDIDATES
+        if item["name"] in registry_names
+    )
 
     return {
         "name": "War Room Agent Passport Audit",
@@ -142,6 +154,12 @@ def passport_audit() -> dict[str, Any]:
             "candidates": ANIMAL_REVIEW_CANDIDATES,
             "already_registered": animal_candidate_already_registered,
         },
+        "jungle_book_review": {
+            "status_light": "yellow",
+            "meaning": "Jungle Book Intelligence candidate layer for War Room passport review; not counted as registered agents yet.",
+            "candidates": JUNGLE_BOOK_REVIEW_CANDIDATES,
+            "already_registered": jungle_book_candidate_already_registered,
+        },
         "position_locks": POSITION_LOCKS,
         "war_room_checks": WAR_ROOM_PASSPORT_CHECKS,
         "collisions": {
@@ -155,7 +173,7 @@ def passport_audit() -> dict[str, Any]:
         },
         "green_gate": {
             "pass": False,
-            "reason": "Extended and animal candidates need passport entries, tests, HRM receipt and Founder approval before full green.",
+            "reason": "Extended, animal and Jungle Book candidates need passport entries, tests, HRM receipt and Founder approval before full green.",
         },
         "founder_decision_needed": True,
     }
@@ -166,12 +184,13 @@ def war_room_recommendation() -> dict[str, Any]:
 
     audit = passport_audit()
     return {
-        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports. Cypher is removed and Mouse is removed unless a future Animal Intelligence micro-detail role is proven necessary. Cat, Tygress and Lioness are held in Animal Intelligence passport review.",
+        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports. Cypher is removed. Mouse is fully removed from passport review. Cat, Tygress and Lioness are held in Animal Intelligence passport review. Baloo, King Louie and Bandar Log are held in Jungle Book Intelligence passport review.",
         "decision_options": (
             "Hold Matrix Core at 7 and keep candidates in review",
             "Create passports for selected Matrix Extended candidates after War Room review",
             "Review Cat, Tygress and Lioness as Animal Intelligence before any registration",
-            "Keep Mouse removed unless Ant/Bee/Spider/Cat cannot cover the micro-detail scout role",
+            "Review Baloo, King Louie and Bandar Log as Jungle Book Intelligence before any registration",
+            "Keep Mouse fully removed unless Founder opens a new future case",
             "Keep Cypher removed unless Founder re-approves a safer replacement role",
             "Reject any candidate that duplicates an existing family or system organ",
         ),
