@@ -7,9 +7,11 @@ from . import (
     ai_behaviour_protocol,
     alignment_check,
     master_upgrade_contract,
+    smi_brain_evidence_protocol,
     smi_brain_protocol,
     smi_brain_score21,
     smi_completion_contract,
+    smi_deep_dive_protocol,
     war_room_simulation_actions,
     web_security,
 )
@@ -21,6 +23,44 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.get("/war-room/deep-dive")
+@bp.get("/war-room/actions/deep-dive")
+@bp.get("/smi/deep-dive")
+@web_security.login_required(api=True, founder_only=True)
+def smi_deep_dive_status():
+    """Return the Founder-only SMI-first Deep-Dive Simulation Protocol."""
+
+    return _no_store(make_response(jsonify(smi_deep_dive_protocol.status())))
+
+
+@bp.get("/war-room/deep-dive/simulate")
+@bp.get("/war-room/actions/deep-dive-simulate")
+@bp.get("/smi/deep-dive/simulate")
+@web_security.login_required(api=True, founder_only=True)
+def smi_deep_dive_simulate():
+    """Return a bounded SMI-first simulation frame for one command."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                smi_deep_dive_protocol.simulate(
+                    request.args.get("command"), request.args.get("agent")
+                )
+            )
+        )
+    )
+
+
+@bp.get("/war-room/smi-brain/evidence")
+@bp.get("/war-room/actions/smi-brain-evidence")
+@bp.get("/smi/brain/evidence")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_evidence_status():
+    """Return the Founder-only SMI Brain 14 x 7 evidence completion protocol."""
+
+    return _no_store(make_response(jsonify(smi_brain_evidence_protocol.completion_check(request.args.get("part")))))
 
 
 @bp.get("/war-room/smi-brain")
