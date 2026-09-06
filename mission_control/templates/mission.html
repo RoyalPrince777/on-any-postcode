@@ -11,9 +11,10 @@
     .oap-command-hero{border:1px solid var(--deck-line);border-radius:22px;padding:20px;background:linear-gradient(145deg,#06120b,#0b2114);box-shadow:0 18px 55px #0008,inset 0 0 30px #39e57f0b}
     .oap-command-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}.oap-command-top h1{margin:.2rem 0 .4rem;font-size:clamp(2rem,7vw,4.8rem);letter-spacing:-.05em}.oap-live-pill{border:1px solid #317d50;border-radius:999px;padding:8px 12px;color:#aef2c7;background:#0a2818;font-weight:900;font-size:.75rem;box-shadow:0 0 22px #39e57f22}
     .oap-control-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:18px}.oap-control{display:block;text-decoration:none;color:inherit;border:1px solid var(--deck-line);border-radius:18px;padding:16px;background:var(--deck-panel2);min-height:142px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.oap-control:hover,.oap-control:focus{transform:translateY(-2px);border-color:var(--deck-green);box-shadow:0 12px 28px #0007,0 0 18px #39e57f1c}.oap-control--primary{border-color:#3d8c58;background:linear-gradient(145deg,#0b2a18,#0a1d12)}.oap-control--locked{border-color:#806c2d;background:linear-gradient(145deg,#211b0b,#0a1d12)}.oap-control strong{display:block;font-size:1.05rem;margin:8px 0 5px}.oap-control small{display:block;color:#9eb2a5;line-height:1.45}.oap-control .sig{font-size:1.35rem}
+    .oap-war-room-one{margin-top:18px;border:1px solid #3d8c58;border-radius:20px;padding:16px;background:radial-gradient(circle at top left,#164d2b,#07140d 58%);box-shadow:inset 0 0 28px #39e57f12}.oap-war-room-one h2{margin:.2rem 0 .4rem;font-size:clamp(1.35rem,4vw,2.3rem)}.oap-war-room-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.oap-war-room-signal{border:1px solid #8a7b39;background:#211b0b;color:#f5e3a4;border-radius:999px;padding:7px 10px;font-weight:900;font-size:.74rem}.oap-war-room-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}.oap-war-room-buttons a{display:block;text-decoration:none;color:inherit;border:1px solid #2e6e46;border-radius:14px;padding:12px;background:#0a1d12}.oap-war-room-buttons a strong{display:block;margin-bottom:4px}.oap-war-room-buttons a small{display:block;color:#9eb2a5;line-height:1.35}.oap-war-room-proof{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:12px}.oap-war-room-proof span{border:1px solid var(--deck-line);border-radius:12px;padding:9px 10px;background:#07140d;color:#c8d7cd;font-size:.8rem}.oap-war-room-proof strong{display:block;color:#fff;margin-top:2px}
     .oap-sovereignty-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.oap-sovereignty-cell{border:1px solid var(--deck-line);border-radius:14px;padding:13px;background:var(--deck-panel)}.oap-sovereignty-cell strong{display:block;margin-bottom:4px}.oap-sovereignty-cell span{color:#a8baaf;font-size:.8rem;line-height:1.4}.oap-truth{border-left:3px solid var(--deck-gold);padding:12px 14px;background:#211b0b;border-radius:0 12px 12px 0;color:#e6dcb7}.oap-header-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.oap-header-actions a{border:1px solid var(--deck-line);border-radius:999px;padding:8px 11px;text-decoration:none;color:inherit;font-size:.78rem}.oap-header-actions a:hover{border-color:var(--deck-green)}
-    @media(max-width:620px){.mc-workspace{padding-left:10px!important;padding-right:10px!important}.oap-command-hero{padding:15px}.oap-control-grid{grid-template-columns:1fr 1fr}.oap-control{min-height:132px;padding:13px}.oap-control small{font-size:.72rem}}
-    @media(max-width:420px){.oap-control-grid{grid-template-columns:1fr}}
+    @media(max-width:620px){.mc-workspace{padding-left:10px!important;padding-right:10px!important}.oap-command-hero{padding:15px}.oap-control-grid{grid-template-columns:1fr 1fr}.oap-control{min-height:132px;padding:13px}.oap-control small{font-size:.72rem}.oap-war-room-buttons{grid-template-columns:1fr 1fr}.oap-war-room-buttons a{padding:10px}}
+    @media(max-width:420px){.oap-control-grid,.oap-war-room-buttons{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -23,8 +24,8 @@
       <div class="oap-command-top">
         <div>
           <p class="mc-eyebrow">OAP · PRIVATE FOUNDER COMMAND · {{ active_mode|upper }}</p>
-          <h1 id="oap-command-title">SMI Mission Control</h1>
-          <p>Private command surface for OAP OS. SMI is the intelligence; A-levels are operating levels. Human Authority remains final.</p>
+          <h1 id="oap-command-title">SMI Dashboard</h1>
+          <p>Private command surface for OAP OS. SMI starts first, War Room opens when triggered, and Human Authority remains final.</p>
         </div>
         <span class="oap-live-pill">● PRIVATE LIVE</span>
       </div>
@@ -38,6 +39,37 @@
         <a href="{{ url_for('my_world') }}">My World</a>
         <a href="https://on-any-postcode.onrender.com/">Public OAP World ↗</a>
       </nav>
+
+      <section class="oap-war-room-one" aria-labelledby="war-room-one-title">
+        <div class="oap-war-room-top">
+          <div>
+            <p class="mc-eyebrow">War Room 1 · SMI starts first</p>
+            <h2 id="war-room-one-title">SMI Brain Command</h2>
+            <p>Use this first for deep dive, evidence, receipts, runner proof and next gate. War Room remains review-only until Founder final.</p>
+          </div>
+          <span class="oap-war-room-signal">🟡 OPEN · 🟣 LEARNING</span>
+        </div>
+        <div class="oap-war-room-buttons" aria-label="War Room 1 SMI controls">
+          <a href="/smi/deep-dive"><strong>🟣 Deep Dive</strong><small>SMI-first 3 / 7 / 21 mode.</small></a>
+          <a href="/smi/deep-dive/simulate?command=next_gate"><strong>➡️ Next Gate</strong><small>Smallest proof move forward.</small></a>
+          <a href="/smi/brain/status"><strong>🧠 SMI Brain</strong><small>14 brain parts and protocol board.</small></a>
+          <a href="/smi/brain/evidence"><strong>⭐ Evidence 14×7</strong><small>All evidence gates and status.</small></a>
+          <a href="/smi/brain/evidence-runner"><strong>🏃 Runner</strong><small>Callable gates 4–7 proof runner.</small></a>
+          <a href="/smi/brain/evidence-runner/run?command=war_room"><strong>⚔️ Run War Room</strong><small>Bounded live review frame.</small></a>
+          <a href="/smi/brain/receipts"><strong>💾 Receipts</strong><small>Local HRM/Matrix receipt status.</small></a>
+          <a href="/smi/thinking-signals"><strong>🧠 Thinking</strong><small>Telemetry only, no private chain.</small></a>
+          <a href="/smi/brain/evidence-runner/run?command=red_team"><strong>⚔️ Red Team</strong><small>Attack assumptions safely.</small></a>
+          <a href="/smi/brain/evidence-runner/run?command=recovery_test"><strong>🔄 Recovery</strong><small>Fallback, integrity and resume test.</small></a>
+        </div>
+        <div class="oap-war-room-proof" aria-label="SMI proof status">
+          <span>Proof<strong>⭐⭐⭐⭐⭐⭐⭐</strong></span>
+          <span>Protection<strong>⭐⭐⭐⭐⭐⭐☆</strong></span>
+          <span>Decision<strong>⭐⭐⭐⭐⭐⭐☆</strong></span>
+          <span>Memory<strong>⭐⭐⭐⭐⭐⭐⭐</strong></span>
+          <span>Recovery<strong>⭐⭐⭐⭐⭐☆☆</strong></span>
+        </div>
+        <p class="oap-truth"><strong>Truth lock:</strong> SMI local proof can be green; production Neon mirror and full product green still require separate production checks and Founder final.</p>
+      </section>
 
       <div class="oap-control-grid" aria-label="Live private controls">
         <a class="oap-control oap-control--primary" href="{{ url_for('travel_supply.founder_dashboard') }}"><span class="sig">🏨</span><strong>OAP Direct Supply</strong><small>Certified OAP suppliers, listings, first-party pictures, availability, pricing and reservation readiness.</small></a>
