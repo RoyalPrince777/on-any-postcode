@@ -1,10 +1,11 @@
-"""Founder-only SMI alignment and simple task debug routes."""
+"""Founder-only SMI alignment, simulation and master upgrade routes."""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
 from . import (
     alignment_check,
+    master_upgrade_contract,
     smi_completion_contract,
     war_room_simulation_actions,
     web_security,
@@ -17,6 +18,16 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.get("/war-room/master-upgrade")
+@bp.get("/war-room/actions/master-upgrade")
+@bp.get("/smi/master-upgrade")
+@web_security.login_required(api=True, founder_only=True)
+def master_upgrade():
+    """Return the real-green master upgrade contract."""
+
+    return _no_store(make_response(jsonify(master_upgrade_contract.status())))
 
 
 @bp.get("/war-room/alignment")
