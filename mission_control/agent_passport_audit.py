@@ -78,11 +78,12 @@ REVIEW_OUTCOME_TEMPLATE: dict[str, str] = {
     "agent": "Name of agent or candidate",
     "role": "One-line canonical role",
     "agreed": "Where SMI, Neo, Shere Khan, Bagheera, Agent Smith, Guardian and Green Gate agree",
-    "disagreed": "Where judges disagree or where role needs argument",
+    "debate": "Counter-view, better option or unresolved question from the judges",
     "recommended_signal": "🟢 pass review / 🟡 hold-sharpen / 🟠 orange block / 🔴 red block / 🔒 full green locked",
-    "argument": "Short War Room reason that proves why the verdict is correct",
+    "decision_reason": "Short War Room reason that explains why the verdict is correct",
     "verdict": "Pass Review, Hold/Sharpen, Orange Block, Red Block, or Founder Final needed",
     "rating": "⭐ to ⭐⭐⭐⭐⭐⭐⭐",
+    "signal": "Final visible review signal",
     "full_green": "🔒 NO until passport, tests, HRM receipt, Green Gate proof and Founder final approval",
     "founder_final": "👑 needed",
 }
@@ -102,6 +103,14 @@ WAR_ROOM_SPEECH_LOCK: dict[str, str] = {
     "Guardian": "I check safety. No harm, no tracking, no authority takeover, no private leak.",
     "Green Gate": "Review can pass. Full green needs passport, tests, receipt, proof and Founder final.",
     "Founder": "Founder Authority decides: approve, hold, sharpen, remove or send back.",
+}
+
+WAR_ROOM_DEBATE_LOCK: dict[str, str] = {
+    "meaning": "Use debate, counter-view and better option. Do not use argument/argue language.",
+    "agreed": "what the judges accept together",
+    "debate": "where the judges compare options, challenge the role, or request sharper proof",
+    "better_option": "the cleaner role, family, team or signal if the first idea duplicates another agent",
+    "final_reason": "the calm reason behind the verdict",
 }
 
 WAR_ROOM_PASSPORT_CHECKS: tuple[str, ...] = (
@@ -208,6 +217,7 @@ def passport_audit() -> dict[str, Any]:
         "registered_by_family": _registered_by_family(),
         "war_room_buttons": WAR_ROOM_BUTTONS,
         "review_outcome_template": REVIEW_OUTCOME_TEMPLATE,
+        "debate_lock": WAR_ROOM_DEBATE_LOCK,
         "stage_rules": WAR_ROOM_STAGE_RULES,
         "speech_lock": WAR_ROOM_SPEECH_LOCK,
         "matrix_core": {
@@ -275,10 +285,11 @@ def war_room_recommendation() -> dict[str, Any]:
 
     audit = passport_audit()
     return {
-        "recommendation": "Use the upgraded War Room decision format for every candidate: agreed, disagreed, recommended signal, argument, verdict, rating, full-green lock and Founder final. Keep Matrix Core at 7; audit all extended, animal, dog and Jungle Book candidates separately before adding passports.",
+        "recommendation": "Use the upgraded War Room decision format for every candidate: agreed, debate, better option, recommended signal, decision reason, verdict, rating, signal, full-green lock and Founder final. Keep Matrix Core at 7; audit all extended, animal, dog and Jungle Book candidates separately before adding passports.",
         "decision_options": (
             "Pass review when judges agree the role is clear and bounded",
-            "Hold/sharpen when role is useful but too close to another agent",
+            "Hold/sharpen when debate shows the role is useful but too close to another agent",
+            "Choose a better option when a cleaner role, family, team or signal exists",
             "Orange block when role is noisy, risky or duplicated right now",
             "Red block when role breaks safety, authority or duplicate rules",
             "Keep full system green locked until passport, tests, HRM receipt, Green Gate proof and Founder final",
