@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import alignment_check, web_security
+from . import alignment_check, smi_completion_contract, web_security
 
 bp = Blueprint("alignment", __name__)
 
@@ -32,6 +32,16 @@ def thinking_signals():
     """Return private-safe visible SMI thinking/status signals."""
 
     return _no_store(make_response(jsonify(alignment_check.thinking_signals())))
+
+
+@bp.get("/war-room/smi-completion")
+@bp.get("/war-room/actions/smi-completion")
+@bp.get("/smi/completion")
+@web_security.login_required(api=True, founder_only=True)
+def smi_completion():
+    """Return the private-safe SMI completion contract."""
+
+    return _no_store(make_response(jsonify(smi_completion_contract.completion_status())))
 
 
 @bp.get("/war-room/debug/simple-task")
