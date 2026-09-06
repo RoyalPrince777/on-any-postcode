@@ -1,7 +1,17 @@
 """OAP Direct travel marketplace and Founder-controlled supply surfaces."""
+
 from __future__ import annotations
 
-from flask import Blueprint, Response, jsonify, make_response, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from . import (
     area_intelligence,

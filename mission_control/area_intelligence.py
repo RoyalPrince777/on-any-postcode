@@ -6,8 +6,8 @@ authority, payment capture, dispatch, or fake live claims.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Iterable
 
 CATEGORIES = (
     "attractions",
@@ -140,9 +140,9 @@ def _canonical_area(query: object) -> str:
         return "mitcham"
     if term in KEY_ALIASES:
         return KEY_ALIASES[term]
-    for key in KEY_ALIASES:
+    for key, value in KEY_ALIASES.items():
         if key in term:
-            return KEY_ALIASES[key]
+            return value
     return term
 
 

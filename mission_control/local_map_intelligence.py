@@ -9,9 +9,9 @@ source proof.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from hashlib import sha256
-from typing import Iterable
 
 PROGRAMS = {
     "company": "ON ANY POSTCODE",

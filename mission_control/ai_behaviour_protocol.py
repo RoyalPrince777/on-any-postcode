@@ -5,11 +5,11 @@ organism, selects agents, prevents bypass behaviour, scores performance, and
 routes recovery/offline decisions. It does not execute tools, unlock payments,
 track users, dispatch real-world movement, or expose chain-of-thought.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from hashlib import sha256
-
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
 PROTOCOL_VERSION = 1
