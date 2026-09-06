@@ -3,111 +3,86 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAP War Room 1</title>
+  <title>SMI War Room</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    :root{--wr-green:#39e57f;--wr-yellow:#f5d76e;--wr-purple:#9b7cff;--wr-red:#ff6262;--wr-line:rgba(255,255,255,.13);--wr-card:rgba(255,255,255,.04);--wr-card2:rgba(57,229,127,.075)}
-    .wr-page{display:grid;gap:14px}.wr-top{border:1px solid var(--wr-line);border-radius:22px;padding:18px;background:linear-gradient(145deg,rgba(57,229,127,.09),rgba(155,124,255,.05));box-shadow:0 18px 45px rgba(0,0,0,.28)}
-    .wr-head{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}.wr-head h1{margin:.15rem 0 .35rem;font-size:clamp(2rem,6vw,4.2rem);letter-spacing:-.05em}.wr-head p{max-width:780px}.wr-live{display:flex;gap:8px;flex-wrap:wrap}.wr-pill{border:1px solid var(--wr-line);border-radius:999px;padding:8px 11px;background:rgba(0,0,0,.22);font-weight:900;font-size:.78rem}.wr-pill--open{color:var(--wr-yellow)}.wr-pill--learn{color:var(--wr-purple)}.wr-pill--green{color:var(--wr-green)}.wr-pill--lock{color:#e7d59a}
-    .wr-signal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}.wr-signal{border:1px solid var(--wr-line);border-radius:16px;padding:12px;background:var(--wr-card)}.wr-signal span{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.11em;opacity:.72}.wr-signal strong{display:block;margin-top:4px;font-size:1.05rem}.wr-signal small{display:block;margin-top:3px;opacity:.74}
-    .wr-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}.wr-control{display:block;border:1px solid var(--wr-line);border-radius:16px;padding:14px;min-height:105px;background:var(--wr-card);color:inherit;text-decoration:none}.wr-control:hover,.wr-control:focus{border-color:var(--wr-green);background:var(--wr-card2)}.wr-control strong{display:block;margin:7px 0 4px}.wr-control small{display:block;opacity:.75;line-height:1.35}.wr-control--primary{border-color:rgba(57,229,127,.45);background:rgba(57,229,127,.08)}.wr-control--purple{border-color:rgba(155,124,255,.45);background:rgba(155,124,255,.08)}.wr-control--danger{border-color:rgba(255,98,98,.42);background:rgba(255,98,98,.055)}
-    .wr-panel{border:1px solid var(--wr-line);border-radius:20px;padding:16px;background:rgba(255,255,255,.03)}.wr-panel h2{margin-top:0}.wr-proof{display:grid;gap:9px}.wr-meter{display:grid;grid-template-columns:120px 1fr 72px;gap:10px;align-items:center}.wr-bar{height:10px;border:1px solid var(--wr-line);border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06)}.wr-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--wr-green),var(--wr-yellow));border-radius:999px}.wr-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.wr-link-card{border:1px solid var(--wr-line);border-radius:16px;padding:14px;background:var(--wr-card)}.wr-link-card strong{display:block}.wr-link-card p{margin:.45rem 0 0;opacity:.78}.wr-safe{border-left:4px solid var(--wr-green);padding:12px 14px;background:rgba(57,229,127,.07);border-radius:0 14px 14px 0}.wr-noise{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.wr-muted-card{border:1px dashed var(--wr-line);border-radius:14px;padding:12px;opacity:.78}.wr-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.wr-actions a{border:1px solid var(--wr-line);border-radius:999px;padding:8px 11px;text-decoration:none;color:inherit}.wr-actions a:hover{border-color:var(--wr-green)}
-    @media(max-width:560px){.wr-meter{grid-template-columns:1fr}.wr-control{min-height:auto}.wr-top,.wr-panel{padding:13px}}
+    :root{--wr-green:#39e57f;--wr-gold:#d7b85d;--wr-red:#ff6565;--wr-purple:#b68cff;--wr-line:#244d34;--wr-bg:#050b07;--wr-card:#08160e;--wr-soft:#0d2115;--wr-text:#f3fff6;--wr-muted:#9fb5a7}
+    body.mc-workspace-body{background:var(--wr-bg);color:var(--wr-text)}
+    .wr-app{max-width:1080px;margin:0 auto;padding:18px 14px 30px}.wr-top{border:1px solid var(--wr-line);border-radius:22px;padding:18px;background:linear-gradient(145deg,#07150d,#0b1d12)}.wr-topline{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}.wr-top h1{margin:.1rem 0 .35rem;font-size:clamp(2rem,8vw,3.8rem);letter-spacing:-.05em}.wr-top p{margin:0;color:var(--wr-muted);max-width:740px}.wr-kicker{color:var(--wr-green);text-transform:uppercase;letter-spacing:.12em;font-size:.74rem;font-weight:900}.wr-pills{display:flex;gap:8px;flex-wrap:wrap}.wr-pill{border:1px solid var(--wr-line);border-radius:999px;padding:8px 10px;background:#07130c;font-weight:900;font-size:.78rem}.wr-pill.yellow{color:#f6dda2;border-color:#7d6828}.wr-pill.purple{color:#dfd0ff;border-color:#694da2}.wr-pill.green{color:#b8ffd0;border-color:#2f8a4e}.wr-pill.lock{color:#ffe6b3;border-color:#806c2d}.wr-grid{display:grid;grid-template-columns:1fr .85fr;gap:14px;margin-top:14px}.wr-panel{border:1px solid var(--wr-line);border-radius:20px;background:var(--wr-card);padding:15px}.wr-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.wr-control{display:block;text-decoration:none;color:inherit;border:1px solid var(--wr-line);border-radius:16px;padding:14px;background:var(--wr-soft);min-height:78px}.wr-control:hover,.wr-control:focus{border-color:var(--wr-green);outline:2px solid #39e57f33;outline-offset:2px}.wr-control strong{display:block;margin-bottom:4px}.wr-control small{display:block;color:var(--wr-muted);line-height:1.35}.wr-control.primary{border-color:#2f8a4e;background:linear-gradient(145deg,#10351f,#0b1d12)}.wr-control.challenge{border-color:#806c2d;background:#211b0b}.wr-control.stop{border-color:#69402e;background:#1d100c}.wr-live{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.wr-live div{border:1px solid var(--wr-line);border-radius:14px;padding:11px;background:#06120b}.wr-live span{display:block;color:var(--wr-muted);font-size:.78rem}.wr-live strong{display:block;margin-top:3px}.wr-proof{display:grid;gap:8px;margin-top:12px}.wr-proof div{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--wr-line);border-radius:13px;padding:10px;background:#07130c}.wr-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.wr-card{border:1px solid var(--wr-line);border-radius:16px;padding:13px;background:#07130c}.wr-card strong{display:block;margin-bottom:5px}.wr-card small{color:var(--wr-muted);line-height:1.35}.wr-truth{margin-top:12px;border-left:4px solid var(--wr-gold);background:#201908;border-radius:0 14px 14px 0;padding:12px;color:#f4e7bd}.wr-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.wr-nav a{border:1px solid var(--wr-line);border-radius:999px;padding:8px 10px;color:inherit;text-decoration:none;font-size:.82rem}
+    @media(max-width:800px){.wr-grid,.wr-links{grid-template-columns:1fr}.wr-controls{grid-template-columns:1fr 1fr}}
+    @media(max-width:520px){.wr-app{padding:10px}.wr-top{padding:14px}.wr-controls,.wr-live{grid-template-columns:1fr}.wr-control{min-height:auto}.wr-nav a{width:100%;text-align:center}}
   </style>
 </head>
 <body class="mc-workspace-body mc-war-room-body">
-  <header class="mc-workspace-header mc-war-room-header">
-    <div>
-      <p class="mc-eyebrow">Founder-only · SMI-first · live control surface</p>
-      <h1>War Room 1</h1>
-      <p>Clean command view for SMI signals, evidence, receipts, recovery and next gate. No noisy boards. No fake green.</p>
-    </div>
-    <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">SMI Dashboard</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.brain_dashboard') }}">SMI Brain</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.judgement_dashboard') }}">Judgement</a>
-    </div>
-  </header>
-
-  <main class="mc-workspace mc-war-room-workspace wr-page">
-    <section class="wr-top" aria-labelledby="war-room-live-title">
-      <div class="wr-head">
+  <main class="wr-app" aria-labelledby="wr-title">
+    <section class="wr-top">
+      <div class="wr-topline">
         <div>
-          <p class="mc-eyebrow">Live signals</p>
-          <h1 id="war-room-live-title">SMI Control Ready</h1>
-          <p>SMI starts first. War Room opens only for risk, conflict, deep review, recovery or Founder command.</p>
+          <p class="wr-kicker">Founder-only · SMI starts first</p>
+          <h1 id="wr-title">War Room</h1>
+          <p>Clean live control surface. No board wall. No hidden execution. It reviews evidence, shows signals, challenges assumptions and sends the next gate to Founder.</p>
         </div>
-        <div class="wr-live" aria-label="War Room state">
-          <span class="wr-pill wr-pill--open">🟡 WAR ROOM OPEN</span>
-          <span class="wr-pill wr-pill--learn">🟣 SMI LEARNING</span>
-          <span class="wr-pill wr-pill--green">🟢 LOCAL PROOF 7/7</span>
-          <span class="wr-pill wr-pill--lock">🔒 FOUNDER ONLY</span>
+        <div class="wr-pills" aria-label="War Room status">
+          <span class="wr-pill yellow">🟡 OPEN</span>
+          <span class="wr-pill purple">🟣 LEARNING</span>
+          <span class="wr-pill green">🟢 LOCAL PROOF</span>
+          <span class="wr-pill lock">🔒 FOUNDER</span>
         </div>
       </div>
-      <div class="wr-signal-grid">
-        <div class="wr-signal"><span>Mode</span><strong>HIGH 21</strong><small>deep-dive available</small></div>
-        <div class="wr-signal"><span>Evidence</span><strong>7/7 local</strong><small>Neon mirror separate</small></div>
-        <div class="wr-signal"><span>Guardian</span><strong>Required</strong><small>blocks unsafe action</small></div>
-        <div class="wr-signal"><span>HRM</span><strong>Receipts live</strong><small>local proof backend</small></div>
-        <div class="wr-signal"><span>Action</span><strong>Review only</strong><small>no silent execution</small></div>
-        <div class="wr-signal"><span>Next Gate</span><strong>Prod proof</strong><small>tests + probes</small></div>
-      </div>
     </section>
 
-    <section class="wr-panel" aria-labelledby="controls-title">
-      <div class="mc-section-heading">
-        <div><p class="mc-eyebrow">Real controls</p><h2 id="controls-title">SMI command buttons</h2></div>
-        <span class="mc-lock-badge">Every control is Founder-only</span>
+    <section class="wr-grid" aria-label="War Room live controls">
+      <div class="wr-panel">
+        <p class="wr-kicker">Controls</p>
+        <h2>Run only what matters</h2>
+        <div class="wr-controls">
+          <a class="wr-control primary" href="/smi/brain/evidence-runner/run?command=war_room"><strong>⚔️ Run War Room</strong><small>SMI-first judge review.</small></a>
+          <a class="wr-control primary" href="/smi/deep-dive"><strong>🟣 Deep Dive 21</strong><small>Full deep simulation protocol.</small></a>
+          <a class="wr-control" href="/smi/brain/evidence"><strong>⭐ Evidence</strong><small>14×7 proof board.</small></a>
+          <a class="wr-control" href="/smi/brain/evidence-runner"><strong>🏃 Runner</strong><small>Live callable gates.</small></a>
+          <a class="wr-control" href="/smi/brain/receipts"><strong>💾 Receipts</strong><small>HRM-style and Matrix receipts.</small></a>
+          <a class="wr-control" href="/smi/thinking-signals"><strong>🧠 Signals</strong><small>Mode, stage, tools, confidence.</small></a>
+          <a class="wr-control challenge" href="/smi/brain/evidence-runner/run?command=red_team"><strong>⚔️ Red Team</strong><small>Attack weak assumptions.</small></a>
+          <a class="wr-control challenge" href="/smi/brain/evidence-runner/run?command=recovery_test"><strong>🔄 Recovery</strong><small>Fallback and resume test.</small></a>
+          <a class="wr-control" href="/smi/deep-dive/simulate?command=next_gate"><strong>➡️ Next Gate</strong><small>Smallest action forward.</small></a>
+          <a class="wr-control stop" href="{{ url_for('mission_control.judgement_dashboard') }}"><strong>👑 Founder Final</strong><small>Decision evidence only.</small></a>
+        </div>
       </div>
-      <div class="wr-controls">
-        <a class="wr-control wr-control--primary" href="/smi/deep-dive"><span>🟣</span><strong>Deep Dive</strong><small>SMI-first 3 / 7 / 21 protocol.</small></a>
-        <a class="wr-control wr-control--primary" href="/smi/brain/evidence"><span>⭐</span><strong>Evidence 14×7</strong><small>Brain evidence gates and status.</small></a>
-        <a class="wr-control wr-control--primary" href="/smi/brain/evidence-runner"><span>🏃</span><strong>Runner</strong><small>Callable proof runner catalogue.</small></a>
-        <a class="wr-control wr-control--primary" href="/smi/brain/evidence-runner/run?command=war_room"><span>⚔️</span><strong>Run War Room</strong><small>Bounded live review frame.</small></a>
-        <a class="wr-control" href="/smi/brain/receipts"><span>💾</span><strong>Receipts</strong><small>HRM-style + Matrix learning proof.</small></a>
-        <a class="wr-control" href="/smi/thinking-signals"><span>🧠</span><strong>Signals</strong><small>Mode, stage, evidence, tools, confidence.</small></a>
-        <a class="wr-control wr-control--danger" href="/smi/brain/evidence-runner/run?command=red_team"><span>⚔️</span><strong>Red Team</strong><small>Attack assumptions and weak links.</small></a>
-        <a class="wr-control wr-control--purple" href="/smi/brain/evidence-runner/run?command=recovery_test"><span>🔄</span><strong>Recovery</strong><small>Isolation, fallback, integrity, resume.</small></a>
-        <a class="wr-control" href="/smi/brain/evidence-runner/run?command=next_gate"><span>➡️</span><strong>Next Gate</strong><small>Smallest safe move forward.</small></a>
-      </div>
+
+      <aside class="wr-panel">
+        <p class="wr-kicker">Signals</p>
+        <h2>Live truth</h2>
+        <div class="wr-live">
+          <div><span>Signal</span><strong>🟡 Open</strong></div>
+          <div><span>SMI Mode</span><strong>🟣 Learning</strong></div>
+          <div><span>Depth</span><strong>3 / 7 / 21</strong></div>
+          <div><span>Guardian</span><strong>🛡 Required</strong></div>
+          <div><span>HRM</span><strong>💾 Active local</strong></div>
+          <div><span>Authority</span><strong>👑 Founder final</strong></div>
+        </div>
+        <div class="wr-proof" aria-label="War Room proof">
+          <div><span>Proof</span><strong>⭐⭐⭐⭐⭐⭐⭐</strong></div>
+          <div><span>Protection</span><strong>⭐⭐⭐⭐⭐⭐☆</strong></div>
+          <div><span>Decision</span><strong>⭐⭐⭐⭐⭐⭐☆</strong></div>
+          <div><span>Memory</span><strong>⭐⭐⭐⭐⭐⭐⭐</strong></div>
+          <div><span>Recovery</span><strong>⭐⭐⭐⭐⭐☆☆</strong></div>
+        </div>
+        <p class="wr-truth"><strong>Boundary:</strong> War Room reviews and records. It does not deploy, spend, dispatch, track, mutate production, self-approve or claim full product green.</p>
+      </aside>
     </section>
 
-    <section class="wr-panel" aria-labelledby="proof-title">
-      <p class="mc-eyebrow">Seven live lanes</p>
-      <h2 id="proof-title">Proof strip</h2>
-      <div class="wr-proof" aria-label="War Room proof scores">
-        <div class="wr-meter"><strong>Proof</strong><span class="wr-bar"><i style="width:86%"></i></span><span>6/7</span></div>
-        <div class="wr-meter"><strong>Protection</strong><span class="wr-bar"><i style="width:100%"></i></span><span>7/7</span></div>
-        <div class="wr-meter"><strong>Creation</strong><span class="wr-bar"><i style="width:72%"></i></span><span>5/7</span></div>
-        <div class="wr-meter"><strong>Identity</strong><span class="wr-bar"><i style="width:86%"></i></span><span>6/7</span></div>
-        <div class="wr-meter"><strong>Decision</strong><span class="wr-bar"><i style="width:86%"></i></span><span>6/7</span></div>
-        <div class="wr-meter"><strong>Memory</strong><span class="wr-bar"><i style="width:100%"></i></span><span>7/7 local</span></div>
-        <div class="wr-meter"><strong>Recovery</strong><span class="wr-bar"><i style="width:72%"></i></span><span>5/7</span></div>
-      </div>
+    <section class="wr-links" aria-label="War Room summary">
+      <article class="wr-card"><strong>🟢 Strongest link</strong><small>Local SMI brain proof, runner, evidence and receipts are now live.</small></article>
+      <article class="wr-card"><strong>🟡 Weakest link</strong><small>Production Neon mirror, access probes, logs and rollback still need final proof.</small></article>
+      <article class="wr-card"><strong>➡️ Next gate</strong><small>Run production proof checks, then Founder final.</small></article>
     </section>
 
-    <section class="wr-split" aria-label="Strongest and weakest links">
-      <article class="wr-link-card"><strong>🟢 Strongest Link</strong><p>Protection, Founder-only access, local receipts, SMI Brain 14×7 protocol and bounded War Room runner.</p></article>
-      <article class="wr-link-card"><strong>🟡 Weakest Link</strong><p>Production proof still needs external monitoring, public/private probes, rollback proof, acceptance tests and production Neon mirror.</p></article>
-    </section>
-
-    <section class="wr-panel" aria-labelledby="noise-title">
-      <p class="mc-eyebrow">Noise removed</p>
-      <h2 id="noise-title">War Room now focuses on action</h2>
-      <div class="wr-noise">
-        <div class="wr-muted-card"><strong>Hidden by default</strong><p>Long capability registry.</p></div>
-        <div class="wr-muted-card"><strong>Hidden by default</strong><p>Whole-organism wall of boards.</p></div>
-        <div class="wr-muted-card"><strong>Hidden by default</strong><p>Repeated philosophy sections.</p></div>
-        <div class="wr-muted-card"><strong>Kept visible</strong><p>Signals, controls, proof, receipts, recovery and next gate.</p></div>
-      </div>
-      <p class="wr-safe"><strong>Truth lock:</strong> War Room can review, prove, score and prepare. It still cannot secretly deploy, spend, dispatch, track, mutate production, approve itself or call full product green.</p>
-      <div class="wr-actions">
-        <a href="/smi/brain/evidence-runner/run?command=show_evidence">Show Evidence</a>
-        <a href="/smi/brain/evidence-runner/run?command=weakest_link">Weakest Link</a>
-        <a href="/smi/brain/evidence-runner/run?command=strongest_link">Strongest Link</a>
-        <a href="/smi/brain/evidence-runner/run?command=guardian_check">Guardian Check</a>
-      </div>
-    </section>
+    <nav class="wr-nav" aria-label="War Room navigation">
+      <a href="/mission?mode=mission">SMI App</a>
+      <a href="/smi/brain/status">SMI Brain</a>
+      <a href="/smi/deep-dive">Deep Dive</a>
+      <a href="/smi/brain/evidence-runner/run?command=next_gate">Next Gate</a>
+    </nav>
   </main>
 </body>
 </html>
