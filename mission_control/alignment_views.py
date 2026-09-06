@@ -72,6 +72,7 @@ def simulate_action():
                 war_room_simulation_actions.simulate(
                     request.args.get("action"),
                     request.args.get("target"),
+                    request.args.get("stage", "auto"),
                 )
             )
         )
