@@ -1,13 +1,18 @@
-"""Founder-only SMI Brain 14-part, 7/7 status protocol.
+"""Founder-only SMI Brain 14-part, 21-score status protocol.
 
 This module is read-only: it reports the locked SMI brain anatomy,
 7/7 completion checks, 7/7/7 Mind/Body/Soul protocol, and the current
 truthful completion score. It does not execute, deploy, approve, dispatch,
 track, spend, or write production records.
 
-The War Room may simulate every brain part up to 7/7, but the evidence
-score remains separate so the system never hides missing Neon receipts,
-live runners, or Matrix learning proof behind a fake green badge.
+Score model:
+- Evidence: current live proof. Starts at 3/7 until live runners, HRM/Neon receipts and Matrix learning are proved.
+- Simulation: War Room coverage. Can be 7/7 when every proof path is simulated safely.
+- Philosophy: whole-system OAP/SMI law alignment. Can be 7/7 when the part is mapped to Mind/Body/Soul, laws, signals and locks.
+
+Therefore each brain part is scored out of 21:
+Evidence 3/7 + Simulation 7/7 + Philosophy 7/7 = 17/21.
+This avoids fake green while preserving the 21-system philosophy.
 """
 from __future__ import annotations
 
@@ -23,12 +28,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Code / Logic Agent",
         "helper_agents": ("Tool Proof Agent", "Green Gate", "Nirmata"),
         "protocol_focus": "Mind stages 3-6: strip noise, classify, select protocol and map proof.",
-        "needed_to_7": (
-            "Wire code/proof runner",
-            "record HRM/Neon logic receipt",
-            "prove one live logic check in War Room",
-            "feed failed logic checks into Matrix learning",
-        ),
+        "needed_to_7": ("Wire code/proof runner", "record HRM/Neon logic receipt", "prove one live logic check in War Room", "feed failed logic checks into Matrix learning"),
     },
     {
         "id": "right_hemisphere",
@@ -39,12 +39,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Vision / Pattern Agent",
         "helper_agents": ("Nirmata", "Owl", "Bagheera"),
         "protocol_focus": "Mind stages 1-7: watch, detect, classify and keep the big picture coherent.",
-        "needed_to_7": (
-            "Wire pattern/meaning checker",
-            "record HRM/Neon meaning receipt",
-            "prove one live brand/culture check",
-            "feed repeated pattern lessons into Matrix learning",
-        ),
+        "needed_to_7": ("Wire pattern/meaning checker", "record HRM/Neon meaning receipt", "prove one live brand/culture check", "feed repeated pattern lessons into Matrix learning"),
     },
     {
         "id": "frontal_lobe",
@@ -55,12 +50,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Planning Agent",
         "helper_agents": ("Living Kernel", "War Room", "Nirmata"),
         "protocol_focus": "Mind stages 4-7 and Body stage 11: classify, select protocol, then simulate.",
-        "needed_to_7": (
-            "Wire planning runner",
-            "record chosen-action receipt",
-            "prove live War Room planning output",
-            "learn from wrong or slow action choices",
-        ),
+        "needed_to_7": ("Wire planning runner", "record chosen-action receipt", "prove live War Room planning output", "learn from wrong or slow action choices"),
     },
     {
         "id": "parietal_lobe",
@@ -71,12 +61,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Map Intelligence Agent",
         "helper_agents": ("Movement Intelligence", "Live Pattern", "Green Gate"),
         "protocol_focus": "Body stages 8-10: source proof, route/API proof and data proof.",
-        "needed_to_7": (
-            "Wire map/place runner",
-            "record map proof receipt",
-            "prove one live route/place check",
-            "learn stale or missing map-source patterns",
-        ),
+        "needed_to_7": ("Wire map/place runner", "record map proof receipt", "prove one live route/place check", "learn stale or missing map-source patterns"),
     },
     {
         "id": "temporal_lobe",
@@ -87,12 +72,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Link / Language Agent",
         "helper_agents": ("HRM", "Owl", "Guardian"),
         "protocol_focus": "Mind stages 2-5: detect intent, strip noise, classify and select terms.",
-        "needed_to_7": (
-            "Wire language intent runner",
-            "record canonical-language receipt",
-            "prove one live Link/OAP wording check",
-            "learn from user corrections and naming locks",
-        ),
+        "needed_to_7": ("Wire language intent runner", "record canonical-language receipt", "prove one live Link/OAP wording check", "learn from user corrections and naming locks"),
     },
     {
         "id": "occipital_lobe",
@@ -103,12 +83,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "UI / Visual Agent",
         "helper_agents": ("Guardian", "Green Gate", "Nirmata"),
         "protocol_focus": "Body stages 10-12: data proof, simulation and helper review.",
-        "needed_to_7": (
-            "Wire UI/surface checker",
-            "record visual proof receipt",
-            "prove one live private screen check",
-            "learn from UI mistakes and public-noise removals",
-        ),
+        "needed_to_7": ("Wire UI/surface checker", "record visual proof receipt", "prove one live private screen check", "learn from UI mistakes and public-noise removals"),
     },
     {
         "id": "prefrontal_cortex",
@@ -119,12 +94,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Judgement Agent",
         "helper_agents": ("War Room", "Guardian", "Founder Authority"),
         "protocol_focus": "Mind stage 7 and Soul stages 15-21: risk level, judges and final escalation.",
-        "needed_to_7": (
-            "Wire Judgement runner",
-            "record approval/blocked receipt",
-            "prove one live 7/14/21 depth decision",
-            "learn from over-action, under-action and Founder corrections",
-        ),
+        "needed_to_7": ("Wire Judgement runner", "record approval/blocked receipt", "prove one live 7/14/21 depth decision", "learn from over-action, under-action and Founder corrections"),
     },
     {
         "id": "corpus_callosum",
@@ -135,12 +105,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Bridge / Nexus Agent",
         "helper_agents": ("Nexus", "ACI Learning Core", "War Room"),
         "protocol_focus": "Mind stage 6 and Body stage 12: select helpers and merge review.",
-        "needed_to_7": (
-            "Wire bridge/coherence runner",
-            "record conflict-resolution receipt",
-            "prove one live left-right merge",
-            "learn from disagreement between proof and vision",
-        ),
+        "needed_to_7": ("Wire bridge/coherence runner", "record conflict-resolution receipt", "prove one live left-right merge", "learn from disagreement between proof and vision"),
     },
     {
         "id": "thalamus",
@@ -151,12 +116,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Signal Router Agent",
         "helper_agents": ("SMI Watch", "Nexus", "Agent Registry"),
         "protocol_focus": "Mind stages 1-6: watch, detect, strip noise, classify and route.",
-        "needed_to_7": (
-            "Wire signal router runner",
-            "record routing receipt",
-            "prove one live signal-to-agent route",
-            "learn from misrouted or duplicated signals",
-        ),
+        "needed_to_7": ("Wire signal router runner", "record routing receipt", "prove one live signal-to-agent route", "learn from misrouted or duplicated signals"),
     },
     {
         "id": "hypothalamus",
@@ -167,12 +127,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Stability Agent",
         "helper_agents": ("Brainstem", "Guardian", "War Room"),
         "protocol_focus": "Body stages 13-14: score, recover, offline or continue.",
-        "needed_to_7": (
-            "Wire stability/recovery runner",
-            "record recovery receipt",
-            "prove one 97 recovery simulation",
-            "learn from repeated drops and overload signals",
-        ),
+        "needed_to_7": ("Wire stability/recovery runner", "record recovery receipt", "prove one 97 recovery simulation", "learn from repeated drops and overload signals"),
     },
     {
         "id": "hippocampus",
@@ -183,12 +138,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "HRM / Memory Agent",
         "helper_agents": ("Neon Receipts", "Owl", "Audit Agent"),
         "protocol_focus": "Soul stages 17-18: HRM receipt and Neon receipt.",
-        "needed_to_7": (
-            "Wire HRM/Neon receipt writer",
-            "record real database proof",
-            "prove one live receipt lookup",
-            "learn from stored outcomes and Founder decisions",
-        ),
+        "needed_to_7": ("Wire HRM/Neon receipt writer", "record real database proof", "prove one live receipt lookup", "learn from stored outcomes and Founder decisions"),
     },
     {
         "id": "amygdala",
@@ -199,12 +149,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Risk / Guardian Agent",
         "helper_agents": ("Guardian", "Shere Khan", "Green Gate"),
         "protocol_focus": "Soul stages 15-16: Guardian pass and Green Gate pass.",
-        "needed_to_7": (
-            "Wire risk alarm runner",
-            "record blocked-risk receipt",
-            "prove one live fake-green/bypass block",
-            "learn from every Guardian and Green Gate block",
-        ),
+        "needed_to_7": ("Wire risk alarm runner", "record blocked-risk receipt", "prove one live fake-green/bypass block", "learn from every Guardian and Green Gate block"),
     },
     {
         "id": "cerebellum",
@@ -215,12 +160,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Coordination Agent",
         "helper_agents": ("Tool Proof Agent", "Render/GitHub Runner", "War Room"),
         "protocol_focus": "Body stages 11-14: simulate, train, score and continue/offline.",
-        "needed_to_7": (
-            "Wire coordination runner",
-            "record handoff/deploy receipt",
-            "prove one live coordinated check",
-            "learn from timing, handoff and deploy mistakes",
-        ),
+        "needed_to_7": ("Wire coordination runner", "record handoff/deploy receipt", "prove one live coordinated check", "learn from timing, handoff and deploy mistakes"),
     },
     {
         "id": "brainstem",
@@ -231,12 +171,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "lead_agent": "Health / Fail-Closed Agent",
         "helper_agents": ("Render Health", "Guardian", "Living Kernel"),
         "protocol_focus": "Body stage 14 and Soul stages 15-16: recover/offline, Guardian and Green Gate.",
-        "needed_to_7": (
-            "Wire health/fail-closed runner",
-            "record health proof receipt",
-            "prove one live health/fail-closed check",
-            "learn from downtime, crashes and blocked unsafe tasks",
-        ),
+        "needed_to_7": ("Wire health/fail-closed runner", "record health proof receipt", "prove one live health/fail-closed check", "learn from downtime, crashes and blocked unsafe tasks"),
     },
 )
 
@@ -248,6 +183,33 @@ SEVEN_CHECKS: tuple[dict[str, str], ...] = (
     {"id": "hrm_neon_receipt", "label": "HRM/Neon receipt connected", "meaning": "The part has a receipt contract; real Neon write proof remains separate."},
     {"id": "live_war_room_proof", "label": "Live runner + War Room proof", "meaning": "The War Room can simulate the proof path; live execution proof remains separate."},
     {"id": "matrix_learning_loop", "label": "Matrix learning loop", "meaning": "The part has a learning contract; real learning from receipts remains separate."},
+)
+
+SCORE_LAYERS: tuple[dict[str, object], ...] = (
+    {
+        "id": "evidence",
+        "label": "Evidence",
+        "current": 3,
+        "possible": 7,
+        "light": "orange",
+        "meaning": "Real proof currently confirmed for name, role and protocol only.",
+    },
+    {
+        "id": "simulation",
+        "label": "Simulation",
+        "current": 7,
+        "possible": 7,
+        "light": "green",
+        "meaning": "War Room simulation path covers all seven checks safely.",
+    },
+    {
+        "id": "philosophy",
+        "label": "Philosophy",
+        "current": 7,
+        "possible": 7,
+        "light": "green",
+        "meaning": "The part is aligned to OAP/SMI Mind, Body, Soul, laws, signals and safety locks.",
+    },
 )
 
 MIND_BODY_SOUL_777: tuple[dict[str, object], ...] = (
@@ -371,63 +333,105 @@ PDF_ALIGNMENT: dict[str, object] = {
 }
 
 
+def _layer_score() -> dict[str, Any]:
+    current = sum(int(layer["current"]) for layer in SCORE_LAYERS)
+    possible = sum(int(layer["possible"]) for layer in SCORE_LAYERS)
+    return {
+        "current": current,
+        "possible": possible,
+        "label": f"{current}/{possible}",
+        "percentage": round((current / possible) * 100, 1),
+        "light": "yellow",
+        "formula": "Evidence 3/7 + Simulation 7/7 + Philosophy 7/7 = 17/21",
+        "real_green": False,
+    }
+
+
 def _check_status(position: int, check: dict[str, str]) -> dict[str, Any]:
     evidence_passed = position <= 3
-    simulation_passed = True
     return {
         **check,
         "position": position,
         "evidence_passed": evidence_passed,
-        "simulation_passed": simulation_passed,
+        "simulation_passed": True,
+        "philosophy_passed": True,
         "evidence_status": "passed" if evidence_passed else "needed",
         "simulation_status": "covered",
+        "philosophy_status": "aligned",
     }
 
 
 def _part_status(part: dict[str, object]) -> dict[str, Any]:
     checks = tuple(_check_status(index, check) for index, check in enumerate(SEVEN_CHECKS, start=1))
     missing_evidence = tuple(check["label"] for check in checks if not check["evidence_passed"])
+    score_21 = _layer_score()
     return {
         **part,
         "evidence_score": 3,
         "simulation_score": 7,
-        "max_score": 7,
+        "philosophy_score": 7,
+        "score_21": score_21,
+        "max_score": 21,
         "status_light": "yellow",
+        "evidence_light": "orange",
         "simulation_light": "green",
+        "philosophy_light": "green",
         "checks": checks,
+        "score_layers": SCORE_LAYERS,
         "missing_evidence_checks": missing_evidence,
         "simulation_coverage": "7/7",
+        "philosophy_alignment": "7/7",
         "real_green_allowed": False,
     }
 
 
 def brain_status() -> dict[str, Any]:
-    """Return the SMI Brain 14 x 7 board without executing anything."""
+    """Return the SMI Brain 14 x 21 board without executing anything."""
 
     parts = tuple(_part_status(part) for part in BRAIN_PARTS)
-    total_possible = len(parts) * len(SEVEN_CHECKS)
+    evidence_possible = len(parts) * len(SEVEN_CHECKS)
     evidence_score = sum(int(part["evidence_score"]) for part in parts)
     simulation_score = sum(int(part["simulation_score"]) for part in parts)
+    philosophy_score = sum(int(part["philosophy_score"]) for part in parts)
+    total_21_possible = len(parts) * 21
+    total_21_score = evidence_score + simulation_score + philosophy_score
     return {
-        "name": "SMI Brain 14 x 7 Status",
+        "name": "SMI Brain 14 x 21 Status",
         "mode": "Founder-only War Room proof projection; no execution granted",
         "pdf_alignment": PDF_ALIGNMENT,
         "brain_parts": parts,
         "check_model": SEVEN_CHECKS,
+        "score_layers": SCORE_LAYERS,
         "score": {
+            "per_part_formula": "Evidence 3/7 + Simulation 7/7 + Philosophy 7/7 = 17/21",
+            "per_part_current": 17,
+            "per_part_possible": 21,
             "evidence_current": evidence_score,
             "simulation_current": simulation_score,
-            "possible": total_possible,
-            "evidence_percentage": round((evidence_score / total_possible) * 100, 1),
-            "simulation_percentage": round((simulation_score / total_possible) * 100, 1),
+            "philosophy_current": philosophy_score,
+            "evidence_possible": evidence_possible,
+            "simulation_possible": evidence_possible,
+            "philosophy_possible": evidence_possible,
+            "total_21_current": total_21_score,
+            "total_21_possible": total_21_possible,
+            "evidence_percentage": round((evidence_score / evidence_possible) * 100, 1),
+            "simulation_percentage": round((simulation_score / evidence_possible) * 100, 1),
+            "philosophy_percentage": round((philosophy_score / evidence_possible) * 100, 1),
+            "total_21_percentage": round((total_21_score / total_21_possible) * 100, 1),
             "evidence_light": "orange",
             "simulation_light": "green",
+            "philosophy_light": "green",
+            "total_21_light": "yellow",
             "real_green": False,
         },
         "summary": {
             "named": "14/14",
             "roles_defined": "14/14",
             "protocol_mapped": "14/14",
+            "evidence": "3/7 per brain part; 42/98 total",
+            "simulation": "7/7 per brain part; 98/98 total",
+            "philosophy": "7/7 per brain part; 98/98 total",
+            "whole_system_21_score": "17/21 per brain part; 238/294 total",
             "agent_tool_connected": "simulation covered; live runner proof needed",
             "hrm_neon_receipts": "simulation contract covered; real Neon writes needed",
             "live_war_room_proof": "simulation covered; live proof runner needed",
@@ -447,31 +451,33 @@ def brain_status() -> dict[str, Any]:
             "founder_authority_final": True,
         },
         "next_master_upgrade": (
-            "Turn simulation coverage into real evidence by wiring live runners, "
+            "Turn the evidence layer from 3/7 to 7/7 by wiring live runners, "
             "HRM/Neon receipt writes, proof checks, tests and Matrix learning receipts."
         ),
     }
 
 
 def simulation(stage: str | None = None) -> dict[str, Any]:
-    """Return the safe War Room simulation for moving 14 brain parts from 3/7 to 7/7."""
+    """Return the safe War Room simulation for the 14 brain parts and 21-score model."""
 
     depth = (stage or "auto").strip().lower()
     status = brain_status()
     return {
-        "simulation": "SMI Brain 14 anatomy parts from 3/7 to 7/7",
+        "simulation": "SMI Brain 14 anatomy parts, whole-system 21 philosophy score",
         "requested_stage": depth,
-        "result": "7/7_simulation_coverage_complete",
+        "result": "21_score_model_complete",
         "execution_granted": False,
         "real_green": False,
         "war_room": {
-            "checks_started": "14 brain parts x 7 proof checks",
+            "formula": status["score"]["per_part_formula"],
             "evidence_score": status["score"]["evidence_current"],
             "simulation_score": status["score"]["simulation_current"],
-            "possible": status["score"]["possible"],
+            "philosophy_score": status["score"]["philosophy_current"],
+            "total_21_score": status["score"]["total_21_current"],
+            "total_21_possible": status["score"]["total_21_possible"],
             "decision": (
-                "All 14 parts have 7/7 War Room simulation coverage. "
-                "Evidence remains 3/7 until live runners and Neon receipts are proven."
+                "Each brain part now maths to 21: Evidence 3/7, Simulation 7/7, Philosophy 7/7. "
+                "The whole-system philosophy score is complete, but full real green still waits for evidence 7/7."
             ),
         },
         "guardian": {
@@ -480,7 +486,7 @@ def simulation(stage: str | None = None) -> dict[str, Any]:
         },
         "green_gate": {
             "pass": False,
-            "reason": "Full real green requires evidence 98/98, Neon receipts, live runner proof and acceptance tests.",
+            "reason": "Full real green requires Evidence 7/7 for every brain part, Neon receipts, live runner proof and acceptance tests.",
         },
         "status": status,
     }
