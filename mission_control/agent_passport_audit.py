@@ -66,10 +66,13 @@ REMOVED_ANIMAL_CANDIDATES: tuple[dict[str, str], ...] = (
 
 WAR_ROOM_BUTTONS: tuple[dict[str, str], ...] = (
     {"button": "🧠", "name": "SMI First Look", "signal": "🟣", "purpose": "classify role, family, team, risk and review cycle"},
+    {"button": "🔺", "name": "Agent Cone", "signal": "🟣/🔵", "purpose": "show closest lead, support, judge, risk and too-close agents"},
+    {"button": "🎛️", "name": "Founder Select Agents", "signal": "👑/🔵", "purpose": "let Founder choose which agents enter the review pack"},
     {"button": "🕶️", "name": "Neo True Path", "signal": "🔵", "purpose": "check true path, failure recovery and fake-green drift"},
     {"button": "🐅", "name": "Shere Khan Pressure", "signal": "🟠", "purpose": "pressure-test weakness, ego, aggression and bypass risk"},
     {"button": "🐆", "name": "Bagheera Wisdom", "signal": "🟢", "purpose": "check calm judgement, protection, balance and purpose"},
     {"button": "🕶️", "name": "Agent Smith Duplicate", "signal": "🟡", "purpose": "detect duplicate roles, corruption, copycat logic and false order"},
+    {"button": "✍️", "name": "Rewrite / Sharpen", "signal": "🟡/🟣", "purpose": "rewrite from the beginning or sharpen only the weak section"},
     {"button": "🛡️", "name": "Guardian + Green Gate", "signal": "🟢/🔴/🔒", "purpose": "check safety boundaries and proof before green"},
     {"button": "👑", "name": "Founder Final", "signal": "👑", "purpose": "Founder decides approve, hold, sharpen, remove or send back"},
 )
@@ -77,8 +80,11 @@ WAR_ROOM_BUTTONS: tuple[dict[str, str], ...] = (
 REVIEW_OUTCOME_TEMPLATE: dict[str, str] = {
     "agent": "Name of agent or candidate",
     "role": "One-line canonical role",
+    "selected_agents": "Founder-selected agents or SMI-suggested Agent Cone pack",
+    "rewrite_mode": "none / rewrite_from_beginning / sharpen_existing_review",
     "agreed": "Where SMI, Neo, Shere Khan, Bagheera, Agent Smith, Guardian and Green Gate agree",
     "debate": "Counter-view, better option or unresolved question from the judges",
+    "better_option": "Cleaner role, family, team, signal or selected-agent pack if the first option duplicates another role",
     "recommended_signal": "🟢 pass review / 🟡 hold-sharpen / 🟠 orange block / 🔴 red block / 🔒 full green locked",
     "decision_reason": "Short War Room reason that explains why the verdict is correct",
     "verdict": "Pass Review, Hold/Sharpen, Orange Block, Red Block, or Founder Final needed",
@@ -96,10 +102,13 @@ WAR_ROOM_STAGE_RULES: dict[str, str] = {
 
 WAR_ROOM_SPEECH_LOCK: dict[str, str] = {
     "SMI": "I check role, family, risk and stage. This is review only, not full green.",
+    "Agent Cone": "I bring the closest working agents forward: lead, support, judges, risk gates and too-close roles.",
+    "Founder Select Agents": "Founder may choose the agents for this review. SMI can suggest, but Founder selection leads.",
     "Neo": "I check the true path. If the role drifts, it goes back to review.",
     "Shere Khan": "I pressure-test weakness. Strength without boundaries becomes danger.",
     "Bagheera": "I check wisdom, restraint, protection and balance.",
     "Agent Smith": "I detect duplicates, corruption, copycat roles and false order.",
+    "Rewrite / Sharpen": "I can restart the review from the beginning or sharpen only the weak part without deleting the record.",
     "Guardian": "I check safety. No harm, no tracking, no authority takeover, no private leak.",
     "Green Gate": "Review can pass. Full green needs passport, tests, receipt, proof and Founder final.",
     "Founder": "Founder Authority decides: approve, hold, sharpen, remove or send back.",
@@ -109,8 +118,16 @@ WAR_ROOM_DEBATE_LOCK: dict[str, str] = {
     "meaning": "Use debate, counter-view and better option. Do not use argument/argue language.",
     "agreed": "what the judges accept together",
     "debate": "where the judges compare options, challenge the role, or request sharper proof",
-    "better_option": "the cleaner role, family, team or signal if the first idea duplicates another agent",
+    "better_option": "the cleaner role, family, team, signal or agent pack if the first idea duplicates another agent",
     "final_reason": "the calm reason behind the verdict",
+}
+
+FOUNDER_CONTROL_LOCK: dict[str, str] = {
+    "select_agents": "Founder can manually select agents for the War Room review instead of only using the SMI Agent Cone.",
+    "agent_cone": "SMI can suggest the closest working agents, but Founder can override the suggested pack.",
+    "rewrite_from_beginning": "Restart the review cleanly from SMI First Look while keeping the previous record visible.",
+    "sharpen_existing_review": "Keep the same review and improve only the weak role, boundary, signal, team or verdict section.",
+    "safety_boundary": "Founder selection cannot bypass Guardian, Green Gate, HRM receipt, passport checks or full-green proof.",
 }
 
 WAR_ROOM_PASSPORT_CHECKS: tuple[str, ...] = (
@@ -218,6 +235,7 @@ def passport_audit() -> dict[str, Any]:
         "war_room_buttons": WAR_ROOM_BUTTONS,
         "review_outcome_template": REVIEW_OUTCOME_TEMPLATE,
         "debate_lock": WAR_ROOM_DEBATE_LOCK,
+        "founder_control_lock": FOUNDER_CONTROL_LOCK,
         "stage_rules": WAR_ROOM_STAGE_RULES,
         "speech_lock": WAR_ROOM_SPEECH_LOCK,
         "matrix_core": {
@@ -285,11 +303,15 @@ def war_room_recommendation() -> dict[str, Any]:
 
     audit = passport_audit()
     return {
-        "recommendation": "Use the upgraded War Room decision format for every candidate: agreed, debate, better option, recommended signal, decision reason, verdict, rating, signal, full-green lock and Founder final. Keep Matrix Core at 7; audit all extended, animal, dog and Jungle Book candidates separately before adding passports.",
+        "recommendation": "Use the upgraded War Room decision format for every candidate: selected agents, rewrite mode, agreed, debate, better option, recommended signal, decision reason, verdict, rating, signal, full-green lock and Founder final. Founder can choose the review agents or use the SMI Agent Cone. Keep Matrix Core at 7; audit all extended, animal, dog and Jungle Book candidates separately before adding passports.",
         "decision_options": (
+            "Founder Select Agents when the Founder wants to choose the review pack manually",
+            "Agent Cone when SMI should suggest the closest lead, support, judge and risk agents",
+            "Rewrite from beginning when the review needs a clean restart",
+            "Sharpen existing review when only one weak section needs improvement",
             "Pass review when judges agree the role is clear and bounded",
             "Hold/sharpen when debate shows the role is useful but too close to another agent",
-            "Choose a better option when a cleaner role, family, team or signal exists",
+            "Choose a better option when a cleaner role, family, team, signal or selected-agent pack exists",
             "Orange block when role is noisy, risky or duplicated right now",
             "Red block when role breaks safety, authority or duplicate rules",
             "Keep full system green locked until passport, tests, HRM receipt, Green Gate proof and Founder final",
