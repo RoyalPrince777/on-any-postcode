@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, request
 
 from . import (
+    ai_behaviour_protocol,
     alignment_check,
     master_upgrade_contract,
     smi_completion_contract,
@@ -18,6 +19,18 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.get("/war-room/ai-behaviour")
+@bp.get("/war-room/actions/ai-behaviour")
+@bp.get("/smi/ai-behaviour")
+@web_security.login_required(api=True, founder_only=True)
+def ai_behaviour():
+    """Return the Founder-only SMI AI behaviour protocol."""
+
+    return _no_store(
+        make_response(jsonify(ai_behaviour_protocol.status(request.args.get("target") or "SMI")))
+    )
 
 
 @bp.get("/war-room/master-upgrade")
