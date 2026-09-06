@@ -1,26 +1,23 @@
 {
-  "name": "ON ANY POSTCODE Operating System",
-  "short_name": "OAP OS",
-  "description": "The human-centred, local-first operating layer for ON ANY POSTCODE.",
-  "id": "/?source=oap-os",
-  "start_url": "/?source=oap-os",
+  "name": "ON ANY POSTCODE",
+  "short_name": "OAP",
+  "description": "One clean local-first front door for places, routes, Direct requests and The Link.",
+  "id": "/?source=oap-install",
+  "start_url": "/?source=oap-install",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#06120b",
   "theme_color": "#092414",
-  "categories": ["social", "lifestyle", "utilities", "travel", "shopping"],
+  "categories": ["social", "lifestyle", "utilities", "travel"],
   "icons": [
     {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
     {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ],
   "shortcuts": [
-    {"name": "The Spot", "short_name": "The Spot", "description": "Enter the local postcode community.", "url": "/the-spot?source=oap-os-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "OAP Atlas", "short_name": "Atlas", "description": "Open the visible map screen, places, attractions, weather signals and movement entry.", "url": "/atlas?source=oap-os-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "OAP Direct", "short_name": "Direct", "description": "Open Direct listings, attractions, stays and requests.", "url": "/travel/direct?source=oap-os-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "The Link", "short_name": "The Link", "description": "Open the OAP communications gateway.", "url": "/the-link?source=oap-os-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "Movement", "short_name": "Movement", "description": "Open OAP movement and travel.", "url": "/movement?source=oap-os-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "Market", "short_name": "Market", "description": "Open local listings and creator commerce.", "url": "/the-spot/market?source=oap-os-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]}
+    {"name": "On Any Place", "short_name": "Place", "description": "Open places, routes, Travel, Movement and Live Pattern proof.", "url": "/on-any-place?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
+    {"name": "OAP Direct", "short_name": "Direct", "description": "Open Direct requests, listings, venues and supplier proof.", "url": "/travel/direct?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
+    {"name": "The Link", "short_name": "Link", "description": "Open OAP opportunities and Link Up.", "url": "/the-link?source=oap-shortcut", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]}
   ]
 }
