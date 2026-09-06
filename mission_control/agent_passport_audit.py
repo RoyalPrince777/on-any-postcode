@@ -33,9 +33,13 @@ MATRIX_EXTENDED_CANDIDATES: tuple[dict[str, str], ...] = (
     {"name": "Twinz", "position": "Dual-Path Mirror / Parallel Consistency Check", "status": "passport_review"},
 )
 
+ANIMAL_REVIEW_CANDIDATES: tuple[dict[str, str], ...] = (
+    {"name": "Cat", "position": "Silent Detail Hunter / Independent Pattern Watcher", "status": "passport_review"},
+)
+
 REMOVED_MATRIX_CANDIDATES: tuple[dict[str, str], ...] = (
     {"name": "Cypher", "reason": "Founder removed candidate after War Room duplicate-risk review", "status": "removed_by_founder"},
-    {"name": "Mouse", "reason": "Founder removed from active Matrix review unless a future micro-detail role is proven necessary; Ant/Bee/Spider cover stronger animal-intelligence alternatives", "status": "removed_unless_needed"},
+    {"name": "Mouse", "reason": "Founder removed from active Matrix review unless a future micro-detail role is proven necessary; Ant/Bee/Spider/Cat cover stronger animal-intelligence alternatives", "status": "removed_unless_needed"},
 )
 
 WAR_ROOM_PASSPORT_CHECKS: tuple[str, ...] = (
@@ -61,6 +65,7 @@ POSITION_LOCKS: dict[str, str] = {
     "Neo": "Matrix Kernel Sentinel close to SMI and Nexus",
     "Agent Smith": "Candidate final integrity challenger; not yet registered as Matrix core",
     "Twinz": "Candidate dual-path mirror for parallel consistency checks",
+    "Cat": "Animal Intelligence candidate; silent detail hunter and independent pattern watcher",
     "Mouse": "Removed unless needed; may only return as Animal Intelligence micro-detail scout after War Room proof",
     "Cypher": "Removed Matrix candidate; not available for passport review",
 }
@@ -98,6 +103,11 @@ def passport_audit() -> dict[str, Any]:
         for item in MATRIX_EXTENDED_CANDIDATES
         if item["name"] in matrix_names
     )
+    animal_candidate_already_registered = tuple(
+        item["name"]
+        for item in ANIMAL_REVIEW_CANDIDATES
+        if item["name"] in registry_names
+    )
 
     return {
         "name": "War Room Agent Passport Audit",
@@ -121,6 +131,12 @@ def passport_audit() -> dict[str, Any]:
             "candidates": MATRIX_EXTENDED_CANDIDATES,
             "removed_candidates": REMOVED_MATRIX_CANDIDATES,
             "already_registered_as_core": candidate_already_registered,
+        },
+        "animal_review": {
+            "status_light": "yellow",
+            "meaning": "Animal Intelligence candidate layer for War Room passport review; not counted as registered agents yet.",
+            "candidates": ANIMAL_REVIEW_CANDIDATES,
+            "already_registered": animal_candidate_already_registered,
         },
         "position_locks": POSITION_LOCKS,
         "war_room_checks": WAR_ROOM_PASSPORT_CHECKS,
@@ -146,11 +162,12 @@ def war_room_recommendation() -> dict[str, Any]:
 
     audit = passport_audit()
     return {
-        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports. Cypher is removed and Mouse is removed unless a future Animal Intelligence micro-detail role is proven necessary.",
+        "recommendation": "Keep Matrix Core at 7; audit the extended Matrix candidates separately before adding passports. Cypher is removed and Mouse is removed unless a future Animal Intelligence micro-detail role is proven necessary. Cat is now held in Animal Intelligence passport review.",
         "decision_options": (
             "Hold Matrix Core at 7 and keep candidates in review",
             "Create passports for selected Matrix Extended candidates after War Room review",
-            "Keep Mouse removed unless Ant/Bee/Spider cannot cover the micro-detail scout role",
+            "Review Cat as Animal Intelligence before any registration",
+            "Keep Mouse removed unless Ant/Bee/Spider/Cat cannot cover the micro-detail scout role",
             "Keep Cypher removed unless Founder re-approves a safer replacement role",
             "Reject any candidate that duplicates an existing family or system organ",
         ),
