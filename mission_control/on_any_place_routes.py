@@ -3,7 +3,8 @@
 Do not change approved addresses without Founder instruction. The public UI shows
 one canonical map door: /on-any-place. Older or secondary routes remain quiet
 compatibility aliases so existing links do not break, but they are not promoted
-as duplicate public doors.
+as duplicate public doors. The canonical /travel route belongs to OAP Travel and
+is therefore not claimed by this compatibility blueprint.
 """
 from __future__ import annotations
 
@@ -61,7 +62,6 @@ def canonical_on_any_place():
 @bp.get("/events")
 @bp.get("/on-any-route")
 @bp.get("/routes")
-@bp.get("/travel")
 @bp.get("/on-any-ride")
 @bp.get("/ride")
 @bp.get("/on-any-drop")
