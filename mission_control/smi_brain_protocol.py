@@ -4,6 +4,10 @@ This module is read-only: it reports the locked SMI brain anatomy,
 7/7 completion checks, 7/7/7 Mind/Body/Soul protocol, and the current
 truthful completion score. It does not execute, deploy, approve, dispatch,
 track, spend, or write production records.
+
+The War Room may simulate every brain part up to 7/7, but the evidence
+score remains separate so the system never hides missing Neon receipts,
+live runners, or Matrix learning proof behind a fake green badge.
 """
 from __future__ import annotations
 
@@ -14,10 +18,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "left_hemisphere",
         "name": "Left Hemisphere",
         "role": "Logic, code, proof, rules and system structure.",
-        "does": (
-            "Checks whether a request is logically sound, coded cleanly, named correctly, "
-            "and supported by proof before any upgrade is recommended."
-        ),
+        "does": "Checks logical soundness, clean code order, route structure and proof before action.",
         "owns": ("code logic", "route order", "law matching", "proof-before-action"),
         "lead_agent": "Code / Logic Agent",
         "helper_agents": ("Tool Proof Agent", "Green Gate", "Nirmata"),
@@ -33,10 +34,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "right_hemisphere",
         "name": "Right Hemisphere",
         "role": "Vision, creativity, culture, patterns and meaning.",
-        "does": (
-            "Reads the wider meaning, culture, design direction and pattern behind the work "
-            "so SMI does not become cold, generic or disconnected from OAP identity."
-        ),
+        "does": "Reads wider meaning, identity, design direction, culture and repeating patterns.",
         "owns": ("vision", "culture", "pattern recognition", "brand meaning"),
         "lead_agent": "Vision / Pattern Agent",
         "helper_agents": ("Nirmata", "Owl", "Bagheera"),
@@ -52,10 +50,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "frontal_lobe",
         "name": "Frontal Lobe",
         "role": "Planning, action control and next-move selection.",
-        "does": (
-            "Turns SMI understanding into a safe next step, choosing whether to answer, check, "
-            "simulate, patch, deploy, recover, or stop."
-        ),
+        "does": "Chooses whether to answer, check, simulate, patch, deploy, recover or stop.",
         "owns": ("planning", "next action", "task control", "upgrade order"),
         "lead_agent": "Planning Agent",
         "helper_agents": ("Living Kernel", "War Room", "Nirmata"),
@@ -71,10 +66,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "parietal_lobe",
         "name": "Parietal Lobe",
         "role": "Maps, postcode, borough, county, country, continent and route awareness.",
-        "does": (
-            "Handles spatial intelligence: where something is, how it connects, whether the "
-            "postcode/world hierarchy is correct, and whether map or route claims need proof."
-        ),
+        "does": "Handles spatial intelligence, place hierarchy, map proof and route awareness.",
         "owns": ("On Any Place", "postcode hierarchy", "spatial proof", "route awareness"),
         "lead_agent": "Map Intelligence Agent",
         "helper_agents": ("Movement Intelligence", "Live Pattern", "Green Gate"),
@@ -90,10 +82,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "temporal_lobe",
         "name": "Temporal Lobe",
         "role": "Language, Link, sound, messages and meaning.",
-        "does": (
-            "Understands words, OAP language, Link language, voice/message meaning and memory "
-            "recall so replies stay direct, canonical and not noisy."
-        ),
+        "does": "Understands OAP language, Link language, speech meaning, messages and memory recall.",
         "owns": ("The Link", "Link Up language", "speech meaning", "message memory"),
         "lead_agent": "Link / Language Agent",
         "helper_agents": ("HRM", "Owl", "Guardian"),
@@ -109,10 +98,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "occipital_lobe",
         "name": "Occipital Lobe",
         "role": "Visual intelligence, UI, screen, map view and design understanding.",
-        "does": (
-            "Reads visual surfaces and UI state, checking whether a screen looks right, is clean, "
-            "shows the correct signal and avoids public/private leaks."
-        ),
+        "does": "Reads visual surfaces, UI state, screen cleanliness and public/private leakage risk.",
         "owns": ("UI reading", "visual layout", "screen proof", "design consistency"),
         "lead_agent": "UI / Visual Agent",
         "helper_agents": ("Guardian", "Green Gate", "Nirmata"),
@@ -128,10 +114,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "prefrontal_cortex",
         "name": "Prefrontal Cortex",
         "role": "Judgement, restraint, priority and think-before-action control.",
-        "does": (
-            "Stops rushed action, checks priority, applies restraint, blocks shortcuts and decides "
-            "whether the matter needs 7, 14 or full 21 stages."
-        ),
+        "does": "Stops rushed action, checks priority, blocks shortcuts and chooses 7, 14 or 21 stages.",
         "owns": ("judgement", "restraint", "priority", "risk depth"),
         "lead_agent": "Judgement Agent",
         "helper_agents": ("War Room", "Guardian", "Founder Authority"),
@@ -147,10 +130,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "corpus_callosum",
         "name": "Corpus Callosum",
         "role": "Bridge between left-brain logic and right-brain vision.",
-        "does": (
-            "Connects strict proof with big-picture meaning so SMI does not split into cold logic "
-            "or loose imagination; both sides must agree before action moves forward."
-        ),
+        "does": "Merges proof with vision so SMI stays coherent and avoids split decisions.",
         "owns": ("left-right bridge", "Nexus connection", "coherence", "conflict merge"),
         "lead_agent": "Bridge / Nexus Agent",
         "helper_agents": ("Nexus", "ACI Learning Core", "War Room"),
@@ -166,10 +146,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "thalamus",
         "name": "Thalamus",
         "role": "Signal router that sends inputs to the correct brain part.",
-        "does": (
-            "Receives requests, logs, alerts and tool results, then routes each signal to the correct "
-            "brain part, protocol depth and agent family."
-        ),
+        "does": "Routes requests, logs, alerts and tool results to the correct brain part and protocol depth.",
         "owns": ("signal routing", "input triage", "agent selection", "protocol selection"),
         "lead_agent": "Signal Router Agent",
         "helper_agents": ("SMI Watch", "Nexus", "Agent Registry"),
@@ -185,10 +162,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "hypothalamus",
         "name": "Hypothalamus",
         "role": "Stability, pressure, urgency, overload and recovery control.",
-        "does": (
-            "Watches system pressure, urgency and overload; starts recovery when ratings drop, "
-            "freezes risky action and prevents panic changes."
-        ),
+        "does": "Controls stability, overload, recovery windows and offline decisions.",
         "owns": ("stability", "overload control", "97 recovery", "offline decision"),
         "lead_agent": "Stability Agent",
         "helper_agents": ("Brainstem", "Guardian", "War Room"),
@@ -204,10 +178,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "hippocampus",
         "name": "Hippocampus",
         "role": "Memory formation through HRM and Neon receipts.",
-        "does": (
-            "Turns actions, checks, decisions, approvals, failures and lessons into durable HRM/Neon "
-            "memory so the system does not forget or fake proof."
-        ),
+        "does": "Turns checks, decisions, approvals, failures and lessons into HRM/Neon memory.",
         "owns": ("HRM memory", "Neon receipts", "lessons", "audit recall"),
         "lead_agent": "HRM / Memory Agent",
         "helper_agents": ("Neon Receipts", "Owl", "Audit Agent"),
@@ -223,10 +194,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "amygdala",
         "name": "Amygdala",
         "role": "Risk alarm for fake green, bypass, leaks and unsafe behaviour.",
-        "does": (
-            "Detects danger before action: fake green, hidden tracking, public/private leaks, unsafe "
-            "claims, payment/dispatch risks and protocol bypass attempts."
-        ),
+        "does": "Detects fake green, hidden tracking, leaks, unsafe claims, payment/dispatch risk and bypasses.",
         "owns": ("risk alarm", "bypass detection", "fake-green detection", "leak warning"),
         "lead_agent": "Risk / Guardian Agent",
         "helper_agents": ("Guardian", "Shere Khan", "Green Gate"),
@@ -242,10 +210,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "cerebellum",
         "name": "Cerebellum",
         "role": "Coordination, precision, smooth action and agent handoff.",
-        "does": (
-            "Coordinates safe execution steps: tool handoffs, build order, deploy checks, route checks, "
-            "agent handover and recovery timing without rushing."
-        ),
+        "does": "Coordinates tool handoffs, build order, deploy checks, route checks and recovery timing.",
         "owns": ("coordination", "precision", "handoff", "deploy rhythm"),
         "lead_agent": "Coordination Agent",
         "helper_agents": ("Tool Proof Agent", "Render/GitHub Runner", "War Room"),
@@ -261,10 +226,7 @@ BRAIN_PARTS: tuple[dict[str, object], ...] = (
         "id": "brainstem",
         "name": "Brainstem",
         "role": "Life support, health checks, uptime and fail-closed state.",
-        "does": (
-            "Keeps the private brain alive and safe: health checks, fail-closed gates, uptime checks, "
-            "basic survival state and controlled shutdown of unsafe processes."
-        ),
+        "does": "Keeps the private brain alive through health checks, fail-closed gates and safe shutdown.",
         "owns": ("health", "uptime", "fail-closed", "safe shutdown"),
         "lead_agent": "Health / Fail-Closed Agent",
         "helper_agents": ("Render Health", "Guardian", "Living Kernel"),
@@ -282,10 +244,10 @@ SEVEN_CHECKS: tuple[dict[str, str], ...] = (
     {"id": "named", "label": "Named", "meaning": "The brain part has a locked canonical name."},
     {"id": "role_defined", "label": "Role defined", "meaning": "The brain part has a clear job inside SMI."},
     {"id": "protocol_mapped", "label": "Protocol mapped", "meaning": "The part is mapped to SMI laws, signals and boundaries."},
-    {"id": "agent_tool_connected", "label": "Agent/tool connected", "meaning": "The lead agent or tool runner is actually wired."},
-    {"id": "hrm_neon_receipt", "label": "HRM/Neon receipt connected", "meaning": "The part can record durable proof and lessons."},
-    {"id": "live_war_room_proof", "label": "Live runner + War Room proof", "meaning": "A live private runner can prove the part works."},
-    {"id": "matrix_learning_loop", "label": "Matrix learning loop", "meaning": "The part learns safely from receipts, blocks, failures and approvals."},
+    {"id": "agent_tool_connected", "label": "Agent/tool connected", "meaning": "The lead agent or tool runner is assigned in protocol; live runner proof remains separate."},
+    {"id": "hrm_neon_receipt", "label": "HRM/Neon receipt connected", "meaning": "The part has a receipt contract; real Neon write proof remains separate."},
+    {"id": "live_war_room_proof", "label": "Live runner + War Room proof", "meaning": "The War Room can simulate the proof path; live execution proof remains separate."},
+    {"id": "matrix_learning_loop", "label": "Matrix learning loop", "meaning": "The part has a learning contract; real learning from receipts remains separate."},
 )
 
 MIND_BODY_SOUL_777: tuple[dict[str, object], ...] = (
@@ -392,58 +354,84 @@ RATING_RULES: tuple[dict[str, str], ...] = (
     {"range": "unsafe bypass", "signal": "blocked", "decision": "immediate Guardian block"},
 )
 
+PDF_ALIGNMENT: dict[str, object] = {
+    "source": "OAP_SMI_Master_Architecture_and_Code(1).pdf",
+    "confirmed": (
+        "One SMI Brain; Human Authority final",
+        "SMI cannot execute directly",
+        "AEGIS and Guardian protect before high-impact movement",
+        "War Room is recommendation-only scenario review",
+        "HRM records recommendations, approvals and outcomes",
+    ),
+    "kept_incomplete": (
+        "Judgement wider programme is not marked complete without code, tests, HRM audit and Human Authority approval",
+        "Neon receipt writes are not claimed live by this read-only projection",
+        "Live Matrix learning is not claimed without stored receipt evidence",
+    ),
+}
+
+
+def _check_status(position: int, check: dict[str, str]) -> dict[str, Any]:
+    evidence_passed = position <= 3
+    simulation_passed = True
+    return {
+        **check,
+        "position": position,
+        "evidence_passed": evidence_passed,
+        "simulation_passed": simulation_passed,
+        "evidence_status": "passed" if evidence_passed else "needed",
+        "simulation_status": "covered",
+    }
+
 
 def _part_status(part: dict[str, object]) -> dict[str, Any]:
-    checks = []
-    for index, check in enumerate(SEVEN_CHECKS, start=1):
-        passed = index <= 3
-        checks.append(
-            {
-                **check,
-                "position": index,
-                "passed": passed,
-                "status": "passed" if passed else "needed",
-            }
-        )
+    checks = tuple(_check_status(index, check) for index, check in enumerate(SEVEN_CHECKS, start=1))
+    missing_evidence = tuple(check["label"] for check in checks if not check["evidence_passed"])
     return {
         **part,
-        "score": 3,
+        "evidence_score": 3,
+        "simulation_score": 7,
         "max_score": 7,
         "status_light": "yellow",
-        "checks": tuple(checks),
-        "missing_checks": tuple(check["label"] for check in checks if not check["passed"]),
-        "green_allowed": False,
-        "detail_complete": True,
+        "simulation_light": "green",
+        "checks": checks,
+        "missing_evidence_checks": missing_evidence,
+        "simulation_coverage": "7/7",
+        "real_green_allowed": False,
     }
 
 
 def brain_status() -> dict[str, Any]:
-    """Return the SMI Brain 14 x 7 status board without executing anything."""
+    """Return the SMI Brain 14 x 7 board without executing anything."""
 
     parts = tuple(_part_status(part) for part in BRAIN_PARTS)
     total_possible = len(parts) * len(SEVEN_CHECKS)
-    total_score = sum(int(part["score"]) for part in parts)
+    evidence_score = sum(int(part["evidence_score"]) for part in parts)
+    simulation_score = sum(int(part["simulation_score"]) for part in parts)
     return {
         "name": "SMI Brain 14 x 7 Status",
         "mode": "Founder-only War Room proof projection; no execution granted",
+        "pdf_alignment": PDF_ALIGNMENT,
         "brain_parts": parts,
         "check_model": SEVEN_CHECKS,
         "score": {
-            "current": total_score,
+            "evidence_current": evidence_score,
+            "simulation_current": simulation_score,
             "possible": total_possible,
-            "percentage": round((total_score / total_possible) * 100, 1),
-            "status_light": "orange",
+            "evidence_percentage": round((evidence_score / total_possible) * 100, 1),
+            "simulation_percentage": round((simulation_score / total_possible) * 100, 1),
+            "evidence_light": "orange",
+            "simulation_light": "green",
             "real_green": False,
         },
         "summary": {
             "named": "14/14",
             "roles_defined": "14/14",
             "protocol_mapped": "14/14",
-            "details_defined": "14/14",
-            "agent_tool_connected": "0/14",
-            "hrm_neon_receipts": "0/14",
-            "live_war_room_proof": "0/14",
-            "matrix_learning_loop": "0/14",
+            "agent_tool_connected": "simulation covered; live runner proof needed",
+            "hrm_neon_receipts": "simulation contract covered; real Neon writes needed",
+            "live_war_room_proof": "simulation covered; live proof runner needed",
+            "matrix_learning_loop": "simulation contract covered; stored learning proof needed",
         },
         "mind_body_soul": MIND_BODY_SOUL_777,
         "laws": LAWS_21,
@@ -459,27 +447,32 @@ def brain_status() -> dict[str, Any]:
             "founder_authority_final": True,
         },
         "next_master_upgrade": (
-            "Connect agent/tool runners, HRM/Neon receipts, live War Room proof, "
-            "and Matrix learning loops for each of the 14 brain parts."
+            "Turn simulation coverage into real evidence by wiring live runners, "
+            "HRM/Neon receipt writes, proof checks, tests and Matrix learning receipts."
         ),
     }
 
 
 def simulation(stage: str | None = None) -> dict[str, Any]:
-    """Return the safe War Room simulation for starting the 14 parts up to 7/7."""
+    """Return the safe War Room simulation for moving 14 brain parts from 3/7 to 7/7."""
 
     depth = (stage or "auto").strip().lower()
     status = brain_status()
     return {
-        "simulation": "SMI Brain 14 stages up to 7/7",
+        "simulation": "SMI Brain 14 anatomy parts from 3/7 to 7/7",
         "requested_stage": depth,
-        "result": "details_complete_protocol_only",
+        "result": "7/7_simulation_coverage_complete",
         "execution_granted": False,
         "real_green": False,
         "war_room": {
             "checks_started": "14 brain parts x 7 proof checks",
-            "current_score": status["score"],
-            "decision": "details are now defined for every part; remaining checks require live proof wiring",
+            "evidence_score": status["score"]["evidence_current"],
+            "simulation_score": status["score"]["simulation_current"],
+            "possible": status["score"]["possible"],
+            "decision": (
+                "All 14 parts have 7/7 War Room simulation coverage. "
+                "Evidence remains 3/7 until live runners and Neon receipts are proven."
+            ),
         },
         "guardian": {
             "pass": True,
@@ -487,7 +480,7 @@ def simulation(stage: str | None = None) -> dict[str, Any]:
         },
         "green_gate": {
             "pass": False,
-            "reason": "Full green requires 98/98, Neon receipts and live runner proof.",
+            "reason": "Full real green requires evidence 98/98, Neon receipts, live runner proof and acceptance tests.",
         },
         "status": status,
     }
