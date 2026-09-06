@@ -13,6 +13,7 @@ from . import (
     smi_brain_score21,
     smi_completion_contract,
     smi_deep_dive_protocol,
+    smi_receipt_backend,
     war_room_simulation_actions,
     web_security,
 )
@@ -89,6 +90,30 @@ def smi_brain_evidence_runner_run():
                     gate=request.args.get("gate"),
                     command=request.args.get("command"),
                 )
+            )
+        )
+    )
+
+
+@bp.get("/war-room/smi-brain/receipts")
+@bp.get("/war-room/actions/smi-brain-receipts")
+@bp.get("/smi/brain/receipts")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_receipts():
+    """Return private-safe SMI receipt backend status and recent receipt headers."""
+
+    limit = request.args.get("limit", "20")
+    try:
+        safe_limit = max(1, min(int(limit), 100))
+    except ValueError:
+        safe_limit = 20
+    return _no_store(
+        make_response(
+            jsonify(
+                {
+                    "status": smi_receipt_backend.receipt_backend_status(),
+                    "latest": smi_receipt_backend.latest_receipts(safe_limit),
+                }
             )
         )
     )
