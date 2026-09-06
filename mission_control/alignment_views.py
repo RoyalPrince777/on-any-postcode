@@ -3,7 +3,12 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import alignment_check, smi_completion_contract, web_security
+from . import (
+    alignment_check,
+    smi_completion_contract,
+    war_room_simulation_actions,
+    web_security,
+)
 
 bp = Blueprint("alignment", __name__)
 
@@ -42,6 +47,35 @@ def smi_completion():
     """Return the private-safe SMI completion contract."""
 
     return _no_store(make_response(jsonify(smi_completion_contract.completion_status())))
+
+
+@bp.get("/war-room/simulation-actions")
+@bp.get("/war-room/actions/simulation-actions")
+@bp.get("/smi/simulation-actions")
+@web_security.login_required(api=True, founder_only=True)
+def simulation_actions():
+    """Return the Founder-only War Room dry-run action catalogue."""
+
+    return _no_store(make_response(jsonify(war_room_simulation_actions.list_actions())))
+
+
+@bp.get("/war-room/simulate")
+@bp.get("/war-room/actions/simulate")
+@bp.get("/smi/simulate")
+@web_security.login_required(api=True, founder_only=True)
+def simulate_action():
+    """Run one safe dry-run simulation without executing external action."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                war_room_simulation_actions.simulate(
+                    request.args.get("action"),
+                    request.args.get("target"),
+                )
+            )
+        )
+    )
 
 
 @bp.get("/war-room/debug/simple-task")
