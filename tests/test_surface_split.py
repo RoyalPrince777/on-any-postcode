@@ -123,11 +123,11 @@ def test_smi_gateway_does_not_follow_upstream_redirects():
     ) is None
 
 
-def test_smi_gateway_root_redirects_to_private_sign_in():
+def test_smi_gateway_root_returns_founder_to_personal_smi():
     client = smi_gateway.app.test_client()
     response = client.get("/")
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/auth")
+    assert response.headers["Location"].endswith("/auth?next=/mission/ollama")
 
 
 def test_render_blueprint_is_free_and_contains_no_paid_worker():
