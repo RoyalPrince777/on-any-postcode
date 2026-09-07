@@ -68,6 +68,12 @@ def _allowed(path: str) -> bool:
         return False
     if clean == "/mission" or clean.startswith("/mission/"):
         return True
+    if clean == "/smi" or clean.startswith("/smi/"):
+        return True
+    if clean == "/war-room" or clean.startswith("/war-room/"):
+        return True
+    if clean == "/alignment" or clean.startswith("/alignment/"):
+        return True
     if clean == "/my-world" or clean.startswith("/my-world/"):
         return True
     if clean == "/myworld" or clean.startswith("/myworld/"):
@@ -153,8 +159,8 @@ def _proxy(path: str):
 
 @app.get("/")
 def root():
-    """Enter the private SMI origin through its fail-closed sign-in gate."""
-    return redirect("/auth", code=302)
+    """The SMI origin opens Personal SMI; its upstream route enforces sign-in."""
+    return redirect("/mission/ollama", code=302)
 
 
 @app.get("/smi")
