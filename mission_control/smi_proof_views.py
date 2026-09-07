@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import a7_certification, authority, smi_proof_gate, web_security
 
-bp = Blueprint("smi_proof_gate", __name__, url_prefix="/mission/smi-proof")
+bp = Blueprint(
+    "smi_proof_gate",
+    __name__,
+    url_prefix="/mission/smi-proof",
+    template_folder="templates",
+)
 
 
 def _no_store(response):
@@ -66,6 +71,22 @@ def rollback_recovery_proof():
                 green_gate=smi_proof_gate.public_safe_status(),
                 execution_granted=False,
                 human_authority_final=True,
+            )
+        )
+    )
+
+
+@bp.get("/a7")
+@web_security.login_required(founder_only=True)
+def a7_dashboard():
+    """Render the Founder-only A7 proof and certification readiness screen."""
+
+    return _no_store(
+        make_response(
+            render_template(
+                "smi_a7.html",
+                a7=a7_certification.public_safe_status(),
+                oap_csrf_token=web_security.csrf_token(),
             )
         )
     )
