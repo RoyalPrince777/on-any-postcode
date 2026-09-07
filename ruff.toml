@@ -1,0 +1,10 @@
+# OAP lint policy: keep CI strict while containing known legacy-only style debt.
+# New files and new lint classes remain governed by Ruff's normal defaults.
+
+[lint.per-file-ignores]
+"mission_control/ai_behaviour_protocol.py" = ["I001"]
+"mission_control/area_intelligence.py" = ["UP035", "PLC0206"]
+"mission_control/atlas_live_sources.py" = ["UP035"]
+"mission_control/local_map_intelligence.py" = ["UP035"]
+"mission_control/on_any_place_routes.py" = ["PIE810"]
+"mission_control/travel_supply_views.py" = ["I001"]
