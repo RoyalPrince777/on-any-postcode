@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import app as app_module
-from smi_gateway import app as smi_gateway_app
 from mission_control import smi_auto
+from smi_gateway import app as smi_gateway_app
 
 
 def test_smi_auto_is_low_noise_and_never_executes():
