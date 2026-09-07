@@ -9,7 +9,7 @@ body.mc-workspace-body{margin:0!important;padding:0!important;max-width:none!imp
 const personalTitle=document.querySelector('.chat-title');
 const personalSubtitle=document.querySelector('.chat-head .chat-subtitle');
 if(personalTitle)personalTitle.textContent='Personal SMI';
-if(personalSubtitle)personalSubtitle.textContent='Founder chat · straight answers · guarded actions';
+if(personalSubtitle)personalSubtitle.textContent='Private Founder intelligence · straight answers · guarded actions';
 document.title='Personal SMI · OAP';
 const publicOapOrigin='https://on-any-postcode.onrender.com/';
 const publicFrontDoor=Array.from(document.querySelectorAll('.navs a')).find(link=>link.textContent.trim()==='OAP Front Door');
@@ -30,7 +30,7 @@ if(composerInput){
 const thinkingTitle=document.getElementById('thinking-title');
 if(thinkingTitle)thinkingTitle.textContent='🧠 Work stages';
 const thinkingPanel=document.getElementById('thinking');
-if(thinkingPanel){thinkingPanel.setAttribute('aria-label','Safe SMI work stages only');thinkingPanel.setAttribute('title','Visible stages only. Private reasoning is never shown.');}
+if(thinkingPanel){thinkingPanel.setAttribute('aria-label','Safe SMI work stages only');thinkingPanel.setAttribute('title','Shows governed operational state only; private chain-of-thought is never exposed.');}
 const providerStateLabel=document.getElementById('provider-state');
 if(providerStateLabel)providerStateLabel.setAttribute('title','Governed operational state only.');
 
