@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from . import autonomy_levels, intelligence_lenses, postgres_db
+from . import autonomy_levels, intelligence_lenses, postgres_db, smi_proof_gate
 
 
 def _now() -> str:
@@ -32,9 +32,9 @@ SMI_COMPLETION_CHECKS = (
     {"check": "A6 governed execution", "status": "future_locked", "light": "🔒", "proof_class": "governance"},
     {"check": "A7 organism-scale autonomy", "status": "constitutional_locked", "light": "🔒", "proof_class": "governance"},
     {"check": "production HRM / approval receipt evidence", "status": "live_proof_required", "light": "🟡", "proof_class": "runtime"},
-    {"check": "real Green Gate aggregation", "status": "live_proof_required", "light": "🟡", "proof_class": "runtime"},
-    {"check": "rollback and recovery evidence", "status": "live_proof_required", "light": "🟡", "proof_class": "runtime"},
-    {"check": "live observability evidence", "status": "live_proof_required", "light": "🟡", "proof_class": "runtime"},
+    {"check": "real Green Gate aggregation", "status": "live_evidence_consumed", "light": "🟣", "proof_class": "runtime"},
+    {"check": "rollback and recovery evidence", "status": "live_evidence_consumed", "light": "🟣", "proof_class": "runtime"},
+    {"check": "live observability evidence", "status": "live_evidence_consumed", "light": "🟣", "proof_class": "runtime"},
     {"check": "external audit / legal / compliance for A7", "status": "external_proof_required", "light": "🔒", "proof_class": "external"},
 )
 
@@ -52,17 +52,17 @@ PROOF_GATE_DEFINITIONS = (
     {
         "id": "green_gate_aggregation",
         "name": "Green Gate evidence aggregation",
-        "closes": "real route, runtime, receipt, rollback and observability evidence feed one truthful gate",
+        "closes": "real Founder, receipt, meaningful-event, rollback and observability evidence feed one truthful gate",
     },
     {
         "id": "rollback_recovery",
         "name": "Rollback and recovery",
-        "closes": "failure-path, restore and safe-resume evidence exists for any future A6 capability",
+        "closes": "a Human-Authority-run bounded fault, restore and safe-resume proof is durably audited",
     },
     {
         "id": "observability",
         "name": "Live observability",
-        "closes": "fresh health, error and operational telemetry is attached to the governed release gate",
+        "closes": "fresh first-party health, error and latency telemetry is attached to the governed release gate",
     },
     {
         "id": "a7_external",
@@ -134,7 +134,9 @@ def _runtime_evidence() -> dict[str, object]:
     return evidence
 
 
-def _proof_gates(evidence: dict[str, object]) -> tuple[dict[str, object], ...]:
+def _proof_gates(
+    evidence: dict[str, object], gate_snapshot: dict[str, object]
+) -> tuple[dict[str, object], ...]:
     founder_proven = bool(
         evidence.get("store_reachable")
         and int(evidence.get("active_human_authorities") or 0) > 0
@@ -146,12 +148,15 @@ def _proof_gates(evidence: dict[str, object]) -> tuple[dict[str, object], ...]:
         and int(evidence.get("five_section_reviews") or 0) > 0
         and int(evidence.get("signed_approved_receipts") or 0) > 0
     )
+    gate_checks = gate_snapshot.get("checks")
+    if not isinstance(gate_checks, dict):
+        gate_checks = {}
     proof = {
         "founder_chat_interaction": founder_proven,
         "hrm_receipt_chain": receipt_chain_proven,
-        "green_gate_aggregation": False,
-        "rollback_recovery": False,
-        "observability": False,
+        "green_gate_aggregation": bool(gate_snapshot.get("green")),
+        "rollback_recovery": bool(gate_checks.get("rollback_recovery")),
+        "observability": bool(gate_checks.get("observability")),
         "a7_external": False,
     }
     rows: list[dict[str, object]] = []
@@ -173,10 +178,14 @@ def completion_status() -> dict[str, object]:
     """Return canonical code truth plus live non-sensitive production evidence."""
     autonomy = autonomy_levels.status()
     evidence = _runtime_evidence()
-    gates = _proof_gates(evidence)
+    gate_snapshot = smi_proof_gate.status()
+    gates = _proof_gates(evidence, gate_snapshot)
     missing = tuple(item for item in gates if not item["proven"])
     founder_proven = next(item for item in gates if item["id"] == "founder_chat_interaction")["proven"]
     receipt_proven = next(item for item in gates if item["id"] == "hrm_receipt_chain")["proven"]
+    rollback_proven = next(item for item in gates if item["id"] == "rollback_recovery")["proven"]
+    observability_proven = next(item for item in gates if item["id"] == "observability")["proven"]
+    runtime_green = bool(gate_snapshot.get("green"))
     return {
         "component": "SMI Completion Contract",
         "generated_at": _now(),
@@ -195,6 +204,7 @@ def completion_status() -> dict[str, object]:
             "execution_granted_by_lens": False,
         },
         "runtime_evidence": evidence,
+        "live_green_gate": gate_snapshot,
         "proof_gates": gates,
         "missing_proof_gates": missing,
         "hard_locks": {
@@ -212,20 +222,23 @@ def completion_status() -> dict[str, object]:
             "code_surface": "green",
             "authenticated_interaction": "green" if founder_proven else "proof_required",
             "receipt_chain": "green" if receipt_proven else "proof_required",
-            "green_gate": "proof_required",
+            "rollback_recovery": "green" if rollback_proven else "proof_required",
+            "observability": "green" if observability_proven else "proof_required",
+            "green_gate": "green" if runtime_green else "proof_required",
             "a5": "locked",
             "a6": "locked",
             "a7": "locked",
-            "whole_smi_runtime": "not_full_green",
+            "whole_smi_runtime": "green_bounded_runtime" if runtime_green else "not_full_green",
         },
         "green_gate": {
             "code_boundary_ready": True,
-            "smi_runtime_full_green": False,
+            "smi_runtime_full_green": runtime_green,
+            "higher_levels_locked": True,
+            "missing": gate_snapshot.get("missing", ()),
             "reason_not_full_green": (
-                "Signed Human Authority decision receipts, Green Gate aggregation, rollback/recovery and "
-                "live operational observability still require proof. A5-A7 remain locked."
-                if founder_proven
-                else "Authenticated Human Authority interaction, signed decision receipts, Green Gate aggregation, rollback/recovery and observability still require proof. A5-A7 remain locked."
+                None
+                if runtime_green
+                else "Current bounded SMI Green Gate still lacks one or more live Founder, receipt, meaningful-event, rollback or observability proofs. A5-A7 remain locked."
             ),
         },
         "final_rule": (
