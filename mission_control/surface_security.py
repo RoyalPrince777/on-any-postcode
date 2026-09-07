@@ -9,6 +9,9 @@ from flask import Flask, Request, make_response, request
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
 _PRIVATE_PATH_PREFIXES = (
     "/mission",
+    "/smi",
+    "/war-room",
+    "/alignment",
     "/auth",
     "/enter-my-world",
     "/my-world",
@@ -85,11 +88,17 @@ def register(app: Flask) -> None:
     path is reachable only when the dedicated private gateway supplies the
     configured high-entropy credential.
     """
-    from . import pulse_routes, smi_certification_routes, smi_event_memory
+    from . import (
+        contract_compatibility,
+        pulse_routes,
+        smi_certification_routes,
+        smi_event_memory,
+    )
 
     app.request_class = OAPRequest
     pulse_routes.register(app)
     app.register_blueprint(smi_certification_routes.bp)
+    contract_compatibility.register(app)
     smi_event_memory.register(app)
 
     @app.before_request
