@@ -17,7 +17,7 @@ def _now() -> str:
 SIMULATION_STAGES_21 = (
     {"stage": 1, "name": "Observe", "purpose": "Receive the situation without acting.", "light": "⚪"},
     {"stage": 2, "name": "Name", "purpose": "Name the system, route, product or problem.", "light": "⚪"},
-    {"stage": 3, "name": "Classify", "purpose": "Place it under Map, Movement, Direct, Live Pattern, War Room, SIKA or ACI.", "light": "⚪"},
+    {"stage": 3, "name": "Classify", "purpose": "Place it under OAP Atlas, Movement Intelligence, OAP Direct, The Spot, The Link, War Room, SIKA or SMI Intelligence.", "light": "⚪"},
     {"stage": 4, "name": "Boundary", "purpose": "Check public/private, Founder-only, youth, privacy and compliance boundaries.", "light": "🛡️"},
     {"stage": 5, "name": "Risk", "purpose": "Detect money, dispatch, hidden tracking, fake-live, private leak or real-world risk.", "light": "🟠"},
     {"stage": 6, "name": "Lock", "purpose": "Keep restricted functions locked before any deeper simulation.", "light": "🔒"},
@@ -34,7 +34,7 @@ SIMULATION_STAGES_21 = (
     {"stage": 17, "name": "Founder Decision", "purpose": "Mark whether Founder approval is needed before any write/deploy/action.", "light": "👑"},
     {"stage": 18, "name": "Patch Plan", "purpose": "Recommend the smallest safe patch, with rollback path.", "light": "🛠️"},
     {"stage": 19, "name": "Deploy Proof", "purpose": "Require deploy ID, live status and fresh error scan before green.", "light": "🚀"},
-    {"stage": 20, "name": "Learn", "purpose": "Feed safe outcome into HRM/ACI readiness without changing authority.", "light": "🧬"},
+    {"stage": 20, "name": "Learn", "purpose": "Feed safe outcome into HRM and Learning Intelligence without changing authority.", "light": "🧬"},
     {"stage": 21, "name": "Lock Result", "purpose": "Return final status, locks, blockers, next action and HRM memory.", "light": "✅"},
 )
 
@@ -131,15 +131,19 @@ SIMULATION_ACTIONS = (
         "locked": "Does not rewrite history or self-approve decisions.",
     },
     {
-        "id": "aci_readiness_simulation",
-        "label": "ACI readiness simulation",
+        "id": "smi_learning_readiness_simulation",
+        "label": "SMI learning readiness simulation",
         "signal": "🧬",
         "default_stage": 20,
-        "can_do": "Check whether SMI is ready to move toward Adaptive Coherent Intelligence.",
-        "simulation_output": "coherence score, missing memory/proof loops, autonomy lock state",
-        "locked": "Does not claim AGI, ASI or autonomous authority.",
+        "can_do": "Check whether SMI memory, coherence, evidence and Learning Intelligence loops are ready for the next governed A-level.",
+        "simulation_output": "coherence score, missing memory/proof loops, autonomy lock state and next evidence gate",
+        "locked": "Does not self-promote A5, A6 or A7 and never grants autonomous authority.",
     },
 )
+
+# Quiet compatibility for old private URLs/commands. Never expose this as the
+# canonical maturity model; A1-A7 is the only current SMI operating-level ladder.
+ACTION_ALIASES = {"aci_readiness_simulation": "smi_learning_readiness_simulation"}
 
 
 def _stage(number: int) -> dict[str, object]:
@@ -161,7 +165,7 @@ def _stage_for(action: dict[str, object], target: str) -> dict[str, object]:
         return _stage(9)
     if any(word in text for word in ("hrm", "receipt", "memory")):
         return _stage(16)
-    if any(word in text for word in ("aci", "adaptive", "coherent", "agi", "asi")):
+    if any(word in text for word in ("learning", "coherence", "a5", "a6", "a7", "aci", "adaptive", "coherent")):
         return _stage(20)
     if any(word in text for word in ("source", "timestamp", "supplier")):
         return _stage(8)
@@ -196,8 +200,13 @@ def list_actions() -> dict[str, object]:
             "dispatch_enabled": False,
             "hidden_tracking_enabled": False,
             "self_approval_enabled": False,
-            "agi_or_asi_claim_enabled": False,
+            "a5_enabled": False,
+            "a6_enabled": False,
+            "a7_enabled": False,
+            "self_permission_change_enabled": False,
+            "self_constitution_change_enabled": False,
         },
+        "canonical_autonomy_ladder": "A1-A7",
         "human_authority_final": True,
         "overall_green": False,
     }
@@ -207,6 +216,7 @@ def simulate(action_id: object = None, target: object = None, stage: object = No
     """Return a deterministic dry-run report for one action."""
 
     clean_action = str(action_id or "green_gate_simulation").strip().lower().replace(" ", "_")
+    clean_action = ACTION_ALIASES.get(clean_action, clean_action)
     clean_target = " ".join(str(target or "On Any Place").strip().split())[:160]
     action = next((item for item in SIMULATION_ACTIONS if item["id"] == clean_action), SIMULATION_ACTIONS[3])
     if stage in (None, "", "auto"):
@@ -233,7 +243,7 @@ def simulate(action_id: object = None, target: object = None, stage: object = No
             "stage_purpose": stage_info["purpose"],
             "proof_needed": action["simulation_output"],
             "locked": action["locked"],
-            "blocked": "payment, dispatch, hidden tracking, fake green, private leak and self-approval remain blocked",
+            "blocked": "payment, dispatch, hidden tracking, fake green, private leak, self-approval and A5-A7 self-promotion remain blocked",
             "next_before_green": "Move through stages 12–21: compare, gap, Green Gate, Guardian, HRM receipt, Founder decision, patch plan, deploy proof, learn, lock result.",
             "hrm_memory": "Store receipt_id, action_id, target, stage, status light, proof seen/missing, blocker and Founder decision.",
         },
@@ -245,6 +255,7 @@ def simulate(action_id: object = None, target: object = None, stage: object = No
             "can_unlock_payment": False,
             "can_dispatch": False,
             "can_track_hidden_location": False,
+            "can_self_promote_autonomy": False,
             "overall_green": False,
         },
         "human_authority_final": True,
