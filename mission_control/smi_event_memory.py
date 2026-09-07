@@ -25,6 +25,7 @@ _EXCLUDED_PREFIXES = (
     "/health",
     "/healthz",
     "/favicon",
+    "/mission/chat",
     "/mission/ollama/chat",
     "/mission/smi/chat",
     "/api/smi/chat",
