@@ -202,8 +202,11 @@ def register(app: Flask) -> None:
                 tuple(request.args.keys()),
             )
             _persist(identity_id, meta)
-        except Exception:  # noqa: BLE001 -- memory must never break the user action.
-            pass
+        except Exception as exc:  # noqa: BLE001 -- memory must never break the user action.
+            app.logger.warning(
+                "SMI event memory receipt failed (%s)",
+                type(exc).__name__,
+            )
         return response
 
 
