@@ -89,6 +89,7 @@ def register(app: Flask) -> None:
     configured high-entropy credential.
     """
     from . import (
+        all_intelligence_views,
         contract_compatibility,
         pulse_routes,
         smi_certification_routes,
@@ -100,6 +101,7 @@ def register(app: Flask) -> None:
     pulse_routes.register(app)
     app.register_blueprint(smi_certification_routes.bp)
     app.register_blueprint(smi_proof_views.bp)
+    app.register_blueprint(all_intelligence_views.bp)
     contract_compatibility.register(app)
     smi_event_memory.register(app)
 
