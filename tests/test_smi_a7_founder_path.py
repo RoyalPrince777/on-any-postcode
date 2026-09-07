@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 TEMPLATE = Path("mission_control/templates/smi_a7.html")
 VIEWS = Path("mission_control/smi_proof_views.py")
 
