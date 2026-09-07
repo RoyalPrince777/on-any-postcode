@@ -2,8 +2,8 @@
 
 Canonical truth outranks every other layer. History explains evolution, the
 knowledge graph adds relationships, the audited Founder channel carries explicit
-approved imports, and recent HRM adds working context. The combined context stays
-bounded to 21 items.
+approved imports, live operational memory supplies privacy-reduced OAP state, and
+recent HRM adds working context. The combined context stays bounded to 21 items.
 """
 
 from __future__ import annotations
@@ -20,12 +20,15 @@ from .knowledge_graph import graph_memory_items
 from .knowledge_graph import status as graph_status
 from .memory_history import historical_memory_items
 from .memory_history import status as history_status
+from .operational_memory import operational_memory_items
+from .operational_memory import status as operational_status
 
 TOTAL_CONTEXT_CAP = 21
-CANONICAL_BUDGET = 10
-HISTORY_BUDGET = 3
+CANONICAL_BUDGET = 8
+HISTORY_BUDGET = 2
 GRAPH_BUDGET = 2
 FOUNDER_SYNC_BUDGET = 3
+OPERATIONAL_BUDGET = 3
 DYNAMIC_BUDGET = 3
 
 
@@ -47,8 +50,20 @@ def compose_memory(
         query=query,
         limit=FOUNDER_SYNC_BUDGET,
     )
+    operational = operational_memory_items(
+        task_type,
+        query=query,
+        limit=OPERATIONAL_BUDGET,
+    )
     recent_dynamic = tuple(dynamic)[-DYNAMIC_BUDGET:]
-    return (canonical + history + graph + founder_sync + recent_dynamic)[:safe_limit]
+    return (
+        canonical
+        + history
+        + graph
+        + founder_sync
+        + operational
+        + recent_dynamic
+    )[:safe_limit]
 
 
 def compose_text_memory(
@@ -78,6 +93,15 @@ def status() -> dict[str, object]:
     history = history_status()
     graph = graph_status()
     founder_channel = founder_channel_status()
+    operational = operational_status()
+    budget_total = (
+        CANONICAL_BUDGET
+        + HISTORY_BUDGET
+        + GRAPH_BUDGET
+        + FOUNDER_SYNC_BUDGET
+        + OPERATIONAL_BUDGET
+        + DYNAMIC_BUDGET
+    )
     return {
         "component": "SMI Memory Orchestrator",
         "ready": bool(
@@ -85,22 +109,30 @@ def status() -> dict[str, object]:
             and history.get("ready")
             and graph.get("ready")
             and founder_channel.get("ready")
+            and operational.get("ready")
+            and budget_total == TOTAL_CONTEXT_CAP
         ),
         "context_cap": TOTAL_CONTEXT_CAP,
+        "budget_total": budget_total,
         "canonical_budget": CANONICAL_BUDGET,
         "historical_budget": HISTORY_BUDGET,
         "graph_budget": GRAPH_BUDGET,
         "founder_sync_budget": FOUNDER_SYNC_BUDGET,
+        "operational_memory_budget": OPERATIONAL_BUDGET,
         "dynamic_hrm_budget": DYNAMIC_BUDGET,
         "authority_order": (
             "CANONICAL",
             "HISTORICAL_CONTEXT",
             "KNOWLEDGE_GRAPH",
             "FOUNDER_APPROVED_SYNC_CONTEXT",
+            "LIVE_OPERATIONAL_MEMORY",
             "AUDITED_HRM_WORKING_MEMORY",
         ),
+        "operational_memory": operational,
+        "all_governed_memory_sources_connected": True,
         "latest_founder_correction_wins": True,
         "raw_chat_dump": False,
+        "raw_database_dump": False,
         "github_memory_channel_connected": bool(
             founder_channel.get("github_audited_transport_connected")
         ),
