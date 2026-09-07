@@ -1,4 +1,4 @@
-"""Bounded agentless Datadog metric delivery for Render deployments."""
+"""Bounded first-party request observability with optional Datadog delivery."""
 
 from __future__ import annotations
 
@@ -18,6 +18,14 @@ _THREAD_LOCK = threading.Lock()
 _STATE_LOCK = threading.Lock()
 _LAST_SUCCESS: float | None = None
 _LAST_ERROR: str | None = None
+_REQUEST_COUNT = 0
+_ERROR_COUNT = 0
+_HEALTH_SUCCESS_COUNT = 0
+_LAST_REQUEST_EPOCH: float | None = None
+_LAST_HEALTH_SUCCESS_EPOCH: float | None = None
+_LAST_DURATION_MS: float | None = None
+_MAX_DURATION_MS = 0.0
+_LOCAL_FRESH_SECONDS = 300
 
 
 def enabled() -> bool:
@@ -93,7 +101,7 @@ def metric(
     tags: tuple[str, ...] = (),
     metric_type: int = 3,
 ) -> bool:
-    """Queue one gauge without blocking the request path."""
+    """Queue one external gauge without blocking the request path."""
 
     if not configured():
         return False
@@ -121,20 +129,62 @@ def metric(
 
 
 def record_http_request(*, path: str, status_code: int, duration_ms: float) -> None:
-    """Emit request count, latency and error gauges with bounded tags."""
+    """Record first-party request evidence and optionally emit external metrics."""
 
-    route_tag = "route:" + (path[:120] if path.startswith("/") else "unknown")
+    global _ERROR_COUNT
+    global _HEALTH_SUCCESS_COUNT
+    global _LAST_DURATION_MS
+    global _LAST_HEALTH_SUCCESS_EPOCH
+    global _LAST_REQUEST_EPOCH
+    global _MAX_DURATION_MS
+    global _REQUEST_COUNT
+
+    now = time.time()
+    duration_value = max(0.0, float(duration_ms))
+    normalized_path = path if path.startswith("/") else "unknown"
+    with _STATE_LOCK:
+        _REQUEST_COUNT += 1
+        _LAST_REQUEST_EPOCH = now
+        _LAST_DURATION_MS = duration_value
+        _MAX_DURATION_MS = max(_MAX_DURATION_MS, duration_value)
+        if int(status_code) >= 500:
+            _ERROR_COUNT += 1
+        if normalized_path == "/healthz" and 200 <= int(status_code) < 300:
+            _HEALTH_SUCCESS_COUNT += 1
+            _LAST_HEALTH_SUCCESS_EPOCH = now
+
+    route_tag = "route:" + normalized_path[:120]
     status_tag = f"status:{int(status_code)}"
     metric("http.request", 1, tags=(route_tag, status_tag), metric_type=1)
-    metric("http.duration_ms", duration_ms, tags=(route_tag, status_tag))
+    metric("http.duration_ms", duration_value, tags=(route_tag, status_tag))
     if status_code >= 500:
         metric("http.error", 1, tags=(route_tag, status_tag), metric_type=1)
 
 
 def status() -> dict[str, object]:
+    """Return non-sensitive local observability plus optional external delivery state."""
+
+    now = time.time()
     with _STATE_LOCK:
         last_success = _LAST_SUCCESS
         last_error = _LAST_ERROR
+        request_count = _REQUEST_COUNT
+        error_count = _ERROR_COUNT
+        health_success_count = _HEALTH_SUCCESS_COUNT
+        last_request_epoch = _LAST_REQUEST_EPOCH
+        last_health_success_epoch = _LAST_HEALTH_SUCCESS_EPOCH
+        last_duration_ms = _LAST_DURATION_MS
+        max_duration_ms = _MAX_DURATION_MS
+    request_fresh = bool(
+        last_request_epoch is not None
+        and 0 <= now - last_request_epoch <= _LOCAL_FRESH_SECONDS
+    )
+    health_fresh = bool(
+        last_health_success_epoch is not None
+        and 0 <= now - last_health_success_epoch <= _LOCAL_FRESH_SECONDS
+    )
+    local_ready = bool(request_count > 0 and health_success_count > 0 and request_fresh and health_fresh)
+    external_ready = bool(configured() and last_success is not None and last_error is None)
     return {
         "enabled": enabled(),
         "site_valid": bool(site()),
@@ -144,5 +194,17 @@ def status() -> dict[str, object]:
         "last_success_epoch": int(last_success) if last_success else None,
         "last_error": last_error,
         "queued": _METRICS.qsize(),
-        "ready": bool(configured() and last_success is not None and last_error is None),
+        "ready": external_ready,
+        "local_request_count": request_count,
+        "local_error_count": error_count,
+        "local_health_success_count": health_success_count,
+        "local_last_request_epoch": int(last_request_epoch) if last_request_epoch else None,
+        "local_last_health_success_epoch": (
+            int(last_health_success_epoch) if last_health_success_epoch else None
+        ),
+        "local_last_duration_ms": last_duration_ms,
+        "local_max_duration_ms": max_duration_ms,
+        "local_fresh_seconds": _LOCAL_FRESH_SECONDS,
+        "local_observability_ready": local_ready,
+        "observability_ready": bool(local_ready or external_ready),
     }
