@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import app as app_module
-import smi_gateway as smi_gateway_app
+from smi_gateway import app as smi_gateway_app
 from mission_control import smi_auto
 
 
@@ -63,4 +63,4 @@ def test_public_status_declares_same_non_authority_contract():
 
 def test_app_registers_smi_auto_response_hook():
     names = {func.__name__ for func in app_module.app.after_request_funcs[None]}
-    assert "_smi_auto_headers" in names
+    assert "_oap_smi_auto_response" in names
