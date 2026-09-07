@@ -39,8 +39,8 @@ def _production_counts() -> dict[str, object]:
                       AND nonce IS NOT NULL AND signature IS NOT NULL),
                   (SELECT COUNT(*) FROM audit_events
                     WHERE authority_level=0 AND action='SMI_REVIEWED'),
-                  (SELECT COUNT(*) FROM audit_events
-                    WHERE action='OAP_EVENT'),
+                  (SELECT COUNT(*) FROM smi_memory_records
+                    WHERE task_type='OAP_EVENT'),
                   (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true')""",
                 (ROLLBACK_PROOF_ACTION,),
