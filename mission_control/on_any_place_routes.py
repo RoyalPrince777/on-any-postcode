@@ -3,7 +3,7 @@
 Do not change approved addresses without Founder instruction. The public UI shows
 one canonical map door: /on-any-place. Older or secondary routes remain quiet
 compatibility aliases so existing links do not break, but they are not promoted
-as duplicate public doors.
+as duplicate public doors. /travel belongs to the real OAP Travel surface.
 """
 from __future__ import annotations
 
@@ -28,8 +28,6 @@ def _with_defaults(path: str) -> dict[str, object]:
         values.setdefault("category", "events")
     elif path.endswith("on-any-route") or path.endswith("routes"):
         values.setdefault("category", "routes")
-    elif path.endswith("travel"):
-        values.setdefault("category", "travel_requests")
     elif path.endswith("on-any-ride") or path.endswith("ride"):
         values.setdefault("profile", "ride")
         values.setdefault("category", "ride_requests")
@@ -61,7 +59,6 @@ def canonical_on_any_place():
 @bp.get("/events")
 @bp.get("/on-any-route")
 @bp.get("/routes")
-@bp.get("/travel")
 @bp.get("/on-any-ride")
 @bp.get("/ride")
 @bp.get("/on-any-drop")
