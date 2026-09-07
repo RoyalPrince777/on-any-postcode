@@ -6,7 +6,7 @@
   <title>OAP Mission Control</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    :root{--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}a{color:inherit}.shell{max-width:1180px;margin:auto;padding:18px 14px 60px}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.hero h1{font-size:clamp(2.5rem,7vw,5rem);margin:.1em 0}.muted{color:var(--muted);line-height:1.45}.modes,.command-grid,.status-grid,.families{display:grid;gap:10px}.modes{grid-template-columns:repeat(3,minmax(0,1fr));margin:15px 0}.modes a,.command,.status-card,.family{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:13px;text-decoration:none}.modes a[aria-current="page"]{border-color:var(--green);background:#0b2818}.command-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.command{min-height:112px}.command strong{display:block;margin-bottom:7px}.command.primary{border-color:#2f8d53}.command.lock{border-color:#79662c}.status-grid,.families{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.section{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}.truth{border-left:4px solid var(--gold);background:#211b0b;padding:13px;border-radius:0 12px 12px 0;color:#f0e2aa}.authority{border:1px solid #79662c;border-radius:16px;padding:13px;background:#161205}.public-door{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;font-weight:850}@media(max-width:760px){.modes,.command-grid{grid-template-columns:1fr}.command{min-height:auto}}
+    :root{--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}a{color:inherit}.shell{max-width:1180px;margin:auto;padding:18px 14px 60px}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.hero h1{font-size:clamp(2.5rem,7vw,5rem);margin:.1em 0}.muted{color:var(--muted);line-height:1.45}.modes,.command-grid,.status-grid,.families{display:grid;gap:10px}.modes{grid-template-columns:repeat(3,minmax(0,1fr));margin:15px 0}.modes a,.command,.status-card,.family{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:13px;text-decoration:none}.modes a[aria-current="page"]{border-color:var(--green);background:#0b2818}.command-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.command{min-height:112px}.command strong{display:block;margin-bottom:7px}.command.primary{border-color:#2f8d53}.command.lock{border-color:#79662c}.status-grid,.families{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.section{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}.truth{border-left:4px solid var(--gold);background:#211b0b;padding:13px;border-radius:0 12px 12px 0;color:#f0e2aa}.authority{border:1px solid #79662c;border-radius:16px;padding:13px;background:#161205}.public-door{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;font-weight:850}.subhead{margin-top:18px}@media(max-width:760px){.modes,.command-grid{grid-template-columns:1fr}.command{min-height:auto}}
   </style>
 </head>
 <body>
@@ -27,6 +27,7 @@
     <div class="command-grid">
       <a class="command primary" href="{{ url_for('travel_supply.founder_dashboard') }}"><strong>📅 Booking / OAP Direct</strong><span class="muted">Supplier, listing, reservation and booking evidence.</span></a>
       <a class="command primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Personal SMI</strong><span class="muted">Private Founder intelligence and governed memory.</span></a>
+      <a class="command primary" href="{{ url_for('all_intelligence.dashboard') }}"><strong>🌐 All Intelligence</strong><span class="muted">One SMI brain → seven Intelligence Worlds → specialist families and capabilities.</span></a>
       <a class="command primary" href="{{ url_for('mission_control.war_room_dashboard') }}"><strong>⚔️ War Room</strong><span class="muted">Risk, proof, recovery and next-gate review.</span></a>
       <a class="command lock" href="{{ url_for('smi_proof_gate.a7_dashboard') }}"><strong>🟣 A7 Certification</strong><span class="muted">A6→A7 proof, Emergency Halt and constitutional assurance. A7 remains locked until every proof is real.</span></a>
       <a class="command" href="{{ url_for('isac_spatial.dashboard') }}"><strong>📡 Matrix Spatial</strong><span class="muted">Governed spatial and RF intelligence boundary.</span></a>
@@ -53,18 +54,22 @@
     </article>
   </section>
 
-  <section class="section" aria-labelledby="families-title">
-    <p class="eyebrow">Seven registered families</p><h2 id="families-title">OAP Intelligence</h2>
-    <div class="families" aria-label="OAP Intelligence families">
-      <div class="family">Civic Intelligence</div>
-      <div class="family">Jungle Book Intelligence</div>
-      <div class="family">Animal Intelligence</div>
-      <div class="family">Matrix Intelligence</div>
-      <div class="family">Civilisation Intelligence</div>
-      <div class="family">Akan Core Intelligence</div>
-      <div class="family">Akan Animal Intelligence</div>
+  <section class="section" aria-labelledby="intelligence-title">
+    <p class="eyebrow">Canonical top level</p><h2 id="intelligence-title">Seven Intelligence Worlds</h2>
+    <div class="families" aria-label="Seven canonical OAP Intelligence Worlds">
+      <div class="family">🌍 Earth Intelligence</div>
+      <div class="family">🗣️ Language Intelligence</div>
+      <div class="family">🌱 Life Intelligence</div>
+      <div class="family">🧭 Movement Intelligence</div>
+      <div class="family">🏘️ Civic Intelligence</div>
+      <div class="family">🏛️ Civilisation Intelligence</div>
+      <div class="family">🧩 Matrix Intelligence</div>
     </div>
-    <div class="status-grid">
+    <p class="truth"><strong>One SMI brain.</strong> Jungle Book, Animal, Akan Core and Akan Animal remain specialist family intelligence inside their canonical World placement; Technology, Humanitarian and Multimodal remain cross-system capabilities—not extra Worlds.</p>
+    <a class="public-door" href="{{ url_for('all_intelligence.dashboard') }}">Open All Intelligence →</a>
+
+    <h3 class="subhead">Seven specialist agent families</h3>
+    <div class="status-grid" aria-label="OAP specialist Intelligence families">
       {% for agent in gateway.agents %}
       <article class="status-card"><strong>{{ agent.name }}</strong><p class="muted">{{ agent.assignment }}</p></article>
       {% endfor %}
