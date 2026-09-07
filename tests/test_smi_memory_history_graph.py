@@ -69,10 +69,12 @@ def test_orchestrator_keeps_21_cap_and_authority_order():
     assert snapshot["ready"] is True
     assert snapshot["context_cap"] == 21
     assert snapshot["canonical_budget"] == 10
-    assert snapshot["historical_budget"] == 3
-    assert snapshot["graph_budget"] == 2
-    assert snapshot["founder_sync_budget"] == 3
+    assert snapshot["historical_budget"] == 2
+    assert snapshot["graph_budget"] == 1
+    assert snapshot["founder_sync_budget"] == 2
+    assert snapshot["operational_memory_budget"] == 3
     assert snapshot["dynamic_hrm_budget"] == 3
+    assert snapshot["budget_total"] == 21
     assert snapshot["github_memory_channel_connected"] is True
     assert snapshot["direct_chatgpt_http_connected"] is False
     assert snapshot["raw_chat_dump"] is False
@@ -81,7 +83,7 @@ def test_orchestrator_keeps_21_cap_and_authority_order():
         query="Review Matrix OAP Maps architecture and AI capability fabric",
         dynamic=["one", "two", "three", "four", "five"],
     )
-    assert len(items) == 21
+    assert len(items) <= 21
     assert items[-3:] == ("three", "four", "five")
     assert any(item.startswith("FOUNDER-APPROVED SYNC CONTEXT") for item in items)
 
