@@ -34,9 +34,8 @@ def test_meaningful_event_classifier_records_actions_not_harmless_navigation():
     ) is True
     assert smi_event_memory.should_record("GET", "/the-spot", 200) is False
     assert smi_event_memory.should_record("POST", "/auth", 200) is False
-    assert smi_event_memory.should_record(
-        "POST", "/mission/ollama/chat", 200
-    ) is False
+    assert smi_event_memory.should_record("POST", "/mission/chat", 200) is False
+    assert smi_event_memory.should_record("POST", "/mission/chat/stream", 200) is False
     assert smi_event_memory.should_record("POST", "/signal", 500) is False
 
 
