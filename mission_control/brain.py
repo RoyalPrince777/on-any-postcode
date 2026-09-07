@@ -85,7 +85,7 @@ def get_public_brain_status() -> dict[str, Any]:
         ),
         _component(
             "OAP Intelligence biological regions",
-            f"{len(SMI_REGIONS)} regions implemented",
+            f"OAP Intelligence Runtime: {len(SMI_REGIONS)} biological regions implemented",
             "Recommendation-only",
             "ready",
             "One SMI brain; biological regions are organs, not competing brains.",
@@ -123,7 +123,7 @@ def get_public_brain_status() -> dict[str, Any]:
             "Evidence runner, scenarios, SWOT, alignment, recovery and proof surfaces implemented",
             "Founder-only routes wired; fresh external evidence must still be supplied where required",
             "ready",
-            "War Room analyses and prepares; it cannot secretly execute.",
+            "War Room analyses and prepares; it cannot independently execute.",
         ),
         _component(
             "Judgement and Human Approval",
