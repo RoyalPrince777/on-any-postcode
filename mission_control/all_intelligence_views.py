@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template
 
-from . import all_intelligence, web_security
+from . import all_intelligence, intelligence_runtime_proof, web_security
 
 bp = Blueprint(
     "all_intelligence",
@@ -31,6 +31,7 @@ def dashboard():
             render_template(
                 "all_intelligence.html",
                 intelligence=all_intelligence.public_safe_status(),
+                runtime=intelligence_runtime_proof.status(),
             )
         )
     )
@@ -42,3 +43,11 @@ def status():
     """Return the Founder-safe All Intelligence status projection."""
 
     return _no_store(make_response(jsonify(all_intelligence.public_safe_status())))
+
+
+@bp.get("/runtime")
+@web_security.login_required(api=True, founder_only=True)
+def runtime():
+    """Return bounded/live/full runtime proof without performing network calls."""
+
+    return _no_store(make_response(jsonify(intelligence_runtime_proof.status())))
