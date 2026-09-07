@@ -93,11 +93,13 @@ def register(app: Flask) -> None:
         pulse_routes,
         smi_certification_routes,
         smi_event_memory,
+        smi_proof_views,
     )
 
     app.request_class = OAPRequest
     pulse_routes.register(app)
     app.register_blueprint(smi_certification_routes.bp)
+    app.register_blueprint(smi_proof_views.bp)
     contract_compatibility.register(app)
     smi_event_memory.register(app)
 
