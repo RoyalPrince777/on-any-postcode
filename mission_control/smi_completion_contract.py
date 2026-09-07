@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from . import autonomy_levels, intelligence_lenses, postgres_db, smi_proof_gate
+from . import (
+    a7_certification,
+    autonomy_levels,
+    intelligence_lenses,
+    postgres_db,
+    smi_proof_gate,
+)
 
 
 def _now() -> str:
@@ -35,7 +41,7 @@ SMI_COMPLETION_CHECKS = (
     {"check": "real Green Gate aggregation", "status": "live_evidence_consumed", "light": "🟣", "proof_class": "runtime"},
     {"check": "rollback and recovery evidence", "status": "live_evidence_consumed", "light": "🟣", "proof_class": "runtime"},
     {"check": "live observability evidence", "status": "live_evidence_consumed", "light": "🟣", "proof_class": "runtime"},
-    {"check": "external audit / legal / compliance for A7", "status": "external_proof_required", "light": "🔒", "proof_class": "external"},
+    {"check": "A7 external/legal/halt/boundary/constitutional assurance", "status": "live_evidence_gate", "light": "🟣", "proof_class": "external"},
 )
 
 PROOF_GATE_DEFINITIONS = (
@@ -66,8 +72,8 @@ PROOF_GATE_DEFINITIONS = (
     },
     {
         "id": "a7_external",
-        "name": "A7 external assurance",
-        "closes": "external audit, legal/compliance proof, emergency halt proof, public/private proof and constitutional review exist",
+        "name": "A7 organism-scale assurance",
+        "closes": "all A6 proof plus external audit, legal/compliance, emergency halt, public/private boundary and constitutional review are present",
     },
 )
 
@@ -135,7 +141,9 @@ def _runtime_evidence() -> dict[str, object]:
 
 
 def _proof_gates(
-    evidence: dict[str, object], gate_snapshot: dict[str, object]
+    evidence: dict[str, object],
+    gate_snapshot: dict[str, object],
+    a7_snapshot: dict[str, object],
 ) -> tuple[dict[str, object], ...]:
     founder_proven = bool(
         evidence.get("store_reachable")
@@ -157,7 +165,7 @@ def _proof_gates(
         "green_gate_aggregation": bool(gate_snapshot.get("green")),
         "rollback_recovery": bool(gate_checks.get("rollback_recovery")),
         "observability": bool(gate_checks.get("observability")),
-        "a7_external": False,
+        "a7_external": bool(a7_snapshot.get("ready_for_founder_certification")),
     }
     rows: list[dict[str, object]] = []
     for item in PROOF_GATE_DEFINITIONS:
@@ -179,13 +187,15 @@ def completion_status() -> dict[str, object]:
     autonomy = autonomy_levels.status()
     evidence = _runtime_evidence()
     gate_snapshot = smi_proof_gate.status()
-    gates = _proof_gates(evidence, gate_snapshot)
+    a7_snapshot = a7_certification.status()
+    gates = _proof_gates(evidence, gate_snapshot, a7_snapshot)
     missing = tuple(item for item in gates if not item["proven"])
     founder_proven = next(item for item in gates if item["id"] == "founder_chat_interaction")["proven"]
     receipt_proven = next(item for item in gates if item["id"] == "hrm_receipt_chain")["proven"]
     rollback_proven = next(item for item in gates if item["id"] == "rollback_recovery")["proven"]
     observability_proven = next(item for item in gates if item["id"] == "observability")["proven"]
     runtime_green = bool(gate_snapshot.get("green"))
+    a7_ready = bool(a7_snapshot.get("ready_for_founder_certification"))
     return {
         "component": "SMI Completion Contract",
         "generated_at": _now(),
@@ -205,6 +215,7 @@ def completion_status() -> dict[str, object]:
         },
         "runtime_evidence": evidence,
         "live_green_gate": gate_snapshot,
+        "a7_certification": a7_snapshot,
         "proof_gates": gates,
         "missing_proof_gates": missing,
         "hard_locks": {
@@ -227,7 +238,7 @@ def completion_status() -> dict[str, object]:
             "green_gate": "green" if runtime_green else "proof_required",
             "a5": "locked",
             "a6": "locked",
-            "a7": "locked",
+            "a7": "ready_for_founder_certification" if a7_ready else "locked",
             "whole_smi_runtime": "green_bounded_runtime" if runtime_green else "not_full_green",
         },
         "green_gate": {
