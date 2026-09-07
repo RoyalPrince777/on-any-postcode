@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMI A7 Certification</title>
+  <style>
+    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8;--danger:#ff817d}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1120px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--purple);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.4rem,7vw,4.8rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.5}.back{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;color:inherit}.lock{border:1px solid #745f2b;background:#171306;border-radius:18px;padding:15px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.ok{border-color:#2e8d51}.missing{border-color:#735f2b}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.76rem;font-weight:850}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #377c50;background:#0d2a19;color:var(--text);padding:11px 14px;border-radius:12px;font-weight:850}button:disabled{opacity:.5;cursor:not-allowed}.halt{border-color:#8d7130;background:#211a08}.form{display:grid;gap:10px;max-width:760px}.form label{font-weight:800}.form input,.form select,.form textarea{width:100%;background:#07110b;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.form textarea{min-height:90px}.result{white-space:pre-wrap;border:1px solid var(--line);border-radius:12px;padding:12px;background:#07110b;min-height:48px}.law{border-left:4px solid var(--purple);padding:12px 14px;background:#120b1b;border-radius:0 12px 12px 0}.danger{color:var(--danger)}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div><p class="eyebrow">Founder-only · Constitutional gate</p><h1>🟣 A7 Certification</h1><p class="muted">Certified organism-scale autonomy readiness. Proof can advance; authority does not move.</p></div>
+    <a class="back" href="{{ url_for('mission_control.mission_workspace') }}">← Mission Control</a>
+  </header>
+
+  <div class="lock">
+    <strong>🔒 A7 is not enabled here.</strong>
+    <p class="muted">This surface gathers proof and shows readiness. It cannot self-certify, self-enable, expand permissions, deploy, spend, dispatch, migrate production data, or resume after an emergency halt.</p>
+  </div>
+
+  <section aria-labelledby="a6-title">
+    <p class="eyebrow">Foundation</p><h2 id="a6-title">A6 proof before A7</h2>
+    <div class="grid">
+      {% for name, proven in a7.a6_checks.items() %}
+      <article class="card {{ 'ok' if proven else 'missing' }}"><span class="pill">{{ '🟢 PROVEN' if proven else '🟡 REQUIRED' }}</span><h3>{{ name.replace('_',' ')|title }}</h3></article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="a7-title">
+    <p class="eyebrow">Organism-scale assurance</p><h2 id="a7-title">A7 constitutional checks</h2>
+    <div class="grid">
+      {% for name, proven in a7.a7_checks.items() %}
+      <article class="card {{ 'ok' if proven else 'missing' }}"><span class="pill">{{ '🟢 PROVEN' if proven else '🔒 REQUIRED' }}</span><h3>{{ name.replace('_',' ')|title }}</h3></article>
+      {% endfor %}
+    </div>
+    <p class="law"><strong>{{ '🟣 Ready for Founder certification' if a7.ready_for_founder_certification else '🔒 Certification proof incomplete' }}</strong><br>Even a complete gate does not grant execution authority automatically.</p>
+  </section>
+
+  <section class="section" aria-labelledby="halt-title">
+    <p class="eyebrow">Emergency boundary</p><h2 id="halt-title">Emergency Halt Proof</h2>
+    <p class="muted">Runs a bounded in-memory halt → deny-new-work → safe-state exercise. Production product state is not changed, and only Human Authority may resume.</p>
+    <button class="halt" id="halt-proof" type="button">🛑 Run Emergency Halt Proof</button>
+    <div class="result" id="halt-result" aria-live="polite">No proof run from this screen yet.</div>
+  </section>
+
+  <section class="section" aria-labelledby="evidence-title">
+    <p class="eyebrow">Evidence ledger</p><h2 id="evidence-title">Record reviewed proof reference</h2>
+    <p class="muted">Store only a reference and SHA-256 fingerprint. External audit and legal/compliance evidence must identify an EXTERNAL attestor. SMI records the receipt but does not claim it independently verified the external document.</p>
+    <form class="form" id="evidence-form">
+      <label>Assurance
+        <select name="assurance" required>
+          <option value="a6_independent_proof">A6 independent proof runner</option>
+          <option value="a6_operation_approval">A6 operation-level Human approval</option>
+          <option value="a6_operation_rollback">A6 operation-specific rollback</option>
+          <option value="a6_consequential_receipt_chain">A6 consequential receipt chain</option>
+          <option value="a7_external_audit">A7 external audit</option>
+          <option value="a7_legal_compliance">A7 legal / compliance</option>
+          <option value="a7_public_private_boundary">A7 public / private boundary</option>
+          <option value="a7_constitutional_review">A7 constitutional review</option>
+        </select>
+      </label>
+      <label>Evidence reference<input name="evidence_ref" maxlength="500" placeholder="Report ID, controlled file reference or review reference" required></label>
+      <label>SHA-256<input name="evidence_hash" minlength="64" maxlength="64" pattern="[0-9a-fA-F]{64}" placeholder="64 hexadecimal characters" required></label>
+      <label>Issuer / attestor<input name="issuer" maxlength="200" required></label>
+      <label>Attestor type
+        <select name="attestor_type" required>
+          <option value="EXTERNAL">External</option>
+          <option value="INDEPENDENT_RUNNER">Independent runner</option>
+          <option value="HUMAN_AUTHORITY">Human Authority</option>
+        </select>
+      </label>
+      <label>Scope<textarea name="scope" maxlength="500" placeholder="What this evidence proves and the boundary it covers" required></textarea></label>
+      <button type="submit">Record Evidence Receipt</button>
+    </form>
+    <div class="result" id="evidence-result" aria-live="polite">No evidence submitted from this screen yet.</div>
+  </section>
+</main>
+<script>
+const csrf={{ oap_csrf_token|tojson }};
+const haltButton=document.getElementById('halt-proof');
+const haltResult=document.getElementById('halt-result');
+haltButton.addEventListener('click',async()=>{
+  haltButton.disabled=true;haltResult.textContent='Running bounded halt proof…';
+  try{
+    const r=await fetch({{ url_for('smi_proof_gate.a7_emergency_halt_proof')|tojson }},{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+    const body=await r.json();
+    if(!r.ok) throw new Error(body?.error?.message||'Proof failed');
+    haltResult.textContent='🟢 Emergency halt proof recorded. Human-only resume preserved.';
+    setTimeout(()=>location.reload(),500);
+  }catch(err){haltResult.textContent='🟡 '+err.message;}finally{haltButton.disabled=false;}
+});
+const form=document.getElementById('evidence-form');
+const evidenceResult=document.getElementById('evidence-result');
+form.addEventListener('submit',async(event)=>{
+  event.preventDefault();
+  const data=Object.fromEntries(new FormData(form).entries());
+  evidenceResult.textContent='Recording governed evidence receipt…';
+  try{
+    const r=await fetch({{ url_for('smi_proof_gate.a7_evidence_reference')|tojson }},{method:'POST',headers:{'X-OAP-CSRF':csrf,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(data)});
+    const body=await r.json();
+    if(!r.ok) throw new Error(body?.error?.message||'Evidence receipt failed');
+    evidenceResult.textContent='🟢 Evidence receipt recorded. External authenticity is still not claimed as software-verified.';
+    setTimeout(()=>location.reload(),500);
+  }catch(err){evidenceResult.textContent='🟡 '+err.message;}
+});
+</script>
+</body>
+</html>
