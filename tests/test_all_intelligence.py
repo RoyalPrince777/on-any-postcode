@@ -1,6 +1,6 @@
-from mission_control import all_intelligence
 from oap.smi.agi_core import AGICore
 
+from mission_control import all_intelligence
 
 CANONICAL_WORLD_IDS = (
     "earth",
