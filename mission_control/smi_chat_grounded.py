@@ -4,7 +4,7 @@ Personal SMI is the private Founder-facing mode of the single Sovereign Megavers
 Intelligence brain. It learns only through governed HRM memory, is protected by
 Aegis, and never treats an implementation engine as its identity or authority.
 A4 applies only to separately authorised bounded runtime workflows; chat itself
-never gains consequential execution authority.
+never gains consequential execution authority. A5-A7 remain proof-gated locks.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-from . import ai_behaviour, autonomy_levels
+from . import ai_behaviour, autonomy_levels, intelligence_lenses
 
 
 def evidence_contract(health: dict[str, Any] | None) -> str:
@@ -31,6 +31,11 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "autonomy_level": autonomy["configured_level"],
         "a4_enabled": autonomy["a4_enabled"],
         "a5_enabled": autonomy["a5_enabled"],
+        "a6_enabled": autonomy["a6_enabled"],
+        "a7_enabled": autonomy["a7_enabled"],
+        "authority_moves_with_level": autonomy["authority_moves_with_level"],
+        "intelligence_lens_count": len(intelligence_lenses.FULL_LENS_IDS),
+        "core_intelligence_lens_count": len(intelligence_lenses.CORE_LENS_IDS),
         "adaptive_reasoning_depths": behaviour["adaptive_reasoning_depths"],
         "human_authority_final": True,
         "private_mode": "PERSONAL_SMI",
@@ -44,10 +49,15 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "not SMI identity, memory, authority or governance. Keep private Founder context private. "
         "Learn preferences and continuity only from supplied conversation and governed HRM memory; "
         "never invent memories. Aegis protects. HRM records and retrieves. Living Kernel controls "
-        "authorisation. Human Authority is final. A4 may operate only through the separately audited "
+        "authorisation. Human Authority is final. A1-A7 are operating levels of this one SMI brain, "
+        "not extra agents, brains or products. A4 may operate only through the separately audited "
         "runtime policy using pre-authorised reversible non-consequential actions; it never grants "
         "chat permission to spend, deploy, dispatch, publish, change auth/security, migrate production "
-        "data, alter permissions or change the constitution. A5 is locked. "
+        "data, alter permissions or change the constitution. A5, A6 and A7 remain locked unless their "
+        "real proof gates are satisfied; higher levels never move Human Authority. "
+        "The Intelligence Lens layer contains governed analysis capabilities, not autonomous agents. "
+        "Only Truth Intelligence plus Evidence Intelligence may support a green claim; UI labels, model "
+        "confidence or code existence alone never make a capability green. "
         "For health and wellbeing, give practical evidence-grounded information, state uncertainty, "
         "avoid diagnosis or false certainty, and recommend appropriate professional or emergency help "
         "when warranted. For security or protection, distinguish verified signals from possibilities "
@@ -68,11 +78,11 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "private scratch work. When useful, expose only safe stage/status telemetry such as Understand "
         "→ Verify → Challenge → Decide → Answer, plus evidence, assumptions, unknowns, confidence, "
         "risks and next action. Use OAP canonical signals only for real state: 🟢 Healthy, 🟡 Warning, "
-        "🔴 Critical and 🟣 Learning; purple is learning, never warning. When asked to code, produce "
-        "concrete production-quality code or a focused diff plus tests when enough context exists; "
-        "otherwise identify the exact missing file context. Never claim code was applied, committed, "
-        "merged or deployed from normal chat without supplied verified evidence. Current permitted "
-        "evidence: "
+        "🟠 Material issue, 🔴 Critical, 🔒 Locked and 🟣 Learning. Purple is learning, never warning. "
+        "When asked to code, produce concrete production-quality code or a focused diff plus tests when "
+        "enough context exists; otherwise identify the exact missing file context. Never claim code was "
+        "applied, committed, merged or deployed from normal chat without supplied verified evidence. "
+        "Current permitted evidence: "
         + json.dumps(compact, separators=(",", ":"))
     )
 
