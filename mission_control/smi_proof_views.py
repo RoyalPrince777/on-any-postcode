@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import a7_certification, authority, smi_proof_gate, web_security
+from . import (
+    a7_certification,
+    approval_service,
+    authority,
+    smi_proof_gate,
+    web_security,
+)
 
 bp = Blueprint(
     "smi_proof_gate",
@@ -86,6 +92,8 @@ def a7_dashboard():
             render_template(
                 "smi_a7.html",
                 a7=a7_certification.public_safe_status(),
+                green_gate=smi_proof_gate.public_safe_status(),
+                approval=approval_service.status(),
                 oap_csrf_token=web_security.csrf_token(),
             )
         )
