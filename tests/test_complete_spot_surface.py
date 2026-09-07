@@ -70,6 +70,29 @@ def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(cl
     assert "Open what you need" not in page
 
 
+def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
+    page = client.get("/the-spot").get_data(as_text=True)
+
+    assert "Booking · Maps · Movement" in page
+    assert "🗺️ Maps" in page
+    assert "📅 Booking" in page
+    assert "🚶 Movement" in page
+    assert 'href="/travel/direct"' in page
+    assert "quote, hold and human-confirmed reservation request" in page
+    assert "supplier confirmation is required before a booking is called confirmed" in page.lower()
+    assert "Payment capture, automatic dispatch and fake-live route claims remain blocked" in page
+
+
+def test_booking_and_maps_public_front_doors_are_reachable(client):
+    maps = client.get("/atlas")
+    booking = client.get("/travel/direct")
+
+    assert maps.status_code == 200
+    assert booking.status_code == 200
+    assert "On Any Place" in maps.get_data(as_text=True)
+    assert "OAP Direct" in booking.get_data(as_text=True)
+
+
 def test_signal_and_world_room_capabilities_have_live_public_forms(client):
     signal = client.get("/the-spot/signal").get_data(as_text=True)
     rooms = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
