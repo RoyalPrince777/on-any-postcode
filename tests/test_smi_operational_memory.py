@@ -1,5 +1,5 @@
-from oap.smi import memory_orchestrator, operational_memory
 from mission_control import smi_event_memory
+from oap.smi import memory_orchestrator, operational_memory
 
 
 def test_memory_orchestrator_keeps_21_item_governed_ceiling():
