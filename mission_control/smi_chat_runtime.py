@@ -19,6 +19,7 @@ from oap.smi.memory_orchestrator import compose_text_memory
 from oap.smi.memory_orchestrator import status as governed_memory_status
 from oap.smi.memory_sync import status as memory_sync_status
 
+from . import intelligence_lenses as _intelligence
 from . import oap_inference_gateway as _inference
 from . import smi_chat_grounded as _grounded
 from . import smi_chat_runtime_core as _core
@@ -202,7 +203,11 @@ def _grounded_provider(
     code_mode: bool = False,
     on_delta: Callable[[str], None] | None = None,
 ) -> str:
-    grounded_message = _with_world_crisis_context(message, brain)
+    intelligence_route = _intelligence.route(message)
+    grounded_message = _intelligence.enrich(
+        _with_world_crisis_context(message, brain),
+        intelligence_route,
+    )
     governed_memory = _canonical_provider_memory(
         brain,
         adaptive_memory,
@@ -315,6 +320,7 @@ def chat(
         on_event=_thinking_event_adapter(on_event),
     )
     enriched = dict(result)
+    enriched["intelligence"] = _intelligence.public_route(message)
     enriched["thinking_process"] = _thinking.completion_summary(enriched)
     contract = _thinking.process_contract()
     enriched["thinking_process_contract"] = {
