@@ -8,7 +8,10 @@ def test_mission_control_prioritises_real_booking_and_private_controls():
     booking = page.index("travel_supply.founder_dashboard")
     chat = page.index("mission_control.ollama_chat_dashboard")
     war_room = page.index("mission_control.war_room_dashboard")
-    assert booking < chat < war_room
+    a7 = page.index("smi_proof_gate.a7_dashboard")
+    assert booking < chat < war_room < a7
+    assert "A7 Certification" in page
+    assert "A7 remains locked until every proof is real" in page
     assert "isac_spatial.dashboard" in page
     assert "provider_fabric.alignment_dashboard" in page
     assert "mission_control.judgement_dashboard" in page
@@ -17,6 +20,19 @@ def test_mission_control_prioritises_real_booking_and_private_controls():
     assert "the_link_dashboard" not in page
     assert "No operational controls are enabled" not in page
     assert "https://on-any-postcode.onrender.com/" in page
+
+
+def test_a7_certification_screen_is_proof_only_not_activation():
+    page = _text("mission_control/templates/smi_a7.html")
+    assert "A7 Certification" in page
+    assert "A7 is not enabled here" in page
+    assert "Emergency Halt Proof" in page
+    assert "Record reviewed proof reference" in page
+    assert "External" in page
+    assert "SHA-256" in page
+    assert "enable A7" not in page.lower()
+    assert "turn on A7" not in page.lower()
+    assert "execution authority automatically" in page
 
 
 def test_my_world_is_profile_not_twelve_workspace_menu():
