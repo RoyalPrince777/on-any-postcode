@@ -18,7 +18,6 @@ from . import (
     earth_intelligence,
     international_humanitarian_intelligence,
     language_intelligence,
-    life_intelligence,
     media_intelligence,
     movement_intelligence,
     movement_proof,
@@ -69,7 +68,6 @@ def status() -> dict[str, Any]:
 
     earth = earth_intelligence.status(weather_ready=False)
     language = language_intelligence.language_intelligence_status()
-    life = life_intelligence.life_intelligence_status()
     movement = movement_intelligence.movement_intelligence_status()
     movement_runtime = movement_proof.status()
     technology = technology_intelligence.technology_intelligence_status()
