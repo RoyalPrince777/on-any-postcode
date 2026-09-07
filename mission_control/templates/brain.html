@@ -3,27 +3,161 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAP SMI Brain</title>
+  <title>OAP SMI Intelligence</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    :root{--intel-bg:#050806;--intel-card:#09140d;--intel-card2:#0d1e13;--intel-line:#244832;--intel-green:#39e57f;--intel-gold:#d7b85d;--intel-muted:#9fb5a8;--intel-text:#f0faf3;--intel-yellow:#f1d36b;--intel-purple:#b795ff;--intel-red:#ff7a7a}
+    .mc-workspace-body{background:var(--intel-bg);color:var(--intel-text)}
+    .intel-hero,.intel-section,.intel-law{border:1px solid var(--intel-line);border-radius:24px;background:linear-gradient(145deg,#09160e,#06100a);padding:18px;margin-bottom:14px}
+    .intel-hero{display:grid;grid-template-columns:1.5fr .8fr;gap:16px;align-items:start}
+    .intel-hero h2,.intel-section h2,.intel-law h2{margin:.1rem 0 .45rem}
+    .intel-hero p,.intel-section>p,.intel-law p{color:var(--intel-muted);line-height:1.5}
+    .intel-kicker{margin:0;color:var(--intel-green);font-weight:900;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}
+    .intel-truth{border-left:4px solid var(--intel-gold);border-radius:0 16px 16px 0;background:#1e180b;padding:14px;color:#efe2ad;font-weight:800;line-height:1.5}
+    .intel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+    .intel-card{border:1px solid var(--intel-line);border-radius:18px;background:var(--intel-card2);padding:15px;min-height:135px}
+    .intel-card--core{border-color:#2c8c52;background:linear-gradient(145deg,#0f301c,#0a160f)}
+    .intel-card--gate{border-color:#7a682b}
+    .intel-card h3{margin:0 0 7px;font-size:1.02rem}
+    .intel-card p{margin:0;color:var(--intel-muted);line-height:1.42}
+    .intel-card small{display:block;margin-top:10px;color:#c8d7ce;line-height:1.35}
+    .intel-card a{display:inline-flex;margin-top:12px;color:var(--intel-text);font-weight:900;text-decoration:none;border-bottom:1px solid var(--intel-green)}
+    .intel-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:14px}
+    .intel-step{border:1px solid var(--intel-line);border-radius:16px;background:#07110b;padding:12px;min-height:110px}
+    .intel-step b{display:block;color:var(--intel-green);margin-bottom:7px}
+    .intel-step span{display:block;color:var(--intel-muted);font-size:.84rem;line-height:1.35}
+    .intel-lights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+    .intel-light{border:1px solid var(--intel-line);border-radius:14px;background:#07110b;padding:12px}
+    .intel-light strong{display:block;margin-bottom:4px}
+    .intel-light span{color:var(--intel-muted);font-size:.84rem;line-height:1.35}
+    .intel-boundary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+    .intel-boundary div{border:1px solid var(--intel-line);border-radius:14px;background:#07110b;padding:12px}
+    .intel-boundary strong{display:block;margin-bottom:5px}
+    .intel-boundary span{color:var(--intel-muted);font-size:.84rem;line-height:1.35}
+    .intel-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .intel-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--intel-line);border-radius:999px;background:#08140d;color:inherit;text-decoration:none;font-weight:900;padding:9px 13px}
+    .intel-actions a:first-child{border-color:#2c8c52;background:#0f301c}
+    @media(max-width:900px){.intel-hero{grid-template-columns:1fr}.intel-flow{grid-template-columns:repeat(2,minmax(0,1fr))}.intel-boundary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:620px){.intel-grid,.intel-flow,.intel-lights,.intel-boundary{grid-template-columns:1fr}.intel-card{min-height:0}}
+  </style>
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header mc-brain-header">
     <div>
-      <p class="mc-eyebrow">OAP / SMI / Recommendation-only</p>
-      <h1>SMI Brain Runtime</h1>
-      <p>One biological brain. Human Authority remains the only final authority.</p>
+      <p class="mc-eyebrow">OAP / SMI / Founder-only intelligence</p>
+      <h1>SMI Intelligence</h1>
+      <p>One brain, many intelligence lenses. Lenses analyse; they are not separate agents and they do not gain execution authority.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.war_room_dashboard') }}">War Room</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.agent_intelligence') }}">Agent Intelligence</a>
-      <a class="mc-secondary-link" href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Ollama Chat</a>
+      <a class="mc-secondary-link" href="{{ url_for('mission_control.ollama_chat_dashboard') }}">SMI Chat</a>
       <a class="mc-secondary-link" href="{{ url_for('mission_control.organism_anatomy') }}">Organism Anatomy</a>
-      <a class="mc-secondary-link" href="{{ url_for('home') }}#sovereign">Return to OAP TV</a>
     </div>
   </header>
 
   <main class="mc-workspace mc-brain-workspace">
+    <section class="intel-hero" aria-labelledby="intel-title">
+      <div>
+        <p class="intel-kicker">🧠 Intelligence Deep Dive</p>
+        <h2 id="intel-title">From truth to judgement without fake green</h2>
+        <p>SWOT is one lens. This page gives SMI the wider thinking stack needed to establish what is true, find what is missing, test what can fail, understand dependencies, compare scenarios and make a bounded recommendation.</p>
+        <div class="intel-actions">
+          <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 Open SMI Chat</a>
+          <a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ War Room</a>
+          <a href="{{ url_for('mission_control.judgement_dashboard') }}">👑 Judgement</a>
+        </div>
+      </div>
+      <div class="intel-truth">Truth lock: only real evidence can support a green claim. Code present, a button visible or an AI saying “done” is not enough on its own.</div>
+    </section>
+
+    <section class="intel-section" aria-labelledby="core-intelligence-title">
+      <p class="intel-kicker">Use first</p>
+      <h2 id="core-intelligence-title">Core decision intelligence</h2>
+      <p>These are the lenses the War Room should reach first. They are ordered to reduce unsupported conclusions and premature deployment.</p>
+      <div class="intel-grid" role="list">
+        <article class="intel-card intel-card--core" role="listitem"><h3>🔎 Truth Intelligence</h3><p>What is actually proven, observed, inferred, untested, unknown or contradicted?</p><small>Output: truth state + confidence.</small><a href="/smi/brain/evidence-runner/run?command=war_room">Run evidence check</a></article>
+        <article class="intel-card intel-card--core" role="listitem"><h3>🧾 Evidence Intelligence</h3><p>What evidence supports each important claim, when was it collected and how strong is it?</p><small>Output: claim → evidence → source → time → confidence → result.</small><a href="/smi/brain/evidence">Open evidence</a></article>
+        <article class="intel-card intel-card--core" role="listitem"><h3>🧩 Gap Intelligence</h3><p>What is missing, unfinished, disconnected, duplicated, placeholder, hard-coded or unproven?</p><small>Output: actionable gap map.</small><a href="/war-room/smi-completion">Open acceptance gaps</a></article>
+        <article class="intel-card intel-card--core" role="listitem"><h3>📊 SWOT Intelligence</h3><p>What are the strengths, weaknesses, opportunities and threats around this system or decision?</p><small>Output: strategic position, not final authority.</small><a href="/smi/brain/evidence-runner/run?command=swot_7">Run SWOT</a></article>
+        <article class="intel-card intel-card--core" role="listitem"><h3>⚠️ Risk Intelligence</h3><p>What can fail, how likely is it, how large is the blast radius and what reduces the risk?</p><small>Output: probability × impact × exposure with mitigation and fallback.</small><a href="/smi/brain/evidence-runner/run?command=guardian_check">Guardian / risk check</a></article>
+        <article class="intel-card intel-card--core" role="listitem"><h3>🔗 Dependency Intelligence</h3><p>What relies on this component, and what downstream systems change if it moves or fails?</p><small>Output: upstream and downstream dependency map.</small></article>
+        <article class="intel-card intel-card--core" role="listitem"><h3>◎ Alignment Intelligence</h3><p>Does the proposal fit OAP architecture, naming, Human Authority, privacy, local-first and no-fake-green rules?</p><small>Output: aligned, conditional or conflicting.</small><a href="/alignment/status">Check alignment</a></article>
+        <article class="intel-card intel-card--core" role="listitem"><h3>🧪 Scenario Intelligence</h3><p>What happens under alternative conditions, failures, load, outages or conflicting choices?</p><small>Output: bounded what-if outcomes; no secret execution.</small><a href="/smi/deep-dive/simulate?command=next_gate">Open next scenario</a></article>
+        <article class="intel-card intel-card--gate" role="listitem"><h3>🚦 Readiness Intelligence</h3><p>Is code, testing, security, runtime, data, rollback, monitoring and certification really ready?</p><small>Output: category-by-category readiness, blockers kept visible.</small><a href="/war-room/master-upgrade">Open production proof</a></article>
+        <article class="intel-card intel-card--gate" role="listitem"><h3>🧭 Decision Intelligence</h3><p>Given the evidence, risks, gaps, scenarios and constraints, what is the best bounded next action?</p><small>Output: recommendation + alternative + reason + confidence + required approval.</small><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Ask SMI</a></article>
+        <article class="intel-card intel-card--gate" role="listitem"><h3>👑 Judgement Intelligence</h3><p>Should the recommendation pass the governed gate, pass with conditions, hold or be rejected?</p><small>Judgement recommends; Human Authority remains final where approval is required.</small><a href="{{ url_for('mission_control.judgement_dashboard') }}">Open Judgement</a></article>
+        <article class="intel-card intel-card--gate" role="listitem"><h3>🟣 Learning Intelligence</h3><p>What did reality teach us after the decision, and where did prediction differ from outcome?</p><small>Output: lesson → HRM receipt → improved future reasoning.</small></article>
+      </div>
+    </section>
+
+    <section class="intel-section" aria-labelledby="deep-intelligence-title">
+      <p class="intel-kicker">Deep intelligence library</p>
+      <h2 id="deep-intelligence-title">26 lenses inside one SMI brain</h2>
+      <p>Use the deeper lenses when the core decision stack needs specialist analysis. They stay capabilities of SMI rather than becoming unregistered agents.</p>
+      <div class="intel-grid" role="list">
+        <article class="intel-card"><h3>🏗 Architecture Intelligence</h3><p>System boundaries, ownership, interfaces, data flow and correct placement across OAP World, SMI, Matrix, Oasis and other systems.</p></article>
+        <article class="intel-card"><h3>🛡 Security Intelligence</h3><p>Authentication, authorization, sessions, CSRF, origins, secrets, attack surface, permissions and fail-closed behaviour.</p></article>
+        <article class="intel-card"><h3>🔐 Privacy Intelligence</h3><p>Necessity, minimum collection, consent, retention, audience, location sensitivity and youth implications.</p></article>
+        <article class="intel-card"><h3>⚡ Performance Intelligence</h3><p>Latency, CPU, memory, queries, inference, network dependency, cold starts, page weight and concurrency.</p></article>
+        <article class="intel-card"><h3>🔄 Resilience Intelligence</h3><p>Rollback, fallback, retry, redundancy, recovery, partial failure and safe restart.</p></article>
+        <article class="intel-card"><h3>🎛 UX Intelligence</h3><p>Clarity, mobile usability, controls, navigation, accessibility, recovery and OAP language consistency.</p></article>
+        <article class="intel-card"><h3>🧠 Behaviour Intelligence</h3><p>Instruction following, repetition, verbosity, unsupported claims, tool choice, confidence and response quality.</p></article>
+        <article class="intel-card"><h3>🗃 Data Intelligence</h3><p>Source, owner, timestamp, freshness, quality, schema, duplication, provenance and real/test/placeholder distinctions.</p></article>
+        <article class="intel-card"><h3>🌍 Impact Intelligence</h3><p>Human, cultural, technical, operational, financial, environmental, brand and security consequences.</p></article>
+        <article class="intel-card"><h3>🥇 Priority Intelligence</h3><p>NOW, NEXT, AFTER, LATER, BLOCKED and DO NOT BUILD based on value, blockers, risk, effort and dependencies.</p></article>
+        <article class="intel-card"><h3>💡 Opportunity Intelligence</h3><p>New human value, products, efficiencies, experiences and connections made possible by the existing system.</p></article>
+        <article class="intel-card"><h3>♟ Competitive Intelligence</h3><p>Learn what comparable products do well or badly without copying their identity or architecture.</p></article>
+        <article class="intel-card"><h3>📈 Trend Intelligence</h3><p>Tracks changing technology, culture, local behaviour, commerce, mobility, AI and regulation.</p></article>
+        <article class="intel-card"><h3>✅ Truth-Light Intelligence</h3><p>Translates evidence into truthful operational signals and prevents UI or confidence from awarding green.</p></article>
+      </div>
+    </section>
+
+    <section class="intel-section" aria-labelledby="cognitive-loop-title">
+      <p class="intel-kicker">Cognitive loop</p>
+      <h2 id="cognitive-loop-title">How the lenses work together</h2>
+      <p>The system should not fire every lens at once. It moves through a bounded reasoning loop and only escalates when the problem requires it.</p>
+      <div class="intel-flow" role="list">
+        <div class="intel-step" role="listitem"><b>01 Observe</b><span>Truth → Evidence → Data</span></div>
+        <div class="intel-step" role="listitem"><b>02 Understand</b><span>Gap → Dependency → Architecture → Alignment</span></div>
+        <div class="intel-step" role="listitem"><b>03 Analyse</b><span>SWOT → Risk → Security → Privacy → Performance → UX</span></div>
+        <div class="intel-step" role="listitem"><b>04 Explore</b><span>Scenario → Impact → Opportunity → Trend</span></div>
+        <div class="intel-step" role="listitem"><b>05 Decide</b><span>Priority → Readiness → Decision → Judgement</span></div>
+        <div class="intel-step" role="listitem"><b>06 Authorise</b><span>Consequential action stays governed; Human Authority remains final.</span></div>
+        <div class="intel-step" role="listitem"><b>07 Learn</b><span>Outcome → HRM receipt → lesson → future reasoning.</span></div>
+      </div>
+    </section>
+
+    <section class="intel-law" aria-labelledby="truth-light-title">
+      <p class="intel-kicker">OAP truth lights</p>
+      <h2 id="truth-light-title">Signals describe evidence, not optimism</h2>
+      <div class="intel-lights">
+        <div class="intel-light"><strong>🟢 Proven</strong><span>Operational and supported by sufficient current evidence.</span></div>
+        <div class="intel-light"><strong>🟡 Incomplete</strong><span>Functional or promising, but material proof or work remains.</span></div>
+        <div class="intel-light"><strong>🟠 Material issue</strong><span>A meaningful blocker, weakness or risk needs work.</span></div>
+        <div class="intel-light"><strong>🔴 Failed</strong><span>Broken, unsafe or contradicted by evidence.</span></div>
+        <div class="intel-light"><strong>🔒 Governed lock</strong><span>Intentionally unavailable until the correct authority or proof gate passes.</span></div>
+        <div class="intel-light"><strong>🟣 Learning</strong><span>Observation, evaluation or learning is in progress; it is not proof of readiness.</span></div>
+      </div>
+      <p class="intel-truth">Green rule: Truth Intelligence + Evidence Intelligence must support the claim before 🟢 is awarded.</p>
+    </section>
+
+    <section class="intel-section" aria-labelledby="roles-title">
+      <p class="intel-kicker">System boundaries</p>
+      <h2 id="roles-title">Who does what</h2>
+      <div class="intel-boundary">
+        <div><strong>🧠 SMI</strong><span>Understands, reasons and recommends.</span></div>
+        <div><strong>🔎 Intelligence lenses</strong><span>Analyse the problem from bounded specialist viewpoints.</span></div>
+        <div><strong>🏗 Nirmata</strong><span>Turns an approved vision into a complete system blueprint.</span></div>
+        <div><strong>🤖 Registered agents</strong><span>Perform their owned specialist roles within permissions.</span></div>
+        <div><strong>🛡 Guardian</strong><span>Checks safety, privacy and governance boundaries.</span></div>
+        <div><strong>💾 HRM</strong><span>Stores proof, decisions, outcomes and lessons.</span></div>
+        <div><strong>⚖️ Judgement</strong><span>Evaluates whether a governed gate should pass.</span></div>
+        <div><strong>👑 Human Authority</strong><span>Final authority wherever human approval is required.</span></div>
+      </div>
+    </section>
+
     <section class="mc-integrity" aria-labelledby="brain-integrity-title">
       <div>
         <p class="mc-eyebrow">Architecture and runtime integrity</p>
@@ -44,23 +178,14 @@
 
     <section class="mc-panel" aria-labelledby="brain-components-title">
       <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Implementation status</p>
-          <h2 id="brain-components-title">Brain and connected subsystem readiness</h2>
-        </div>
+        <div><p class="mc-eyebrow">Implementation status</p><h2 id="brain-components-title">Brain and connected subsystem readiness</h2></div>
         <span class="mc-lock-badge">No public run route</span>
       </div>
       <div class="mc-brain-grid" role="list">
         {% for component in brain.components %}
         <article class="mc-brain-card mc-brain-card--{{ component.state }}" role="listitem">
-          <div class="mc-brain-card__heading">
-            <h3>{{ component.name }}</h3>
-            <span>{{ component.state }}</span>
-          </div>
-          <dl class="mc-brain-facts">
-            <div><dt>Code</dt><dd>{{ component.implementation }}</dd></div>
-            <div><dt>Runtime</dt><dd>{{ component.runtime }}</dd></div>
-          </dl>
+          <div class="mc-brain-card__heading"><h3>{{ component.name }}</h3><span>{{ component.state }}</span></div>
+          <dl class="mc-brain-facts"><div><dt>Code</dt><dd>{{ component.implementation }}</dd></div><div><dt>Runtime</dt><dd>{{ component.runtime }}</dd></div></dl>
           <p class="mc-boundary-note"><strong>Boundary:</strong> {{ component.boundary }}</p>
         </article>
         {% endfor %}
@@ -68,79 +193,32 @@
     </section>
 
     <section class="mc-panel" aria-labelledby="brain-cycle-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Working pathway</p>
-          <h2 id="brain-cycle-title">SMI processing cycle</h2>
-        </div>
-        <span class="mc-lock-badge">Intelligence proposes</span>
-      </div>
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Working pathway</p><h2 id="brain-cycle-title">SMI processing cycle</h2></div><span class="mc-lock-badge">Intelligence proposes</span></div>
       <ol class="mc-brain-cycle" aria-label="SMI processing cycle">
-        {% for step in brain.processing_cycle %}
-        <li>
-          <span>{{ "%02d"|format(loop.index) }}</span>
-          <div><strong>{{ step.step }}</strong><small>{{ step.action }}</small></div>
-        </li>
-        {% endfor %}
+        {% for step in brain.processing_cycle %}<li><span>{{ "%02d"|format(loop.index) }}</span><div><strong>{{ step.step }}</strong><small>{{ step.action }}</small></div></li>{% endfor %}
       </ol>
     </section>
 
     <section class="mc-panel" aria-labelledby="brain-output-law-title">
-      <p class="mc-eyebrow">Output constitution</p>
-      <h2 id="brain-output-law-title">SMI cannot produce EXECUTE</h2>
+      <p class="mc-eyebrow">Output constitution</p><h2 id="brain-output-law-title">SMI cannot produce EXECUTE</h2>
       <div class="mc-gate-grid">
-        <div>
-          <h3>Allowed SMI outputs</h3>
-          <ul class="mc-state-list">
-            {% for state in brain.allowed_outputs %}<li><code>{{ state }}</code></li>{% endfor %}
-          </ul>
-        </div>
-        <div>
-          <h3>Approved path</h3>
-          <ol class="mc-state-path">
-            {% for state in brain.approved_state_path %}<li><code>{{ state }}</code></li>{% endfor %}
-          </ol>
-        </div>
-        <div>
-          <h3>Rejected path</h3>
-          <ol class="mc-state-path mc-state-path--blocked">
-            {% for state in brain.rejected_state_path %}<li><code>{{ state }}</code></li>{% endfor %}
-          </ol>
-        </div>
+        <div><h3>Allowed SMI outputs</h3><ul class="mc-state-list">{% for state in brain.allowed_outputs %}<li><code>{{ state }}</code></li>{% endfor %}</ul></div>
+        <div><h3>Approved path</h3><ol class="mc-state-path">{% for state in brain.approved_state_path %}<li><code>{{ state }}</code></li>{% endfor %}</ol></div>
+        <div><h3>Rejected path</h3><ol class="mc-state-path mc-state-path--blocked">{% for state in brain.rejected_state_path %}<li><code>{{ state }}</code></li>{% endfor %}</ol></div>
       </div>
     </section>
 
     <section class="mc-panel" aria-labelledby="brain-activation-title">
-      <div class="mc-section-heading">
-        <div>
-          <p class="mc-eyebrow">Code complete, activation unexecuted</p>
-          <h2 id="brain-activation-title">Remaining activation gates</h2>
-        </div>
-        <span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span>
-      </div>
-      <div class="mc-proposal-grid" role="list">
-        {% for gate in brain.activation_gates %}
-        <article role="listitem">
-          <strong>{{ gate.status }}</strong>
-          <h3>{{ gate.title }}</h3>
-          <p>{{ gate.description }}</p>
-        </article>
-        {% endfor %}
-      </div>
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Code complete, activation unexecuted</p><h2 id="brain-activation-title">Remaining activation gates</h2></div><span class="mc-lock-badge mc-lock-badge--amber">Human approval required</span></div>
+      <div class="mc-proposal-grid" role="list">{% for gate in brain.activation_gates %}<article role="listitem"><strong>{{ gate.status }}</strong><h3>{{ gate.title }}</h3><p>{{ gate.description }}</p></article>{% endfor %}</div>
     </section>
 
     <section class="mc-panel" aria-labelledby="brain-controls-title">
-      <p class="mc-eyebrow">Safety lock</p>
-      <h2 id="brain-controls-title">Operational controls unavailable</h2>
-      <p class="mc-notice">
-        No public signal-processing, approval, provider, Builder or execution route is registered.
-      </p>
+      <p class="mc-eyebrow">Safety lock</p><h2 id="brain-controls-title">Operational controls unavailable</h2>
+      <p class="mc-notice">No public signal-processing, approval, provider, Builder or execution route is registered.</p>
     </section>
 
-    <aside class="mc-authority" aria-label="Human Authority status">
-      <strong>Human Authority: {{ brain.human_authority.status }}</strong>
-      <span>{{ brain.human_authority.message }}</span>
-    </aside>
+    <aside class="mc-authority" aria-label="Human Authority status"><strong>Human Authority: {{ brain.human_authority.status }}</strong><span>{{ brain.human_authority.message }}</span></aside>
   </main>
 </body>
 </html>
