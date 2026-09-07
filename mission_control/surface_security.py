@@ -85,11 +85,12 @@ def register(app: Flask) -> None:
     path is reachable only when the dedicated private gateway supplies the
     configured high-entropy credential.
     """
-    from . import pulse_routes, smi_certification_routes
+    from . import pulse_routes, smi_certification_routes, smi_event_memory
 
     app.request_class = OAPRequest
     pulse_routes.register(app)
     app.register_blueprint(smi_certification_routes.bp)
+    smi_event_memory.register(app)
 
     @app.before_request
     def _enforce_private_origin_boundary():
