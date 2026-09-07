@@ -15,7 +15,7 @@ const publicFrontDoor=Array.from(document.querySelectorAll('.navs a')).find(link
 if(publicFrontDoor){publicFrontDoor.href='https://on-any-postcode.onrender.com/';publicFrontDoor.rel='noopener'}
 const navs=document.querySelector('.navs');
 if(navs){
-  const links=[['SMI Home','{{ url_for('mission_control.mission_workspace') }}'],['War Room','{{ url_for('mission_control.war_room_dashboard') }}'],['Signals','/smi/thinking-signals'],['Receipts','/smi/brain/receipts'],['Judgement','{{ url_for('mission_control.judgement_dashboard') }}']];
+  const links=[['SMI Home','{{ url_for('mission_control.mission_workspace') }}'],['Intelligence','{{ url_for('mission_control.brain_dashboard') }}'],['War Room','{{ url_for('mission_control.war_room_dashboard') }}'],['Signals','/smi/thinking-signals'],['Receipts','/smi/brain/receipts'],['Judgement','{{ url_for('mission_control.judgement_dashboard') }}']];
   navs.innerHTML=links.map(([label,href])=>`<a href="${href}">${label}</a>`).join('');
 }
 const composerInput=document.getElementById('message');
@@ -34,21 +34,21 @@ const providerStateLabel=document.getElementById('provider-state');
 if(providerStateLabel)providerStateLabel.setAttribute('title','Governed operational state only.');
 
 const quickActions=[
+  ['🧠 Full Intel','Full Intelligence on '],
+  ['🔎 Gaps','Run Gap Intelligence on '],
+  ['⚠️ Risk','Run Risk Intelligence on '],
+  ['📊 SWOT','SWOT '],
+  ['🟢 Readiness','Run Readiness Intelligence on '],
+  ['◎ Alignment','Run Alignment Intelligence on '],
   ['⚔️ War Room','Run War Room check now. Show proof, risk, strongest link, weakest link, and next gate.'],
-  ['◎ Alignment','Run Alignment Intelligence. Check route fit, public/private separation, no-fake-green and naming alignment.'],
-  ['🎛️ UI','Run UI Intelligence. Check layout, buttons, mobile access, noisy wording, and missing screens.'],
-  ['📊 SWOT','Run SWOT Intelligence. Give strengths, weaknesses, opportunities, threats, and the next practical move.'],
-  ['🔒 Tests','Run acceptance check. Tell me what passes, what is locked, and what blocks full green.'],
-  ['🔄 Rollback','Run rollback and recovery check. Show fallback, safe resume, and failure path.'],
-  ['💾 Receipts','Check HRM and Matrix receipts. Tell me what is local and what needs production proof.'],
   ['👑 Certify','Prepare Founder certification summary. Do not approve or execute anything without Human Authority.']
 ];
 const chatbox=document.querySelector('.chatbox');
 const messagesBox=document.getElementById('messages');
 if(chatbox&&messagesBox&&!document.querySelector('.smi-function-rail')){
   const rail=document.createElement('section');rail.className='smi-function-rail';rail.setAttribute('aria-label','SMI function shortcuts');
-  quickActions.forEach(([label,prompt])=>{const button=document.createElement('button');button.type='button';button.className='smi-chip';button.textContent=label;button.addEventListener('click',()=>{const input=document.getElementById('message');if(!input)return;input.value=prompt;input.focus();input.dispatchEvent(new Event('input',{bubbles:true}));});rail.append(button)});
-  const links=[['Signals','/smi/thinking-signals'],['Receipts','/smi/brain/receipts'],['Proof','/smi/master-upgrade'],['Judgement','{{ url_for('mission_control.judgement_dashboard') }}']];
+  quickActions.forEach(([label,prompt])=>{const button=document.createElement('button');button.type='button';button.className='smi-chip';button.textContent=label;button.addEventListener('click',()=>{const input=document.getElementById('message');if(!input)return;input.value=prompt;input.focus();input.setSelectionRange(input.value.length,input.value.length);input.dispatchEvent(new Event('input',{bubbles:true}));});rail.append(button)});
+  const links=[['All Intelligence','{{ url_for('mission_control.brain_dashboard') }}'],['Signals','/smi/thinking-signals'],['Receipts','/smi/brain/receipts'],['Proof','/smi/master-upgrade'],['Judgement','{{ url_for('mission_control.judgement_dashboard') }}']];
   links.forEach(([label,href])=>{const a=document.createElement('a');a.className='smi-chip lock';a.href=href;a.textContent=label;rail.append(a)});
   chatbox.insertBefore(rail,messagesBox);
 }
