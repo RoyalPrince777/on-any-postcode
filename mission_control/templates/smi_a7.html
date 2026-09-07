@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SMI A7 Certification</title>
   <style>
-    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8;--danger:#ff817d}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1120px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--purple);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.4rem,7vw,4.8rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.5}.back{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;color:inherit}.lock{border:1px solid #745f2b;background:#171306;border-radius:18px;padding:15px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.ok{border-color:#2e8d51}.missing{border-color:#735f2b}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.76rem;font-weight:850}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #377c50;background:#0d2a19;color:var(--text);padding:11px 14px;border-radius:12px;font-weight:850}button:disabled{opacity:.5;cursor:not-allowed}.halt{border-color:#8d7130;background:#211a08}.form{display:grid;gap:10px;max-width:760px}.form label{font-weight:800}.form input,.form select,.form textarea{width:100%;background:#07110b;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.form textarea{min-height:90px}.result{white-space:pre-wrap;border:1px solid var(--line);border-radius:12px;padding:12px;background:#07110b;min-height:48px}.law{border-left:4px solid var(--purple);padding:12px 14px;background:#120b1b;border-radius:0 12px 12px 0}.danger{color:var(--danger)}
+    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8;--danger:#ff817d}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1120px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--purple);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.4rem,7vw,4.8rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.5}.back,.action{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:6px}.lock{border:1px solid #745f2b;background:#171306;border-radius:18px;padding:15px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.ok{border-color:#2e8d51}.missing{border-color:#735f2b}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.76rem;font-weight:850}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0 4px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #377c50;background:#0d2a19;color:var(--text);padding:11px 14px;border-radius:12px;font-weight:850}button:disabled{opacity:.5;cursor:not-allowed}.halt{border-color:#8d7130;background:#211a08}.form{display:grid;gap:10px;max-width:760px}.form label{font-weight:800}.form input,.form select,.form textarea{width:100%;background:#07110b;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.form textarea{min-height:90px}.result{white-space:pre-wrap;border:1px solid var(--line);border-radius:12px;padding:12px;background:#07110b;min-height:48px}.law{border-left:4px solid var(--purple);padding:12px 14px;background:#120b1b;border-radius:0 12px 12px 0}.danger{color:var(--danger)}
   </style>
 </head>
 <body>
@@ -20,7 +20,25 @@
     <p class="muted">This surface gathers proof and shows readiness. It cannot self-certify, self-enable, expand permissions, deploy, spend, dispatch, migrate production data, or resume after an emergency halt.</p>
   </div>
 
-  <section aria-labelledby="a6-title">
+  <section aria-labelledby="green-title">
+    <p class="eyebrow">Real proof first</p><h2 id="green-title">Close the current Green Gate</h2>
+    <div class="grid">
+      {% for name, proven in green_gate.checks.items() %}
+      <article class="card {{ 'ok' if proven else 'missing' }}"><span class="pill">{{ '🟢 PROVEN' if proven else '🟡 REQUIRED' }}</span><h3>{{ name.replace('_',' ')|title }}</h3></article>
+      {% endfor %}
+      <article class="card {{ 'ok' if approval.signing_key_configured else 'missing' }}"><span class="pill">{{ '🟢 READY' if approval.signing_key_configured else '🟡 REQUIRED' }}</span><h3>Approval signing key</h3><p class="muted">Required before a real Founder Judgement approval can produce a signed receipt.</p></article>
+    </div>
+    <div class="actions" aria-label="Green Gate proof actions">
+      <a class="action" href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 Personal SMI</a>
+      <a class="action" href="{{ url_for('mission_control.judgement_dashboard') }}">👑 Judgement</a>
+      <a class="action" href="{{ url_for('my_world_workspace', workspace_id='hrm-memory') }}">🧠 HRM &amp; Memory</a>
+      <button id="rollback-proof" type="button">↩️ Run Rollback / Recovery Proof</button>
+    </div>
+    <p class="muted">Use Judgement for a real decision you genuinely approve or reject. Add a genuine private note in HRM &amp; Memory to create a harmless meaningful OAP event receipt. The rollback proof is bounded and does not mutate product state.</p>
+    <div class="result" id="rollback-result" aria-live="polite">No rollback proof run from this screen yet.</div>
+  </section>
+
+  <section class="section" aria-labelledby="a6-title">
     <p class="eyebrow">Foundation</p><h2 id="a6-title">A6 proof before A7</h2>
     <div class="grid">
       {% for name, proven in a7.a6_checks.items() %}
@@ -80,6 +98,18 @@
 </main>
 <script>
 const csrf={{ oap_csrf_token|tojson }};
+const rollbackButton=document.getElementById('rollback-proof');
+const rollbackResult=document.getElementById('rollback-result');
+rollbackButton.addEventListener('click',async()=>{
+  rollbackButton.disabled=true;rollbackResult.textContent='Running bounded rollback proof…';
+  try{
+    const r=await fetch({{ url_for('smi_proof_gate.rollback_recovery_proof')|tojson }},{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+    const body=await r.json();
+    if(!r.ok) throw new Error(body?.error?.message||'Rollback proof failed');
+    rollbackResult.textContent='🟢 Rollback / recovery proof recorded. Product state was not mutated.';
+    setTimeout(()=>location.reload(),500);
+  }catch(err){rollbackResult.textContent='🟡 '+err.message;}finally{rollbackButton.disabled=false;}
+});
 const haltButton=document.getElementById('halt-proof');
 const haltResult=document.getElementById('halt-result');
 haltButton.addEventListener('click',async()=>{
