@@ -24,10 +24,10 @@ from .operational_memory import operational_memory_items
 from .operational_memory import status as operational_status
 
 TOTAL_CONTEXT_CAP = 21
-CANONICAL_BUDGET = 8
+CANONICAL_BUDGET = 10
 HISTORY_BUDGET = 2
-GRAPH_BUDGET = 2
-FOUNDER_SYNC_BUDGET = 3
+GRAPH_BUDGET = 1
+FOUNDER_SYNC_BUDGET = 2
 OPERATIONAL_BUDGET = 3
 DYNAMIC_BUDGET = 3
 
