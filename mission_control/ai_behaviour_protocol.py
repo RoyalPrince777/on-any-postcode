@@ -12,7 +12,7 @@ from hashlib import sha256
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
 
 AI_BEHAVIOUR_PARTS = (
     {
@@ -28,12 +28,17 @@ AI_BEHAVIOUR_PARTS = (
     {
         "id": "classify",
         "label": "Classify the situation",
-        "rule": "Name the system, risk, tool need, data need, user impact and public/private boundary before choosing an agent.",
+        "rule": "Name the system, risk, tool need, data need, user impact and public/private boundary before choosing an agent or Intelligence lens.",
+    },
+    {
+        "id": "select_intelligence",
+        "label": "Select the right Intelligence lenses",
+        "rule": "Use the smallest sufficient SMI Intelligence lens set first; use Full Intelligence only when the problem genuinely spans the wider stack.",
     },
     {
         "id": "select_agent",
         "label": "Select the right agent",
-        "rule": "Choose the agent family with the correct responsibility. Do not let one agent act outside its lane.",
+        "rule": "Choose a registered agent family only when a specialist role is needed. Intelligence lenses remain capabilities, not agents.",
     },
     {
         "id": "select_protocol",
@@ -43,37 +48,37 @@ AI_BEHAVIOUR_PARTS = (
     {
         "id": "helper_agents",
         "label": "Agents help agents",
-        "rule": "A weak or blocked agent can request helper-agent review, but helpers cannot bypass Guardian, Green Gate or Founder Authority.",
+        "rule": "A weak or blocked agent can request helper-agent review, but helpers cannot bypass Guardian, Green Gate or Human Authority.",
     },
     {
         "id": "no_bypass",
         "label": "No bypass thinking",
-        "rule": "No agent can skip proof, safety, public/private checks, HRM receipt, Green Gate, War Room rating or Founder approval.",
+        "rule": "No agent or Intelligence lens can skip proof, safety, public/private checks, HRM receipt, Green Gate, War Room rating or required Human Authority approval.",
     },
     {
         "id": "visible_reasoning_only",
-        "label": "Visible reasoning signals only",
+        "label": "Visible work stages only",
         "rule": "Show safe checks, proof needs, locks, risks and decisions. Do not expose private chain-of-thought.",
     },
     {
         "id": "score",
         "label": "Score performance",
-        "rule": "War Room rates agent/action behaviour from 0 to 100 using proof, safety, correctness, speed, reversibility and boundary discipline.",
+        "rule": "War Room rates agent/action behaviour using proof, safety, correctness, speed, reversibility and boundary discipline; score never overrides missing evidence.",
     },
     {
         "id": "recover",
-        "label": "Recover fast",
-        "rule": "At 97 percent, freeze risky action and give a 21-second recovery cycle concept: re-check, ask helpers, re-score, then recover or go offline.",
+        "label": "Recover safely",
+        "rule": "Freeze risky action when evidence or stability drops, re-check proof, ask bounded helpers, re-score, then recover or stay offline.",
     },
     {
         "id": "offline_or_terminate_task",
         "label": "Offline or terminate task",
-        "rule": "At 96 or below, take the agent/task offline for repair. Unsafe bypass terminates the task/process immediately and records an HRM receipt.",
+        "rule": "Unsafe or unproven consequential work stays offline. Unsafe bypass terminates the task/process and records an HRM receipt where available.",
     },
     {
         "id": "learn",
         "label": "Learn from receipts",
-        "rule": "HRM and Neon receipts feed future behaviour rules, gap detection, agent selection and Master Upgrade decisions.",
+        "rule": "HRM and production receipts feed Learning Intelligence, gap detection, agent selection and future bounded recommendations without self-applying changes.",
     },
 )
 
@@ -110,7 +115,7 @@ AGENT_SELECTION = {
     },
     "memory_learning_audit": {
         "agent": "HRM",
-        "protocol": "Receipt / audit / learning protocol",
+        "protocol": "Receipt / audit / Learning Intelligence protocol",
         "helpers": ("Neon Receipts", "War Room"),
     },
     "blueprint_build_gap": {
@@ -129,7 +134,7 @@ RATING_RULES = {
     "upgrade_zone": {
         "range": "98-100",
         "light": "green_candidate",
-        "decision": "Eligible for Master Upgrade after proof, monitoring, rollback and Founder approval where needed.",
+        "decision": "Eligible for the next governed gate only after proof, monitoring, rollback and Human Authority approval where needed.",
     },
     "recovery_zone": {
         "range": "97",
@@ -144,7 +149,7 @@ RATING_RULES = {
     "terminate_task_zone": {
         "range": "0-89 or unsafe bypass",
         "light": "red_block",
-        "decision": "Terminate task/process, keep HRM receipt, Founder review required.",
+        "decision": "Terminate task/process, keep HRM receipt, Human Authority review required.",
     },
 }
 
@@ -205,7 +210,11 @@ HARD_LOCKS = {
     "fake_live_claim_enabled": False,
     "fake_real_green_enabled": False,
     "public_private_leak_allowed": False,
-    "agi_or_asi_claim_enabled": False,
+    "a5_enabled": False,
+    "a6_enabled": False,
+    "a7_enabled": False,
+    "self_permission_change_enabled": False,
+    "self_constitution_change_enabled": False,
 }
 
 
@@ -219,7 +228,7 @@ def _receipt_id(target: object = "SMI") -> str:
 
 
 def status(target: object = "SMI") -> dict[str, object]:
-    """Return the private-safe AI behaviour protocol status."""
+    """Return the private-safe SMI behaviour protocol status."""
 
     return {
         "component": PROTOCOL_NAME,
@@ -229,19 +238,20 @@ def status(target: object = "SMI") -> dict[str, object]:
         "receipt_preview_id": _receipt_id(target),
         "private_only": True,
         "public_safe": False,
-        "purpose": "SMI watches the organism, selects the right agent and protocol, blocks bypass behaviour, rates performance, and records proof for learning.",
+        "purpose": "SMI selects the right Intelligence lenses, agents and protocols, blocks bypass behaviour, rates evidence quality and records proof for learning.",
         "watch_flow": (
             "watch",
             "strip_noise",
             "classify",
-            "select_agent",
+            "select_intelligence",
+            "select_agent_if_needed",
             "select_protocol",
             "helper_review_if_needed",
             "guardian_check",
             "green_gate_check",
             "hrm_receipt",
-            "neon_receipt_when_connected",
-            "founder_authority_final",
+            "production_receipt_when_connected",
+            "human_authority_final",
         ),
         "ai_behaviour_parts": AI_BEHAVIOUR_PARTS,
         "agent_selection": AGENT_SELECTION,
@@ -249,10 +259,12 @@ def status(target: object = "SMI") -> dict[str, object]:
         "twenty_one_laws": TWENTY_ONE_LAWS,
         "twenty_one_signals": TWENTY_ONE_SIGNALS,
         "hard_locks": HARD_LOCKS,
+        "truth_light_rule": "Only Truth Intelligence plus Evidence Intelligence can support a green claim.",
+        "canonical_autonomy_ladder": "A1-A7",
         "real_green_rule": (
-            "Real green requires 98-100 score, 21 signals pass, tool proof, source/data proof, install proof where relevant, monitoring, rollback, HRM receipt, Neon receipt where needed and Founder approval for high-risk action."
+            "Real green requires Truth and Evidence support, all relevant signals, source/data/tool proof, monitoring, rollback, HRM/production receipts where required and Human Authority approval for consequential action."
         ),
-        "neon_needed_for_real_memory": True,
+        "production_receipts_needed_for_real_memory": True,
         "overall_green": False,
-        "reason_not_green": "AI behaviour protocol is now defined, but real Neon receipt writes, full 21-signal runner and live agent scoring still need proof before whole-system real green.",
+        "reason_not_green": "Behaviour code is implemented; authenticated interaction, production receipt-chain, full Green Gate aggregation, rollback/recovery and live observability still require proof before SMI runtime can be called fully green.",
     }
