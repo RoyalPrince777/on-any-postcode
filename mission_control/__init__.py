@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 def init_app(app: Flask) -> None:
     """Register CLI commands and the Mission Control web surface."""
     import click
+    from flask import g, request
 
     from . import audit as auditmod
     from . import db as dbmod
@@ -33,6 +34,7 @@ def init_app(app: Flask) -> None:
         postgres_db,
         product_cores,
         routing,
+        smi_auto,
         surface_security,
         travel_supply_core,
     )
@@ -278,6 +280,34 @@ def init_app(app: Flask) -> None:
             print("Audit verification: FAILED")
             for line in report:
                 print(f"  - {line}")
+
+    @app.before_request
+    def _oap_smi_auto_observe() -> None:
+        """Keep SMI present on every request without model calls or writes."""
+
+        g.oap_smi_auto = smi_auto.observe(
+            request.method,
+            request.path,
+            request.endpoint,
+        )
+
+    @app.context_processor
+    def _oap_smi_auto_context() -> dict[str, object]:
+        return {
+            "smi_auto": getattr(g, "oap_smi_auto", smi_auto.public_status())
+        }
+
+    @app.after_request
+    def _oap_smi_auto_response(response):
+        state = getattr(g, "oap_smi_auto", smi_auto.public_status())
+        response.headers.setdefault("X-OAP-SMI-Auto", "active")
+        response.headers.setdefault("X-OAP-SMI-Mode", str(state.get("mode", "automatic_low_noise")))
+        response.headers.setdefault(
+            "X-OAP-SMI-War-Room",
+            "escalate" if state.get("war_room_escalation") else "normal",
+        )
+        response.headers.setdefault("X-OAP-SMI-Execution", "blocked")
+        return response
 
     surface_security.register(app)
     app.register_blueprint(on_any_place_bp)
