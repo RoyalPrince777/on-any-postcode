@@ -43,7 +43,7 @@ def test_oap_app_responses_expose_safe_smi_auto_headers(client):
 def test_smi_origin_enters_through_founder_sign_in_then_private_aliases():
     gateway = smi_gateway_app.test_client()
 
-    assert gateway.get("/").headers["Location"] == "/auth"
+    assert gateway.get("/").headers["Location"] == "/auth?next=/mission/ollama"
     assert gateway.get("/smi").headers["Location"] == "/mission/ollama"
     assert gateway.get("/chat").headers["Location"] == "/mission/ollama"
     assert gateway.get("/war-room").headers["Location"] == "/mission/war-room"
