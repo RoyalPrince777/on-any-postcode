@@ -153,7 +153,19 @@ def _proxy(path: str):
 
 @app.get("/")
 def root():
-    return redirect("/auth", code=302)
+    """The SMI origin opens Personal SMI, not a generic gateway page."""
+    return redirect("/mission/ollama", code=302)
+
+
+@app.get("/smi")
+@app.get("/chat")
+def personal_smi_alias():
+    return redirect("/mission/ollama", code=302)
+
+
+@app.get("/war-room")
+def war_room_alias():
+    return redirect("/mission/war-room", code=302)
 
 
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
