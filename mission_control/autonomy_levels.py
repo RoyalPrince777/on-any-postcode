@@ -1,9 +1,10 @@
-"""Governed OAP autonomy levels and bounded A3/A4 runtime policy.
+"""Canonical governed SMI autonomy levels and bounded A3/A4 runtime policy.
 
-A3 executes only pre-authorised, reversible, audited and fail-closed runtime
-maintenance actions. A4 may keep those same bounded actions operating through
-longer supervised workflows, but it does not widen the action allowlist or grant
-consequential authority. Human Authority remains final and A5 stays locked.
+A1 to A7 are operating levels of the single Sovereign Megaverse Intelligence
+brain. They are not agents, products, brains or separate systems. Only A3/A4 have
+runtime policy here, and those actions remain pre-authorised, reversible,
+audited, fail-closed and non-consequential. A5, A6 and A7 remain locked until
+real evidence satisfies their gates. Human Authority remains final at every level.
 """
 from __future__ import annotations
 
@@ -12,14 +13,18 @@ import os
 from .organism_runtime import ALLOWED_JOB_TYPES
 
 AUTONOMY_LEVELS = {
-    "A0": "Respond only",
-    "A1": "Assist with bounded tools",
-    "A2": "Observe, reason and propose",
-    "A3": "Execute pre-authorised reversible bounded actions",
-    "A4": "Operate longer supervised bounded workflows",
-    "A5": "Broad autonomous operation",
+    "A1": "Manual support",
+    "A2": "Guided assistance",
+    "A3": "Bounded tool support",
+    "A4": "Supervised autonomy",
+    "A5": "Governed operational preparation",
+    "A6": "Governed operational execution",
+    "A7": "Certified organism-scale autonomy",
 }
 
+# A0 existed before the A1-A7 constitutional lock. Keep it only as a fail-closed
+# compatibility input and map it to A1 rather than exposing a second ladder.
+LEGACY_LEVEL_ALIASES = {"A0": "A1"}
 DEFAULT_AUTONOMY_LEVEL = "A3"
 INVALID_AUTONOMY_FALLBACK = "A2"
 A3_PILOT_ACTIONS = frozenset({"RUNTIME_HEARTBEAT", "RUNTIME_HEALTH_PROBE"})
@@ -28,6 +33,32 @@ A4_CHECKPOINT_EVERY = 3
 A4_MAX_WORKFLOW_STEPS = 21
 A4_REQUIRES_SUPERVISION = True
 A5_ENABLED = False
+A6_ENABLED = False
+A7_ENABLED = False
+
+A5_REQUIREMENTS = (
+    "independent proof runner results",
+    "Guardian pass",
+    "Green Gate pass",
+    "HRM receipts",
+    "Founder approval",
+    "rollback path",
+    "live observability",
+    "strict capability allowlist",
+)
+A6_REQUIREMENTS = A5_REQUIREMENTS + (
+    "explicit operation-level Human Authority approval",
+    "operation-specific rollback proof",
+    "consequential action receipt chain",
+)
+A7_REQUIREMENTS = A6_REQUIREMENTS + (
+    "external audit",
+    "legal and compliance proof",
+    "emergency halt proof",
+    "public/private boundary proof",
+    "constitutional review",
+)
+
 FORBIDDEN_DOMAINS = frozenset(
     {
         "money_or_value_transfer",
@@ -47,11 +78,12 @@ A3_FORBIDDEN_DOMAINS = FORBIDDEN_DOMAINS
 
 
 def configured_level() -> str:
-    """Default to bounded A3; invalid explicit values fail closed to A2."""
+    """Return the configured canonical level; invalid values fail closed to A2."""
     raw = os.environ.get("OAP_AUTONOMY_LEVEL")
     if raw is None or not raw.strip():
         return DEFAULT_AUTONOMY_LEVEL
     level = raw.strip().upper()
+    level = LEGACY_LEVEL_ALIASES.get(level, level)
     return level if level in AUTONOMY_LEVELS else INVALID_AUTONOMY_FALLBACK
 
 
@@ -98,12 +130,7 @@ def evaluate_a3_runtime_job(job_type: str) -> dict[str, object]:
 
 
 def evaluate_a4_workflow(action_types: object, *, supervised: bool = True) -> dict[str, object]:
-    """Validate a bounded A4 workflow without granting new execution authority.
-
-    A workflow may contain at most 21 steps and every step must already be an A3
-    reversible runtime action. The function is deliberately policy-only: the
-    runtime remains responsible for execution, receipts and failure handling.
-    """
+    """Validate a bounded A4 workflow without granting new execution authority."""
     if isinstance(action_types, str):
         actions = (action_types.strip().upper(),)
     else:
@@ -151,6 +178,36 @@ def evaluate_a4_workflow(action_types: object, *, supervised: bool = True) -> di
     }
 
 
+def level_ladder() -> tuple[dict[str, object], ...]:
+    """Return the canonical A1-A7 ladder with truthful lock state."""
+    configured = configured_level()
+    order = tuple(AUTONOMY_LEVELS)
+    rows: list[dict[str, object]] = []
+    for level in order:
+        if level in {"A1", "A2"}:
+            state = "supported"
+        elif level == "A3":
+            state = "bounded_policy_ready"
+        elif level == "A4":
+            state = "live_governed" if configured == "A4" else "policy_ready"
+        elif level == "A5":
+            state = "locked_ready_boundary"
+        elif level == "A6":
+            state = "future_locked"
+        else:
+            state = "constitutional_locked"
+        rows.append(
+            {
+                "level": level,
+                "name": AUTONOMY_LEVELS[level],
+                "state": state,
+                "configured": level == configured,
+                "execution_authority_expanded": False,
+            }
+        )
+    return tuple(rows)
+
+
 def status() -> dict[str, object]:
     """Return autonomy policy state without claiming unobserved worker execution."""
     level = configured_level()
@@ -158,8 +215,9 @@ def status() -> dict[str, object]:
     a3_ready = bool(pilot_actions == tuple(sorted(A3_PILOT_ACTIONS)))
     a4_ready = bool(a3_ready and A4_WORKFLOW_ACTIONS == A3_PILOT_ACTIONS)
     return {
-        "component": "OAP Autonomy",
+        "component": "OAP SMI Autonomy",
         "configured_level": level,
+        "canonical_levels": level_ladder(),
         "a3_policy_ready": a3_ready,
         "a3_execution_enabled": level in {"A3", "A4"},
         "a3_pilot_actions": pilot_actions,
@@ -171,9 +229,16 @@ def status() -> dict[str, object]:
         "a4_supervision_required": A4_REQUIRES_SUPERVISION,
         "a4_expands_action_authority": False,
         "a5_enabled": A5_ENABLED,
+        "a6_enabled": A6_ENABLED,
+        "a7_enabled": A7_ENABLED,
+        "a5_requirements": A5_REQUIREMENTS,
+        "a6_requirements": A6_REQUIREMENTS,
+        "a7_requirements": A7_REQUIREMENTS,
         "forbidden_domains": tuple(sorted(FORBIDDEN_DOMAINS)),
         "consequential_action_allowed": False,
         "self_permission_change_allowed": False,
+        "self_constitution_change_allowed": False,
         "human_authority_final": True,
         "runtime_proof_required": True,
+        "authority_moves_with_level": False,
     }
