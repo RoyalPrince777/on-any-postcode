@@ -421,8 +421,7 @@ class AGICore:
         world_ids = _dedupe(canonical_worlds)
 
         # Keep legacy domain IDs until every caller has moved to ``world_ids``.
-        for world_id in world_ids:
-            legacy_domains.append(world_id)
+        legacy_domains.extend(world_ids)
         domain_ids = _dedupe(legacy_domains)
         specialist_ids = _dedupe(selected_specialists)
 
