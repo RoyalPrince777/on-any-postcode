@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAP All Intelligence</title>
   <style>
-    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8;--amber:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.5rem,7vw,5rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.5}.back,.door{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;color:inherit}.summary,.grid{display:grid;gap:10px}.summary{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:18px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.card,.summary-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.world{border-color:#2f8d53}.family{border-color:#355542}.specialist{border-color:#5d4678}.internal{border-color:#4b5c53}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:850}.purple{color:var(--purple)}.green{color:var(--green)}.amber{color:var(--amber)}.family-list{display:grid;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.family-list a{color:inherit}.law{border-left:4px solid var(--gold);background:#191505;border-radius:0 12px 12px 0;padding:13px 15px;margin:18px 0}.metrics{display:flex;gap:10px;flex-wrap:wrap}.metrics span{border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:.8rem}.truth{font-size:.9rem;color:var(--muted);line-height:1.5}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}@media(max-width:650px){.summary{grid-template-columns:1fr 1fr}}
+    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8;--amber:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.5rem,7vw,5rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.5}.back,.door{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;color:inherit}.summary,.grid{display:grid;gap:10px}.summary{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:18px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.card,.summary-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.world{border-color:#2f8d53}.family{border-color:#355542}.specialist{border-color:#5d4678}.internal{border-color:#4b5c53}.proof{border-color:#544170}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:850}.purple{color:var(--purple)}.green{color:var(--green)}.amber{color:var(--amber)}.family-list{display:grid;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.family-list a{color:inherit}.law{border-left:4px solid var(--gold);background:#191505;border-radius:0 12px 12px 0;padding:13px 15px;margin:18px 0}.metrics{display:flex;gap:10px;flex-wrap:wrap}.metrics span{border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:.8rem}.truth{font-size:.9rem;color:var(--muted);line-height:1.5}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}@media(max-width:650px){.summary{grid-template-columns:1fr 1fr}}
   </style>
 </head>
 <body>
@@ -24,7 +24,8 @@
     <article class="summary-card"><span class="pill green">{{ intelligence.routing_light }} Routing</span><h3>{{ intelligence.world_count }} Worlds</h3><p class="muted">Exact canonical World model.</p></article>
     <article class="summary-card"><span class="pill green">{{ intelligence.registry_light }} Registry</span><h3>{{ intelligence.agent_count }}/{{ intelligence.agent_target }} Agents</h3><p class="muted">{{ intelligence.family_count }} specialist families.</p></article>
     <article class="summary-card"><span class="pill green">{{ intelligence.memory_light }} Memory</span><h3>HRM Governed</h3><p class="muted">All registered agents require audited HRM memory.</p></article>
-    <article class="summary-card"><span class="pill purple">{{ intelligence.runtime_light }} Runtime</span><h3>Proof by capability</h3><p class="muted">Architecture does not fake universal live-data readiness.</p></article>
+    <article class="summary-card"><span class="pill {{ 'green' if runtime.bounded_runtime_proven else 'purple' }}">{{ '🟢' if runtime.bounded_runtime_proven else '🟣' }} Bounded runtime</span><h3>{{ runtime.bounded_runtime_proven }}/{{ runtime.bounded_runtime_total }} Worlds</h3><p class="muted">Executable bounded capability is measured separately from external/live proof.</p></article>
+    <article class="summary-card"><span class="pill purple">{{ runtime.universal_runtime_light }} Full runtime</span><h3>{{ runtime.full_runtime_proven }}/{{ runtime.full_runtime_total }} Worlds</h3><p class="muted">No blanket live claim. Each remaining gate must produce evidence.</p></article>
   </div>
 
   <p class="law"><strong>SMI is the intelligence. The seven Worlds organise it.</strong><br>Families, providers and specialist capabilities can support SMI, but none gains Human Authority or independent consequential execution.</p>
@@ -42,7 +43,7 @@
           <span>{{ world.routing_light }} routing</span>
           <span>{{ world.family_count }} families</span>
           <span>{{ world.registered_agents }} agents</span>
-          <span>{{ world.runtime_light }} live proof</span>
+          <span>{{ world.runtime_light }} full live proof</span>
         </div>
         {% if world.families %}
         <div class="family-list">
@@ -57,6 +58,43 @@
       </article>
       {% endfor %}
     </div>
+  </section>
+
+  <section class="section" aria-labelledby="runtime-title">
+    <p class="eyebrow">Evidence, not labels</p>
+    <h2 id="runtime-title">Runtime Proof Matrix</h2>
+    <p class="truth">Three claims are shown separately: bounded OAP code/runtime, current external/source/hardware proof, and full intended production capability. A bounded green never upgrades the other two.</p>
+    <div class="grid">
+      {% for proof in runtime.worlds %}
+      <article class="card proof">
+        <span class="pill {{ 'green' if proof.bounded_runtime_ready else 'purple' }}">{{ proof.bounded_runtime_light }} bounded runtime</span>
+        <h3>{{ proof.name }}</h3>
+        <div class="metrics">
+          <span>{{ proof.live_external_light }} live external proof</span>
+          <span>{{ proof.full_runtime_light }} full runtime</span>
+        </div>
+        <p class="truth"><strong>Evidence:</strong> {{ proof.bounded_evidence }}</p>
+        <p class="truth"><strong>Next gate:</strong> {{ proof.next_gate }}</p>
+      </article>
+      {% endfor %}
+    </div>
+
+    <h3>Cross-system capability proof</h3>
+    <div class="grid">
+      {% for proof in runtime.cross_system %}
+      <article class="card specialist">
+        <span class="pill {{ 'green' if proof.bounded_runtime_ready else 'purple' }}">{{ proof.bounded_runtime_light }} bounded runtime</span>
+        <h3>{{ proof.name }}</h3>
+        <div class="metrics">
+          <span>{{ proof.live_external_light }} live/provider proof</span>
+          <span>{{ proof.full_runtime_light }} full runtime</span>
+        </div>
+        <p class="truth"><strong>Evidence:</strong> {{ proof.bounded_evidence }}</p>
+        <p class="truth"><strong>Next gate:</strong> {{ proof.next_gate }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="actions"><a class="door" href="{{ url_for('all_intelligence.runtime') }}">Open runtime evidence JSON →</a></div>
   </section>
 
   <section class="section" aria-labelledby="family-title">
@@ -112,7 +150,7 @@
   <section class="section" aria-labelledby="truth-title">
     <p class="eyebrow">Truth-light</p><h2 id="truth-title">What is actually green</h2>
     <p class="truth"><strong>{{ intelligence.architecture_light }} Architecture · {{ intelligence.registry_light }} 78-agent registry · {{ intelligence.routing_light }} seven-World routing · {{ intelligence.memory_light }} HRM governance.</strong></p>
-    <p class="truth"><strong>{{ intelligence.runtime_light }} Universal live/runtime evidence remains capability-specific.</strong> A World is not labelled live merely because its architecture exists.</p>
+    <p class="truth"><strong>{{ '🟢' if runtime.bounded_runtime_proven else '🟣' }} {{ runtime.bounded_runtime_proven }}/{{ runtime.bounded_runtime_total }} Worlds have bounded runtime evidence.</strong> {{ runtime.universal_runtime_light }} Full universal runtime remains incomplete and capability-specific.</p>
     <p class="law"><strong>Human Authority final.</strong> This page is read-only. It grants no approval, deployment, spending, dispatch, migration or autonomous execution.</p>
   </section>
 </main>
