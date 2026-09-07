@@ -53,7 +53,7 @@ def test_agi_router_uses_seven_world_projection_with_nested_specialists():
     assert router["brain_count"] == 0
 
     route = AGICore().route(
-        "Akela reviews a Ghana humanitarian video route with 6G connectivity.",
+        "Akela reviews a Ghana international humanitarian video route with 6G connectivity.",
         "GENERAL",
     )
     assert set(route["world_ids"]) <= set(CANONICAL_WORLD_IDS)
