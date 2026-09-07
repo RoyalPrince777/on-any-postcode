@@ -78,7 +78,12 @@ def register(app: Flask) -> None:
 
     @app.after_request
     def _restore_locked_public_and_private_copy(response):
-        if response.status_code >= 400 or not response.mimetype.startswith("text/html"):
+        if (
+            response.status_code >= 400
+            or response.direct_passthrough
+            or response.is_streamed
+            or not response.mimetype.startswith("text/html")
+        ):
             return response
         path = request.path.rstrip("/") or "/"
         page = response.get_data(as_text=True)
