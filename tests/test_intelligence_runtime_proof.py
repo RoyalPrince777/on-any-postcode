@@ -1,6 +1,5 @@
 from mission_control import intelligence_runtime_proof
 
-
 CANONICAL_WORLD_IDS = (
     "earth",
     "language",
