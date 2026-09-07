@@ -65,22 +65,24 @@ def status() -> dict[str, object]:
 
     counts = _production_counts()
     live_observability = telemetry.status()
+    store_reachable = bool(counts["store_reachable"])
     founder_interaction = bool(
-        counts["store_reachable"] and int(counts["founder_smi_reviews"] or 0) > 0
+        store_reachable and int(counts["founder_smi_reviews"] or 0) > 0
     )
     receipt_chain = bool(
-        counts["store_reachable"]
+        store_reachable
         and int(counts["five_section_reviews"] or 0) > 0
         and int(counts["signed_approved_receipts"] or 0) > 0
     )
     meaningful_event_memory = bool(
-        counts["store_reachable"] and int(counts["oap_event_receipts"] or 0) > 0
+        store_reachable and int(counts["oap_event_receipts"] or 0) > 0
     )
     rollback_recovery = bool(
-        counts["store_reachable"]
-        and int(counts["rollback_recovery_receipts"] or 0) > 0
+        store_reachable and int(counts["rollback_recovery_receipts"] or 0) > 0
     )
-    observability = bool(live_observability.get("observability_ready"))
+    observability = bool(
+        store_reachable and live_observability.get("observability_ready")
+    )
     green = bool(
         founder_interaction
         and receipt_chain
