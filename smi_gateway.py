@@ -159,8 +159,8 @@ def _proxy(path: str):
 
 @app.get("/")
 def root():
-    """The SMI origin opens Personal SMI; its upstream route enforces sign-in."""
-    return redirect("/mission/ollama", code=302)
+    """Enter the private SMI origin through the fail-closed Founder sign-in gate."""
+    return redirect("/auth", code=302)
 
 
 @app.get("/smi")
