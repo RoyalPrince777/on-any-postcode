@@ -114,6 +114,12 @@ def _roundtrip_probe(*, force: bool = False) -> bool:
 def register(app: Flask) -> None:
     """Register Pulse independently from Signal without creating a second schema."""
 
+    startup_ready = _roundtrip_probe(force=True)
+    app.logger.info(
+        "pulse_roundtrip_startup=%s",
+        "ready" if startup_ready else "unavailable",
+    )
+
     def _render_pulse():
         unavailable = False
         try:
