@@ -96,3 +96,33 @@ def test_founder_isac_dashboard_exposes_privacy_reduced_state(client):
     assert "No biometric identity" in page
     assert "centimetre" in page
     assert "SRS / I-Q ingest" in page
+
+
+def test_isac_command_reports_cover_every_declared_control():
+    status = isac_spatial_intelligence.isac_app_status()
+    assert status["software_checks"]["all_command_routes_registered"] is True
+    assert isac_spatial_intelligence.guardian_rf_report()["status"] == "green"
+    assert isac_spatial_intelligence.calibration_gate_report()["status"] in {"green", "locked"}
+    assert isac_spatial_intelligence.matrix_rf_event_report()["raw_rf_included"] is False
+    assert isac_spatial_intelligence.export_safe_isac_brief()["secret_values_included"] is False
+    assert isac_spatial_intelligence.lock_physical_rf_claims()["autonomous_radio_control"] is False
+
+
+def test_founder_isac_app_exposes_all_nine_controls(client):
+    response = client.get("/mission/isac-spatial/app")
+    page = response.get_data(as_text=True)
+    assert response.status_code == 200
+    for label in isac_spatial_intelligence.APP_CONTROLS:
+        assert label in page
+
+
+def test_isac_read_routes_return_safe_reports(client):
+    for path in (
+        "/mission/isac-spatial/app/guardian-rf",
+        "/mission/isac-spatial/app/calibration-gates",
+        "/mission/isac-spatial/app/matrix-events",
+        "/mission/isac-spatial/app/safe-brief",
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.get_json()["control"]

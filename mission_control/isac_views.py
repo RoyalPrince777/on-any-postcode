@@ -74,6 +74,49 @@ def app_seed_software_test():
     return _no_store(make_response(jsonify(isac_spatial_intelligence.seed_software_app_test())))
 
 
+
+@bp.get("/app/guardian-rf")
+@web_security.login_required(api=True, founder_only=True)
+def app_guardian_rf():
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.guardian_rf_report())))
+
+
+@bp.get("/app/calibration-gates")
+@web_security.login_required(api=True, founder_only=True)
+def app_calibration_gates():
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.calibration_gate_report())))
+
+
+@bp.get("/app/matrix-events")
+@web_security.login_required(api=True, founder_only=True)
+def app_matrix_events():
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.matrix_rf_event_report())))
+
+
+@bp.get("/app/safe-brief")
+@web_security.login_required(api=True, founder_only=True)
+def app_safe_brief():
+    response = make_response(jsonify(isac_spatial_intelligence.export_safe_isac_brief()))
+    response.headers["Content-Disposition"] = 'attachment; filename="oap-isac-safe-brief.json"'
+    return _no_store(response)
+
+
+@bp.post("/app/green-gate")
+@web_security.login_required(api=True, founder_only=True)
+def app_green_gate():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.send_to_green_gate())))
+
+
+@bp.post("/app/lock-physical-claims")
+@web_security.login_required(api=True, founder_only=True)
+def app_lock_physical_claims():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    return _no_store(make_response(jsonify(isac_spatial_intelligence.lock_physical_rf_claims())))
+
+
 @bp.post("/ingest")
 @web_security.login_required(api=True, founder_only=True)
 def ingest():
