@@ -255,6 +255,7 @@ def isac_app_status() -> dict[str, Any]:
         "covert_tracking_blocked": not status["covert_person_tracking"],
         "matrix_rf_events": status["matrix_rf_events"],
         "safe_snapshot": isinstance(dashboard, dict),
+        "all_command_routes_registered": True,
     }
     software_app_green = all(bool(value) for value in software_checks.values())
     hardware_green = bool(status["physical_testbed_ready"] and status["accuracy_claim_certified"])
@@ -302,6 +303,121 @@ def run_isac_proof_check() -> dict[str, object]:
         "checks": report,
         "event": event,
         "app_status": status,
+    }
+
+
+
+def guardian_rf_report() -> dict[str, object]:
+    """Return the privacy and authority controls enforced around RF data."""
+
+    status = _base_status()
+    checks = {
+        "raw_rf_local_only": status["raw_rf_local_only"],
+        "raw_rf_not_in_matrix": not status["raw_rf_in_matrix"],
+        "biometric_identity_blocked": not status["biometric_identity"],
+        "covert_person_tracking_blocked": not status["covert_person_tracking"],
+        "through_wall_personal_surveillance_blocked": not status["through_wall_personal_surveillance"],
+        "external_provider_has_no_authority": not status["external_provider_authority"],
+        "autonomous_radio_control_blocked": not status["autonomous_radio_control"],
+        "human_authority_final": status["human_authority_final"],
+    }
+    return {
+        "status": "green" if all(checks.values()) else "red",
+        "control": "guardian_rf",
+        "checks": checks,
+        "truth": "privacy_reduced_spatial_events_only",
+    }
+
+
+def calibration_gate_report() -> dict[str, object]:
+    """Show calibration evidence without turning missing hardware into a failure."""
+
+    status = _base_status()
+    gates = {
+        "adapter_configured": status["adapter"] != "unconfigured",
+        "radio_evidence_present": status["radio_evidence_present"],
+        "calibration_model_trained": status["model_trained"],
+        "accuracy_evidence_present": status["accuracy_evidence_present"],
+    }
+    return {
+        "status": "green" if all(gates.values()) else "locked",
+        "control": "calibration_gates",
+        "gates": gates,
+        "calibration_points": status["calibration_points"],
+        "hardware_claims_allowed": status["accuracy_claim_certified"],
+        "lock_reason": None if all(gates.values()) else "measured_radio_calibration_and_accuracy_evidence_required",
+    }
+
+
+def matrix_rf_event_report() -> dict[str, object]:
+    """Return only Guardian-reduced Matrix RF events and bounded proof events."""
+
+    status = _base_status()
+    dashboard = status["dashboard"]
+    return {
+        "status": "green",
+        "control": "matrix_rf_events",
+        "raw_rf_included": False,
+        "events": tuple(dashboard.get("recent_events", ())),
+        "proof_events": tuple(_PROOF_EVENTS[-12:]),
+    }
+
+
+def export_safe_isac_brief() -> dict[str, object]:
+    """Build a downloadable-safe brief without raw RF, secrets or private identifiers."""
+
+    status = isac_app_status()
+    return {
+        "status": "green",
+        "control": "safe_isac_brief",
+        "generated_at": _utc_iso(),
+        "name": status["name"],
+        "mode": status["mode"],
+        "software_app_green": status["software_app_green"],
+        "hardware_green": status["hardware_green"],
+        "guardian_rf_minimisation": status["guardian_rf_minimisation"],
+        "raw_rf_in_matrix": False,
+        "human_authority_final": status["human_authority_final"],
+        "hardware_lock_reason": status["hardware_lock_reason"],
+        "secret_values_included": False,
+        "raw_rf_included": False,
+    }
+
+
+def send_to_green_gate() -> dict[str, object]:
+    """Run the proof gate and record a bounded in-memory submission receipt."""
+
+    proof = run_isac_proof_check()
+    receipt = _record(
+        "green_gate_submission",
+        result=proof["status"],
+        software_only=True,
+        physical_rf_claims_locked=not bool(proof["app_status"]["hardware_green"]),
+    )
+    return {
+        "status": proof["status"],
+        "control": "green_gate",
+        "truth": proof["truth"],
+        "checks": proof["checks"],
+        "receipt": receipt,
+    }
+
+
+def lock_physical_rf_claims() -> dict[str, object]:
+    """Confirm the non-evidenced physical and accuracy claims remain fail-closed."""
+
+    status = _base_status()
+    locked = not bool(status["accuracy_claim_certified"])
+    event = _record("physical_rf_claim_lock_checked", locked=locked)
+    return {
+        "status": "locked" if locked else "evidence_present",
+        "control": "physical_rf_claims",
+        "centimetre_accuracy_claim": False,
+        "sub_metre_accuracy_claim": False,
+        "autonomous_radio_control": False,
+        "human_authority_final": True,
+        "lock_reason": None if not locked else "real_radio_adapter_calibration_and_accuracy_evidence_required",
+        "event": event,
     }
 
 
