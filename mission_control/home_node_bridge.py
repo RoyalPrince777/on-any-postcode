@@ -19,6 +19,7 @@ from typing import Any
 _MAX_PENDING = 8
 _JOB_TTL_SECONDS = 45.0
 _RESULT_WAIT_SECONDS = 20.0
+_WORKER_RECENCY_SECONDS = 30.0
 
 
 def _shared_secret() -> str:
@@ -52,6 +53,13 @@ _JOBS: dict[str, _Job] = {}
 _LAST_WORKER_SEEN = 0.0
 
 
+def _worker_recent_locked(now: float) -> bool:
+    return bool(
+        _LAST_WORKER_SEEN
+        and now - _LAST_WORKER_SEEN <= _WORKER_RECENCY_SECONDS
+    )
+
+
 def _prune_locked(now: float) -> None:
     expired = [
         job_id
@@ -70,7 +78,7 @@ def _prune_locked(now: float) -> None:
 
 
 def submit_inference(payload: dict[str, Any], *, timeout: float = _RESULT_WAIT_SECONDS) -> str:
-    """Queue one bounded inference job and synchronously wait for the Home Node."""
+    """Queue work only when an authenticated Home Node worker is actually present."""
     if not configured():
         raise RuntimeError("home_node_bridge_not_configured")
     if not isinstance(payload, dict) or not payload.get("messages"):
@@ -79,6 +87,11 @@ def submit_inference(payload: dict[str, Any], *, timeout: float = _RESULT_WAIT_S
     now = time.monotonic()
     with _LOCK:
         _prune_locked(now)
+        # A configured secret is not proof that a worker is online. Without this
+        # gate Personal SMI can wait the full bridge timeout before falling back
+        # to its governed compatibility provider, making the chat appear frozen.
+        if not _worker_recent_locked(now):
+            raise RuntimeError("home_node_worker_unavailable")
         if len(_PENDING) >= _MAX_PENDING:
             raise RuntimeError("home_node_bridge_busy")
         job = _Job(job_id=str(uuid.uuid4()), payload=payload)
@@ -147,7 +160,7 @@ def status() -> dict[str, Any]:
     now = time.monotonic()
     with _LOCK:
         _prune_locked(now)
-        worker_recent = bool(_LAST_WORKER_SEEN and now - _LAST_WORKER_SEEN <= 30.0)
+        worker_recent = _worker_recent_locked(now)
         return {
             "configured": configured(),
             "worker_recently_seen": worker_recent,
