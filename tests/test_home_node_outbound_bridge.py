@@ -1,5 +1,9 @@
 from pathlib import Path
 
+import pytest
+
+from mission_control import home_node_bridge
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -15,6 +19,25 @@ def test_bridge_is_outbound_only_and_secret_protected():
     assert "/home-node/jobs/next" in views
     assert "127.0.0.1:11434/api/chat" in worker
     assert "https://oap-smi.onrender.com/mission" in worker
+
+
+def test_bridge_fails_fast_when_configured_worker_is_offline(monkeypatch):
+    monkeypatch.setenv("OAP_HOME_NODE_BRIDGE_SECRET", "s" * 48)
+    monkeypatch.setattr(home_node_bridge.time, "monotonic", lambda: 100.0)
+    with home_node_bridge._LOCK:
+        home_node_bridge._PENDING.clear()
+        home_node_bridge._JOBS.clear()
+        home_node_bridge._LAST_WORKER_SEEN = 0.0
+
+    with pytest.raises(RuntimeError, match="home_node_worker_unavailable"):
+        home_node_bridge.submit_inference(
+            {"messages": [{"role": "user", "content": "status"}]},
+            timeout=20,
+        )
+
+    with home_node_bridge._LOCK:
+        assert not home_node_bridge._PENDING
+        assert not home_node_bridge._JOBS
 
 
 def test_inference_gateway_routes_first_party_before_fallback():
