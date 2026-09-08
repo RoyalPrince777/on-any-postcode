@@ -92,6 +92,7 @@ def register(app: Flask) -> None:
         all_intelligence_views,
         contract_compatibility,
         pulse_routes,
+        signal_health,
         smi_certification_routes,
         smi_event_memory,
         smi_proof_views,
@@ -99,6 +100,7 @@ def register(app: Flask) -> None:
 
     app.request_class = OAPRequest
     pulse_routes.register(app)
+    signal_health.register(app)
     app.register_blueprint(smi_certification_routes.bp)
     app.register_blueprint(smi_proof_views.bp)
     app.register_blueprint(all_intelligence_views.bp)
