@@ -35,6 +35,12 @@
         <button id="refresh" type="button">↻ Refresh ISAC</button>
         <button id="proof" type="button">🟢 Run Proof Check</button>
         <button id="seed" type="button">🧪 Seed Software Test</button>
+        <button id="guardian" type="button">🛡️ Check Guardian RF</button>
+        <button id="calibration" type="button">📐 Check Calibration Gates</button>
+        <button id="events" type="button">◉ View Matrix RF Events</button>
+        <button id="brief" type="button">⇩ Export Safe ISAC Brief</button>
+        <button id="green-gate" type="button">🟢 Send To Green Gate</button>
+        <button id="claims-lock" type="button">🔒 Lock Physical RF Claims</button>
         <a href="{{ url_for('isac_spatial.dashboard') }}">📡 Spatial Dashboard</a>
         <a href="{{ url_for('isac_spatial.spatial_presence_dashboard') }}">🧭 Spatial Presence</a>
       </div>
@@ -63,10 +69,23 @@
   const statusUrl = {{ url_for('isac_spatial.app_status')|tojson }};
   const proofUrl = {{ url_for('isac_spatial.app_proof_check')|tojson }};
   const seedUrl = {{ url_for('isac_spatial.app_seed_software_test')|tojson }};
+  const guardianUrl = {{ url_for('isac_spatial.app_guardian_rf')|tojson }};
+  const calibrationUrl = {{ url_for('isac_spatial.app_calibration_gates')|tojson }};
+  const eventsUrl = {{ url_for('isac_spatial.app_matrix_events')|tojson }};
+  const briefUrl = {{ url_for('isac_spatial.app_safe_brief')|tojson }};
+  const greenGateUrl = {{ url_for('isac_spatial.app_green_gate')|tojson }};
+  const claimsLockUrl = {{ url_for('isac_spatial.app_lock_physical_claims')|tojson }};
   const output = root.getElementById('output');
   const refresh = root.getElementById('refresh');
   const proof = root.getElementById('proof');
   const seed = root.getElementById('seed');
+  const guardian = root.getElementById('guardian');
+  const calibration = root.getElementById('calibration');
+  const events = root.getElementById('events');
+  const brief = root.getElementById('brief');
+  const greenGate = root.getElementById('green-gate');
+  const claimsLock = root.getElementById('claims-lock');
+  const controls = [refresh, proof, seed, guardian, calibration, events, brief, greenGate, claimsLock];
   const deviceCount = root.getElementById('device-count');
   const calibrationCount = root.getElementById('calibration-count');
   const eventCount = root.getElementById('event-count');
@@ -96,21 +115,28 @@
     output.textContent = safeString(data);
   }
   async function call(url, method){
-    [refresh,proof,seed].forEach(btn => btn.disabled = true);
+    controls.forEach(btn => btn.disabled = true);
     output.textContent = 'Running ISAC control…';
     try{
       const response = await fetch(url, {method, credentials:'same-origin', cache:'no-store', headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken}, body: method === 'POST' ? '{}' : undefined});
       const data = await response.json();
+      if (!response.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + response.status));
       render(data);
     }catch(error){
       output.textContent = 'ISAC control failed safely: ' + String(error && error.message ? error.message : error);
     }finally{
-      [refresh,proof,seed].forEach(btn => btn.disabled = false);
+      controls.forEach(btn => btn.disabled = false);
     }
   }
   refresh.addEventListener('click', () => call(statusUrl, 'GET'));
   proof.addEventListener('click', () => call(proofUrl, 'POST'));
   seed.addEventListener('click', () => call(seedUrl, 'POST'));
+  guardian.addEventListener('click', () => call(guardianUrl, 'GET'));
+  calibration.addEventListener('click', () => call(calibrationUrl, 'GET'));
+  events.addEventListener('click', () => call(eventsUrl, 'GET'));
+  brief.addEventListener('click', () => call(briefUrl, 'GET'));
+  greenGate.addEventListener('click', () => call(greenGateUrl, 'POST'));
+  claimsLock.addEventListener('click', () => call(claimsLockUrl, 'POST'));
 })();
 </script>
 </body>
