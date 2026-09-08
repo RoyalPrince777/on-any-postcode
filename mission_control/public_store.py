@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import time
+import uuid
 from typing import Any
 
 from . import authority, postgres_db
@@ -13,6 +16,8 @@ PUBLIC_FLAG_SCOPE = "oap_flag"
 PUBLIC_USERNAME_PREFIX = "oap-session-"
 MAX_PUBLIC_RECORDS = 100
 MAX_WRITES_PER_MINUTE = 30
+_SIGNAL_PROBE_TTL_SECONDS = 120.0
+_signal_probe_cache: tuple[float, bool] | None = None
 
 
 class PublicStoreUnavailable(RuntimeError):
@@ -220,6 +225,60 @@ def _decode_object(raw: object) -> dict[str, str] | None:
     return {str(key): str(item) for key, item in value.items()}
 
 
+def _signal_roundtrip_probe(*, force: bool = False) -> bool:
+    """Prove the Signal payload can be written/read without persistent test data."""
+
+    global _signal_probe_cache
+    now = time.monotonic()
+    if (
+        not force
+        and _signal_probe_cache
+        and now - _signal_probe_cache[0] < _SIGNAL_PROBE_TTL_SECONDS
+    ):
+        return bool(_signal_probe_cache[1])
+    if not postgres_db.configured():
+        _signal_probe_cache = (now, False)
+        return False
+
+    identity_id = str(uuid.uuid4())
+    marker = f"oap-signal-probe-{uuid.uuid4()}"
+    expected = {"name": "OAP Probe", "body": marker}
+    payload = json.dumps(expected, ensure_ascii=False, separators=(",", ":"))
+    post_id = ""
+    ready = False
+    try:
+        with postgres_db.connect() as connection:
+            _ensure_user(connection, identity_id)
+            row = connection.execute(
+                """INSERT INTO posts(user_id,body,scope,status)
+                   VALUES (%s,%s,%s,'published') RETURNING id""",
+                (identity_id, payload, PUBLIC_SIGNAL_SCOPE),
+            ).fetchone()
+            post_id = str(row[0]) if row else ""
+            observed = connection.execute(
+                """SELECT body FROM posts
+                   WHERE id=%s AND user_id=%s AND scope=%s AND status='published'""",
+                (post_id, identity_id, PUBLIC_SIGNAL_SCOPE),
+            ).fetchone()
+            decoded = _decode_object(observed[0]) if observed else None
+            ready = decoded == expected
+            connection.rollback()
+
+        with postgres_db.connect(readonly=True) as connection:
+            residue = connection.execute(
+                """SELECT
+                     EXISTS(SELECT 1 FROM users WHERE id=%s) OR
+                     EXISTS(SELECT 1 FROM posts WHERE id=%s)""",
+                (identity_id, post_id),
+            ).fetchone()
+            ready = bool(ready and residue and not bool(residue[0]))
+    except Exception:  # noqa: BLE001 - production readiness must fail closed.
+        ready = False
+
+    _signal_probe_cache = (now, ready)
+    return ready
+
+
 def snapshot() -> dict[str, Any]:
     """Load bounded community posts; profiles stay inside private My World."""
 
@@ -267,12 +326,13 @@ def snapshot() -> dict[str, Any]:
 
 
 def status() -> dict[str, Any]:
-    """Return a redacted schema-and-connectivity readiness check."""
+    """Return redacted schema, connectivity and production Signal readiness."""
 
     result = {
         "configured": postgres_db.configured(),
         "reachable": False,
         "schema_ready": False,
+        "signal_roundtrip_ready": False,
         "durable": False,
         "error": None,
     }
@@ -309,7 +369,14 @@ def status() -> dict[str, Any]:
                 "status",
                 "created_at",
             } <= columns["posts"]
-            result["durable"] = result["schema_ready"]
+            if result["schema_ready"] and os.environ.get("RENDER", "").lower() == "true":
+                result["signal_roundtrip_ready"] = _signal_roundtrip_probe()
+            else:
+                # Local/test readiness remains schema-only; production proof is Render-gated.
+                result["signal_roundtrip_ready"] = bool(result["schema_ready"])
+            result["durable"] = bool(
+                result["schema_ready"] and result["signal_roundtrip_ready"]
+            )
     # A readiness endpoint must degrade safely for every driver/network failure.
     except Exception:  # noqa: BLE001
         result["error"] = "database_unavailable"
