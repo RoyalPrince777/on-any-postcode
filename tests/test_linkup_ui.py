@@ -8,8 +8,8 @@ from mission_control import config, linkup
 
 def test_link_dashboard_preserves_three_approved_views():
     assert linkup.LOCKED_LINK_VIEW_NAMES == (
-        "Directory",
-        "Inbox",
+        "👥 People",
+        "🔗 Link Ups",
         "Community Power",
     )
     assert linkup.LOCKED_LINK_VIEW_IDS == (
@@ -129,7 +129,10 @@ def test_public_link_projection_is_presentation_only():
     assert projection["product_name"] == "Link Up"
     assert projection["tagline"] == "Simple private chat."
     assert projection["law"] == "The Link → Link Up"
-    assert [feature["name"] for feature in projection["features"]] == ["Chats", "Calls"]
+    assert [feature["name"] for feature in projection["features"]] == [
+        "🔗 Link Ups",
+        "📞 Call & Face Up",
+    ]
     assert "Circle" not in json.dumps(projection)
 
 
