@@ -367,6 +367,31 @@ def test_private_founder_sign_in_ignores_submitted_email(
     assert 'name="email"' not in page
 
 
+def test_founder_sign_in_reports_provider_database_outage_not_bad_password(
+    anonymous_client, monkeypatch
+):
+    token = "private-sign-in-outage-csrf-token-value-123456"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_in",
+        lambda _email, _password: neon_auth.AuthResult(
+            status_code=401, payload={"code": "DATABASE_ERROR"}
+        ),
+    )
+    response = anonymous_client.post(
+        "/auth/sign-in",
+        data={"csrf_token": token, "password": "unchanged-password", "next": "/my-world"},
+    )
+
+    assert response.status_code == 503
+    page = response.get_data(as_text=True)
+    assert "Secure identity verification is temporarily unavailable." in page
+    assert "Private password not recognised." not in page
+
+
 def test_approved_business_sign_in_is_separate_from_founder_private_gate(
     anonymous_client, monkeypatch
 ):
