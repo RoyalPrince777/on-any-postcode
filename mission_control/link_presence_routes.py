@@ -84,6 +84,45 @@ def status():
     return _no_store(make_response(jsonify(link_presence.status())))
 
 
+@bp.get("/linkup/now")
+@web_security.login_required(api=True)
+def own_now():
+    try:
+        return _no_store(make_response(jsonify(link_presence.own_member_status(_identity()))))
+    except (TypeError, ValueError) as exc:
+        return _value_error(exc)
+    except link_presence.LinkPresenceUnavailable:
+        return _error("link_status_unavailable", 503)
+
+
+@bp.post("/linkup/now")
+@web_security.login_required(api=True)
+def update_now():
+    guarded = _mutation_guard()
+    if guarded is not None:
+        return guarded
+    try:
+        data = _payload()
+        result = link_presence.set_member_status(_identity(), now_text=data.get("now", ""),
+            im_free=data.get("im_free", False), duration_minutes=data.get("duration_minutes", 240))
+        return _no_store(make_response(jsonify(result)))
+    except (TypeError, ValueError) as exc:
+        return _value_error(exc)
+    except link_presence.LinkPresenceUnavailable:
+        return _error("link_status_unavailable", 503)
+
+
+@bp.get("/linkup/now/<peer_id>")
+@web_security.login_required(api=True)
+def peer_now(peer_id: str):
+    try:
+        return _no_store(make_response(jsonify(link_presence.member_status(_identity(), peer_id))))
+    except (TypeError, ValueError) as exc:
+        return _value_error(exc)
+    except link_presence.LinkPresenceUnavailable:
+        return _error("link_status_unavailable", 503)
+
+
 @bp.get("/linkup/presence/visibility/<peer_id>")
 @web_security.login_required(api=True)
 def visibility_state(peer_id: str):
