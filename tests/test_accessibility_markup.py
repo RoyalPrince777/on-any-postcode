@@ -68,7 +68,7 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     assert 'aria-label="Human Authority status"' in infrastructure
     assert 'aria-labelledby="infrastructure-scope-title"' in infrastructure
     assert 'aria-label="Private Link Up messenger"' in linkup
-    assert 'aria-label="Chats"' in linkup
+    assert 'aria-label="Link Ups"' in linkup
     assert 'aria-label="Open chat"' in linkup
     assert 'aria-label="OAP governance law"' in organism
     assert 'aria-label="Human Authority status"' in organism
