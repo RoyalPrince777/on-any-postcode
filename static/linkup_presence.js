@@ -7,9 +7,10 @@
   const shareSpotControls = Array.from(document.querySelectorAll("[data-oap-share-spot-control]"));
   const liveSpotControls = Array.from(document.querySelectorAll("[data-oap-live-spot-control]"));
   const stopSpotControls = Array.from(document.querySelectorAll("[data-oap-live-spot-stop]"));
+  const nowForm = document.querySelector("[data-oap-now-form]");
   const allControls = [...aroundControls, ...shareSpotControls, ...liveSpotControls];
 
-  if (!allControls.length && !stopSpotControls.length) {
+  if (!allControls.length && !stopSpotControls.length && !nowForm) {
     return;
   }
 
@@ -118,6 +119,25 @@
       method: "POST",
       body: JSON.stringify({ around_now: aroundNow }),
     });
+
+  if (nowForm) {
+    const nowInput = nowForm.querySelector("[data-oap-now-input]");
+    const freeInput = nowForm.querySelector("[data-oap-im-free]");
+    const durationInput = nowForm.querySelector("[data-oap-now-duration]");
+    api("/linkup/now").then((current) => {
+      nowInput.value = current.now || "";
+      freeInput.checked = current.im_free === true;
+    }).catch(() => setStatus("Now is unavailable. Nothing was shared."));
+    nowForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await api("/linkup/now", {method: "POST", body: JSON.stringify({now: nowInput.value.trim(), im_free: freeInput.checked, duration_minutes: Number(durationInput.value)})});
+        setStatus(freeInput.checked ? "🟢 I’m Free and Now updated." : "💬 Now updated.");
+      } catch (_error) {
+        setStatus("Now could not update. Your previous status remains unchanged.");
+      }
+    });
+  }
 
   const keepHeartbeatAlive = () => {
     if (state.heartbeatTimer) {
