@@ -10,8 +10,11 @@ from typing import Any
 
 from . import link_relationships, linkup_safety, postgres_db
 
-SCHEMA_VERSION = "link_presence_v1"
+SCHEMA_VERSION = "link_presence_v2"
 PRESENCE_TTL_SECONDS = 120
+MIN_STATUS_MINUTES = 15
+MAX_STATUS_MINUTES = 1440
+MAX_NOW_LENGTH = 120
 MIN_LIVE_SPOT_MINUTES = 1
 MAX_LIVE_SPOT_MINUTES = 60
 
@@ -39,9 +42,16 @@ SCHEMA_SQL = (
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (owner_id, viewer_id),
         CHECK (owner_id <> viewer_id))""",
+    """CREATE TABLE IF NOT EXISTS link_member_status (
+        identity_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        now_text VARCHAR(120) NOT NULL DEFAULT '',
+        im_free BOOLEAN NOT NULL DEFAULT FALSE,
+        expires_at TIMESTAMPTZ NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
     "CREATE INDEX IF NOT EXISTS idx_link_presence_expiry ON link_presence_state(expires_at)",
     "CREATE INDEX IF NOT EXISTS idx_link_live_spot_expiry ON link_live_spot(expires_at)",
     "CREATE INDEX IF NOT EXISTS idx_link_live_spot_viewer ON link_live_spot(viewer_id,expires_at)",
+    "CREATE INDEX IF NOT EXISTS idx_link_member_status_expiry ON link_member_status(expires_at)",
 )
 
 
@@ -105,11 +115,12 @@ def status() -> dict[str, Any]:
             rows = connection.execute(
                 """SELECT table_name FROM information_schema.tables
                    WHERE table_schema='public' AND table_name IN
-                   ('link_presence_state','link_presence_visibility','link_live_spot')"""
+                   ('link_presence_state','link_presence_visibility','link_live_spot','link_member_status')"""
             ).fetchall()
         tables = sorted(str(row[0]) for row in rows)
         result["schema_ready"] = tables == [
             "link_live_spot",
+            "link_member_status",
             "link_presence_state",
             "link_presence_visibility",
         ]
@@ -190,6 +201,59 @@ def around_now(viewer_id: object, owner_id: object) -> bool:
     except Exception as exc:
         raise LinkPresenceUnavailable("presence_read_failed") from exc
     return row is not None
+
+
+def set_member_status(identity_id: object, *, now_text: object = "", im_free: object = False, duration_minutes: object = 240) -> dict[str, object]:
+    """Set expiry-bounded OAP Now and I'm Free state."""
+    identity = _uuid(identity_id, "invalid_identity")
+    text = str(now_text or "").strip()
+    if len(text) > MAX_NOW_LENGTH:
+        raise ValueError("now_too_long")
+    if not isinstance(im_free, bool):
+        raise TypeError("invalid_im_free")
+    try:
+        duration = int(duration_minutes)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_status_duration") from exc
+    if not MIN_STATUS_MINUTES <= duration <= MAX_STATUS_MINUTES:
+        raise ValueError("invalid_status_duration")
+    try:
+        with postgres_db.connect() as connection:
+            connection.execute(
+                """INSERT INTO link_member_status(identity_id,now_text,im_free,expires_at)
+                   VALUES (%s,%s,%s,CURRENT_TIMESTAMP + (%s * INTERVAL '1 minute'))
+                   ON CONFLICT (identity_id) DO UPDATE SET now_text=EXCLUDED.now_text,
+                     im_free=EXCLUDED.im_free,expires_at=EXCLUDED.expires_at,updated_at=CURRENT_TIMESTAMP""",
+                (identity, text, im_free, duration),
+            )
+            connection.commit()
+    except Exception as exc:
+        raise LinkPresenceUnavailable("member_status_update_failed") from exc
+    return {"now": text, "im_free": im_free, "duration_minutes": duration}
+
+
+def _read_member_status(identity_id: str) -> dict[str, object]:
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT now_text,im_free,expires_at,updated_at FROM link_member_status
+                   WHERE identity_id=%s AND expires_at>CURRENT_TIMESTAMP LIMIT 1""", (identity_id,)
+            ).fetchone()
+    except Exception as exc:
+        raise LinkPresenceUnavailable("member_status_read_failed") from exc
+    if row is None:
+        return {"now": "", "im_free": False, "active": False}
+    return {"now": str(row[0] or ""), "im_free": bool(row[1]), "active": True,
+            "expires_at": row[2].isoformat(), "updated_at": row[3].isoformat()}
+
+
+def own_member_status(identity_id: object) -> dict[str, object]:
+    return _read_member_status(_uuid(identity_id, "invalid_identity"))
+
+
+def member_status(viewer_id: object, owner_id: object) -> dict[str, object]:
+    owner, _viewer = _peer_guard(owner_id, viewer_id)
+    return _read_member_status(owner)
 
 
 def start_live_spot(
@@ -295,7 +359,10 @@ def purge_expired() -> int:
             spots = connection.execute(
                 "DELETE FROM link_live_spot WHERE expires_at<=CURRENT_TIMESTAMP"
             ).rowcount
+            statuses = connection.execute(
+                "DELETE FROM link_member_status WHERE expires_at<=CURRENT_TIMESTAMP"
+            ).rowcount
             connection.commit()
     except Exception as exc:
         raise LinkPresenceUnavailable("presence_purge_failed") from exc
-    return int(presence or 0) + int(spots or 0)
+    return int(presence or 0) + int(spots or 0) + int(statuses or 0)
