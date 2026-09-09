@@ -19,7 +19,7 @@ from oap.contracts import MemoryItem, OutputState
 
 from .memory_sync import MemorySyncPacket, validate_packet
 
-CHANNEL_REVISION = "2026-09-04-v2"
+CHANNEL_REVISION = "2026-09-09-v3"
 _INBOX_PATH = Path(__file__).with_name("founder_memory_inbox.json")
 
 

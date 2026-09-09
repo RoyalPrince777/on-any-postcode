@@ -108,5 +108,15 @@
     "supersedes": [],
     "tags": ["spatial-presence", "face-up-spatial", "6g", "7-21-ghz", "xr", "volumetric", "guardian", "matrix", "nexus", "founder-approved"],
     "created_at": "2026-09-04T10:20:00+00:00"
+  },
+  {
+    "source_kind": "approved_chat_export",
+    "memory_class": "ARCHITECTURE",
+    "summary": "Use one governed OAP continuity memory across Founder work with ChatGPT and SMI. Preserve approved doctrine, canonical OAP language, architecture, agents, decisions, build evidence and truthful status lights: green means live and proven, yellow means incomplete or blocked, red means failed, and white means planned. Latest explicit Founder correction wins. GitHub, Render, Neon, research sources and AI providers remain separate controlled tools connected to SMI rather than becoming the brain or gaining authority. Import approved summaries with provenance, version, privacy class and audit evidence; never ingest raw chat automatically, hidden prompts, private chain-of-thought, credentials, secrets or unrelated personal data. Human Authority remains final.",
+    "source_reference": "founder-chat-decision-2026-09-09-oap-continuity-memory",
+    "founder_approved": true,
+    "supersedes": [],
+    "tags": ["smi", "hrm", "continuity", "chatgpt", "status-lights", "plugins", "privacy", "founder-approved"],
+    "created_at": "2026-09-09T15:00:00+00:00"
   }
 ]
