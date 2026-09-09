@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 import uuid
 
@@ -120,18 +119,6 @@ def register(app: Flask) -> None:
         "pulse_roundtrip_startup=%s",
         "ready" if startup_ready else "unavailable",
     )
-
-    @app.after_request
-    def _pulse_roundtrip_render_health(response):
-        if request.path != "/healthz":
-            return response
-        if os.environ.get("RENDER", "").strip().lower() != "true":
-            return response
-        if _roundtrip_probe():
-            return response
-        return _no_store(
-            make_response(jsonify(status="unavailable"), 503)
-        )
 
     def _render_pulse():
         unavailable = False
