@@ -59,17 +59,60 @@ def test_presence_schema_is_explicit_first_party_and_bounded():
     dry_run = link_presence.init_schema(dry_run=True)
     joined = "\n".join(dry_run["statements"])
 
-    assert dry_run["version"] == "link_presence_v1"
+    assert dry_run["version"] == "link_presence_v2"
     assert dry_run["applied"] is False
     assert "link_presence_state" in joined
     assert "link_presence_visibility" in joined
     assert "link_live_spot" in joined
+    assert "link_member_status" in joined
+    assert "now_text VARCHAR(120)" in joined
+    assert "im_free BOOLEAN NOT NULL DEFAULT FALSE" in joined
     assert "latitude BETWEEN -90 AND 90" in joined
     assert "longitude BETWEEN -180 AND 180" in joined
     assert "around_now BOOLEAN NOT NULL DEFAULT FALSE" in joined
     assert "live_spot BOOLEAN NOT NULL DEFAULT FALSE" in joined
     assert link_presence.PRESENCE_TTL_SECONDS == 120
     assert link_presence.MAX_LIVE_SPOT_MINUTES == 60
+    assert link_presence.MAX_STATUS_MINUTES == 1440
+
+
+def test_member_status_is_bounded_and_expiring(monkeypatch):
+    identity = uuid.uuid4()
+    connection = _Connection(lambda _query, _params: _Result())
+    monkeypatch.setattr(
+        link_presence.postgres_db, "connect", lambda *args, **kwargs: _Context(connection)
+    )
+
+    result = link_presence.set_member_status(
+        identity, now_text="  Building OAP  ", im_free=True, duration_minutes=60
+    )
+
+    assert result == {"now": "Building OAP", "im_free": True, "duration_minutes": 60}
+    assert connection.calls[0][1] == (str(identity), "Building OAP", True, 60)
+    assert "INTERVAL '1 minute'" in connection.calls[0][0]
+    assert connection.committed is True
+
+    with pytest.raises(ValueError, match="now_too_long"):
+        link_presence.set_member_status(identity, now_text="x" * 121)
+    with pytest.raises(ValueError, match="invalid_status_duration"):
+        link_presence.set_member_status(identity, duration_minutes=1)
+
+
+def test_peer_member_status_requires_an_accepted_unblocked_link(monkeypatch):
+    monkeypatch.setattr(
+        link_presence.linkup_safety, "blocked_between", lambda _first, _second: False
+    )
+    monkeypatch.setattr(
+        link_presence.link_relationships, "accepted_between", lambda _first, _second: False
+    )
+    monkeypatch.setattr(
+        link_presence.postgres_db,
+        "connect",
+        lambda *args, **kwargs: pytest.fail("status store must not be reached"),
+    )
+
+    with pytest.raises(ValueError, match="accepted_link_required"):
+        link_presence.member_status(uuid.uuid4(), uuid.uuid4())
 
 
 def test_presence_block_guard_runs_before_store(monkeypatch):
@@ -232,8 +275,14 @@ def test_presence_mutations_require_csrf(client):
             "duration_minutes": 15,
         },
     )
+    now = client.post(
+        "/linkup/now",
+        json={"now": "Building OAP", "im_free": True, "duration_minutes": 60},
+    )
 
     assert visibility.status_code == 403
     assert visibility.get_json()["error"]["code"] == "csrf_failed"
     assert spot.status_code == 403
     assert spot.get_json()["error"]["code"] == "csrf_failed"
+    assert now.status_code == 403
+    assert now.get_json()["error"]["code"] == "csrf_failed"
