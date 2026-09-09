@@ -761,6 +761,12 @@ def auth_sign_in():
             error="Secure identity verification is temporarily unavailable.",
             next_path=next_path,
         )
+    if neon_auth.temporarily_unavailable(result):
+        return _auth_page_response(
+            status_code=503,
+            error="Secure identity verification is temporarily unavailable.",
+            next_path=next_path,
+        )
     if not neon_auth.successful(result):
         return _auth_page_response(
             status_code=401,
