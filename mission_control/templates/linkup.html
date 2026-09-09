@@ -35,6 +35,13 @@
           <input class="linkup-search" type="search" placeholder="Search chats" aria-label="Search chats" data-linkup-search>
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
+        <form class="linkup-now" data-oap-now-form>
+          <label for="oap-now">💬 Now · What you on?</label>
+          <input id="oap-now" maxlength="120" placeholder="Share a short status" data-oap-now-input>
+          <label class="linkup-free"><input type="checkbox" data-oap-im-free> 🟢 I’m Free</label>
+          <select data-oap-now-duration aria-label="Status duration"><option value="60">1 hour</option><option value="240" selected>4 hours</option><option value="1440">Today</option></select>
+          <button type="submit">Update Now</button>
+        </form>
 
         {% if private_unavailable %}
           <p class="linkup-empty" role="alert">Link Ups are unavailable.</p>
