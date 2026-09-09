@@ -61,8 +61,8 @@ LINK_UP_PLAIN_CONTROLS: tuple[str, ...] = (
 LINK_UP_PLAIN_SAFETY_TERMS = LINK_UP_PLAIN_CONTROLS
 
 LINK_DASHBOARD_VIEWS: tuple[dict[str, str], ...] = (
-    {"id":"directory","name":"Directory","owner":COMMUNICATIONS_SYSTEM,"ownership":"owned_view","purpose":"Find verified people and local connections.","status":"Protected","data":"Authenticated member projection only","boundary":"People and community connections only; this is not the Agent Intelligence directory."},
-    {"id":"inbox","name":"Inbox","owner":COMMUNICATIONS_SYSTEM,"ownership":"owned_view","purpose":"Private conversation access for authenticated members.","status":"Protected","data":"Sender and recipient scoped messages only","boundary":"A view over approved Communications records, not a second Mail or Messenger store."},
+    {"id":"directory","name":"👥 People","owner":COMMUNICATIONS_SYSTEM,"ownership":"owned_view","purpose":"Find verified people and local connections.","status":"Protected","data":"Authenticated member projection only","boundary":"People and community connections only; this is not the Agent Intelligence directory."},
+    {"id":"inbox","name":"🔗 Link Ups","owner":COMMUNICATIONS_SYSTEM,"ownership":"owned_view","purpose":"Private Link access for authenticated members.","status":"Protected","data":"Sender and recipient scoped Links only","boundary":"A view over approved Communications records, not a second Mail or Messenger store."},
     {"id":"community_power","name":"Community Power","owner":COMMUNITY_POWER_SYSTEM,"ownership":"linked_view","purpose":"World Rooms and geography spaces live outside Link Up.","status":"Read-only link","data":"No private room or contribution records exposed","boundary":"Continent, country and other World Rooms remain owned by Community Power / OAP World, never by the private messenger."},
 )
 LOCKED_LINK_VIEW_IDS = tuple(view["id"] for view in LINK_DASHBOARD_VIEWS)
@@ -70,10 +70,10 @@ LOCKED_LINK_VIEW_NAMES = tuple(view["name"] for view in LINK_DASHBOARD_VIEWS)
 EXPECTED_VIEW_OWNERS = {"directory":(COMMUNICATIONS_SYSTEM,"owned_view"),"inbox":(COMMUNICATIONS_SYSTEM,"owned_view"),"community_power":(COMMUNITY_POWER_SYSTEM,"linked_view")}
 
 RELATED_COMMUNICATION_BOUNDARIES: tuple[dict[str, str], ...] = (
-    {"id":"signals","name":"Signal","owner":"OAP World","relationship":"Public announcements remain Signal; they are not private conversations or Inbox messages."},
+    {"id":"signals","name":"Signal","owner":"OAP World","relationship":"Public announcements remain Signal; they are not private Link Ups."},
     {"id":"pulse","name":"Pulse","owner":"OAP World","relationship":"Pulse remains the community heartbeat and may link into approved threads without becoming another message store."},
     {"id":"team_rooms","name":"OAP TV Team Rooms","owner":"OAP TV","relationship":"Existing match-room conversations stay on their current surface; this dashboard does not copy them."},
-    {"id":"mail_notifications","name":"Mail, Alerts and Broadcasts","owner":COMMUNICATIONS_SYSTEM,"relationship":"They remain sibling Communications modules; Inbox does not replace or duplicate them."},
+    {"id":"mail_notifications","name":"Mail, Alerts and Broadcasts","owner":COMMUNICATIONS_SYSTEM,"relationship":"They remain sibling Communications modules; Link Ups do not replace or duplicate them."},
     {"id":"identity_guardian_hrm","name":"Identity, Guardian and HRM","owner":"Shared protective systems","relationship":"Identity validates access, Guardian protects privacy and youth safety, and HRM receives approved audit metadata only."},
 )
 
@@ -120,7 +120,7 @@ def get_public_link_dashboard() -> dict[str, Any]:
         "tagline": "Simple private chat.",
         "law": "The Link → Link Up",
         "features": [
-            {"name": "Chats", "purpose": "Your private one-to-one Link Ups."},
-            {"name": "Calls", "purpose": "Voice, Call and Face Up from the chat screen."},
+            {"name": "🔗 Link Ups", "purpose": "Your private one-to-one Links."},
+            {"name": "📞 Call & Face Up", "purpose": "Voice, Call and Face Up from a Link Up."},
         ],
     }
