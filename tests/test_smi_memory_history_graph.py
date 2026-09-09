@@ -64,6 +64,22 @@ def test_founder_memory_channel_is_real_audited_transport_not_raw_chat_sync():
     assert all(item.summary.startswith("FOUNDER-APPROVED SYNC CONTEXT") for item in items)
 
 
+def test_founder_memory_channel_surfaces_approved_oap_continuity_rule():
+    memories = synced_memory_items(
+        "ARCHITECTURE",
+        query="ChatGPT SMI continuity status lights plugins privacy",
+        limit=1,
+    )
+
+    assert len(memories) == 1
+    summary = memories[0].summary
+    assert "one governed OAP continuity memory" in summary
+    assert "green means live and proven" in summary
+    assert "remain separate controlled tools" in summary
+    assert "never ingest raw chat automatically" in summary
+    assert "Human Authority remains final" in summary
+
+
 def test_orchestrator_keeps_21_cap_and_authority_order():
     snapshot = memory_status()
     assert snapshot["ready"] is True
