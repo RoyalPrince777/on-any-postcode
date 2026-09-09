@@ -248,6 +248,21 @@ def test_provider_error_code_never_returns_message_or_user_data():
     ) == "unknown"
 
 
+def test_provider_database_and_capacity_errors_are_temporary_outages():
+    assert neon_auth.temporarily_unavailable(
+        neon_auth.AuthResult(status_code=402, payload=None)
+    )
+    assert neon_auth.temporarily_unavailable(
+        neon_auth.AuthResult(status_code=401, payload={"code": "DATABASE_ERROR"})
+    )
+    assert neon_auth.temporarily_unavailable(
+        neon_auth.AuthResult(status_code=503, payload=None)
+    )
+    assert not neon_auth.temporarily_unavailable(
+        neon_auth.AuthResult(status_code=401, payload={"code": "INVALID_PASSWORD"})
+    )
+
+
 def test_private_selector_is_normalised_server_side(monkeypatch):
     monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", " Founder@Example.Test ")
 
