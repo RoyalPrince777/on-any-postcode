@@ -286,6 +286,18 @@ def successful(result: AuthResult) -> bool:
     return HTTPStatus.OK <= result.status_code < HTTPStatus.MULTIPLE_CHOICES
 
 
+def temporarily_unavailable(result: AuthResult) -> bool:
+    """Separate provider/database outages from rejected credentials."""
+
+    if result.status_code in {402, 408, 425, 429} or result.status_code >= 500:
+        return True
+    return safe_error_code(result) in {
+        "DATABASE_ERROR",
+        "SERVICE_UNAVAILABLE",
+        "TEMPORARILY_UNAVAILABLE",
+    }
+
+
 def safe_error_code(result: AuthResult) -> str:
     """Return only a bounded provider error code, never message or user data."""
 
