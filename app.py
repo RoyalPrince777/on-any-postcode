@@ -941,7 +941,14 @@ def spot_capability_front_door(capability_slug):
 def the_link_front_door():
     """Open The Link inside The Spot."""
 
-    response = make_response(render_template("the_link.html"))
+    response = make_response(
+        render_template(
+            "the_link.html",
+            views=linkup.LINK_DASHBOARD_VIEWS,
+            boundaries=linkup.RELATED_COMMUNICATION_BOUNDARIES,
+            validation=linkup.validate_link_scope(),
+        )
+    )
     response.headers["Cache-Control"] = "no-store"
     return response
 
