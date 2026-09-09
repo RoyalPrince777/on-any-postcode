@@ -14,6 +14,10 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
         "Pulse",
         "Signal",
         "Opportunities",
+        "Maps",
+        "OAP Direct",
+        "Movement",
+        "Travel",
         "Private by design",
     ):
         assert label in page
@@ -22,6 +26,10 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
     assert 'href="/pulse"' in page
     assert 'href="/the-spot/signal"' in page
     assert 'href="/the-spot/discovery"' in page
+    assert 'href="/maps"' in page
+    assert 'href="/travel/direct"' in page
+    assert 'href="/movement"' in page
+    assert 'href="/travel"' in page
     assert 'method="post"' not in page.lower()
     assert "Inbox" not in page
     assert "email" not in page.lower()
