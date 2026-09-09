@@ -55,6 +55,33 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="link-journey-title">
+      <p class="mc-eyebrow">🗺️ Find · Plan · Move · Book</p>
+      <h2 id="link-journey-title">OAP journeys and opportunities</h2>
+      <div class="link-grid">
+        <a class="link-card" href="/maps">
+          <strong>🗺️ Maps</strong>
+          <span>Open local map intelligence, places, routes and source-bound conditions.</span>
+          <small>On Any Place</small>
+        </a>
+        <a class="link-card" href="{{ url_for('travel_supply.public_marketplace') }}">
+          <strong>📅 OAP Direct</strong>
+          <span>Discover travel and booking opportunities with truthful availability.</span>
+          <small>Requests require identity; supplier confirmation remains final.</small>
+        </a>
+        <a class="link-card" href="{{ url_for('movement.movement_home') }}">
+          <strong>🚶 Movement</strong>
+          <span>Plan rides, e-bike journeys, deliveries and route requests.</span>
+          <small>On Any Route</small>
+        </a>
+        <a class="link-card" href="{{ url_for('travel_supply.public_travel') }}">
+          <strong>✈️ Travel</strong>
+          <span>Explore destination, stay, activity and transport options.</span>
+          <small>Public discovery stays separate from confirmed booking.</small>
+        </a>
+      </div>
+    </section>
+
     <section class="mc-panel" aria-labelledby="link-safety-title">
       <h2 id="link-safety-title">Private by design</h2>
       <ul class="link-boundaries">
