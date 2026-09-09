@@ -38,10 +38,14 @@ def test_linkup_surface_exposes_oap_presence_controls_without_external_provider(
     assert "data-oap-live-spot-control" in template
     assert "data-oap-live-spot-stop" in template
     assert "data-oap-presence-status" in template
+    assert "data-oap-now-form" in template
+    assert "What you on?" in template
+    assert "I’m Free" in template
 
     assert "/linkup/presence/status" in script
     assert "/linkup/presence/visibility/" in script
     assert "/linkup/presence/heartbeat" in script
+    assert 'api("/linkup/now")' in script
     assert "/linkup/live-spot" in script
     assert "navigator.geolocation.getCurrentPosition" in script
     assert "navigator.geolocation.watchPosition" in script
