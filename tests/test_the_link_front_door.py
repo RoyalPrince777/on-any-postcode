@@ -8,7 +8,7 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     for label in (
-        "Directory",
+        "People",
         "Link Up",
         "Community Power",
         "Pulse",
@@ -23,6 +23,7 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
     assert 'href="/the-spot/signal"' in page
     assert 'href="/the-spot/discovery"' in page
     assert 'method="post"' not in page.lower()
+    assert "Inbox" not in page
     assert "email" not in page.lower()
     assert "password" not in page.lower()
 
