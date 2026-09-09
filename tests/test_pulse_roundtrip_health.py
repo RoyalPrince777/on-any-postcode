@@ -32,3 +32,14 @@ def test_pulse_health_fails_closed(client, monkeypatch):
 
     assert response.status_code == 503
     assert response.get_json() == {"status": "unavailable"}
+
+
+def test_pulse_durability_does_not_override_platform_health(client, monkeypatch):
+    """A provider outage must not trap a healthy release before traffic switch."""
+
+    monkeypatch.setattr(pulse_routes, "_roundtrip_probe", lambda: False)
+
+    response = client.get("/healthz")
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
