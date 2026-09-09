@@ -11,6 +11,10 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='oap_motion.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='linkup_messenger.css') }}">
+  <style>
+    .linkup-now{display:grid;gap:.5rem;margin:.65rem;padding:.75rem;border:1px solid rgba(126,240,163,.28);border-radius:14px;background:rgba(126,240,163,.06)}
+    .linkup-now>label:first-child{font-weight:800}.linkup-now input,.linkup-now select,.linkup-now button{min-height:2.5rem;border-radius:10px}.linkup-now input,.linkup-now select{padding:.55rem;border:1px solid rgba(255,255,255,.18);background:#0a1710;color:inherit}.linkup-free{display:flex;align-items:center;gap:.45rem}.linkup-free input{min-height:auto}
+  </style>
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
@@ -32,7 +36,7 @@
     <main class="linkup-shell" aria-label="Private Link Up messenger">
       <aside class="linkup-list" aria-label="Link Ups">
         <div class="linkup-list-head">
-          <input class="linkup-search" type="search" placeholder="Search chats" aria-label="Search chats" data-linkup-search>
+          <input class="linkup-search" type="search" placeholder="Search Link Ups" aria-label="Search Link Ups" data-linkup-search>
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
         <form class="linkup-now" data-oap-now-form>
