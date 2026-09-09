@@ -30,14 +30,14 @@
     </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
-      <aside class="linkup-list" aria-label="Chats">
+      <aside class="linkup-list" aria-label="Link Ups">
         <div class="linkup-list-head">
           <input class="linkup-search" type="search" placeholder="Search chats" aria-label="Search chats" data-linkup-search>
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
 
         {% if private_unavailable %}
-          <p class="linkup-empty" role="alert">Chats are unavailable.</p>
+          <p class="linkup-empty" role="alert">Link Ups are unavailable.</p>
         {% elif dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
           <button class="linkup-thread-button" type="button" data-linkup-thread="{{ thread.other_identity_id }}" data-search="{{ thread.display_name }} {{ thread.postcode or '' }}" data-active="{{ 'true' if loop.first else 'false' }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
@@ -50,7 +50,7 @@
           </button>
           {% endfor %}
         {% else %}
-          <p class="linkup-empty">No chats yet. Tap + to start one.</p>
+          <p class="linkup-empty">No Link Ups yet. Tap + to start a New Link.</p>
         {% endif %}
       </aside>
 
