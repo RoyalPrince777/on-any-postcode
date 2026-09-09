@@ -5,11 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAP The Link</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    .link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .link-card{display:flex;flex-direction:column;gap:8px;border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:18px;color:var(--mc-text);text-decoration:none}
+    .link-card:hover,.link-card:focus-visible{border-color:var(--mc-green);outline:none}.link-card strong{font-size:1.1rem}.link-card small{color:var(--mc-muted)}
+    .link-boundaries{display:grid;gap:10px;padding:0;list-style:none}.link-boundaries li{border-left:3px solid var(--mc-green);padding:8px 12px}.link-status{color:var(--mc-muted)}
+  </style>
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header mc-link-header">
     <div>
+      <p class="mc-eyebrow">The Spot → The Link</p>
       <h1>The Link</h1>
+      <p>Find people and opportunities, follow public community activity, or enter protected conversation through Link Up.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
@@ -17,10 +25,44 @@
     </div>
   </header>
   <main class="mc-workspace">
-    <section class="mc-panel">
-      <h2>Link Up</h2>
-      <p>Private chat.</p>
-      <a class="mc-secondary-link" href="{{ url_for('linkup_front_door') }}">Open Link Up →</a>
+    <section class="mc-panel" aria-labelledby="link-views-title">
+      <h2 id="link-views-title">Choose where to go</h2>
+      <div class="link-grid">
+        <a class="link-card" href="{{ url_for('linkup_front_door') }}">
+          <strong>👥 Directory</strong>
+          <span>Find verified people and local connections.</span>
+          <small>Protected identity required to view members.</small>
+        </a>
+        <a class="link-card" href="{{ url_for('linkup_front_door') }}">
+          <strong>🔗 Link Up</strong>
+          <span>Open your private Inbox, Links, Calls and Circles.</span>
+          <small>Only approved sender and recipient records are shown.</small>
+        </a>
+        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">
+          <strong>🌍 Community Power</strong>
+          <span>Open public World Rooms from global to local.</span>
+          <small>Community spaces remain outside the private messenger.</small>
+        </a>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-public-title">
+      <h2 id="link-public-title">Public community links</h2>
+      <div class="link-grid">
+        <a class="link-card" href="{{ url_for('pulse_feed') }}"><strong>📡 Pulse</strong><span>See community activity.</span></a>
+        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}"><strong>📣 Signal</strong><span>Follow updates, alerts and announcements.</span></a>
+        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Opportunities</strong><span>Explore useful places, services and local possibilities.</span></a>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="link-safety-title">
+      <h2 id="link-safety-title">Private by design</h2>
+      <ul class="link-boundaries">
+        <li><strong>Identity</strong> validates access before private records are loaded.</li>
+        <li><strong>Safety</strong> protects privacy and blocked relationships.</li>
+        <li><strong>Link Up</strong> keeps messages scoped to approved participants.</li>
+      </ul>
+      <p class="link-status">The public page contains no messages, member details or private controls. Important decisions always remain with people.</p>
     </section>
   </main>
 </body>
