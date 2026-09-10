@@ -175,6 +175,21 @@ def war_room_alias():
     return redirect("/mission/war-room", code=302)
 
 
+@app.get("/healthz")
+def healthz():
+    """Report only SMI gateway process liveness; do not probe OAP World or Neon."""
+
+    response = make_response(
+        '{"status":"ok","service":"oap-smi-gateway","scope":"process"}\n',
+        200,
+    )
+    response.mimetype = "application/json"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+    response.headers["X-OAP-Health-Scope"] = "process"
+    return response
+
+
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
 def gateway(path: str):
     if not _allowed(path):
