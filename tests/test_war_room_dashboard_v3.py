@@ -136,6 +136,11 @@ def test_war_room_dashboard_is_founder_only_read_only_and_does_not_create_db(
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert "OAP Master War Room" in page
+    assert "Connector Gate" in page
+    assert "Render · GitHub · Neon" in page
+    assert "/mission/workbench/status" in page
+    assert "War Room does not call provider APIs or expose credentials" in page
+    assert "Provider reads stay Founder-only" in page
     assert "Highest-value next three" in page
     assert "78 Agent Passports" in page
     assert "RTL Memory Guard / IOMMU" in page
@@ -143,6 +148,8 @@ def test_war_room_dashboard_is_founder_only_read_only_and_does_not_create_db(
     assert "Physical OAP Silicon" in page
     assert "No approve, execute, deploy, migrate, purchase, flash or activate" in page
     assert 'method="post"' not in page.lower()
+    assert '@bp.post("/tools/render' not in page
+    assert '@bp.post("/tools/neon' not in page
     assert client.post("/mission/war-room").status_code == 405
     assert anonymous_client.get("/mission/war-room").status_code == 302
     assert anonymous_client.get("/mission/war-room/status").status_code == 401
