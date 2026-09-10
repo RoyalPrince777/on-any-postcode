@@ -18,7 +18,9 @@ def test_home_keeps_public_sections_without_private_founder_entry(client):
     assert "Your location hierarchy" in page
     assert "NEON" not in page
     assert "SMI" not in page
-    assert 'href="/world-cup"' in page
+    assert 'href="#location"' in page
+    assert "🌍 Explore OAP World" in page
+    assert 'href="/world-cup"' not in page
 
     sport = client.get("/world-cup").get_data(as_text=True)
     assert 'id="live"' in sport
