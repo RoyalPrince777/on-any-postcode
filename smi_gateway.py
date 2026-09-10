@@ -1,6 +1,7 @@
 """Free web gateway that exposes only the private SMI surface on its own origin."""
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Iterator
 from urllib import error as urlerror
@@ -60,6 +61,20 @@ def _secret() -> str:
     if len(value) < 32:
         raise RuntimeError("smi_gateway_secret_not_configured")
     return value
+
+
+def _revision() -> str:
+    """Return a bounded public-safe revision fingerprint for release drift checks."""
+
+    raw = (
+        os.environ.get("RENDER_GIT_COMMIT", "").strip()
+        or os.environ.get("OAP_ENV_REVISION", "").strip()
+        or "unknown"
+    )
+    safe = "".join(character for character in raw if character.isalnum() or character in ".-_")
+    if not safe:
+        return "unknown"
+    return safe[:12]
 
 
 def _allowed(path: str) -> bool:
@@ -180,7 +195,16 @@ def healthz():
     """Report only SMI gateway process liveness; do not probe OAP World or Neon."""
 
     response = make_response(
-        '{"status":"ok","service":"oap-smi-gateway","scope":"process"}\n',
+        json.dumps(
+            {
+                "status": "ok",
+                "service": "oap-smi-gateway",
+                "scope": "process",
+                "revision": _revision(),
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
         200,
     )
     response.mimetype = "application/json"
