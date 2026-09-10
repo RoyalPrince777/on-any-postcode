@@ -23,10 +23,41 @@ def test_workbench_projection_never_exposes_secret_values(monkeypatch):
     assert connectors["render"]["inspect_url"] == "/mission/tools/render/services"
     assert connectors["github"]["inspect_url"] == "/mission/tools/github/repository"
     assert connectors["neon"]["inspect_url"] == "/mission/tools/neon/status"
+    assert connectors["neon"]["name"] == "Neon · Identity/HRM blocked"
+    assert payload["runtime_gate"]["state"] == "yellow"
+    assert payload["runtime_gate"]["fail_closed"] is True
+    assert "managed Founder identity" in payload["runtime_gate"]["blocked"]
+    assert "Founder read-only provider inspection" in payload["runtime_gate"]["available"]
     assert "secret-value" not in serialized
     assert "postgresql://" not in serialized
     assert payload["governance"]["human_authority_final"] is True
     assert payload["governance"]["provider_reads_founder_only"] is True
+
+
+def test_workbench_runtime_gate_turns_green_only_with_database_and_schema(monkeypatch):
+    monkeypatch.setattr(
+        smi_workbench.smi_chat_runtime,
+        "health",
+        lambda: {
+            "status": "green",
+            "checks": {
+                "database": True,
+                "schema": True,
+                "chat_route": True,
+                "conversation_memory": True,
+                "war_room": True,
+            },
+        },
+    )
+
+    payload = smi_workbench.get_workbench_status()
+    neon = next(item for item in payload["connectors"] if item["id"] == "neon")
+
+    assert payload["runtime_gate"]["state"] == "green"
+    assert payload["runtime_gate"]["fail_closed"] is False
+    assert payload["runtime_gate"]["blocked"] == []
+    assert neon["name"] == "Neon · Identity/HRM"
+    assert neon["ready"] is True
 
 
 def test_workbench_status_is_private(anonymous_client):
