@@ -18,7 +18,7 @@
     <div>
       <p class="mc-eyebrow">The Spot → The Link</p>
       <h1>The Link</h1>
-      <p>Find people and opportunities, follow public community activity, or enter protected conversation through Link Up.</p>
+      <p>Find people and opportunities, follow public Empire activity, or enter protected conversation through Link Up.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
@@ -31,7 +31,7 @@
       <div class="link-grid">
         <a class="link-card" href="{{ url_for('linkup_front_door') }}">
           <strong>👥 People</strong>
-          <span>Find verified people and local connections.</span>
+          <span>Find Certified people and local connections.</span>
           <small>Protected identity required to view members.</small>
         </a>
         <a class="link-card" href="{{ url_for('linkup_front_door') }}">
@@ -40,17 +40,17 @@
           <small>Only approved sender and recipient records are shown.</small>
         </a>
         <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">
-          <strong>🌍 Community Power</strong>
+          <strong>🌍 Empire Power</strong>
           <span>Open public World Rooms from global to local.</span>
-          <small>Community spaces remain outside the private messenger.</small>
+          <small>Empire spaces remain outside the private messenger.</small>
         </a>
       </div>
     </section>
 
     <section class="mc-panel" aria-labelledby="link-public-title">
-      <h2 id="link-public-title">Public community links</h2>
+      <h2 id="link-public-title">Public Empire links</h2>
       <div class="link-grid">
-        <a class="link-card" href="{{ url_for('pulse_feed') }}"><strong>📡 Pulse</strong><span>See community activity.</span></a>
+        <a class="link-card" href="{{ url_for('pulse_feed') }}"><strong>📡 Pulse</strong><span>See Empire activity.</span></a>
         <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}"><strong>📣 Signal</strong><span>Follow updates, alerts and announcements.</span></a>
         <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Opportunities</strong><span>Explore useful places, services and local possibilities.</span></a>
       </div>
