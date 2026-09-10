@@ -26,9 +26,34 @@ def get_workbench_status() -> dict[str, Any]:
         "OAP_DB_SECRET_B64",
     )
     neon_management_configured = _configured("OAP_NEON_API_KEY", "NEON_API_KEY")
+    neon_configured = bool(neon_database_configured or neon_management_configured)
+    runtime_gate = {
+        "state": "green" if database_ready else "yellow",
+        "title": "Durable runtime ready" if database_ready else "Durable runtime unavailable",
+        "summary": (
+            "Managed identity, conversation memory, HRM receipts and durable writes are available."
+            if database_ready
+            else "Managed identity, conversation memory, HRM receipts and durable writes remain blocked; read-only Founder inspection stays separate."
+        ),
+        "blocked": []
+        if database_ready
+        else [
+            "managed Founder identity",
+            "conversation + HRM persistence",
+            "signed approval receipts",
+            "durable My World, Link and Market writes",
+        ],
+        "available": [
+            "SMI gateway process health",
+            "Founder read-only provider inspection",
+            "War Room status and evidence surfaces",
+        ],
+        "fail_closed": not database_ready,
+    }
     return {
         "status": "ready" if runtime.get("status") == "green" else "attention",
         "surface": "Founder-only Personal SMI",
+        "runtime_gate": runtime_gate,
         "connectors": [
             {
                 "id": "render",
@@ -50,8 +75,8 @@ def get_workbench_status() -> dict[str, Any]:
             },
             {
                 "id": "neon",
-                "name": "Neon",
-                "configured": bool(neon_database_configured or neon_management_configured),
+                "name": "Neon · Identity/HRM" if database_ready else "Neon · Identity/HRM blocked",
+                "configured": neon_configured,
                 "ready": database_ready,
                 "inspect_url": "/mission/tools/neon/status",
                 "management_api_configured": neon_management_configured,
