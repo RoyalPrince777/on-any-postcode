@@ -109,6 +109,7 @@ def test_smi_gateway_allowlist_is_founder_private_only():
 
 def test_smi_gateway_healthz_is_process_local(monkeypatch):
     monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "0123456789abcdef0123456789abcdef01234567")
 
     def must_not_proxy(_path):
         raise AssertionError("healthz_must_not_proxy")
@@ -122,11 +123,21 @@ def test_smi_gateway_healthz_is_process_local(monkeypatch):
         "status": "ok",
         "service": "oap-smi-gateway",
         "scope": "process",
+        "revision": "0123456789ab",
     }
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-OAP-Health-Scope"] == "process"
     assert response.headers["X-OAP-Surface"] == "sovereign-megaverse-intelligence"
     assert client.head("/healthz").status_code == 200
+
+
+def test_smi_gateway_healthz_revision_fails_safe(monkeypatch):
+    monkeypatch.delenv("RENDER_GIT_COMMIT", raising=False)
+    monkeypatch.setenv("OAP_ENV_REVISION", " release/alpha secret? ")
+    assert smi_gateway._revision() == "releasealpha"
+
+    monkeypatch.delenv("OAP_ENV_REVISION", raising=False)
+    assert smi_gateway._revision() == "unknown"
 
 
 def test_smi_gateway_does_not_follow_upstream_redirects():
