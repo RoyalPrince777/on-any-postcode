@@ -1,8 +1,9 @@
 """Canonical Founder-facing OAP Studio Intelligence contract.
 
-Studio is the creation workspace powered by SMI. It does not expand execution,
+Studio is the private creation workspace powered by SMI. It does not expand execution,
 publishing, rights, payment or distribution authority. Human Authority remains
 final and external delivery stays locked until its existing proof gates pass.
+The public Spot does not expose this Founder-only surface.
 """
 
 from __future__ import annotations
