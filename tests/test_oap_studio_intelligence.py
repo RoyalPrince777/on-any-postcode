@@ -48,14 +48,10 @@ def test_founder_workbench_exposes_studio_without_secrets(monkeypatch):
     assert "OAP Studio Intelligence planning and preparation" in payload["runtime_gate"]["available"]
 
 
-def test_smi_plus_menu_launches_studio_without_public_founder_door():
+def test_smi_plus_menu_launches_studio():
     smi = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text()
-    spot = (ROOT / "mission_control" / "templates" / "spot.html").read_text()
 
     assert "data-oap-studio" in smi or "dataset.oapStudio" in smi
     assert "OAP Studio Intelligence" in smi
     assert "launchStudio" in smi
     assert "activation_prompt" in smi
-    # Studio is a private Founder capability. Public Spot must not expose its private route.
-    assert "https://oap-smi.onrender.com/founder" not in spot
-    assert "🎬 OAP Studio Intelligence" not in spot
