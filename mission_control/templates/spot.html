@@ -7,7 +7,7 @@
   <title>OAP The Spot</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .spot-hero{display:grid;gap:12px}.spot-pulse{display:block;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft);padding:20px;color:var(--mc-text);text-decoration:none}.spot-pulse:hover,.spot-pulse:focus-visible{border-color:var(--mc-green);outline:none}.spot-pulse strong{display:block;font-size:1.25rem;margin-bottom:5px}.spot-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.spot-quick a,.spot-world{display:block;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-quick a:hover,.spot-quick a:focus-visible,.spot-world:hover,.spot-world:focus-visible{border-color:var(--mc-green);outline:none}.spot-quick strong{display:block}.spot-more{margin-top:4px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:760px}.spot-media{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.spot-media a{display:block;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-media a:hover,.spot-media a:focus-visible{border-color:var(--mc-green);outline:none}.spot-note{margin:0;color:var(--mc-muted)}.spot-truth{margin:10px 0 0;color:var(--mc-muted);font-size:.9rem}
+    .spot-hero{display:grid;gap:12px}.spot-pulse{display:block;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft);padding:20px;color:var(--mc-text);text-decoration:none}.spot-pulse:hover,.spot-pulse:focus-visible{border-color:var(--mc-green);outline:none}.spot-pulse strong{display:block;font-size:1.25rem;margin-bottom:5px}.spot-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.spot-quick a,.spot-world{display:block;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-quick a:hover,.spot-quick a:focus-visible,.spot-world:hover,.spot-world:focus-visible{border-color:var(--mc-green);outline:none}.spot-quick strong{display:block}.spot-more{margin-top:4px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:760px}.spot-media,.spot-platform{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}.spot-media a,.spot-platform a{display:flex;flex-direction:column;gap:6px;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-media a:hover,.spot-media a:focus-visible,.spot-platform a:hover,.spot-platform a:focus-visible{border-color:var(--mc-green);outline:none}.spot-platform strong{font-size:1.03rem}.spot-platform small{color:var(--mc-muted);line-height:1.35}.spot-note{margin:0;color:var(--mc-muted)}.spot-truth{margin:10px 0 0;color:var(--mc-muted);font-size:.9rem}.spot-platform-title{margin-bottom:8px}.spot-platform-law{margin:10px 0 0;border-left:3px solid var(--mc-green);padding:8px 11px;color:var(--mc-muted)}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -15,7 +15,7 @@
     <div class="spot-intro">
       <p class="mc-eyebrow">📍 Your Spot</p>
       <h1>The Spot</h1>
-      <p class="spot-note">Local-first HQ inside OAP World. The Link lives here; Booking, Maps, Movement, Music and Media connect without exposing private controls.</p>
+      <p class="spot-note">Local-first HQ inside OAP World. The Link lives here; Booking, Maps, Movement, Music, Shop and Distribution connect without exposing private controls.</p>
       <div class="spot-bar">
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
       </div>
@@ -38,13 +38,42 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="spot-platform-title">
+      <p class="mc-eyebrow">🌍 ON ANY PLATFORM · One front door</p>
+      <h2 id="spot-platform-title" class="spot-platform-title">Link. Book. Sell. Distribute.</h2>
+      <p>Move through one clean OAP path. Public discovery stays open; private conversations, booking holds, seller actions and consequential distribution steps stay protected.</p>
+      <div class="spot-platform" aria-label="OAP platform front doors">
+        <a href="{{ url_for('the_link_front_door') }}">
+          <strong>🔗 The Link</strong>
+          <span>People, opportunities and Link Up.</span>
+          <small>The Link lives inside The Spot. Link Up stays protected inside The Link.</small>
+        </a>
+        <a href="{{ url_for('travel_supply.public_marketplace') }}">
+          <strong>📅 OAP Booking</strong>
+          <span>Discover, quote, hold and request a reservation.</span>
+          <small>Supplier confirmation remains required before anything is called confirmed.</small>
+        </a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">
+          <strong>🛍️ My Shop</strong>
+          <span>Your OAP storefront path inside Market.</span>
+          <small>Listings are live where durable identity is available; checkout stays separately governed.</small>
+        </a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}">
+          <strong>📦 OAP Distribution</strong>
+          <span>Own release engine for cleared OAP content and campaigns.</span>
+          <small>External platform delivery remains locked until approved API, rights and legal routes exist.</small>
+        </a>
+      </div>
+      <p class="spot-platform-law"><strong>OAP law:</strong> The Spot → The Link → Link Up. Booking, My Shop and Distribution connect from The Spot without crossing the Founder-only private dashboard.</p>
+    </section>
+
     <section class="mc-panel" aria-labelledby="spot-book-move-title">
       <p class="mc-eyebrow">🗺️ Booking · Maps · Movement</p>
       <h2 id="spot-book-move-title">Find the place. Check the route. Book through OAP.</h2>
-      <p>Maps and Booking now have direct front doors inside The Spot. Discovery stays public; holds and reservation requests use protected identity; payment and automatic dispatch stay locked until separately proven.</p>
+      <p>Maps and Booking have direct front doors inside The Spot. Discovery stays public; holds and reservation requests use protected identity; payment and automatic dispatch stay locked until separately proven.</p>
       <div class="spot-media" aria-label="Booking Maps and Movement">
         <a href="{{ url_for('travel_supply.public_atlas') }}"><strong>🗺️ Maps</strong><span>On Any Place · routes, Spots and source-bound local intelligence.</span></a>
-        <a href="{{ url_for('travel_supply.public_marketplace') }}"><strong>📅 Booking</strong><span>OAP Direct · quote, hold and human-confirmed reservation request.</span></a>
+        <a href="{{ url_for('travel_supply.public_marketplace') }}"><strong>📅 OAP Booking</strong><span>OAP Direct · quote, hold and human-confirmed reservation request.</span></a>
         <a href="{{ url_for('movement.movement_home') }}"><strong>🚶 Movement</strong><span>On Any Route · consent-first movement and request previews.</span></a>
       </div>
       <p class="spot-truth">Truth lock: supplier confirmation is required before a booking is called confirmed. Payment capture, automatic dispatch and fake-live route claims remain blocked.</p>
