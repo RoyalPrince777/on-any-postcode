@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from . import smi_chat_runtime
+from . import smi_chat_runtime, studio_intelligence
 
 
 def _configured(*names: str) -> bool:
@@ -47,9 +47,11 @@ def get_workbench_status() -> dict[str, Any]:
             "SMI gateway process health",
             "Founder read-only provider inspection",
             "War Room status and evidence surfaces",
+            "OAP Studio Intelligence planning and preparation",
         ],
         "fail_closed": not database_ready,
     }
+    studio = studio_intelligence.status()
     return {
         "status": "ready" if runtime.get("status") == "green" else "attention",
         "surface": "Founder-only Personal SMI",
@@ -91,6 +93,7 @@ def get_workbench_status() -> dict[str, Any]:
             {"id": "attachments", "name": "Files + media", "ready": True},
             {"id": "voice", "name": "Voice", "ready": True},
             {"id": "code", "name": "Code proposals", "ready": True},
+            studio,
         ],
         "knowledge": {
             "name": "OAP operating context",
