@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Founder Recovery · ON ANY POSTCODE</title>
+  <title>Founder Access · ON ANY POSTCODE</title>
   <link rel="stylesheet" href="/assets/oap.css">
   <style>
     body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080b0a;color:#f7f7f3;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -18,18 +18,18 @@
 <body>
   <main>
     <div class="eyebrow">ON ANY POSTCODE · Private</div>
-    <div class="status">🔐 Founder emergency standby</div>
+    <div class="status">🔐 Founder Access</div>
     <h1>Enter My World</h1>
-    <p class="copy">Use your Founder emergency recovery code to open Mission Control when managed identity verification is unavailable.</p>
+    <p class="copy">Use your Founder code to open Personal SMI and Mission Control.</p>
     {% if recovery_error %}<p class="error" role="alert">{{ recovery_error }}</p>{% endif %}
     <form method="post" action="{{ url_for('founder_recovery.recover_founder') }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
       <input type="hidden" name="next" value="{{ next_path }}">
-      <label for="recovery_code">Founder recovery code</label>
+      <label for="recovery_code">Founder code</label>
       <input id="recovery_code" name="recovery_code" type="password" minlength="32" maxlength="256" required autocomplete="one-time-code" autofocus>
-      <button type="submit">Enter Founder Control</button>
+      <button type="submit">Enter Founder SMI</button>
     </form>
-    <p class="fine">Standby availability does not create a second identity or profile. Every recovery session still expires after 15 minutes, is rate-limited, and is restricted to Founder control surfaces. My World ownership stays locked until managed identity returns.</p>
+    <p class="fine">Founder Access is private, rate-limited and restricted to Founder control surfaces. Each session expires after 15 minutes. My World ownership remains tied to managed identity.</p>
   </main>
 </body>
 </html>
