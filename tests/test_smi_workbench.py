@@ -41,3 +41,6 @@ def test_personal_smi_has_quiet_tools_workbench():
     assert "Open connected tools" in page
     assert "Credentials are never shown" in page
     assert "workbenchUrl" in page
+    assert "inspect_url" in page
+    assert "Inspect" in page
+    assert "Reading governed provider state" in page
