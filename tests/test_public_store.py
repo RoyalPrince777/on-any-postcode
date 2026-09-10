@@ -3,6 +3,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
+import pytest
+
 from mission_control import public_store
 
 
@@ -156,3 +158,124 @@ def test_list_conversations_serializes_only_owned_projection(monkeypatch):
     assert result[0]["conversation_id"] == "22222222-2222-4222-8222-222222222222"
     assert result[0]["updated_at"] == "2026-08-24T12:00:00+00:00"
     assert result[0]["message_count"] == 4
+
+
+def test_render_status_failure_caches_and_backs_off_public_reads(monkeypatch):
+    public_store._clear_runtime_caches()
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("OAP_PUBLIC_STORE_BACKOFF_SECONDS", "60")
+    monkeypatch.setattr(public_store.postgres_db, "configured", lambda: True)
+    now = [1000.0]
+    monkeypatch.setattr(public_store.time, "monotonic", lambda: now[0])
+    calls = {"count": 0}
+
+    @contextmanager
+    def failing_connect(*, readonly=False):
+        assert readonly is True
+        calls["count"] += 1
+        raise RuntimeError("provider_quota")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(public_store.postgres_db, "connect", failing_connect)
+
+    first = public_store.status()
+    second = public_store.status()
+    degraded = public_store.snapshot()
+
+    assert first["configured"] is True
+    assert first["reachable"] is False
+    assert first["error"] == "database_unavailable"
+    assert second == first
+    assert calls["count"] == 1
+    assert degraded == {
+        "signal_posts": [],
+        "team_messages": [],
+        "flag_counts": {},
+        "durable": False,
+    }
+
+    now[0] += 61.0
+    retried = public_store.status()
+    assert retried["error"] == "database_unavailable"
+    assert calls["count"] == 2
+    public_store._clear_runtime_caches()
+
+
+def test_render_read_backoff_serves_last_good_projection_without_retry(monkeypatch):
+    public_store._clear_runtime_caches()
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("OAP_PUBLIC_STORE_BACKOFF_SECONDS", "60")
+    now = [2000.0]
+    monkeypatch.setattr(public_store.time, "monotonic", lambda: now[0])
+
+    @contextmanager
+    def healthy_connect(*, readonly=False):
+        assert readonly is True
+        yield SnapshotConnection()
+
+    monkeypatch.setattr(public_store.postgres_db, "connect", healthy_connect)
+    fresh = public_store.snapshot()
+    assert fresh["durable"] is True
+
+    calls = {"count": 0}
+
+    @contextmanager
+    def failing_connect(*, readonly=False):
+        assert readonly is True
+        calls["count"] += 1
+        raise RuntimeError("provider_quota")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(public_store.postgres_db, "connect", failing_connect)
+    now[0] += 1.0
+
+    with pytest.raises(public_store.PublicStoreUnavailable):
+        public_store.snapshot()
+    stale_safe = public_store.snapshot()
+
+    assert calls["count"] == 1
+    assert stale_safe["signal_posts"] == fresh["signal_posts"]
+    assert stale_safe["team_messages"] == fresh["team_messages"]
+    assert stale_safe["flag_counts"] == fresh["flag_counts"]
+    assert stale_safe["durable"] is False
+
+    now[0] += 61.0
+    with pytest.raises(public_store.PublicStoreUnavailable):
+        public_store.snapshot()
+    assert calls["count"] == 2
+    public_store._clear_runtime_caches()
+
+
+def test_render_read_backoff_does_not_turn_failed_writes_into_local_success(
+    monkeypatch,
+):
+    public_store._clear_runtime_caches()
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("OAP_PUBLIC_STORE_BACKOFF_SECONDS", "60")
+    monkeypatch.setattr(public_store.postgres_db, "configured", lambda: True)
+    now = [3000.0]
+    monkeypatch.setattr(public_store.time, "monotonic", lambda: now[0])
+    calls = {"readonly": 0, "write": 0}
+
+    @contextmanager
+    def failing_connect(*, readonly=False):
+        calls["readonly" if readonly else "write"] += 1
+        raise RuntimeError("provider_quota")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(public_store.postgres_db, "connect", failing_connect)
+
+    status = public_store.status()
+    assert status["configured"] is True
+    assert public_store.snapshot()["durable"] is False
+
+    with pytest.raises(public_store.PublicStoreUnavailable) as failure:
+        public_store.add_signal(
+            "11111111-1111-4111-8111-111111111111",
+            name="Founder",
+            body="Must not pretend to persist",
+        )
+
+    assert str(failure.value) == "durable_public_write_failed"
+    assert calls == {"readonly": 1, "write": 1}
+    public_store._clear_runtime_caches()
