@@ -7,4 +7,4 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" sizes="192x192" href="{{ url_for('oap_os_icon', size=192) }}">
 <link rel="apple-touch-icon" href="{{ url_for('oap_os_icon', size=192) }}">
-<script defer src="/assets/oap-os.js"></script>
+{% if oap_install_script is not defined or oap_install_script %}<script defer src="/assets/oap-os.js"></script>{% endif %}
