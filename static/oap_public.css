@@ -598,3 +598,113 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* 2027 surface refinement: one quiet, consistent system across public tools. */
+:root {
+  --oap-bg: #050807;
+  --oap-panel: #0d1210;
+  --oap-border: #202b25;
+  --oap-green: #6df29c;
+  --oap-blue: #8ad8ff;
+  --oap-text: #f4f8f5;
+  --oap-muted: #96a59c;
+}
+
+body.mc-workspace-body {
+  background: linear-gradient(180deg, #07100b 0, var(--oap-bg) 36rem);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+}
+
+.mc-workspace-header,
+.mc-workspace {
+  width: min(1160px, calc(100% - 40px));
+}
+
+.mc-workspace-header {
+  align-items: center;
+  padding: 40px 0 22px;
+}
+
+.mc-workspace-header h1 {
+  margin: 6px 0;
+  font-size: clamp(2.25rem, 6vw, 4.5rem);
+  letter-spacing: -.055em;
+}
+
+.mc-eyebrow {
+  font-size: .75rem;
+  letter-spacing: .13em;
+}
+
+.mc-workspace {
+  gap: 12px;
+}
+
+.mc-panel,
+.mc-authority,
+.mc-family-card,
+.mc-link-view-card,
+.oap-phrase-card,
+.oap-conjugation-card,
+.oap-carnival-day,
+.oap-carnival-layer,
+.oap-carnival-source-grid article {
+  border-color: var(--oap-border);
+  background: var(--oap-panel);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 12%);
+}
+
+.mc-panel,
+.mc-authority {
+  border-radius: 16px;
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.mc-family-card,
+.mc-link-view-card {
+  min-height: 160px;
+  border-radius: 14px;
+}
+
+.mc-secondary-link {
+  min-height: 42px;
+  padding: 9px 13px;
+  border-color: #304038;
+  border-radius: 12px;
+  background: #111815;
+}
+
+.mc-secondary-link:hover,
+.mc-secondary-link:focus-visible {
+  border-color: var(--oap-green);
+  background: #152019;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid rgb(138 216 255 / 55%);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .mc-workspace-header,
+  .mc-workspace {
+    width: min(100% - 28px, 1160px);
+  }
+
+  .mc-workspace-header {
+    padding-top: 28px;
+  }
+}

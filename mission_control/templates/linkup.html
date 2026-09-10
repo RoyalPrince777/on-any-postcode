@@ -6,6 +6,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% include "_oap_install_head.html" %}
   <title>Link Up</title>
   {% if auth_user %}<meta name="oap-csrf-token" content="{{ oap_csrf_token }}">{% endif %}
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">

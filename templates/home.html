@@ -4,19 +4,15 @@
 <meta charset="utf-8">
 <title>ON ANY POSTCODE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#092414">
-<meta name="application-name" content="OAP">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" sizes="192x192" href="{{ url_for('oap_os_icon', size=192) }}">
-<link rel="apple-touch-icon" href="{{ url_for('oap_os_icon', size=192) }}">
+{% include "_oap_install_head.html" %}
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
-:root{--bg:#06120b;--panel:#0b1d12;--line:#245f38;--green:#39e57f;--gold:#e2c263;--text:#f5fff7;--muted:#acd0b7}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 5%,#123621 0,transparent 31%),linear-gradient(150deg,#06120b,#030805);color:var(--text);font-family:Inter,Arial,sans-serif}a{color:inherit}.topbar{position:sticky;top:0;z-index:10;padding:12px max(14px,4vw);background:#06120beF;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}.brand{font-weight:950;letter-spacing:.11em;margin-bottom:10px}.nav{display:flex;gap:7px;overflow-x:auto;white-space:nowrap}.nav a,.button{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:9px 12px;background:#0d2617;text-decoration:none;font-weight:850}.hero,.section{padding:30px max(18px,7vw)}.hero{min-height:48vh;display:grid;align-content:center}.eyebrow{color:var(--green);font-size:.72rem;font-weight:950;letter-spacing:.15em;text-transform:uppercase}.hero h1{font-size:clamp(3rem,10vw,7.4rem);line-height:.9;margin:.14em 0;letter-spacing:-.05em}.hero p,.muted{color:var(--muted);line-height:1.5}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px}.card{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:16px}.card h3{margin:.25em 0}.hierarchy{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.level{border:1px solid var(--line);border-radius:15px;background:#07140c;padding:12px;font-weight:850}.signal-form{display:grid;grid-template-columns:minmax(130px,220px) minmax(200px,1fr) auto;gap:8px}.signal-form input{min-width:0;border:1px solid var(--line);border-radius:12px;background:#06100a;color:var(--text);padding:11px}.signal-form button,.install button{border:0;border-radius:999px;background:var(--green);color:#021;font-weight:950;padding:10px 15px}.signal-list{display:grid;gap:8px;margin-top:12px}.signal{border:1px solid var(--line);border-radius:14px;background:#07140c;padding:12px}.signal p{margin:.35em 0 0;color:var(--muted)}.install{border-top:1px solid var(--line)}.install button[hidden]{display:none}@media(max-width:720px){.signal-form{grid-template-columns:1fr}.nav a{padding:8px 10px;font-size:.82rem}}
+:root{--bg:#050807;--panel:#0d1210;--panel-2:#111815;--line:#202b25;--green:#6df29c;--text:#f4f8f5;--muted:#96a59c}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:linear-gradient(180deg,#07100b 0,#050807 36rem);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px}a{color:inherit}.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px max(20px,4vw);background:rgb(5 8 7/.82);border-bottom:1px solid var(--line);backdrop-filter:blur(20px)}.brand{font-size:.82rem;font-weight:800;letter-spacing:.12em}.nav{display:flex;gap:4px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}.nav a,.button{display:inline-flex;min-height:42px;align-items:center;justify-content:center;border:1px solid transparent;border-radius:12px;padding:9px 13px;text-decoration:none;font-weight:700}.nav a{color:var(--muted)}.nav a:hover,.nav a:focus-visible{background:var(--panel-2);color:var(--text)}.button{border-color:#304038;background:var(--panel-2)}.button:first-child{border-color:var(--green);background:var(--green);color:#041008}.hero,.section{width:min(1160px,calc(100% - 40px));margin:auto}.hero{min-height:58vh;display:grid;align-content:center;padding:72px 0}.eyebrow{color:var(--green);font-size:.75rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.hero h1{max-width:900px;margin:.18em 0;font-size:clamp(3.4rem,9vw,7.2rem);line-height:.88;letter-spacing:-.065em}.hero>p:not(.eyebrow){max-width:620px;color:var(--muted);font-size:clamp(1rem,2vw,1.2rem);line-height:1.6}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.section{padding:48px 0;border-top:1px solid var(--line)}.section h2{max-width:720px;margin:.2em 0 24px;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.035em}.muted{color:var(--muted);line-height:1.55}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.card{min-height:150px;border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:20px}.card h3{margin:.15em 0 .6em;font-size:1.05rem}.hierarchy{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.level{display:grid;min-height:76px;place-items:center;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:10px;text-align:center;font-size:.9rem;font-weight:700}.signal-form{display:grid;grid-template-columns:minmax(150px,220px) minmax(240px,1fr) auto;gap:10px}.signal-form label{display:grid;gap:6px}.signal-form input{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:#080d0b;color:var(--text);padding:11px 13px;font:inherit}.signal-form input:focus{border-color:var(--green);outline:3px solid rgb(109 242 156/.12)}.signal-form button,.install button{min-height:46px;align-self:end;border:0;border-radius:12px;background:var(--green);color:#041008;font:inherit;font-weight:800;padding:10px 16px}.signal-list{display:grid;gap:8px;margin-top:12px}.signal{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px}.signal p{margin:.35em 0 0;color:var(--muted)}.install{padding-bottom:80px}.install button[hidden]{display:none}@media(max-width:900px){.topbar{align-items:flex-start;flex-direction:column;gap:10px}.nav{width:100%}.grid{grid-template-columns:repeat(2,1fr)}.hierarchy{grid-template-columns:repeat(4,1fr)}}@media(max-width:640px){.hero,.section{width:min(100% - 28px,1160px)}.hero{min-height:52vh;padding:52px 0}.hero h1{font-size:clamp(3rem,16vw,5rem)}.grid,.hierarchy,.signal-form{grid-template-columns:1fr}.card{min-height:auto}.level{min-height:54px;place-items:center start;text-align:left}.nav a{padding:8px 10px;font-size:.88rem}}
 </style>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">ON ANY POSTCODE · PUBLIC</div>
+  <div class="brand">OAP <span class="muted">/ PUBLIC WORLD</span></div>
   <nav aria-label="Primary navigation">
     <a href="/the-spot">📍 The Spot</a>
     <a href="/pulse">📡 Pulse</a>
@@ -31,7 +27,7 @@
   <section class="hero" aria-labelledby="home-title">
     <p class="eyebrow">Born Local · Built Global · Earth is our turf</p>
     <h1 id="home-title">ON ANY POSTCODE</h1>
-    <p>One World. One public front door. Start local, connect outward and keep the product simple on the surface.</p>
+    <p>Your local world, connected outward—from postcode to universe.</p>
     <div class="actions">
       <a class="button" href="/the-spot">Open The Spot</a>
       <a class="button" href="#location">🌍 Explore OAP World</a>
@@ -74,7 +70,7 @@
 
   <section class="section" aria-labelledby="doors-title">
     <p class="eyebrow">OAP World</p>
-    <h2 id="doors-title">Local functions, one identity path</h2>
+    <h2 id="doors-title">Everything local, in one place</h2>
     <div class="grid">
       <article class="card"><h3>📍 The Spot</h3><p class="muted">Local energy, places, Signals and activity.</p></article>
       <article class="card"><h3>📡 Pulse</h3><p class="muted">Where current OAP Signals live and move.</p></article>
@@ -91,6 +87,5 @@
     <p class="muted" data-oap-install-status role="status">Checking install support…</p>
   </section>
 </main>
-<script defer src="/assets/oap-os.js"></script>
 </body>
 </html>
