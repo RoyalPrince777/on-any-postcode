@@ -138,7 +138,7 @@ class FounderRenderReadAdapter:
             service_id = self._service_id(alias)
             data = self._request_json(f"/services/{service_id}")
             if not isinstance(data, dict):
-                raise RuntimeError("Render returned an invalid service response")
+                raise TypeError("Render returned an invalid service response")
             services.append(self._service_projection(data, alias=alias))
         return RenderReadResult("service.read", {"services": services})
 
@@ -151,7 +151,7 @@ class FounderRenderReadAdapter:
             query={"limit": bounded_limit},
         )
         if not isinstance(data, list):
-            raise RuntimeError("Render returned an invalid deploy response")
+            raise TypeError("Render returned an invalid deploy response")
         deploys = []
         for raw_item in data[:bounded_limit]:
             item = raw_item.get("deploy", raw_item) if isinstance(raw_item, dict) else {}
@@ -187,7 +187,7 @@ class FounderRenderReadAdapter:
         )
         rows = data.get("logs") if isinstance(data, dict) else None
         if not isinstance(rows, list):
-            raise RuntimeError("Render returned an invalid logs response")
+            raise TypeError("Render returned an invalid logs response")
         logs = []
         for item in rows[:bounded_limit]:
             if not isinstance(item, dict):
