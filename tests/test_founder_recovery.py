@@ -22,6 +22,11 @@ def _enable_recovery(monkeypatch, *, seconds: int = 3600) -> None:
     )
 
 
+def _enable_standby(monkeypatch, *, expired_seconds_ago: int = 3600) -> None:
+    _enable_recovery(monkeypatch, seconds=-expired_seconds_ago)
+    monkeypatch.setenv(founder_recovery.RECOVERY_STANDBY_ENV, "true")
+
+
 def _csrf_for(client) -> str:
     with client.session_transaction() as current_session:
         value = current_session.get(web_security.CSRF_SESSION_KEY)
@@ -36,8 +41,42 @@ def test_recovery_is_hidden_when_not_server_configured(anonymous_client):
     assert response.headers["Cache-Control"] == "no-store"
 
 
+def test_expired_temporary_recovery_is_hidden_without_standby(
+    anonymous_client, monkeypatch
+):
+    _enable_recovery(monkeypatch, seconds=-60)
+
+    response = anonymous_client.get("/auth/recover-founder")
+
+    assert response.status_code == 404
+    assert founder_recovery.configured() is False
+
+
+def test_permanent_standby_reuses_same_code_after_old_expiry(
+    anonymous_client, monkeypatch
+):
+    _enable_standby(monkeypatch)
+
+    page = anonymous_client.get("/auth/recover-founder")
+    assert page.status_code == 200
+    assert "Founder emergency standby" in page.get_data(as_text=True)
+    assert founder_recovery.token_allowed(RECOVERY_CODE) is True
+
+    response = anonymous_client.post(
+        "/auth/recover-founder",
+        data={
+            "csrf_token": _csrf_for(anonymous_client),
+            "recovery_code": RECOVERY_CODE,
+            "next": "/mission/ollama",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/mission/ollama")
+
+
 def test_gateway_only_recovery_boundary(anonymous_client, monkeypatch):
-    _enable_recovery(monkeypatch)
+    _enable_standby(monkeypatch)
     monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "g" * 64)
 
@@ -53,7 +92,7 @@ def test_gateway_only_recovery_boundary(anonymous_client, monkeypatch):
 
 
 def test_invalid_recovery_code_fails_closed(anonymous_client, monkeypatch):
-    _enable_recovery(monkeypatch)
+    _enable_standby(monkeypatch)
     page = anonymous_client.get("/auth/recover-founder")
     assert page.status_code == 200
 
@@ -75,7 +114,7 @@ def test_invalid_recovery_code_fails_closed(anonymous_client, monkeypatch):
 def test_recovery_opens_mission_control_without_neon_and_blocks_my_world(
     anonymous_client, monkeypatch
 ):
-    _enable_recovery(monkeypatch)
+    _enable_standby(monkeypatch)
     assert anonymous_client.get("/auth/recover-founder").status_code == 200
     token = _csrf_for(anonymous_client)
 
@@ -104,8 +143,10 @@ def test_recovery_opens_mission_control_without_neon_and_blocks_my_world(
     assert "auth_error=unavailable" in my_world.headers["Location"]
 
 
-def test_recovery_session_is_bounded_to_fifteen_minutes(anonymous_client, monkeypatch):
-    _enable_recovery(monkeypatch, seconds=3600)
+def test_standby_recovery_session_is_bounded_to_fifteen_minutes(
+    anonymous_client, monkeypatch
+):
+    _enable_standby(monkeypatch)
     now = int(time.time())
 
     with app_module.app.test_request_context("/"):
@@ -115,8 +156,20 @@ def test_recovery_session_is_bounded_to_fifteen_minutes(anonymous_client, monkey
         assert founder_recovery.session_active(now=now + 900) is False
 
 
+def test_temporary_recovery_session_still_respects_server_expiry(
+    anonymous_client, monkeypatch
+):
+    _enable_recovery(monkeypatch, seconds=300)
+    now = int(time.time())
+
+    with app_module.app.test_request_context("/"):
+        expires_at = founder_recovery.begin_session(now=now)
+        assert expires_at <= now + 300
+        assert expires_at < now + founder_recovery.SESSION_MAX_SECONDS
+
+
 def test_recovery_rejects_external_redirects(anonymous_client, monkeypatch):
-    _enable_recovery(monkeypatch)
+    _enable_standby(monkeypatch)
     assert anonymous_client.get("/auth/recover-founder").status_code == 200
 
     response = anonymous_client.post(
