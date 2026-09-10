@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from mission_control import smi_workbench
 
@@ -29,7 +30,7 @@ def test_workbench_status_is_private(client):
 
 
 def test_personal_smi_has_quiet_tools_workbench():
-    page = open("mission_control/templates/ollama_chat.html", encoding="utf-8").read()
+    page = Path("mission_control/templates/ollama_chat.html").read_text(encoding="utf-8")
     assert "Quiet 2027 workbench" in page
     assert "Open connected tools" in page
     assert "Credentials are never shown" in page
