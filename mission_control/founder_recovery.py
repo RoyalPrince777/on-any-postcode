@@ -1,9 +1,10 @@
-"""Temporary, fail-closed Founder recovery for managed-auth outages.
+"""Fail-closed Founder recovery for managed-auth outages.
 
 This does not create a second identity and does not replace Managed Neon Auth.
 A high-entropy recovery code is stored only as a SHA-256 digest in environment
-configuration. Successful recovery creates a short-lived signed Flask session
-that is accepted only on bounded Founder control surfaces.
+configuration. Recovery can run either in a time-limited window or in permanent
+standby mode. Successful recovery always creates a short-lived signed Flask
+session accepted only on bounded Founder control surfaces.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from flask import session
 
 RECOVERY_TOKEN_HASH_ENV: Final = "OAP_FOUNDER_RECOVERY_TOKEN_SHA256"
 RECOVERY_EXPIRES_AT_ENV: Final = "OAP_FOUNDER_RECOVERY_EXPIRES_AT"
+RECOVERY_STANDBY_ENV: Final = "OAP_FOUNDER_RECOVERY_STANDBY"
 RECOVERY_SESSION_KEY: Final = "oap_founder_recovery"
 SESSION_MAX_SECONDS: Final = 15 * 60
 RECOVERY_ID: Final = "00000000-0000-4000-8000-000000000777"
@@ -31,10 +33,11 @@ _ALLOWED_PRIVATE_PREFIXES: Final = (
     "/api/infrastructure",
     "/api/smi",
 )
+_TRUE_VALUES: Final = frozenset({"1", "true", "yes", "on", "standby"})
 
 
 class RecoveryUnavailable(RuntimeError):
-    """Raised when the temporary Founder recovery gate is not safely active."""
+    """Raised when the Founder recovery gate is not safely active."""
 
 
 def _configured_hash() -> str:
@@ -49,19 +52,26 @@ def _configured_expiry() -> int:
         return 0
 
 
+def standby_enabled() -> bool:
+    """Return whether the server keeps the recovery credential on standby."""
+
+    return os.environ.get(RECOVERY_STANDBY_ENV, "").strip().casefold() in _TRUE_VALUES
+
+
 def _session_secret_ready() -> bool:
     return len(os.environ.get("OAP_SESSION_SECRET", "").strip()) >= 32
 
 
 def configured(*, now: int | None = None) -> bool:
-    """Return true only while the server-configured recovery window is active."""
+    """Return true only when the server has a complete recovery configuration."""
 
     current = int(time.time()) if now is None else int(now)
     digest = _configured_hash()
+    window_ready = standby_enabled() or _configured_expiry() > current
     return (
         _session_secret_ready()
         and bool(_HASH_PATTERN.fullmatch(digest))
-        and _configured_expiry() > current
+        and window_ready
     )
 
 
@@ -83,7 +93,9 @@ def begin_session(*, now: int | None = None) -> int:
     current = int(time.time()) if now is None else int(now)
     if not configured(now=current):
         raise RecoveryUnavailable("founder_recovery_not_configured")
-    expires_at = min(current + SESSION_MAX_SECONDS, _configured_expiry())
+    expires_at = current + SESSION_MAX_SECONDS
+    if not standby_enabled():
+        expires_at = min(expires_at, _configured_expiry())
     session[RECOVERY_SESSION_KEY] = {"version": 1, "expires_at": expires_at}
     session.permanent = True
     return expires_at
@@ -94,7 +106,7 @@ def clear_session() -> None:
 
 
 def session_active(*, now: int | None = None) -> bool:
-    """Validate the signed recovery session and configured server window."""
+    """Validate the signed recovery session and current server recovery mode."""
 
     current = int(time.time()) if now is None else int(now)
     if not configured(now=current):
@@ -108,7 +120,13 @@ def session_active(*, now: int | None = None) -> bool:
     except (TypeError, ValueError):
         clear_session()
         return False
-    if expires_at <= current or expires_at > _configured_expiry():
+    if expires_at <= current:
+        clear_session()
+        return False
+    if not standby_enabled() and expires_at > _configured_expiry():
+        clear_session()
+        return False
+    if expires_at > current + SESSION_MAX_SECONDS:
         clear_session()
         return False
     return True
@@ -125,7 +143,7 @@ def private_path_allowed(path: object) -> bool:
 
 
 def recovery_user() -> dict[str, object] | None:
-    """Return a synthetic, non-persisted Founder principal for the recovery window."""
+    """Return a synthetic, non-persisted Founder principal for recovery sessions."""
 
     if not session_active():
         return None
