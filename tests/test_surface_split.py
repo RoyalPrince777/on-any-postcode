@@ -107,6 +107,28 @@ def test_smi_gateway_allowlist_is_founder_private_only():
     assert smi_gateway._allowed("service-worker.js") is False
 
 
+def test_smi_gateway_healthz_is_process_local(monkeypatch):
+    monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
+
+    def must_not_proxy(_path):
+        raise AssertionError("healthz_must_not_proxy")
+
+    monkeypatch.setattr(smi_gateway, "_proxy", must_not_proxy)
+    client = smi_gateway.app.test_client()
+
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "status": "ok",
+        "service": "oap-smi-gateway",
+        "scope": "process",
+    }
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["X-OAP-Health-Scope"] == "process"
+    assert response.headers["X-OAP-Surface"] == "sovereign-megaverse-intelligence"
+    assert client.head("/healthz").status_code == 200
+
+
 def test_smi_gateway_does_not_follow_upstream_redirects():
     assert any(
         isinstance(handler, smi_gateway._NoRedirect)
