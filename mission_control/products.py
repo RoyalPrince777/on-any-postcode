@@ -7,25 +7,25 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 PRODUCT_HIERARCHY: tuple[dict[str, str], ...] = (
-    {"id": "the_spot", "name": "The Spot", "route": "/the-spot", "parent_id": "", "purpose": "The public community front door from world scale down to local postcode life.", "owner": "OAP World"},
+    {"id": "the_spot", "name": "The Spot", "route": "/the-spot", "parent_id": "", "purpose": "The public community front door from local postcode life outward to world scale.", "owner": "OAP World"},
     {"id": "the_link", "name": "The Link", "route": "/the-link", "parent_id": "the_spot", "purpose": "The communications gateway inside The Spot.", "owner": "Communications"},
     {"id": "linkup", "name": "Link Up", "route": "/linkup", "parent_id": "the_link", "purpose": "Protected person-to-person and crew conversation inside The Link.", "owner": "Communications"},
 )
 
 WORLD_ROOM_LEVELS: tuple[dict[str, str], ...] = (
-    {"id": "global", "name": "Global", "parent_id": "", "purpose": "Worldwide public community layer."},
-    {"id": "continent", "name": "Continent", "parent_id": "global", "purpose": "Continental community layer."},
-    {"id": "country", "name": "Country", "parent_id": "continent", "purpose": "Country community layer."},
-    {"id": "county-region", "name": "County / Region", "parent_id": "country", "purpose": "County, state, province or regional layer."},
-    {"id": "borough-district", "name": "Borough / District", "parent_id": "county-region", "purpose": "Borough, district or equivalent local authority layer."},
-    {"id": "postcode", "name": "Postcode", "parent_id": "borough-district", "purpose": "Postcode or equivalent local code layer."},
-    {"id": "local", "name": "Local Room", "parent_id": "postcode", "purpose": "Most local public community room."},
+    {"id": "postcode", "name": "Postcode", "parent_id": "", "purpose": "Postcode or equivalent local code layer."},
+    {"id": "borough-district", "name": "Borough / District", "parent_id": "postcode", "purpose": "Borough, district or equivalent local authority layer."},
+    {"id": "county-region", "name": "County / Region", "parent_id": "borough-district", "purpose": "County, state, province or regional layer."},
+    {"id": "country", "name": "Country", "parent_id": "county-region", "purpose": "Country layer."},
+    {"id": "continent", "name": "Continent", "parent_id": "country", "purpose": "Continental layer."},
+    {"id": "global", "name": "Global", "parent_id": "continent", "purpose": "Worldwide public layer."},
+    {"id": "universe", "name": "Universe", "parent_id": "global", "purpose": "Outermost OAP identity and discovery layer."},
 )
 
 SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"id": "pulse", "name": "Pulse", "owner": "OAP World", "purpose": "Community posts and activity.", "status": "Public surface live", "function": "Displays bounded public activity without exposing private data.", "blocked_by": ""},
     {"id": "signal", "name": "Signal", "owner": "OAP Signal", "purpose": "The OAP feed for trusted updates, alerts and announcements.", "status": "Public posting live", "function": "Uses the bounded public Signal feed.", "blocked_by": ""},
-    {"id": "postcode-rooms", "name": "World Rooms", "owner": "Communications", "purpose": "Public community rooms organised Global → Continent → Country → County/Region → Borough/District → Postcode → Local.", "status": "Geographic hierarchy defined; postcode posting remains compatibility path", "function": "Keeps the existing bounded room feed while replacing Postcode Rooms as the product identity.", "blocked_by": "Broader geographic posting and protected participation need verified geography; private person-to-person messages stay inside authenticated Link Up"},
+    {"id": "postcode-rooms", "name": "World Rooms", "owner": "Communications", "purpose": "Public rooms organised Postcode → Borough/District → County/Region → Country → Continent → Global → Universe.", "status": "Geographic hierarchy defined; postcode posting remains compatibility path", "function": "Keeps the existing bounded room feed while replacing Postcode Rooms as the product identity.", "blocked_by": "Broader geographic posting and protected participation need verified geography; private person-to-person messages stay inside authenticated Link Up"},
     {"id": "events", "name": "Activity / Adventure", "owner": "Events", "purpose": "Local gatherings, sports, culture and activities.", "status": "Directory live", "function": "Provides an approved discovery surface.", "blocked_by": "Bookings require Identity and audited persistence"},
     {"id": "carnival-intelligence", "name": "Carnival Intelligence", "owner": "Events", "purpose": "Official Carnival schedules, maps, travel and safety guidance.", "status": "Read-only scheduled-data surface implemented", "function": "Shows reviewed official information without location collection or live-tracking claims.", "blocked_by": "Live crowds, incidents and moving assets require authorised feeds and separate Human Authority approval"},
     {"id": "discovery", "name": "Explorer", "owner": "Explorer", "purpose": "Places, services and useful geographic information.", "status": "Location lookup live", "function": "Resolves place and postcode hierarchy with bounded provider calls.", "blocked_by": "First-party turn-by-turn routing remains separate"},
@@ -52,7 +52,7 @@ LOCKED_SPOT_CAPABILITY_IDS = tuple(item["id"] for item in SPOT_CAPABILITIES)
 PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"source_id": "pulse", "slug": "pulse", "name": "Pulse", "purpose": "See community posts and activity."},
     {"source_id": "signal", "slug": "signal", "name": "Signal", "purpose": "Follow the OAP feed, trusted updates, alerts and announcements."},
-    {"source_id": "postcode-rooms", "slug": "postcode-rooms", "name": "World Rooms", "purpose": "Move from Global to Continent, Country, County/Region, Borough/District, Postcode and Local rooms."},
+    {"source_id": "postcode-rooms", "slug": "postcode-rooms", "name": "World Rooms", "purpose": "Move from Postcode to Borough/District, County/Region, Country, Continent, Global and Universe rooms."},
     {"source_id": "events", "slug": "events", "name": "Activity / Adventure", "purpose": "Find gatherings, sport, culture and things to do."},
     {"source_id": "carnival-intelligence", "slug": "carnival", "name": "Carnival Intelligence", "purpose": "Use reviewed Carnival schedules, maps, travel and safety guidance."},
     {"source_id": "discovery", "slug": "discovery", "name": "Explorer", "purpose": "Explore useful places and services."},
@@ -109,8 +109,17 @@ def validate_world_room_levels(levels: Iterable[Mapping[str, Any]] = WORLD_ROOM_
     errors: list[str] = []
     if len(ids) != len(set(ids)):
         errors.append("Duplicate World Room levels")
-    expected = ("global", "continent", "country", "county-region", "borough-district", "postcode", "local")
-    if tuple(ids) != expected:
+    expected = (
+        ("postcode", ""),
+        ("borough-district", "postcode"),
+        ("county-region", "borough-district"),
+        ("country", "county-region"),
+        ("continent", "country"),
+        ("global", "continent"),
+        ("universe", "global"),
+    )
+    actual = tuple((str(item.get("id", "")), str(item.get("parent_id", ""))) for item in items)
+    if actual != expected:
         errors.append("World Rooms hierarchy changed")
     return {"passed": not errors, "errors": errors, "checks": {"levels": len(items)}}
 
