@@ -48,7 +48,7 @@ def test_founder_workbench_exposes_studio_without_secrets(monkeypatch):
     assert "OAP Studio Intelligence planning and preparation" in payload["runtime_gate"]["available"]
 
 
-def test_smi_plus_menu_launches_studio_and_spot_surfaces_it():
+def test_smi_plus_menu_launches_studio_without_public_founder_door():
     smi = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text()
     spot = (ROOT / "mission_control" / "templates" / "spot.html").read_text()
 
@@ -56,5 +56,5 @@ def test_smi_plus_menu_launches_studio_and_spot_surfaces_it():
     assert "OAP Studio Intelligence" in smi
     assert "launchStudio" in smi
     assert "activation_prompt" in smi
-    assert "Create → Edit → Package → Rights → Publish → Distribute → Campaign → Analyse" in spot
-    assert "https://oap-smi.onrender.com/founder" in spot
+    assert "https://oap-smi.onrender.com/founder" not in spot
+    assert "🎬 OAP Studio Intelligence" not in spot
