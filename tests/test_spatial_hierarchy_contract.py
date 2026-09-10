@@ -68,5 +68,6 @@ def test_world_front_door_is_local_first_and_keeps_football_separate():
     positions = [html.index(label) for label in hierarchy]
     assert positions == sorted(positions)
     assert "Postcode to Universe" in html
-    assert "Football has its own home; it no longer defines the whole product." in html
-    assert "url_for('world_cup')" in html
+    assert 'href="#location"' in html
+    assert "🌍 Explore OAP World" in html
+    assert "url_for('world_cup')" not in html
