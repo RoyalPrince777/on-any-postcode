@@ -23,7 +23,7 @@ from flask import (
     url_for,
 )
 
-from . import authority, neon_auth, postgres_db
+from . import authority, founder_recovery, neon_auth, postgres_db
 
 IDENTITY_SESSION_KEY: Final = "oap_identity_id"
 CSRF_SESSION_KEY: Final = "oap_csrf_token"
@@ -56,10 +56,15 @@ def auth_cookie_header() -> str:
 
 
 def current_authenticated_user() -> dict[str, object] | None:
-    """Verify the current opaque browser session with Managed Neon Auth."""
+    """Verify Managed Neon Auth or a bounded temporary Founder recovery session."""
 
     if _AUTH_USER_CACHE_KEY in g:
         return g.get(_AUTH_USER_CACHE_KEY)
+
+    recovery_user = founder_recovery.recovery_user()
+    if recovery_user is not None:
+        setattr(g, _AUTH_USER_CACHE_KEY, recovery_user)
+        return recovery_user
 
     header = auth_cookie_header()
     if not header:
@@ -96,7 +101,7 @@ def current_authenticated_user() -> dict[str, object] | None:
 
 
 def authenticated_identity() -> str:
-    """Return a provider-verified UUID or fail closed."""
+    """Return an authenticated UUID or fail closed."""
 
     user = current_authenticated_user()
     if user is None:
@@ -113,8 +118,10 @@ def _private_error(code: str, message: str, status_code: int):
 
 
 def private_authority_allowed(user: dict[str, object]) -> bool:
-    """Require the exact Founder selector or persisted level-zero authority."""
+    """Require the exact Founder selector, recovery gate or persisted authority."""
 
+    if user.get("recovery_founder") is True:
+        return founder_recovery.session_active()
     if authority.identity_is_authority(user.get("id")):
         return True
     if bool(user.get("email_verified")) and authority.email_is_authority(
@@ -130,7 +137,7 @@ def private_authority_allowed(user: dict[str, object]) -> bool:
 
 
 def login_required(*, api: bool = False, founder_only: bool = False):
-    """Require live Auth and, where declared, exact Founder authority."""
+    """Require live Auth or a bounded recovery session on allowed Founder routes."""
 
     def decorator(view):
         @wraps(view)
@@ -157,6 +164,19 @@ def login_required(*, api: bool = False, founder_only: bool = False):
                     )
                 target = request.full_path.rstrip("?")
                 return redirect(url_for("auth_page", next=target))
+            if user.get("recovery_founder") is True and not founder_recovery.private_path_allowed(
+                request.path
+            ):
+                if api:
+                    return _private_error(
+                        "managed_identity_required",
+                        "Managed identity verification is required for this private surface.",
+                        503,
+                    )
+                target = request.full_path.rstrip("?")
+                return redirect(
+                    url_for("auth_page", next=target, auth_error="unavailable")
+                )
             requires_founder = founder_only or request.blueprint == "mission_control"
             if requires_founder and not private_authority_allowed(user):
                 return _private_error(
