@@ -29,6 +29,7 @@ from . import (
     products,
     public_store,
     smi_chat_runtime,
+    smi_workbench,
     status,
     war_room,
     web_security,
@@ -604,6 +605,14 @@ def delete_smi_conversation(conversation_id: str):
 def smi_chat_health():
     """Return detailed intelligence health only to a signed-in member."""
     return _no_store(make_response(jsonify(smi_chat_runtime.health())))
+
+
+@bp.get("/workbench/status")
+@web_security.login_required(api=True)
+def smi_workbench_status():
+    """Return secret-safe tool and capability readiness to the Founder UI."""
+
+    return _no_store(make_response(jsonify(smi_workbench.get_workbench_status())))
 
 
 @bp.get("/infrastructure")
