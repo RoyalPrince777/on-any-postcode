@@ -107,7 +107,7 @@ class FounderNeonReadAdapter:
         data = self._request_json(f"/projects/{self.project_id}")
         project = data.get("project", data) if isinstance(data, dict) else {}
         if not isinstance(project, dict):
-            raise RuntimeError("Neon returned an invalid project response")
+            raise TypeError("Neon returned an invalid project response")
         owner = project.get("owner") if isinstance(project.get("owner"), dict) else {}
         safe = {
             "id": project.get("id"),
@@ -133,7 +133,7 @@ class FounderNeonReadAdapter:
         )
         branch = data.get("branch", data) if isinstance(data, dict) else {}
         if not isinstance(branch, dict):
-            raise RuntimeError("Neon returned an invalid branch response")
+            raise TypeError("Neon returned an invalid branch response")
         safe = {
             "id": branch.get("id"),
             "name": branch.get("name"),
