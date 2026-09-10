@@ -91,6 +91,7 @@ def register(app: Flask) -> None:
     from . import (
         all_intelligence_views,
         contract_compatibility,
+        founder_recovery_views,
         pulse_routes,
         signal_health,
         smi_certification_routes,
@@ -101,6 +102,7 @@ def register(app: Flask) -> None:
     app.request_class = OAPRequest
     pulse_routes.register(app)
     signal_health.register(app)
+    app.register_blueprint(founder_recovery_views.bp)
     app.register_blueprint(smi_certification_routes.bp)
     app.register_blueprint(smi_proof_views.bp)
     app.register_blueprint(all_intelligence_views.bp)
