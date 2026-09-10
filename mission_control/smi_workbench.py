@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from . import smi_chat_runtime, studio_intelligence
+from . import oap_bank, smi_chat_runtime, studio_intelligence
 
 
 def _configured(*names: str) -> bool:
@@ -19,14 +19,16 @@ def get_workbench_status() -> dict[str, Any]:
     database_ready = bool(checks.get("database") and checks.get("schema"))
     render_configured = _configured("OAP_RENDER_API_KEY", "RENDER_API_KEY")
     github_configured = _configured("OAP_GITHUB_TOKEN")
-    neon_database_configured = _configured(
+    postgres_database_configured = _configured(
         "OAP_NEON_DATABASE_URL",
         "DATABASE_URL",
         "OAP_NEON_DATABASE_URL_B64",
         "OAP_DB_SECRET_B64",
+        "OAP_RENDER_DATABASE_URL",
+        "OAP_RENDER_DATABASE_URL_B64",
     )
     neon_management_configured = _configured("OAP_NEON_API_KEY", "NEON_API_KEY")
-    neon_configured = bool(neon_database_configured or neon_management_configured)
+    neon_configured = bool(postgres_database_configured or neon_management_configured)
     runtime_gate = {
         "state": "green" if database_ready else "yellow",
         "title": "Durable runtime ready" if database_ready else "Durable runtime unavailable",
@@ -48,10 +50,12 @@ def get_workbench_status() -> dict[str, Any]:
             "Founder read-only provider inspection",
             "War Room status and evidence surfaces",
             "OAP Studio Intelligence planning and preparation",
+            "OAP Bank non-payment orchestration planning",
         ],
         "fail_closed": not database_ready,
     }
     studio = studio_intelligence.status()
+    bank = oap_bank.status()
     return {
         "status": "ready" if runtime.get("status") == "green" else "attention",
         "surface": "Founder-only Personal SMI",
@@ -94,6 +98,7 @@ def get_workbench_status() -> dict[str, Any]:
             {"id": "voice", "name": "Voice", "ready": True},
             {"id": "code", "name": "Code proposals", "ready": True},
             studio,
+            bank,
         ],
         "knowledge": {
             "name": "OAP operating context",
