@@ -4,7 +4,6 @@ from flask import Flask
 
 from mission_control import membership_revenue
 
-
 CHECKOUT_ENVS = tuple(str(tier["checkout_env"]) for tier in membership_revenue.MEMBERSHIP_TIERS)
 
 
