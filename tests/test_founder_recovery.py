@@ -59,7 +59,9 @@ def test_permanent_standby_reuses_same_code_after_old_expiry(
 
     page = anonymous_client.get("/auth/recover-founder")
     assert page.status_code == 200
-    assert "Founder emergency standby" in page.get_data(as_text=True)
+    body = page.get_data(as_text=True)
+    assert "Founder Access" in body
+    assert "Founder emergency" not in body
     assert founder_recovery.token_allowed(RECOVERY_CODE) is True
 
     response = anonymous_client.post(
@@ -88,7 +90,7 @@ def test_gateway_only_recovery_boundary(anonymous_client, monkeypatch):
 
     assert direct.status_code == 404
     assert through_gateway.status_code == 200
-    assert "Founder recovery code" in through_gateway.get_data(as_text=True)
+    assert "Founder code" in through_gateway.get_data(as_text=True)
 
 
 def test_invalid_recovery_code_fails_closed(anonymous_client, monkeypatch):
@@ -188,3 +190,12 @@ def test_recovery_rejects_external_redirects(anonymous_client, monkeypatch):
 def test_smi_gateway_allows_recovery_but_keeps_signup_blocked():
     assert smi_gateway._allowed("/auth/recover-founder") is True
     assert smi_gateway._allowed("/auth/sign-up") is False
+
+
+def test_smi_gateway_founder_bookmark_uses_private_founder_access():
+    client = smi_gateway.app.test_client()
+
+    response = client.get("/founder")
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/auth/recover-founder?next=/mission/ollama"

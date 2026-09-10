@@ -179,6 +179,12 @@ def root():
     return redirect("/auth?next=/mission/ollama", code=302)
 
 
+@app.get("/founder")
+def founder_access_alias():
+    """Stable Founder bookmark; recovery mechanics remain an internal auth detail."""
+    return redirect("/auth/recover-founder?next=/mission/ollama", code=302)
+
+
 @app.get("/smi")
 @app.get("/chat")
 def personal_smi_alias():
