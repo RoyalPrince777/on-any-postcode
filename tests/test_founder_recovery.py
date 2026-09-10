@@ -100,7 +100,7 @@ def test_recovery_opens_mission_control_without_neon_and_blocks_my_world(
 
     my_world = anonymous_client.get("/my-world")
     assert my_world.status_code == 302
-    assert "/auth?next=" in my_world.headers["Location"]
+    assert "/enter-my-world?next=" in my_world.headers["Location"]
     assert "auth_error=unavailable" in my_world.headers["Location"]
 
 
