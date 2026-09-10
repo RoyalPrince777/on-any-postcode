@@ -86,6 +86,7 @@ def _allowed(path: str) -> bool:
         "/auth",
         "/auth/sign-in",
         "/auth/sign-out",
+        "/auth/recover-founder",
         "/enter-my-world",
         "/assets/oap.css",
         "/healthz",
