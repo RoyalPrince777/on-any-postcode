@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Membership · ON ANY POSTCODE</title>
+  <style>
+    :root{color-scheme:dark;--bg:#060907;--panel:#0b120e;--line:#24372c;--text:#f4fff6;--muted:#9db1a3;--green:#42e884;--gold:#e1c56c;--yellow:#f0cf68}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.shell{max-width:980px;margin:auto;padding:18px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center}.brand{font-weight:950;letter-spacing:.08em}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 11px;font-size:.76rem}.hero{padding:54px 0 30px;max-width:760px}.eyebrow{color:var(--green);font-weight:900;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.5rem,9vw,5.3rem);line-height:.92;margin:9px 0 14px;letter-spacing:-.055em}.hero p{color:var(--muted);font-size:1rem;line-height:1.55;max-width:650px}.truth{border-left:3px solid var(--gold);background:#181509;border-radius:0 12px 12px 0;padding:11px 13px;color:#eee0ad;margin:18px 0}.error{border:1px solid #826d2c;background:#1c180a;border-radius:14px;padding:12px;color:#f2d97f;margin:12px 0}.tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.tier{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:18px;display:flex;flex-direction:column;min-height:250px}.tier h2{margin:2px 0 4px;font-size:1.18rem}.price{font-size:1.9rem;font-weight:950;margin:8px 0}.tier p{color:var(--muted);line-height:1.45}.cta{margin-top:auto;display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;text-decoration:none;font-weight:900;border:1px solid #318e53;background:#102c1b;color:var(--text)}.cta:hover,.cta:focus{border-color:var(--green);outline:none}.cta.off{border-color:#4a504b;background:#101410;color:#8d9991;cursor:not-allowed}.state{display:inline-flex;margin-top:8px;font-size:.67rem;font-weight:850}.ready{color:var(--green)}.setup{color:var(--yellow)}.fine{margin-top:24px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.78rem;line-height:1.5}.fine strong{color:var(--text)}@media(max-width:760px){.hero{padding-top:38px}.tiers{grid-template-columns:1fr}.tier{min-height:210px}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div class="brand">🌍 ON ANY POSTCODE</div>
+    <a class="back" href="/">OAP World</a>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Membership · no ads</div>
+    <h1>Back the world you want to belong to.</h1>
+    <p>Public OAP stays open. Paid membership is optional support for building local-first OAP services from Postcode → Borough/District → County/Region → Country → Continent → Global.</p>
+  </section>
+
+  {% if checkout_error %}<div class="error" role="alert">🟡 {{ checkout_error }}</div>{% endif %}
+
+  <div class="truth"><strong>Payment truth:</strong> OAP does not collect card details on this page. A paid tier only leaves OAP when its regulated checkout destination has been configured. Buying a membership never grants Human Authority, Mission Control access or ownership of the private Founder dashboard.</div>
+
+  <section class="tiers" aria-label="OAP membership tiers">
+    {% for tier in offer.tiers %}
+    <article class="tier">
+      <div class="eyebrow">{{ loop.index | string }} / {{ offer.total_tiers }}</div>
+      <h2>{{ tier.name }}</h2>
+      <div class="price">{{ tier.price_display }}</div>
+      <p>{{ tier.purpose }}</p>
+      {% if tier.checkout_ready %}
+        <a class="cta" href="{{ tier.checkout_path }}">Continue to secure checkout</a>
+        <span class="state ready">🟢 Checkout configured</span>
+      {% else %}
+        <span class="cta off" aria-disabled="true">Payment setup required</span>
+        <span class="state setup">🟡 Not collecting money yet</span>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="fine">
+    <p><strong>What this is:</strong> a monthly OAP supporter membership. Public browsing remains free. Your payment provider supplies the payment receipt and cancellation/payment controls.</p>
+    <p><strong>What this is not:</strong> a share, investment, bank deposit, government status, SIKA cash balance, guaranteed financial return, or permission to enter private Founder systems.</p>
+  </section>
+</main>
+</body>
+</html>
