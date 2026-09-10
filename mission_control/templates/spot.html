@@ -15,7 +15,7 @@
     <div class="spot-intro">
       <p class="mc-eyebrow">📍 Your Spot</p>
       <h1>The Spot</h1>
-      <p class="spot-note">Local-first HQ inside OAP World. The Link lives here; Booking, Maps, Movement, Music, Shop and Distribution connect without exposing private controls.</p>
+      <p class="spot-note">Local-first HQ inside OAP World. The Link lives here; Booking, Maps, Movement, Music, Shop, Studio and Distribution connect without exposing private controls.</p>
       <div class="spot-bar">
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
       </div>
@@ -81,9 +81,10 @@
 
     <section class="mc-panel" aria-labelledby="spot-media-title">
       <p class="mc-eyebrow">🎵 OAP Music / Media</p>
-      <h2 id="spot-media-title">Own player. Own radio. Own release engine.</h2>
-      <p>Streams build attention. Money paths stay with memberships, merch, events, direct support, creator stores, campaigns and SIKA value records.</p>
+      <h2 id="spot-media-title">Create in Studio. Play on OAP. Distribute with proof.</h2>
+      <p>OAP Studio Intelligence is the Founder creation workspace powered by SMI. Streams build attention; money paths stay with memberships, merch, events, direct support, creator stores and campaigns.</p>
       <div class="spot-media" aria-label="OAP Music and Media modules">
+        <a href="https://oap-smi.onrender.com/founder"><strong>🎬 OAP Studio Intelligence</strong><span>Create → Edit → Package → Rights → Publish → Distribute → Campaign → Analyse.</span><small>Founder workspace powered by SMI. Rights, publishing and distribution remain governed.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='music') }}"><strong>🎵 OAP Music</strong></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='player') }}"><strong>▶️ OAP Player</strong></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}"><strong>📻 OAP Radio</strong></a>
