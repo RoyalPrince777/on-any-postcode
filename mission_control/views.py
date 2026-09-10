@@ -274,6 +274,7 @@ def war_room_dashboard():
         render_template(
             "war_room.html",
             war_room=war_room.get_war_room_dashboard(),
+            persistence=postgres_db.postgres_status(),
         )
     )
     return _no_store(response)
@@ -545,10 +546,12 @@ def smi_conversations():
     try:
         conversations = smi_chat_runtime.list_conversations(_chat_identity())
         return _no_store(make_response(jsonify(conversations=conversations)))
-    except RuntimeError:
+    except Exception as exc:  # Database provider failures must degrade cleanly.
+        if not smi_chat_runtime.persistence_unavailable(exc):
+            raise
         return _error(
             "conversation_store_unavailable",
-            "Conversation history is temporarily unavailable.",
+            "Conversation history is unavailable because the data service refused the connection.",
             503,
         )
 
