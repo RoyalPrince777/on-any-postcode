@@ -53,6 +53,7 @@ def init_app(app: Flask) -> None:
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
+    from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
     from .oap_data_views import bp as oap_data_bp
     from .on_any_place_routes import bp as on_any_place_bp
@@ -311,6 +312,7 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(on_any_place_bp)
+    app.register_blueprint(membership_revenue_bp)
     app.register_blueprint(movement_bp)
     app.register_blueprint(linkup_safety_bp)
     app.register_blueprint(link_relationship_bp)
