@@ -1,6 +1,6 @@
 """Private Founder tool routes for OAP Mind.
 
-Reads execute directly behind the authenticated private boundary. Writes prepare
+Reads execute directly behind the authenticated Founder boundary. Writes prepare
 exact Human-reviewable ActionPlans. Approved execution is delegated only to the
 canonical Living Kernel bridge.
 """
@@ -19,6 +19,8 @@ from .founder_github_proposals import (
 )
 from .founder_kernel_execution import execute_approved_action
 from .founder_kernel_execution import status as kernel_execution_status
+from .founder_neon import FounderNeonReadAdapter
+from .founder_render import FounderRenderReadAdapter
 
 bp = Blueprint("founder_tools", __name__)
 
@@ -30,17 +32,16 @@ def _no_store(response):
 
 
 def _result(value):
-    return _no_store(
-        make_response(
-            jsonify(
-                operation=value.operation,
-                repository=value.repository,
-                data=value.data,
-                read_only=True,
-                human_authority_final=True,
-            )
-        )
-    )
+    payload = {
+        "operation": value.operation,
+        "data": value.data,
+        "read_only": True,
+        "human_authority_final": True,
+    }
+    repository = getattr(value, "repository", None)
+    if repository:
+        payload["repository"] = repository
+    return _no_store(make_response(jsonify(payload)))
 
 
 def _proposal(value):
@@ -79,19 +80,19 @@ def _csrf_required():
 
 
 @bp.get("/tools/github/status")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_status():
     return _no_store(make_response(jsonify(FounderGitHubReadAdapter().status())))
 
 
 @bp.get("/tools/github/kernel-status")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_kernel_status():
     return _no_store(make_response(jsonify(kernel_execution_status())))
 
 
 @bp.get("/tools/github/repository")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_repository():
     try:
         return _result(FounderGitHubReadAdapter().repository_summary())
@@ -100,7 +101,7 @@ def github_repository():
 
 
 @bp.get("/tools/github/file")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_file():
     try:
         path = request.args.get("path", "")
@@ -111,7 +112,7 @@ def github_file():
 
 
 @bp.get("/tools/github/search")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_search():
     try:
         query = request.args.get("q", "")
@@ -122,7 +123,7 @@ def github_search():
 
 
 @bp.get("/tools/github/diff/<int:pull_request_number>")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_diff(pull_request_number: int):
     try:
         return _result(FounderGitHubReadAdapter().pull_request_diff(pull_request_number))
@@ -130,8 +131,82 @@ def github_diff(pull_request_number: int):
         return _error(exc)
 
 
+@bp.get("/tools/render/status")
+@web_security.login_required(api=True, founder_only=True)
+def render_status():
+    return _no_store(make_response(jsonify(FounderRenderReadAdapter().status())))
+
+
+@bp.get("/tools/render/services")
+@web_security.login_required(api=True, founder_only=True)
+def render_services():
+    try:
+        return _result(FounderRenderReadAdapter().services_summary())
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
+@bp.get("/tools/render/deploys")
+@web_security.login_required(api=True, founder_only=True)
+def render_deploys():
+    try:
+        alias = request.args.get("service", "world")
+        limit = int(request.args.get("limit", "5"))
+        return _result(FounderRenderReadAdapter().deploys(alias, limit=limit))
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
+@bp.get("/tools/render/logs")
+@web_security.login_required(api=True, founder_only=True)
+def render_logs():
+    try:
+        alias = request.args.get("service", "world")
+        limit = int(request.args.get("limit", "20"))
+        return _result(FounderRenderReadAdapter().logs(alias, limit=limit))
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
+@bp.get("/tools/neon/status")
+@web_security.login_required(api=True, founder_only=True)
+def neon_status():
+    try:
+        adapter = FounderNeonReadAdapter()
+        return _no_store(
+            make_response(
+                jsonify(
+                    adapter=adapter.status(),
+                    database=adapter.database_status().data,
+                    read_only=True,
+                    human_authority_final=True,
+                )
+            )
+        )
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
+@bp.get("/tools/neon/project")
+@web_security.login_required(api=True, founder_only=True)
+def neon_project():
+    try:
+        return _result(FounderNeonReadAdapter().project_summary())
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
+@bp.get("/tools/neon/branch")
+@web_security.login_required(api=True, founder_only=True)
+def neon_branch():
+    try:
+        return _result(FounderNeonReadAdapter().branch_summary())
+    except (TypeError, ValueError, PermissionError, LookupError, RuntimeError) as exc:
+        return _error(exc)
+
+
 @bp.post("/tools/github/proposals/branch")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_propose_branch():
     csrf_error = _csrf_required()
     if csrf_error is not None:
@@ -150,7 +225,7 @@ def github_propose_branch():
 
 
 @bp.post("/tools/github/proposals/file")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_propose_file_write():
     csrf_error = _csrf_required()
     if csrf_error is not None:
@@ -172,7 +247,7 @@ def github_propose_file_write():
 
 
 @bp.post("/tools/github/proposals/pull-request")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_propose_pull_request():
     csrf_error = _csrf_required()
     if csrf_error is not None:
@@ -193,7 +268,7 @@ def github_propose_pull_request():
 
 
 @bp.post("/tools/github/approvals")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_action_approval():
     csrf_error = _csrf_required()
     if csrf_error is not None:
@@ -223,7 +298,7 @@ def github_action_approval():
 
 
 @bp.post("/tools/github/execute")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def github_execute_approved_action():
     csrf_error = _csrf_required()
     if csrf_error is not None:
