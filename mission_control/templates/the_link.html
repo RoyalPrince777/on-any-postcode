@@ -18,7 +18,7 @@
     <div>
       <p class="mc-eyebrow">The Spot → The Link</p>
       <h1>The Link</h1>
-      <p>Find people and opportunities, follow public Empire activity, or enter protected conversation through Link Up.</p>
+      <p>Find people and opportunities, follow public Empire activity, book through OAP, open My Shop, or enter protected conversation through Link Up.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
@@ -47,6 +47,28 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="link-platform-title">
+      <p class="mc-eyebrow">🌍 ON ANY PLATFORM · connected from The Spot</p>
+      <h2 id="link-platform-title">Book. Shop. Distribute.</h2>
+      <div class="link-grid">
+        <a class="link-card" href="{{ url_for('travel_supply.public_marketplace') }}">
+          <strong>📅 OAP Booking</strong>
+          <span>Discover Certified OAP supply, check price and availability, place a protected hold and request a reservation.</span>
+          <small>Supplier confirmation remains final. No fake confirmed booking.</small>
+        </a>
+        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">
+          <strong>🛍️ My Shop</strong>
+          <span>Open the OAP storefront path for products, offers and direct commerce.</span>
+          <small>Seller actions require identity. Checkout remains separately governed.</small>
+        </a>
+        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}">
+          <strong>📦 OAP Distribution</strong>
+          <span>Prepare OAP-first releases, campaigns, rights proof and merch bundles.</span>
+          <small>External delivery stays locked until approved APIs, rights and legal routes exist.</small>
+        </a>
+      </div>
+    </section>
+
     <section class="mc-panel" aria-labelledby="link-public-title">
       <h2 id="link-public-title">Public Empire links</h2>
       <div class="link-grid">
@@ -66,7 +88,7 @@
           <small>On Any Place</small>
         </a>
         <a class="link-card" href="{{ url_for('travel_supply.public_marketplace') }}">
-          <strong>📅 OAP Direct</strong>
+          <strong>📅 OAP Booking</strong>
           <span>Discover travel and booking opportunities with truthful availability.</span>
           <small>Requests require identity; supplier confirmation remains final.</small>
         </a>
