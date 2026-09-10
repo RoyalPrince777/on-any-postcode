@@ -112,6 +112,14 @@ def public_offer_status() -> dict[str, Any]:
     }
 
 
+@bp.get("/the-spot/membership")
+def membership_spot_entry():
+    """Turn the existing Spot Membership capability into the paid-offer door."""
+    response = redirect("/membership", code=302)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @bp.get("/membership")
 def membership_page():
     return render_template("membership_revenue.html", offer=public_offer_status())
