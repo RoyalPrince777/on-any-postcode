@@ -24,8 +24,6 @@ def get_workbench_status() -> dict[str, Any]:
         "DATABASE_URL",
         "OAP_NEON_DATABASE_URL_B64",
         "OAP_DB_SECRET_B64",
-        "OAP_RENDER_DATABASE_URL",
-        "OAP_RENDER_DATABASE_URL_B64",
     )
     neon_management_configured = _configured("OAP_NEON_API_KEY", "NEON_API_KEY")
     neon_configured = bool(postgres_database_configured or neon_management_configured)
