@@ -24,9 +24,10 @@ def test_workbench_projection_never_exposes_secret_values(monkeypatch):
     assert payload["governance"]["human_authority_final"] is True
 
 
-def test_workbench_status_is_private(client):
-    response = client.get("/mission/workbench/status")
-    assert response.status_code in {302, 401, 404}
+def test_workbench_status_is_private(anonymous_client):
+    response = anonymous_client.get("/mission/workbench/status")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
 
 
 def test_personal_smi_has_quiet_tools_workbench():
