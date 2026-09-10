@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import time
@@ -17,11 +18,62 @@ PUBLIC_USERNAME_PREFIX = "oap-session-"
 MAX_PUBLIC_RECORDS = 100
 MAX_WRITES_PER_MINUTE = 30
 _SIGNAL_PROBE_TTL_SECONDS = 120.0
+_PUBLIC_STORE_BACKOFF_DEFAULT_SECONDS = 60.0
+_PUBLIC_STORE_BACKOFF_MIN_SECONDS = 5.0
+_PUBLIC_STORE_BACKOFF_MAX_SECONDS = 300.0
 _signal_probe_cache: tuple[float, bool] | None = None
+_public_status_cache: tuple[float, dict[str, Any]] | None = None
+_public_read_retry_at = 0.0
+_last_public_snapshot: dict[str, Any] | None = None
 
 
 class PublicStoreUnavailable(RuntimeError):
     """Raised when a configured durable public store cannot complete a write."""
+
+
+def _render_runtime() -> bool:
+    return os.environ.get("RENDER", "").strip().casefold() == "true"
+
+
+def _public_store_backoff_seconds() -> float:
+    raw = os.environ.get("OAP_PUBLIC_STORE_BACKOFF_SECONDS", "").strip()
+    try:
+        seconds = float(raw) if raw else _PUBLIC_STORE_BACKOFF_DEFAULT_SECONDS
+    except ValueError:
+        seconds = _PUBLIC_STORE_BACKOFF_DEFAULT_SECONDS
+    return max(
+        _PUBLIC_STORE_BACKOFF_MIN_SECONDS,
+        min(_PUBLIC_STORE_BACKOFF_MAX_SECONDS, seconds),
+    )
+
+
+def _clear_runtime_caches() -> None:
+    """Clear process-local outage/readiness caches for isolated tests."""
+
+    global _last_public_snapshot
+    global _public_read_retry_at
+    global _public_status_cache
+    global _signal_probe_cache
+
+    _signal_probe_cache = None
+    _public_status_cache = None
+    _public_read_retry_at = 0.0
+    _last_public_snapshot = None
+
+
+def _degraded_public_snapshot() -> dict[str, Any]:
+    """Return a safe bounded projection without claiming durable freshness."""
+
+    if _last_public_snapshot is None:
+        return {
+            "signal_posts": [],
+            "team_messages": [],
+            "flag_counts": {},
+            "durable": False,
+        }
+    result = copy.deepcopy(_last_public_snapshot)
+    result["durable"] = False
+    return result
 
 
 def _username(identity_id: str) -> str:
@@ -280,7 +332,14 @@ def _signal_roundtrip_probe(*, force: bool = False) -> bool:
 
 
 def snapshot() -> dict[str, Any]:
-    """Load bounded community posts; profiles stay inside private My World."""
+    """Load bounded public posts while backing off failed Render reads."""
+
+    global _last_public_snapshot
+    global _public_read_retry_at
+
+    now = time.monotonic()
+    if _render_runtime() and now < _public_read_retry_at:
+        return _degraded_public_snapshot()
 
     try:
         with postgres_db.connect(readonly=True) as connection:
@@ -303,6 +362,8 @@ def snapshot() -> dict[str, Any]:
                 (PUBLIC_FLAG_SCOPE,),
             ).fetchall()
     except Exception as exc:
+        if _render_runtime():
+            _public_read_retry_at = now + _public_store_backoff_seconds()
         raise PublicStoreUnavailable("durable_public_read_failed") from exc
 
     signals = [item for row in signal_rows if (item := _decode_object(row[0]))]
@@ -317,16 +378,32 @@ def snapshot() -> dict[str, Any]:
                     "message": item.get("message", ""),
                 }
             )
-    return {
+    result = {
         "signal_posts": signals,
         "team_messages": messages,
         "flag_counts": {str(row[0]): int(row[1]) for row in flag_rows},
         "durable": True,
     }
+    if _render_runtime():
+        _last_public_snapshot = copy.deepcopy(result)
+        _public_read_retry_at = 0.0
+    return result
 
 
 def status() -> dict[str, Any]:
     """Return redacted schema, connectivity and production Signal readiness."""
+
+    global _public_read_retry_at
+    global _public_status_cache
+
+    now = time.monotonic()
+    cache_seconds = _public_store_backoff_seconds()
+    if (
+        _render_runtime()
+        and _public_status_cache is not None
+        and now - _public_status_cache[0] < cache_seconds
+    ):
+        return copy.deepcopy(_public_status_cache[1])
 
     result = {
         "configured": postgres_db.configured(),
@@ -338,6 +415,8 @@ def status() -> dict[str, Any]:
     }
     if not result["configured"]:
         result["error"] = "database_url_not_configured"
+        if _render_runtime():
+            _public_status_cache = (now, copy.deepcopy(result))
         return result
     try:
         with postgres_db.connect(readonly=True) as connection:
@@ -369,7 +448,7 @@ def status() -> dict[str, Any]:
                 "status",
                 "created_at",
             } <= columns["posts"]
-            if result["schema_ready"] and os.environ.get("RENDER", "").lower() == "true":
+            if result["schema_ready"] and _render_runtime():
                 result["signal_roundtrip_ready"] = _signal_roundtrip_probe()
             else:
                 # Local/test readiness remains schema-only; production proof is Render-gated.
@@ -380,4 +459,12 @@ def status() -> dict[str, Any]:
     # A readiness endpoint must degrade safely for every driver/network failure.
     except Exception:  # noqa: BLE001
         result["error"] = "database_unavailable"
+        if _render_runtime():
+            _public_read_retry_at = max(
+                _public_read_retry_at,
+                now + cache_seconds,
+            )
+
+    if _render_runtime():
+        _public_status_cache = (now, copy.deepcopy(result))
     return result
