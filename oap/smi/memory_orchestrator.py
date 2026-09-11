@@ -1,9 +1,10 @@
 """Governed memory composition for SMI.
 
-Canonical truth outranks every other layer. History explains evolution, the
-knowledge graph adds relationships, the audited Founder channel carries explicit
-approved imports, live operational memory supplies privacy-reduced OAP state, and
-recent HRM adds working context. The combined context stays bounded to 21 items.
+Latest explicit Founder locks outrank older canonical truth. History explains
+evolution, the knowledge graph adds relationships, the audited Founder channel
+carries explicit approved imports, live operational memory supplies privacy-reduced
+OAP state, and recent HRM adds working context. The combined context stays bounded
+to 21 items.
 """
 
 from __future__ import annotations
@@ -18,6 +19,8 @@ from .founder_memory_channel import status as founder_channel_status
 from .founder_memory_channel import synced_memory_items
 from .knowledge_graph import graph_memory_items
 from .knowledge_graph import status as graph_status
+from .latest_founder_memory import latest_founder_memory_items
+from .latest_founder_memory import status as latest_founder_status
 from .memory_history import historical_memory_items
 from .memory_history import status as history_status
 from .operational_memory import operational_memory_items
@@ -25,6 +28,8 @@ from .operational_memory import status as operational_status
 
 TOTAL_CONTEXT_CAP = 21
 CANONICAL_BUDGET = 10
+LATEST_FOUNDER_BUDGET = 4
+OLDER_CANONICAL_BUDGET = CANONICAL_BUDGET - LATEST_FOUNDER_BUDGET
 HISTORY_BUDGET = 2
 GRAPH_BUDGET = 1
 FOUNDER_SYNC_BUDGET = 2
@@ -42,7 +47,8 @@ def compose_memory(
     """Compose bounded memory in descending authority order."""
 
     safe_limit = min(max(int(limit), 1), TOTAL_CONTEXT_CAP)
-    canonical = canonical_memory_items(task_type, limit=CANONICAL_BUDGET)
+    latest_founder = latest_founder_memory_items(limit=LATEST_FOUNDER_BUDGET)
+    canonical = canonical_memory_items(task_type, limit=OLDER_CANONICAL_BUDGET)
     history = historical_memory_items(task_type, limit=HISTORY_BUDGET)
     graph = graph_memory_items(task_type, query=query, limit=GRAPH_BUDGET)
     founder_sync = synced_memory_items(
@@ -57,7 +63,8 @@ def compose_memory(
     )
     recent_dynamic = tuple(dynamic)[-DYNAMIC_BUDGET:]
     return (
-        canonical
+        latest_founder
+        + canonical
         + history
         + graph
         + founder_sync
@@ -89,6 +96,7 @@ def compose_text_memory(
 
 
 def status() -> dict[str, object]:
+    latest_founder = latest_founder_status()
     canonical = canonical_status()
     history = history_status()
     graph = graph_status()
@@ -105,7 +113,8 @@ def status() -> dict[str, object]:
     return {
         "component": "SMI Memory Orchestrator",
         "ready": bool(
-            canonical.get("ready")
+            latest_founder.get("ready")
+            and canonical.get("ready")
             and history.get("ready")
             and graph.get("ready")
             and founder_channel.get("ready")
@@ -114,13 +123,18 @@ def status() -> dict[str, object]:
         ),
         "context_cap": TOTAL_CONTEXT_CAP,
         "budget_total": budget_total,
+        "latest_founder_budget": LATEST_FOUNDER_BUDGET,
         "canonical_budget": CANONICAL_BUDGET,
+        "older_canonical_budget": OLDER_CANONICAL_BUDGET,
         "historical_budget": HISTORY_BUDGET,
         "graph_budget": GRAPH_BUDGET,
         "founder_sync_budget": FOUNDER_SYNC_BUDGET,
         "operational_memory_budget": OPERATIONAL_BUDGET,
         "dynamic_hrm_budget": DYNAMIC_BUDGET,
+        "latest_founder_ready": bool(latest_founder.get("ready")),
+        "latest_founder_revision": latest_founder.get("revision"),
         "authority_order": (
+            "LATEST_FOUNDER_LOCK",
             "CANONICAL",
             "HISTORICAL_CONTEXT",
             "KNOWLEDGE_GRAPH",
