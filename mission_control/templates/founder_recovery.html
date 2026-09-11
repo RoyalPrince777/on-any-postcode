@@ -12,13 +12,10 @@
     main{width:min(92vw,420px)}
     h1{margin:0 0 1.15rem;font-size:clamp(2rem,8vw,2.8rem);letter-spacing:-.04em}
     form{display:grid;gap:.8rem}
-    .code-row{display:grid;grid-template-columns:1fr auto;gap:.6rem}
-    input,button{min-height:54px;border-radius:16px;font:inherit}
-    input{width:100%;padding:0 1rem;border:1px solid rgba(255,255,255,.15);background:#111411;color:#fff;outline:none}
+    input,button{width:100%;min-height:54px;border-radius:16px;font:inherit}
+    input{padding:0 1rem;border:1px solid rgba(255,255,255,.15);background:#111411;color:#fff;outline:none}
     input:focus{border-color:rgba(255,255,255,.55)}
-    button{border:0;background:#f5f5ef;color:#090a09;font-weight:800;cursor:pointer;padding:0 1rem}
-    .toggle{background:#151a17;color:#f7f7f3;border:1px solid rgba(255,255,255,.14);font-weight:700}
-    .enter{width:100%}
+    button{border:0;background:#f5f5ef;color:#090a09;font-weight:800;cursor:pointer}
     .error{margin:0 0 .9rem;padding:.8rem 1rem;border-radius:14px;background:rgba(255,255,255,.07);color:#fff}
   </style>
 </head>
@@ -29,26 +26,9 @@
     <form method="post" action="{{ url_for('founder_recovery.recover_founder') }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
       <input type="hidden" name="next" value="{{ next_path }}">
-      <div class="code-row">
-        <input id="founder-code" aria-label="Founder code" name="recovery_code" type="password" minlength="32" maxlength="256" required autocomplete="one-time-code" autofocus placeholder="Founder code">
-        <button id="show-code" class="toggle" type="button" aria-controls="founder-code" aria-pressed="false">Show</button>
-      </div>
-      <button class="enter" type="submit">Enter SMI</button>
+      <input aria-label="Founder code" name="recovery_code" type="password" minlength="32" maxlength="256" required autocomplete="one-time-code" autofocus placeholder="Founder code">
+      <button type="submit">Enter SMI</button>
     </form>
   </main>
-  <script>
-    (() => {
-      const input = document.getElementById('founder-code');
-      const toggle = document.getElementById('show-code');
-      if (!input || !toggle) return;
-      toggle.addEventListener('click', () => {
-        const reveal = input.type === 'password';
-        input.type = reveal ? 'text' : 'password';
-        toggle.textContent = reveal ? 'Hide' : 'Show';
-        toggle.setAttribute('aria-pressed', reveal ? 'true' : 'false');
-        input.focus();
-      });
-    })();
-  </script>
 </body>
 </html>
