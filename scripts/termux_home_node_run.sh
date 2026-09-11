@@ -48,7 +48,10 @@ fi
 
 cd "$REPO_DIR"
 export OAP_WORKER_ID="${OAP_WORKER_ID:-termux-$(hostname 2>/dev/null || echo android)}"
-export OAP_ENV_REVISION="$(git rev-parse --short=12 HEAD 2>/dev/null || printf '%s' 'termux-unknown')"
+
+current_revision() {
+  git rev-parse --short=12 HEAD 2>/dev/null || printf '%s' 'termux-unknown'
+}
 
 termux-wake-lock >/dev/null 2>&1 || true
 
@@ -66,6 +69,7 @@ trap cleanup EXIT INT TERM
 
 backoff=15
 while true; do
+  export OAP_ENV_REVISION="$(current_revision)"
   started_at="$(date +%s)"
   printf '%s %s\n' "$(date -u +%FT%TZ)" "starting bounded organism worker revision=$OAP_ENV_REVISION" >> "$LOG_FILE"
   "$VENV_DIR/bin/python" -m mission_control.organism_worker >> "$LOG_FILE" 2>&1 &

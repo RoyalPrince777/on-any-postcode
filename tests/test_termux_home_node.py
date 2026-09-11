@@ -20,6 +20,14 @@ def test_termux_runner_uses_existing_bounded_worker_without_self_updating():
     assert "dispatch" not in RUNNER.casefold()
 
 
+def test_termux_runner_refreshes_revision_before_each_worker_spawn():
+    loop_index = RUNNER.index("while true; do")
+    revision_index = RUNNER.index('export OAP_ENV_REVISION="$(current_revision)"', loop_index)
+    worker_index = RUNNER.index("mission_control.organism_worker", revision_index)
+    assert "git rev-parse --short=12 HEAD" in RUNNER
+    assert loop_index < revision_index < worker_index
+
+
 def test_termux_setup_keeps_database_secret_out_of_repository():
     assert "read -r -s database_url" in SETUP
     assert "$HOME/.config/oap" in SETUP
