@@ -2,6 +2,7 @@
 {% include "ollama_chat_base.html" %}
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_chat_final.css') }}">
 <script>
+window.csrfToken=csrfToken;
 window.OAP_SMI_UI={
   workbenchUrl:{{ url_for('mission_control.smi_workbench_status')|tojson }},
   healthUrl:{{ url_for('mission_control.smi_chat_health')|tojson }},
