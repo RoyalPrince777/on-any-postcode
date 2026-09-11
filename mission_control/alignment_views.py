@@ -6,6 +6,8 @@ from flask import Blueprint, jsonify, make_response, request
 from . import (
     ai_behaviour_protocol,
     alignment_check,
+    coherent_automation,
+    distribution_intelligence,
     master_upgrade_contract,
     smi_brain_evidence_protocol,
     smi_brain_evidence_runner,
@@ -191,6 +193,60 @@ def thinking_signals():
     """Return private-safe visible SMI thinking/status signals."""
 
     return _no_store(make_response(jsonify(alignment_check.thinking_signals())))
+
+
+@bp.get("/war-room/coherent-automation")
+@bp.get("/war-room/actions/coherent-automation")
+@bp.get("/smi/coherent-automation")
+@web_security.login_required(api=True, founder_only=True)
+def coherent_automation_status():
+    """Return the Founder-only 21-signal coherent automation contract."""
+
+    return _no_store(make_response(jsonify(coherent_automation.status())))
+
+
+@bp.get("/war-room/coherent-automation/plan")
+@bp.get("/smi/coherent-automation/plan")
+@web_security.login_required(api=True, founder_only=True)
+def coherent_automation_plan():
+    """Build a bounded no-execution automation plan for one Founder command."""
+
+    return _no_store(
+        make_response(
+            jsonify(
+                coherent_automation.plan(
+                    request.args.get("command"), target=request.args.get("target") or "SMI"
+                )
+            )
+        )
+    )
+
+
+@bp.get("/war-room/distribution-intelligence")
+@bp.get("/war-room/actions/distribution-intelligence")
+@bp.get("/smi/distribution-intelligence")
+@web_security.login_required(api=True, founder_only=True)
+def distribution_intelligence_status():
+    """Return Founder-only OAP Distribution Intelligence readiness."""
+
+    return _no_store(make_response(jsonify(distribution_intelligence.status())))
+
+
+@bp.post("/war-room/distribution-intelligence/review")
+@bp.post("/smi/distribution-intelligence/review")
+@web_security.login_required(api=True, founder_only=True)
+def distribution_intelligence_review():
+    """Review a release payload without publishing or external execution."""
+
+    if not web_security.csrf_valid(request):
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "csrf_invalid", "message": "Session expired. Refresh and try again."}),
+                403,
+            )
+        )
+    payload = request.get_json(silent=True)
+    return _no_store(make_response(jsonify(distribution_intelligence.review_release(payload))))
 
 
 @bp.get("/war-room/smi-completion")
