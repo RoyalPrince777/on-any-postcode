@@ -4,11 +4,11 @@ from flask import Flask
 from mission_control import smi_chat_runtime_core, web_security
 
 
-def test_private_smi_chat_burst_cap_allows_active_conversation():
+def test_private_smi_chat_burst_cap_allows_founder_recovery_conversation():
     limiter = web_security.CHAT_BURST_LIMITER
-    assert limiter.limit == 30
+    assert limiter.limit == 120
     assert limiter.window_seconds == 60
-    assert limiter.duplicate_seconds == 1.0
+    assert limiter.duplicate_seconds == 5.0
     assert limiter.fingerprint_request_body is True
 
 
@@ -35,25 +35,25 @@ def test_only_exact_duplicate_retry_is_coalesced(monkeypatch):
         assert limiter.allow("founder") is False
 
 
-def test_private_smi_hard_cap_rejects_request_31(monkeypatch):
+def test_private_smi_hard_cap_rejects_request_121(monkeypatch):
     app = Flask(__name__)
-    times = iter(200.0 + (index * 0.01) for index in range(31))
+    times = iter(200.0 + (index * 0.01) for index in range(121))
     monkeypatch.setattr(web_security.time, "monotonic", lambda: next(times))
     limiter = web_security.SlidingWindowLimiter(
-        limit=30,
+        limit=120,
         window_seconds=60,
-        duplicate_seconds=1.0,
+        duplicate_seconds=5.0,
         fingerprint_request_body=True,
     )
 
-    for index in range(30):
+    for index in range(120):
         with app.test_request_context(
             "/chat", method="POST", json={"message": f"distinct-{index}"}
         ):
             assert limiter.allow("founder") is True
 
     with app.test_request_context(
-        "/chat", method="POST", json={"message": "distinct-30"}
+        "/chat", method="POST", json={"message": "distinct-120"}
     ):
         assert limiter.allow("founder") is False
 
