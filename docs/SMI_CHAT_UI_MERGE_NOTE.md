@@ -1,1 +1,0 @@
-Merge only after CI is green. Production remains unchanged until merge and Render deploy verification.
