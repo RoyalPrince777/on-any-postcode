@@ -11,7 +11,17 @@ from collections import defaultdict, deque
 from functools import wraps
 from typing import Final
 
-from flask import Request, current_app, g, jsonify, make_response, redirect, request, session, url_for
+from flask import (
+    Request,
+    current_app,
+    g,
+    jsonify,
+    make_response,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 
 from . import authority, founder_recovery, neon_auth, postgres_db
 
@@ -101,7 +111,7 @@ def private_authority_allowed(user: dict[str, object]) -> bool:
     try:
         with postgres_db.connect(readonly=True) as connection:
             record = authority.authority_record(connection, user.get("id"))
-    except Exception:
+    except Exception:  # noqa: BLE001 - private authority checks fail closed.
         return False
     return bool(record and record.get("is_human_authority"))
 
