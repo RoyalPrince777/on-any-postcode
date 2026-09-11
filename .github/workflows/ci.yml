@@ -31,7 +31,17 @@ jobs:
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
-        run: ruff check app.py mission_control oap tests
+        run: |
+          set -o pipefail
+          ruff check app.py mission_control oap tests 2>&1 | tee /tmp/oap-ruff.log
+      - name: Preserve lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governed-lint-report
+          path: /tmp/oap-ruff.log
+          if-no-files-found: error
+          retention-days: 1
       - name: Run OAP RTL proof slice
         run: |
           iverilog -g2012 -Wall -s tb_oap_guardian_nexus_slice \
