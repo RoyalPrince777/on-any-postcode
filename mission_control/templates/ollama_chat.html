@@ -1,4 +1,4 @@
-{# Personal SMI final UI wrapper. Safe work stages only; private chain-of-thought stays private. #}
+{# Personal SMI final UI wrapper. Thinking Process: Understand · Context · Route · Evidence · Challenge · Synthesise · Govern. Safe stage telemetry only; private chain-of-thought stays private. #}
 {% include "ollama_chat_base.html" %}
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_chat_final.css') }}">
 <script>
@@ -17,3 +17,4 @@ window.OAP_SMI_UI={
 };
 </script>
 <script src="{{ url_for('mission_control.static', filename='smi_chat_final.js') }}"></script>
+<script src="{{ url_for('mission_control.static', filename='smi_chat_compat.js') }}"></script>
