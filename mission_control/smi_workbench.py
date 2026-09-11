@@ -96,7 +96,7 @@ def get_workbench_status() -> dict[str, Any]:
     a7 = a7_certification.status()
     a7_missing = tuple(a7.get("a7_missing") or ())
     a6_missing = tuple(a7.get("a6_missing") or ())
-    a7_blockers = tuple((*a6_missing, *a7_missing))
+    a7_blockers = (*a6_missing, *a7_missing)
     a7_capability = _capability(
         "smi-a7-certification",
         "A7 Certification",
