@@ -1,0 +1,1 @@
+Proof target: the final Personal SMI chat release is accepted only after automated repository checks and live Render deployment evidence. This file is not proof by itself.
