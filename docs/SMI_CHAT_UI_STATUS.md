@@ -1,1 +1,0 @@
-Status before merge: implementation branch only. Production must not be called green until pull-request checks pass, main is updated, both Render services finish deploying the merge commit, and the live authenticated SMI chat route is verified.
