@@ -15,19 +15,44 @@ _TIMESTAMP = datetime(2026, 9, 11, tzinfo=timezone.utc)
 _RECORDS = (
     (
         "joog.unified-memory",
-        "JOOG MEMORY is the single unified SMI/OAP memory core: one continuous governed system log for inputs, safe reasoning summaries, actions, outputs, context, learning, receipts and status. HRM remains governance/audit/review/lessons; Neon or another database is persistence infrastructure and does not replace HRM or JOOG semantics.",
+        (
+            "JOOG MEMORY is the single unified SMI/OAP memory core: one continuous "
+            "governed system log for inputs, safe reasoning summaries, actions, "
+            "outputs, context, learning, receipts and status. HRM remains governance, "
+            "audit, review and lessons; Neon or another database is persistence "
+            "infrastructure and does not replace HRM or JOOG semantics."
+        ),
     ),
     (
         "production.no-fake-green",
-        "Canonical production law: no demo, no generic substitute, no static placeholder presented as working functionality, no experiment presented as production and no fake green. A feature becomes green only when real, connected, governed, tested, runtime-proven and evidence/receipt-backed. Blocked or degraded dependencies must be labelled truthfully.",
+        (
+            "Canonical production law: no demo, no generic substitute, no static "
+            "placeholder presented as working functionality, no experiment presented "
+            "as production and no fake green. A feature becomes green only when real, "
+            "connected, governed, tested, runtime-proven and evidence-backed. Blocked "
+            "or degraded dependencies must be labelled truthfully."
+        ),
     ),
     (
         "agents.kaa-excluded",
-        "Kaa is completely excluded from ON ANY POSTCODE/OAP. Kaa must not appear in the Jungle Book layer, registered agents, dashboards, backend, documentation, prompts, counts or future OAP designs unless Human Authority explicitly restores Kaa.",
+        (
+            "Kaa is completely excluded from ON ANY POSTCODE/OAP. Kaa must not appear "
+            "in the Jungle Book layer, registered agents, dashboards, backend, "
+            "documentation, prompts, counts or future OAP designs unless Human "
+            "Authority explicitly restores Kaa."
+        ),
     ),
     (
         "smi.founder-workspace-parity",
-        "Personal SMI is the private Founder working home: clean 2027 chat, one canonical Send/Enter/Mic/Voice/Stop runtime, safe Thinking Process telemetry, JOOG/HRM continuity, connected governed tools such as GitHub/Render/Neon, and concise evidence-first status. It should support working continuity comparable to this ChatGPT workflow without claiming access to private model chain-of-thought or inaccessible external memory internals.",
+        (
+            "Personal SMI is the private Founder working home: clean 2027 chat, one "
+            "canonical Send/Enter/Mic/Voice/Stop runtime, safe Thinking Process "
+            "telemetry, JOOG/HRM continuity, connected governed tools such as "
+            "GitHub/Render/Neon, and concise evidence-first status. It should support "
+            "working continuity comparable to this ChatGPT workflow without claiming "
+            "access to private model chain-of-thought or inaccessible external memory "
+            "internals."
+        ),
     ),
 )
 
