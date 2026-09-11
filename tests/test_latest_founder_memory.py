@@ -1,5 +1,4 @@
-from oap.smi import latest_founder_memory
-from oap.smi import memory_orchestrator
+from oap.smi import latest_founder_memory, memory_orchestrator
 
 
 def test_latest_founder_memory_contains_current_locked_rules():
