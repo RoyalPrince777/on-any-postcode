@@ -1,0 +1,1 @@
+Personal SMI chat finalisation is intentionally limited to the authenticated private Founder workspace. It does not expose secrets, alter public OAP routes, loosen Founder-only access, enable direct main writes, auto-merge pull requests, auto-deploy Render, or mutate Neon outside the existing governed backend boundaries.
