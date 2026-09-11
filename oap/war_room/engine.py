@@ -219,12 +219,16 @@ class WarRoomEngine:
     def status(self) -> dict[str, object]:
         return {
             "component": "War Room",
-            "ready": True,
+            "ready": False,
+            "operational": True,
+            "production_control_ready": False,
             "version": 2,
             "mode": "simulation_only",
+            "truth_state": "advisory_only",
             "decision_authority": False,
             "evidence_driven": True,
             "authority_context": True,
             "coherence_context": True,
             "reversibility_required": True,
+            "blocker": "Live provider probes, governed execution and verified rollback proof are not yet certified.",
         }
