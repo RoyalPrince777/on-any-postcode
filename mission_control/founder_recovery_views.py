@@ -10,6 +10,17 @@ from . import founder_recovery, web_security
 bp = Blueprint("founder_recovery", __name__, template_folder="templates")
 _DEFAULT_NEXT = "/mission/ollama"
 
+# Recovery is an emergency Founder lane and must not share the normal sign-in /
+# activation bucket. Exact rapid retries are coalesced, while distinct attempts
+# remain bounded. Session identity also prevents unrelated clients behind the same
+# proxy/NAT address from consuming the Founder's recovery allowance.
+RECOVERY_BURST_LIMITER = web_security.SlidingWindowLimiter(
+    limit=12,
+    window_seconds=5 * 60,
+    duplicate_seconds=1.5,
+    fingerprint_request_body=True,
+)
+
 
 def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
@@ -61,20 +72,22 @@ def recover_founder():
     if not web_security.csrf_valid(request):
         return _render(
             status_code=403,
-            error="The secure session expired. Refresh and try again.",
+            error="Session expired. Refresh and try again.",
             next_path=next_path,
         )
-    rate_key = f"recovery:{request.remote_addr or 'unknown'}"
-    if not web_security.AUTH_BURST_LIMITER.allow(rate_key):
+
+    session_id = web_security.ensure_session_identity()
+    rate_key = f"recovery:{session_id}:{request.remote_addr or 'unknown'}"
+    if not RECOVERY_BURST_LIMITER.allow(rate_key):
         return _render(
             status_code=429,
-            error="Too many recovery attempts. Try again later.",
+            error="Try again shortly.",
             next_path=next_path,
         )
     if not founder_recovery.token_allowed(request.form.get("recovery_code")):
         return _render(
             status_code=403,
-            error="The recovery details were not recognised.",
+            error="Code not recognised.",
             next_path=next_path,
         )
 
