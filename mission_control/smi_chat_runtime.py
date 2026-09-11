@@ -12,6 +12,7 @@ import json
 import queue
 import re
 import threading
+import time
 from collections.abc import Callable, Iterator
 
 from oap.smi.canonical_memory import status as canonical_memory_status
@@ -34,6 +35,11 @@ urlrequest = _core.urlrequest
 _provider = _core._provider
 _COMPATIBILITY_ENGINE = _core._provider
 _CORE_COHERENCE_REVIEW = _core.coherence_review
+
+_HEALTH_CACHE_TTL_SECONDS = 15.0
+_health_cache_lock = threading.Lock()
+_health_cache_at = 0.0
+_health_cache: dict | None = None
 
 _WORLD_CRISIS_TERMS = (
     "world crisis",
@@ -70,15 +76,39 @@ _PRIVATE_REASONING_DISCLOSURE = (
 )
 
 
-def health() -> dict:
-    """Return core SMI health plus truthful inference and memory certification."""
-    snapshot = dict(_core.health())
-    snapshot["inference"] = _inference.status(probe=True)
-    snapshot["thinking_process"] = _thinking.validate()
-    snapshot["canonical_memory"] = canonical_memory_status()
-    snapshot["governed_memory"] = governed_memory_status()
-    snapshot["memory_sync"] = memory_sync_status()
-    return snapshot
+def health(*, force: bool = False) -> dict:
+    """Return truthful SMI health while coalescing repeated deep probes.
+
+    The dashboard may ask for health from more than one UI layer. Deep inference,
+    memory and production-readiness probes are therefore cached briefly and
+    concurrent callers share one probe. The cache contains status evidence only;
+    it never changes execution authority or converts a failed check into green.
+    """
+
+    global _health_cache_at, _health_cache
+
+    now = time.monotonic()
+    with _health_cache_lock:
+        if (
+            not force
+            and _health_cache is not None
+            and now - _health_cache_at < _HEALTH_CACHE_TTL_SECONDS
+        ):
+            return dict(_health_cache)
+
+        snapshot = dict(_core.health())
+        snapshot["inference"] = _inference.status(probe=True)
+        snapshot["thinking_process"] = _thinking.validate()
+        snapshot["canonical_memory"] = canonical_memory_status()
+        snapshot["governed_memory"] = governed_memory_status()
+        snapshot["memory_sync"] = memory_sync_status()
+        snapshot["health_probe"] = {
+            "cached": False,
+            "ttl_seconds": _HEALTH_CACHE_TTL_SECONDS,
+        }
+        _health_cache = snapshot
+        _health_cache_at = time.monotonic()
+        return dict(snapshot)
 
 
 def _gateway_provider(
