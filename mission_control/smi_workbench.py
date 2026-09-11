@@ -5,7 +5,13 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from . import oap_bank, smi_chat_runtime, studio_intelligence
+from . import (
+    coherent_automation,
+    distribution_intelligence,
+    oap_bank,
+    smi_chat_runtime,
+    studio_intelligence,
+)
 
 
 def _configured(*names: str) -> bool:
@@ -75,11 +81,15 @@ def get_workbench_status() -> dict[str, Any]:
             "Founder read-only provider inspection",
             "War Room status and evidence surfaces",
             "OAP Studio Intelligence planning and preparation",
+            "OAP Coherent Automation 21-signal planning",
+            "OAP Distribution Intelligence release and rights review",
             "OAP Bank non-payment orchestration planning",
         ],
         "fail_closed": not database_ready,
     }
     studio = studio_intelligence.status()
+    coherence = coherent_automation.status()
+    distribution = distribution_intelligence.status()
     bank = oap_bank.status()
 
     capabilities = [
@@ -126,6 +136,8 @@ def get_workbench_status() -> dict[str, Any]:
             blocked_reason="Code mode may be exposed, but no runtime code-proposal certification check is green.",
         ),
         studio,
+        coherence,
+        distribution,
         bank,
     ]
 
