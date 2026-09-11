@@ -3,152 +3,95 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAP Master War Room</title>
+  <title>SMI War Room Chat</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    :root{--bg:#050806;--panel:#09140d;--line:#244832;--text:#f4fff6;--muted:#9fb5a8;--green:#39e57f;--gold:#d7b85d;--purple:#b795ff;--yellow:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.war{max-width:980px;margin:auto;padding:16px 12px 86px}.eyebrow{margin:0 0 5px;color:var(--green);font-weight:900;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.top h1{margin:0;font-size:clamp(2rem,8vw,4.4rem);line-height:.94}.top p{margin:7px 0 0;color:var(--muted);max-width:690px}.auto{display:inline-flex;align-items:center;gap:7px;border:1px solid #7256aa;border-radius:999px;padding:9px 12px;background:#171027;font-weight:900}.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:14px 0}.sig{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px}.sig small{display:block;color:var(--muted);font-size:.65rem;text-transform:uppercase}.sig strong{display:block;margin-top:4px}.green{border-color:#2c8c52}.purple{border-color:#7256aa}.lock{border-color:#7a682b}.panel,details{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:14px;margin-top:10px}.panel h2{margin:2px 0 5px}.panel p,details p{color:var(--muted);line-height:1.45}.actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}.action{display:block;border:1px solid var(--line);border-radius:16px;background:#0d1e13;padding:14px;color:inherit;text-decoration:none;min-height:92px}.action:hover,.action:focus{border-color:var(--green);outline:none}.action strong{display:block;margin-bottom:5px}.action small{color:var(--muted);line-height:1.3}.primary{border-color:#2c8c52}.gold{border-color:#7a682b}.next{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.next article{border:1px solid var(--line);border-radius:14px;padding:11px;background:#07110b}.next strong{display:block}.next span{display:block;color:var(--muted);font-size:.8rem;margin-top:4px}.connector-card[data-state="ready"]{border-color:#2c8c52}.connector-card[data-state="attention"]{border-color:#7a682b}.connector-state{font-weight:800}details summary{cursor:pointer;font-weight:900;min-height:42px;display:flex;align-items:center}.deep-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.deep{border:1px solid var(--line);border-radius:13px;padding:10px;color:var(--muted);background:#07110b}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}.route{display:block;border:1px solid var(--line);border-radius:12px;padding:9px;color:inherit;text-decoration:none;background:#07110b}.route small{display:block;color:var(--muted)}.truth{border-left:4px solid var(--gold);background:#1e180b;padding:11px 12px;border-radius:0 12px 12px 0;margin-top:12px;color:#efe2ad}.bottom{position:fixed;left:0;right:0;bottom:0;background:#050806e8;border-top:1px solid var(--line);padding:8px;display:flex;gap:7px;justify-content:center;z-index:20}.bottom a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#08140d;color:inherit;text-decoration:none;font-weight:900;font-size:.8rem}@media(max-width:760px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.actions{grid-template-columns:repeat(2,minmax(0,1fr))}.next,.deep-grid,.route-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}@media(max-width:460px){.actions{grid-template-columns:1fr}.top h1{font-size:2.65rem}}
+    :root{--bg:#050806;--panel:#09140d;--panel2:#0d1e13;--line:#244832;--text:#f4fff6;--muted:#9fb5a8;--green:#39e57f;--gold:#d7b85d;--purple:#b795ff;--yellow:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.war{max-width:1080px;margin:auto;padding:16px 12px 90px}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.eyebrow{margin:0 0 5px;color:var(--green);font-weight:900;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}.top h1{margin:0;font-size:clamp(2.2rem,8vw,4.7rem);line-height:.94;letter-spacing:-.06em}.top p{margin:7px 0 0;color:var(--muted);max-width:720px;line-height:1.45}.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid #7256aa;border-radius:999px;padding:9px 12px;background:#171027;font-weight:900}.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:14px 0}.sig{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px}.sig small{display:block;color:var(--muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.08em}.sig strong{display:block;margin-top:4px}.green{border-color:#2c8c52}.purple{border-color:#7256aa}.lock,.yellow{border-color:#7a682b}.panel,details{border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#09160e,#06100a);padding:14px;margin-top:10px}.panel h2{margin:2px 0 5px;font-size:1.45rem}.panel p,details p{color:var(--muted);line-height:1.45}.actions,.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}.action,.route{display:block;border:1px solid var(--line);border-radius:16px;background:var(--panel2);padding:14px;color:inherit;text-decoration:none;min-height:92px}.route{min-height:68px;padding:10px;background:#07110b}.action:hover,.action:focus,.route:hover,.route:focus{border-color:var(--green);outline:none}.action strong,.route strong{display:block;margin-bottom:5px}.route strong{font-size:.92rem}.action small,.route small{display:block;color:var(--muted);line-height:1.3;word-break:break-word}.primary{border-color:#2c8c52;background:linear-gradient(145deg,#0f301c,#0a160f)}.gold{border-color:#7a682b}.purple-card{border-color:#7256aa}.chat-panel{border-color:#2c8c52}.chat-commands{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.cmd{border:1px solid var(--line);border-radius:13px;background:#07110b;padding:10px;color:inherit;text-decoration:none}.cmd strong{display:block}.cmd small{display:block;color:var(--muted);margin-top:4px}.truth{border-left:4px solid var(--gold);background:#1e180b;padding:11px 12px;border-radius:0 12px 12px 0;margin-top:12px;color:#efe2ad;font-weight:800}.bottom{position:fixed;left:0;right:0;bottom:0;background:#050806e8;border-top:1px solid var(--line);padding:8px;display:flex;gap:7px;justify-content:center;z-index:20;backdrop-filter:blur(10px)}.bottom a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#08140d;color:inherit;text-decoration:none;font-weight:900;font-size:.8rem}summary{cursor:pointer;font-weight:900;min-height:42px;display:flex;align-items:center}@media(max-width:820px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.actions,.route-grid,.chat-commands{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}@media(max-width:460px){.top h1{font-size:2.7rem}.action{min-height:84px}}
   </style>
 </head>
 <body>
 <main class="war">
   <header class="top">
     <div>
-      <p class="eyebrow">⚔️ Founder-only · Signal-first</p>
-      <h1>OAP Master War Room</h1>
-      <p>Only the decision signals stay visible. Deep intelligence, route lists and architecture detail stay collapsed until you need them.</p>
+      <p class="eyebrow">⚔️ Founder-only · Chat command</p>
+      <h1>War Room</h1>
+      <p>Chat first. Then proof, alignment, SWOT, UI, recovery, receipts and Founder decision. No hidden execution.</p>
     </div>
-    <span class="auto">🟣 SMI AUTO · {{ 'ON' if smi_auto.active else 'OFF' }}</span>
+    <span class="pill">🟣 SMI routed</span>
   </header>
 
   <section class="strip" aria-label="War Room signal strip">
-    <div class="sig purple"><small>SMI</small><strong>🟣 Automatic</strong></div>
-    <div class="sig green"><small>Truth</small><strong>🟢 Evidence first</strong></div>
-    <div class="sig green"><small>Intelligence</small><strong>🟢 Routed</strong></div>
-    <div class="sig lock"><small>Execution</small><strong>🔒 Governed</strong></div>
+    <div class="sig purple"><small>SMI Chat</small><strong>🟢 Open</strong></div>
+    <div class="sig green"><small>Functions</small><strong>🟢 Linked</strong></div>
+    <div class="sig green"><small>Receipts</small><strong>🟢 Local</strong></div>
+    <div class="sig lock"><small>Execute</small><strong>🔒 Locked</strong></div>
     <div class="sig lock"><small>Authority</small><strong>👑 Human final</strong></div>
   </section>
 
-  <section class="panel" aria-labelledby="connector-gate-title">
-    <p class="eyebrow">Connector Gate</p>
-    <h2 id="connector-gate-title">Render · GitHub · Neon</h2>
-    <p>Redacted Founder-tool readiness only. War Room does not call provider APIs or expose credentials.</p>
-    <div class="next" id="connector-gate-grid" aria-live="polite">
-      <article class="connector-card" data-state="attention"><strong>Render</strong><span class="connector-state">🟡 Reading local gate…</span></article>
-      <article class="connector-card" data-state="attention"><strong>GitHub</strong><span class="connector-state">🟡 Reading local gate…</span></article>
-      <article class="connector-card" data-state="attention"><strong>Neon</strong><span class="connector-state">🟡 Reading local gate…</span></article>
-    </div>
-    <p class="truth">Provider reads stay Founder-only. Deploys, repository writes, SQL, migrations, payments and security changes are not enabled by this gate.</p>
-  </section>
-
-  <section class="panel" aria-labelledby="main-actions-title">
+  <section class="panel chat-panel" aria-labelledby="chat-title">
     <p class="eyebrow">Use first</p>
-    <h2 id="main-actions-title">Four controls. No duplicate noise.</h2>
+    <h2 id="chat-title">War Room Chat</h2>
+    <p>Open Personal SMI and paste one of these command prompts. SMI routes the right intelligence lenses, then War Room checks proof before any green claim.</p>
     <div class="actions">
-      <a class="action primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Personal SMI</strong><small>Chat. SMI selects lenses automatically.</small></a>
-      <a class="action primary" href="{{ url_for('mission_control.brain_dashboard') }}"><strong>🔎 Deep Intelligence</strong><small>All 26 intelligence lenses and evidence logic.</small></a>
-      <a class="action" href="/smi/brain/evidence-runner/run?command=war_room"><strong>🧪 Proof Check</strong><small>Truth, evidence, gaps, risk and next gate.</small></a>
-      <a class="action gold" href="{{ url_for('mission_control.judgement_dashboard') }}"><strong>👑 Founder Decision</strong><small>Signed Human Authority decision path. Never automatic.</small></a>
+      <a class="action primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Open SMI Chat</strong><small>Main governed chat with stream, history, image, audio, video, document and code proposal support.</small></a>
+      <a class="action primary" href="/smi/brain/evidence-runner/run?command=war_room"><strong>⚔️ Run War Room</strong><small>Proof, risk, strongest link, weakest link and next gate.</small></a>
+      <a class="action gold" href="{{ url_for('mission_control.judgement_dashboard') }}"><strong>👑 Founder Decision</strong><small>Human Authority decision area. Never automatic.</small></a>
     </div>
-    <p class="truth">SMI is automatic for observation, routing and analysis. It does not secretly approve, deploy, spend, dispatch, track, capture payment or mutate production.</p>
+    <div class="chat-commands" aria-label="War Room chat command prompts">
+      <a class="cmd" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>Run War Room 21</strong><small>Deep review with evidence, risks, dissent and next gate.</small></a>
+      <a class="cmd" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>Check all functions</strong><small>Ask SMI to inspect chat, routes, proof, receipts and locked gates.</small></a>
+      <a class="cmd" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>Fix weakest link</strong><small>Ask for the smallest safe fix before deploy.</small></a>
+      <a class="cmd" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>Give me the truth light</strong><small>Show green, yellow, red and locked without fake green.</small></a>
+    </div>
+    <p class="truth">Truth lock: War Room Chat can recommend and review. It does not secretly approve, deploy, spend, dispatch, track, capture payment or mutate production.</p>
   </section>
 
-  <section class="panel" aria-labelledby="next-three-title">
-    <p class="eyebrow">Priority</p>
-    <h2 id="next-three-title">Highest-value next three</h2>
-    <div class="next">
-      {% for item in war_room.top_next[:3] %}
-      <article><strong>{{ item.name }}</strong><span>{{ item.stars_display }} · {{ item.first_missing_stage or 'Evidence review' }}</span></article>
-      {% else %}
-      <article><strong>Truth check</strong><span>No priority projection returned.</span></article>
-      {% endfor %}
+  <section class="panel" aria-labelledby="functions-title">
+    <p class="eyebrow">All main functions</p>
+    <h2 id="functions-title">One-tap private checks</h2>
+    <div class="actions">
+      <a class="action primary" href="/alignment/status"><strong>◎ Alignment Intelligence</strong><small>System fit, route alignment and no-fake-green boundaries.</small></a>
+      <a class="action purple-card" href="/smi/brain/evidence?part=occipital_lobe"><strong>🎛️ UI Intelligence</strong><small>Visual surface, UI proof and screen logic.</small></a>
+      <a class="action gold" href="/smi/brain/evidence-runner/run?command=swot_7"><strong>📊 SWOT Intelligence</strong><small>Strengths, weaknesses, opportunities and threats.</small></a>
+      <a class="action" href="/smi/thinking-signals"><strong>📡 Signals</strong><small>Private-safe status signals and boundaries.</small></a>
+      <a class="action" href="/smi/brain/receipts"><strong>💾 Receipts</strong><small>Local HRM and Matrix receipt status.</small></a>
+      <a class="action" href="/smi/brain/score"><strong>⭐ Brain Score</strong><small>SMI Brain score and proof state.</small></a>
+      <a class="action gold" href="/smi/completion"><strong>🔒 Acceptance Tests</strong><small>Completion evidence and remaining proof.</small></a>
+      <a class="action gold" href="/smi/brain/evidence-runner/run?command=recovery_test"><strong>🔄 Rollback Proof</strong><small>Fallback, recovery and safe resume check.</small></a>
+      <a class="action gold" href="/smi/master-upgrade"><strong>🏁 Production Proof</strong><small>Real-green master upgrade gate.</small></a>
     </div>
   </section>
 
-  <details>
-    <summary>🧠 Deep Intelligence · architecture, simulations and A3 pilot</summary>
-    <div class="deep-grid">
-      <div class="deep">3 / 7 / 21 War Room protocol</div>
-      <div class="deep">Observe → Challenge → Resolve</div>
-      <div class="deep">Normal is not enough</div>
-      <div class="deep">Cross-world capability registry</div>
-      <div class="deep">Travel Intelligence · Movement Intelligence · Booking Intelligence</div>
-      <div class="deep">Events Intelligence · Humanitarian Intelligence · Compliance Intelligence</div>
-      <div class="deep">Master boards · Nexus Board · Laboratory Board</div>
-      <div class="deep">Challenge chamber · Builder · Operator · Challenger</div>
-      <div class="deep">Master command card · PROCEED simulation · FAILURE simulation · RECOVERY simulation</div>
-      <div class="deep">Evidence returns to HRM</div>
-      <div class="deep">SMI · exactly 7 Intelligence Worlds</div>
-      <div class="deep">Nexus is the nervous/connective system · Oasis is the environment/presentation layer</div>
-      <div class="deep">78 Agent Passports</div>
-      <div class="deep">RTL Memory Guard / IOMMU</div>
-      <div class="deep">RTL Trust / Attestation</div>
-      <div class="deep">Physical OAP Silicon</div>
-    </div>
-    <p><strong>⭐ 1 · Purpose</strong> → <strong>⭐ 2 · Architecture</strong> → <strong>⭐ 3 · Functionality</strong> → <strong>⭐ 4 · Safety & Governance</strong> → <strong>⭐ 5 · Connectivity & Data</strong> → <strong>⭐ 6 · Resilience & Operations</strong> → <strong>⭐ 7 · Real-world Readiness</strong></p>
-    <p><strong>No evidence = no green. No test = no star.</strong></p>
-    <p><strong>A3 bounded pilot</strong> uses RUNTIME_HEARTBEAT and RUNTIME_HEALTH_PROBE for 24/7 Organism Runtime proof. A fresh worker heartbeat is required. A4 / A5 remain locked; money, migrations, auth, dispatch, publishing and unreviewed deploys remain outside A3.</p>
-    <p>This page itself exposes no execution control. No approve, execute, deploy, migrate, purchase, flash or activate action is available here.</p>
-  </details>
-
-  <details>
-    <summary>🔒 Locked gates · only open when proving release readiness</summary>
-    <div class="actions">
-      <a class="action gold" href="/war-room/smi-completion"><strong>Acceptance Tests</strong><small>Completion evidence.</small></a>
-      <a class="action gold" href="/war-room/smi-brain/evidence-runner/run?command=recovery_test"><strong>Rollback Proof</strong><small>Recovery and safe resume.</small></a>
-      <a class="action gold" href="/war-room/master-upgrade"><strong>Production Proof</strong><small>Real-green production gate.</small></a>
-      <a class="action gold" href="/war-room/smi-brain/receipts"><strong>Receipt Proof</strong><small>HRM / production receipt evidence.</small></a>
-    </div>
-  </details>
-
-  <details>
+  <details open>
     <summary>🧭 All War Room routes</summary>
     <div class="route-grid">
-      <a class="route" href="{{ url_for('mission_control.war_room_dashboard') }}"><strong>War Room</strong><small>/mission/war-room</small></a>
-      <a class="route" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>Personal SMI</strong><small>/mission/ollama</small></a>
-      <a class="route" href="{{ url_for('mission_control.brain_dashboard') }}"><strong>Intelligence</strong><small>/mission/brain</small></a>
+      <a class="route" href="{{ url_for('mission_control.war_room_dashboard') }}"><strong>War Room Home</strong><small>/war-room</small></a>
+      <a class="route" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>Personal SMI Chat</strong><small>/ollama</small></a>
+      <a class="route" href="{{ url_for('mission_control.brain_dashboard') }}"><strong>Brain UI</strong><small>/brain</small></a>
+      <a class="route" href="/war-room/deep-dive"><strong>Deep Dive</strong><small>/war-room/deep-dive</small></a>
+      <a class="route" href="/war-room/deep-dive/simulate?command=next_gate"><strong>Next Gate</strong><small>/war-room/deep-dive/simulate?command=next_gate</small></a>
+      <a class="route" href="/war-room/smi-brain"><strong>Brain Status</strong><small>/war-room/smi-brain</small></a>
+      <a class="route" href="/war-room/smi-brain/evidence"><strong>Evidence</strong><small>/war-room/smi-brain/evidence</small></a>
+      <a class="route" href="/war-room/smi-brain/evidence-runner"><strong>Runner</strong><small>/war-room/smi-brain/evidence-runner</small></a>
+      <a class="route" href="/war-room/smi-brain/evidence-runner/run?command=war_room"><strong>Run Check</strong><small>/war-room/smi-brain/evidence-runner/run?command=war_room</small></a>
+      <a class="route" href="/war-room/smi-brain/receipts"><strong>Receipts</strong><small>/war-room/smi-brain/receipts</small></a>
+      <a class="route" href="/war-room/smi-brain/score"><strong>Brain Score</strong><small>/war-room/smi-brain/score</small></a>
+      <a class="route" href="/war-room/thinking-signals"><strong>Signals</strong><small>/war-room/thinking-signals</small></a>
+      <a class="route" href="/war-room/ai-behaviour"><strong>Behaviour</strong><small>/war-room/ai-behaviour</small></a>
+      <a class="route" href="/war-room/smi-completion"><strong>Completion</strong><small>/war-room/smi-completion</small></a>
+      <a class="route" href="/war-room/master-upgrade"><strong>Master Upgrade</strong><small>/war-room/master-upgrade</small></a>
       <a class="route" href="/war-room/alignment"><strong>Alignment</strong><small>/war-room/alignment</small></a>
-      <a class="route" href="/smi/brain/evidence-runner/run?command=swot_7"><strong>SWOT</strong><small>Evidence runner</small></a>
-      <a class="route" href="/smi/thinking-signals"><strong>Signals</strong><small>Thinking signals</small></a>
-      <a class="route" href="/smi/brain/receipts"><strong>Receipts</strong><small>HRM receipts</small></a>
-      <a class="route" href="/war-room/deep-dive"><strong>Deep Dive</strong><small>Expanded War Room</small></a>
-      <a class="route" href="/war-room/debug/404"><strong>404 Check</strong><small>Route diagnostics</small></a>
+      <a class="route" href="/war-room/debug/simple-task"><strong>Simple Task Debug</strong><small>/war-room/debug/simple-task</small></a>
+      <a class="route" href="/war-room/debug/404"><strong>404 Check</strong><small>/war-room/debug/404</small></a>
     </div>
   </details>
 </main>
 <nav class="bottom" aria-label="War Room quick strip">
-  <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a>
-  <a href="{{ url_for('mission_control.brain_dashboard') }}">🔎 Intel</a>
-  <a href="/smi/brain/evidence-runner/run?command=war_room">🧪 Proof</a>
+  <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 Chat</a>
+  <a href="/smi/brain/evidence-runner/run?command=war_room">⚔️ Run</a>
+  <a href="/alignment/status">◎ Align</a>
+  <a href="/smi/brain/evidence-runner/run?command=swot_7">📊 SWOT</a>
   <a href="{{ url_for('mission_control.judgement_dashboard') }}">👑 Decide</a>
 </nav>
-<script>
-(() => {
-  const grid = document.getElementById('connector-gate-grid');
-  if (!grid) return;
-  const render = (connectors) => {
-    grid.textContent = '';
-    for (const item of connectors) {
-      const ready = item.ready === undefined ? Boolean(item.configured) : Boolean(item.ready);
-      const configured = Boolean(item.configured);
-      const card = document.createElement('article');
-      card.className = 'connector-card';
-      card.dataset.state = ready ? 'ready' : 'attention';
-      const name = document.createElement('strong');
-      name.textContent = item.name || item.id || 'Provider';
-      const state = document.createElement('span');
-      state.className = 'connector-state';
-      state.textContent = ready ? '🟢 Ready' : configured ? '🟡 Configured · attention' : '🟡 Setup needed';
-      card.append(name, state);
-      grid.append(card);
-    }
-  };
-  fetch('/mission/workbench/status', {cache: 'no-store', credentials: 'same-origin'})
-    .then((response) => response.ok ? response.json() : Promise.reject(new Error('connector_gate_unavailable')))
-    .then((payload) => render(Array.isArray(payload.connectors) ? payload.connectors : []))
-    .catch(() => {
-      for (const state of grid.querySelectorAll('.connector-state')) state.textContent = '🟡 Gate unavailable';
-    });
-})();
-</script>
 </body>
 </html>
