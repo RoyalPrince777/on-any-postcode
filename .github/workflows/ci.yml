@@ -57,4 +57,14 @@ jobs:
           vvp /tmp/oap-rtl-attestation | tee /tmp/oap-rtl-attestation.log
           grep -q "OAP_RTL_ATTESTATION_V0_PASS" /tmp/oap-rtl-attestation.log
       - name: Run governed regression suite
-        run: python -m pytest -q
+        run: |
+          set -o pipefail
+          python -m pytest -q 2>&1 | tee /tmp/oap-pytest.log
+      - name: Preserve regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governed-regression-report
+          path: /tmp/oap-pytest.log
+          if-no-files-found: error
+          retention-days: 1
