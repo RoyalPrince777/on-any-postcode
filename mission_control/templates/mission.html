@@ -6,13 +6,13 @@
   <title>OAP Mission Control</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    :root{--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8;--purple:#b795ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}a{color:inherit}.shell{max-width:1180px;margin:auto;padding:18px 14px 78px}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.hero h1{font-size:clamp(2.5rem,7vw,5rem);margin:.1em 0}.muted{color:var(--muted);line-height:1.45}.modes,.command-grid,.status-grid,.families{display:grid;gap:10px}.modes{grid-template-columns:repeat(3,minmax(0,1fr));margin:15px 0}.modes a,.command,.status-card,.family{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:13px;text-decoration:none}.modes a[aria-current="page"]{border-color:var(--green);background:#0b2818}.command-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.command{min-height:112px}.command strong{display:block;margin-bottom:7px}.command.primary{border-color:#2f8d53}.command.lock{border-color:#79662c}.command.purple{border-color:#6b55aa}.status-grid,.families{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.section{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}.truth{border-left:4px solid var(--gold);background:#211b0b;padding:13px;border-radius:0 12px 12px 0;color:#f0e2aa}.authority{border:1px solid #79662c;border-radius:16px;padding:13px;background:#161205}.public-door{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;font-weight:850}.bottom{position:fixed;left:0;right:0;bottom:0;background:#050806e8;border-top:1px solid var(--line);backdrop-filter:blur(10px);padding:8px;display:flex;gap:7px;justify-content:center;z-index:20}.bottom a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:8px 10px;background:#08140d;color:inherit;text-decoration:none;font-weight:900;font-size:.82rem}@media(max-width:760px){.modes,.command-grid{grid-template-columns:1fr}.command{min-height:auto}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}
+    :root{--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}a{color:inherit}.shell{max-width:1180px;margin:auto;padding:18px 14px 60px}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.hero h1{font-size:clamp(2.5rem,7vw,5rem);margin:.1em 0}.muted{color:var(--muted);line-height:1.45}.modes,.command-grid,.status-grid,.families{display:grid;gap:10px}.modes{grid-template-columns:repeat(3,minmax(0,1fr));margin:15px 0}.modes a,.command,.status-card,.family{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:13px;text-decoration:none}.modes a[aria-current="page"]{border-color:var(--green);background:#0b2818}.command-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.command{min-height:112px}.command strong{display:block;margin-bottom:7px}.command.primary{border-color:#2f8d53}.command.lock{border-color:#79662c}.status-grid,.families{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.section{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}.truth{border-left:4px solid var(--gold);background:#211b0b;padding:13px;border-radius:0 12px 12px 0;color:#f0e2aa}.authority{border:1px solid #79662c;border-radius:16px;padding:13px;background:#161205}.public-door{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;font-weight:850}.subhead{margin-top:18px}@media(max-width:760px){.modes,.command-grid{grid-template-columns:1fr}.command{min-height:auto}}
   </style>
 </head>
 <body>
 <main class="shell">
   <header class="hero">
-    <div><p class="eyebrow">Founder command surface</p><h1>Mission Control</h1><p class="muted">One private command deck for evidence, intelligence, chat, War Room, autonomy locks and Human Authority review.</p></div>
+    <div><p class="eyebrow">Founder command surface</p><h1>Mission Control</h1><p class="muted">One private command deck for evidence, intelligence, Booking, infrastructure and Human Authority review.</p></div>
     <a class="public-door" href="https://on-any-postcode.onrender.com/">🌍 OAP World</a>
   </header>
 
@@ -25,20 +25,19 @@
   <section aria-labelledby="command-title">
     <p class="eyebrow">Working doors first</p><h2 id="command-title">Command Deck</h2>
     <div class="command-grid">
-      <a class="command primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Personal SMI Chat</strong><span class="muted">Clean private Founder intelligence chat.</span></a>
+      <a class="command primary" href="{{ url_for('travel_supply.founder_dashboard') }}"><strong>📅 Booking / OAP Direct</strong><span class="muted">Supplier, listing, reservation and booking evidence.</span></a>
+      <a class="command primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Personal SMI</strong><span class="muted">Private Founder intelligence and governed memory.</span></a>
+      <a class="command primary" href="{{ url_for('all_intelligence.dashboard') }}"><strong>🌐 All Intelligence</strong><span class="muted">One SMI brain → seven Intelligence Worlds → specialist families and capabilities.</span></a>
       <a class="command primary" href="{{ url_for('mission_control.war_room_dashboard') }}"><strong>⚔️ War Room</strong><span class="muted">Risk, proof, recovery and next-gate review.</span></a>
-      <a class="command primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}?prompt=Run%20all%20main%20private%20functions%20as%20a%20review%3A%20Alignment%2C%20UI%2C%20SWOT%2C%20Signals%2C%20Receipts%2C%20Rollback%2C%20Adaptive%20Autonomy%2C%20Coherent%20Scan%2C%20Next%20Gate.%20Do%20not%20claim%20execution."><strong>🧭 All Functions Chat</strong><span class="muted">Prefill SMI with the full function scan.</span></a>
-      <a class="command purple" href="/war-room/simulate?action=smi_learning_readiness_simulation&target=adaptive%20autonomy%20coherent%20scan"><strong>🧬 Adaptive Autonomy Intelligence</strong><span class="muted">Check autonomy lock, learning readiness, evidence and next A-level gate.</span></a>
-      <a class="command purple" href="/war-room/simulate?action=smi_learning_readiness_simulation&target=coherent%20scan"><strong>◎ Coherent Scan</strong><span class="muted">Scan memory, coherence, evidence and learning-loop fit.</span></a>
-      <a class="command" href="{{ url_for('all_intelligence.dashboard') }}"><strong>🌐 All Intelligence</strong><span class="muted">One SMI brain → seven Intelligence Worlds → specialist families.</span></a>
+      <a class="command lock" href="{{ url_for('smi_proof_gate.a7_dashboard') }}"><strong>🟣 A7 Certification</strong><span class="muted">A6→A7 proof, Emergency Halt and constitutional assurance. A7 remains locked until every proof is real.</span></a>
+      <a class="command" href="{{ url_for('isac_spatial.dashboard') }}"><strong>📡 Matrix Spatial</strong><span class="muted">Governed spatial and RF intelligence boundary.</span></a>
       <a class="command" href="{{ url_for('provider_fabric.alignment_dashboard') }}"><strong>◎ Alignment & Sovereignty</strong><span class="muted">Single-brain, provider and autonomy alignment.</span></a>
-      <a class="command" href="/smi/brain/evidence?part=occipital_lobe"><strong>🎛️ UI Intelligence</strong><span class="muted">Visual surface and screen proof check.</span></a>
-      <a class="command" href="/smi/brain/evidence-runner/run?command=swot_7"><strong>📊 SWOT Intelligence</strong><span class="muted">Strengths, weaknesses, opportunities and threats.</span></a>
       <a class="command" href="{{ url_for('mission_control.judgement_dashboard') }}"><strong>👑 Judgement</strong><span class="muted">Human Authority review and decision evidence.</span></a>
       <a class="command" href="{{ url_for('mission_control.infrastructure_dashboard') }}"><strong>🏗️ Infrastructure</strong><span class="muted">Runtime, storage and service readiness.</span></a>
-      <a class="command lock" href="{{ url_for('smi_proof_gate.a7_dashboard') }}"><strong>🟣 A7 Certification</strong><span class="muted">A7 remains locked until every proof is real.</span></a>
+      <a class="command" href="{{ url_for('humanitarian_tracker.dashboard') }}"><strong>🌍 Humanitarian Intelligence</strong><span class="muted">Source-scoped civilian emergency awareness.</span></a>
+      <a class="command" href="/mission/providers"><strong>🔌 Provider Fabric</strong><span class="muted">Replaceable inference plumbing and runtime evidence.</span></a>
     </div>
-    <p class="truth"><strong>Default deny.</strong> Adaptive autonomy can analyse and recommend only. It cannot self-promote, self-approve, deploy, spend, dispatch, track, change permissions or unlock A5–A7.</p>
+    <p class="truth"><strong>Default deny.</strong> Human Authority remains final; this UI does not fake a toggle, and a dashboard click never silently deploys, spends, dispatches, changes permissions or migrates production data.</p>
   </section>
 
   <section class="section" aria-labelledby="status-title">
@@ -48,18 +47,34 @@
       <article class="status-card"><strong>{{ component.label }}</strong><p class="muted">{{ component.value }}</p><small>{{ component.state }}</small></article>
       {% endfor %}
     </div>
-    <article class="authority" aria-label="Human Authority status"><strong>{{ gateway.human_authority.status }}</strong><p>{{ gateway.human_authority.message }}</p><p>{{ gateway.approval_summary.message }}</p></article>
+    <article class="authority" aria-label="Human Authority status">
+      <strong>{{ gateway.human_authority.status }}</strong>
+      <p>{{ gateway.human_authority.message }}</p>
+      <p>{{ gateway.approval_summary.message }}</p>
+    </article>
   </section>
 
   <section class="section" aria-labelledby="intelligence-title">
     <p class="eyebrow">Canonical top level</p><h2 id="intelligence-title">Seven Intelligence Worlds</h2>
     <div class="families" aria-label="Seven canonical OAP Intelligence Worlds">
-      <div class="family">🌍 Earth Intelligence</div><div class="family">🗣️ Language Intelligence</div><div class="family">🌱 Life Intelligence</div><div class="family">🧭 Movement Intelligence</div><div class="family">🏘️ Civic Intelligence</div><div class="family">🏛️ Civilisation Intelligence</div><div class="family">🧩 Matrix Intelligence</div>
+      <div class="family">🌍 Earth Intelligence</div>
+      <div class="family">🗣️ Language Intelligence</div>
+      <div class="family">🌱 Life Intelligence</div>
+      <div class="family">🧭 Movement Intelligence</div>
+      <div class="family">🏘️ Civic Intelligence</div>
+      <div class="family">🏛️ Civilisation Intelligence</div>
+      <div class="family">🧩 Matrix Intelligence</div>
     </div>
-    <p class="truth"><strong>One SMI brain.</strong> Adaptive Autonomy and Coherent Scan are governed capabilities inside SMI/War Room, not extra worlds and not authority.</p>
+    <p class="truth"><strong>One SMI brain.</strong> Jungle Book, Animal, Akan Core and Akan Animal remain specialist family intelligence inside their canonical World placement; Technology, Humanitarian and Multimodal remain cross-system capabilities—not extra Worlds.</p>
     <a class="public-door" href="{{ url_for('all_intelligence.dashboard') }}">Open All Intelligence →</a>
+
+    <h3 class="subhead">Seven specialist agent families</h3>
+    <div class="status-grid" aria-label="OAP specialist Intelligence families">
+      {% for agent in gateway.agents %}
+      <article class="status-card"><strong>{{ agent.name }}</strong><p class="muted">{{ agent.assignment }}</p></article>
+      {% endfor %}
+    </div>
   </section>
 </main>
-<nav class="bottom" aria-label="Quick access"><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Chat</a><a href="{{ url_for('mission_control.war_room_dashboard') }}">War Room</a><a href="/war-room/simulate?action=smi_learning_readiness_simulation&target=adaptive%20autonomy%20coherent%20scan">Autonomy</a><a href="/war-room/simulate?action=smi_learning_readiness_simulation&target=coherent%20scan">Coherent</a><a href="{{ url_for('mission_control.judgement_dashboard') }}">Judge</a></nav>
 </body>
 </html>
