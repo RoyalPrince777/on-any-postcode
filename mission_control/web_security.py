@@ -188,6 +188,9 @@ class SlidingWindowLimiter:
             self._events.clear()
 
 
-CHAT_BURST_LIMITER = SlidingWindowLimiter(limit=12, window_seconds=60, duplicate_seconds=0.35)
+# Private Founder SMI chat is protected against abuse without treating an active
+# conversation as an attack. Thirty requests per minute is still a hard burst cap;
+# duplicate taps/retries inside one second do not consume additional limiter slots.
+CHAT_BURST_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=1.0)
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
 AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=15 * 60, duplicate_seconds=2.0)
