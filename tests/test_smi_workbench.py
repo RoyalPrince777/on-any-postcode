@@ -17,6 +17,7 @@ def test_workbench_projection_never_exposes_secret_values(monkeypatch):
     payload = smi_workbench.get_workbench_status()
     serialized = json.dumps(payload)
     connectors = {item["id"]: item for item in payload["connectors"]}
+    capabilities = {item["id"]: item for item in payload["capabilities"] if "id" in item}
 
     assert list(connectors) == ["render", "github", "neon"]
     assert all(item["configured"] for item in connectors.values())
@@ -24,6 +25,8 @@ def test_workbench_projection_never_exposes_secret_values(monkeypatch):
     assert connectors["github"]["inspect_url"] == "/mission/tools/github/repository"
     assert connectors["neon"]["inspect_url"] == "/mission/tools/neon/status"
     assert connectors["neon"]["name"] == "Neon · Identity/HRM blocked"
+    assert connectors["render"]["ready"] is False
+    assert connectors["github"]["ready"] is False
     assert payload["runtime_gate"]["state"] == "yellow"
     assert payload["runtime_gate"]["fail_closed"] is True
     assert "managed Founder identity" in payload["runtime_gate"]["blocked"]
@@ -32,6 +35,11 @@ def test_workbench_projection_never_exposes_secret_values(monkeypatch):
     assert "postgresql://" not in serialized
     assert payload["governance"]["human_authority_final"] is True
     assert payload["governance"]["provider_reads_founder_only"] is True
+    assert payload["truth_contract"]["no_fake_green"] is True
+    assert payload["truth_contract"]["green_requires_runtime_evidence"] is True
+    assert capabilities["attachments"]["ready"] is False
+    assert capabilities["voice"]["ready"] is False
+    assert capabilities["code"]["ready"] is False
 
 
 def test_workbench_runtime_gate_turns_green_only_with_database_and_schema(monkeypatch):
@@ -58,6 +66,7 @@ def test_workbench_runtime_gate_turns_green_only_with_database_and_schema(monkey
     assert payload["runtime_gate"]["blocked"] == []
     assert neon["name"] == "Neon · Identity/HRM"
     assert neon["ready"] is True
+    assert payload["status"] == "ready"
 
 
 def test_workbench_status_is_private(anonymous_client):
