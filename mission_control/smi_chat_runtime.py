@@ -35,6 +35,11 @@ _provider = _core._provider
 _COMPATIBILITY_ENGINE = _core._provider
 _CORE_COHERENCE_REVIEW = _core.coherence_review
 
+_health_probe_condition = threading.Condition()
+_health_probe_running = False
+_health_probe_generation = 0
+_health_probe_result: dict | None = None
+
 _WORLD_CRISIS_TERMS = (
     "world crisis",
     "global crisis",
@@ -71,14 +76,50 @@ _PRIVATE_REASONING_DISCLOSURE = (
 
 
 def health() -> dict:
-    """Return core SMI health plus truthful inference and memory certification."""
-    snapshot = dict(_core.health())
-    snapshot["inference"] = _inference.status(probe=True)
-    snapshot["thinking_process"] = _thinking.validate()
-    snapshot["canonical_memory"] = canonical_memory_status()
-    snapshot["governed_memory"] = governed_memory_status()
-    snapshot["memory_sync"] = memory_sync_status()
-    return snapshot
+    """Return truthful SMI health and coalesce only overlapping deep probes.
+
+    Multiple dashboard layers can ask for the same expensive health snapshot at
+    the same moment. Exactly one caller performs that probe; callers that arrive
+    while it is running share its result. Once the probe finishes, the next later
+    health request probes again, so readiness changes are never hidden by a TTL.
+    """
+
+    global _health_probe_generation, _health_probe_result, _health_probe_running
+
+    with _health_probe_condition:
+        observed_generation = _health_probe_generation
+        if _health_probe_running:
+            _health_probe_condition.wait_for(
+                lambda: (
+                    not _health_probe_running
+                    or _health_probe_generation != observed_generation
+                )
+            )
+            if _health_probe_result is not None:
+                return dict(_health_probe_result)
+        _health_probe_running = True
+
+    try:
+        snapshot = dict(_core.health())
+        snapshot["inference"] = _inference.status(probe=True)
+        snapshot["thinking_process"] = _thinking.validate()
+        snapshot["canonical_memory"] = canonical_memory_status()
+        snapshot["governed_memory"] = governed_memory_status()
+        snapshot["memory_sync"] = memory_sync_status()
+        snapshot["health_probe"] = {"coalesced_concurrent_checks": True}
+    except Exception:
+        with _health_probe_condition:
+            _health_probe_running = False
+            _health_probe_generation += 1
+            _health_probe_condition.notify_all()
+        raise
+
+    with _health_probe_condition:
+        _health_probe_result = snapshot
+        _health_probe_running = False
+        _health_probe_generation += 1
+        _health_probe_condition.notify_all()
+    return dict(snapshot)
 
 
 def _gateway_provider(
