@@ -10,15 +10,19 @@ def test_latest_founder_memory_contains_current_locked_rules():
     assert "no fake green" in text
     assert "Kaa is completely excluded" in text
     assert "one canonical Send/Enter/Mic/Voice/Stop runtime" in text
-    assert latest_founder_memory.status()["revision"] == "2026-09-11-founder-parity"
+    assert (
+        latest_founder_memory.status()["revision"]
+        == "2026-09-11-founder-parity"
+    )
 
 
 def test_latest_founder_memory_outranks_older_canonical_context():
     items = memory_orchestrator.compose_memory("GENERAL", limit=21)
+    status = memory_orchestrator.status()
     assert items[0].task_type == "LATEST_FOUNDER_LOCK"
     assert items[0].memory_id.startswith("founder-lock:")
-    assert memory_orchestrator.status()["authority_order"][0] == "LATEST_FOUNDER_LOCK"
-    assert memory_orchestrator.status()["budget_total"] == 21
+    assert status["authority_order"][0] == "LATEST_FOUNDER_LOCK"
+    assert status["budget_total"] == 21
 
 
 def test_latest_founder_memory_never_claims_raw_chat_or_private_reasoning_copy():
