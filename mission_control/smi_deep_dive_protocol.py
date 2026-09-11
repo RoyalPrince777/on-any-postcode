@@ -1,9 +1,9 @@
 """Founder-only SMI Deep-Dive Simulation Protocol.
 
-The deep dive starts from SMI, not from the War Room. War Room is triggered
-only when requested, when risk/conflict is significant, or when SMI escalates
-from 7 to 21. This module is read-only: it does not execute, approve, deploy,
-dispatch, track, spend, or write production records.
+The deep dive starts from SMI, not from the War Room. SMI selects the smallest
+sufficient depth (3 / 7 / 21) and escalates only when evidence, risk, conflict
+or Founder intent requires it. This module is read-only: it does not execute,
+approve, deploy, dispatch, track, spend, or write production records.
 """
 from __future__ import annotations
 
@@ -14,17 +14,39 @@ CANONICAL_FLOW: tuple[str, ...] = (
     "SMI Protocol",
     "Depth Selection",
     "Evidence + Context",
+    "HRM / JOOG Memory",
     "Specialist Intelligence",
-    "Optional Founder-selected Agent",
+    "Registered Agent Challenge",
     "War Room when triggered/requested",
-    "Judgement",
+    "Guardian + Judgement",
     "Human Authority Final",
 )
 
 DEPTH_MODES: tuple[dict[str, object], ...] = (
-    {"id": "instant_3", "label": "⚡ INSTANT 3", "depth": 3, "use_for": "simple, low-risk, obvious tasks"},
-    {"id": "medium_7", "label": "🧠 MEDIUM 7", "depth": 7, "use_for": "analytical checks, structure, normal review"},
-    {"id": "high_21", "label": "🟣 HIGH 21", "depth": 21, "use_for": "deep multi-system, consequential, public/private, safety, money, dispatch, authority, or conflicting evidence"},
+    {
+        "id": "auto",
+        "label": "◎ AUTO",
+        "depth": "adaptive",
+        "use_for": "SMI chooses the smallest sufficient depth and escalates 3 → 7 → 21 when justified",
+    },
+    {
+        "id": "instant_3",
+        "label": "⚡ INSTANT 3",
+        "depth": 3,
+        "use_for": "simple, low-risk, obvious tasks",
+    },
+    {
+        "id": "medium_7",
+        "label": "🧠 MEDIUM 7",
+        "depth": 7,
+        "use_for": "analytical checks, structure, normal review, moderate uncertainty",
+    },
+    {
+        "id": "high_21",
+        "label": "👑 HIGH 21",
+        "depth": 21,
+        "use_for": "deep multi-system, consequential, safety, money, dispatch, authority, or conflicting evidence",
+    },
 )
 
 ROUTE_FIELDS: tuple[str, ...] = (
@@ -32,7 +54,7 @@ ROUTE_FIELDS: tuple[str, ...] = (
     "system(s)",
     "brain regions",
     "relevant evidence",
-    "HRM memory",
+    "HRM / JOOG memory",
     "Matrix relationships",
     "NEXUS dependencies",
     "Guardian boundaries",
@@ -67,88 +89,117 @@ FOUNDER_DECISIONS: tuple[str, ...] = (
 )
 
 WAR_ROOM_BUTTONS: tuple[dict[str, str], ...] = (
-    {"button": "🟢", "name": "RUN WAR ROOM", "does": "Start the full seven-judge review."},
-    {"button": "🟣", "name": "DEEP DIVE 21", "does": "Escalate SMI to the full 3x7 cycle."},
-    {"button": "👥", "name": "BRING IN AGENT", "does": "Choose a registered specialist."},
-    {"button": "🎯", "name": "AUTO SELECT 7", "does": "SMI selects the strongest seven registered agents for the current issue."},
-    {"button": "🔎", "name": "SHOW EVIDENCE", "does": "Show sources, freshness, confidence and gaps; no private chain-of-thought."},
-    {"button": "🧠", "name": "SHOW THINKING", "does": "Show telemetry only: Mode, Stage, Evidence, Agents, Tools, Confidence, Guardian, HRM."},
+    {"button": "▶", "name": "RUN WAR ROOM", "does": "Start the governed review at the selected depth."},
+    {"button": "⏹", "name": "STOP", "does": "Stop the current bounded simulation/review run."},
+    {"button": "↻", "name": "CHALLENGE AGAIN", "does": "Run another registered-agent challenge against the recommendation."},
+    {"button": "⚖", "name": "COMPARE", "does": "Compare viable alternatives, evidence, risk and reversibility."},
+    {"button": "👑", "name": "HIGH 21", "does": "Escalate SMI to the full 3x7 review cycle."},
+    {"button": "👥", "name": "AGENTS", "does": "Show or choose registered specialists selected for this case."},
+    {"button": "🎯", "name": "AUTO SELECT", "does": "SMI selects the strongest relevant registered agents for the current issue."},
+    {"button": "🔎", "name": "EVIDENCE", "does": "Show sources, freshness, confidence and gaps; no private chain-of-thought."},
     {"button": "⚔️", "name": "RED TEAM", "does": "Attack the current recommendation and assumptions."},
-    {"button": "📊", "name": "SWOT x7", "does": "Run full SWOT across all seven judges."},
     {"button": "🔗", "name": "DEPENDENCIES", "does": "Show upstream/downstream systems and cascade risk."},
-    {"button": "💥", "name": "FAILURE TEST", "does": "Run worst credible failure scenario."},
-    {"button": "🛡", "name": "GUARDIAN CHECK", "does": "Check privacy, authority, safety and policy boundary."},
-    {"button": "💾", "name": "HRM CHECK", "does": "Check memory quality, provenance, lessons and missing records."},
-    {"button": "🔄", "name": "RECOVERY TEST", "does": "Isolation -> fallback -> recovery -> integrity -> reconciliation -> resume."},
-    {"button": "⭐", "name": "SCORE 7x", "does": "Run the seven-star evidence score."},
-    {"button": "🟢", "name": "STRONGEST LINK", "does": "Show strongest proven part."},
-    {"button": "🟡", "name": "WEAKEST LINK", "does": "Show limiting evidence or risk."},
-    {"button": "🗣", "name": "JUDGE SPEECHES", "does": "Show each judge's mandatory short speech."},
-    {"button": "📋", "name": "MINORITY REPORT", "does": "Preserve serious dissent even if the vote is 6-1."},
-    {"button": "➡️", "name": "NEXT GATE", "does": "Show the smallest action that moves the case forward."},
+    {"button": "💥", "name": "FAILURE TEST", "does": "Run the worst credible failure scenario."},
+    {"button": "🛡", "name": "GUARDIAN", "does": "Check privacy, authority, safety and policy boundaries."},
+    {"button": "⚖", "name": "JUDGEMENT", "does": "Show the governed gate decision without granting execution authority."},
+    {"button": "💾", "name": "HRM / JOOG", "does": "Check memory, provenance, lessons, receipts and missing records."},
+    {"button": "↩", "name": "ROLLBACK", "does": "Show or test the reversible recovery path where applicable."},
+    {"button": "🟢", "name": "STRONGEST LINK", "does": "Show the strongest proven part."},
+    {"button": "🟡", "name": "WEAKEST LINK", "does": "Show the limiting evidence, uncertainty or risk."},
+    {"button": "📋", "name": "MINORITY REPORT", "does": "Preserve serious dissent even when most agents agree."},
+    {"button": "➡️", "name": "NEXT GATE", "does": "Show the smallest evidence-backed action that moves the case forward."},
+    {"button": "✓", "name": "APPROVE", "does": "Human Authority approval for the specifically bounded proposed action only."},
+    {"button": "⚙", "name": "EXECUTE", "does": "Remain locked until production gates, authority, rollback and verification requirements pass."},
 )
 
+REGISTERED_AGENT_CHOICES: dict[str, tuple[str, ...]] = {
+    "matrix": ("Neo", "Trinity", "Morpheus", "Oracle", "Architect", "Smith", "Analyst"),
+    "governance": ("Akan", "Chancellor", "Judge", "Guardian", "Mediator", "Registrar", "Steward"),
+    "civilisation": ("Atlas", "Chronos", "Sentinel", "Mirror", "Horizon", "Pulse", "Forge"),
+    "jungle": ("Akela", "Mowgli", "Baloo", "Bagheera", "Shere Khan"),
+    "specialists": ("Nirmata", "Falcon", "Owl", "Octopus", "Wolf", "Raven", "Fox"),
+}
+
 AGENT_BUTTONS: dict[str, object] = {
-    "recommended": ("Neo", "Seraph", "Nirmata"),
-    "matrix": ("Morpheus", "Trinity", "Oracle", "Architect", "Keymaker"),
-    "life": ("Akela", "Shere Khan", "Owl"),
-    "specialists": ("Falcon", "Spider", "Octopus", "Gyata"),
-    "auto_select": "AUTO SELECT BEST AGENT",
-    "rule": "Only registered OAP agents participate; the agent joins review and gains no authority.",
+    "recommended": ("Neo", "Nirmata", "Guardian"),
+    "families": REGISTERED_AGENT_CHOICES,
+    "auto_select": "AUTO SELECT RELEVANT REGISTERED AGENTS",
+    "rule": "Only registered OAP agents participate; selection grants no authority and dissent remains visible.",
 }
 
 WAR_ROOM_TOP_BAR: dict[str, object] = {
     "title": "OAP WAR ROOM",
-    "signal": "🟡 OPEN",
-    "smi_mode": "HIGH",
-    "depth": 21,
+    "signal": "🟡 REVIEW",
+    "smi_mode": "AUTO",
+    "depth": "3 / 7 / 21 adaptive",
     "round": 1,
-    "judges": "7 / 7",
+    "agents": "selected per case",
     "evidence": "calculated per case",
     "confidence": "calculated per case",
-    "guardian": "🛡 PASSED / BLOCKED",
-    "hrm": "💾 ACTIVE / MISSING",
-    "controls": ("RUN", "RED TEAM", "AGENT +", "EVIDENCE", "RECOVERY", "NEXT GATE"),
+    "guardian": "🛡 PASSED / BLOCKED / UNKNOWN",
+    "hrm": "💾 ACTIVE / MISSING / UNKNOWN",
+    "controls": ("RUN", "STOP", "CHALLENGE", "COMPARE", "AGENTS", "EVIDENCE", "ROLLBACK", "NEXT GATE"),
 }
-
-SEVEN_LENS_SCORE: tuple[dict[str, str], ...] = (
-    {"lens": "PROOF", "default_score": "⭐⭐⭐⭐⭐☆☆"},
-    {"lens": "PROTECTION", "default_score": "⭐⭐⭐⭐⭐⭐☆"},
-    {"lens": "CREATION", "default_score": "⭐⭐⭐⭐⭐☆☆"},
-    {"lens": "IDENTITY", "default_score": "⭐⭐⭐⭐⭐⭐☆"},
-    {"lens": "DECISION", "default_score": "⭐⭐⭐⭐⭐⭐☆"},
-    {"lens": "MEMORY", "default_score": "⭐⭐⭐⭐☆☆☆"},
-    {"lens": "RECOVERY", "default_score": "⭐⭐⭐⭐☆☆☆"},
-)
 
 SIGNAL_RULES: dict[str, str] = {
-    "🟢": "proceed / healthy",
-    "🟡": "War Room open / unresolved",
-    "🔴": "stop / critical boundary",
-    "🟣": "learning from evidence",
-    "🔒": "full green locked until proof",
-    "👑": "Founder final",
+    "🟢 PROVEN": "runtime or evidence proof exists for the exact stated capability/state",
+    "🟢 SIMULATION PASSED": "the bounded analytical/simulation protocol passed; this is not production proof",
+    "🟢 PRODUCTION PROVEN": "real execution completed and post-execution verification proved the intended production state",
+    "🟡 REVIEW": "unresolved, building, awaiting evidence or Human Authority review",
+    "🔴 BLOCKED": "failed, unsafe, conflicting or blocked by a required gate",
+    "🔒 LOCKED": "intentionally unavailable until evidence, authority, compliance, provider, rollback or safety requirements pass",
+    "⚪ UNKNOWN": "no sufficient evidence; unknown must stay unknown",
+    "👑 HUMAN AUTHORITY": "Founder final for consequential real-world action",
 }
 
+SAFE_PROGRESS_STAGES: tuple[str, ...] = (
+    "Understanding",
+    "Evidence",
+    "Memory",
+    "Agents",
+    "Challenge",
+    "Guardian",
+    "Judgement",
+    "Solution",
+)
+
+FOUNDER_RESULT_FIELDS: tuple[str, ...] = (
+    "PROOF",
+    "RISK",
+    "STRONGEST LINK",
+    "WEAKEST LINK",
+    "AGENTS",
+    "OPTIONS",
+    "RECOMMENDATION",
+    "NEXT GATE",
+    "AUTHORITY",
+)
+
 COMMAND_LANGUAGE: tuple[str, ...] = (
+    "SMI auto — choose the right depth.",
+    "SMI 3 — instant review.",
+    "SMI 7 — medium review.",
     "SMI 21 — deep dive this.",
-    "Bring in Seraph.",
-    "Auto-select my 7.",
     "War Room.",
+    "Auto-select my agents.",
     "Red team it.",
     "Failure test.",
+    "Show strongest link.",
     "Show weakest link.",
-    "Run recovery.",
-    "Replace judge 7.",
+    "Show dissent.",
+    "Run rollback test.",
     "Next gate.",
-    "🟡 = continue the current War Room.",
 )
 
 FINAL_LAW: tuple[str, ...] = (
     "Evidence before green.",
+    "Configured is not ready.",
+    "UI presence is not readiness.",
+    "Simulation passed is not production proven.",
     "Unknown stays unknown.",
     "Forecast is not fact.",
     "Dissent survives.",
+    "Approve is not execute.",
     "Human Authority final.",
 )
 
@@ -158,24 +209,27 @@ def status() -> dict[str, Any]:
 
     return {
         "name": "SMI Deep-Dive Simulation Protocol",
-        "status": "locked",
+        "status": "ready",
         "mode": "read_only_founder_review",
         "starts_from": "SMI, not War Room",
         "canonical_flow": CANONICAL_FLOW,
+        "depth_modes": DEPTH_MODES,
+        "safe_progress_stages": SAFE_PROGRESS_STAGES,
+        "founder_result_fields": FOUNDER_RESULT_FIELDS,
         "steps": {
             "1_request": "Founder gives SMI the mission, question, problem or scenario.",
             "2_mode": DEPTH_MODES,
             "3_route": ROUTE_FIELDS,
-            "4_agents": AGENT_BUTTONS,
-            "5_simulation": SIMULATION_MODEL,
-            "6_war_room_trigger": WAR_ROOM_TRIGGERS,
-            "7_judgement": "War Room outputs consensus, minority report, weakest link, strongest link and next gate.",
-            "8_human_authority": FOUNDER_DECISIONS,
+            "4_memory": "Retrieve relevant HRM / JOOG evidence and prior receipts.",
+            "5_agents": AGENT_BUTTONS,
+            "6_simulation": SIMULATION_MODEL,
+            "7_war_room_trigger": WAR_ROOM_TRIGGERS,
+            "8_guardian_judgement": "Preserve blockers, dissent, reversibility and authority boundaries.",
+            "9_human_authority": FOUNDER_DECISIONS,
         },
         "war_room_buttons": WAR_ROOM_BUTTONS,
         "agent_buttons": AGENT_BUTTONS,
         "top_bar": WAR_ROOM_TOP_BAR,
-        "seven_lens_score": SEVEN_LENS_SCORE,
         "signal_rules": SIGNAL_RULES,
         "command_language": COMMAND_LANGUAGE,
         "final_law": FINAL_LAW,
@@ -183,11 +237,15 @@ def status() -> dict[str, Any]:
             "only_registered_oap_agents": True,
             "agent_authority_gain": False,
             "simulation_is_real_world_proof": False,
+            "simulation_pass_is_production_proof": False,
+            "approve_equals_execute": False,
             "show_thinking_is_telemetry_only": True,
             "private_chain_of_thought_hidden": True,
             "guardian_required": True,
             "green_gate_required": True,
             "hrm_required": True,
+            "rollback_required_for_consequential_execution": True,
+            "post_execution_verification_required": True,
             "founder_authority_final": True,
             "no_fake_green": True,
         },
@@ -198,7 +256,7 @@ def simulate(command: str | None = None, agent: str | None = None) -> dict[str, 
     """Return a bounded SMI-first simulation frame for a command."""
 
     selected_command = (command or "current mission").strip()
-    selected_agent = (agent or "auto_select_best_agent").strip()
+    selected_agent = (agent or "auto_select_registered_agents").strip()
     protocol = status()
     return {
         "case": selected_command,
@@ -206,10 +264,13 @@ def simulate(command: str | None = None, agent: str | None = None) -> dict[str, 
         "smi_first": True,
         "war_room_open": "when triggered/requested",
         "depth_default": "auto: 3 / 7 / 21",
+        "signal": "🟡 REVIEW",
         "result": "bounded_simulation_frame_ready",
         "execution_granted": False,
         "real_world_proof_claimed": False,
         "frame": SIMULATION_MODEL,
-        "next_gate": "Show evidence, select agent, run red team, failure test, recovery test, or Founder final decision.",
+        "progress": SAFE_PROGRESS_STAGES,
+        "founder_result_fields": FOUNDER_RESULT_FIELDS,
+        "next_gate": "Show evidence, select relevant registered agents, challenge alternatives, test failure/recovery, then Human Authority decides.",
         "protocol": protocol,
     }
