@@ -6,7 +6,7 @@
   <title>OAP Master War Room</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <style>
-    :root{--bg:#050806;--panel:#09140d;--line:#244832;--text:#f4fff6;--muted:#9fb5a8;--green:#39e57f;--gold:#d7b85d;--purple:#b795ff;--yellow:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.war{max-width:980px;margin:auto;padding:16px 12px 86px}.eyebrow{margin:0 0 5px;color:var(--green);font-weight:900;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.top h1{margin:0;font-size:clamp(2rem,8vw,4.4rem);line-height:.94}.top p{margin:7px 0 0;color:var(--muted);max-width:690px}.auto{display:inline-flex;align-items:center;gap:7px;border:1px solid #7256aa;border-radius:999px;padding:9px 12px;background:#171027;font-weight:900}.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:14px 0}.sig{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px}.sig small{display:block;color:var(--muted);font-size:.65rem;text-transform:uppercase}.sig strong{display:block;margin-top:4px}.green{border-color:#2c8c52}.purple{border-color:#7256aa}.lock{border-color:#7a682b}.panel,details{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:14px;margin-top:10px}.panel h2{margin:2px 0 5px}.panel p,details p{color:var(--muted);line-height:1.45}.actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}.action{display:block;border:1px solid var(--line);border-radius:16px;background:#0d1e13;padding:14px;color:inherit;text-decoration:none;min-height:92px}.action:hover,.action:focus{border-color:var(--green);outline:none}.action strong{display:block;margin-bottom:5px}.action small{color:var(--muted);line-height:1.3}.primary{border-color:#2c8c52}.gold{border-color:#7a682b}.next{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.next article{border:1px solid var(--line);border-radius:14px;padding:11px;background:#07110b}.next strong{display:block}.next span{display:block;color:var(--muted);font-size:.8rem;margin-top:4px}.connector-card[data-state="ready"]{border-color:#2c8c52}.connector-card[data-state="attention"]{border-color:#7a682b}.connector-state{font-weight:800}details summary{cursor:pointer;font-weight:900;min-height:42px;display:flex;align-items:center}.deep-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.deep{border:1px solid var(--line);border-radius:13px;padding:10px;color:var(--muted);background:#07110b}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}.route{display:block;border:1px solid var(--line);border-radius:12px;padding:9px;color:inherit;text-decoration:none;background:#07110b}.route small{display:block;color:var(--muted)}.truth{border-left:4px solid var(--gold);background:#1e180b;padding:11px 12px;border-radius:0 12px 12px 0;margin-top:12px;color:#efe2ad}.bottom{position:fixed;left:0;right:0;bottom:0;background:#050806e8;border-top:1px solid var(--line);padding:8px;display:flex;gap:7px;justify-content:center;z-index:20}.bottom a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#08140d;color:inherit;text-decoration:none;font-weight:900;font-size:.8rem}@media(max-width:760px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.actions{grid-template-columns:repeat(2,minmax(0,1fr))}.next,.deep-grid,.route-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}@media(max-width:460px){.actions{grid-template-columns:1fr}.top h1{font-size:2.65rem}}
+    :root{--bg:#050806;--panel:#09140d;--line:#244832;--text:#f4fff6;--muted:#9fb5a8;--green:#39e57f;--gold:#d7b85d;--purple:#b795ff;--yellow:#f1d36b;--red:#ff7b7b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.war{max-width:1040px;margin:auto;padding:16px 12px 86px}.eyebrow{margin:0 0 5px;color:var(--green);font-weight:900;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.top h1{margin:0;font-size:clamp(2rem,8vw,4.4rem);line-height:.94}.top p{margin:7px 0 0;color:var(--muted);max-width:690px}.auto{display:inline-flex;align-items:center;gap:7px;border:1px solid #7256aa;border-radius:999px;padding:9px 12px;background:#171027;font-weight:900}.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:14px 0}.sig{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px}.sig small{display:block;color:var(--muted);font-size:.65rem;text-transform:uppercase}.sig strong{display:block;margin-top:4px}.green{border-color:#2c8c52}.purple{border-color:#7256aa}.lock{border-color:#7a682b}.unknown{border-color:#58625c}.review{border-color:#7a682b}.panel,details{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:14px;margin-top:10px}.panel h2{margin:2px 0 5px}.panel p,details p{color:var(--muted);line-height:1.45}.depths{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}.depth{display:block;border:1px solid var(--line);border-radius:14px;padding:10px 11px;background:#07110b;color:inherit;text-decoration:none}.depth strong{display:block}.depth small{display:block;color:var(--muted);margin-top:4px;line-height:1.3}.depth.auto-depth{border-color:#7256aa}.actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}.action{display:block;border:1px solid var(--line);border-radius:16px;background:#0d1e13;padding:14px;color:inherit;text-decoration:none;min-height:92px}.action:hover,.action:focus,.depth:hover,.depth:focus{border-color:var(--green);outline:none}.action strong{display:block;margin-bottom:5px}.action small{color:var(--muted);line-height:1.3}.primary{border-color:#2c8c52}.gold{border-color:#7a682b}.next{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.next article{border:1px solid var(--line);border-radius:14px;padding:11px;background:#07110b}.next strong{display:block}.next span{display:block;color:var(--muted);font-size:.8rem;margin-top:4px}.connector-card[data-state="ready"]{border-color:#2c8c52}.connector-card[data-state="attention"]{border-color:#7a682b}.connector-card[data-state="unknown"]{border-color:#58625c}.connector-state{font-weight:800}details summary{cursor:pointer;font-weight:900;min-height:42px;display:flex;align-items:center}.deep-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.deep{border:1px solid var(--line);border-radius:13px;padding:10px;color:var(--muted);background:#07110b}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}.route{display:block;border:1px solid var(--line);border-radius:12px;padding:9px;color:inherit;text-decoration:none;background:#07110b}.route small{display:block;color:var(--muted)}.truth{border-left:4px solid var(--gold);background:#1e180b;padding:11px 12px;border-radius:0 12px 12px 0;margin-top:12px;color:#efe2ad}.progress{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.progress span{border:1px solid var(--line);border-radius:999px;padding:6px 8px;color:var(--muted);font-size:.72rem;background:#07110b}.bottom{position:fixed;left:0;right:0;bottom:0;background:#050806e8;border-top:1px solid var(--line);padding:8px;display:flex;gap:7px;justify-content:center;z-index:20}.bottom a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#08140d;color:inherit;text-decoration:none;font-weight:900;font-size:.8rem}@media(max-width:760px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.actions,.depths{grid-template-columns:repeat(2,minmax(0,1fr))}.next,.deep-grid,.route-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}@media(max-width:460px){.actions,.depths{grid-template-columns:1fr}.top h1{font-size:2.65rem}}
   </style>
 </head>
 <body>
@@ -15,17 +15,32 @@
     <div>
       <p class="eyebrow">⚔️ Founder-only · Signal-first</p>
       <h1>OAP Master War Room</h1>
-      <p>Only the decision signals stay visible. Deep intelligence, route lists and architecture detail stay collapsed until you need them.</p>
+      <p>Only decision signals stay visible. Green means proven. Simulation review and production proof remain separate.</p>
     </div>
-    <span class="auto">🟣 SMI AUTO · {{ 'ON' if smi_auto.active else 'OFF' }}</span>
+    <span class="auto">◎ SMI AUTO · {{ 'ON' if smi_auto.active else 'OFF' }}</span>
   </header>
 
   <section class="strip" aria-label="War Room signal strip">
-    <div class="sig purple"><small>SMI</small><strong>🟣 Automatic</strong></div>
-    <div class="sig green"><small>Truth</small><strong>🟢 Evidence first</strong></div>
-    <div class="sig green"><small>Intelligence</small><strong>🟢 Routed</strong></div>
-    <div class="sig lock"><small>Execution</small><strong>🔒 Governed</strong></div>
+    <div class="sig purple"><small>SMI</small><strong>◎ Auto 3 / 7 / 21</strong></div>
+    <div class="sig unknown"><small>Evidence</small><strong id="evidence-signal">⚪ Unknown until checked</strong></div>
+    <div class="sig review"><small>Simulation</small><strong>🟡 Review on demand</strong></div>
+    <div class="sig lock"><small>Production</small><strong>🔒 Proof required</strong></div>
     <div class="sig lock"><small>Authority</small><strong>👑 Human final</strong></div>
+  </section>
+
+  <section class="panel" aria-labelledby="depth-title">
+    <p class="eyebrow">SMI Depth</p>
+    <h2 id="depth-title">◎ Auto · ⚡ Instant 3 · 🧠 Medium 7 · 👑 High 21</h2>
+    <div class="depths" aria-label="SMI review depth controls">
+      <a class="depth auto-depth" href="/smi/deep-dive/simulate?command=auto"><strong>◎ Auto</strong><small>SMI chooses the smallest sufficient depth and escalates only when justified.</small></a>
+      <a class="depth" href="/smi/deep-dive/simulate?command=instant_3"><strong>⚡ Instant 3</strong><small>Fast low-risk review.</small></a>
+      <a class="depth" href="/smi/deep-dive/simulate?command=medium_7"><strong>🧠 Medium 7</strong><small>Structured evidence and challenge review.</small></a>
+      <a class="depth" href="/smi/deep-dive/simulate?command=high_21"><strong>👑 High 21</strong><small>Full consequential 3×7 War Room review.</small></a>
+    </div>
+    <div class="progress" aria-label="Safe War Room progress telemetry">
+      <span>Understanding</span><span>Evidence</span><span>Memory</span><span>Agents</span><span>Challenge</span><span>Guardian</span><span>Judgement</span><span>Solution</span>
+    </div>
+    <p class="truth">These are safe work-stage signals only. Private chain-of-thought is never displayed.</p>
   </section>
 
   <section class="panel" aria-labelledby="connector-gate-title">
@@ -33,23 +48,31 @@
     <h2 id="connector-gate-title">Render · GitHub · Neon</h2>
     <p>Redacted Founder-tool readiness only. War Room does not call provider APIs or expose credentials.</p>
     <div class="next" id="connector-gate-grid" aria-live="polite">
-      <article class="connector-card" data-state="attention"><strong>Render</strong><span class="connector-state">🟡 Reading local gate…</span></article>
-      <article class="connector-card" data-state="attention"><strong>GitHub</strong><span class="connector-state">🟡 Reading local gate…</span></article>
-      <article class="connector-card" data-state="attention"><strong>Neon</strong><span class="connector-state">🟡 Reading local gate…</span></article>
+      <article class="connector-card" data-state="unknown"><strong>Render</strong><span class="connector-state">⚪ Evidence not read yet</span></article>
+      <article class="connector-card" data-state="unknown"><strong>GitHub</strong><span class="connector-state">⚪ Evidence not read yet</span></article>
+      <article class="connector-card" data-state="unknown"><strong>Neon</strong><span class="connector-state">⚪ Evidence not read yet</span></article>
     </div>
-    <p class="truth">Provider reads stay Founder-only. Deploys, repository writes, SQL, migrations, payments and security changes are not enabled by this gate.</p>
+    <p class="truth">Configured is not ready. Provider reads stay Founder-only. Deploys, repository writes, SQL, migrations, payments and security changes are not enabled by this gate.</p>
   </section>
 
   <section class="panel" aria-labelledby="main-actions-title">
-    <p class="eyebrow">Use first</p>
-    <h2 id="main-actions-title">Four controls. No duplicate noise.</h2>
+    <p class="eyebrow">War Room Controls</p>
+    <h2 id="main-actions-title">Read-only review controls · no execution authority</h2>
     <div class="actions">
-      <a class="action primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Personal SMI</strong><small>Chat. SMI selects lenses automatically.</small></a>
-      <a class="action primary" href="{{ url_for('mission_control.brain_dashboard') }}"><strong>🔎 Deep Intelligence</strong><small>All 26 intelligence lenses and evidence logic.</small></a>
-      <a class="action" href="/smi/brain/evidence-runner/run?command=war_room"><strong>🧪 Proof Check</strong><small>Truth, evidence, gaps, risk and next gate.</small></a>
-      <a class="action gold" href="{{ url_for('mission_control.judgement_dashboard') }}"><strong>👑 Founder Decision</strong><small>Signed Human Authority decision path. Never automatic.</small></a>
+      <a class="action primary" href="/smi/deep-dive/simulate?command=war_room"><strong>▶ Run War Room</strong><small>Start a bounded SMI-first review.</small></a>
+      <a class="action" href="/smi/deep-dive/simulate?command=challenge_again"><strong>↻ Challenge Again</strong><small>Run another registered-agent challenge.</small></a>
+      <a class="action" href="/smi/deep-dive/simulate?command=compare_options"><strong>⚖ Compare</strong><small>Compare options, evidence, risk and reversibility.</small></a>
+      <a class="action" href="/war-room/deep-dive"><strong>👥 Agents</strong><small>Inspect registered-agent selection rules and dissent boundary.</small></a>
+      <a class="action" href="/smi/brain/evidence-runner/run?command=war_room"><strong>🔎 Evidence</strong><small>Proof, freshness, gaps, strongest link and weakest link.</small></a>
+      <a class="action" href="/smi/brain/evidence-runner/run?command=guardian_check"><strong>🛡 Guardian</strong><small>Inspect safety, privacy and authority boundaries.</small></a>
+      <a class="action gold" href="{{ url_for('mission_control.judgement_dashboard') }}"><strong>⚖ Judgement</strong><small>Inspect the governed decision gate. Human Authority remains final.</small></a>
+      <a class="action" href="/smi/brain/receipts"><strong>💾 HRM / JOOG</strong><small>Inspect memory and receipt evidence.</small></a>
+      <a class="action gold" href="/war-room/smi-brain/evidence-runner/run?command=recovery_test"><strong>↩ Rollback</strong><small>Review recovery and safe-resume proof.</small></a>
+      <a class="action primary" href="{{ url_for('mission_control.ollama_chat_dashboard') }}"><strong>🧠 Personal SMI</strong><small>Return to Founder chat and contextual tools.</small></a>
+      <a class="action" href="{{ url_for('mission_control.brain_dashboard') }}"><strong>🔎 Deep Intelligence</strong><small>Open intelligence lenses and evidence logic.</small></a>
+      <a class="action gold" href="/war-room/smi-completion"><strong>➡ Next Gate</strong><small>Show the smallest remaining completion gate.</small></a>
     </div>
-    <p class="truth">SMI is automatic for observation, routing and analysis. It does not secretly approve, deploy, spend, dispatch, track, capture payment or mutate production.</p>
+    <p class="truth">Approve is not execute. This page does not secretly approve, deploy, spend, dispatch, track, capture payment or mutate production.</p>
   </section>
 
   <section class="panel" aria-labelledby="next-three-title">
@@ -117,36 +140,47 @@
 </main>
 <nav class="bottom" aria-label="War Room quick strip">
   <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a>
-  <a href="{{ url_for('mission_control.brain_dashboard') }}">🔎 Intel</a>
-  <a href="/smi/brain/evidence-runner/run?command=war_room">🧪 Proof</a>
-  <a href="{{ url_for('mission_control.judgement_dashboard') }}">👑 Decide</a>
+  <a href="/smi/deep-dive/simulate?command=war_room">▶ Run</a>
+  <a href="/smi/brain/evidence-runner/run?command=war_room">🔎 Proof</a>
+  <a href="/smi/brain/receipts">💾 HRM</a>
+  <a href="{{ url_for('mission_control.judgement_dashboard') }}">⚖ Judge</a>
 </nav>
 <script>
 (() => {
   const grid = document.getElementById('connector-gate-grid');
+  const evidenceSignal = document.getElementById('evidence-signal');
   if (!grid) return;
   const render = (connectors) => {
     grid.textContent = '';
+    let proven = 0;
     for (const item of connectors) {
-      const ready = item.ready === undefined ? Boolean(item.configured) : Boolean(item.ready);
-      const configured = Boolean(item.configured);
+      const ready = item.ready === true;
+      const configured = item.configured === true;
       const card = document.createElement('article');
       card.className = 'connector-card';
-      card.dataset.state = ready ? 'ready' : 'attention';
+      card.dataset.state = ready ? 'ready' : configured ? 'attention' : 'unknown';
       const name = document.createElement('strong');
       name.textContent = item.name || item.id || 'Provider';
       const state = document.createElement('span');
       state.className = 'connector-state';
-      state.textContent = ready ? '🟢 Ready' : configured ? '🟡 Configured · attention' : '🟡 Setup needed';
+      state.textContent = ready ? '🟢 Proven ready' : configured ? '🟡 Configured · proof missing' : '⚪ Unknown / setup needed';
+      if (ready) proven += 1;
       card.append(name, state);
       grid.append(card);
+    }
+    if (evidenceSignal) {
+      if (connectors.length && proven === connectors.length) evidenceSignal.textContent = '🟢 Provider evidence proven';
+      else if (proven > 0) evidenceSignal.textContent = `🟡 ${proven}/${connectors.length} provider gates proven`;
+      else evidenceSignal.textContent = '⚪ Provider proof incomplete';
     }
   };
   fetch('/mission/workbench/status', {cache: 'no-store', credentials: 'same-origin'})
     .then((response) => response.ok ? response.json() : Promise.reject(new Error('connector_gate_unavailable')))
     .then((payload) => render(Array.isArray(payload.connectors) ? payload.connectors : []))
     .catch(() => {
-      for (const state of grid.querySelectorAll('.connector-state')) state.textContent = '🟡 Gate unavailable';
+      if (evidenceSignal) evidenceSignal.textContent = '⚪ Provider evidence unavailable';
+      for (const card of grid.querySelectorAll('.connector-card')) card.dataset.state = 'unknown';
+      for (const state of grid.querySelectorAll('.connector-state')) state.textContent = '⚪ Gate unavailable';
     });
 })();
 </script>
