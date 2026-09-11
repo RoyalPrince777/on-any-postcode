@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import secrets
 import threading
@@ -11,7 +12,18 @@ from collections import defaultdict, deque
 from functools import wraps
 from typing import Final
 
-from flask import Request, current_app, g, jsonify, make_response, redirect, request, session, url_for
+from flask import (
+    Request,
+    current_app,
+    g,
+    has_request_context,
+    jsonify,
+    make_response,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 
 from . import authority, founder_recovery, neon_auth, postgres_db
 
@@ -101,7 +113,7 @@ def private_authority_allowed(user: dict[str, object]) -> bool:
     try:
         with postgres_db.connect(readonly=True) as connection:
             record = authority.authority_record(connection, user.get("id"))
-    except Exception:
+    except Exception:  # noqa: BLE001 - private authority checks fail closed.
         return False
     return bool(record and record.get("is_human_authority"))
 
@@ -150,44 +162,86 @@ def csrf_valid(request: Request) -> bool:
 
 
 class SlidingWindowLimiter:
-    """Process-local burst shield with duplicate-request coalescing.
+    """Process-local burst shield with optional exact-request coalescing.
 
-    Identical rapid requests from the same key are treated as one event. This keeps
-    Android double taps, browser retries and proxy replay from exhausting Founder
-    entry while preserving the bounded security window for distinct attempts.
+    When request fingerprinting is enabled, only the same request body from the same
+    key inside the duplicate window is coalesced. Other limiter instances preserve
+    the existing time-based duplicate behavior.
     """
 
-    def __init__(self, *, limit: int, window_seconds: int, max_keys: int = 5000, duplicate_seconds: float = 0.0):
+    def __init__(
+        self,
+        *,
+        limit: int,
+        window_seconds: int,
+        max_keys: int = 5000,
+        duplicate_seconds: float = 0.0,
+        fingerprint_request_body: bool = False,
+    ):
         self.limit = limit
         self.window_seconds = window_seconds
         self.max_keys = max_keys
         self.duplicate_seconds = max(0.0, duplicate_seconds)
+        self.fingerprint_request_body = bool(fingerprint_request_body)
         self._events: dict[str, deque[float]] = defaultdict(deque)
+        self._last_request: dict[str, tuple[str, float]] = {}
         self._lock = threading.Lock()
+
+    def _request_fingerprint(self) -> str | None:
+        if not self.fingerprint_request_body or not has_request_context():
+            return None
+        body = request.get_data(cache=True)
+        return hashlib.sha256(body).hexdigest()
 
     def allow(self, key: str) -> bool:
         now = time.monotonic()
         cutoff = now - self.window_seconds
+        fingerprint = self._request_fingerprint()
         with self._lock:
             events = self._events[key]
             while events and events[0] <= cutoff:
                 events.popleft()
-            if events and self.duplicate_seconds and now - events[-1] < self.duplicate_seconds:
-                return True
+
+            if self.duplicate_seconds:
+                if self.fingerprint_request_body:
+                    previous = self._last_request.get(key)
+                    if (
+                        fingerprint is not None
+                        and previous is not None
+                        and previous[0] == fingerprint
+                        and now - previous[1] < self.duplicate_seconds
+                    ):
+                        return True
+                elif events and now - events[-1] < self.duplicate_seconds:
+                    return True
+
             if len(events) >= self.limit:
                 return False
+
             events.append(now)
+            if self.fingerprint_request_body and fingerprint is not None:
+                self._last_request[key] = (fingerprint, now)
+
             if len(self._events) > self.max_keys:
                 stale = [k for k, values in self._events.items() if not values or values[-1] <= cutoff]
                 for stale_key in stale[: max(1, len(stale) // 2)]:
                     self._events.pop(stale_key, None)
+                    self._last_request.pop(stale_key, None)
             return True
 
     def reset(self) -> None:
         with self._lock:
             self._events.clear()
+            self._last_request.clear()
 
 
-CHAT_BURST_LIMITER = SlidingWindowLimiter(limit=12, window_seconds=60, duplicate_seconds=0.35)
+# Private Founder SMI chat is protected against abuse without treating a genuine
+# duplicate retry as a new request. Distinct prompts still count toward the hard cap.
+CHAT_BURST_LIMITER = SlidingWindowLimiter(
+    limit=30,
+    window_seconds=60,
+    duplicate_seconds=1.0,
+    fingerprint_request_body=True,
+)
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
 AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=15 * 60, duplicate_seconds=2.0)
