@@ -11,17 +11,7 @@ from collections import defaultdict, deque
 from functools import wraps
 from typing import Final
 
-from flask import (
-    Request,
-    current_app,
-    g,
-    jsonify,
-    make_response,
-    redirect,
-    request,
-    session,
-    url_for,
-)
+from flask import Request, current_app, g, jsonify, make_response, redirect, request, session, url_for
 
 from . import authority, founder_recovery, neon_auth, postgres_db
 
@@ -31,8 +21,6 @@ _AUTH_USER_CACHE_KEY: Final = "oap_authenticated_user"
 
 
 def ensure_session_identity() -> str:
-    """Return one signed-session identity, replacing malformed values safely."""
-
     value = session.get(IDENTITY_SESSION_KEY)
     try:
         identity_id = str(uuid.UUID(str(value)))
@@ -44,33 +32,24 @@ def ensure_session_identity() -> str:
 
 
 def auth_cookie_header() -> str:
-    """Return only Neon Auth cookies, never the Flask session cookie."""
-
     return neon_auth.cookie_header(
         session.get(neon_auth.AUTH_COOKIE_NAMES_SESSION_KEY),
         request.cookies,
-        application_cookie_name=str(
-            current_app.config.get("SESSION_COOKIE_NAME", "session")
-        ),
+        application_cookie_name=str(current_app.config.get("SESSION_COOKIE_NAME", "session")),
     )
 
 
 def current_authenticated_user() -> dict[str, object] | None:
-    """Verify Managed Neon Auth or a bounded temporary Founder recovery session."""
-
     if _AUTH_USER_CACHE_KEY in g:
         return g.get(_AUTH_USER_CACHE_KEY)
-
     recovery_user = founder_recovery.recovery_user()
     if recovery_user is not None:
         setattr(g, _AUTH_USER_CACHE_KEY, recovery_user)
         return recovery_user
-
     header = auth_cookie_header()
     if not header:
         setattr(g, _AUTH_USER_CACHE_KEY, None)
         return None
-
     result = neon_auth.get_session(header)
     payload = result.payload
     if not neon_auth.successful(result) or not isinstance(payload, dict):
@@ -89,7 +68,6 @@ def current_authenticated_user() -> dict[str, object] | None:
     if user.get("banned") is True:
         setattr(g, _AUTH_USER_CACHE_KEY, None)
         return None
-
     normalized: dict[str, object] = {
         "id": identity_id,
         "name": str(user.get("name") or "OAP Member")[:120],
@@ -101,8 +79,6 @@ def current_authenticated_user() -> dict[str, object] | None:
 
 
 def authenticated_identity() -> str:
-    """Return an authenticated UUID or fail closed."""
-
     user = current_authenticated_user()
     if user is None:
         raise PermissionError("authentication_required")
@@ -110,35 +86,27 @@ def authenticated_identity() -> str:
 
 
 def _private_error(code: str, message: str, status_code: int):
-    response = make_response(
-        jsonify(error={"code": code, "message": message}), status_code
-    )
+    response = make_response(jsonify(error={"code": code, "message": message}), status_code)
     response.headers["Cache-Control"] = "no-store"
     return response
 
 
 def private_authority_allowed(user: dict[str, object]) -> bool:
-    """Require the exact Founder selector, recovery gate or persisted authority."""
-
     if user.get("recovery_founder") is True:
         return founder_recovery.session_active()
     if authority.identity_is_authority(user.get("id")):
         return True
-    if bool(user.get("email_verified")) and authority.email_is_authority(
-        user.get("email")
-    ):
+    if bool(user.get("email_verified")) and authority.email_is_authority(user.get("email")):
         return True
     try:
         with postgres_db.connect(readonly=True) as connection:
             record = authority.authority_record(connection, user.get("id"))
-    except Exception:  # noqa: BLE001 - private authority checks fail closed.
+    except Exception:
         return False
     return bool(record and record.get("is_human_authority"))
 
 
 def login_required(*, api: bool = False, founder_only: bool = False):
-    """Require live Auth or a bounded recovery session on allowed Founder routes."""
-
     def decorator(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
@@ -146,54 +114,28 @@ def login_required(*, api: bool = False, founder_only: bool = False):
                 user = current_authenticated_user()
             except neon_auth.AuthUnavailable:
                 if api:
-                    return _private_error(
-                        "authentication_unavailable",
-                        "Secure identity verification is temporarily unavailable.",
-                        503,
-                    )
+                    return _private_error("authentication_unavailable", "Secure identity verification is temporarily unavailable.", 503)
                 target = request.full_path.rstrip("?")
-                return redirect(
-                    url_for("auth_page", next=target, auth_error="unavailable")
-                )
+                return redirect(url_for("auth_page", next=target, auth_error="unavailable"))
             if user is None:
                 if api:
-                    return _private_error(
-                        "authentication_required",
-                        "Sign in to access this private OAP surface.",
-                        401,
-                    )
+                    return _private_error("authentication_required", "Sign in to access this private OAP surface.", 401)
                 target = request.full_path.rstrip("?")
                 return redirect(url_for("auth_page", next=target))
-            if user.get("recovery_founder") is True and not founder_recovery.private_path_allowed(
-                request.path
-            ):
+            if user.get("recovery_founder") is True and not founder_recovery.private_path_allowed(request.path):
                 if api:
-                    return _private_error(
-                        "managed_identity_required",
-                        "Managed identity verification is required for this private surface.",
-                        503,
-                    )
+                    return _private_error("managed_identity_required", "Managed identity verification is required for this private surface.", 503)
                 target = request.full_path.rstrip("?")
-                return redirect(
-                    url_for("auth_page", next=target, auth_error="unavailable")
-                )
+                return redirect(url_for("auth_page", next=target, auth_error="unavailable"))
             requires_founder = founder_only or request.blueprint == "mission_control"
             if requires_founder and not private_authority_allowed(user):
-                return _private_error(
-                    "human_authority_required",
-                    "This private control surface is restricted.",
-                    403,
-                )
+                return _private_error("human_authority_required", "This private control surface is restricted.", 403)
             return view(*args, **kwargs)
-
         return wrapped
-
     return decorator
 
 
 def csrf_token() -> str:
-    """Return a high-entropy CSRF token stored inside the signed session."""
-
     value = session.get(CSRF_SESSION_KEY)
     if not isinstance(value, str) or len(value) < 32:
         value = secrets.token_urlsafe(32)
@@ -202,28 +144,24 @@ def csrf_token() -> str:
 
 
 def csrf_valid(request: Request) -> bool:
-    """Validate either the JSON header or conventional HTML form token."""
-
     expected = session.get(CSRF_SESSION_KEY)
     supplied = request.headers.get("X-OAP-CSRF") or request.form.get("csrf_token")
-    return (
-        isinstance(expected, str)
-        and isinstance(supplied, str)
-        and hmac.compare_digest(expected, supplied)
-    )
+    return isinstance(expected, str) and isinstance(supplied, str) and hmac.compare_digest(expected, supplied)
 
 
 class SlidingWindowLimiter:
-    """A small process-local shield backed by a deterministic sliding window.
+    """Process-local burst shield with duplicate-request coalescing.
 
-    Durable chat and community write limits are also enforced in PostgreSQL.
-    This layer rejects bursts before a database or intelligence provider is used.
+    Identical rapid requests from the same key are treated as one event. This keeps
+    Android double taps, browser retries and proxy replay from exhausting Founder
+    entry while preserving the bounded security window for distinct attempts.
     """
 
-    def __init__(self, *, limit: int, window_seconds: int, max_keys: int = 5000):
+    def __init__(self, *, limit: int, window_seconds: int, max_keys: int = 5000, duplicate_seconds: float = 0.0):
         self.limit = limit
         self.window_seconds = window_seconds
         self.max_keys = max_keys
+        self.duplicate_seconds = max(0.0, duplicate_seconds)
         self._events: dict[str, deque[float]] = defaultdict(deque)
         self._lock = threading.Lock()
 
@@ -234,26 +172,22 @@ class SlidingWindowLimiter:
             events = self._events[key]
             while events and events[0] <= cutoff:
                 events.popleft()
+            if events and self.duplicate_seconds and now - events[-1] < self.duplicate_seconds:
+                return True
             if len(events) >= self.limit:
                 return False
             events.append(now)
             if len(self._events) > self.max_keys:
-                stale = [
-                    item_key
-                    for item_key, item_events in self._events.items()
-                    if not item_events or item_events[-1] <= cutoff
-                ]
-                for item_key in stale[: max(1, len(stale) // 2)]:
-                    self._events.pop(item_key, None)
+                stale = [k for k, values in self._events.items() if not values or values[-1] <= cutoff]
+                for stale_key in stale[: max(1, len(stale) // 2)]:
+                    self._events.pop(stale_key, None)
             return True
 
     def reset(self) -> None:
-        """Clear local limiter state; used by isolated test and worker lifecycles."""
-
         with self._lock:
             self._events.clear()
 
 
-CHAT_BURST_LIMITER = SlidingWindowLimiter(limit=12, window_seconds=60)
-PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60)
-AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=15 * 60)
+CHAT_BURST_LIMITER = SlidingWindowLimiter(limit=12, window_seconds=60, duplicate_seconds=0.35)
+PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
+AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=15 * 60, duplicate_seconds=2.0)
