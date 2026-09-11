@@ -6,6 +6,7 @@ import os
 from typing import Any
 
 from . import (
+    a7_certification,
     coherent_automation,
     distribution_intelligence,
     oap_bank,
@@ -83,6 +84,7 @@ def get_workbench_status() -> dict[str, Any]:
             "OAP Studio Intelligence planning and preparation",
             "OAP Coherent Automation 21-signal planning",
             "OAP Distribution Intelligence release and rights review",
+            "SMI A7 certification readiness and governed evidence gate",
             "OAP Bank non-payment orchestration planning",
         ],
         "fail_closed": not database_ready,
@@ -91,6 +93,33 @@ def get_workbench_status() -> dict[str, Any]:
     coherence = coherent_automation.status()
     distribution = distribution_intelligence.status()
     bank = oap_bank.status()
+    a7 = a7_certification.status()
+    a7_missing = tuple(a7.get("a7_missing") or ())
+    a6_missing = tuple(a7.get("a6_missing") or ())
+    a7_blockers = (*a6_missing, *a7_missing)
+    a7_capability = _capability(
+        "smi-a7-certification",
+        "A7 Certification",
+        bool(a7.get("ready_for_founder_certification")),
+        evidence="mission_control.a7_certification.status()",
+        blocked_reason=(
+            "Founder certification proof remains incomplete: " + ", ".join(a7_blockers)
+            if a7_blockers
+            else "Founder certification has not been granted."
+        ),
+    )
+    a7_capability.update(
+        {
+            "level": "A7",
+            "certification_granted": bool(a7.get("certification_granted")),
+            "a7_enabled": bool(a7.get("a7_enabled")),
+            "execution_granted": bool(a7.get("execution_granted")),
+            "a6_missing": a6_missing,
+            "a7_missing": a7_missing,
+            "human_authority_final": bool(a7.get("human_authority_final")),
+            "fail_closed": True,
+        }
+    )
 
     capabilities = [
         _capability(
@@ -138,6 +167,7 @@ def get_workbench_status() -> dict[str, Any]:
         studio,
         coherence,
         distribution,
+        a7_capability,
         bank,
     ]
 
@@ -186,6 +216,18 @@ def get_workbench_status() -> dict[str, Any]:
             },
         ],
         "capabilities": capabilities,
+        "a7": {
+            "level": "A7",
+            "ready_for_founder_certification": bool(a7.get("ready_for_founder_certification")),
+            "certification_granted": bool(a7.get("certification_granted")),
+            "a7_enabled": bool(a7.get("a7_enabled")),
+            "execution_granted": bool(a7.get("execution_granted")),
+            "a6_missing": a6_missing,
+            "a7_missing": a7_missing,
+            "human_authority_final": bool(a7.get("human_authority_final")),
+            "external_evidence_is_software_verified": bool(a7.get("external_evidence_is_software_verified")),
+            "fail_closed": True,
+        },
         "knowledge": {
             "name": "OAP operating context",
             "source": "versioned OAP code, protocols, receipts and Founder corrections",
