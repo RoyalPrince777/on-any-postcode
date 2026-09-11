@@ -27,8 +27,9 @@ from .operational_memory import operational_memory_items
 from .operational_memory import status as operational_status
 
 TOTAL_CONTEXT_CAP = 21
+CANONICAL_BUDGET = 10
 LATEST_FOUNDER_BUDGET = 4
-CANONICAL_BUDGET = 6
+OLDER_CANONICAL_BUDGET = CANONICAL_BUDGET - LATEST_FOUNDER_BUDGET
 HISTORY_BUDGET = 2
 GRAPH_BUDGET = 1
 FOUNDER_SYNC_BUDGET = 2
@@ -47,7 +48,7 @@ def compose_memory(
 
     safe_limit = min(max(int(limit), 1), TOTAL_CONTEXT_CAP)
     latest_founder = latest_founder_memory_items(limit=LATEST_FOUNDER_BUDGET)
-    canonical = canonical_memory_items(task_type, limit=CANONICAL_BUDGET)
+    canonical = canonical_memory_items(task_type, limit=OLDER_CANONICAL_BUDGET)
     history = historical_memory_items(task_type, limit=HISTORY_BUDGET)
     graph = graph_memory_items(task_type, query=query, limit=GRAPH_BUDGET)
     founder_sync = synced_memory_items(
@@ -102,8 +103,7 @@ def status() -> dict[str, object]:
     founder_channel = founder_channel_status()
     operational = operational_status()
     budget_total = (
-        LATEST_FOUNDER_BUDGET
-        + CANONICAL_BUDGET
+        CANONICAL_BUDGET
         + HISTORY_BUDGET
         + GRAPH_BUDGET
         + FOUNDER_SYNC_BUDGET
@@ -125,12 +125,14 @@ def status() -> dict[str, object]:
         "budget_total": budget_total,
         "latest_founder_budget": LATEST_FOUNDER_BUDGET,
         "canonical_budget": CANONICAL_BUDGET,
+        "older_canonical_budget": OLDER_CANONICAL_BUDGET,
         "historical_budget": HISTORY_BUDGET,
         "graph_budget": GRAPH_BUDGET,
         "founder_sync_budget": FOUNDER_SYNC_BUDGET,
         "operational_memory_budget": OPERATIONAL_BUDGET,
         "dynamic_hrm_budget": DYNAMIC_BUDGET,
-        "latest_founder_memory": latest_founder,
+        "latest_founder_ready": bool(latest_founder.get("ready")),
+        "latest_founder_revision": latest_founder.get("revision"),
         "authority_order": (
             "LATEST_FOUNDER_LOCK",
             "CANONICAL",
