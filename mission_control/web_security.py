@@ -235,12 +235,13 @@ class SlidingWindowLimiter:
             self._last_request.clear()
 
 
-# Private Founder SMI chat is protected against abuse without treating a genuine
-# duplicate retry as a new request. Distinct prompts still count toward the hard cap.
+# Private Founder SMI chat needs room for recovery, retries, streamed chat, voice
+# retries and quick actions. Exact duplicate requests are coalesced so accidental
+# double-taps do not burn the burst window.
 CHAT_BURST_LIMITER = SlidingWindowLimiter(
-    limit=30,
+    limit=120,
     window_seconds=60,
-    duplicate_seconds=1.0,
+    duplicate_seconds=5.0,
     fingerprint_request_body=True,
 )
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
