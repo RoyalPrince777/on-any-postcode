@@ -1,5 +1,6 @@
-from mission_control import smi_brain_evidence_runner
-from mission_control import smi_judge_rotation
+from __future__ import annotations
+
+from mission_control import smi_brain_evidence_runner, smi_judge_rotation
 
 
 EXPECTED_JUDGES = (
