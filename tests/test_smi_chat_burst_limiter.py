@@ -58,7 +58,18 @@ def test_private_smi_hard_cap_rejects_request_121(monkeypatch):
         assert limiter.allow("founder") is False
 
 
-def test_public_and_founder_auth_limiters_are_unchanged():
+def test_founder_auth_limiter_can_clear_only_the_successful_identity(monkeypatch):
+    times = iter((10.0, 11.0, 12.0))
+    monkeypatch.setattr(web_security.time, "monotonic", lambda: next(times))
+    limiter = web_security.SlidingWindowLimiter(limit=1, window_seconds=300)
+
+    assert limiter.allow("auth:sign-in:founder") is True
+    assert limiter.allow("auth:sign-in:other") is True
+    limiter.reset_key("auth:sign-in:founder")
+    assert limiter.allow("auth:sign-in:founder") is True
+
+
+def test_public_and_founder_auth_limiters_are_bounded():
     public = web_security.PUBLIC_WRITE_LIMITER
     assert public.limit == 30
     assert public.window_seconds == 60
@@ -67,7 +78,7 @@ def test_public_and_founder_auth_limiters_are_unchanged():
 
     founder_auth = web_security.AUTH_BURST_LIMITER
     assert founder_auth.limit == 10
-    assert founder_auth.window_seconds == 15 * 60
+    assert founder_auth.window_seconds == 5 * 60
     assert founder_auth.duplicate_seconds == 2.0
     assert founder_auth.fingerprint_request_body is False
 
