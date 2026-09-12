@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import os
 
 from flask import Flask, Request, make_response, request
 
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
+_CLIENT_IP_HEADER = "X-OAP-Client-IP"
 _PRIVATE_PATH_PREFIXES = (
     "/mission",
     "/smi",
@@ -64,6 +66,16 @@ def gateway_authorized() -> bool:
     )
 
 
+def _canonical_client_ip(value: object) -> str | None:
+    candidate = str(value or "").strip()
+    if not candidate:
+        return None
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        return None
+
+
 def _is_private_path(path: str) -> bool:
     clean = path.rstrip("/") or "/"
     return any(
@@ -108,6 +120,17 @@ def register(app: Flask) -> None:
     app.register_blueprint(all_intelligence_views.bp)
     contract_compatibility.register(app)
     smi_event_memory.register(app)
+
+    @app.before_request
+    def _restore_gateway_client_ip():
+        """Restore the authenticated gateway's client address before limiters run."""
+
+        if not gateway_authorized():
+            return None
+        client_ip = _canonical_client_ip(request.headers.get(_CLIENT_IP_HEADER))
+        if client_ip is not None:
+            request.environ["REMOTE_ADDR"] = client_ip
+        return None
 
     @app.before_request
     def _enforce_private_origin_boundary():
