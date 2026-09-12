@@ -29,6 +29,7 @@ from . import (
     products,
     public_store,
     smi_chat_runtime,
+    smi_recursive_improvement,
     smi_workbench,
     status,
     war_room,
@@ -613,6 +614,29 @@ def smi_workbench_status():
     """Return secret-safe tool and capability readiness to the Founder UI."""
 
     return _no_store(make_response(jsonify(smi_workbench.get_workbench_status())))
+
+
+@bp.get("/improvement")
+@web_security.login_required()
+def smi_recursive_improvement_dashboard():
+    """Render one Founder-only, evidence-bound improvement review cycle."""
+
+    response = make_response(
+        render_template(
+            "smi_recursive_improvement.html",
+            contract=smi_recursive_improvement.status(),
+            cycle=smi_recursive_improvement.run_cycle(),
+        )
+    )
+    return _no_store(response)
+
+
+@bp.get("/improvement/status")
+@web_security.login_required(api=True)
+def smi_recursive_improvement_status():
+    """Return one live read-only recursive-improvement evidence cycle."""
+
+    return _no_store(make_response(jsonify(smi_recursive_improvement.run_cycle())))
 
 
 @bp.get("/infrastructure")

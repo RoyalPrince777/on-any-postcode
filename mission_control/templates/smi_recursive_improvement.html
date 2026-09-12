@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMI Improvement Loop</title>
+  <style>
+    :root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--line:#26342b;--text:#f3f7f4;--muted:#a2aea6;--orange:#ff9d45;--green:#49df83;--purple:#b98aff;--gold:#d6b85f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 0,#221508 0,transparent 30%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1120px;margin:auto;padding:22px 15px 72px}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--orange);font-size:.73rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase}h1{font-size:clamp(2.5rem,7vw,5rem);line-height:.96;margin:.12em 0}.muted{color:var(--muted);line-height:1.5}.nav,.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:9px 12px;color:inherit;text-decoration:none}.hero-state{border:1px solid #77451f;background:#201206;border-radius:18px;padding:16px;margin:20px 0}.metrics,.grid,.loop{display:grid;gap:10px}.metrics{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}.card strong{display:block;font-size:1.35rem}.card small{color:var(--muted)}.loop{grid-template-columns:repeat(7,minmax(90px,1fr));margin:16px 0}.stage{text-align:center;border:1px solid #493062;background:#120d18;border-radius:14px;padding:12px 7px;font-weight:900;font-size:.76rem}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.target{border-left:3px solid var(--orange)}.lock{border-left:3px solid var(--gold)}code{color:#ffd1a4;word-break:break-all}.truth{border:1px solid #31553c;background:#09170e;border-radius:16px;padding:15px}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}@media(max-width:760px){.loop{grid-template-columns:repeat(2,1fr)}.loop .stage:last-child{grid-column:1/-1}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div><p class="eyebrow">Founder-only · One SMI Brain</p><h1>🟠 Improvement Loop</h1><p class="muted">Live evidence → weakness detection → reversible candidate → sandbox → signed Human Authority approval → Living Kernel. No silent self-modification.</p></div>
+    <div class="actions"><a class="nav" href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 Personal SMI</a><a class="nav" href="{{ url_for('mission_control.mission_workspace') }}">← Mission Control</a></div>
+  </header>
+
+  <section class="hero-state">
+    <strong>{{ '🟢 Evidence loop clear' if cycle.light == 'green' else '🟠 Human review required' }}</strong>
+    <p class="muted">{{ cycle.recommendation }}</p>
+    <span class="pill">{{ cycle.output_state }}</span>
+  </section>
+
+  <section class="metrics" aria-label="Improvement evidence summary">
+    <article class="card"><strong>{{ cycle.weaknesses|length }}</strong><small>evidence weaknesses</small></article>
+    <article class="card"><strong>{{ cycle.proof.smi_gates_green }}/{{ cycle.proof.smi_gates_total }}</strong><small>SMI runtime gates</small></article>
+    <article class="card"><strong>{{ 'PROVEN' if cycle.proof.continuous_cycle_proven else 'UNPROVEN' }}</strong><small>continuous worker cycle</small></article>
+    <article class="card"><strong>LOCKED</strong><small>independent apply and deploy</small></article>
+  </section>
+
+  <section class="section" aria-labelledby="loop-title">
+    <p class="eyebrow">Recursive discipline</p><h2 id="loop-title">Sense to Log</h2>
+    <div class="loop">{% for stage in cycle.loop %}<div class="stage">{{ loop.index }} · {{ stage }}</div>{% endfor %}</div>
+  </section>
+
+  <section class="section" aria-labelledby="candidate-title">
+    <p class="eyebrow">Evidence-bound candidate</p><h2 id="candidate-title">{{ cycle.candidate.candidate_id if cycle.candidate else 'No change candidate required' }}</h2>
+    {% if cycle.candidate %}
+      <p class="muted">Baseline <code>{{ cycle.candidate.baseline_version }}</code><br>Evidence <code>{{ cycle.candidate.evidence_digest }}</code></p>
+      <div class="grid">{% for weakness in cycle.weaknesses %}<article class="card target">{{ weakness }}</article>{% endfor %}</div>
+    {% else %}
+      <div class="truth">The observed evidence produced no improvement target. Observation continues; no change is invented.</div>
+    {% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="proof-title">
+    <p class="eyebrow">No fake green</p><h2 id="proof-title">Promotion proof</h2>
+    <div class="grid">
+      <article class="card"><strong>{{ 'YES' if cycle.proof.production_store_reachable else 'NO' }}</strong><small>production evidence reachable</small></article>
+      <article class="card"><strong>{{ 'YES' if cycle.proof.governance_evidence_ready else 'NO' }}</strong><small>authority + audit + approval proof</small></article>
+      <article class="card"><strong>NO</strong><small>sandbox passed</small></article>
+      <article class="card"><strong>NO</strong><small>signed approval recorded</small></article>
+      <article class="card"><strong>NO</strong><small>promotion executed</small></article>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="locks-title">
+    <p class="eyebrow">Constitutional boundary</p><h2 id="locks-title">Hard locks</h2>
+    <div class="grid">{% for lock in cycle.hard_locks %}<article class="card lock">🔒 {{ lock.replace('_',' ')|title }}</article>{% endfor %}</div>
+    <p class="truth"><strong>Human Authority remains final.</strong> This page performs read-only evidence review. It creates no HRM record, provider call, approval, code change, deployment or production mutation.</p>
+  </section>
+
+  <div class="actions"><a class="nav" href="{{ url_for('mission_control.smi_recursive_improvement_dashboard') }}">↻ Run fresh review</a><a class="nav" href="{{ url_for('mission_control.smi_recursive_improvement_status') }}">{} JSON evidence</a></div>
+</main>
+</body>
+</html>
