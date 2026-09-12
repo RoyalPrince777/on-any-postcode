@@ -52,11 +52,24 @@ _OPENER = urlrequest.build_opener(_NoRedirect())
 
 
 def _origin() -> str:
-    value = os.environ.get("OAP_PUBLIC_ORIGIN", _UPSTREAM_DEFAULT).strip().rstrip("/")
-    parsed = urlparse.urlparse(value)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    configured = os.environ.get("OAP_PUBLIC_ORIGIN", _UPSTREAM_DEFAULT).strip()
+    try:
+        parsed = urlparse.urlparse(configured)
+        _ = parsed.port
+    except ValueError as exc:
+        raise RuntimeError("invalid_public_origin") from exc
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.path not in {"", "/"}
+        or parsed.params
+        or parsed.query
+        or parsed.fragment
+    ):
         raise RuntimeError("invalid_public_origin")
-    return value
+    return configured.rstrip("/")
 
 
 def _secret() -> str:
@@ -234,8 +247,8 @@ def root():
 
 @app.get("/founder")
 def founder_access_alias():
-    """Stable Founder bookmark; recovery mechanics remain an internal auth detail."""
-    return redirect("/auth/recover-founder?next=/mission/ollama", code=302)
+    """Stable Founder bookmark; the upstream selects the available password gate."""
+    return redirect("/auth?next=/mission/ollama", code=302)
 
 
 @app.get("/smi")
