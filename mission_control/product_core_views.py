@@ -1,9 +1,10 @@
 """Authenticated first-party APIs for OAP Tune, Commerce and Post organs."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    distribution_intelligence,
     product_core_services,
     product_cores,
     product_store,
@@ -68,6 +69,87 @@ def _handle_write(action):
         return _error("organ_unavailable", "The OAP organ store is temporarily unavailable.", 503)
 
 
+def _media_projection(identity_id: str) -> dict[str, object]:
+    tune = product_core_services.tune_dashboard(identity_id)
+    return {
+        "organ": "OAP Media",
+        "source_organ": tune.get("organ", "OAP Tune Core"),
+        "releases": tune.get("releases", []),
+        "playlists": tune.get("playlists", []),
+        "release_count": len(tune.get("releases", [])),
+        "playlist_count": len(tune.get("playlists", [])),
+        "licensed_audio_delivery": False,
+        "external_distribution": False,
+        "royalty_payout": False,
+        "human_authority_final": True,
+    }
+
+
+def _distribution_projection(identity_id: str) -> dict[str, object]:
+    tune = product_core_services.tune_dashboard(identity_id)
+    contract = distribution_intelligence.status()
+    return {
+        "organ": "OAP Distribution",
+        "contract": contract,
+        "releases": tune.get("releases", []),
+        "release_count": len(tune.get("releases", [])),
+        "external_execution_enabled": False,
+        "external_distribution_state": contract.get("external_distribution_state"),
+        "rights_proof_required": True,
+        "human_authority_final": True,
+    }
+
+
+def _market_projection(identity_id: str) -> dict[str, object]:
+    commerce = product_core_services.commerce_dashboard(identity_id)
+    return {
+        "organ": "OAP Market",
+        "source_organ": commerce.get("organ", "OAP Commerce Core"),
+        "storefront": commerce.get("storefront"),
+        "products": commerce.get("products", []),
+        "orders": commerce.get("orders", []),
+        "payment_capture_performed": False,
+        "external_fulfilment_performed": False,
+        "human_authority_final": True,
+    }
+
+
+def _distribution_market_media_projection(identity_id: str) -> dict[str, object]:
+    tune = product_core_services.tune_dashboard(identity_id)
+    commerce = product_core_services.commerce_dashboard(identity_id)
+    contract = distribution_intelligence.status()
+    return {
+        "suite": "OAP Distribution / Market / Media",
+        "read_projection_ready": True,
+        "media": {
+            "organ": "OAP Media",
+            "source_organ": tune.get("organ", "OAP Tune Core"),
+            "releases": tune.get("releases", []),
+            "playlists": tune.get("playlists", []),
+            "licensed_audio_delivery": False,
+        },
+        "market": {
+            "organ": "OAP Market",
+            "source_organ": commerce.get("organ", "OAP Commerce Core"),
+            "storefront": commerce.get("storefront"),
+            "products": commerce.get("products", []),
+            "orders": commerce.get("orders", []),
+            "payment_capture_performed": False,
+            "external_fulfilment_performed": False,
+        },
+        "distribution": {
+            "organ": "OAP Distribution",
+            "contract": contract,
+            "releases": tune.get("releases", []),
+            "external_execution_enabled": False,
+            "external_distribution_state": contract.get(
+                "external_distribution_state"
+            ),
+        },
+        "human_authority_final": True,
+    }
+
+
 @bp.get("/status")
 @web_security.login_required(api=True)
 def all_organs_status():
@@ -86,6 +168,66 @@ def tune_status():
         return _no_store(make_response(jsonify(product_core_services.tune_dashboard(_identity()))))
     except (ValueError, RuntimeError):
         return _error("tune_unavailable", "OAP Tune Core is temporarily unavailable.", 503)
+
+
+@bp.get("/media")
+@web_security.login_required(api=True)
+def media_status():
+    try:
+        return _no_store(make_response(jsonify(_media_projection(_identity()))))
+    except (ValueError, RuntimeError):
+        return _error("media_unavailable", "OAP Media is temporarily unavailable.", 503)
+
+
+@bp.get("/distribution")
+@web_security.login_required(api=True)
+def distribution_status():
+    try:
+        return _no_store(make_response(jsonify(_distribution_projection(_identity()))))
+    except (ValueError, RuntimeError):
+        return _error(
+            "distribution_unavailable",
+            "OAP Distribution is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/distribution-market-media")
+@web_security.login_required(api=True)
+def distribution_market_media_status():
+    try:
+        return _no_store(
+            make_response(jsonify(_distribution_market_media_projection(_identity())))
+        )
+    except (ValueError, RuntimeError):
+        return _error(
+            "distribution_market_media_unavailable",
+            "OAP Distribution, Market and Media are temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/distribution-market-media/dashboard")
+@web_security.login_required(founder_only=True)
+def distribution_market_media_dashboard():
+    try:
+        response = make_response(
+            render_template(
+                "distribution_market_media.html",
+                suite=_distribution_market_media_projection(_identity()),
+                error=None,
+            )
+        )
+    except (ValueError, RuntimeError):
+        response = make_response(
+            render_template(
+                "distribution_market_media.html",
+                suite=None,
+                error="The governed product-organ store is temporarily unavailable.",
+            ),
+            503,
+        )
+    return _no_store(response)
 
 
 @bp.post("/tune/releases")
@@ -169,6 +311,15 @@ def commerce_status():
         )
     except (ValueError, RuntimeError):
         return _error("commerce_unavailable", "OAP Commerce Core is temporarily unavailable.", 503)
+
+
+@bp.get("/market")
+@web_security.login_required(api=True)
+def market_status():
+    try:
+        return _no_store(make_response(jsonify(_market_projection(_identity()))))
+    except (ValueError, RuntimeError):
+        return _error("market_unavailable", "OAP Market is temporarily unavailable.", 503)
 
 
 @bp.post("/commerce/storefront")
