@@ -59,8 +59,9 @@ def _render(*, status_code: int = 200, error: str | None = None, next_path: str 
 
 
 @bp.route("/auth/recover-founder", methods=["GET", "POST"])
+@bp.route("/auth/founder-entry", methods=["GET", "POST"])
 def recover_founder():
-    """Open a bounded recovery session only while server recovery is enabled."""
+    """Open a bounded Founder session only while server recovery is enabled."""
 
     if not founder_recovery.configured():
         return _hidden()

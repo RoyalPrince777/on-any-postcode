@@ -102,6 +102,7 @@ def _allowed(path: str) -> bool:
         "/auth/sign-in",
         "/auth/sign-out",
         "/auth/recover-founder",
+        "/auth/founder-entry",
         "/enter-my-world",
         "/assets/oap.css",
         "/healthz",
@@ -181,8 +182,8 @@ def root():
 
 @app.get("/founder")
 def founder_access_alias():
-    """Stable Founder bookmark; recovery mechanics remain an internal auth detail."""
-    return redirect("/auth/recover-founder?next=/mission/ollama", code=302)
+    """Stable Founder bookmark; use the alternate private Founder entry lane."""
+    return redirect("/auth/founder-entry?next=/mission/ollama", code=302)
 
 
 @app.get("/smi")
