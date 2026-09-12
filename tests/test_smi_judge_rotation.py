@@ -1,5 +1,6 @@
-import mission_control.smi_brain_evidence_runner as smi_brain_evidence_runner
-import mission_control.smi_judge_rotation as smi_judge_rotation
+# ruff: noqa: I001
+
+from mission_control import smi_brain_evidence_runner, smi_judge_rotation
 
 
 EXPECTED_JUDGES = (
