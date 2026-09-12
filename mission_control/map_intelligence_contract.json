@@ -1,0 +1,8 @@
+{
+  "name": "Map Intelligence",
+  "canonical_public_slug": "maps-weather-travel",
+  "retired_public_slugs": ["movement-delivery"],
+  "tools": ["Map", "Routes", "Weather", "Travel", "Movement", "OAP Direct", "Booking", "Delivery"],
+  "backend_boundary": "preserve governed Movement, booking, consent, tracking, payment and dispatch routes",
+  "truth_lock": "do not claim consequential operations until proof gates pass"
+}
