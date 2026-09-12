@@ -12,7 +12,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from . import smi_brain_evidence_protocol, smi_receipt_backend
+from . import (
+    smi_brain_evidence_protocol,
+    smi_judge_rotation,
+    smi_receipt_backend,
+)
 
 RUNNER_GATES: tuple[dict[str, object], ...] = (
     {
@@ -22,7 +26,10 @@ RUNNER_GATES: tuple[dict[str, object], ...] = (
         "runner": "local_founder_only_callable_runner",
         "receipt_kind": "agent_tool_connection_receipt",
         "status_when_called": "passed",
-        "meaning": "The protocol can select the target brain part, lead runner, helper path and safe fallback without executing external action.",
+        "meaning": (
+            "The protocol can select the target brain part, lead runner, helper "
+            "path and safe fallback without executing external action."
+        ),
     },
     {
         "gate": 5,
@@ -31,7 +38,10 @@ RUNNER_GATES: tuple[dict[str, object], ...] = (
         "runner": "local_hrm_receipt_write_read_runner",
         "receipt_kind": "hrm_neon_evidence_receipt",
         "status_when_called": "receipt_backend_required",
-        "meaning": "The local HRM-style receipt can be written and read back; production Neon mirror remains separate until configured and proved.",
+        "meaning": (
+            "The local HRM-style receipt can be written and read back; production "
+            "Neon mirror remains separate until configured and proved."
+        ),
     },
     {
         "gate": 6,
@@ -40,7 +50,10 @@ RUNNER_GATES: tuple[dict[str, object], ...] = (
         "runner": "bounded_war_room_verdict_runner",
         "receipt_kind": "war_room_live_proof_receipt",
         "status_when_called": "passed",
-        "meaning": "The War Room proof frame can run SMI-first, include selected agents, Guardian, Green Gate, strongest/weakest link and next gate.",
+        "meaning": (
+            "The War Room proof frame can run SMI-first, the canonical seven judge "
+            "review, Guardian, Green Gate, strongest/weakest link and next gate."
+        ),
     },
     {
         "gate": 7,
@@ -49,19 +62,16 @@ RUNNER_GATES: tuple[dict[str, object], ...] = (
         "runner": "local_matrix_learning_receipt_runner",
         "receipt_kind": "matrix_learning_receipt",
         "status_when_called": "receipt_backend_required",
-        "meaning": "The Matrix learning receipt can be written and read back from bounded proof and dissent; it cannot self-approve or bypass Founder Authority.",
+        "meaning": (
+            "The Matrix learning receipt can be written and read back from bounded "
+            "proof and dissent; it cannot self-approve or bypass Founder Authority."
+        ),
     },
 )
 
-DEFAULT_JUDGES: tuple[str, ...] = (
-    "SMI",
-    "Neo",
-    "Shere Khan",
-    "Bagheera",
-    "Agent Smith",
-    "Guardian",
-    "Green Gate",
-)
+DEFAULT_JUDGES: tuple[str, ...] = smi_judge_rotation.CANONICAL_JUDGE_NAMES
+SEPARATE_GATES: tuple[str, ...] = smi_judge_rotation.SEPARATE_GATES
+RECOVERY_WITNESS = smi_judge_rotation.RECOVERY_WITNESS
 
 SAFE_COMMANDS: tuple[str, ...] = (
     "show_evidence",
@@ -107,7 +117,11 @@ def _gate_lookup(gate: str | int | None = None) -> tuple[dict[str, object], ...]
     )
 
 
-def _write_gate_receipt(brain_part: dict[str, Any], runner_gate: dict[str, object], safe_command: str) -> dict[str, Any] | None:
+def _write_gate_receipt(
+    brain_part: dict[str, Any],
+    runner_gate: dict[str, object],
+    safe_command: str,
+) -> dict[str, Any] | None:
     gate_number = int(runner_gate["gate"])
     if gate_number not in {5, 7}:
         return None
@@ -132,7 +146,11 @@ def _write_gate_receipt(brain_part: dict[str, Any], runner_gate: dict[str, objec
     )
 
 
-def _runner_status_for_gate(brain_part: dict[str, Any], runner_gate: dict[str, object], safe_command: str) -> tuple[str, dict[str, Any] | None]:
+def _runner_status_for_gate(
+    brain_part: dict[str, Any],
+    runner_gate: dict[str, object],
+    safe_command: str,
+) -> tuple[str, dict[str, Any] | None]:
     expected = str(runner_gate["status_when_called"])
     if expected == "passed":
         return "passed", None
@@ -150,25 +168,42 @@ def _score_from_gate_results(results: tuple[dict[str, Any], ...]) -> dict[str, A
         result for result in results if result["runner_status"] != "passed"
     )
     base_protocol_evidence = 3
-    extra_runner_evidence = len({int(result["gate"]) for result in passed_runner_gates})
+    extra_runner_evidence = len(
+        {int(result["gate"]) for result in passed_runner_gates}
+    )
     evidence_current = min(7, base_protocol_evidence + extra_runner_evidence)
     receipt_backed_gates = tuple(
-        sorted({int(result["gate"]) for result in passed_runner_gates if result.get("receipt_backend")})
+        sorted(
+            {
+                int(result["gate"])
+                for result in passed_runner_gates
+                if result.get("receipt_backend")
+            }
+        )
     )
     return {
         "protocol_evidence_base": "3/7",
-        "runner_gates_passed": tuple(sorted({int(result["gate"]) for result in passed_runner_gates})),
-        "runner_gates_pending": tuple(sorted({int(result["gate"]) for result in pending_runner_gates})),
+        "runner_gates_passed": tuple(
+            sorted({int(result["gate"]) for result in passed_runner_gates})
+        ),
+        "runner_gates_pending": tuple(
+            sorted({int(result["gate"]) for result in pending_runner_gates})
+        ),
         "receipt_backed_gates": receipt_backed_gates,
         "evidence_current_if_this_scope": evidence_current,
         "evidence_possible": 7,
         "evidence_label_if_this_scope": f"{evidence_current}/7",
         "simulation": "7/7",
         "philosophy": "7/7",
-        "local_receipt_green": 5 in receipt_backed_gates and 7 in receipt_backed_gates,
+        "local_receipt_green": (
+            5 in receipt_backed_gates and 7 in receipt_backed_gates
+        ),
         "neon_mirror_green": False,
         "full_green": False,
-        "full_green_reason": "Local evidence can reach 7/7, but full system green still needs configured Neon mirror proof, acceptance tests and Founder final approval.",
+        "full_green_reason": (
+            "Local evidence can reach 7/7, but full system green still needs "
+            "configured Neon mirror proof, acceptance tests and Founder final approval."
+        ),
     }
 
 
@@ -177,18 +212,30 @@ def runner_status() -> dict[str, Any]:
 
     protocol = smi_brain_evidence_protocol.evidence_gate_status()
     receipt_status = smi_receipt_backend.receipt_backend_status()
+    judge_status = smi_judge_rotation.status()
     return {
         "name": "SMI Brain Live Evidence Runner",
         "mode": "founder_only_bounded_runner",
         "timestamp_utc": _now(),
         "safe_commands": SAFE_COMMANDS,
         "judges": DEFAULT_JUDGES,
+        "judge_rotation": judge_status,
+        "separate_gates": SEPARATE_GATES,
+        "recovery_witness": RECOVERY_WITNESS,
         "runner_gates": RUNNER_GATES,
         "receipt_backend": receipt_status,
-        "covers_brain_parts": tuple(part["id"] for part in protocol["brain_parts"]),
-        "can_prove_now": (4, 5, 6, 7) if receipt_status["hrm_receipt_ready"] and receipt_status["matrix_learning_receipt_ready"] else (4, 6),
+        "covers_brain_parts": tuple(
+            part["id"] for part in protocol["brain_parts"]
+        ),
+        "can_prove_now": (
+            (4, 5, 6, 7)
+            if receipt_status["hrm_receipt_ready"]
+            and receipt_status["matrix_learning_receipt_ready"]
+            else (4, 6)
+        ),
         "requires_neon_mirror_for_full_system_green": True,
-        "review_green": True,
+        "review_ready": bool(judge_status["all_judges_present"]),
+        "review_green": False,
         "full_green": False,
         "locks": {
             "no_fake_green": True,
@@ -199,21 +246,35 @@ def runner_status() -> dict[str, Any]:
             "no_self_approval": True,
             "public_private_separation": True,
         },
-        "next_gate": "Run the evidence runner, then connect production Neon mirror proof and acceptance tests before full green.",
+        "next_gate": (
+            "Run the canonical seven-judge review, prove Guardian and Green Gate, "
+            "then connect production Neon mirror proof and acceptance tests before "
+            "Founder final approval and full green."
+        ),
     }
 
 
-def run(part: str | None = None, gate: str | int | None = None, command: str | None = None) -> dict[str, Any]:
+def run(
+    part: str | None = None,
+    gate: str | int | None = None,
+    command: str | None = None,
+) -> dict[str, Any]:
     """Run a bounded proof check for one or more brain parts and gates."""
 
     requested_command = (command or "war_room").strip().lower().replace(" ", "_")
-    safe_command = requested_command if requested_command in SAFE_COMMANDS else "war_room"
+    safe_command = (
+        requested_command if requested_command in SAFE_COMMANDS else "war_room"
+    )
     parts = _part_lookup(part)
     gates = _gate_lookup(gate)
     results: list[dict[str, Any]] = []
     for brain_part in parts:
         for runner_gate in gates:
-            status, receipt = _runner_status_for_gate(brain_part, runner_gate, safe_command)
+            status, receipt = _runner_status_for_gate(
+                brain_part,
+                runner_gate,
+                safe_command,
+            )
             gate_number = int(runner_gate["gate"])
             results.append(
                 {
@@ -239,32 +300,85 @@ def run(part: str | None = None, gate: str | int | None = None, command: str | N
                     },
                 }
             )
+
     result_tuple = tuple(results)
     score = _score_from_gate_results(result_tuple)
+    review_scope = (
+        str(parts[0]["id"])
+        if len(parts) == 1
+        else "all"
+    )
+    judge_review = smi_judge_rotation.run_review(
+        scope=review_scope,
+        command=safe_command,
+        evidence_current=int(score["evidence_current_if_this_scope"]),
+        local_receipt_green=bool(score["local_receipt_green"]),
+        neon_mirror_green=bool(score["neon_mirror_green"]),
+    )
+    judge_label = (
+        f"{judge_review['reviewed_count']} / "
+        f"{judge_review['canonical_count']} CANONICAL REVIEWED"
+    )
+
     return {
         "name": "SMI Brain Live Evidence Runner Result",
         "mode": "founder_only_bounded_runner",
         "timestamp_utc": _now(),
-        "requested": {"part": part or "all", "gate": gate or "all", "command": command or "war_room"},
+        "requested": {
+            "part": part or "all",
+            "gate": gate or "all",
+            "command": command or "war_room",
+        },
         "safe_command_used": safe_command,
         "matched_parts": len(parts),
         "matched_gates": len(gates),
         "execution_granted": False,
         "external_action_taken": False,
-        "real_storage_write_done": any(bool(result.get("receipt_backend")) for result in result_tuple),
+        "real_storage_write_done": any(
+            bool(result.get("receipt_backend")) for result in result_tuple
+        )
+        or bool(judge_review["receipt_ok"]),
         "results": result_tuple,
         "score": score,
+        "judge_review": judge_review,
         "top_bar": {
             "signal": "🟡 OPEN" if not score["full_green"] else "🟢 READY",
-            "smi_mode": "HIGH" if safe_command in {"war_room", "red_team", "failure_test", "recovery_test"} else "MEDIUM",
-            "depth": 21 if safe_command in {"war_room", "red_team", "failure_test", "recovery_test"} else 7,
-            "judges": "7 / 7",
-            "guardian": "🛡 REQUIRED",
-            "hrm": "💾 LOCAL RECEIPT READY" if score["local_receipt_green"] else "💾 RECEIPT CHECK NEEDED",
+            "smi_mode": (
+                "HIGH"
+                if safe_command
+                in {"war_room", "red_team", "failure_test", "recovery_test"}
+                else "MEDIUM"
+            ),
+            "depth": (
+                21
+                if safe_command
+                in {"war_room", "red_team", "failure_test", "recovery_test"}
+                else 7
+            ),
+            "judges": judge_label,
+            "judge_rotation": str(judge_review["rotation_focus"]),
+            "judge_holds": len(judge_review["holds"]),
+            "guardian": "🛡 REQUIRED · SEPARATE GATE",
+            "green_gate": "🟢 REQUIRED · SEPARATE GATE",
+            "neo": "RECOVERY WITNESS",
+            "hrm": (
+                "💾 LOCAL RECEIPT READY"
+                if score["local_receipt_green"]
+                else "💾 RECEIPT CHECK NEEDED"
+            ),
             "neon": "🔒 MIRROR NOT CLAIMED",
         },
-        "strongest_link": "Gates 4, 5, 6 and 7 are now callable; gates 5 and 7 write/read bounded local receipts.",
-        "weakest_link": "Production Neon mirror, acceptance tests and Founder final approval remain outside this local runner.",
-        "next_gate": "Deploy, verify, then connect real Neon mirror proof before full system green.",
+        "strongest_link": (
+            "The canonical seven judges now run as explicit bounded rule lenses; "
+            "Guardian and Green Gate are separate gates and Neo is recovery witness."
+        ),
+        "weakest_link": (
+            "Production Neon mirror, acceptance tests and Founder final approval "
+            "remain outside this local runner."
+        ),
+        "next_gate": (
+            "Verify the canonical seven review receipt, then connect real Neon mirror "
+            "proof before Founder final approval and full system green."
+        ),
         "full_green": False,
     }
