@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from flask import Flask
 
 import smi_gateway
@@ -159,6 +160,22 @@ def test_smi_gateway_allowlist_is_founder_private_only():
     assert smi_gateway._allowed("market") is False
     assert smi_gateway._allowed("manifest.webmanifest") is False
     assert smi_gateway._allowed("service-worker.js") is False
+
+
+def test_smi_gateway_requires_an_exact_https_public_origin(monkeypatch):
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://public.example.test/")
+    assert smi_gateway._origin() == "https://public.example.test"
+
+    for invalid in (
+        "http://public.example.test",
+        "https://public.example.test/private",
+        "https://public.example.test?secret=value",
+        "https://user:password@public.example.test",
+        "https://public.example.test:not-a-port",
+    ):
+        monkeypatch.setenv("OAP_PUBLIC_ORIGIN", invalid)
+        with pytest.raises(RuntimeError, match="invalid_public_origin"):
+            smi_gateway._origin()
 
 
 def test_smi_gateway_healthz_is_process_local(monkeypatch):
