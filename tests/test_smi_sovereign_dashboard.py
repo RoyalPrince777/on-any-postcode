@@ -1,15 +1,17 @@
-from pathlib import Path
+WRAPPER = "mission_control/templates/ollama_chat.html"
+DASHBOARD_JS = "mission_control/static/smi_sovereign_dashboard.js"
+DASHBOARD_CSS = "mission_control/static/smi_sovereign_dashboard.css"
 
-ROOT = Path(__file__).resolve().parents[1]
-WRAPPER = ROOT / "mission_control" / "templates" / "ollama_chat.html"
-DASHBOARD_JS = ROOT / "mission_control" / "static" / "smi_sovereign_dashboard.js"
-DASHBOARD_CSS = ROOT / "mission_control" / "static" / "smi_sovereign_dashboard.css"
+
+def _read(path: str) -> str:
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
 
 
 def test_sovereign_dashboard_is_primary_smi_surface():
-    wrapper = WRAPPER.read_text(encoding="utf-8")
-    script = DASHBOARD_JS.read_text(encoding="utf-8")
-    stylesheet = DASHBOARD_CSS.read_text(encoding="utf-8")
+    wrapper = _read(WRAPPER)
+    script = _read(DASHBOARD_JS)
+    stylesheet = _read(DASHBOARD_CSS)
 
     assert "Sovereign Megaverse Intelligence" in wrapper
     assert "Live Intelligence Monitor" in wrapper
@@ -29,7 +31,7 @@ def test_sovereign_dashboard_is_primary_smi_surface():
 
 
 def test_dashboard_exposes_exactly_21_canonical_signal_ids():
-    script = DASHBOARD_JS.read_text(encoding="utf-8")
+    script = _read(DASHBOARD_JS)
     expected = (
         "healthy",
         "starting",
