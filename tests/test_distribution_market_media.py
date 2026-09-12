@@ -12,6 +12,7 @@ def test_distribution_market_media_routes_are_registered():
     assert "/mission/organs/market" in rules
     assert "/mission/organs/distribution" in rules
     assert "/mission/organs/distribution-market-media" in rules
+    assert "/mission/organs/distribution-market-media/dashboard" in rules
 
 
 def test_media_projection_uses_real_tune_state(monkeypatch):
