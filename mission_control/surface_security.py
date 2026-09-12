@@ -4,11 +4,13 @@ from __future__ import annotations
 import hmac
 import ipaddress
 import os
+from urllib import parse as urlparse
 
-from flask import Flask, Request, make_response, request
+from flask import Flask, Request, make_response, redirect, request
 
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
 _CLIENT_IP_HEADER = "X-OAP-Client-IP"
+_PRIVATE_GATEWAY_DEFAULT = "https://oap-smi.onrender.com"
 _PRIVATE_PATH_PREFIXES = (
     "/mission",
     "/smi",
@@ -23,6 +25,22 @@ _PRIVATE_PATH_PREFIXES = (
     "/api/infrastructure",
     "/api/smi",
 )
+_PUBLIC_PRIVATE_HANDOFFS = {
+    "/smi": "/mission/ollama",
+    "/mission": "/mission/ollama",
+    "/mission/smi": "/mission/ollama",
+    "/mission/ollama": "/mission/ollama",
+    "/war-room": "/mission/war-room",
+    "/mission/war-room": "/mission/war-room",
+    "/mission/isac": "/mission/isac-spatial/",
+    "/mission/isac-spatial": "/mission/isac-spatial/",
+    "/my-world": "/my-world",
+    "/myworld": "/my-world",
+}
+_GATEWAY_COMPAT_REDIRECTS = {
+    "/mission/smi": "/mission/ollama",
+    "/mission/isac": "/mission/isac-spatial/",
+}
 _LINK_DEVICE_PATHS = frozenset({"/linkup"})
 _LINK_PERMISSIONS_POLICY = (
     "camera=(self), microphone=(self), geolocation=(self), payment=()"
@@ -49,6 +67,27 @@ def _gateway_secret_matches(value: object) -> bool:
         and bool(supplied)
         and hmac.compare_digest(expected, supplied)
     )
+
+
+def _private_gateway_origin() -> str:
+    value = os.environ.get("OAP_PRIVATE_SMI_ORIGIN", _PRIVATE_GATEWAY_DEFAULT).strip().rstrip("/")
+    try:
+        parsed = urlparse.urlparse(value)
+        _ = parsed.port
+    except ValueError:
+        return _PRIVATE_GATEWAY_DEFAULT
+    if not (
+        parsed.scheme == "https"
+        and bool(parsed.hostname)
+        and not parsed.username
+        and not parsed.password
+        and parsed.path in {"", "/"}
+        and not parsed.params
+        and not parsed.query
+        and not parsed.fragment
+    ):
+        return _PRIVATE_GATEWAY_DEFAULT
+    return value
 
 
 class OAPRequest(Request):
@@ -114,13 +153,25 @@ def _private_not_found():
     return response
 
 
+def _private_handoff(path: str):
+    clean = path.rstrip("/") or "/"
+    target = _PUBLIC_PRIVATE_HANDOFFS.get(clean)
+    if target is None or request.method not in {"GET", "HEAD"}:
+        return None
+    response = redirect(f"{_private_gateway_origin()}{target}", code=302)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-OAP-Private-Handoff"] = "smi-gateway"
+    return response
+
+
 def register(app: Flask) -> None:
     """Keep Founder routes absent from normal public-origin access.
 
-    Production public surfaces are explicitly marked ``OAP_SURFACE_ROLE=public``
-    and therefore fail closed even if their gateway secret is missing. A private
-    path is reachable only when the dedicated private gateway supplies the
-    configured high-entropy credential.
+    Production public surfaces are explicitly marked ``OAP_SURFACE_ROLE=public``.
+    Exact browser-facing legacy aliases hand off to the dedicated private SMI
+    gateway instead of dead-ending on a public-origin 404. All other private
+    paths still fail closed. Trusted gateway traffic remains the only traffic
+    allowed to render Founder surfaces on the upstream application.
     """
     from . import (
         all_intelligence_views,
@@ -147,8 +198,18 @@ def register(app: Flask) -> None:
     def _enforce_private_origin_boundary():
         if not _is_private_path(request.path):
             return None
+        clean = request.path.rstrip("/") or "/"
         if gateway_authorized():
+            compatibility_target = _GATEWAY_COMPAT_REDIRECTS.get(clean)
+            if compatibility_target is not None:
+                response = redirect(compatibility_target, code=302)
+                response.headers["Cache-Control"] = "no-store"
+                return response
             return None
+        if public_surface_enforced():
+            handoff = _private_handoff(clean)
+            if handoff is not None:
+                return handoff
         if public_surface_enforced() or gateway_configured():
             return _private_not_found()
         return None
