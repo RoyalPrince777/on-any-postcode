@@ -126,11 +126,10 @@ def register(app: Flask) -> None:
         """Restore the authenticated gateway's client address before limiters run."""
 
         if not gateway_authorized():
-            return None
+            return
         client_ip = _canonical_client_ip(request.headers.get(_CLIENT_IP_HEADER))
         if client_ip is not None:
             request.environ["REMOTE_ADDR"] = client_ip
-        return None
 
     @app.before_request
     def _enforce_private_origin_boundary():
