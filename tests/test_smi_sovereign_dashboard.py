@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = ROOT / "mission_control" / "templates" / "ollama_chat.html"
 DASHBOARD_JS = ROOT / "mission_control" / "static" / "smi_sovereign_dashboard.js"
