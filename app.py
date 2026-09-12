@@ -588,8 +588,8 @@ def _founder_activation_closed(status_code: int = 404):
     return response
 
 
-def _auth_rate_key() -> str:
-    return f"auth:{request.remote_addr or 'unknown'}"
+def _auth_rate_key(scope: str = "sign-in") -> str:
+    return f"auth:{scope}:{request.remote_addr or 'unknown'}"
 
 
 def _apply_auth_cookies(response, set_cookie_headers) -> bool:
@@ -663,10 +663,10 @@ def activate_founder():
             status_code=403,
             error="The secure session expired. Refresh and try again.",
         )
-    if not web_security.AUTH_BURST_LIMITER.allow(_auth_rate_key()):
+    if not web_security.AUTH_BURST_LIMITER.allow(_auth_rate_key("activation")):
         return _founder_activation_response(
             status_code=429,
-            error="Too many activation attempts. Wait 15 minutes and try again.",
+            error="Too many activation attempts. Wait five minutes and try again.",
         )
     if not founder_activation.token_allowed(_form_secret("activation_code", 512)):
         return _founder_activation_response(
@@ -721,12 +721,6 @@ def auth_sign_in():
             error="The secure session expired. Refresh and try again.",
             next_path=next_path,
         )
-    if not web_security.AUTH_BURST_LIMITER.allow(_auth_rate_key()):
-        return _auth_page_response(
-            status_code=429,
-            error="Too many sign-in attempts. Wait 15 minutes and try again.",
-            next_path=next_path,
-        )
     password = _form_secret("password", 1024)
     if not password:
         return _auth_page_response(
@@ -753,6 +747,13 @@ def auth_sign_in():
             ),
             next_path=next_path,
         )
+    auth_rate_key = _auth_rate_key()
+    if not web_security.AUTH_BURST_LIMITER.allow(auth_rate_key):
+        return _auth_page_response(
+            status_code=429,
+            error="Too many sign-in attempts. Wait five minutes and try again.",
+            next_path=next_path,
+        )
     try:
         result = neon_auth.sign_in(email, password)
     except neon_auth.AuthUnavailable:
@@ -777,6 +778,7 @@ def auth_sign_in():
             ),
             next_path=next_path,
         )
+    web_security.AUTH_BURST_LIMITER.reset_key(auth_rate_key)
     response = redirect(next_path)
     if not _apply_auth_cookies(response, result.set_cookie_headers):
         return _auth_page_response(
