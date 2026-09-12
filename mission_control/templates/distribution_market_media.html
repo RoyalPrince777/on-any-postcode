@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Distribution · Market · Media</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    :root{--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8;--warn:#f0c65b}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#0a1a11 0,#050806 42%);color:var(--text);font-family:Inter,system-ui,sans-serif}a{color:inherit}.shell{max-width:1180px;margin:auto;padding:18px 14px 64px}.hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-size:.72rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.hero h1{font-size:clamp(2.35rem,7vw,4.9rem);line-height:.95;margin:.12em 0}.muted{color:var(--muted);line-height:1.5}.actions{display:flex;gap:8px;flex-wrap:wrap}.button{display:inline-flex;padding:9px 12px;border:1px solid var(--line);border-radius:999px;text-decoration:none;font-weight:800}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}.panel{border:1px solid var(--line);border-radius:22px;background:rgba(9,20,13,.92);padding:17px;min-height:240px}.panel h2{margin:.1em 0 .45em}.metric{font-size:2.2rem;font-weight:900;color:var(--green)}.mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:13px 0}.mini{border:1px solid #1b3a28;border-radius:14px;padding:10px;background:#061009}.mini strong{display:block;font-size:1.25rem}.truth{margin-top:16px;border-left:4px solid var(--gold);background:#211b0b;padding:13px;border-radius:0 14px 14px 0;color:#f0e2aa}.list{display:grid;gap:8px;margin-top:12px}.item{border:1px solid #1b3a28;border-radius:14px;padding:10px;background:#07110a}.item strong{display:block}.state{display:inline-flex;padding:4px 8px;border-radius:999px;border:1px solid #496336;color:#dfeeb4;font-size:.76rem;font-weight:850}.warning{color:var(--warn)}.error{border:1px solid #6d4128;background:#241109;border-radius:18px;padding:16px;margin-top:20px}@media(max-width:850px){.grid{grid-template-columns:1fr}.panel{min-height:auto}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Founder private organ view</p>
+      <h1>Distribution · Market · Media</h1>
+      <p class="muted">One low-noise screen reading the real OAP Tune, Commerce and Distribution state.</p>
+    </div>
+    <nav class="actions" aria-label="Dashboard navigation">
+      <a class="button" href="/mission">← Mission Control</a>
+      <a class="button" href="/the-spot/market">Market</a>
+      <a class="button" href="/the-spot/tv-media">Media</a>
+      <a class="button" href="/the-spot/distribution">Distribution</a>
+    </nav>
+  </header>
+
+  {% if error %}
+  <section class="error" role="alert"><strong>Private organ state unavailable.</strong><p class="muted">{{ error }}</p></section>
+  {% elif suite %}
+  <section class="grid" aria-label="Distribution Market and Media state">
+    <article class="panel">
+      <p class="eyebrow">🎬 Media</p><h2>{{ suite.media.organ }}</h2>
+      <div class="mini-grid">
+        <div class="mini"><span class="muted">Releases</span><strong>{{ suite.media.releases|length }}</strong></div>
+        <div class="mini"><span class="muted">Playlists</span><strong>{{ suite.media.playlists|length }}</strong></div>
+      </div>
+      <span class="state">Tune Core connected</span>
+      <p class="muted">Owned release and playlist state is read from the authenticated Tune Core. Licensed audio delivery remains locked until proven.</p>
+      <div class="list">
+        {% for release in suite.media.releases[:4] %}
+        <div class="item"><strong>{{ release.title }}</strong><span class="muted">{{ release.release_type }} · {{ release.state }} · rights {{ release.rights_status }}</span></div>
+        {% else %}<div class="item"><span class="muted">No owner releases yet.</span></div>{% endfor %}
+      </div>
+    </article>
+
+    <article class="panel">
+      <p class="eyebrow">🛒 Market</p><h2>{{ suite.market.organ }}</h2>
+      <div class="mini-grid">
+        <div class="mini"><span class="muted">Products</span><strong>{{ suite.market.products|length }}</strong></div>
+        <div class="mini"><span class="muted">Orders</span><strong>{{ suite.market.orders|length }}</strong></div>
+      </div>
+      <span class="state">Commerce Core connected</span>
+      <p class="muted">Storefront, products and order intents are real owner-scoped records. Payment capture and external fulfilment are not claimed here.</p>
+      {% if suite.market.storefront %}<div class="item"><strong>{{ suite.market.storefront.store_name }}</strong><span class="muted">Storefront state · {{ suite.market.storefront.state }}</span></div>{% else %}<div class="item"><span class="muted">No storefront created yet.</span></div>{% endif %}
+    </article>
+
+    <article class="panel">
+      <p class="eyebrow">📦 Distribution</p><h2>{{ suite.distribution.organ }}</h2>
+      <div class="metric">{{ suite.distribution.releases|length }}</div><p class="muted">owner release{{ '' if suite.distribution.releases|length == 1 else 's' }} in the governed release path</p>
+      <span class="state">Rights gate active</span>
+      <p class="muted">External state: <span class="warning">{{ suite.distribution.external_distribution_state }}</span></p>
+      <p class="muted">External execution is disabled until an authenticated adapter, receipt destination, rights proof and Human Authority approval exist.</p>
+    </article>
+  </section>
+
+  <p class="truth"><strong>Truth lock:</strong> this dashboard reads state. It does not silently publish, distribute externally, capture payment, fulfil orders, pay royalties or deploy production changes. Human Authority remains final.</p>
+  {% endif %}
+</main>
+</body>
+</html>
