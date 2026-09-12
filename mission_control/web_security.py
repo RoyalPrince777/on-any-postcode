@@ -229,6 +229,11 @@ class SlidingWindowLimiter:
                     self._last_request.pop(stale_key, None)
             return True
 
+    def reset_key(self, key: str) -> None:
+        with self._lock:
+            self._events.pop(key, None)
+            self._last_request.pop(key, None)
+
     def reset(self) -> None:
         with self._lock:
             self._events.clear()
@@ -245,4 +250,4 @@ CHAT_BURST_LIMITER = SlidingWindowLimiter(
     fingerprint_request_body=True,
 )
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
-AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=15 * 60, duplicate_seconds=2.0)
+AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=5 * 60, duplicate_seconds=2.0)
