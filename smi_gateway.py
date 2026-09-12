@@ -1,6 +1,7 @@
 """Free web gateway that exposes only the private SMI surface on its own origin."""
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 from collections.abc import Iterator
@@ -14,6 +15,7 @@ app = Flask(__name__)
 
 _UPSTREAM_DEFAULT = "https://on-any-postcode.onrender.com"
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
+_CLIENT_IP_HEADER = "X-OAP-Client-IP"
 _ALLOWED_REQUEST_HEADERS = {
     "accept",
     "accept-language",
@@ -123,8 +125,31 @@ def _upstream_url(path: str) -> str:
     return f"{_origin()}{clean}" + (f"?{query}" if query else "")
 
 
+def _client_ip() -> str:
+    """Return a canonical client IP for the trusted upstream rate-limit key.
+
+    Render terminates public traffic before it reaches this gateway and places the
+    real client address first in X-Forwarded-For. Outside Render, use the direct
+    socket peer instead. Invalid or missing values fail closed to ``unknown``.
+    """
+
+    candidate = str(request.remote_addr or "").strip()
+    if os.environ.get("RENDER", "").strip().casefold() == "true":
+        forwarded = request.headers.get("X-Forwarded-For", "")
+        first = forwarded.split(",", 1)[0].strip()
+        if first:
+            candidate = first
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        return "unknown"
+
+
 def _request_headers() -> dict[str, str]:
-    headers: dict[str, str] = {_GATEWAY_HEADER: _secret()}
+    headers: dict[str, str] = {
+        _GATEWAY_HEADER: _secret(),
+        _CLIENT_IP_HEADER: _client_ip(),
+    }
     for name, value in request.headers.items():
         if name.casefold() in _ALLOWED_REQUEST_HEADERS:
             headers[name] = value

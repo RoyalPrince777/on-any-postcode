@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import os
 
 from flask import Flask, Request, make_response, request
 
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
+_CLIENT_IP_HEADER = "X-OAP-Client-IP"
 _PRIVATE_PATH_PREFIXES = (
     "/mission",
     "/smi",
@@ -29,14 +31,52 @@ _SHARE_UPLOAD_PATH = "/linkup/share"
 _SHARE_REQUEST_MAX_BYTES = 26 * 1024 * 1024
 
 
-class OAPRequest(Request):
-    """Preserve the global request cap while allowing 25 MB Share payloads.
+def _canonical_client_ip(value: object) -> str | None:
+    candidate = str(value or "").strip()
+    if not candidate:
+        return None
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        return None
 
-    Multipart framing adds a small amount of request overhead around the file
-    itself, so the Share endpoint receives a 26 MB transport ceiling while the
-    domain layer continues to enforce its 25 MB file limit. Every other route
-    remains governed by the application's normal MAX_CONTENT_LENGTH setting.
+
+def _gateway_secret_matches(value: object) -> bool:
+    expected = os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip()
+    supplied = str(value or "")
+    return (
+        len(expected) >= 32
+        and bool(supplied)
+        and hmac.compare_digest(expected, supplied)
+    )
+
+
+class OAPRequest(Request):
+    """Preserve request limits and restore trusted gateway client identity.
+
+    The dedicated SMI gateway authenticates itself with a high-entropy shared
+    secret and supplies a canonical client address in ``X-OAP-Client-IP``. That
+    value is applied to the WSGI environment before Werkzeug snapshots
+    ``remote_addr`` so downstream Founder rate limiters key the real client
+    instead of the Render gateway peer. Unauthenticated public headers are
+    ignored.
+
+    Multipart framing adds a small amount of request overhead around Share files,
+    so the Share endpoint receives a 26 MB transport ceiling while the domain
+    layer continues to enforce its 25 MB file limit. Every other route remains
+    governed by the application's normal MAX_CONTENT_LENGTH setting.
     """
+
+    def __init__(self, environ, populate_request=True, shallow=False):
+        if _gateway_secret_matches(environ.get("HTTP_X_OAP_SMI_GATEWAY")):
+            client_ip = _canonical_client_ip(environ.get("HTTP_X_OAP_CLIENT_IP"))
+            if client_ip is not None:
+                environ["REMOTE_ADDR"] = client_ip
+        super().__init__(
+            environ,
+            populate_request=populate_request,
+            shallow=shallow,
+        )
 
     @property
     def max_content_length(self) -> int | None:  # type: ignore[override]
@@ -55,13 +95,7 @@ def public_surface_enforced() -> bool:
 
 
 def gateway_authorized() -> bool:
-    expected = os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip()
-    supplied = request.headers.get(_GATEWAY_HEADER, "")
-    return (
-        len(expected) >= 32
-        and bool(supplied)
-        and hmac.compare_digest(expected, supplied)
-    )
+    return _gateway_secret_matches(request.headers.get(_GATEWAY_HEADER, ""))
 
 
 def _is_private_path(path: str) -> bool:
