@@ -1,7 +1,7 @@
 """Authenticated first-party APIs for OAP Tune, Commerce and Post organs."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
     distribution_intelligence,
@@ -114,6 +114,42 @@ def _market_projection(identity_id: str) -> dict[str, object]:
     }
 
 
+def _distribution_market_media_projection(identity_id: str) -> dict[str, object]:
+    tune = product_core_services.tune_dashboard(identity_id)
+    commerce = product_core_services.commerce_dashboard(identity_id)
+    contract = distribution_intelligence.status()
+    return {
+        "suite": "OAP Distribution / Market / Media",
+        "read_projection_ready": True,
+        "media": {
+            "organ": "OAP Media",
+            "source_organ": tune.get("organ", "OAP Tune Core"),
+            "releases": tune.get("releases", []),
+            "playlists": tune.get("playlists", []),
+            "licensed_audio_delivery": False,
+        },
+        "market": {
+            "organ": "OAP Market",
+            "source_organ": commerce.get("organ", "OAP Commerce Core"),
+            "storefront": commerce.get("storefront"),
+            "products": commerce.get("products", []),
+            "orders": commerce.get("orders", []),
+            "payment_capture_performed": False,
+            "external_fulfilment_performed": False,
+        },
+        "distribution": {
+            "organ": "OAP Distribution",
+            "contract": contract,
+            "releases": tune.get("releases", []),
+            "external_execution_enabled": False,
+            "external_distribution_state": contract.get(
+                "external_distribution_state"
+            ),
+        },
+        "human_authority_final": True,
+    }
+
+
 @bp.get("/status")
 @web_security.login_required(api=True)
 def all_organs_status():
@@ -160,45 +196,8 @@ def distribution_status():
 @web_security.login_required(api=True)
 def distribution_market_media_status():
     try:
-        identity = _identity()
-        tune = product_core_services.tune_dashboard(identity)
-        commerce = product_core_services.commerce_dashboard(identity)
-        contract = distribution_intelligence.status()
         return _no_store(
-            make_response(
-                jsonify(
-                    {
-                        "suite": "OAP Distribution / Market / Media",
-                        "read_projection_ready": True,
-                        "media": {
-                            "organ": "OAP Media",
-                            "source_organ": tune.get("organ", "OAP Tune Core"),
-                            "releases": tune.get("releases", []),
-                            "playlists": tune.get("playlists", []),
-                            "licensed_audio_delivery": False,
-                        },
-                        "market": {
-                            "organ": "OAP Market",
-                            "source_organ": commerce.get("organ", "OAP Commerce Core"),
-                            "storefront": commerce.get("storefront"),
-                            "products": commerce.get("products", []),
-                            "orders": commerce.get("orders", []),
-                            "payment_capture_performed": False,
-                            "external_fulfilment_performed": False,
-                        },
-                        "distribution": {
-                            "organ": "OAP Distribution",
-                            "contract": contract,
-                            "releases": tune.get("releases", []),
-                            "external_execution_enabled": False,
-                            "external_distribution_state": contract.get(
-                                "external_distribution_state"
-                            ),
-                        },
-                        "human_authority_final": True,
-                    }
-                )
-            )
+            make_response(jsonify(_distribution_market_media_projection(_identity())))
         )
     except (ValueError, RuntimeError):
         return _error(
@@ -206,6 +205,29 @@ def distribution_market_media_status():
             "OAP Distribution, Market and Media are temporarily unavailable.",
             503,
         )
+
+
+@bp.get("/distribution-market-media/dashboard")
+@web_security.login_required(founder_only=True)
+def distribution_market_media_dashboard():
+    try:
+        response = make_response(
+            render_template(
+                "distribution_market_media.html",
+                suite=_distribution_market_media_projection(_identity()),
+                error=None,
+            )
+        )
+    except (ValueError, RuntimeError):
+        response = make_response(
+            render_template(
+                "distribution_market_media.html",
+                suite=None,
+                error="The governed product-organ store is temporarily unavailable.",
+            ),
+            503,
+        )
+    return _no_store(response)
 
 
 @bp.post("/tune/releases")
