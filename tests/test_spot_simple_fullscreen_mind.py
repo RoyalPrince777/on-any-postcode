@@ -8,7 +8,7 @@ def test_spot_is_simple_pulse_first_home_without_inline_forms():
     assert "📡 Pulse" in html
     assert "See what’s happening around you." in html
     assert "🌍 World Rooms" in html
-    assert "👤 My World" not in html
+    assert "👤 My World" in html
     assert "auth_page" not in html
     assert "More" in html
     assert "Carnival Intelligence" not in html
@@ -17,11 +17,15 @@ def test_spot_is_simple_pulse_first_home_without_inline_forms():
     assert "<form" not in html
     for slug in (
         "pulse",
+        "flag-vote",
         "signal",
+        "news",
+        "nature",
         "postcode-rooms",
         "events",
         "market",
         "discovery",
+        "my-world",
     ):
         assert slug in html
 
