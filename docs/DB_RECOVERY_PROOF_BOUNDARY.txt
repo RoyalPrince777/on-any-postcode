@@ -1,0 +1,3 @@
+Primary PostgreSQL recovery is read-only until Human Authority separately approves schema initialization and certification issuance.
+Render DATABASE_URL may override stale Neon-specific aliases.
+No startup migration. No automatic identity creation. No permission expansion. No secret logging.
