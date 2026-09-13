@@ -1,15 +1,14 @@
 """Founder-only Ecosystem Intelligence surface.
 
-The dashboard exposes the constitutional model and accepts only explicit Founder
-signal packs for bounded analysis. It never invents live values or persists a
-fake current state when no real signal pack has been supplied.
+The surface exposes automatic owned-runtime ingestion, explicit signal analysis,
+and Founder-approved outcome receipts. It never invents external live data and
+never grants operational execution.
 """
-
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import ecosystem_intelligence, web_security
+from . import ecosystem_intelligence, ecosystem_runtime, web_security
 
 bp = Blueprint(
     "ecosystem_intelligence",
@@ -30,14 +29,14 @@ def _no_store(response):
 @bp.get("/")
 @web_security.login_required(founder_only=True)
 def dashboard():
-    """Render the real-data-only Ecosystem Intelligence command view."""
+    """Render the automatic internal Ecosystem command view."""
 
     return _no_store(
         make_response(
             render_template(
                 "ecosystem_intelligence.html",
                 ecosystem=ecosystem_intelligence.status(),
-                analysis=None,
+                runtime=ecosystem_runtime.current_state(),
             )
         )
     )
@@ -46,9 +45,24 @@ def dashboard():
 @bp.get("/status")
 @web_security.login_required(api=True, founder_only=True)
 def status():
-    """Return the bounded Ecosystem Intelligence contract."""
+    return _no_store(
+        make_response(
+            jsonify(
+                {
+                    "architecture": ecosystem_intelligence.status(),
+                    "runtime": ecosystem_runtime.status(),
+                }
+            )
+        )
+    )
 
-    return _no_store(make_response(jsonify(ecosystem_intelligence.status())))
+
+@bp.get("/live")
+@web_security.login_required(api=True, founder_only=True)
+def live():
+    """Return automatic owned-runtime Ecosystem analysis with no network calls."""
+
+    return _no_store(make_response(jsonify(ecosystem_runtime.current_state())))
 
 
 @bp.post("/analyse")
@@ -64,19 +78,43 @@ def analyse():
     if not isinstance(signals, list) or not signals:
         return _no_store(make_response(jsonify({"error": "signals_required"}), 400))
 
+    supplied_scores = payload.get("pressure_scores")
+    pressure_scores = (
+        supplied_scores
+        if isinstance(supplied_scores, dict)
+        else ecosystem_runtime.auto_pressure_scores(signals)
+    )
     try:
         result = ecosystem_intelligence.analyse(
             signals,
             scope=str(payload.get("scope") or "OAP World"),
-            pressure_scores=(
-                payload.get("pressure_scores")
-                if isinstance(payload.get("pressure_scores"), dict)
-                else None
-            ),
+            pressure_scores=pressure_scores,
         )
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _no_store(
-            make_response(jsonify({"error": "invalid_ecosystem_signal", "detail": str(exc)}), 400)
+            make_response(
+                jsonify({"error": "invalid_ecosystem_signal", "detail": str(exc)}),
+                400,
+            )
         )
 
+    result["extended_matrix_lenses"] = ecosystem_runtime.extended_matrix_lenses(signals)
     return _no_store(make_response(jsonify(result)))
+
+
+@bp.post("/outcome")
+@web_security.login_required(api=True, founder_only=True)
+def outcome():
+    """Record a Founder-approved decision outcome for HRM/RSI learning."""
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _no_store(make_response(jsonify({"error": "json_object_required"}), 400))
+    result = ecosystem_runtime.record_outcome(
+        analysis_id=str(payload.get("analysis_id") or ""),
+        decision=str(payload.get("decision") or ""),
+        outcome=str(payload.get("outcome") or ""),
+        evidence=(payload.get("evidence") if isinstance(payload.get("evidence"), list) else ()),
+        founder_approved=payload.get("founder_approved") is True,
+    )
+    return _no_store(make_response(jsonify(result), 200 if result["ok"] else 409))
