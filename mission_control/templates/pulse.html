@@ -7,7 +7,7 @@
   <title>OAP Pulse</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .pulse-shell{max-width:860px;margin:0 auto}.pulse-compose{display:grid;gap:8px}.pulse-compose input,.pulse-compose textarea,.pulse-reply-form input,.pulse-reply-form textarea{width:100%;box-sizing:border-box}.pulse-feed{display:grid;gap:10px;margin-top:14px}.pulse-post{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.pulse-post>p{margin:.4rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-meta{font-size:.78rem;color:var(--mc-muted)}.pulse-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.pulse-actions form{margin:0}.pulse-action{border:1px solid var(--mc-line);border-radius:999px;background:transparent;color:var(--mc-text);padding:6px 9px;cursor:pointer}.pulse-action:hover,.pulse-action:focus-visible{border-color:var(--mc-green);outline:none}.pulse-replies{margin-top:10px}.pulse-replies summary{cursor:pointer;font-weight:700}.pulse-reply-list{display:grid;gap:7px;margin:9px 0}.pulse-reply{border-left:2px solid var(--mc-line);padding-left:9px}.pulse-reply p{margin:.2rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-reply-form{display:grid;gap:6px;margin-top:9px}.humanitarian-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.humanitarian-head h2{margin:.1rem 0}.world-disaster-types,.humanitarian-source-row{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.world-disaster-type,.humanitarian-source{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--mc-line);border-radius:999px;padding:6px 9px;font-size:.82rem}.world-disaster-type strong{font-weight:750}.humanitarian-source{color:var(--mc-text);text-decoration:none}.humanitarian-source[data-status="live"]{border-color:var(--mc-green)}.humanitarian-source[data-status="gated"]{opacity:.75}.humanitarian-list{display:grid;gap:10px;margin-top:12px}.humanitarian-item{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.humanitarian-item h3{margin:.15rem 0 .35rem}.humanitarian-item p{margin:.35rem 0}.humanitarian-facts{display:flex;gap:7px;flex-wrap:wrap;font-size:.8rem;color:var(--mc-muted)}.humanitarian-source-link{display:inline-block;margin-top:7px}.humanitarian-truth{border-left:3px solid var(--mc-green);padding:8px 10px;margin-top:10px;color:var(--mc-muted)}.humanitarian-empty{color:var(--mc-muted)}
+    .pulse-shell{max-width:860px;margin:0 auto}.pulse-compose{display:grid;gap:8px}.pulse-compose input,.pulse-compose textarea,.pulse-reply-form input,.pulse-reply-form textarea{width:100%;box-sizing:border-box}.pulse-feed{display:grid;gap:10px;margin-top:14px}.pulse-post{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.pulse-post>p{margin:.4rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-meta{font-size:.78rem;color:var(--mc-muted)}.pulse-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.pulse-actions form{margin:0}.pulse-action{border:1px solid var(--mc-line);border-radius:999px;background:transparent;color:var(--mc-text);padding:6px 9px;cursor:pointer}.pulse-action:hover,.pulse-action:focus-visible{border-color:var(--mc-green);outline:none}.pulse-replies{margin-top:10px}.pulse-replies summary{cursor:pointer;font-weight:700}.pulse-reply-list{display:grid;gap:7px;margin:9px 0}.pulse-reply{border-left:2px solid var(--mc-line);padding-left:9px}.pulse-reply p{margin:.2rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-reply-form{display:grid;gap:6px;margin-top:9px}.humanitarian-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.humanitarian-head h2{margin:.1rem 0}.world-disaster-types,.world-continent-filters,.humanitarian-source-row{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.world-disaster-type,.world-geography-button,.humanitarian-source{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--mc-line);border-radius:999px;padding:6px 9px;font-size:.82rem}.world-disaster-type,.world-geography-button{background:transparent;color:var(--mc-text);cursor:pointer}.world-disaster-type[aria-pressed="true"],.world-geography-button[aria-pressed="true"]{border-color:var(--mc-green);box-shadow:0 0 0 1px var(--mc-green) inset}.world-disaster-type strong{font-weight:750}.world-geography{border:1px solid var(--mc-line);border-radius:14px;padding:10px 12px;margin:10px 0}.world-geography-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.world-country-control{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.world-country-control select{max-width:100%;min-width:190px;border:1px solid var(--mc-line);border-radius:10px;background:var(--mc-panel-soft);color:var(--mc-text);padding:7px 9px}.humanitarian-source{color:var(--mc-text);text-decoration:none}.humanitarian-source[data-status="live"]{border-color:var(--mc-green)}.humanitarian-source[data-status="gated"]{opacity:.75}.humanitarian-list{display:grid;gap:10px;margin-top:12px}.humanitarian-item{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.humanitarian-item[hidden]{display:none}.humanitarian-item h3{margin:.15rem 0 .35rem}.humanitarian-item p{margin:.35rem 0}.humanitarian-facts{display:flex;gap:7px;flex-wrap:wrap;font-size:.8rem;color:var(--mc-muted)}.humanitarian-source-link{display:inline-block;margin-top:7px}.humanitarian-truth{border-left:3px solid var(--mc-green);padding:8px 10px;margin-top:10px;color:var(--mc-muted)}.humanitarian-empty{color:var(--mc-muted)}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -37,10 +37,33 @@
         </span>
       </div>
 
-      <div id="world-disaster-types" class="world-disaster-types" aria-label="World disaster types">
+      <div id="world-disaster-types" class="world-disaster-types" aria-label="Filter World Disasters by type">
+        <button class="world-disaster-type" type="button" data-disaster-filter="" aria-pressed="true"><strong>All disasters</strong><span>{{ humanitarian.event_count }}</span></button>
         {% for category in humanitarian.disaster_categories %}
-        <span class="world-disaster-type" data-disaster-type="{{ category.id }}"><strong>{{ category.icon }} {{ category.label }}</strong><span>{{ category.count }}</span></span>
+        <button class="world-disaster-type" type="button" data-disaster-filter="{{ category.id }}" aria-pressed="false"><strong>{{ category.icon }} {{ category.label }}</strong><span>{{ category.count }}</span></button>
         {% endfor %}
+      </div>
+
+      <div id="world-geography" class="world-geography" aria-label="Global Earth disaster geography">
+        <div class="world-geography-head">
+          <strong>🌍 Earth → Continent → Country</strong>
+          <span id="world-filter-count" class="pulse-meta">Showing {{ humanitarian.event_count }} of {{ humanitarian.event_count }}</span>
+        </div>
+        <div id="world-continent-filters" class="world-continent-filters" aria-label="Filter World Disasters by continent">
+          <button class="world-geography-button" type="button" data-continent-filter="" aria-pressed="true">🌍 Earth <span>{{ humanitarian.geography.earth.count }}</span></button>
+          {% for continent in humanitarian.geography.continents %}
+          <button class="world-geography-button" type="button" data-continent-filter="{{ continent.name }}" aria-pressed="false">{{ continent.name }} <span>{{ continent.count }}</span></button>
+          {% endfor %}
+        </div>
+        <label class="world-country-control" for="world-country-filter">
+          <strong>Country</strong>
+          <select id="world-country-filter">
+            <option value="">All countries</option>
+            {% for country in humanitarian.geography.countries %}
+            <option value="{{ country.name }}">{{ country.name }}{% if country.continent %} · {{ country.continent }}{% endif %} · {{ country.count }}</option>
+            {% endfor %}
+          </select>
+        </label>
       </div>
 
       <div id="humanitarian-sources" class="humanitarian-source-row" aria-label="Humanitarian sources">
@@ -55,11 +78,12 @@
 
       <div id="humanitarian-list" class="humanitarian-list" aria-live="polite">
         {% for event in humanitarian.events %}
-        <article class="humanitarian-item" data-disaster-type="{{ event.world_disaster_type }}">
+        <article class="humanitarian-item" data-disaster-type="{{ event.world_disaster_type }}" data-continents="{{ event.continents|join('|') }}" data-countries="{{ event.countries|join('|') }}">
           <div class="humanitarian-facts">
             <strong>{{ event.world_disaster_icon }} {{ event.world_disaster_label }}</strong>
             <span>Source: {{ event.source_name }}</span>
             <span>Severity: {{ event.severity }}</span>
+            <span>Continent: {{ event.continents_text }}</span>
             <span>Affected area: {{ event.affected_area }}</span>
           </div>
           <h3>{{ event.name }}</h3>
@@ -72,7 +96,7 @@
         {% endfor %}
       </div>
 
-      <p class="humanitarian-truth"><strong>Truth boundary:</strong> every World Disaster item stays attached to its source and refreshes automatically. OAP does not infer casualty totals or severity, publish precise civilian locations, track individuals, create military overlays, or turn source items into autonomous public warnings. ReliefWeb remains gated until its approved appname requirement is satisfied.</p>
+      <p class="humanitarian-truth"><strong>Truth boundary:</strong> every World Disaster item stays attached to its source and refreshes automatically. Country labels come from the source record; continent grouping uses OAP’s bounded seven-region geography reference. Unknown labels stay unclassified. OAP does not infer casualty totals or severity, publish precise civilian locations, track individuals, create military overlays, or turn source items into autonomous public warnings. ReliefWeb remains gated until its approved appname requirement is satisfied.</p>
     </section>
 
     <section class="mc-panel">
@@ -144,10 +168,14 @@
       const seconds=Math.max(60,Math.min(900,Number(root.dataset.refreshSeconds)||180));
       const list=document.getElementById('humanitarian-list');
       const categories=document.getElementById('world-disaster-types');
+      const continentFilters=document.getElementById('world-continent-filters');
+      const countryFilter=document.getElementById('world-country-filter');
+      const filterCount=document.getElementById('world-filter-count');
       const count=document.getElementById('humanitarian-count');
       const fetched=document.getElementById('humanitarian-fetched-at');
       const state=document.getElementById('humanitarian-refresh-state');
       const sources=document.getElementById('humanitarian-sources');
+      const filters={disaster:'',continent:'',country:''};
 
       const text=(tag,value,className)=>{
         const node=document.createElement(tag);
@@ -156,16 +184,88 @@
         return node;
       };
 
-      const renderCategories=(items)=>{
+      const parts=(value)=>String(value||'').split('|').filter(Boolean);
+
+      const applyFilters=()=>{
+        const cards=[...list.querySelectorAll('.humanitarian-item')];
+        let shown=0;
+        for(const card of cards){
+          const disasterOk=!filters.disaster||card.dataset.disasterType===filters.disaster;
+          const continentOk=!filters.continent||parts(card.dataset.continents).includes(filters.continent);
+          const countryOk=!filters.country||parts(card.dataset.countries).includes(filters.country);
+          const visible=disasterOk&&continentOk&&countryOk;
+          card.hidden=!visible;
+          if(visible)shown+=1;
+        }
+        filterCount.textContent=`Showing ${shown} of ${cards.length}`;
+      };
+
+      const pressOnly=(rootNode,selector,value,dataKey)=>{
+        for(const button of rootNode.querySelectorAll(selector)){
+          button.setAttribute('aria-pressed',button.dataset[dataKey]===value?'true':'false');
+        }
+      };
+
+      const renderCategories=(items,total)=>{
         categories.replaceChildren();
+        const all=document.createElement('button');
+        all.type='button';
+        all.className='world-disaster-type';
+        all.dataset.disasterFilter='';
+        all.setAttribute('aria-pressed',filters.disaster?'false':'true');
+        all.append(text('strong','All disasters'));
+        all.append(text('span',String(total||0)));
+        categories.append(all);
         for(const item of items||[]){
-          const chip=document.createElement('span');
+          const chip=document.createElement('button');
+          chip.type='button';
           chip.className='world-disaster-type';
-          chip.dataset.disasterType=item.id||'';
+          chip.dataset.disasterFilter=item.id||'';
+          chip.setAttribute('aria-pressed',filters.disaster===(item.id||'')?'true':'false');
           chip.append(text('strong',`${item.icon||''} ${item.label||''}`.trim()));
           chip.append(text('span',String(item.count||0)));
           categories.append(chip);
         }
+      };
+
+      const renderGeography=(geography)=>{
+        const info=geography||{};
+        const earth=info.earth||{count:0};
+        const continents=info.continents||[];
+        const countries=info.countries||[];
+        if(filters.continent&&!continents.some(item=>item.name===filters.continent))filters.continent='';
+        if(filters.country&&!countries.some(item=>item.name===filters.country))filters.country='';
+
+        continentFilters.replaceChildren();
+        const earthButton=document.createElement('button');
+        earthButton.type='button';
+        earthButton.className='world-geography-button';
+        earthButton.dataset.continentFilter='';
+        earthButton.setAttribute('aria-pressed',filters.continent?'false':'true');
+        earthButton.append(text('span',`🌍 Earth ${earth.count||0}`));
+        continentFilters.append(earthButton);
+        for(const item of continents){
+          const button=document.createElement('button');
+          button.type='button';
+          button.className='world-geography-button';
+          button.dataset.continentFilter=item.name||'';
+          button.setAttribute('aria-pressed',filters.continent===(item.name||'')?'true':'false');
+          button.append(text('span',`${item.name||''} ${item.count||0}`.trim()));
+          continentFilters.append(button);
+        }
+
+        countryFilter.replaceChildren();
+        const allCountries=document.createElement('option');
+        allCountries.value='';
+        allCountries.textContent='All countries';
+        countryFilter.append(allCountries);
+        for(const item of countries){
+          const option=document.createElement('option');
+          option.value=item.name||'';
+          option.textContent=`${item.name||''}${item.continent?' · '+item.continent:''} · ${item.count||0}`;
+          countryFilter.append(option);
+        }
+        countryFilter.value=filters.country;
       };
 
       const renderSources=(items)=>{
@@ -193,11 +293,14 @@
           const article=document.createElement('article');
           article.className='humanitarian-item';
           article.dataset.disasterType=item.world_disaster_type||'';
+          article.dataset.continents=(item.continents||[]).join('|');
+          article.dataset.countries=(item.countries||[]).join('|');
           const facts=document.createElement('div');
           facts.className='humanitarian-facts';
           facts.append(text('strong',`${item.world_disaster_icon||''} ${item.world_disaster_label||'World Disaster'}`.trim()));
           facts.append(text('span',`Source: ${item.source_name||'Source'}`));
           facts.append(text('span',`Severity: ${item.severity||item.alert_level||'Source update'}`));
+          facts.append(text('span',`Continent: ${item.continents_text||'Unclassified'}`));
           facts.append(text('span',`Affected area: ${item.affected_area||item.countries_text||'International'}`));
           article.append(facts);
           article.append(text('h3',item.name));
@@ -217,22 +320,46 @@
         }
       };
 
+      categories.addEventListener('click',event=>{
+        const button=event.target.closest('button[data-disaster-filter]');
+        if(!button)return;
+        filters.disaster=button.dataset.disasterFilter||'';
+        pressOnly(categories,'button[data-disaster-filter]',filters.disaster,'disasterFilter');
+        applyFilters();
+      });
+
+      continentFilters.addEventListener('click',event=>{
+        const button=event.target.closest('button[data-continent-filter]');
+        if(!button)return;
+        filters.continent=button.dataset.continentFilter||'';
+        pressOnly(continentFilters,'button[data-continent-filter]',filters.continent,'continentFilter');
+        applyFilters();
+      });
+
+      countryFilter.addEventListener('change',()=>{
+        filters.country=countryFilter.value||'';
+        applyFilters();
+      });
+
       const refresh=async()=>{
         try{
           const response=await fetch(endpoint,{headers:{Accept:'application/json'},cache:'no-store'});
           if(!response.ok)throw new Error('source refresh failed');
           const data=await response.json();
-          renderCategories(data.disaster_categories);
+          renderCategories(data.disaster_categories,data.event_count);
+          renderGeography(data.geography);
           renderSources(data.source_states);
           renderEvents(data.events);
           count.textContent=String(data.event_count||0);
           fetched.textContent=data.fetched_at||'Unavailable';
           state.textContent=data.ready?'Live source check active':'Live sources unavailable';
+          applyFilters();
         }catch(_error){
           state.textContent='Refresh unavailable · keeping last source-backed snapshot';
         }
       };
 
+      applyFilters();
       window.setInterval(refresh,seconds*1000);
     })();
   </script>
