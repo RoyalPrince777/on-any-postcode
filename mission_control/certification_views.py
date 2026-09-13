@@ -11,7 +11,7 @@ import threading
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import certification, postgres_db, web_security
+from . import certification, hrm_readonly_probe, postgres_db, web_security
 
 bp = Blueprint("certification", __name__)
 
@@ -36,15 +36,39 @@ def _database_startup_probe() -> None:
     print(json.dumps(proof, separators=(",", ":"), sort_keys=True), flush=True)
 
 
+def _hrm_candidate_startup_probe() -> None:
+    """Emit only presence/reachability for an existing HRM Postgres alias."""
+
+    snapshot = hrm_readonly_probe.status()
+    proof = {
+        "event": "oap_hrm_candidate_startup_probe",
+        "backend": snapshot.get("backend"),
+        "source": snapshot.get("source"),
+        "configured": bool(snapshot.get("configured")),
+        "reachable": bool(snapshot.get("reachable")),
+        "error": snapshot.get("error"),
+        "read_only": True,
+        "write_performed": False,
+        "schema_changed": False,
+        "secret_exposed": False,
+    }
+    print(json.dumps(proof, separators=(",", ":"), sort_keys=True), flush=True)
+
+
+def _startup_probes() -> None:
+    _database_startup_probe()
+    _hrm_candidate_startup_probe()
+
+
 @bp.record_once
 def _schedule_database_startup_probe(_state) -> None:
-    """Keep local/tests quiet; Render gets one non-blocking read-only proof."""
+    """Keep local/tests quiet; Render gets non-blocking read-only proofs."""
 
     if os.environ.get("RENDER", "").strip().casefold() != "true":
         return
     threading.Thread(
-        target=_database_startup_probe,
-        name="oap-database-startup-probe",
+        target=_startup_probes,
+        name="oap-database-startup-probes",
         daemon=True,
     ).start()
 
