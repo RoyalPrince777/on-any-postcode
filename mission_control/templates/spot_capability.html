@@ -97,6 +97,27 @@
     </section>
     {% endif %}
 
+    {% if capability.slug == 'events' %}
+    <section class="mc-panel" aria-labelledby="activity-direct-title">
+      <p class="mc-eyebrow">🎪 Activity / Adventure · OAP Direct</p>
+      <h2 id="activity-direct-title">Discover it. Check availability. Request the booking.</h2>
+      <p>Activity / Adventure now hands directly into OAP’s first-party Direct marketplace instead of stopping at a directory. Certified supplier inventory remains the source of truth.</p>
+      <div class="mc-status-grid" aria-label="Activity and Adventure booking paths">
+        <article class="mc-status-card"><strong>🎯 Activities</strong><span>Bookable activity inventory from Certified OAP Direct suppliers.</span></article>
+        <article class="mc-status-card"><strong>🎡 Attractions</strong><span>Attractions and experiences with future availability.</span></article>
+        <article class="mc-status-card"><strong>🎟️ Events</strong><span>Event inventory only when a Certified supplier has an active slot.</span></article>
+        <article class="mc-status-card"><strong>🧾 Direct</strong><span>Quote → hold → human-confirmed reservation request → supplier confirmation.</span></article>
+      </div>
+      <div class="atlas-action-row">
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace', category='activity') }}">Browse Activities →</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace', category='attraction') }}">Browse Attractions →</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace', category='event') }}">Browse Events →</a>
+        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}">Find the place →</a>
+      </div>
+      <p class="atlas-warning"><strong>Truth lock:</strong> OAP Direct only exposes Certified supplier + ACTIVE listing + ACTIVE future inventory. A hold or reservation request requires protected identity; supplier confirmation is required before anything is called confirmed. Payment capture and Pass issuance remain separately gated.</p>
+    </section>
+    {% endif %}
+
     {% if capability.slug == 'postcode-rooms' %}
     <section class="mc-panel" aria-labelledby="world-room-title">
       <p class="mc-eyebrow">Local structure · public rooms only</p>
@@ -174,12 +195,31 @@
     <section class="mc-panel" aria-labelledby="media-suite-title"><p class="mc-eyebrow">OAP Music / Media · Creator-first · Rights-safe</p><h2 id="media-suite-title">{{ capability.name }}</h2><p>OAP Music is the destination. OAP Player is the listening experience. OAP Radio is the voice. OAP Distribution is the release engine.</p></section>
     {% endif %}
 
+    {% if capability.slug == 'creators' %}
+    <section class="mc-panel" aria-labelledby="creator-path-title">
+      <p class="mc-eyebrow">🎨 Creator path · OAP-owned destinations</p>
+      <h2 id="creator-path-title">Create identity first. Publish through governed OAP routes.</h2>
+      <div class="mc-status-grid"><article class="mc-status-card"><strong>🎵 OAP Music</strong><span>Creator and music destination.</span></article><article class="mc-status-card"><strong>📦 Distribution</strong><span>Rights-safe release engine; external delivery remains separately gated.</span></article><article class="mc-status-card"><strong>🏪 Market</strong><span>Creator goods and listings through the existing owner-scoped Market path.</span></article><article class="mc-status-card"><strong>👤 My World</strong><span>Owner-scoped identity and workspace.</span></article></div>
+      <div class="atlas-action-row"><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='music') }}">Open OAP Music →</a><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}">Open Distribution →</a><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">Open Market →</a><a class="mc-secondary-link" href="{{ url_for('my_world') if auth_user else url_for('auth_page', next=request.path) }}">{{ 'Open My World' if auth_user else 'Enter My World' }} →</a></div>
+      <p class="atlas-warning"><strong>Truth lock:</strong> this connects the creator journey but does not claim Certified Creator Identity, rights clearance or external publishing until those receipts exist.</p>
+    </section>
+    {% endif %}
+
+    {% if capability.slug == 'support' %}
+    <section class="mc-panel" aria-labelledby="support-path-title">
+      <p class="mc-eyebrow">🤝 Empire Support · public discovery, protected cases</p>
+      <h2 id="support-path-title">Find public help without exposing a private case.</h2>
+      <div class="atlas-action-row"><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">Public Signals →</a><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">World Rooms →</a>{% if auth_user %}<a class="mc-secondary-link" href="{{ url_for('my_world') }}">Protected My World →</a>{% else %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Enter My World for protected support →</a>{% endif %}</div>
+      <p class="atlas-warning"><strong>Privacy lock:</strong> no public support form creates or exposes a safeguarding case. Private case handling remains gated until authenticated case storage, escalation and safeguarding evidence are complete.</p>
+    </section>
+    {% endif %}
+
     {% if capability.slug == 'movement-delivery' %}
     <section class="mc-panel" aria-labelledby="movement-entry-title"><p class="mc-eyebrow">Movement · request, route, deliver</p><h2 id="movement-entry-title">OAP Movement</h2><p>Drivers, riders, e-bikes, couriers, deliveries and future Direct requests share one governed movement layer.</p><div class="mc-status-grid" aria-label="Movement entry points"><article class="mc-status-card"><strong>🚗 Ride</strong><span>Passenger journeys and approved drivers.</span></article><article class="mc-status-card"><strong>🚲 E-Bike</strong><span>Connected fleet, battery and pickup awareness.</span></article><article class="mc-status-card"><strong>📦 Delivery</strong><span>Local collection, courier and proof-of-delivery flow.</span></article><article class="mc-status-card"><strong>📅 Direct Request</strong><span>Plan movement now or later without pretending confirmation.</span></article></div><a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open OAP Movement →</a></section>
     {% endif %}
 
     {% if capability.slug in ('market', 'businesses') %}
-    <section class="mc-panel" aria-labelledby="market-title"><p class="mc-eyebrow">Local listings · checkout separate</p><h2 id="market-title">{{ 'Empire market' if capability.slug == 'market' else 'Local-business listings' }}</h2>{% if market_products %}<div class="mc-agent-grid">{% for product in market_products %}<article class="mc-agent-card"><h3>{{ product.name }}</h3><p>{{ product.description }}</p><strong>{{ product.currency }} {{ product.price }}</strong><p>{{ product.seller }} · {{ product.postcode or product.borough or product.country }}</p></article>{% endfor %}</div>{% else %}<p>No active local listings yet.</p>{% endif %}{% if auth_user and capability.slug == 'market' %}<h3>Create a listing</h3><form method="post" action="{{ url_for('market_listing_create') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><label for="market-name">Product</label><input id="market-name" name="name" maxlength="160" required><label for="market-description">Description</label><textarea id="market-description" name="description" maxlength="3000"></textarea><label for="market-price">Price in GBP</label><input id="market-price" name="price" inputmode="decimal" required><button class="mc-primary" type="submit">Submit listing</button></form>{% elif capability.slug == 'market' %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to list a product →</a>{% endif %}</section>
+    <section class="mc-panel" aria-labelledby="market-title"><p class="mc-eyebrow">Local listings · checkout separate</p><h2 id="market-title">{{ 'Empire market' if capability.slug == 'market' else 'Local-business listings' }}</h2>{% if market_products %}<div class="mc-agent-grid">{% for product in market_products %}<article class="mc-agent-card"><h3>{{ product.name }}</h3><p>{{ product.description }}</p><strong>{{ product.currency }} {{ product.price }}</strong><p>{{ product.seller }} · {{ product.postcode or product.borough or product.country }}</p></article>{% endfor %}</div>{% else %}<p>No active local listings yet.</p>{% endif %}{% if capability.slug == 'businesses' %}<div class="atlas-action-row"><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">Open Market →</a><a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">Certified OAP Direct supply →</a></div><p class="atlas-warning"><strong>Truth lock:</strong> local listings and Certified OAP Direct supply are real handoffs; a general Certified Merchant onboarding workflow remains separately gated.</p>{% endif %}{% if auth_user and capability.slug == 'market' %}<h3>Create a listing</h3><form method="post" action="{{ url_for('market_listing_create') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><label for="market-name">Product</label><input id="market-name" name="name" maxlength="160" required><label for="market-description">Description</label><textarea id="market-description" name="description" maxlength="3000"></textarea><label for="market-price">Price in GBP</label><input id="market-price" name="price" inputmode="decimal" required><button class="mc-primary" type="submit">Submit listing</button></form>{% elif capability.slug == 'market' %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to list a product →</a>{% endif %}</section>
     {% endif %}
 
     {% if capability.slug == 'sika' %}<section class="mc-panel" aria-labelledby="sika-title"><p class="mc-eyebrow">Contribution credits · not money</p><h2 id="sika-title">SIKA record</h2>{% if auth_user and sika %}<p><strong>{{ sika.balance }} {{ sika.unit }}</strong></p><p>Credits are internal contribution and trust-value records. They are not cash, deposits or regulated payment balances.</p>{% else %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to view your SIKA record →</a>{% endif %}</section>{% endif %}
