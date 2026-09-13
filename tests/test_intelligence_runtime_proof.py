@@ -53,10 +53,14 @@ def test_cross_system_runtime_proof_keeps_provider_and_hardware_claims_gated():
     cross = {item["id"]: item for item in current["cross_system"]}
 
     assert tuple(cross) == (
+        "ecosystem",
         "technology",
         "international_humanitarian",
         "multimodal",
     )
+    assert cross["ecosystem"]["bounded_runtime_ready"] is True
+    assert cross["ecosystem"]["live_external_ready"] is False
+    assert cross["ecosystem"]["full_runtime_ready"] is False
     assert cross["multimodal"]["bounded_runtime_ready"] is True
     assert cross["multimodal"]["live_external_ready"] is False
     assert cross["multimodal"]["full_runtime_ready"] is False
