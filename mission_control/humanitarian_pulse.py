@@ -8,7 +8,6 @@ store, infer severity, expose precise civilian locations, or create warnings.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from . import humanitarian_emergency_tracker
