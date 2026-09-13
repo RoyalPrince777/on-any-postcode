@@ -7,6 +7,7 @@ Schema changes require the explicit Flask oap-init-postgres --yes command.
 from __future__ import annotations
 
 import base64
+import binascii
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -247,14 +248,58 @@ def render_migration_sql() -> str:
     return ";\n\n".join(statements) + ";\n"
 
 
+def _decode_database_secret(value: str) -> str:
+    try:
+        return base64.b64decode(value, validate=True).decode("utf-8").strip()
+    except (binascii.Error, ValueError, UnicodeDecodeError):
+        return ""
+
+
+def _database_config() -> tuple[str, str]:
+    """Resolve one primary PostgreSQL URL without exposing the secret value.
+
+    Explicit provider-neutral primary settings and Render-style ``DATABASE_URL``
+    must beat the legacy Neon-specific aliases. That lets OAP recover from a
+    Neon outage without deleting old settings or silently falling back to them.
+    If an explicitly selected encoded setting is malformed, resolution fails
+    closed instead of using a lower-priority database unexpectedly.
+    """
+
+    encoded_primary = os.environ.get("OAP_PRIMARY_DATABASE_URL_B64", "").strip()
+    if encoded_primary:
+        return _decode_database_secret(encoded_primary), "primary_override"
+
+    primary = os.environ.get("OAP_PRIMARY_DATABASE_URL", "").strip()
+    if primary:
+        return primary, "primary_override"
+
+    platform = os.environ.get("DATABASE_URL", "").strip()
+    if platform:
+        return platform, "platform_database_url"
+
+    legacy_oap = os.environ.get("OAP_DB_SECRET_B64", "").strip()
+    if legacy_oap:
+        return _decode_database_secret(legacy_oap), "legacy_oap_secret"
+
+    legacy_neon_b64 = os.environ.get("OAP_NEON_DATABASE_URL_B64", "").strip()
+    if legacy_neon_b64:
+        return _decode_database_secret(legacy_neon_b64), "legacy_neon"
+
+    legacy_neon = os.environ.get("OAP_NEON_DATABASE_URL", "").strip()
+    if legacy_neon:
+        return legacy_neon, "legacy_neon"
+
+    return "", "unconfigured"
+
+
 def _database_url() -> str:
-    encoded = (os.environ.get("OAP_DB_SECRET_B64") or os.environ.get("OAP_NEON_DATABASE_URL_B64", "")).strip()
-    if encoded:
-        try:
-            return base64.b64decode(encoded).decode("utf-8").strip()
-        except (ValueError, UnicodeDecodeError):
-            return ""
-    return (os.environ.get("OAP_NEON_DATABASE_URL") or os.environ.get("DATABASE_URL", "")).strip()
+    return _database_config()[0]
+
+
+def database_source() -> str:
+    """Return only the redacted configuration class, never a host or URL."""
+
+    return _database_config()[1]
 
 
 def configured() -> bool:
@@ -274,7 +319,7 @@ def connect(*, readonly: bool = False) -> Iterator[Any]:
     """Open a bounded production connection without exposing its URL."""
     database_url = _database_url()
     if not database_url:
-        raise RuntimeError("Neon database URL is not configured")
+        raise RuntimeError("PostgreSQL database URL is not configured")
     psycopg = _driver()
     with psycopg.connect(
         database_url, connect_timeout=5,
@@ -288,8 +333,8 @@ def connect(*, readonly: bool = False) -> Iterator[Any]:
 def postgres_status() -> dict[str, Any]:
     """Return a redacted, read-only readiness result."""
     result: dict[str, Any] = {
-        "backend": "postgresql", "configured": configured(),
-        "reachable": False, "initialized": False,
+        "backend": "postgresql", "source": database_source(),
+        "configured": configured(), "reachable": False, "initialized": False,
         "pending": [MIGRATION_VERSION], "checksum_mismatches": [], "error": None,
     }
     if not result["configured"]:
