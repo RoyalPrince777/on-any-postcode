@@ -9,11 +9,11 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 23,
+        "capabilities": 26,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 23
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 26
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
@@ -45,18 +45,28 @@ def test_unknown_spot_capability_fails_closed(client):
     }
 
 
-def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(client):
+def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     page = client.get("/the-spot").get_data(as_text=True)
 
     assert "📡 Pulse" in page
     assert "See what’s happening around you." in page
     assert 'href="/pulse"' in page
-    assert "📣 Signal" in page
-    assert "🔗 The Link" in page
-    assert "🎪 Activity" in page
-    assert "🏪 Market" in page
-    assert "🧭 Explorer" in page
-    assert "🌍 World Rooms" in page
+    assert "📣 Drop a Signal" in page
+
+    ordered_labels = (
+        "🚩 Flag Vote",
+        "🔗 The Link",
+        "📰 OAP Chronicle",
+        "🌿 Nature",
+        "🎪 Activity / Adventure",
+        "🧭 Explorer",
+        "🌍 World Rooms",
+        "🏪 Market",
+        "👤 My World",
+    )
+    positions = [page.index(label) for label in ordered_labels]
+    assert positions == sorted(positions)
+
     assert "🎵 OAP Music" in page
     assert "▶️ OAP Player" in page
     assert "📻 OAP Radio" in page
@@ -68,6 +78,27 @@ def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(cl
     assert "group conversation" not in page
     assert "Your local dashboard" not in page
     assert "Open what you need" not in page
+
+
+def test_flag_vote_chronicle_and_nature_reuse_real_existing_paths(client):
+    flag_vote = client.get("/the-spot/flag-vote").get_data(as_text=True)
+    chronicle = client.get("/the-spot/news").get_data(as_text=True)
+    nature = client.get("/the-spot/nature").get_data(as_text=True)
+
+    assert "Throw Your Flag Up" in flag_vote
+    assert 'method="post" action="/flag"' in flag_vote
+    assert "non-binding public support" in flag_vote
+    assert "binding vote" in flag_vote
+
+    assert "OAP Chronicle" in chronicle
+    assert 'href="/pulse"' in chronicle
+    assert 'href="/the-spot/signal"' in chronicle
+    assert "does not invent a second newsroom feed" in chronicle
+
+    assert "OAP Nature" in nature
+    assert "Earth is our turf" in nature
+    assert 'href="/the-spot/maps-weather-travel"' in nature
+    assert "wider environmental alerts" in nature
 
 
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
@@ -100,11 +131,15 @@ def test_signal_and_world_room_capabilities_have_live_public_forms(client):
     assert 'method="post" action="/signal"' in signal
     assert 'method="post" action="/postcode-rooms"' in rooms
     assert "World Rooms" in rooms
+    assert "Worldwide Empire layer" in rooms
 
 
 def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
     public_only = (
+        "flag-vote",
         "signal",
+        "news",
+        "nature",
         "postcode-rooms",
         "events",
         "discovery",
@@ -134,8 +169,21 @@ def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
     assert "Sign-in appears only when a protected action actually needs it" not in spot
 
 
+def test_spot_public_language_uses_empire_not_community():
+    public_copy = " ".join(
+        f"{item['name']} {item['purpose']}"
+        for item in products.PUBLIC_SPOT_CAPABILITIES
+    )
+    assert "Community Power" not in public_copy
+    assert "Community Support" not in public_copy
+    assert "community commerce" not in public_copy
+    assert "Empire Power" in public_copy
+    assert "Empire Support" in public_copy
+
+
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():
     sensitive = {
+        "flag-vote",
         "postcode-rooms",
         "support",
         "market",
