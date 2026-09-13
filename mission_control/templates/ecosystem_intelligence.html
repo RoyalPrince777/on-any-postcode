@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAP Ecosystem Intelligence</title>
   <style>
-    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--panel2:#0c1911;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--amber:#f1d36b;--text:#f0faf3;--muted:#9fb5a8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.4rem,7vw,4.8rem);margin:.08em 0}.muted,.truth{color:var(--muted);line-height:1.5}.door,button,input{border:1px solid var(--line);border-radius:999px;padding:9px 12px;background:var(--panel2);color:inherit}.door{text-decoration:none}.summary,.grid{display:grid;gap:10px}.summary{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:18px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr))}.card,.summary-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:850}.green{color:var(--green)}.purple{color:var(--purple)}.amber{color:var(--amber)}.law{border-left:4px solid var(--gold);background:#191505;border-radius:0 12px 12px 0;padding:13px 15px;margin:18px 0}.flow{display:flex;gap:7px;flex-wrap:wrap}.flow span{border:1px solid var(--line);background:var(--panel2);padding:7px 9px;border-radius:999px;font-size:.78rem}.notice{border:1px solid #5d4678;background:#110b18;border-radius:16px;padding:14px}.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.metric{padding:10px;border-radius:12px;border:1px solid var(--line);background:#071009}.metric strong{display:block;margin-top:4px}.actions,.source-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.source-form input{min-width:240px;flex:1}.source-form button{cursor:pointer}@media(max-width:650px){.summary{grid-template-columns:1fr 1fr}}
+    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--panel2:#0c1911;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--amber:#f1d36b;--text:#f0faf3;--muted:#9fb5a8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.4rem,7vw,4.8rem);margin:.08em 0}.muted,.truth{color:var(--muted);line-height:1.5}.door,button,input{border:1px solid var(--line);border-radius:999px;padding:9px 12px;background:var(--panel2);color:inherit}.door{text-decoration:none}.summary,.grid{display:grid;gap:10px}.summary{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:18px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr))}.card,.summary-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:850}.green{color:var(--green)}.purple{color:var(--purple)}.amber{color:var(--amber)}.law{border-left:4px solid var(--gold);background:#191505;border-radius:0 12px 12px 0;padding:13px 15px;margin:18px 0}.notice{border:1px solid #5d4678;background:#110b18;border-radius:16px;padding:14px}.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.metric{padding:10px;border-radius:12px;border:1px solid var(--line);background:#071009}.metric strong{display:block;margin-top:4px}.actions,.source-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.source-form input{min-width:240px;flex:1}.source-form button{cursor:pointer}@media(max-width:650px){.summary{grid-template-columns:1fr 1fr}}
   </style>
 </head>
 <body>
@@ -18,7 +18,7 @@
   <div class="summary">
     <article class="summary-card"><span class="pill green">🟢 Architecture</span><h3>{{ ecosystem.domains|length }} Domains</h3><p class="muted">One contextual reasoning system, not another brain.</p></article>
     <article class="summary-card"><span class="pill green">🟢 Internal ingestion</span><h3>{{ runtime.ingestion.internal_signal_count }} Signals</h3><p class="muted">Automatically derived from owned OAP runtime proof.</p></article>
-    <article class="summary-card"><span class="pill {{ 'green' if live_sources.live_external_source_present else 'purple' }}">{{ '🟢' if live_sources.live_external_source_present else '🟣' }} External proof</span><h3>{{ 'Weather source proven' if live_sources.weather_environment_proven else 'Awaiting live refresh' }}</h3><p class="muted">Missing external feeds stay gated. A single source never upgrades the whole Ecosystem to full green.</p></article>
+    <article class="summary-card"><span class="pill {{ 'green' if live_sources.live_external_source_present else 'purple' }}">{{ '🟢' if live_sources.live_external_source_present else '🟣' }} Evidence</span><h3>{{ live_sources.proven_gate_count }}/{{ live_sources.required_gate_count }} Gates</h3><p class="muted">Missing external feeds stay gated. A single source never upgrades the whole Ecosystem to full green.</p></article>
     <article class="summary-card"><span class="pill amber">🔒 Execution</span><h3>Blocked</h3><p class="muted">Human Authority remains final.</p></article>
   </div>
 
@@ -36,6 +36,18 @@
   </section>
 
   <section class="section">
+    <p class="eyebrow">Full evidence pass</p><h2>Prove everything available now</h2>
+    <div class="notice">
+      <p class="truth">Runs bounded source checks, owned telemetry, Guardian trust evidence, privacy-safe aggregate activity, humanitarian source health and an HRM write/read probe. Missing Market, live-navigation, civic-service or culture provenance stays purple.</p>
+      <form class="source-form" method="post" action="{{ url_for('ecosystem_intelligence.prove_full') }}">
+        <input name="location" value="Mitcham" aria-label="Proof location" autocomplete="off" required>
+        <button type="submit">🟢 Prove Full Ecosystem</button>
+      </form>
+      <p class="truth"><code>POST /mission/intelligence/ecosystem/prove-full</code></p>
+    </div>
+  </section>
+
+  <section class="section">
     <p class="eyebrow">Live external evidence</p><h2>Location + Weather refresh</h2>
     <div class="notice">
       <p class="truth">Explicit Founder input only. No silent device location and no hidden tracking.</p>
@@ -43,7 +55,6 @@
         <input name="location" placeholder="Postcode or place" autocomplete="off" required>
         <button type="submit">Refresh live source</button>
       </form>
-      <p class="truth"><code>GET /mission/intelligence/ecosystem/source/location-weather?location=...</code></p>
     </div>
   </section>
 
@@ -53,8 +64,8 @@
   </section>
 
   <section class="section">
-    <p class="eyebrow">Live-source truth gate</p><h2>Remaining external evidence</h2>
-    <div class="grid">{% for gate in runtime.ingestion.external_source_gates %}<article class="card"><span class="pill {{ 'green' if gate.id == 'weather_environment' and live_sources.weather_environment_proven else 'purple' }}">{{ '🟢 PROVEN' if gate.id == 'weather_environment' and live_sources.weather_environment_proven else '🟣 SOURCE PROOF' }}</span><h3>{{ gate.domain|title }}</h3><p class="truth">{{ gate.required }}</p></article>{% endfor %}</div>
+    <p class="eyebrow">Live-source truth gate</p><h2>Evidence lanes</h2>
+    <div class="grid">{% for gate in live_sources.external_source_gates %}<article class="card"><span class="pill {{ 'green' if gate.proven else 'purple' }}">{{ '🟢 PROVEN' if gate.proven else '🟣 SOURCE PROOF' }}</span><h3>{{ gate.domain|title }}</h3><p class="truth">{{ gate.required }}</p><p class="muted">{{ gate.evidence }}</p></article>{% endfor %}</div>
   </section>
 
   <section class="section">
@@ -65,7 +76,7 @@
 
   <section class="section">
     <p class="eyebrow">Founder APIs</p><h2>Evidence and learning</h2>
-    <div class="notice"><p class="truth"><code>GET /mission/intelligence/ecosystem/live</code> — automatic owned-runtime state.</p><p class="truth"><code>POST /mission/intelligence/ecosystem/analyse</code> — explicit real signal pack with automatic pressure scoring.</p><p class="truth"><code>POST /mission/intelligence/ecosystem/outcome</code> — Founder-approved outcome → HRM receipt → RSI learning handoff.</p></div>
+    <div class="notice"><p class="truth"><code>GET /mission/intelligence/ecosystem/live</code> — automatic owned-runtime state.</p><p class="truth"><code>POST /mission/intelligence/ecosystem/prove-full</code> — bounded full evidence pass.</p><p class="truth"><code>POST /mission/intelligence/ecosystem/analyse</code> — explicit real signal pack with automatic pressure scoring.</p><p class="truth"><code>POST /mission/intelligence/ecosystem/outcome</code> — Founder-approved outcome → HRM receipt → RSI learning handoff.</p></div>
   </section>
 
   <section class="section">
