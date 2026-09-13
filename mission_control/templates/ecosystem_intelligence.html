@@ -62,7 +62,7 @@
     <h2>Founder output contract</h2>
     <div class="metric-grid">
       {% for field in ['State','Why','Strongest link','Weakest link','Affected systems','Affected places','Evidence','Forecast','Risk','Opportunity','Recommended next gate'] %}
-      <div class="metric"><span class="muted">{{ loop.index|string|zfill(2) if false else '' }}</span><strong>{{ field }}</strong></div>
+      <div class="metric"><span class="muted">{{ loop.index }}</span><strong>{{ field }}</strong></div>
       {% endfor %}
     </div>
   </section>
