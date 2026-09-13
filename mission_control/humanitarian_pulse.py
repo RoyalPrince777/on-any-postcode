@@ -1,4 +1,4 @@
-"""Public-safe live humanitarian projection for OAP Pulse.
+"""Public-safe live World Disasters projection for OAP Pulse.
 
 This module adapts the governed International Humanitarian Emergency Tracker for
 public Pulse display. It does not persist external facts into the user post
@@ -7,7 +7,7 @@ store, infer severity, expose precise civilian locations, or create warnings.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from urllib.parse import urljoin, urlparse
 
 from . import humanitarian_emergency_tracker
@@ -26,9 +26,24 @@ _SOURCE_HOME = {
     "unhcr_nowcasting": "https://www.unhcr.org/refugee-statistics/",
     "reliefweb": "https://reliefweb.int/",
 }
-_CATEGORY_NAMES = {
-    "natural_hazard": "Natural hazard / disaster",
-    "health": "Public health",
+
+WORLD_DISASTER_TYPES: tuple[dict[str, str], ...] = (
+    {"id": "flood", "icon": "🌊", "label": "Floods"},
+    {"id": "volcano", "icon": "🌋", "label": "Volcanoes"},
+    {"id": "earthquake", "icon": "🌎", "label": "Earthquakes"},
+    {"id": "wildfire", "icon": "🔥", "label": "Wildfires"},
+    {"id": "drought", "icon": "🌵", "label": "Drought"},
+    {"id": "cyclone", "icon": "🌀", "label": "Cyclones"},
+    {"id": "health", "icon": "🦠", "label": "Health Emergencies"},
+)
+_WORLD_DISASTER_BY_ID = {item["id"]: item for item in WORLD_DISASTER_TYPES}
+_GDACS_EVENT_TYPES = {
+    "FL": "flood",
+    "VO": "volcano",
+    "EQ": "earthquake",
+    "WF": "wildfire",
+    "DR": "drought",
+    "TC": "cyclone",
 }
 
 
@@ -46,6 +61,18 @@ def _safe_source_url(source: str, value: object) -> str:
     return _SOURCE_HOME.get(source, "")
 
 
+def _world_disaster_type(item: Mapping[str, object]) -> dict[str, str] | None:
+    source = _clean(item.get("source"), limit=40)
+    event_type = _clean(item.get("event_type"), limit=40).upper()
+    if source == "who_don" and event_type == "WHO_DON":
+        return _WORLD_DISASTER_BY_ID["health"]
+    if source == "gdacs":
+        disaster_id = _GDACS_EVENT_TYPES.get(event_type)
+        if disaster_id:
+            return _WORLD_DISASTER_BY_ID[disaster_id]
+    return None
+
+
 def _event_projection(item: Mapping[str, object]) -> dict[str, object] | None:
     source = _clean(item.get("source"), limit=40)
     if source not in _ALLOWED_EVENT_SOURCES:
@@ -53,6 +80,10 @@ def _event_projection(item: Mapping[str, object]) -> dict[str, object] | None:
     if item.get("civilian_only") is not True:
         return None
     if item.get("targeting") is True or item.get("surveillance") is True:
+        return None
+
+    disaster_type = _world_disaster_type(item)
+    if disaster_type is None:
         return None
 
     name = _clean(item.get("name"), limit=180)
@@ -67,24 +98,45 @@ def _event_projection(item: Mapping[str, object]) -> dict[str, object] | None:
         )
         if country
     )
+    countries_text = ", ".join(countries) if countries else "International"
+    observed_at = _clean(item.get("from_date") or item.get("to_date"), limit=64)
+    alert_level = _clean(item.get("alert_level"), limit=40) or "Source update"
     summary = _clean(item.get("summary"), limit=360)
     return {
         "source": source,
         "source_name": _SOURCE_NAMES[source],
         "source_event_id": source_event_id,
         "name": name,
-        "category": _CATEGORY_NAMES.get(
-            _clean(item.get("category"), limit=60),
-            _clean(item.get("category"), limit=60) or "Humanitarian",
-        ),
-        "alert_level": _clean(item.get("alert_level"), limit=40) or "Source update",
+        "world_disaster_type": disaster_type["id"],
+        "world_disaster_label": disaster_type["label"],
+        "world_disaster_icon": disaster_type["icon"],
+        "alert_level": alert_level,
+        "severity": alert_level,
         "countries": countries,
-        "countries_text": ", ".join(countries) if countries else "International",
-        "observed_at": _clean(item.get("from_date") or item.get("to_date"), limit=64),
+        "countries_text": countries_text,
+        "affected_area": countries_text,
+        "observed_at": observed_at,
         "summary": summary,
         "source_url": _safe_source_url(source, item.get("source_url")),
         "truth": "Observed source record",
     }
+
+
+def _category_projection(events: Sequence[Mapping[str, object]]) -> tuple[dict[str, object], ...]:
+    counts = {item["id"]: 0 for item in WORLD_DISASTER_TYPES}
+    for event in events:
+        disaster_id = str(event.get("world_disaster_type") or "")
+        if disaster_id in counts:
+            counts[disaster_id] += 1
+    return tuple(
+        {
+            "id": item["id"],
+            "icon": item["icon"],
+            "label": item["label"],
+            "count": counts[item["id"]],
+        }
+        for item in WORLD_DISASTER_TYPES
+    )
 
 
 def _source_states(snapshot: Mapping[str, object]) -> tuple[dict[str, object], ...]:
@@ -114,7 +166,7 @@ def _source_states(snapshot: Mapping[str, object]) -> tuple[dict[str, object], .
 
 
 def public_snapshot(*, live_fetch: bool = True) -> dict[str, object]:
-    """Return the public-safe humanitarian Pulse snapshot.
+    """Return the public-safe World Disasters snapshot for Pulse.
 
     External source failures fail closed. No event is stored in Pulse persistence.
     """
@@ -128,6 +180,7 @@ def public_snapshot(*, live_fetch: bool = True) -> dict[str, object]:
             "ready": False,
             "event_count": 0,
             "events": (),
+            "disaster_categories": _category_projection(()),
             "live_sources": (),
             "source_states": (),
             "fetched_at": "",
@@ -164,6 +217,7 @@ def public_snapshot(*, live_fetch: bool = True) -> dict[str, object]:
         "ready": bool(live_sources),
         "event_count": len(events),
         "events": tuple(events),
+        "disaster_categories": _category_projection(events),
         "live_sources": live_sources,
         "source_states": _source_states(snapshot),
         "fetched_at": _clean(snapshot.get("fetched_at"), limit=64),
