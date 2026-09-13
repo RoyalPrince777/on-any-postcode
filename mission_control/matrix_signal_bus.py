@@ -10,8 +10,9 @@ Founder but cannot emit live Matrix Signals until separately registered.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Any, Iterable
+from typing import Any
 from uuid import uuid4
 
 from . import agent_passport_audit, agents
@@ -107,7 +108,13 @@ def topology() -> dict[str, Any]:
     review = set(extended_review_names())
     participants = []
     for name in CORE_MATRIX_ORDER + EXTENDED_REVIEW_ORDER:
-        status = "registered" if name in registered else "passport_review" if name in review else "unavailable"
+        status = (
+            "registered"
+            if name in registered
+            else "passport_review"
+            if name in review
+            else "unavailable"
+        )
         participants.append(
             {
                 "name": name,
@@ -141,13 +148,17 @@ def topology() -> dict[str, Any]:
 def _normalise_recipients(recipients: Iterable[str] | None) -> tuple[str, ...]:
     if recipients is None:
         return ("Trinity", "SMI")
-    result = tuple(dict.fromkeys(str(item).strip() for item in recipients if str(item).strip()))
+    result = tuple(
+        dict.fromkeys(str(item).strip() for item in recipients if str(item).strip())
+    )
     if not result:
         return ("Trinity", "SMI")
     allowed = set(registered_matrix_names()) | set(SYSTEM_RECIPIENTS)
     unknown = tuple(item for item in result if item not in allowed)
     if unknown:
-        raise ValueError("Unknown or unregistered Matrix recipient: " + ", ".join(unknown))
+        raise ValueError(
+            "Unknown or unregistered Matrix recipient: " + ", ".join(unknown)
+        )
     return result
 
 
@@ -167,7 +178,9 @@ def route_signal(
 
     sender = sender.strip()
     if sender not in registered_matrix_names():
-        raise ValueError(f"{sender or 'Unknown sender'} is not a registered Matrix agent")
+        raise ValueError(
+            f"{sender or 'Unknown sender'} is not a registered Matrix agent"
+        )
     if urgency not in ALLOWED_URGENCY:
         raise ValueError("Unsupported urgency")
     topic = topic.strip()
@@ -177,7 +190,9 @@ def route_signal(
         raise ValueError("confidence must be between 0 and 1")
 
     routed_recipients = _normalise_recipients(recipients)
-    evidence_items = tuple(str(item).strip() for item in evidence if str(item).strip())
+    evidence_items = tuple(
+        str(item).strip() for item in evidence if str(item).strip()
+    )
     delivery_path = tuple(
         dict.fromkeys(
             (
