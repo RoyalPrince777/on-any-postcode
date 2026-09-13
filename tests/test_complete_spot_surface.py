@@ -101,6 +101,39 @@ def test_flag_vote_chronicle_and_nature_reuse_real_existing_paths(client):
     assert "wider environmental alerts" in nature
 
 
+def test_activity_adventure_reuses_direct_booking_engine_without_fake_confirmation(client):
+    page = client.get("/the-spot/events").get_data(as_text=True)
+
+    assert "Activity / Adventure · OAP Direct" in page
+    assert "Certified supplier inventory remains the source of truth" in page
+    assert "/travel/direct?category=activity" in page
+    assert "/travel/direct?category=attraction" in page
+    assert "/travel/direct?category=event" in page
+    assert "Quote → hold → human-confirmed reservation request → supplier confirmation" in page
+    assert "Payment capture and Pass issuance remain separately gated" in page
+    assert "before anything is called confirmed" in page
+
+
+def test_creator_business_and_support_handoffs_preserve_boundaries(client):
+    creators = client.get("/the-spot/creators").get_data(as_text=True)
+    businesses = client.get("/the-spot/businesses").get_data(as_text=True)
+    support = client.get("/the-spot/support").get_data(as_text=True)
+
+    assert "Create identity first. Publish through governed OAP routes." in creators
+    assert 'href="/the-spot/music"' in creators
+    assert 'href="/the-spot/distribution"' in creators
+    assert "does not claim Certified Creator Identity" in creators
+
+    assert 'href="/the-spot/market"' in businesses
+    assert 'href="/travel/direct"' in businesses
+    assert "general Certified Merchant onboarding workflow remains separately gated" in businesses
+
+    assert "public discovery, protected cases" in support
+    assert 'href="/the-spot/signal"' in support
+    assert 'href="/the-spot/postcode-rooms"' in support
+    assert "no public support form creates or exposes a safeguarding case" in support
+
+
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
     page = client.get("/the-spot").get_data(as_text=True)
 
