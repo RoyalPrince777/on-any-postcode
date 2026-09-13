@@ -5,7 +5,6 @@ import json
 
 from mission_control import certification_views, postgres_db
 
-
 _DB_ENV_KEYS = (
     "OAP_PRIMARY_DATABASE_URL_B64",
     "OAP_PRIMARY_DATABASE_URL",
