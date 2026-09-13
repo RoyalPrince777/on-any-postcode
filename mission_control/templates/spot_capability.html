@@ -43,19 +43,73 @@
     </section>
     {% endif %}
 
+    {% if capability.slug == 'flag-vote' %}
+    <section class="mc-panel" aria-labelledby="flag-vote-title">
+      <p class="mc-eyebrow">🚩 Throw Your Flag Up · public support signal</p>
+      <h2 id="flag-vote-title">Flag Vote</h2>
+      <p>Raise a country or team flag through the existing bounded OAP flag store. This is non-binding public support and sentiment — never a civic, legal or election vote.</p>
+      <form method="post" action="{{ url_for('flag') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="flag-team">Country / team</label>
+        <input id="flag-team" name="team" maxlength="80" placeholder="Ghana" required>
+        <button class="mc-primary" type="submit">🚩 Throw My Flag Up</button>
+      </form>
+      <div class="atlas-action-row"><a class="mc-secondary-link" href="{{ url_for('world_cup') }}#teams">See current flags and teams →</a></div>
+      <p class="atlas-warning"><strong>Truth lock:</strong> Flag Vote records support only. It does not create a binding vote, petition signature or official election result.</p>
+    </section>
+    {% endif %}
+
+    {% if capability.slug == 'news' %}
+    <section class="mc-panel" aria-labelledby="chronicle-title">
+      <p class="mc-eyebrow">📰 OAP Chronicle · human-centred</p>
+      <h2 id="chronicle-title">What matters around the Empire</h2>
+      <p>Chronicle uses OAP’s current public Pulse and Signal paths for local life, culture, sport, creators, businesses and opportunities. It does not invent a second newsroom feed.</p>
+      <div class="mc-status-grid">
+        <article class="mc-status-card"><strong>📡 Pulse</strong><span>What is happening around you now.</span></article>
+        <article class="mc-status-card"><strong>📣 Signal</strong><span>Trusted updates, alerts and announcements.</span></article>
+        <article class="mc-status-card"><strong>🌍 World Rooms</strong><span>Local-to-global public context.</span></article>
+        <article class="mc-status-card"><strong>🎪 Activity</strong><span>Sport, culture and real things to do.</span></article>
+      </div>
+      <div class="atlas-action-row">
+        <a class="mc-secondary-link" href="{{ url_for('pulse_feed') }}">Open Pulse →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">Open Signal →</a>
+      </div>
+      <p class="atlas-warning"><strong>Truth lock:</strong> broader external-news ingestion stays gated until source provenance, freshness and moderation are proven.</p>
+    </section>
+    {% endif %}
+
+    {% if capability.slug == 'nature' %}
+    <section class="mc-panel" aria-labelledby="nature-title">
+      <p class="mc-eyebrow">🌿 OAP Nature · Earth is our turf</p>
+      <h2 id="nature-title">Weather. Environment. Green spaces. Wellbeing.</h2>
+      <p>Nature reuses OAP Atlas for real place and weather observations, while wider environmental alerts, wildlife and resource feeds remain evidence-bound instead of being faked.</p>
+      <div class="mc-status-grid">
+        <article class="mc-status-card"><strong>🌦️ Weather</strong><span>Live when the bounded Atlas weather source returns safely.</span></article>
+        <article class="mc-status-card"><strong>🌱 Sustainability</strong><span>Local-first environmental awareness.</span></article>
+        <article class="mc-status-card"><strong>🦋 Wildlife</strong><span>Source-backed wildlife context as evidence becomes available.</span></article>
+        <article class="mc-status-card"><strong>🌳 Green Spaces</strong><span>Discover parks and nature through OAP Atlas.</span></article>
+        <article class="mc-status-card"><strong>💚 Wellbeing</strong><span>Nature, movement, balance and recovery.</span></article>
+      </div>
+      <div class="atlas-action-row">
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open live Weather / Atlas →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}">Explore green spaces →</a>
+      </div>
+    </section>
+    {% endif %}
+
     {% if capability.slug == 'postcode-rooms' %}
     <section class="mc-panel" aria-labelledby="world-room-title">
       <p class="mc-eyebrow">Local structure · public rooms only</p>
       <h2 id="world-room-title">World Rooms</h2>
       <p>Move through the real OAP geography. Person-to-person communication stays inside The Link → Link Up.</p>
       <div class="mc-status-grid" aria-label="World Rooms hierarchy">
-        <article class="mc-status-card"><strong>🌍 Global</strong><span>Worldwide community layer.</span></article>
+        <article class="mc-status-card"><strong>🌍 Global</strong><span>Worldwide Empire layer.</span></article>
         <article class="mc-status-card"><strong>🌐 Continent</strong><span>Africa, Asia, Europe, North America, South America, Oceania and Antarctica.</span></article>
-        <article class="mc-status-card"><strong>🏳️ Country</strong><span>Country or territory community layer.</span></article>
+        <article class="mc-status-card"><strong>🏳️ Country</strong><span>Country or territory Empire layer.</span></article>
         <article class="mc-status-card"><strong>🧭 County / Region</strong><span>County, state, province or equivalent region.</span></article>
         <article class="mc-status-card"><strong>🏙️ Borough / District</strong><span>Borough, district or equivalent local authority.</span></article>
         <article class="mc-status-card"><strong>📍 Postcode</strong><span>Postcode or equivalent local code.</span></article>
-        <article class="mc-status-card"><strong>🏠 Local Room</strong><span>The closest public community room.</span></article>
+        <article class="mc-status-card"><strong>🏠 Local Room</strong><span>The closest public Empire room.</span></article>
       </div>
       <h3>Post to your local room</h3>
       <form method="post" action="{{ url_for('postcode_room') }}">
@@ -125,7 +179,7 @@
     {% endif %}
 
     {% if capability.slug in ('market', 'businesses') %}
-    <section class="mc-panel" aria-labelledby="market-title"><p class="mc-eyebrow">Local listings · checkout separate</p><h2 id="market-title">{{ 'Community market' if capability.slug == 'market' else 'Local-business listings' }}</h2>{% if market_products %}<div class="mc-agent-grid">{% for product in market_products %}<article class="mc-agent-card"><h3>{{ product.name }}</h3><p>{{ product.description }}</p><strong>{{ product.currency }} {{ product.price }}</strong><p>{{ product.seller }} · {{ product.postcode or product.borough or product.country }}</p></article>{% endfor %}</div>{% else %}<p>No active local listings yet.</p>{% endif %}{% if auth_user and capability.slug == 'market' %}<h3>Create a listing</h3><form method="post" action="{{ url_for('market_listing_create') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><label for="market-name">Product</label><input id="market-name" name="name" maxlength="160" required><label for="market-description">Description</label><textarea id="market-description" name="description" maxlength="3000"></textarea><label for="market-price">Price in GBP</label><input id="market-price" name="price" inputmode="decimal" required><button class="mc-primary" type="submit">Submit listing</button></form>{% elif capability.slug == 'market' %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to list a product →</a>{% endif %}</section>
+    <section class="mc-panel" aria-labelledby="market-title"><p class="mc-eyebrow">Local listings · checkout separate</p><h2 id="market-title">{{ 'Empire market' if capability.slug == 'market' else 'Local-business listings' }}</h2>{% if market_products %}<div class="mc-agent-grid">{% for product in market_products %}<article class="mc-agent-card"><h3>{{ product.name }}</h3><p>{{ product.description }}</p><strong>{{ product.currency }} {{ product.price }}</strong><p>{{ product.seller }} · {{ product.postcode or product.borough or product.country }}</p></article>{% endfor %}</div>{% else %}<p>No active local listings yet.</p>{% endif %}{% if auth_user and capability.slug == 'market' %}<h3>Create a listing</h3><form method="post" action="{{ url_for('market_listing_create') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><label for="market-name">Product</label><input id="market-name" name="name" maxlength="160" required><label for="market-description">Description</label><textarea id="market-description" name="description" maxlength="3000"></textarea><label for="market-price">Price in GBP</label><input id="market-price" name="price" inputmode="decimal" required><button class="mc-primary" type="submit">Submit listing</button></form>{% elif capability.slug == 'market' %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to list a product →</a>{% endif %}</section>
     {% endif %}
 
     {% if capability.slug == 'sika' %}<section class="mc-panel" aria-labelledby="sika-title"><p class="mc-eyebrow">Contribution credits · not money</p><h2 id="sika-title">SIKA record</h2>{% if auth_user and sika %}<p><strong>{{ sika.balance }} {{ sika.unit }}</strong></p><p>Credits are internal contribution and trust-value records. They are not cash, deposits or regulated payment balances.</p>{% else %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Sign in to view your SIKA record →</a>{% endif %}</section>{% endif %}
