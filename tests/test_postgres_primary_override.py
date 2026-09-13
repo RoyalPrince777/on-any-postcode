@@ -3,8 +3,7 @@ from __future__ import annotations
 import base64
 import json
 
-from mission_control import postgres_db
-from mission_control import certification_views
+from mission_control import certification_views, postgres_db
 
 
 _DB_ENV_KEYS = (
