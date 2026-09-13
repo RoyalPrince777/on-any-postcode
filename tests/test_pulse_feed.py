@@ -60,15 +60,28 @@ def _humanitarian_projection():
                 "source_name": "GDACS",
                 "source_event_id": "EQ-1",
                 "name": "Source-backed disaster event",
-                "category": "Natural hazard / disaster",
+                "world_disaster_type": "earthquake",
+                "world_disaster_label": "Earthquakes",
+                "world_disaster_icon": "🌎",
                 "alert_level": "Orange",
+                "severity": "Orange",
                 "countries": ("Ghana",),
                 "countries_text": "Ghana",
+                "affected_area": "Ghana",
                 "observed_at": "2026-09-13",
                 "summary": "Authoritative public-source summary.",
                 "source_url": "https://www.gdacs.org/",
                 "truth": "Observed source record",
             },
+        ),
+        "disaster_categories": (
+            {"id": "flood", "icon": "🌊", "label": "Floods", "count": 0},
+            {"id": "volcano", "icon": "🌋", "label": "Volcanoes", "count": 0},
+            {"id": "earthquake", "icon": "🌎", "label": "Earthquakes", "count": 1},
+            {"id": "wildfire", "icon": "🔥", "label": "Wildfires", "count": 0},
+            {"id": "drought", "icon": "🌵", "label": "Drought", "count": 0},
+            {"id": "cyclone", "icon": "🌀", "label": "Cyclones", "count": 0},
+            {"id": "health", "icon": "🦠", "label": "Health Emergencies", "count": 0},
         ),
         "live_sources": ("gdacs", "who_don", "unhcr_nowcasting"),
         "source_states": (
@@ -260,9 +273,19 @@ def test_pulse_page_is_public_simple_and_separate_from_signal(
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert "📡 Pulse" in page
+    assert "🌍 World Disasters" in page
     assert "International Humanitarian Pulse" in page
     assert "Real facts · automatic · civilian-only" in page
+    assert "🌊 Floods" in page
+    assert "🌋 Volcanoes" in page
+    assert "🌎 Earthquakes" in page
+    assert "🔥 Wildfires" in page
+    assert "🌵 Drought" in page
+    assert "🌀 Cyclones" in page
+    assert "🦠 Health Emergencies" in page
     assert "Source-backed disaster event" in page
+    assert "Severity: Orange" in page
+    assert "Affected area: Ghana" in page
     assert "ReliefWeb" in page
     assert "gated" in page
     assert 'data-endpoint="/pulse/humanitarian"' in page
@@ -293,6 +316,7 @@ def test_legacy_spot_pulse_uses_same_separate_feed(anonymous_client, monkeypatch
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert "📡 Pulse" in page
+    assert "🌍 World Disasters" in page
     assert "International Humanitarian Pulse" in page
     assert "Spot Pulse" in page
     assert 'action="/signal"' not in page
@@ -317,6 +341,8 @@ def test_humanitarian_pulse_json_is_public_safe(anonymous_client, monkeypatch):
     assert payload["individual_tracking"] is False
     assert payload["autonomous_warning"] is False
     assert payload["events"][0]["source"] == "gdacs"
+    assert payload["events"][0]["world_disaster_type"] == "earthquake"
+    assert payload["disaster_categories"][2]["label"] == "Earthquakes"
     assert "geometry" not in payload["events"][0]
     assert "latitude" not in json.dumps(payload)
     assert "longitude" not in json.dumps(payload)
