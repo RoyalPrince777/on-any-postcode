@@ -1,14 +1,20 @@
 """Founder-only Ecosystem Intelligence surface.
 
 The surface exposes automatic owned-runtime ingestion, explicit signal analysis,
-and Founder-approved outcome receipts. It never invents external live data and
-never grants operational execution.
+Founder-triggered live source refreshes, and Founder-approved outcome receipts.
+It never invents external live data and never grants operational execution.
 """
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import ecosystem_intelligence, ecosystem_runtime, web_security
+from . import (
+    ecosystem_intelligence,
+    ecosystem_live_sources,
+    ecosystem_runtime,
+    location_intelligence,
+    web_security,
+)
 
 bp = Blueprint(
     "ecosystem_intelligence",
@@ -37,6 +43,7 @@ def dashboard():
                 "ecosystem_intelligence.html",
                 ecosystem=ecosystem_intelligence.status(),
                 runtime=ecosystem_runtime.current_state(),
+                live_sources=ecosystem_live_sources.status(),
             )
         )
     )
@@ -51,6 +58,7 @@ def status():
                 {
                     "architecture": ecosystem_intelligence.status(),
                     "runtime": ecosystem_runtime.status(),
+                    "live_sources": ecosystem_live_sources.status(),
                 }
             )
         )
@@ -63,6 +71,26 @@ def live():
     """Return automatic owned-runtime Ecosystem analysis with no network calls."""
 
     return _no_store(make_response(jsonify(ecosystem_runtime.current_state())))
+
+
+@bp.get("/source/location-weather")
+@web_security.login_required(api=True, founder_only=True)
+def source_location_weather():
+    """Refresh explicit Founder-supplied location/weather evidence."""
+
+    location = str(request.args.get("location") or "").strip()
+    if not location:
+        return _no_store(make_response(jsonify({"error": "location_required"}), 400))
+    try:
+        result = ecosystem_live_sources.location_weather(location)
+    except (ValueError, location_intelligence.LocationUnavailable) as exc:
+        return _no_store(
+            make_response(
+                jsonify({"error": "live_source_unavailable", "detail": str(exc)}),
+                503,
+            )
+        )
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.post("/analyse")

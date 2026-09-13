@@ -12,6 +12,7 @@ from . import (
     ecosystem_intelligence,
     international_humanitarian_intelligence,
     language_intelligence,
+    location_intelligence,
     media_intelligence,
     movement_intelligence,
     movement_proof,
@@ -61,7 +62,9 @@ def _proof(
 def status() -> dict[str, Any]:
     """Return a read-only proof matrix without making network calls."""
 
-    earth = earth_intelligence.status(weather_ready=False)
+    location_status = location_intelligence.status()
+    weather_verified = bool(location_status["weather_provider_verified"])
+    earth = earth_intelligence.status(weather_ready=weather_verified)
     language = language_intelligence.language_intelligence_status()
     movement = movement_intelligence.movement_intelligence_status()
     movement_runtime = movement_proof.status()
@@ -86,10 +89,14 @@ def status() -> dict[str, Any]:
             bounded_runtime_ready=bool(
                 earth["nature_organ_connected"] and earth["the_spot_connected"]
             ),
-            live_external_ready=bool(earth["weather_intelligence_connected"]),
+            live_external_ready=weather_verified,
             full_runtime_ready=bool(earth["full_earth_runtime_ready"]),
             bounded_evidence="OAP Nature, The Spot and Local-to-Global place model are connected.",
-            next_gate="Prove live Weather plus wider water, ecosystem, agriculture, resource and disaster sources.",
+            next_gate=(
+                "Weather observation source is proven in-process; prove wider water, ecosystem, agriculture, resource and disaster sources."
+                if weather_verified
+                else "Trigger a real bounded Weather refresh, then prove wider water, ecosystem, agriculture, resource and disaster sources."
+            ),
         ),
         _proof(
             item_id="language",
@@ -167,14 +174,18 @@ def status() -> dict[str, Any]:
             item_id="ecosystem",
             name="Ecosystem Intelligence",
             bounded_runtime_ready=ecosystem_bounded,
-            live_external_ready=False,
+            live_external_ready=weather_verified,
             full_runtime_ready=False,
             bounded_evidence=(
                 "Ten-domain contextual reasoning, NOW/NEXT/TREND, truth-state separation, "
                 "cross-postcode learning, Matrix routing and Founder decision packs are implemented."
             ),
             next_gate=(
-                "Prove live domain feeds and independent durable HRM write/read receipts. "
+                (
+                    "Weather/location external evidence is proven; prove the remaining Movement, Civic, Culture, Infrastructure, Market, People and Trust live feeds. "
+                    if weather_verified
+                    else "Trigger the Founder live location/weather source, then prove the remaining external domain feeds. "
+                )
                 + (
                     "Independent HRM Postgres is configured but still requires runtime write/read proof."
                     if receipt_config["durable_backend_configured"]
@@ -239,14 +250,15 @@ def status() -> dict[str, Any]:
         "live_external_total": len(worlds),
         "full_runtime_proven": full_count,
         "full_runtime_total": len(worlds),
+        "weather_provider_verified": weather_verified,
+        "network_calls_made": False,
         "universal_runtime_green": full_count == len(worlds),
         "universal_runtime_light": _light(full_count == len(worlds)),
-        "network_calls_made": False,
         "execution_granted": False,
         "approval_granted": False,
         "human_authority_final": True,
         "truth_boundary": (
             "Bounded runtime, live external proof and full runtime are separate claims. "
-            "A green bounded runtime never implies full live-world readiness."
+            "A green live-source proof never implies full live-world readiness."
         ),
     }
