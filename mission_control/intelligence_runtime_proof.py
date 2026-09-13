@@ -1,26 +1,21 @@
 """Evidence-aware runtime proof matrix for all governed OAP Intelligence.
 
-This module distinguishes three different claims that must never be collapsed:
-
-1. bounded_runtime_ready: owned code/surface can execute its present bounded role;
-2. live_external_ready: required current external/source/hardware proof is present;
-3. full_runtime_ready: the complete intended capability is production-proven.
-
-A green bounded-runtime light never upgrades the wider capability. Human Authority
-remains final and this module grants no execution or approval authority.
+Bounded runtime, live external proof and complete production runtime are separate
+claims. A green bounded light never upgrades live-world evidence automatically.
 """
-
 from __future__ import annotations
 
 from typing import Any
 
 from . import (
     earth_intelligence,
+    ecosystem_intelligence,
     international_humanitarian_intelligence,
     language_intelligence,
     media_intelligence,
     movement_intelligence,
     movement_proof,
+    smi_receipt_backend,
     technology_intelligence,
 )
 
@@ -74,6 +69,8 @@ def status() -> dict[str, Any]:
     humanitarian = (
         international_humanitarian_intelligence.international_humanitarian_intelligence_status()
     )
+    ecosystem = ecosystem_intelligence.status()
+    receipt_config = smi_receipt_backend.backend_configuration_status()
 
     multimodal_preparation_ready = bool(
         media_intelligence.DOCUMENT_MIMES
@@ -99,8 +96,7 @@ def status() -> dict[str, Any]:
             name="Language Intelligence",
             bounded_runtime_ready=bool(language["oap_world_language_hub_connected"]),
             live_external_ready=bool(
-                language["live_translation_ready"]
-                or language["speech_learning_ready"]
+                language["live_translation_ready"] or language["speech_learning_ready"]
             ),
             full_runtime_ready=bool(
                 language["live_translation_ready"]
@@ -123,8 +119,7 @@ def status() -> dict[str, Any]:
             item_id="movement",
             name="Movement Intelligence",
             bounded_runtime_ready=bool(
-                movement_runtime["route_proof_ready"]
-                and movement_runtime["request_preview_ready"]
+                movement_runtime["route_proof_ready"] and movement_runtime["request_preview_ready"]
             ),
             live_external_ready=False,
             full_runtime_ready=bool(movement["production_navigation_ready"]),
@@ -160,7 +155,33 @@ def status() -> dict[str, Any]:
         ),
     )
 
+    ecosystem_bounded = bool(
+        len(ecosystem["domains"]) == 10
+        and len(ecosystem["pressure_dimensions"]) == 9
+        and ecosystem["matrix_signal_bus"] == "required"
+        and ecosystem["human_authority"] == "final"
+    )
+
     cross_system = (
+        _proof(
+            item_id="ecosystem",
+            name="Ecosystem Intelligence",
+            bounded_runtime_ready=ecosystem_bounded,
+            live_external_ready=False,
+            full_runtime_ready=False,
+            bounded_evidence=(
+                "Ten-domain contextual reasoning, NOW/NEXT/TREND, truth-state separation, "
+                "cross-postcode learning, Matrix routing and Founder decision packs are implemented."
+            ),
+            next_gate=(
+                "Prove live domain feeds and independent durable HRM write/read receipts. "
+                + (
+                    "Independent HRM Postgres is configured but still requires runtime write/read proof."
+                    if receipt_config["durable_backend_configured"]
+                    else "Configure OAP_HRM_DATABASE_URL for the independent Render Postgres receipt store."
+                )
+            ),
+        ),
         _proof(
             item_id="technology",
             name="Technology Intelligence",
