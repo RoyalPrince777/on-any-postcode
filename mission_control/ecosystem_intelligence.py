@@ -165,7 +165,7 @@ def _normalise_geography(value: object) -> dict[str, str]:
     if value is None:
         return {}
     if not isinstance(value, Mapping):
-        raise ValueError("geography must be an object")
+        raise TypeError("geography must be an object")
     result: dict[str, str] = {}
     for raw_key, raw_value in value.items():
         key = str(raw_key).strip().lower()
