@@ -13,7 +13,7 @@ def _snapshot():
                 "event_type": "EQ",
                 "name": "Earthquake",
                 "alert_level": "Red",
-                "countries": ("Country A",),
+                "countries": ("Ghana",),
                 "from_date": "2026-09-13",
                 "summary": "",
                 "geometry": {"latitude": 1.234, "longitude": 2.345},
@@ -28,7 +28,7 @@ def _snapshot():
                 "event_type": "WHO_DON",
                 "name": "Disease outbreak update",
                 "alert_level": "WHO Update",
-                "countries": ("Country B",),
+                "countries": ("Japan",),
                 "from_date": "2026-09-12",
                 "summary": "Public-health source summary.",
                 "source_url": "/emergencies/disease-outbreak-news/item/example",
@@ -82,10 +82,13 @@ def test_public_projection_is_source_backed_privacy_reduced_and_world_typed(monk
     assert result["events"][0]["world_disaster_type"] == "earthquake"
     assert result["events"][0]["world_disaster_label"] == "Earthquakes"
     assert result["events"][0]["world_disaster_icon"] == "🌎"
-    assert result["events"][0]["affected_area"] == "Country A"
+    assert result["events"][0]["affected_area"] == "Ghana"
+    assert result["events"][0]["continents"] == ("Africa",)
+    assert result["events"][0]["continents_text"] == "Africa"
     assert result["events"][0]["severity"] == "Red"
     assert result["events"][0]["truth"] == "Observed source record"
     assert result["events"][1]["world_disaster_type"] == "health"
+    assert result["events"][1]["continents"] == ("Asia",)
     assert "geometry" not in result["events"][0]
     assert result["events"][1]["source_url"].startswith("https://www.who.int/")
     assert result["precise_civilian_location"] is False
@@ -109,6 +112,17 @@ def test_public_projection_is_source_backed_privacy_reduced_and_world_typed(monk
     assert categories["health"]["count"] == 1
     assert categories["flood"]["count"] == 0
 
+    geography = result["geography"]
+    assert geography["hierarchy"] == ("Global Earth", "Continent", "Country")
+    assert geography["earth"]["count"] == 2
+    assert geography["continents"] == (
+        {"name": "Africa", "count": 1},
+        {"name": "Asia", "count": 1},
+    )
+    assert tuple(item["name"] for item in geography["countries"]) == ("Ghana", "Japan")
+    assert geography["unclassified_countries"] == ()
+    assert geography["network_geocoding"] is False
+
 
 def test_gdacs_event_codes_map_only_to_locked_world_disaster_types():
     expected = {
@@ -127,7 +141,7 @@ def test_gdacs_event_codes_map_only_to_locked_world_disaster_types():
                 "event_type": event_type,
                 "name": event_type,
                 "alert_level": "Orange",
-                "countries": ("Country",),
+                "countries": ("Ghana",),
                 "civilian_only": True,
                 "targeting": False,
                 "surveillance": False,
@@ -135,6 +149,7 @@ def test_gdacs_event_codes_map_only_to_locked_world_disaster_types():
         )
         assert projected is not None
         assert projected["world_disaster_type"] == disaster_type
+        assert projected["continents"] == ("Africa",)
 
     assert humanitarian_pulse._event_projection(
         {
@@ -145,6 +160,31 @@ def test_gdacs_event_codes_map_only_to_locked_world_disaster_types():
             "civilian_only": True,
         }
     ) is None
+
+
+def test_unknown_country_label_is_not_guessed_into_a_continent():
+    projected = humanitarian_pulse._event_projection(
+        {
+            "source": "gdacs",
+            "source_event_id": "unknown-place",
+            "event_type": "FL",
+            "name": "Flood",
+            "alert_level": "Orange",
+            "countries": ("Source Place 777",),
+            "civilian_only": True,
+            "targeting": False,
+            "surveillance": False,
+        }
+    )
+
+    assert projected is not None
+    assert projected["countries"] == ("Source Place 777",)
+    assert projected["continents"] == ()
+    assert projected["continents_text"] == "Unclassified"
+
+    geography = humanitarian_pulse._geography_projection((projected,))
+    assert geography["unclassified_countries"] == ("Source Place 777",)
+    assert geography["continents"] == ()
 
 
 def test_public_projection_fails_closed_when_tracker_raises(monkeypatch):
@@ -164,6 +204,9 @@ def test_public_projection_fails_closed_when_tracker_raises(monkeypatch):
     assert result["event_count"] == 0
     assert len(result["disaster_categories"]) == 7
     assert all(item["count"] == 0 for item in result["disaster_categories"])
+    assert result["geography"]["earth"]["count"] == 0
+    assert result["geography"]["continents"] == ()
+    assert result["geography"]["countries"] == ()
     assert result["source_backed_only"] is True
     assert result["precise_civilian_location"] is False
 
