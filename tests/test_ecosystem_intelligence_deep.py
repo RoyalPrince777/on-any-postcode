@@ -1,4 +1,4 @@
-from mission_control import ecosystem_intelligence
+from mission_control import ecosystem_intelligence, ecosystem_runtime
 
 
 def _signal(
@@ -131,18 +131,19 @@ def test_analysis_builds_low_noise_founder_pack_and_rsi_candidate():
     assert handoff["automatic_deploy_allowed"] is False
 
 
-def test_dashboard_never_invents_current_ecosystem_values(client):
+def test_dashboard_shows_owned_runtime_without_inventing_external_values(client):
     response = client.get("/mission/intelligence/ecosystem")
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Awaiting real signal pack" in page
-    assert "does not invent weather" in page
+    assert "Automatic internal state" in page
+    assert "Missing external feeds stay gated" in page
+    assert "does not claim current weather" in page
     assert "Human Authority remains final" in page
     assert response.headers["Cache-Control"] == "no-store"
 
 
-def test_founder_analysis_api_uses_explicit_signals_and_does_not_execute(client):
+def test_founder_analysis_api_auto_computes_pressure_when_not_supplied(client):
     response = client.post(
         "/mission/intelligence/ecosystem/analyse",
         json={
@@ -151,7 +152,6 @@ def test_founder_analysis_api_uses_explicit_signals_and_does_not_execute(client)
                 _signal("place", "Local demand rising", postcode="CR4", pressure=44),
                 _signal("movement", "Booking pressure rising", postcode="CR4", pressure=58),
             ],
-            "pressure_scores": {"demand": 61, "movement": 58},
         },
     )
     payload = response.get_json()
@@ -159,7 +159,51 @@ def test_founder_analysis_api_uses_explicit_signals_and_does_not_execute(client)
     assert response.status_code == 200
     assert payload["scope"] == "Mitcham"
     assert payload["cross_domain"] is True
+    assert payload["pressure_scores"]["movement"] == 58
     assert payload["execution_granted"] is False
     assert payload["matrix_signal"]["sender"] == "Trinity"
-    assert payload["founder_view"]["execution_granted"] is False
+    assert payload["extended_matrix_lenses"]["can_emit_matrix_signal"] is False
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_live_endpoint_uses_owned_runtime_only(client):
+    response = client.get("/mission/intelligence/ecosystem/live")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["mode"] == "automatic_internal_runtime"
+    assert payload["ingestion"]["automatic_internal_ingestion"] is True
+    assert payload["ingestion"]["network_calls_made"] is False
+    assert payload["external_live_complete"] is False
+    assert payload["human_authority_final"] is True
+
+
+def test_outcome_endpoint_requires_explicit_founder_approval(client, monkeypatch):
+    monkeypatch.setattr(
+        ecosystem_runtime.smi_receipt_backend,
+        "write_receipt",
+        lambda *args, **kwargs: {"ok": True, "durable": True, "receipt_id": "r1"},
+    )
+    blocked = client.post(
+        "/mission/intelligence/ecosystem/outcome",
+        json={
+            "analysis_id": "ECO-1",
+            "decision": "hold",
+            "outcome": "stable",
+            "founder_approved": False,
+        },
+    )
+    assert blocked.status_code == 409
+    assert blocked.get_json()["status"] == "blocked_founder_approval_required"
+
+    approved = client.post(
+        "/mission/intelligence/ecosystem/outcome",
+        json={
+            "analysis_id": "ECO-1",
+            "decision": "hold",
+            "outcome": "stable",
+            "founder_approved": True,
+        },
+    )
+    assert approved.status_code == 200
+    assert approved.get_json()["durable_learning_proven"] is True
