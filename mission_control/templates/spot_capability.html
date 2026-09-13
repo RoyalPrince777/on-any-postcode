@@ -43,22 +43,6 @@
     </section>
     {% endif %}
 
-    {% if capability.slug == 'flag-vote' %}
-    <section class="mc-panel" aria-labelledby="flag-vote-title">
-      <p class="mc-eyebrow">🚩 Throw Your Flag Up · public support signal</p>
-      <h2 id="flag-vote-title">Flag Vote</h2>
-      <p>Raise a country or team flag through the existing bounded OAP flag store. This is non-binding public support and sentiment — never a civic, legal or election vote.</p>
-      <form method="post" action="{{ url_for('flag') }}">
-        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-        <label for="flag-team">Country / team</label>
-        <input id="flag-team" name="team" maxlength="80" placeholder="Ghana" required>
-        <button class="mc-primary" type="submit">🚩 Throw My Flag Up</button>
-      </form>
-      <div class="atlas-action-row"><a class="mc-secondary-link" href="{{ url_for('world_cup') }}#teams">See current flags and teams →</a></div>
-      <p class="atlas-warning"><strong>Truth lock:</strong> Flag Vote records support only. It does not create a binding vote, petition signature or official election result.</p>
-    </section>
-    {% endif %}
-
     {% if capability.slug == 'news' %}
     <section class="mc-panel" aria-labelledby="chronicle-title">
       <p class="mc-eyebrow">📰 OAP Chronicle · human-centred</p>
@@ -67,7 +51,7 @@
       <div class="mc-status-grid">
         <article class="mc-status-card"><strong>📡 Pulse</strong><span>What is happening around you now.</span></article>
         <article class="mc-status-card"><strong>📣 Signal</strong><span>Trusted updates, alerts and announcements.</span></article>
-        <article class="mc-status-card"><strong>🌍 World Rooms</strong><span>Local-to-global public context.</span></article>
+        <article class="mc-status-card"><strong>🌍 Earth</strong><span>Global Earth to postcode public context.</span></article>
         <article class="mc-status-card"><strong>🎪 Activity</strong><span>Sport, culture and real things to do.</span></article>
       </div>
       <div class="atlas-action-row">
@@ -120,18 +104,19 @@
 
     {% if capability.slug == 'postcode-rooms' %}
     <section class="mc-panel" aria-labelledby="world-room-title">
-      <p class="mc-eyebrow">Local structure · public rooms only</p>
-      <h2 id="world-room-title">World Rooms</h2>
-      <p>Move through the real OAP geography. Person-to-person communication stays inside The Link → Link Up.</p>
-      <div class="mc-status-grid" aria-label="World Rooms hierarchy">
-        <article class="mc-status-card"><strong>🌍 Global</strong><span>Worldwide Empire layer.</span></article>
+      <p class="mc-eyebrow">🌍 Global Earth · one world to your postcode</p>
+      <h2 id="world-room-title">Earth → Your Postcode</h2>
+      <p>Move through OAP geography from one human world to your local postcode. Country pages carry national identity and a National Anthem slot; person-to-person communication stays inside The Link → Link Up.</p>
+      <div class="mc-status-grid" aria-label="Global Earth geography hierarchy">
+        <article class="mc-status-card"><strong>🌍 Global Earth</strong><span>One human world. Earth is our turf.</span></article>
         <article class="mc-status-card"><strong>🌐 Continent</strong><span>Africa, Asia, Europe, North America, South America, Oceania and Antarctica.</span></article>
-        <article class="mc-status-card"><strong>🏳️ Country</strong><span>Country or territory Empire layer.</span></article>
+        <article class="mc-status-card"><strong>🏳️ Country</strong><span>Country or territory page with national identity, culture and source-backed facts.</span></article>
+        <article class="mc-status-card"><strong>🎵 National Anthem</strong><span>Lives with the country. Anthem title and media appear only when provenance and rights-safe use are proven.</span></article>
         <article class="mc-status-card"><strong>🧭 County / Region</strong><span>County, state, province or equivalent region.</span></article>
         <article class="mc-status-card"><strong>🏙️ Borough / District</strong><span>Borough, district or equivalent local authority.</span></article>
-        <article class="mc-status-card"><strong>📍 Postcode</strong><span>Postcode or equivalent local code.</span></article>
-        <article class="mc-status-card"><strong>🏠 Local Room</strong><span>The closest public Empire room.</span></article>
+        <article class="mc-status-card"><strong>📮 Postcode</strong><span>Postcode or equivalent local code and closest public local room.</span></article>
       </div>
+      <p class="atlas-warning"><strong>Truth lock:</strong> National Anthem is country culture, not a geography level. OAP will not invent anthem audio, lyrics or official metadata; those require a source-backed, rights-safe record.</p>
       <h3>Post to your local room</h3>
       <form method="post" action="{{ url_for('postcode_room') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
@@ -209,7 +194,7 @@
     <section class="mc-panel" aria-labelledby="support-path-title">
       <p class="mc-eyebrow">🤝 Empire Support · public discovery, protected cases</p>
       <h2 id="support-path-title">Find public help without exposing a private case.</h2>
-      <div class="atlas-action-row"><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">Public Signals →</a><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">World Rooms →</a>{% if auth_user %}<a class="mc-secondary-link" href="{{ url_for('my_world') }}">Protected My World →</a>{% else %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Enter My World for protected support →</a>{% endif %}</div>
+      <div class="atlas-action-row"><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">Public Signals →</a><a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">Earth →</a>{% if auth_user %}<a class="mc-secondary-link" href="{{ url_for('my_world') }}">Protected My World →</a>{% else %}<a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Enter My World for protected support →</a>{% endif %}</div>
       <p class="atlas-warning"><strong>Privacy lock:</strong> no public support form creates or exposes a safeguarding case. Private case handling remains gated until authenticated case storage, escalation and safeguarding evidence are complete.</p>
     </section>
     {% endif %}

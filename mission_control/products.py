@@ -13,22 +13,20 @@ PRODUCT_HIERARCHY: tuple[dict[str, str], ...] = (
 )
 
 WORLD_ROOM_LEVELS: tuple[dict[str, str], ...] = (
-    {"id": "postcode", "name": "Postcode", "parent_id": "", "purpose": "Postcode or equivalent local code layer."},
-    {"id": "borough-district", "name": "Borough / District", "parent_id": "postcode", "purpose": "Borough, district or equivalent local authority layer."},
-    {"id": "county-region", "name": "County / Region", "parent_id": "borough-district", "purpose": "County, state, province or regional layer."},
-    {"id": "country", "name": "Country", "parent_id": "county-region", "purpose": "Country layer."},
-    {"id": "continent", "name": "Continent", "parent_id": "country", "purpose": "Continental layer."},
-    {"id": "global", "name": "Global", "parent_id": "continent", "purpose": "Worldwide public layer."},
-    {"id": "universe", "name": "Universe", "parent_id": "global", "purpose": "Outermost OAP identity and discovery layer."},
+    {"id": "earth", "name": "Global Earth", "parent_id": "", "purpose": "One human world and the top public geography layer."},
+    {"id": "continent", "name": "Continent", "parent_id": "earth", "purpose": "Africa, Asia, Europe, North America, South America, Oceania and Antarctica."},
+    {"id": "country", "name": "Country", "parent_id": "continent", "purpose": "Country or territory layer with national anthem metadata when source-backed and rights-safe."},
+    {"id": "county-region", "name": "County / Region", "parent_id": "country", "purpose": "County, state, province or equivalent regional layer."},
+    {"id": "borough-district", "name": "Borough / District", "parent_id": "county-region", "purpose": "Borough, district or equivalent local-authority layer."},
+    {"id": "postcode", "name": "Postcode", "parent_id": "borough-district", "purpose": "Postcode or equivalent local code layer."},
 )
 
 SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"id": "pulse", "name": "Pulse", "owner": "OAP World", "purpose": "Empire posts and activity.", "status": "Public surface live", "function": "Displays bounded public activity without exposing private data.", "blocked_by": ""},
-    {"id": "flag-vote", "name": "Flag Vote", "owner": "OAP World", "purpose": "Throw Your Flag Up as a non-binding public support signal.", "status": "Public flag support path live", "function": "Reuses the existing bounded /flag persistence path and public flag counts.", "blocked_by": "Flag Vote is support/sentiment only; it is not a civic, legal or binding election vote"},
     {"id": "signal", "name": "Signal", "owner": "OAP Signal", "purpose": "The OAP feed for trusted updates, alerts and announcements.", "status": "Public posting live", "function": "Uses the bounded public Signal feed.", "blocked_by": ""},
     {"id": "news", "name": "OAP Chronicle", "owner": "OAP Chronicle", "purpose": "Human-centred news from local life, culture, sport, creators, business, opportunities and trusted public signals.", "status": "Public Chronicle front door live", "function": "Routes readers to the live Pulse and Signal evidence paths instead of inventing a separate newsroom feed.", "blocked_by": "Broader editorial ingestion requires provenance, source health and moderation evidence"},
     {"id": "nature", "name": "Nature", "owner": "OAP Nature", "purpose": "Weather, environmental awareness, wildlife, green spaces, sustainability and wellbeing.", "status": "Nature front door live; live weather reuses OAP Atlas", "function": "Connects Nature to the bounded live Atlas/weather path and Earth Intelligence without duplicating weather providers.", "blocked_by": "Wider environmental alerts, wildlife and resource feeds require source-specific live evidence"},
-    {"id": "postcode-rooms", "name": "World Rooms", "owner": "Communications", "purpose": "Public rooms organised Postcode → Borough/District → County/Region → Country → Continent → Global → Universe.", "status": "Geographic hierarchy defined; postcode posting remains compatibility path", "function": "Keeps the existing bounded room feed while replacing Postcode Rooms as the product identity.", "blocked_by": "Broader geographic posting and protected participation need certified geography; private person-to-person messages stay inside authenticated Link Up"},
+    {"id": "postcode-rooms", "name": "Global Earth", "owner": "OAP World", "purpose": "Public geography from Global Earth → Continent → Country + National Anthem → County/Region → Borough/District → Postcode.", "status": "Geographic hierarchy defined; postcode posting remains compatibility path", "function": "Uses the existing bounded room feed as the local interaction layer while OAP World owns the Earth-to-postcode geography. Country surfaces reserve national anthem metadata when source-backed.", "blocked_by": "Broader geographic posting needs certified geography; national anthem title/media requires source provenance and rights-safe use; private person-to-person messages stay inside authenticated Link Up"},
     {"id": "events", "name": "Activity / Adventure", "owner": "Events", "purpose": "Local gatherings, sports, culture and activities.", "status": "Directory live", "function": "Provides an approved discovery surface.", "blocked_by": "Bookings require Identity and audited persistence"},
     {"id": "carnival-intelligence", "name": "Carnival Intelligence", "owner": "Events", "purpose": "Official Carnival schedules, maps, travel and safety guidance.", "status": "Read-only scheduled-data surface implemented", "function": "Shows reviewed official information without location collection or live-tracking claims.", "blocked_by": "Live crowds, incidents and moving assets require authorised feeds and separate Human Authority approval"},
     {"id": "discovery", "name": "Explorer", "owner": "Explorer", "purpose": "Places, services and useful geographic information.", "status": "Location lookup live", "function": "Resolves place and postcode hierarchy with bounded provider calls.", "blocked_by": "First-party turn-by-turn routing remains separate"},
@@ -54,11 +52,10 @@ LOCKED_SPOT_CAPABILITY_IDS = tuple(item["id"] for item in SPOT_CAPABILITIES)
 
 PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"source_id": "pulse", "slug": "pulse", "name": "Pulse", "purpose": "See Empire posts and activity."},
-    {"source_id": "flag-vote", "slug": "flag-vote", "name": "Flag Vote", "purpose": "Throw Your Flag Up as a non-binding support signal."},
     {"source_id": "signal", "slug": "signal", "name": "Signal", "purpose": "Follow the OAP feed, trusted updates, alerts and announcements."},
     {"source_id": "news", "slug": "news", "name": "OAP Chronicle", "purpose": "Follow human-centred local-to-global news through current OAP public signals."},
     {"source_id": "nature", "slug": "nature", "name": "Nature", "purpose": "Weather, environment, wildlife, green spaces, sustainability and wellbeing."},
-    {"source_id": "postcode-rooms", "slug": "postcode-rooms", "name": "World Rooms", "purpose": "Move from Postcode to Borough/District, County/Region, Country, Continent, Global and Universe rooms."},
+    {"source_id": "postcode-rooms", "slug": "postcode-rooms", "name": "Global Earth", "purpose": "Move from Global Earth to Continent, Country + National Anthem, County/Region, Borough/District and Postcode."},
     {"source_id": "events", "slug": "events", "name": "Activity / Adventure", "purpose": "Find gatherings, sport, culture and things to do."},
     {"source_id": "carnival-intelligence", "slug": "carnival", "name": "Carnival Intelligence", "purpose": "Use reviewed Carnival schedules, maps, travel and safety guidance."},
     {"source_id": "discovery", "slug": "discovery", "name": "Explorer", "purpose": "Explore useful places and services."},
@@ -116,17 +113,16 @@ def validate_world_room_levels(levels: Iterable[Mapping[str, Any]] = WORLD_ROOM_
     if len(ids) != len(set(ids)):
         errors.append("Duplicate World Room levels")
     expected = (
-        ("postcode", ""),
-        ("borough-district", "postcode"),
-        ("county-region", "borough-district"),
-        ("country", "county-region"),
-        ("continent", "country"),
-        ("global", "continent"),
-        ("universe", "global"),
+        ("earth", ""),
+        ("continent", "earth"),
+        ("country", "continent"),
+        ("county-region", "country"),
+        ("borough-district", "county-region"),
+        ("postcode", "borough-district"),
     )
     actual = tuple((str(item.get("id", "")), str(item.get("parent_id", ""))) for item in items)
     if actual != expected:
-        errors.append("World Rooms hierarchy changed")
+        errors.append("Global Earth geography hierarchy changed")
     return {"passed": not errors, "errors": errors, "checks": {"levels": len(items)}}
 
 

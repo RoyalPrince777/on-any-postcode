@@ -15,7 +15,7 @@
     <div class="spot-intro">
       <p class="mc-eyebrow">📍 Your Spot</p>
       <h1>The Spot</h1>
-      <p class="spot-note">Local-first HQ inside OAP World. Pulse leads; The Link lives here; public life, Nature, Chronicle, Market and My World connect without exposing Founder controls.</p>
+      <p class="spot-note">Local-first HQ inside OAP World. Pulse leads; Earth connects continent to postcode; The Link, Nature, Chronicle, Market and My World stay one front door without exposing Founder controls.</p>
       <div class="spot-bar">
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">📣 Drop a Signal</a>
@@ -31,13 +31,12 @@
       </a>
 
       <div class="spot-core" aria-label="The Spot core order">
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='flag-vote') }}"><strong>🚩 Flag Vote</strong><small>Throw Your Flag Up.</small></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}"><strong>🌍 Earth</strong><small>Continent → Country + National Anthem → County / Region → Borough / District → Postcode.</small></a>
         <a href="{{ url_for('the_link_front_door') }}"><strong>🔗 The Link</strong><small>People, opportunities and Link Up.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='news') }}"><strong>📰 OAP Chronicle</strong><small>Human-centred local-to-global news.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='nature') }}"><strong>🌿 Nature</strong><small>Weather, environment, green spaces and wellbeing.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='events') }}"><strong>🎪 Activity / Adventure</strong><small>Gatherings, sport, culture and things to do.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Explorer</strong><small>Places, services and discovery.</small></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}"><strong>🌍 World Rooms</strong><small>Postcode → Borough → Region → Country → Continent → Global.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}"><strong>🏪 Market</strong><small>Listings, local value and My Shop.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='my-world') }}"><strong>👤 My World</strong><small>Your OAP identity and private personal space.</small></a>
       </div>
@@ -101,7 +100,7 @@
         <summary>More</summary>
         <div class="spot-more-grid">
           {% for capability in hierarchy.capabilities %}
-            {% if capability.slug not in ('pulse','flag-vote','signal','news','nature','postcode-rooms','events','market','discovery','carnival','my-world','music','player','radio','distribution','maps-weather-travel','movement-delivery') %}
+            {% if capability.slug not in ('pulse','signal','news','nature','postcode-rooms','events','market','discovery','carnival','my-world','music','player','radio','distribution','maps-weather-travel','movement-delivery') %}
             <a href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">{{ capability.name }}</a>
             {% endif %}
           {% endfor %}
