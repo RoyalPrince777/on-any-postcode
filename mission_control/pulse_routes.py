@@ -127,7 +127,21 @@ def register(app: Flask) -> None:
         except pulse_store.PulseStoreUnavailable:
             posts = []
             unavailable = True
-        humanitarian = humanitarian_pulse.public_snapshot(live_fetch=True)
+        humanitarian = dict(humanitarian_pulse.public_snapshot(live_fetch=True))
+        humanitarian.setdefault(
+            "geography",
+            {
+                "hierarchy": ("Global Earth", "Continent", "Country"),
+                "earth": {"name": "Global Earth", "count": 0},
+                "continents": (),
+                "countries": (),
+                "unclassified_countries": (),
+                "country_labels_source_backed": True,
+                "continent_reference": "OAP seven-region geography reference",
+                "network_geocoding": False,
+                "precise_location": False,
+            },
+        )
         return _no_store(
             make_response(
                 render_template(

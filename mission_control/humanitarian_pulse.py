@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from urllib.parse import urljoin, urlparse
 
-from . import humanitarian_emergency_tracker
+from . import humanitarian_emergency_tracker, world_geography
 
 MAX_PUBLIC_EVENTS = 20
 _ALLOWED_EVENT_SOURCES = {"gdacs", "who_don"}
@@ -98,7 +98,9 @@ def _event_projection(item: Mapping[str, object]) -> dict[str, object] | None:
         )
         if country
     )
+    continents = world_geography.continents_for_countries(countries)
     countries_text = ", ".join(countries) if countries else "International"
+    continents_text = ", ".join(continents) if continents else "Unclassified"
     observed_at = _clean(item.get("from_date") or item.get("to_date"), limit=64)
     alert_level = _clean(item.get("alert_level"), limit=40) or "Source update"
     summary = _clean(item.get("summary"), limit=360)
@@ -112,6 +114,9 @@ def _event_projection(item: Mapping[str, object]) -> dict[str, object] | None:
         "world_disaster_icon": disaster_type["icon"],
         "alert_level": alert_level,
         "severity": alert_level,
+        "earth_level": "Global Earth",
+        "continents": continents,
+        "continents_text": continents_text,
         "countries": countries,
         "countries_text": countries_text,
         "affected_area": countries_text,
@@ -119,10 +124,13 @@ def _event_projection(item: Mapping[str, object]) -> dict[str, object] | None:
         "summary": summary,
         "source_url": _safe_source_url(source, item.get("source_url")),
         "truth": "Observed source record",
+        "geography_truth": "Country from source; continent from OAP geography reference",
     }
 
 
-def _category_projection(events: Sequence[Mapping[str, object]]) -> tuple[dict[str, object], ...]:
+def _category_projection(
+    events: Sequence[Mapping[str, object]],
+) -> tuple[dict[str, object], ...]:
     counts = {item["id"]: 0 for item in WORLD_DISASTER_TYPES}
     for event in events:
         disaster_id = str(event.get("world_disaster_type") or "")
@@ -137,6 +145,53 @@ def _category_projection(events: Sequence[Mapping[str, object]]) -> tuple[dict[s
         }
         for item in WORLD_DISASTER_TYPES
     )
+
+
+def _geography_projection(events: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    continent_counts = {name: 0 for name in world_geography.OAP_CONTINENT_ORDER}
+    country_counts: dict[str, int] = {}
+    unclassified: set[str] = set()
+
+    for event in events:
+        event_continents = tuple(str(value) for value in event.get("continents") or ())
+        for continent in dict.fromkeys(event_continents):
+            if continent in continent_counts:
+                continent_counts[continent] += 1
+
+        event_countries = tuple(str(value) for value in event.get("countries") or ())
+        for country in dict.fromkeys(event_countries):
+            if not country:
+                continue
+            country_counts[country] = country_counts.get(country, 0) + 1
+            if world_geography.continent_for_country(country) is None:
+                unclassified.add(country)
+
+    continents = tuple(
+        {"name": name, "count": continent_counts[name]}
+        for name in world_geography.OAP_CONTINENT_ORDER
+        if continent_counts[name] > 0
+    )
+    countries = tuple(
+        {
+            "name": country,
+            "count": count,
+            "continent": world_geography.continent_for_country(country) or "",
+        }
+        for country, count in sorted(
+            country_counts.items(), key=lambda item: (-item[1], item[0].casefold())
+        )
+    )
+    return {
+        "hierarchy": ("Global Earth", "Continent", "Country"),
+        "earth": {"name": "Global Earth", "count": len(events)},
+        "continents": continents,
+        "countries": countries,
+        "unclassified_countries": tuple(sorted(unclassified, key=str.casefold)),
+        "country_labels_source_backed": True,
+        "continent_reference": "OAP seven-region geography reference",
+        "network_geocoding": False,
+        "precise_location": False,
+    }
 
 
 def _source_states(snapshot: Mapping[str, object]) -> tuple[dict[str, object], ...]:
@@ -181,6 +236,7 @@ def public_snapshot(*, live_fetch: bool = True) -> dict[str, object]:
             "event_count": 0,
             "events": (),
             "disaster_categories": _category_projection(()),
+            "geography": _geography_projection(()),
             "live_sources": (),
             "source_states": (),
             "fetched_at": "",
@@ -218,6 +274,7 @@ def public_snapshot(*, live_fetch: bool = True) -> dict[str, object]:
         "event_count": len(events),
         "events": tuple(events),
         "disaster_categories": _category_projection(events),
+        "geography": _geography_projection(events),
         "live_sources": live_sources,
         "source_states": _source_states(snapshot),
         "fetched_at": _clean(snapshot.get("fetched_at"), limit=64),
