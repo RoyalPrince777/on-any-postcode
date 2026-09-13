@@ -102,9 +102,8 @@ def test_founder_grant_passes_exact_identity_and_explicit_approval(
             "identity_id": TARGET_ID,
             "kind": "creator",
             "human_authority_approved": True,
-            "csrf_token": token,
         },
-        headers={"X-CSRF-Token": token},
+        headers={"X-OAP-CSRF": token},
     )
 
     assert response.status_code == 201
@@ -143,7 +142,7 @@ def test_founder_revoke_remains_explicit_and_bounded(client, csrf, monkeypatch):
             "kind": "merchant",
             "human_authority_approved": True,
         },
-        headers={"X-CSRF-Token": token},
+        headers={"X-OAP-CSRF": token},
     )
 
     assert response.status_code == 200
