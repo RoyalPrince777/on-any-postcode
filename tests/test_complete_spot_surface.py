@@ -9,11 +9,12 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 26,
+        "capabilities": 25,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 26
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 25
+    assert "flag-vote" not in products.LOCKED_SPOT_CAPABILITY_IDS
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
@@ -54,19 +55,21 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert "📣 Drop a Signal" in page
 
     ordered_labels = (
-        "🚩 Flag Vote",
+        "🌍 Earth",
         "🔗 The Link",
         "📰 OAP Chronicle",
         "🌿 Nature",
         "🎪 Activity / Adventure",
         "🧭 Explorer",
-        "🌍 World Rooms",
         "🏪 Market",
         "👤 My World",
     )
     positions = [page.index(label) for label in ordered_labels]
     assert positions == sorted(positions)
 
+    assert "National Anthem" in page
+    assert "🚩 Flag Vote" not in page
+    assert "flag-vote" not in page
     assert "🎵 OAP Music" in page
     assert "▶️ OAP Player" in page
     assert "📻 OAP Radio" in page
@@ -80,15 +83,22 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert "Open what you need" not in page
 
 
-def test_flag_vote_chronicle_and_nature_reuse_real_existing_paths(client):
-    flag_vote = client.get("/the-spot/flag-vote").get_data(as_text=True)
+def test_earth_replaces_flag_vote_and_chronicle_nature_keep_real_paths(client):
+    removed = client.get("/the-spot/flag-vote")
+    earth = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
     chronicle = client.get("/the-spot/news").get_data(as_text=True)
     nature = client.get("/the-spot/nature").get_data(as_text=True)
 
-    assert "Throw Your Flag Up" in flag_vote
-    assert 'method="post" action="/flag"' in flag_vote
-    assert "non-binding public support" in flag_vote
-    assert "binding vote" in flag_vote
+    assert removed.status_code == 404
+    assert removed.get_json()["error"]["code"] == "not_found"
+    assert "Global Earth" in earth
+    assert "Earth → Your Postcode" in earth
+    assert "National Anthem" in earth
+    assert "County / Region" in earth
+    assert "Borough / District" in earth
+    assert "Postcode" in earth
+    assert 'method="post" action="/postcode-rooms"' in earth
+    assert "Flag Vote" not in earth
 
     assert "OAP Chronicle" in chronicle
     assert 'href="/pulse"' in chronicle
@@ -131,6 +141,7 @@ def test_creator_business_and_support_handoffs_preserve_boundaries(client):
     assert "public discovery, protected cases" in support
     assert 'href="/the-spot/signal"' in support
     assert 'href="/the-spot/postcode-rooms"' in support
+    assert ">Earth →</a>" in support
     assert "no public support form creates or exposes a safeguarding case" in support
 
 
@@ -157,19 +168,19 @@ def test_booking_and_maps_public_front_doors_are_reachable(client):
     assert "OAP Direct" in booking.get_data(as_text=True)
 
 
-def test_signal_and_world_room_capabilities_have_live_public_forms(client):
+def test_signal_and_earth_capabilities_have_live_public_forms(client):
     signal = client.get("/the-spot/signal").get_data(as_text=True)
-    rooms = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
+    earth = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
 
     assert 'method="post" action="/signal"' in signal
-    assert 'method="post" action="/postcode-rooms"' in rooms
-    assert "World Rooms" in rooms
-    assert "Worldwide Empire layer" in rooms
+    assert 'method="post" action="/postcode-rooms"' in earth
+    assert "Global Earth" in earth
+    assert "One human world" in earth
+    assert "National Anthem" in earth
 
 
 def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
     public_only = (
-        "flag-vote",
         "signal",
         "news",
         "nature",
@@ -216,7 +227,6 @@ def test_spot_public_language_uses_empire_not_community():
 
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():
     sensitive = {
-        "flag-vote",
         "postcode-rooms",
         "support",
         "market",
