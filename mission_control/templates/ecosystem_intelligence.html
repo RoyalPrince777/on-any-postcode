@@ -18,7 +18,7 @@
   <div class="summary">
     <article class="summary-card"><span class="pill green">🟢 Architecture</span><h3>{{ ecosystem.domains|length }} Domains</h3><p class="muted">One contextual reasoning system, not another brain.</p></article>
     <article class="summary-card"><span class="pill green">🟢 Internal ingestion</span><h3>{{ runtime.ingestion.internal_signal_count }} Signals</h3><p class="muted">Automatically derived from owned OAP runtime proof.</p></article>
-    <article class="summary-card"><span class="pill {{ 'green' if live_sources.live_external_source_present else 'purple' }}">{{ '🟢' if live_sources.live_external_source_present else '🟣' }} External proof</span><h3>{{ 'Weather source proven' if live_sources.weather_environment_proven else 'Awaiting live refresh' }}</h3><p class="muted">A single source never upgrades the whole Ecosystem to full green.</p></article>
+    <article class="summary-card"><span class="pill {{ 'green' if live_sources.live_external_source_present else 'purple' }}">{{ '🟢' if live_sources.live_external_source_present else '🟣' }} External proof</span><h3>{{ 'Weather source proven' if live_sources.weather_environment_proven else 'Awaiting live refresh' }}</h3><p class="muted">Missing external feeds stay gated. A single source never upgrades the whole Ecosystem to full green.</p></article>
     <article class="summary-card"><span class="pill amber">🔒 Execution</span><h3>Blocked</h3><p class="muted">Human Authority remains final.</p></article>
   </div>
 
