@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAP Ecosystem Intelligence</title>
+  <style>
+    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--panel2:#0c1911;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--amber:#f1d36b;--red:#ff7676;--text:#f0faf3;--muted:#9fb5a8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.4rem,7vw,4.8rem);margin:.08em 0}h2{margin-bottom:8px}.muted,.truth{color:var(--muted);line-height:1.5}.door{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;color:inherit}.summary,.grid{display:grid;gap:10px}.summary{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:18px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr))}.card,.summary-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.domain{border-color:#2f8d53}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:850}.green{color:var(--green)}.purple{color:var(--purple)}.amber{color:var(--amber)}.red{color:var(--red)}.law{border-left:4px solid var(--gold);background:#191505;border-radius:0 12px 12px 0;padding:13px 15px;margin:18px 0}.flow{display:flex;gap:7px;flex-wrap:wrap}.flow span{border:1px solid var(--line);background:var(--panel2);padding:7px 9px;border-radius:999px;font-size:.78rem}.notice{border:1px solid #5d4678;background:#110b18;border-radius:16px;padding:14px}.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.metric{padding:10px;border-radius:12px;border:1px solid var(--line);background:#071009}.metric strong{display:block;margin-top:4px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}@media(max-width:650px){.summary{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Founder-only · whole-environment reasoning</p>
+      <h1>🌍 Ecosystem Intelligence</h1>
+      <p class="muted">{{ ecosystem.core_question }}</p>
+    </div>
+    <div class="actions">
+      <a class="door" href="{{ url_for('all_intelligence.dashboard') }}">← All Intelligence</a>
+      <a class="door" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+    </div>
+  </header>
+
+  <div class="summary">
+    <article class="summary-card"><span class="pill green">🟢 Architecture</span><h3>{{ ecosystem.domains|length }} Domains</h3><p class="muted">Connected reasoning domains, not extra agents.</p></article>
+    <article class="summary-card"><span class="pill purple">🟣 Truth</span><h3>4 Truth States</h3><p class="muted">Observed · Inferred · Forecast · Confirmed remain separate.</p></article>
+    <article class="summary-card"><span class="pill green">🟢 Time</span><h3>NOW · NEXT · TREND</h3><p class="muted">Incident, near-term consequence and structural shift.</p></article>
+    <article class="summary-card"><span class="pill amber">🔒 Execution</span><h3>Blocked</h3><p class="muted">Reasoning and recommendation only. Human Authority remains final.</p></article>
+  </div>
+
+  <p class="law"><strong>{{ ecosystem.law[0] }}</strong><br>{{ ecosystem.law[5] }}</p>
+
+  <section class="section">
+    <p class="eyebrow">Chain of authority</p>
+    <h2>Hierarchy</h2>
+    <div class="flow">{% for item in ecosystem.hierarchy %}<span>{{ item }}</span>{% endfor %}</div>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Cross-system reasoning</p>
+    <h2>10 connected intelligence domains</h2>
+    <div class="grid">
+      {% for domain in ecosystem.domains %}
+      <article class="card domain"><span class="pill green">{{ loop.index }}</span><h3>{{ domain.id|replace('_',' ')|title }} Intelligence</h3><p class="muted">{{ domain.purpose }}</p></article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">No fake live state</p>
+    <h2>Current ecosystem state</h2>
+    <div class="notice">
+      <span class="pill purple">🟣 Awaiting real signal pack</span>
+      <p class="truth">This screen does not invent weather, booking, Market, infrastructure or postcode values. A current state is produced only from real received signals with source, evidence, truth state and pressure values.</p>
+      <p class="truth">Founder API: <code>/mission/intelligence/ecosystem/analyse</code> · POST · JSON · Founder-only.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Decision frame</p>
+    <h2>Founder output contract</h2>
+    <div class="metric-grid">
+      {% for field in ['State','Why','Strongest link','Weakest link','Affected systems','Affected places','Evidence','Forecast','Risk','Opportunity','Recommended next gate'] %}
+      <div class="metric"><span class="muted">{{ loop.index }}</span><strong>{{ field }}</strong></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Pressure, not simple lights</p>
+    <h2>Pressure model</h2>
+    <div class="grid">
+      {% for item in ecosystem.pressure_dimensions %}
+      <article class="card"><h3>{{ item|replace('_',' ')|title }}</h3><p class="truth">0–100 evidence-bound score. It is not generated unless real input is present.</p></article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Learning path</p>
+    <h2>Evidence-bound evolution</h2>
+    <div class="flow">{% for item in ecosystem.intelligence_cycle %}<span>{{ item|replace('_',' ')|title }}</span>{% endfor %}</div>
+    <p class="truth">Cross-postcode repetition can classify a pattern as local, borough/district, county/region, country or multi-area. Shared geography never upgrades correlation into confirmed cause.</p>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Matrix support</p>
+    <h2>Registered Matrix roles</h2>
+    <div class="grid">
+      {% for name, role in ecosystem.matrix_agent_roles.items() %}
+      <article class="card"><span class="pill green">REGISTERED</span><h3>{{ name }}</h3><p class="muted">{{ role }}</p></article>
+      {% endfor %}
+    </div>
+    <p class="truth">Tank, Dozer, Agent Smith and Twinz remain review-only for this Matrix extension until their registration boundary changes explicitly.</p>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Privacy</p>
+    <h2>Aggregate by default</h2>
+    <p class="law"><strong>Good:</strong> booking demand in this postcode is rising.<br><strong>Not default:</strong> individual travel-pattern surveillance. Individual-level processing requires a separate justified and authorised purpose.</p>
+  </section>
+</main>
+</body>
+</html>
