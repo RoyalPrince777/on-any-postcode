@@ -5,11 +5,48 @@ granting permissions or widening Founder access.
 """
 from __future__ import annotations
 
+import json
+import os
+import threading
+
 from flask import Blueprint, jsonify, make_response, request
 
-from . import certification, web_security
+from . import certification, postgres_db, web_security
 
 bp = Blueprint("certification", __name__)
+
+
+def _database_startup_probe() -> None:
+    """Emit only coarse PostgreSQL readiness after a hosted process starts."""
+
+    snapshot = postgres_db.postgres_status()
+    proof = {
+        "event": "oap_database_startup_probe",
+        "backend": snapshot.get("backend"),
+        "source": snapshot.get("source"),
+        "configured": bool(snapshot.get("configured")),
+        "reachable": bool(snapshot.get("reachable")),
+        "initialized": bool(snapshot.get("initialized")),
+        "pending_migrations": len(snapshot.get("pending") or ()),
+        "checksum_mismatch": bool(snapshot.get("checksum_mismatches")),
+        "error": snapshot.get("error"),
+        "read_only": True,
+        "secret_exposed": False,
+    }
+    print(json.dumps(proof, separators=(",", ":"), sort_keys=True), flush=True)
+
+
+@bp.record_once
+def _schedule_database_startup_probe(_state) -> None:
+    """Keep local/tests quiet; Render gets one non-blocking read-only proof."""
+
+    if os.environ.get("RENDER", "").strip().casefold() != "true":
+        return
+    threading.Thread(
+        target=_database_startup_probe,
+        name="oap-database-startup-probe",
+        daemon=True,
+    ).start()
 
 
 def _no_store(response):
