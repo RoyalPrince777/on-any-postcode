@@ -1,8 +1,9 @@
 """Founder-only Ecosystem Intelligence surface.
 
 The surface exposes automatic owned-runtime ingestion, explicit signal analysis,
-Founder-triggered live source refreshes, and Founder-approved outcome receipts.
-It never invents external live data and never grants operational execution.
+Founder-triggered live source refreshes, full proof passes and Founder-approved
+outcome receipts. It never invents external live data and never grants operational
+execution.
 """
 from __future__ import annotations
 
@@ -89,6 +90,28 @@ def source_location_weather():
                 jsonify({"error": "live_source_unavailable", "detail": str(exc)}),
                 503,
             )
+        )
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.post("/prove-full")
+@web_security.login_required(api=True, founder_only=True)
+def prove_full():
+    """Run one bounded proof pass over every currently available evidence lane."""
+
+    payload = request.get_json(silent=True)
+    location = ""
+    if isinstance(payload, dict):
+        location = str(payload.get("location") or "").strip()
+    if not location:
+        location = str(request.form.get("location") or "").strip()
+    if not location:
+        return _no_store(make_response(jsonify({"error": "location_required"}), 400))
+    try:
+        result = ecosystem_live_sources.prove_full(location)
+    except ValueError as exc:
+        return _no_store(
+            make_response(jsonify({"error": "invalid_proof_request", "detail": str(exc)}), 400)
         )
     return _no_store(make_response(jsonify(result)))
 

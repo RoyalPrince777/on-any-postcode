@@ -24,11 +24,9 @@ def test_runtime_proof_keeps_seven_worlds_and_three_claim_levels_separate():
     assert current["human_authority_final"] is True
 
     assert worlds["earth"]["bounded_runtime_ready"] is True
-    assert worlds["earth"]["live_external_ready"] is False
     assert worlds["earth"]["full_runtime_ready"] is False
 
     assert worlds["language"]["bounded_runtime_ready"] is True
-    assert worlds["language"]["live_external_ready"] is False
     assert worlds["language"]["full_runtime_ready"] is False
 
     assert worlds["movement"]["bounded_runtime_ready"] is True
@@ -36,16 +34,33 @@ def test_runtime_proof_keeps_seven_worlds_and_three_claim_levels_separate():
     assert worlds["movement"]["full_runtime_ready"] is False
 
 
-def test_unproven_worlds_do_not_inherit_green_from_registry_or_routing():
+def test_validated_worlds_can_be_bounded_without_inheriting_full_green():
     worlds = {
         item["id"]: item for item in intelligence_runtime_proof.status()["worlds"]
     }
 
     for world_id in ("life", "civic", "civilisation"):
-        assert worlds[world_id]["bounded_runtime_ready"] is False
+        assert worlds[world_id]["bounded_runtime_ready"] is True
         assert worlds[world_id]["live_external_ready"] is False
         assert worlds[world_id]["full_runtime_ready"] is False
         assert worlds[world_id]["full_runtime_light"] == "🟣"
+
+
+def test_owned_runtime_evidence_stays_separate_from_full_runtime():
+    current = intelligence_runtime_proof.status()
+    worlds = {item["id"]: item for item in current["worlds"]}
+    cross = {item["id"]: item for item in current["cross_system"]}
+
+    expected_ecosystem_live = bool(
+        current["weather_provider_verified"]
+        or current["infrastructure_runtime_verified"]
+        or current["people_aggregate_verified"]
+        or current["guardian_runtime_verified"]
+    )
+    assert cross["ecosystem"]["live_external_ready"] is expected_ecosystem_live
+    assert cross["ecosystem"]["full_runtime_ready"] is False
+    assert worlds["matrix"]["live_external_ready"] is current["infrastructure_runtime_verified"]
+    assert current["universal_runtime_green"] is False
 
 
 def test_cross_system_runtime_proof_keeps_provider_and_hardware_claims_gated():
@@ -59,7 +74,6 @@ def test_cross_system_runtime_proof_keeps_provider_and_hardware_claims_gated():
         "multimodal",
     )
     assert cross["ecosystem"]["bounded_runtime_ready"] is True
-    assert cross["ecosystem"]["live_external_ready"] is False
     assert cross["ecosystem"]["full_runtime_ready"] is False
     assert cross["multimodal"]["bounded_runtime_ready"] is True
     assert cross["multimodal"]["live_external_ready"] is False
