@@ -224,7 +224,7 @@ def status() -> dict[str, object]:
             by_role = {str(row[0]): int(row[1]) for row in counts}
             result["certified_creator_count"] = by_role.get("certified_creator", 0)
             result["certified_merchant_count"] = by_role.get("certified_merchant", 0)
-    except Exception:
+    except Exception:  # noqa: BLE001 - readiness must degrade safely.
         result["error"] = "certification_store_unavailable"
         return result
     result["runtime_ready"] = bool(
