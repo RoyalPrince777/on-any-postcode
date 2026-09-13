@@ -7,7 +7,7 @@
   <title>OAP Pulse</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .pulse-shell{max-width:760px;margin:0 auto}.pulse-compose{display:grid;gap:8px}.pulse-compose input,.pulse-compose textarea,.pulse-reply-form input,.pulse-reply-form textarea{width:100%;box-sizing:border-box}.pulse-feed{display:grid;gap:10px;margin-top:14px}.pulse-post{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.pulse-post>p{margin:.4rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-meta{font-size:.78rem;color:var(--mc-muted)}.pulse-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.pulse-actions form{margin:0}.pulse-action{border:1px solid var(--mc-line);border-radius:999px;background:transparent;color:var(--mc-text);padding:6px 9px;cursor:pointer}.pulse-action:hover,.pulse-action:focus-visible{border-color:var(--mc-green);outline:none}.pulse-replies{margin-top:10px}.pulse-replies summary{cursor:pointer;font-weight:700}.pulse-reply-list{display:grid;gap:7px;margin:9px 0}.pulse-reply{border-left:2px solid var(--mc-line);padding-left:9px}.pulse-reply p{margin:.2rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-reply-form{display:grid;gap:6px;margin-top:9px}
+    .pulse-shell{max-width:860px;margin:0 auto}.pulse-compose{display:grid;gap:8px}.pulse-compose input,.pulse-compose textarea,.pulse-reply-form input,.pulse-reply-form textarea{width:100%;box-sizing:border-box}.pulse-feed{display:grid;gap:10px;margin-top:14px}.pulse-post{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.pulse-post>p{margin:.4rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-meta{font-size:.78rem;color:var(--mc-muted)}.pulse-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.pulse-actions form{margin:0}.pulse-action{border:1px solid var(--mc-line);border-radius:999px;background:transparent;color:var(--mc-text);padding:6px 9px;cursor:pointer}.pulse-action:hover,.pulse-action:focus-visible{border-color:var(--mc-green);outline:none}.pulse-replies{margin-top:10px}.pulse-replies summary{cursor:pointer;font-weight:700}.pulse-reply-list{display:grid;gap:7px;margin:9px 0}.pulse-reply{border-left:2px solid var(--mc-line);padding-left:9px}.pulse-reply p{margin:.2rem 0;white-space:pre-wrap;overflow-wrap:anywhere}.pulse-reply-form{display:grid;gap:6px;margin-top:9px}.humanitarian-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.humanitarian-head h2{margin:.1rem 0}.humanitarian-source-row{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.humanitarian-source{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--mc-line);border-radius:999px;padding:6px 9px;color:var(--mc-text);text-decoration:none;font-size:.82rem}.humanitarian-source[data-status="live"]{border-color:var(--mc-green)}.humanitarian-source[data-status="gated"]{opacity:.75}.humanitarian-list{display:grid;gap:10px;margin-top:12px}.humanitarian-item{border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:14px}.humanitarian-item h3{margin:.15rem 0 .35rem}.humanitarian-item p{margin:.35rem 0}.humanitarian-facts{display:flex;gap:7px;flex-wrap:wrap;font-size:.8rem;color:var(--mc-muted)}.humanitarian-source-link{display:inline-block;margin-top:7px}.humanitarian-truth{border-left:3px solid var(--mc-green);padding:8px 10px;margin-top:10px;color:var(--mc-muted)}.humanitarian-empty{color:var(--mc-muted)}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -19,6 +19,56 @@
     <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">Back</a>
   </header>
   <main class="mc-workspace pulse-shell">
+    <section
+      id="humanitarian-pulse"
+      class="mc-panel"
+      data-endpoint="{{ url_for('pulse_humanitarian') }}"
+      data-refresh-seconds="{{ humanitarian.refresh_seconds }}"
+      aria-labelledby="humanitarian-pulse-title"
+    >
+      <div class="humanitarian-head">
+        <div>
+          <p class="mc-eyebrow">🌍 Real facts · automatic · civilian-only</p>
+          <h2 id="humanitarian-pulse-title">International Humanitarian Pulse</h2>
+          <p>Source-backed disaster, public-health and displacement context from OAP’s governed humanitarian tracker.</p>
+        </div>
+        <span id="humanitarian-refresh-state" class="pulse-meta">
+          {% if humanitarian.ready %}Live source check active{% else %}Live sources unavailable{% endif %}
+        </span>
+      </div>
+
+      <div id="humanitarian-sources" class="humanitarian-source-row" aria-label="Humanitarian sources">
+        {% for source in humanitarian.source_states %}
+        <a class="humanitarian-source" data-status="{{ source.status }}" href="{{ source.source_url }}" target="_blank" rel="noopener noreferrer">
+          <strong>{{ source.name }}</strong><span>{{ source.status }}</span>
+        </a>
+        {% endfor %}
+      </div>
+
+      <p class="pulse-meta">Last source fetch: <span id="humanitarian-fetched-at">{{ humanitarian.fetched_at or 'Unavailable' }}</span> · <span id="humanitarian-count">{{ humanitarian.event_count }}</span> current source-backed event{{ '' if humanitarian.event_count == 1 else 's' }}</p>
+
+      <div id="humanitarian-list" class="humanitarian-list" aria-live="polite">
+        {% for event in humanitarian.events %}
+        <article class="humanitarian-item">
+          <div class="humanitarian-facts">
+            <strong>{{ event.source_name }}</strong>
+            <span>{{ event.alert_level }}</span>
+            <span>{{ event.category }}</span>
+            <span>{{ event.countries_text }}</span>
+          </div>
+          <h3>{{ event.name }}</h3>
+          {% if event.summary %}<p>{{ event.summary }}</p>{% endif %}
+          <span class="pulse-meta">{{ event.truth }}{% if event.observed_at %} · {{ event.observed_at }}{% endif %}</span>
+          {% if event.source_url %}<br><a class="humanitarian-source-link" href="{{ event.source_url }}" target="_blank" rel="noopener noreferrer">Open source →</a>{% endif %}
+        </article>
+        {% else %}
+        <p class="humanitarian-empty">No current source-backed humanitarian events were returned by the live sources.</p>
+        {% endfor %}
+      </div>
+
+      <p class="humanitarian-truth"><strong>Truth boundary:</strong> facts stay attached to their source and refresh automatically. OAP does not infer casualty totals, publish precise civilian locations, track individuals, create military overlays, or turn source items into autonomous public warnings. ReliefWeb remains gated until its approved appname requirement is satisfied.</p>
+    </section>
+
     <section class="mc-panel">
       <form class="pulse-compose" method="post" action="{{ url_for('pulse_post') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
@@ -32,7 +82,7 @@
 
     <section class="pulse-feed" aria-label="Pulse feed">
       {% if pulse_unavailable %}
-        <p role="alert">Pulse is unavailable.</p>
+        <p role="alert">Local Pulse posts are unavailable.</p>
       {% else %}
         {% for post in pulse_posts %}
         <article class="pulse-post">
@@ -74,10 +124,96 @@
           </details>
         </article>
         {% else %}
-        <p>No Pulse yet.</p>
+        <p>No local Pulse yet.</p>
         {% endfor %}
       {% endif %}
     </section>
   </main>
+
+  <script>
+    (()=>{
+      const root=document.getElementById('humanitarian-pulse');
+      if(!root)return;
+      const endpoint=root.dataset.endpoint;
+      const seconds=Math.max(60,Math.min(900,Number(root.dataset.refreshSeconds)||180));
+      const list=document.getElementById('humanitarian-list');
+      const count=document.getElementById('humanitarian-count');
+      const fetched=document.getElementById('humanitarian-fetched-at');
+      const state=document.getElementById('humanitarian-refresh-state');
+      const sources=document.getElementById('humanitarian-sources');
+
+      const text=(tag,value,className)=>{
+        const node=document.createElement(tag);
+        if(className)node.className=className;
+        node.textContent=value||'';
+        return node;
+      };
+
+      const renderSources=(items)=>{
+        sources.replaceChildren();
+        for(const item of items||[]){
+          const link=document.createElement('a');
+          link.className='humanitarian-source';
+          link.dataset.status=item.status||'unavailable';
+          link.href=item.source_url||'#';
+          link.target='_blank';
+          link.rel='noopener noreferrer';
+          link.append(text('strong',item.name));
+          link.append(text('span',item.status));
+          sources.append(link);
+        }
+      };
+
+      const renderEvents=(items)=>{
+        list.replaceChildren();
+        if(!items||!items.length){
+          list.append(text('p','No current source-backed humanitarian events were returned by the live sources.','humanitarian-empty'));
+          return;
+        }
+        for(const item of items){
+          const article=document.createElement('article');
+          article.className='humanitarian-item';
+          const facts=document.createElement('div');
+          facts.className='humanitarian-facts';
+          facts.append(text('strong',item.source_name));
+          facts.append(text('span',item.alert_level));
+          facts.append(text('span',item.category));
+          facts.append(text('span',item.countries_text));
+          article.append(facts);
+          article.append(text('h3',item.name));
+          if(item.summary)article.append(text('p',item.summary));
+          article.append(text('span',`${item.truth||'Observed source record'}${item.observed_at?' · '+item.observed_at:''}`,'pulse-meta'));
+          if(item.source_url){
+            article.append(document.createElement('br'));
+            const sourceLink=document.createElement('a');
+            sourceLink.className='humanitarian-source-link';
+            sourceLink.href=item.source_url;
+            sourceLink.target='_blank';
+            sourceLink.rel='noopener noreferrer';
+            sourceLink.textContent='Open source →';
+            article.append(sourceLink);
+          }
+          list.append(article);
+        }
+      };
+
+      const refresh=async()=>{
+        try{
+          const response=await fetch(endpoint,{headers:{Accept:'application/json'},cache:'no-store'});
+          if(!response.ok)throw new Error('source refresh failed');
+          const data=await response.json();
+          renderSources(data.source_states);
+          renderEvents(data.events);
+          count.textContent=String(data.event_count||0);
+          fetched.textContent=data.fetched_at||'Unavailable';
+          state.textContent=data.ready?'Live source check active':'Live sources unavailable';
+        }catch(_error){
+          state.textContent='Refresh unavailable · keeping last source-backed snapshot';
+        }
+      };
+
+      window.setInterval(refresh,seconds*1000);
+    })();
+  </script>
 </body>
 </html>

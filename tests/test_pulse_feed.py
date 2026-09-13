@@ -50,6 +50,71 @@ def _post_projection(body="Local Pulse"):
     }
 
 
+def _humanitarian_projection():
+    return {
+        "ready": True,
+        "event_count": 1,
+        "events": (
+            {
+                "source": "gdacs",
+                "source_name": "GDACS",
+                "source_event_id": "EQ-1",
+                "name": "Source-backed disaster event",
+                "category": "Natural hazard / disaster",
+                "alert_level": "Orange",
+                "countries": ("Ghana",),
+                "countries_text": "Ghana",
+                "observed_at": "2026-09-13",
+                "summary": "Authoritative public-source summary.",
+                "source_url": "https://www.gdacs.org/",
+                "truth": "Observed source record",
+            },
+        ),
+        "live_sources": ("gdacs", "who_don", "unhcr_nowcasting"),
+        "source_states": (
+            {
+                "source": "gdacs",
+                "name": "GDACS",
+                "status": "live",
+                "live": True,
+                "configured": False,
+                "source_url": "https://www.gdacs.org/",
+            },
+            {
+                "source": "who_don",
+                "name": "WHO Disease Outbreak News",
+                "status": "live",
+                "live": True,
+                "configured": False,
+                "source_url": "https://www.who.int/emergencies/disease-outbreak-news",
+            },
+            {
+                "source": "unhcr_nowcasting",
+                "name": "UNHCR displacement context",
+                "status": "live",
+                "live": True,
+                "configured": False,
+                "source_url": "https://www.unhcr.org/refugee-statistics/",
+            },
+            {
+                "source": "reliefweb",
+                "name": "ReliefWeb",
+                "status": "gated",
+                "live": False,
+                "configured": False,
+                "source_url": "https://reliefweb.int/",
+            },
+        ),
+        "fetched_at": "2026-09-13T22:00:00+00:00",
+        "refresh_seconds": 180,
+        "civilian_only": True,
+        "source_backed_only": True,
+        "precise_civilian_location": False,
+        "individual_tracking": False,
+        "autonomous_warning": False,
+    }
+
+
 def test_pulse_store_uses_its_own_posts_scope(monkeypatch):
     connection = _WriteConnection()
 
@@ -183,6 +248,11 @@ def test_pulse_page_is_public_simple_and_separate_from_signal(
         "list_posts",
         lambda: [_post_projection()],
     )
+    monkeypatch.setattr(
+        pulse_routes.humanitarian_pulse,
+        "public_snapshot",
+        lambda **_kwargs: _humanitarian_projection(),
+    )
 
     response = anonymous_client.get("/pulse")
     page = response.get_data(as_text=True)
@@ -190,6 +260,13 @@ def test_pulse_page_is_public_simple_and_separate_from_signal(
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert "📡 Pulse" in page
+    assert "International Humanitarian Pulse" in page
+    assert "Real facts · automatic · civilian-only" in page
+    assert "Source-backed disaster event" in page
+    assert "ReliefWeb" in page
+    assert "gated" in page
+    assert 'data-endpoint="/pulse/humanitarian"' in page
+    assert "window.setInterval(refresh,seconds*1000)" in page
     assert "Local Pulse" in page
     assert 'action="/pulse"' in page
     assert 'action="/signal"' not in page
@@ -204,6 +281,11 @@ def test_legacy_spot_pulse_uses_same_separate_feed(anonymous_client, monkeypatch
         "list_posts",
         lambda: [_post_projection("Spot Pulse")],
     )
+    monkeypatch.setattr(
+        pulse_routes.humanitarian_pulse,
+        "public_snapshot",
+        lambda **_kwargs: _humanitarian_projection(),
+    )
 
     response = anonymous_client.get("/the-spot/pulse")
     page = response.get_data(as_text=True)
@@ -211,8 +293,33 @@ def test_legacy_spot_pulse_uses_same_separate_feed(anonymous_client, monkeypatch
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert "📡 Pulse" in page
+    assert "International Humanitarian Pulse" in page
     assert "Spot Pulse" in page
     assert 'action="/signal"' not in page
+
+
+def test_humanitarian_pulse_json_is_public_safe(anonymous_client, monkeypatch):
+    monkeypatch.setattr(
+        pulse_routes.humanitarian_pulse,
+        "public_snapshot",
+        lambda **_kwargs: _humanitarian_projection(),
+    )
+
+    response = anonymous_client.get("/pulse/humanitarian")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert payload["ready"] is True
+    assert payload["civilian_only"] is True
+    assert payload["source_backed_only"] is True
+    assert payload["precise_civilian_location"] is False
+    assert payload["individual_tracking"] is False
+    assert payload["autonomous_warning"] is False
+    assert payload["events"][0]["source"] == "gdacs"
+    assert "geometry" not in payload["events"][0]
+    assert "latitude" not in json.dumps(payload)
+    assert "longitude" not in json.dumps(payload)
 
 
 def test_pulse_post_is_csrf_guarded(client, monkeypatch):
