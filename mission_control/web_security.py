@@ -14,6 +14,7 @@ from typing import Final
 
 from flask import (
     Request,
+    after_this_request,
     current_app,
     g,
     has_request_context,
@@ -167,6 +168,11 @@ class SlidingWindowLimiter:
     When request fingerprinting is enabled, only the same request body from the same
     key inside the duplicate window is coalesced. Other limiter instances preserve
     the existing time-based duplicate behavior.
+
+    Founder auth keys receive one extra governance rule: a request that ends in a
+    server-side/infrastructure failure (5xx) releases the slot it reserved. Wrong
+    credentials still consume the bounded window, while Neon/Render/database
+    failures cannot snowball into a second local 429 lockout.
     """
 
     def __init__(
@@ -192,6 +198,31 @@ class SlidingWindowLimiter:
             return None
         body = request.get_data(cache=True)
         return hashlib.sha256(body).hexdigest()
+
+    def _release_event(self, key: str, event_time: float) -> None:
+        """Release exactly one reserved attempt without clearing other evidence."""
+
+        with self._lock:
+            events = self._events.get(key)
+            if not events:
+                return
+            try:
+                events.remove(event_time)
+            except ValueError:
+                return
+            if not events:
+                self._events.pop(key, None)
+                self._last_request.pop(key, None)
+
+    def _govern_auth_failure(self, key: str, event_time: float) -> None:
+        if not key.startswith("auth:") or not has_request_context():
+            return
+
+        @after_this_request
+        def release_infrastructure_failure(response):
+            if response.status_code >= 500:
+                self._release_event(key, event_time)
+            return response
 
     def allow(self, key: str) -> bool:
         now = time.monotonic()
@@ -227,7 +258,9 @@ class SlidingWindowLimiter:
                 for stale_key in stale[: max(1, len(stale) // 2)]:
                     self._events.pop(stale_key, None)
                     self._last_request.pop(stale_key, None)
-            return True
+
+        self._govern_auth_failure(key, now)
+        return True
 
     def reset_key(self, key: str) -> None:
         with self._lock:
@@ -250,4 +283,11 @@ CHAT_BURST_LIMITER = SlidingWindowLimiter(
     fingerprint_request_body=True,
 )
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
-AUTH_BURST_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=5 * 60, duplicate_seconds=2.0)
+# Founder auth remains bounded at ten distinct attempts per five minutes. Exact
+# double-submits are coalesced, and 5xx infrastructure failures release their slot.
+AUTH_BURST_LIMITER = SlidingWindowLimiter(
+    limit=10,
+    window_seconds=5 * 60,
+    duplicate_seconds=5.0,
+    fingerprint_request_body=True,
+)
