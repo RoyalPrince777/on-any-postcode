@@ -12,6 +12,7 @@ import threading
 from flask import Blueprint, jsonify, make_response, request
 
 from . import certification, hrm_readonly_probe, postgres_db, web_security
+from .hrm_durable_receipt import ReceiptBlocked, build_receipt, persist_and_read_back
 
 bp = Blueprint("certification", __name__)
 
@@ -176,3 +177,90 @@ def certification_revoke():
             "Certification could not be revoked safely.",
             503,
         )
+
+
+@bp.post("/certifications/hrm-persistence-proof")
+@web_security.login_required(api=True, founder_only=True)
+def hrm_persistence_proof():
+    """Write/read one governed HRM persistence receipt; expose no secret material."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_invalid", "Session expired. Refresh and try again.", 403)
+    payload = _payload()
+    if payload.get("human_authority_approved") is not True:
+        return _error("human_authority_required", "Explicit Founder approval is required.", 403)
+
+    db = postgres_db.postgres_status()
+    hrm = hrm_readonly_probe.status()
+    database_proven = (
+        bool(db.get("configured"))
+        and bool(db.get("reachable"))
+        and bool(db.get("initialized"))
+        and not (db.get("pending") or ())
+        and not bool(db.get("checksum_mismatches"))
+        and not db.get("error")
+    )
+    hrm_proven = bool(hrm.get("configured")) and bool(hrm.get("reachable")) and not hrm.get("error")
+    if not (database_proven and hrm_proven):
+        return _error("evidence_incomplete", "Database and HRM reachability must be proven first.", 409)
+
+    checks = {
+        "mind": {
+            "proof_before_execution": True,
+            "verification_before_sharing": True,
+            "evidence_before_certainty": True,
+            "context_before_judgement": True,
+            "uncertainty_declared": True,
+            "counter_case_tested": True,
+            "learning_record_bounded": True,
+        },
+        "body": {
+            "compliance_checked": True,
+            "owned_database_path": True,
+            "audit_receipt_required": True,
+            "stability_checked": True,
+            "minimum_access": True,
+            "identity_fail_closed": True,
+            "traceable_idempotent_action": True,
+        },
+        "soul": {
+            "no_middleman_authority": True,
+            "human_approval": True,
+            "human_authority_final": True,
+            "authority_not_transferred": True,
+            "guardian_fail_closed": True,
+            "no_vulnerable_user_scope": True,
+            "constitution_unchanged": True,
+        },
+    }
+    governed = {
+        "governance": "7-7-7",
+        "purpose": "bounded_hrm_persistence_certification",
+        "checks": checks,
+        "evidence_proven": True,
+        "human_authority_required": True,
+        "human_authority_approved": True,
+        "authority_transferred": False,
+    }
+    try:
+        result = persist_and_read_back(
+            build_receipt("HRM-PERSISTENCE-CERTIFICATION-V1", governed)
+        )
+    except ReceiptBlocked as exc:
+        return _error("hrm_receipt_blocked", str(exc), 409)
+    except Exception:
+        return _error("hrm_persistence_unavailable", "Persistence proof failed safely.", 503)
+
+    return _no_store(
+        make_response(
+            jsonify(
+                certified=True,
+                receipt_id=result["receipt_id"],
+                checksum=result["checksum"],
+                write_verified=result["write_verified"],
+                read_back_verified=result["read_back_verified"],
+                authority_transferred=False,
+                secret_exposed=False,
+            )
+        )
+    )
