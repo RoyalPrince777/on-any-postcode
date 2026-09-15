@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from mission_control import founder_local_auth
-from mission_control import founder_recovery
-from mission_control import neon_auth
-from mission_control import web_security
+from mission_control import (
+    founder_local_auth,
+    founder_recovery,
+    neon_auth,
+    web_security,
+)
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
 
@@ -48,6 +50,24 @@ def test_founder_wrong_render_password_stays_401(monkeypatch):
 
     assert result.status_code == 401
     assert neon_auth.safe_error_code(result) == "INVALID_PASSWORD"
+
+
+def test_render_store_outage_is_auth_unavailable_not_bad_password(monkeypatch):
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_ID", AUTH_ID)
+    monkeypatch.setattr(founder_local_auth, "bound", lambda: True)
+
+    def unavailable(_password):
+        raise founder_local_auth.FounderLocalAuthUnavailable("store_unavailable")
+
+    monkeypatch.setattr(founder_local_auth, "verify", unavailable)
+
+    try:
+        neon_auth.sign_in("founder@example.test", "existing-private-password")
+    except neon_auth.AuthUnavailable as exc:
+        assert str(exc) == "founder_local_auth_unavailable"
+    else:
+        raise AssertionError("Render-local outage must fail as AuthUnavailable")
 
 
 def test_render_local_session_is_exposed_through_neon_bridge(monkeypatch):
