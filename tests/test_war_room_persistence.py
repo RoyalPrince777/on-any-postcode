@@ -1,6 +1,10 @@
 from mission_control import smi_chat_runtime
 
 
+class UnexpectedInternalFault(Exception):
+    pass
+
+
 def _codes(events):
     return [item.get("code") for item in events if item.get("type") == "error"]
 
@@ -65,7 +69,7 @@ def test_plain_runtime_provider_failure_stays_provider_unavailable(monkeypatch):
 
 def test_unknown_failure_still_fails_closed(monkeypatch):
     def fail_chat(*args, **kwargs):
-        raise Exception("unexpected internal fault")
+        raise UnexpectedInternalFault("unexpected internal fault")
 
     monkeypatch.setattr(smi_chat_runtime, "chat", fail_chat)
     events = list(smi_chat_runtime.chat_events("status", "founder", "Founder"))
