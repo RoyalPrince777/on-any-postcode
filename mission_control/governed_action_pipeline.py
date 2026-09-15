@@ -11,8 +11,9 @@ fail closed without pretending an external action succeeded.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, Mapping
+from typing import Any
 
 from . import approval_service, postgres_db
 from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
@@ -86,7 +87,10 @@ def authorize_action(
     signal = str(signal_id or "").strip()
     action = str(action_name or "").strip()
     request = _uuid(request_id, "request_id")
-    authority_identity = _uuid(human_authority_identity_id, "human_authority_identity_id")
+    authority_identity = _uuid(
+        human_authority_identity_id,
+        "human_authority_identity_id",
+    )
     if not signal:
         raise ActionBlocked("signal_id_required")
     if not action or action not in registered_actions:
