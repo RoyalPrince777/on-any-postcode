@@ -43,6 +43,25 @@ def _restore_configured_authority_once(server):
     server.log.info(json.dumps(result, separators=(",", ":")))
 
 
+def _emit_database_certification(server):
+    if os.environ.get("OAP_DB_CERTIFICATION_MODE", "").strip().lower() != "read_only":
+        return
+    try:
+        from mission_control.database_certification import certification_snapshot
+
+        snapshot = certification_snapshot()
+    except Exception:
+        snapshot = {
+            "event": "oap_smi_database_certification",
+            "configured": bool(os.environ.get("DATABASE_URL", "").strip()),
+            "reachable": False,
+            "initialized": False,
+            "error": "certification_probe_failed",
+            "secret_exposed": False,
+        }
+    server.log.info(json.dumps(snapshot, separators=(",", ":")))
+
+
 def on_starting(server):
     server.log.info(
         json.dumps(
@@ -64,4 +83,5 @@ def on_starting(server):
             separators=(",", ":"),
         )
     )
+    _emit_database_certification(server)
     _restore_configured_authority_once(server)
