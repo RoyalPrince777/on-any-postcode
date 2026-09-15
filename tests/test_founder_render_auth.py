@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from mission_control import (
-    founder_local_auth,
-    founder_recovery,
-    neon_auth,
-    web_security,
-)
-
+from mission_control import founder_local_auth
+from mission_control import founder_recovery
+from mission_control import neon_auth
+from mission_control import web_security
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
 
