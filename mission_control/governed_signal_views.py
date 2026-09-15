@@ -1,6 +1,8 @@
 """Founder-only HTTP entry for the governed Signal action pipeline."""
 from __future__ import annotations
 
+from uuid import uuid4
+
 from flask import Blueprint, jsonify, make_response, request
 
 from . import governed_signal_pipeline, web_security
@@ -34,10 +36,15 @@ def governed_signal():
     if not content:
         return _error("content_required", "Signal content is required.", 400)
 
+    request_id = str(
+        payload.get("request_id")
+        or request.headers.get("X-Request-ID")
+        or uuid4()
+    ).strip()
     identity_id = web_security.authenticated_identity()
     try:
         result = governed_signal_pipeline.run(
-            request_id=str(payload.get("request_id") or request.headers.get("X-Request-ID") or "").strip(),
+            request_id=request_id,
             identity_id=identity_id,
             content=content,
             sender=str(payload.get("sender") or "Neo"),
