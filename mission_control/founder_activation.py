@@ -13,7 +13,7 @@ import logging
 import os
 from typing import Final, Literal
 
-from . import neon_auth, postgres_db
+from . import founder_recovery, neon_auth, postgres_db
 
 ACTIVATION_TOKEN_ENV: Final = "OAP_FOUNDER_ACTIVATION_TOKEN"
 MIN_ACTIVATION_TOKEN_LENGTH: Final = 32
@@ -34,21 +34,32 @@ def _configured_token() -> str:
 
 
 def token_configured() -> bool:
-    """Require a substantial code without returning or rendering its value."""
+    """Require either the dedicated code or existing high-entropy Founder proof."""
 
-    return len(_configured_token()) >= MIN_ACTIVATION_TOKEN_LENGTH
+    return (
+        len(_configured_token()) >= MIN_ACTIVATION_TOKEN_LENGTH
+        or founder_recovery.configured()
+    )
 
 
 def token_allowed(candidate: object) -> bool:
-    """Compare the supplied one-time code without disclosing the configured one."""
+    """Accept only configured one-time proofs without disclosing either value."""
+
+    supplied = str(candidate or "").strip()
+    if not supplied:
+        return False
 
     expected = _configured_token()
-    supplied = str(candidate or "").strip()
-    return (
+    if (
         len(expected) >= MIN_ACTIVATION_TOKEN_LENGTH
-        and bool(supplied)
         and hmac.compare_digest(expected, supplied)
-    )
+    ):
+        return True
+
+    # Recovery is already a high-entropy server-side SHA-256 proof. Reusing it
+    # here does not make it the normal login: this path can run only while the
+    # managed Auth directory is empty and closes as soon as the Founder exists.
+    return founder_recovery.token_allowed(supplied)
 
 
 def _configuration_ready() -> bool:
