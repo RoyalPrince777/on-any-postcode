@@ -69,6 +69,53 @@ def test_founder_auth_limiter_can_clear_only_the_successful_identity(monkeypatch
     assert limiter.allow("auth:sign-in:founder") is True
 
 
+def test_founder_auth_infrastructure_failures_do_not_consume_budget(monkeypatch):
+    app = Flask(__name__)
+    app.secret_key = "test-secret-key-value-1234567890"
+    times = iter((10.0, 11.0, 12.0))
+    monkeypatch.setattr(web_security.time, "monotonic", lambda: next(times))
+    limiter = web_security.SlidingWindowLimiter(
+        limit=1,
+        window_seconds=300,
+        duplicate_seconds=0,
+        fingerprint_request_body=True,
+    )
+
+    @app.post("/auth-test")
+    def auth_test():
+        if not limiter.allow("auth:sign-in:founder"):
+            return "limited", 429
+        return "provider unavailable", 503
+
+    client = app.test_client()
+    assert client.post("/auth-test", data={"password": "one"}).status_code == 503
+    assert client.post("/auth-test", data={"password": "two"}).status_code == 503
+    assert client.post("/auth-test", data={"password": "three"}).status_code == 503
+
+
+def test_founder_auth_bad_credentials_still_consume_budget(monkeypatch):
+    app = Flask(__name__)
+    app.secret_key = "test-secret-key-value-1234567890"
+    times = iter((20.0, 21.0))
+    monkeypatch.setattr(web_security.time, "monotonic", lambda: next(times))
+    limiter = web_security.SlidingWindowLimiter(
+        limit=1,
+        window_seconds=300,
+        duplicate_seconds=0,
+        fingerprint_request_body=True,
+    )
+
+    @app.post("/auth-test")
+    def auth_test():
+        if not limiter.allow("auth:sign-in:founder"):
+            return "limited", 429
+        return "bad password", 401
+
+    client = app.test_client()
+    assert client.post("/auth-test", data={"password": "wrong-one"}).status_code == 401
+    assert client.post("/auth-test", data={"password": "wrong-two"}).status_code == 429
+
+
 def test_public_and_founder_auth_limiters_are_bounded():
     public = web_security.PUBLIC_WRITE_LIMITER
     assert public.limit == 30
@@ -79,8 +126,8 @@ def test_public_and_founder_auth_limiters_are_bounded():
     founder_auth = web_security.AUTH_BURST_LIMITER
     assert founder_auth.limit == 10
     assert founder_auth.window_seconds == 5 * 60
-    assert founder_auth.duplicate_seconds == 2.0
-    assert founder_auth.fingerprint_request_body is False
+    assert founder_auth.duplicate_seconds == 5.0
+    assert founder_auth.fingerprint_request_body is True
 
 
 class _CountResult:

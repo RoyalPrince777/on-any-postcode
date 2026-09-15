@@ -139,6 +139,33 @@ def test_activation_fails_closed_when_provider_identity_is_missing(monkeypatch):
         raise AssertionError("activation must fail closed without a managed UUID")
 
 
+def test_activation_provider_throttling_is_unavailable_not_bad_setup(monkeypatch):
+    _ready(monkeypatch)
+    connection = _Connection([[]])
+
+    @contextmanager
+    def fake_connect(*, readonly=False):
+        assert readonly is False
+        yield connection
+
+    monkeypatch.setattr(postgres_db, "connect", fake_connect)
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_up_founder",
+        lambda _password, _name: neon_auth.AuthResult(
+            status_code=429,
+            payload={"code": "RATE_LIMITED"},
+        ),
+    )
+
+    try:
+        founder_activation.activate("a private passphrase")
+    except founder_activation.ActivationUnavailable as exc:
+        assert str(exc) == "managed_auth_unavailable"
+    else:  # pragma: no cover
+        raise AssertionError("provider throttling must fail as unavailable")
+
+
 def test_activation_never_calls_provider_when_any_user_exists(monkeypatch):
     _ready(monkeypatch)
     connection = _Connection([[("existing@example.test",)]])
