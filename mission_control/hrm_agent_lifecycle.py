@@ -1,8 +1,8 @@
-"""Governed HRM agent lifecycle depth and rating policy.
+"""Governed HRM agent lifecycle and canonical 7-7-7 policy.
 
-This module is deliberately policy-only: it does not grant permissions, deploy,
-terminate, or promote agents. Major authority changes remain Human Authority
-choices. Safety containment may fail closed while awaiting review.
+Policy only: this module does not grant permissions, deploy, terminate, or
+promote agents. Human Authority remains final for governed authority changes.
+Safety containment may fail closed while awaiting review.
 """
 
 from __future__ import annotations
@@ -12,9 +12,57 @@ from enum import Enum
 
 
 class ReviewDepth(Enum):
+    """Legacy compatibility depth. New governance is expressed through 7-7-7."""
+
     QUICK = 3
     COUNCIL = 7
     FULL = 21
+
+
+class GovernancePlane(str, Enum):
+    MIND = "MIND"
+    BODY = "BODY"
+    SOUL = "SOUL"
+
+
+MIND_7 = (
+    "evidence",
+    "context",
+    "intelligence",
+    "confidence",
+    "dependencies",
+    "alternatives",
+    "judgement",
+)
+
+BODY_7 = (
+    "capability",
+    "permissions",
+    "tools",
+    "execution",
+    "verification",
+    "performance",
+    "receipt",
+)
+
+SOUL_7 = (
+    "purpose",
+    "human_benefit",
+    "consent",
+    "integrity",
+    "culture",
+    "guardian_safety",
+    "human_authority",
+)
+
+GOVERNANCE_777 = {
+    GovernancePlane.MIND: MIND_7,
+    GovernancePlane.BODY: BODY_7,
+    GovernancePlane.SOUL: SOUL_7,
+}
+
+CANONICAL_GOVERNANCE = "7-7-7"
+TOTAL_GOVERNED_CHECKS = sum(len(checks) for checks in GOVERNANCE_777.values())
 
 
 class LifecycleDirection(str, Enum):
@@ -56,13 +104,25 @@ def stars_for_score(score: float) -> int:
 
 
 def required_depth(*, risk: str = "low", authority_change: bool = False) -> ReviewDepth:
-    """Choose the minimum safe review depth; risk always overrides speed."""
+    """Compatibility selector; risk always overrides speed."""
     risk = str(risk).strip().lower()
     if authority_change or risk in {"high", "critical", "severe"}:
         return ReviewDepth.FULL
     if risk in {"medium", "elevated"}:
         return ReviewDepth.COUNCIL
     return ReviewDepth.QUICK
+
+
+def governance_checks(*, risk: str = "low", authority_change: bool = False) -> dict[GovernancePlane, tuple[str, ...]]:
+    """Return the canonical 7-7-7 checks.
+
+    All three planes remain represented for every governed Signal. Runtime may
+    optimise how evidence is gathered, but it may not silently remove a plane.
+    High-risk and authority-changing work must fail closed if required proof is
+    unavailable.
+    """
+    _ = required_depth(risk=risk, authority_change=authority_change)
+    return GOVERNANCE_777
 
 
 def assess_agent(
@@ -106,6 +166,7 @@ def assess_agent(
     )
 
 
+# Compatibility surface for existing callers while 7-7-7 becomes canonical.
 DEPTH_STEPS = {
     ReviewDepth.QUICK: ("signal", "evidence_score", "recommendation"),
     ReviewDepth.COUNCIL: (
@@ -117,30 +178,11 @@ DEPTH_STEPS = {
         "review",
         "recommendation",
     ),
-    ReviewDepth.FULL: (
-        "signal",
-        "identity",
-        "hrm_history",
-        "evidence",
-        "measure",
-        "risk",
-        "mind_review",
-        "body_review",
-        "soul_review",
-        "hrm_rule_check",
-        "council_selection",
-        "challenge",
-        "adversarial_test",
-        "evidence_judgement",
-        "direction",
-        "proving_gate",
-        "smi_recommendation",
-        "human_authority",
-        "execute",
-        "hrm_receipt",
-        "learn_monitor",
-    ),
+    ReviewDepth.FULL: MIND_7 + BODY_7 + SOUL_7,
 }
 
-# 3/7/21 are review depths and latency targets, never forced deadlines.
+# Legacy timing targets are retained only for compatibility; 7-7-7 is not a
+# forced deadline model.
 TARGET_SECONDS = {ReviewDepth.QUICK: 3, ReviewDepth.COUNCIL: 7, ReviewDepth.FULL: 21}
+
+assert TOTAL_GOVERNED_CHECKS == 21
