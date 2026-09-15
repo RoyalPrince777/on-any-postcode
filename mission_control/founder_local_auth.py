@@ -136,7 +136,7 @@ def bind_existing_password(password: str) -> str:
                 raise
     except FounderLocalAuthUnavailable:
         raise
-    except Exception as exc:  # noqa: BLE001 - do not leak DB details through auth.
+    except Exception as exc:
         raise FounderLocalAuthUnavailable("founder_local_auth_store_unavailable") from exc
     return "bound"
 
@@ -185,10 +185,17 @@ def issue_session_cookie(*, now: int | None = None) -> str:
         "exp": current + SESSION_SECONDS,
         "nonce": secrets.token_urlsafe(16),
     }
-    encoded = _b64url_encode(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8"))
-    signature = hmac.new(_session_secret(), encoded.encode("ascii"), hashlib.sha256).hexdigest()
+    encoded = _b64url_encode(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
+    signature = hmac.new(
+        _session_secret(), encoded.encode("ascii"), hashlib.sha256
+    ).hexdigest()
     token = f"{encoded}.{signature}"
-    return f"{COOKIE_NAME}={token}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age={SESSION_SECONDS}"
+    return (
+        f"{COOKIE_NAME}={token}; Path=/; Secure; HttpOnly; SameSite=Lax; "
+        f"Max-Age={SESSION_SECONDS}"
+    )
 
 
 def clear_session_cookie() -> str:
@@ -205,12 +212,16 @@ def _token_from_cookie_header(cookie_header: str) -> str:
         return ""
 
 
-def session_user(cookie_header: str, *, now: int | None = None) -> dict[str, object] | None:
+def session_user(
+    cookie_header: str, *, now: int | None = None
+) -> dict[str, object] | None:
     token = _token_from_cookie_header(cookie_header)
     if not token or "." not in token:
         return None
     encoded, signature = token.rsplit(".", 1)
-    expected = hmac.new(_session_secret(), encoded.encode("ascii"), hashlib.sha256).hexdigest()
+    expected = hmac.new(
+        _session_secret(), encoded.encode("ascii"), hashlib.sha256
+    ).hexdigest()
     if not hmac.compare_digest(expected, signature):
         return None
     try:
@@ -223,7 +234,11 @@ def session_user(cookie_header: str, *, now: int | None = None) -> dict[str, obj
         return None
     if payload.get("v") != 1 or identity_id != authority.configured_identity():
         return None
-    if issued_at > current + 60 or expires_at <= current or expires_at > issued_at + SESSION_SECONDS:
+    if (
+        issued_at > current + 60
+        or expires_at <= current
+        or expires_at > issued_at + SESSION_SECONDS
+    ):
         return None
     return {
         "id": identity_id,
