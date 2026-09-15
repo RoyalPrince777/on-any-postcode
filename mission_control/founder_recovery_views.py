@@ -1,11 +1,11 @@
-"""Private gateway-only UI for temporary Founder recovery."""
+"""Private gateway-only UI for temporary Founder recovery and password migration."""
 from __future__ import annotations
 
 from urllib import parse as urlparse
 
-from flask import Blueprint, make_response, redirect, render_template, request
+from flask import Blueprint, make_response, redirect, render_template, request, url_for
 
-from . import founder_recovery, web_security
+from . import founder_local_auth, founder_recovery, web_security
 
 bp = Blueprint("founder_recovery", __name__, template_folder="templates")
 _DEFAULT_NEXT = "/mission/ollama"
@@ -56,24 +56,96 @@ def _render(*, status_code: int = 200, error: str | None = None, next_path: str 
     return _no_store(response)
 
 
+def _render_bind(*, status_code: int = 200, error: str | None = None, next_path: str = _DEFAULT_NEXT):
+    response = make_response(
+        render_template(
+            "founder_password_bind.html",
+            bind_error=error,
+            next_path=_safe_next(next_path),
+        ),
+        status_code,
+    )
+    return _no_store(response)
+
+
+def _bind_existing_password(next_path: str):
+    if not founder_recovery.session_active():
+        return _render(
+            status_code=403,
+            error="Founder proof expired. Confirm the Founder recovery code again.",
+            next_path=next_path,
+        )
+    if founder_local_auth.bound():
+        founder_recovery.clear_session()
+        return _no_store(redirect(url_for("auth_page", next=next_path)))
+    if not web_security.csrf_valid(request):
+        return _render_bind(
+            status_code=403,
+            error="Session expired. Refresh and try again.",
+            next_path=next_path,
+        )
+
+    password = str(request.form.get("password") or "")
+    confirmation = str(request.form.get("password_confirmation") or "")
+    if password != confirmation:
+        return _render_bind(
+            status_code=400,
+            error="The two private password entries do not match.",
+            next_path=next_path,
+        )
+    if len(password) < 12 or len(password) > 128 or not password.strip():
+        return _render_bind(
+            status_code=400,
+            error="Use your existing private password between 12 and 128 characters.",
+            next_path=next_path,
+        )
+
+    try:
+        result = founder_local_auth.bind_existing_password(password)
+    except founder_local_auth.FounderLocalAuthUnavailable:
+        return _render_bind(
+            status_code=503,
+            error="Render Founder password storage is temporarily unavailable.",
+            next_path=next_path,
+        )
+    if result not in {"bound", "complete"}:
+        return _render_bind(
+            status_code=503,
+            error="Render Founder password storage is temporarily unavailable.",
+            next_path=next_path,
+        )
+
+    founder_recovery.clear_session()
+    response = redirect(url_for("auth_page", next=next_path, render_bound="1"))
+    response.headers["X-OAP-Founder-Lane"] = "render-local"
+    return _no_store(response)
+
+
 @bp.route("/auth/recover-founder", methods=["GET", "POST"])
 def recover_founder():
-    """Open a short-lived Render-local Founder session during auth outages.
+    """Open bounded Founder recovery and bind the existing password once.
 
-    The recovery credential is already a high-entropy server-side SHA-256 proof.
-    A successful proof creates only the existing bounded recovery principal; it
-    does not create a profile, Managed Auth account, second password prompt, or
-    transfer Human Authority. Managed identity can be repaired separately.
+    No second Founder account is created. When the Render-local verifier is
+    absent, a successful recovery proof may bind the existing private password
+    to the canonical Human Authority identity. Once bound, normal /auth sign-in
+    uses Render-local verification and recovery returns to emergency-only use.
     """
 
     if not founder_recovery.configured():
         return _hidden()
 
     next_path = _safe_next(request.values.get("next"))
+    action = str(request.values.get("action") or "")
+
     if request.method == "GET":
         if founder_recovery.session_active():
+            if not founder_local_auth.bound():
+                return _render_bind(next_path=next_path)
             return _no_store(redirect(next_path))
         return _render(next_path=next_path)
+
+    if action == "bind-password":
+        return _bind_existing_password(next_path)
 
     if not web_security.csrf_valid(request):
         return _render(
@@ -101,4 +173,6 @@ def recover_founder():
         )
 
     founder_recovery.begin_session()
+    if not founder_local_auth.bound():
+        return _render_bind(next_path=next_path)
     return _no_store(redirect(next_path))
