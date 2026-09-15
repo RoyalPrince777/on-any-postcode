@@ -30,6 +30,10 @@ _PRIVATE_REDIRECTS: tuple[tuple[str, str], ...] = (
     ("/alignment/status", "/mission/alignment/status"),
 )
 
+_PUBLIC_REDIRECTS: tuple[tuple[str, str], ...] = (
+    ("/the-spot/movement-delivery", "/the-spot/maps-weather-travel"),
+)
+
 
 def _with_query(target: str) -> str:
     query = request.query_string.decode("ascii", errors="ignore")
@@ -57,6 +61,14 @@ def register(app: Flask) -> None:
         app.add_url_rule(
             legacy,
             endpoint=f"oap_private_compat_{index}",
+            view_func=_redirector(canonical),
+            methods=["GET"],
+        )
+
+    for index, (legacy, canonical) in enumerate(_PUBLIC_REDIRECTS):
+        app.add_url_rule(
+            legacy,
+            endpoint=f"oap_public_compat_{index}",
             view_func=_redirector(canonical),
             methods=["GET"],
         )
@@ -103,18 +115,6 @@ def register(app: Flask) -> None:
                 '<p class="atlas-mini">Plan routes and stay aware of local conditions.</p>',
             )
 
-        if path == "/the-spot/movement-delivery":
-            fragment = ""
-            if "📶 eSIM" not in page:
-                fragment += '<p class="atlas-mini">📶 eSIM · consent-first connectivity</p>'
-            if "Carrier activation, dispatch, payment and live tracking stay off" not in page:
-                fragment += (
-                    '<p class="atlas-warning">Carrier activation, dispatch, payment and '
-                    "live tracking stay off</p>"
-                )
-            if fragment:
-                page = _inject_before_body(page, fragment)
-
         if path == "/mission" and ">Provider Fabric</a>" not in page:
             page = _inject_before_body(
                 page,
@@ -140,6 +140,7 @@ def status() -> dict[str, object]:
     return {
         "component": "OAP Private Compatibility Bridge",
         "legacy_private_redirects": len(_PRIVATE_REDIRECTS),
+        "legacy_public_redirects": len(_PUBLIC_REDIRECTS),
         "canonical_prefix": "/mission",
         "public_authority": False,
         "execution_granted": False,
