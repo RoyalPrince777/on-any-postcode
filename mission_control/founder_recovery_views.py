@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from urllib import parse as urlparse
 
-from flask import Blueprint, make_response, redirect, render_template, request
+from flask import Blueprint, current_app, make_response, redirect, render_template, request, session
 
-from . import founder_recovery, web_security
+from . import founder_recovery, neon_auth, web_security
 
 bp = Blueprint("founder_recovery", __name__, template_folder="templates")
 _DEFAULT_NEXT = "/mission/ollama"
@@ -58,9 +58,29 @@ def _render(*, status_code: int = 200, error: str | None = None, next_path: str 
     return _no_store(response)
 
 
+def _apply_auth_cookies(response, set_cookie_headers) -> bool:
+    """Promote only Neon Auth cookies into the normal first-party session."""
+
+    app_cookie_name = str(current_app.config.get("SESSION_COOKIE_NAME", "session"))
+    upstream_names = neon_auth.cookie_names(set_cookie_headers)
+    safe_names = tuple(name for name in upstream_names if name != app_cookie_name)
+    if not safe_names:
+        return False
+
+    session.clear()
+    session[neon_auth.AUTH_COOKIE_NAMES_SESSION_KEY] = list(safe_names)
+    session.permanent = True
+    for header in set_cookie_headers:
+        scoped = neon_auth.scoped_set_cookie(header)
+        name = header.split("=", 1)[0].strip()
+        if scoped and name in safe_names:
+            response.headers.add("Set-Cookie", scoped)
+    return True
+
+
 @bp.route("/auth/recover-founder", methods=["GET", "POST"])
 def recover_founder():
-    """Open a bounded recovery session only while server recovery is enabled."""
+    """Recover Founder ownership and, when needed, rebuild Managed Auth safely."""
 
     if not founder_recovery.configured():
         return _hidden()
@@ -95,5 +115,65 @@ def recover_founder():
             next_path=next_path,
         )
 
+    password = str(request.form.get("password", ""))[:129]
+    confirmation = str(request.form.get("password_confirmation", ""))[:129]
+    if password != confirmation:
+        return _render(
+            status_code=400,
+            error="The two private password entries do not match.",
+            next_path=next_path,
+        )
+    if len(password) < 12 or len(password) > 128 or not password.strip():
+        return _render(
+            status_code=400,
+            error="Use your private password between 12 and 128 characters.",
+            next_path=next_path,
+        )
+
+    email = neon_auth.configured_founder_email()
+    if not email or not neon_auth.status()["valid"]:
+        return _render(
+            status_code=503,
+            error="Managed Founder identity is temporarily unavailable.",
+            next_path=next_path,
+        )
+
     founder_recovery.begin_session()
-    return _no_store(redirect(next_path))
+    try:
+        result = neon_auth.sign_in(email, password)
+        if not neon_auth.successful(result) and not neon_auth.temporarily_unavailable(result):
+            signup = neon_auth.sign_up_founder(password, "OAP Founder")
+            if neon_auth.successful(signup):
+                result = neon_auth.sign_in(email, password)
+    except neon_auth.AuthUnavailable:
+        founder_recovery.clear_session()
+        return _render(
+            status_code=503,
+            error="Managed Founder identity is temporarily unavailable.",
+            next_path=next_path,
+        )
+
+    if neon_auth.temporarily_unavailable(result):
+        founder_recovery.clear_session()
+        return _render(
+            status_code=503,
+            error="Managed Founder identity is temporarily unavailable.",
+            next_path=next_path,
+        )
+    if not neon_auth.successful(result):
+        founder_recovery.clear_session()
+        return _render(
+            status_code=401,
+            error="Private password could not be reactivated safely.",
+            next_path=next_path,
+        )
+
+    response = redirect(next_path)
+    if not _apply_auth_cookies(response, result.set_cookie_headers):
+        founder_recovery.clear_session()
+        return _render(
+            status_code=502,
+            error="A secure Founder session could not be established.",
+            next_path=next_path,
+        )
+    return _no_store(response)
