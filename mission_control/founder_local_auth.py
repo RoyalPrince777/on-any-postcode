@@ -154,16 +154,16 @@ def verify(password: str) -> bool:
                 """SELECT identity_id,salt_hex,verifier_hex
                    FROM oap_founder_local_auth WHERE singleton_id=1"""
             ).fetchone()
-    except Exception:  # noqa: BLE001 - authentication fails closed.
-        return False
+    except Exception as exc:
+        raise FounderLocalAuthUnavailable("founder_local_auth_store_unavailable") from exc
     if row is None or str(row[0]) != authority.configured_identity():
         return False
     try:
         salt = bytes.fromhex(str(row[1]))
         expected = bytes.fromhex(str(row[2]))
         candidate = _derive(password, salt)
-    except (ValueError, TypeError):
-        return False
+    except (ValueError, TypeError) as exc:
+        raise FounderLocalAuthUnavailable("founder_local_auth_record_invalid") from exc
     return hmac.compare_digest(expected, candidate)
 
 
