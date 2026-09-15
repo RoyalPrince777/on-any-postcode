@@ -58,6 +58,6 @@ def diagnostic_snapshot() -> dict[str, Any]:
             connection.execute("SELECT 1").fetchone()
         snapshot["reachable"] = True
         snapshot["category"] = "ok"
-    except BaseException as exc:  # category only; never serialize exc
+    except Exception as exc:  # category only; never serialize exc
         snapshot["category"] = _category(exc)
     return snapshot
