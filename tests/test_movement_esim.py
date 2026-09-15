@@ -159,13 +159,8 @@ def test_public_movement_status_is_coarse_and_separates_readiness(
     assert intelligence["first_party_policy"]["oap_controlled_route_engine_required"] is True
 
 
-def test_spot_movement_surface_links_into_dedicated_product(client):
-    page = client.get("/the-spot/movement-delivery").get_data(as_text=True)
+def test_spot_movement_surface_redirects_to_map_intelligence(client):
+    response = client.get("/the-spot/movement-delivery", follow_redirects=False)
 
-    assert "OAP Movement" in page
-    assert "🚗 Ride" in page
-    assert "🚲 E-Bike" in page
-    assert "📦 Delivery" in page
-    assert "📶 eSIM" in page
-    assert 'href="/movement"' in page
-    assert "Carrier activation, dispatch, payment and live tracking stay off" in page
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/the-spot/maps-weather-travel"
