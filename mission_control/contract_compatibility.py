@@ -34,6 +34,11 @@ _PUBLIC_REDIRECTS: tuple[tuple[str, str], ...] = (
     ("/the-spot/movement-delivery", "/the-spot/maps-weather-travel"),
 )
 
+_MAP_PURPOSE = (
+    "Plan, book and move with roads, routes, weather, travel, movement, "
+    "OAP Direct and delivery in one place."
+)
+
 
 def _with_query(target: str) -> str:
     query = request.query_string.decode("ascii", errors="ignore")
@@ -107,12 +112,10 @@ def register(app: Flask) -> None:
                 1,
             )
 
-        if path == "/the-spot/maps-weather-travel" and (
-            "Plan routes and stay aware of local conditions." not in page
-        ):
+        if path == "/the-spot/maps-weather-travel" and _MAP_PURPOSE not in page:
             page = _inject_before_body(
                 page,
-                '<p class="atlas-mini">Plan routes and stay aware of local conditions.</p>',
+                f'<p class="atlas-mini">{_MAP_PURPOSE}</p>',
             )
 
         if path == "/mission" and ">Provider Fabric</a>" not in page:
