@@ -9,11 +9,12 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 23,
+        "capabilities": 25,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 23
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 25
+    assert "flag-vote" not in products.LOCKED_SPOT_CAPABILITY_IDS
 
 
 def test_every_spot_capability_has_a_working_read_only_route(client):
@@ -45,18 +46,30 @@ def test_unknown_spot_capability_fails_closed(client):
     }
 
 
-def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(client):
+def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     page = client.get("/the-spot").get_data(as_text=True)
 
     assert "📡 Pulse" in page
     assert "See what’s happening around you." in page
     assert 'href="/pulse"' in page
-    assert "📣 Signal" in page
-    assert "🔗 The Link" in page
-    assert "🎪 Activity" in page
-    assert "🏪 Market" in page
-    assert "🧭 Explorer" in page
-    assert "🌍 World Rooms" in page
+    assert "📣 Drop a Signal" in page
+
+    ordered_labels = (
+        "🌍 Earth",
+        "🔗 The Link",
+        "📰 OAP Chronicle",
+        "🌿 Nature",
+        "🎪 Activity / Adventure",
+        "🧭 Explorer",
+        "🏪 Market",
+        "👤 My World",
+    )
+    positions = [page.index(label) for label in ordered_labels]
+    assert positions == sorted(positions)
+
+    assert "National Anthem" in page
+    assert "🚩 Flag Vote" not in page
+    assert "flag-vote" not in page
     assert "🎵 OAP Music" in page
     assert "▶️ OAP Player" in page
     assert "📻 OAP Radio" in page
@@ -68,6 +81,68 @@ def test_spot_home_is_pulse_first_and_keeps_secondary_features_out_of_the_way(cl
     assert "group conversation" not in page
     assert "Your local dashboard" not in page
     assert "Open what you need" not in page
+
+
+def test_earth_replaces_flag_vote_and_chronicle_nature_keep_real_paths(client):
+    removed = client.get("/the-spot/flag-vote")
+    earth = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
+    chronicle = client.get("/the-spot/news").get_data(as_text=True)
+    nature = client.get("/the-spot/nature").get_data(as_text=True)
+
+    assert removed.status_code == 404
+    assert removed.get_json()["error"]["code"] == "not_found"
+    assert "Global Earth" in earth
+    assert "Earth → Your Postcode" in earth
+    assert "National Anthem" in earth
+    assert "County / Region" in earth
+    assert "Borough / District" in earth
+    assert "Postcode" in earth
+    assert 'method="post" action="/postcode-rooms"' in earth
+    assert "Flag Vote" not in earth
+
+    assert "OAP Chronicle" in chronicle
+    assert 'href="/pulse"' in chronicle
+    assert 'href="/the-spot/signal"' in chronicle
+    assert "does not invent a second newsroom feed" in chronicle
+
+    assert "OAP Nature" in nature
+    assert "Earth is our turf" in nature
+    assert 'href="/the-spot/maps-weather-travel"' in nature
+    assert "wider environmental alerts" in nature
+
+
+def test_activity_adventure_reuses_direct_booking_engine_without_fake_confirmation(client):
+    page = client.get("/the-spot/events").get_data(as_text=True)
+
+    assert "Activity / Adventure · OAP Direct" in page
+    assert "Certified supplier inventory remains the source of truth" in page
+    assert "/travel/direct?category=activity" in page
+    assert "/travel/direct?category=attraction" in page
+    assert "/travel/direct?category=event" in page
+    assert "Quote → hold → human-confirmed reservation request → supplier confirmation" in page
+    assert "Payment capture and Pass issuance remain separately gated" in page
+    assert "before anything is called confirmed" in page
+
+
+def test_creator_business_and_support_handoffs_preserve_boundaries(client):
+    creators = client.get("/the-spot/creators").get_data(as_text=True)
+    businesses = client.get("/the-spot/businesses").get_data(as_text=True)
+    support = client.get("/the-spot/support").get_data(as_text=True)
+
+    assert "Create identity first. Publish through governed OAP routes." in creators
+    assert 'href="/the-spot/music"' in creators
+    assert 'href="/the-spot/distribution"' in creators
+    assert "does not claim Certified Creator Identity" in creators
+
+    assert 'href="/the-spot/market"' in businesses
+    assert 'href="/travel/direct"' in businesses
+    assert "general Certified Merchant onboarding workflow remains separately gated" in businesses
+
+    assert "public discovery, protected cases" in support
+    assert 'href="/the-spot/signal"' in support
+    assert 'href="/the-spot/postcode-rooms"' in support
+    assert ">Earth →</a>" in support
+    assert "no public support form creates or exposes a safeguarding case" in support
 
 
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
@@ -93,18 +168,22 @@ def test_booking_and_maps_public_front_doors_are_reachable(client):
     assert "OAP Direct" in booking.get_data(as_text=True)
 
 
-def test_signal_and_world_room_capabilities_have_live_public_forms(client):
+def test_signal_and_earth_capabilities_have_live_public_forms(client):
     signal = client.get("/the-spot/signal").get_data(as_text=True)
-    rooms = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
+    earth = client.get("/the-spot/postcode-rooms").get_data(as_text=True)
 
     assert 'method="post" action="/signal"' in signal
-    assert 'method="post" action="/postcode-rooms"' in rooms
-    assert "World Rooms" in rooms
+    assert 'method="post" action="/postcode-rooms"' in earth
+    assert "Global Earth" in earth
+    assert "One human world" in earth
+    assert "National Anthem" in earth
 
 
 def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
     public_only = (
         "signal",
+        "news",
+        "nature",
         "postcode-rooms",
         "events",
         "discovery",
@@ -132,6 +211,18 @@ def test_public_capabilities_do_not_show_a_blanket_password_prompt(client):
     spot = client.get("/the-spot").get_data(as_text=True)
     assert "Enter My World" not in spot
     assert "Sign-in appears only when a protected action actually needs it" not in spot
+
+
+def test_spot_public_language_uses_empire_not_community():
+    public_copy = " ".join(
+        f"{item['name']} {item['purpose']}"
+        for item in products.PUBLIC_SPOT_CAPABILITIES
+    )
+    assert "Community Power" not in public_copy
+    assert "Community Support" not in public_copy
+    assert "community commerce" not in public_copy
+    assert "Empire Power" in public_copy
+    assert "Empire Support" in public_copy
 
 
 def test_sensitive_spot_functions_are_not_misrepresented_as_live():

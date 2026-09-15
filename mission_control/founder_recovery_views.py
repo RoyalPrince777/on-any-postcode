@@ -13,9 +13,7 @@ _DEFAULT_NEXT = "/mission/ollama"
 # Recovery is an emergency Founder lane and must not share the normal sign-in /
 # activation bucket. Exact rapid retries are coalesced, while distinct attempts
 # remain bounded. Session identity also prevents unrelated clients behind the same
-# proxy/NAT address from consuming the Founder's recovery allowance. The Founder
-# lane deliberately has more recovery headroom than normal auth because the code
-# is already high-entropy and stored only as a SHA-256 digest.
+# proxy/NAT address from consuming the Founder's recovery allowance.
 RECOVERY_BURST_LIMITER = web_security.SlidingWindowLimiter(
     limit=30,
     window_seconds=5 * 60,
@@ -60,7 +58,13 @@ def _render(*, status_code: int = 200, error: str | None = None, next_path: str 
 
 @bp.route("/auth/recover-founder", methods=["GET", "POST"])
 def recover_founder():
-    """Open a bounded recovery session only while server recovery is enabled."""
+    """Open a short-lived Render-local Founder session during auth outages.
+
+    The recovery credential is already a high-entropy server-side SHA-256 proof.
+    A successful proof creates only the existing bounded recovery principal; it
+    does not create a profile, Managed Auth account, second password prompt, or
+    transfer Human Authority. Managed identity can be repaired separately.
+    """
 
     if not founder_recovery.configured():
         return _hidden()
@@ -88,6 +92,7 @@ def recover_founder():
         )
         response.headers["Retry-After"] = "60"
         return response
+
     if not founder_recovery.token_allowed(request.form.get("recovery_code")):
         return _render(
             status_code=403,

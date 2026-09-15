@@ -55,10 +55,11 @@ def test_activation_state_requires_live_zero_user_proof(monkeypatch):
     assert founder_activation.state() == "complete"
 
 
-def test_activation_serialises_and_confirms_the_server_selected_user(monkeypatch):
+def test_activation_serialises_confirms_and_binds_server_selected_founder(monkeypatch):
     _ready(monkeypatch)
     connection = _Connection([[], [("founder@example.test",)]])
     observed = {}
+    identity = "11111111-1111-4111-8111-111111111111"
 
     @contextmanager
     def fake_connect(*, readonly=False):
@@ -67,18 +68,102 @@ def test_activation_serialises_and_confirms_the_server_selected_user(monkeypatch
 
     def fake_sign_up(password, name):
         observed["credentials"] = (password, name)
-        return neon_auth.AuthResult(status_code=200, payload={"user": {}})
+        return neon_auth.AuthResult(
+            status_code=200,
+            payload={"user": {"id": identity}},
+        )
+
+    def fake_sync(
+        _connection,
+        *,
+        identity_id,
+        email,
+        display_name,
+        email_verified,
+    ):
+        observed["authority"] = {
+            "identity_id": identity_id,
+            "email": email,
+            "display_name": display_name,
+            "email_verified": email_verified,
+        }
+        return {"is_human_authority": True}
 
     monkeypatch.setattr(postgres_db, "connect", fake_connect)
     monkeypatch.setattr(neon_auth, "sign_up_founder", fake_sign_up)
+    monkeypatch.setattr(
+        founder_activation.authority,
+        "sync_authenticated_identity",
+        fake_sync,
+    )
 
     result = founder_activation.activate("a private passphrase")
 
     assert result == "activated"
     assert observed == {
-        "credentials": ("a private passphrase", "OAP Founder")
+        "credentials": ("a private passphrase", "OAP Founder"),
+        "authority": {
+            "identity_id": identity,
+            "email": "founder@example.test",
+            "display_name": "OAP Founder",
+            "email_verified": True,
+        },
     }
     assert "pg_advisory_xact_lock" in connection.statements[0][0]
+
+
+def test_activation_fails_closed_when_provider_identity_is_missing(monkeypatch):
+    _ready(monkeypatch)
+    connection = _Connection([[], [("founder@example.test",)]])
+
+    @contextmanager
+    def fake_connect(*, readonly=False):
+        assert readonly is False
+        yield connection
+
+    monkeypatch.setattr(postgres_db, "connect", fake_connect)
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_up_founder",
+        lambda _password, _name: neon_auth.AuthResult(
+            status_code=200,
+            payload={"user": {}},
+        ),
+    )
+
+    try:
+        founder_activation.activate("a private passphrase")
+    except founder_activation.ActivationUnavailable as exc:
+        assert str(exc) == "founder_identity_missing"
+    else:  # pragma: no cover
+        raise AssertionError("activation must fail closed without a managed UUID")
+
+
+def test_activation_provider_throttling_is_unavailable_not_bad_setup(monkeypatch):
+    _ready(monkeypatch)
+    connection = _Connection([[]])
+
+    @contextmanager
+    def fake_connect(*, readonly=False):
+        assert readonly is False
+        yield connection
+
+    monkeypatch.setattr(postgres_db, "connect", fake_connect)
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_up_founder",
+        lambda _password, _name: neon_auth.AuthResult(
+            status_code=429,
+            payload={"code": "RATE_LIMITED"},
+        ),
+    )
+
+    try:
+        founder_activation.activate("a private passphrase")
+    except founder_activation.ActivationUnavailable as exc:
+        assert str(exc) == "managed_auth_unavailable"
+    else:  # pragma: no cover
+        raise AssertionError("provider throttling must fail as unavailable")
 
 
 def test_activation_never_calls_provider_when_any_user_exists(monkeypatch):

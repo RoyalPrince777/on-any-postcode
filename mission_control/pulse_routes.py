@@ -16,7 +16,7 @@ from flask import (
     url_for,
 )
 
-from . import postgres_db, pulse_store, web_security
+from . import humanitarian_pulse, postgres_db, pulse_store, web_security
 
 _PROBE_TTL_SECONDS = 120.0
 _probe_cache: tuple[float, bool] | None = None
@@ -127,6 +127,21 @@ def register(app: Flask) -> None:
         except pulse_store.PulseStoreUnavailable:
             posts = []
             unavailable = True
+        humanitarian = dict(humanitarian_pulse.public_snapshot(live_fetch=True))
+        humanitarian.setdefault(
+            "geography",
+            {
+                "hierarchy": ("Global Earth", "Continent", "Country"),
+                "earth": {"name": "Global Earth", "count": 0},
+                "continents": (),
+                "countries": (),
+                "unclassified_countries": (),
+                "country_labels_source_backed": True,
+                "continent_reference": "OAP seven-region geography reference",
+                "network_geocoding": False,
+                "precise_location": False,
+            },
+        )
         return _no_store(
             make_response(
                 render_template(
@@ -134,6 +149,7 @@ def register(app: Flask) -> None:
                     pulse_posts=posts,
                     pulse_unavailable=unavailable,
                     pulse_reactions=pulse_store.REACTION_LABELS,
+                    humanitarian=humanitarian,
                 ),
                 200,
             )
@@ -146,6 +162,14 @@ def register(app: Flask) -> None:
     @app.get("/pulse")
     def pulse_feed():
         return _render_pulse()
+
+    @app.get("/pulse/humanitarian")
+    def pulse_humanitarian():
+        """Return the same public-safe live facts used by the Pulse UI."""
+
+        return _no_store(
+            make_response(jsonify(humanitarian_pulse.public_snapshot(live_fetch=True)), 200)
+        )
 
     @app.get("/pulse/health")
     def pulse_health():

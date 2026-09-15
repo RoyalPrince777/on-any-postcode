@@ -10,7 +10,8 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
     for label in (
         "People",
         "Link Up",
-        "Empire Power",
+        "🌍 Earth",
+        "National Anthem",
         "Pulse",
         "Signal",
         "Opportunities",
@@ -24,6 +25,7 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
     assert "Find Certified people and local connections." in page
     assert "Public Empire links" in page
     assert "Community Power" not in page
+    assert "World Rooms" not in page
     assert "verified people" not in page.casefold()
     assert 'href="/linkup"' in page
     assert 'href="/the-spot/postcode-rooms"' in page

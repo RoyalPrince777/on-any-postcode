@@ -16,6 +16,7 @@ app = Flask(__name__)
 _UPSTREAM_DEFAULT = "https://on-any-postcode.onrender.com"
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
 _CLIENT_IP_HEADER = "X-OAP-Client-IP"
+_FOUNDER_RECOVERY_FALLBACK = "/auth/recover-founder?next=/mission/ollama"
 _ALLOWED_REQUEST_HEADERS = {
     "accept",
     "accept-language",
@@ -51,11 +52,24 @@ _OPENER = urlrequest.build_opener(_NoRedirect())
 
 
 def _origin() -> str:
-    value = os.environ.get("OAP_PUBLIC_ORIGIN", _UPSTREAM_DEFAULT).strip().rstrip("/")
-    parsed = urlparse.urlparse(value)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    configured = os.environ.get("OAP_PUBLIC_ORIGIN", _UPSTREAM_DEFAULT).strip()
+    try:
+        parsed = urlparse.urlparse(configured)
+        _ = parsed.port
+    except ValueError as exc:
+        raise RuntimeError("invalid_public_origin") from exc
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.path not in {"", "/"}
+        or parsed.params
+        or parsed.query
+        or parsed.fragment
+    ):
         raise RuntimeError("invalid_public_origin")
-    return value
+    return configured.rstrip("/")
 
 
 def _secret() -> str:
@@ -156,6 +170,27 @@ def _request_headers() -> dict[str, str]:
     return headers
 
 
+def _auth_unavailable_fallback(path: str, status: int, headers):
+    """Route only private SMI managed-auth outages into Render Founder recovery."""
+
+    clean = "/" + path.lstrip("/")
+    if clean == "/auth/sign-in" and request.method == "POST" and status == 503:
+        return redirect(_FOUNDER_RECOVERY_FALLBACK, code=302)
+
+    if status not in {301, 302, 303, 307, 308}:
+        return None
+    location = str(headers.get("Location") or "")
+    if location.startswith(_origin()):
+        location = location[len(_origin()) :] or "/"
+    parsed = urlparse.urlparse(location)
+    if parsed.path not in {"/auth", "/enter-my-world"}:
+        return None
+    query = urlparse.parse_qs(parsed.query, keep_blank_values=True)
+    if query.get("auth_error") != ["unavailable"]:
+        return None
+    return redirect(_FOUNDER_RECOVERY_FALLBACK, code=302)
+
+
 def _proxy(path: str):
     body = request.get_data(cache=False) if request.method not in {"GET", "HEAD"} else None
     upstream_request = urlrequest.Request(
@@ -172,6 +207,12 @@ def _proxy(path: str):
         return _blocked(503)
 
     status = int(getattr(upstream, "status", getattr(upstream, "code", 502)))
+    fallback = _auth_unavailable_fallback(path, status, upstream.headers)
+    if fallback is not None:
+        upstream.close()
+        fallback.headers["Cache-Control"] = "no-store"
+        fallback.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+        return fallback
 
     def generate() -> Iterator[bytes]:
         try:
@@ -206,8 +247,8 @@ def root():
 
 @app.get("/founder")
 def founder_access_alias():
-    """Stable Founder bookmark; recovery mechanics remain an internal auth detail."""
-    return redirect("/auth/recover-founder?next=/mission/ollama", code=302)
+    """Stable Founder bookmark; the upstream selects the available password gate."""
+    return redirect("/auth?next=/mission/ollama", code=302)
 
 
 @app.get("/smi")

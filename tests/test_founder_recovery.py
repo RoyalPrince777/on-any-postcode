@@ -90,7 +90,10 @@ def test_gateway_only_recovery_boundary(anonymous_client, monkeypatch):
 
     assert direct.status_code == 404
     assert through_gateway.status_code == 200
-    assert "Founder code" in through_gateway.get_data(as_text=True)
+    body = through_gateway.get_data(as_text=True)
+    assert "Founder recovery code" in body
+    assert 'name="password"' not in body
+    assert 'name="password_confirmation"' not in body
 
 
 def test_invalid_recovery_code_fails_closed(anonymous_client, monkeypatch):
@@ -192,10 +195,55 @@ def test_smi_gateway_allows_recovery_but_keeps_signup_blocked():
     assert smi_gateway._allowed("/auth/sign-up") is False
 
 
-def test_smi_gateway_founder_bookmark_uses_private_founder_access():
+def test_smi_gateway_founder_bookmark_uses_single_upstream_entry():
     client = smi_gateway.app.test_client()
 
     response = client.get("/founder")
 
     assert response.status_code == 302
-    assert response.headers["Location"] == "/auth/recover-founder?next=/mission/ollama"
+    assert response.headers["Location"] == "/auth?next=/mission/ollama"
+
+
+def test_trusted_smi_entry_selects_recovery_before_showing_managed_password(
+    anonymous_client, monkeypatch
+):
+    _enable_standby(monkeypatch)
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "g" * 64)
+    monkeypatch.setattr(
+        app_module,
+        "_platform_health_snapshot",
+        lambda: {"ready": False, "checks": {}},
+    )
+
+    response = anonymous_client.get(
+        "/auth?next=/mission/ollama",
+        headers={"X-OAP-SMI-Gateway": "g" * 64},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].startswith("/auth/recover-founder?")
+    assert "next=/mission/ollama" in response.headers["Location"]
+    assert response.headers["X-OAP-Founder-Lane"] == "recovery"
+
+
+def test_trusted_smi_entry_keeps_managed_password_when_platform_is_ready(
+    anonymous_client, monkeypatch
+):
+    _enable_standby(monkeypatch)
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "g" * 64)
+    monkeypatch.setattr(
+        app_module,
+        "_platform_health_snapshot",
+        lambda: {"ready": True, "checks": {}},
+    )
+
+    response = anonymous_client.get(
+        "/auth?next=/mission/ollama",
+        headers={"X-OAP-SMI-Gateway": "g" * 64},
+    )
+
+    assert response.status_code == 200
+    assert 'type="password"' in response.get_data(as_text=True)
+    assert "X-OAP-Founder-Lane" not in response.headers

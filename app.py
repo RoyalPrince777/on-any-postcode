@@ -24,6 +24,7 @@ from mission_control import (
     authority,
     carnival_intelligence,
     founder_activation,
+    founder_recovery,
     judgement,
     languages,
     linkup,
@@ -33,6 +34,7 @@ from mission_control import (
     products,
     public_store,
     smi_chat_runtime,
+    surface_security,
     telemetry,
     web_security,
     workspaces,
@@ -616,6 +618,7 @@ def auth_page():
     next_path = _safe_next(request.args.get("next"))
     founder_only = _founder_only_path(next_path)
     error = None
+    user = None
     try:
         user = web_security.current_authenticated_user()
         if user is not None:
@@ -624,6 +627,19 @@ def auth_page():
             error = "This signed-in account cannot open the private Founder space."
     except neon_auth.AuthUnavailable:
         pass
+    if (
+        user is None
+        and founder_only
+        and surface_security.gateway_authorized()
+        and founder_recovery.configured()
+        and not _platform_health_snapshot()["ready"]
+    ):
+        response = redirect(
+            url_for("founder_recovery.recover_founder", next=next_path)
+        )
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-OAP-Founder-Lane"] = "recovery"
+        return response
     if request.args.get("auth_error") == "unavailable":
         error = "Secure identity verification is temporarily unavailable."
     notice = None

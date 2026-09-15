@@ -1,14 +1,16 @@
 from pathlib import Path
 
+import pytest
 from flask import Flask
 
 import smi_gateway
 from mission_control import surface_security
 
 
-def test_public_origin_hides_all_founder_surfaces_behind_gateway(monkeypatch):
+def test_public_origin_hands_off_safe_aliases_and_hides_other_private_paths(monkeypatch):
     monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
+    monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", "https://oap-smi.onrender.com")
     app = Flask(__name__)
     surface_security.register(app)
 
@@ -41,11 +43,20 @@ def test_public_origin_hides_all_founder_surfaces_behind_gateway(monkeypatch):
         return "public"
 
     client = app.test_client()
+
+    handoff = client.get("/mission")
+    assert handoff.status_code == 302
+    assert handoff.headers["Location"] == "https://oap-smi.onrender.com/mission/ollama"
+    assert handoff.headers["Cache-Control"] == "no-store"
+    assert handoff.headers["X-OAP-Private-Handoff"] == "smi-gateway"
+
+    my_world_handoff = client.get("/my-world")
+    assert my_world_handoff.status_code == 302
+    assert my_world_handoff.headers["Location"] == "https://oap-smi.onrender.com/my-world"
+
     for path in (
-        "/mission",
         "/auth",
         "/enter-my-world",
-        "/my-world",
         "/the-spot/my-world",
         "/infrastructure",
         "/api/infrastructure/status",
@@ -60,7 +71,7 @@ def test_public_origin_hides_all_founder_surfaces_behind_gateway(monkeypatch):
         assert allowed.status_code == 200
 
 
-def test_public_surface_fails_closed_even_if_gateway_secret_is_missing(monkeypatch):
+def test_public_surface_still_fails_closed_if_gateway_secret_is_missing(monkeypatch):
     monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
     app = Flask(__name__)
@@ -79,10 +90,54 @@ def test_public_surface_fails_closed_even_if_gateway_secret_is_missing(monkeypat
         return "private"
 
     client = app.test_client()
-    assert client.get("/mission").status_code == 404
+    assert client.get("/mission").status_code == 302
     assert client.get("/auth").status_code == 404
     assert client.get("/the-spot/my-world").status_code == 404
-    assert client.get("/mission", headers={"X-OAP-SMI-Gateway": "x" * 48}).status_code == 404
+    forged = client.get("/mission", headers={"X-OAP-SMI-Gateway": "x" * 48})
+    assert forged.status_code == 302
+    assert forged.headers["Location"].endswith("/mission/ollama")
+
+
+def test_trusted_gateway_repairs_stale_private_aliases(monkeypatch):
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
+    app = Flask(__name__)
+    surface_security.register(app)
+    client = app.test_client()
+    headers = {"X-OAP-SMI-Gateway": "s" * 48}
+
+    smi = client.get("/mission/smi", headers=headers)
+    assert smi.status_code == 302
+    assert smi.headers["Location"].endswith("/mission/ollama")
+
+    isac = client.get("/mission/isac", headers=headers)
+    assert isac.status_code == 302
+    assert isac.headers["Location"].endswith("/mission/isac-spatial/")
+
+
+def test_public_aliases_handoff_to_correct_private_gateway_paths(monkeypatch):
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
+    monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", "https://private.example.test")
+    app = Flask(__name__)
+    surface_security.register(app)
+    client = app.test_client()
+
+    expected = {
+        "/smi": "/mission/ollama",
+        "/mission": "/mission/ollama",
+        "/mission/smi": "/mission/ollama",
+        "/mission/ollama": "/mission/ollama",
+        "/war-room": "/mission/war-room",
+        "/mission/war-room": "/mission/war-room",
+        "/mission/isac": "/mission/isac-spatial/",
+        "/my-world": "/my-world",
+        "/myworld": "/my-world",
+    }
+    for source, target in expected.items():
+        response = client.get(source)
+        assert response.status_code == 302
+        assert response.headers["Location"] == f"https://private.example.test{target}"
 
 
 def test_smi_gateway_allowlist_is_founder_private_only():
@@ -105,6 +160,22 @@ def test_smi_gateway_allowlist_is_founder_private_only():
     assert smi_gateway._allowed("market") is False
     assert smi_gateway._allowed("manifest.webmanifest") is False
     assert smi_gateway._allowed("service-worker.js") is False
+
+
+def test_smi_gateway_requires_an_exact_https_public_origin(monkeypatch):
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://public.example.test/")
+    assert smi_gateway._origin() == "https://public.example.test"
+
+    for invalid in (
+        "http://public.example.test",
+        "https://public.example.test/private",
+        "https://public.example.test?secret=value",
+        "https://user:password@public.example.test",
+        "https://public.example.test:not-a-port",
+    ):
+        monkeypatch.setenv("OAP_PUBLIC_ORIGIN", invalid)
+        with pytest.raises(RuntimeError, match="invalid_public_origin"):
+            smi_gateway._origin()
 
 
 def test_smi_gateway_healthz_is_process_local(monkeypatch):

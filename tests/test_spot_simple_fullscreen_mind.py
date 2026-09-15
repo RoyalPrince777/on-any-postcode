@@ -7,8 +7,11 @@ def test_spot_is_simple_pulse_first_home_without_inline_forms():
     html = (ROOT / "mission_control" / "templates" / "spot.html").read_text()
     assert "📡 Pulse" in html
     assert "See what’s happening around you." in html
-    assert "🌍 World Rooms" in html
-    assert "👤 My World" not in html
+    assert "🌍 Earth" in html
+    assert "National Anthem" in html
+    assert "🚩 Flag Vote" not in html
+    assert "flag-vote" not in html
+    assert "👤 My World" in html
     assert "auth_page" not in html
     assert "More" in html
     assert "Carnival Intelligence" not in html
@@ -18,10 +21,13 @@ def test_spot_is_simple_pulse_first_home_without_inline_forms():
     for slug in (
         "pulse",
         "signal",
+        "news",
+        "nature",
         "postcode-rooms",
         "events",
         "market",
         "discovery",
+        "my-world",
     ):
         assert slug in html
 
