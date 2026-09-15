@@ -1,7 +1,7 @@
-"""Canonical governed OAP system protocol.
+"""Canonical governed OAP Civilisation Protocol.
 
-Policy only: names and protocol selection never grant permissions, expose private
-data, deploy, move money, or prove an external action succeeded.
+Policy only: protocol selection never grants permissions, exposes private data,
+deploys, moves money, or proves an external action succeeded.
 """
 
 from __future__ import annotations
@@ -10,7 +10,15 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
-from mission_control.hrm_agent_lifecycle import ReviewDepth, required_depth
+from mission_control.hrm_agent_lifecycle import (
+    BODY_7,
+    CANONICAL_GOVERNANCE,
+    MIND_7,
+    SOUL_7,
+    TOTAL_GOVERNED_CHECKS,
+    ReviewDepth,
+    required_depth,
+)
 
 
 class ProtocolLayer(str, Enum):
@@ -38,10 +46,26 @@ class HRMPlane(str, Enum):
 
 
 HRM_PLANES = (HRMPlane.MIND, HRMPlane.BODY, HRMPlane.SOUL)
+HRM_777 = {
+    HRMPlane.MIND: MIND_7,
+    HRMPlane.BODY: BODY_7,
+    HRMPlane.SOUL: SOUL_7,
+}
 HRM_PLANE_PURPOSE = {
-    HRMPlane.MIND: "reasoning, evidence, understanding, architecture and judgement",
-    HRMPlane.BODY: "execution readiness, infrastructure, capability, performance and real-world outcome",
-    HRMPlane.SOUL: "purpose, human benefit, values, culture, consent and constitutional alignment",
+    HRMPlane.MIND: "evidence, context, intelligence, confidence, dependencies, alternatives and judgement",
+    HRMPlane.BODY: "capability, permissions, tools, execution, verification, performance and receipt",
+    HRMPlane.SOUL: "purpose, human benefit, consent, integrity, culture, Guardian safety and Human Authority",
+}
+
+STATUS_PROTOCOL = {
+    "IDLE": "⚪",
+    "LEARNING": "🟣",
+    "WORKING": "🔵",
+    "REVIEW": "🟡",
+    "BLOCKED": "🟠",
+    "RISK": "🔴",
+    "PROVEN": "🟢",
+    "LOCKED": "🔒",
 }
 
 
@@ -50,8 +74,10 @@ class ProtocolDecision:
     signal: str
     layers: tuple[ProtocolLayer, ...]
     execution_paths: tuple[ExecutionPath, ...]
-    review_depth: ReviewDepth
+    review_depth: ReviewDepth  # legacy compatibility only; not public protocol language
     hrm_planes: tuple[HRMPlane, ...]
+    governance: str
+    governed_checks: int
     human_authority_required: bool
     fail_closed: bool
     reason: str
@@ -73,7 +99,7 @@ LAYER_PURPOSE = {
     ProtocolLayer.HYBRID: "selects the minimum safe mix of execution paths",
     ProtocolLayer.CIVILISATION: "coordinates systems, intelligence families, formations and agents",
     ProtocolLayer.GUARDIAN: "enforces security, privacy, consent and permission boundaries",
-    ProtocolLayer.HRM: "records Mind Body Soul evidence, decisions, receipts, outcomes and learning",
+    ProtocolLayer.HRM: "records 7-7-7 evidence, decisions, receipts, outcomes and learning",
     ProtocolLayer.SIGNAL: "carries governed events and intelligence between layers",
 }
 
@@ -111,6 +137,8 @@ def choose_protocol(
         paths,
         depth,
         HRM_PLANES,
+        CANONICAL_GOVERNANCE,
+        TOTAL_GOVERNED_CHECKS,
         human_required,
         fail_closed,
         reason,
@@ -120,7 +148,7 @@ def choose_protocol(
 def mind_body_soul_review(
     *, mind_evidence: bool, body_evidence: bool, soul_evidence: bool
 ) -> dict[str, object]:
-    """Three-plane HRM gate. Missing evidence is visible and never silently green."""
+    """7-7-7 plane gate. Missing evidence is visible and never silently green."""
     status = {
         HRMPlane.MIND: bool(mind_evidence),
         HRMPlane.BODY: bool(body_evidence),
@@ -128,6 +156,9 @@ def mind_body_soul_review(
     }
     missing = tuple(plane.value for plane, proven in status.items() if not proven)
     return {
+        "governance": CANONICAL_GOVERNANCE,
+        "governed_checks": TOTAL_GOVERNED_CHECKS,
+        "checks": {plane.value: HRM_777[plane] for plane in HRM_PLANES},
         "planes": {plane.value: proven for plane, proven in status.items()},
         "all_proven": not missing,
         "missing": missing,
@@ -154,6 +185,8 @@ def agent_handoff(
         "permitted_evidence": tuple(str(item) for item in permitted_evidence),
         "authority_transferred": False,
         "hrm_receipt_required": True,
+        "governance": CANONICAL_GOVERNANCE,
+        "governed_checks": TOTAL_GOVERNED_CHECKS,
         "mind_body_soul_required": True,
         "status": "READY" if valid else "LOCKED",
     }
