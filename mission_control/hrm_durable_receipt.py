@@ -10,9 +10,10 @@ import hashlib
 import json
 import os
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Mapping
+from typing import Any
 
 from mission_control.hrm_readonly_probe import _database_config, _ssl_url
 
