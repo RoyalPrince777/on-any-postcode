@@ -121,6 +121,9 @@ def activate(password: str) -> ActivationResult:
                 return "complete"
 
             result = neon_auth.sign_up_founder(password, FOUNDER_DISPLAY_NAME)
+            if neon_auth.temporarily_unavailable(result):
+                raise ActivationUnavailable("managed_auth_unavailable")
+
             users = _auth_user_emails(connection)
             if (
                 len(users) == 1
