@@ -212,13 +212,14 @@ def _postgres_approval_summary() -> dict[str, Any]:
             "reviews": 0,
             "human_decisions": 0,
             "ready": False,
+            "human_evidence_ready": False,
             "error": "judgement_store_unavailable",
         }
 
     schema_ready = bool(evidence.get("schema_ready"))
     reviews = int(evidence.get("reviews") or 0)
     human_decisions = int(evidence.get("human_decisions") or 0)
-    evidence_ready = bool(evidence.get("ready"))
+    evidence_ready = bool(evidence.get("human_evidence_ready"))
     if evidence_ready:
         message = "Human Authority decision evidence available"
     elif schema_ready:
@@ -227,6 +228,7 @@ def _postgres_approval_summary() -> dict[str, Any]:
         message = "Judgement records not initialized"
     return {
         "initialized": schema_ready,
+        "judgement_ready": bool(evidence.get("ready")),
         "evidence_ready": evidence_ready,
         "message": message,
         "counts": {
