@@ -62,6 +62,23 @@ def _emit_database_certification(server):
     server.log.info(json.dumps(snapshot, separators=(",", ":")))
 
 
+def _emit_database_connection_diagnostic(server):
+    if os.environ.get("OAP_DB_CERTIFICATION_MODE", "").strip().lower() != "read_only":
+        return
+    try:
+        from mission_control.database_connection_diagnostic import diagnostic_snapshot
+        snapshot = diagnostic_snapshot()
+    except Exception:
+        snapshot = {
+            "event": "oap_smi_database_connection_diagnostic",
+            "configured": bool(os.environ.get("DATABASE_URL", "").strip()),
+            "reachable": False,
+            "category": "diagnostic_probe_failed",
+            "secret_exposed": False,
+        }
+    server.log.info(json.dumps(snapshot, separators=(",", ":")))
+
+
 def on_starting(server):
     server.log.info(
         json.dumps(
@@ -84,4 +101,5 @@ def on_starting(server):
         )
     )
     _emit_database_certification(server)
+    _emit_database_connection_diagnostic(server)
     _restore_configured_authority_once(server)
