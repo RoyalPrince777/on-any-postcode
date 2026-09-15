@@ -187,7 +187,11 @@ def _request(
 def _local_founder_result(password: str) -> AuthResult | None:
     if not founder_local_auth.bound():
         return None
-    if not founder_local_auth.verify(password):
+    try:
+        valid = founder_local_auth.verify(password)
+    except founder_local_auth.FounderLocalAuthUnavailable as exc:
+        raise AuthUnavailable("founder_local_auth_unavailable") from exc
+    if not valid:
         return AuthResult(status_code=401, payload={"code": "INVALID_PASSWORD"})
     identity_id = os.environ.get("OAP_HUMAN_AUTHORITY_ID", "").strip()
     email = configured_founder_email()
