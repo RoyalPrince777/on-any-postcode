@@ -12,6 +12,12 @@ def on_starting(server):
                     os.environ.get("OAP_RENDER_API_KEY", "").strip()
                     or os.environ.get("RENDER_API_KEY", "").strip()
                 ),
+                "identity_selector_configured": bool(
+                    os.environ.get("OAP_HUMAN_AUTHORITY_ID", "").strip()
+                ),
+                "email_selector_configured": bool(
+                    os.environ.get("OAP_HUMAN_AUTHORITY_EMAIL", "").strip()
+                ),
                 "secret_exposed": False,
             },
             separators=(",", ":"),
