@@ -49,7 +49,6 @@ def test_authorize_action_requires_registered_action_and_human_approval(monkeypa
         request_id=request_id,
         human_authority_identity_id=identity_id,
         action_name="SYNC_INTERNAL_RECORD",
-        registered_actions={"SYNC_INTERNAL_RECORD": object()},
         guardian_passed=True,
         judgement_consistent=True,
     )
@@ -57,7 +56,20 @@ def test_authorize_action_requires_registered_action_and_human_approval(monkeypa
     assert authorized["execution_authorized"] is True
     assert authorized["execution_performed"] is False
     assert authorized["authority_transferred"] is False
+    assert authorized["action_policy"]["external"] is False
     assert authorized["stages"] == pipeline.CANONICAL_STAGES
+
+
+def test_authorize_action_rejects_caller_invented_action():
+    with pytest.raises(pipeline.ActionBlocked, match="registered_action_required"):
+        pipeline.authorize_action(
+            signal_id="signal-1",
+            request_id=str(uuid.uuid4()),
+            human_authority_identity_id=str(uuid.uuid4()),
+            action_name="DEPLOY_ANYTHING",
+            guardian_passed=True,
+            judgement_consistent=True,
+        )
 
 
 def test_authorize_action_fails_closed_without_guardian():
@@ -67,7 +79,6 @@ def test_authorize_action_fails_closed_without_guardian():
             request_id=str(uuid.uuid4()),
             human_authority_identity_id=str(uuid.uuid4()),
             action_name="SYNC_INTERNAL_RECORD",
-            registered_actions={"SYNC_INTERNAL_RECORD": object()},
             guardian_passed=False,
             judgement_consistent=True,
         )
