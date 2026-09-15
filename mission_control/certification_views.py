@@ -9,10 +9,10 @@ import json
 import os
 import threading
 
-import psycopg
 from flask import Blueprint, jsonify, make_response, request
 
 from . import certification, hrm_readonly_probe, postgres_db, web_security
+from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 from .hrm_durable_receipt import ReceiptBlocked, build_receipt, persist_and_read_back
 
 bp = Blueprint("certification", __name__)
@@ -201,38 +201,22 @@ def hrm_persistence_proof():
         and not bool(db.get("checksum_mismatches"))
         and not db.get("error")
     )
-    hrm_proven = bool(hrm.get("configured")) and bool(hrm.get("reachable")) and not hrm.get("error")
+    hrm_proven = (
+        bool(hrm.get("configured"))
+        and bool(hrm.get("reachable"))
+        and not hrm.get("error")
+    )
     if not (database_proven and hrm_proven):
-        return _error("evidence_incomplete", "Database and HRM reachability must be proven first.", 409)
+        return _error(
+            "evidence_incomplete",
+            "Database and HRM reachability must be proven first.",
+            409,
+        )
 
     checks = {
-        "mind": {
-            "proof_before_execution": True,
-            "verification_before_sharing": True,
-            "evidence_before_certainty": True,
-            "context_before_judgement": True,
-            "uncertainty_declared": True,
-            "counter_case_tested": True,
-            "learning_record_bounded": True,
-        },
-        "body": {
-            "compliance_checked": True,
-            "owned_database_path": True,
-            "audit_receipt_required": True,
-            "stability_checked": True,
-            "minimum_access": True,
-            "identity_fail_closed": True,
-            "traceable_idempotent_action": True,
-        },
-        "soul": {
-            "no_middleman_authority": True,
-            "human_approval": True,
-            "human_authority_final": True,
-            "authority_not_transferred": True,
-            "guardian_fail_closed": True,
-            "no_vulnerable_user_scope": True,
-            "constitution_unchanged": True,
-        },
+        "mind": {name: True for name in MIND_7},
+        "body": {name: True for name in BODY_7},
+        "soul": {name: True for name in SOUL_7},
     }
     governed = {
         "governance": "7-7-7",
@@ -245,12 +229,14 @@ def hrm_persistence_proof():
     }
     try:
         result = persist_and_read_back(
-            build_receipt("HRM-PERSISTENCE-CERTIFICATION-V1", governed)
+            build_receipt(
+                "HRM-PERSISTENCE-CERTIFICATION-V1",
+                governed,
+                idempotency_key="founder-controlled-proof-v1",
+            )
         )
     except ReceiptBlocked as exc:
         return _error("hrm_receipt_blocked", str(exc), 409)
-    except (psycopg.Error, OSError, RuntimeError, ValueError, TypeError):
-        return _error("hrm_persistence_unavailable", "Persistence proof failed safely.", 503)
 
     return _no_store(
         make_response(
