@@ -379,6 +379,30 @@ def chat(
     return enriched
 
 
+def persistence_unavailable(exc: BaseException) -> bool:
+    """Classify redacted Postgres provider failures without exposing connection details."""
+
+    current: BaseException | None = exc
+    for _ in range(4):
+        text = str(current or "").casefold()
+        module = type(current).__module__.casefold() if current is not None else ""
+        if (
+            "data transfer quota" in text
+            or "connection refused" in text
+            or "could not connect" in text
+            or "connection timed out" in text
+            or "connection timeout" in text
+            or "server closed the connection" in text
+            or "network is unreachable" in text
+            or ("psycopg" in module and ("connection" in text or "server" in text))
+        ):
+            return True
+        current = getattr(current, "__cause__", None) or getattr(current, "__context__", None)
+        if current is None:
+            break
+    return False
+
+
 def chat_events(
     message: object,
     identity_id: str,
@@ -423,18 +447,28 @@ def chat_events(
                 "code": "permission_denied",
                 "message": "REQUEST_RECOMMENDATION permission required.",
             })
-        except RuntimeError:
-            emit({
-                "type": "error",
-                "code": "provider_unavailable",
-                "message": "SMI is temporarily unavailable. No completion was recorded.",
-            })
-        except Exception:  # noqa: BLE001 -- final thread boundary must fail closed
-            emit({
-                "type": "error",
-                "code": "internal_error",
-                "message": "The governed request did not complete safely.",
-            })
+        except Exception as exc:  # noqa: BLE001 -- final thread boundary must fail closed
+            if persistence_unavailable(exc):
+                emit({
+                    "type": "error",
+                    "code": "persistence_unavailable",
+                    "message": (
+                        "Governed memory is unavailable because the data service refused "
+                        "the connection. No completion was recorded. Check Neon quota or availability."
+                    ),
+                })
+            elif isinstance(exc, RuntimeError):
+                emit({
+                    "type": "error",
+                    "code": "provider_unavailable",
+                    "message": "SMI is temporarily unavailable. No completion was recorded.",
+                })
+            else:
+                emit({
+                    "type": "error",
+                    "code": "internal_error",
+                    "message": "The governed request did not complete safely.",
+                })
         finally:
             event_queue.put({"type": "_done"})
 
