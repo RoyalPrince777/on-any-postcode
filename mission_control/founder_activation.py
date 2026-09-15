@@ -11,9 +11,10 @@ from __future__ import annotations
 import hmac
 import logging
 import os
+import uuid
 from typing import Final, Literal
 
-from . import founder_recovery, neon_auth, postgres_db
+from . import authority, founder_recovery, neon_auth, postgres_db
 
 ACTIVATION_TOKEN_ENV: Final = "OAP_FOUNDER_ACTIVATION_TOKEN"
 MIN_ACTIVATION_TOKEN_LENGTH: Final = 32
@@ -79,6 +80,18 @@ def _auth_user_emails(connection) -> tuple[str, ...]:
     return tuple(str(row[0] or "").strip().casefold() for row in rows)
 
 
+def _provider_identity(result: neon_auth.AuthResult) -> str:
+    """Extract only a valid managed user UUID from the trusted Auth response."""
+
+    payload = result.payload
+    user = payload.get("user") if isinstance(payload, dict) else None
+    identity = user.get("id") if isinstance(user, dict) else None
+    try:
+        return str(uuid.UUID(str(identity)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ActivationUnavailable("founder_identity_missing") from exc
+
+
 def state() -> ActivationState:
     """Return a redacted activation state after a live, read-only user check."""
 
@@ -95,7 +108,7 @@ def state() -> ActivationState:
 
 
 def activate(password: str) -> ActivationResult:
-    """Create only the configured Founder when the Auth user table is empty."""
+    """Create and bind only the configured Founder while Auth is empty."""
 
     if not _configuration_ready():
         raise ActivationUnavailable("founder_activation_not_configured")
@@ -113,6 +126,18 @@ def activate(password: str) -> ActivationResult:
                 len(users) == 1
                 and neon_auth.founder_email_allowed(users[0])
             ):
+                identity = _provider_identity(result)
+                record = authority.sync_authenticated_identity(
+                    connection,
+                    identity_id=identity,
+                    email=users[0],
+                    display_name=FOUNDER_DISPLAY_NAME,
+                    # The server-selected email plus the one-time Founder proof
+                    # forms the activation ceremony; no public email claim is used.
+                    email_verified=True,
+                )
+                if not record.get("is_human_authority"):
+                    raise ActivationUnavailable("founder_authority_binding_failed")
                 return "activated"
             if neon_auth.successful(result):
                 raise ActivationUnavailable("founder_identity_not_persisted")
