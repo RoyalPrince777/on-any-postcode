@@ -71,36 +71,36 @@ def prove(
     if not routing.production_gate_approved():
         raise RouteProofUnavailable("oap_route_engine_production_gate_required")
 
-    base = routing._base_url()  # noqa: SLF001 -- same-package proof adapter
+    base = routing._base_url()
     if not base:
         raise RouteProofUnavailable("oap_route_engine_unconfigured")
     parsed_base = routing.urlparse.urlparse(base)
     expected_host = str(parsed_base.hostname or "")
-    pickup_lat = routing._coordinate(  # noqa: SLF001
+    pickup_lat = routing._coordinate(
         pickup_latitude,
         minimum=-90,
         maximum=90,
         name="pickup_latitude",
     )
-    pickup_lon = routing._coordinate(  # noqa: SLF001
+    pickup_lon = routing._coordinate(
         pickup_longitude,
         minimum=-180,
         maximum=180,
         name="pickup_longitude",
     )
-    destination_lat = routing._coordinate(  # noqa: SLF001
+    destination_lat = routing._coordinate(
         destination_latitude,
         minimum=-90,
         maximum=90,
         name="destination_latitude",
     )
-    destination_lon = routing._coordinate(  # noqa: SLF001
+    destination_lon = routing._coordinate(
         destination_longitude,
         minimum=-180,
         maximum=180,
         name="destination_longitude",
     )
-    normalized_profile = routing._profile(profile)  # noqa: SLF001
+    normalized_profile = routing._profile(profile)
     coordinates = f"{pickup_lon},{pickup_lat};{destination_lon},{destination_lat}"
     query = routing.urlparse.urlencode(
         {
@@ -110,7 +110,7 @@ def prove(
             "alternatives": "false",
         }
     )
-    payload = routing._request_json(  # noqa: SLF001
+    payload = routing._request_json(
         f"{base}/route/v1/{normalized_profile}/{coordinates}?{query}",
         expected_host=expected_host,
     )
