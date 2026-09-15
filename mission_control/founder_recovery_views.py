@@ -88,7 +88,7 @@ def _apply_auth_cookies(response, set_cookie_headers) -> bool:
 
 @bp.route("/auth/recover-founder", methods=["GET", "POST"])
 def recover_founder():
-    """Recover Founder ownership and, when needed, rebuild Managed Auth safely."""
+    """Recover Founder ownership and optionally rebuild Managed Auth safely."""
 
     if not founder_recovery.configured():
         return _hidden()
@@ -122,6 +122,11 @@ def recover_founder():
             error="Code not recognised.",
             next_path=next_path,
         )
+
+    password_present = "password" in request.form or "password_confirmation" in request.form
+    if not password_present:
+        founder_recovery.begin_session()
+        return _no_store(redirect(next_path))
 
     password = str(request.form.get("password", ""))[:129]
     confirmation = str(request.form.get("password_confirmation", ""))[:129]
