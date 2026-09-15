@@ -3,7 +3,15 @@ from __future__ import annotations
 
 from urllib import parse as urlparse
 
-from flask import Blueprint, current_app, make_response, redirect, render_template, request, session
+from flask import (
+    Blueprint,
+    current_app,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    session,
+)
 
 from . import founder_recovery, neon_auth, web_security
 
