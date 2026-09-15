@@ -1,9 +1,9 @@
 """Governed Signal -> Action boundary for OAP SMI.
 
 This module joins the existing Signal/Guardian/Judgement/Human Authority records
-without creating a second intelligence system. It never discovers or imports an
-action dynamically. A caller must supply an explicitly registered action name,
-and Human Authority approval must already exist as a valid signed receipt.
+without creating a second intelligence system. Action names come only from the
+internal allowlist; callers cannot invent executable actions. Human Authority
+approval must already exist as a valid signed receipt.
 
 Execution and durable HRM persistence remain separate stages so an executor can
 fail closed without pretending an external action succeeded.
@@ -33,6 +33,15 @@ CANONICAL_STAGES = (
     "ACTION",
     "HRM_RECEIPT",
 )
+
+REGISTERED_ACTIONS: dict[str, dict[str, object]] = {
+    "SYNC_INTERNAL_RECORD": {
+        "external": False,
+        "reversible": True,
+        "authority_change": False,
+        "description": "Synchronise one bounded OAP-owned internal record.",
+    },
+}
 
 
 def _uuid(value: object, name: str) -> str:
@@ -73,16 +82,11 @@ def authorize_action(
     request_id: object,
     human_authority_identity_id: object,
     action_name: object,
-    registered_actions: Mapping[str, object],
     guardian_passed: bool,
     judgement_consistent: bool,
     authority_transferred: bool = False,
 ) -> dict[str, object]:
-    """Return an execution authorization only after every upstream gate passes.
-
-    The returned authorization is evidence for a registered worker. This function
-    does not itself execute the action and therefore cannot falsely claim success.
-    """
+    """Return authorization only after every upstream governance gate passes."""
 
     signal = str(signal_id or "").strip()
     action = str(action_name or "").strip()
@@ -93,7 +97,7 @@ def authorize_action(
     )
     if not signal:
         raise ActionBlocked("signal_id_required")
-    if not action or action not in registered_actions:
+    if action not in REGISTERED_ACTIONS:
         raise ActionBlocked("registered_action_required")
     if guardian_passed is not True:
         raise ActionBlocked("guardian_gate_required")
@@ -106,10 +110,12 @@ def authorize_action(
     if not _approval_valid(row, identity_id=authority_identity):
         raise ActionBlocked("human_authority_approval_invalid")
 
+    action_policy = REGISTERED_ACTIONS[action]
     return {
         "signal_id": signal,
         "request_id": request,
         "action_name": action,
+        "action_policy": dict(action_policy),
         "approval_receipt_id": str(row[0]),
         "stages": CANONICAL_STAGES,
         "stage": "ACTION",
@@ -134,6 +140,9 @@ def record_action_outcome(
         raise ActionBlocked("execution_authorization_required")
     if authorization.get("authority_transferred") is not False:
         raise ActionBlocked("authority_transfer_forbidden")
+    action_name = str(authorization.get("action_name") or "")
+    if action_name not in REGISTERED_ACTIONS:
+        raise ActionBlocked("registered_action_required")
     if action_performed is not True:
         raise ActionBlocked("action_not_performed")
     if evidence_proven is not True:
@@ -161,7 +170,7 @@ def record_action_outcome(
         "human_authority_required": True,
         "human_authority_approved": True,
         "request_id": str(authorization["request_id"]),
-        "action_name": str(authorization["action_name"]),
+        "action_name": action_name,
         "approval_receipt_id": str(authorization["approval_receipt_id"]),
         "execution_performed": True,
     }
