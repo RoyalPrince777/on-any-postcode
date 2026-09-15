@@ -23,15 +23,13 @@
 <body>
   <main>
     <h1>Founder Access</h1>
-    <p class="sub">One-time secure reactivation. Confirm the Founder recovery code and your private password. Future entry uses the private password only.</p>
+    <p class="sub">Confirm your Founder recovery code to enter the private SMI session. No second password is required on this recovery lane.</p>
     {% if recovery_error %}<p class="error" role="alert">{{ recovery_error }}</p>{% endif %}
     <form method="post" action="{{ url_for('founder_recovery.recover_founder') }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
       <input type="hidden" name="next" value="{{ next_path }}">
-      <input aria-label="Founder code" name="recovery_code" type="password" minlength="32" maxlength="256" required autocomplete="one-time-code" autofocus placeholder="Founder recovery code">
-      <input aria-label="Private password" name="password" type="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Private password">
-      <input aria-label="Confirm private password" name="password_confirmation" type="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Confirm private password">
-      <button type="submit">Reactivate & Enter SMI</button>
+      <input aria-label="Founder recovery code" name="recovery_code" type="password" minlength="32" maxlength="256" required autocomplete="one-time-code" autofocus placeholder="Founder recovery code">
+      <button type="submit">Enter SMI</button>
     </form>
   </main>
 </body>

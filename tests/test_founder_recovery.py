@@ -90,7 +90,10 @@ def test_gateway_only_recovery_boundary(anonymous_client, monkeypatch):
 
     assert direct.status_code == 404
     assert through_gateway.status_code == 200
-    assert "Founder code" in through_gateway.get_data(as_text=True)
+    body = through_gateway.get_data(as_text=True)
+    assert "Founder recovery code" in body
+    assert 'name="password"' not in body
+    assert 'name="password_confirmation"' not in body
 
 
 def test_invalid_recovery_code_fails_closed(anonymous_client, monkeypatch):
