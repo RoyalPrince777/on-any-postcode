@@ -9,6 +9,7 @@ import json
 import os
 import threading
 
+import psycopg
 from flask import Blueprint, jsonify, make_response, request
 
 from . import certification, hrm_readonly_probe, postgres_db, web_security
@@ -248,7 +249,7 @@ def hrm_persistence_proof():
         )
     except ReceiptBlocked as exc:
         return _error("hrm_receipt_blocked", str(exc), 409)
-    except Exception:
+    except (psycopg.Error, OSError, RuntimeError, ValueError, TypeError):
         return _error("hrm_persistence_unavailable", "Persistence proof failed safely.", 503)
 
     return _no_store(
