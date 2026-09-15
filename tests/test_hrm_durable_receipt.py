@@ -29,9 +29,100 @@ def receipt(signal="sig-1", key="attempt-1", payload=None):
     return build_receipt(signal, payload or proof_payload(), idempotency_key=key)
 
 
+class _Result:
+    def __init__(self, row):
+        self.row = row
+
+    def fetchone(self):
+        return self.row
+
+
+class _Transaction:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+
+class _FakeConnection:
+    def __init__(self, expected, *, existing=True, existing_row=None):
+        self.expected = expected
+        self.row = (
+            existing_row
+            if existing_row is not None
+            else (
+                (expected.receipt_id, expected.checksum, expected.payload)
+                if existing
+                else None
+            )
+        )
+        self.sql = []
+        self.insert_count = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def transaction(self):
+        return _Transaction()
+
+    def execute(self, sql, params=None):
+        del params
+        normalized = " ".join(sql.split()).upper()
+        self.sql.append(normalized)
+        if normalized.startswith("SELECT"):
+            return _Result(self.row)
+        if normalized.startswith("INSERT"):
+            self.insert_count += 1
+            self.row = (
+                self.expected.receipt_id,
+                self.expected.checksum,
+                self.expected.payload,
+            )
+            return _Result(None)
+        raise AssertionError(f"unexpected SQL: {normalized}")
+
+
+def _install_fake_database(
+    monkeypatch,
+    expected,
+    *,
+    existing=True,
+    existing_row=None,
+):
+    import psycopg
+
+    import mission_control.hrm_durable_receipt as module
+
+    connection = _FakeConnection(
+        expected,
+        existing=existing,
+        existing_row=existing_row,
+    )
+    monkeypatch.setenv("OAP_HRM_DURABLE_WRITES_ENABLED", "true")
+    monkeypatch.setattr(
+        module,
+        "_database_config",
+        lambda: ("postgresql://example.invalid/db", "test"),
+    )
+    monkeypatch.setattr(module, "_ssl_url", lambda value: value)
+    monkeypatch.setattr(psycopg, "connect", lambda *args, **kwargs: connection)
+    return connection
+
+
 def test_requires_canonical_check_names():
     payload = proof_payload()
     payload["checks"]["mind"] = {f"m{i}": True for i in range(7)}
+    with pytest.raises(ReceiptBlocked, match="mind_canonical_checks_required"):
+        receipt(payload=payload)
+
+
+def test_rejects_extra_canonical_check_name():
+    payload = proof_payload()
+    payload["checks"]["mind"]["extra"] = True
     with pytest.raises(ReceiptBlocked, match="mind_canonical_checks_required"):
         receipt(payload=payload)
 
@@ -40,6 +131,20 @@ def test_requires_all_three_canonical_planes():
     payload = proof_payload()
     payload["checks"].pop("soul")
     with pytest.raises(ReceiptBlocked, match="canonical_governance_checks_required"):
+        receipt(payload=payload)
+
+
+def test_rejects_extra_governance_plane():
+    payload = proof_payload()
+    payload["checks"]["extra"] = {}
+    with pytest.raises(ReceiptBlocked, match="canonical_governance_checks_required"):
+        receipt(payload=payload)
+
+
+def test_rejects_false_individual_proof():
+    payload = proof_payload()
+    payload["checks"]["mind"][MIND_7[0]] = False
+    with pytest.raises(ReceiptBlocked, match="mind_proof_incomplete"):
         receipt(payload=payload)
 
 
@@ -127,6 +232,41 @@ def test_schema_or_database_error_fails_closed(monkeypatch):
         persist_and_read_back(receipt())
 
 
+def test_existing_receipt_verifies_without_insert(monkeypatch):
+    expected = receipt("sig-existing", "attempt")
+    connection = _install_fake_database(monkeypatch, expected)
+
+    result = persist_and_read_back(expected)
+
+    assert connection.insert_count == 0
+    assert result["receipt_id"] == expected.receipt_id
+    assert result["checksum"] == expected.checksum
+    assert result["write_verified"] is True
+    assert result["read_back_verified"] is True
+    assert result["authority_transferred"] is False
+    assert result["secret_exposed"] is False
+    assert not any(
+        statement.startswith(("CREATE", "ALTER", "DROP"))
+        for statement in connection.sql
+    )
+
+
+def test_absent_receipt_inserts_once_and_verifies_readback(monkeypatch):
+    expected = receipt("sig-new", "attempt")
+    connection = _install_fake_database(monkeypatch, expected, existing=False)
+
+    result = persist_and_read_back(expected)
+
+    assert connection.insert_count == 1
+    assert result["receipt_id"] == expected.receipt_id
+    assert result["checksum"] == expected.checksum
+    assert result["read_back_verified"] is True
+    assert not any(
+        statement.startswith(("CREATE", "ALTER", "DROP"))
+        for statement in connection.sql
+    )
+
+
 def test_changed_payload_same_idempotency_key_keeps_identity_but_changes_checksum():
     first = receipt("sig-stable", "attempt")
     payload = proof_payload()
@@ -134,3 +274,31 @@ def test_changed_payload_same_idempotency_key_keeps_identity_but_changes_checksu
     second = receipt("sig-stable", "attempt", payload)
     assert first.receipt_id == second.receipt_id
     assert first.checksum != second.checksum
+
+
+def test_changed_payload_same_idempotency_key_fails_existing_readback(monkeypatch):
+    stored = receipt("sig-conflict", "attempt")
+    payload = proof_payload()
+    payload["human_authority_approved"] = True
+    attempted = receipt("sig-conflict", "attempt", payload)
+    _install_fake_database(monkeypatch, stored)
+
+    with pytest.raises(ReceiptBlocked, match="receipt_readback_verification_failed"):
+        persist_and_read_back(attempted)
+
+
+def test_checksum_mismatch_fails_closed(monkeypatch):
+    expected = receipt("sig-checksum", "attempt")
+    existing_row = (
+        expected.receipt_id,
+        "0" * 64,
+        expected.payload,
+    )
+    _install_fake_database(
+        monkeypatch,
+        expected,
+        existing_row=existing_row,
+    )
+
+    with pytest.raises(ReceiptBlocked, match="receipt_readback_verification_failed"):
+        persist_and_read_back(expected)
