@@ -111,6 +111,34 @@ def test_bind_existing_password_requires_active_founder_proof(
     assert "Founder proof expired" in response.get_data(as_text=True)
 
 
+def test_explicit_migration_mode_routes_proven_founder_to_password_bind(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.setattr(founder_recovery, "configured", lambda: True)
+    monkeypatch.setattr(founder_recovery, "session_active", lambda: False)
+    monkeypatch.setattr(founder_recovery, "token_allowed", lambda _code: True)
+    monkeypatch.setattr(founder_recovery, "begin_session", lambda: None)
+    monkeypatch.setattr(founder_local_auth, "bound", lambda: False)
+    token = "render-founder-migration-csrf-token-value-987654"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    response = anonymous_client.post(
+        "/auth/recover-founder",
+        data={
+            "mode": "bind",
+            "csrf_token": token,
+            "recovery_code": "existing-founder-proof-value",
+            "next": "/mission/ollama",
+        },
+    )
+
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "Keep your existing private password" in page
+    assert 'name="action" value="bind-password"' in page
+
+
 def test_proven_founder_can_bind_existing_password_once(
     anonymous_client, monkeypatch
 ):
@@ -141,5 +169,6 @@ def test_proven_founder_can_bind_existing_password_once(
     )
 
     assert response.status_code == 302
-    assert "/auth?next=/mission/ollama" in response.headers["Location"]
+    assert "/enter-my-world?next=/mission/ollama" in response.headers["Location"]
+    assert "render_bound=1" in response.headers["Location"]
     assert response.headers["X-OAP-Founder-Lane"] == "render-local"
