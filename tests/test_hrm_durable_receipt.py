@@ -1,6 +1,10 @@
 import pytest
 
-from mission_control.hrm_durable_receipt import ReceiptBlocked, build_receipt, persist_and_read_back
+from mission_control.hrm_durable_receipt import (
+    ReceiptBlocked,
+    build_receipt,
+    persist_and_read_back,
+)
 
 
 def proof_payload(**overrides):
@@ -51,11 +55,14 @@ def test_write_path_disabled_by_default(monkeypatch):
 
 def test_receipt_id_is_stable_for_same_receipt_content(monkeypatch):
     import mission_control.hrm_durable_receipt as module
+
     class FixedDateTime:
         @classmethod
         def now(cls, tz):
             from datetime import datetime
+
             return datetime(2026, 9, 15, tzinfo=tz)
+
     monkeypatch.setattr(module, "datetime", FixedDateTime)
     first = build_receipt("sig-6", proof_payload())
     second = build_receipt("sig-6", proof_payload())
