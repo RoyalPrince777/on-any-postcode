@@ -11,6 +11,8 @@ from collections.abc import Callable
 
 from flask import Flask, redirect, request
 
+from . import ecosystem_handoff
+
 _PRIVATE_REDIRECTS: tuple[tuple[str, str], ...] = (
     ("/smi/brain/evidence-runner/run", "/mission/smi/brain/evidence-runner/run"),
     ("/smi/brain/evidence", "/mission/smi/brain/evidence"),
@@ -52,6 +54,8 @@ def _inject_before_body(page: str, fragment: str) -> str:
 
 def register(app: Flask) -> None:
     """Register compatibility routes and visible truth/safety copy."""
+
+    ecosystem_handoff.register(app)
 
     for index, (legacy, canonical) in enumerate(_PRIVATE_REDIRECTS):
         app.add_url_rule(
@@ -131,6 +135,10 @@ def register(app: Flask) -> None:
                 "proof-verified is shown as 🔵</p>"
                 "</section>",
             )
+
+        handoff = ecosystem_handoff.navigation_fragment(path)
+        if handoff and 'data-oap-ecosystem-handoff="true"' not in page:
+            page = _inject_before_body(page, handoff)
 
         response.set_data(page)
         return response
