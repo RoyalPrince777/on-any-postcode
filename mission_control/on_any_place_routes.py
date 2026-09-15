@@ -7,9 +7,9 @@ as duplicate public doors. /travel belongs to the real OAP Travel surface.
 """
 from __future__ import annotations
 
-from flask import Blueprint, make_response, redirect, render_template, request
+from flask import Blueprint, jsonify, make_response, redirect, render_template, request
 
-from . import local_map_intelligence
+from . import first_party_route_proof, local_map_intelligence
 
 bp = Blueprint("on_any_place", __name__)
 
@@ -52,6 +52,38 @@ def canonical_on_any_place():
         profile=values.get("profile") or "driving",
     )
     return _no_store(make_response(render_template("local_map.html", local_map=local_map)))
+
+
+@bp.get("/on-any-route/proof")
+def first_party_route_geometry_proof():
+    """Return route geometry only when an OAP-owned engine passes every gate."""
+
+    try:
+        proof = first_party_route_proof.prove(
+            pickup_latitude=request.args.get("from_lat"),
+            pickup_longitude=request.args.get("from_lon"),
+            destination_latitude=request.args.get("to_lat"),
+            destination_longitude=request.args.get("to_lon"),
+            profile=request.args.get("profile") or "driving",
+        )
+    except (first_party_route_proof.RouteProofUnavailable, ValueError) as exc:
+        return _no_store(
+            make_response(
+                jsonify(
+                    {
+                        "state": "LOCKED",
+                        "proof": "first_party_route_geometry",
+                        "reason": str(exc),
+                        "third_party_route_api_used": False,
+                        "dispatch_performed": False,
+                        "payment_capture": False,
+                        "hidden_tracking": False,
+                    }
+                ),
+                503,
+            )
+        )
+    return _no_store(make_response(jsonify(proof)))
 
 
 @bp.get("/places")
