@@ -110,10 +110,13 @@ def prove(
             "alternatives": "false",
         }
     )
-    payload = routing._request_json(
-        f"{base}/route/v1/{normalized_profile}/{coordinates}?{query}",
-        expected_host=expected_host,
-    )
+    try:
+        payload = routing._request_json(
+            f"{base}/route/v1/{normalized_profile}/{coordinates}?{query}",
+            expected_host=expected_host,
+        )
+    except routing.RoutingUnavailable as exc:
+        raise RouteProofUnavailable("oap_route_engine_unavailable") from exc
     if payload.get("code") != "Ok":
         raise RouteProofUnavailable("route_not_found")
     routes = payload.get("routes")
