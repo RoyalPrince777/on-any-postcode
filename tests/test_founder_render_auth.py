@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from mission_control import founder_local_auth, founder_recovery, neon_auth, web_security
+from mission_control import (
+    founder_local_auth,
+    founder_recovery,
+    neon_auth,
+    web_security,
+)
 
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
@@ -10,11 +15,18 @@ def test_founder_sign_in_prefers_render_local_verifier(monkeypatch):
     monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
     monkeypatch.setenv("OAP_HUMAN_AUTHORITY_ID", AUTH_ID)
     monkeypatch.setattr(founder_local_auth, "bound", lambda: True)
-    monkeypatch.setattr(founder_local_auth, "verify", lambda password: password == "existing-private-password")
+    monkeypatch.setattr(
+        founder_local_auth,
+        "verify",
+        lambda password: password == "existing-private-password",
+    )
     monkeypatch.setattr(
         founder_local_auth,
         "issue_session_cookie",
-        lambda: "oap_founder_session=opaque; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=43200",
+        lambda: (
+            "oap_founder_session=opaque; Path=/; Secure; HttpOnly; "
+            "SameSite=Lax; Max-Age=43200"
+        ),
     )
 
     def provider_must_not_run(*_args, **_kwargs):
@@ -91,7 +103,9 @@ def test_proven_founder_can_bind_existing_password_once(
     monkeypatch.setattr(
         founder_local_auth,
         "bind_existing_password",
-        lambda password: "bound" if password == "existing-private-password" else "unexpected",
+        lambda password: (
+            "bound" if password == "existing-private-password" else "unexpected"
+        ),
     )
     monkeypatch.setattr(founder_recovery, "clear_session", lambda: None)
     token = "render-founder-bind-csrf-token-value-654321"
