@@ -23,13 +23,14 @@
 <body>
   <main>
     <h1>Founder Access</h1>
-    <p class="sub">Confirm your Founder recovery code to enter the private SMI session. No second password is required on this recovery lane.</p>
+    <p class="sub">{% if bind_mode %}Confirm your Founder recovery code once to migrate your existing private password to Render. This does not create a second Founder identity.{% else %}Confirm your Founder recovery code to enter the private SMI session. No second password is required on this recovery lane.{% endif %}</p>
     {% if recovery_error %}<p class="error" role="alert">{{ recovery_error }}</p>{% endif %}
     <form method="post" action="{{ url_for('founder_recovery.recover_founder') }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
       <input type="hidden" name="next" value="{{ next_path }}">
+      {% if bind_mode %}<input type="hidden" name="mode" value="bind">{% endif %}
       <input aria-label="Founder recovery code" name="recovery_code" type="password" minlength="32" maxlength="256" required autocomplete="one-time-code" autofocus placeholder="Founder recovery code">
-      <button type="submit">Enter SMI</button>
+      <button type="submit">{% if bind_mode %}Continue to Password Bind{% else %}Enter SMI{% endif %}</button>
     </form>
   </main>
 </body>

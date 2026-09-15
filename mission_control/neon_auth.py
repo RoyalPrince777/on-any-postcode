@@ -1,8 +1,8 @@
 """Small, first-party bridge to Managed Neon Auth.
 
-The browser only talks to the OAP origin. OAP forwards the allowlisted Auth
-requests server-to-server and re-scopes Neon's opaque session cookies to the
-OAP origin. Every private request is then verified by Neon before use.
+The browser only talks to the OAP origin. Founder authentication may be served
+from the Render-local verifier once it has been explicitly bound; other managed
+identity traffic continues to use Neon Auth.
 """
 
 from __future__ import annotations
@@ -18,6 +18,8 @@ from typing import Any, Final
 from urllib import error as urlerror
 from urllib import parse as urlparse
 from urllib import request as urlrequest
+
+from . import founder_local_auth
 
 AUTH_COOKIE_NAMES_SESSION_KEY: Final = "oap_neon_auth_cookie_names"
 AUTH_TIMEOUT_SECONDS: Final = 8
@@ -35,7 +37,7 @@ class AuthUnavailable(RuntimeError):
 
 @dataclass(frozen=True)
 class AuthResult:
-    """Bounded response from one allowlisted Managed Neon Auth endpoint."""
+    """Bounded response from one allowlisted authentication endpoint."""
 
     status_code: int
     payload: Any
@@ -182,7 +184,37 @@ def _request(
         raise AuthUnavailable("neon_auth_unavailable") from exc
 
 
+def _local_founder_result(password: str) -> AuthResult | None:
+    if not founder_local_auth.bound():
+        return None
+    try:
+        valid = founder_local_auth.verify(password)
+    except founder_local_auth.FounderLocalAuthUnavailable as exc:
+        raise AuthUnavailable("founder_local_auth_unavailable") from exc
+    if not valid:
+        return AuthResult(status_code=401, payload={"code": "INVALID_PASSWORD"})
+    identity_id = os.environ.get("OAP_HUMAN_AUTHORITY_ID", "").strip()
+    email = configured_founder_email()
+    return AuthResult(
+        status_code=200,
+        payload={
+            "session": {"id": "render-local-founder"},
+            "user": {
+                "id": identity_id,
+                "name": "OAP Founder",
+                "email": email,
+                "emailVerified": bool(email),
+            },
+        },
+        set_cookie_headers=(founder_local_auth.issue_session_cookie(),),
+    )
+
+
 def sign_in(email: str, password: str) -> AuthResult:
+    if founder_email_allowed(email):
+        local_result = _local_founder_result(password)
+        if local_result is not None:
+            return local_result
     return _request(
         "/sign-in/email",
         method="POST",
@@ -192,7 +224,7 @@ def sign_in(email: str, password: str) -> AuthResult:
 
 
 def sign_up_founder(password: str, name: str) -> AuthResult:
-    """Create only the server-configured private Founder identity."""
+    """Create only the server-configured private Founder identity in Managed Auth."""
 
     email = configured_founder_email()
     if not email:
@@ -206,12 +238,27 @@ def sign_up_founder(password: str, name: str) -> AuthResult:
 
 
 def get_session(cookie_header: str) -> AuthResult:
+    try:
+        local_user = founder_local_auth.session_user(cookie_header)
+    except founder_local_auth.FounderLocalAuthUnavailable:
+        local_user = None
+    if local_user is not None:
+        return AuthResult(
+            status_code=200,
+            payload={"session": {"id": "render-local-founder"}, "user": local_user},
+        )
     return _request(
         "/get-session", method="GET", cookie_header=cookie_header or None
     )
 
 
 def sign_out(cookie_header: str) -> AuthResult:
+    if founder_local_auth.COOKIE_NAME in str(cookie_header or ""):
+        return AuthResult(
+            status_code=200,
+            payload={"ok": True},
+            set_cookie_headers=(founder_local_auth.clear_session_cookie(),),
+        )
     return _request(
         "/sign-out",
         method="POST",
@@ -234,7 +281,7 @@ def cookie_names(set_cookie_headers: Sequence[str]) -> tuple[str, ...]:
 
 
 def scoped_set_cookie(header: str) -> str | None:
-    """Re-scope an upstream session cookie to this first-party application."""
+    """Re-scope an authentication session cookie to this first-party application."""
 
     parts = [part.strip() for part in header.split(";") if part.strip()]
     if not parts:
@@ -264,7 +311,7 @@ def cookie_header(
     *,
     application_cookie_name: str = "session",
 ) -> str:
-    """Build a minimal upstream Cookie header without leaking app cookies."""
+    """Build a minimal Auth Cookie header without leaking app cookies."""
 
     if not isinstance(cookie_names_value, (list, tuple)):
         return ""
