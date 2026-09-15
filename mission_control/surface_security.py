@@ -178,6 +178,7 @@ def register(app: Flask) -> None:
         contract_compatibility,
         ecosystem_intelligence_views,
         founder_recovery_views,
+        governed_signal_views,
         pulse_routes,
         signal_health,
         smi_certification_routes,
@@ -193,6 +194,7 @@ def register(app: Flask) -> None:
     app.register_blueprint(smi_proof_views.bp)
     app.register_blueprint(all_intelligence_views.bp)
     app.register_blueprint(ecosystem_intelligence_views.bp)
+    app.register_blueprint(governed_signal_views.bp)
     contract_compatibility.register(app)
     smi_event_memory.register(app)
 
