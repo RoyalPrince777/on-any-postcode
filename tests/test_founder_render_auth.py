@@ -91,7 +91,6 @@ def test_bind_existing_password_requires_active_founder_proof(
 ):
     monkeypatch.setattr(founder_recovery, "configured", lambda: True)
     monkeypatch.setattr(founder_recovery, "session_active", lambda: False)
-    monkeypatch.setattr(founder_local_auth, "bound", lambda: False)
     token = "render-founder-bind-csrf-token-value-123456"
     with anonymous_client.session_transaction() as current_session:
         current_session[web_security.CSRF_SESSION_KEY] = token
@@ -118,7 +117,6 @@ def test_explicit_migration_mode_routes_proven_founder_to_password_bind(
     monkeypatch.setattr(founder_recovery, "session_active", lambda: False)
     monkeypatch.setattr(founder_recovery, "token_allowed", lambda _code: True)
     monkeypatch.setattr(founder_recovery, "begin_session", lambda: None)
-    monkeypatch.setattr(founder_local_auth, "bound", lambda: False)
     token = "render-founder-migration-csrf-token-value-987654"
     with anonymous_client.session_transaction() as current_session:
         current_session[web_security.CSRF_SESSION_KEY] = token
@@ -139,12 +137,37 @@ def test_explicit_migration_mode_routes_proven_founder_to_password_bind(
     assert 'name="action" value="bind-password"' in page
 
 
+def test_explicit_bind_mode_repairs_already_bound_founder(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.setattr(founder_recovery, "configured", lambda: True)
+    monkeypatch.setattr(founder_recovery, "session_active", lambda: False)
+    monkeypatch.setattr(founder_recovery, "token_allowed", lambda _code: True)
+    monkeypatch.setattr(founder_recovery, "begin_session", lambda: None)
+    monkeypatch.setattr(founder_local_auth, "bound", lambda: True)
+    token = "render-founder-repair-csrf-token-value-246810"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    response = anonymous_client.post(
+        "/auth/recover-founder",
+        data={
+            "mode": "bind",
+            "csrf_token": token,
+            "recovery_code": "existing-founder-proof-value",
+            "next": "/mission/ollama",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Keep your existing private password" in response.get_data(as_text=True)
+
+
 def test_proven_founder_can_bind_existing_password_once(
     anonymous_client, monkeypatch
 ):
     monkeypatch.setattr(founder_recovery, "configured", lambda: True)
     monkeypatch.setattr(founder_recovery, "session_active", lambda: True)
-    monkeypatch.setattr(founder_local_auth, "bound", lambda: False)
     monkeypatch.setattr(
         founder_local_auth,
         "bind_existing_password",
@@ -172,3 +195,95 @@ def test_proven_founder_can_bind_existing_password_once(
     assert "/enter-my-world?next=/mission/ollama" in response.headers["Location"]
     assert "render_bound=1" in response.headers["Location"]
     assert response.headers["X-OAP-Founder-Lane"] == "render-local"
+    assert response.headers["X-OAP-Founder-Password-State"] == "bound"
+
+
+def test_proven_founder_can_rebind_existing_password(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.setattr(founder_recovery, "configured", lambda: True)
+    monkeypatch.setattr(founder_recovery, "session_active", lambda: True)
+    monkeypatch.setattr(
+        founder_local_auth,
+        "bind_existing_password",
+        lambda password: (
+            "rebound" if password == "existing-private-password" else "unexpected"
+        ),
+    )
+    monkeypatch.setattr(founder_recovery, "clear_session", lambda: None)
+    token = "render-founder-rebind-csrf-token-value-135790"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    response = anonymous_client.post(
+        "/auth/recover-founder",
+        data={
+            "action": "bind-password",
+            "csrf_token": token,
+            "password": "existing-private-password",
+            "password_confirmation": "existing-private-password",
+            "next": "/mission/ollama",
+        },
+    )
+
+    assert response.status_code == 302
+    assert "render_bound=1" in response.headers["Location"]
+    assert response.headers["X-OAP-Founder-Lane"] == "render-local"
+    assert response.headers["X-OAP-Founder-Password-State"] == "rebound"
+
+
+class _ExistingFounderConnection:
+    def __init__(self):
+        self.commands = []
+        self.committed = False
+        self.rolled_back = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, sql, params=()):
+        self.commands.append((sql, params))
+
+        class Result:
+            def fetchone(self):
+                if "SELECT identity_id FROM oap_founder_local_auth" in sql:
+                    return (AUTH_ID,)
+                return None
+
+        return Result()
+
+    def commit(self):
+        self.committed = True
+
+    def rollback(self):
+        self.rolled_back = True
+
+
+def test_local_store_rebind_updates_same_identity_without_second_row(monkeypatch):
+    connection = _ExistingFounderConnection()
+    monkeypatch.setattr(founder_local_auth.postgres_db, "connect", lambda: connection)
+    monkeypatch.setattr(founder_local_auth.authority, "configured_identity", lambda: AUTH_ID)
+    monkeypatch.setattr(
+        founder_local_auth.authority,
+        "configured_email",
+        lambda: "founder@example.test",
+    )
+    monkeypatch.setattr(
+        founder_local_auth.authority,
+        "sync_authenticated_identity",
+        lambda *_args, **_kwargs: {"is_human_authority": True},
+    )
+    monkeypatch.setattr(founder_local_auth.secrets, "token_bytes", lambda _size: b"s" * 16)
+    monkeypatch.setattr(founder_local_auth, "_derive", lambda _password, _salt: b"v" * 32)
+
+    result = founder_local_auth.bind_existing_password("existing-private-password")
+
+    assert result == "rebound"
+    assert connection.committed is True
+    assert connection.rolled_back is False
+    statements = "\n".join(sql for sql, _params in connection.commands)
+    assert "UPDATE oap_founder_local_auth" in statements
+    assert "INSERT INTO oap_founder_local_auth" not in statements
