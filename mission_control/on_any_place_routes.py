@@ -13,8 +13,10 @@ from . import (
     atlas_live_sources,
     local_map_intelligence,
     location_intelligence,
+    map_live_pattern,
     routing,
     routing_federation,
+    web_security,
 )
 
 bp = Blueprint("on_any_place", __name__)
@@ -119,6 +121,40 @@ def map_intelligence_places():
     return response
 
 
+@bp.get("/map-intelligence/live-pattern")
+def map_intelligence_live_pattern():
+    query = request.args.get("q") or request.args.get("location") or ""
+    response = jsonify({
+        "component": "OAP Live Pattern",
+        "reports": map_live_pattern.reports(query),
+        "status": map_live_pattern.status(),
+        "authority_verified_feed": False,
+        "advisory_only": True,
+        "automatic_rerouting": False,
+    })
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.post("/map-intelligence/live-pattern")
+def map_intelligence_live_pattern_report():
+    if not web_security.csrf_valid(request):
+        return jsonify({"error": {"code": "csrf_failed"}}), 403
+    payload = request.get_json(silent=True) if request.is_json else request.form
+    try:
+        report = map_live_pattern.add_report(
+            area=payload.get("area"),
+            road=payload.get("road"),
+            kind=payload.get("kind"),
+            note=payload.get("note"),
+        )
+    except ValueError as exc:
+        return jsonify({"error": {"code": str(exc)[:80]}}), 400
+    response = jsonify({"report": report, "advisory_only": True, "authority_verified": False})
+    response.headers["Cache-Control"] = "no-store"
+    return response, 201
+
+
 @bp.get("/map-intelligence/status")
 def map_intelligence_status():
     route_status = routing.status()
@@ -132,6 +168,7 @@ def map_intelligence_status():
         "turn_by_turn": True,
         "autocomplete": True,
         "source_backed_places_enabled": bool(place_status.get("enabled")),
+        "live_pattern": map_live_pattern.status(),
         "routing_federation": federation_status,
         "coverage": {
             "current_graph": "Greater London",
@@ -172,6 +209,7 @@ def map_intelligence_route():
     except (location_intelligence.LocationUnavailable, routing.RoutingUnavailable) as exc:
         return jsonify({"error": {"code": str(exc)[:100] or "map_route_unavailable"}}), 503
     result["roads"] = _road_sequence(result)
+    result["live_pattern_reports"] = map_live_pattern.reports(destination)
     response = jsonify({
         "route": result,
         "coverage": coverage,
