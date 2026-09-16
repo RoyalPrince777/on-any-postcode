@@ -1,14 +1,20 @@
 """Truth-first Founder SMI function and canonical route health registry."""
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from typing import Any
 
 from . import (
+    agents,
+    brain,
     coherent_automation,
+    infrastructure,
+    judgement,
     smi_brain_evidence_runner,
     smi_chat_runtime,
     smi_proof_gate,
+    smi_recursive_improvement,
 )
 
 FUNCTION_SPECS = (
@@ -30,6 +36,25 @@ FUNCTION_SPECS = (
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _percent(count: int, total: int) -> float:
+    if total <= 0:
+        return 0.0
+    return round((count / total) * 100.0, 1)
+
+
+def _safe_read(
+    reader: Callable[[], Mapping[str, Any]],
+    fallback: Mapping[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    try:
+        value = reader()
+    except Exception:  # noqa: BLE001 - Function Health must fail closed, not fail open.
+        return dict(fallback), False
+    if not isinstance(value, Mapping):
+        return dict(fallback), False
+    return dict(value), True
 
 
 def _rules_for_endpoint(url_map: Any, endpoint: str):
@@ -73,12 +98,15 @@ def route_status(url_map: Any) -> dict[str, Any]:
             }
         )
     canonical_paths = [row["path"] for row in routes]
+    registered_count = sum(1 for row in routes if row["registered"])
+    expected_count = len(routes)
     return {
         "component": "SMI Founder Canonical Route Registry",
         "generated_at": _now(),
         "routes": tuple(routes),
-        "registered_count": sum(1 for row in routes if row["registered"]),
-        "expected_count": len(routes),
+        "registered_count": registered_count,
+        "expected_count": expected_count,
+        "availability_percent": _percent(registered_count, expected_count),
         "all_registered": all(row["registered"] for row in routes),
         "duplicate_primary_paths": len(canonical_paths) - len(set(canonical_paths)),
         "compatibility_aliases_hidden_from_primary_ui": True,
@@ -89,79 +117,219 @@ def route_status(url_map: Any) -> dict[str, Any]:
 
 
 def function_health(url_map: Any) -> dict[str, Any]:
+    """Evaluate every primary Founder function with an explicit evidence source.
+
+    Function operability and whole-system Green Gate readiness remain separate.
+    A working proof reader never upgrades missing receipts, observability or external
+    evidence into a fake whole-SMI green state.
+    """
+
     routes = route_status(url_map)
     route_by_id = {row["id"]: row for row in routes["routes"]}
-    try:
-        runtime = smi_chat_runtime.health()
-    except Exception:  # noqa: BLE001
-        runtime = {"status": "unavailable", "checks": {}}
+
+    runtime, runtime_checked = _safe_read(
+        smi_chat_runtime.health,
+        {"status": "unavailable", "checks": {}},
+    )
     checks = runtime.get("checks") if isinstance(runtime.get("checks"), dict) else {}
-    try:
-        signals = coherent_automation.status()
-    except Exception:  # noqa: BLE001
-        signals = {"ready": False, "signals_valid": False, "signal_count": 0}
-    try:
-        gate = smi_proof_gate.public_safe_status()
-    except Exception:  # noqa: BLE001
-        gate = {"green": False, "missing": ("proof_unavailable",), "execution_granted": False}
+    signals, signals_checked = _safe_read(
+        coherent_automation.status,
+        {"ready": False, "signals_valid": False, "signal_count": 0},
+    )
+    gate, gate_checked = _safe_read(
+        smi_proof_gate.public_safe_status,
+        {
+            "green": False,
+            "missing": ("proof_unavailable",),
+            "execution_granted": False,
+        },
+    )
+    brain_status, brain_checked = _safe_read(
+        brain.get_public_brain_status,
+        {"validation": {"passed": False}, "brain_count": 0},
+    )
+    agent_status, agents_checked = _safe_read(
+        agents.validate_agent_registry,
+        {"passed": False, "registry_complete": False},
+    )
+    infrastructure_status, infrastructure_checked = _safe_read(
+        infrastructure.get_public_infrastructure,
+        {"validation": {"passed": False}},
+    )
+    judgement_status, judgement_checked = _safe_read(
+        judgement.status,
+        {"schema_ready": False, "ready": False, "error": "unavailable"},
+    )
+    improvement_status, improvement_checked = _safe_read(
+        smi_recursive_improvement.run_cycle,
+        {
+            "light": "orange",
+            "proof": {"live_cycle_ran": False},
+            "consequential_action": False,
+        },
+    )
+
+    brain_validation = brain_status.get("validation")
+    if not isinstance(brain_validation, Mapping):
+        brain_validation = {}
+    infrastructure_validation = infrastructure_status.get("validation")
+    if not isinstance(infrastructure_validation, Mapping):
+        infrastructure_validation = {}
+    improvement_proof = improvement_status.get("proof")
+    if not isinstance(improvement_proof, Mapping):
+        improvement_proof = {}
+
+    route_integrity = bool(
+        routes["all_registered"] and routes["duplicate_primary_paths"] == 0
+    )
+
+    proofs: dict[str, dict[str, Any]] = {
+        "signals-21": {
+            "checked": bool(
+                signals_checked
+                and {"ready", "signals_valid", "signal_count"}.issubset(signals)
+            ),
+            "ready": bool(
+                signals.get("ready")
+                and signals.get("signals_valid")
+                and int(signals.get("signal_count") or 0) == 21
+            ),
+            "evidence": "coherent_automation.status() validates 21 canonical signals",
+        },
+        "guardian": {
+            "checked": True,
+            "ready": "guardian_check" in smi_brain_evidence_runner.SAFE_COMMANDS,
+            "evidence": "guardian_check registered in bounded evidence runner",
+        },
+        "brain": {
+            "checked": bool(brain_checked and "passed" in brain_validation),
+            "ready": bool(
+                brain_validation.get("passed")
+                and int(brain_status.get("brain_count") or 0) == 1
+            ),
+            "evidence": "brain.get_public_brain_status() validates one governed SMI brain",
+        },
+        "agents": {
+            "checked": bool(agents_checked and "passed" in agent_status),
+            "ready": bool(
+                agent_status.get("passed") and agent_status.get("registry_complete")
+            ),
+            "evidence": "agents.validate_agent_registry() validates the canonical registry",
+        },
+        "infrastructure": {
+            "checked": bool(
+                infrastructure_checked and "passed" in infrastructure_validation
+            ),
+            "ready": bool(infrastructure_validation.get("passed")),
+            "evidence": "infrastructure.get_public_infrastructure().validation",
+        },
+        "judgement": {
+            "checked": bool(judgement_checked and "schema_ready" in judgement_status),
+            "ready": bool(
+                judgement_status.get("schema_ready")
+                and not judgement_status.get("error")
+            ),
+            "evidence": "judgement.status() verifies the governed decision ledger schema",
+        },
+        "improvement": {
+            "checked": bool(
+                improvement_checked and "live_cycle_ran" in improvement_proof
+            ),
+            "ready": bool(
+                improvement_proof.get("live_cycle_ran")
+                and improvement_status.get("consequential_action") is False
+            ),
+            "evidence": "smi_recursive_improvement.run_cycle() executes a read-only live evidence review",
+        },
+        "function-health": {
+            "checked": True,
+            "ready": route_integrity,
+            "evidence": "Function Health generated this truth-labelled 13-function projection",
+        },
+        "routes": {
+            "checked": True,
+            "ready": route_integrity,
+            "evidence": "Canonical route registry is complete and duplicate-free",
+        },
+        "green-gate": {
+            "checked": bool(gate_checked and "green" in gate),
+            "ready": bool(gate.get("green")),
+            "evidence": "smi_proof_gate.public_safe_status()",
+        },
+    }
+
+    for function_id, proof_key in (
+        ("chat", "chat_route"),
+        ("war-room", "war_room"),
+        ("hrm", "conversation_memory"),
+    ):
+        proofs[function_id] = {
+            "checked": bool(runtime_checked and proof_key in checks),
+            "ready": bool(checks.get(proof_key)),
+            "evidence": f"smi_chat_runtime.health().checks.{proof_key}",
+        }
 
     functions = []
     for spec in FUNCTION_SPECS:
         function_id = spec["id"]
         route = route_by_id[function_id]
-        proof_key = spec.get("proof")
-        proven = None
-        evidence = "Canonical Founder route registered."
-        if proof_key:
-            proven = bool(checks.get(proof_key))
-            evidence = f"smi_chat_runtime.health().checks.{proof_key}"
-        elif function_id == "signals-21":
-            proven = bool(
-                signals.get("ready")
-                and signals.get("signals_valid")
-                and int(signals.get("signal_count") or 0) == 21
-            )
-            evidence = "coherent_automation.status() validates 21 canonical signals"
-        elif function_id == "guardian":
-            proven = "guardian_check" in smi_brain_evidence_runner.SAFE_COMMANDS
-            evidence = "guardian_check registered in bounded evidence runner"
-        elif function_id == "green-gate":
-            proven = bool(gate.get("green"))
-            evidence = "smi_proof_gate.public_safe_status()"
+        proof = proofs[function_id]
+        proof_checked = bool(proof["checked"])
+        runtime_proven = bool(proof["ready"])
 
         if not route["registered"]:
             state, label = "red", "ROUTE MISSING"
-        elif proven is True:
+        elif not proof_checked:
+            state, label = "yellow", "EVIDENCE UNAVAILABLE"
+        elif runtime_proven:
             state, label = "green", "PROVEN"
-        elif proven is False:
-            state, label = "yellow", "PROOF REQUIRED"
         else:
-            state, label = "blue", "AVAILABLE"
+            state, label = "yellow", "PROOF REQUIRED"
+
         functions.append(
             {
                 "id": function_id,
                 "name": spec["name"],
                 "path": route["path"],
                 "available": bool(route["registered"]),
-                "runtime_proven": proven,
+                "proof_checked": proof_checked,
+                "runtime_proven": runtime_proven,
                 "state": state,
                 "label": label,
-                "evidence": evidence,
+                "evidence": proof["evidence"],
                 "founder_only": True,
                 "consequential_execution": False,
             }
         )
 
+    expected_count = len(functions)
+    available_count = sum(1 for item in functions if item["available"])
+    proof_checked_count = sum(1 for item in functions if item["proof_checked"])
+    runtime_ready_count = sum(1 for item in functions if item["runtime_proven"])
+    whole_smi_green = bool(
+        gate.get("green")
+        and route_integrity
+        and runtime_ready_count == expected_count
+    )
+
     return {
         "component": "SMI Founder Function Health",
         "generated_at": _now(),
         "functions": tuple(functions),
-        "available_count": sum(1 for item in functions if item["available"]),
-        "expected_count": len(functions),
+        "available_count": available_count,
+        "expected_count": expected_count,
+        "availability_percent": _percent(available_count, expected_count),
+        "proof_checked_count": proof_checked_count,
+        "proof_coverage_percent": _percent(proof_checked_count, expected_count),
+        "runtime_ready_count": runtime_ready_count,
+        "runtime_ready_percent": _percent(runtime_ready_count, expected_count),
+        "proof_required_count": expected_count - runtime_ready_count,
+        "all_proof_sources_checked": proof_checked_count == expected_count,
         "all_primary_routes_registered": routes["all_registered"],
         "duplicate_primary_paths": routes["duplicate_primary_paths"],
         "green_gate": gate,
-        "whole_smi_green": bool(gate.get("green")) and routes["all_registered"],
+        "whole_smi_green": whole_smi_green,
+        "readiness_scope": "Founder function operability; universal external-world readiness is measured separately",
         "execution_granted": False,
         "no_fake_green": True,
         "human_authority_final": True,
