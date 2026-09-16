@@ -11,6 +11,7 @@ def test_primary_founder_smi_routes_are_registered_and_deduplicated():
 
     assert payload["all_registered"] is True
     assert payload["registered_count"] == payload["expected_count"] == 13
+    assert payload["availability_percent"] == 100.0
     assert payload["duplicate_primary_paths"] == 0
     assert payload["compatibility_aliases_hidden_from_primary_ui"] is True
     assert payload["public_private_separation"] is True
@@ -40,7 +41,7 @@ def test_primary_founder_smi_routes_are_registered_and_deduplicated():
     assert all(item["external_execution"] is False for item in routes.values())
 
 
-def test_function_health_is_truth_labelled_and_never_grants_execution(client, monkeypatch):
+def test_function_health_covers_all_major_functions_without_fake_green(client, monkeypatch):
     monkeypatch.setattr(
         smi_function_health.smi_chat_runtime,
         "health",
@@ -57,6 +58,35 @@ def test_function_health_is_truth_labelled_and_never_grants_execution(client, mo
         smi_function_health.coherent_automation,
         "status",
         lambda: {"ready": True, "signals_valid": True, "signal_count": 21},
+    )
+    monkeypatch.setattr(
+        smi_function_health.brain,
+        "get_public_brain_status",
+        lambda: {"validation": {"passed": True}, "brain_count": 1},
+    )
+    monkeypatch.setattr(
+        smi_function_health.agents,
+        "validate_agent_registry",
+        lambda: {"passed": True, "registry_complete": True},
+    )
+    monkeypatch.setattr(
+        smi_function_health.infrastructure,
+        "get_public_infrastructure",
+        lambda: {"validation": {"passed": True}},
+    )
+    monkeypatch.setattr(
+        smi_function_health.judgement,
+        "status",
+        lambda: {"schema_ready": True, "ready": False, "error": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_recursive_improvement,
+        "run_cycle",
+        lambda: {
+            "light": "orange",
+            "proof": {"live_cycle_ran": True},
+            "consequential_action": False,
+        },
     )
     monkeypatch.setattr(
         smi_function_health.smi_proof_gate,
@@ -78,6 +108,13 @@ def test_function_health_is_truth_labelled_and_never_grants_execution(client, mo
     payload = response.get_json()
 
     assert payload["available_count"] == payload["expected_count"] == 13
+    assert payload["availability_percent"] == 100.0
+    assert payload["proof_checked_count"] == payload["expected_count"] == 13
+    assert payload["proof_coverage_percent"] == 100.0
+    assert payload["all_proof_sources_checked"] is True
+    assert payload["runtime_ready_count"] == 12
+    assert payload["runtime_ready_percent"] == 92.3
+    assert payload["proof_required_count"] == 1
     assert payload["duplicate_primary_paths"] == 0
     assert payload["all_primary_routes_registered"] is True
     assert payload["whole_smi_green"] is False
@@ -86,14 +123,48 @@ def test_function_health_is_truth_labelled_and_never_grants_execution(client, mo
     assert payload["human_authority_final"] is True
 
     functions = {item["id"]: item for item in payload["functions"]}
-    assert functions["chat"]["state"] == "green"
-    assert functions["war-room"]["state"] == "green"
-    assert functions["hrm"]["state"] == "green"
-    assert functions["signals-21"]["state"] == "green"
-    assert functions["guardian"]["state"] == "green"
+    assert set(functions) == {
+        "chat",
+        "signals-21",
+        "war-room",
+        "guardian",
+        "hrm",
+        "brain",
+        "agents",
+        "infrastructure",
+        "judgement",
+        "improvement",
+        "function-health",
+        "routes",
+        "green-gate",
+    }
+    for function_id in set(functions) - {"green-gate"}:
+        assert functions[function_id]["proof_checked"] is True
+        assert functions[function_id]["state"] == "green"
+        assert functions[function_id]["label"] == "PROVEN"
+    assert functions["green-gate"]["proof_checked"] is True
     assert functions["green-gate"]["state"] == "yellow"
     assert functions["green-gate"]["label"] == "PROOF REQUIRED"
     assert all(item["consequential_execution"] is False for item in functions.values())
+
+
+def test_function_health_marks_missing_evidence_without_crashing(client, monkeypatch):
+    def unavailable():
+        raise RuntimeError("unavailable")
+
+    monkeypatch.setattr(smi_function_health.brain, "get_public_brain_status", unavailable)
+
+    response = client.get("/mission/smi/function-health")
+    assert response.status_code == 200
+    payload = response.get_json()
+    functions = {item["id"]: item for item in payload["functions"]}
+
+    assert functions["brain"]["proof_checked"] is False
+    assert functions["brain"]["runtime_proven"] is False
+    assert functions["brain"]["state"] == "yellow"
+    assert functions["brain"]["label"] == "EVIDENCE UNAVAILABLE"
+    assert payload["whole_smi_green"] is False
+    assert payload["no_fake_green"] is True
 
 
 def test_function_health_routes_fail_closed_anonymously(anonymous_client):
