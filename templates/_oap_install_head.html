@@ -1,4 +1,4 @@
-<meta name="theme-color" content="#050807">
+<meta name="theme-color" content="#020202">
 <meta name="application-name" content="OAP">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -7,4 +7,5 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" sizes="192x192" href="{{ url_for('oap_os_icon', size=192) }}">
 <link rel="apple-touch-icon" href="{{ url_for('oap_os_icon', size=192) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='oap_luxury.css') }}">
 {% if oap_install_script is not defined or oap_install_script %}<script defer src="/assets/oap-os.js"></script>{% endif %}
