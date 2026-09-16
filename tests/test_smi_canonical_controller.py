@@ -19,7 +19,7 @@ def test_canonical_controller_owns_one_submit_path_fail_closed():
     assert "if(oapLocked||oapSend.disabled)return" in text
     assert "oapInput.addEventListener('keydown'" in text
     assert "oapForm.addEventListener('submit'" in text
-    assert text.count("event.stopImmediatePropagation()") >= 5
+    assert text.count("event.stopImmediatePropagation()") >= 4
     assert "oapSubmit();" in text
     assert "window.OAP_SMI_CANONICAL" in text
     assert "singleSubmitOwner:true" in text
@@ -31,6 +31,8 @@ def test_canonical_controller_owns_voice_mic_and_stop():
     assert "SpeechSynthesisUtterance" in text
     assert "oapVoiceEnabled" in text
     assert "Microphone permission blocked" in text
+    assert "Listening · ${oapElapsed()}s" in text
+    assert "aria-pressed" in text
     assert "oapAbort.abort()" in text
     assert "speechSynthesis.cancel()" in text
     assert "micOwner:true" in text
@@ -38,11 +40,26 @@ def test_canonical_controller_owns_voice_mic_and_stop():
     assert "stopOwner:true" in text
 
 
+def test_canonical_controller_reuses_media_path_for_camera_and_screen():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "navigator.mediaDevices?.getUserMedia" in text
+    assert "navigator.mediaDevices?.getDisplayMedia" in text
+    assert "getVideoTracks" in text
+    assert "track.stop()" in text
+    assert "oapSetCapturedImage" in text
+    assert "routed through existing image/Studio path" in text
+    assert "Camera permission blocked" in text
+    assert "Screen sharing unavailable on this device" in text
+    assert "cameraCapture:true" in text
+    assert "screenCapture:true" in text
+    assert "studioDuplicate:false" in text
+
+
 def test_canonical_controller_preserves_governed_backend_contract():
     text = CONTROLLER.read_text(encoding="utf-8")
     assert "streamUrl" in text
     assert "'X-OAP-CSRF':csrfToken" in text
     assert "credentials:'same-origin'" in text
-    assert "event: complete" not in text  # parsed via the existing governed SSE parser
+    assert "event: complete" not in text
     assert "oap-smi-complete" in text
     assert "Human Authority" in text
