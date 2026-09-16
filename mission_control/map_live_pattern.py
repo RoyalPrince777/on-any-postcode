@@ -1,9 +1,10 @@
 """Bounded Live Pattern intelligence for Map Intelligence.
 
-Community reports remain advisory. When an official TfL API key is configured,
-OAP also reads current London road disruptions from Transport for London. The
-authority feed is read-only, bounded, cached, and never dispatches, charges,
-tracks a device, or automatically changes a route.
+Community reports remain advisory. OAP also reads current London road
+disruptions from Transport for London Open Data. TfL supports anonymous
+low-rate API access; an optional OAP_TFL_API_KEY can raise quota. The authority
+feed is read-only, bounded, cached, and never dispatches, charges, tracks a
+device, or automatically changes a route.
 """
 from __future__ import annotations
 
@@ -24,7 +25,7 @@ _ALLOWED_KINDS = {"closure", "hazard", "delay", "crowd", "event", "roadworks"}
 
 _TFL_HOST = "api.tfl.gov.uk"
 _TFL_CACHE_SECONDS = 300
-_TFL_MAX_BYTES = 1024 * 1024
+_TFL_MAX_BYTES = 2 * 1024 * 1024
 _TFL_TIMEOUT_SECONDS = 6
 _TFL_CACHE: tuple[float, list[dict[str, object]]] = (0.0, [])
 _TFL_LAST_SUCCESS: float | None = None
@@ -45,11 +46,12 @@ def _prune(now: datetime) -> None:
 
 
 def _tfl_key() -> str:
-    return str(os.environ.get("OAP_TFL_API_KEY") or "").strip()
+    return str(os.environ.get("OAP_TFL_API_KEY") or os.environ.get("OAP_TFL_APP_KEY") or "").strip()
 
 
 def authority_feed_configured() -> bool:
-    return bool(_tfl_key())
+    """TfL anonymous low-rate access means the authority feed needs no secret."""
+    return True
 
 
 def _severity_kind(value: object) -> str:
@@ -68,9 +70,11 @@ def _normalise_tfl(item: object) -> dict[str, object] | None:
         return None
     road = _clean(item.get("location") or item.get("corridorIds") or item.get("category"), 140)
     area = _clean(item.get("boroughs") or item.get("location") or "Greater London", 120)
-    description = _clean(item.get("comments") or item.get("currentUpdate") or item.get("category"), 300)
+    description = _clean(item.get("currentUpdate") or item.get("comments") or item.get("category"), 320)
     severity = _clean(item.get("severity") or item.get("severityDescription"), 80)
     identifier = _clean(item.get("id"), 100)
+    geography = item.get("geography") if isinstance(item.get("geography"), dict) else {}
+    coordinates = geography.get("coordinates") if isinstance(geography.get("coordinates"), list) else None
     if not road and not description:
         return None
     return {
@@ -80,26 +84,29 @@ def _normalise_tfl(item: object) -> dict[str, object] | None:
         "kind": _severity_kind(f"{severity} {description}"),
         "note": description,
         "severity": severity,
-        "source": "Transport for London Unified API",
+        "status": _clean(item.get("status"), 40),
+        "has_closures": bool(item.get("hasClosures")),
+        "coordinates": coordinates[:2] if isinstance(coordinates, list) and len(coordinates) >= 2 else None,
+        "start_at": _clean(item.get("startDateTime"), 40),
+        "end_at": _clean(item.get("endDateTime"), 40),
+        "updated_at": _clean(item.get("currentUpdateDateTime") or item.get("lastModifiedTime"), 40),
+        "source": "Transport for London Open Data",
         "confidence": "authority_feed",
         "authority_verified": True,
         "routing_effect": "advisory_only",
-        "created_at": _now().isoformat().replace("+00:00", "Z"),
     }
 
 
 def authority_reports(query: object = None) -> list[dict[str, object]]:
     global _TFL_CACHE, _TFL_LAST_SUCCESS, _TFL_LAST_ERROR
     key = _tfl_key()
-    if not key:
-        return []
     now_epoch = time.time()
     cached_at, cached_items = _TFL_CACHE
     if cached_items and now_epoch - cached_at < _TFL_CACHE_SECONDS:
         items = list(cached_items)
     else:
-        params = urlparse.urlencode({"app_key": key})
-        url = f"https://{_TFL_HOST}/Road/All/Disruption?{params}"
+        params = urlparse.urlencode({"app_key": key}) if key else ""
+        url = f"https://{_TFL_HOST}/Road/All/Disruption" + (f"?{params}" if params else "")
         req = urlrequest.Request(url, headers={"Accept": "application/json", "User-Agent": "ON-ANY-POSTCODE-Map/1.0"})
         try:
             with urlrequest.urlopen(req, timeout=_TFL_TIMEOUT_SECONDS) as response:
@@ -113,7 +120,7 @@ def authority_reports(query: object = None) -> list[dict[str, object]]:
             if not isinstance(payload, list):
                 raise RuntimeError("tfl_invalid_response")
             items = []
-            for raw in payload[:300]:
+            for raw in payload[:500]:
                 normalised = _normalise_tfl(raw)
                 if normalised:
                     items.append(normalised)
@@ -181,14 +188,15 @@ def status() -> dict[str, object]:
     with _LOCK:
         _prune(now)
         count = len(_REPORTS)
-    authority_configured = authority_feed_configured()
-    authority_verified = authority_configured and _TFL_LAST_SUCCESS is not None and _TFL_LAST_ERROR is None
+    authority_verified = _TFL_LAST_SUCCESS is not None and _TFL_LAST_ERROR is None
     return {
         "component": "OAP Live Pattern",
         "active_report_count": count,
         "ttl_minutes": int(_TTL.total_seconds() // 60),
-        "authority_feed": "Transport for London Unified API" if authority_configured else None,
-        "authority_feed_configured": authority_configured,
+        "authority_feed": "Transport for London Open Data",
+        "authority_feed_configured": True,
+        "authority_key_configured": bool(_tfl_key()),
+        "authority_anonymous_low_rate": not bool(_tfl_key()),
         "authority_verified_feed": authority_verified,
         "authority_last_success_epoch": int(_TFL_LAST_SUCCESS) if _TFL_LAST_SUCCESS is not None else None,
         "authority_last_error": _TFL_LAST_ERROR,
