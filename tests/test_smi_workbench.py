@@ -30,11 +30,17 @@ def test_workbench_projection_never_exposes_secret_values(monkeypatch):
     assert payload["runtime_gate"]["state"] == "yellow"
     assert payload["runtime_gate"]["fail_closed"] is True
     assert "managed Founder identity" in payload["runtime_gate"]["blocked"]
-    assert "Founder read-only provider inspection" in payload["runtime_gate"]["available"]
+    assert "Founder live provider evidence inspection" in payload["runtime_gate"]["available"]
+    assert payload["intelligence_mode"]["mode"] == "live_working"
+    assert payload["intelligence_mode"]["read_only"] is False
+    assert payload["intelligence_mode"]["durable_runtime_ready"] is False
+    assert payload["intelligence_mode"]["active"] is False
     assert "secret-value" not in serialized
     assert "postgresql://" not in serialized
     assert payload["governance"]["human_authority_final"] is True
     assert payload["governance"]["provider_reads_founder_only"] is True
+    assert payload["governance"]["external_consequential_execution"] is False
+    assert payload["governance"]["agi_achieved"] is False
     assert payload["truth_contract"]["no_fake_green"] is True
     assert payload["truth_contract"]["green_requires_runtime_evidence"] is True
     assert capabilities["attachments"]["ready"] is False
@@ -67,6 +73,8 @@ def test_workbench_runtime_gate_turns_green_only_with_database_and_schema(monkey
     assert neon["name"] == "Neon · Identity/HRM"
     assert neon["ready"] is True
     assert payload["status"] == "ready"
+    assert payload["surface"] == "Founder-only Live Working SMI"
+    assert payload["intelligence_mode"]["active"] is True
 
 
 def test_workbench_status_is_private(anonymous_client):
