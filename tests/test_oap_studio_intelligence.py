@@ -30,6 +30,19 @@ def test_studio_contract_is_smi_powered_and_governed():
     assert governance["execution_authority_granted"] is False
 
 
+def test_studio_is_canonical_media_engine_for_smi_chat_capture():
+    status = studio_intelligence.status()
+    alignment = status["alignment"]
+
+    assert "SMI Chat" in status["entry_points"]
+    assert "camera still" in status["capture_inputs"]
+    assert "screen still" in status["capture_inputs"]
+    assert alignment["smi_chat_is_entry_surface"] is True
+    assert alignment["studio_is_canonical_media_engine"] is True
+    assert alignment["duplicate_studio_engine_allowed"] is False
+    assert alignment["capture_does_not_grant_execution"] is True
+
+
 def test_founder_workbench_exposes_studio_without_secrets(monkeypatch):
     monkeypatch.setattr(
         smi_workbench.smi_chat_runtime,
