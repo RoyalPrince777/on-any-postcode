@@ -4,6 +4,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import os
+import time
 from collections.abc import Iterator
 from urllib import error as urlerror
 from urllib import parse as urlparse
@@ -17,6 +18,8 @@ _UPSTREAM_DEFAULT = "https://on-any-postcode.onrender.com"
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
 _CLIENT_IP_HEADER = "X-OAP-Client-IP"
 _FOUNDER_RECOVERY_FALLBACK = "/auth/recover-founder?next=/mission/ollama"
+_AUTH_RETRY_STATUSES = frozenset({429, 502, 503, 504})
+_AUTH_RETRY_DELAY_SECONDS = 0.75
 _ALLOWED_REQUEST_HEADERS = {
     "accept",
     "accept-language",
@@ -191,6 +194,42 @@ def _auth_unavailable_fallback(path: str, status: int, headers):
     return redirect(_FOUNDER_RECOVERY_FALLBACK, code=302)
 
 
+def _open_upstream(upstream_request):
+    try:
+        return _OPENER.open(upstream_request, timeout=120)
+    except urlerror.HTTPError as exc:
+        return exc
+    except (OSError, TimeoutError, urlerror.URLError):
+        return None
+
+
+def _status(upstream) -> int:
+    return int(getattr(upstream, "status", getattr(upstream, "code", 502)))
+
+
+def _normalized_auth_rate_limit(path: str, status: int):
+    """Never expose an upstream/edge 429 as a Founder credential lockout.
+
+    The application has its own failed-password-only guard. A 429 arriving through
+    the extra Render-to-Render hop is therefore treated as infrastructure pressure,
+    not evidence of another wrong password. The request still fails closed and is
+    never replayed when it contains credentials.
+    """
+
+    clean = "/" + path.lstrip("/")
+    if status != 429 or clean not in {"/auth", "/auth/sign-in"}:
+        return None
+    response = make_response(
+        "Secure identity verification is temporarily unavailable. Retry once shortly.",
+        503,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Retry-After"] = "5"
+    response.headers["X-OAP-Auth-Upstream"] = "rate-limited"
+    response.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+    return response
+
+
 def _proxy(path: str):
     body = request.get_data(cache=False) if request.method not in {"GET", "HEAD"} else None
     upstream_request = urlrequest.Request(
@@ -199,14 +238,32 @@ def _proxy(path: str):
         headers=_request_headers(),
         method=request.method,
     )
-    try:
-        upstream = _OPENER.open(upstream_request, timeout=120)
-    except urlerror.HTTPError as exc:
-        upstream = exc
-    except (OSError, TimeoutError, urlerror.URLError):
+    upstream = _open_upstream(upstream_request)
+    if upstream is None:
         return _blocked(503)
 
-    status = int(getattr(upstream, "status", getattr(upstream, "code", 502)))
+    status = _status(upstream)
+    clean = "/" + path.lstrip("/")
+
+    # A Founder GET is idempotent, so one bounded retry is safe while a sleeping
+    # Render upstream wakes. Credential-bearing POST requests are never replayed.
+    if (
+        request.method in {"GET", "HEAD"}
+        and clean in {"/auth", "/enter-my-world"}
+        and status in _AUTH_RETRY_STATUSES
+    ):
+        upstream.close()
+        time.sleep(_AUTH_RETRY_DELAY_SECONDS)
+        upstream = _open_upstream(upstream_request)
+        if upstream is None:
+            return _blocked(503)
+        status = _status(upstream)
+
+    normalized = _normalized_auth_rate_limit(path, status)
+    if normalized is not None:
+        upstream.close()
+        return normalized
+
     fallback = _auth_unavailable_fallback(path, status, upstream.headers)
     if fallback is not None:
         upstream.close()
