@@ -39,9 +39,6 @@ services:
           name: oap-smi-hrm-fallback
           property: connectionString
 
-  # First-party Map Intelligence routing runtime. It deliberately has no
-  # public/demo routing fallback. OAP-controlled MLD route data must be
-  # provisioned before this service can pass its production proof gate.
   - type: web
     name: oap-routing
     runtime: docker
@@ -52,4 +49,15 @@ services:
     autoDeployTrigger: "off"
     dockerfilePath: ./routing/Dockerfile
     dockerContext: .
-    healthCheckPath: /health
+    # OSRM has no dedicated /health endpoint; a lightweight nearest request
+    # verifies that the HTTP engine and loaded graph are both answering.
+    healthCheckPath: /nearest/v1/driving/-0.1276,51.5072?number=1
+    envVars:
+      - key: OAP_ROUTING_DATA_DIR
+        value: /data
+      - key: OAP_ROUTING_PBF_URL
+        value: https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf
+    disk:
+      name: oap-routing-data
+      mountPath: /data
+      sizeGB: 5
