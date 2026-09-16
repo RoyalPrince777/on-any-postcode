@@ -1,4 +1,4 @@
-"""Private gateway-only UI for temporary Founder recovery and password migration."""
+"""Private gateway-only UI for temporary Founder recovery and password repair."""
 from __future__ import annotations
 
 from urllib import parse as urlparse
@@ -89,9 +89,6 @@ def _bind_existing_password(next_path: str):
             next_path=next_path,
             bind_mode=True,
         )
-    if founder_local_auth.bound():
-        founder_recovery.clear_session()
-        return _no_store(redirect(url_for("auth_page", next=next_path)))
     if not web_security.csrf_valid(request):
         return _render_bind(
             status_code=403,
@@ -122,7 +119,7 @@ def _bind_existing_password(next_path: str):
             error="Render Founder password storage is temporarily unavailable.",
             next_path=next_path,
         )
-    if result not in {"bound", "complete"}:
+    if result not in {"bound", "rebound", "complete"}:
         return _render_bind(
             status_code=503,
             error="Render Founder password storage is temporarily unavailable.",
@@ -132,16 +129,19 @@ def _bind_existing_password(next_path: str):
     founder_recovery.clear_session()
     response = redirect(url_for("auth_page", next=next_path, render_bound="1"))
     response.headers["X-OAP-Founder-Lane"] = "render-local"
+    response.headers["X-OAP-Founder-Password-State"] = (
+        "rebound" if result == "rebound" else "bound"
+    )
     return _no_store(response)
 
 
 @bp.route("/auth/recover-founder", methods=["GET", "POST"])
 def recover_founder():
-    """Open bounded recovery, with explicit one-time password migration mode.
+    """Open bounded recovery, with explicit password bind/repair mode.
 
     Ordinary recovery keeps its established emergency behavior. Password binding
-    occurs only when the Founder deliberately opens ``mode=bind`` and completes
-    the existing recovery proof. No second Founder identity is created.
+    or repair occurs only when the Founder deliberately opens ``mode=bind`` and
+    completes the existing recovery proof. No second Founder identity is created.
     """
 
     if not founder_recovery.configured():
@@ -153,7 +153,7 @@ def recover_founder():
 
     if request.method == "GET":
         if founder_recovery.session_active():
-            if bind_mode and not founder_local_auth.bound():
+            if bind_mode:
                 return _render_bind(next_path=next_path)
             return _no_store(redirect(next_path))
         return _render(next_path=next_path, bind_mode=bind_mode)
@@ -190,6 +190,6 @@ def recover_founder():
         )
 
     founder_recovery.begin_session()
-    if bind_mode and not founder_local_auth.bound():
+    if bind_mode:
         return _render_bind(next_path=next_path)
     return _no_store(redirect(next_path))
