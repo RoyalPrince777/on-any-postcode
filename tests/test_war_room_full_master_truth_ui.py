@@ -1,53 +1,47 @@
 from pathlib import Path
 
 
-def test_war_room_ui_never_treats_configuration_as_readiness():
+def test_war_room_ui_never_treats_presence_as_readiness():
     page = Path("mission_control/templates/war_room.html").read_text(encoding="utf-8")
 
-    assert "item.ready === true" in page
-    assert "item.ready === undefined ? Boolean(item.configured)" not in page
-    assert "Configured is not ready" in page
-    assert "🟢 Evidence first" not in page
-    assert "🟢 Routed" not in page
-    assert "⚪ Unknown until checked" in page
+    assert "No evidence = no Green" in page
+    assert "proven · conflicting · stale · unavailable · unknown" in page
+    assert "⚪ Check current run" in page
+    assert "7/7 is a Green Gate candidate only" in page
 
 
-def test_war_room_ui_exposes_full_master_depth_and_read_only_controls():
+def test_war_room_ui_exposes_canonical_read_only_controls():
     page = Path("mission_control/templates/war_room.html").read_text(encoding="utf-8")
 
-    for label in ("◎ Auto", "⚡ Instant 3", "🧠 Medium 7", "👑 High 21"):
-        assert label in page
     for control in (
-        "▶ Run War Room",
-        "↻ Challenge Again",
-        "⚖ Compare",
-        "👥 Agents",
+        "▶ RUN",
+        "🔬 RESEARCH",
+        "⚔️ CHALLENGE",
+        "7× DEEP DIVE",
+        "■ STOP",
+        "↔ Counter / Compare",
         "🔎 Evidence",
         "🛡 Guardian",
-        "⚖ Judgement",
-        "💾 HRM / JOOG",
-        "↩ Rollback",
-        "➡ Next Gate",
+        "🐘 HRM / JOOG",
     ):
         assert control in page
 
     assert 'method="post"' not in page.lower()
-    assert "Approve is not execute" in page
-    assert "This page itself exposes no execution control" in page
+    assert "This surface performs no production write" in page
+    assert "Human Authority remains final" in page
 
 
-def test_war_room_ui_shows_safe_progress_not_private_reasoning():
+def test_war_room_ui_shows_safe_protocol_not_private_reasoning():
     page = Path("mission_control/templates/war_room.html").read_text(encoding="utf-8")
 
     for stage in (
-        "Understanding",
-        "Evidence",
-        "Memory",
-        "Agents",
-        "Challenge",
-        "Guardian",
-        "Judgement",
-        "Solution",
+        "Observe",
+        "Classify",
+        "Verify",
+        "Fix/Plan",
+        "Retest",
+        "Record",
+        "Learn",
     ):
         assert stage in page
     assert "Private chain-of-thought is never displayed" in page
