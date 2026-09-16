@@ -41,9 +41,10 @@ async function oapSubmit(){
   if(!text&&!hasImage&&!hasAttachment)return;
   oapLocked=true;
   responseStopped=false;
-  const userLabel=(text||'Analyse attached media')+(hasImage?'\n📷 Image attached':'')+(hasAttachment?'\n📎 '+selectedAttachment.name:'')+(codeMode?'\n⌘ Code proposal mode':'');
-  add(userLabel,'user');
+  // Founder input is command context, not revelation output. Keep it in the
+  // governed conversation record but do not echo it into the visible result stream.
   oapInput.value='';
+  oapSetStatus('Command received · generating governed result');
   oapAbort=new AbortController();
   activeController=oapAbort;
   setRunning(true);
@@ -105,7 +106,7 @@ async function oapSubmit(){
     window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));
     oapSpeak(completeResult.response);
     clearAttachments();
-    oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed response recorded');
+    oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');
     await loadConversations();
   }catch(error){
     if(error?.name!=='AbortError'&&!responseStopped){
@@ -120,7 +121,6 @@ async function oapSubmit(){
   }
 }
 
-// Canonical capture-phase ownership: these handlers run before legacy bubble handlers.
 oapInput.addEventListener('keydown',event=>{
   if(event.key!=='Enter'||event.shiftKey||event.isComposing)return;
   event.preventDefault();
@@ -164,15 +164,12 @@ if(oapMic){
     oapMic.addEventListener('click',event=>{
       event.preventDefault();
       event.stopImmediatePropagation();
-      try{
-        if(oapListening)oapRecognition.stop();
-        else oapRecognition.start();
-      }catch{oapSetStatus('Voice input unavailable')}
+      try{if(oapListening)oapRecognition.stop();else oapRecognition.start();}catch{oapSetStatus('Voice input unavailable')}
     },true);
   }else{
     oapMic.disabled=true;
     oapMic.title='Voice input is not supported by this browser';
   }
 }
-window.OAP_SMI_CANONICAL={version:'1.0',singleSubmitOwner:true,micOwner:true,voiceOwner:true,stopOwner:true};
+window.OAP_SMI_CANONICAL={version:'1.1',singleSubmitOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,resultStreamOnly:true};
 })();
