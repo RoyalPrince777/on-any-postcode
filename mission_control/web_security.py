@@ -169,10 +169,11 @@ class SlidingWindowLimiter:
     key inside the duplicate window is coalesced. Other limiter instances preserve
     the existing time-based duplicate behavior.
 
-    Founder auth keys receive one extra governance rule: a request that ends in a
-    server-side/infrastructure failure (5xx) releases the slot it reserved. Wrong
-    credentials still consume the bounded window, while Neon/Render/database
-    failures cannot snowball into a second local 429 lockout.
+    Founder sign-in receives one extra governance rule: only a completed 401
+    credential rejection keeps its reserved slot. CSRF/input errors and any
+    infrastructure/provider/database failures release the reservation, so those
+    responses cannot snowball into a local 429 lockout. Other auth scopes preserve
+    the existing policy where only 5xx failures release their reserved slot.
     """
 
     def __init__(
@@ -219,8 +220,11 @@ class SlidingWindowLimiter:
             return
 
         @after_this_request
-        def release_infrastructure_failure(response):
-            if response.status_code >= 500:
+        def release_non_counting_auth_response(response):
+            if key.startswith("auth:sign-in:"):
+                if response.status_code != 401:
+                    self._release_event(key, event_time)
+            elif response.status_code >= 500:
                 self._release_event(key, event_time)
             return response
 
@@ -283,8 +287,8 @@ CHAT_BURST_LIMITER = SlidingWindowLimiter(
     fingerprint_request_body=True,
 )
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
-# Founder auth remains bounded at ten distinct attempts per five minutes. Exact
-# double-submits are coalesced, and 5xx infrastructure failures release their slot.
+# Founder auth remains bounded at ten distinct failed credential attempts per five
+# minutes. Exact double-submits coalesce; non-401 sign-in responses do not count.
 AUTH_BURST_LIMITER = SlidingWindowLimiter(
     limit=10,
     window_seconds=5 * 60,
