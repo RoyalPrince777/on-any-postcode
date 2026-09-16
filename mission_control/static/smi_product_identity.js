@@ -8,11 +8,16 @@ function applySmiIdentity(){
   if(subtitle) subtitle.textContent='Founder Intelligence · SMI AUTO · HRM/JOOG';
   const input=document.getElementById('message');
   if(input){
-    input.placeholder='Ask SMI…';
-    input.setAttribute('aria-label','Ask SMI');
+    input.placeholder='Message SMI';
+    input.setAttribute('aria-label','Message SMI');
   }
   const label=document.querySelector('label[for="message"]');
-  if(label) label.textContent='Ask SMI';
+  if(label) label.textContent='Message SMI';
+  const providerState=document.getElementById('provider-state');
+  if(providerState){
+    providerState.setAttribute('aria-label','SMI intelligence state');
+    providerState.dataset.smiIdentity='canonical';
+  }
   const first=document.querySelector('#messages .msg.assistant .msg-text');
   if(first && first.textContent.trim()==='Ready. What do you want to work on?'){
     first.textContent='SMI ready. What do you want to work on?';
