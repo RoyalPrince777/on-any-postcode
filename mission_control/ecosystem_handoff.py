@@ -1,9 +1,13 @@
-"""Canonical OAP product handoff path.
+"""Canonical OAP product handoff and distribution path.
 
-The Link, Market, Media, Distribution and OAP Store keep separate ownership and
-permissions while sharing one auditable continuation path. A handoff is navigation
-and evidence only: it never creates a payment, publishes uncleared media, delivers
-to an external platform or installs software automatically.
+ON ANY POSTCODE remains the world/community identity and front door. ON ANY PLATFORM
+is the cross-platform distribution/interoperability layer beneath that front door,
+with OAP Store as a governed system inside it. The Link, Market, Media,
+Distribution and OAP Store keep separate ownership and permissions while sharing
+one auditable continuation path.
+
+A handoff is navigation and evidence only: it never creates a payment, publishes
+uncleared media, delivers to an external platform or installs software automatically.
 """
 from __future__ import annotations
 
@@ -13,6 +17,18 @@ from collections.abc import Mapping
 class HandoffBlocked(RuntimeError):
     """A product handoff does not have the required evidence."""
 
+
+PLATFORM_LAYER = {
+    "id": "on_any_platform",
+    "name": "ON ANY PLATFORM",
+    "parent": "ON ANY POSTCODE",
+    "role": "cross_platform_distribution_and_interoperability",
+    "front_door": False,
+    "replaces_oap_world": False,
+    "surfaces": ("web", "pwa", "android", "desktop", "future_devices"),
+    "store": "OAP Store",
+    "doctrine": "One World -> One Front Door -> Many Systems Inside.",
+}
 
 ECOSYSTEM_PATH: tuple[dict[str, object], ...] = (
     {
@@ -39,8 +55,9 @@ ECOSYSTEM_PATH: tuple[dict[str, object], ...] = (
     {
         "id": "oap_store",
         "name": "OAP Store",
+        "platform_layer": "ON ANY PLATFORM",
         "entry": "service:ownpost-store",
-        "purpose": "Certified OAP apps, games, tools and creator software packages.",
+        "purpose": "Certified OAP apps, games, tools and creator software packages distributed through the governed OAP platform layer.",
         "requires": ("identity", "certification", "package_proof"),
     },
 )
@@ -56,6 +73,7 @@ HARD_LOCKS = {
 
 def path_status() -> dict[str, object]:
     return {
+        "platform_layer": dict(PLATFORM_LAYER),
         "path": tuple(dict(item) for item in ECOSYSTEM_PATH),
         "stage_ids": tuple(str(item["id"]) for item in ECOSYSTEM_PATH),
         "one_way_order": True,
@@ -91,6 +109,7 @@ def handoff(
         "from": current,
         "to": target,
         "destination": destination["entry"],
+        "platform_layer": "ON ANY PLATFORM" if target == "oap_store" else None,
         "required_evidence": required,
         "evidence_proven": True,
         "permission_transferred": False,
