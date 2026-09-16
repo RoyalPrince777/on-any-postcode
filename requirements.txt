@@ -6,3 +6,4 @@ qrcode[pil]>=7.4,<9
 slowapi>=0.1.9,<1
 starlette>=0.37,<1
 psycopg[binary]>=3.2,<4
+mapbox-vector-tile>=2.2,<3
