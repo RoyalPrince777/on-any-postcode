@@ -2,7 +2,7 @@
 
 OAP Route Core owns the routing contract and responses. Operational Movement
 remains proof-gated. Map Intelligence may request read-only route geometry from
-an explicitly configured OAP-owned/self-hosted OSRM-compatible endpoint; this
+explicitly configured OAP-owned/self-hosted OSRM-compatible endpoints; this
 never dispatches, charges, or silently tracks anyone.
 """
 from __future__ import annotations
@@ -46,18 +46,24 @@ def _owned_hosts() -> frozenset[str]:
     return _host_set("OAP_ROUTING_OWNED_HOSTS")
 
 
-def _base_url() -> str:
-    value = os.environ.get("OAP_OSRM_BASE_URL", "").strip().rstrip("/")
-    if not value:
+def _validated_base_url(value: object, *, require_owned: bool = False) -> str:
+    raw = str(value or "").strip().rstrip("/")
+    if not raw:
         return ""
-    parsed = urlparse.urlparse(value)
+    parsed = urlparse.urlparse(raw)
     host = str(parsed.hostname or "").casefold()
     if parsed.scheme != "https" or not host or parsed.username or parsed.password:
         return ""
     if parsed.query or parsed.fragment or host not in _allowed_hosts():
         return ""
+    if require_owned and host not in _owned_hosts():
+        return ""
     path = parsed.path.rstrip("/")
     return urlparse.urlunparse(("https", parsed.netloc, path, "", "", ""))
+
+
+def _base_url() -> str:
+    return _validated_base_url(os.environ.get("OAP_OSRM_BASE_URL", ""))
 
 
 def configured() -> bool:
@@ -166,8 +172,8 @@ def _request_json(url: str, *, expected_host: str) -> dict[str, Any]:
     return payload
 
 
-def _route_payload(*, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object, geometry: bool) -> tuple[dict[str, Any], str]:
-    base = _base_url()
+def _route_payload(*, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object, geometry: bool, base_url: str | None = None) -> tuple[dict[str, Any], str]:
+    base = base_url or _base_url()
     if not base:
         raise RoutingUnavailable("routing_provider_not_configured")
     parsed_base = urlparse.urlparse(base)
@@ -189,7 +195,6 @@ def _route_payload(*, pickup_latitude: object, pickup_longitude: object, destina
 
 
 def route(*, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object = "driving", verification_only: bool = False) -> dict[str, Any]:
-    """Calculate distance and ETA without returning precise route geometry."""
     tier = provider_tier()
     if not verification_only:
         if tier == "verification_only":
@@ -209,15 +214,8 @@ def route(*, pickup_latitude: object, pickup_longitude: object, destination_lati
     return {"distance_m":round(distance_m,1),"duration_s":round(duration_s,1),"profile":normalized_profile,"provider":CORE_NAME,"engine_contract":ENGINE_CONTRACT,"provider_ownership":provider_ownership(),"geometry_exposed":False,"dispatch_performed":False}
 
 
-def map_route(*, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object = "driving") -> dict[str, Any]:
-    """Return read-only GeoJSON geometry for explicit Map Intelligence searches.
-
-    This lane is allowed only when the configured endpoint is explicitly declared
-    OAP-owned/self-hosted. It does not activate operational Movement authority.
-    """
-    if provider_ownership() != "oap_owned":
-        raise RoutingUnavailable("map_routing_requires_oap_owned_endpoint")
-    payload, normalized_profile = _route_payload(pickup_latitude=pickup_latitude,pickup_longitude=pickup_longitude,destination_latitude=destination_latitude,destination_longitude=destination_longitude,profile=profile,geometry=True)
+def _map_route_with_base(*, base: str, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object = "driving") -> dict[str, Any]:
+    payload, normalized_profile = _route_payload(pickup_latitude=pickup_latitude,pickup_longitude=pickup_longitude,destination_latitude=destination_latitude,destination_longitude=destination_longitude,profile=profile,geometry=True,base_url=base)
     routes = payload.get("routes")
     if not isinstance(routes, list) or not routes or not isinstance(routes[0], dict):
         raise RoutingUnavailable("invalid_routing_response")
@@ -240,6 +238,23 @@ def map_route(*, pickup_latitude: object, pickup_longitude: object, destination_
         if len(steps) >= 100: break
     _mark_success()
     return {"distance_m":round(float(first.get("distance") or 0),1),"duration_s":round(float(first.get("duration") or 0),1),"profile":normalized_profile,"provider":CORE_NAME,"provider_ownership":"oap_owned","geometry":{"type":"LineString","coordinates":coords},"steps":steps,"geometry_exposed":True,"read_only":True,"dispatch_performed":False,"payment_performed":False}
+
+
+def map_route_via_owned_endpoint(*, base_url: object, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object = "driving") -> dict[str, Any]:
+    """Route through a specific shard endpoint only when it is allowlisted and OAP-owned."""
+    base = _validated_base_url(base_url, require_owned=True)
+    if not base:
+        raise RoutingUnavailable("routing_shard_endpoint_rejected")
+    return _map_route_with_base(base=base,pickup_latitude=pickup_latitude,pickup_longitude=pickup_longitude,destination_latitude=destination_latitude,destination_longitude=destination_longitude,profile=profile)
+
+
+def map_route(*, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object = "driving") -> dict[str, Any]:
+    if provider_ownership() != "oap_owned":
+        raise RoutingUnavailable("map_routing_requires_oap_owned_endpoint")
+    base = _validated_base_url(os.environ.get("OAP_OSRM_BASE_URL", ""), require_owned=True)
+    if not base:
+        raise RoutingUnavailable("routing_provider_not_configured")
+    return _map_route_with_base(base=base,pickup_latitude=pickup_latitude,pickup_longitude=pickup_longitude,destination_latitude=destination_latitude,destination_longitude=destination_longitude,profile=profile)
 
 
 def startup_probe() -> dict[str, Any]:
