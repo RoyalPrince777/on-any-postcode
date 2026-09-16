@@ -1,8 +1,11 @@
 """Founder-only OAP Distribution Intelligence contract.
 
-Distribution Intelligence prepares and checks OAP-owned releases, campaigns,
-rights evidence and destination readiness. It does not claim delivery to an
-external platform unless a real authenticated adapter and receipt exist.
+Distribution Intelligence is a specialist capability inside Civilisation
+Intelligence. It prepares and checks OAP-owned releases, campaigns, rights
+evidence and destination readiness. It does not create an eighth Intelligence
+World, a new agent family, or any independent execution authority. It does not
+claim delivery to an external platform unless a real authenticated adapter and
+receipt exist.
 """
 from __future__ import annotations
 
@@ -12,6 +15,9 @@ from . import live_signals
 
 DISTRIBUTION_ID = "oap-distribution-intelligence"
 DISTRIBUTION_NAME = "OAP Distribution Intelligence"
+CANONICAL_WORLD_ID = "civilisation"
+CANONICAL_WORLD_NAME = "Civilisation Intelligence"
+CAPABILITY_KIND = "specialist_intelligence_capability"
 
 CHECKS = (
     "release_draft",
@@ -49,6 +55,11 @@ def status() -> dict[str, Any]:
         "id": DISTRIBUTION_ID,
         "name": DISTRIBUTION_NAME,
         "ready": bool(validation.get("passed")),
+        "kind": CAPABILITY_KIND,
+        "canonical_world_id": CANONICAL_WORLD_ID,
+        "canonical_world_name": CANONICAL_WORLD_NAME,
+        "creates_new_world": False,
+        "creates_agent_family": False,
         "mode": "prepare-check-route",
         "owned_destinations": DESTINATIONS,
         "external_destinations": EXTERNAL_DESTINATIONS,
@@ -86,6 +97,9 @@ def review_release(payload: object) -> dict[str, Any]:
     external_ready = bool(owned_ready and external_adapter)
     return {
         "title": title,
+        "canonical_world_id": CANONICAL_WORLD_ID,
+        "canonical_world_name": CANONICAL_WORLD_NAME,
+        "capability_kind": CAPABILITY_KIND,
         "gates": gates,
         "owned_oap_distribution_ready": owned_ready,
         "external_distribution_ready": external_ready,
@@ -97,5 +111,7 @@ def review_release(payload: object) -> dict[str, Any]:
             else "close missing proof gates; do not claim external delivery"
         ),
         "execution_performed": False,
+        "publishing_authority_granted": False,
+        "payment_authority_granted": False,
         "human_authority_final": True,
     }

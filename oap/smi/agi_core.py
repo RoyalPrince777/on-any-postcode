@@ -162,6 +162,12 @@ _WORLD_RULES: tuple[dict[str, object], ...] = (
             "society",
             "heritage",
             "human progress",
+            "distribution",
+            "publishing",
+            "release",
+            "records",
+            "creator distribution",
+            "media distribution",
             "akan",
             "akyem",
             "adinkra",
@@ -197,6 +203,25 @@ _WORLD_RULES: tuple[dict[str, object], ...] = (
 # Specialist intelligence never expands the seven-World count. ``world_ids``
 # below is the authoritative placement for each specialist context.
 _SPECIALIST_RULES: tuple[dict[str, object], ...] = (
+    {
+        "id": "distribution",
+        "name": "Distribution Intelligence",
+        "kind": "cross_system_capability",
+        "world_ids": ("civilisation",),
+        "keywords": (
+            "distribution",
+            "distribute",
+            "release",
+            "release campaign",
+            "publishing",
+            "publish",
+            "rights proof",
+            "music release",
+            "media release",
+            "record label",
+            "creator distribution",
+        ),
+    },
     {
         "id": "technology",
         "name": "Technology Intelligence",
