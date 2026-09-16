@@ -19,25 +19,15 @@ def test_war_room_rates_every_world_and_digital_organ():
     assert {f"world_{world['id']}" for world in agents.INTELLIGENCE_WORLDS} <= ids
     assert {f"organ_{organ['id']}" for organ in organism.BODY_ORGANS} <= ids
     assert {
-        "identity_authority",
-        "smi_brain",
-        "agent_registry",
-        "postgres_hrm",
-        "organism_runtime",
-        "home_node",
-        "oap_os_install_shell",
-        "route_core",
-        "rtl_guardian_nexus",
-        "rtl_memory_guard",
-        "rtl_attestation",
-        "fpga_reference",
-        "physical_oap_silicon",
+        "identity_authority", "smi_brain", "agent_registry", "postgres_hrm",
+        "organism_runtime", "home_node", "oap_os_install_shell", "route_core",
+        "rtl_guardian_nexus", "rtl_memory_guard", "rtl_attestation",
+        "fpga_reference", "physical_oap_silicon",
     } <= ids
 
 
 def test_star_ratings_are_sequential_and_never_skip_missing_evidence():
     projection = war_room.get_war_room_dashboard()
-
     for item in _ratings(projection):
         stages = item["stages"]
         assert len(stages) == 5
@@ -50,66 +40,36 @@ def test_star_ratings_are_sequential_and_never_skip_missing_evidence():
         assert item["score"] == item["stars"] * 20
         assert len(item["stars_display"]) == 5
 
-    physical = next(
-        item for item in _ratings(projection) if item["id"] == "physical_oap_silicon"
-    )
+    physical = next(item for item in _ratings(projection) if item["id"] == "physical_oap_silicon")
     assert physical["stars"] == 1
     assert "No fabricated OAP chip" in physical["truth_boundary"]
 
 
 def test_war_room_top_three_are_impact_and_runtime_gates():
     projection = war_room.get_war_room_dashboard()
-
     assert [item["id"] for item in projection["top_next"]] == [
-        "identity_authority",
-        "postgres_hrm",
-        "live_product_certification",
+        "identity_authority", "postgres_hrm", "live_product_certification",
     ]
     assert all(item["impact"] == 5 for item in projection["top_next"])
     assert all(item["human_approval_required"] for item in projection["top_next"])
 
 
-def test_identity_cannot_reach_runtime_verified_without_active_authority(
-    monkeypatch,
-):
-    monkeypatch.setattr(
-        war_room.neon_auth,
-        "status",
-        lambda: {"configured": True, "valid": True},
-    )
-    monkeypatch.setattr(
-        war_room.postgres_db,
-        "postgres_status",
-        lambda: {
-            "reachable": True,
-            "initialized": True,
-            "checksum_mismatches": [],
-        },
-    )
-    monkeypatch.setattr(
-        war_room.authority,
-        "status",
-        lambda: {
-            "database_reachable": True,
-            "active_level_zero": False,
-            "approval_permission": False,
-            "ready": False,
-        },
-    )
-
-    identity = next(
-        item
-        for item in _ratings(war_room.get_war_room_dashboard())
-        if item["id"] == "identity_authority"
-    )
-
+def test_identity_cannot_reach_runtime_verified_without_active_authority(monkeypatch):
+    monkeypatch.setattr(war_room.neon_auth, "status", lambda: {"configured": True, "valid": True})
+    monkeypatch.setattr(war_room.postgres_db, "postgres_status", lambda: {
+        "reachable": True, "initialized": True, "checksum_mismatches": [],
+    })
+    monkeypatch.setattr(war_room.authority, "status", lambda: {
+        "database_reachable": True, "active_level_zero": False,
+        "approval_permission": False, "ready": False,
+    })
+    identity = next(item for item in _ratings(war_room.get_war_room_dashboard()) if item["id"] == "identity_authority")
     assert identity["stars"] == 3
     assert identity["first_missing_stage"] == "Runtime verified"
 
 
 def test_war_room_conflict_gate_detects_no_active_duplicates_or_kaa():
     audit = war_room.get_war_room_dashboard()["conflict_audit"]
-
     assert audit["passed"] is True
     assert audit["active_conflict_count"] == 0
     assert audit["duplicate_systems"] == 0
@@ -117,10 +77,7 @@ def test_war_room_conflict_gate_detects_no_active_duplicates_or_kaa():
     assert audit["duplicate_agent_roles"] == 0
     assert audit["naming_conflicts"] == 0
     assert audit["kaa_registered"] is False
-    assert any(
-        boundary["components"] == "Colonel Hathi / Hathi"
-        for boundary in audit["resolved_boundaries"]
-    )
+    assert any(boundary["components"] == "Colonel Hathi / Hathi" for boundary in audit["resolved_boundaries"])
 
 
 def test_war_room_dashboard_is_founder_only_read_only_and_does_not_create_db(
@@ -128,91 +85,53 @@ def test_war_room_dashboard_is_founder_only_read_only_and_does_not_create_db(
 ):
     database_path = tmp_path / "war-room.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
-
     response = client.get("/mission/war-room")
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "OAP Master War Room" in page
-    assert "Connector Gate" in page
-    assert "Render · GitHub · Neon" in page
-    assert "/mission/workbench/status" in page
-    assert "War Room does not call provider APIs or expose credentials" in page
-    assert "Provider reads stay Founder-only" in page
-    assert "Highest-value next three" in page
-    assert "78 Agent Passports" in page
-    assert "RTL Memory Guard / IOMMU" in page
-    assert "RTL Trust / Attestation" in page
-    assert "Physical OAP Silicon" in page
-    assert "No approve, execute, deploy, migrate, purchase, flash or activate" in page
+    assert "Founder-only · Research Intelligence" in page
+    assert "Research intelligence" in page
+    assert "7× DEEP DIVE" in page
+    assert "This surface performs no production write" in page
+    assert "Human Authority remains final" in page
     assert 'method="post"' not in page.lower()
-    assert '@bp.post("/tools/render' not in page
-    assert '@bp.post("/tools/neon' not in page
     assert client.post("/mission/war-room").status_code == 405
     assert anonymous_client.get("/mission/war-room").status_code == 302
     assert anonymous_client.get("/mission/war-room/status").status_code == 401
     assert not database_path.exists()
 
 
-def test_master_war_room_page_locks_full_seven_star_blueprint(client):
+def test_master_war_room_page_locks_canonical_seven_x_and_seven_star_contract(client):
     response = client.get("/mission/war-room")
     page = response.get_data(as_text=True)
-
     assert response.status_code == 200
+
     for checkpoint in (
-        "⭐ 1 · Purpose",
-        "⭐ 2 · Architecture",
-        "⭐ 3 · Functionality",
-        "⭐ 4 · Safety & Governance",
-        "⭐ 5 · Connectivity & Data",
-        "⭐ 6 · Resilience & Operations",
-        "⭐ 7 · Real-world Readiness",
+        "1 · Discovery", "2 · Verification", "3 · Alternatives", "4 · Adversarial",
+        "5 · Systems", "6 · Consequence", "7 · Synthesis",
     ):
         assert checkpoint in page
-
+    for star in ("Truth", "Function", "Security", "Stability", "Integration", "Compliance", "Learning"):
+        assert star in page
     for required in (
-        "3 / 7 / 21 War Room protocol",
-        "Observe → Challenge → Resolve",
-        "Normal is not enough",
-        "Cross-world capability registry",
-        "Travel Intelligence",
-        "Movement Intelligence",
-        "Booking Intelligence",
-        "Events Intelligence",
-        "Humanitarian Intelligence",
-        "Compliance Intelligence",
-        "Master boards",
-        "Nexus Board",
-        "Laboratory Board",
-        "Challenge chamber",
-        "Builder",
-        "Operator",
-        "Challenger",
-        "Master command card",
-        "PROCEED simulation",
-        "FAILURE simulation",
-        "RECOVERY simulation",
-        "Evidence returns to HRM",
-        "No evidence = no green. No test = no star.",
-        "SMI · exactly 7 Intelligence Worlds",
-        "Nexus is the nervous/connective system",
-        "Oasis is the environment/presentation layer",
+        "Observe → Classify → Verify → Fix/Plan → Retest → Record → Learn",
+        "No evidence = no Green. No test = no star.",
+        "No fabricated tally",
+        "Challenge room",
+        "Guardian · End Review · SMI Judgement",
+        "Clear output",
     ):
         assert required in page
-
-    # The Master layer must remain read-only. Human decisions are displayed as
-    # possible outcomes only; the War Room never exposes an execution form.
     assert 'method="post"' not in page.lower()
-    assert "This page itself exposes no execution control" in page
+    assert "This surface performs no production write" in page
 
 
 def test_war_room_status_is_redacted_and_preserves_human_authority(client):
     response = client.get("/mission/war-room/status")
     payload = response.get_json()
     serialized = response.get_data(as_text=True).lower()
-
     assert response.status_code == 200
     assert payload["controls_enabled"] is False
     assert payload["can_approve"] is False
@@ -220,14 +139,7 @@ def test_war_room_status_is_redacted_and_preserves_human_authority(client):
     assert payload["validation"]["checks"]["final_authority"] == "Human Authority"
     assert payload["human_authority"]["status"] == "Final approval required"
     assert json.dumps(payload).count("Human Authority") >= 1
-    for private_key in (
-        "password",
-        "secret",
-        "private_key",
-        "database_url",
-        "correlation_id",
-        "message_body",
-    ):
+    for private_key in ("password", "secret", "private_key", "database_url", "correlation_id", "message_body"):
         assert private_key not in serialized
     assert '"kaa"' not in serialized
     assert "council" not in serialized
