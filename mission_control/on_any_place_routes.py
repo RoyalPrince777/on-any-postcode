@@ -8,7 +8,15 @@ from __future__ import annotations
 
 from urllib import parse as urlparse
 
-from flask import Blueprint, Response, jsonify, make_response, redirect, render_template, request
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+)
 
 from . import (
     atlas_live_sources,
