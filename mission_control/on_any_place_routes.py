@@ -2,7 +2,7 @@
 
 One public map door. Compatibility aliases stay quiet. Town/postcode suggestions
 are resolved server-side so the map can autocomplete without exposing provider
-calls in the browser.
+calls in the browser. Booking remains a separate public destination.
 """
 from __future__ import annotations
 
@@ -79,10 +79,15 @@ def _place_suggestions(query: str) -> list[dict[str, object]]:
 
 @bp.get("/map-intelligence/suggest")
 def map_intelligence_suggest():
-    """Return bounded town/place autocomplete suggestions for Map Intelligence."""
     response = jsonify({"suggestions": _place_suggestions(request.args.get("q", ""))})
     response.headers["Cache-Control"] = "private, max-age=60"
     return response
+
+
+@bp.get("/booking")
+def booking_entry():
+    """Booking is a separate public system, not a Map Intelligence layer."""
+    return redirect("/travel/direct", code=302)
 
 
 @bp.get("/on-any-place")
