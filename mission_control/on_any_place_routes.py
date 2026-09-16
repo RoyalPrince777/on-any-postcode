@@ -44,7 +44,7 @@ def _place_suggestions(query: str) -> list[dict[str, object]]:
     params = urlparse.urlencode({"name":term,"count":8,"language":"en","format":"json"})
     try:
         payload = location_intelligence._json("https://geocoding-api.open-meteo.com/v1/search?"+params,"geocoding-api.open-meteo.com")
-    except Exception:
+    except (ValueError, location_intelligence.LocationUnavailable):
         return []
     results = payload.get("results")
     if not isinstance(results, list):
