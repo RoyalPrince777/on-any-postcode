@@ -7,7 +7,15 @@ import os
 import time
 from urllib import parse as urlparse
 
-from flask import Blueprint, make_response, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from . import founder_local_auth, founder_recovery, web_security
 
