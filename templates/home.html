@@ -2,90 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>ON ANY POSTCODE</title>
+<title>OAP World · ON ANY POSTCODE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {% include "_oap_install_head.html" %}
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
-:root{--bg:#050807;--panel:#0d1210;--panel-2:#111815;--line:#202b25;--green:#6df29c;--text:#f4f8f5;--muted:#96a59c}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:linear-gradient(180deg,#07100b 0,#050807 36rem);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px}a{color:inherit}.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px max(20px,4vw);background:rgb(5 8 7/.82);border-bottom:1px solid var(--line);backdrop-filter:blur(20px)}.brand{font-size:.82rem;font-weight:800;letter-spacing:.12em}.nav{display:flex;gap:4px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}.nav a,.button{display:inline-flex;min-height:42px;align-items:center;justify-content:center;border:1px solid transparent;border-radius:12px;padding:9px 13px;text-decoration:none;font-weight:700}.nav a{color:var(--muted)}.nav a:hover,.nav a:focus-visible{background:var(--panel-2);color:var(--text)}.button{border-color:#304038;background:var(--panel-2)}.button:first-child{border-color:var(--green);background:var(--green);color:#041008}.hero,.section{width:min(1160px,calc(100% - 40px));margin:auto}.hero{min-height:58vh;display:grid;align-content:center;padding:72px 0}.eyebrow{color:var(--green);font-size:.75rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.hero h1{max-width:900px;margin:.18em 0;font-size:clamp(3.4rem,9vw,7.2rem);line-height:.88;letter-spacing:-.065em}.hero>p:not(.eyebrow){max-width:620px;color:var(--muted);font-size:clamp(1rem,2vw,1.2rem);line-height:1.6}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.section{padding:48px 0;border-top:1px solid var(--line)}.section h2{max-width:720px;margin:.2em 0 24px;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.035em}.muted{color:var(--muted);line-height:1.55}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.card{min-height:150px;border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:20px}.card h3{margin:.15em 0 .6em;font-size:1.05rem}.hierarchy{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.level{display:grid;min-height:76px;place-items:center;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:10px;text-align:center;font-size:.9rem;font-weight:700}.signal-form{display:grid;grid-template-columns:minmax(150px,220px) minmax(240px,1fr) auto;gap:10px}.signal-form label{display:grid;gap:6px}.signal-form input{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:#080d0b;color:var(--text);padding:11px 13px;font:inherit}.signal-form input:focus{border-color:var(--green);outline:3px solid rgb(109 242 156/.12)}.signal-form button,.install button{min-height:46px;align-self:end;border:0;border-radius:12px;background:var(--green);color:#041008;font:inherit;font-weight:800;padding:10px 16px}.signal-list{display:grid;gap:8px;margin-top:12px}.signal{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px}.signal p{margin:.35em 0 0;color:var(--muted)}.install{padding-bottom:80px}.install button[hidden]{display:none}@media(max-width:900px){.topbar{align-items:flex-start;flex-direction:column;gap:10px}.nav{width:100%}.grid{grid-template-columns:repeat(2,1fr)}.hierarchy{grid-template-columns:repeat(4,1fr)}}@media(max-width:640px){.hero,.section{width:min(100% - 28px,1160px)}.hero{min-height:52vh;padding:52px 0}.hero h1{font-size:clamp(3rem,16vw,5rem)}.grid,.hierarchy,.signal-form{grid-template-columns:1fr}.card{min-height:auto}.level{min-height:54px;place-items:center start;text-align:left}.nav a{padding:8px 10px;font-size:.88rem}}
+:root{--bg:#030303;--panel:#090806;--panel2:#100d07;--gold:#d8aa45;--gold2:#ffe09a;--line:#5f491d;--text:#fffaf0;--muted:#b7aa91}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 8%,#211706 0,#080603 30rem,#020202 65rem);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;padding:14px max(16px,3vw);background:rgba(2,2,2,.9);border-bottom:1px solid var(--line);backdrop-filter:blur(18px)}.brand{font-weight:900;letter-spacing:.18em;color:var(--gold2);white-space:nowrap}.search{flex:1;max-width:780px;margin:auto;border:1px solid var(--line);border-radius:999px;padding:12px 18px;color:var(--muted);background:#050504}.founder{border:1px solid var(--line);border-radius:999px;padding:10px 15px;color:var(--gold2);font-weight:800}.shell{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 69px)}aside{border-right:1px solid var(--line);padding:22px 12px;background:rgba(4,4,3,.72)}.nav{display:grid;gap:6px}.nav a{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid transparent;border-radius:12px;color:#dbc58f}.nav a:hover,.nav a:focus-visible{border-color:var(--line);background:linear-gradient(90deg,#211807,#0b0905);color:#fff}.stud{margin-left:auto;color:#fff;text-shadow:0 0 8px #fff,0 0 14px var(--gold)}main{min-width:0}.hero{width:min(1180px,calc(100% - 36px));margin:auto;padding:70px 0 44px;text-align:center}.crown{font-size:2rem}.eyebrow{color:var(--gold);font-size:.76rem;font-weight:900;letter-spacing:.2em;text-transform:uppercase}.hero h1{margin:.1em 0;font-family:Georgia,serif;font-size:clamp(3.3rem,9vw,7.5rem);line-height:.9;letter-spacing:-.055em;background:linear-gradient(180deg,#fff7d4,#d39b31 52%,#fff1b3);-webkit-background-clip:text;color:transparent;text-shadow:0 8px 35px rgba(216,170,69,.12)}.hero p{color:var(--muted);font-size:1.05rem}.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:24px}.button{display:inline-flex;align-items:center;min-height:46px;padding:10px 18px;border:1px solid var(--gold);border-radius:999px;background:linear-gradient(180deg,#2a1d08,#0a0804);color:var(--gold2);font-weight:850}.button.primary{background:linear-gradient(135deg,#ffe39a,#b77b16);color:#090603;box-shadow:0 0 24px rgba(216,170,69,.24)}.section{width:min(1180px,calc(100% - 36px));margin:auto;padding:34px 0;border-top:1px solid #2d2413}.section h2{margin:.2em 0 20px;font-size:clamp(1.55rem,4vw,2.35rem)}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card,.level,.signal{position:relative;border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,rgba(22,17,8,.96),rgba(5,5,4,.96));padding:18px;box-shadow:inset 0 0 22px rgba(216,170,69,.035)}.card:before{content:'◆';position:absolute;right:12px;top:9px;color:#fff;font-size:.72rem;text-shadow:0 0 7px #fff,0 0 12px var(--gold)}.card h3{margin:.1em 0 .6em;color:var(--gold2)}.muted{color:var(--muted);line-height:1.55}.hierarchy{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.level{min-height:72px;display:grid;place-items:center;text-align:center;color:#e6cd91;font-weight:800}.signal-form{display:grid;grid-template-columns:minmax(150px,220px) minmax(240px,1fr) auto;gap:10px}.signal-form label{display:grid;gap:6px}.signal-form input{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:#050504;color:#fff;padding:11px 13px;font:inherit}.signal-form input:focus{border-color:var(--gold2);outline:3px solid rgba(216,170,69,.12)}.signal-form button,.install button{min-height:46px;border:1px solid var(--gold);border-radius:12px;background:linear-gradient(135deg,#ffe39a,#b77b16);color:#080603;font:inherit;font-weight:900;padding:10px 16px}.signal-list{display:grid;gap:8px;margin-top:12px}.install{padding-bottom:70px}.install button[hidden]{display:none}.footer{text-align:center;padding:24px;color:#7f745e;letter-spacing:.14em;font-size:.72rem}@media(max-width:920px){.shell{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line);padding:8px 14px}.nav{display:flex;overflow-x:auto}.nav a{white-space:nowrap}.stud{display:none}.grid{grid-template-columns:repeat(2,1fr)}.hierarchy{grid-template-columns:repeat(4,1fr)}}@media(max-width:640px){.top{gap:8px}.brand{font-size:.75rem}.search{display:none}.founder{margin-left:auto}.hero,.section{width:min(100% - 26px,1180px)}.hero{padding:52px 0 34px}.grid,.hierarchy,.signal-form{grid-template-columns:1fr}.level{min-height:52px;place-items:center start;text-align:left}}
 </style>
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">OAP <span class="muted">/ PUBLIC WORLD</span></div>
-  <nav aria-label="Primary navigation">
-    <a href="/the-spot">📍 The Spot</a>
-    <a href="/pulse">📡 Pulse</a>
-    <a href="/the-link">🔗 The Link</a>
-    <a href="/the-spot/signal">📣 Signal</a>
-    <a href="/the-spot/events">🎪 Activity</a>
-    <a href="/the-spot/market">🏪 Market</a>
-    <a href="/the-spot/discovery">🧭 Explorer</a>
-  </nav>
-</header>
+<header class="top"><div class="brand">◇ OAP WORLD</div><div class="search">⌕ Search the world · any postcode</div><a class="founder" href="/auth">Founder ◇</a></header>
+<div class="shell">
+<aside><nav class="nav" aria-label="OAP World navigation">
+<a href="/">⌂ Home <span class="stud">◆</span></a><a href="/movement">🗺 Map Intelligence <span class="stud">◆</span></a><a href="/the-spot">📍 The Spot <span class="stud">◆</span></a><a href="/the-link">🔗 The Link <span class="stud">◆</span></a><a href="/pulse">📡 Pulse <span class="stud">◆</span></a><a href="/the-spot/signal">📣 Signal <span class="stud">◆</span></a><a href="/the-spot/market">🛍 Market <span class="stud">◆</span></a><a href="/the-spot/events">✦ Activity / Adventure <span class="stud">◆</span></a><a href="/the-spot/discovery">🧭 Explorer <span class="stud">◆</span></a>
+</nav></aside>
 <main>
-  <section class="hero" aria-labelledby="home-title">
-    <p class="eyebrow">Born Local · Built Global · Earth is our turf</p>
-    <h1 id="home-title">ON ANY POSTCODE</h1>
-    <p>Your local world, connected outward—from postcode to universe.</p>
-    <div class="actions">
-      <a class="button" href="/the-spot">Open The Spot</a>
-      <a class="button" href="#location">🌍 Explore OAP World</a>
-      <a class="button" href="/movement">Movement</a>
-    </div>
-    <p class="muted">Postcode → Borough / District → County / Region → Country → Continent → Global → Universe.</p>
-  </section>
-
-  <section class="section" id="location" aria-labelledby="location-title">
-    <p class="eyebrow">Postcode to Universe</p>
-    <h2 id="location-title">Your location hierarchy</h2>
-    <div class="hierarchy" aria-label="OAP location hierarchy">
-      <div class="level">📍 Postcode</div>
-      <div class="level">🏙️ Borough / District</div>
-      <div class="level">🧭 County / Region</div>
-      <div class="level">🏳️ Country</div>
-      <div class="level">🌍 Continent</div>
-      <div class="level">🌐 Global</div>
-      <div class="level">✨ Universe</div>
-    </div>
-  </section>
-
-  <section class="section" id="signal" aria-labelledby="signal-title">
-    <p class="eyebrow">Drop a Signal</p>
-    <h2 id="signal-title">What is happening around you?</h2>
-    <form class="signal-form" method="post" action="/signal">
-      <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-      <label><span class="muted">Name</span><input name="name" maxlength="80" required></label>
-      <label><span class="muted">Signal</span><input name="body" maxlength="500" required></label>
-      <button type="submit">Drop Signal</button>
-    </form>
-    <div class="signal-list" aria-label="Public signals">
-      {% for post in signal_posts %}
-      <article class="signal"><strong>{{ post.name }}</strong><p>{{ post.body }}</p></article>
-      {% else %}
-      <article class="signal"><strong>No public signals yet.</strong><p>Be the first to drop something useful.</p></article>
-      {% endfor %}
-    </div>
-  </section>
-
-  <section class="section" aria-labelledby="doors-title">
-    <p class="eyebrow">OAP World</p>
-    <h2 id="doors-title">Everything local, in one place</h2>
-    <div class="grid">
-      <article class="card"><h3>📍 The Spot</h3><p class="muted">Local energy, places, Signals and activity.</p></article>
-      <article class="card"><h3>📡 Pulse</h3><p class="muted">Where current OAP Signals live and move.</p></article>
-      <article class="card"><h3>🔗 The Link</h3><p class="muted">Opportunities and communication.</p></article>
-      <article class="card"><h3>🏪 Market</h3><p class="muted">Local business and direct commerce discovery.</p></article>
-    </div>
-  </section>
-
-  <section class="section install" aria-labelledby="oap-os-title">
-    <p class="eyebrow">OAP OPERATING SYSTEM · GENERATION 0</p>
-    <h2 id="oap-os-title">Install ON ANY POSTCODE</h2>
-    <p class="muted">Run OAP as its own app on this device.</p>
-    <button type="button" data-oap-install hidden>Install OAP</button>
-    <p class="muted" data-oap-install-status role="status">Checking install support…</p>
-  </section>
-</main>
-</body>
-</html>
+<section class="hero"><div class="crown">♛</div><p class="eyebrow">Born Local · Built Global · Earth is our turf</p><h1>OAP WORLD</h1><p>Your local world connected outward — one front door, many systems inside.</p><div class="actions"><a class="button primary" href="/the-spot">Explore The Spot →</a><a class="button" href="/movement">🗺 Map Intelligence</a><a class="button" href="#location">🌍 Explore the World</a></div></section>
+<section class="section" id="location"><p class="eyebrow">Postcode → Universe</p><h2>Your world hierarchy</h2><div class="hierarchy"><div class="level">📍 Postcode</div><div class="level">🏙 Borough / District</div><div class="level">🧭 County / Region</div><div class="level">🏳 Country</div><div class="level">🌍 Continent</div><div class="level">🌐 Global</div><div class="level">✨ Universe</div></div></section>
+<section class="section"><p class="eyebrow">OAP World</p><h2>Everything local. Connected globally.</h2><div class="grid"><a class="card" href="/movement"><h3>🗺 Map Intelligence</h3><p class="muted">OAP-controlled routes and spatial intelligence.</p></a><a class="card" href="/the-spot"><h3>📍 The Spot</h3><p class="muted">People, places, Signals and real local life.</p></a><a class="card" href="/the-link"><h3>🔗 The Link</h3><p class="muted">Link Up, connect and collaborate.</p></a><a class="card" href="/the-spot/market"><h3>🛍 Market</h3><p class="muted">Local discovery and direct commerce.</p></a><a class="card" href="/pulse"><h3>📡 Pulse</h3><p class="muted">Current OAP Signals and Pulse Flow.</p></a><a class="card" href="/the-spot/events"><h3>✦ Activity / Adventure</h3><p class="muted">Culture, gatherings and things to do.</p></a><a class="card" href="/the-spot/discovery"><h3>🧭 Explorer</h3><p class="muted">Discover your postcode and beyond.</p></a><a class="card" href="/auth"><h3>♛ Founder</h3><p class="muted">Private entry. Founder controls remain separated.</p></a></div></section>
+<section class="section" id="signal"><p class="eyebrow">Drop a Signal</p><h2>What is happening around you?</h2><form class="signal-form" method="post" action="/signal"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><label><span class="muted">Name</span><input name="name" maxlength="80" required></label><label><span class="muted">Signal</span><input name="body" maxlength="500" required></label><button type="submit">Drop Signal</button></form><div class="signal-list">{% for post in signal_posts %}<article class="signal"><strong>{{ post.name }}</strong><p class="muted">{{ post.body }}</p></article>{% else %}<article class="signal"><strong>No public signals yet.</strong><p class="muted">Be the first to drop something useful.</p></article>{% endfor %}</div></section>
+<section class="section install"><p class="eyebrow">OAP Operating System</p><h2>Install ON ANY POSTCODE</h2><p class="muted">Run OAP as its own app on this device.</p><button type="button" data-oap-install hidden>Install OAP</button><p class="muted" data-oap-install-status role="status">Checking install support…</p></section>
+<div class="footer">ON ANY POSTCODE · ONE WORLD · ONE FRONT DOOR · MANY SYSTEMS INSIDE</div>
+</main></div></body></html>
