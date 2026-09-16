@@ -1,9 +1,9 @@
 """Bounded, read-only routing adapter for OAP Movement and Map Intelligence.
 
 OAP Route Core owns the routing contract and responses. Operational Movement
-remains proof-gated. Map Intelligence may request read-only route geometry from
-explicitly configured OAP-owned/self-hosted OSRM-compatible endpoints; this
-never dispatches, charges, or silently tracks anyone.
+remains proof-gated. Map Intelligence may request read-only route geometry and
+road-network vector tiles from explicitly configured OAP-owned/self-hosted
+OSRM-compatible endpoints; this never dispatches, charges, or silently tracks anyone.
 """
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from urllib import request as urlrequest
 CORE_NAME = "OAP Route Core"
 ENGINE_CONTRACT = "OSRM-compatible"
 MAX_RESPONSE_BYTES = 512 * 1024
+MAX_TILE_BYTES = 2 * 1024 * 1024
 ROUTE_TIMEOUT_SECONDS = 6
 ALLOWED_PROFILES = frozenset({"driving", "cycling", "walking"})
 VERIFICATION_ONLY_HOSTS = frozenset({"router.project-osrm.org"})
@@ -27,7 +28,7 @@ _LAST_ERROR: str | None = None
 
 
 class RoutingUnavailable(RuntimeError):
-    """Raised when an approved routing endpoint cannot return a bounded route."""
+    """Raised when an approved routing endpoint cannot return bounded routing data."""
 
 
 def _flag(name: str) -> bool:
@@ -172,6 +173,30 @@ def _request_json(url: str, *, expected_host: str) -> dict[str, Any]:
     return payload
 
 
+def _request_bytes(url: str, *, expected_host: str, max_bytes: int) -> tuple[bytes, str]:
+    parsed = urlparse.urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname != expected_host:
+        raise RoutingUnavailable("routing_endpoint_rejected")
+    request = urlrequest.Request(url, headers={"Accept":"application/x-protobuf","User-Agent":"ON-ANY-POSTCODE-Map/1.0"})
+    try:
+        with urlrequest.urlopen(request, timeout=ROUTE_TIMEOUT_SECONDS) as response:
+            final = urlparse.urlparse(response.geturl())
+            if final.scheme != "https" or final.hostname != expected_host:
+                _mark_error("routing_redirect_rejected"); raise RoutingUnavailable("routing_redirect_rejected")
+            body = response.read(max_bytes + 1)
+            content_type = str(response.headers.get("Content-Type") or "application/x-protobuf").split(";", 1)[0].strip()
+    except RoutingUnavailable:
+        raise
+    except (OSError, TimeoutError) as exc:
+        _mark_error(type(exc).__name__); raise RoutingUnavailable("routing_provider_unavailable") from exc
+    if len(body) > max_bytes:
+        _mark_error("routing_tile_too_large"); raise RoutingUnavailable("routing_tile_too_large")
+    if not body:
+        raise RoutingUnavailable("routing_tile_empty")
+    _mark_success()
+    return body, content_type
+
+
 def _route_payload(*, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object, geometry: bool, base_url: str | None = None) -> tuple[dict[str, Any], str]:
     base = base_url or _base_url()
     if not base:
@@ -241,7 +266,6 @@ def _map_route_with_base(*, base: str, pickup_latitude: object, pickup_longitude
 
 
 def map_route_via_owned_endpoint(*, base_url: object, pickup_latitude: object, pickup_longitude: object, destination_latitude: object, destination_longitude: object, profile: object = "driving") -> dict[str, Any]:
-    """Route through a specific shard endpoint only when it is allowlisted and OAP-owned."""
     base = _validated_base_url(base_url, require_owned=True)
     if not base:
         raise RoutingUnavailable("routing_shard_endpoint_rejected")
@@ -257,6 +281,28 @@ def map_route(*, pickup_latitude: object, pickup_longitude: object, destination_
     return _map_route_with_base(base=base,pickup_latitude=pickup_latitude,pickup_longitude=pickup_longitude,destination_latitude=destination_latitude,destination_longitude=destination_longitude,profile=profile)
 
 
+def road_tile(*, x: object, y: object, zoom: object, profile: object = "driving") -> tuple[bytes, str]:
+    """Fetch one routable-road MVT tile from the current OAP-owned routing graph."""
+    if provider_ownership() != "oap_owned":
+        raise RoutingUnavailable("map_tiles_require_oap_owned_endpoint")
+    try:
+        tx = int(x); ty = int(y); z = int(zoom)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_tile_coordinate") from exc
+    if z < 12 or z > 20 or tx < 0 or ty < 0:
+        raise ValueError("invalid_tile_coordinate")
+    limit = 1 << z
+    if tx >= limit or ty >= limit:
+        raise ValueError("invalid_tile_coordinate")
+    normalized_profile = _profile(profile)
+    base = _validated_base_url(os.environ.get("OAP_OSRM_BASE_URL", ""), require_owned=True)
+    if not base:
+        raise RoutingUnavailable("routing_provider_not_configured")
+    expected_host = str(urlparse.urlparse(base).hostname)
+    url = f"{base}/tile/v1/{normalized_profile}/tile({tx},{ty},{z}).mvt"
+    return _request_bytes(url, expected_host=expected_host, max_bytes=MAX_TILE_BYTES)
+
+
 def startup_probe() -> dict[str, Any]:
     if not _flag("OAP_ROUTING_STARTUP_PROBE") or not configured():
         return status()
@@ -269,4 +315,4 @@ def startup_probe() -> dict[str, Any]:
 
 def status() -> dict[str, Any]:
     success, error = _runtime_state(); approvals = production_approval_state(); ownership = provider_ownership()
-    return {"component":CORE_NAME,"engine_contract":ENGINE_CONTRACT,"configured":configured(),"runtime_verified":success is not None and error is None,"provider_tier":provider_tier(),"provider_ownership":ownership,"oap_owned_endpoint":ownership=="oap_owned","production_provider_approved":approvals["provider_approved"],"production_capacity_approved":approvals["capacity_approved"],"production_monitoring_approved":approvals["monitoring_approved"],"production_gate_approved":production_gate_approved(),"production_ready":production_ready(),"startup_probe_enabled":_flag("OAP_ROUTING_STARTUP_PROBE"),"last_success_epoch":int(success) if success is not None else None,"last_error":error,"timeout_seconds":ROUTE_TIMEOUT_SECONDS,"geometry_exposed":ownership=="oap_owned","mutation_enabled":False,"dispatch_enabled":False}
+    return {"component":CORE_NAME,"engine_contract":ENGINE_CONTRACT,"configured":configured(),"runtime_verified":success is not None and error is None,"provider_tier":provider_tier(),"provider_ownership":ownership,"oap_owned_endpoint":ownership=="oap_owned","production_provider_approved":approvals["provider_approved"],"production_capacity_approved":approvals["capacity_approved"],"production_monitoring_approved":approvals["monitoring_approved"],"production_gate_approved":production_gate_approved(),"production_ready":production_ready(),"startup_probe_enabled":_flag("OAP_ROUTING_STARTUP_PROBE"),"last_success_epoch":int(success) if success is not None else None,"last_error":error,"timeout_seconds":ROUTE_TIMEOUT_SECONDS,"geometry_exposed":ownership=="oap_owned","road_vector_tiles":ownership=="oap_owned","road_vector_tile_min_zoom":12,"mutation_enabled":False,"dispatch_enabled":False}
