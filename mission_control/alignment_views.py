@@ -1,7 +1,7 @@
 """Founder-only SMI alignment, simulation and master upgrade routes."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, current_app, jsonify, make_response, request
 
 from . import (
     ai_behaviour_protocol,
@@ -15,6 +15,8 @@ from . import (
     smi_brain_score21,
     smi_completion_contract,
     smi_deep_dive_protocol,
+    smi_function_health,
+    smi_proof_gate,
     smi_receipt_backend,
     war_room_simulation_actions,
     web_security,
@@ -64,7 +66,11 @@ def smi_deep_dive_simulate():
 def smi_brain_evidence_status():
     """Return the Founder-only SMI Brain 14 x 7 evidence completion protocol."""
 
-    return _no_store(make_response(jsonify(smi_brain_evidence_protocol.completion_check(request.args.get("part")))))
+    return _no_store(
+        make_response(
+            jsonify(smi_brain_evidence_protocol.completion_check(request.args.get("part")))
+        )
+    )
 
 
 @bp.get("/war-room/smi-brain/evidence-runner")
@@ -161,7 +167,9 @@ def ai_behaviour():
     """Return the Founder-only SMI AI behaviour protocol."""
 
     return _no_store(
-        make_response(jsonify(ai_behaviour_protocol.status(request.args.get("target") or "SMI")))
+        make_response(
+            jsonify(ai_behaviour_protocol.status(request.args.get("target") or "SMI"))
+        )
     )
 
 
@@ -195,6 +203,37 @@ def thinking_signals():
     return _no_store(make_response(jsonify(alignment_check.thinking_signals())))
 
 
+@bp.get("/war-room/function-health")
+@bp.get("/smi/function-health")
+@web_security.login_required(api=True, founder_only=True)
+def smi_function_health_status():
+    """Return truth-labelled health for the primary Founder SMI controls."""
+
+    return _no_store(
+        make_response(jsonify(smi_function_health.function_health(current_app.url_map)))
+    )
+
+
+@bp.get("/war-room/routes")
+@bp.get("/smi/routes")
+@web_security.login_required(api=True, founder_only=True)
+def smi_route_status():
+    """Return the curated Founder-only operational route registry."""
+
+    return _no_store(
+        make_response(jsonify(smi_function_health.route_status(current_app.url_map)))
+    )
+
+
+@bp.get("/war-room/green-gate")
+@bp.get("/smi/green-gate")
+@web_security.login_required(api=True, founder_only=True)
+def green_gate_status():
+    """Return the current secret-safe SMI Green Gate proof state."""
+
+    return _no_store(make_response(jsonify(smi_proof_gate.public_safe_status())))
+
+
 @bp.get("/war-room/coherent-automation")
 @bp.get("/war-room/actions/coherent-automation")
 @bp.get("/smi/coherent-automation")
@@ -215,7 +254,8 @@ def coherent_automation_plan():
         make_response(
             jsonify(
                 coherent_automation.plan(
-                    request.args.get("command"), target=request.args.get("target") or "SMI"
+                    request.args.get("command"),
+                    target=request.args.get("target") or "SMI",
                 )
             )
         )
@@ -241,12 +281,19 @@ def distribution_intelligence_review():
     if not web_security.csrf_valid(request):
         return _no_store(
             make_response(
-                jsonify(error={"code": "csrf_invalid", "message": "Session expired. Refresh and try again."}),
+                jsonify(
+                    error={
+                        "code": "csrf_invalid",
+                        "message": "Session expired. Refresh and try again.",
+                    }
+                ),
                 403,
             )
         )
     payload = request.get_json(silent=True)
-    return _no_store(make_response(jsonify(distribution_intelligence.review_release(payload))))
+    return _no_store(
+        make_response(jsonify(distribution_intelligence.review_release(payload)))
+    )
 
 
 @bp.get("/war-room/smi-completion")
@@ -296,9 +343,7 @@ def simple_task_debug():
     """Return the safe protocol for a simple task fix/debug loop."""
 
     return _no_store(
-        make_response(
-            jsonify(alignment_check.simple_task_debug(request.args.get("task")))
-        )
+        make_response(jsonify(alignment_check.simple_task_debug(request.args.get("task"))))
     )
 
 
