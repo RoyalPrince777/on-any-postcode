@@ -246,7 +246,6 @@ class _ExistingFounderConnection:
 
     def execute(self, sql, params=()):
         self.commands.append((sql, params))
-        connection = self
 
         class Result:
             def fetchone(self):
