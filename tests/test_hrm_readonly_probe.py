@@ -78,8 +78,8 @@ def test_hrm_startup_proof_never_emits_secret_fields(monkeypatch, capsys):
     assert payload == {
         "backend": "independent_hrm_postgres_candidate",
         "configured": True,
-        "error": None,
         "event": "oap_hrm_candidate_startup_probe",
+        "level": "info",
         "read_only": True,
         "reachable": True,
         "schema_changed": False,
