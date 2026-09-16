@@ -1,15 +1,16 @@
-"""Approved public address protocol for the On Any Place family.
+"""Canonical public Map Intelligence routes.
 
-Do not change approved addresses without Founder instruction. The public UI shows
-one canonical map door: /on-any-place. Older or secondary routes remain quiet
-compatibility aliases so existing links do not break, but they are not promoted
-as duplicate public doors. /travel belongs to the real OAP Travel surface.
+One public map door. Compatibility aliases stay quiet. Town/postcode suggestions
+are resolved server-side so the map can autocomplete without exposing provider
+calls in the browser.
 """
 from __future__ import annotations
 
-from flask import Blueprint, make_response, redirect, render_template, request
+from urllib import parse as urlparse
 
-from . import local_map_intelligence
+from flask import Blueprint, jsonify, make_response, redirect, render_template, request
+
+from . import local_map_intelligence, location_intelligence
 
 bp = Blueprint("on_any_place", __name__)
 
@@ -39,10 +40,53 @@ def _with_defaults(path: str) -> dict[str, object]:
     return values
 
 
+def _place_suggestions(query: str) -> list[dict[str, object]]:
+    term = " ".join(str(query or "").strip().split())[:80]
+    if len(term) < 2:
+        return []
+    params = urlparse.urlencode({"name": term, "count": 8, "language": "en", "format": "json"})
+    try:
+        payload = location_intelligence._json(
+            "https://geocoding-api.open-meteo.com/v1/search?" + params,
+            "geocoding-api.open-meteo.com",
+        )
+    except Exception:
+        return []
+    results = payload.get("results")
+    if not isinstance(results, list):
+        return []
+    suggestions = []
+    for item in results[:8]:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        country = str(item.get("country") or "").strip()
+        admin = str(item.get("admin1") or item.get("admin2") or "").strip()
+        if not name:
+            continue
+        label = ", ".join(part for part in (name, admin, country) if part)
+        suggestions.append(
+            {
+                "label": label,
+                "value": name,
+                "country": country,
+                "latitude": item.get("latitude"),
+                "longitude": item.get("longitude"),
+            }
+        )
+    return suggestions
+
+
+@bp.get("/map-intelligence/suggest")
+def map_intelligence_suggest():
+    """Return bounded town/place autocomplete suggestions for Map Intelligence."""
+    response = jsonify({"suggestions": _place_suggestions(request.args.get("q", ""))})
+    response.headers["Cache-Control"] = "private, max-age=60"
+    return response
+
+
 @bp.get("/on-any-place")
 def canonical_on_any_place():
-    """Render the approved On Any Place address without changing the URL."""
-
     values = _with_defaults(request.path.rstrip("/"))
     local_map = local_map_intelligence.local_map(
         values.get("location") or values.get("area") or "Mitcham",
@@ -65,8 +109,6 @@ def canonical_on_any_place():
 @bp.get("/drop")
 @bp.get("/live-pattern")
 def quiet_program_aliases():
-    """Keep old program addresses working without promoting duplicates."""
-
     values = _with_defaults(request.path.rstrip("/"))
     query = "&".join(f"{key}={value}" for key, value in values.items() if value is not None)
     target = "/on-any-place" + (f"?{query}" if query else "")
