@@ -18,6 +18,16 @@ from .hrm_durable_receipt import ReceiptBlocked, build_receipt, persist_and_read
 bp = Blueprint("certification", __name__)
 
 
+def _emit_startup_proof(proof: dict[str, object], *, ready: bool) -> None:
+    """Emit structured readiness without turning successful probes into errors."""
+
+    payload = dict(proof)
+    payload["level"] = "info" if ready else "error"
+    if not payload.get("error"):
+        payload.pop("error", None)
+    print(json.dumps(payload, separators=(",", ":"), sort_keys=True), flush=True)
+
+
 def _database_startup_probe() -> None:
     """Emit only coarse PostgreSQL readiness after a hosted process starts."""
 
@@ -35,7 +45,15 @@ def _database_startup_probe() -> None:
         "read_only": True,
         "secret_exposed": False,
     }
-    print(json.dumps(proof, separators=(",", ":"), sort_keys=True), flush=True)
+    ready = (
+        proof["configured"] is True
+        and proof["reachable"] is True
+        and proof["initialized"] is True
+        and proof["pending_migrations"] == 0
+        and proof["checksum_mismatch"] is False
+        and not proof["error"]
+    )
+    _emit_startup_proof(proof, ready=ready)
 
 
 def _hrm_candidate_startup_probe() -> None:
@@ -54,7 +72,12 @@ def _hrm_candidate_startup_probe() -> None:
         "schema_changed": False,
         "secret_exposed": False,
     }
-    print(json.dumps(proof, separators=(",", ":"), sort_keys=True), flush=True)
+    ready = (
+        proof["configured"] is True
+        and proof["reachable"] is True
+        and not proof["error"]
+    )
+    _emit_startup_proof(proof, ready=ready)
 
 
 def _startup_probes() -> None:
