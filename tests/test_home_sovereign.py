@@ -30,7 +30,7 @@ def test_home_keeps_public_sections_without_private_founder_entry(client):
 
 def test_public_main_menu_uses_locked_seven_items(client):
     page = client.get("/").get_data(as_text=True)
-    nav = page.split('<nav aria-label="Primary navigation">', 1)[1].split("</nav>", 1)[0]
+    nav = page.split('aria-label="Primary navigation"', 1)[1].split("</nav>", 1)[0]
 
     expected = (
         ("/the-spot", "📍 The Spot"),
