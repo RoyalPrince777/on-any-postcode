@@ -85,7 +85,7 @@ def bound() -> bool:
 
 
 def bind_existing_password(password: str) -> str:
-    """Persist one salted verifier after a separately proven Founder session."""
+    """Persist or repair one salted verifier after separately proven recovery."""
 
     if len(password) < 12 or len(password) > 128 or not password.strip():
         raise ValueError("invalid_password_length")
@@ -111,11 +111,8 @@ def bind_existing_password(password: str) -> str:
                 existing = connection.execute(
                     "SELECT identity_id FROM oap_founder_local_auth WHERE singleton_id=1"
                 ).fetchone()
-                if existing is not None:
-                    if str(existing[0]) != identity_id:
-                        raise FounderLocalAuthUnavailable("founder_identity_mismatch")
-                    connection.commit()
-                    return "complete"
+                if existing is not None and str(existing[0]) != identity_id:
+                    raise FounderLocalAuthUnavailable("founder_identity_mismatch")
 
                 authority.sync_authenticated_identity(
                     connection,
@@ -124,6 +121,18 @@ def bind_existing_password(password: str) -> str:
                     display_name="OAP Founder",
                     email_verified=bool(email),
                 )
+                if existing is not None:
+                    connection.execute(
+                        """UPDATE oap_founder_local_auth
+                           SET salt_hex=%s,
+                               verifier_hex=%s,
+                               updated_at=CURRENT_TIMESTAMP
+                           WHERE singleton_id=1 AND identity_id=%s""",
+                        (salt.hex(), verifier.hex(), identity_id),
+                    )
+                    connection.commit()
+                    return "rebound"
+
                 connection.execute(
                     """INSERT INTO oap_founder_local_auth
                            (singleton_id,identity_id,salt_hex,verifier_hex)
