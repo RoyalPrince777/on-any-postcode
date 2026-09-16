@@ -38,3 +38,18 @@ services:
         fromDatabase:
           name: oap-smi-hrm-fallback
           property: connectionString
+
+  # First-party Map Intelligence routing runtime. It deliberately has no
+  # public/demo routing fallback. OAP-controlled MLD route data must be
+  # provisioned before this service can pass its production proof gate.
+  - type: web
+    name: oap-routing
+    runtime: docker
+    plan: starter
+    region: oregon
+    repo: https://github.com/RoyalPrince777/on-any-postcode
+    branch: main
+    autoDeployTrigger: "off"
+    dockerfilePath: ./routing/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
