@@ -1,13 +1,14 @@
 """Canonical public Map Intelligence routes.
 
-One public map door. Town/postcode suggestions, source-backed places and
-read-only OAP-owned routing are exposed here. Booking remains separate.
+One public map door. Town/postcode suggestions, source-backed places,
+read-only OAP-owned routing and first-party road-network vector tiles are
+exposed here. Booking remains separate.
 """
 from __future__ import annotations
 
 from urllib import parse as urlparse
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template, request
+from flask import Blueprint, Response, jsonify, make_response, redirect, render_template, request
 
 from . import (
     atlas_live_sources,
@@ -121,6 +122,24 @@ def map_intelligence_places():
     return response
 
 
+@bp.get("/map-intelligence/road-tiles/<int:z>/<int:x>/<int:y>.mvt")
+def map_intelligence_road_tile(z: int, x: int, y: int):
+    """Proxy one OAP-owned OSRM road-network tile through the public map origin."""
+    profile = str(request.args.get("profile") or "driving")[:20]
+    try:
+        body, content_type = routing.road_tile(x=x, y=y, zoom=z, profile=profile)
+    except ValueError as exc:
+        return jsonify({"error": {"code": str(exc)[:80]}}), 400
+    except routing.RoutingUnavailable as exc:
+        return jsonify({"error": {"code": str(exc)[:100] or "road_tile_unavailable"}}), 503
+    response = Response(body, status=200, mimetype=content_type or "application/x-protobuf")
+    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-OAP-Map-Source"] = "first-party-routing-graph"
+    response.headers["X-OAP-Routing-Authority"] = "owned"
+    return response
+
+
 @bp.get("/map-intelligence/live-pattern")
 def map_intelligence_live_pattern():
     query = request.args.get("q") or request.args.get("location") or ""
@@ -165,6 +184,9 @@ def map_intelligence_status():
         "routing_provider": route_status.get("provider_ownership"),
         "routing_runtime_verified": route_status.get("runtime_verified"),
         "route_geometry": bool(route_status.get("geometry_exposed")),
+        "road_vector_tiles": bool(route_status.get("road_vector_tiles")),
+        "road_vector_tile_min_zoom": route_status.get("road_vector_tile_min_zoom"),
+        "road_tile_template": "/map-intelligence/road-tiles/{z}/{x}/{y}.mvt",
         "turn_by_turn": True,
         "autocomplete": True,
         "source_backed_places_enabled": bool(place_status.get("enabled")),
