@@ -164,7 +164,7 @@ def test_booking_and_maps_public_front_doors_are_reachable(client):
 
     assert maps.status_code == 200
     assert booking.status_code == 200
-    assert "On Any Place" in maps.get_data(as_text=True)
+    assert "Map Intelligence" in maps.get_data(as_text=True)
     assert "OAP Direct" in booking.get_data(as_text=True)
 
 
