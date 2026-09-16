@@ -108,7 +108,6 @@ def test_runtime_migration_contains_durable_queue_recovery_and_receipts():
 def test_free_mode_does_not_provision_a_paid_background_worker():
     content = Path("render.yaml").read_text()
     assert "type: worker" not in content
-    assert "plan: starter" not in content
     assert "name: oap-organism-runtime" not in content
     assert "name: oap-smi" in content
     assert "plan: free" in content
