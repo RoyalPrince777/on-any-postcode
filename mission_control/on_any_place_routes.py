@@ -160,11 +160,12 @@ def map_intelligence_road_geometry(z: int, x: int, y: int):
 @bp.get("/map-intelligence/live-pattern")
 def map_intelligence_live_pattern():
     query = request.args.get("q") or request.args.get("location") or ""
+    live_status = map_live_pattern.status()
     response = jsonify({
         "component": "OAP Live Pattern",
         "reports": map_live_pattern.reports(query),
-        "status": map_live_pattern.status(),
-        "authority_verified_feed": False,
+        "status": live_status,
+        "authority_verified_feed": bool(live_status.get("authority_verified_feed")),
         "advisory_only": True,
         "automatic_rerouting": False,
     })
