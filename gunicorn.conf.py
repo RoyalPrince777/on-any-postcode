@@ -86,10 +86,8 @@ def _emit_database_connection_diagnostic(server):
 
 
 def _emit_smi_function_health(worker):
-    """Log a secret-free production proof summary after the OAP worker is loaded."""
+    """Log a secret-free read-only SMI proof summary after the OAP worker loads."""
 
-    if os.environ.get("OAP_DB_CERTIFICATION_MODE", "").strip().lower() != "read_only":
-        return
     if os.environ.get("RENDER_SERVICE_NAME", "").strip().casefold() == "oap-smi":
         return
 
