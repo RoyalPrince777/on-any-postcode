@@ -1,46 +1,57 @@
 from mission_control import smi_deep_dive_protocol as protocol
 
 
-def test_full_master_depth_modes_include_auto_3_7_21():
-    modes = {item["id"]: item for item in protocol.DEPTH_MODES}
+def test_seven_x_is_accumulated_research_not_depth_modes():
+    state = protocol.status()
+    passes = state["seven_x"]["passes"]
 
-    assert tuple(modes) == ("auto", "instant_3", "medium_7", "high_21")
-    assert modes["instant_3"]["depth"] == 3
-    assert modes["medium_7"]["depth"] == 7
-    assert modes["high_21"]["depth"] == 21
+    assert state["seven_x"]["is_depth_mode"] is False
+    assert tuple(item["name"] for item in passes) == (
+        "Discovery",
+        "Verification",
+        "Alternatives",
+        "Adversarial",
+        "Systems",
+        "Consequence",
+        "Synthesis",
+    )
 
 
-def test_war_room_signals_never_equate_simulation_with_production():
+def test_war_room_signals_never_equate_learning_with_production():
     rules = protocol.SIGNAL_RULES
 
-    assert "🟢 SIMULATION PASSED" in rules
-    assert "🟢 PRODUCTION PROVEN" in rules
-    assert rules["🟢 SIMULATION PASSED"] != rules["🟢 PRODUCTION PROVEN"]
-    assert protocol.status()["locks"]["simulation_pass_is_production_proof"] is False
-    assert protocol.status()["locks"]["approve_equals_execute"] is False
+    assert "🟣 LEARNING" in rules
+    assert "🟢 PROVEN" in rules
+    assert "not production proof" in rules["🟣 LEARNING"]
+    assert protocol.status()["locks"]["production_write"] is False
+    assert protocol.status()["locks"]["deploy"] is False
 
 
-def test_full_master_agent_choices_are_current_registered_names_only():
-    rendered = repr(protocol.AGENT_BUTTONS)
+def test_registered_review_roles_are_explicit_in_flow_and_ui_contract():
+    rendered = repr(protocol.CANONICAL_FLOW) + repr(protocol.WAR_ROOM_BUTTONS)
 
-    for expected in ("Neo", "Nirmata", "Guardian", "Akela", "Mowgli", "Bagheera", "Shere Khan"):
+    for expected in (
+        "Registered Agent Challenge",
+        "AGENTS",
+        "SMITH ATTACK",
+        "GUARDIAN",
+        "JUDGEMENT",
+        "HRM / JOOG",
+    ):
         assert expected in rendered
-    for stale in ("Seraph", "Keymaker", "Spider", "Gyata"):
-        assert stale not in rendered
 
 
-def test_safe_progress_is_telemetry_not_private_reasoning():
+def test_safe_progress_is_governed_protocol_not_private_reasoning():
     state = protocol.status()
 
-    assert state["safe_progress_stages"] == (
-        "Understanding",
-        "Evidence",
-        "Memory",
-        "Agents",
-        "Challenge",
-        "Guardian",
-        "Judgement",
-        "Solution",
+    assert state["protocol_loop"] == (
+        "Observe",
+        "Classify",
+        "Verify",
+        "Fix / Plan",
+        "Retest",
+        "Record",
+        "Learn",
     )
-    assert state["locks"]["show_thinking_is_telemetry_only"] is True
-    assert state["locks"]["private_chain_of_thought_hidden"] is True
+    assert "UI presence is not readiness." in state["final_law"]
+    assert "Simulation passed is not production proven." in state["final_law"]
