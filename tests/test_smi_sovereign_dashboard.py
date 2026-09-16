@@ -61,3 +61,41 @@ def test_dashboard_exposes_exactly_21_canonical_signal_ids():
     assert "['healthy','🟢','Healthy'" in script
     assert "['critical','🔴','Critical'" in script
     assert "['busy_high_load'" not in script
+
+
+def test_dashboard_is_quiet_first_party_surface_without_provider_panels():
+    wrapper = WRAPPER.read_text(encoding="utf-8")
+    script = DASHBOARD_JS.read_text(encoding="utf-8")
+
+    assert "OAP first-party surface" in wrapper
+    assert "publicOapUrl:'/'" in wrapper
+    assert "provider_fabric" not in wrapper
+    assert "founder_tools.github" not in wrapper
+    assert "on-any-postcode.onrender.com" not in wrapper
+    for provider in ("Render", "GitHub", "Neon"):
+        assert provider not in wrapper
+        assert provider not in script
+
+    for control in (
+        "'SMI Chat'",
+        "'War Room'",
+        "'21 Signals'",
+        "'Guardian'",
+        "'HRM'",
+        "'Green Gate'",
+    ):
+        assert control in script
+
+    for duplicate in (
+        "'Brain'",
+        "'Agents'",
+        "'Infrastructure'",
+        "'Judgement'",
+        "'Improvement'",
+        "'Routes'",
+    ):
+        assert duplicate not in script
+
+    assert "credentials:'same-origin'" in script
+    assert "Six first-party controls" in script
+    assert "External infrastructure and evidence sources stay behind governed OAP server routes" in script
