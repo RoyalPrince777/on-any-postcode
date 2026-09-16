@@ -15,6 +15,7 @@ from . import (
     local_map_intelligence,
     location_intelligence,
     map_live_pattern,
+    road_tile_geometry,
     routing,
     routing_federation,
     web_security,
@@ -140,6 +141,22 @@ def map_intelligence_road_tile(z: int, x: int, y: int):
     return response
 
 
+@bp.get("/map-intelligence/road-geometry/<int:z>/<int:x>/<int:y>")
+def map_intelligence_road_geometry(z: int, x: int, y: int):
+    """Return bounded decoded road linework for the first-party map renderer."""
+    profile = str(request.args.get("profile") or "driving")[:20]
+    try:
+        payload = road_tile_geometry.tile_lines(x=x, y=y, zoom=z, profile=profile)
+    except ValueError as exc:
+        return jsonify({"error": {"code": str(exc)[:80]}}), 400
+    except routing.RoutingUnavailable as exc:
+        return jsonify({"error": {"code": str(exc)[:100] or "road_geometry_unavailable"}}), 503
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+    response.headers["X-OAP-Map-Source"] = "first-party-routing-graph"
+    return response
+
+
 @bp.get("/map-intelligence/live-pattern")
 def map_intelligence_live_pattern():
     query = request.args.get("q") or request.args.get("location") or ""
@@ -187,6 +204,8 @@ def map_intelligence_status():
         "road_vector_tiles": bool(route_status.get("road_vector_tiles")),
         "road_vector_tile_min_zoom": route_status.get("road_vector_tile_min_zoom"),
         "road_tile_template": "/map-intelligence/road-tiles/{z}/{x}/{y}.mvt",
+        "road_geometry_template": "/map-intelligence/road-geometry/{z}/{x}/{y}",
+        "first_party_road_renderer": True,
         "turn_by_turn": True,
         "autocomplete": True,
         "source_backed_places_enabled": bool(place_status.get("enabled")),
