@@ -19,6 +19,8 @@
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='linkup_share.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='linkup_messages.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messenger.js') }}" defer></script>
 </head>
 <body>
@@ -139,7 +141,7 @@
                   <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
                   <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
                   <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop Voice">■</button>
-                  <button class="mc-primary linkup-send" type="submit">Send</button>
+                  <button class="mc-primary linkup-send" type="submit">Link</button>
                 </div>
                 <div class="linkup-tray" data-oap-tray data-open="false">
                   <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-id="{{ thread.other_identity_id }}" title="Share">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
@@ -172,7 +174,7 @@
                 <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
                 <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-source="#linkup-recipient" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
                 <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-source="#linkup-recipient" aria-label="Stop Voice">■</button>
-                <button class="mc-primary linkup-send" type="submit">Send</button>
+                <button class="mc-primary linkup-send" type="submit">Link</button>
               </div>
               <div class="linkup-tray" data-oap-tray data-open="false">
                 <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-source="#linkup-recipient" title="Share">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
