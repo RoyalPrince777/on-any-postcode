@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlencode
 
-from . import coherent_automation, smi_brain_evidence_runner, smi_chat_runtime, smi_proof_gate
+from . import (
+    coherent_automation,
+    smi_brain_evidence_runner,
+    smi_chat_runtime,
+    smi_proof_gate,
+)
 
 FUNCTION_SPECS = (
     ("chat", "SMI Chat", "mission_control.ollama_chat_dashboard", "chat_route", None),
@@ -30,8 +35,12 @@ def _now() -> str:
 
 
 def _rule(url_map: Any, endpoint: str):
-    matches = [r for r in url_map.iter_rules() if r.endpoint == endpoint and "GET" in r.methods]
-    return sorted(matches, key=lambda r: (len(r.rule), r.rule))[0] if matches else None
+    matches = [
+        rule
+        for rule in url_map.iter_rules()
+        if rule.endpoint == endpoint and "GET" in rule.methods
+    ]
+    return min(matches, key=lambda rule: (len(rule.rule), rule.rule)) if matches else None
 
 
 def _path(rule: Any, query: dict[str, str] | None) -> str | None:
@@ -44,16 +53,24 @@ def route_status(url_map: Any) -> dict[str, Any]:
     routes = []
     for function_id, name, endpoint, _proof, query in FUNCTION_SPECS:
         rule = _rule(url_map, endpoint)
-        routes.append({
-            "id": function_id,
-            "name": name,
-            "endpoint": endpoint,
-            "path": _path(rule, query),
-            "registered": rule is not None,
-            "methods": tuple(sorted(m for m in (rule.methods if rule else ()) if m not in {"HEAD", "OPTIONS"})),
-            "founder_only": True,
-            "external_execution": False,
-        })
+        routes.append(
+            {
+                "id": function_id,
+                "name": name,
+                "endpoint": endpoint,
+                "path": _path(rule, query),
+                "registered": rule is not None,
+                "methods": tuple(
+                    sorted(
+                        method
+                        for method in (rule.methods if rule else ())
+                        if method not in {"HEAD", "OPTIONS"}
+                    )
+                ),
+                "founder_only": True,
+                "external_execution": False,
+            }
+        )
     return {
         "component": "SMI Founder Route Registry",
         "generated_at": _now(),
@@ -82,7 +99,11 @@ def function_health(url_map: Any) -> dict[str, Any]:
     try:
         gate = smi_proof_gate.public_safe_status()
     except Exception:  # noqa: BLE001
-        gate = {"green": False, "missing": ("proof_unavailable",), "execution_granted": False}
+        gate = {
+            "green": False,
+            "missing": ("proof_unavailable",),
+            "execution_granted": False,
+        }
 
     functions = []
     for function_id, name, _endpoint, proof_key, _query in FUNCTION_SPECS:
@@ -93,7 +114,11 @@ def function_health(url_map: Any) -> dict[str, Any]:
             proven = bool(checks.get(proof_key))
             evidence = f"smi_chat_runtime.health().checks.{proof_key}"
         elif function_id == "signals-21":
-            proven = bool(signals.get("ready") and signals.get("signals_valid") and int(signals.get("signal_count") or 0) == 21)
+            proven = bool(
+                signals.get("ready")
+                and signals.get("signals_valid")
+                and int(signals.get("signal_count") or 0) == 21
+            )
             evidence = "coherent_automation.status() validates 21 canonical signals"
         elif function_id == "guardian":
             proven = "guardian_check" in smi_brain_evidence_runner.SAFE_COMMANDS
@@ -110,18 +135,20 @@ def function_health(url_map: Any) -> dict[str, Any]:
             state, label = "yellow", "PROOF REQUIRED"
         else:
             state, label = "blue", "AVAILABLE"
-        functions.append({
-            "id": function_id,
-            "name": name,
-            "path": route["path"],
-            "available": bool(route["registered"]),
-            "runtime_proven": proven,
-            "state": state,
-            "label": label,
-            "evidence": evidence,
-            "founder_only": True,
-            "consequential_execution": False,
-        })
+        functions.append(
+            {
+                "id": function_id,
+                "name": name,
+                "path": route["path"],
+                "available": bool(route["registered"]),
+                "runtime_proven": proven,
+                "state": state,
+                "label": label,
+                "evidence": evidence,
+                "founder_only": True,
+                "consequential_execution": False,
+            }
+        )
 
     return {
         "component": "SMI Founder Function Health",
