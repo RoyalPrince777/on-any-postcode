@@ -9,11 +9,15 @@ from urllib import parse as urlparse
 
 from flask import Blueprint, jsonify, make_response, redirect, render_template, request
 
-from . import atlas_live_sources, local_map_intelligence, location_intelligence, routing
+from . import (
+    atlas_live_sources,
+    local_map_intelligence,
+    location_intelligence,
+    routing,
+    routing_federation,
+)
 
 bp = Blueprint("on_any_place", __name__)
-
-GREATER_LONDON_BOUNDS = {"min_lat": 51.28, "max_lat": 51.70, "min_lon": -0.52, "max_lon": 0.34}
 
 
 def _no_store(response):
@@ -73,26 +77,6 @@ def _place_suggestions(query: str) -> list[dict[str, object]]:
     return suggestions
 
 
-def _inside_current_coverage(place: dict[str, object]) -> bool:
-    try:
-        lat = float(place.get("latitude")); lon = float(place.get("longitude"))
-    except (TypeError, ValueError):
-        return False
-    return GREATER_LONDON_BOUNDS["min_lat"] <= lat <= GREATER_LONDON_BOUNDS["max_lat"] and GREATER_LONDON_BOUNDS["min_lon"] <= lon <= GREATER_LONDON_BOUNDS["max_lon"]
-
-
-def _coverage_state(start: dict[str, object], end: dict[str, object]) -> dict[str, object]:
-    start_in = _inside_current_coverage(start); end_in = _inside_current_coverage(end)
-    return {
-        "current_graph": "Greater London",
-        "origin_in_coverage": start_in,
-        "destination_in_coverage": end_in,
-        "route_expected": start_in and end_in,
-        "scope": "greater_london_first_party_slice",
-        "wider_coverage_ready": False,
-    }
-
-
 def _road_sequence(route: dict[str, object]) -> list[str]:
     roads: list[str] = []
     for step in route.get("steps", []) if isinstance(route.get("steps"), list) else []:
@@ -137,7 +121,9 @@ def map_intelligence_places():
 
 @bp.get("/map-intelligence/status")
 def map_intelligence_status():
-    route_status = routing.status(); place_status = atlas_live_sources.status()
+    route_status = routing.status()
+    federation_status = routing_federation.status()
+    place_status = atlas_live_sources.status()
     return _no_store(make_response(jsonify({
         "component": "Map Intelligence",
         "routing_provider": route_status.get("provider_ownership"),
@@ -146,7 +132,13 @@ def map_intelligence_status():
         "turn_by_turn": True,
         "autocomplete": True,
         "source_backed_places_enabled": bool(place_status.get("enabled")),
-        "coverage": {"current_graph": "Greater London", "scope": "greater_london_first_party_slice", "wider_coverage_ready": False},
+        "routing_federation": federation_status,
+        "coverage": {
+            "current_graph": "Greater London",
+            "scope": "greater_london_first_party_slice",
+            "wider_coverage_architecture_ready": bool(federation_status.get("ready_for_additional_owned_shards")),
+            "wider_coverage_live": False,
+        },
         "public_fallback_enabled": False,
         "booking_separate": True,
         "payment_capture": False,
@@ -162,26 +154,32 @@ def map_intelligence_route():
     if len(origin) < 2 or len(destination) < 2:
         return jsonify({"error": {"code": "route_places_required"}}), 400
     try:
-        start = location_intelligence.lookup(origin); end = location_intelligence.lookup(destination)
-        coverage = _coverage_state(start, end)
+        start = location_intelligence.lookup(origin)
+        end = location_intelligence.lookup(destination)
+        coverage = routing_federation.coverage_state(start, end)
         if not coverage["route_expected"]:
-            response = jsonify({"error": {"code": "outside_current_oap_map_coverage"}, "coverage": coverage, "origin": {"label": origin, "country": start.get("country")}, "destination": {"label": destination, "country": end.get("country")}})
+            response = jsonify({
+                "error": {"code": "outside_current_oap_map_coverage"},
+                "coverage": coverage,
+                "origin": {"label": origin, "country": start.get("country")},
+                "destination": {"label": destination, "country": end.get("country")},
+            })
             response.headers["Cache-Control"] = "no-store"
             return response, 422
-        result = routing.map_route(
-            pickup_latitude=start["latitude"], pickup_longitude=start["longitude"],
-            destination_latitude=end["latitude"], destination_longitude=end["longitude"], profile=profile,
-        )
+        result = routing_federation.map_route(start=start, end=end, profile=profile)
     except ValueError as exc:
         return jsonify({"error": {"code": str(exc)[:80]}}), 400
     except (location_intelligence.LocationUnavailable, routing.RoutingUnavailable) as exc:
         return jsonify({"error": {"code": str(exc)[:100] or "map_route_unavailable"}}), 503
     result["roads"] = _road_sequence(result)
     response = jsonify({
-        "route": result, "coverage": coverage,
+        "route": result,
+        "coverage": coverage,
         "origin": {"label": origin, "postcode": start.get("postcode"), "borough": start.get("borough"), "county": start.get("county"), "country": start.get("country"), "latitude": start.get("latitude"), "longitude": start.get("longitude")},
         "destination": {"label": destination, "postcode": end.get("postcode"), "borough": end.get("borough"), "county": end.get("county"), "country": end.get("country"), "latitude": end.get("latitude"), "longitude": end.get("longitude")},
-        "operational_dispatch": False, "payment_capture": False, "hidden_tracking": False,
+        "operational_dispatch": False,
+        "payment_capture": False,
+        "hidden_tracking": False,
     })
     response.headers["Cache-Control"] = "no-store"
     return response
