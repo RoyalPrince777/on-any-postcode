@@ -91,14 +91,10 @@ def test_dashboard_is_quiet_first_party_surface_without_provider_panels():
     ):
         assert duplicate not in script
 
-    # Internal governed tool routes may remain available to the chat controller,
-    # but they are not rendered as provider/product panels on the SMI home screen.
-    for visible_provider_card in (
-        "['render','🟣','Render']",
-        "['github','⚫','GitHub']",
-        "['neon','🟢','Neon']",
-    ):
-        assert visible_provider_card not in wrapper
+    # Legacy tool identifiers may survive in non-rendered wrapper comments for
+    # compatibility, but the actual dashboard JavaScript must not render them.
+    for provider_name in ("Render", "GitHub", "Neon"):
+        assert provider_name not in script
     assert "credentials:'same-origin'" in script
     assert "Six first-party controls" in script
     assert "External infrastructure and evidence sources stay behind governed OAP server routes" in script
