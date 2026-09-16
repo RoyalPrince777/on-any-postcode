@@ -61,3 +61,44 @@ def test_dashboard_exposes_exactly_21_canonical_signal_ids():
     assert "['healthy','🟢','Healthy'" in script
     assert "['critical','🔴','Critical'" in script
     assert "['busy_high_load'" not in script
+
+
+def test_dashboard_is_quiet_first_party_surface_without_provider_panels():
+    wrapper = WRAPPER.read_text(encoding="utf-8")
+    script = DASHBOARD_JS.read_text(encoding="utf-8")
+
+    assert "OAP first-party surface" in wrapper
+    assert "publicOapUrl:'/'" in wrapper
+    assert "provider_fabric" not in wrapper
+
+    for control in (
+        "'SMI Chat'",
+        "'War Room'",
+        "'21 Signals'",
+        "'Guardian'",
+        "'HRM'",
+        "'Green Gate'",
+    ):
+        assert control in script
+
+    for duplicate in (
+        "'Brain'",
+        "'Agents'",
+        "'Infrastructure'",
+        "'Judgement'",
+        "'Improvement'",
+        "'Routes'",
+    ):
+        assert duplicate not in script
+
+    # Internal governed tool routes may remain available to the chat controller,
+    # but they are not rendered as provider/product panels on the SMI home screen.
+    for visible_provider_card in (
+        "['render','🟣','Render']",
+        "['github','⚫','GitHub']",
+        "['neon','🟢','Neon']",
+    ):
+        assert visible_provider_card not in wrapper
+    assert "credentials:'same-origin'" in script
+    assert "Six first-party controls" in script
+    assert "External infrastructure and evidence sources stay behind governed OAP server routes" in script
