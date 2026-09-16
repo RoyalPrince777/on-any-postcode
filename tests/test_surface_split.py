@@ -234,11 +234,16 @@ def test_smi_gateway_root_returns_founder_to_personal_smi():
     assert response.headers["Location"].endswith("/auth?next=/mission/ollama")
 
 
-def test_render_blueprint_is_free_and_contains_no_paid_worker():
+def test_render_blueprint_keeps_smi_free_and_contains_no_paid_worker():
     content = Path("render.yaml").read_text()
     assert "name: oap-smi" in content
-    assert "type: web" in content
-    assert "plan: free" in content
     assert "startCommand: gunicorn smi_gateway:app" in content
     assert "type: worker" not in content
-    assert "plan: starter" not in content
+
+    smi_block = content.split("name: oap-smi", 1)[1].split("  - type:", 1)[0]
+    assert "plan: free" in smi_block
+    assert "plan: starter" not in smi_block
+
+    routing_block = content.split("name: oap-routing", 1)[1]
+    assert "runtime: docker" in routing_block
+    assert "plan: starter" in routing_block
