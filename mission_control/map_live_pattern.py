@@ -13,6 +13,7 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from threading import Lock
+from urllib import error as urlerror
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 from uuid import uuid4
@@ -118,7 +119,7 @@ def authority_reports(query: object = None) -> list[dict[str, object]]:
                 raise RuntimeError("tfl_response_too_large")
             payload = json.loads(body.decode("utf-8"))
             if not isinstance(payload, list):
-                raise RuntimeError("tfl_invalid_response")
+                raise TypeError("tfl_invalid_response")
             items = []
             for raw in payload[:500]:
                 normalised = _normalise_tfl(raw)
@@ -127,7 +128,7 @@ def authority_reports(query: object = None) -> list[dict[str, object]]:
             _TFL_CACHE = (now_epoch, items)
             _TFL_LAST_SUCCESS = now_epoch
             _TFL_LAST_ERROR = None
-        except Exception as exc:  # bounded external authority feed must fail closed
+        except (urlerror.URLError, OSError, RuntimeError, TypeError, ValueError, UnicodeError) as exc:
             _TFL_LAST_ERROR = type(exc).__name__
             return []
     term = _clean(query, 100).casefold()
