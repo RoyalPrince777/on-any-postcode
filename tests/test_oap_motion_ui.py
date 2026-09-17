@@ -29,7 +29,8 @@ def test_link_composer_keeps_runtime_controls_fail_closed_in_template():
     assert 'data-oap-link-composer' in template
     assert 'data-oap-plus' in template
     assert 'placeholder="Type a Link…"' in template
-    assert '>Send<' in template
+    assert '>Link<' in template
+    assert '>Send<' not in template
     assert '>Send Link<' not in template
     assert 'data-oap-voice-control' in template
     assert 'data-oap-voice-stop' in template
