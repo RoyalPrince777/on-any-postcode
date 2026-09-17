@@ -150,3 +150,61 @@ class EsimRepository:
             }
             for row in rows
         ]
+
+
+def schema_status(connect: Callable[[], Any]) -> dict[str, Any]:
+    """Return redacted eSIM schema readiness without mutating the database."""
+    required = {"oap_esim_requests", "oap_esim_events"}
+    try:
+        with connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT table_name FROM information_schema.tables
+                   WHERE table_schema = 'public'
+                     AND table_name IN ('oap_esim_requests','oap_esim_events')"""
+            ).fetchall()
+        tables = {str(row[0]) for row in rows}
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "schema_ready": required <= tables,
+            "missing_tables": sorted(required - tables),
+            "error": None,
+        }
+    except Exception:  # noqa: BLE001 - redact database details.
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "schema_ready": False,
+            "missing_tables": sorted(required),
+            "error": "database_unavailable",
+        }
+
+
+def init_schema(
+    connect: Callable[..., Any],
+    *,
+    dry_run: bool = False,
+    assume_yes: bool = False,
+) -> dict[str, Any]:
+    """Apply only the eSIM schema after explicit human-authorized invocation."""
+    if not assume_yes:
+        raise RuntimeError("Explicit human approval required: pass --yes")
+    if dry_run:
+        return {
+            **schema_status(connect),
+            "dry_run": True,
+            "would_apply": list(SCHEMA_STATEMENTS),
+        }
+
+    with connect() as connection:
+        try:
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+            for statement in SCHEMA_STATEMENTS:
+                connection.execute(statement)
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+
+    status = schema_status(connect)
+    if not status["schema_ready"]:
+        raise RuntimeError("eSIM migration completed without a ready schema")
+    return status
