@@ -11,9 +11,12 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from oap.smi.runtime_guard import bounded_control_proof
+
 from . import approval_service, authority, coherent_automation, postgres_db, telemetry
 
 ROLLBACK_PROOF_ACTION = "SMI_ROLLBACK_RECOVERY_PROOF"
+RUNTIME_GUARD_PROOF_ACTION = "SMI_RUNTIME_GUARD_PROOF"
 
 
 def _production_counts() -> dict[str, object]:
@@ -26,6 +29,7 @@ def _production_counts() -> dict[str, object]:
         "founder_smi_reviews": 0,
         "oap_event_receipts": 0,
         "rollback_recovery_receipts": 0,
+        "runtime_guard_receipts": 0,
         "error": None,
     }
     if not postgres_db.configured():
@@ -45,8 +49,10 @@ def _production_counts() -> dict[str, object]:
                   (SELECT COUNT(*) FROM smi_memory_records
                     WHERE task_type='OAP_EVENT'),
                   (SELECT COUNT(*) FROM audit_events
+                    WHERE action=%s AND metadata->>'passed'='true'),
+                  (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true')""",
-                (ROLLBACK_PROOF_ACTION,),
+                (ROLLBACK_PROOF_ACTION, RUNTIME_GUARD_PROOF_ACTION),
             ).fetchone()
             receipt_table = connection.execute(
                 "SELECT to_regclass('public.oap_hrm_receipts')"
@@ -65,6 +71,7 @@ def _production_counts() -> dict[str, object]:
                 "founder_smi_reviews",
                 "oap_event_receipts",
                 "rollback_recovery_receipts",
+                "runtime_guard_receipts",
             )
             evidence.update({key: int(value or 0) for key, value in zip(keys, row)})
             evidence["durable_hrm_receipt_store_present"] = receipt_store_present
@@ -134,6 +141,9 @@ def status() -> dict[str, object]:
     rollback_recovery = bool(
         store_reachable and int(counts["rollback_recovery_receipts"] or 0) > 0
     )
+    runtime_guard = bool(
+        store_reachable and int(counts["runtime_guard_receipts"] or 0) > 0
+    )
     observability = bool(
         store_reachable and live_observability.get("observability_ready")
     )
@@ -144,6 +154,7 @@ def status() -> dict[str, object]:
         and receipt_chain
         and meaningful_event_memory
         and rollback_recovery
+        and runtime_guard
         and observability
     )
     checks = {
@@ -153,6 +164,7 @@ def status() -> dict[str, object]:
         "receipt_chain": receipt_chain,
         "meaningful_event_memory": meaningful_event_memory,
         "rollback_recovery": rollback_recovery,
+        "runtime_guard": runtime_guard,
         "observability": observability,
     }
     missing = tuple(name for name, proven in checks.items() if not proven)
@@ -241,6 +253,51 @@ def run_rollback_recovery_proof(identity_id: object) -> dict[str, object]:
             },
         )
         connection.commit()
+    return {
+        **proof,
+        "audit_recorded": True,
+        "correlation_id": correlation_id,
+    }
+
+
+def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
+    """Run and audit bounded recursion, duplicate-work and privilege guards."""
+
+    try:
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_human_authority_identity") from exc
+
+    proof = bounded_control_proof()
+    if not proof["passed"]:
+        raise RuntimeError("runtime_guard_proof_failed")
+
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(connection, identity_value)
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired("human_authority_level_required")
+        correlation_id = str(uuid.uuid4())
+        approval_service._write_audit(
+            connection,
+            actor_id=identity_value,
+            action=RUNTIME_GUARD_PROOF_ACTION,
+            target="SMI_A5_A6_BOUNDARY",
+            reason="Bounded runtime guard proof completed.",
+            correlation_id=correlation_id,
+            metadata={
+                "passed": True,
+                "duplicate_blocked": bool(proof["duplicate_blocked"]),
+                "recursion_blocked": bool(proof["recursion_blocked"]),
+                "retry_blocked": bool(proof["retry_blocked"]),
+                "escalation_blocked": bool(proof["escalation_blocked"]),
+                "protected_payload_blocked": bool(proof["protected_payload_blocked"]),
+                "production_state_mutated": False,
+                "execution_authority_expanded": False,
+                "authority_level": 0,
+            },
+        )
+        connection.commit()
+
     return {
         **proof,
         "audit_recorded": True,
