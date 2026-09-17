@@ -5,10 +5,12 @@ from mission_control import (
     live_signals,
     movement_proof,
     telemetry,
+    travel_supply_core,
 )
 
 
-def test_coherent_automation_uses_exact_21_live_signals():
+def test_coherent_automation_uses_exact_21_live_signals(monkeypatch):
+    monkeypatch.setattr(travel_supply_core, "status", dict)
     status = coherent_automation.status()
     assert status["ready"] is True
     assert status["signal_count"] == 21
@@ -34,6 +36,7 @@ def test_signal_intelligence_monitor_uses_source_timestamped_runtime_evidence(mo
             "delivery_verified": False,
         },
     )
+    monkeypatch.setattr(travel_supply_core, "status", dict)
 
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][0]
@@ -54,6 +57,7 @@ def test_signal_intelligence_monitor_fails_closed_without_runtime_evidence(monke
     monkeypatch.setattr(telemetry, "status", dict)
     monkeypatch.setattr(atlas_live_sources, "last_fetch_status", dict)
     monkeypatch.setattr(movement_proof, "last_route_status", dict)
+    monkeypatch.setattr(travel_supply_core, "status", dict)
 
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][0]
@@ -68,6 +72,7 @@ def test_signal_intelligence_monitor_fails_closed_without_runtime_evidence(monke
 def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypatch):
     monkeypatch.setattr(telemetry, "status", dict)
     monkeypatch.setattr(movement_proof, "last_route_status", dict)
+    monkeypatch.setattr(travel_supply_core, "status", dict)
     monkeypatch.setattr(
         atlas_live_sources,
         "last_fetch_status",
@@ -88,7 +93,7 @@ def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypat
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][1]
 
-    assert monitor["observation_count"] == 3
+    assert monitor["observation_count"] == 4
     assert monitor["source_backed"] is True
     assert observation["id"] == "map_intelligence_source"
     assert observation["source"] == "OpenStreetMap / Nominatim"
@@ -104,6 +109,7 @@ def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypat
 def test_signal_intelligence_monitor_reads_passive_movement_evidence(monkeypatch):
     monkeypatch.setattr(telemetry, "status", dict)
     monkeypatch.setattr(atlas_live_sources, "last_fetch_status", dict)
+    monkeypatch.setattr(travel_supply_core, "status", dict)
     monkeypatch.setattr(
         movement_proof,
         "last_route_status",
@@ -130,7 +136,7 @@ def test_signal_intelligence_monitor_reads_passive_movement_evidence(monkeypatch
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][2]
 
-    assert monitor["observation_count"] == 3
+    assert monitor["observation_count"] == 4
     assert observation["id"] == "movement_intelligence_route"
     assert observation["signal"]["id"] == "connected"
     assert observation["proof_state"] == "bounded_proof"
@@ -141,6 +147,42 @@ def test_signal_intelligence_monitor_reads_passive_movement_evidence(monkeypatch
     assert observation["evidence"]["dispatch_enabled"] is False
     assert observation["evidence"]["stores_origin_destination"] is False
     assert observation["evidence"]["stores_coordinates"] is False
+
+
+def test_signal_intelligence_monitor_reads_bounded_direct_supply_evidence(monkeypatch):
+    monkeypatch.setattr(telemetry, "status", dict)
+    monkeypatch.setattr(atlas_live_sources, "last_fetch_status", dict)
+    monkeypatch.setattr(movement_proof, "last_route_status", dict)
+    monkeypatch.setattr(
+        travel_supply_core,
+        "status",
+        lambda: {
+            "schema_ready": True,
+            "certified_supplier_count": 2,
+            "active_listing_count": 5,
+            "live_inventory_slot_count": 8,
+            "live_direct_supply": True,
+            "direct_booking_runtime_ready": True,
+            "payment_capture_live": False,
+            "external_provider_authority": False,
+        },
+    )
+
+    monitor = coherent_automation.operational_monitor()
+    observation = monitor["observations"][3]
+
+    assert monitor["observation_count"] == 4
+    assert observation["id"] == "oap_direct_supply"
+    assert observation["signal"]["id"] == "warning"
+    assert observation["proof_state"] == "partial_proof"
+    assert observation["source_timestamp"].endswith("Z")
+    assert observation["evidence"]["certified_supplier_count"] == 2
+    assert observation["evidence"]["active_listing_count"] == 5
+    assert observation["evidence"]["live_inventory_slot_count"] == 8
+    assert observation["evidence"]["certified_terms_proven"] is False
+    assert observation["evidence"]["inventory_observation_timestamp_proven"] is False
+    assert observation["evidence"]["payment_capture_live"] is False
+    assert observation["external_authority"] is False
 
 
 def test_movement_status_sample_does_not_create_live_monitor_evidence():
