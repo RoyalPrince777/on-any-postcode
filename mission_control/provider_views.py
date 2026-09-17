@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from oap.smi import intelligence_capability_registry, sovereign_controls
 
 from . import agents as agent_registry
-from . import ai_behaviour, autonomy_levels, provider_fabric, web_security
+from . import ai_behaviour, autonomy_levels, esim_provisioning, provider_fabric, web_security
 
 bp = Blueprint("provider_fabric", __name__, template_folder="templates")
 
@@ -16,6 +16,29 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+def _esim_response(payload: dict, status: int = 200):
+    return _no_store(make_response(jsonify(payload), status))
+
+
+def _esim_error(exc: Exception):
+    code = str(exc) or type(exc).__name__
+    if isinstance(exc, KeyError):
+        return _esim_response({"error": {"code": "esim_request_not_found"}}, 404)
+    if isinstance(exc, PermissionError):
+        return _esim_response({"error": {"code": code}}, 403)
+    if isinstance(exc, ValueError):
+        return _esim_response({"error": {"code": code}}, 400)
+    if isinstance(exc, RuntimeError):
+        return _esim_response({"error": {"code": code}}, 503)
+    return _esim_response({"error": {"code": "esim_unavailable"}}, 503)
+
+
+def _esim_write_guard():
+    if not web_security.csrf_valid(request):
+        return _esim_response({"error": {"code": "csrf_failed"}}, 403)
+    return None
 
 
 @bp.get("/providers")
@@ -36,6 +59,90 @@ def provider_dashboard():
 def provider_status():
     """Return coarse provider readiness only to a signed-in identity."""
     return _no_store(make_response(jsonify(provider_fabric.get_coarse_provider_status())))
+
+
+@bp.post("/esim/requests")
+@web_security.login_required(api=True, founder_only=True)
+def esim_create_request():
+    """Founder-only eSIM request creation; activation remains separate."""
+    if guard := _esim_write_guard():
+        return guard
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _esim_response({"error": {"code": "json_object_required"}}, 400)
+    try:
+        item = esim_provisioning.CORE.request(
+            subject_id=web_security.authenticated_identity(),
+            purpose=body.get("purpose"),
+        )
+        return _esim_response({"esim_request": item}, 201)
+    except Exception as exc:  # noqa: BLE001 - keep provider details private.
+        return _esim_error(exc)
+
+
+@bp.get("/esim/requests/<request_id>")
+@web_security.login_required(api=True, founder_only=True)
+def esim_get_request(request_id: str):
+    try:
+        return _esim_response({"esim_request": esim_provisioning.CORE.get(request_id)})
+    except Exception as exc:  # noqa: BLE001
+        return _esim_error(exc)
+
+
+@bp.get("/esim/requests/<request_id>/events")
+@web_security.login_required(api=True, founder_only=True)
+def esim_get_events(request_id: str):
+    try:
+        return _esim_response({"events": esim_provisioning.CORE.events(request_id)})
+    except Exception as exc:  # noqa: BLE001
+        return _esim_error(exc)
+
+
+def _esim_action(request_id: str, action: str):
+    if guard := _esim_write_guard():
+        return guard
+    try:
+        core = esim_provisioning.CORE
+        if action == "approve":
+            item = core.approve(
+                request_id,
+                founder_identity=web_security.authenticated_identity(),
+            )
+        else:
+            item = getattr(core, action)(request_id)
+        return _esim_response({"esim_request": item})
+    except Exception as exc:  # noqa: BLE001
+        return _esim_error(exc)
+
+
+@bp.post("/esim/requests/<request_id>/approve")
+@web_security.login_required(api=True, founder_only=True)
+def esim_approve(request_id: str):
+    return _esim_action(request_id, "approve")
+
+
+@bp.post("/esim/requests/<request_id>/provision")
+@web_security.login_required(api=True, founder_only=True)
+def esim_provision(request_id: str):
+    return _esim_action(request_id, "provision")
+
+
+@bp.post("/esim/requests/<request_id>/suspend")
+@web_security.login_required(api=True, founder_only=True)
+def esim_suspend(request_id: str):
+    return _esim_action(request_id, "suspend")
+
+
+@bp.post("/esim/requests/<request_id>/resume")
+@web_security.login_required(api=True, founder_only=True)
+def esim_resume(request_id: str):
+    return _esim_action(request_id, "resume")
+
+
+@bp.post("/esim/requests/<request_id>/revoke")
+@web_security.login_required(api=True, founder_only=True)
+def esim_revoke(request_id: str):
+    return _esim_action(request_id, "revoke")
 
 
 @bp.get("/alignment")
