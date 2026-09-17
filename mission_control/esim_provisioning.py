@@ -6,10 +6,10 @@ operations remain explicit and auditable.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
-from typing import Protocol
-from uuid import uuid4
+import dataclasses
+import datetime
+import typing
+import uuid
 
 
 TERMINAL_STATES = {"revoked", "failed"}
@@ -25,10 +25,10 @@ ALLOWED_TRANSITIONS = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
-class EsimProvider(Protocol):
+class EsimProvider(typing.Protocol):
     """Minimal contract a real eSIM provider integration must implement."""
 
     name: str
@@ -39,7 +39,7 @@ class EsimProvider(Protocol):
     def revoke(self, *, provider_profile_id: str) -> dict: ...
 
 
-@dataclass
+@dataclasses.dataclass
 class EsimRequest:
     request_id: str
     subject_id: str
@@ -70,7 +70,7 @@ class EsimProvisioningCore:
             raise ValueError("purpose_required")
         now = _now()
         item = EsimRequest(
-            request_id=f"esim_{uuid4().hex}",
+            request_id=f"esim_{uuid.uuid4().hex}",
             subject_id=subject_id,
             purpose=purpose[:160],
             state="requested",
@@ -79,7 +79,7 @@ class EsimProvisioningCore:
         )
         self._requests[item.request_id] = item
         self._record(item, "requested")
-        return asdict(item)
+        return dataclasses.asdict(item)
 
     def approve(self, request_id: str, *, founder_identity: str) -> dict:
         founder_identity = str(founder_identity or "").strip()
@@ -89,7 +89,7 @@ class EsimProvisioningCore:
         self._transition(item, "approved")
         item.approved_by = founder_identity
         self._record(item, "approved", actor=founder_identity)
-        return asdict(item)
+        return dataclasses.asdict(item)
 
     def provision(self, request_id: str) -> dict:
         item = self._get(request_id)
@@ -111,7 +111,7 @@ class EsimProvisioningCore:
             item.provider_profile_id = profile_id
             self._transition(item, "active")
             self._record(item, "active", provider=self.provider.name)
-            return asdict(item)
+            return dataclasses.asdict(item)
         except Exception as exc:
             item.last_error = type(exc).__name__
             self._transition(item, "failed")
@@ -128,7 +128,7 @@ class EsimProvisioningCore:
             raise RuntimeError("provider_suspend_not_confirmed")
         self._transition(item, "suspended")
         self._record(item, "suspended", provider=provider.name)
-        return asdict(item)
+        return dataclasses.asdict(item)
 
     def resume(self, request_id: str) -> dict:
         item = self._get(request_id)
@@ -140,12 +140,12 @@ class EsimProvisioningCore:
             raise RuntimeError("provider_resume_not_confirmed")
         self._transition(item, "active")
         self._record(item, "active", provider=provider.name)
-        return asdict(item)
+        return dataclasses.asdict(item)
 
     def revoke(self, request_id: str) -> dict:
         item = self._get(request_id)
         if item.state in TERMINAL_STATES:
-            return asdict(item)
+            return dataclasses.asdict(item)
         if item.provider_profile_id:
             provider = self._require_provider_profile(item)
             result = provider.revoke(provider_profile_id=item.provider_profile_id)
@@ -153,10 +153,10 @@ class EsimProvisioningCore:
                 raise RuntimeError("provider_revoke_not_confirmed")
         self._transition(item, "revoked")
         self._record(item, "revoked", provider=item.provider_name)
-        return asdict(item)
+        return dataclasses.asdict(item)
 
     def get(self, request_id: str) -> dict:
-        return asdict(self._get(request_id))
+        return dataclasses.asdict(self._get(request_id))
 
     def events(self, request_id: str) -> list[dict]:
         self._get(request_id)
@@ -188,7 +188,7 @@ class EsimProvisioningCore:
             "state": item.state,
             "recorded_at": _now(),
         }
-        payload.update({k: v for k, v in extra.items() if v is not None})
+        payload.update({key: value for key, value in extra.items() if value is not None})
         self._events.append(payload)
 
 
