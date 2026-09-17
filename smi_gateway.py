@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import logging
 import os
 import time
+import uuid
 from collections.abc import Iterator
 from urllib import error as urlerror
 from urllib import parse as urlparse
@@ -13,10 +15,12 @@ from urllib import request as urlrequest
 from flask import Flask, Response, make_response, redirect, request, stream_with_context
 
 app = Flask(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 _UPSTREAM_DEFAULT = "https://on-any-postcode.onrender.com"
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
 _CLIENT_IP_HEADER = "X-OAP-Client-IP"
+_CORRELATION_HEADER = "X-OAP-Request-ID"
 _FOUNDER_RECOVERY_FALLBACK = "/auth/recover-founder?next=/mission/ollama"
 _AUTH_RETRY_STATUSES = frozenset({429, 502, 503, 504})
 _AUTH_RETRY_DELAY_SECONDS = 0.75
@@ -163,7 +167,7 @@ def _client_ip() -> str:
         return "unknown"
 
 
-def _request_headers() -> dict[str, str]:
+def _request_headers(correlation_id: str | None = None) -> dict[str, str]:
     headers: dict[str, str] = {
         _GATEWAY_HEADER: _secret(),
         _CLIENT_IP_HEADER: _client_ip(),
@@ -171,6 +175,8 @@ def _request_headers() -> dict[str, str]:
     for name, value in request.headers.items():
         if name.casefold() in _ALLOWED_REQUEST_HEADERS:
             headers[name] = value
+    if correlation_id:
+        headers[_CORRELATION_HEADER] = correlation_id
     return headers
 
 
@@ -208,7 +214,33 @@ def _status(upstream) -> int:
     return int(getattr(upstream, "status", getattr(upstream, "code", 502)))
 
 
-def _normalized_auth_rate_limit(path: str, status: int):
+def _auth_trace(correlation_id: str, path: str, status: int | None, phase: str) -> None:
+    """Log only privacy-safe correlation evidence for the Founder auth boundary."""
+
+    clean = "/" + path.lstrip("/")
+    if clean not in {"/auth", "/auth/sign-in", "/enter-my-world"}:
+        return
+    _LOGGER.info(
+        "%s",
+        json.dumps(
+            {
+                "event": "smi_auth_upstream",
+                "request_id": correlation_id,
+                "method": request.method,
+                "path": clean,
+                "phase": phase,
+                "status": status,
+                "revision": _revision(),
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+    )
+
+
+def _normalized_auth_rate_limit(
+    path: str, status: int, correlation_id: str | None = None
+):
     """Never expose an upstream/edge 429 as a Founder credential lockout.
 
     The application has its own failed-password-only guard. A 429 arriving through
@@ -228,23 +260,30 @@ def _normalized_auth_rate_limit(path: str, status: int):
     response.headers["Retry-After"] = "5"
     response.headers["X-OAP-Auth-Upstream"] = "rate-limited"
     response.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+    if correlation_id:
+        response.headers[_CORRELATION_HEADER] = correlation_id
     return response
 
 
 def _proxy(path: str):
+    correlation_id = uuid.uuid4().hex
     body = request.get_data(cache=False) if request.method not in {"GET", "HEAD"} else None
     upstream_request = urlrequest.Request(
         _upstream_url(path),
         data=body,
-        headers=_request_headers(),
+        headers=_request_headers(correlation_id),
         method=request.method,
     )
     upstream = _open_upstream(upstream_request)
     if upstream is None:
-        return _blocked(503)
+        _auth_trace(correlation_id, path, None, "transport_unavailable")
+        response = _blocked(503)
+        response.headers[_CORRELATION_HEADER] = correlation_id
+        return response
 
     status = _status(upstream)
     clean = "/" + path.lstrip("/")
+    _auth_trace(correlation_id, path, status, "initial")
 
     # A Founder GET is idempotent, so one bounded retry is safe while a sleeping
     # Render upstream wakes. Credential-bearing POST requests are never replayed.
@@ -257,19 +296,26 @@ def _proxy(path: str):
         time.sleep(_AUTH_RETRY_DELAY_SECONDS)
         upstream = _open_upstream(upstream_request)
         if upstream is None:
-            return _blocked(503)
+            _auth_trace(correlation_id, path, None, "retry_transport_unavailable")
+            response = _blocked(503)
+            response.headers[_CORRELATION_HEADER] = correlation_id
+            return response
         status = _status(upstream)
+        _auth_trace(correlation_id, path, status, "retry")
 
-    normalized = _normalized_auth_rate_limit(path, status)
+    normalized = _normalized_auth_rate_limit(path, status, correlation_id=correlation_id)
     if normalized is not None:
+        _auth_trace(correlation_id, path, status, "normalized_rate_limit")
         upstream.close()
         return normalized
 
     fallback = _auth_unavailable_fallback(path, status, upstream.headers)
     if fallback is not None:
+        _auth_trace(correlation_id, path, status, "auth_unavailable_fallback")
         upstream.close()
         fallback.headers["Cache-Control"] = "no-store"
         fallback.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+        fallback.headers[_CORRELATION_HEADER] = correlation_id
         return fallback
 
     def generate() -> Iterator[bytes]:
@@ -294,6 +340,7 @@ def _proxy(path: str):
         response.headers.add("Set-Cookie", value)
     response.headers["Cache-Control"] = response.headers.get("Cache-Control", "no-store")
     response.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+    response.headers[_CORRELATION_HEADER] = correlation_id
     return response
 
 
