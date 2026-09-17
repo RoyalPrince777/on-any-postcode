@@ -7,17 +7,19 @@ def test_auth_trace_is_privacy_safe(caplog):
     trace = getattr(gateway, "_auth_trace", None)
     assert callable(trace), "A7 correlation instrumentation is not implemented"
 
-    with gateway.app.test_request_context(
-        "/auth/sign-in",
-        method="POST",
-        data={"email": "founder@example.invalid", "password": "DO-NOT-LOG"},
-        headers={
-            "Cookie": "oap_founder_session=DO-NOT-LOG-COOKIE",
-            "X-Forwarded-For": "203.0.113.42",
-        },
+    with (
+        gateway.app.test_request_context(
+            "/auth/sign-in",
+            method="POST",
+            data={"email": "founder@example.invalid", "password": "DO-NOT-LOG"},
+            headers={
+                "Cookie": "oap_founder_session=DO-NOT-LOG-COOKIE",
+                "X-Forwarded-For": "203.0.113.42",
+            },
+        ),
+        caplog.at_level(logging.INFO),
     ):
-        with caplog.at_level(logging.INFO):
-            trace("a7-test-request", "/auth/sign-in", 429, "normalized_rate_limit")
+        trace("a7-test-request", "/auth/sign-in", 429, "normalized_rate_limit")
 
     text = caplog.text
     assert "a7-test-request" in text
