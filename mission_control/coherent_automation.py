@@ -15,6 +15,7 @@ from . import (
     movement_proof,
     smi_brain_protocol,
     telemetry,
+    travel_supply_core,
 )
 
 AUTOMATION_ID = "oap-coherent-automation"
@@ -181,6 +182,67 @@ def _movement_observation(generated_at: str) -> dict[str, Any]:
     }
 
 
+def _direct_observation(generated_at: str) -> dict[str, Any]:
+    try:
+        evidence = travel_supply_core.status()
+    except Exception:  # noqa: BLE001 - monitor must fail closed.
+        evidence = {}
+
+    schema_ready = bool(evidence.get("schema_ready"))
+    certified_suppliers = int(evidence.get("certified_supplier_count") or 0)
+    active_listings = int(evidence.get("active_listing_count") or 0)
+    live_inventory = int(evidence.get("live_inventory_slot_count") or 0)
+    supply_counts_ready = bool(certified_suppliers and active_listings and live_inventory)
+
+    # The current Supply Core status proves live read-only counts, but it does not
+    # yet expose Certified commercial-terms count or the inventory row's own
+    # observed_at timestamp. Keep those requirements explicit instead of
+    # upgrading a database count into a complete Direct proof claim.
+    source_timestamp = generated_at if schema_ready else None
+    terms_proven = False
+    inventory_timestamp_proven = False
+
+    if schema_ready and supply_counts_ready:
+        observed_signal = live_signals.get_signal("warning")
+        proof_state = "partial_proof"
+        freshness = "checked_now_missing_required_fields"
+    elif schema_ready:
+        observed_signal = live_signals.get_signal("warning")
+        proof_state = "proof_required"
+        freshness = "checked_now"
+    else:
+        observed_signal = live_signals.get_signal("offline")
+        proof_state = "proof_required"
+        freshness = "unseen"
+
+    return {
+        "id": "oap_direct_supply",
+        "name": "OAP Direct Supply Evidence",
+        "signal": observed_signal,
+        "source": "mission_control.travel_supply_core.status",
+        "source_timestamp": source_timestamp,
+        "observed_at": generated_at,
+        "freshness": freshness,
+        "freshness_window_seconds": 0,
+        "evidence": {
+            "schema_ready": schema_ready,
+            "certified_supplier_count": certified_suppliers,
+            "active_listing_count": active_listings,
+            "live_inventory_slot_count": live_inventory,
+            "supply_counts_ready": supply_counts_ready,
+            "certified_terms_proven": terms_proven,
+            "inventory_observation_timestamp_proven": inventory_timestamp_proven,
+            "live_direct_supply": bool(evidence.get("live_direct_supply")),
+            "direct_booking_runtime_ready": bool(evidence.get("direct_booking_runtime_ready")),
+            "payment_capture_live": bool(evidence.get("payment_capture_live", False)),
+            "external_provider_authority": bool(evidence.get("external_provider_authority", False)),
+            "read_only": True,
+        },
+        "proof_state": proof_state,
+        "external_authority": False,
+    }
+
+
 def operational_monitor() -> dict[str, Any]:
     """Return source-backed observations without inventing live proof."""
 
@@ -189,6 +251,7 @@ def operational_monitor() -> dict[str, Any]:
         _runtime_observation(generated_at),
         _map_observation(generated_at),
         _movement_observation(generated_at),
+        _direct_observation(generated_at),
     )
     return {
         "name": "Signal Intelligence Monitor",
