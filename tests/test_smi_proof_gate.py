@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from mission_control import smi_proof_gate, telemetry
+from mission_control import coherent_automation, smi_proof_gate, telemetry
 
 
 def test_first_party_observability_works_without_datadog(monkeypatch):
@@ -36,21 +36,26 @@ def test_bounded_rollback_exercise_restores_and_resumes_without_product_mutation
     assert proof["human_authority_final"] is True
 
 
+def _proven_counts():
+    return {
+        "store_reachable": True,
+        "five_section_reviews": 5,
+        "signed_approved_receipts": 1,
+        "durable_hrm_receipts": 1,
+        "durable_hrm_receipt_store_present": True,
+        "founder_smi_reviews": 1,
+        "oap_event_receipts": 1,
+        "rollback_recovery_receipts": 1,
+        "error": None,
+    }
+
+
 def test_green_gate_can_turn_green_without_unlocking_higher_autonomy(monkeypatch):
+    monkeypatch.setattr(smi_proof_gate, "_production_counts", _proven_counts)
     monkeypatch.setattr(
-        smi_proof_gate,
-        "_production_counts",
-        lambda: {
-            "store_reachable": True,
-            "five_section_reviews": 5,
-            "signed_approved_receipts": 1,
-            "durable_hrm_receipts": 1,
-            "durable_hrm_receipt_store_present": True,
-            "founder_smi_reviews": 1,
-            "oap_event_receipts": 1,
-            "rollback_recovery_receipts": 1,
-            "error": None,
-        },
+        coherent_automation,
+        "status",
+        lambda: {"ready": True, "signals_valid": True, "signal_count": 21},
     )
     monkeypatch.setattr(
         telemetry,
@@ -62,12 +67,33 @@ def test_green_gate_can_turn_green_without_unlocking_higher_autonomy(monkeypatch
 
     assert snapshot["green"] is True
     assert snapshot["missing"] == ()
+    assert snapshot["checks"]["signal_contract"] is True
     assert snapshot["checks"]["durable_hrm_receipt"] is True
     assert snapshot["execution_granted"] is False
     assert snapshot["a5_unlocked"] is False
     assert snapshot["a6_unlocked"] is False
     assert snapshot["a7_unlocked"] is False
     assert snapshot["human_authority_final"] is True
+
+
+def test_signal_contract_failure_keeps_green_gate_closed(monkeypatch):
+    monkeypatch.setattr(smi_proof_gate, "_production_counts", _proven_counts)
+    monkeypatch.setattr(
+        coherent_automation,
+        "status",
+        lambda: {"ready": False, "signals_valid": False, "signal_count": 20},
+    )
+    monkeypatch.setattr(
+        telemetry,
+        "status",
+        lambda: {"observability_ready": True},
+    )
+
+    snapshot = smi_proof_gate.status()
+
+    assert snapshot["green"] is False
+    assert snapshot["checks"]["signal_contract"] is False
+    assert "signal_contract" in snapshot["missing"]
 
 
 def test_local_traffic_alone_cannot_become_production_proof(monkeypatch):
@@ -87,6 +113,11 @@ def test_local_traffic_alone_cannot_become_production_proof(monkeypatch):
         },
     )
     monkeypatch.setattr(
+        coherent_automation,
+        "status",
+        lambda: {"ready": True, "signals_valid": True, "signal_count": 21},
+    )
+    monkeypatch.setattr(
         telemetry,
         "status",
         lambda: {"observability_ready": True},
@@ -96,6 +127,7 @@ def test_local_traffic_alone_cannot_become_production_proof(monkeypatch):
 
     assert snapshot["green"] is False
     assert snapshot["checks"]["observability"] is False
+    assert snapshot["checks"]["signal_contract"] is True
     assert snapshot["checks"]["durable_hrm_receipt"] is False
     assert "observability" in snapshot["missing"]
     assert "durable_hrm_receipt" in snapshot["missing"]
