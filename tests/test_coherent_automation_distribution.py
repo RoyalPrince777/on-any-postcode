@@ -1,4 +1,9 @@
-from mission_control import coherent_automation, distribution_intelligence, live_signals, telemetry
+from mission_control import (
+    coherent_automation,
+    distribution_intelligence,
+    live_signals,
+    telemetry,
+)
 
 
 def test_coherent_automation_uses_exact_21_live_signals():
@@ -44,7 +49,7 @@ def test_signal_intelligence_monitor_uses_source_timestamped_runtime_evidence(mo
 
 
 def test_signal_intelligence_monitor_fails_closed_without_runtime_evidence(monkeypatch):
-    monkeypatch.setattr(telemetry, "status", lambda: {})
+    monkeypatch.setattr(telemetry, "status", dict)
 
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][0]
