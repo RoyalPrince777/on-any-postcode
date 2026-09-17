@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from math import asin, cos, radians, sin, sqrt
 
+FRESH_SECONDS = 300
+
 KNOWN_POINTS = {
     "mitcham": {"label": "Mitcham", "postcode": "CR4", "lat": 51.4036, "lon": -0.1687},
     "cr4": {"label": "Mitcham", "postcode": "CR4", "lat": 51.4036, "lon": -0.1687},
@@ -33,6 +35,16 @@ PROFILES = {
     "transit": {"speed_kmh": 24.0, "label": "Public transport"},
 }
 
+_LAST_ROUTE_PROOF: dict[str, object] = {
+    "generated_at": None,
+    "proof_status": "unseen",
+    "source": "OAP Movement",
+    "source_backed": False,
+    "verified_area_pair": False,
+    "distance_estimate_present": False,
+    "eta_estimate_present": False,
+}
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -46,7 +58,6 @@ def _point(value: object) -> dict[str, object]:
     key = _norm(value)
     if key in KNOWN_POINTS:
         return dict(KNOWN_POINTS[key])
-    # No geocoding here: unknown areas remain accepted but unverified.
     label = str(value or "Unknown area").strip()[:120] or "Unknown area"
     return {"label": label, "postcode": "Not returned", "lat": None, "lon": None}
 
@@ -54,14 +65,70 @@ def _point(value: object) -> dict[str, object]:
 def _distance_km(a: dict[str, object], b: dict[str, object]) -> float | None:
     if None in {a.get("lat"), a.get("lon"), b.get("lat"), b.get("lon")}:
         return None
-    lat1, lon1, lat2, lon2 = map(radians, [float(a["lat"]), float(a["lon"]), float(b["lat"]), float(b["lon"])])
+    lat1, lon1, lat2, lon2 = map(
+        radians,
+        [float(a["lat"]), float(a["lon"]), float(b["lat"]), float(b["lon"])],
+    )
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     hav = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
     return round(6371.0 * 2 * asin(sqrt(hav)), 2)
 
 
-def route_proof(origin: object = "Mitcham", destination: object = "London Bridge", profile: object = "driving") -> dict[str, object]:
+def _freshness(generated_at: object) -> str:
+    if not generated_at:
+        return "unseen"
+    try:
+        stamp = datetime.fromisoformat(str(generated_at).replace("Z", "+00:00"))
+        age = (datetime.now(timezone.utc) - stamp).total_seconds()
+    except (TypeError, ValueError):
+        return "invalid_timestamp"
+    if age < 0:
+        return "invalid_timestamp"
+    return "fresh" if age <= FRESH_SECONDS else "stale"
+
+
+def _record_route_proof(result: dict[str, object]) -> None:
+    _LAST_ROUTE_PROOF.update(
+        generated_at=result.get("generated_at"),
+        proof_status=str(result.get("proof_status") or "unseen"),
+        source=str(result.get("source") or "OAP Movement"),
+        source_backed=bool(result.get("verified_area_pair")),
+        verified_area_pair=bool(result.get("verified_area_pair")),
+        distance_estimate_present=result.get("distance_km") is not None,
+        eta_estimate_present=result.get("estimated_minutes") is not None,
+    )
+
+
+def last_route_status() -> dict[str, object]:
+    """Return passive route evidence without storing origin, destination or coordinates."""
+
+    snapshot = dict(_LAST_ROUTE_PROOF)
+    snapshot.update(
+        component="Movement Intelligence Route Evidence",
+        source_timestamp=snapshot.get("generated_at"),
+        freshness=_freshness(snapshot.get("generated_at")),
+        freshness_window_seconds=FRESH_SECONDS,
+        route_geometry_proven=False,
+        live_traffic_proven=False,
+        dispatch_enabled=False,
+        payment_capture_enabled=False,
+        hidden_tracking=False,
+        stores_origin_destination=False,
+        stores_coordinates=False,
+        passive_only=True,
+        external_authority=False,
+    )
+    return snapshot
+
+
+def route_proof(
+    origin: object = "Mitcham",
+    destination: object = "London Bridge",
+    profile: object = "driving",
+    *,
+    record_evidence: bool = True,
+) -> dict[str, object]:
     """Return an explicit, public-safe route proof estimate."""
 
     generated_at = _now()
@@ -73,9 +140,13 @@ def route_proof(origin: object = "Mitcham", destination: object = "London Bridge
     profile_data = PROFILES[profile_key]
     distance = _distance_km(start, end)
     verified = distance is not None
-    minutes = None if distance is None else max(1, round((distance / float(profile_data["speed_kmh"])) * 60))
-    proof_id = sha256(f"{generated_at}|{start['label']}|{end['label']}|{profile_key}".encode()).hexdigest()[:16]
-    return {
+    minutes = None if distance is None else max(
+        1, round((distance / float(profile_data["speed_kmh"])) * 60)
+    )
+    proof_id = sha256(
+        f"{generated_at}|{start['label']}|{end['label']}|{profile_key}".encode()
+    ).hexdigest()[:16]
+    result = {
         "component": "OAP Movement Route Proof",
         "proof_id": proof_id,
         "generated_at": generated_at,
@@ -108,6 +179,9 @@ def route_proof(origin: object = "Mitcham", destination: object = "London Bridge
             "blocks_hidden_tracking": True,
         },
     }
+    if record_evidence:
+        _record_route_proof(result)
+    return result
 
 
 def request_receipt(payload: dict[str, object] | None = None) -> dict[str, object]:
@@ -138,12 +212,13 @@ def request_receipt(payload: dict[str, object] | None = None) -> dict[str, objec
 
 
 def status() -> dict[str, object]:
-    sample = route_proof("Mitcham", "London Bridge", "driving")
+    sample = route_proof("Mitcham", "London Bridge", "driving", record_evidence=False)
     return {
         "component": "Movement Proof + Request Layer",
         "public_route_proof": "/movement/route-proof",
         "public_request_preview": "/movement/request-preview",
         "sample": sample,
+        "last_route_evidence": last_route_status(),
         "route_proof_ready": True,
         "request_preview_ready": True,
         "movement_to_direct_connected": True,
