@@ -318,6 +318,13 @@ class PostgresRuntimeStore:
         worker = _worker_id(worker_id)
         lease = min(300, max(30, int(lease_seconds)))
         with postgres_db.connect() as connection:
+            worker_state = connection.execute(
+                "SELECT status FROM oap_runtime_workers WHERE worker_id=%s",
+                (worker,),
+            ).fetchone()
+            if worker_state is None or str(worker_state[0]) != "ACTIVE":
+                connection.commit()
+                return None
             row = connection.execute(
                 """WITH candidate AS (
                      SELECT job_id FROM oap_runtime_jobs
@@ -430,6 +437,81 @@ class PostgresRuntimeStore:
             )
             connection.commit()
             return state
+
+    def isolate_worker(self, worker_id: str, *, reason: str = "aegis_isolation") -> dict[str, object]:
+        """Drain one worker and release its active lease without granting authority."""
+
+        worker = _worker_id(worker_id)
+        error = _error_code(reason)
+        released = 0
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_runtime_workers
+                   SET status='DRAINING', updated_at=CURRENT_TIMESTAMP
+                   WHERE worker_id=%s
+                   RETURNING worker_id""",
+                (worker,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("worker_not_found")
+            jobs = connection.execute(
+                """SELECT job_id,attempts,max_attempts
+                   FROM oap_runtime_jobs
+                   WHERE state='RUNNING' AND lease_owner=%s
+                   FOR UPDATE""",
+                (worker,),
+            ).fetchall()
+            for job_row in jobs:
+                job_id = str(job_row[0])
+                attempts = int(job_row[1])
+                max_attempts = int(job_row[2])
+                state = "DEAD_LETTER" if attempts >= max_attempts else "RETRY"
+                if state == "DEAD_LETTER":
+                    connection.execute(
+                        """UPDATE oap_runtime_jobs SET
+                           state='DEAD_LETTER',lease_owner=NULL,lease_expires_at=NULL,
+                           last_error_code=%s,completed_at=CURRENT_TIMESTAMP,
+                           updated_at=CURRENT_TIMESTAMP WHERE job_id=%s""",
+                        (error, job_id),
+                    )
+                else:
+                    connection.execute(
+                        """UPDATE oap_runtime_jobs SET
+                           state='RETRY',lease_owner=NULL,lease_expires_at=NULL,
+                           last_error_code=%s,available_at=CURRENT_TIMESTAMP,
+                           updated_at=CURRENT_TIMESTAMP WHERE job_id=%s""",
+                        (error, job_id),
+                    )
+                self._receipt(
+                    connection,
+                    job_id,
+                    worker,
+                    "AEGIS_WORKER_ISOLATED",
+                    state,
+                    {"reason": error, "attempts": attempts},
+                )
+                _append_runtime_audit(
+                    connection,
+                    worker_id="aegis",
+                    action="AEGIS_WORKER_ISOLATED",
+                    job_id=job_id,
+                    metadata={
+                        "isolated_worker": worker,
+                        "reason": error,
+                        "attempts": attempts,
+                        "released_state": state,
+                    },
+                )
+                released += 1
+            connection.commit()
+        return {
+            "worker_id": worker,
+            "state": "DRAINING",
+            "released_jobs": released,
+            "new_claims_blocked": True,
+            "execution_authority_expanded": False,
+            "human_authority_final": True,
+        }
 
     def recover_stale(self, *, limit: int = 50) -> int:
         """Release expired leases so crashed-worker jobs can be retried or dead-lettered."""
