@@ -124,6 +124,48 @@ def runtime_guard_proof():
     )
 
 
+@bp.post("/isolation-recovery")
+@web_security.login_required(api=True, founder_only=True)
+def isolation_recovery_proof():
+    """Run bounded Aegis isolation plus full-state recovery proof."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    try:
+        proof = smi_proof_gate.run_isolation_recovery_proof(str(user["id"]))
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record isolation proof.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_proof_request", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "isolation_recovery_proof_unavailable",
+            "Isolation recovery proof could not be completed safely.",
+            503,
+        )
+    return _no_store(
+        make_response(
+            jsonify(
+                proof=proof,
+                green_gate=smi_proof_gate.public_safe_status(),
+                execution_granted=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
 @bp.get("/a7")
 @web_security.login_required(founder_only=True)
 def a7_dashboard():
