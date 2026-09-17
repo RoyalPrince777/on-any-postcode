@@ -1,4 +1,5 @@
 from mission_control import (
+    atlas_live_sources,
     coherent_automation,
     distribution_intelligence,
     live_signals,
@@ -50,6 +51,7 @@ def test_signal_intelligence_monitor_uses_source_timestamped_runtime_evidence(mo
 
 def test_signal_intelligence_monitor_fails_closed_without_runtime_evidence(monkeypatch):
     monkeypatch.setattr(telemetry, "status", dict)
+    monkeypatch.setattr(atlas_live_sources, "last_fetch_status", dict)
 
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][0]
@@ -59,6 +61,41 @@ def test_signal_intelligence_monitor_fails_closed_without_runtime_evidence(monke
     assert observation["freshness"] == "unseen"
     assert observation["signal"]["id"] == "offline"
     assert observation["proof_state"] == "proof_required"
+
+
+def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypatch):
+    monkeypatch.setattr(telemetry, "status", dict)
+    monkeypatch.setattr(
+        atlas_live_sources,
+        "last_fetch_status",
+        lambda: {
+            "source": "OpenStreetMap / Nominatim",
+            "fetched_at": "2026-09-17T03:55:00Z",
+            "fetch_status": "success",
+            "result_count": 6,
+            "source_backed": True,
+            "freshness": "fresh",
+            "freshness_window_seconds": 300,
+            "passive_only": True,
+            "hidden_tracking": False,
+            "stores_user_location": False,
+        },
+    )
+
+    monitor = coherent_automation.operational_monitor()
+    observation = monitor["observations"][1]
+
+    assert monitor["observation_count"] == 2
+    assert monitor["source_backed"] is True
+    assert observation["id"] == "map_intelligence_source"
+    assert observation["source"] == "OpenStreetMap / Nominatim"
+    assert observation["source_timestamp"] == "2026-09-17T03:55:00Z"
+    assert observation["freshness"] == "fresh"
+    assert observation["signal"]["id"] == "connected"
+    assert observation["proof_state"] == "proven"
+    assert observation["evidence"]["result_count"] == 6
+    assert observation["evidence"]["hidden_tracking"] is False
+    assert observation["evidence"]["stores_user_location"] is False
 
 
 def test_coherent_automation_plan_never_self_executes():
