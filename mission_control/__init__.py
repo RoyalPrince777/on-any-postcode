@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 
 def init_app(app: Flask) -> None:
     """Register CLI commands and the Mission Control web surface."""
+    import json
+    import os
+
     import click
     from flask import g, request
 
@@ -65,6 +68,40 @@ def init_app(app: Flask) -> None:
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
+
+    if os.environ.get("OAP_ESIM_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            migration_status = esim_persistence.init_schema(
+                postgres_db.connect,
+                assume_yes=True,
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_esim_migration",
+                        "success": True,
+                        "schema_ready": migration_status.get("schema_ready") is True,
+                        "schema_version": migration_status.get("schema_version"),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_esim_migration",
+                        "success": False,
+                        "error": "esim_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
 
     @app.cli.command("oap-db-status")
     @click.option("--json", "json_out", is_flag=True, default=False, help="JSON output")
