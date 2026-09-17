@@ -56,7 +56,7 @@ def test_founder_auth_get_retries_one_transient_edge_429(monkeypatch):
     assert response.get_data() == b"Founder auth"
 
 
-def test_founder_auth_get_normalizes_persistent_edge_429(monkeypatch):
+def test_founder_auth_get_fails_over_persistent_edge_429(monkeypatch):
     _configure(monkeypatch)
     opener = _Opener(_Response(429), _Response(429))
     monkeypatch.setattr(smi_gateway, "_OPENER", opener)
@@ -65,10 +65,30 @@ def test_founder_auth_get_normalizes_persistent_edge_429(monkeypatch):
     response = smi_gateway.app.test_client().get("/auth?next=/mission/ollama")
 
     assert opener.calls == 2
-    assert response.status_code == 503
-    assert response.headers["Retry-After"] == "5"
-    assert response.headers["X-OAP-Auth-Upstream"] == "rate-limited"
+    assert response.status_code == 302
+    assert response.headers["Location"] == (
+        "/auth/recover-founder?next=/mission/ollama"
+    )
+    assert response.headers["X-OAP-Auth-Upstream"] == "rate-limited-failover"
+    assert response.headers["X-OAP-Founder-Lane"] == "recovery"
     assert b"Too many requests" not in response.get_data()
+
+
+def test_enter_my_world_get_fails_over_persistent_edge_429(monkeypatch):
+    _configure(monkeypatch)
+    opener = _Opener(_Response(429), _Response(429))
+    monkeypatch.setattr(smi_gateway, "_OPENER", opener)
+    monkeypatch.setattr(smi_gateway.time, "sleep", lambda _seconds: None)
+
+    response = smi_gateway.app.test_client().get(
+        "/enter-my-world?next=/mission/ollama"
+    )
+
+    assert opener.calls == 2
+    assert response.status_code == 302
+    assert response.headers["Location"] == (
+        "/auth/recover-founder?next=/mission/ollama"
+    )
 
 
 def test_founder_password_post_is_never_replayed_on_429(monkeypatch):
