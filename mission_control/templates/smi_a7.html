@@ -33,9 +33,13 @@
       <a class="action" href="{{ url_for('mission_control.judgement_dashboard') }}">👑 Judgement</a>
       <a class="action" href="{{ url_for('my_world_workspace', workspace_id='hrm-memory') }}">🧠 HRM &amp; Memory</a>
       <button id="rollback-proof" type="button">↩️ Run Rollback / Recovery Proof</button>
+      <button id="runtime-guard-proof" type="button">🛡️ Run Runtime Guard Proof</button>
+      <button id="isolation-proof" type="button">⚫ Run Aegis Isolation / Recovery Proof</button>
     </div>
     <p class="muted">Use Judgement for a real decision you genuinely approve or reject. Add a genuine private note in HRM &amp; Memory to create a harmless meaningful OAP event receipt. The rollback proof is bounded and does not mutate product state.</p>
     <div class="result" id="rollback-result" aria-live="polite">No rollback proof run from this screen yet.</div>
+    <div class="result" id="runtime-guard-result" aria-live="polite">No runtime guard proof run from this screen yet.</div>
+    <div class="result" id="isolation-result" aria-live="polite">No Aegis isolation proof run from this screen yet.</div>
   </section>
 
   <section class="section" aria-labelledby="a6-title">
@@ -109,6 +113,30 @@ rollbackButton.addEventListener('click',async()=>{
     rollbackResult.textContent='🟢 Rollback / recovery proof recorded. Product state was not mutated.';
     setTimeout(()=>location.reload(),500);
   }catch(err){rollbackResult.textContent='🟡 '+err.message;}finally{rollbackButton.disabled=false;}
+});
+const runtimeGuardButton=document.getElementById('runtime-guard-proof');
+const runtimeGuardResult=document.getElementById('runtime-guard-result');
+runtimeGuardButton.addEventListener('click',async()=>{
+  runtimeGuardButton.disabled=true;runtimeGuardResult.textContent='Running bounded runtime guard proof…';
+  try{
+    const r=await fetch({{ url_for('smi_proof_gate.runtime_guard_proof')|tojson }},{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+    const body=await r.json();
+    if(!r.ok) throw new Error(body?.error?.message||'Runtime guard proof failed');
+    runtimeGuardResult.textContent='🟢 Runtime guard proof recorded. Duplicate, recursion, retry and privilege-escalation controls passed.';
+    setTimeout(()=>location.reload(),500);
+  }catch(err){runtimeGuardResult.textContent='🟡 '+err.message;}finally{runtimeGuardButton.disabled=false;}
+});
+const isolationButton=document.getElementById('isolation-proof');
+const isolationResult=document.getElementById('isolation-result');
+isolationButton.addEventListener('click',async()=>{
+  isolationButton.disabled=true;isolationResult.textContent='Running bounded Aegis isolation / recovery proof…';
+  try{
+    const r=await fetch({{ url_for('smi_proof_gate.isolation_recovery_proof')|tojson }},{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+    const body=await r.json();
+    if(!r.ok) throw new Error(body?.error?.message||'Isolation recovery proof failed');
+    isolationResult.textContent='🟢 Aegis isolation / recovery proof recorded. Worker, queue, session and memory-reference recovery passed.';
+    setTimeout(()=>location.reload(),500);
+  }catch(err){isolationResult.textContent='🟡 '+err.message;}finally{isolationButton.disabled=false;}
 });
 const haltButton=document.getElementById('halt-proof');
 const haltResult=document.getElementById('halt-result');
