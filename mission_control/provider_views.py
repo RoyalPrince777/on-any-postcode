@@ -21,6 +21,12 @@ from . import (
 
 bp = Blueprint("provider_fabric", __name__, template_folder="templates")
 _LOGGER = logging.getLogger(__name__)
+if not _LOGGER.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    _LOGGER.addHandler(_handler)
+_LOGGER.setLevel(logging.INFO)
+_LOGGER.propagate = False
 _ESIM_BOOT_STATUS = esim_runtime.configure()
 _LOGGER.info(
     "%s",
@@ -64,7 +70,10 @@ def _esim_error(exc: Exception):
 def _esim_runtime_guard():
     status = esim_runtime.configure()
     if status.get("persistence_attached") is not True:
-        return _esim_response({"error": {"code": status.get("reason", "esim_runtime_unavailable")}}, 503)
+        return _esim_response(
+            {"error": {"code": status.get("reason", "esim_runtime_unavailable")}},
+            503,
+        )
     return None
 
 
