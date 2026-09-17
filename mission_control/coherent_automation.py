@@ -13,6 +13,7 @@ from . import (
     atlas_live_sources,
     link_monitor,
     live_signals,
+    market_media_distribution_monitor,
     movement_proof,
     smi_brain_protocol,
     telemetry,
@@ -250,12 +251,22 @@ def operational_monitor() -> dict[str, Any]:
     else:
         link_observation["signal"] = live_signals.get_signal("offline")
 
+    market_media_distribution = list(
+        market_media_distribution_monitor.observations(generated_at)
+    )
+    for observation in market_media_distribution:
+        if observation["proof_state"] == "partial_proof":
+            observation["signal"] = live_signals.get_signal("warning")
+        else:
+            observation["signal"] = live_signals.get_signal("offline")
+
     observations = (
         _runtime_observation(generated_at),
         _map_observation(generated_at),
         _movement_observation(generated_at),
         _direct_observation(generated_at),
         link_observation,
+        *market_media_distribution,
     )
     return {
         "name": "Signal Intelligence Monitor",
