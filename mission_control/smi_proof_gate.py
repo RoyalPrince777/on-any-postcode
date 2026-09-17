@@ -1,8 +1,9 @@
 """Truth-first production proof aggregation for the SMI Green Gate.
 
-This module consumes durable HRM/audit evidence and first-party request telemetry.
-It never grants execution authority. Rollback proof is a bounded, reversible
-in-memory fault exercise whose only persistent effect is an audited proof receipt.
+This module consumes durable HRM/audit evidence, the canonical SMI signal
+contract, and first-party request telemetry. It never grants execution authority.
+Rollback proof is a bounded, reversible in-memory fault exercise whose only
+persistent effect is an audited proof receipt.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from . import approval_service, authority, postgres_db, telemetry
+from . import approval_service, authority, coherent_automation, postgres_db, telemetry
 
 ROLLBACK_PROOF_ACTION = "SMI_ROLLBACK_RECOVERY_PROOF"
 
@@ -74,10 +75,44 @@ def _production_counts() -> dict[str, object]:
     return evidence
 
 
+def _signal_contract_status() -> dict[str, object]:
+    """Read the canonical 21-signal contract and fail closed on any error."""
+
+    try:
+        snapshot = coherent_automation.status()
+    except Exception:  # noqa: BLE001 - Green Gate must never fail open.
+        return {
+            "checked": False,
+            "ready": False,
+            "signal_count": 0,
+            "signals_valid": False,
+            "error": "signal_contract_unavailable",
+        }
+    if not isinstance(snapshot, dict):
+        return {
+            "checked": False,
+            "ready": False,
+            "signal_count": 0,
+            "signals_valid": False,
+            "error": "signal_contract_invalid",
+        }
+    signal_count = int(snapshot.get("signal_count") or 0)
+    signals_valid = bool(snapshot.get("signals_valid"))
+    ready = bool(snapshot.get("ready") and signals_valid and signal_count == 21)
+    return {
+        "checked": True,
+        "ready": ready,
+        "signal_count": signal_count,
+        "signals_valid": signals_valid,
+        "error": None if ready else "signal_contract_proof_required",
+    }
+
+
 def status() -> dict[str, object]:
     """Aggregate the real evidence required by the current SMI Green Gate."""
 
     counts = _production_counts()
+    signal_contract = _signal_contract_status()
     live_observability = telemetry.status()
     store_reachable = bool(counts["store_reachable"])
     founder_interaction = bool(
@@ -102,8 +137,10 @@ def status() -> dict[str, object]:
     observability = bool(
         store_reachable and live_observability.get("observability_ready")
     )
+    signal_contract_proven = bool(signal_contract.get("ready"))
     green = bool(
         founder_interaction
+        and signal_contract_proven
         and receipt_chain
         and meaningful_event_memory
         and rollback_recovery
@@ -111,6 +148,7 @@ def status() -> dict[str, object]:
     )
     checks = {
         "founder_interaction": founder_interaction,
+        "signal_contract": signal_contract_proven,
         "durable_hrm_receipt": durable_hrm_receipt,
         "receipt_chain": receipt_chain,
         "meaningful_event_memory": meaningful_event_memory,
@@ -125,6 +163,7 @@ def status() -> dict[str, object]:
         "checks": checks,
         "missing": missing,
         "production_counts": counts,
+        "signal_contract": signal_contract,
         "observability": live_observability,
         "execution_granted": False,
         "a5_unlocked": False,
