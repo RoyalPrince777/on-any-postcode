@@ -191,7 +191,12 @@ def list_reviews(identity_id: str | None = None, *, limit: int = 50) -> list[dic
 
 
 def status() -> dict[str, object]:
-    """Return a truthful readiness/count projection for Judgement."""
+    """Return separate engine-readiness and Human Authority evidence signals.
+
+    Judgement is technically ready when its schema exists. A real Human Authority
+    decision is separate evidence and must never be fabricated merely to make a
+    dashboard green.
+    """
 
     result: dict[str, object] = {
         "schema_ready": False,
@@ -200,6 +205,7 @@ def status() -> dict[str, object]:
         "reviews": 0,
         "human_decisions": 0,
         "ready": False,
+        "human_evidence_ready": False,
         "error": None,
     }
     try:
@@ -220,6 +226,7 @@ def status() -> dict[str, object]:
                 result["human_decisions"] = int(row[1])
     except Exception:  # noqa: BLE001
         result["error"] = "judgement_store_unavailable"
-    result["ready"] = bool(result["schema_ready"] and result["human_decisions"])
-    return result
 
+    result["ready"] = bool(result["schema_ready"] and result["error"] is None)
+    result["human_evidence_ready"] = bool(result["human_decisions"])
+    return result
