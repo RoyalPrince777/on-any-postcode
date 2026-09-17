@@ -20,6 +20,7 @@ def init_app(app: Flask) -> None:
     from . import audit as auditmod
     from . import db as dbmod
     from . import (
+        esim_persistence,
         link_activity,
         link_call_audit,
         link_presence,
@@ -32,7 +33,6 @@ def init_app(app: Flask) -> None:
         movement_operations,
         organism_runtime,
         postgres_db,
-        esim_persistence,
         product_cores,
         routing,
         smi_auto,
