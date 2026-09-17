@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Provider-neutral eSIM provisioning lifecycle.
 
 This module intentionally does not fake carrier success. A real provider adapter must
