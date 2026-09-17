@@ -11,12 +11,15 @@ from typing import Any
 
 from . import (
     atlas_live_sources,
+    distribution_intelligence,
     link_monitor,
     live_signals,
     movement_proof,
+    product_core_services,
     smi_brain_protocol,
     telemetry,
     travel_supply_core,
+    web_security,
 )
 
 AUTOMATION_ID = "oap-coherent-automation"
@@ -183,6 +186,61 @@ def _movement_observation(generated_at: str) -> dict[str, Any]:
     }
 
 
+def _market_media_distribution_evidence(generated_at: str) -> dict[str, Any]:
+    """Read authenticated first-party product state without projecting payloads."""
+
+    try:
+        identity_id = web_security.authenticated_identity()
+        tune = product_core_services.tune_dashboard(identity_id)
+        commerce = product_core_services.commerce_dashboard(identity_id)
+        contract = distribution_intelligence.status()
+    except Exception:  # noqa: BLE001 - unavailable auth/store must stay unproven.
+        return {
+            "state": "authentication_or_store_required",
+            "runtime_read_performed": False,
+            "observed_at": generated_at,
+            "storefront_present": None,
+            "product_count": None,
+            "order_intent_count": None,
+            "release_count": None,
+            "playlist_count": None,
+            "payment_capture_performed": False,
+            "external_fulfilment_performed": False,
+            "licensed_audio_delivery": False,
+            "external_distribution": False,
+            "external_execution_enabled": False,
+            "rights_proof_required": True,
+            "no_private_payload_projection": True,
+            "hidden_tracking": False,
+            "human_authority_final": True,
+        }
+
+    products = commerce.get("products") or []
+    orders = commerce.get("orders") or []
+    releases = tune.get("releases") or []
+    playlists = tune.get("playlists") or []
+    return {
+        "state": "authenticated_first_party_read",
+        "runtime_read_performed": True,
+        "observed_at": generated_at,
+        "storefront_present": bool(commerce.get("storefront")),
+        "product_count": len(products),
+        "order_intent_count": len(orders),
+        "release_count": len(releases),
+        "playlist_count": len(playlists),
+        "payment_capture_performed": False,
+        "external_fulfilment_performed": False,
+        "licensed_audio_delivery": False,
+        "external_distribution": False,
+        "external_distribution_state": contract.get("external_distribution_state"),
+        "external_execution_enabled": False,
+        "rights_proof_required": True,
+        "no_private_payload_projection": True,
+        "hidden_tracking": False,
+        "human_authority_final": True,
+    }
+
+
 def _direct_observation(generated_at: str) -> dict[str, Any]:
     try:
         evidence = travel_supply_core.status()
@@ -233,6 +291,7 @@ def _direct_observation(generated_at: str) -> dict[str, Any]:
             "direct_booking_runtime_ready": bool(evidence.get("direct_booking_runtime_ready")),
             "payment_capture_live": bool(evidence.get("payment_capture_live", False)),
             "external_provider_authority": bool(evidence.get("external_provider_authority", False)),
+            "market_media_distribution": _market_media_distribution_evidence(generated_at),
             "read_only": True,
         },
         "proof_state": proof_state,
