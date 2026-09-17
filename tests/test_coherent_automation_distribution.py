@@ -93,7 +93,7 @@ def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypat
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][1]
 
-    assert monitor["observation_count"] == 5
+    assert monitor["observation_count"] == 8
     assert monitor["source_backed"] is True
     assert observation["id"] == "map_intelligence_source"
     assert observation["source"] == "OpenStreetMap / Nominatim"
@@ -136,7 +136,7 @@ def test_signal_intelligence_monitor_reads_passive_movement_evidence(monkeypatch
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][2]
 
-    assert monitor["observation_count"] == 5
+    assert monitor["observation_count"] == 8
     assert observation["id"] == "movement_intelligence_route"
     assert observation["signal"]["id"] == "connected"
     assert observation["proof_state"] == "bounded_proof"
@@ -171,7 +171,7 @@ def test_signal_intelligence_monitor_reads_bounded_direct_supply_evidence(monkey
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][3]
 
-    assert monitor["observation_count"] == 5
+    assert monitor["observation_count"] == 8
     assert observation["id"] == "oap_direct_supply"
     assert observation["signal"]["id"] == "warning"
     assert observation["proof_state"] == "partial_proof"
