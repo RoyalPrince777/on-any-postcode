@@ -9,7 +9,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from . import atlas_live_sources, live_signals, smi_brain_protocol, telemetry
+from . import (
+    atlas_live_sources,
+    live_signals,
+    movement_proof,
+    smi_brain_protocol,
+    telemetry,
+)
 
 AUTOMATION_ID = "oap-coherent-automation"
 AUTOMATION_NAME = "OAP Coherent Automation"
@@ -121,6 +127,60 @@ def _map_observation(generated_at: str) -> dict[str, Any]:
     }
 
 
+def _movement_observation(generated_at: str) -> dict[str, Any]:
+    try:
+        evidence = movement_proof.last_route_status()
+    except Exception:  # noqa: BLE001 - monitor must fail closed.
+        evidence = {}
+
+    source_timestamp = evidence.get("source_timestamp")
+    freshness = str(evidence.get("freshness") or "unseen")
+    source_backed = bool(evidence.get("source_backed"))
+    proof_status = str(evidence.get("proof_status") or "unseen")
+    route_estimate_ready = bool(
+        evidence.get("verified_area_pair")
+        and evidence.get("distance_estimate_present")
+        and evidence.get("eta_estimate_present")
+    )
+
+    if source_backed and route_estimate_ready and freshness == "fresh":
+        observed_signal = live_signals.get_signal("connected")
+        proof_state = "bounded_proof"
+    elif source_timestamp:
+        observed_signal = live_signals.get_signal("warning")
+        proof_state = "proof_required"
+    else:
+        observed_signal = live_signals.get_signal("offline")
+        proof_state = "proof_required"
+
+    return {
+        "id": "movement_intelligence_route",
+        "name": "Movement Intelligence Route Evidence",
+        "signal": observed_signal,
+        "source": str(evidence.get("source") or "OAP Movement"),
+        "source_timestamp": source_timestamp,
+        "observed_at": generated_at,
+        "freshness": freshness,
+        "freshness_window_seconds": int(evidence.get("freshness_window_seconds") or 300),
+        "evidence": {
+            "proof_status": proof_status,
+            "source_backed": source_backed,
+            "verified_area_pair": bool(evidence.get("verified_area_pair")),
+            "distance_estimate_present": bool(evidence.get("distance_estimate_present")),
+            "eta_estimate_present": bool(evidence.get("eta_estimate_present")),
+            "route_geometry_proven": bool(evidence.get("route_geometry_proven", False)),
+            "live_traffic_proven": bool(evidence.get("live_traffic_proven", False)),
+            "dispatch_enabled": bool(evidence.get("dispatch_enabled", False)),
+            "hidden_tracking": bool(evidence.get("hidden_tracking", False)),
+            "stores_origin_destination": bool(evidence.get("stores_origin_destination", False)),
+            "stores_coordinates": bool(evidence.get("stores_coordinates", False)),
+            "passive_only": bool(evidence.get("passive_only", True)),
+        },
+        "proof_state": proof_state,
+        "external_authority": False,
+    }
+
+
 def operational_monitor() -> dict[str, Any]:
     """Return source-backed observations without inventing live proof."""
 
@@ -128,6 +188,7 @@ def operational_monitor() -> dict[str, Any]:
     observations = (
         _runtime_observation(generated_at),
         _map_observation(generated_at),
+        _movement_observation(generated_at),
     )
     return {
         "name": "Signal Intelligence Monitor",
