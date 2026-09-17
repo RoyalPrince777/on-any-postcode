@@ -266,7 +266,12 @@ class PostgresRuntimeStore:
                    (worker_id,status,revision,heartbeat_at,last_job_id)
                    VALUES (%s,%s,%s,CURRENT_TIMESTAMP,%s)
                    ON CONFLICT (worker_id) DO UPDATE SET
-                     status=EXCLUDED.status,
+                     status=CASE
+                       WHEN oap_runtime_workers.status='DRAINING'
+                        AND EXCLUDED.status='ACTIVE'
+                       THEN 'DRAINING'
+                       ELSE EXCLUDED.status
+                     END,
                      revision=EXCLUDED.revision,
                      heartbeat_at=CURRENT_TIMESTAMP,
                      last_job_id=EXCLUDED.last_job_id,
@@ -274,6 +279,17 @@ class PostgresRuntimeStore:
                 (worker, state, str(revision or "unknown")[:120], last_job_id),
             )
             connection.commit()
+
+    def worker_state(self, worker_id: str) -> str | None:
+        """Return current worker state without mutating runtime state."""
+
+        worker = _worker_id(worker_id)
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                "SELECT status FROM oap_runtime_workers WHERE worker_id=%s",
+                (worker,),
+            ).fetchone()
+        return str(row[0]) if row else None
 
     def tick_scheduler(self, *, limit: int = 20) -> int:
         """Enqueue at most one occurrence for each currently due schedule."""
