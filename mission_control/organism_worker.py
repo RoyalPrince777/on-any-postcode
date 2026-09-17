@@ -166,6 +166,15 @@ def run() -> int:
                     last_job_id=last_job_id,
                 )
                 last_heartbeat = now
+                current_state = store.worker_state(worker_id)
+                if current_state != "ACTIVE":
+                    _log(
+                        "runtime_worker_isolated",
+                        worker_id=worker_id,
+                        state=current_state or "UNKNOWN",
+                    )
+                    stop_event.set()
+                    continue
             if now - last_recovery >= recovery_seconds:
                 recovered = store.recover_stale()
                 if recovered:
