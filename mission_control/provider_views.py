@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import logging
+
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from oap.smi import intelligence_capability_registry, sovereign_controls
@@ -17,6 +20,22 @@ from . import (
 )
 
 bp = Blueprint("provider_fabric", __name__, template_folder="templates")
+_LOGGER = logging.getLogger(__name__)
+_ESIM_BOOT_STATUS = esim_runtime.configure()
+_LOGGER.info(
+    "%s",
+    json.dumps(
+        {
+            "event": "oap_esim_runtime_attestation",
+            "persistence_attached": _ESIM_BOOT_STATUS.get("persistence_attached") is True,
+            "database_configured": _ESIM_BOOT_STATUS.get("database_configured") is True,
+            "schema_ready": _ESIM_BOOT_STATUS.get("schema_ready") is True,
+            "reason": str(_ESIM_BOOT_STATUS.get("reason") or "unknown"),
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    ),
+)
 
 
 def _no_store(response):
