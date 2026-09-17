@@ -11,6 +11,7 @@ from typing import Any
 
 from . import (
     atlas_live_sources,
+    link_monitor,
     live_signals,
     movement_proof,
     smi_brain_protocol,
@@ -194,10 +195,6 @@ def _direct_observation(generated_at: str) -> dict[str, Any]:
     live_inventory = int(evidence.get("live_inventory_slot_count") or 0)
     supply_counts_ready = bool(certified_suppliers and active_listings and live_inventory)
 
-    # The current Supply Core status proves live read-only counts, but it does not
-    # yet expose Certified commercial-terms count or the inventory row's own
-    # observed_at timestamp. Keep those requirements explicit instead of
-    # upgrading a database count into a complete Direct proof claim.
     source_timestamp = generated_at if schema_ready else None
     terms_proven = False
     inventory_timestamp_proven = False
@@ -247,11 +244,18 @@ def operational_monitor() -> dict[str, Any]:
     """Return source-backed observations without inventing live proof."""
 
     generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    link_observation = link_monitor.observation(generated_at)
+    if link_observation["proof_state"] == "partial_proof":
+        link_observation["signal"] = live_signals.get_signal("warning")
+    else:
+        link_observation["signal"] = live_signals.get_signal("offline")
+
     observations = (
         _runtime_observation(generated_at),
         _map_observation(generated_at),
         _movement_observation(generated_at),
         _direct_observation(generated_at),
+        link_observation,
     )
     return {
         "name": "Signal Intelligence Monitor",
