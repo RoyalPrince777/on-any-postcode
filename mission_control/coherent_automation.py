@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from . import live_signals, smi_brain_protocol, telemetry
+from . import atlas_live_sources, live_signals, smi_brain_protocol, telemetry
 
 AUTOMATION_ID = "oap-coherent-automation"
 AUTOMATION_NAME = "OAP Coherent Automation"
@@ -29,10 +29,7 @@ def _iso_from_epoch(value: object) -> str | None:
     return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def operational_monitor() -> dict[str, Any]:
-    """Return a source-backed runtime observation without inventing live proof."""
-
-    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+def _runtime_observation(generated_at: str) -> dict[str, Any]:
     try:
         runtime = telemetry.status()
     except Exception:  # noqa: BLE001 - monitor must fail closed.
@@ -59,7 +56,7 @@ def operational_monitor() -> dict[str, Any]:
         observed_signal = live_signals.get_signal("offline")
         freshness = "unseen"
 
-    observation = {
+    return {
         "id": "runtime_observability",
         "name": "SMI Runtime Observability",
         "signal": observed_signal,
@@ -78,12 +75,66 @@ def operational_monitor() -> dict[str, Any]:
         "proof_state": "proven" if observability_ready else "proof_required",
         "external_authority": False,
     }
+
+
+def _map_observation(generated_at: str) -> dict[str, Any]:
+    try:
+        evidence = atlas_live_sources.last_fetch_status()
+    except Exception:  # noqa: BLE001 - monitor must fail closed.
+        evidence = {}
+
+    fetch_status = str(evidence.get("fetch_status") or "unseen")
+    freshness = str(evidence.get("freshness") or "unseen")
+    source_timestamp = evidence.get("fetched_at")
+    result_count = int(evidence.get("result_count") or 0)
+    source_backed = bool(evidence.get("source_backed"))
+
+    if source_backed and freshness == "fresh":
+        observed_signal = live_signals.get_signal("connected")
+        proof_state = "proven"
+    elif source_timestamp:
+        observed_signal = live_signals.get_signal("warning")
+        proof_state = "proof_required"
+    else:
+        observed_signal = live_signals.get_signal("offline")
+        proof_state = "proof_required"
+
+    return {
+        "id": "map_intelligence_source",
+        "name": "Map Intelligence Source",
+        "signal": observed_signal,
+        "source": str(evidence.get("source") or "OpenStreetMap / Nominatim"),
+        "source_timestamp": source_timestamp,
+        "observed_at": generated_at,
+        "freshness": freshness,
+        "freshness_window_seconds": int(evidence.get("freshness_window_seconds") or 300),
+        "evidence": {
+            "fetch_status": fetch_status,
+            "result_count": result_count,
+            "source_backed": source_backed,
+            "passive_only": bool(evidence.get("passive_only", True)),
+            "hidden_tracking": bool(evidence.get("hidden_tracking", False)),
+            "stores_user_location": bool(evidence.get("stores_user_location", False)),
+        },
+        "proof_state": proof_state,
+        "external_authority": False,
+    }
+
+
+def operational_monitor() -> dict[str, Any]:
+    """Return source-backed observations without inventing live proof."""
+
+    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    observations = (
+        _runtime_observation(generated_at),
+        _map_observation(generated_at),
+    )
     return {
         "name": "Signal Intelligence Monitor",
         "generated_at": generated_at,
-        "source_backed": bool(source_timestamp),
-        "observation_count": 1,
-        "observations": (observation,),
+        "source_backed": any(bool(item.get("source_timestamp")) for item in observations),
+        "observation_count": len(observations),
+        "observations": observations,
         "registry_signal_count": len(live_signals.LIVE_SIGNALS),
         "registry_is_not_live_evidence": True,
         "execution_allowed": False,
