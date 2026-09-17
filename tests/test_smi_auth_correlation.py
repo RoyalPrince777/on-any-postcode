@@ -66,4 +66,4 @@ def test_normalized_429_carries_correlation_evidence():
         "/auth/recover-founder?next=/mission/ollama"
     )
     assert response.headers["X-OAP-Request-ID"] == "a7-test-request"
-    assert response.headers["X-OAP-Auth-Upstream"] == "rate-limited"
+    assert response.headers["X-OAP-Auth-Upstream"] == "rate-limited-failover"
