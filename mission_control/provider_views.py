@@ -11,6 +11,7 @@ from . import (
     ai_behaviour,
     autonomy_levels,
     esim_provisioning,
+    esim_runtime,
     provider_fabric,
     web_security,
 )
@@ -41,7 +42,16 @@ def _esim_error(exc: Exception):
     return _esim_response({"error": {"code": "esim_unavailable"}}, 503)
 
 
+def _esim_runtime_guard():
+    status = esim_runtime.configure()
+    if status.get("persistence_attached") is not True:
+        return _esim_response({"error": {"code": status.get("reason", "esim_runtime_unavailable")}}, 503)
+    return None
+
+
 def _esim_write_guard():
+    if guard := _esim_runtime_guard():
+        return guard
     if not web_security.csrf_valid(request):
         return _esim_response({"error": {"code": "csrf_failed"}}, 403)
     return None
@@ -50,7 +60,6 @@ def _esim_write_guard():
 @bp.get("/providers")
 @web_security.login_required()
 def provider_dashboard():
-    """Render provider readiness without exposing credentials or controls."""
     response = make_response(
         render_template(
             "provider_fabric.html",
@@ -63,14 +72,18 @@ def provider_dashboard():
 @bp.get("/providers/status")
 @web_security.login_required(api=True)
 def provider_status():
-    """Return coarse provider readiness only to a signed-in identity."""
     return _no_store(make_response(jsonify(provider_fabric.get_coarse_provider_status())))
+
+
+@bp.get("/esim/status")
+@web_security.login_required(api=True, founder_only=True)
+def esim_status():
+    return _esim_response({"esim_runtime": esim_runtime.configure()})
 
 
 @bp.post("/esim/requests")
 @web_security.login_required(api=True, founder_only=True)
 def esim_create_request():
-    """Founder-only eSIM request creation; activation remains separate."""
     if guard := _esim_write_guard():
         return guard
     body = request.get_json(silent=True)
@@ -82,13 +95,15 @@ def esim_create_request():
             purpose=body.get("purpose"),
         )
         return _esim_response({"esim_request": item}, 201)
-    except Exception as exc:  # noqa: BLE001 - keep provider details private.
+    except Exception as exc:  # noqa: BLE001
         return _esim_error(exc)
 
 
 @bp.get("/esim/requests/<request_id>")
 @web_security.login_required(api=True, founder_only=True)
 def esim_get_request(request_id: str):
+    if guard := _esim_runtime_guard():
+        return guard
     try:
         return _esim_response({"esim_request": esim_provisioning.CORE.get(request_id)})
     except Exception as exc:  # noqa: BLE001
@@ -98,6 +113,8 @@ def esim_get_request(request_id: str):
 @bp.get("/esim/requests/<request_id>/events")
 @web_security.login_required(api=True, founder_only=True)
 def esim_get_events(request_id: str):
+    if guard := _esim_runtime_guard():
+        return guard
     try:
         return _esim_response({"events": esim_provisioning.CORE.events(request_id)})
     except Exception as exc:  # noqa: BLE001
@@ -154,7 +171,6 @@ def esim_revoke(request_id: str):
 @bp.get("/alignment")
 @web_security.login_required(founder_only=True)
 def alignment_dashboard():
-    """Render evidence-based SMI alignment and technical sovereignty state."""
     sovereignty = sovereign_controls.SovereignControlPlane().status()
     capability_registry = intelligence_capability_registry.status(
         agent_registry.LOCKED_WORLD_IDS
@@ -178,7 +194,6 @@ def alignment_dashboard():
 @bp.get("/alignment/status")
 @web_security.login_required(api=True, founder_only=True)
 def alignment_status():
-    """Return the same redacted alignment evidence for private status polling."""
     sovereignty = sovereign_controls.SovereignControlPlane().status()
     capability_registry = intelligence_capability_registry.status(
         agent_registry.LOCKED_WORLD_IDS
