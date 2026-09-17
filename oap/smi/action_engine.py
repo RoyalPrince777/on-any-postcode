@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from oap.contracts import ActionPlan, OutputState, Recommendation
+from oap.smi.runtime_guard import validate_action_payload
 
 _ACTION_TYPE = re.compile(r"^[a-z][a-z0-9_.:-]{0,63}$")
 _MAX_PAYLOAD_BYTES = 100_000
@@ -29,6 +30,7 @@ class ActionEngine:
         if not _ACTION_TYPE.fullmatch(normalized_action):
             raise ValueError("Action type is invalid")
         safe_payload = dict(payload or {})
+        validate_action_payload(safe_payload)
         try:
             serialized = json.dumps(
                 safe_payload,
