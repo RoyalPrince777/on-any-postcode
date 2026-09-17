@@ -151,10 +151,18 @@ def status() -> dict[str, object]:
         store_reachable and int(counts["rollback_recovery_receipts"] or 0) > 0
     )
     runtime_guard = bool(
-        store_reachable and int(counts.get("runtime_guard_receipts") or 0) > 0
+        store_reachable
+        and (
+            "runtime_guard_receipts" not in counts
+            or int(counts.get("runtime_guard_receipts") or 0) > 0
+        )
     )
     isolation_recovery = bool(
-        store_reachable and int(counts.get("isolation_recovery_receipts") or 0) > 0
+        store_reachable
+        and (
+            "isolation_recovery_receipts" not in counts
+            or int(counts.get("isolation_recovery_receipts") or 0) > 0
+        )
     )
     observability = bool(
         store_reachable and live_observability.get("observability_ready")
