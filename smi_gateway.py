@@ -87,39 +87,31 @@ def _secret() -> str:
 
 
 def _revision() -> str:
-    """Return a bounded public-safe revision fingerprint for release drift checks."""
-
     raw = (
         os.environ.get("RENDER_GIT_COMMIT", "").strip()
         or os.environ.get("OAP_ENV_REVISION", "").strip()
         or "unknown"
     )
     safe = "".join(character for character in raw if character.isalnum() or character in ".-_")
-    if not safe:
-        return "unknown"
-    return safe[:12]
+    return (safe or "unknown")[:12]
 
 
 def _allowed(path: str) -> bool:
     clean = "/" + path.lstrip("/")
     if clean == "/auth/sign-up":
         return False
-    if clean == "/mission" or clean.startswith("/mission/"):
-        return True
-    if clean == "/smi" or clean.startswith("/smi/"):
-        return True
-    if clean == "/war-room" or clean.startswith("/war-room/"):
-        return True
-    if clean == "/alignment" or clean.startswith("/alignment/"):
-        return True
-    if clean == "/my-world" or clean.startswith("/my-world/"):
-        return True
-    if clean == "/myworld" or clean.startswith("/myworld/"):
-        return True
-    if clean == "/infrastructure" or clean.startswith("/infrastructure/"):
-        return True
-    if clean == "/api/infrastructure" or clean.startswith("/api/infrastructure/"):
-        return True
+    for prefix in (
+        "/mission",
+        "/smi",
+        "/war-room",
+        "/alignment",
+        "/my-world",
+        "/myworld",
+        "/infrastructure",
+        "/api/infrastructure",
+    ):
+        if clean == prefix or clean.startswith(prefix + "/"):
+            return True
     return clean in {
         "/auth",
         "/auth/sign-in",
@@ -148,13 +140,6 @@ def _upstream_url(path: str) -> str:
 
 
 def _client_ip() -> str:
-    """Return a canonical client IP for the trusted upstream rate-limit key.
-
-    Render terminates public traffic before it reaches this gateway and places the
-    real client address first in X-Forwarded-For. Outside Render, use the direct
-    socket peer instead. Invalid or missing values fail closed to ``unknown``.
-    """
-
     candidate = str(request.remote_addr or "").strip()
     if os.environ.get("RENDER", "").strip().casefold() == "true":
         forwarded = request.headers.get("X-Forwarded-For", "")
@@ -215,8 +200,6 @@ def _status(upstream) -> int:
 
 
 def _auth_trace(correlation_id: str, path: str, status: int | None, phase: str) -> None:
-    """Log only privacy-safe correlation evidence for the Founder auth boundary."""
-
     clean = "/" + path.lstrip("/")
     if clean not in {"/auth", "/auth/sign-in", "/enter-my-world"}:
         return
@@ -241,17 +224,29 @@ def _auth_trace(correlation_id: str, path: str, status: int | None, phase: str) 
 def _normalized_auth_rate_limit(
     path: str, status: int, correlation_id: str | None = None
 ):
-    """Never expose an upstream/edge 429 as a Founder credential lockout.
+    """Separate transport pressure from credential failures and fail over safely.
 
-    The application has its own failed-password-only guard. A 429 arriving through
-    the extra Render-to-Render hop is therefore treated as infrastructure pressure,
-    not evidence of another wrong password. The request still fails closed and is
-    never replayed when it contains credentials.
+    A persistent 429 on the idempotent pre-password Founder GET is an edge/transport
+    failure, not a password failure. After the one bounded retry in ``_proxy``, send
+    that GET to the existing Render Founder recovery lane instead of leaving the
+    Founder stranded on a 503 page. Credential-bearing POSTs are never replayed and
+    remain fail-closed as 503 responses.
     """
 
     clean = "/" + path.lstrip("/")
-    if status != 429 or clean not in {"/auth", "/auth/sign-in"}:
+    if status != 429 or clean not in {"/auth", "/auth/sign-in", "/enter-my-world"}:
         return None
+
+    if request.method in {"GET", "HEAD"} and clean in {"/auth", "/enter-my-world"}:
+        response = redirect(_FOUNDER_RECOVERY_FALLBACK, code=302)
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-OAP-Auth-Upstream"] = "rate-limited-failover"
+        response.headers["X-OAP-Founder-Lane"] = "recovery"
+        response.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+        if correlation_id:
+            response.headers[_CORRELATION_HEADER] = correlation_id
+        return response
+
     response = make_response(
         "Secure identity verification is temporarily unavailable. Retry once shortly.",
         503,
@@ -285,8 +280,6 @@ def _proxy(path: str):
     clean = "/" + path.lstrip("/")
     _auth_trace(correlation_id, path, status, "initial")
 
-    # A Founder GET is idempotent, so one bounded retry is safe while a sleeping
-    # Render upstream wakes. Credential-bearing POST requests are never replayed.
     if (
         request.method in {"GET", "HEAD"}
         and clean in {"/auth", "/enter-my-world"}
@@ -346,13 +339,11 @@ def _proxy(path: str):
 
 @app.get("/")
 def root():
-    """Enter Founder sign-in and return directly to Personal SMI."""
     return redirect("/auth?next=/mission/ollama", code=302)
 
 
 @app.get("/founder")
 def founder_access_alias():
-    """Stable Founder bookmark; the upstream selects the available password gate."""
     return redirect("/auth?next=/mission/ollama", code=302)
 
 
@@ -369,8 +360,6 @@ def war_room_alias():
 
 @app.get("/healthz")
 def healthz():
-    """Report only SMI gateway process liveness; do not probe OAP World or Neon."""
-
     response = make_response(
         json.dumps(
             {
