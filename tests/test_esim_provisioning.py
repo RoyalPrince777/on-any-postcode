@@ -17,6 +17,29 @@ class FakeProvider:
         return {"revoked": True}
 
 
+class FakeRepository:
+    def __init__(self) -> None:
+        self.requests: dict[str, dict] = {}
+        self.event_rows: list[dict] = []
+
+    def save_request(self, item: dict) -> None:
+        self.requests[item["request_id"]] = dict(item)
+
+    def append_event(self, event: dict) -> None:
+        self.event_rows.append(dict(event))
+
+    def get_request(self, request_id: str) -> dict | None:
+        item = self.requests.get(request_id)
+        return dict(item) if item is not None else None
+
+    def list_events(self, request_id: str) -> list[dict]:
+        return [
+            dict(event)
+            for event in self.event_rows
+            if event["request_id"] == request_id
+        ]
+
+
 def test_provider_required_before_provisioning():
     core = EsimProvisioningCore()
     item = core.request(subject_id="founder", purpose="connectivity")
@@ -72,4 +95,22 @@ def test_full_lifecycle_requires_provider_confirmation():
         "suspended",
         "active",
         "revoked",
+    ]
+
+
+def test_repository_restores_state_across_core_restart():
+    repository = FakeRepository()
+    first = EsimProvisioningCore(repository=repository)
+    item = first.request(subject_id="founder", purpose="connectivity")
+    request_id = item["request_id"]
+    first.approve(request_id, founder_identity="founder")
+
+    second = EsimProvisioningCore(repository=repository)
+    restored = second.get(request_id)
+
+    assert restored["state"] == "approved"
+    assert restored["approved_by"] == "founder"
+    assert [event["event"] for event in second.events(request_id)] == [
+        "requested",
+        "approved",
     ]
