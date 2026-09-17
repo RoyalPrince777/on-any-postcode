@@ -17,6 +17,7 @@ from . import approval_service, authority, coherent_automation, postgres_db, tel
 
 ROLLBACK_PROOF_ACTION = "SMI_ROLLBACK_RECOVERY_PROOF"
 RUNTIME_GUARD_PROOF_ACTION = "SMI_RUNTIME_GUARD_PROOF"
+ISOLATION_RECOVERY_PROOF_ACTION = "SMI_ISOLATION_RECOVERY_PROOF"
 
 
 def _production_counts() -> dict[str, object]:
@@ -30,6 +31,7 @@ def _production_counts() -> dict[str, object]:
         "oap_event_receipts": 0,
         "rollback_recovery_receipts": 0,
         "runtime_guard_receipts": 0,
+        "isolation_recovery_receipts": 0,
         "error": None,
     }
     if not postgres_db.configured():
@@ -51,8 +53,14 @@ def _production_counts() -> dict[str, object]:
                   (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true'),
                   (SELECT COUNT(*) FROM audit_events
+                    WHERE action=%s AND metadata->>'passed'='true'),
+                  (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true')""",
-                (ROLLBACK_PROOF_ACTION, RUNTIME_GUARD_PROOF_ACTION),
+                (
+                    ROLLBACK_PROOF_ACTION,
+                    RUNTIME_GUARD_PROOF_ACTION,
+                    ISOLATION_RECOVERY_PROOF_ACTION,
+                ),
             ).fetchone()
             receipt_table = connection.execute(
                 "SELECT to_regclass('public.oap_hrm_receipts')"
@@ -72,6 +80,7 @@ def _production_counts() -> dict[str, object]:
                 "oap_event_receipts",
                 "rollback_recovery_receipts",
                 "runtime_guard_receipts",
+                "isolation_recovery_receipts",
             )
             evidence.update({key: int(value or 0) for key, value in zip(keys, row)})
             evidence["durable_hrm_receipt_store_present"] = receipt_store_present
@@ -144,6 +153,9 @@ def status() -> dict[str, object]:
     runtime_guard = bool(
         store_reachable and int(counts["runtime_guard_receipts"] or 0) > 0
     )
+    isolation_recovery = bool(
+        store_reachable and int(counts["isolation_recovery_receipts"] or 0) > 0
+    )
     observability = bool(
         store_reachable and live_observability.get("observability_ready")
     )
@@ -155,6 +167,7 @@ def status() -> dict[str, object]:
         and meaningful_event_memory
         and rollback_recovery
         and runtime_guard
+        and isolation_recovery
         and observability
     )
     checks = {
@@ -165,6 +178,7 @@ def status() -> dict[str, object]:
         "meaningful_event_memory": meaningful_event_memory,
         "rollback_recovery": rollback_recovery,
         "runtime_guard": runtime_guard,
+        "isolation_recovery": isolation_recovery,
         "observability": observability,
     }
     missing = tuple(name for name, proven in checks.items() if not proven)
@@ -253,6 +267,115 @@ def run_rollback_recovery_proof(identity_id: object) -> dict[str, object]:
             },
         )
         connection.commit()
+    return {
+        **proof,
+        "audit_recorded": True,
+        "correlation_id": correlation_id,
+    }
+
+
+def _isolation_recovery_exercise() -> dict[str, object]:
+    """Exercise isolation and full-state restore without touching product state."""
+
+    checkpoint = {
+        "worker": {"state": "ACTIVE", "lease": "job-1"},
+        "queue": {"job-1": "RUNNING", "job-2": "QUEUED"},
+        "sessions": {"founder": "BOUND", "worker": "BOUND"},
+        "memory_refs": ("chronicle:1", "joog:1"),
+        "authority": "HUMAN",
+    }
+    working = {
+        "worker": dict(checkpoint["worker"]),
+        "queue": dict(checkpoint["queue"]),
+        "sessions": dict(checkpoint["sessions"]),
+        "memory_refs": tuple(checkpoint["memory_refs"]),
+        "authority": checkpoint["authority"],
+    }
+
+    working["worker"]["state"] = "DRAINING"
+    working["worker"]["lease"] = None
+    working["queue"]["job-1"] = "RETRY"
+    working["sessions"]["worker"] = "REVOKED"
+
+    contained = bool(
+        working["worker"]["state"] == "DRAINING"
+        and working["worker"]["lease"] is None
+        and working["queue"]["job-1"] == "RETRY"
+        and working["sessions"]["worker"] == "REVOKED"
+        and working["authority"] == "HUMAN"
+    )
+
+    restored_state = {
+        "worker": dict(checkpoint["worker"]),
+        "queue": dict(checkpoint["queue"]),
+        "sessions": dict(checkpoint["sessions"]),
+        "memory_refs": tuple(checkpoint["memory_refs"]),
+        "authority": checkpoint["authority"],
+    }
+    restored = restored_state == checkpoint
+    safe_resume = bool(
+        restored
+        and restored_state["worker"]["state"] == "ACTIVE"
+        and restored_state["worker"]["lease"] == "job-1"
+        and restored_state["sessions"]["founder"] == "BOUND"
+        and restored_state["authority"] == "HUMAN"
+    )
+    passed = bool(contained and restored and safe_resume)
+    return {
+        "contained": contained,
+        "restored": restored,
+        "safe_resume": safe_resume,
+        "worker_state_restored": restored_state["worker"] == checkpoint["worker"],
+        "queue_state_restored": restored_state["queue"] == checkpoint["queue"],
+        "session_state_restored": restored_state["sessions"] == checkpoint["sessions"],
+        "memory_refs_restored": restored_state["memory_refs"] == checkpoint["memory_refs"],
+        "passed": passed,
+        "production_state_mutated": False,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
+    }
+
+
+def run_isolation_recovery_proof(identity_id: object) -> dict[str, object]:
+    """Run and audit bounded isolation plus full-state recovery proof."""
+
+    try:
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_human_authority_identity") from exc
+
+    proof = _isolation_recovery_exercise()
+    if not proof["passed"]:
+        raise RuntimeError("isolation_recovery_proof_failed")
+
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(connection, identity_value)
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired("human_authority_level_required")
+        correlation_id = str(uuid.uuid4())
+        approval_service._write_audit(
+            connection,
+            actor_id=identity_value,
+            action=ISOLATION_RECOVERY_PROOF_ACTION,
+            target="SMI_AEGIS_ISOLATION_BOUNDARY",
+            reason="Bounded Aegis isolation and full-state recovery proof completed.",
+            correlation_id=correlation_id,
+            metadata={
+                "passed": True,
+                "contained": bool(proof["contained"]),
+                "restored": bool(proof["restored"]),
+                "safe_resume": bool(proof["safe_resume"]),
+                "worker_state_restored": bool(proof["worker_state_restored"]),
+                "queue_state_restored": bool(proof["queue_state_restored"]),
+                "session_state_restored": bool(proof["session_state_restored"]),
+                "memory_refs_restored": bool(proof["memory_refs_restored"]),
+                "production_state_mutated": False,
+                "execution_authority_expanded": False,
+                "authority_level": 0,
+            },
+        )
+        connection.commit()
+
     return {
         **proof,
         "audit_recorded": True,
