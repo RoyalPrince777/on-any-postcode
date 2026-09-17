@@ -82,6 +82,48 @@ def rollback_recovery_proof():
     )
 
 
+@bp.post("/runtime-guard")
+@web_security.login_required(api=True, founder_only=True)
+def runtime_guard_proof():
+    """Run bounded recursion, duplicate-work and privilege-escalation guards."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    try:
+        proof = smi_proof_gate.run_runtime_guard_proof(str(user["id"]))
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record runtime guard proof.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_proof_request", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "runtime_guard_proof_unavailable",
+            "Runtime guard proof could not be completed safely.",
+            503,
+        )
+    return _no_store(
+        make_response(
+            jsonify(
+                proof=proof,
+                green_gate=smi_proof_gate.public_safe_status(),
+                execution_granted=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
 @bp.get("/a7")
 @web_security.login_required(founder_only=True)
 def a7_dashboard():
