@@ -3,6 +3,7 @@ from mission_control import (
     coherent_automation,
     distribution_intelligence,
     live_signals,
+    movement_proof,
     telemetry,
 )
 
@@ -52,6 +53,7 @@ def test_signal_intelligence_monitor_uses_source_timestamped_runtime_evidence(mo
 def test_signal_intelligence_monitor_fails_closed_without_runtime_evidence(monkeypatch):
     monkeypatch.setattr(telemetry, "status", dict)
     monkeypatch.setattr(atlas_live_sources, "last_fetch_status", dict)
+    monkeypatch.setattr(movement_proof, "last_route_status", dict)
 
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][0]
@@ -65,6 +67,7 @@ def test_signal_intelligence_monitor_fails_closed_without_runtime_evidence(monke
 
 def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypatch):
     monkeypatch.setattr(telemetry, "status", dict)
+    monkeypatch.setattr(movement_proof, "last_route_status", dict)
     monkeypatch.setattr(
         atlas_live_sources,
         "last_fetch_status",
@@ -85,7 +88,7 @@ def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypat
     monitor = coherent_automation.operational_monitor()
     observation = monitor["observations"][1]
 
-    assert monitor["observation_count"] == 2
+    assert monitor["observation_count"] == 3
     assert monitor["source_backed"] is True
     assert observation["id"] == "map_intelligence_source"
     assert observation["source"] == "OpenStreetMap / Nominatim"
@@ -96,6 +99,67 @@ def test_signal_intelligence_monitor_reads_passive_map_source_evidence(monkeypat
     assert observation["evidence"]["result_count"] == 6
     assert observation["evidence"]["hidden_tracking"] is False
     assert observation["evidence"]["stores_user_location"] is False
+
+
+def test_signal_intelligence_monitor_reads_passive_movement_evidence(monkeypatch):
+    monkeypatch.setattr(telemetry, "status", dict)
+    monkeypatch.setattr(atlas_live_sources, "last_fetch_status", dict)
+    monkeypatch.setattr(
+        movement_proof,
+        "last_route_status",
+        lambda: {
+            "source": "OAP first-party seed coordinate estimate",
+            "source_timestamp": "2026-09-17T05:50:00Z",
+            "proof_status": "seed_route_proof",
+            "source_backed": True,
+            "verified_area_pair": True,
+            "distance_estimate_present": True,
+            "eta_estimate_present": True,
+            "freshness": "fresh",
+            "freshness_window_seconds": 300,
+            "route_geometry_proven": False,
+            "live_traffic_proven": False,
+            "dispatch_enabled": False,
+            "hidden_tracking": False,
+            "stores_origin_destination": False,
+            "stores_coordinates": False,
+            "passive_only": True,
+        },
+    )
+
+    monitor = coherent_automation.operational_monitor()
+    observation = monitor["observations"][2]
+
+    assert monitor["observation_count"] == 3
+    assert observation["id"] == "movement_intelligence_route"
+    assert observation["signal"]["id"] == "connected"
+    assert observation["proof_state"] == "bounded_proof"
+    assert observation["evidence"]["distance_estimate_present"] is True
+    assert observation["evidence"]["eta_estimate_present"] is True
+    assert observation["evidence"]["route_geometry_proven"] is False
+    assert observation["evidence"]["live_traffic_proven"] is False
+    assert observation["evidence"]["dispatch_enabled"] is False
+    assert observation["evidence"]["stores_origin_destination"] is False
+    assert observation["evidence"]["stores_coordinates"] is False
+
+
+def test_movement_status_sample_does_not_create_live_monitor_evidence():
+    movement_proof._LAST_ROUTE_PROOF.update(
+        generated_at=None,
+        proof_status="unseen",
+        source="OAP Movement",
+        source_backed=False,
+        verified_area_pair=False,
+        distance_estimate_present=False,
+        eta_estimate_present=False,
+    )
+
+    movement_proof.status()
+    evidence = movement_proof.last_route_status()
+
+    assert evidence["source_timestamp"] is None
+    assert evidence["freshness"] == "unseen"
+    assert evidence["source_backed"] is False
 
 
 def test_coherent_automation_plan_never_self_executes():
