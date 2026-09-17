@@ -6,8 +6,9 @@ runaway work, duplicate work, and unsafe payload shapes before a Builder path.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any
 
 PROTECTED_KEYS = frozenset({
     "authority", "authority_level", "permissions", "permission", "roles", "role",
