@@ -1,4 +1,4 @@
-"""Secret-safe Founder workbench projection for Personal SMI."""
+"""Secret-safe Founder workbench projection for live-working SMI."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from . import (
     a7_certification,
     coherent_automation,
     distribution_intelligence,
+    live_working_intelligence,
     oap_bank,
     smi_chat_runtime,
     studio_intelligence,
@@ -61,13 +62,14 @@ def get_workbench_status() -> dict[str, Any]:
     voice_ready = bool(checks.get("voice") or checks.get("speech"))
     code_ready = bool(checks.get("code_mode") or checks.get("code_proposals"))
 
+    live_working = live_working_intelligence.status()
     runtime_gate = {
         "state": "green" if database_ready else "yellow",
         "title": "Durable runtime ready" if database_ready else "Durable runtime unavailable",
         "summary": (
-            "Managed identity, conversation memory, HRM receipts and durable writes are available."
+            "Managed identity, conversation memory, HRM receipts and durable writes are available; live-working intelligence may operate through governed internal contracts."
             if database_ready
-            else "Managed identity, conversation memory, HRM receipts and durable writes remain blocked; read-only Founder inspection stays separate."
+            else "Managed identity, conversation memory, HRM receipts and durable writes remain blocked; live-working intelligence degrades to evidence-only mode and stays fail-closed."
         ),
         "blocked": []
         if database_ready
@@ -79,7 +81,8 @@ def get_workbench_status() -> dict[str, Any]:
         ],
         "available": [
             "SMI gateway process health",
-            "Founder read-only provider inspection",
+            "Founder live provider evidence inspection",
+            "Live Working Intelligence reasoning, coordination and bounded adaptation",
             "War Room status and evidence surfaces",
             "OAP Studio Intelligence planning and preparation",
             "OAP Coherent Automation 21-signal planning",
@@ -174,7 +177,12 @@ def get_workbench_status() -> dict[str, Any]:
     proven_core = chat_ready and memory_ready and database_ready
     return {
         "status": "ready" if runtime.get("status") == "green" and proven_core else "attention",
-        "surface": "Founder-only Personal SMI",
+        "surface": "Founder-only Live Working SMI",
+        "intelligence_mode": {
+            **live_working,
+            "durable_runtime_ready": database_ready,
+            "active": bool(live_working.get("live_working") and database_ready),
+        },
         "truth_contract": {
             "no_fake_green": True,
             "green_requires_runtime_evidence": True,
@@ -189,7 +197,7 @@ def get_workbench_status() -> dict[str, Any]:
                 "configured": render_configured,
                 "ready": False,
                 "inspect_url": "/mission/tools/render/services",
-                "mode": "read-only inspection; deploy actions are not exposed here",
+                "mode": "live evidence inspection; deploy remains Human Authority-gated and is not exposed on this surface",
                 "purpose": "service health, deploy state and release evidence",
                 "readiness_reason": "Configuration alone is not treated as live proof; use the inspection route for current provider evidence.",
             },
@@ -199,7 +207,7 @@ def get_workbench_status() -> dict[str, Any]:
                 "configured": github_configured,
                 "ready": False,
                 "inspect_url": "/mission/tools/github/repository",
-                "mode": "read inspection; writes remain proposal + approval + Kernel governed",
+                "mode": "live repository intelligence; writes remain proposal + approval + Kernel governed",
                 "purpose": "repository state, code evidence and governed proposals",
                 "readiness_reason": "Configuration alone is not treated as live proof; use the inspection route for current repository evidence.",
             },
@@ -210,7 +218,7 @@ def get_workbench_status() -> dict[str, Any]:
                 "ready": database_ready,
                 "inspect_url": "/mission/tools/neon/status",
                 "management_api_configured": neon_management_configured,
-                "mode": "read-only database readiness; SQL writes and migrations are not exposed here",
+                "mode": "live durable Identity/HRM readiness; direct SQL and migrations remain separately governed",
                 "purpose": "identity, conversations, HRM receipts and operational data",
                 "readiness_reason": "Green only when the database and required schema both pass runtime checks.",
             },
@@ -234,7 +242,11 @@ def get_workbench_status() -> dict[str, Any]:
             "rule": "Latest explicit Founder correction wins; private ChatGPT memory is not imported implicitly.",
         },
         "governance": {
-            "recommendation_only": True,
+            "recommendation_only": False,
+            "internal_governed_work_enabled": bool(live_working.get("live_working")),
+            "adaptive_replanning_enabled": bool(live_working.get("adaptive_replanning_enabled")),
+            "external_consequential_execution": False,
+            "agi_achieved": False,
             "human_authority_final": True,
             "secrets_exposed": False,
             "provider_reads_founder_only": True,

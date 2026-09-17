@@ -86,7 +86,7 @@ def _emit_database_connection_diagnostic(server):
 
 
 def _emit_smi_function_health(worker):
-    """Log a secret-free read-only SMI proof summary after the OAP worker loads."""
+    """Log a secret-free SMI function proof summary after the OAP worker loads."""
 
     if os.environ.get("RENDER_SERVICE_NAME", "").strip().casefold() == "oap-smi":
         return
@@ -129,6 +129,48 @@ def _emit_smi_function_health(worker):
     worker.log.info(json.dumps(snapshot, separators=(",", ":")))
 
 
+def _emit_live_working_intelligence(worker):
+    """Log the secret-free unified live-working intelligence profile."""
+
+    snapshot = {
+        "event": "oap_live_working_intelligence",
+        "mode": "live_working",
+        "state": "attention",
+        "live_working": False,
+        "read_only": False,
+        "adaptive_ready": False,
+        "coherent_ready": False,
+        "distribution_ready": False,
+        "agi_routing_ready": False,
+        "agi_achieved": False,
+        "external_consequential_execution": False,
+        "human_authority_final": True,
+        "secret_exposed": False,
+        "error": None,
+    }
+    try:
+        from mission_control.live_working_intelligence import status
+
+        current = status()
+        snapshot.update(
+            mode=str(current.get("mode") or "live_working"),
+            state=str(current.get("state") or "attention"),
+            live_working=bool(current.get("live_working")),
+            read_only=bool(current.get("read_only")),
+            adaptive_ready=bool(current.get("adaptive_ready")),
+            coherent_ready=bool(current.get("coherent_ready")),
+            distribution_ready=bool(current.get("distribution_ready")),
+            agi_routing_ready=bool(current.get("agi_routing_ready")),
+            agi_achieved=False,
+            external_consequential_execution=False,
+            human_authority_final=True,
+        )
+    except Exception:
+        snapshot["error"] = "live_working_intelligence_probe_failed"
+
+    worker.log.info(json.dumps(snapshot, separators=(",", ":")))
+
+
 def on_starting(server):
     server.log.info(
         json.dumps(
@@ -157,3 +199,4 @@ def on_starting(server):
 
 def post_worker_init(worker):
     _emit_smi_function_health(worker)
+    _emit_live_working_intelligence(worker)
