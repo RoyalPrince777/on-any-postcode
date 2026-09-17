@@ -69,7 +69,7 @@ class EsimRequest:
     last_error: str | None = None
 
     @classmethod
-    def from_record(cls, record: dict[str, typing.Any]) -> "EsimRequest":
+    def from_record(cls, record: dict[str, typing.Any]) -> EsimRequest:
         return cls(
             request_id=str(record["request_id"]),
             subject_id=str(record["subject_id"]),
