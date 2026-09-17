@@ -7,7 +7,13 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from oap.smi import intelligence_capability_registry, sovereign_controls
 
 from . import agents as agent_registry
-from . import ai_behaviour, autonomy_levels, esim_provisioning, provider_fabric, web_security
+from . import (
+    ai_behaviour,
+    autonomy_levels,
+    esim_provisioning,
+    provider_fabric,
+    web_security,
+)
 
 bp = Blueprint("provider_fabric", __name__, template_folder="templates")
 
