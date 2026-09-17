@@ -17,6 +17,7 @@ from typing import Iterable
 
 MAX_RESULTS = 12
 TIMEOUT_SECONDS = 5
+FRESH_SECONDS = 300
 DEFAULT_USER_AGENT = "ON-ANY-POSTCODE-Atlas/1.0 founder-governed-place-lookup"
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 ALLOWED_PLACE_FIELDS = (
@@ -31,6 +32,13 @@ ALLOWED_PLACE_FIELDS = (
     "type",
     "importance",
 )
+_LAST_FETCH: dict[str, object] = {
+    "fetched_at": None,
+    "fetch_status": "unseen",
+    "result_count": 0,
+    "source_backed": False,
+    "query_recorded": False,
+}
 
 
 def _now() -> str:
@@ -69,6 +77,46 @@ def _category_for(item: dict[str, object]) -> str:
     return "oap_direct"
 
 
+def _record_fetch(*, fetched_at: str | None, fetch_status: str, result_count: int) -> None:
+    _LAST_FETCH.update(
+        fetched_at=fetched_at,
+        fetch_status=fetch_status,
+        result_count=max(0, int(result_count)),
+        source_backed=bool(fetch_status == "success" and fetched_at and result_count > 0),
+        query_recorded=bool(fetched_at),
+    )
+
+
+def _freshness(fetched_at: object) -> str:
+    if not fetched_at:
+        return "unseen"
+    try:
+        stamp = datetime.fromisoformat(str(fetched_at).replace("Z", "+00:00"))
+        age = (datetime.now(timezone.utc) - stamp).total_seconds()
+    except (TypeError, ValueError):
+        return "invalid_timestamp"
+    if age < 0:
+        return "invalid_timestamp"
+    return "fresh" if age <= FRESH_SECONDS else "stale"
+
+
+def last_fetch_status() -> dict[str, object]:
+    """Return passive, non-location-bearing evidence from the last Atlas lookup."""
+
+    snapshot = dict(_LAST_FETCH)
+    snapshot.update(
+        component="Map Intelligence Source Evidence",
+        source="OpenStreetMap / Nominatim",
+        freshness=_freshness(snapshot.get("fetched_at")),
+        freshness_window_seconds=FRESH_SECONDS,
+        external_provider_authority=False,
+        hidden_tracking=False,
+        stores_user_location=False,
+        passive_only=True,
+    )
+    return snapshot
+
+
 def status() -> dict[str, object]:
     enabled = _enabled()
     return {
@@ -94,6 +142,7 @@ def status() -> dict[str, object]:
         "confirmed_booking_enabled": False,
         "live_claim_allowed": enabled,
         "enable_env": "OAP_ATLAS_OPEN_DATA_ENABLED=true",
+        "last_fetch": last_fetch_status(),
     }
 
 
@@ -138,6 +187,7 @@ def fetch_places(query: object) -> dict[str, object]:
     query_value = _safe_query(query)
     base = status()
     if not base["enabled"]:
+        _record_fetch(fetched_at=None, fetch_status="disabled_by_environment", result_count=0)
         return {
             **base,
             "query": query_value,
@@ -166,6 +216,7 @@ def fetch_places(query: object) -> dict[str, object]:
             payload = response.read(96_000).decode("utf-8", errors="replace")
         parsed = json.loads(payload)
         results = _sanitise_items(parsed if isinstance(parsed, list) else [], fetched_at)
+        _record_fetch(fetched_at=fetched_at, fetch_status="success", result_count=len(results))
         return {
             **base,
             "query": query_value,
@@ -177,6 +228,7 @@ def fetch_places(query: object) -> dict[str, object]:
             "can_claim_live_now": len(results) > 0,
         }
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, UnicodeError) as exc:
+        _record_fetch(fetched_at=fetched_at, fetch_status="failed_safe", result_count=0)
         return {
             **base,
             "query": query_value,
