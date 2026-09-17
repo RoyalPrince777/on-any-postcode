@@ -32,6 +32,7 @@ def init_app(app: Flask) -> None:
         movement_operations,
         organism_runtime,
         postgres_db,
+        esim_persistence,
         product_cores,
         routing,
         smi_auto,
@@ -100,6 +101,26 @@ def init_app(app: Flask) -> None:
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-esim-status")
+    def _oap_esim_status() -> None:
+        import json
+        print(json.dumps(esim_persistence.schema_status(postgres_db.connect)))
+
+    @app.cli.command("oap-init-esim")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_esim(dry_run: bool, yes: bool) -> None:
+        import json
+        print(
+            json.dumps(
+                esim_persistence.init_schema(
+                    postgres_db.connect,
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
 
     @app.cli.command("oap-runtime-status")
     def _oap_runtime_status() -> None:
