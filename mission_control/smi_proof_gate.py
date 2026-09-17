@@ -20,6 +20,8 @@ def _production_counts() -> dict[str, object]:
         "store_reachable": False,
         "five_section_reviews": 0,
         "signed_approved_receipts": 0,
+        "durable_hrm_receipts": 0,
+        "durable_hrm_receipt_store_present": False,
         "founder_smi_reviews": 0,
         "oap_event_receipts": 0,
         "rollback_recovery_receipts": 0,
@@ -45,6 +47,16 @@ def _production_counts() -> dict[str, object]:
                     WHERE action=%s AND metadata->>'passed'='true')""",
                 (ROLLBACK_PROOF_ACTION,),
             ).fetchone()
+            receipt_table = connection.execute(
+                "SELECT to_regclass('public.oap_hrm_receipts')"
+            ).fetchone()
+            receipt_store_present = bool(receipt_table and receipt_table[0])
+            durable_hrm_receipts = 0
+            if receipt_store_present:
+                receipt_row = connection.execute(
+                    "SELECT COUNT(*) FROM oap_hrm_receipts"
+                ).fetchone()
+                durable_hrm_receipts = int(receipt_row[0] or 0) if receipt_row else 0
         if row is not None:
             keys = (
                 "five_section_reviews",
@@ -54,6 +66,8 @@ def _production_counts() -> dict[str, object]:
                 "rollback_recovery_receipts",
             )
             evidence.update({key: int(value or 0) for key, value in zip(keys, row)})
+            evidence["durable_hrm_receipt_store_present"] = receipt_store_present
+            evidence["durable_hrm_receipts"] = durable_hrm_receipts
             evidence["store_reachable"] = True
     except Exception:  # noqa: BLE001 - truth gate fails closed.
         evidence["error"] = "proof_store_unavailable"
@@ -69,8 +83,13 @@ def status() -> dict[str, object]:
     founder_interaction = bool(
         store_reachable and int(counts["founder_smi_reviews"] or 0) > 0
     )
-    receipt_chain = bool(
+    durable_hrm_receipt = bool(
         store_reachable
+        and counts.get("durable_hrm_receipt_store_present")
+        and int(counts["durable_hrm_receipts"] or 0) > 0
+    )
+    receipt_chain = bool(
+        durable_hrm_receipt
         and int(counts["five_section_reviews"] or 0) > 0
         and int(counts["signed_approved_receipts"] or 0) > 0
     )
@@ -92,6 +111,7 @@ def status() -> dict[str, object]:
     )
     checks = {
         "founder_interaction": founder_interaction,
+        "durable_hrm_receipt": durable_hrm_receipt,
         "receipt_chain": receipt_chain,
         "meaningful_event_memory": meaningful_event_memory,
         "rollback_recovery": rollback_recovery,

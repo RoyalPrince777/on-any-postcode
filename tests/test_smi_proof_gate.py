@@ -44,6 +44,8 @@ def test_green_gate_can_turn_green_without_unlocking_higher_autonomy(monkeypatch
             "store_reachable": True,
             "five_section_reviews": 5,
             "signed_approved_receipts": 1,
+            "durable_hrm_receipts": 1,
+            "durable_hrm_receipt_store_present": True,
             "founder_smi_reviews": 1,
             "oap_event_receipts": 1,
             "rollback_recovery_receipts": 1,
@@ -60,6 +62,7 @@ def test_green_gate_can_turn_green_without_unlocking_higher_autonomy(monkeypatch
 
     assert snapshot["green"] is True
     assert snapshot["missing"] == ()
+    assert snapshot["checks"]["durable_hrm_receipt"] is True
     assert snapshot["execution_granted"] is False
     assert snapshot["a5_unlocked"] is False
     assert snapshot["a6_unlocked"] is False
@@ -75,6 +78,8 @@ def test_local_traffic_alone_cannot_become_production_proof(monkeypatch):
             "store_reachable": False,
             "five_section_reviews": 5,
             "signed_approved_receipts": 1,
+            "durable_hrm_receipts": 0,
+            "durable_hrm_receipt_store_present": False,
             "founder_smi_reviews": 1,
             "oap_event_receipts": 1,
             "rollback_recovery_receipts": 1,
@@ -91,4 +96,6 @@ def test_local_traffic_alone_cannot_become_production_proof(monkeypatch):
 
     assert snapshot["green"] is False
     assert snapshot["checks"]["observability"] is False
+    assert snapshot["checks"]["durable_hrm_receipt"] is False
     assert "observability" in snapshot["missing"]
+    assert "durable_hrm_receipt" in snapshot["missing"]
