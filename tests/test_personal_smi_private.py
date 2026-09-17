@@ -43,4 +43,4 @@ def test_personal_smi_ui_identity_and_safe_thinking_process_are_explicit():
     assert "Thinking Process" in compact
     assert "Understand · Context · Route · Evidence · Challenge · Synthesise · Govern" in compact
     assert "private chain-of-thought" in combined
-    assert "Safe stage telemetry only" in compact
+    assert "safe work status only" in compact.lower()
