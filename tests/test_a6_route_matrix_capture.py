@@ -154,3 +154,24 @@ def test_gateway_surfaces_bounded_route_matrix_info_events():
     assert "_LOGGER.propagate = False" in source
     assert 'logging.StreamHandler()' in source
     assert '"event": "oap_a6_route_matrix_capture"' in source
+
+
+def test_private_gateway_bootstraps_a6_readiness_before_route_matrix():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert 'OAP_A6_READINESS_ON_BOOT' in source
+    assert 'a7_certification.complete_a6_readiness_protocol(' in source
+    assert '"execution_granted": False' in source
+    assert '"production_state_mutated": False' in source
+    readiness_call = source.index("_complete_a6_readiness_if_requested()")
+    matrix_call = source.index(
+        '_maybe_start_a6_route_matrix_operation(trigger="boot")'
+    )
+    assert readiness_call < matrix_call
+
+
+def test_private_gateway_a6_readiness_requires_independent_evidence():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert 'OAP_A6_INDEPENDENT_EVIDENCE_REF' in source
+    assert 'OAP_A6_INDEPENDENT_EVIDENCE_HASH' in source
+    assert 'OAP_A6_INDEPENDENT_EVIDENCE_ISSUER' in source
+    assert 'raise RuntimeError("a6_independent_evidence_not_configured")' in source
