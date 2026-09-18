@@ -6,6 +6,9 @@ import json
 from mission_control import certification_views, postgres_db
 
 _DB_ENV_KEYS = (
+    "OAP_DATABASE_AUTHORITY",
+    "OAP_FALLBACK_DATABASE_URL_B64",
+    "OAP_FALLBACK_DATABASE_URL",
     "OAP_PRIMARY_DATABASE_URL_B64",
     "OAP_PRIMARY_DATABASE_URL",
     "DATABASE_URL",
@@ -98,3 +101,57 @@ def test_startup_probe_is_redacted(monkeypatch, capsys):
     rendered = json.dumps(payload)
     assert "password" not in rendered
     assert "example.invalid" not in rendered
+
+
+def test_fallback_is_never_used_without_explicit_promotion(monkeypatch):
+    _clear_database_env(monkeypatch)
+    monkeypatch.setenv("OAP_PRIMARY_DATABASE_URL", "postgresql://primary/selected")
+    monkeypatch.setenv("OAP_FALLBACK_DATABASE_URL", "postgresql://fallback/standby")
+
+    assert postgres_db._database_url() == "postgresql://primary/selected"
+    assert postgres_db.database_source() == "primary_override"
+    assert postgres_db.database_authority() == "primary"
+
+
+def test_explicit_fallback_promotion_selects_only_fallback(monkeypatch):
+    _clear_database_env(monkeypatch)
+    monkeypatch.setenv("OAP_DATABASE_AUTHORITY", "fallback")
+    monkeypatch.setenv("OAP_PRIMARY_DATABASE_URL", "postgresql://primary/do-not-use")
+    monkeypatch.setenv("OAP_FALLBACK_DATABASE_URL", "postgresql://fallback/selected")
+
+    assert postgres_db._database_url() == "postgresql://fallback/selected"
+    assert postgres_db.database_source() == "fallback_override"
+    assert postgres_db.database_authority() == "fallback"
+
+
+def test_missing_promoted_fallback_fails_closed(monkeypatch):
+    _clear_database_env(monkeypatch)
+    monkeypatch.setenv("OAP_DATABASE_AUTHORITY", "fallback")
+    monkeypatch.setenv("OAP_PRIMARY_DATABASE_URL", "postgresql://primary/must-not-be-used")
+
+    assert postgres_db._database_url() == ""
+    assert postgres_db.database_source() == "fallback_unconfigured"
+    assert postgres_db.configured() is False
+
+
+def test_malformed_promoted_fallback_b64_fails_closed(monkeypatch):
+    _clear_database_env(monkeypatch)
+    monkeypatch.setenv("OAP_DATABASE_AUTHORITY", "fallback")
+    monkeypatch.setenv("OAP_FALLBACK_DATABASE_URL_B64", "not-valid-base64!!")
+    monkeypatch.setenv("OAP_PRIMARY_DATABASE_URL", "postgresql://primary/must-not-be-used")
+
+    assert postgres_db._database_url() == ""
+    assert postgres_db.database_source() == "fallback_override"
+    assert postgres_db.configured() is False
+
+
+def test_invalid_database_authority_fails_closed(monkeypatch):
+    _clear_database_env(monkeypatch)
+    monkeypatch.setenv("OAP_DATABASE_AUTHORITY", "both")
+    monkeypatch.setenv("OAP_PRIMARY_DATABASE_URL", "postgresql://primary/must-not-be-used")
+    monkeypatch.setenv("OAP_FALLBACK_DATABASE_URL", "postgresql://fallback/must-not-be-used")
+
+    assert postgres_db._database_url() == ""
+    assert postgres_db.database_source() == "invalid_authority"
+    assert postgres_db.database_authority() == "invalid"
+    assert postgres_db.configured() is False
