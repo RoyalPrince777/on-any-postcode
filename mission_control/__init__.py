@@ -108,7 +108,10 @@ def init_app(app: Flask) -> None:
             )
             raise
 
-    if os.environ.get("OAP_SUPPLY_CORE_MIGRATION_ON_BOOT", "").strip() == "1":
+    supply_migration_requested = (
+        os.environ.get("OAP_SUPPLY_CORE_MIGRATION_ON_BOOT", "").strip() == "1"
+    )
+    if supply_migration_requested:
         try:
             supply_status = travel_supply_core.init_supply_core_schema(
                 assume_yes=True
@@ -132,7 +135,10 @@ def init_app(app: Flask) -> None:
         except Exception as exc:  # noqa: BLE001 - migration must fail closed.
             reason = (
                 str(exc)[:220]
-                if isinstance(exc, (RuntimeError, ValueError, PermissionError))
+                if isinstance(
+                    exc,
+                    (RuntimeError, ValueError, PermissionError),
+                )
                 else ""
             )
             print(
