@@ -780,6 +780,7 @@ def chat(
             "retained": False,
         },
         "coherent": {"passed": coherence["passed"], "score": coherence["score"]},
+        "founder_assets": founder_assets,
         "judgement": {
             "automated_sections": judgement_review["sections_completed"],
             "human_section": "PENDING",
