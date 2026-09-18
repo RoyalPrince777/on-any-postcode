@@ -35,6 +35,7 @@ def test_public_main_menu_uses_locked_oap_world_reference_items(client):
         ("/on-any-place", "Map Intelligence"),
         ("/the-spot", "The Spot"),
         ("/the-link", "The Link"),
+        ("/studio", "OAP Studio Intelligence"),
         ("/the-spot/market", "Market"),
         ("/media", "Media"),
         ("/store", "OAP Store"),
@@ -43,7 +44,7 @@ def test_public_main_menu_uses_locked_oap_world_reference_items(client):
         ("/guardian", "Guardian"),
         ("/settings", "Settings"),
     )
-    assert nav.count("<a ") == 11
+    assert nav.count("<a ") == 12
     for href, label in expected:
         assert f'href="{href}"' in nav
         assert label in nav
