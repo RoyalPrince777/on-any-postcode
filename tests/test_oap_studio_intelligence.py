@@ -68,3 +68,184 @@ def test_smi_plus_menu_launches_studio():
     assert "OAP Studio Intelligence" in smi
     assert "launchStudio" in smi
     assert "activation_prompt" in smi
+
+
+def test_studio_exposes_three_canonical_generation_tools_and_21_stages():
+    snapshot = studio_intelligence.status()
+
+    assert [tool["id"] for tool in snapshot["generation_tools"]] == [
+        "imagine",
+        "bring_alive",
+        "scene_builder",
+    ]
+    assert snapshot["studio_21_stage_count"] == 21
+    assert len(snapshot["studio_21_stages"]) == 21
+    assert snapshot["generation_backend_proven"] is False
+    assert snapshot["full_live_certificate"] is False
+
+
+def test_studio_generation_job_is_21_stage_and_never_fakes_output(monkeypatch):
+    captured = {}
+
+    def fake_receipt(kind, payload):
+        captured["kind"] = kind
+        captured["payload"] = payload
+        return {
+            "ok": True,
+            "receipt_kind": kind,
+            "receipt_id": "studio-test",
+            "read_back_ok": True,
+            "durable": False,
+        }
+
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        fake_receipt,
+    )
+
+    result = studio_intelligence.prepare_generation(
+        "imagine",
+        prompt="A local-first OAP world scene",
+    )
+
+    assert result["smi_depth"] == 21
+    assert len(result["stages"]) == 21
+    assert result["state"] == "prepared"
+    assert result["output_generated"] is False
+    assert result["artifact"] is None
+    assert result["next_gate"] == "media_generation_backend"
+    assert result["execution_granted"] is False
+    assert result["human_authority_final"] is True
+    assert captured["kind"] == "studio_generation_receipt"
+    assert captured["payload"]["gate"] == 21
+    assert captured["payload"]["safe_payload"]["output_generated"] is False
+
+
+def test_bring_alive_requires_an_image_reference():
+    try:
+        studio_intelligence.prepare_generation("bring_alive")
+    except ValueError as exc:
+        assert str(exc) == "studio_source_image_required"
+    else:
+        raise AssertionError("Bring Alive must fail closed without a source image.")
+
+
+def test_studio_backend_status_is_secret_free(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "secret-test-value")
+    snapshot = studio_intelligence.studio_media_backend.status()
+
+    assert snapshot["configured"] is True
+    assert snapshot["provider"] == "openai"
+    assert snapshot["provider_is_authority"] is False
+    assert "secret-test-value" not in str(snapshot)
+
+
+def test_execute_imagine_promotes_only_real_artifact(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "generate_image",
+        lambda prompt: {
+            "kind": "image",
+            "model": "gpt-image-2",
+            "mime_type": "image/png",
+            "b64_json": "ZmFrZQ==",
+            "artifact_proven": True,
+            "provider_is_authority": False,
+        },
+    )
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: {
+            "ok": True,
+            "receipt_kind": kind,
+            "receipt_id": "studio-image",
+            "read_back_ok": True,
+        },
+    )
+
+    result = studio_intelligence.execute_generation(
+        "imagine",
+        prompt="OAP world at sunrise",
+    )
+
+    assert result["state"] == "generated"
+    assert result["output_generated"] is True
+    assert result["artifact"]["artifact_proven"] is True
+    assert result["execution_granted"] is False
+
+
+def test_scene_builder_stays_purple_while_video_is_queued(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "create_video",
+        lambda prompt, source_image_data="": {
+            "kind": "video_job",
+            "id": "video_test",
+            "model": "sora-2",
+            "status": "queued",
+            "progress": 0,
+            "artifact_proven": False,
+            "provider_is_authority": False,
+        },
+    )
+    captured = {}
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: captured.setdefault("receipt", {"kind": kind, "payload": payload}),
+    )
+
+    result = studio_intelligence.execute_generation(
+        "scene_builder",
+        prompt="A short OAP local-first scene",
+    )
+
+    assert result["state"] == "provider_job_started"
+    assert result["output_generated"] is False
+    assert result["artifact"]["status"] == "queued"
+    assert captured["receipt"]["payload"]["signal"] == "🟣"
+    assert result["execution_granted"] is False
+
+
+def test_studio_routes_are_founder_only_and_fail_closed():
+    views = (ROOT / "mission_control" / "views.py").read_text()
+
+    assert '@bp.post("/studio/generate")' in views
+    assert '@bp.get("/studio/video/<video_id>/status")' in views
+    assert views.count("login_required(api=True, founder_only=True)") >= 3
+    assert "csrf_valid(request)" in views
+    assert "studio_generation_unavailable" in views
+
+
+def test_completed_video_status_can_promote_with_receipt(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "video_status",
+        lambda video_id: {
+            "kind": "video_job",
+            "id": video_id,
+            "model": "sora-2",
+            "status": "completed",
+            "progress": 100,
+            "artifact_proven": True,
+            "content_path": f"/videos/{video_id}/content",
+            "provider_is_authority": False,
+        },
+    )
+    captured = {}
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: captured.setdefault("receipt", {"kind": kind, "payload": payload}),
+    )
+
+    result = studio_intelligence.generation_status("video_test")
+
+    assert result["state"] == "generated"
+    assert result["output_generated"] is True
+    assert result["artifact"]["artifact_proven"] is True
+    assert captured["receipt"]["payload"]["signal"] == "🟢"
+    assert captured["receipt"]["payload"]["green_gate"] == "artifact_proven"
+    assert result["execution_granted"] is False

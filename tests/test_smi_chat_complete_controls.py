@@ -46,7 +46,8 @@ def test_smi_runtime_modes_reach_governed_brain_context():
         'thinking_level: str = "auto"',
         'studio_mode: bool = False',
         'brain["thinking_level"] = level',
-        'brain["studio_mode"] = bool(studio_mode)',
+        'brain["studio_mode"] = resolved_studio_mode',
+        'brain["resolved_depth"] = resolved_depth',
         '"instant": 650',
         '"think": 1100',
         '"deep_dive": 1800',
@@ -71,3 +72,75 @@ def test_smi_response_actions_include_feedback_and_voice():
         "Strengths · Weaknesses · Opportunities · Threats · Practical Move",
     ):
         assert marker in script
+
+
+def test_smi_auto_resolves_smallest_sufficient_depth_and_studio():
+    from mission_control import smi_chat_runtime_core as core
+
+    level, studio, depth = core._auto_runtime_mode(
+        "hello",
+        requested_level="auto",
+        studio_mode=False,
+        code_mode=False,
+        image_attached=False,
+        media_kind=None,
+        war_room_triggered=False,
+    )
+    assert (level, studio, depth) == ("instant", False, 3)
+
+    level, studio, depth = core._auto_runtime_mode(
+        "Analyse this attached image",
+        requested_level="auto",
+        studio_mode=False,
+        code_mode=False,
+        image_attached=True,
+        media_kind="image",
+        war_room_triggered=False,
+    )
+    assert (level, studio, depth) == ("think", False, 7)
+
+    level, studio, depth = core._auto_runtime_mode(
+        "Imagine a postcode world at sunrise",
+        requested_level="auto",
+        studio_mode=False,
+        code_mode=False,
+        image_attached=False,
+        media_kind=None,
+        war_room_triggered=False,
+    )
+    assert (level, studio, depth) == ("deep_dive", True, 21)
+
+
+def test_explicit_smi_depth_is_preserved_but_generation_can_auto_enter_studio():
+    from mission_control import smi_chat_runtime_core as core
+
+    level, studio, depth = core._auto_runtime_mode(
+        "Scene Builder: create a short local-first scene",
+        requested_level="think",
+        studio_mode=False,
+        code_mode=False,
+        image_attached=False,
+        media_kind=None,
+        war_room_triggered=False,
+    )
+    assert (level, studio, depth) == ("think", True, 7)
+
+
+def test_smi_auto_deepens_for_code_war_room_and_recovery():
+    from mission_control import smi_chat_runtime_core as core
+
+    for kwargs in (
+        {"code_mode": True, "war_room_triggered": False, "message": "review this"},
+        {"code_mode": False, "war_room_triggered": True, "message": "review this"},
+        {"code_mode": False, "war_room_triggered": False, "message": "recovery architecture"},
+    ):
+        level, _studio, depth = core._auto_runtime_mode(
+            kwargs["message"],
+            requested_level="auto",
+            studio_mode=False,
+            code_mode=kwargs["code_mode"],
+            image_attached=False,
+            media_kind=None,
+            war_room_triggered=kwargs["war_room_triggered"],
+        )
+        assert (level, depth) == ("deep_dive", 21)

@@ -404,6 +404,76 @@ def record_feedback(
     }
 
 
+_STUDIO_AUTO_TERMS = (
+    "imagine",
+    "generate image",
+    "create image",
+    "make image",
+    "text to image",
+    "bring alive",
+    "image to video",
+    "scene builder",
+    "text to video",
+    "generate video",
+    "create video",
+    "make video",
+)
+
+_DEEP_AUTO_TERMS = (
+    "deep dive",
+    "war room",
+    "stress test",
+    "compare evidence",
+    "architecture",
+    "security",
+    "governance",
+    "deploy",
+    "migration",
+    "incident",
+    "recovery",
+)
+
+
+def _auto_runtime_mode(
+    message: object,
+    *,
+    requested_level: object,
+    studio_mode: bool,
+    code_mode: bool,
+    image_attached: bool,
+    media_kind: object = None,
+    war_room_triggered: bool = False,
+) -> tuple[str, bool, int]:
+    """Resolve SMI AUTO deterministically to 3, 7 or 21 without granting authority."""
+
+    requested = str(requested_level or "auto").strip().casefold().replace("-", "_")
+    requested = {"deep": "deep_dive", "deepdive": "deep_dive"}.get(requested, requested)
+    if requested not in {"instant", "think", "deep_dive", "auto"}:
+        raise ValueError("invalid_thinking_level")
+
+    text = str(message or "").casefold()
+    auto_studio = bool(
+        studio_mode
+        or any(term in text for term in _STUDIO_AUTO_TERMS)
+    )
+    if requested != "auto":
+        return requested, auto_studio, {"instant": 3, "think": 7, "deep_dive": 21}[requested]
+
+    deep_required = bool(
+        auto_studio
+        or code_mode
+        or war_room_triggered
+        or any(term in text for term in _DEEP_AUTO_TERMS)
+    )
+    if deep_required:
+        return "deep_dive", auto_studio, 21
+
+    if image_attached or bool(media_kind):
+        return "think", auto_studio, 7
+
+    return "instant", auto_studio, 3
+
+
 def chat(
     message: object,
     identity_id: str,
@@ -497,12 +567,19 @@ def chat(
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
         )
-        level = str(thinking_level or "auto").strip().casefold().replace("-", "_")
-        level = {"deep": "deep_dive", "deepdive": "deep_dive"}.get(level, level)
-        if level not in {"instant", "think", "deep_dive", "auto"}:
-            raise ValueError("invalid_thinking_level")
+        level, resolved_studio_mode, resolved_depth = _auto_runtime_mode(
+            clean,
+            requested_level=thinking_level,
+            studio_mode=bool(studio_mode),
+            code_mode=bool(code_mode),
+            image_attached=bool(image),
+            media_kind=media.get("kind"),
+            war_room_triggered=bool(brain.get("war_room", {}).get("triggered")),
+        )
         brain["thinking_level"] = level
-        brain["studio_mode"] = bool(studio_mode)
+        brain["studio_mode"] = resolved_studio_mode
+        brain["resolved_depth"] = resolved_depth
+        brain["auto_selected"] = str(thinking_level or "auto").strip().casefold() == "auto"
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records
