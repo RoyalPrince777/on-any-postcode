@@ -345,6 +345,76 @@ def score_response_behaviour(result: dict[str, object]) -> dict[str, object]:
     }
 
 
+
+def behaviour_learning_recovery(score: dict[str, object]) -> dict[str, object]:
+    """Build bounded HRM learning/recovery state from measured behaviour evidence."""
+    dimensions = tuple(score.get("dimensions") or ())
+    failed = tuple(
+        item["id"]
+        for item in dimensions
+        if item.get("evidence_state") == "measured" and item.get("percentage") == 0
+    )
+    unknown = tuple(
+        item["id"]
+        for item in dimensions
+        if item.get("evidence_state") == "unknown"
+    )
+    escalation_required = bool(failed)
+    return {
+        "protocol_step": 3,
+        "protocol_percentage": 75,
+        "failed_dimensions": failed,
+        "unknown_dimensions": unknown,
+        "learning_recommendations": tuple(
+            f"Collect objective proof for {behaviour_id} Behaviour."
+            for behaviour_id in unknown
+        ),
+        "recovery_actions": tuple(
+            f"Re-run governed check for {behaviour_id} Behaviour before green."
+            for behaviour_id in failed
+        ),
+        "war_room_escalation_required": escalation_required,
+        "war_room_reason": (
+            "Measured behaviour failure requires War Room review."
+            if escalation_required
+            else "No measured failure; retain unknowns as proof gaps."
+        ),
+        "self_apply_changes": False,
+        "human_authority_final": True,
+    }
+
+
+def behaviour_step4_readiness(
+    score: dict[str, object],
+    learning: dict[str, object],
+) -> dict[str, object]:
+    """Describe Step-4 readiness without granting Founder Final."""
+    cross_agent_proof = {
+        "guardian": True,
+        "war_room": "war_room" in score.get("dimensions", ()),
+        "hrm": True,
+        "green_gate": False,
+    }
+    return {
+        "protocol_step": 4,
+        "protocol_percentage": 100,
+        "dashboard_ready": True,
+        "trend_contract_ready": True,
+        "cross_agent_proof_ready": bool(
+            learning.get("human_authority_final")
+            and learning.get("self_apply_changes") is False
+        ),
+        "cross_agent_proof": cross_agent_proof,
+        "green_gate_passed": False,
+        "founder_final": "waiting",
+        "full_green": False,
+        "reason_not_full_green": (
+            "Step 4 can expose dashboard, trends and cross-agent proof, but Green Gate "
+            "and explicit Founder Final remain required before 100% can be called proven."
+        ),
+    }
+
+
 def behaviour_board() -> dict[str, object]:
     """Return the canonical 21-dimension board without fabricated percentages."""
     dimensions = tuple(
