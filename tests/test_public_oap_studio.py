@@ -38,3 +38,26 @@ def test_private_studio_generation_remains_founder_only():
     views = PRIVATE_VIEWS.read_text(encoding="utf-8")
     assert '@bp.post("/studio/generate")' in views
     assert "login_required(api=True, founder_only=True)" in views
+
+
+def test_public_chat_endpoint_is_bounded():
+    app = APP.read_text(encoding="utf-8")
+    runtime = (ROOT / "mission_control" / "public_studio_runtime.py").read_text(encoding="utf-8")
+    page = PUBLIC.read_text(encoding="utf-8")
+
+    assert '@app.post("/studio/chat")' in app
+    assert "web_security.csrf_valid(request)" in app
+    assert "public_studio_runtime.ask" in app
+    assert "PublicStudioRateLimited" in app
+    assert "Cache-Control" in app
+
+    assert "no identity creation" in runtime
+    assert "no JOOG/HRM write" in runtime
+    assert "private_smi_used" in runtime
+    assert '"private_smi_used": False' in runtime
+    assert '"execution_authority": False' in runtime
+    assert "OPENAI_API_KEY" in runtime
+
+    assert "fetch('/studio/chat'" in page
+    assert "'X-OAP-CSRF':csrf" in page
+    assert "/mission/" not in page
