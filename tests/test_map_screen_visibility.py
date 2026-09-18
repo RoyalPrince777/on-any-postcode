@@ -60,6 +60,6 @@ def test_public_map_door_uses_visible_first_party_renderer():
 
     assert '@bp.get("/on-any-place")' in source
     assert 'render_template("local_map.html", local_map=local_map)' in source
-    assert '"/map-intelligence/road-geometry/' in Path(
+    assert "'/map-intelligence/road-geometry/" in Path(
         "mission_control/templates/local_map.html"
     ).read_text(encoding="utf-8")
