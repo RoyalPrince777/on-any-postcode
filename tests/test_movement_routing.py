@@ -249,3 +249,54 @@ def test_candidate_can_be_runtime_verified_before_promotion(monkeypatch):
     assert state["runtime_verified"] is True
     assert state["production_gate_approved"] is False
     assert state["production_ready"] is False
+
+
+def test_owned_startup_probe_emits_geometry_receipt_without_promoting_production(
+    monkeypatch, capsys
+):
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://route.oap.example")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "route.oap.example")
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "route.oap.example")
+    monkeypatch.setenv("OAP_ROUTING_STARTUP_PROBE", "true")
+    monkeypatch.delenv("OAP_ROUTING_PRODUCTION_APPROVED", raising=False)
+    monkeypatch.delenv("OAP_ROUTING_CAPACITY_APPROVED", raising=False)
+    monkeypatch.delenv("OAP_ROUTING_MONITORING_APPROVED", raising=False)
+    monkeypatch.setattr(routing, "_LAST_SUCCESS", None)
+    monkeypatch.setattr(routing, "_LAST_ERROR", None)
+
+    monkeypatch.setattr(
+        routing,
+        "_request_json",
+        lambda url, *, expected_host: {
+            "code": "Ok",
+            "routes": [
+                {
+                    "distance": 14432.1,
+                    "duration": 2012.4,
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [-0.1687, 51.4036],
+                            [-0.1200, 51.4600],
+                            [-0.0877, 51.5079],
+                        ],
+                    },
+                    "legs": [],
+                }
+            ],
+        },
+    )
+
+    state = routing.startup_probe()
+    output = capsys.readouterr().out
+
+    assert state["runtime_verified"] is True
+    assert state["provider_ownership"] == "oap_owned"
+    assert state["production_gate_approved"] is False
+    assert state["production_ready"] is False
+    assert '"route_geometry_proven": true' in output
+    assert '"geometry_sha256":' in output
+    assert '"dispatch_performed": false' in output
+    assert '"payment_performed": false' in output
+    assert "-0.1687" not in output
+    assert "51.4036" not in output

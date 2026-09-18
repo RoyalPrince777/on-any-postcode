@@ -7,6 +7,7 @@ OSRM-compatible endpoints; this never dispatches, charges, or silently tracks an
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import threading
@@ -306,10 +307,65 @@ def road_tile(*, x: object, y: object, zoom: object, profile: object = "driving"
 def startup_probe() -> dict[str, Any]:
     if not _flag("OAP_ROUTING_STARTUP_PROBE") or not configured():
         return status()
-    try:
-        route(pickup_latitude=51.401,pickup_longitude=-0.166,destination_latitude=51.462,destination_longitude=-0.115,profile="driving",verification_only=True)
-    except (RoutingUnavailable, ValueError):
-        pass
+    if provider_ownership() == "oap_owned":
+        try:
+            result = map_route(
+                pickup_latitude=51.4036,
+                pickup_longitude=-0.1687,
+                destination_latitude=51.5079,
+                destination_longitude=-0.0877,
+                profile="driving",
+            )
+            canonical_geometry = json.dumps(
+                result["geometry"], sort_keys=True, separators=(",", ":")
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_routing_startup_geometry_proof",
+                        "provider_ownership": "oap_owned",
+                        "route_geometry_proven": True,
+                        "distance_m": result["distance_m"],
+                        "duration_s": result["duration_s"],
+                        "geometry_sha256": hashlib.sha256(
+                            canonical_geometry.encode("utf-8")
+                        ).hexdigest(),
+                        "dispatch_performed": False,
+                        "payment_performed": False,
+                        "tracking_performed": False,
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except (RoutingUnavailable, ValueError, KeyError, TypeError):
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_routing_startup_geometry_proof",
+                        "provider_ownership": provider_ownership(),
+                        "route_geometry_proven": False,
+                        "last_error": _runtime_state()[1],
+                        "dispatch_performed": False,
+                        "payment_performed": False,
+                        "tracking_performed": False,
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+    else:
+        try:
+            route(
+                pickup_latitude=51.401,
+                pickup_longitude=-0.166,
+                destination_latitude=51.462,
+                destination_longitude=-0.115,
+                profile="driving",
+                verification_only=True,
+            )
+        except (RoutingUnavailable, ValueError):
+            pass
     return status()
 
 
