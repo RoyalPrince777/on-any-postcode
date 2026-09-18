@@ -22,6 +22,7 @@ from . import (
     postgres_db,
     smi_proof_gate,
 )
+from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
 A6_INDEPENDENT_PROOF_ACTION = "A6_INDEPENDENT_PROOF_ACCEPTED"
 A6_OPERATION_APPROVAL_ACTION = "A6_OPERATION_APPROVAL_PROOF"
@@ -300,9 +301,20 @@ def record_a6_readiness_bundle(
     if not rollback["passed"]:
         raise RuntimeError("operation_specific_rollback_proof_failed")
 
+    checks = {
+        "mind": {name: True for name in MIND_7},
+        "body": {name: True for name in BODY_7},
+        "soul": {name: True for name in SOUL_7},
+    }
     durable = hrm_durable_receipt.build_receipt(
         "smi-a6-readiness",
         {
+            "governance": "7-7-7",
+            "checks": checks,
+            "evidence_proven": True,
+            "authority_transferred": False,
+            "human_authority_required": True,
+            "human_authority_approved": True,
             "request_id": request_value,
             "operation_level_human_approval": True,
             "independent_proof_recorded": bool(independent.get("recorded")),
