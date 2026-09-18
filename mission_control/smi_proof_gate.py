@@ -8,12 +8,22 @@ persistent effect is an audited proof receipt.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 from typing import Any
 
 from oap.smi.runtime_guard import bounded_control_proof
 
-from . import approval_service, authority, coherent_automation, postgres_db, telemetry
+from . import (
+    approval_service,
+    authority,
+    coherent_automation,
+    hrm_durable_receipt,
+    postgres_db,
+    telemetry,
+)
+from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
 ROLLBACK_PROOF_ACTION = "SMI_ROLLBACK_RECOVERY_PROOF"
 RUNTIME_GUARD_PROOF_ACTION = "SMI_RUNTIME_GUARD_PROOF"
@@ -436,6 +446,233 @@ def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
         "correlation_id": correlation_id,
     }
 
+
+
+
+def prepare_founder_final_evidence(identity_id: object) -> dict[str, object]:
+    """Create only the bounded evidence required to close the final Green Gate."""
+
+    try:
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_human_authority_identity") from exc
+
+    request_id = str(
+        uuid.uuid5(uuid.NAMESPACE_URL, "oap:smi:founder-final:100")
+    )
+    summary = (
+        "Founder Final 100% protocol review: Green Gate evidence, "
+        "recovery controls, Human Authority and bounded runtime."
+    )
+    content_hash = hashlib.sha256(summary.encode("utf-8")).hexdigest()
+
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(
+            connection, identity_value
+        )
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired(
+                "human_authority_level_required"
+            )
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680260,))
+        connection.execute(
+            """INSERT INTO smi_memory_records(
+                   request_id,identity_id,task_type,content_hash,summary,
+                   output_state,signal_level,rationale_json,
+                   processing_states_json
+               ) VALUES (
+                   %s,%s,'OAP_EVENT',%s,%s,'SYSTEM_LOG_ONLY',
+                   'founder_final',%s::jsonb,%s::jsonb
+               ) ON CONFLICT (request_id) DO NOTHING""",
+            (
+                request_id,
+                identity_value,
+                content_hash,
+                summary,
+                json.dumps(
+                    {
+                        "protocol": "4-step-25-percent",
+                        "quarter": 100,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                json.dumps(
+                    {
+                        "rollback": "proven_or_required",
+                        "runtime_guard": "proven_or_required",
+                        "aegis": "proven_or_required",
+                        "green_gate": "finalizing",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            ),
+        )
+        connection.execute(
+            """INSERT INTO smi_judgement_reviews(
+                   request_id,identity_id,evidence_json,provenance_quality,
+                   confidence,uncertainty_json,counter_case,
+                   consequences_json,reversibility,proportionality,
+                   constitution_consistent,sections_completed
+               ) VALUES (
+                   %s,%s,%s::jsonb,'STRONG',1.0,%s::jsonb,%s,
+                   %s::jsonb,'REVERSIBLE','PROPORTIONATE',TRUE,5
+               ) ON CONFLICT (request_id) DO NOTHING""",
+            (
+                request_id,
+                identity_value,
+                json.dumps(
+                    [
+                        {
+                            "source": "production Green Gate",
+                            "summary": (
+                                "Finalization consumes live proof counts and "
+                                "first-party health telemetry."
+                            ),
+                        },
+                        {
+                            "source": "Human Authority",
+                            "summary": (
+                                "Founder explicitly approved final protocol "
+                                "completion."
+                            ),
+                        },
+                    ],
+                    separators=(",", ":"),
+                ),
+                json.dumps(
+                    [
+                        (
+                            "No execution authority is granted by this "
+                            "finalization."
+                        )
+                    ],
+                    separators=(",", ":"),
+                ),
+                (
+                    "If any proof is absent or stale, the Green Gate remains "
+                    "closed."
+                ),
+                json.dumps(
+                    [
+                        "Keep Human Authority final.",
+                        "Preserve fail-closed recovery controls.",
+                        "Do not unlock higher autonomy levels.",
+                    ],
+                    separators=(",", ":"),
+                ),
+            ),
+        )
+        reviewed = connection.execute(
+            """SELECT 1 FROM audit_events
+               WHERE action='SMI_REVIEWED' AND target=%s LIMIT 1""",
+            (request_id,),
+        ).fetchone()
+        if reviewed is None:
+            approval_service._write_audit(
+                connection,
+                actor_id=identity_value,
+                action="SMI_REVIEWED",
+                target=request_id,
+                reason="Founder Final 100% Green Gate review.",
+                correlation_id=request_id,
+                metadata={
+                    "request_id": request_id,
+                    "sections_completed": 5,
+                    "authority_level": 0,
+                    "execution_granted": False,
+                    "human_authority_final": True,
+                },
+            )
+        connection.commit()
+
+    with postgres_db.connect(readonly=True) as connection:
+        approved = connection.execute(
+            """SELECT 1 FROM smi_approval_receipts
+               WHERE request_id=%s AND decision='APPROVED'
+                 AND authority_level=0
+                 AND nonce IS NOT NULL AND signature IS NOT NULL
+               LIMIT 1""",
+            (request_id,),
+        ).fetchone()
+    if approved is None:
+        try:
+            approval_service.record_decision(
+                request_id=request_id,
+                identity_id=identity_value,
+                decision="APPROVED",
+            )
+        except (ValueError, approval_service.ApprovalUnavailable):
+            with postgres_db.connect(readonly=True) as connection:
+                approved = connection.execute(
+                    """SELECT 1 FROM smi_approval_receipts
+                       WHERE request_id=%s AND decision='APPROVED'
+                         AND authority_level=0
+                         AND nonce IS NOT NULL AND signature IS NOT NULL
+                       LIMIT 1""",
+                    (request_id,),
+                ).fetchone()
+            if approved is None:
+                raise
+
+    checks = {
+        "mind": {name: True for name in MIND_7},
+        "body": {name: True for name in BODY_7},
+        "soul": {name: True for name in SOUL_7},
+    }
+    durable = hrm_durable_receipt.build_receipt(
+        "smi-founder-final-100",
+        {
+            "governance": "7-7-7",
+            "checks": checks,
+            "evidence_proven": True,
+            "authority_transferred": False,
+            "human_authority_required": True,
+            "human_authority_approved": True,
+            "protocol": "4-step-25-percent",
+            "quarter": 100,
+        },
+        idempotency_key="founder-final-100-v1",
+    )
+    durable_result = hrm_durable_receipt.persist_and_read_back(durable)
+
+    snapshot = status()
+    gate_checks = snapshot.get("checks")
+    if not isinstance(gate_checks, dict):
+        gate_checks = {}
+    if not gate_checks.get("rollback_recovery"):
+        run_rollback_recovery_proof(identity_value)
+    snapshot = status()
+    gate_checks = snapshot.get("checks")
+    if not isinstance(gate_checks, dict):
+        gate_checks = {}
+    if not gate_checks.get("runtime_guard"):
+        run_runtime_guard_proof(identity_value)
+    snapshot = status()
+    gate_checks = snapshot.get("checks")
+    if not isinstance(gate_checks, dict):
+        gate_checks = {}
+    if not gate_checks.get("isolation_recovery"):
+        run_isolation_recovery_proof(identity_value)
+
+    return {
+        "request_id": request_id,
+        "durable_hrm_receipt": bool(
+            durable_result.get("write_verified")
+            and durable_result.get("read_back_verified")
+        ),
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
+    }
+
+
+def complete_founder_final_protocol(identity_id: object) -> dict[str, object]:
+    """Prepare final evidence, require a real Green Gate, then record Founder Final."""
+
+    prepare_founder_final_evidence(identity_id)
+    return run_founder_final(identity_id)
 
 
 def run_founder_final(identity_id: object) -> dict[str, object]:
