@@ -29,13 +29,13 @@ def test_route_matrix_capture_is_read_only_and_receipted_in_source():
 def test_smi_gateway_a6_route_matrix_trigger_is_fail_closed():
     source = Path("smi_gateway.py").read_text(encoding="utf-8")
     assert 'OAP_A6_ROUTE_MATRIX_ON_HEALTH' in source
+    assert 'OAP_A6_ROUTE_MATRIX_ON_BOOT' in source
     assert 'founder_approved=True' in source
     assert 'guardian_pass=bool(checks.get("guardian_pass"))' in source
     assert 'green_gate_pass=bool(checks.get("green_gate"))' in source
     assert 'rollback_proven=True' in source
     assert 'receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain"))' in source
     assert 'production_state_mutated": False' in source
-
 
 
 def test_gateway_authority_resolver_fails_closed_without_unique_authority():
@@ -46,12 +46,10 @@ def test_gateway_authority_resolver_fails_closed_without_unique_authority():
     assert "authority.APPROVAL_PERMISSION" in source
 
 
-
 def test_gateway_authority_resolver_distinct_order_expression_matches_select():
     source = Path("smi_gateway.py").read_text(encoding="utf-8")
     assert "SELECT DISTINCT i.identity_id::text" in source
     assert "ORDER BY i.identity_id::text" in source
-
 
 
 def test_gateway_logs_bounded_a6_blocker_reason():
@@ -65,21 +63,33 @@ def test_gateway_logs_bounded_a6_blocker_reason():
     assert "enabled=" in source
 
 
-
 def test_smi_health_records_first_party_observability():
     source = Path("smi_gateway.py").read_text(encoding="utf-8")
     assert 'telemetry.record_http_request(path="/healthz", status_code=200' in source
 
 
-
-def test_a6_route_matrix_health_trigger_is_non_blocking_one_shot():
+def test_a6_route_matrix_trigger_is_non_blocking_one_shot_for_boot_and_health():
     source = Path("smi_gateway.py").read_text(encoding="utf-8")
     assert "_A6_ROUTE_MATRIX_STARTED" in source
-    assert "_maybe_start_a6_route_matrix_operation()" in source
+    assert '_maybe_start_a6_route_matrix_operation(trigger="boot")' in source
+    assert '_maybe_start_a6_route_matrix_operation(trigger="health")' in source
     assert 'name="oap-a6-route-matrix"' in source
     assert "daemon=True" in source
+    assert '"event": "oap_a6_route_matrix_capture_started"' in source
+    assert '"trigger": trigger' in source
     health = source.split('@app.get("/healthz")', 1)[1].split(
         '@app.route("/<path:path>"', 1
     )[0]
     assert "execute_route_matrix_capture(" not in health
     assert "threading.Thread(" not in health
+
+
+def test_a6_route_matrix_boot_trigger_is_explicitly_opt_in():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    block = source.split(
+        'def _maybe_start_a6_route_matrix_operation', 1
+    )[1].split('@app.get("/healthz")', 1)[0]
+    assert '"OAP_A6_ROUTE_MATRIX_ON_BOOT"' in block
+    assert 'os.environ.get(flag, "").strip() != "1"' in block
+    assert "_A6_ROUTE_MATRIX_STARTED.add(operation_id)" in block
+    assert "production_state_mutated" in block
