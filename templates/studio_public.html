@@ -62,6 +62,7 @@ const input=document.getElementById('studio-input');
 const send=document.getElementById('studio-send');
 const messages=document.getElementById('messages');
 const csrf=document.getElementById('oap-csrf').value;
+const history=[];
 function add(role,text){
   const el=document.createElement('div');
   el.style.margin='12px 0';
@@ -75,12 +76,12 @@ function add(role,text){
 }
 async function submitStudio(){
   const message=input.value.trim(); if(!message||send.disabled)return;
-  add('You',message); input.value=''; send.disabled=true; send.textContent='…';
+  add('You',message); history.push({role:'user',text:message}); input.value=''; send.disabled=true; send.textContent='…';
   try{
-    const r=await fetch('/studio/chat',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':csrf},body:JSON.stringify({message})});
+    const r=await fetch('/studio/chat',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':csrf},body:JSON.stringify({message,history:history.slice(-8)})});
     const data=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error((data.error&&data.error.message)||'OAP Studio Intelligence is unavailable.');
-    add('OAP Studio Intelligence',data.answer||'No response returned.');
+    add('OAP Studio Intelligence',data.answer||'No response returned.'); history.push({role:'assistant',text:data.answer||''}); if(data.chat_intelligence){const m=data.chat_intelligence.mode||'chat'; const r=data.chat_intelligence.routing||{}; const note=document.createElement('div'); note.className='truth'; note.textContent='🧠 Chat Intelligence · '+m+(r.active?' · '+r.mode:''); messages.appendChild(note);}
   }catch(err){ add('OAP Studio Intelligence',err.message||'Request failed safely.'); }
   finally{send.disabled=false;send.textContent='Send';input.focus();}
 }
