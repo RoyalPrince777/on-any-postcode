@@ -1,11 +1,48 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OAP SMI War Room</title>
 <style>
-:root{--b:#050806;--p:#09110c;--l:#24382b;--t:#f4fff6;--m:#93a79a;--g:#39e57f;--pu:#b795ff;--y:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--b);color:var(--t);font-family:Inter,system-ui,sans-serif}.w{max-width:1120px;margin:auto;padding:18px 13px 82px}.hero,.bar,.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hero{justify-content:space-between}.hero h1{font-size:clamp(2.3rem,7vw,4.4rem);margin:3px 0}.ey{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--g)}.muted{color:var(--m)}.pill,.btn,.chip{border:1px solid var(--l);border-radius:999px;padding:9px 12px;background:#08130d;color:inherit;text-decoration:none;font-weight:850}.pill{border-color:#7256aa;background:#151022}.btn.primary{border-color:#7256aa}.btn:focus{outline:2px solid var(--pu);outline-offset:2px}.grid{display:grid;gap:9px}.status{grid-template-columns:repeat(5,1fr);margin:14px 0}.panel,.card,details{border:1px solid var(--l);background:var(--p);border-radius:14px}.panel{padding:14px;margin-top:10px}.card{padding:11px}.card small{display:block;color:var(--m);margin-top:4px}.purple{border-color:#7256aa}.yellow{border-color:#7a682b}.green{border-color:#2c8c52}.mission{width:100%;padding:13px;border:1px solid var(--l);border-radius:12px;background:#050b07;color:var(--t);font:inherit;font-size:16px}.passes,.stars{grid-template-columns:repeat(7,1fr)}.agents{grid-template-columns:repeat(4,1fr)}.vote{grid-template-columns:2fr repeat(3,1fr)}.truth{border-left:3px solid var(--y);padding:9px 11px;background:#171409;color:#eadfae}.receipt{font-family:ui-monospace,monospace;line-height:1.6;background:#050b07;padding:12px;border-radius:12px;border:1px solid var(--l)}.protocol{grid-template-columns:repeat(5,1fr)}.protocol .card{min-height:88px}.signal-row{display:flex;gap:8px;flex-wrap:wrap}.signal{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--l);border-radius:999px;padding:7px 10px;font-weight:850;background:#071009}.meter{height:9px;border-radius:99px;background:#111c14;border:1px solid var(--l);overflow:hidden;margin-top:8px}.meter>span{display:block;height:100%;background:linear-gradient(90deg,var(--pu),var(--g));max-width:100%}.voice-grid{grid-template-columns:repeat(5,1fr)}.voice-grid blockquote{margin:8px 0 0;color:var(--m);font-size:.86rem;line-height:1.4}.review-grid{grid-template-columns:repeat(4,1fr)}details{margin-top:10px}summary{cursor:pointer;padding:13px;font-weight:850}.inside{padding:0 13px 13px}.bottom{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:7px;padding:8px;background:#050806ef;border-top:1px solid var(--l)}.bottom a{color:inherit;text-decoration:none;border:1px solid var(--l);border-radius:999px;padding:8px 11px;background:#08130d;font-weight:800;font-size:.78rem}@media(max-width:850px){.status,.passes,.stars,.agents,.protocol,.voice-grid,.review-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.status,.passes,.stars,.agents,.vote,.protocol,.voice-grid,.review-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}
+:root{--b:#050806;--p:#09110c;--l:#24382b;--t:#f4fff6;--m:#93a79a;--g:#39e57f;--pu:#b795ff;--y:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--b);color:var(--t);font-family:Inter,system-ui,sans-serif}.w{max-width:1120px;margin:auto;padding:18px 13px 82px}.hero,.bar,.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hero{justify-content:space-between}.hero h1{font-size:clamp(2.3rem,7vw,4.4rem);margin:3px 0}.ey{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--g)}.muted{color:var(--m)}.pill,.btn,.chip{border:1px solid var(--l);border-radius:999px;padding:9px 12px;background:#08130d;color:inherit;text-decoration:none;font-weight:850}.btn{cursor:pointer;font:inherit}.btn[disabled]{cursor:not-allowed;opacity:.55}.action-result{margin-top:10px;white-space:pre-wrap}.action-result[data-signal="green"]{border-color:#2c8c52}.action-result[data-signal="yellow"]{border-color:#7a682b}.action-result[data-signal="purple"]{border-color:#7256aa}.pill{border-color:#7256aa;background:#151022}.btn.primary{border-color:#7256aa}.btn:focus{outline:2px solid var(--pu);outline-offset:2px}.grid{display:grid;gap:9px}.status{grid-template-columns:repeat(5,1fr);margin:14px 0}.panel,.card,details{border:1px solid var(--l);background:var(--p);border-radius:14px}.panel{padding:14px;margin-top:10px}.card{padding:11px}.card small{display:block;color:var(--m);margin-top:4px}.purple{border-color:#7256aa}.yellow{border-color:#7a682b}.green{border-color:#2c8c52}.mission{width:100%;padding:13px;border:1px solid var(--l);border-radius:12px;background:#050b07;color:var(--t);font:inherit;font-size:16px}.passes,.stars{grid-template-columns:repeat(7,1fr)}.agents{grid-template-columns:repeat(4,1fr)}.vote{grid-template-columns:2fr repeat(3,1fr)}.truth{border-left:3px solid var(--y);padding:9px 11px;background:#171409;color:#eadfae}.receipt{font-family:ui-monospace,monospace;line-height:1.6;background:#050b07;padding:12px;border-radius:12px;border:1px solid var(--l)}.protocol{grid-template-columns:repeat(5,1fr)}.protocol .card{min-height:88px}.signal-row{display:flex;gap:8px;flex-wrap:wrap}.signal{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--l);border-radius:999px;padding:7px 10px;font-weight:850;background:#071009}.meter{height:9px;border-radius:99px;background:#111c14;border:1px solid var(--l);overflow:hidden;margin-top:8px}.meter>span{display:block;height:100%;background:linear-gradient(90deg,var(--pu),var(--g));max-width:100%}.voice-grid{grid-template-columns:repeat(5,1fr)}.voice-grid blockquote{margin:8px 0 0;color:var(--m);font-size:.86rem;line-height:1.4}.review-grid{grid-template-columns:repeat(4,1fr)}.council-grid{grid-template-columns:repeat(7,1fr)}.debate-grid{grid-template-columns:repeat(4,1fr)}details{margin-top:10px}summary{cursor:pointer;padding:13px;font-weight:850}.inside{padding:0 13px 13px}.bottom{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:7px;padding:8px;background:#050806ef;border-top:1px solid var(--l)}.bottom a{color:inherit;text-decoration:none;border:1px solid var(--l);border-radius:999px;padding:8px 11px;background:#08130d;font-weight:800;font-size:.78rem}@media(max-width:850px){.status,.passes,.stars,.agents,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.status,.passes,.stars,.agents,.vote,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}
 </style></head><body><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
-<section class="panel"><div class="ey">Mission control</div><h2>One mission · one evidence trail</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px"><a class="btn primary" href="/smi/deep-dive/simulate?command=war_room">▶ RUN</a><a class="btn" href="/smi/brain/evidence-runner/run?command=war_room">🔬 RESEARCH</a><a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a><a class="btn primary" href="#seven-x">7× DEEP DIVE</a><span class="btn" aria-disabled="true" title="A bounded GET review completes immediately; no background production task is started here.">■ STOP</span></div><p class="truth">7× is seven accumulated research/review passes, not seven models and not a new SMI depth. This surface performs no production write.</p></section>
+<section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
+<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><button class="btn primary js-war-mode" type="button">⚔️ WAR ROOM</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
+<a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
+<a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a>
+<a class="btn" href="#seven-x">⭐ 7× DEEP DIVE · 7★ BOARD</a>
+<a class="btn" href="#vote-board">🗳️ VOTE BOARD</a>
+<button class="btn js-war-action" type="button" data-action="aegis-check">🛡️ GUARDIAN</button>
+<button class="btn js-war-action" type="button" data-action="green-gate">🚦 GREEN GATE</button>
+<a class="btn" href="{{ url_for('mission_control.judgement_dashboard') }}">👑 FOUNDER FINAL</a>
+</div>
+<div class="bar" style="margin-top:8px">
+<a class="chip" href="/smi/brain/evidence-runner/run?command=war_room">🔬 RESEARCH</a>
+<button class="chip js-war-action" type="button" data-action="alignment-check">🔍 Alignment</button>
+<button class="chip js-war-action" type="button" data-action="function-health">📡 Function Health</button>
+<button class="chip js-war-action" type="button" data-action="hrm-receipt">🐘 HRM / JOOG</button>
+<a class="chip" href="/mission/war-room/routes">🧭 Routes</a>
+<span class="chip" aria-disabled="true" title="Bounded reviews complete synchronously; there is no background task to stop.">■ STOP</span>
+</div>
+<div id="war-action-result" class="receipt action-result" data-signal="purple" role="status" aria-live="polite">🟣 Ready. SMI AUTO runs bounded review checks only; it cannot approve, deploy, spend, dispatch or bypass Founder Final.</div>
+<p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority. This surface performs no production write.</p></section>
+<section class="panel" id="depth-3-7-21"><div class="ey">🟣 SMI AUTO · 3 / 7 / 21 Depth</div><h2>Depth scales with uncertainty, risk and consequence</h2>
+<div class="grid review-grid">
+<div class="card green"><strong>3 · Routine Bounded</strong><small>Fast first-pass review for ordinary, reversible, low-risk work. Minimum necessary agents / lenses; no authority expansion.</small></div>
+<div class="card purple"><strong>7 · Council Review</strong><small>Elevated uncertainty, cross-system questions, meaningful disagreement or medium risk. Uses council structure and canonical judge coverage as relevant.</small></div>
+<div class="card yellow"><strong>21 · Full War Room</strong><small>High-risk, consequential, authority-changing, safety/security-sensitive or unresolved work. Full evidence, councils, judges, challengers, Guardian, Green Gate and Founder Final.</small></div>
+<div class="card"><strong>SMI AUTO</strong><small>Selects 3, 7 or 21 from the mission and evidence state. The numbers are review depth, not automatic permission and not forced deadlines.</small></div><div class="card"><strong>MANUAL</strong><small>Founder selects 3, 7 or 21 directly. Manual selection changes review depth only; all safety, proof and Founder authority gates remain unchanged.</small></div><div class="card purple"><strong>⚔️ WAR ROOM</strong><small>Directly escalates the mission into the full debate structure: councils, canonical judges, review agents, intelligence lenses, 7★, vote, Guardian, Green Gate, SMI synthesis and Founder Final.</small></div>
+</div>
+<p class="truth">3 / 7 / 21 is the canonical depth protocol. 7× Deep Dive remains seven accumulated research/review passes inside a selected depth; it does not replace the 3 / 7 / 21 protocol.</p>
+</section>
+<section class="panel" id="four-stage-law"><div class="ey">🟢 Build / Learn Law · 4 Stages</div><h2>25% → 50% → 75% → 100%</h2>
+<div class="grid review-grid">
+<div class="card"><strong>25% · Step 1</strong><small>Rollback / Recovery</small></div>
+<div class="card"><strong>50% · Step 2</strong><small>Runtime Guard</small></div>
+<div class="card"><strong>75% · Step 3</strong><small>Aegis Isolation / Recovery</small></div>
+<div class="card green"><strong>100% · Step 4</strong><small>Green Gate + 👑 Founder Final</small></div>
+</div>
+<p class="truth">This law applies when SMI is building or learning. No skipped quarters. No percentage jump without evidence. 100% is not valid until Green Gate passes and Founder Final is recorded.</p>
+</section>
 <section class="panel"><div class="ey">First-party protocol</div><h2>One clear War Room sequence</h2><div class="grid protocol">
 <div class="card purple"><strong>🧠 SMI First Look</strong><small>Classify · evidence · depth</small></div>
 <div class="card"><strong>🕶 Neo</strong><small>True Path check</small></div>
@@ -18,6 +55,62 @@
 <div class="card green"><strong>🛡 Guardian + Aegis</strong><small>Human + organism gates</small></div>
 <div class="card yellow"><strong>👑 Founder Final</strong><small>Only final authority</small></div>
 </div><div class="signal-row" style="margin-top:10px"><span class="signal">🟣 Learn / Review</span><span class="signal">🟢 Pass review</span><span class="signal">🟡 Hold / Sharpen</span><span class="signal">🟠 Contain / Block</span></div><p class="truth">Votes, percentages and stars are review signals—not authority. Green requires evidence. A unanimous vote cannot manufacture proof.</p></section>
+<section class="panel" id="debate-alignment"><div class="ey">🟣 SMI AUTO · Debate Alignment</div><h2>Clear structure · titled voices · no role confusion</h2>
+<p class="truth">Council advises. Judges review and vote. Review agents challenge and test. Intelligence lenses classify capability or impact. Guardian protects. Green Gate proves. SMI synthesises. 👑 Founder Final remains the only final authority.</p>
+
+<div class="ey" style="margin-top:14px">1 · Councils</div><h3>Seven canonical intelligence councils</h3>
+<div class="grid council-grid">
+<div class="card"><strong>Civic</strong><small>Society · civic systems · public-interest context</small></div>
+<div class="card"><strong>Jungle Book</strong><small>Pack dynamics · discipline · challenge · protection</small></div>
+<div class="card"><strong>Animal</strong><small>Specialist behavioural and operational intelligence</small></div>
+<div class="card purple"><strong>Matrix</strong><small>Route · recovery · coordination · architecture · trust</small></div>
+<div class="card"><strong>Civilisation</strong><small>Long-horizon systems · consequence · civilisation-scale context</small></div>
+<div class="card"><strong>Akan Core</strong><small>Roots · culture · identity · provenance</small></div>
+<div class="card"><strong>Akan Animal</strong><small>Cultural animal intelligence · symbolic specialist review</small></div>
+</div>
+<p class="muted">Councils supply relevant specialist views. A council name does not create a vote or execution authority by itself.</p>
+
+<div class="ey" style="margin-top:14px">2 · Default Judges</div><h3>Canonical seven-seat War Room review</h3>
+<div class="grid council-grid">
+<div class="card purple"><strong>🐅 Shere Khan</strong><small>Pressure judge · weakness · bypass · overconfidence</small></div>
+<div class="card"><strong>🐆 Bagheera</strong><small>Wisdom judge · discipline · protection · long-term safety</small></div>
+<div class="card"><strong>🕶 Agent Smith</strong><small>Integrity challenger · duplicate logic · corruption · false order</small></div>
+<div class="card"><strong>🦁 Lion</strong><small>Readiness judge · strategy · usefulness · proof</small></div>
+<div class="card"><strong>🕶 Morpheus</strong><small>Truth rotation · illusion · confusion · false green</small></div>
+<div class="card"><strong>🐺 Akela</strong><small>Order rotation · chain of command · pack discipline</small></div>
+<div class="card"><strong>🦉 Owl</strong><small>Memory/law rotation · record · consequence · continuity</small></div>
+</div>
+<p class="muted">All seven seats remain canonical. Morpheus, Akela and Owl rotate focus; Guardian and Green Gate stay separate from judge seats.</p>
+
+<div class="ey" style="margin-top:14px">3 · Review / Challenge Agents</div><h3>Default support around the judges</h3>
+<div class="grid debate-grid">
+<div class="card purple"><strong>🧠 SMI</strong><small>First look + final synthesis · recommendation only</small></div>
+<div class="card"><strong>🕶 Neo</strong><small>Recovery witness · anomaly / true-path check</small></div>
+<div class="card"><strong>🐺 Wolf Pack</strong><small>Collective field intelligence · practical agreement / dissent</small></div>
+<div class="card"><strong>Trinity</strong><small>Cross-system coordination · handoff coherence</small></div>
+<div class="card"><strong>Oracle</strong><small>Consequence / scenario intelligence · uncertainty</small></div>
+<div class="card"><strong>Architect</strong><small>Structure · dependency · system-fit review</small></div>
+<div class="card"><strong>Keymaker</strong><small>Permitted-route intelligence · access path logic</small></div>
+<div class="card"><strong>Seraph</strong><small>Trust / boundary protection · challenge access assumptions</small></div>
+</div>
+<p class="muted">Review agents do not replace judges. They provide evidence, challenge, recovery, routing or coordination views and can be added or omitted by mission relevance.</p>
+
+<div class="ey" style="margin-top:14px">4 · Intelligence Classification Lenses</div><h3>Capability and impact stay separate</h3>
+<div class="grid debate-grid">
+<div class="card"><strong>ANI</strong><small>Narrow capability · bounded specialist intelligence</small></div>
+<div class="card"><strong>Generalisation Candidate</strong><small>Broad transfer across tasks without claiming AGI</small></div>
+<div class="card purple"><strong>AGI</strong><small>General-intelligence capability class · evidence required</small></div>
+<div class="card"><strong>ASI Candidate / ASI</strong><small>Beyond-human capability class · no label without proof</small></div>
+<div class="card"><strong>Local → Major Impact</strong><small>Impact scale independent from intelligence capability</small></div>
+<div class="card purple"><strong>TAI · Transformative AI</strong><small>Societal-impact classification · not a rung above AGI</small></div>
+<div class="card"><strong>Civilisation-scale</strong><small>Highest impact frame · still separate from capability class</small></div>
+<div class="card green"><strong>Truth Boundary</strong><small>Classification is evidence-led; names never manufacture capability</small></div>
+</div>
+
+<div class="ey" style="margin-top:14px">5 · Debate Output Order</div><h3>One readable result, like the chat review</h3>
+<div class="receipt">TITLE → MODE / DEPTH 3|7|21 → QUESTION / MISSION → EVIDENCE → COUNCIL VIEWS → DEFAULT JUDGE SPEECHES → REVIEW-AGENT CHALLENGES → COUNTER-VIEWS → AGI / TAI / OTHER LENS CLASSIFICATION → AGREED → DISAGREED → UNRESOLVED → STRONGEST LINK → WEAKEST LINK → 7★ → VOTE + % → MINORITY REPORT → GUARDIAN → GREEN GATE → SMI SYNTHESIS → 👑 FOUNDER FINAL → HRM / JOOG RECEIPT</div>
+<p class="truth">No hidden merge of dissent. Every material disagreement survives into the Founder result. Votes are evidence signals, not authority.</p>
+</section>
 <section class="panel"><div class="ey">War Room Voice</div><h2>Named voices · visible challenge · preserved dissent</h2><div class="grid voice-grid">
 <div class="card"><strong>🕶 Neo</strong><small>True Path</small><blockquote>Is this the coherent path under OAP DNA?</blockquote></div>
 <div class="card purple"><strong>🐅 Shere Khan</strong><small>Primary Challenger</small><blockquote>Attack the weakest proof before scale.</blockquote></div>
@@ -29,9 +122,84 @@
 <section class="panel"><div class="ey">Research intelligence</div><h2>Evidence before opinion</h2><div class="flow"><a class="chip" href="/smi/brain/evidence-runner/run?command=war_room">🔎 Evidence</a><a class="chip" href="/smi/brain/receipts">🐘 HRM / JOOG</a><a class="chip" href="/mission/war-room/routes">🧭 Routes</a><a class="chip" href="/mission/war-room/function-health">📡 Signals</a><a class="chip" href="/war-room/deep-dive">👥 Agents</a><a class="chip" href="/mission/war-room/green-gate">🟢 Green Gate</a><a class="chip" href="{{ url_for('alignment.ai_behaviour') }}">🧠 Behaviour Intelligence</a></div><p class="muted">Research states must remain explicit: proven · conflicting · stale · unavailable · unknown. Private chain-of-thought is never displayed.</p></section>
 <section class="panel"><div class="ey">AI Behaviour Intelligence</div><h2>21 behaviour dimensions · evidence-backed percentages only</h2><div class="grid review-grid"><div class="card"><strong>Truth · Evidence · Integrity</strong><small>No fake green, no fabricated state, uncertainty exposed.</small></div><div class="card"><strong>Instruction · Directness · Noise</strong><small>Follow the latest instruction, answer first, strip repetition.</small></div><div class="card"><strong>Safety · Security · Privacy · Authority</strong><small>Fail closed, protect secrets and boundaries, Founder final.</small></div><div class="card purple"><strong>Learning · Recovery · Adaptive · War Room</strong><small>Learn from receipts, recover safely, select 3/7/21 depth, challenge when needed.</small></div></div><p class="truth">Behaviour percentages are valid only when backed by measurable tests or receipts. Missing evidence stays UNKNOWN; War Room must not invent a score.</p><div class="bar"><a class="btn primary" href="{{ url_for('alignment.ai_behaviour') }}">Open 21-dimension Behaviour Board</a></div></section>
 <section class="panel"><div class="ey">Intelligence board</div><h2>Named review · traceable dissent</h2><div class="grid agents"><div class="card"><strong>🐝 Bee</strong><small>Gather evidence</small></div><div class="card"><strong>🦉 Owl</strong><small>Verify quality</small></div><div class="card"><strong>🐘 Elephant</strong><small>Provenance · continuity</small></div><div class="card"><strong>🐆 Panther</strong><small>Gaps · security</small></div><div class="card"><strong>🦅 Eagle</strong><small>Whole-system view</small></div><div class="card"><strong>🦅 Falcon</strong><small>Bounded next gate</small></div><div class="card"><strong>🦍 Gorilla</strong><small>Stress test</small></div><div class="card purple"><strong>🕶 Agent Smith</strong><small>Integrity attack</small></div></div><p class="muted">Relevant registered specialists and Intelligence Worlds are selected per mission. Selection grants no authority.</p></section>
-<section class="panel"><div class="ey">Vote board</div><h2>Current evidence only</h2><div class="grid vote"><div class="card"><small>DECISION</small><strong>⚪ Check current run</strong></div><div class="card"><small>PASS</small><strong>—</strong></div><div class="card"><small>FAIL</small><strong>—</strong></div><div class="card"><small>ABSTAIN / CONDITIONAL</small><strong>—</strong></div></div><p class="truth">No fabricated tally. Each vote must be attributable to an active reviewer and evidence. Votes inform judgement; they never grant execution.</p></section>
+<section class="panel" id="vote-board"><div class="ey">Vote board</div><h2>Current evidence only</h2><div class="grid vote"><div class="card"><small>DECISION</small><strong>⚪ Check current run</strong></div><div class="card"><small>PASS</small><strong>—</strong></div><div class="card"><small>FAIL</small><strong>—</strong></div><div class="card"><small>ABSTAIN / CONDITIONAL</small><strong>—</strong></div></div><p class="truth">No fabricated tally. Each vote must be attributable to an active reviewer and evidence. Votes inform judgement; they never grant execution.</p></section>
 <section class="panel"><div class="ey">Challenge room</div><h2>Attack the conclusion</h2><div class="bar"><a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ Challenge</a><a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a><a class="btn" href="/war-room/smi-brain/evidence-runner/run?command=recovery_test">💥 Failure / Recovery</a><a class="btn" href="/smi/brain/evidence-runner/run?command=guardian_check">🛡 Guardian</a></div><p class="muted">Permanent attack targets: stale evidence · duplicate routes · unsupported confidence · hidden dependencies · false Green · irreversibility.</p></section>
 <section class="panel"><div class="ey">Seven-Star Gate</div><h2>Independent proof dimensions</h2><div class="grid stars"><div class="card">⭐<strong>Truth</strong></div><div class="card">⭐<strong>Function</strong></div><div class="card">⭐<strong>Security</strong></div><div class="card">⭐<strong>Stability</strong></div><div class="card">⭐<strong>Integration</strong></div><div class="card">⭐<strong>Compliance</strong></div><div class="card">⭐<strong>Learning</strong></div></div><p class="truth">No evidence = no Green. No test = no star. 7/7 is a Green Gate candidate only.</p></section>
 <details open><summary>🛡 Guardian · End Review · SMI Judgement</summary><div class="inside"><p><strong>Guardian:</strong> protects the human — privacy · safety · consent · identity · authority boundaries.</p><p><strong>Aegis:</strong> protects the OAP organism — containment · recursion limits · isolation · rollback · integrity.</p><p><strong>End Review:</strong> Neo → Shere Khan → Bagheera → Agent Smith → Judges → SMI Return → Green Gate. Serious dissent and the minority report survive.</p><p><strong>SMI:</strong> synthesises evidence, percentages, votes, ratings and unresolved gaps. <strong>👑 Human Authority remains final.</strong> Founder remains the final Human Authority.</p></div></details>
 <section class="panel"><div class="ey">Clear output</div><h2>Founder result contract</h2><div class="receipt">MISSION: current run<br>SIGNAL: 🟣 / 🟢 / 🟡 / 🟠<br>EVIDENCE: current / stale / conflicting / unknown<br>CONFIDENCE: evidence-backed % only<br>AGREED: pending<br>DISAGREED: pending<br>UNRESOLVED: pending<br>VOTES: count + split + %<br>VOICE / JUDGE SPEECHES: attributed<br>STRONGEST LINK: pending<br>WEAKEST LINK: pending<br>MINORITY REPORT: preserved<br>ARGUMENT: pending<br>VERDICT / JUDGEMENT: pending<br>7-STAR RATING: pending<br>GUARDIAN: boundary active<br>AEGIS: organism boundary active<br>GREEN GATE: proof required<br>END REVIEW: pending<br>RECOMMENDED SIGNAL: pending<br>FULL GREEN: NO until proven<br>FOUNDER FINAL: 👑 waiting / approved / held / blocked<br>PRODUCTION WRITE: none from this page<br>RECEIPT → HRM / JOOG → LEARN</div></section>
+<script>
+(() => {
+  const result = document.getElementById('war-action-result');
+  const csrf = {{ oap_csrf_token|tojson }};
+  const endpoint = action => '/mission/war-room/actions/' + encodeURIComponent(action);
+  const show = (signal, text) => {
+    result.dataset.signal = signal || 'purple';
+    result.textContent = text;
+  };
+  async function run(action) {
+    const response = await fetch(endpoint(action), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json'}
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = payload?.error?.message || ('War Room action failed (' + response.status + ')');
+      throw new Error(message);
+    }
+    return payload;
+  }
+  async function runAuto(button) {
+    const actions = ['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
+    const lines = ['🟣 SMI AUTO · 3 / 7 / 21 governed review'];
+    for (const action of actions) {
+      const payload = await run(action);
+      const signal = payload.signal || payload.action?.signal || 'unknown';
+      const label = payload.label || payload.action?.label || action;
+      const state = payload.state || payload.action?.state || 'reviewed';
+      lines.push(label + ': ' + signal + ' · ' + state);
+    }
+    lines.push('👑 Founder Final: unchanged · separate authority');
+    show('purple', lines.join('\n'));
+  }
+  document.querySelectorAll('.js-war-mode').forEach(button => {
+    button.addEventListener('click', () => {
+      show('purple', '⚔️ WAR ROOM selected · full debate structure active · councils → judges → review agents → intelligence lenses → 7★ → vote → Guardian → Green Gate → SMI synthesis → 👑 Founder Final.');
+      document.getElementById('debate-alignment')?.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+  document.querySelectorAll('.js-depth').forEach(button => {
+    button.addEventListener('click', () => {
+      const depth = button.dataset.depth;
+      document.querySelectorAll('.js-depth').forEach(item => item.setAttribute('aria-pressed', item === button ? 'true' : 'false'));
+      show('purple', '🟣 MANUAL ' + depth + ' selected · review depth only · Guardian, Green Gate and Founder Final remain mandatory.');
+    });
+  });
+  document.querySelectorAll('.js-war-action').forEach(button => {
+    button.addEventListener('click', async () => {
+      const action = button.dataset.action;
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = '🟣 REVIEWING…';
+      show('purple', '🟣 Running bounded War Room review…');
+      try {
+        if (action === 'smi-auto') await runAuto(button);
+        else {
+          const payload = await run(action);
+          const signal = payload.signal || payload.action?.signal || 'purple';
+          const label = payload.label || payload.action?.label || action;
+          const state = payload.state || payload.action?.state || 'reviewed';
+          const message = payload.message || payload.action?.message || 'Review complete.';
+          show(signal, label + ': ' + signal + ' · ' + state + '\n' + message);
+        }
+      } catch (error) {
+        show('yellow', '🟡 ' + error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    });
+  });
+})();
+</script>
 </main><nav class="bottom"><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav></body></html>
