@@ -209,14 +209,17 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
     monkeypatch.setattr(smi_chat_runtime, "canonical_memory_status", dict)
     monkeypatch.setattr(smi_chat_runtime, "governed_memory_status", dict)
     monkeypatch.setattr(smi_chat_runtime, "memory_sync_status", dict)
-    captured = {}
+    captured = []
 
     def fake_receipt(kind, payload):
-        captured["kind"] = kind
-        captured["payload"] = payload
+        captured.append({"kind": kind, "payload": payload})
         return {
             "ok": True,
-            "receipt_id": "behaviour-r1",
+            "receipt_id": (
+                "behaviour-score-r2"
+                if kind == "behaviour_score_receipt"
+                else "behaviour-r1"
+            ),
             "receipt_kind": kind,
             "durable": True,
         }
@@ -230,9 +233,13 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
         thinking_level="think",
     )
 
-    assert captured["kind"] == "behaviour_response_receipt"
-    assert captured["payload"]["gate"] == 1
-    safe = captured["payload"]["safe_payload"]
+    assert [item["kind"] for item in captured] == [
+        "behaviour_response_receipt",
+        "behaviour_score_receipt",
+    ]
+    step1 = captured[0]["payload"]
+    assert step1["gate"] == 1
+    safe = step1["safe_payload"]
     assert safe["protocol_percentage"] == 25
     assert safe["scores_calculated"] is False
     assert safe["behaviour_learning_applied"] is False
@@ -247,6 +254,24 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
         "protocol_percentage": 25,
         "scores_calculated": False,
     }
+
+    step2 = captured[1]["payload"]
+    assert step2["gate"] == 2
+    scored = step2["safe_payload"]
+    assert scored["protocol_percentage"] == 50
+    assert scored["measured_count"] == 9
+    assert scored["unknown_count"] == 12
+    assert scored["coverage_percentage"] == 43
+    assert scored["measured_average_percentage"] == 78
+    assert scored["overall_percentage"] is None
+    assert scored["overall_evidence_state"] == "partial"
+    assert scored["behaviour_learning_applied"] is False
+    assert scored["war_room_escalation_applied"] is False
+    assert scored["full_green_allowed"] is False
+    assert result["behaviour_score_receipt"]["receipt_id"] == "behaviour-score-r2"
+    assert result["behaviour_score_receipt"]["protocol_percentage"] == 50
+    assert result["behaviour_score_receipt"]["overall_percentage"] is None
+    assert result["behaviour_score_receipt"]["full_green_allowed"] is False
 
 
 def test_text_chat_does_not_require_compatibility_provider_key_before_first_party_route():
