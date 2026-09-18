@@ -57,6 +57,9 @@ def test_gateway_authority_resolver_distinct_order_expression_matches_select():
 def test_governed_a6_lane_owns_bounded_blocker_reason():
     source = Path("mission_control/a6_matrix_execution.py").read_text(encoding="utf-8")
     assert '"a6_route_matrix_precheck_blocked:"' in source
+
+def test_gateway_keeps_bounded_runtime_error_logging():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
     assert 'reason = str(exc)[:180] if isinstance(exc, RuntimeError) else ""' in source
     assert '"reason": reason' in source
     assert "readiness=" in source
