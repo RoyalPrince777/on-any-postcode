@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import smi_receipt_backend
+
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
 PIPELINE = (
@@ -55,10 +57,103 @@ DESTINATIONS = (
     "My Shop",
     "The Spot",
 )
+GENERATION_TOOLS = (
+    {
+        "id": "imagine",
+        "name": "Imagine",
+        "input": "text",
+        "output": "image",
+        "purpose": "Create a new visual from a written idea.",
+    },
+    {
+        "id": "bring_alive",
+        "name": "Bring Alive",
+        "input": "image",
+        "output": "video",
+        "purpose": "Prepare motion, camera, expression and atmosphere from a source image.",
+    },
+    {
+        "id": "scene_builder",
+        "name": "Scene Builder",
+        "input": "text",
+        "output": "video",
+        "purpose": "Prepare a short video scene directly from a written brief.",
+    },
+)
+
+STUDIO_21_STAGES = (
+    "Intent", "Input", "Rights", "Safety", "Context", "Route", "Evidence",
+    "Creative brief", "Style", "Composition", "Motion", "Audio", "Continuity",
+    "Quality", "Guardian", "Green Gate", "Chronicle", "HRM", "Output check",
+    "Founder review", "Lock result",
+)
+
 ACTIVATION_PROMPT = (
     "OAP Studio Intelligence mode. Help me create, edit, package, check rights, "
     "prepare publishing, distribution, campaign and analysis for: "
 )
+
+
+def _tool(tool_id: str) -> dict[str, str]:
+    clean = str(tool_id or "").strip().lower()
+    for tool in GENERATION_TOOLS:
+        if tool["id"] == clean:
+            return dict(tool)
+    raise ValueError("unsupported_studio_tool")
+
+
+def prepare_generation(tool_id: str, *, prompt: object = "", source_ref: object = "") -> dict[str, Any]:
+    """Prepare one governed Studio generation job and record its bounded proof receipt.
+
+    This function deliberately does not claim generated media. A provider/renderer must
+    return an artifact before output_generated can become true.
+    """
+
+    tool = _tool(tool_id)
+    clean_prompt = str(prompt or "").strip()[:4000]
+    clean_source = str(source_ref or "").strip()[:500]
+    if tool["input"] == "text" and not clean_prompt:
+        raise ValueError("studio_prompt_required")
+    if tool["input"] == "image" and not clean_source:
+        raise ValueError("studio_source_image_required")
+
+    receipt = smi_receipt_backend.write_receipt(
+        "studio_generation_receipt",
+        {
+            "brain_part": "studio_intelligence",
+            "gate": 21,
+            "command": tool["id"],
+            "signal": "🟣",
+            "guardian": "required",
+            "green_gate": "blocked_until_artifact_proof",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                "tool_id": tool["id"],
+                "input_kind": tool["input"],
+                "output_kind": tool["output"],
+                "prompt_present": bool(clean_prompt),
+                "source_ref_present": bool(clean_source),
+                "stage_count": len(STUDIO_21_STAGES),
+                "output_generated": False,
+                "execution_authority_expanded": False,
+            },
+        },
+    )
+    return {
+        "studio": STUDIO_NAME,
+        "tool": tool,
+        "smi_depth": 21,
+        "stages": list(STUDIO_21_STAGES),
+        "state": "prepared",
+        "output_generated": False,
+        "artifact": None,
+        "next_gate": "media_generation_backend",
+        "chronicle_receipt": receipt,
+        "execution_granted": False,
+        "publishing_granted": False,
+        "distribution_granted": False,
+        "human_authority_final": True,
+    }
 
 
 def status() -> dict[str, Any]:
@@ -70,6 +165,11 @@ def status() -> dict[str, Any]:
         "ready": True,
         "powered_by": "SMI",
         "pipeline": list(PIPELINE),
+        "generation_tools": [dict(tool) for tool in GENERATION_TOOLS],
+        "studio_21_stage_count": len(STUDIO_21_STAGES),
+        "studio_21_stages": list(STUDIO_21_STAGES),
+        "generation_backend_proven": False,
+        "full_live_certificate": False,
         "media": list(MEDIA),
         "capture_inputs": list(CAPTURE_INPUTS),
         "entry_points": list(ENTRY_POINTS),
