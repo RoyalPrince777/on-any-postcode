@@ -162,13 +162,16 @@ def _probe_status(base_url: str, route: str, *, timeout: float = 5.0) -> dict[st
     return {"route": route, "skipped": False, "status": status}
 
 
-def execute_route_matrix_capture(*, identity_id: object, base_url: object) -> dict[str, object]:
+def execute_route_matrix_capture(*, identity_id: object, base_url: object, operation_id: object) -> dict[str, object]:
     identity_value = str(identity_id or "").strip()
     base = str(base_url or "").strip()
+    operation_value = str(operation_id or "").strip()
     if not identity_value:
         raise PermissionError("human_authority_identity_required")
     if not base.startswith(("https://", "http://")):
         raise ValueError("valid_route_matrix_base_url_required")
+    if not operation_value:
+        raise ValueError("route_matrix_operation_id_required")
 
     public_results = []
     private_results = []
@@ -212,7 +215,7 @@ def execute_route_matrix_capture(*, identity_id: object, base_url: object) -> di
             "concrete_public_count": len(concrete_public),
             "concrete_private_count": len(concrete_private),
         },
-        idempotency_key=f"route-matrix:{base}",
+        idempotency_key=f"route-matrix:{operation_value}",
     )
     durable = hrm_durable_receipt.persist_and_read_back(receipt)
 
@@ -246,6 +249,7 @@ def execute_route_matrix_capture(*, identity_id: object, base_url: object) -> di
         "mode": "read_only_live_capture",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "base_url": base,
+        "operation_id": operation_value,
         "public_results": tuple(public_results),
         "private_anonymous_results": tuple(private_results),
         "public_probe_pass": public_pass,
