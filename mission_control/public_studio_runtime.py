@@ -247,41 +247,32 @@ def ask(message: object, *, rate_key: str, history: object = None) -> dict:
     if not _allow(rate_key or "anonymous"):
         raise PublicStudioRateLimited("public_studio_rate_limit")
 
-    key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not key:
-        raise PublicStudioUnavailable("public_ai_provider_unconfigured")
-
     mode = _chat_mode(clean)
     specialist = _specialist_route(clean)
     safe_history = _bounded_history(history)
     route = intelligence_lenses.public_route(clean)
     provider_input = _context_input(clean, safe_history, mode, route)
-    body = json.dumps(
-        {
-            "model": MODEL,
-            "instructions": PUBLIC_SYSTEM,
-            "input": provider_input,
-            "max_output_tokens": MAX_OUTPUT_TOKENS,
-        }
-    ).encode("utf-8")
-    req = urlrequest.Request(
-        "https://api.openai.com/v1/responses",
-        data=body,
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
+    smi_history = [
+        {"role": item["role"], "content": item["text"]}
+        for item in safe_history
+    ]
+    brain = {
+        "task_type": specialist.get("id"),
+        "public_chat_mode": mode,
+        "public_intelligence_route": route,
+        "execution_authority": False,
+    }
     try:
-        with urlrequest.urlopen(req, timeout=45) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise PublicStudioUnavailable("public_ai_provider_unavailable") from exc
+        answer = smi_inference.generate_public(
+            _compatibility_engine,
+            provider_input,
+            smi_history,
+            brain,
+            code_mode=(mode == "code"),
+        )
+    except (RuntimeError, PublicStudioUnavailable) as exc:
+        raise PublicStudioUnavailable("public_smi_unavailable") from exc
 
-    answer = _extract_text(payload)
-    if not answer:
-        raise PublicStudioUnavailable("public_ai_empty_response")
     return {
         "answer": answer,
         "assistant": "OAP Studio Intelligence",
