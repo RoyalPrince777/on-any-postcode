@@ -7,6 +7,7 @@ import logging
 import os
 import time
 import uuid
+import threading
 from collections.abc import Iterator
 from urllib import error as urlerror
 from urllib import parse as urlparse
@@ -26,6 +27,8 @@ _CORRELATION_HEADER = "X-OAP-Request-ID"
 _FOUNDER_RECOVERY_FALLBACK = "/auth/recover-founder?next=/mission/ollama"
 _AUTH_RETRY_STATUSES = frozenset({429, 502, 503, 504})
 _AUTH_RETRY_DELAY_SECONDS = 0.75
+_A6_ROUTE_MATRIX_LOCK = threading.Lock()
+_A6_ROUTE_MATRIX_STARTED: set[str] = set()
 _ALLOWED_REQUEST_HEADERS = {
     "accept",
     "accept-language",
@@ -388,88 +391,122 @@ def war_room_alias():
     return redirect("/mission/war-room", code=302)
 
 
+def _run_a6_route_matrix_operation(operation_id: str) -> None:
+    """Run one approved A6 Route Matrix operation exactly once per process."""
+
+    try:
+        identity_id = _resolve_a6_human_authority()
+        proof = a7_certification.status()
+        checks = proof.get("a6_checks") if isinstance(proof.get("a6_checks"), dict) else {}
+        precheck = a6_matrix_execution.precheck(
+            "ROUTE_MATRIX_CAPTURE",
+            founder_approved=True,
+            guardian_pass=bool(checks.get("guardian_pass")),
+            green_gate_pass=bool(checks.get("green_gate")),
+            rollback_proven=True,
+            receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain")),
+        )
+        if not precheck.get("allowed"):
+            runtime = precheck.get("runtime") if isinstance(precheck.get("runtime"), dict) else {}
+            raise RuntimeError(
+                "a6_route_matrix_precheck_blocked:"
+                + str(precheck.get("reason") or "unknown")[:60]
+                + f":level={runtime.get('configured_level')}"
+                + f":readiness={bool(runtime.get('a6_readiness_proven'))}"
+                + f":matrix={bool(runtime.get('matrix_ready'))}"
+                + f":matrix_count={runtime.get('matrix_registered_count')}"
+                + f":enabled={bool(runtime.get('enabled'))}"
+            )
+
+        capture = maps_movement_direct_proof_runner.execute_route_matrix_capture(
+            identity_id=identity_id,
+            base_url=_origin(),
+            operation_id=operation_id,
+        )
+        postcheck = a6_matrix_execution.postcheck(
+            "ROUTE_MATRIX_CAPTURE",
+            operation_succeeded=bool(capture.get("passed")),
+            rollback_still_available=True,
+            receipt_recorded=bool(
+                capture.get("receipt_write_verified")
+                and capture.get("receipt_read_back_verified")
+            ),
+        )
+        _LOGGER.info(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_a6_route_matrix_capture",
+                    "operation_id": operation_id,
+                    "success": bool(capture.get("passed") and postcheck.get("passed")),
+                    "public_probe_pass": bool(capture.get("public_probe_pass")),
+                    "private_fail_closed_pass": bool(capture.get("private_fail_closed_pass")),
+                    "receipt_verified": bool(
+                        capture.get("receipt_write_verified")
+                        and capture.get("receipt_read_back_verified")
+                    ),
+                    "matrix_postcheck_pass": bool(postcheck.get("passed")),
+                    "production_state_mutated": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001 - A6 operation must fail closed.
+        reason = str(exc)[:180] if isinstance(exc, RuntimeError) else ""
+        _LOGGER.error(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_a6_route_matrix_capture",
+                    "operation_id": operation_id,
+                    "success": False,
+                    "error": type(exc).__name__,
+                    "reason": reason,
+                    "production_state_mutated": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+
+
+def _maybe_start_a6_route_matrix_operation() -> None:
+    if os.environ.get("OAP_A6_ROUTE_MATRIX_ON_HEALTH", "").strip() != "1":
+        return
+    operation_id = os.environ.get("OAP_A6_ROUTE_MATRIX_OPERATION_ID", "").strip()
+    if not operation_id:
+        _LOGGER.error(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_a6_route_matrix_capture",
+                    "success": False,
+                    "error": "RuntimeError",
+                    "reason": "route_matrix_operation_id_not_configured",
+                    "production_state_mutated": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+        return
+    with _A6_ROUTE_MATRIX_LOCK:
+        if operation_id in _A6_ROUTE_MATRIX_STARTED:
+            return
+        _A6_ROUTE_MATRIX_STARTED.add(operation_id)
+    threading.Thread(
+        target=_run_a6_route_matrix_operation,
+        args=(operation_id,),
+        name="oap-a6-route-matrix",
+        daemon=True,
+    ).start()
+
+
 @app.get("/healthz")
 def healthz():
     telemetry.record_http_request(path="/healthz", status_code=200, duration_ms=0.0)
-    if os.environ.get("OAP_A6_ROUTE_MATRIX_ON_HEALTH", "").strip() == "1":
-        try:
-            identity_id = _resolve_a6_human_authority()
-            operation_id = os.environ.get("OAP_A6_ROUTE_MATRIX_OPERATION_ID", "").strip()
-            if not operation_id:
-                raise RuntimeError("route_matrix_operation_id_not_configured")
-
-            proof = a7_certification.status()
-            checks = proof.get("a6_checks") if isinstance(proof.get("a6_checks"), dict) else {}
-            precheck = a6_matrix_execution.precheck(
-                "ROUTE_MATRIX_CAPTURE",
-                founder_approved=True,
-                guardian_pass=bool(checks.get("guardian_pass")),
-                green_gate_pass=bool(checks.get("green_gate")),
-                rollback_proven=True,
-                receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain")),
-            )
-            if not precheck.get("allowed"):
-                runtime = precheck.get("runtime") if isinstance(precheck.get("runtime"), dict) else {}
-                raise RuntimeError(
-                    "a6_route_matrix_precheck_blocked:"
-                    + str(precheck.get("reason") or "unknown")[:60]
-                    + f":level={runtime.get('configured_level')}"
-                    + f":readiness={bool(runtime.get('a6_readiness_proven'))}"
-                    + f":matrix={bool(runtime.get('matrix_ready'))}"
-                    + f":matrix_count={runtime.get('matrix_registered_count')}"
-                    + f":enabled={bool(runtime.get('enabled'))}"
-                )
-
-            capture = maps_movement_direct_proof_runner.execute_route_matrix_capture(
-                identity_id=identity_id,
-                base_url=_origin(),
-                operation_id=operation_id,
-            )
-            postcheck = a6_matrix_execution.postcheck(
-                "ROUTE_MATRIX_CAPTURE",
-                operation_succeeded=bool(capture.get("passed")),
-                rollback_still_available=True,
-                receipt_recorded=bool(
-                    capture.get("receipt_write_verified")
-                    and capture.get("receipt_read_back_verified")
-                ),
-            )
-            _LOGGER.info(
-                "%s",
-                json.dumps(
-                    {
-                        "event": "oap_a6_route_matrix_capture",
-                        "operation_id": operation_id,
-                        "success": bool(capture.get("passed") and postcheck.get("passed")),
-                        "public_probe_pass": bool(capture.get("public_probe_pass")),
-                        "private_fail_closed_pass": bool(capture.get("private_fail_closed_pass")),
-                        "receipt_verified": bool(
-                            capture.get("receipt_write_verified")
-                            and capture.get("receipt_read_back_verified")
-                        ),
-                        "matrix_postcheck_pass": bool(postcheck.get("passed")),
-                        "production_state_mutated": False,
-                    },
-                    separators=(",", ":"),
-                    sort_keys=True,
-                ),
-            )
-        except Exception as exc:  # noqa: BLE001 - A6 operation must fail closed.
-            reason = str(exc)[:120] if isinstance(exc, RuntimeError) else ""
-            _LOGGER.error(
-                "%s",
-                json.dumps(
-                    {
-                        "event": "oap_a6_route_matrix_capture",
-                        "success": False,
-                        "error": type(exc).__name__,
-                        "reason": reason,
-                        "production_state_mutated": False,
-                    },
-                    separators=(",", ":"),
-                    sort_keys=True,
-                ),
-            )
+    _maybe_start_a6_route_matrix_operation()
 
     response = make_response(
         json.dumps(
