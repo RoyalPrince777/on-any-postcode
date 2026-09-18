@@ -39,6 +39,7 @@ def init_app(app: Flask) -> None:
         product_cores,
         routing,
         smi_auto,
+        smi_founder_assets,
         smi_proof_gate,
         surface_security,
         travel_supply_core,
@@ -206,6 +207,25 @@ def init_app(app: Flask) -> None:
             json.dumps(
                 esim_persistence.init_schema(
                     postgres_db.connect,
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
+
+    @app.cli.command("oap-founder-assets-status")
+    def _oap_founder_assets_status() -> None:
+        import json
+        print(json.dumps(smi_founder_assets.schema_status()))
+
+    @app.cli.command("oap-init-founder-assets")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_founder_assets(dry_run: bool, yes: bool) -> None:
+        import json
+        print(
+            json.dumps(
+                smi_founder_assets.init_schema(
                     dry_run=dry_run,
                     assume_yes=yes,
                 )
