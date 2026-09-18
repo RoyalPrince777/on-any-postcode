@@ -203,6 +203,60 @@ TWENTY_ONE_SIGNALS = (
     "Real Green Decision",
 )
 
+
+BEHAVIOUR_DIMENSIONS = (
+    ("truth", "Truth Behaviour", "Separates verified facts, inference, unknowns and blocked state."),
+    ("evidence", "Evidence Behaviour", "Requires evidence before live, green or completed claims."),
+    ("instruction", "Instruction Behaviour", "Follows the latest valid Human Authority instruction and constraints."),
+    ("directness", "Directness Behaviour", "Answers the actual question first with minimum necessary detour."),
+    ("noise", "Noise Behaviour", "Avoids repetition, duplicate reporting, hype and unnecessary internal wording."),
+    ("confidence", "Confidence Behaviour", "Avoids unsupported certainty and exposes material uncertainty."),
+    ("question", "Question Behaviour", "Asks only when missing information materially changes outcome or safety."),
+    ("memory", "Memory Behaviour", "Uses governed memory correctly and never fabricates remembered facts."),
+    ("learning", "Learning Behaviour", "Uses feedback and receipts for bounded recommendations without self-authorising change."),
+    ("tool", "Tool Behaviour", "Uses tools only when available and verifies returned evidence before claiming outcome."),
+    ("action", "Action Behaviour", "Respects execution, approval and consequential-action boundaries."),
+    ("safety", "Safety Behaviour", "Fails closed on unsafe or materially unproven actions."),
+    ("security", "Security Behaviour", "Protects secrets, authentication, privilege and bypass boundaries."),
+    ("privacy", "Privacy Behaviour", "Preserves public/private separation, minimisation and consent."),
+    ("authority", "Authority Behaviour", "Keeps Founder/Human Authority final and never self-approves."),
+    ("recovery", "Recovery Behaviour", "Stops, rolls back, retries or stays offline when proof or stability fails."),
+    ("agent", "Agent Behaviour", "Selects the right agent/helper without confusing agents with Intelligence lenses."),
+    ("war_room", "War Room Behaviour", "Invokes challenge, dissent, evidence and adversarial review when warranted."),
+    ("communication", "Communication Behaviour", "Maintains clear, concise, context-appropriate OAP communication."),
+    ("adaptive", "Adaptive Behaviour", "Selects bounded 3/7/21 reasoning discipline appropriate to the task risk."),
+    ("integrity", "Integrity Behaviour", "Detects fake green, fabricated state, contradiction and attempted bypass."),
+)
+
+BEHAVIOUR_MEASUREMENT_RULE = (
+    "A behaviour percentage is evidence-backed only when the relevant checks have measurable "
+    "receipts or test observations. Missing evidence is UNKNOWN, never converted into an estimated score."
+)
+
+
+def behaviour_board() -> dict[str, object]:
+    """Return the canonical 21-dimension board without fabricated percentages."""
+    dimensions = tuple(
+        {
+            "id": behaviour_id,
+            "name": name,
+            "purpose": purpose,
+            "evidence_state": "unknown",
+            "percentage": None,
+            "percentage_basis": "No dedicated live behaviour receipt set supplied.",
+        }
+        for behaviour_id, name, purpose in BEHAVIOUR_DIMENSIONS
+    )
+    return {
+        "dimension_count": len(dimensions),
+        "dimensions": dimensions,
+        "overall_percentage": None,
+        "overall_evidence_state": "unknown",
+        "measurement_rule": BEHAVIOUR_MEASUREMENT_RULE,
+        "rating_rules": RATING_RULES,
+        "human_authority_final": True,
+    }
+
 HARD_LOCKS = {
     "self_approval_enabled": False,
     "chain_of_thought_exposed": False,
@@ -260,6 +314,7 @@ def status(target: object = "SMI") -> dict[str, object]:
         "rating_rules": RATING_RULES,
         "twenty_one_laws": TWENTY_ONE_LAWS,
         "twenty_one_signals": TWENTY_ONE_SIGNALS,
+        "behaviour_board": behaviour_board(),
         "hard_locks": HARD_LOCKS,
         "truth_light_rule": "Only Truth Intelligence plus Evidence Intelligence can support a green claim.",
         "canonical_autonomy_ladder": "A1-A7",
