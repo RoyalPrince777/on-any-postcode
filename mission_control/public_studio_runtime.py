@@ -34,6 +34,29 @@ PUBLIC_SYSTEM = (
     "Do not reveal chain-of-thought. Provide a concise answer or safe refusal when needed."
 )
 
+SPECIALIST_INTELLIGENCE = {
+    "research": {"label": "Research Intelligence", "ready": True},
+    "creation": {"label": "Creation Intelligence", "ready": True},
+    "code": {"label": "Code Intelligence", "ready": True},
+    "learning": {"label": "Learning Intelligence", "ready": True},
+    "planning": {"label": "Planning Intelligence", "ready": True},
+    "language": {"label": "Language Intelligence", "ready": True},
+    "location": {"label": "Location Intelligence", "ready": True},
+    "movement": {"label": "Movement Intelligence", "ready": True},
+    "commerce": {"label": "Commerce Intelligence", "ready": True},
+    "creator": {"label": "Creator Intelligence", "ready": True},
+    "safety": {"label": "Safety Intelligence", "ready": True},
+    "truth": {"label": "Truth-Light Intelligence", "ready": True},
+    "tool": {"label": "Tool Intelligence", "ready": True},
+    "image": {"label": "Image Intelligence", "ready": False},
+    "video": {"label": "Video Intelligence", "ready": False},
+    "audio": {"label": "Audio Intelligence", "ready": False},
+    "file": {"label": "File Intelligence", "ready": False},
+    "voice": {"label": "Voice Intelligence", "ready": False},
+}
+
+
+
 
 class PublicStudioUnavailable(RuntimeError):
     pass
@@ -57,6 +80,35 @@ def _allow(rate_key: str) -> bool:
             return False
         bucket.append(now)
         return True
+
+
+def _specialist_route(message: str) -> dict:
+    text = message.casefold()
+    rules = (
+        ("research", ("research", "evidence", "source", "compare", "fact check", "latest")),
+        ("code", ("code", "debug", "python", "javascript", "html", "css", "sql", "api")),
+        ("learning", ("teach", "explain", "learn", "quiz", "practice", "lesson")),
+        ("planning", ("plan", "steps", "schedule", "organise", "organize", "strategy")),
+        ("language", ("translate", "translation", "language", "french", "spanish", "twi", "akan")),
+        ("movement", ("route", "travel", "journey", "delivery", "movement", "eta")),
+        ("location", ("postcode", "location", "place", "nearby", "borough", "region")),
+        ("commerce", ("buy", "sell", "product", "market", "merchant", "price", "checkout")),
+        ("creator", ("creator", "campaign", "content strategy", "publish", "audience")),
+        ("creation", ("write", "rewrite", "create", "brainstorm", "idea", "story", "caption", "name")),
+        ("image", ("image", "photo", "picture", "visual")),
+        ("video", ("video", "scene", "animate", "motion")),
+        ("audio", ("audio", "music", "sound", "transcribe")),
+        ("file", ("pdf", "document", "spreadsheet", "file", "upload")),
+        ("voice", ("voice", "speak", "microphone")),
+        ("tool", ("tool", "use a tool", "which tool")),
+        ("truth", ("true", "truth", "verify", "proven", "uncertain")),
+        ("safety", ("safe", "privacy", "security", "harm", "abuse")),
+    )
+    for key, terms in rules:
+        if any(term in text for term in terms):
+            item = SPECIALIST_INTELLIGENCE[key]
+            return {"id": key, "name": item["label"], "ready": bool(item["ready"])}
+    return {"id": "chat", "name": "Chat Intelligence", "ready": True}
 
 
 def _chat_mode(message: str) -> str:
@@ -139,6 +191,7 @@ def ask(message: object, *, rate_key: str, history: object = None) -> dict:
         raise PublicStudioUnavailable("public_ai_provider_unconfigured")
 
     mode = _chat_mode(clean)
+    specialist = _specialist_route(clean)
     safe_history = _bounded_history(history)
     route = intelligence_lenses.public_route(clean)
     provider_input = _context_input(clean, safe_history, mode, route)
@@ -176,6 +229,7 @@ def ask(message: object, *, rate_key: str, history: object = None) -> dict:
         "execution_authority": False,
         "chat_intelligence": {
             "mode": mode,
+            "specialist": specialist,
             "context_turns": len(safe_history),
             "routing": route,
             "private_reasoning_exposed": False,
