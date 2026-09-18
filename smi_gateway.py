@@ -15,7 +15,7 @@ from urllib import request as urlrequest
 
 from flask import Flask, Response, make_response, redirect, request, stream_with_context
 
-from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner, postgres_db, telemetry
+from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner, postgres_db, smi_proof_gate, telemetry
 
 app = Flask(__name__)
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +29,8 @@ _AUTH_RETRY_STATUSES = frozenset({429, 502, 503, 504})
 _AUTH_RETRY_DELAY_SECONDS = 0.75
 _A6_ROUTE_MATRIX_LOCK = threading.Lock()
 _A6_ROUTE_MATRIX_STARTED: set[str] = set()
+_SMI_PROOF_SNAPSHOT_LOCK = threading.Lock()
+_SMI_PROOF_SNAPSHOT_LOGGED = False
 _ALLOWED_REQUEST_HEADERS = {
     "accept",
     "accept-language",
@@ -516,9 +518,62 @@ def _maybe_start_a6_route_matrix_operation() -> None:
     ).start()
 
 
+def _log_smi_proof_snapshot_once() -> None:
+    """Emit one read-only durable-proof snapshot per process for zero-tolerance gates."""
+
+    global _SMI_PROOF_SNAPSHOT_LOGGED
+    with _SMI_PROOF_SNAPSHOT_LOCK:
+        if _SMI_PROOF_SNAPSHOT_LOGGED:
+            return
+        _SMI_PROOF_SNAPSHOT_LOGGED = True
+    try:
+        snapshot = smi_proof_gate.status()
+        counts = snapshot.get("production_counts") if isinstance(snapshot.get("production_counts"), dict) else {}
+        checks = snapshot.get("checks") if isinstance(snapshot.get("checks"), dict) else {}
+        _LOGGER.info(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_smi_proof_snapshot",
+                    "revision": _revision(),
+                    "rollback_recovery": bool(checks.get("rollback_recovery")),
+                    "runtime_guard": bool(checks.get("runtime_guard")),
+                    "isolation_recovery": bool(checks.get("isolation_recovery")),
+                    "rollback_recovery_receipts": int(counts.get("rollback_recovery_receipts") or 0),
+                    "runtime_guard_receipts": int(counts.get("runtime_guard_receipts") or 0),
+                    "isolation_recovery_receipts": int(counts.get("isolation_recovery_receipts") or 0),
+                    "store_reachable": bool(counts.get("store_reachable")),
+                    "green_gate": bool(snapshot.get("green")),
+                    "production_state_mutated": False,
+                    "execution_authority_expanded": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001 - observability must fail closed.
+        _LOGGER.error(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_smi_proof_snapshot",
+                    "revision": _revision(),
+                    "error": type(exc).__name__,
+                    "production_state_mutated": False,
+                    "execution_authority_expanded": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+
+
 @app.get("/healthz")
 def healthz():
     telemetry.record_http_request(path="/healthz", status_code=200, duration_ms=0.0)
+    _log_smi_proof_snapshot_once()
     _maybe_start_a6_route_matrix_operation()
 
     response = make_response(
