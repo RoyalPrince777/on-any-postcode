@@ -123,6 +123,22 @@ def _provider(
             "Label assumptions. Never claim the code was applied, committed, merged or "
             "deployed. End with the exact Human Authority approval boundary."
         )
+    thinking_level = str((brain or {}).get("thinking_level") or "auto")
+    studio_mode = bool((brain or {}).get("studio_mode"))
+    thinking_instruction = {
+        "instant": " INSTANT MODE: answer rapidly and compactly; use only the minimum analysis needed.",
+        "think": " THINK MODE: perform a stronger evidence and challenge pass before answering.",
+        "deep_dive": " DEEP DIVE MODE: perform the fullest bounded evidence, challenge, synthesis and governance pass available.",
+        "auto": " AUTO MODE: choose the bounded depth appropriate to the request.",
+    }.get(thinking_level, " AUTO MODE: choose the bounded depth appropriate to the request.")
+    system += thinking_instruction
+    if studio_mode:
+        system += (
+            " OAP STUDIO INTELLIGENCE MODE: act as the canonical Founder creation workspace for "
+            "Create, Edit, Package, Rights, Publish preparation, Distribute preparation, Campaign "
+            "and Analyse across image, audio, video, documents, music and creator products. "
+            "Do not claim publishing, distribution, payment or rights clearance without proof."
+        )
     media = media or {}
     prompt = message or "Describe and analyse the attached media."
     if media.get("transcript"):
@@ -152,11 +168,19 @@ def _provider(
                 }
             )
     inputs.append({"role": "user", "content": user_content})
+    token_budget = {
+        "instant": 650,
+        "think": 1100,
+        "deep_dive": 1800,
+        "auto": 1000,
+    }.get(str((brain or {}).get("thinking_level") or "auto"), 1000)
+    if code_mode:
+        token_budget = max(token_budget, 1400)
     payload = json.dumps(
         {
             "model": MODEL,
             "input": inputs,
-            "max_output_tokens": 1200 if code_mode else 900,
+            "max_output_tokens": token_budget,
             "stream": True,
         }
     ).encode()
