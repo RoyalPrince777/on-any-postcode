@@ -219,3 +219,58 @@ def test_sovereign_dashboard_wires_core_routes_without_noise_duplicates():
         assert noise not in script
 
     assert "silently deploy, spend, dispatch, migrate or approve consequential actions" in script
+
+
+def test_button_proof_separates_server_runtime_from_real_browser_click(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health,
+        "function_health",
+        lambda _url_map: {
+            "functions": (
+                {
+                    "id": "chat",
+                    "name": "SMI Chat",
+                    "path": "/mission/ollama",
+                    "available": True,
+                    "proof_checked": True,
+                    "runtime_proven": True,
+                },
+                {
+                    "id": "green-gate",
+                    "name": "Green Gate",
+                    "path": "/mission/smi/green-gate",
+                    "available": True,
+                    "proof_checked": True,
+                    "runtime_proven": False,
+                },
+            )
+        },
+    )
+
+    payload = smi_function_health.button_proof(app_module.app.url_map)
+
+    assert payload["expected_count"] == 2
+    assert payload["server_ready_count"] == 1
+    assert payload["browser_click_ready_count"] == 0
+    assert payload["server_gate_green"] is False
+    assert payload["browser_click_gate_green"] is False
+    assert payload["whole_button_gate_green"] is False
+    assert payload["no_fake_green"] is True
+    buttons = {item["id"]: item for item in payload["buttons"]}
+    assert buttons["chat"]["server_action_proven"] is True
+    assert buttons["chat"]["browser_click_proven"] is False
+    assert buttons["green-gate"]["server_action_proven"] is False
+
+
+def test_button_proof_route_is_founder_only(client):
+    response = client.get("/mission/smi/button-proof")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["component"] == "SMI Founder Button Proof"
+    assert payload["no_fake_green"] is True
+
+
+def test_button_proof_route_rejects_anonymous_access(anonymous_client):
+    response = anonymous_client.get("/mission/smi/button-proof")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"

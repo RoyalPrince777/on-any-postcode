@@ -231,6 +231,17 @@ def smi_function_health_status():
     )
 
 
+@bp.get("/war-room/button-proof")
+@bp.get("/smi/button-proof")
+@web_security.login_required(api=True, founder_only=True)
+def smi_button_proof():
+    """Return bounded server proof while keeping real browser-click proof separate."""
+
+    return _no_store(
+        make_response(jsonify(smi_function_health.button_proof(current_app.url_map)))
+    )
+
+
 @bp.get("/war-room/routes")
 @bp.get("/smi/routes")
 @web_security.login_required(api=True, founder_only=True)
