@@ -99,10 +99,12 @@ def test_anonymous_pages_do_not_disclose_internal_architecture(anonymous_client)
         "/healthz",
         "/livez",
     )
-    public_copy = "\n".join(
-        anonymous_client.get(path).get_data(as_text=True).lower()
-        for path in public_paths
-    )
+    public_copy_parts = []
+    for path in public_paths:
+        page = anonymous_client.get(path).get_data(as_text=True).lower()
+        page = web_security.CSRF_INPUT_RE.sub('csrf_token="[redacted]"', page)
+        public_copy_parts.append(page)
+    public_copy = "\n".join(public_copy_parts)
 
     for internal_term in (
         "neon",
