@@ -24,6 +24,7 @@ from mission_control import (
     approval_service,
     authority,
     carnival_intelligence,
+    certification,
     founder_activation,
     founder_recovery,
     judgement,
@@ -990,6 +991,8 @@ def spot_capability_front_door(capability_slug):
             "workspace": None,
             "workspace_records": [],
             "private_unavailable": False,
+            "merchant_certified": False,
+            "merchant_certification_unavailable": False,
         }
         if capability_slug == "maps-weather-travel" and request.args.get("location"):
             try:
@@ -1039,6 +1042,16 @@ def spot_capability_front_door(capability_slug):
                 )
                 if capability_slug == "sika":
                     context["sika"] = product_store.sika_summary(str(user["id"]))
+                if capability_slug == "market":
+                    try:
+                        merchant_status = certification.identity_status(
+                            str(user["id"])
+                        )
+                        context["merchant_certified"] = bool(
+                            merchant_status.get("merchant")
+                        )
+                    except certification.CertificationUnavailable:
+                        context["merchant_certification_unavailable"] = True
                 if workspace_id:
                     context["workspace"] = workspaces.get(workspace_id)
                     context["workspace_records"] = workspaces.list_records(
@@ -1167,6 +1180,20 @@ def market_listing_create():
     if not web_security.PUBLIC_WRITE_LIMITER.allow(str(user["id"])):
         return _rate_failure()
     try:
+        merchant_status = certification.identity_status(str(user["id"]))
+        if merchant_status.get("merchant") is not True:
+            return (
+                jsonify(
+                    error={
+                        "code": "certified_merchant_required",
+                        "message": (
+                            "Certified Merchant status is required "
+                            "before publishing a Market listing."
+                        ),
+                    }
+                ),
+                403,
+            )
         public_store.ensure_authenticated_user(
             str(user["id"]),
             email=str(user["email"]),
@@ -1180,6 +1207,8 @@ def market_listing_create():
         )
     except ValueError as exc:
         return jsonify(error={"code": str(exc)}), 400
+    except certification.CertificationUnavailable:
+        return jsonify(error={"code": "merchant_certification_unavailable"}), 503
     except (
         public_store.PublicStoreUnavailable,
         product_store.ProductStoreUnavailable,
