@@ -173,3 +173,17 @@ def test_complete_a6_readiness_never_enables_execution_in_source():
     section = source.split("def complete_a6_readiness_protocol", 1)[1]
     assert '"execution_granted": False' in section
     assert '"production_state_mutated": False' in section
+
+
+
+def test_a6_readiness_receipt_uses_canonical_777_envelope():
+    source = Path(a7_certification.__file__).read_text(encoding="utf-8")
+    section = source.split("def record_a6_readiness_bundle", 1)[1].split(
+        "def complete_a6_readiness_protocol", 1
+    )[0]
+    assert '"governance": "7-7-7"' in section
+    assert '"checks": checks' in section
+    assert '"evidence_proven": True' in section
+    assert '"authority_transferred": False' in section
+    assert '"human_authority_required": True' in section
+    assert '"human_authority_approved": True' in section
