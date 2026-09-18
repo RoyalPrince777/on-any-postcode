@@ -78,3 +78,37 @@ def test_public_chat_intelligence_is_bounded():
     assert "const history=[];" in page
     assert "history.slice(-8)" in page
     assert "Chat Intelligence" in page
+
+
+def test_specialist_intelligence_router_marks_unready_media():
+    runtime = (ROOT / "mission_control" / "public_studio_runtime.py").read_text(encoding="utf-8")
+    page = PUBLIC.read_text(encoding="utf-8")
+
+    for name in (
+        "Research Intelligence",
+        "Creation Intelligence",
+        "Code Intelligence",
+        "Learning Intelligence",
+        "Planning Intelligence",
+        "Language Intelligence",
+        "Location Intelligence",
+        "Movement Intelligence",
+        "Commerce Intelligence",
+        "Creator Intelligence",
+        "Safety Intelligence",
+        "Truth-Light Intelligence",
+        "Tool Intelligence",
+    ):
+        assert name in runtime
+
+    for locked in (
+        '"image": {"label": "Image Intelligence", "ready": False}',
+        '"video": {"label": "Video Intelligence", "ready": False}',
+        '"audio": {"label": "Audio Intelligence", "ready": False}',
+        '"file": {"label": "File Intelligence", "ready": False}',
+        '"voice": {"label": "Voice Intelligence", "ready": False}',
+    ):
+        assert locked in runtime
+
+    assert "def _specialist_route(" in runtime
+    assert "s.ready===false?' 🔒':''" in page
