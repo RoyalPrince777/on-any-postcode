@@ -39,7 +39,8 @@ def test_home_exposes_oap_os_install_contract(client):
     assert 'data-oap-install hidden' in page
     assert 'src="/assets/oap-os.js"' in page
     assert "OAP OPERATING SYSTEM · GENERATION 0" in page
-    assert "Run OAP as its own app on this device." in page
+    assert 'data-oap-install-status role="status"' in page
+    assert "Checking install support" in page
     assert "protected records" not in page
 
 
