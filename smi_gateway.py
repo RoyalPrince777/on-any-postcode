@@ -451,7 +451,11 @@ def _complete_a6_readiness_if_requested() -> None:
             ),
         )
     except Exception as exc:  # noqa: BLE001 - readiness must fail closed.
-        reason = str(exc)[:180] if isinstance(exc, RuntimeError) else ""
+        reason = (
+            str(exc)[:180]
+            if isinstance(exc, (RuntimeError, ValueError, PermissionError))
+            else ""
+        )
         _LOGGER.error(
             "%s",
             json.dumps(
@@ -511,6 +515,26 @@ def _run_a6_route_matrix_operation(operation_id: str) -> None:
                 and capture.get("receipt_read_back_verified")
             ),
         )
+        failed_public = [
+            {
+                "route": str(item.get("route") or "")[:120],
+                "method": str(item.get("method") or "")[:12],
+                "status": item.get("status"),
+                "network_error": str(item.get("network_error") or "")[:80],
+            }
+            for item in capture.get("public_results", ())
+            if not item.get("skipped") and not item.get("passed")
+        ][:8]
+        failed_private = [
+            {
+                "route": str(item.get("route") or "")[:120],
+                "method": str(item.get("method") or "")[:12],
+                "status": item.get("status"),
+                "network_error": str(item.get("network_error") or "")[:80],
+            }
+            for item in capture.get("private_anonymous_results", ())
+            if not item.get("skipped") and not item.get("passed")
+        ][:8]
         _LOGGER.info(
             "%s",
             json.dumps(
@@ -525,6 +549,8 @@ def _run_a6_route_matrix_operation(operation_id: str) -> None:
                         and capture.get("receipt_read_back_verified")
                     ),
                     "matrix_postcheck_pass": bool(postcheck.get("passed")),
+                    "failed_public": failed_public,
+                    "failed_private": failed_private,
                     "production_state_mutated": False,
                 },
                 separators=(",", ":"),

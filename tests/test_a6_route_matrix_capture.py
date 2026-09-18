@@ -175,3 +175,24 @@ def test_private_gateway_a6_readiness_requires_independent_evidence():
     assert 'OAP_A6_INDEPENDENT_EVIDENCE_HASH' in source
     assert 'OAP_A6_INDEPENDENT_EVIDENCE_ISSUER' in source
     assert 'raise RuntimeError("a6_independent_evidence_not_configured")' in source
+
+
+def test_gateway_logs_bounded_route_matrix_failures_without_payloads():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert '"failed_public": failed_public' in source
+    assert '"failed_private": failed_private' in source
+    assert '"route": str(item.get("route") or "")[:120]' in source
+    assert '"method": str(item.get("method") or "")[:12]' in source
+    assert '"status": item.get("status")' in source
+    assert '"network_error": str(item.get("network_error") or "")[:80]' in source
+    assert "request.data" not in source
+
+
+def test_gateway_surfaces_bounded_value_error_reason_for_a6_readiness():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    section = source.split("def _complete_a6_readiness_if_requested", 1)[1].split(
+        "def _run_a6_route_matrix_operation", 1
+    )[0]
+    assert "ValueError" in section
+    assert "PermissionError" in section
+    assert "str(exc)[:180]" in section
