@@ -32,6 +32,7 @@ from . import (
     smi_recursive_improvement,
     smi_workbench,
     status,
+    studio_intelligence,
     war_room,
     web_security,
 )
@@ -468,6 +469,8 @@ def smi_chat_message():
             payload.get("image_data"),
             payload.get("attachment"),
             code_mode=bool(payload.get("code_mode")),
+            thinking_level=str(payload.get("thinking_level") or "auto"),
+            studio_mode=bool(payload.get("studio_mode")),
         )
         return _no_store(make_response(jsonify(result)))
     except (TypeError, ValueError) as exc:
@@ -523,6 +526,8 @@ def smi_chat_stream():
             payload.get("image_data"),
             payload.get("attachment"),
             code_mode=bool(payload.get("code_mode")),
+            thinking_level=str(payload.get("thinking_level") or "auto"),
+            studio_mode=bool(payload.get("studio_mode")),
         )
         for item in events:
             event_name = str(item.get("type", "message"))
@@ -614,6 +619,14 @@ def smi_workbench_status():
     """Return secret-safe tool and capability readiness to the Founder UI."""
 
     return _no_store(make_response(jsonify(smi_workbench.get_workbench_status())))
+
+
+@bp.get("/studio/status")
+@web_security.login_required(api=True)
+def smi_studio_status():
+    """Return the canonical Founder-only OAP Studio Intelligence contract."""
+
+    return _no_store(make_response(jsonify(studio_intelligence.status())))
 
 
 @bp.get("/improvement")
