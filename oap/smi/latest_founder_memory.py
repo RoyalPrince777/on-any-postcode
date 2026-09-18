@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 
 from oap.contracts import MemoryItem, OutputState
 
-REVISION = "2026-09-11-founder-parity"
-_TIMESTAMP = datetime(2026, 9, 11, tzinfo=timezone.utc)
+REVISION = "2026-09-18-war-room-intelligence"
+_TIMESTAMP = datetime(2026, 9, 18, tzinfo=timezone.utc)
 
 _RECORDS = (
     (
@@ -21,6 +21,25 @@ _RECORDS = (
             "outputs, context, learning, receipts and status. HRM remains governance, "
             "audit, review and lessons; Neon or another database is persistence "
             "infrastructure and does not replace HRM or JOOG semantics."
+        ),
+    ),
+    (
+        "joog.war-room-intelligence",
+        (
+            "JOOG MEMORY War Room Intelligence lock: War Room is the governed strategic "
+            "simulation and challenge chamber, not final authority. Every War Room mission "
+            "uses a short MISSION title, explicit MODE (SMI AUTO, MANUAL or WAR ROOM), "
+            "ALIGNMENT checks for naming, OAP language, title clarity, duplicates and Founder "
+            "rules, then CHALLENGE checks for evidence, counter-view, failure risk, false-green "
+            "risk and recovery path. Build/learning progression remains exactly 25%=Rollback/"
+            "Recovery, 50%=Runtime Guard, 75%=Aegis Isolation/Recovery, 100%=Green Gate + "
+            "Founder Final; 3/7/21 controls review depth separately. War Room preserves "
+            "material dissent, strongest/weakest links, minority report, Guardian state, "
+            "Green Gate state and one concise decision: PASS, HOLD/SHARPEN, BLOCK or FOUNDER "
+            "FINAL. Reports stay low-noise as DONE / LOCKED / NEXT. No fabricated votes, "
+            "scores or green states; missing evidence stays unknown/incomplete. HRM/JOOG "
+            "records the safe summary, actions, receipts, lessons and next state, never raw "
+            "private chain-of-thought, secrets or hidden prompts. Human Authority remains final."
         ),
     ),
     (
