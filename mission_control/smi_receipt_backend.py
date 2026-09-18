@@ -26,6 +26,7 @@ ALLOWED_RECEIPT_KINDS = {
     "behaviour_score_receipt",
     "behaviour_learning_receipt",
     "behaviour_step4_readiness_receipt",
+    "studio_generation_receipt",
 }
 
 
