@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import maps_movement_direct_proof_runner, web_security
+from . import a6_matrix_execution, maps_movement_direct_proof_runner, web_security
 
 bp = Blueprint("maps_movement_direct_proof", __name__)
 
@@ -110,7 +110,7 @@ def _smi_level_payload(*, level: str, level_name: str, state: str, signal: str, 
         "intelligence": "SMI",
         "level": level,
         "level_name": level_name,
-        "current_live_level": "A4 supervised",
+        "current_live_level": "A6 Matrix-governed" if level == "A6" and a6_matrix_execution.status().get("enabled") else "A5 preparation",
         "can_execute": False,
         "can_approve": False,
         "can_self_promote": False,
@@ -206,23 +206,25 @@ def smi_level_a5_atlas_movement_direct_projection():
 @bp.get("/war-room/actions/smi-level-a6-direct")
 @web_security.login_required(api=True)
 def smi_level_a6_direct_projection():
-    """Expose the future SMI Level A6 Direct execution contract without unlocking it."""
+    """Expose the live Matrix-governed A6 execution contract truthfully."""
 
+    runtime = a6_matrix_execution.status()
+    state = "matrix_governed" if runtime.get("enabled") else "locked"
+    signal = "purple" if runtime.get("enabled") else "yellow"
     return _no_store(
         make_response(
             jsonify(
                 _smi_level_payload(
                     level="A6",
                     level_name="Governed operational execution",
-                    state="future_locked",
-                    signal="yellow",
+                    state=state,
+                    signal=signal,
                     message=(
-                        "A6 is the future SMI level for governed operational execution. "
-                        "For OAP Direct, it may only execute internal proof-backed workflow "
-                        "steps after Founder approval, Guardian pass, Green Gate pass, HRM "
-                        "receipt and rollback path exist. It still cannot capture payment, "
-                        "dispatch, track without consent or claim a confirmed reservation "
-                        "without supplier receipt."
+                        "A6 is enabled only when the Matrix control plane and readiness proof "
+                        "are both live. Every operation remains individually gated by Founder "
+                        "approval, Guardian, Green Gate, rollback, HRM receipt readiness and "
+                        "Matrix pre/post checks. Payment, dispatch, hidden tracking and "
+                        "unproven reservation confirmation remain locked."
                     ),
                     allowed_capabilities=(
                         "execute_internal_route_matrix_capture_after_approval",
@@ -273,9 +275,9 @@ def private_smi_debug_projection():
                 secrets_exposed=False,
                 private_records_exposed=False,
                 smi_public_exposure_blocked=True,
-                active_level="A4 supervised",
-                next_level="A5 locked level",
-                future_execution_level="A6 future locked",
+                active_level=("A6 Matrix-governed" if a6_matrix_execution.status().get("enabled") else "A5 preparation"),
+                next_level="A7 locked",
+                future_execution_level="A7 constitutional locked",
                 signals_core=21,
                 route_matrix={
                     "target_count": route_matrix.get("target_count"),
