@@ -246,7 +246,8 @@ def completion_status() -> dict[str, object]:
             "expected_count": core_expected_count,
             "proof_gate_ids": CORE_PROOF_GATE_IDS,
             "higher_autonomy_certification_required": False,
-            "a5_a6_a7_remain_locked": True,
+            "a5_preparation_may_be_enabled": True,
+            "a6_a7_remain_locked": True,
         },
         "hard_locks": {
             "a5_enabled": autonomy["a5_enabled"],
@@ -266,7 +267,7 @@ def completion_status() -> dict[str, object]:
             "rollback_recovery": "green" if rollback_proven else "proof_required",
             "observability": "green" if observability_proven else "proof_required",
             "green_gate": "green" if runtime_green else "proof_required",
-            "a5": "locked",
+            "a5": "preparation_only" if autonomy["a5_enabled"] else "locked",
             "a6": "locked",
             "a7": "ready_for_founder_certification" if a7_ready else "locked",
             "whole_smi_runtime": "green_bounded_runtime" if runtime_green else "not_full_green",
@@ -275,7 +276,7 @@ def completion_status() -> dict[str, object]:
         "green_gate": {
             "code_boundary_ready": True,
             "smi_runtime_full_green": runtime_green,
-            "higher_levels_locked": True,
+            "higher_execution_levels_locked": True,
             "missing": gate_snapshot.get("missing", ()),
             "reason_not_full_green": (
                 None
