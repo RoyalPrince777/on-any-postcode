@@ -44,3 +44,10 @@ def test_gateway_authority_resolver_fails_closed_without_unique_authority():
     assert "single_human_authority_not_proven" in source
     assert "LIMIT 2" in source
     assert "authority.APPROVAL_PERMISSION" in source
+
+
+
+def test_gateway_authority_resolver_distinct_order_expression_matches_select():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert "SELECT DISTINCT i.identity_id::text" in source
+    assert "ORDER BY i.identity_id::text" in source
