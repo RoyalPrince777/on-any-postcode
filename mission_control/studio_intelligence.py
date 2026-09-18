@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import smi_receipt_backend
+from . import smi_receipt_backend, studio_media_backend
 
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
@@ -156,6 +156,70 @@ def prepare_generation(tool_id: str, *, prompt: object = "", source_ref: object 
     }
 
 
+def execute_generation(
+    tool_id: str,
+    *,
+    prompt: object = "",
+    source_image_data: object = "",
+) -> dict[str, Any]:
+    """Execute one supported provider-backed Studio generation request.
+
+    Image generation may return a complete artifact immediately. Video generation
+    returns a governed job and remains purple until the provider reports completed.
+    """
+
+    tool = _tool(tool_id)
+    clean_prompt = str(prompt or "").strip()
+    if tool["id"] == "imagine":
+        artifact = studio_media_backend.generate_image(clean_prompt)
+    elif tool["id"] in {"scene_builder", "bring_alive"}:
+        source_data = str(source_image_data or "").strip()
+        if tool["id"] == "bring_alive" and not source_data:
+            raise ValueError("studio_source_image_data_required")
+        artifact = studio_media_backend.create_video(
+            clean_prompt,
+            source_image_data=source_data,
+        )
+    else:  # pragma: no cover - guarded by _tool
+        raise ValueError("unsupported_studio_tool")
+
+    artifact_proven = bool(artifact.get("artifact_proven"))
+    receipt = smi_receipt_backend.write_receipt(
+        "studio_generation_receipt",
+        {
+            "brain_part": "studio_intelligence",
+            "gate": 21,
+            "command": tool["id"],
+            "signal": "🟢" if artifact_proven else "🟣",
+            "guardian": "required",
+            "green_gate": "artifact_proven" if artifact_proven else "awaiting_artifact_proof",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                "tool_id": tool["id"],
+                "output_kind": tool["output"],
+                "provider": "openai",
+                "model": str(artifact.get("model") or ""),
+                "artifact_proven": artifact_proven,
+                "video_job_id_present": bool(artifact.get("id")),
+                "execution_authority_expanded": False,
+            },
+        },
+    )
+    return {
+        "studio": STUDIO_NAME,
+        "tool": tool,
+        "smi_depth": 21,
+        "state": "generated" if artifact_proven else "provider_job_started",
+        "output_generated": artifact_proven,
+        "artifact": artifact,
+        "chronicle_receipt": receipt,
+        "execution_granted": False,
+        "publishing_granted": False,
+        "distribution_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def status() -> dict[str, Any]:
     """Return the secret-free Studio contract for the Founder workbench."""
 
@@ -168,7 +232,8 @@ def status() -> dict[str, Any]:
         "generation_tools": [dict(tool) for tool in GENERATION_TOOLS],
         "studio_21_stage_count": len(STUDIO_21_STAGES),
         "studio_21_stages": list(STUDIO_21_STAGES),
-        "generation_backend_proven": False,
+        "generation_backend": studio_media_backend.status(),
+        "generation_backend_proven": bool(studio_media_backend.status()["configured"]),
         "full_live_certificate": False,
         "media": list(MEDIA),
         "capture_inputs": list(CAPTURE_INPUTS),
