@@ -15,7 +15,6 @@ from .organism import (
     validate_architecture,
 )
 
-
 LEARNING_CIRCUIT = (
     {"step": "Thalamus", "role": "Filter incoming experience and redact private data."},
     {"step": "Hippocampus", "role": "Form episodic memory and prepare bounded learning candidates."},
