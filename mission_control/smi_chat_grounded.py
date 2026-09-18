@@ -53,7 +53,7 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "not extra agents, brains or products. A4 may operate only through the separately audited "
         "runtime policy using pre-authorised reversible non-consequential actions; it never grants "
         "chat permission to spend, deploy, dispatch, publish, change auth/security, migrate production "
-        "data, alter permissions or change the constitution. A5 may prepare governed operational proof packs when its explicit preparation gate is enabled; it never executes consequential actions. A6 is locked. A7 is locked. "
+        "data, alter permissions or change the constitution. A5 is locked unless its explicit preparation gate is enabled; when enabled it may prepare governed operational proof packs but never execute consequential actions. A6 is locked. A7 is locked. "
         "Those levels remain locked unless their real proof gates are satisfied; higher levels never "
         "move Human Authority. The Intelligence Lens layer contains governed analysis capabilities, "
         "not autonomous agents. Only Truth Intelligence plus Evidence Intelligence may support a green "
