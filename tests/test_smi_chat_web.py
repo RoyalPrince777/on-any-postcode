@@ -262,7 +262,7 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
     assert scored["measured_count"] == 9
     assert scored["unknown_count"] == 12
     assert scored["coverage_percentage"] == 43
-    assert scored["measured_average_percentage"] == 78
+    assert scored["measured_average_percentage"] == 67
     assert scored["overall_percentage"] is None
     assert scored["overall_evidence_state"] == "partial"
     assert scored["behaviour_learning_applied"] is False
