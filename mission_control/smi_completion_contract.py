@@ -247,7 +247,8 @@ def completion_status() -> dict[str, object]:
             "proof_gate_ids": CORE_PROOF_GATE_IDS,
             "higher_autonomy_certification_required": False,
             "a5_preparation_may_be_enabled": True,
-            "a6_a7_remain_locked": True,
+            "a6_may_be_matrix_governed": True,
+            "a7_remains_locked": True,
         },
         "hard_locks": {
             "a5_enabled": autonomy["a5_enabled"],
@@ -268,7 +269,7 @@ def completion_status() -> dict[str, object]:
             "observability": "green" if observability_proven else "proof_required",
             "green_gate": "green" if runtime_green else "proof_required",
             "a5": "preparation_only" if autonomy["a5_enabled"] else "locked",
-            "a6": "locked",
+            "a6": "matrix_governed" if autonomy["a6_enabled"] else "locked",
             "a7": "ready_for_founder_certification" if a7_ready else "locked",
             "whole_smi_runtime": "green_bounded_runtime" if runtime_green else "not_full_green",
             "bounded_core": "green" if core_complete else "proof_required",
@@ -276,12 +277,13 @@ def completion_status() -> dict[str, object]:
         "green_gate": {
             "code_boundary_ready": True,
             "smi_runtime_full_green": runtime_green,
-            "higher_execution_levels_locked": True,
+            "higher_execution_levels_locked": not autonomy["a6_enabled"],
+            "a6_operation_gated": True,
             "missing": gate_snapshot.get("missing", ()),
             "reason_not_full_green": (
                 None
                 if runtime_green
-                else "Current bounded SMI Green Gate still lacks one or more live Founder, receipt, meaningful-event, rollback or observability proofs. A5-A7 remain locked."
+                else "Current bounded SMI Green Gate still lacks one or more live Founder, receipt, meaningful-event, rollback or observability proofs."
             ),
         },
         "final_rule": (

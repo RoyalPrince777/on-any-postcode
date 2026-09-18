@@ -33,8 +33,22 @@ A4_CHECKPOINT_EVERY = 3
 A4_MAX_WORKFLOW_STEPS = 21
 A4_REQUIRES_SUPERVISION = True
 A5_ENABLED = os.environ.get("OAP_A5_ENABLED", "false").strip().lower() in {"1", "true", "yes"}
-A6_ENABLED = False
+A6_ENABLED = os.environ.get("OAP_A6_ENABLED", "false").strip().lower() in {"1", "true", "yes"}
+A6_MATRIX_CONTROL = os.environ.get("OAP_A6_MATRIX_CONTROL", "false").strip().lower() in {"1", "true", "yes"}
 A7_ENABLED = False
+A6_EXECUTION_ACTIONS = frozenset(
+    {
+        "ROUTE_MATRIX_CAPTURE",
+        "PRIVATE_GUARD_CAPTURE",
+        "ATLAS_SOURCE_HEALTH_CAPTURE",
+        "DIRECT_REQUEST_DRAFT",
+        "SUPPLIER_READINESS_CHECK",
+        "INVENTORY_READINESS_CHECK",
+        "HRM_RECEIPT_STEP",
+        "ROLLBACK_PACK_CAPTURE",
+    }
+)
+
 A5_PREPARATION_ACTIONS = frozenset(
     {
         "PROOF_PACK",
@@ -200,9 +214,16 @@ def level_ladder() -> tuple[dict[str, object], ...]:
         elif level == "A4":
             state = "live_governed" if configured == "A4" else "policy_ready"
         elif level == "A5":
-            state = "governed_preparation" if A5_ENABLED and configured == "A5" else "locked_ready_boundary"
+            if A5_ENABLED and configured in {"A5", "A6"}:
+                state = "governed_preparation"
+            else:
+                state = "locked_ready_boundary"
         elif level == "A6":
-            state = "future_locked"
+            state = (
+                "matrix_governed_execution"
+                if A6_ENABLED and A6_MATRIX_CONTROL and configured == "A6"
+                else "future_locked"
+            )
         else:
             state = "constitutional_locked"
         rows.append(
@@ -237,10 +258,13 @@ def status() -> dict[str, object]:
         "a4_max_workflow_steps": A4_MAX_WORKFLOW_STEPS,
         "a4_supervision_required": A4_REQUIRES_SUPERVISION,
         "a4_expands_action_authority": False,
-        "a5_enabled": bool(A5_ENABLED and level == "A5"),
+        "a5_enabled": bool(A5_ENABLED and level in {"A5", "A6"}),
         "a5_preparation_actions": tuple(sorted(A5_PREPARATION_ACTIONS)),
         "a5_execution_authority_expanded": False,
-        "a6_enabled": A6_ENABLED,
+        "a6_enabled": bool(A6_ENABLED and level == "A6"),
+        "a6_matrix_control": bool(A6_MATRIX_CONTROL and level == "A6"),
+        "a6_execution_actions": tuple(sorted(A6_EXECUTION_ACTIONS)),
+        "a6_execution_is_operation_gated": True,
         "a7_enabled": A7_ENABLED,
         "a5_requirements": A5_REQUIREMENTS,
         "a6_requirements": A6_REQUIREMENTS,
@@ -278,5 +302,58 @@ def evaluate_a5_preparation(action_type: object) -> dict[str, object]:
         "execution_granted": False,
         "consequential_action_allowed": False,
         "dynamic_permission_expansion_allowed": False,
+        "human_authority_final": True,
+    }
+
+
+def evaluate_a6_operation(
+    action_type: object,
+    *,
+    founder_approved: bool,
+    guardian_pass: bool,
+    green_gate_pass: bool,
+    rollback_proven: bool,
+    receipt_chain_ready: bool,
+    matrix_precheck_pass: bool,
+) -> dict[str, object]:
+    """Evaluate one A6 operation without bypassing per-operation governance."""
+
+    action = str(action_type or "").strip().upper()
+    level = configured_level()
+    enabled = bool(A6_ENABLED and A6_MATRIX_CONTROL and level == "A6")
+    allowlisted = action in A6_EXECUTION_ACTIONS
+    controls = {
+        "founder_approved": founder_approved is True,
+        "guardian_pass": guardian_pass is True,
+        "green_gate_pass": green_gate_pass is True,
+        "rollback_proven": rollback_proven is True,
+        "receipt_chain_ready": receipt_chain_ready is True,
+        "matrix_precheck_pass": matrix_precheck_pass is True,
+    }
+    allowed = bool(enabled and allowlisted and all(controls.values()))
+    if allowed:
+        reason = "allowed_matrix_governed_operation"
+    elif not enabled:
+        reason = "a6_matrix_execution_not_enabled"
+    elif not allowlisted:
+        reason = "action_not_a6_allowlist"
+    else:
+        reason = "operation_governance_incomplete"
+    return {
+        "configured_level": level,
+        "requested_level": "A6",
+        "action_type": action,
+        "allowed": allowed,
+        "reason": reason,
+        "matrix_control_required": True,
+        "matrix_postcheck_required": True,
+        "controls": controls,
+        "audit_required": True,
+        "rollback_required": True,
+        "hrm_receipt_required": True,
+        "dynamic_permission_expansion_allowed": False,
+        "forbidden_domain_bypass_allowed": False,
+        "self_permission_change_allowed": False,
+        "self_constitution_change_allowed": False,
         "human_authority_final": True,
     }
