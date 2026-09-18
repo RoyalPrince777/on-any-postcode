@@ -132,7 +132,7 @@ def init_app(app: Flask) -> None:
                 ),
                 flush=True,
             )
-        except Exception as exc:  # noqa: BLE001 - migration must fail closed.
+        except Exception as exc:
             reason = (
                 str(exc)[:220]
                 if isinstance(
