@@ -23,4 +23,5 @@ def test_higher_autonomy_does_not_fake_block_bounded_core_completion():
     assert "a7_external" not in core_block
     assert '"higher_autonomy_certification_required": False' in source
     assert '"a5_preparation_may_be_enabled": True' in source
-    assert '"a6_a7_remain_locked": True' in source
+    assert '"a6_may_be_matrix_governed": True' in source
+    assert '"a7_remains_locked": True' in source
