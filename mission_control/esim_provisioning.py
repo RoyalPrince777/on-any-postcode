@@ -51,6 +51,11 @@ class EsimRepository(typing.Protocol):
 
     def save_request(self, item: dict[str, typing.Any]) -> None: ...
     def append_event(self, event: dict[str, typing.Any]) -> None: ...
+    def save_with_event(
+        self,
+        item: dict[str, typing.Any],
+        event: dict[str, typing.Any],
+    ) -> None: ...
     def get_request(self, request_id: str) -> dict[str, typing.Any] | None: ...
     def list_events(self, request_id: str) -> list[dict[str, typing.Any]]: ...
 
@@ -234,8 +239,10 @@ class EsimProvisioningCore:
         }
         payload.update({key: value for key, value in extra.items() if value is not None})
         if self.repository is not None:
-            self.repository.save_request(dataclasses.asdict(item))
-            self.repository.append_event(payload)
+            atomic_writer = getattr(self.repository, "save_with_event", None)
+            if not callable(atomic_writer):
+                raise RuntimeError("esim_atomic_audit_required")
+            atomic_writer(dataclasses.asdict(item), payload)
         self._events.append(payload)
 
 
