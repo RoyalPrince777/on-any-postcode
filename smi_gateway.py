@@ -15,7 +15,7 @@ from urllib import request as urlrequest
 
 from flask import Flask, Response, make_response, redirect, request, stream_with_context
 
-from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner, postgres_db, telemetry
+from mission_control import a6_matrix_execution, a7_certification, authority, postgres_db, telemetry
 
 app = Flask(__name__)
 _LOGGER = logging.getLogger(__name__)
@@ -411,39 +411,15 @@ def _run_a6_route_matrix_operation(operation_id: str) -> None:
         identity_id = _resolve_a6_human_authority()
         proof = a7_certification.status()
         checks = proof.get("a6_checks") if isinstance(proof.get("a6_checks"), dict) else {}
-        precheck = a6_matrix_execution.precheck(
-            "ROUTE_MATRIX_CAPTURE",
+        lane = a6_matrix_execution.run_route_matrix_lane(
+            identity_id=identity_id,
+            base_url=_origin(),
+            operation_id=operation_id,
             founder_approved=True,
             guardian_pass=bool(checks.get("guardian_pass")),
             green_gate_pass=bool(checks.get("green_gate")),
             rollback_proven=True,
             receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain")),
-        )
-        if not precheck.get("allowed"):
-            runtime = precheck.get("runtime") if isinstance(precheck.get("runtime"), dict) else {}
-            raise RuntimeError(
-                "a6_route_matrix_precheck_blocked:"
-                + str(precheck.get("reason") or "unknown")[:60]
-                + f":level={runtime.get('configured_level')}"
-                + f":readiness={bool(runtime.get('a6_readiness_proven'))}"
-                + f":matrix={bool(runtime.get('matrix_ready'))}"
-                + f":matrix_count={runtime.get('matrix_registered_count')}"
-                + f":enabled={bool(runtime.get('enabled'))}"
-            )
-
-        capture = maps_movement_direct_proof_runner.execute_route_matrix_capture(
-            identity_id=identity_id,
-            base_url=_origin(),
-            operation_id=operation_id,
-        )
-        postcheck = a6_matrix_execution.postcheck(
-            "ROUTE_MATRIX_CAPTURE",
-            operation_succeeded=bool(capture.get("passed")),
-            rollback_still_available=True,
-            receipt_recorded=bool(
-                capture.get("receipt_write_verified")
-                and capture.get("receipt_read_back_verified")
-            ),
         )
         _LOGGER.info(
             "%s",
@@ -451,14 +427,11 @@ def _run_a6_route_matrix_operation(operation_id: str) -> None:
                 {
                     "event": "oap_a6_route_matrix_capture",
                     "operation_id": operation_id,
-                    "success": bool(capture.get("passed") and postcheck.get("passed")),
-                    "public_probe_pass": bool(capture.get("public_probe_pass")),
-                    "private_fail_closed_pass": bool(capture.get("private_fail_closed_pass")),
-                    "receipt_verified": bool(
-                        capture.get("receipt_write_verified")
-                        and capture.get("receipt_read_back_verified")
-                    ),
-                    "matrix_postcheck_pass": bool(postcheck.get("passed")),
+                    "success": bool(lane.get("success")),
+                    "public_probe_pass": bool(lane.get("public_probe_pass")),
+                    "private_fail_closed_pass": bool(lane.get("private_fail_closed_pass")),
+                    "receipt_verified": bool(lane.get("receipt_verified")),
+                    "matrix_postcheck_pass": bool(lane.get("matrix_postcheck_pass")),
                     "production_state_mutated": False,
                 },
                 separators=(",", ":"),
