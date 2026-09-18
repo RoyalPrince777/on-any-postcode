@@ -21,6 +21,7 @@ from . import (
     brain,
     infrastructure,
     judgement,
+    matrix_simulation,
     neon_auth,
     organism,
     organism_runtime,
@@ -1168,6 +1169,7 @@ def _snapshot() -> dict[str, dict[str, Any]]:
         "runtime": _safe_mapping(organism_runtime.runtime_status),
         "telemetry": _safe_mapping(telemetry.status),
         "guardian": _safe_mapping(GuardianEngine().status),
+        "matrix_simulation": _safe_mapping(matrix_simulation.status),
     }
 
 
@@ -1364,6 +1366,8 @@ def get_war_room_dashboard() -> dict[str, Any]:
         "controls_enabled": False,
         "can_approve": False,
         "can_execute": False,
+        "training_environment": snapshot["matrix_simulation"],
+        "training_flow": "Matrix Simulation -> War Room review -> Guardian -> Green Gate -> Human Authority",
         "human_authority": {
             "status": "Final approval required",
             "message": (
