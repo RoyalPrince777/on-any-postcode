@@ -484,8 +484,13 @@ def _run_a6_route_matrix_operation(operation_id: str) -> None:
         )
 
 
-def _maybe_start_a6_route_matrix_operation() -> None:
-    if os.environ.get("OAP_A6_ROUTE_MATRIX_ON_HEALTH", "").strip() != "1":
+def _maybe_start_a6_route_matrix_operation(*, trigger: str = "health") -> None:
+    flag = (
+        "OAP_A6_ROUTE_MATRIX_ON_BOOT"
+        if trigger == "boot"
+        else "OAP_A6_ROUTE_MATRIX_ON_HEALTH"
+    )
+    if os.environ.get(flag, "").strip() != "1":
         return
     operation_id = os.environ.get("OAP_A6_ROUTE_MATRIX_OPERATION_ID", "").strip()
     if not operation_id:
@@ -494,6 +499,7 @@ def _maybe_start_a6_route_matrix_operation() -> None:
             json.dumps(
                 {
                     "event": "oap_a6_route_matrix_capture",
+                    "trigger": trigger,
                     "success": False,
                     "error": "RuntimeError",
                     "reason": "route_matrix_operation_id_not_configured",
@@ -508,6 +514,19 @@ def _maybe_start_a6_route_matrix_operation() -> None:
         if operation_id in _A6_ROUTE_MATRIX_STARTED:
             return
         _A6_ROUTE_MATRIX_STARTED.add(operation_id)
+    _LOGGER.info(
+        "%s",
+        json.dumps(
+            {
+                "event": "oap_a6_route_matrix_capture_started",
+                "trigger": trigger,
+                "operation_id": operation_id,
+                "production_state_mutated": False,
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+    )
     threading.Thread(
         target=_run_a6_route_matrix_operation,
         args=(operation_id,),
@@ -516,10 +535,16 @@ def _maybe_start_a6_route_matrix_operation() -> None:
     ).start()
 
 
+# Render can mark the gateway live without issuing an observable /healthz request.
+# The boot trigger is therefore an explicit, opt-in equivalent for the same
+# one-shot, read-only A6 capture. The shared operation-id set prevents duplicates.
+_maybe_start_a6_route_matrix_operation(trigger="boot")
+
+
 @app.get("/healthz")
 def healthz():
     telemetry.record_http_request(path="/healthz", status_code=200, duration_ms=0.0)
-    _maybe_start_a6_route_matrix_operation()
+    _maybe_start_a6_route_matrix_operation(trigger="health")
 
     response = make_response(
         json.dumps(
