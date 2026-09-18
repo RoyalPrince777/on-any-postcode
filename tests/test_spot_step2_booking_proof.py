@@ -87,3 +87,24 @@ def test_step2_boot_trigger_is_explicit_and_fail_closed():
     assert '"real_booking_created": False' in source
     assert '"payment_capture": False' in source
     assert '"dispatch": False' in source
+
+
+def test_supply_core_boot_migration_is_explicitly_opt_in_and_precedes_step2():
+    source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
+
+    assert 'OAP_TRAVEL_SUPPLY_MIGRATION_ON_BOOT' in source
+    assert "travel_supply_core.init_supply_core_schema(" in source
+    assert "assume_yes=True" in source
+    assert '"event": "oap_travel_supply_migration"' in source
+    migration_call = source.index("travel_supply_core.init_supply_core_schema(")
+    step2_call = source.index("spot_step2_booking_proof.run(")
+    assert migration_call < step2_call
+
+
+def test_supply_migration_does_not_enable_payment_or_dispatch():
+    source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
+    block = source.split(
+        'OAP_TRAVEL_SUPPLY_MIGRATION_ON_BOOT', 1
+    )[1].split('OAP_SPOT_STEP2_PROOF_ON_BOOT', 1)[0]
+    assert "payment_capture" not in block
+    assert "dispatch" not in block
