@@ -28,6 +28,10 @@ class FakeRepository:
     def append_event(self, event: dict) -> None:
         self.event_rows.append(dict(event))
 
+    def save_with_event(self, item: dict, event: dict) -> None:
+        self.requests[item["request_id"]] = dict(item)
+        self.event_rows.append(dict(event))
+
     def get_request(self, request_id: str) -> dict | None:
         item = self.requests.get(request_id)
         return dict(item) if item is not None else None
