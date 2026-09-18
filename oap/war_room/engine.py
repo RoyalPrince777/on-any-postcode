@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from .role_growth import status as role_growth_status\n\nfrom oap.contracts import (
+from .role_growth import status as role_growth_status
+
+from oap.contracts import (
     BrainRequest,
     IntegratedAnalysis,
     OutputState,
