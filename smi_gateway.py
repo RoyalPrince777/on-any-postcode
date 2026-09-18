@@ -14,7 +14,7 @@ from urllib import request as urlrequest
 
 from flask import Flask, Response, make_response, redirect, request, stream_with_context
 
-from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner
+from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner, postgres_db
 
 app = Flask(__name__)
 _LOGGER = logging.getLogger(__name__)
@@ -58,6 +58,34 @@ class _NoRedirect(urlrequest.HTTPRedirectHandler):
 
 
 _OPENER = urlrequest.build_opener(_NoRedirect())
+
+
+
+def _resolve_a6_human_authority() -> str:
+    """Resolve the sole active level-zero Human Authority for one-shot A6 work."""
+
+    configured = authority.configured_identity()
+    if configured:
+        return configured
+    with postgres_db.connect(readonly=True) as connection:
+        rows = connection.execute(
+            """SELECT DISTINCT i.identity_id::text
+               FROM oap_identities i
+               JOIN oap_identity_roles ir ON ir.identity_id=i.identity_id
+               JOIN oap_roles r ON r.role_id=ir.role_id
+               JOIN oap_role_permissions rp ON rp.role_id=r.role_id
+               WHERE i.status='ACTIVE'
+                 AND i.identity_type='HUMAN_AUTHORITY'
+                 AND r.authority_level=0
+                 AND rp.permission_id=%s
+               ORDER BY i.identity_id
+               LIMIT 2""",
+            (authority.APPROVAL_PERMISSION,),
+        ).fetchall()
+    if len(rows) != 1:
+        raise RuntimeError("single_human_authority_not_proven")
+    return str(rows[0][0])
+
 
 
 def _origin() -> str:
@@ -364,9 +392,7 @@ def war_room_alias():
 def healthz():
     if os.environ.get("OAP_A6_ROUTE_MATRIX_ON_HEALTH", "").strip() == "1":
         try:
-            identity_id = authority.configured_identity()
-            if not identity_id:
-                raise RuntimeError("human_authority_identity_not_configured")
+            identity_id = _resolve_a6_human_authority()
             operation_id = os.environ.get("OAP_A6_ROUTE_MATRIX_OPERATION_ID", "").strip()
             if not operation_id:
                 raise RuntimeError("route_matrix_operation_id_not_configured")
