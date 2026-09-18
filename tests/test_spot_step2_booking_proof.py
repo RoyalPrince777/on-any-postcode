@@ -77,7 +77,9 @@ def test_step2_proof_persists_only_governed_proof_after_rollback():
 
 
 def test_step2_boot_trigger_is_explicit_and_fail_closed():
-    source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
+    source = (ROOT / "mission_control" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
 
     assert 'OAP_SPOT_STEP2_PROOF_ON_BOOT' in source
     assert 'OAP_SPOT_STEP2_PROOF_OPERATION_ID' in source
@@ -87,3 +89,28 @@ def test_step2_boot_trigger_is_explicit_and_fail_closed():
     assert '"real_booking_created": False' in source
     assert '"payment_capture": False' in source
     assert '"dispatch": False' in source
+
+
+def test_supply_core_boot_migration_is_explicit_and_precedes_step2_proof():
+    source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
+
+    assert 'OAP_SUPPLY_CORE_MIGRATION_ON_BOOT' in source
+    assert 'travel_supply_core.init_supply_core_schema(' in source
+    assert 'assume_yes=True' in source
+    assert '"event": "oap_supply_core_migration"' in source
+    assert '"human_authority_final": True' in source
+    migration_index = source.index('OAP_SUPPLY_CORE_MIGRATION_ON_BOOT')
+    step2_index = source.index('OAP_SPOT_STEP2_PROOF_ON_BOOT')
+    assert migration_index < step2_index
+
+
+def test_supply_core_boot_migration_does_not_unlock_payments_or_dispatch():
+    source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
+    block = source.split('OAP_SUPPLY_CORE_MIGRATION_ON_BOOT', 1)[1].split(
+        'OAP_SPOT_STEP2_PROOF_ON_BOOT',
+        1,
+    )[0]
+
+    assert "payment_capture" not in block
+    assert "dispatch" not in block
+    assert "execution_granted" not in block

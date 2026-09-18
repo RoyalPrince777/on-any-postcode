@@ -108,6 +108,55 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    supply_migration_requested = (
+        os.environ.get("OAP_SUPPLY_CORE_MIGRATION_ON_BOOT", "").strip() == "1"
+    )
+    if supply_migration_requested:
+        try:
+            supply_status = travel_supply_core.init_supply_core_schema(
+                assume_yes=True
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_supply_core_migration",
+                        "success": bool(supply_status.get("schema_ready")),
+                        "migration": supply_status.get("migration"),
+                        "tables": supply_status.get("tables"),
+                        "schema_ready": bool(supply_status.get("schema_ready")),
+                        "production_state_mutated": True,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception as exc:
+            reason = (
+                str(exc)[:220]
+                if isinstance(
+                    exc,
+                    (RuntimeError, ValueError, PermissionError),
+                )
+                else ""
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_supply_core_migration",
+                        "success": False,
+                        "error": type(exc).__name__,
+                        "reason": reason,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
     if os.environ.get("OAP_SPOT_STEP2_PROOF_ON_BOOT", "").strip() == "1":
         operation_id = os.environ.get(
             "OAP_SPOT_STEP2_PROOF_OPERATION_ID", ""
