@@ -419,6 +419,63 @@ def chat(
         "protocol_percentage": 25,
         "scores_calculated": False,
     }
+
+    behaviour_score = _behaviour.score_response_behaviour(enriched)
+    score_receipt = _receipts.write_receipt(
+        "behaviour_score_receipt",
+        {
+            "brain_part": "behaviour_intelligence",
+            "gate": 2,
+            "command": "score_response_behaviour",
+            "signal": "🟣",
+            "guardian": str(enriched.get("guardian") or "unknown"),
+            "green_gate": "partial_measurement_not_full_green",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                "protocol_step": 2,
+                "protocol_percentage": 50,
+                "request_id": enriched.get("request_id"),
+                "conversation_id": enriched.get("conversation_id"),
+                "coverage_percentage": behaviour_score["coverage_percentage"],
+                "measured_count": behaviour_score["measured_count"],
+                "unknown_count": behaviour_score["unknown_count"],
+                "measured_average_percentage": behaviour_score[
+                    "measured_average_percentage"
+                ],
+                "overall_percentage": behaviour_score["overall_percentage"],
+                "overall_evidence_state": behaviour_score[
+                    "overall_evidence_state"
+                ],
+                "dimensions": [
+                    {
+                        "id": item["id"],
+                        "evidence_state": item["evidence_state"],
+                        "percentage": item["percentage"],
+                        "percentage_basis": item["percentage_basis"],
+                    }
+                    for item in behaviour_score["dimensions"]
+                ],
+                "behaviour_learning_applied": False,
+                "war_room_escalation_applied": False,
+                "full_green_allowed": False,
+            },
+        },
+    )
+    enriched["behaviour_score"] = behaviour_score
+    enriched["behaviour_score_receipt"] = {
+        "ok": bool(score_receipt.get("ok")),
+        "receipt_id": score_receipt.get("receipt_id"),
+        "receipt_kind": score_receipt.get("receipt_kind"),
+        "durable": bool(score_receipt.get("durable")),
+        "protocol_step": 2,
+        "protocol_percentage": 50,
+        "coverage_percentage": behaviour_score["coverage_percentage"],
+        "measured_average_percentage": behaviour_score[
+            "measured_average_percentage"
+        ],
+        "overall_percentage": behaviour_score["overall_percentage"],
+        "full_green_allowed": False,
+    }
     return enriched
 
 

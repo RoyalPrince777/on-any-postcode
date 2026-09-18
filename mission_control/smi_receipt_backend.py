@@ -23,6 +23,7 @@ ALLOWED_RECEIPT_KINDS = {
     "agent_tool_connection_receipt",
     "ecosystem_outcome_receipt",
     "behaviour_response_receipt",
+    "behaviour_score_receipt",
 }
 
 

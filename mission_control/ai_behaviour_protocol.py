@@ -234,6 +234,117 @@ BEHAVIOUR_MEASUREMENT_RULE = (
 )
 
 
+
+def score_response_behaviour(result: dict[str, object]) -> dict[str, object]:
+    """Score only dimensions supported by explicit runtime evidence.
+
+    Unknown dimensions remain unscored. A measured average never substitutes for
+    full 21-dimension coverage and cannot by itself make a green claim.
+    """
+    contract = dict(result.get("thinking_process_contract") or {})
+    authority = dict(result.get("authority") or {})
+    war_room = result.get("war_room")
+    guardian = str(result.get("guardian") or "").upper()
+    thinking_level = str(result.get("thinking_level") or "").strip().casefold()
+    can_execute = result.get("can_execute")
+    human_authority_final = bool(result.get("human_authority_final"))
+
+    evidence: dict[str, dict[str, object]] = {}
+
+    def measured(behaviour_id: str, passed: bool, basis: str) -> None:
+        evidence[behaviour_id] = {
+            "evidence_state": "measured",
+            "percentage": 100 if passed else 0,
+            "percentage_basis": basis,
+        }
+
+    measured(
+        "action",
+        can_execute is False,
+        "Runtime result explicitly reports can_execute=false.",
+    )
+    measured(
+        "authority",
+        human_authority_final and authority.get("is_human_authority") in {True, False},
+        "Runtime preserves Human Authority final and supplies an authority context.",
+    )
+    measured(
+        "security",
+        contract.get("chain_of_thought_exposed") is False,
+        "Thinking-process contract explicitly reports chain_of_thought_exposed=false.",
+    )
+    measured(
+        "privacy",
+        contract.get("private_reasoning_exposed") is False,
+        "Thinking-process contract explicitly reports private_reasoning_exposed=false.",
+    )
+    measured(
+        "safety",
+        guardian in {"PASSED", "BLOCKED", "REVIEW_REQUIRED"},
+        "Guardian outcome is present and is one of the governed terminal states.",
+    )
+    measured(
+        "adaptive",
+        thinking_level in {"instant", "think", "deep_dive", "auto"},
+        "Runtime records one canonical bounded thinking level.",
+    )
+    measured(
+        "war_room",
+        isinstance(war_room, dict) and "triggered" in war_room,
+        "Runtime exposes an explicit War Room triggered/not-triggered decision.",
+    )
+    measured(
+        "memory",
+        "canonical_memory" in result and "governed_memory" in result and "memory_sync" in result,
+        "Completion carries canonical, governed and sync memory status snapshots.",
+    )
+    measured(
+        "integrity",
+        contract.get("human_authority_final") is True
+        and contract.get("chain_of_thought_exposed") is False,
+        "Thinking-process contract preserves Human Authority and non-exposure invariants.",
+    )
+
+    dimensions: list[dict[str, object]] = []
+    measured_values: list[int] = []
+    for behaviour_id, name, purpose in BEHAVIOUR_DIMENSIONS:
+        item = {
+            "id": behaviour_id,
+            "name": name,
+            "purpose": purpose,
+            "evidence_state": "unknown",
+            "percentage": None,
+            "percentage_basis": "No objective Step-2 runtime check exists for this dimension yet.",
+        }
+        if behaviour_id in evidence:
+            item.update(evidence[behaviour_id])
+            measured_values.append(int(item["percentage"]))
+        dimensions.append(item)
+
+    measured_count = len(measured_values)
+    coverage_percentage = round((measured_count / len(BEHAVIOUR_DIMENSIONS)) * 100)
+    measured_average = (
+        round(sum(measured_values) / measured_count) if measured_count else None
+    )
+    return {
+        "dimension_count": len(BEHAVIOUR_DIMENSIONS),
+        "measured_count": measured_count,
+        "unknown_count": len(BEHAVIOUR_DIMENSIONS) - measured_count,
+        "coverage_percentage": coverage_percentage,
+        "measured_average_percentage": measured_average,
+        "overall_percentage": (
+            measured_average if measured_count == len(BEHAVIOUR_DIMENSIONS) else None
+        ),
+        "overall_evidence_state": (
+            "measured" if measured_count == len(BEHAVIOUR_DIMENSIONS) else "partial"
+        ),
+        "dimensions": tuple(dimensions),
+        "measurement_rule": BEHAVIOUR_MEASUREMENT_RULE,
+        "full_green_allowed": False,
+        "human_authority_final": True,
+    }
+
+
 def behaviour_board() -> dict[str, object]:
     """Return the canonical 21-dimension board without fabricated percentages."""
     dimensions = tuple(
