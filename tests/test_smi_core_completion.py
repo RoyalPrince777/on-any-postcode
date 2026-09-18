@@ -22,4 +22,5 @@ def test_higher_autonomy_does_not_fake_block_bounded_core_completion():
     core_block = source.split("CORE_PROOF_GATE_IDS = (", 1)[1].split(")", 1)[0]
     assert "a7_external" not in core_block
     assert '"higher_autonomy_certification_required": False' in source
-    assert '"a5_a6_a7_remain_locked": True' in source
+    assert '"a5_preparation_may_be_enabled": True' in source
+    assert '"a6_a7_remain_locked": True' in source
