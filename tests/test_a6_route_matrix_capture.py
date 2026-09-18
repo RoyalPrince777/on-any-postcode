@@ -63,3 +63,9 @@ def test_gateway_logs_bounded_a6_blocker_reason():
     assert "matrix=" in source
     assert "matrix_count=" in source
     assert "enabled=" in source
+
+
+
+def test_smi_health_records_first_party_observability():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert 'telemetry.record_http_request(path="/healthz", status_code=200' in source
