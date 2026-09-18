@@ -346,6 +346,8 @@ def chat(
     attachment: object = None,
     *,
     code_mode: bool = False,
+    thinking_level: str = "auto",
+    studio_mode: bool = False,
     on_event: Callable[[dict], None] | None = None,
 ) -> dict:
     """Run governed chat and attach a safe first-party Thinking Process summary."""
@@ -358,6 +360,8 @@ def chat(
         image_data,
         attachment,
         code_mode=code_mode,
+        thinking_level=thinking_level,
+        studio_mode=studio_mode,
         on_event=_thinking_event_adapter(on_event),
     )
     enriched = dict(result)
@@ -376,6 +380,8 @@ def chat(
     enriched["canonical_memory"] = canonical_memory_status()
     enriched["governed_memory"] = governed_memory_status()
     enriched["memory_sync"] = memory_sync_status()
+    enriched["thinking_level"] = str(thinking_level or "auto")
+    enriched["studio_mode"] = bool(studio_mode)
     return enriched
 
 
@@ -412,6 +418,8 @@ def chat_events(
     attachment: object = None,
     *,
     code_mode: bool = False,
+    thinking_level: str = "auto",
+    studio_mode: bool = False,
 ) -> Iterator[dict]:
     """Facade-safe SSE bridge that calls the public facade ``chat`` symbol."""
 
@@ -430,6 +438,8 @@ def chat_events(
                 image_data,
                 attachment,
                 code_mode=code_mode,
+                thinking_level=thinking_level,
+                studio_mode=studio_mode,
                 on_event=emit,
             )
             emit({"type": "complete", "result": result})

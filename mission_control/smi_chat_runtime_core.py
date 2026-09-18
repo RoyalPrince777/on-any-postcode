@@ -123,6 +123,22 @@ def _provider(
             "Label assumptions. Never claim the code was applied, committed, merged or "
             "deployed. End with the exact Human Authority approval boundary."
         )
+    thinking_level = str((brain or {}).get("thinking_level") or "auto")
+    studio_mode = bool((brain or {}).get("studio_mode"))
+    thinking_instruction = {
+        "instant": " INSTANT MODE: answer rapidly and compactly; use only the minimum analysis needed.",
+        "think": " THINK MODE: perform a stronger evidence and challenge pass before answering.",
+        "deep_dive": " DEEP DIVE MODE: perform the fullest bounded evidence, challenge, synthesis and governance pass available.",
+        "auto": " AUTO MODE: choose the bounded depth appropriate to the request.",
+    }.get(thinking_level, " AUTO MODE: choose the bounded depth appropriate to the request.")
+    system += thinking_instruction
+    if studio_mode:
+        system += (
+            " OAP STUDIO INTELLIGENCE MODE: act as the canonical Founder creation workspace for "
+            "Create, Edit, Package, Rights, Publish preparation, Distribute preparation, Campaign "
+            "and Analyse across image, audio, video, documents, music and creator products. "
+            "Do not claim publishing, distribution, payment or rights clearance without proof."
+        )
     media = media or {}
     prompt = message or "Describe and analyse the attached media."
     if media.get("transcript"):
@@ -152,11 +168,19 @@ def _provider(
                 }
             )
     inputs.append({"role": "user", "content": user_content})
+    token_budget = {
+        "instant": 650,
+        "think": 1100,
+        "deep_dive": 1800,
+        "auto": 1000,
+    }.get(str((brain or {}).get("thinking_level") or "auto"), 1000)
+    if code_mode:
+        token_budget = max(token_budget, 1200)
     payload = json.dumps(
         {
             "model": MODEL,
             "input": inputs,
-            "max_output_tokens": 1200 if code_mode else 900,
+            "max_output_tokens": token_budget,
             "stream": True,
         }
     ).encode()
@@ -310,6 +334,60 @@ def _write_audit(
     )
 
 
+def record_feedback(
+    identity_id: str,
+    request_id: object,
+    conversation_id: object,
+    signal: object,
+) -> dict:
+    """Record Founder response feedback in the governed audit chain."""
+
+    try:
+        identity = str(uuid.UUID(identity_id))
+        request_value = str(uuid.UUID(_clean(request_id, 40)))
+        conversation_value = str(uuid.UUID(_clean(conversation_id, 40)))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("invalid_feedback_target") from exc
+    feedback_signal = _clean(signal, 16).casefold()
+    if feedback_signal not in {"helpful", "not_helpful"}:
+        raise ValueError("invalid_feedback_signal")
+    feedback_id = str(uuid.uuid4())
+    with postgres_db.connect() as connection:
+        _ensure_identity(connection, identity, "OAP Member")
+        owner = connection.execute(
+            """SELECT 1 FROM smi_conversations
+               WHERE conversation_id=%s AND identity_id=%s LIMIT 1""",
+            (conversation_value, identity),
+        ).fetchone()
+        if not owner:
+            raise ValueError("feedback_target_not_owned")
+        authority_context = authority.authority_record(connection, identity) or {
+            "authority_level": 5,
+        }
+        _write_audit(
+            connection,
+            actor_id=identity,
+            authority_level=int(authority_context.get("authority_level", 5)),
+            action="SMI_RESPONSE_FEEDBACK",
+            target=request_value,
+            reason=feedback_signal,
+            correlation_id=feedback_id,
+            metadata={
+                "feedback_id": feedback_id,
+                "request_id": request_value,
+                "conversation_id": conversation_value,
+                "signal": feedback_signal,
+                "execution_granted": False,
+            },
+        )
+    return {
+        "status": "recorded",
+        "feedback_id": feedback_id,
+        "signal": feedback_signal,
+        "execution_granted": False,
+    }
+
+
 def chat(
     message: object,
     identity_id: str,
@@ -319,6 +397,8 @@ def chat(
     attachment: object = None,
     *,
     code_mode: bool = False,
+    thinking_level: str = "auto",
+    studio_mode: bool = False,
     on_event: EventEmitter | None = None,
 ) -> dict:
     clean = _clean(message, MAX_INPUT)
@@ -401,6 +481,12 @@ def chat(
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
         )
+        level = str(thinking_level or "auto").strip().casefold().replace("-", "_")
+        level = {"deep": "deep_dive", "deepdive": "deep_dive"}.get(level, level)
+        if level not in {"instant", "think", "deep_dive", "auto"}:
+            raise ValueError("invalid_thinking_level")
+        brain["thinking_level"] = level
+        brain["studio_mode"] = bool(studio_mode)
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records
@@ -500,6 +586,8 @@ def chat(
                         "adaptive_memory_count": len(adaptive_memory),
                         "coherence": coherence,
                         "code_proposal": code_mode,
+                        "thinking_level": level,
+                        "studio_mode": bool(studio_mode),
                     }
                 ),
                 json.dumps(processing_states),
