@@ -23,6 +23,8 @@ def test_extended_matrix_names_remain_passport_review() -> None:
         "Dozer",
         "Agent Smith",
         "Twinz",
+        "Niobe",
+        "Apoc",
     )
     projection = matrix_signal_bus.topology()
     extended = {
@@ -101,3 +103,12 @@ def test_topology_preserves_system_roles_and_no_full_green_claim() -> None:
     assert projection["final_authority"] == "Human Authority"
     assert projection["execution_granted"] is False
     assert projection["full_green"] is False
+
+
+def test_niobe_and_apoc_are_review_only() -> None:
+    projection = matrix_signal_bus.topology()
+    participants = {item["name"]: item for item in projection["participants"]}
+    for name in ("Niobe", "Apoc"):
+        assert participants[name]["status"] == "passport_review"
+        assert participants[name]["can_emit_signal"] is False
+        assert participants[name]["can_execute"] is False
