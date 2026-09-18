@@ -267,7 +267,7 @@ def init_app(app: Flask) -> None:
                 ),
                 flush=True,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - proof must fail closed.
             reason = (
                 str(exc)[:220]
                 if isinstance(
