@@ -3,7 +3,7 @@ from __future__ import annotations
 from mission_control import movement_routes
 
 
-def test_founder_route_geometry_proof_returns_first_party_result(app, client, monkeypatch):
+def test_founder_route_geometry_proof_returns_first_party_result(client, monkeypatch):
     monkeypatch.setattr(
         movement_routes.web_security,
         "authenticated_identity",
@@ -33,7 +33,7 @@ def test_founder_route_geometry_proof_returns_first_party_result(app, client, mo
         lambda *args, **kwargs: (lambda fn: fn),
     )
 
-    with app.test_request_context(
+    with client.application.test_request_context(
         "/mission/movement/route-geometry-proof?from_lat=51.4036&from_lon=-0.1687&to_lat=51.5079&to_lon=-0.0877"
     ):
         response = movement_routes.founder_route_geometry_proof()
