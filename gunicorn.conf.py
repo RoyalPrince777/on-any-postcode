@@ -1,5 +1,9 @@
 import json
 import os
+import threading
+
+_FUNCTION_HEALTH_AFTER_HEALTH_EMITTED = False
+_FUNCTION_HEALTH_AFTER_HEALTH_LOCK = threading.Lock()
 
 
 def _restore_configured_authority_once(server):
@@ -157,3 +161,21 @@ def on_starting(server):
 
 def post_worker_init(worker):
     _emit_smi_function_health(worker)
+
+
+def post_request(worker, req, environ, resp):
+    """Re-check Function Health once local observability has a real health sample."""
+
+    global _FUNCTION_HEALTH_AFTER_HEALTH_EMITTED
+    if _FUNCTION_HEALTH_AFTER_HEALTH_EMITTED:
+        return
+    if str(environ.get("PATH_INFO") or "") != "/healthz":
+        return
+    status = str(getattr(resp, "status", "") or "")
+    if not status.startswith("200"):
+        return
+    with _FUNCTION_HEALTH_AFTER_HEALTH_LOCK:
+        if _FUNCTION_HEALTH_AFTER_HEALTH_EMITTED:
+            return
+        _emit_smi_function_health(worker)
+        _FUNCTION_HEALTH_AFTER_HEALTH_EMITTED = True
