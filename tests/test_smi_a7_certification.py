@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from mission_control import a7_certification
@@ -145,3 +147,29 @@ def test_a6_readiness_bundle_keeps_execution_locked(monkeypatch):
             independent_evidence_hash="a" * 64,
             independent_issuer="GitHub Actions",
         )
+
+
+
+def test_complete_a6_readiness_short_circuits_when_already_proven(monkeypatch):
+    monkeypatch.setattr(
+        a7_certification,
+        "status",
+        lambda: {"a6_proof_complete": True},
+    )
+    result = a7_certification.complete_a6_readiness_protocol(
+        identity_id="00000000-0000-0000-0000-000000000001",
+        independent_evidence_ref="github-actions-run-1598",
+        independent_evidence_hash="a" * 64,
+        independent_issuer="GitHub Actions",
+    )
+    assert result["already_proven"] is True
+    assert result["a6_proof_complete"] is True
+    assert result["execution_granted"] is False
+    assert result["production_state_mutated"] is False
+
+
+def test_complete_a6_readiness_never_enables_execution_in_source():
+    source = Path(a7_certification.__file__).read_text(encoding="utf-8")
+    section = source.split("def complete_a6_readiness_protocol", 1)[1]
+    assert '"execution_granted": False' in section
+    assert '"production_state_mutated": False' in section

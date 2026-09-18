@@ -20,6 +20,7 @@ from flask import (
 )
 
 from mission_control import (
+    a7_certification,
     approval_service,
     authority,
     carnival_intelligence,
@@ -204,6 +205,60 @@ def _security_headers(response):
                     {
                         "event": "oap_founder_final_100",
                         "success": False,
+                        "error": type(exc).__name__,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+    if (
+        request.path == "/healthz"
+        and 200 <= response.status_code < 300
+        and os.environ.get("OAP_A6_READINESS_ON_HEALTH", "").strip() == "1"
+    ):
+        identity_id = authority.configured_identity()
+        try:
+            if not identity_id:
+                raise RuntimeError("human_authority_identity_not_configured")
+            evidence_ref = os.environ.get(
+                "OAP_A6_INDEPENDENT_EVIDENCE_REF", ""
+            ).strip()
+            evidence_hash = os.environ.get(
+                "OAP_A6_INDEPENDENT_EVIDENCE_HASH", ""
+            ).strip()
+            evidence_issuer = os.environ.get(
+                "OAP_A6_INDEPENDENT_EVIDENCE_ISSUER", ""
+            ).strip()
+            if not evidence_ref or not evidence_hash or not evidence_issuer:
+                raise RuntimeError("a6_independent_evidence_not_configured")
+            proof = a7_certification.complete_a6_readiness_protocol(
+                identity_id=identity_id,
+                independent_evidence_ref=evidence_ref,
+                independent_evidence_hash=evidence_hash,
+                independent_issuer=evidence_issuer,
+            )
+            REQUEST_LOGGER.info(
+                json.dumps(
+                    {
+                        "event": "oap_a6_readiness",
+                        "success": bool(proof.get("a6_proof_complete")),
+                        "already_proven": bool(proof.get("already_proven")),
+                        "a6_proof_complete": bool(
+                            proof.get("a6_proof_complete")
+                        ),
+                        "execution_granted": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - readiness must fail closed.
+            REQUEST_LOGGER.error(
+                json.dumps(
+                    {
+                        "event": "oap_a6_readiness",
+                        "success": False,
+                        "execution_granted": False,
                         "error": type(exc).__name__,
                     },
                     separators=(",", ":"),
