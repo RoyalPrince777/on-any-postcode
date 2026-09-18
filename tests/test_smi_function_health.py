@@ -219,3 +219,123 @@ def test_sovereign_dashboard_wires_core_routes_without_noise_duplicates():
         assert noise not in script
 
     assert "silently deploy, spend, dispatch, migrate or approve consequential actions" in script
+
+
+def test_button_proof_separates_server_runtime_from_browser_click(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health,
+        "function_health",
+        lambda _url_map: {
+            "functions": (
+                {
+                    "id": "chat",
+                    "name": "SMI Chat",
+                    "path": "/mission/ollama",
+                    "available": True,
+                    "proof_checked": True,
+                    "runtime_proven": True,
+                },
+                {
+                    "id": "green-gate",
+                    "name": "Green Gate",
+                    "path": "/mission/smi/green-gate",
+                    "available": True,
+                    "proof_checked": True,
+                    "runtime_proven": False,
+                },
+            )
+        },
+    )
+    payload = smi_function_health.button_proof(app_module.app.url_map)
+    assert payload["expected_count"] == 2
+    assert payload["server_ready_count"] == 1
+    assert payload["browser_click_ready_count"] == 0
+    assert payload["whole_button_gate_green"] is False
+
+    clicked = smi_function_health.button_proof(
+        app_module.app.url_map,
+        clicked_ids=("chat",),
+    )
+    assert clicked["browser_click_ready_count"] == 1
+    assert clicked["buttons"][0]["browser_click_proven"] is True
+    assert payload["no_fake_green"] is True
+
+
+def test_button_proof_route_is_founder_only(client):
+    response = client.get("/mission/smi/button-proof")
+    assert response.status_code == 200
+    assert response.get_json()["component"] == "SMI Founder Button Proof"
+
+
+def test_button_proof_route_rejects_anonymous_access(anonymous_client):
+    response = anonymous_client.get("/mission/smi/button-proof")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_button_click_receipt_route_requires_csrf_and_known_success(client, monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health,
+        "FUNCTION_SPECS",
+        ({"id": "chat", "name": "SMI Chat", "endpoint": "mission_control.ollama_chat_dashboard", "path": "/mission/ollama"},),
+    )
+    no_csrf = client.post(
+        "/mission/smi/button-proof/click",
+        json={"button_id": "chat", "response_class": "success"},
+    )
+    assert no_csrf.status_code == 403
+
+    with client.session_transaction() as session:
+        csrf = session.get("oap_csrf_token")
+    if not csrf:
+        client.get("/mission/ollama")
+        with client.session_transaction() as session:
+            csrf = session.get("oap_csrf_token")
+
+    unknown = client.post(
+        "/mission/smi/button-proof/click",
+        headers={"X-OAP-CSRF": csrf},
+        json={"button_id": "unknown", "response_class": "success"},
+    )
+    assert unknown.status_code == 400
+
+    failed = client.post(
+        "/mission/smi/button-proof/click",
+        headers={"X-OAP-CSRF": csrf},
+        json={"button_id": "chat", "response_class": "failed"},
+    )
+    assert failed.status_code == 400
+
+
+def test_button_proof_reads_successful_click_receipts(client, monkeypatch):
+    from mission_control import alignment_views
+
+    monkeypatch.setattr(
+        alignment_views.smi_receipt_backend,
+        "latest_safe_payloads",
+        lambda kind, limit=200: (
+            {"button_id": "chat", "response_class": "success"},
+        ),
+    )
+    monkeypatch.setattr(
+        smi_function_health,
+        "function_health",
+        lambda _url_map: {
+            "functions": (
+                {
+                    "id": "chat",
+                    "name": "SMI Chat",
+                    "path": "/mission/ollama",
+                    "available": True,
+                    "proof_checked": True,
+                    "runtime_proven": True,
+                },
+            )
+        },
+    )
+    response = client.get("/mission/smi/button-proof")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["server_ready_count"] == 1
+    assert payload["browser_click_ready_count"] == 1
+    assert payload["whole_button_gate_green"] is True
