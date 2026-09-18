@@ -10,8 +10,8 @@ from .database import db_status
 from .organism import (
     APPROVED_STATE_PATH,
     REJECTED_STATE_PATH,
-    SMI_REGIONS,
     SMI_OUTPUT_STATES,
+    SMI_REGIONS,
     validate_architecture,
 )
 
