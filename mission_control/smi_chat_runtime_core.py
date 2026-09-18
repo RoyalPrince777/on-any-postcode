@@ -334,6 +334,60 @@ def _write_audit(
     )
 
 
+def record_feedback(
+    identity_id: str,
+    request_id: object,
+    conversation_id: object,
+    signal: object,
+) -> dict:
+    """Record Founder response feedback in the governed audit chain."""
+
+    try:
+        identity = str(uuid.UUID(identity_id))
+        request_value = str(uuid.UUID(_clean(request_id, 40)))
+        conversation_value = str(uuid.UUID(_clean(conversation_id, 40)))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("invalid_feedback_target") from exc
+    feedback_signal = _clean(signal, 16).casefold()
+    if feedback_signal not in {"helpful", "not_helpful"}:
+        raise ValueError("invalid_feedback_signal")
+    feedback_id = str(uuid.uuid4())
+    with postgres_db.connect() as connection:
+        _ensure_identity(connection, identity, "OAP Member")
+        owner = connection.execute(
+            """SELECT 1 FROM smi_conversations
+               WHERE conversation_id=%s AND identity_id=%s LIMIT 1""",
+            (conversation_value, identity),
+        ).fetchone()
+        if not owner:
+            raise ValueError("feedback_target_not_owned")
+        authority_context = authority.authority_record(connection, identity) or {
+            "authority_level": 5,
+        }
+        _write_audit(
+            connection,
+            actor_id=identity,
+            authority_level=int(authority_context.get("authority_level", 5)),
+            action="SMI_RESPONSE_FEEDBACK",
+            target=request_value,
+            reason=feedback_signal,
+            correlation_id=feedback_id,
+            metadata={
+                "feedback_id": feedback_id,
+                "request_id": request_value,
+                "conversation_id": conversation_value,
+                "signal": feedback_signal,
+                "execution_granted": False,
+            },
+        )
+    return {
+        "status": "recorded",
+        "feedback_id": feedback_id,
+        "signal": feedback_signal,
+        "execution_granted": False,
+    }
+
+
 def chat(
     message: object,
     identity_id: str,
