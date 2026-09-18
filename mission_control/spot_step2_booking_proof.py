@@ -7,11 +7,16 @@ commission, dispatches work, or claims a real supplier/customer reservation.
 """
 from __future__ import annotations
 
-import json
 import uuid
 from typing import Any
 
-from . import approval_service, authority, hrm_durable_receipt, postgres_db, travel_supply_core
+from . import (
+    approval_service,
+    authority,
+    hrm_durable_receipt,
+    postgres_db,
+    travel_supply_core,
+)
 from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
 STEP2_ACTION = "SPOT_STEP2_BOOKING_LIFECYCLE_PROOF"
