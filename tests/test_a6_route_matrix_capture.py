@@ -162,7 +162,9 @@ def test_private_gateway_bootstraps_a6_readiness_before_route_matrix():
     assert 'a7_certification.complete_a6_readiness_protocol(' in source
     assert '"execution_granted": False' in source
     assert '"production_state_mutated": False' in source
-    readiness_call = source.index("_complete_a6_readiness_if_requested()")
+    readiness_call = source.index(
+        '_complete_a6_readiness_if_requested(trigger="boot")'
+    )
     matrix_call = source.index(
         '_maybe_start_a6_route_matrix_operation(trigger="boot")'
     )
@@ -195,7 +197,7 @@ def test_gateway_surfaces_bounded_value_error_reason_for_a6_readiness():
     )[0]
     assert "ValueError" in section
     assert "PermissionError" in section
-    assert "str(exc)[:180]" in section
+    assert "str(exc)[:240]" in section
 
 
 def test_route_matrix_probe_retries_429_only_once(monkeypatch):
