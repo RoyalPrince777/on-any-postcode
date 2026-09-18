@@ -382,8 +382,13 @@ def chat(
     enriched["canonical_memory"] = canonical_memory_status()
     enriched["governed_memory"] = governed_memory_status()
     enriched["memory_sync"] = memory_sync_status()
-    enriched["thinking_level"] = str(thinking_level or "auto")
-    enriched["studio_mode"] = bool(studio_mode)
+    enriched["requested_thinking_level"] = str(thinking_level or "auto")
+    enriched["thinking_level"] = str(
+        enriched.get("thinking_level") or thinking_level or "auto"
+    )
+    enriched["resolved_depth"] = int(enriched.get("resolved_depth") or 0)
+    enriched["studio_mode"] = bool(enriched.get("studio_mode"))
+    enriched["auto_selected"] = bool(enriched.get("auto_selected"))
     behaviour_receipt = _receipts.write_receipt(
         "behaviour_response_receipt",
         {
