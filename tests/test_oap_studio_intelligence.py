@@ -207,3 +207,45 @@ def test_scene_builder_stays_purple_while_video_is_queued(monkeypatch):
     assert result["artifact"]["status"] == "queued"
     assert captured["receipt"]["payload"]["signal"] == "🟣"
     assert result["execution_granted"] is False
+
+
+def test_studio_routes_are_founder_only_and_fail_closed():
+    views = (ROOT / "mission_control" / "views.py").read_text()
+
+    assert '@bp.post("/studio/generate")' in views
+    assert '@bp.get("/studio/video/<video_id>/status")' in views
+    assert views.count("login_required(api=True, founder_only=True)") >= 3
+    assert "csrf_valid(request)" in views
+    assert "studio_generation_unavailable" in views
+
+
+def test_completed_video_status_can_promote_with_receipt(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "video_status",
+        lambda video_id: {
+            "kind": "video_job",
+            "id": video_id,
+            "model": "sora-2",
+            "status": "completed",
+            "progress": 100,
+            "artifact_proven": True,
+            "content_path": f"/videos/{video_id}/content",
+            "provider_is_authority": False,
+        },
+    )
+    captured = {}
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: captured.setdefault("receipt", {"kind": kind, "payload": payload}),
+    )
+
+    result = studio_intelligence.generation_status("video_test")
+
+    assert result["state"] == "generated"
+    assert result["output_generated"] is True
+    assert result["artifact"]["artifact_proven"] is True
+    assert captured["receipt"]["payload"]["signal"] == "🟢"
+    assert captured["receipt"]["payload"]["green_gate"] == "artifact_proven"
+    assert result["execution_granted"] is False
