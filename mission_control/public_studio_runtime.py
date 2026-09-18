@@ -15,6 +15,7 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
 from . import intelligence_lenses
+from . import oap_inference_gateway as smi_inference
 
 MODEL = os.environ.get("OAP_PUBLIC_AI_MODEL", os.environ.get("OAP_AI_MODEL", "gpt-5-mini"))
 MAX_INPUT = 6000
@@ -162,6 +163,66 @@ def _context_input(message: str, history: list[dict[str, str]], mode: str, route
     )
 
 
+def _compatibility_engine(
+    message: str,
+    history: list[dict[str, str]] | None,
+    brain: dict | None,
+    *,
+    code_mode: bool = False,
+) -> str:
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not key:
+        raise PublicStudioUnavailable("public_ai_provider_unconfigured")
+    context = {
+        "surface": "public",
+        "execution_authority": False,
+        "private_memory_allowed": False,
+        "task_type": (brain or {}).get("task_type"),
+        "intelligence_capabilities": (brain or {}).get("intelligence_capabilities", ()),
+    }
+    items = []
+    for item in (history or [])[-8:]:
+        role = str(item.get("role") or "")
+        content = str(item.get("content") or "")[:2400]
+        if role in {"user", "assistant"} and content:
+            items.append({"role": role, "content": content})
+    prompt = (
+        PUBLIC_SYSTEM
+        + "\nSMI public routing context: "
+        + json.dumps(context, separators=(",", ":"))
+        + "\nRecent conversation: "
+        + json.dumps(items, separators=(",", ":"))
+        + "\nCurrent user message: "
+        + message
+    )
+    body = json.dumps(
+        {
+            "model": MODEL,
+            "instructions": PUBLIC_SYSTEM,
+            "input": prompt,
+            "max_output_tokens": MAX_OUTPUT_TOKENS,
+        }
+    ).encode("utf-8")
+    req = urlrequest.Request(
+        "https://api.openai.com/v1/responses",
+        data=body,
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=45) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise PublicStudioUnavailable("public_ai_provider_unavailable") from exc
+    answer = _extract_text(payload)
+    if not answer:
+        raise PublicStudioUnavailable("public_ai_empty_response")
+    return answer
+
+
 def _extract_text(payload: dict) -> str:
     direct = payload.get("output_text")
     if isinstance(direct, str) and direct.strip():
@@ -224,6 +285,8 @@ def ask(message: object, *, rate_key: str, history: object = None) -> dict:
     return {
         "answer": answer,
         "assistant": "OAP Studio Intelligence",
+        "brain": "SMI",
+        "smi_surface": "public",
         "memory_saved": False,
         "private_smi_used": False,
         "execution_authority": False,
