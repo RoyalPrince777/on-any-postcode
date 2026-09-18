@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 import uuid
 from urllib import parse as urlparse
@@ -54,6 +55,81 @@ if not REQUEST_LOGGER.handlers:
     REQUEST_LOGGER.addHandler(request_log_handler)
 REQUEST_LOGGER.setLevel(logging.INFO)
 REQUEST_LOGGER.propagate = False
+_SMI_PROOF_SNAPSHOT_LOCK = threading.Lock()
+_SMI_PROOF_SNAPSHOT_LOGGED = False
+
+
+def _current_revision():
+    return (
+        os.environ.get("RENDER_GIT_COMMIT", "").strip()
+        or os.environ.get("OAP_ENV_REVISION", "").strip()
+        or "unknown"
+    )
+
+
+def _log_smi_proof_snapshot_once():
+    """Emit one redacted, read-only SMI proof snapshot per process."""
+
+    global _SMI_PROOF_SNAPSHOT_LOGGED
+    with _SMI_PROOF_SNAPSHOT_LOCK:
+        if _SMI_PROOF_SNAPSHOT_LOGGED:
+            return
+        _SMI_PROOF_SNAPSHOT_LOGGED = True
+    try:
+        snapshot = smi_proof_gate.status()
+        counts = (
+            snapshot.get("production_counts")
+            if isinstance(snapshot.get("production_counts"), dict)
+            else {}
+        )
+        checks = (
+            snapshot.get("checks")
+            if isinstance(snapshot.get("checks"), dict)
+            else {}
+        )
+        REQUEST_LOGGER.info(
+            json.dumps(
+                {
+                    "event": "oap_smi_proof_snapshot",
+                    "revision": _current_revision(),
+                    "rollback_recovery": bool(checks.get("rollback_recovery")),
+                    "runtime_guard": bool(checks.get("runtime_guard")),
+                    "isolation_recovery": bool(checks.get("isolation_recovery")),
+                    "rollback_recovery_receipts": int(
+                        counts.get("rollback_recovery_receipts") or 0
+                    ),
+                    "runtime_guard_receipts": int(
+                        counts.get("runtime_guard_receipts") or 0
+                    ),
+                    "isolation_recovery_receipts": int(
+                        counts.get("isolation_recovery_receipts") or 0
+                    ),
+                    "store_reachable": bool(counts.get("store_reachable")),
+                    "green_gate": bool(snapshot.get("green")),
+                    "production_state_mutated": False,
+                    "execution_authority_expanded": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001 - observability must fail closed.
+        REQUEST_LOGGER.error(
+            json.dumps(
+                {
+                    "event": "oap_smi_proof_snapshot",
+                    "revision": _current_revision(),
+                    "error": type(exc).__name__,
+                    "production_state_mutated": False,
+                    "execution_authority_expanded": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+        )
+
 SESSION_SECRET_CONFIGURED = bool(os.environ.get("OAP_SESSION_SECRET", "").strip())
 app.config["SECRET_KEY"] = (
     os.environ.get("OAP_SESSION_SECRET", "").strip() or os.urandom(32)
@@ -1534,6 +1610,7 @@ def livez():
 def healthz():
     """Return only the coarse health state needed by the platform."""
 
+    _log_smi_proof_snapshot_once()
     platform = _platform_health_snapshot()
     response = jsonify(status="healthy" if platform["ready"] else "unavailable")
     response.headers["Cache-Control"] = "no-store"
