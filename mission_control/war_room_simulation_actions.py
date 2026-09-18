@@ -7,9 +7,9 @@ dispatch, hidden tracking, public claims or self-approved changes.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from hashlib import sha256
 
 from . import autonomy_levels
-from hashlib import sha256
 
 
 def _now() -> str:
