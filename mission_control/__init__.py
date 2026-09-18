@@ -23,6 +23,7 @@ def init_app(app: Flask) -> None:
     from . import audit as auditmod
     from . import db as dbmod
     from . import (
+        authority,
         esim_persistence,
         link_activity,
         link_call_audit,
@@ -39,6 +40,7 @@ def init_app(app: Flask) -> None:
         product_cores,
         routing,
         smi_auto,
+        smi_proof_gate,
         surface_security,
         travel_supply_core,
     )
@@ -95,6 +97,46 @@ def init_app(app: Flask) -> None:
                         "event": "oap_esim_migration",
                         "success": False,
                         "error": "esim_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_AEGIS_75_PROOF_ON_BOOT", "").strip() == "1":
+        try:
+            proof_status = smi_proof_gate.status()
+            checks = proof_status.get("checks") if isinstance(proof_status, dict) else {}
+            already_proven = bool(isinstance(checks, dict) and checks.get("isolation_recovery"))
+            if already_proven:
+                proof = {"passed": True, "already_proven": True, "audit_recorded": True}
+            else:
+                identity_id = authority.configured_identity()
+                if not identity_id:
+                    raise RuntimeError("human_authority_identity_not_configured")
+                proof = smi_proof_gate.run_isolation_recovery_proof(identity_id)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_aegis_75_proof",
+                        "success": bool(proof.get("passed")),
+                        "already_proven": bool(proof.get("already_proven")),
+                        "audit_recorded": bool(proof.get("audit_recorded")),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_aegis_75_proof",
+                        "success": False,
+                        "error": "aegis_75_proof_failed",
                     },
                     separators=(",", ":"),
                     sort_keys=True,
