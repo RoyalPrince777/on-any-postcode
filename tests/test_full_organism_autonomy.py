@@ -122,3 +122,69 @@ def test_worker_heartbeat_carries_whole_organism_autonomy():
     assert result["consequential_action"] is False
     assert result["organism_autonomy"]["mode"] == "BOUNDED_AUTONOMOUS"
     assert result["organism_autonomy"]["human_authority_final"] is True
+
+
+def test_full_physiology_has_complete_non_authoritative_body_model():
+    anatomy = organism.get_public_anatomy()
+    physiology = {item["id"]: item for item in anatomy["physiology_systems"]}
+
+    expected = {
+        "dna",
+        "genes",
+        "blood",
+        "circulation",
+        "lungs",
+        "skin",
+        "digestive",
+        "liver_kidneys",
+        "metabolism",
+        "energy",
+        "endocrine",
+        "immune",
+        "healing",
+        "muscles",
+        "cells",
+        "growth",
+    }
+    assert set(physiology) == expected
+    assert anatomy["validation"]["checks"]["physiology_systems"] == len(expected)
+    assert physiology["dna"]["can_execute"] is False
+    assert physiology["blood"]["can_execute"] is False
+    assert physiology["circulation"]["can_execute"] is False
+    assert physiology["immune"]["can_execute"] is False
+    assert physiology["muscles"]["can_execute"] is True
+    assert physiology["growth"]["can_execute"] is False
+
+
+def test_physiology_flow_keeps_authority_before_action_and_learning_after_outcome():
+    flow = organism.ORGANISM_PHYSIOLOGY_FLOW
+
+    assert flow.index("Human Authority") < flow.index("Living Kernel / Heart")
+    assert flow.index("Living Kernel / Heart") < flow.index("Muscles + Body Organs")
+    assert flow.index("Muscles + Body Organs") < flow.index("Outcome sensors")
+    assert flow.index("Outcome sensors") < flow.index("HRM Memory")
+    assert flow.index("HRM Memory") < flow.index("Matrix Learning")
+    assert flow.index("Matrix Learning") < flow.index("Growth proposal")
+
+
+def test_physiology_laws_preserve_single_brain_and_human_authority():
+    joined = " ".join(organism.PHYSIOLOGY_LAWS)
+
+    assert "Human Authority remains final" in joined
+    assert "SMI interprets" in joined
+    assert "NEXUS circulates signals" in joined
+    assert "Growth proposes reversible improvements" in joined
+
+
+def test_organism_page_renders_full_physiology(client):
+    response = client.get("/mission/organism")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "DNA · Blood · Organs · Recovery · Growth" in page
+    assert "OAP DNA" in page
+    assert "OAP Blood" in page
+    assert "OAP Lungs" in page
+    assert "OAP Immune System" in page
+    assert "OAP Healing System" in page
+    assert "OAP Muscles" in page
