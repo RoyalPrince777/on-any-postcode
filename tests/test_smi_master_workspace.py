@@ -77,4 +77,30 @@ def test_core_chat_controls_have_single_canonical_owners():
 
 def test_master_workspace_contract_is_explicit():
     final = FINAL.read_text(encoding="utf-8")
-    assert "window.OAP_SMI_MASTER={version:'1.1',masterTools:true,savedWork:true,search:true,studio21:true,governedActions:true}" in final
+    assert "window.OAP_SMI_MASTER={version:'1.2',masterTools:true,savedWork:true,search:true,studio21:true,studioExecution:true,buttonProof:true,autoDepthVisible:true,governedActions:true}" in final
+
+
+def test_studio_creation_tools_execute_from_master_tools():
+    base = BASE.read_text(encoding="utf-8")
+    final = FINAL.read_text(encoding="utf-8")
+    for tool in ("imagine", "bring_alive", "scene_builder"):
+        assert f'data-studio-tool="{tool}"' in base
+    for marker in (
+        "studioGenerateUrl",
+        "studioVideoStatusUrlTemplate",
+        "studioVideoContentUrlTemplate",
+        "runStudioTool",
+        "pollStudioVideo",
+        "artifact_proven",
+        "X-OAP-CSRF",
+    ):
+        assert marker in final or marker in (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+
+
+def test_button_proof_is_a_first_class_master_tool():
+    base = BASE.read_text(encoding="utf-8")
+    wrapper = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    final = FINAL.read_text(encoding="utf-8")
+    assert 'data-oap-action="button-proof"' in base
+    assert "buttonProofUrl" in wrapper
+    assert "Button Proof" in final
