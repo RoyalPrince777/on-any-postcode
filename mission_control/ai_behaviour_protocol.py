@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from hashlib import sha256
 
+from . import autonomy_levels
+
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
 PROTOCOL_VERSION = 2
@@ -210,7 +212,7 @@ HARD_LOCKS = {
     "fake_live_claim_enabled": False,
     "fake_real_green_enabled": False,
     "public_private_leak_allowed": False,
-    "a5_enabled": False,
+    "a5_enabled": autonomy_levels.status()["a5_enabled"],
     "a6_enabled": False,
     "a7_enabled": False,
     "self_permission_change_enabled": False,
