@@ -19,10 +19,57 @@ def test_canonical_controller_owns_one_submit_path_fail_closed():
     assert "if(oapLocked||oapSend.disabled)return" in text
     assert "oapInput.addEventListener('keydown'" in text
     assert "oapForm.addEventListener('submit'" in text
-    assert text.count("event.stopImmediatePropagation()") >= 4
+    assert text.count("event.stopImmediatePropagation()") >= 6
     assert "oapSubmit();" in text
     assert "window.OAP_SMI_CANONICAL" in text
     assert "singleSubmitOwner:true" in text
+    assert "composerOwner:true" in text
+
+
+def test_canonical_controller_owns_plus_drawer_and_outside_close():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "const oapPlus=document.getElementById('plus-button')" in text
+    assert "function oapToggleAttach()" in text
+    assert "oapAttachMenu.classList.toggle('show',open)" in text
+    assert "oapPlus.setAttribute('aria-expanded',String(open))" in text
+    assert "oapPlus.addEventListener('click'" in text
+    assert "event.target.closest('.attach-wrap')" in text
+    assert "plusOwner:true" in text
+
+
+def test_canonical_controller_owns_pause_resume_and_stop():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "const oapPause=document.getElementById('pause-button')" in text
+    assert "function oapTogglePause()" in text
+    assert "while(oapPaused&&!responseStopped)" in text
+    assert "speechSynthesis.pause()" in text
+    assert "speechSynthesis.resume()" in text
+    assert "oapAbort.abort()" in text
+    assert "pauseOwner:true" in text
+    assert "stopOwner:true" in text
+
+
+def test_canonical_controller_forwards_thinking_and_studio_modes():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "const oapThinkingLevel=document.getElementById('thinking-level')" in text
+    assert "selectedThinkingLevel=oapThinkingLevel?.value||'auto'" in text
+    assert "selectedStudioMode=" in text
+    assert "thinking_level:selectedThinkingLevel" in text
+    assert "studio_mode:selectedStudioMode" in text
+    assert "thinkingModeOwner:true" in text
+    assert "studioModeOwner:true" in text
+
+
+def test_canonical_controller_owns_worked_for_timing_and_safe_progress():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "const oapThinkingElapsed=document.getElementById('thinking-elapsed')" in text
+    assert "function oapBeginWork()" in text
+    assert "function oapEndWork()" in text
+    assert "Worked for ${seconds.toFixed(1)}s" in text
+    assert "showStage('Understand')" in text
+    assert "showStage('Context')" in text
+    assert "parsed.event==='stage'" in text
+    assert "timingOwner:true" in text
 
 
 def test_canonical_controller_owns_voice_mic_and_stop():
