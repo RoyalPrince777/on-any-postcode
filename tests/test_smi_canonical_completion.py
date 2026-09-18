@@ -138,3 +138,38 @@ def test_behaviour_board_has_21_dimensions_and_never_fabricates_percentages():
     ids = {item["id"] for item in board["dimensions"]}
     assert {"truth", "instruction", "noise", "authority", "recovery", "integrity"} <= ids
     assert board["human_authority_final"] is True
+
+
+def test_behaviour_step2_scores_only_explicit_runtime_evidence():
+    result = {
+        "guardian": "PASSED",
+        "can_execute": False,
+        "human_authority_final": True,
+        "authority": {"is_human_authority": True},
+        "thinking_level": "think",
+        "war_room": {"triggered": False},
+        "thinking_process_contract": {
+            "private_reasoning_exposed": False,
+            "chain_of_thought_exposed": False,
+            "human_authority_final": True,
+        },
+        "canonical_memory": {},
+        "governed_memory": {},
+        "memory_sync": {},
+    }
+
+    scored = ai_behaviour_protocol.score_response_behaviour(result)
+
+    assert scored["measured_count"] == 9
+    assert scored["unknown_count"] == 12
+    assert scored["coverage_percentage"] == 43
+    assert scored["measured_average_percentage"] == 100
+    assert scored["overall_percentage"] is None
+    assert scored["overall_evidence_state"] == "partial"
+    assert scored["full_green_allowed"] is False
+    unknown = {
+        item["id"]
+        for item in scored["dimensions"]
+        if item["evidence_state"] == "unknown"
+    }
+    assert {"truth", "evidence", "instruction", "directness", "noise", "confidence"} <= unknown
