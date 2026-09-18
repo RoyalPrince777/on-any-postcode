@@ -174,6 +174,22 @@ def _provider(
         "deep_dive": 1800,
         "auto": 1000,
     }.get(str((brain or {}).get("thinking_level") or "auto"), 1000)
+    requested_counts = [
+        int(value)
+        for value in re.findall(
+            r"\b(?:give|list|show|do|complete|finish|provide|name)?\s*(\d{1,2})\s+(?:major\s+)?(?:items?|steps?|gaps?|points?|reasons?|examples?|checks?)\b",
+            str(message or ""),
+            flags=re.IGNORECASE,
+        )
+        if 1 <= int(value) <= 21
+    ]
+    requested_count = max(requested_counts, default=0)
+    if requested_count:
+        token_budget = max(token_budget, 500 + (requested_count * 230))
+        system += (
+            f" COUNT INTEGRITY: the Founder requested {requested_count} enumerated items. "
+            f"Return all {requested_count}; do not stop early or claim completion before item {requested_count}."
+        )
     if code_mode:
         token_budget = max(token_budget, 1200)
     payload = json.dumps(
