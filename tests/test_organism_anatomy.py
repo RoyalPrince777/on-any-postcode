@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from mission_control import config, organism
+from mission_control import brain, config, organism
 
 
 def test_canonical_architecture_passes_all_integrity_checks():
@@ -131,3 +131,53 @@ def test_smi_cannot_emit_an_independent_execute_decision():
     assert organism.APPROVED_STATE_PATH.index("HUMAN_APPROVED") < (
         organism.APPROVED_STATE_PATH.index("KERNEL_EXECUTED")
     )
+
+
+def test_smi_learning_circuit_is_single_brain_bounded_and_fail_closed():
+    status = brain.learning_circuit_status()
+
+    assert status["brain_count"] == 1
+    assert [step["step"] for step in status["circuit"]] == [
+        "Thalamus",
+        "Hippocampus",
+        "Cortex",
+        "Corpus callosum",
+        "Cerebellum",
+        "Frontal lobe",
+        "Amygdala / Aegis",
+        "Guardian",
+        "Green Gate",
+        "Human Authority",
+        "HRM / JOOG",
+    ]
+    assert status["states"] == ("EXPERIENCE", "LEARNING", "PROVISIONAL", "CONSOLIDATED")
+    assert status["state"] == "LEARNING"
+    assert status["sandbox_passed"] is False
+    assert status["promotion_ready"] is False
+    assert status["green_gate_passed"] is False
+    assert status["founder_final"] is False
+    assert status["full_green"] is False
+    assert status["self_promotion_allowed"] is False
+    assert status["self_apply_allowed"] is False
+    assert status["automatic_deploy_allowed"] is False
+    assert status["human_authority_final"] is True
+
+
+def test_smi_learning_circuit_only_consolidates_after_every_promotion_proof():
+    provisional = brain.learning_circuit_status(
+        sandbox_passed=True,
+        promotion_ready=True,
+    )
+    assert provisional["state"] == "PROVISIONAL"
+    assert provisional["full_green"] is False
+
+    consolidated = brain.learning_circuit_status(
+        sandbox_passed=True,
+        promotion_ready=True,
+        signed_approval_recorded=True,
+        green_gate_passed=True,
+        founder_final=True,
+    )
+    assert consolidated["state"] == "CONSOLIDATED"
+    assert consolidated["full_green"] is True
+    assert consolidated["self_promotion_allowed"] is False
