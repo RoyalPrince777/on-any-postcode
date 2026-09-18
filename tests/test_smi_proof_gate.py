@@ -167,13 +167,13 @@ def test_smi_proof_snapshot_is_one_shot_allowlisted_and_read_only(monkeypatch, c
         raise AssertionError("snapshot logging must not execute proof/write paths")
 
     monkeypatch.setattr(app_module, "_SMI_PROOF_SNAPSHOT_LOGGED", False)
-    monkeypatch.setattr(app_module, "_revision", lambda: "test-revision")
+    monkeypatch.setattr(app_module, "_current_revision", lambda: "test-revision")
     monkeypatch.setattr(smi_proof_gate, "status", fake_status)
     monkeypatch.setattr(smi_proof_gate, "run_rollback_recovery_proof", forbidden_write)
     monkeypatch.setattr(smi_proof_gate, "run_runtime_guard_proof", forbidden_write)
     monkeypatch.setattr(smi_proof_gate, "run_isolation_recovery_proof", forbidden_write)
 
-    caplog.set_level(logging.INFO, logger=app_module._LOGGER.name)
+    caplog.set_level(logging.INFO, logger=app_module.REQUEST_LOGGER.name)
     app_module._log_smi_proof_snapshot_once()
     app_module._log_smi_proof_snapshot_once()
 
