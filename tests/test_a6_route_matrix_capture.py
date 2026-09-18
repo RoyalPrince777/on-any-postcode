@@ -146,3 +146,11 @@ def test_probe_sends_empty_json_for_post_without_mutating_contract(monkeypatch):
         "data": b"{}",
         "content_type": "application/json",
     }
+
+
+def test_gateway_surfaces_bounded_route_matrix_info_events():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert "_LOGGER.setLevel(logging.INFO)" in source
+    assert "_LOGGER.propagate = False" in source
+    assert 'logging.StreamHandler()' in source
+    assert '"event": "oap_a6_route_matrix_capture"' in source
