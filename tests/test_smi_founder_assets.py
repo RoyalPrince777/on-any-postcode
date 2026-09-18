@@ -128,3 +128,11 @@ def test_chat_runtime_indexes_assets_inside_governed_transaction():
     assert '"founder_assets": founder_assets' in runtime
     assert '"founder_assets_indexed"' in runtime
     assert '"raw_media_retained": False' in runtime
+
+
+def test_founder_asset_boot_migration_is_explicitly_opt_in():
+    init_source = (ROOT / "mission_control" / "__init__.py").read_text()
+
+    assert 'OAP_FOUNDER_ASSETS_MIGRATION_ON_BOOT' in init_source
+    assert 'smi_founder_assets.init_schema(assume_yes=True)' in init_source
+    assert '"event": "oap_founder_assets_migration"' in init_source
