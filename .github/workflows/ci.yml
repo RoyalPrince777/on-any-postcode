@@ -56,6 +56,8 @@ jobs:
             rtl/tb_oap_trust_attestation_core.sv
           vvp /tmp/oap-rtl-attestation | tee /tmp/oap-rtl-attestation.log
           grep -q "OAP_RTL_ATTESTATION_V0_PASS" /tmp/oap-rtl-attestation.log
+      - name: Run bounded external live routing Green Gate probe
+        run: python scripts/routing_live_green_gate.py
       - name: Run governed regression suite
         run: |
           set -o pipefail
