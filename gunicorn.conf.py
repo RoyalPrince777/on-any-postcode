@@ -1,5 +1,9 @@
 import json
 import os
+import threading
+
+_FUNCTION_HEALTH_AFTER_HEALTH_EMITTED = False
+_FUNCTION_HEALTH_AFTER_HEALTH_LOCK = threading.Lock()
 
 
 def _restore_configured_authority_once(server):
