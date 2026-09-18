@@ -220,6 +220,44 @@ def execute_generation(
     }
 
 
+def generation_status(video_id: object) -> dict[str, Any]:
+    """Check one Studio video job and Chronicle its current proof state."""
+
+    artifact = studio_media_backend.video_status(str(video_id or ""))
+    artifact_proven = bool(artifact.get("artifact_proven"))
+    receipt = smi_receipt_backend.write_receipt(
+        "studio_generation_receipt",
+        {
+            "brain_part": "studio_intelligence",
+            "gate": 21,
+            "command": "video_status",
+            "signal": "🟢" if artifact_proven else "🟣",
+            "guardian": "required",
+            "green_gate": "artifact_proven" if artifact_proven else "awaiting_artifact_proof",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                "video_job_id_present": bool(artifact.get("id")),
+                "status": str(artifact.get("status") or ""),
+                "progress": int(artifact.get("progress") or 0),
+                "artifact_proven": artifact_proven,
+                "execution_authority_expanded": False,
+            },
+        },
+    )
+    return {
+        "studio": STUDIO_NAME,
+        "smi_depth": 21,
+        "state": "generated" if artifact_proven else "provider_job_active",
+        "output_generated": artifact_proven,
+        "artifact": artifact,
+        "chronicle_receipt": receipt,
+        "execution_granted": False,
+        "publishing_granted": False,
+        "distribution_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def status() -> dict[str, Any]:
     """Return the secret-free Studio contract for the Founder workbench."""
 
