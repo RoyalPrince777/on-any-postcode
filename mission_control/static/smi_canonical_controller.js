@@ -20,7 +20,12 @@ let oapPaused=false,oapWorkStarted=0,oapWorkTimer=null,oapLiveConversation=false
 let oapVoiceEnabled=(oapSpeaker?.getAttribute('aria-pressed')!=='false');
 
 function oapSetStatus(text){if(oapStatus)oapStatus.textContent=text;}
-function oapCharacterState(state,detail={}){window.dispatchEvent(new CustomEvent('oap-smi-character-state',{detail:{state,...detail}}));}
+function oapCharacterState(state,detail={}){
+ const root=document.getElementById('smi-character'),label=document.getElementById('smi-character-state');
+ if(root)root.dataset.state=state;
+ if(label)label.textContent=({ready:'Ready',listening:'Listening',thinking:'Thinking',speaking:'Speaking',paused:'Paused',stopped:'Stopped'})[state]||state;
+ window.dispatchEvent(new CustomEvent('oap-smi-character-state',{detail:{state,...detail}}));
+}
 function oapSetLive(enabled){
  oapLiveConversation=Boolean(enabled);
  if(oapLiveToggle){oapLiveToggle.classList.toggle('active',oapLiveConversation);oapLiveToggle.setAttribute('aria-pressed',String(oapLiveConversation));oapLiveToggle.textContent=oapLiveConversation?'◉ Live On':'◉ Live SMI';}
