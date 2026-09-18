@@ -295,7 +295,14 @@ def record_a6_readiness_bundle(
     autonomy = autonomy_levels.status()
     if not autonomy.get("a5_enabled"):
         raise PermissionError("a5_preparation_must_be_enabled")
-    if autonomy.get("a6_enabled") or autonomy.get("a7_enabled"):
+    a6_live_matrix_governed = bool(
+        autonomy.get("a6_enabled")
+        and autonomy.get("a6_matrix_control")
+        and autonomy.get("configured_level") == "A6"
+    )
+    if autonomy.get("a7_enabled") or (
+        autonomy.get("a6_enabled") and not a6_live_matrix_governed
+    ):
         raise RuntimeError("higher_execution_level_must_remain_locked")
     lower = smi_proof_gate.status()
     if not lower.get("green"):

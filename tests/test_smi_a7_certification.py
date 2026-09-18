@@ -137,7 +137,7 @@ def test_a6_readiness_bundle_keeps_execution_locked(monkeypatch):
     monkeypatch.setattr(
         a7_certification.autonomy_levels,
         "status",
-        lambda: {"a5_enabled": True, "a6_enabled": True, "a7_enabled": False},
+        lambda: {"a5_enabled": True, "a6_enabled": True, "a6_matrix_control": False, "configured_level": "A6", "a7_enabled": False},
     )
     with pytest.raises(RuntimeError, match="higher_execution_level_must_remain_locked"):
         a7_certification.record_a6_readiness_bundle(
@@ -210,3 +210,26 @@ def test_a6_capability_allowlist_fails_without_matrix_control(monkeypatch):
         lambda: "A6",
     )
     assert a7_certification._capability_allowlist_ready() is False
+
+
+def test_record_a6_readiness_bundle_allows_matrix_governed_live_a6(monkeypatch):
+    monkeypatch.setattr(
+        a7_certification.autonomy_levels,
+        "status",
+        lambda: {
+            "a5_enabled": True,
+            "a6_enabled": True,
+            "a6_matrix_control": True,
+            "configured_level": "A6",
+            "a7_enabled": False,
+        },
+    )
+    monkeypatch.setattr(a7_certification.smi_proof_gate, "status", lambda: {"green": False})
+    with pytest.raises(RuntimeError, match="green_gate_required"):
+        a7_certification.record_a6_readiness_bundle(
+            identity_id="00000000-0000-0000-0000-000000000001",
+            request_id="00000000-0000-0000-0000-000000000002",
+            independent_evidence_ref="proof",
+            independent_evidence_hash="0" * 64,
+            independent_issuer="ci",
+        )
