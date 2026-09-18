@@ -24,6 +24,7 @@ def test_smi_chat_control_surface_is_permanent():
         'data-oap-action="hrm"',
         'data-oap-action="improvement"',
         'data-oap-action="swot"',
+        'data-oap-action="behaviour"',
         'data-oap-action="github-governed"',
     ):
         assert marker in base
@@ -65,6 +66,8 @@ def test_smi_response_actions_include_feedback_and_voice():
         "studioStatusUrl",
         "githubAction()",
         "Run SWOT Intelligence on:",
+        "Run Behaviour Intelligence on:",
+        "21 dimensions · evidence-backed percentages only",
         "Strengths · Weaknesses · Opportunities · Threats · Practical Move",
     ):
         assert marker in script
