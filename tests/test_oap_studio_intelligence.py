@@ -129,3 +129,81 @@ def test_bring_alive_requires_an_image_reference():
         assert str(exc) == "studio_source_image_required"
     else:
         raise AssertionError("Bring Alive must fail closed without a source image.")
+
+
+def test_studio_backend_status_is_secret_free(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "secret-test-value")
+    snapshot = studio_intelligence.studio_media_backend.status()
+
+    assert snapshot["configured"] is True
+    assert snapshot["provider"] == "openai"
+    assert snapshot["provider_is_authority"] is False
+    assert "secret-test-value" not in str(snapshot)
+
+
+def test_execute_imagine_promotes_only_real_artifact(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "generate_image",
+        lambda prompt: {
+            "kind": "image",
+            "model": "gpt-image-2",
+            "mime_type": "image/png",
+            "b64_json": "ZmFrZQ==",
+            "artifact_proven": True,
+            "provider_is_authority": False,
+        },
+    )
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: {
+            "ok": True,
+            "receipt_kind": kind,
+            "receipt_id": "studio-image",
+            "read_back_ok": True,
+        },
+    )
+
+    result = studio_intelligence.execute_generation(
+        "imagine",
+        prompt="OAP world at sunrise",
+    )
+
+    assert result["state"] == "generated"
+    assert result["output_generated"] is True
+    assert result["artifact"]["artifact_proven"] is True
+    assert result["execution_granted"] is False
+
+
+def test_scene_builder_stays_purple_while_video_is_queued(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "create_video",
+        lambda prompt, source_image_data="": {
+            "kind": "video_job",
+            "id": "video_test",
+            "model": "sora-2",
+            "status": "queued",
+            "progress": 0,
+            "artifact_proven": False,
+            "provider_is_authority": False,
+        },
+    )
+    captured = {}
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: captured.setdefault("receipt", {"kind": kind, "payload": payload}),
+    )
+
+    result = studio_intelligence.execute_generation(
+        "scene_builder",
+        prompt="A short OAP local-first scene",
+    )
+
+    assert result["state"] == "provider_job_started"
+    assert result["output_generated"] is False
+    assert result["artifact"]["status"] == "queued"
+    assert captured["receipt"]["payload"]["signal"] == "🟣"
+    assert result["execution_granted"] is False
