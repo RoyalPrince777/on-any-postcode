@@ -124,3 +124,17 @@ def test_behaviour_protocol_uses_a_level_locks_and_truth_evidence_green_rule():
         "Only Truth Intelligence plus Evidence Intelligence can support a green claim."
     )
     assert status["overall_green"] is False
+
+
+def test_behaviour_board_has_21_dimensions_and_never_fabricates_percentages():
+    board = ai_behaviour_protocol.behaviour_board()
+
+    assert board["dimension_count"] == 21
+    assert len(board["dimensions"]) == 21
+    assert board["overall_percentage"] is None
+    assert board["overall_evidence_state"] == "unknown"
+    assert all(item["percentage"] is None for item in board["dimensions"])
+    assert all(item["evidence_state"] == "unknown" for item in board["dimensions"])
+    ids = {item["id"] for item in board["dimensions"]}
+    assert {"truth", "instruction", "noise", "authority", "recovery", "integrity"} <= ids
+    assert board["human_authority_final"] is True
