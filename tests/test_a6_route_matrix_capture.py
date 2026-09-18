@@ -59,3 +59,7 @@ def test_gateway_logs_bounded_a6_blocker_reason():
     assert '"a6_route_matrix_precheck_blocked:"' in source
     assert 'reason = str(exc)[:120] if isinstance(exc, RuntimeError) else ""' in source
     assert '"reason": reason' in source
+    assert "readiness=" in source
+    assert "matrix=" in source
+    assert "matrix_count=" in source
+    assert "enabled=" in source
