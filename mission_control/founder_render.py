@@ -133,6 +133,29 @@ class FounderRenderReadAdapter:
 
     def services_summary(self) -> RenderReadResult:
         self._authorize("service.read")
+        if not self.token:
+            service_id = os.getenv("RENDER_SERVICE_ID", "").strip() or self._services["smi"]
+            service_name = os.getenv("RENDER_SERVICE_NAME", "").strip() or "oap-smi"
+            external_url = os.getenv("RENDER_EXTERNAL_URL", "").strip() or None
+            commit = os.getenv("RENDER_GIT_COMMIT", "").strip() or None
+            return RenderReadResult(
+                "service.read",
+                {
+                    "provider_api_connected": False,
+                    "scope": "self-runtime-only",
+                    "services": [
+                        {
+                            "alias": "smi",
+                            "id": service_id,
+                            "name": service_name,
+                            "url": external_url,
+                            "commit": commit,
+                            "source": "render-runtime-environment",
+                        }
+                    ],
+                    "unavailable_without_api_key": ["world service inventory", "deploy history", "provider logs"],
+                },
+            )
         services = []
         for alias in ("world", "smi"):
             service_id = self._service_id(alias)
@@ -140,7 +163,10 @@ class FounderRenderReadAdapter:
             if not isinstance(data, dict):
                 raise TypeError("Render returned an invalid service response")
             services.append(self._service_projection(data, alias=alias))
-        return RenderReadResult("service.read", {"services": services})
+        return RenderReadResult(
+            "service.read",
+            {"provider_api_connected": True, "scope": "approved-services", "services": services},
+        )
 
     def deploys(self, alias: str, *, limit: int = 5) -> RenderReadResult:
         self._authorize("deploy.read")
@@ -213,6 +239,8 @@ class FounderRenderReadAdapter:
             "component": "Founder Render Read Adapter",
             "ready": bool(self.token),
             "configured": bool(self.token),
+            "self_inspection_available": True,
+            "access_mode": "provider-api" if self.token else "self-runtime-fallback",
             "approved_services": ("world", "smi"),
             "read_only": True,
             "independent_deploy": False,
