@@ -34,3 +34,8 @@ def test_war_room_exposes_simulation_as_training_not_authority():
     assert dashboard["can_execute"] is False
     assert "War Room review" in dashboard["training_flow"]
     assert "Human Authority" in dashboard["training_flow"]
+
+
+def test_matrix_simulation_forbids_self_promotion():
+    status = matrix_simulation.status()
+    assert "No agent may promote itself; promotion requires evidence and Founder approval." in status["rules"]
