@@ -166,6 +166,55 @@ def isolation_recovery_proof():
     )
 
 
+@bp.post("/a6/readiness-bundle")
+@web_security.login_required(api=True, founder_only=True)
+def a6_readiness_bundle():
+    """Record A6 readiness evidence without executing the approved operation."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        proof = a7_certification.record_a6_readiness_bundle(
+            identity_id=str(user["id"]),
+            request_id=payload.get("request_id"),
+            independent_evidence_ref=payload.get("independent_evidence_ref"),
+            independent_evidence_hash=payload.get("independent_evidence_hash"),
+            independent_issuer=payload.get("independent_issuer"),
+        )
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record A6 readiness proof.",
+            403,
+        )
+    except PermissionError as exc:
+        return _error("a6_readiness_blocked", str(exc), 403)
+    except ValueError as exc:
+        return _error("invalid_a6_readiness_request", str(exc), 400)
+    except RuntimeError as exc:
+        return _error("a6_readiness_unavailable", str(exc), 503)
+    return _no_store(
+        make_response(
+            jsonify(
+                proof=proof,
+                a6=a7_certification.public_safe_status(),
+                execution_granted=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
 @bp.get("/a7")
 @web_security.login_required(founder_only=True)
 def a7_dashboard():
