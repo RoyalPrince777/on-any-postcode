@@ -35,6 +35,7 @@ from mission_control import (
     product_store,
     products,
     public_store,
+    public_studio_runtime,
     smi_chat_runtime,
     smi_proof_gate,
     surface_security,
@@ -525,6 +526,32 @@ def public_studio():
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+@app.post("/studio/chat")
+def public_studio_chat():
+    """Bounded public AI chat; never opens private SMI authority or memory."""
+
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify(error={"code": "invalid_request", "message": "A JSON object is required."}), 400
+    client_key = str(request.remote_addr or "anonymous")
+    try:
+        result = public_studio_runtime.ask(payload.get("message"), rate_key=client_key)
+        response = make_response(jsonify(result))
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except ValueError:
+        return jsonify(error={"code": "invalid_request", "message": "A message is required."}), 400
+    except public_studio_runtime.PublicStudioRateLimited:
+        response = jsonify(error={"code": "rate_limited", "message": "Too many requests. Wait one minute and try again."})
+        response.status_code = 429
+        response.headers["Retry-After"] = "60"
+        return response
+    except public_studio_runtime.PublicStudioUnavailable:
+        return jsonify(error={"code": "provider_unavailable", "message": "OAP Studio Intelligence is temporarily unavailable."}), 503
+
 
 
 @app.get("/")
