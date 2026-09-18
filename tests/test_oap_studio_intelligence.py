@@ -80,6 +80,8 @@ def test_studio_exposes_three_canonical_generation_tools_and_21_stages():
     ]
     assert snapshot["studio_21_stage_count"] == 21
     assert len(snapshot["studio_21_stages"]) == 21
+    assert snapshot["generation_backend_configured"] is False
+    assert snapshot["generation_runtime_proven"] is False
     assert snapshot["generation_backend_proven"] is False
     assert snapshot["full_live_certificate"] is False
 
@@ -214,7 +216,8 @@ def test_studio_routes_are_founder_only_and_fail_closed():
 
     assert '@bp.post("/studio/generate")' in views
     assert '@bp.get("/studio/video/<video_id>/status")' in views
-    assert views.count("login_required(api=True, founder_only=True)") >= 3
+    assert '@bp.get("/studio/video/<video_id>/content")' in views
+    assert views.count("login_required(api=True, founder_only=True)") >= 4
     assert "csrf_valid(request)" in views
     assert "studio_generation_unavailable" in views
 
@@ -249,3 +252,47 @@ def test_completed_video_status_can_promote_with_receipt(monkeypatch):
     assert captured["receipt"]["payload"]["signal"] == "🟢"
     assert captured["receipt"]["payload"]["green_gate"] == "artifact_proven"
     assert result["execution_granted"] is False
+
+
+def test_generation_content_requires_completion_then_returns_proven_bytes(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence,
+        "generation_status",
+        lambda video_id: {
+            "output_generated": True,
+            "artifact": {"id": video_id, "status": "completed", "artifact_proven": True},
+        },
+    )
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "video_content",
+        lambda video_id: {
+            "id": video_id,
+            "mime_type": "video/mp4",
+            "content": b"video-bytes",
+            "artifact_proven": True,
+            "provider_is_authority": False,
+        },
+    )
+
+    artifact = studio_intelligence.generation_content("video_test")
+    assert artifact["artifact_proven"] is True
+    assert artifact["content"] == b"video-bytes"
+    assert artifact["mime_type"] == "video/mp4"
+
+
+def test_generation_content_fails_closed_before_completion(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence,
+        "generation_status",
+        lambda video_id: {
+            "output_generated": False,
+            "artifact": {"id": video_id, "status": "in_progress", "artifact_proven": False},
+        },
+    )
+    try:
+        studio_intelligence.generation_content("video_test")
+    except RuntimeError as exc:
+        assert str(exc) == "studio_generation_artifact_not_ready"
+    else:
+        raise AssertionError("Video content must stay locked until completion proof.")

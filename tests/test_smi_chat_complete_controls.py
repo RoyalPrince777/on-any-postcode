@@ -37,6 +37,9 @@ def test_smi_feedback_and_studio_routes_are_exposed():
     assert '@bp.get("/studio/status")' in views
     assert "feedbackUrl:" in wrapper
     assert "studioStatusUrl:" in wrapper
+    assert "studioGenerateUrl:" in wrapper
+    assert "studioVideoStatusUrlTemplate:" in wrapper
+    assert "studioVideoContentUrlTemplate:" in wrapper
 
 
 def test_smi_runtime_modes_reach_governed_brain_context():
@@ -144,3 +147,25 @@ def test_smi_auto_deepens_for_code_war_room_and_recovery():
             war_room_triggered=kwargs["war_room_triggered"],
         )
         assert (level, depth) == ("deep_dive", 21)
+
+
+def test_smi_auto_result_exposes_safe_resolved_depth():
+    core = (ROOT / "mission_control" / "smi_chat_runtime_core.py").read_text()
+    facade = (ROOT / "mission_control" / "smi_chat_runtime.py").read_text()
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
+    assert '"resolved_depth": resolved_depth' in core
+    assert '"auto_selected": bool(brain.get("auto_selected"))' in core
+    assert 'enriched["requested_thinking_level"]' in facade
+    assert 'enriched["resolved_depth"]' in facade
+    assert "AUTO → " in base
+
+
+def test_smi_studio_generation_controls_are_wired():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
+    script = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text()
+    for tool in ("imagine", "bring_alive", "scene_builder"):
+        assert f'data-studio-tool="{tool}"' in base
+    assert "runStudioTool" in script
+    assert "pollStudioVideo" in script
+    assert "selectedImage" in script
+    assert "studioVideoContentUrlTemplate" in script
