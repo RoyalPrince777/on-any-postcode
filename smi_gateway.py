@@ -15,7 +15,15 @@ from urllib import request as urlrequest
 
 from flask import Flask, Response, make_response, redirect, request, stream_with_context
 
-from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner, postgres_db, telemetry
+from mission_control import (
+    a6_matrix_execution,
+    a7_certification,
+    authority,
+    maps_movement_direct_proof_runner,
+    postgres_db,
+    smi_proof_gate,
+    telemetry,
+)
 
 app = Flask(__name__)
 _LOGGER = logging.getLogger(__name__)
@@ -410,13 +418,29 @@ def war_room_alias():
     return redirect("/mission/war-room", code=302)
 
 
-def _complete_a6_readiness_if_requested() -> None:
-    """Record A6 readiness proof for this gateway DB without enabling execution."""
+def _complete_a6_readiness_if_requested(*, trigger: str = "boot") -> None:
+    """Record A6 readiness only after the lower Green Gate is genuinely proven."""
 
-    if os.environ.get("OAP_A6_READINESS_ON_BOOT", "").strip() != "1":
+    flag = (
+        "OAP_A6_READINESS_ON_HEALTH"
+        if trigger == "health"
+        else "OAP_A6_READINESS_ON_BOOT"
+    )
+    if os.environ.get(flag, "").strip() != "1":
         return
     try:
         identity_id = _resolve_a6_human_authority()
+        if (
+            os.environ.get("OAP_A6_PREPARE_LOWER_GREEN", "").strip() == "1"
+            and not smi_proof_gate.status().get("green")
+        ):
+            smi_proof_gate.prepare_founder_final_evidence(identity_id)
+
+        lower = smi_proof_gate.public_safe_status()
+        if not lower.get("green"):
+            missing = ",".join(str(item) for item in lower.get("missing", ()))
+            raise RuntimeError("lower_green_gate_incomplete:" + missing)
+
         evidence_ref = os.environ.get(
             "OAP_A6_INDEPENDENT_EVIDENCE_REF", ""
         ).strip()
@@ -439,10 +463,11 @@ def _complete_a6_readiness_if_requested() -> None:
             json.dumps(
                 {
                     "event": "oap_a6_readiness",
-                    "trigger": "boot",
+                    "trigger": trigger,
                     "success": bool(proof.get("a6_proof_complete")),
                     "already_proven": bool(proof.get("already_proven")),
                     "a6_proof_complete": bool(proof.get("a6_proof_complete")),
+                    "lower_green_gate": True,
                     "execution_granted": False,
                     "production_state_mutated": False,
                 },
@@ -452,7 +477,7 @@ def _complete_a6_readiness_if_requested() -> None:
         )
     except Exception as exc:  # noqa: BLE001 - readiness must fail closed.
         reason = (
-            str(exc)[:180]
+            str(exc)[:240]
             if isinstance(exc, (RuntimeError, ValueError, PermissionError))
             else ""
         )
@@ -461,7 +486,7 @@ def _complete_a6_readiness_if_requested() -> None:
             json.dumps(
                 {
                     "event": "oap_a6_readiness",
-                    "trigger": "boot",
+                    "trigger": trigger,
                     "success": False,
                     "execution_granted": False,
                     "production_state_mutated": False,
@@ -629,7 +654,7 @@ def _maybe_start_a6_route_matrix_operation(*, trigger: str = "health") -> None:
 
 # Readiness is recorded first, against this gateway's own DB, then the
 # one-shot read-only Route Matrix capture may run. Neither step grants execution.
-_complete_a6_readiness_if_requested()
+_complete_a6_readiness_if_requested(trigger="boot")
 
 # Render can mark the gateway live without issuing an observable /healthz request.
 # The boot trigger is therefore an explicit, opt-in equivalent for the same
@@ -640,6 +665,7 @@ _maybe_start_a6_route_matrix_operation(trigger="boot")
 @app.get("/healthz")
 def healthz():
     telemetry.record_http_request(path="/healthz", status_code=200, duration_ms=0.0)
+    _complete_a6_readiness_if_requested(trigger="health")
     _maybe_start_a6_route_matrix_operation(trigger="health")
 
     response = make_response(
