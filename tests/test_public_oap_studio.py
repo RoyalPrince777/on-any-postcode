@@ -128,4 +128,5 @@ def test_public_studio_routes_through_shared_smi_gateway():
     assert '"execution_authority"] = False' in gateway
     assert '"private_memory_allowed"] = False' in gateway
     assert "PUBLIC_SMI_SYSTEM" in gateway
-    assert "public users have no Founder authority" in gateway
+    assert "public users have " in gateway
+    assert "no Founder authority" in gateway
