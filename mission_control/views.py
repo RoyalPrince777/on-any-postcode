@@ -654,11 +654,60 @@ def smi_workbench_status():
 
 
 @bp.get("/studio/status")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def smi_studio_status():
     """Return the canonical Founder-only OAP Studio Intelligence contract."""
 
     return _no_store(make_response(jsonify(studio_intelligence.status())))
+
+
+@bp.post("/studio/generate")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_generate():
+    """Execute one governed Founder-only Studio generation request."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_intelligence.execute_generation(
+            payload.get("tool_id"),
+            prompt=payload.get("prompt", ""),
+            source_image_data=payload.get("source_image_data", ""),
+        )
+    except ValueError as exc:
+        return _error("invalid_studio_request", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "studio_generation_unavailable",
+            "Studio generation is temporarily unavailable.",
+            503,
+        )
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/studio/video/<video_id>/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_video_status(video_id: str):
+    """Return one governed Studio video-job proof state."""
+
+    try:
+        result = studio_intelligence.generation_status(video_id)
+    except ValueError as exc:
+        return _error("invalid_studio_video", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "studio_generation_unavailable",
+            "Studio generation status is temporarily unavailable.",
+            503,
+        )
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/improvement")
