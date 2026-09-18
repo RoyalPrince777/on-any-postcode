@@ -247,3 +247,12 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
         "protocol_percentage": 25,
         "scores_calculated": False,
     }
+
+
+def test_text_chat_does_not_require_compatibility_provider_key_before_first_party_route():
+    from pathlib import Path
+
+    code = (Path(__file__).parents[1] / "mission_control" / "smi_chat_runtime_core.py").read_text()
+    assert 'if attachment and not provider_key:' in code
+    assert 'raise RuntimeError("provider_key_missing_for_media")' in code
+    assert 'if not provider_key:\n            raise RuntimeError("provider_key_missing")' not in code
