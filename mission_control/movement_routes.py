@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    first_party_route_proof,
     location_intelligence,
     movement,
     movement_match_safety,
@@ -176,6 +177,25 @@ def founder_movement_proof():
     """Return the private-safe Movement proof status for War Room."""
 
     return _no_store(make_response(jsonify(movement_proof.status())))
+
+
+@bp.get("/mission/war-room/movement/route-geometry-proof")
+@bp.get("/mission/movement/route-geometry-proof")
+@web_security.login_required(api=True, founder_only=True)
+def founder_route_geometry_proof():
+    """Return bounded first-party route geometry proof from the OAP-owned engine."""
+
+    try:
+        result = first_party_route_proof.prove_route_geometry(
+            pickup_latitude=request.args.get("from_lat") or 51.4036,
+            pickup_longitude=request.args.get("from_lon") or -0.1687,
+            destination_latitude=request.args.get("to_lat") or 51.5079,
+            destination_longitude=request.args.get("to_lon") or -0.0877,
+            profile=request.args.get("profile") or "driving",
+        )
+        return _no_store(make_response(jsonify(result), 200))
+    except (first_party_route_proof.RouteProofUnavailable, ValueError) as exc:
+        return _error(str(exc), "First-party route proof is not available.", 503)
 
 
 @bp.get("/movement/workspace")
