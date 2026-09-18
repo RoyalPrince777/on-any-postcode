@@ -112,3 +112,20 @@ def test_specialist_intelligence_router_marks_unready_media():
 
     assert "def _specialist_route(" in runtime
     assert "s.ready===false?' 🔒':''" in page
+
+
+def test_public_studio_routes_through_shared_smi_gateway():
+    runtime = (ROOT / "mission_control" / "public_studio_runtime.py").read_text(encoding="utf-8")
+    gateway = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text(encoding="utf-8")
+
+    assert "oap_inference_gateway as smi_inference" in runtime
+    assert "smi_inference.generate_public(" in runtime
+    assert '"brain": "SMI"' in runtime
+    assert '"smi_surface": "public"' in runtime
+
+    assert "def generate_public(" in gateway
+    assert '"surface"] = "public"' in gateway
+    assert '"execution_authority"] = False' in gateway
+    assert '"private_memory_allowed"] = False' in gateway
+    assert "PUBLIC_SMI_SYSTEM" in gateway
+    assert "public users have no Founder authority" in gateway
