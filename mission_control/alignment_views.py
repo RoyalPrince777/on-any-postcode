@@ -13,6 +13,7 @@ from . import (
     smi_brain_evidence_runner,
     smi_brain_protocol,
     smi_brain_score21,
+    smi_anatomy_runtime,
     smi_completion_contract,
     smi_deep_dive_protocol,
     smi_function_health,
@@ -135,6 +136,15 @@ def smi_brain_status():
     """Return the Founder-only SMI Brain 14 x 7 status board."""
 
     return _no_store(make_response(jsonify(smi_brain_protocol.brain_status())))
+
+
+@bp.get("/war-room/smi-brain/anatomy")
+@bp.get("/smi/brain/anatomy")
+@web_security.login_required(api=True, founder_only=True)
+def smi_brain_anatomy_runtime():
+    """Return the truth-derived SMI 21 anatomy runtime certificate."""
+
+    return _no_store(make_response(jsonify(smi_anatomy_runtime.status())))
 
 
 @bp.get("/war-room/smi-brain/simulate")
