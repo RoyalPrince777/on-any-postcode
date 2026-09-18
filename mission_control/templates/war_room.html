@@ -5,8 +5,8 @@
 </style></head><body><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
-<section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
-<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button>
+<section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
+<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a>
 <a class="btn" href="#seven-x">⭐ 7× DEEP DIVE · 7★ BOARD</a>
@@ -25,6 +25,15 @@
 </div>
 <div id="war-action-result" class="receipt action-result" data-signal="purple" role="status" aria-live="polite">🟣 Ready. SMI AUTO runs bounded review checks only; it cannot approve, deploy, spend, dispatch or bypass Founder Final.</div>
 <p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority. This surface performs no production write.</p></section>
+<section class="panel" id="depth-3-7-21"><div class="ey">🟣 SMI AUTO · 3 / 7 / 21 Depth</div><h2>Depth scales with uncertainty, risk and consequence</h2>
+<div class="grid review-grid">
+<div class="card green"><strong>3 · Routine Bounded</strong><small>Fast first-pass review for ordinary, reversible, low-risk work. Minimum necessary agents / lenses; no authority expansion.</small></div>
+<div class="card purple"><strong>7 · Council Review</strong><small>Elevated uncertainty, cross-system questions, meaningful disagreement or medium risk. Uses council structure and canonical judge coverage as relevant.</small></div>
+<div class="card yellow"><strong>21 · Full War Room</strong><small>High-risk, consequential, authority-changing, safety/security-sensitive or unresolved work. Full evidence, councils, judges, challengers, Guardian, Green Gate and Founder Final.</small></div>
+<div class="card"><strong>SMI AUTO</strong><small>Selects 3, 7 or 21 from the mission and evidence state. The numbers are review depth, not automatic permission and not forced deadlines.</small></div>
+</div>
+<p class="truth">3 / 7 / 21 is the canonical depth protocol. 7× Deep Dive remains a seven-pass review pattern inside a selected depth; it does not replace the 3 / 7 / 21 protocol.</p>
+</section>
 <section class="panel"><div class="ey">First-party protocol</div><h2>One clear War Room sequence</h2><div class="grid protocol">
 <div class="card purple"><strong>🧠 SMI First Look</strong><small>Classify · evidence · depth</small></div>
 <div class="card"><strong>🕶 Neo</strong><small>True Path check</small></div>
@@ -90,7 +99,7 @@
 </div>
 
 <div class="ey" style="margin-top:14px">5 · Debate Output Order</div><h3>One readable result, like the chat review</h3>
-<div class="receipt">TITLE → MODE / DEPTH → QUESTION / MISSION → EVIDENCE → COUNCIL VIEWS → DEFAULT JUDGE SPEECHES → REVIEW-AGENT CHALLENGES → COUNTER-VIEWS → AGI / TAI / OTHER LENS CLASSIFICATION → AGREED → DISAGREED → UNRESOLVED → STRONGEST LINK → WEAKEST LINK → 7★ → VOTE + % → MINORITY REPORT → GUARDIAN → GREEN GATE → SMI SYNTHESIS → 👑 FOUNDER FINAL → HRM / JOOG RECEIPT</div>
+<div class="receipt">TITLE → MODE / DEPTH 3|7|21 → QUESTION / MISSION → EVIDENCE → COUNCIL VIEWS → DEFAULT JUDGE SPEECHES → REVIEW-AGENT CHALLENGES → COUNTER-VIEWS → AGI / TAI / OTHER LENS CLASSIFICATION → AGREED → DISAGREED → UNRESOLVED → STRONGEST LINK → WEAKEST LINK → 7★ → VOTE + % → MINORITY REPORT → GUARDIAN → GREEN GATE → SMI SYNTHESIS → 👑 FOUNDER FINAL → HRM / JOOG RECEIPT</div>
 <p class="truth">No hidden merge of dissent. Every material disagreement survives into the Founder result. Votes are evidence signals, not authority.</p>
 </section>
 <section class="panel"><div class="ey">War Room Voice</div><h2>Named voices · visible challenge · preserved dissent</h2><div class="grid voice-grid">
@@ -133,7 +142,7 @@
   }
   async function runAuto(button) {
     const actions = ['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
-    const lines = ['🟣 SMI AUTO · bounded review'];
+    const lines = ['🟣 SMI AUTO · 3 / 7 / 21 governed review'];
     for (const action of actions) {
       const payload = await run(action);
       const signal = payload.signal || payload.action?.signal || 'unknown';
