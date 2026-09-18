@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template
 
-from . import all_intelligence, intelligence_runtime_proof, matrix_runtime_certificate, web_security
+from . import (
+    all_intelligence,
+    intelligence_runtime_proof,
+    matrix_runtime_certificate,
+    web_security,
+)
 
 bp = Blueprint(
     "all_intelligence",
