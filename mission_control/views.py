@@ -29,6 +29,7 @@ from . import (
     products,
     public_store,
     smi_chat_runtime,
+    smi_founder_assets,
     smi_recursive_improvement,
     smi_workbench,
     status,
@@ -651,6 +652,25 @@ def smi_workbench_status():
     """Return secret-safe tool and capability readiness to the Founder UI."""
 
     return _no_store(make_response(jsonify(smi_workbench.get_workbench_status())))
+
+
+@bp.get("/founder-library")
+@web_security.login_required(api=True, founder_only=True)
+def smi_founder_library():
+    """Return only the signed-in Founder's durable asset metadata."""
+
+    try:
+        return _no_store(
+            make_response(
+                jsonify(smi_founder_assets.list_assets(_chat_identity()))
+            )
+        )
+    except (ValueError, RuntimeError):
+        return _error(
+            "founder_library_unavailable",
+            "Founder Library is temporarily unavailable.",
+            503,
+        )
 
 
 @bp.get("/studio/status")
