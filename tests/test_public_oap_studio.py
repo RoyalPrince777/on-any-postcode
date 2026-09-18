@@ -22,11 +22,16 @@ def test_public_studio_does_not_expose_private_smi_controls():
         "/mission/studio/generate",
         "/mission/studio/status",
         "/mission/ollama",
+        "Sovereign Megaverse Intelligence",
+        "SMI",
         "War Room",
         "JOOG/HRM",
+        "private agents",
+        "infrastructure",
         "Founder controls",
     ):
         assert forbidden not in page
+    assert "Private operational controls remain separate and inaccessible." in page
 
 
 def test_private_studio_generation_remains_founder_only():
