@@ -35,3 +35,12 @@ def test_smi_gateway_a6_route_matrix_trigger_is_fail_closed():
     assert 'rollback_proven=True' in source
     assert 'receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain"))' in source
     assert 'production_state_mutated": False' in source
+
+
+
+def test_gateway_authority_resolver_fails_closed_without_unique_authority():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert "def _resolve_a6_human_authority" in source
+    assert "single_human_authority_not_proven" in source
+    assert "LIMIT 2" in source
+    assert "authority.APPROVAL_PERMISSION" in source
