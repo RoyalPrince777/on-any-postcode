@@ -22,6 +22,7 @@ ALLOWED_RECEIPT_KINDS = {
     "war_room_live_proof_receipt",
     "agent_tool_connection_receipt",
     "ecosystem_outcome_receipt",
+    "behaviour_response_receipt",
 }
 
 
