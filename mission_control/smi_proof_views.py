@@ -166,6 +166,65 @@ def isolation_recovery_proof():
     )
 
 
+@bp.post("/founder-final")
+@web_security.login_required(api=True, founder_only=True)
+def founder_final_protocol():
+    """Complete the 100% protocol only after a real Green Gate passes."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    try:
+        result = smi_proof_gate.complete_founder_final_protocol(str(user["id"]))
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may complete Founder Final.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_founder_final_request", str(exc), 400)
+    except RuntimeError as exc:
+        message = str(exc)
+        if message.startswith("green_gate_incomplete:"):
+            return _no_store(
+                make_response(
+                    jsonify(
+                        error={
+                            "code": "green_gate_incomplete",
+                            "message": "Founder Final remains locked until all Green Gate proof is present.",
+                            "missing": tuple(filter(None, message.split(":", 1)[1].split(","))),
+                        },
+                        green_gate=smi_proof_gate.public_safe_status(),
+                        execution_granted=False,
+                        human_authority_final=True,
+                    ),
+                    409,
+                )
+            )
+        return _error(
+            "founder_final_unavailable",
+            "Founder Final could not be recorded safely.",
+            503,
+        )
+    return _no_store(
+        make_response(
+            jsonify(
+                result=result,
+                green_gate=smi_proof_gate.public_safe_status(),
+                execution_granted=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
 @bp.post("/a6/readiness-bundle")
 @web_security.login_required(api=True, founder_only=True)
 def a6_readiness_bundle():

@@ -13,7 +13,7 @@
 <a class="btn" href="#vote-board">🗳️ VOTE BOARD</a>
 <button class="btn js-war-action" type="button" data-action="aegis-check">🛡️ GUARDIAN</button>
 <button class="btn js-war-action" type="button" data-action="green-gate">🚦 GREEN GATE</button>
-<a class="btn" href="{{ url_for('mission_control.judgement_dashboard') }}">👑 FOUNDER FINAL</a>
+<button class="btn js-founder-final" type="button">👑 FOUNDER FINAL</button>
 </div>
 <div class="bar" style="margin-top:8px">
 <a class="chip" href="/smi/brain/evidence-runner/run?command=war_room">🔬 RESEARCH</a>
@@ -173,6 +173,33 @@
       const depth = button.dataset.depth;
       document.querySelectorAll('.js-depth').forEach(item => item.setAttribute('aria-pressed', item === button ? 'true' : 'false'));
       show('purple', '🟣 MANUAL ' + depth + ' selected · review depth only · Guardian, Green Gate and Founder Final remain mandatory.');
+    });
+  });
+  document.querySelectorAll('.js-founder-final').forEach(button => {
+    button.addEventListener('click', async () => {
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = '👑 FINALISING…';
+      show('purple', '🟣 Founder Final requested · checking live Green Gate and writing the Human Authority receipt only if every proof is present.');
+      try {
+        const response = await fetch('/mission/smi-proof/founder-final', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json'}
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const missing = payload?.error?.missing || payload?.missing || [];
+          const suffix = Array.isArray(missing) && missing.length ? '\nMissing: ' + missing.join(', ') : '';
+          throw new Error((payload?.error?.message || ('Founder Final failed (' + response.status + ')')) + suffix);
+        }
+        show('green', '🟢 100% Green Gate passed · 👑 Founder Final recorded · HRM/JOOG receipt preserved · no execution authority expanded.');
+      } catch (error) {
+        show('yellow', '🟡 ' + error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
     });
   });
   document.querySelectorAll('.js-war-action').forEach(button => {
