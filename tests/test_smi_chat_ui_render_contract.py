@@ -9,7 +9,9 @@ def test_smi_chat_wrapper_does_not_fake_provider_success():
     assert "const proven=p.proven===true" in text
     assert "state.textContent=proven?'Proven':'Limited'" in text
     assert "state.textContent='Blocked'" in text
-    assert "Truth gate attention" in text
+    assert "Chat unproven · send a real message" in text
+    assert "PROVEN THIS SESSION" in text
+    assert "Truth gate green" not in text
 
 
 def test_smi_chat_receipt_is_bound_to_completed_stream_result():
