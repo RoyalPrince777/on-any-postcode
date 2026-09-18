@@ -59,7 +59,7 @@ def test_visible_master_tool_buttons_have_real_handlers():
 
 def test_studio_button_reads_governed_21_backend_truth():
     final = FINAL.read_text(encoding="utf-8")
-    assert "generation_backend_proven" in final
+    assert "generation_backend_configured" in final
     assert "full_live_certificate" in final
     assert "generation_tools" in final
     assert "SMI 21 governed generation" in final
