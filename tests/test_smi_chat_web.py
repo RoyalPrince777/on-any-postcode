@@ -206,9 +206,9 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
             "human_authority_final": True,
         },
     )
-    monkeypatch.setattr(smi_chat_runtime, "canonical_memory_status", lambda: {})
-    monkeypatch.setattr(smi_chat_runtime, "governed_memory_status", lambda: {})
-    monkeypatch.setattr(smi_chat_runtime, "memory_sync_status", lambda: {})
+    monkeypatch.setattr(smi_chat_runtime, "canonical_memory_status", dict)
+    monkeypatch.setattr(smi_chat_runtime, "governed_memory_status", dict)
+    monkeypatch.setattr(smi_chat_runtime, "memory_sync_status", dict)
     captured = {}
 
     def fake_receipt(kind, payload):
