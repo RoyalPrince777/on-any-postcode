@@ -258,6 +258,20 @@ def generation_status(video_id: object) -> dict[str, Any]:
     }
 
 
+
+def generation_content(video_id: object) -> dict[str, Any]:
+    """Return completed video bytes only after the provider completion proof gate."""
+
+    status_result = generation_status(video_id)
+    if not status_result["output_generated"]:
+        raise RuntimeError("studio_generation_artifact_not_ready")
+    artifact = studio_media_backend.video_content(str(video_id or ""))
+    if not artifact.get("artifact_proven"):
+        raise RuntimeError("studio_generation_artifact_missing")
+    return artifact
+
+
+
 def status() -> dict[str, Any]:
     """Return the secret-free Studio contract for the Founder workbench."""
 
@@ -271,7 +285,9 @@ def status() -> dict[str, Any]:
         "studio_21_stage_count": len(STUDIO_21_STAGES),
         "studio_21_stages": list(STUDIO_21_STAGES),
         "generation_backend": studio_media_backend.status(),
-        "generation_backend_proven": bool(studio_media_backend.status()["configured"]),
+        "generation_backend_configured": bool(studio_media_backend.status()["configured"]),
+        "generation_runtime_proven": False,
+        "generation_backend_proven": False,
         "full_live_certificate": False,
         "media": list(MEDIA),
         "capture_inputs": list(CAPTURE_INPUTS),
