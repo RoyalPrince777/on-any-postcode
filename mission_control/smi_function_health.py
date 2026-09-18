@@ -117,7 +117,7 @@ def route_status(url_map: Any) -> dict[str, Any]:
 
 
 
-def button_proof(url_map: Any) -> dict[str, Any]:
+def button_proof(url_map: Any, clicked_ids: tuple[str, ...] = ()) -> dict[str, Any]:
     """Separate bounded server proof from actual Founder browser-click proof."""
 
     health = function_health(url_map)
@@ -132,7 +132,7 @@ def button_proof(url_map: Any) -> dict[str, Any]:
                 "name": item["name"],
                 "path": item["path"],
                 "server_action_proven": server_action_proven,
-                "browser_click_proven": False,
+                "browser_click_proven": item["id"] in set(clicked_ids),
                 "state": "server-proven" if server_action_proven else "proof-required",
                 "label": (
                     "SERVER PROVEN · CLICK PENDING"
