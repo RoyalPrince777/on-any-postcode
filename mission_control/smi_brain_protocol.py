@@ -80,6 +80,84 @@ WAR_ROOM_7X_SIMULATION: tuple[dict[str, object], ...] = (
     {"x": "7X", "stage": "Founder Authority", "signals": ("Founder Approval", "Real Green Decision"), "does": "Founder decides yes, no, hold, repair or run War Room again."},
 )
 
+ALIGNMENT_DEBATE_PANEL: tuple[dict[str, object], ...] = (
+    {
+        "name": "SMI",
+        "role": "Synthesis and alignment intelligence",
+        "checks": "role fit, duplication, evidence, system coherence and final recommendation",
+        "signal": "🟣",
+        "max_stars": 7,
+        "challenges": ("Shere Khan", "Bagheera", "Akela", "Wolf Pack", "Lion"),
+        "authority": "recommendation_only",
+    },
+    {
+        "name": "Bagheera",
+        "role": "Protective strategy and restraint",
+        "checks": "wisdom, protection, balance, rollback and long-term safety",
+        "signal": "🟢",
+        "max_stars": 7,
+        "challenges": ("Shere Khan", "Lion"),
+        "authority": "review_only",
+    },
+    {
+        "name": "Akela",
+        "role": "Pack order and disciplined coordination",
+        "checks": "chain of command, role clarity, pack discipline and team fit",
+        "signal": "🟣",
+        "max_stars": 7,
+        "challenges": ("Lion", "Wolf Pack"),
+        "authority": "review_only",
+    },
+    {
+        "name": "Wolf Pack",
+        "role": "Collective field intelligence",
+        "checks": "distributed observations, collaboration, practical usefulness and signal agreement",
+        "signal": "🟢",
+        "max_stars": 7,
+        "challenges": ("Akela", "SMI"),
+        "authority": "review_only",
+    },
+    {
+        "name": "Lion",
+        "role": "Leadership readiness",
+        "checks": "leadership strength, usefulness, standards, courage and authority boundaries",
+        "signal": "🟡",
+        "max_stars": 7,
+        "challenges": ("Akela", "Shere Khan"),
+        "authority": "review_only",
+    },
+    {
+        "name": "Shere Khan",
+        "role": "Pressure challenger",
+        "checks": "weakness, ego, bypass, aggression, overconfidence and hidden risk",
+        "signal": "🟠",
+        "max_stars": 7,
+        "challenges": ("Bagheera", "Lion", "SMI"),
+        "authority": "challenge_only",
+    },
+)
+
+ALIGNMENT_DEBATE_RULES: tuple[str, ...] = (
+    "Judges must challenge at least one materially different viewpoint before the SMI synthesis.",
+    "A 7-star score is evidence-bound and cannot be awarded from confidence alone.",
+    "Disagreement is preserved in the review receipt; it is not averaged away.",
+    "Wolf Pack represents collective field intelligence and does not replace Akela's coordination role.",
+    "Lion reviews leadership readiness but does not become Human Authority.",
+    "Shere Khan is a pressure challenger and never gains execution or veto authority.",
+    "SMI synthesises the debate; Guardian, Green Gate and Founder Authority remain separate final gates.",
+)
+
+ALIGNMENT_STAR_RUBRIC: tuple[dict[str, object], ...] = (
+    {"stars": 0, "percentage": 0, "signal": "🔴", "meaning": "No usable proof."},
+    {"stars": 1, "percentage": 14, "signal": "🔴", "meaning": "Role named only."},
+    {"stars": 2, "percentage": 29, "signal": "🟠", "meaning": "Some distinct value, major gaps."},
+    {"stars": 3, "percentage": 43, "signal": "🟠", "meaning": "Useful idea, weak evidence or overlap."},
+    {"stars": 4, "percentage": 57, "signal": "🟡", "meaning": "Material value with unresolved challenge."},
+    {"stars": 5, "percentage": 71, "signal": "🟡", "meaning": "Strong value; sharpening or proof still needed."},
+    {"stars": 6, "percentage": 86, "signal": "🟣", "meaning": "Distinct and well-supported; minor challenge remains."},
+    {"stars": 7, "percentage": 100, "signal": "🟢", "meaning": "Distinct, evidence-backed and survives challenge."},
+)
+
 WAR_ROOM_JUDGES: tuple[dict[str, str], ...] = (
     {"name": "Shere Khan", "presence": "always", "role": "Pressure judge", "checks": "weakness, danger, ego, bypass, overconfidence"},
     {"name": "Bagheera", "presence": "always", "role": "Wisdom judge", "checks": "discipline, protection, calm judgement, long-term safety"},
@@ -222,6 +300,9 @@ def war_room_simulation(case: str | None = None) -> dict[str, Any]:
         "stages": WAR_ROOM_7X_SIMULATION,
         "signals": SIGNALS_21,
         "judges": WAR_ROOM_JUDGES,
+        "alignment_debate_panel": ALIGNMENT_DEBATE_PANEL,
+        "alignment_debate_rules": ALIGNMENT_DEBATE_RULES,
+        "alignment_star_rubric": ALIGNMENT_STAR_RUBRIC,
         "ceo_comparison": CEO_COMPARISON,
         "neo_recovery_position": NEO_RECOVERY_POSITION,
         "failure_response": "If any stage fails, blocks, conflicts or loses proof, Neo stays close to SMI and the case runs War Room again before Founder Authority.",
