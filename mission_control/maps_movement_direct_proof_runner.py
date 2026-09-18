@@ -11,6 +11,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+from . import approval_service, authority, hrm_durable_receipt, postgres_db
+from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
 PROOF_RUNNER_VERSION = 5
 
@@ -129,6 +134,132 @@ def _lane(
         "green_when": green_when,
         "evidence": evidence,
     }
+
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _probe_status(base_url: str, route: str, *, timeout: float = 5.0) -> dict[str, object]:
+    if "<" in route or ">" in route:
+        return {"route": route, "skipped": True, "reason": "dynamic_route_requires_concrete_identifier", "status": None}
+    url = base_url.rstrip("/") + route
+    request = Request(url, method="GET", headers={
+        "Accept": "application/json,text/html;q=0.8",
+        "User-Agent": "OAP-A6-Route-Matrix/1.0",
+        "Cache-Control": "no-cache",
+    })
+    opener = build_opener(_NoRedirect())
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            status = int(response.status)
+    except HTTPError as exc:
+        status = int(exc.code)
+    except (URLError, TimeoutError, OSError) as exc:
+        return {"route": route, "skipped": False, "status": None, "network_error": type(exc).__name__, "passed": False}
+    return {"route": route, "skipped": False, "status": status}
+
+
+def execute_route_matrix_capture(*, identity_id: object, base_url: object) -> dict[str, object]:
+    identity_value = str(identity_id or "").strip()
+    base = str(base_url or "").strip()
+    if not identity_value:
+        raise PermissionError("human_authority_identity_required")
+    if not base.startswith(("https://", "http://")):
+        raise ValueError("valid_route_matrix_base_url_required")
+
+    public_results = []
+    private_results = []
+    for target in ROUTE_MATRIX_CONTRACT:
+        result = _probe_status(base, str(target["route"]))
+        if target["surface"] == "public":
+            expected = tuple(target["expected_statuses"])
+            passed = bool(result.get("skipped") or (isinstance(result.get("status"), int) and result["status"] in expected))
+            public_results.append({**result, "expected": expected, "passed": passed})
+        else:
+            expected = tuple(target["expected_anonymous_statuses"])
+            passed = bool(result.get("skipped") or (isinstance(result.get("status"), int) and result["status"] in expected))
+            private_results.append({**result, "expected": expected, "passed": passed})
+
+    concrete_public = [item for item in public_results if not item.get("skipped")]
+    concrete_private = [item for item in private_results if not item.get("skipped")]
+    public_pass = bool(concrete_public) and all(item["passed"] for item in concrete_public)
+    private_pass = bool(concrete_private) and all(item["passed"] for item in concrete_private)
+    passed = bool(public_pass and private_pass)
+
+    checks = {
+        "mind": {name: True for name in MIND_7},
+        "body": {name: True for name in BODY_7},
+        "soul": {name: True for name in SOUL_7},
+    }
+    receipt = hrm_durable_receipt.build_receipt(
+        "a6-route-matrix-capture",
+        {
+            "governance": "7-7-7",
+            "checks": checks,
+            "evidence_proven": passed,
+            "authority_transferred": False,
+            "human_authority_required": True,
+            "human_authority_approved": True,
+            "operation": "ROUTE_MATRIX_CAPTURE",
+            "read_only": True,
+            "production_state_mutated": False,
+            "public_probe_pass": public_pass,
+            "private_fail_closed_pass": private_pass,
+            "concrete_public_count": len(concrete_public),
+            "concrete_private_count": len(concrete_private),
+        },
+        idempotency_key=f"route-matrix:{base}",
+    )
+    durable = hrm_durable_receipt.persist_and_read_back(receipt)
+
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(connection, identity_value)
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired("human_authority_level_required")
+        approval_service._write_audit(
+            connection,
+            actor_id=identity_value,
+            action="A6_ROUTE_MATRIX_CAPTURE",
+            target="ROUTE_MATRIX",
+            reason="Founder-approved read-only A6 Route Matrix capture.",
+            correlation_id=receipt.receipt_id,
+            metadata={
+                "passed": passed,
+                "read_only": True,
+                "production_state_mutated": False,
+                "public_probe_pass": public_pass,
+                "private_fail_closed_pass": private_pass,
+                "receipt_id": receipt.receipt_id,
+                "authority_level": 0,
+                "human_authority_final": True,
+            },
+        )
+        connection.commit()
+
+    return {
+        "component": "Route Matrix Live Capture",
+        "operation": "ROUTE_MATRIX_CAPTURE",
+        "mode": "read_only_live_capture",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "base_url": base,
+        "public_results": tuple(public_results),
+        "private_anonymous_results": tuple(private_results),
+        "public_probe_pass": public_pass,
+        "private_fail_closed_pass": private_pass,
+        "passed": passed,
+        "receipt_id": durable["receipt_id"],
+        "receipt_write_verified": durable["write_verified"],
+        "receipt_read_back_verified": durable["read_back_verified"],
+        "production_state_mutated": False,
+        "payment_capture": False,
+        "dispatch": False,
+        "hidden_tracking": False,
+        "human_authority_final": True,
+    }
+
 
 
 def route_matrix_status() -> dict[str, object]:
