@@ -102,3 +102,55 @@ def test_a6_postcheck_halts_on_failed_receipt(monkeypatch):
     assert result["passed"] is False
     assert result["rollback_required"] is True
     assert result["halt_further_execution"] is True
+
+
+def test_route_matrix_lane_has_canonical_governed_position(monkeypatch):
+    monkeypatch.setattr(
+        a6_matrix_execution,
+        "precheck",
+        lambda *args, **kwargs: {"allowed": True, "runtime": {}},
+    )
+    monkeypatch.setattr(
+        a6_matrix_execution.maps_movement_direct_proof_runner,
+        "execute_route_matrix_capture",
+        lambda **kwargs: {
+            "passed": True,
+            "public_probe_pass": True,
+            "private_fail_closed_pass": True,
+            "receipt_write_verified": True,
+            "receipt_read_back_verified": True,
+        },
+    )
+    monkeypatch.setattr(
+        a6_matrix_execution,
+        "postcheck",
+        lambda *args, **kwargs: {"passed": True},
+    )
+
+    result = a6_matrix_execution.run_route_matrix_lane(
+        identity_id="human-authority",
+        base_url="https://example.com",
+        operation_id="route-matrix-1",
+        founder_approved=True,
+        guardian_pass=True,
+        green_gate_pass=True,
+        rollback_proven=True,
+        receipt_chain_ready=True,
+    )
+
+    assert result["success"] is True
+    assert result["position"] == "SMI/A6 Governed Execution/Route Matrix/Live Capture"
+    assert result["sequence"] == (
+        "Founder Approval",
+        "Guardian",
+        "Green Gate",
+        "A6 Matrix Precheck",
+        "Route Matrix Live Capture",
+        "7-7-7 HRM Receipt",
+        "Matrix Postcheck",
+        "Safe Diagnostic",
+        "JOOG/HRM Record",
+    )
+    assert result["production_state_mutated"] is False
+    assert result["authority_expanded"] is False
+    assert result["human_authority_final"] is True
