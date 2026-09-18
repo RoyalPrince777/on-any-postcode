@@ -106,6 +106,38 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    if os.environ.get("OAP_FOUNDER_ASSETS_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            asset_status = smi_founder_assets.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_founder_assets_migration",
+                        "success": True,
+                        "schema_ready": asset_status.get("schema_ready") is True,
+                        "migration": asset_status.get("migration"),
+                        "raw_content_retained": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_founder_assets_migration",
+                        "success": False,
+                        "error": "founder_assets_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
     if os.environ.get("OAP_AEGIS_75_PROOF_ON_BOOT", "").strip() == "1":
         try:
             proof_status = smi_proof_gate.status()
