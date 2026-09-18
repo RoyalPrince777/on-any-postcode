@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from .agent_selection import status as agent_ranking_status
 from .role_growth import status as role_growth_status
 
 from oap.contracts import (
@@ -234,6 +235,7 @@ class WarRoomEngine:
             "coherence_context": True,
             "reversibility_required": True,
             "role_growth_war_room": role_growth_status(),
+            "agent_ranking": agent_ranking_status(),
             "production_blocker": (
                 "Live provider probes, governed execution and verified rollback proof "
                 "are not yet certified."
