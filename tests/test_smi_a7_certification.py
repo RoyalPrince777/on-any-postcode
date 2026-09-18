@@ -102,3 +102,46 @@ def test_evidence_reference_requires_sha256_before_database_use():
             scope="SMI A7",
             attestor_type="EXTERNAL",
         )
+
+
+
+def test_a6_rollback_exercise_never_mutates_production():
+    proof = a7_certification._a6_rollback_exercise(
+        "00000000-0000-0000-0000-000000000123"
+    )
+    assert proof["passed"] is True
+    assert proof["rollback_restored"] is True
+    assert proof["production_state_mutated"] is False
+    assert proof["execution_granted"] is False
+
+
+def test_a6_readiness_bundle_requires_a5(monkeypatch):
+    monkeypatch.setattr(
+        a7_certification.autonomy_levels,
+        "status",
+        lambda: {"a5_enabled": False, "a6_enabled": False, "a7_enabled": False},
+    )
+    with pytest.raises(PermissionError, match="a5_preparation_must_be_enabled"):
+        a7_certification.record_a6_readiness_bundle(
+            identity_id="00000000-0000-0000-0000-000000000001",
+            request_id="00000000-0000-0000-0000-000000000002",
+            independent_evidence_ref="github-actions-run",
+            independent_evidence_hash="a" * 64,
+            independent_issuer="GitHub Actions",
+        )
+
+
+def test_a6_readiness_bundle_keeps_execution_locked(monkeypatch):
+    monkeypatch.setattr(
+        a7_certification.autonomy_levels,
+        "status",
+        lambda: {"a5_enabled": True, "a6_enabled": True, "a7_enabled": False},
+    )
+    with pytest.raises(RuntimeError, match="higher_execution_level_must_remain_locked"):
+        a7_certification.record_a6_readiness_bundle(
+            identity_id="00000000-0000-0000-0000-000000000001",
+            request_id="00000000-0000-0000-0000-000000000002",
+            independent_evidence_ref="github-actions-run",
+            independent_evidence_hash="a" * 64,
+            independent_issuer="GitHub Actions",
+        )
