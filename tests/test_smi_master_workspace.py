@@ -77,7 +77,7 @@ def test_core_chat_controls_have_single_canonical_owners():
 
 def test_master_workspace_contract_is_explicit():
     final = FINAL.read_text(encoding="utf-8")
-    assert "window.OAP_SMI_MASTER={version:'1.2',masterTools:true,savedWork:true,search:true,studio21:true,studioExecution:true,buttonProof:true,autoDepthVisible:true,governedActions:true}" in final
+    assert "window.OAP_SMI_MASTER={version:'1.3',masterTools:true,savedWork:true,search:true,studio21:true,studioExecution:true,buttonProof:true,clickReceipts:true,allCoreTools:true,autoDepthVisible:true,governedActions:true}" in final
 
 
 def test_studio_creation_tools_execute_from_master_tools():
@@ -104,3 +104,25 @@ def test_button_proof_is_a_first_class_master_tool():
     assert 'data-oap-action="button-proof"' in base
     assert "buttonProofUrl" in wrapper
     assert "Button Proof" in final
+
+
+def test_all_core_intelligence_tools_are_reachable_from_master_tools():
+    base = BASE.read_text(encoding="utf-8")
+    final = FINAL.read_text(encoding="utf-8")
+    for action in (
+        "signals-21",
+        "guardian",
+        "routes",
+        "brain",
+        "agents",
+        "infrastructure",
+        "judgement",
+    ):
+        assert f'data-oap-action="{action}"' in base
+    for marker in (
+        "recordButtonSuccess",
+        "buttonClickReceiptUrl",
+        "clickReceipts:true",
+        "allCoreTools:true",
+    ):
+        assert marker in final or marker in (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
