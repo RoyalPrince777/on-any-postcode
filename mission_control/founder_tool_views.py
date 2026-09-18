@@ -35,6 +35,8 @@ def _result(value):
     payload = {
         "operation": value.operation,
         "data": value.data,
+        "proven": True,
+        "proof": "inspection_completed",
         "read_only": True,
         "human_authority_final": True,
     }
@@ -177,7 +179,15 @@ def neon_status():
             make_response(
                 jsonify(
                     adapter=adapter.status(),
-                    database=adapter.database_status().data,
+                    database=(database_status := adapter.database_status().data),
+                    proven=bool(
+                        database_status.get("configured")
+                        and database_status.get("reachable")
+                        and database_status.get("initialized")
+                        and not database_status.get("pending")
+                        and not database_status.get("checksum_mismatches")
+                    ),
+                    proof="database_runtime_probe",
                     read_only=True,
                     human_authority_final=True,
                 )
