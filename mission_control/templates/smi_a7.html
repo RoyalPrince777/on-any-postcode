@@ -35,11 +35,13 @@
       <button id="rollback-proof" type="button">↩️ Run Rollback / Recovery Proof</button>
       <button id="runtime-guard-proof" type="button">🛡️ Run Runtime Guard Proof</button>
       <button id="isolation-proof" type="button">⚫ Run Aegis Isolation / Recovery Proof</button>
+      <button id="green-proof-chain" type="button">🟢 Run Green Proof Chain</button>
     </div>
     <p class="muted">Use Judgement for a real decision you genuinely approve or reject. Add a genuine private note in HRM &amp; Memory to create a harmless meaningful OAP event receipt. The rollback proof is bounded and does not mutate product state.</p>
     <div class="result" id="rollback-result" aria-live="polite">No rollback proof run from this screen yet.</div>
     <div class="result" id="runtime-guard-result" aria-live="polite">No runtime guard proof run from this screen yet.</div>
     <div class="result" id="isolation-result" aria-live="polite">No Aegis isolation proof run from this screen yet.</div>
+    <div class="result" id="green-proof-result" aria-live="polite">Green proof chain not run from this screen yet.</div>
   </section>
 
   <section class="section" aria-labelledby="a6-title">
@@ -137,6 +139,31 @@ isolationButton.addEventListener('click',async()=>{
     isolationResult.textContent='🟢 Aegis isolation / recovery proof recorded. Worker, queue, session and memory-reference recovery passed.';
     setTimeout(()=>location.reload(),500);
   }catch(err){isolationResult.textContent='🟡 '+err.message;}finally{isolationButton.disabled=false;}
+});
+const greenProofButton=document.getElementById('green-proof-chain');
+const greenProofResult=document.getElementById('green-proof-result');
+greenProofButton.addEventListener('click',async()=>{
+  greenProofButton.disabled=true;
+  greenProofResult.textContent='Running Green proof chain: rollback → runtime guard → Aegis isolation…';
+  const steps=[
+    ['Rollback / Recovery', {{ url_for('smi_proof_gate.rollback_recovery_proof')|tojson }}],
+    ['Runtime Guard', {{ url_for('smi_proof_gate.runtime_guard_proof')|tojson }}],
+    ['Aegis Isolation / Recovery', {{ url_for('smi_proof_gate.isolation_recovery_proof')|tojson }}],
+  ];
+  try{
+    for(const [name,url] of steps){
+      greenProofResult.textContent='Running '+name+'…';
+      const r=await fetch(url,{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+      const body=await r.json();
+      if(!r.ok) throw new Error(name+': '+(body?.error?.message||'proof failed'));
+    }
+    greenProofResult.textContent='🟢 All three proof receipts recorded. Reloading Green Gate…';
+    setTimeout(()=>location.reload(),700);
+  }catch(err){
+    greenProofResult.textContent='🟡 '+err.message;
+  }finally{
+    greenProofButton.disabled=false;
+  }
 });
 const haltButton=document.getElementById('halt-proof');
 const haltResult=document.getElementById('halt-result');
