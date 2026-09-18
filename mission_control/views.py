@@ -730,6 +730,27 @@ def smi_studio_video_status(video_id: str):
     return _no_store(make_response(jsonify(result)))
 
 
+@bp.get("/studio/video/<video_id>/content")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_video_content(video_id: str):
+    """Proxy one completed Studio video artifact through the Founder boundary."""
+
+    try:
+        artifact = studio_intelligence.generation_content(video_id)
+    except ValueError as exc:
+        return _error("invalid_studio_video", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "studio_generation_unavailable",
+            "Studio video artifact is not available yet.",
+            503,
+        )
+    response = make_response(artifact["content"])
+    response.headers["Content-Type"] = artifact["mime_type"]
+    response.headers["Content-Disposition"] = 'inline; filename="oap-studio-video.mp4"'
+    return _no_store(response)
+
+
 @bp.get("/improvement")
 @web_security.login_required()
 def smi_recursive_improvement_dashboard():
