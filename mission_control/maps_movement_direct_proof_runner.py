@@ -10,6 +10,7 @@ suppliers, write production approvals, expose private media, or unlock A5.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import time
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -164,6 +165,7 @@ def _probe_status(
     *,
     method: str = "GET",
     timeout: float = 5.0,
+    retry_429: bool = True,
 ) -> dict[str, object]:
     if "<" in route or ">" in route:
         return {
@@ -199,6 +201,15 @@ def _probe_status(
             "network_error": type(exc).__name__,
             "passed": False,
         }
+    if status == 429 and retry_429:
+        time.sleep(2.0)
+        return _probe_status(
+            base_url,
+            route,
+            method=verb,
+            timeout=timeout,
+            retry_429=False,
+        )
     return {"route": route, "method": verb, "skipped": False, "status": status}
 
 
@@ -215,7 +226,9 @@ def execute_route_matrix_capture(*, identity_id: object, base_url: object, opera
 
     public_results = []
     private_results = []
-    for target in ROUTE_MATRIX_CONTRACT:
+    for index, target in enumerate(ROUTE_MATRIX_CONTRACT):
+        if index:
+            time.sleep(0.5)
         result = _probe_status(
             base,
             str(target["route"]),
