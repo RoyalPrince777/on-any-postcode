@@ -151,11 +151,26 @@ def _capability_allowlist_ready() -> bool:
         bool(autonomy_levels.evaluate_runtime_job(action).get("pre_authorised"))
         for action in pilot
     )
+    a6_policy_safe = bool(
+        (
+            autonomy_levels.A6_ENABLED is False
+        )
+        or (
+            autonomy_levels.A6_ENABLED is True
+            and autonomy_levels.A6_MATRIX_CONTROL is True
+            and autonomy_levels.configured_level() == "A6"
+            and bool(autonomy_levels.A6_EXECUTION_ACTIONS)
+            and not (
+                autonomy_levels.A6_EXECUTION_ACTIONS
+                & autonomy_levels.FORBIDDEN_DOMAINS
+            )
+        )
+    )
     return bool(
         pilot
         and pre_authorised
         and autonomy_levels.FORBIDDEN_DOMAINS
-        and autonomy_levels.A6_ENABLED is False
+        and a6_policy_safe
         and autonomy_levels.A7_ENABLED is False
     )
 

@@ -187,3 +187,26 @@ def test_a6_readiness_receipt_uses_canonical_777_envelope():
     assert '"authority_transferred": False' in section
     assert '"human_authority_required": True' in section
     assert '"human_authority_approved": True' in section
+
+
+
+def test_a6_capability_allowlist_stays_ready_when_matrix_governed(monkeypatch):
+    monkeypatch.setattr(a7_certification.autonomy_levels, "A6_ENABLED", True)
+    monkeypatch.setattr(a7_certification.autonomy_levels, "A6_MATRIX_CONTROL", True)
+    monkeypatch.setattr(
+        a7_certification.autonomy_levels,
+        "configured_level",
+        lambda: "A6",
+    )
+    assert a7_certification._capability_allowlist_ready() is True
+
+
+def test_a6_capability_allowlist_fails_without_matrix_control(monkeypatch):
+    monkeypatch.setattr(a7_certification.autonomy_levels, "A6_ENABLED", True)
+    monkeypatch.setattr(a7_certification.autonomy_levels, "A6_MATRIX_CONTROL", False)
+    monkeypatch.setattr(
+        a7_certification.autonomy_levels,
+        "configured_level",
+        lambda: "A6",
+    )
+    assert a7_certification._capability_allowlist_ready() is False
