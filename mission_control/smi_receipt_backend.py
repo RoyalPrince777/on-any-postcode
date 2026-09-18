@@ -24,6 +24,8 @@ ALLOWED_RECEIPT_KINDS = {
     "ecosystem_outcome_receipt",
     "behaviour_response_receipt",
     "behaviour_score_receipt",
+    "behaviour_learning_receipt",
+    "behaviour_step4_readiness_receipt",
 }
 
 
