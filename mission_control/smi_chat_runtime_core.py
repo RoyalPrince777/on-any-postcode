@@ -175,7 +175,7 @@ def _provider(
         "auto": 1000,
     }.get(str((brain or {}).get("thinking_level") or "auto"), 1000)
     if code_mode:
-        token_budget = max(token_budget, 1400)
+        token_budget = max(token_budget, 1200)
     payload = json.dumps(
         {
             "model": MODEL,
