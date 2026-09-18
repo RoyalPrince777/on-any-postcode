@@ -28,6 +28,7 @@ CORE_RULES: tuple[str, ...] = (
     "Failures and contradictions are preserved as learning evidence.",
     "Lessons may be written to JOOG/HRM as bounded summaries, never hidden chain-of-thought.",
     "Matrix Core remains seven registered agents; this module is a system environment, not an agent.",
+    "No agent may promote itself; promotion requires evidence and Founder approval.",
 )
 
 TRAINING_PARTICIPANTS: tuple[str, ...] = (
