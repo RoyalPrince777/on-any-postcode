@@ -13,6 +13,7 @@ import os
 import threading
 import time
 from typing import Any
+from urllib import error as urlerror
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 
@@ -161,6 +162,9 @@ def _request_json(url: str, *, expected_host: str) -> dict[str, Any]:
             body = response.read(MAX_RESPONSE_BYTES + 1)
     except RoutingUnavailable:
         raise
+    except urlerror.HTTPError as exc:
+        _mark_error(f"routing_http_{int(exc.code)}")
+        raise RoutingUnavailable("routing_provider_unavailable") from exc
     except (OSError, TimeoutError) as exc:
         _mark_error(type(exc).__name__); raise RoutingUnavailable("routing_provider_unavailable") from exc
     if len(body) > MAX_RESPONSE_BYTES:
