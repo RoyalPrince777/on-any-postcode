@@ -6,7 +6,7 @@
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
 <section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
-<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
+<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a>
 <a class="btn" href="#seven-x">⭐ 7× DEEP DIVE · 7★ BOARD</a>
@@ -30,7 +30,7 @@
 <div class="card green"><strong>3 · Routine Bounded</strong><small>Fast first-pass review for ordinary, reversible, low-risk work. Minimum necessary agents / lenses; no authority expansion.</small></div>
 <div class="card purple"><strong>7 · Council Review</strong><small>Elevated uncertainty, cross-system questions, meaningful disagreement or medium risk. Uses council structure and canonical judge coverage as relevant.</small></div>
 <div class="card yellow"><strong>21 · Full War Room</strong><small>High-risk, consequential, authority-changing, safety/security-sensitive or unresolved work. Full evidence, councils, judges, challengers, Guardian, Green Gate and Founder Final.</small></div>
-<div class="card"><strong>SMI AUTO</strong><small>Selects 3, 7 or 21 from the mission and evidence state. The numbers are review depth, not automatic permission and not forced deadlines.</small></div>
+<div class="card"><strong>SMI AUTO</strong><small>Selects 3, 7 or 21 from the mission and evidence state. The numbers are review depth, not automatic permission and not forced deadlines.</small></div><div class="card"><strong>MANUAL</strong><small>Founder selects 3, 7 or 21 directly. Manual selection changes review depth only; all safety, proof and Founder authority gates remain unchanged.</small></div>
 </div>
 <p class="truth">3 / 7 / 21 is the canonical depth protocol. 7× Deep Dive remains a seven-pass review pattern inside a selected depth; it does not replace the 3 / 7 / 21 protocol.</p>
 </section>
@@ -153,6 +153,13 @@
     lines.push('👑 Founder Final: unchanged · separate authority');
     show('purple', lines.join('\n'));
   }
+  document.querySelectorAll('.js-depth').forEach(button => {
+    button.addEventListener('click', () => {
+      const depth = button.dataset.depth;
+      document.querySelectorAll('.js-depth').forEach(item => item.setAttribute('aria-pressed', item === button ? 'true' : 'false'));
+      show('purple', '🟣 MANUAL ' + depth + ' selected · review depth only · Guardian, Green Gate and Founder Final remain mandatory.');
+    });
+  });
   document.querySelectorAll('.js-war-action').forEach(button => {
     button.addEventListener('click', async () => {
       const action = button.dataset.action;
