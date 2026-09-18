@@ -27,6 +27,7 @@ ALLOWED_RECEIPT_KINDS = {
     "behaviour_learning_receipt",
     "behaviour_step4_readiness_receipt",
     "studio_generation_receipt",
+    "smi_button_click_receipt",
 }
 
 
@@ -416,6 +417,62 @@ def behaviour_progress(limit: int = 20) -> dict[str, Any]:
         "receipt_kinds_present": tuple(sorted(present)),
         "human_authority_final": True,
     }
+
+
+
+def latest_safe_payloads(receipt_kind: str, limit: int = 100) -> tuple[dict[str, Any], ...]:
+    """Return bounded safe payloads for one approved receipt kind."""
+
+    kind = str(receipt_kind or "").strip()
+    if kind not in ALLOWED_RECEIPT_KINDS:
+        return ()
+    safe_limit = max(1, min(int(limit or 100), 200))
+    rows: list[dict[str, Any]] = []
+    if _hrm_database_url():
+        try:
+            with _connect_postgres() as connection:
+                _init_postgres_schema(connection)
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT payload_json, created_at
+                        FROM smi_evidence_receipts
+                        WHERE receipt_kind = %s
+                        ORDER BY created_at DESC
+                        LIMIT %s
+                        """,
+                        (kind, safe_limit),
+                    )
+                    rows = [dict(row) for row in cursor.fetchall()]
+        except Exception:  # noqa: BLE001
+            rows = []
+    if not rows:
+        with _connect_sqlite() as connection:
+            _init_sqlite_schema(connection)
+            fetched = connection.execute(
+                """
+                SELECT payload_json, created_at
+                FROM smi_evidence_receipts
+                WHERE receipt_kind = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (kind, safe_limit),
+            ).fetchall()
+            rows = [dict(row) for row in fetched]
+
+    payloads = []
+    for row in rows:
+        payload = row.get("payload_json") or {}
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                payload = {}
+        if isinstance(payload, dict):
+            payloads.append({**payload, "created_at": row.get("created_at")})
+    return tuple(payloads)
+
 
 
 def backend_configuration_status() -> dict[str, Any]:
