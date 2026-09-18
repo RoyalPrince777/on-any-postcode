@@ -14,7 +14,7 @@ from urllib import request as urlrequest
 
 from flask import Flask, Response, make_response, redirect, request, stream_with_context
 
-from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner, postgres_db
+from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner, postgres_db, telemetry
 
 app = Flask(__name__)
 _LOGGER = logging.getLogger(__name__)
@@ -390,6 +390,7 @@ def war_room_alias():
 
 @app.get("/healthz")
 def healthz():
+    telemetry.record_http_request(path="/healthz", status_code=200, duration_ms=0.0)
     if os.environ.get("OAP_A6_ROUTE_MATRIX_ON_HEALTH", "").strip() == "1":
         try:
             identity_id = _resolve_a6_human_authority()
