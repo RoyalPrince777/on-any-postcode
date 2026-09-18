@@ -44,16 +44,48 @@
           <div class="tool"><strong>Files & Voice</strong><small>Upload, speak and work across supported media</small></div>
         </div>
         <div class="composer" aria-label="Studio composer">
-          <textarea placeholder="Ask OAP Studio Intelligence..." disabled></textarea>
+          <div id="messages" aria-live="polite"></div>
+          <textarea id="studio-input" placeholder="Ask OAP Studio Intelligence..."></textarea>
           <div class="bar">
-            <div class="left"><button class="btn" type="button" disabled>＋</button><button class="btn" type="button" disabled>🎙</button></div>
-            <div class="right"><button class="btn send" type="button" disabled>Send</button></div>
+            <div class="left"><button class="btn" type="button" disabled title="Files unlock at 75%">＋</button><button class="btn" type="button" disabled title="Voice unlocks at 75%">🎙</button></div>
+            <div class="right"><button class="btn send" id="studio-send" type="button">Send</button></div>
           </div>
         </div>
-        <div class="truth">🟣 Public Studio shell is live only when deployed. AI send, saved chats, voice, uploads and generation stay disabled until their runtime gates are connected and proven.</div>
+        <div class="truth">🟣 Public AI chat is connected in code. Saved chats, voice, uploads and media generation remain locked until their later runtime gates pass.</div>
       </div>
     </section>
   </main>
 </div>
+<input type="hidden" id="oap-csrf" value="{{ oap_csrf_token }}">
+<script>
+const input=document.getElementById('studio-input');
+const send=document.getElementById('studio-send');
+const messages=document.getElementById('messages');
+const csrf=document.getElementById('oap-csrf').value;
+function add(role,text){
+  const el=document.createElement('div');
+  el.style.margin='12px 0';
+  el.style.padding='12px 14px';
+  el.style.border='1px solid var(--line)';
+  el.style.borderRadius='14px';
+  el.style.background=role==='You'?'#102019':'#09110d';
+  const b=document.createElement('strong'); b.textContent=role;
+  const p=document.createElement('div'); p.style.marginTop='6px'; p.style.whiteSpace='pre-wrap'; p.textContent=text;
+  el.append(b,p); messages.appendChild(el); el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function submitStudio(){
+  const message=input.value.trim(); if(!message||send.disabled)return;
+  add('You',message); input.value=''; send.disabled=true; send.textContent='…';
+  try{
+    const r=await fetch('/studio/chat',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':csrf},body:JSON.stringify({message})});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error((data.error&&data.error.message)||'OAP Studio Intelligence is unavailable.');
+    add('OAP Studio Intelligence',data.answer||'No response returned.');
+  }catch(err){ add('OAP Studio Intelligence',err.message||'Request failed safely.'); }
+  finally{send.disabled=false;send.textContent='Send';input.focus();}
+}
+send.addEventListener('click',submitStudio);
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitStudio();}});
+</script>
 </body>
 </html>
