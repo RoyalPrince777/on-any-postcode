@@ -73,13 +73,15 @@ def test_anatomy_runtime_advances_only_with_matching_runtime_receipts(monkeypatc
     assert status["full_runtime_green"] is False
 
 
-def test_anatomy_runtime_endpoint_is_founder_only(client, anonymous_client):
+def test_anatomy_runtime_endpoint_is_founder_only(client):
     response = client.get("/mission/smi/brain/anatomy")
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["component"] == "SMI 21 Anatomy Runtime Certificate"
     assert response.headers["Cache-Control"] == "no-store"
 
-    anonymous = anonymous_client.get("/mission/smi/brain/anatomy")
-    assert anonymous.status_code == 401
-    assert anonymous.get_json()["error"]["code"] == "authentication_required"
+
+def test_anatomy_runtime_endpoint_rejects_anonymous(anonymous_client):
+    response = anonymous_client.get("/mission/smi/brain/anatomy")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
