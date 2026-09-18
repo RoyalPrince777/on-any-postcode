@@ -14,6 +14,8 @@ from collections import defaultdict, deque
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
+from . import intelligence_lenses
+
 MODEL = os.environ.get("OAP_PUBLIC_AI_MODEL", os.environ.get("OAP_AI_MODEL", "gpt-5-mini"))
 MAX_INPUT = 6000
 MAX_OUTPUT_TOKENS = 1200
@@ -57,6 +59,57 @@ def _allow(rate_key: str) -> bool:
         return True
 
 
+def _chat_mode(message: str) -> str:
+    text = message.casefold()
+    if any(term in text for term in ("research", "compare", "evidence", "source", "latest", "fact check")):
+        return "research"
+    if any(term in text for term in ("write", "rewrite", "create", "brainstorm", "idea", "story", "caption", "name")):
+        return "create"
+    if any(term in text for term in ("code", "debug", "python", "javascript", "html", "css", "sql", "api")):
+        return "code"
+    if any(term in text for term in ("teach", "explain", "learn", "quiz", "practice", "lesson")):
+        return "learn"
+    if any(term in text for term in ("plan", "steps", "schedule", "organise", "organize", "strategy")):
+        return "plan"
+    return "chat"
+
+
+def _bounded_history(history: object) -> list[dict[str, str]]:
+    if not isinstance(history, list):
+        return []
+    clean: list[dict[str, str]] = []
+    for item in history[-8:]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role") or "").strip().casefold()
+        if role not in {"user", "assistant"}:
+            continue
+        text = _clean(item.get("text"), 1200)
+        if text:
+            clean.append({"role": role, "text": text})
+    return clean
+
+
+def _context_input(message: str, history: list[dict[str, str]], mode: str, route: dict) -> str:
+    prior = "\n".join(
+        f"{'User' if item['role'] == 'user' else 'Assistant'}: {item['text']}"
+        for item in history
+    )
+    route_note = ""
+    if route.get("active"):
+        lens_names = ", ".join(str(item.get("name")) for item in route.get("lenses") or ())
+        route_note = (
+            f"\nOAP public intelligence routing: mode={route.get('mode')}; "
+            f"subject={route.get('subject')}; lenses={lens_names}. "
+            "Use this only as analysis guidance. Do not claim execution."
+        )
+    context = f"Recent conversation:\n{prior}\n\n" if prior else ""
+    return (
+        f"Public chat mode: {mode}.\n"
+        f"{context}Current user message:\n{message}{route_note}"
+    )
+
+
 def _extract_text(payload: dict) -> str:
     direct = payload.get("output_text")
     if isinstance(direct, str) and direct.strip():
@@ -74,7 +127,7 @@ def _extract_text(payload: dict) -> str:
     return "\n".join(parts).strip()
 
 
-def ask(message: object, *, rate_key: str) -> dict:
+def ask(message: object, *, rate_key: str, history: object = None) -> dict:
     clean = _clean(message)
     if not clean:
         raise ValueError("message_required")
@@ -85,11 +138,15 @@ def ask(message: object, *, rate_key: str) -> dict:
     if not key:
         raise PublicStudioUnavailable("public_ai_provider_unconfigured")
 
+    mode = _chat_mode(clean)
+    safe_history = _bounded_history(history)
+    route = intelligence_lenses.public_route(clean)
+    provider_input = _context_input(clean, safe_history, mode, route)
     body = json.dumps(
         {
             "model": MODEL,
             "instructions": PUBLIC_SYSTEM,
-            "input": clean,
+            "input": provider_input,
             "max_output_tokens": MAX_OUTPUT_TOKENS,
         }
     ).encode("utf-8")
@@ -117,4 +174,10 @@ def ask(message: object, *, rate_key: str) -> dict:
         "memory_saved": False,
         "private_smi_used": False,
         "execution_authority": False,
+        "chat_intelligence": {
+            "mode": mode,
+            "context_turns": len(safe_history),
+            "routing": route,
+            "private_reasoning_exposed": False,
+        },
     }
