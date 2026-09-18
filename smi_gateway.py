@@ -78,7 +78,7 @@ def _resolve_a6_human_authority() -> str:
                  AND i.identity_type='HUMAN_AUTHORITY'
                  AND r.authority_level=0
                  AND rp.permission_id=%s
-               ORDER BY i.identity_id
+               ORDER BY i.identity_id::text
                LIMIT 2""",
             (authority.APPROVAL_PERMISSION,),
         ).fetchall()
