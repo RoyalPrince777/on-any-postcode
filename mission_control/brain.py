@@ -15,6 +15,70 @@ from .organism import (
     validate_architecture,
 )
 
+
+LEARNING_CIRCUIT = (
+    {"step": "Thalamus", "role": "Filter incoming experience and redact private data."},
+    {"step": "Hippocampus", "role": "Form episodic memory and prepare bounded learning candidates."},
+    {"step": "Cortex", "role": "Interpret the lesson across relevant SMI regions."},
+    {"step": "Corpus callosum", "role": "Merge regional findings into one coherent learning view."},
+    {"step": "Cerebellum", "role": "Compare before/after evidence for accuracy, timing and correction."},
+    {"step": "Frontal lobe", "role": "Recommend keep, hold, reject or promote without executing."},
+    {"step": "Amygdala / Aegis", "role": "Screen risk, anomaly and unsafe learning."},
+    {"step": "Guardian", "role": "Protect authority, privacy, rights and constitutional boundaries."},
+    {"step": "Green Gate", "role": "Require objective proof before any green or promotion claim."},
+    {"step": "Human Authority", "role": "Approve or reject consequential promotion."},
+    {"step": "HRM / JOOG", "role": "Record the governed outcome, receipt and reusable lesson."},
+)
+
+LEARNING_STATES = ("EXPERIENCE", "LEARNING", "PROVISIONAL", "CONSOLIDATED")
+
+
+def learning_circuit_status(
+    *,
+    sandbox_passed: bool = False,
+    promotion_ready: bool = False,
+    signed_approval_recorded: bool = False,
+    green_gate_passed: bool = False,
+    founder_final: bool = False,
+) -> dict[str, Any]:
+    """Return the canonical one-brain learning circuit without self-promotion."""
+
+    full_green = bool(
+        sandbox_passed
+        and promotion_ready
+        and signed_approval_recorded
+        and green_gate_passed
+        and founder_final
+    )
+    state = (
+        "CONSOLIDATED"
+        if full_green
+        else "PROVISIONAL"
+        if sandbox_passed and promotion_ready
+        else "LEARNING"
+    )
+    return {
+        "brain_count": 1,
+        "circuit": tuple(dict(step) for step in LEARNING_CIRCUIT),
+        "states": LEARNING_STATES,
+        "state": state,
+        "sandbox_passed": sandbox_passed,
+        "promotion_ready": promotion_ready,
+        "signed_approval_recorded": signed_approval_recorded,
+        "green_gate_passed": green_gate_passed,
+        "founder_final": founder_final,
+        "full_green": full_green,
+        "self_promotion_allowed": False,
+        "self_apply_allowed": False,
+        "automatic_deploy_allowed": False,
+        "human_authority_final": True,
+        "rule": (
+            "Thalamus filters; Hippocampus learns; Cortex understands; "
+            "Cerebellum tests; Frontal Lobe recommends; Guardian protects; "
+            "Green Gate proves; Human Authority decides; HRM/JOOG remembers."
+        ),
+    }
+
 PROCESSING_CYCLE = (
     {"step": "NEXUS", "action": "Carries the incoming SP Signal"},
     {"step": "Thalamus", "action": "Filters input and redacts private OAP Data"},
@@ -189,6 +253,7 @@ def get_public_brain_status() -> dict[str, Any]:
         "autonomy": autonomy,
         "components": components,
         "processing_cycle": PROCESSING_CYCLE,
+        "learning_circuit": learning_circuit_status(),
         "allowed_outputs": SMI_OUTPUT_STATES,
         "approved_state_path": APPROVED_STATE_PATH,
         "rejected_state_path": REJECTED_STATE_PATH,
