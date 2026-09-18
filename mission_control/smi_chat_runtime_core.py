@@ -20,6 +20,7 @@ from . import (
     live_brain,
     media_intelligence,
     postgres_db,
+    smi_founder_assets,
 )
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
@@ -711,6 +712,14 @@ def chat(
                VALUES (%s,%s,'assistant',%s,%s,%s,%s)""",
             (conversation, request_id, response, PROVIDER, MODEL, outcome),
         )
+        founder_assets = smi_founder_assets.record_chat_assets(
+            connection,
+            identity_id=identity,
+            conversation_id=conversation,
+            request_id=request_id,
+            image_data=image,
+            media=media,
+        )
         audit_metadata = {
             "request_id": request_id,
             "identity_id": identity,
@@ -731,6 +740,9 @@ def chat(
             "adaptive_memory_count": len(adaptive_memory),
             "coherence_score": coherence["score"],
             "code_proposal": code_mode,
+            "founder_assets_indexed": bool(founder_assets.get("indexed")),
+            "founder_asset_count": int(founder_assets.get("asset_count") or 0),
+            "raw_media_retained": False,
         }
         _write_audit(
             connection,
