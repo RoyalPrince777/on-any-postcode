@@ -26,7 +26,9 @@ def test_workbench_projection_never_exposes_secret_values(monkeypatch):
     assert connectors["neon"]["inspect_url"] == "/mission/tools/neon/status"
     assert connectors["neon"]["name"] == "Neon · Identity/HRM blocked"
     assert connectors["render"]["ready"] is False
-    assert connectors["github"]["ready"] is False
+    assert connectors["github"]["ready"] is True
+    assert connectors["github"]["inspect_available"] is True
+    assert connectors["github"]["access_mode"] == "authenticated-api"
     assert payload["runtime_gate"]["state"] == "yellow"
     assert payload["runtime_gate"]["fail_closed"] is True
     assert "managed Founder identity" in payload["runtime_gate"]["blocked"]
