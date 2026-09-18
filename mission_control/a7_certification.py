@@ -7,6 +7,8 @@ not treated as software-verified truth. Human Authority remains final.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import uuid
 from datetime import datetime, timezone
@@ -377,6 +379,184 @@ def record_a6_readiness_bundle(
         "consequential_action_receipt_chain": True,
         "a6_proof_complete": bool(snapshot.get("a6_proof_complete")),
         "a6_missing": snapshot.get("a6_missing", ()),
+        "execution_granted": False,
+        "production_state_mutated": False,
+        "human_authority_final": True,
+    }
+
+
+
+def complete_a6_readiness_protocol(
+    *,
+    identity_id: object,
+    independent_evidence_ref: object,
+    independent_evidence_hash: object,
+    independent_issuer: object,
+) -> dict[str, object]:
+    """Create a dedicated Founder-approved A6 readiness request and record proof.
+
+    This finalizes readiness evidence only. It never enables A6 or executes the
+    reviewed operation.
+    """
+
+    identity_value = str(uuid.UUID(str(identity_id)))
+    current = status()
+    if current.get("a6_proof_complete"):
+        return {
+            "already_proven": True,
+            "a6_proof_complete": True,
+            "a6_missing": (),
+            "execution_granted": False,
+            "production_state_mutated": False,
+            "human_authority_final": True,
+        }
+
+    request_value = str(
+        uuid.uuid5(uuid.NAMESPACE_URL, "oap:smi:a6-readiness:v1")
+    )
+    summary = (
+        "A6 readiness review only: verify operation-level approval, independent "
+        "proof, operation-specific rollback and consequential HRM receipts. "
+        "Do not execute or enable A6."
+    )
+    content_hash = hashlib.sha256(summary.encode("utf-8")).hexdigest()
+
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(
+            connection, identity_value
+        )
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired(
+                "human_authority_level_required"
+            )
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680261,))
+        connection.execute(
+            """INSERT INTO smi_memory_records(
+                   request_id,identity_id,task_type,content_hash,summary,
+                   output_state,signal_level,rationale_json,
+                   processing_states_json
+               ) VALUES (
+                   %s,%s,'OAP_EVENT',%s,%s,'SYSTEM_LOG_ONLY',
+                   'a6_readiness',%s::jsonb,%s::jsonb
+               ) ON CONFLICT (request_id) DO NOTHING""",
+            (
+                request_value,
+                identity_value,
+                content_hash,
+                summary,
+                json.dumps(
+                    {
+                        "scope": "a6_readiness_only",
+                        "execution_granted": False,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                json.dumps(
+                    {
+                        "independent_proof": "required",
+                        "operation_approval": "required",
+                        "operation_rollback": "required",
+                        "hrm_receipt_chain": "required",
+                        "a6_execution": "locked",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            ),
+        )
+        connection.execute(
+            """INSERT INTO smi_judgement_reviews(
+                   request_id,identity_id,evidence_json,provenance_quality,
+                   confidence,uncertainty_json,counter_case,
+                   consequences_json,reversibility,proportionality,
+                   constitution_consistent,sections_completed
+               ) VALUES (
+                   %s,%s,%s::jsonb,'STRONG',1.0,%s::jsonb,%s,
+                   %s::jsonb,'REVERSIBLE','PROPORTIONATE',TRUE,5
+               ) ON CONFLICT (request_id) DO NOTHING""",
+            (
+                request_value,
+                identity_value,
+                json.dumps(
+                    [
+                        {
+                            "source": "A6 governed readiness gate",
+                            "summary": (
+                                "Readiness requires Green Gate, Guardian, "
+                                "independent evidence and operation-specific proof."
+                            ),
+                        },
+                        {
+                            "source": str(independent_issuer or "")[:200],
+                            "summary": (
+                                "Independent CI evidence is hash-bound before "
+                                "readiness can be recorded."
+                            ),
+                        },
+                    ],
+                    separators=(",", ":"),
+                ),
+                json.dumps(
+                    [
+                        "Readiness evidence does not prove production execution.",
+                        "A6 remains disabled after this review.",
+                    ],
+                    separators=(",", ":"),
+                ),
+                "If any proof is missing or stale, keep A6 locked.",
+                json.dumps(
+                    [
+                        "Record readiness proof only.",
+                        "Preserve A6 and A7 execution locks.",
+                        "Keep Human Authority final.",
+                    ],
+                    separators=(",", ":"),
+                ),
+            ),
+        )
+        reviewed = connection.execute(
+            """SELECT 1 FROM audit_events
+               WHERE action='SMI_REVIEWED' AND target=%s LIMIT 1""",
+            (request_value,),
+        ).fetchone()
+        if reviewed is None:
+            approval_service._write_audit(
+                connection,
+                actor_id=identity_value,
+                action="SMI_REVIEWED",
+                target=request_value,
+                reason="Founder reviewed A6 readiness proof bundle.",
+                correlation_id=request_value,
+                metadata={
+                    "request_id": request_value,
+                    "scope": "a6_readiness_only",
+                    "sections_completed": 5,
+                    "authority_level": 0,
+                    "execution_granted": False,
+                    "human_authority_final": True,
+                },
+            )
+        connection.commit()
+
+    if not _signed_operation_approval(request_value, identity_value):
+        approval_service.record_decision(
+            request_id=request_value,
+            identity_id=identity_value,
+            decision="APPROVED",
+        )
+
+    result = record_a6_readiness_bundle(
+        identity_id=identity_value,
+        request_id=request_value,
+        independent_evidence_ref=independent_evidence_ref,
+        independent_evidence_hash=independent_evidence_hash,
+        independent_issuer=independent_issuer,
+    )
+    return {
+        **result,
+        "already_proven": False,
         "execution_granted": False,
         "production_state_mutated": False,
         "human_authority_final": True,
