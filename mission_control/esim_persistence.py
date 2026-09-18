@@ -46,12 +46,14 @@ class EsimRepository:
     def __init__(self, connect: Callable[[], Any]) -> None:
         self._connect = connect
 
-    def save_request(self, item: dict[str, Any]) -> None:
+    def _validate_request(self, item: dict[str, Any]) -> None:
         required = {"request_id", "subject_id", "purpose", "state", "created_at", "updated_at"}
         if not required.issubset(item):
             raise ValueError("invalid_esim_record")
-        with self._connect() as connection, connection.cursor() as cursor:
-            cursor.execute(
+
+    def _write_request(self, cursor: Any, item: dict[str, Any]) -> None:
+        self._validate_request(item)
+        cursor.execute(
                 """INSERT INTO oap_esim_requests (
                     request_id, subject_id, purpose, state, approved_by, provider_name,
                     provider_profile_id, last_error, created_at, updated_at
@@ -78,18 +80,24 @@ class EsimRepository:
                     item["updated_at"],
                 ),
             )
+
+    def save_request(self, item: dict[str, Any]) -> None:
+        with self._connect() as connection, connection.cursor() as cursor:
+            self._write_request(cursor, item)
             connection.commit()
 
-    def append_event(self, event: dict[str, Any]) -> None:
+    def _event_metadata(self, event: dict[str, Any]) -> dict[str, Any]:
         if not event.get("request_id") or not event.get("event") or not event.get("state"):
             raise ValueError("invalid_esim_event")
-        metadata = {
+        return {
             key: value
             for key, value in event.items()
             if key not in {"request_id", "event", "state", "actor", "provider", "recorded_at"}
         }
-        with self._connect() as connection, connection.cursor() as cursor:
-            cursor.execute(
+
+    def _write_event(self, cursor: Any, event: dict[str, Any]) -> None:
+        metadata = self._event_metadata(event)
+        cursor.execute(
                 """INSERT INTO oap_esim_events
                     (request_id,event,state,actor,provider,recorded_at,metadata)
                     VALUES (%s,%s,%s,%s,%s,%s,%s::jsonb)""",
@@ -103,7 +111,24 @@ class EsimRepository:
                     json.dumps(metadata, separators=(",", ":"), sort_keys=True),
                 ),
             )
+
+    def append_event(self, event: dict[str, Any]) -> None:
+        with self._connect() as connection, connection.cursor() as cursor:
+            self._write_event(cursor, event)
             connection.commit()
+
+    def save_with_event(self, item: dict[str, Any], event: dict[str, Any]) -> None:
+        """Commit lifecycle state and Chronicle event atomically."""
+        if str(item.get("request_id") or "") != str(event.get("request_id") or ""):
+            raise ValueError("esim_request_event_mismatch")
+        with self._connect() as connection, connection.cursor() as cursor:
+            try:
+                self._write_request(cursor, item)
+                self._write_event(cursor, event)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
 
     def get_request(self, request_id: str) -> dict[str, Any] | None:
         with self._connect() as connection, connection.cursor() as cursor:
