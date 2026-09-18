@@ -408,9 +408,15 @@ def healthz():
                 receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain")),
             )
             if not precheck.get("allowed"):
+                runtime = precheck.get("runtime") if isinstance(precheck.get("runtime"), dict) else {}
                 raise RuntimeError(
                     "a6_route_matrix_precheck_blocked:"
-                    + str(precheck.get("reason") or "unknown")[:80]
+                    + str(precheck.get("reason") or "unknown")[:60]
+                    + f":level={runtime.get('configured_level')}"
+                    + f":readiness={bool(runtime.get('a6_readiness_proven'))}"
+                    + f":matrix={bool(runtime.get('matrix_ready'))}"
+                    + f":matrix_count={runtime.get('matrix_registered_count')}"
+                    + f":enabled={bool(runtime.get('enabled'))}"
                 )
 
             capture = maps_movement_direct_proof_runner.execute_route_matrix_capture(
