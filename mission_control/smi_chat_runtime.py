@@ -476,6 +476,73 @@ def chat(
         "overall_percentage": behaviour_score["overall_percentage"],
         "full_green_allowed": False,
     }
+
+    behaviour_learning = _behaviour.behaviour_learning_recovery(behaviour_score)
+    learning_receipt = _receipts.write_receipt(
+        "behaviour_learning_receipt",
+        {
+            "brain_part": "behaviour_intelligence",
+            "gate": 3,
+            "command": "behaviour_learning_recovery",
+            "signal": "🟡" if behaviour_learning["war_room_escalation_required"] else "🟣",
+            "guardian": str(enriched.get("guardian") or "unknown"),
+            "green_gate": "step_3_learning_not_full_green",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                **behaviour_learning,
+                "request_id": enriched.get("request_id"),
+                "conversation_id": enriched.get("conversation_id"),
+            },
+        },
+    )
+    enriched["behaviour_learning"] = behaviour_learning
+    enriched["behaviour_learning_receipt"] = {
+        "ok": bool(learning_receipt.get("ok")),
+        "receipt_id": learning_receipt.get("receipt_id"),
+        "receipt_kind": learning_receipt.get("receipt_kind"),
+        "durable": bool(learning_receipt.get("durable")),
+        "protocol_step": 3,
+        "protocol_percentage": 75,
+        "war_room_escalation_required": behaviour_learning[
+            "war_room_escalation_required"
+        ],
+        "self_apply_changes": False,
+    }
+
+    step4 = _behaviour.behaviour_step4_readiness(
+        behaviour_score,
+        behaviour_learning,
+    )
+    step4_receipt = _receipts.write_receipt(
+        "behaviour_step4_readiness_receipt",
+        {
+            "brain_part": "behaviour_intelligence",
+            "gate": 4,
+            "command": "behaviour_step4_readiness",
+            "signal": "🟣",
+            "guardian": str(enriched.get("guardian") or "unknown"),
+            "green_gate": "required",
+            "founder_final": "waiting",
+            "safe_payload": {
+                **step4,
+                "request_id": enriched.get("request_id"),
+                "conversation_id": enriched.get("conversation_id"),
+            },
+        },
+    )
+    enriched["behaviour_step4"] = step4
+    enriched["behaviour_step4_receipt"] = {
+        "ok": bool(step4_receipt.get("ok")),
+        "receipt_id": step4_receipt.get("receipt_id"),
+        "receipt_kind": step4_receipt.get("receipt_kind"),
+        "durable": bool(step4_receipt.get("durable")),
+        "protocol_step": 4,
+        "protocol_percentage": 100,
+        "step4_readiness_only": True,
+        "green_gate_passed": False,
+        "founder_final": "waiting",
+        "full_green": False,
+    }
     return enriched
 
 
