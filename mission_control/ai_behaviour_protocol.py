@@ -378,7 +378,7 @@ HARD_LOCKS = {
     "fake_real_green_enabled": False,
     "public_private_leak_allowed": False,
     "a5_enabled": autonomy_levels.status()["a5_enabled"],
-    "a6_enabled": False,
+    "a6_enabled": autonomy_levels.status()["a6_enabled"],
     "a7_enabled": False,
     "self_permission_change_enabled": False,
     "self_constitution_change_enabled": False,
