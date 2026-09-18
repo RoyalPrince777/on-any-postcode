@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
@@ -11,6 +13,8 @@ from . import (
     smi_proof_gate,
     web_security,
 )
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint(
     "smi_proof_gate",
@@ -193,13 +197,18 @@ def founder_final_protocol():
     except RuntimeError as exc:
         message = str(exc)
         if message.startswith("green_gate_incomplete:"):
+            missing = tuple(filter(None, message.split(":", 1)[1].split(",")))
+            logger.warning(
+                "oap_smi_founder_final_blocked green_gate=false missing=%s",
+                ",".join(missing),
+            )
             return _no_store(
                 make_response(
                     jsonify(
                         error={
                             "code": "green_gate_incomplete",
                             "message": "Founder Final remains locked until all Green Gate proof is present.",
-                            "missing": tuple(filter(None, message.split(":", 1)[1].split(","))),
+                            "missing": missing,
                         },
                         green_gate=smi_proof_gate.public_safe_status(),
                         execution_granted=False,
@@ -213,6 +222,11 @@ def founder_final_protocol():
             "Founder Final could not be recorded safely.",
             503,
         )
+    logger.info(
+        "oap_smi_founder_final_recorded green_gate=true founder_final=true "
+        "audit_recorded=%s execution_authority_expanded=false human_authority_final=true",
+        bool(result.get("audit_recorded")),
+    )
     return _no_store(
         make_response(
             jsonify(
