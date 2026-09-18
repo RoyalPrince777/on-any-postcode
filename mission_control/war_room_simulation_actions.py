@@ -7,6 +7,8 @@ dispatch, hidden tracking, public claims or self-approved changes.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+
+from . import autonomy_levels
 from hashlib import sha256
 
 
@@ -200,7 +202,7 @@ def list_actions() -> dict[str, object]:
             "dispatch_enabled": False,
             "hidden_tracking_enabled": False,
             "self_approval_enabled": False,
-            "a5_enabled": False,
+            "a5_enabled": autonomy_levels.status()["a5_enabled"],
             "a6_enabled": False,
             "a7_enabled": False,
             "self_permission_change_enabled": False,
