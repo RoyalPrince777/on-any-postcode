@@ -19,6 +19,8 @@ window.OAP_SMI_UI={
   guardianUrl:{{ url_for('alignment.smi_brain_evidence_runner_run', command='guardian_check')|tojson }},
   hrmUrl:{{ url_for('alignment.smi_brain_receipts')|tojson }},
   improvementUrl:{{ url_for('mission_control.smi_recursive_improvement_dashboard')|tojson }},
+  studioStatusUrl:{{ url_for('mission_control.smi_studio_status')|tojson }},
+  feedbackUrl:{{ url_for('mission_control.smi_chat_feedback')|tojson }},
   founderRecoveryUrl:{{ url_for('founder_recovery.recover_founder')|tojson }},
   publicOapUrl:'/',
   proposalBranchUrl:{{ url_for('founder_tools.github_propose_branch')|tojson }},
