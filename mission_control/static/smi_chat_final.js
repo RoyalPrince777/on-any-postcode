@@ -10,7 +10,7 @@ try{window.renderMessage=rich}catch{}
 function enhance(msg){if(msg.dataset.uiEnhanced)return;msg.dataset.uiEnhanced='1';const body=msg.querySelector('.msg-text');if(body&&body.innerText)rich(body,body.innerText);let actions=msg.querySelector('.msg-actions');if(!actions){actions=document.createElement('div');actions.className='msg-actions';msg.append(actions)}if(msg.classList.contains('user')){const b=document.createElement('button');b.type='button';b.className='msg-action-extra';b.textContent='Edit';b.onclick=()=>{input.value=body?.innerText||'';input.focus();input.dispatchEvent(new Event('input',{bubbles:true}))};actions.append(b)}if(msg.classList.contains('assistant')){const retry=document.createElement('button');retry.type='button';retry.className='msg-action-extra';retry.textContent='Retry';retry.onclick=()=>{let p=msg.previousElementSibling;while(p&&!p.classList.contains('user'))p=p.previousElementSibling;if(!p)return;input.value=p.querySelector('.msg-text')?.innerText||'';input.dispatchEvent(new Event('input',{bubbles:true}));q('#chat-form')?.requestSubmit()};const speak=document.createElement('button');speak.type='button';speak.className='msg-action-extra';speak.textContent='🔊';speak.title='Read aloud';speak.onclick=()=>{if(!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(body?.innerText||'');u.lang='en-GB';window.speechSynthesis.speak(u)};const up=document.createElement('button');up.type='button';up.className='msg-action-extra feedback-btn';up.textContent='👍';up.title='Helpful';const down=document.createElement('button');down.type='button';down.className='msg-action-extra feedback-btn';down.textContent='👎';down.title='Not helpful';const feedback=async(signal,button)=>{const requestId=msg.dataset.requestId,conversationId=msg.dataset.conversationId;if(!requestId||!conversationId){q('#status').textContent='Feedback target is not ready yet';return}up.disabled=down.disabled=true;try{const r=await fetch(cfg.feedbackUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||''},body:JSON.stringify({request_id:requestId,conversation_id:conversationId,signal})}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||'Feedback unavailable');button.classList.add('active');q('#status').textContent='Feedback recorded in the governed audit chain'}catch(e){q('#status').textContent=e.message||'Feedback unavailable';up.disabled=down.disabled=false}};up.onclick=()=>feedback('helpful',up);down.onclick=()=>feedback('not_helpful',down);actions.append(retry,speak,up,down)}}
 qa('.msg').forEach(enhance);if(messages)new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.classList?.contains('msg'))enhance(n);n.querySelectorAll?.('.msg').forEach(enhance)}}))).observe(messages,{childList:true,subtree:true});
 if(history&&!history.querySelector('.history-search')){const s=document.createElement('input');s.className='history-search';s.type='search';s.placeholder='Search conversations';history.querySelector('.history-head')?.insertAdjacentElement('afterend',s);s.oninput=()=>historyList?.querySelectorAll('.history-item').forEach(i=>i.style.display=!s.value||i.innerText.toLowerCase().includes(s.value.toLowerCase())?'':'none')}
-if(history&&head){const toggle=document.createElement('button');toggle.type='button';toggle.className='mobile-chats-toggle';toggle.textContent='☰ Chats';const bg=document.createElement('div');bg.className='history-backdrop';document.body.append(bg);const close=()=>{history.classList.remove('mobile-open');bg.classList.remove('mobile-open')};toggle.onclick=()=>{const open=!history.classList.contains('mobile-open');history.classList.toggle('mobile-open',open);bg.classList.toggle('mobile-open',open)};bg.onclick=close;head.insertBefore(toggle,head.firstChild);const actions=document.createElement('div');actions.className='chat-head-actions';const truth=document.createElement('span');truth.className='truth-strip';truth.innerHTML='<span class="truth-dot"></span><span>Checking truth</span>';const n=document.createElement('button');n.type='button';n.className='corner-action';n.textContent='＋ New';n.onclick=()=>q('#new-chat')?.click();const w=document.createElement('a');w.className='corner-action';w.href=cfg.warRoomUrl;w.textContent='⚔ War';actions.append(truth,n,w);head.append(actions);fetch(cfg.healthUrl,{cache:'no-store',credentials:'same-origin'}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{const checks=d?.checks||{},vals=Object.values(checks),green=ok&&vals.length&&vals.every(Boolean);truth.querySelector('.truth-dot').className='truth-dot'+(green?' green':'');truth.lastElementChild.textContent=green?'Truth gate green':'Truth gate attention'}).catch(()=>truth.lastElementChild.textContent='Truth unavailable')}
+if(history&&head){const toggle=document.createElement('button');toggle.type='button';toggle.className='mobile-chats-toggle';toggle.textContent='☰ Chats';const bg=document.createElement('div');bg.className='history-backdrop';document.body.append(bg);const close=()=>{history.classList.remove('mobile-open');bg.classList.remove('mobile-open')};toggle.onclick=()=>{const open=!history.classList.contains('mobile-open');history.classList.toggle('mobile-open',open);bg.classList.toggle('mobile-open',open)};bg.onclick=close;head.insertBefore(toggle,head.firstChild);const actions=document.createElement('div');actions.className='chat-head-actions';const truth=document.createElement('span');truth.className='truth-strip';truth.innerHTML='<span class="truth-dot"></span><span>Checking truth</span>';const n=document.createElement('button');n.type='button';n.className='corner-action';n.textContent='＋ New';n.onclick=()=>q('#new-chat')?.click();const w=document.createElement('a');w.className='corner-action';w.href=cfg.warRoomUrl;w.textContent='⚔ War';actions.append(truth,n,w);head.append(actions);truth.querySelector('.truth-dot').className='truth-dot';truth.lastElementChild.textContent='Chat unproven · send a real message'}
 let workbenchCache=null;const addTool=(title,text,state='green')=>{if(!messages)return;const c=document.createElement('div');c.className='msg tool-result';const h=document.createElement('strong');h.textContent=`${state==='green'?'🟢':'🟡'} ${title}`;const b=document.createElement('span');b.className='tool-meta';b.textContent=text;c.append(h,b);messages.append(c);messages.scrollTop=messages.scrollHeight};const loadWorkbench=async(force=false)=>{if(workbenchCache&&!force)return workbenchCache;const r=await fetch(cfg.workbenchUrl,{cache:'no-store',credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||'Tools unavailable');workbenchCache=d;return d};
 async function inspect(id,button){button.disabled=true;const state=button.querySelector('.connector-state');if(state)state.textContent='Checking';try{const data=await loadWorkbench(true),item=data.connectors.find(x=>x.id===id);if(!item)throw new Error('Connector not registered');if(item.inspect_available===false)throw new Error(item.readiness_reason||'Inspection unavailable');const r=await fetch(item.inspect_url,{cache:'no-store',credentials:'same-origin'}),p=await r.json();if(!r.ok)throw new Error(p?.error?.message||'Inspection unavailable');const payload=p.data||p.database||p;const proven=p.proven===true;addTool(item.name,JSON.stringify(payload,null,2).slice(0,2200),proven?'green':'yellow');if(state){state.textContent=proven?'Proven':'Limited';state.classList.toggle('ready',proven);state.classList.toggle('attention',!proven)}}catch(e){addTool(id,e.message||'Inspection unavailable','yellow');if(state){state.textContent='Blocked';state.classList.remove('ready');state.classList.add('attention')}}finally{button.disabled=false;menu?.classList.remove('show')}}
 function addFields(card,kind){const a=card.querySelector('[data-fields]');a.textContent='';const add=(label,name,ta=false,ph='')=>{const l=document.createElement('label');l.textContent=label;const x=document.createElement(ta?'textarea':'input');x.name=name;x.placeholder=ph;l.append(x);a.append(l)};if(kind==='branch'){add('Branch','branch',false,'oap-mind/feature');add('Base SHA','base_sha',false,'40-character SHA')}else if(kind==='file'){add('Branch','branch',false,'oap-mind/feature');add('Path','path');add('Commit message','message');add('Existing SHA (optional)','sha');add('Complete file content','content',true)}else{add('Head branch','head',false,'oap-mind/feature');add('Title','title');add('Body','body',true);add('Base','base',false,'main');a.querySelector('[name=base]').value='main'}}
@@ -23,4 +23,133 @@ if(plus&&menu&&!menu.querySelector('[data-oap-connectors]')){const d=document.cr
 const nativeFetch=window.fetch.bind(window);window.fetch=async function(req,init){const response=await nativeFetch(req,init);try{const url=typeof req==='string'?req:req?.url||'';if(url===cfg.streamUrl){response.clone().text().then(text=>{for(const block of text.split(/\n\n+/)){if(!block.includes('event: complete'))continue;const line=block.split('\n').find(x=>x.startsWith('data: '));if(line){try{window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:JSON.parse(line.slice(6)).result}))}catch{}}}})}}catch{}return response};
 window.addEventListener('oap-smi-complete',e=>{const r=e.detail||{};const assistant=[...document.querySelectorAll('.msg.assistant')].reverse().find(x=>!x.dataset.requestId);if(assistant&&r.request_id&&r.conversation_id){assistant.dataset.requestId=r.request_id;assistant.dataset.conversationId=r.conversation_id;}const c=document.createElement('div');c.className='msg receipt-card';c.innerHTML='<strong>🧾 JOOG / HRM receipt</strong><span class="receipt-meta">Shown only after the governed response completed and returned its recorded result.</span>';const g=document.createElement('div');g.className='receipt-grid';[['Request',r.request_id],['Guardian',r.guardian],['Provider',`${r.provider||'—'} · ${r.model||'—'}`],['Output',r.output_state],['Memory',r.adaptive?.active?`${r.adaptive.hrm_lessons||0} HRM lessons used`:'—'],['Judgement',r.judgement?`${r.judgement.completed_sections}/${r.judgement.total_sections}`:'—'],['Authority',r.human_authority_final?'Human final':'attention'],['Execute',r.can_execute===false?'Locked':'attention']].forEach(([k,v])=>{const p=document.createElement('div');p.className='receipt-pill';const b=document.createElement('b');b.textContent=k;const s=document.createElement('span');s.textContent=String(v||'—');p.append(b,s);g.append(p)});c.append(g);messages.append(c);messages.scrollTop=messages.scrollHeight});
 const composer=q('#chat-form');if(composer){['dragenter','dragover'].forEach(n=>composer.addEventListener(n,e=>{e.preventDefault();composer.classList.add('drop-active')}));['dragleave','drop'].forEach(n=>composer.addEventListener(n,e=>{e.preventDefault();composer.classList.remove('drop-active')}));composer.addEventListener('drop',e=>{const f=e.dataTransfer?.files?.[0];if(!f)return;const target=f.type.startsWith('image/')?q('#image-input'):q('#media-input');if(!target)return;const dt=new DataTransfer();dt.items.add(f);target.files=dt.files;target.dispatchEvent(new Event('change',{bubbles:true}))})}
+})();
+
+;(()=>{
+const cfg=window.OAP_SMI_UI||{};
+const q=s=>document.querySelector(s);
+const head=q('.chat-head');
+const messages=q('#messages');
+if(!head||!messages||!cfg.warRoomActionsUrl)return;
+
+const truth=q('.truth-strip');
+const ops=document.createElement('div');
+ops.className='smi-chat-ops';
+ops.innerHTML=
+  '<div class="smi-chat-op" data-op="chat"><span class="smi-dot purple"></span><strong>Chat</strong><small>UNPROVEN</small></div>'+
+  '<div class="smi-chat-op" data-op="infrastructure"><span class="smi-dot purple"></span><strong>Infrastructure</strong><small>CHECKING</small></div>'+
+  '<div class="smi-chat-op" data-op="intelligence"><span class="smi-dot purple"></span><strong>Intelligence</strong><small>CHECKING</small></div>'+
+  '<div class="smi-chat-op" data-op="war-room"><span class="smi-dot purple"></span><strong>War Room</strong><small>CHECKING</small></div>'+
+  '<div class="smi-chat-op" data-op="green-gate"><span class="smi-dot purple"></span><strong>Green Gate</strong><small>CHECKING</small></div>';
+head.insertAdjacentElement('afterend',ops);
+
+const actionHost=q('.chat-head-actions');
+const auto=document.createElement('button');
+auto.type='button';
+auto.className='corner-action smi-auto-fix';
+auto.textContent='🟣 AUTO FIX';
+auto.title='Run bounded SMI recovery checks. Consequential changes still require Founder approval.';
+actionHost?.insertBefore(auto,actionHost.firstChild);
+
+function setOp(id,state,label){
+  const el=ops.querySelector('[data-op="'+id+'"]');
+  if(!el)return;
+  const dot=el.querySelector('.smi-dot'),small=el.querySelector('small');
+  dot.className='smi-dot '+(state==='green'?'green':state==='red'?'red':state==='yellow'?'': 'purple');
+  small.textContent=label;
+}
+function appendResult(title,lines,state='purple'){
+  const c=document.createElement('div');
+  c.className='msg tool-result smi-auto-fix-result';
+  const h=document.createElement('strong');
+  h.textContent=(state==='green'?'🟢 ':state==='red'?'🔴 ':state==='yellow'?'🟡 ':'🟣 ')+title;
+  const b=document.createElement('span');
+  b.className='tool-meta';
+  b.textContent=lines.join('\n');
+  c.append(h,b);
+  messages.append(c);
+  messages.scrollTop=messages.scrollHeight;
+}
+async function getJson(url){
+  const r=await fetch(url,{cache:'no-store',credentials:'same-origin'});
+  let d={};try{d=await r.json()}catch{}
+  if(!r.ok)throw new Error(d?.error?.message||('HTTP '+r.status));
+  return d;
+}
+async function refreshOps(){
+  const tasks=[
+    getJson(cfg.workbenchUrl).then(d=>{
+      const connectors=Array.isArray(d?.connectors)?d.connectors:[];
+      const proven=connectors.filter(x=>x?.proven===true||x?.ready===true||x?.state==='ready').length;
+      setOp('infrastructure',connectors.length&&proven===connectors.length?'green':'purple',connectors.length?(proven+'/'+connectors.length+' PROVEN'):'CHECKED');
+    }).catch(()=>setOp('infrastructure','yellow','ATTENTION')),
+    getJson(cfg.signalsUrl).then(d=>{
+      const ready=Boolean(d?.ready&&d?.signals_valid&&Number(d?.signal_count)===21);
+      setOp('intelligence',ready?'green':'yellow',ready?'21/21 PROVEN':'PROOF REQUIRED');
+    }).catch(()=>setOp('intelligence','yellow','ATTENTION')),
+    getJson(cfg.warRoomStatusUrl).then(()=>setOp('war-room','purple','STATUS CHECKED')).catch(()=>setOp('war-room','yellow','ATTENTION')),
+    getJson(cfg.functionHealthUrl).then(d=>{
+      const gate=d?.green_gate||{};
+      const green=Boolean(d?.whole_smi_green===true&&gate?.green===true);
+      setOp('green-gate',green?'green':'yellow',green?'PROVEN':'NOT GREEN');
+    }).catch(()=>setOp('green-gate','yellow','ATTENTION'))
+  ];
+  await Promise.allSettled(tasks);
+}
+window.addEventListener('oap-smi-complete',event=>{
+  const d=event?.detail||{};
+  const durable=Boolean(
+    d?.behaviour_receipt?.durable===true||
+    d?.behaviour_score_receipt?.durable===true||
+    d?.behaviour_learning_receipt?.durable===true||
+    d?.behaviour_step4_receipt?.durable===true
+  );
+  const proven=Boolean(d?.response&&d?.conversation_id&&durable);
+  setOp('chat',proven?'green':'yellow',proven?'PROVEN THIS SESSION':'RECEIPT UNPROVEN');
+  if(truth){
+    truth.querySelector('.truth-dot').className='truth-dot'+(proven?' green':'');
+    truth.lastElementChild.textContent=proven?'Chat proven · response + durable receipt':'Chat response received · durable receipt unproven';
+  }
+  refreshOps();
+});
+
+auto.addEventListener('click',async()=>{
+  if(auto.disabled)return;
+  auto.disabled=true;
+  auto.textContent='🟣 AUTO FIX RUNNING';
+  const ids=['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
+  const results=[];
+  for(const id of ids){
+    try{
+      const r=await fetch(cfg.warRoomActionsUrl+'/'+encodeURIComponent(id),{
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||cfg.csrfToken||''},
+        body:'{}'
+      });
+      let d={};try{d=await r.json()}catch{}
+      results.push({id,ok:r.ok,signal:d?.signal||d?.result?.signal||'',state:d?.state||d?.result?.state||'',message:d?.message||d?.result?.message||d?.error?.message||('HTTP '+r.status)});
+    }catch(e){results.push({id,ok:false,message:e?.message||'unavailable'});}
+  }
+  let health={},gate={};
+  try{health=await getJson(cfg.functionHealthUrl);}catch{}
+  try{gate=await getJson(cfg.greenGateUrl);}catch{}
+  const missing=Array.isArray(gate?.missing)?gate.missing:(Array.isArray(health?.green_gate?.missing)?health.green_gate.missing:[]);
+  const allSafe=results.every(x=>x.ok);
+  const fullGreen=Boolean(health?.whole_smi_green===true&&gate?.green===true);
+  const lines=[
+    'Safe checks: '+results.filter(x=>x.ok).length+'/'+results.length,
+    'Runtime-ready: '+String(health?.runtime_ready_count??'?')+'/'+String(health?.expected_count??'?'),
+    'Green Gate: '+(gate?.green===true?'PASS':'NOT PASSED'),
+    missing.length?'Missing: '+missing.join(', '):'Missing: not exposed by current safe status',
+    fullGreen?'No repair required.':'AUTO FIX stopped at the truth boundary. Code/deploy repair requires governed proposal + Founder approval.',
+    'Consequential execution: NOT PERFORMED'
+  ];
+  appendResult('SMI AUTO FIX',lines,fullGreen?'green':allSafe?'purple':'yellow');
+  await refreshOps();
+  auto.disabled=false;
+  auto.textContent='🟣 AUTO FIX';
+});
+setOp('chat','purple','UNPROVEN');
+refreshOps();
 })();
