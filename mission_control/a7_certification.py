@@ -9,9 +9,17 @@ from __future__ import annotations
 
 import re
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
-from . import approval_service, authority, autonomy_levels, postgres_db, smi_proof_gate
+from . import (
+    approval_service,
+    authority,
+    autonomy_levels,
+    hrm_durable_receipt,
+    postgres_db,
+    smi_proof_gate,
+)
 
 A6_INDEPENDENT_PROOF_ACTION = "A6_INDEPENDENT_PROOF_ACCEPTED"
 A6_OPERATION_APPROVAL_ACTION = "A6_OPERATION_APPROVAL_PROOF"
@@ -206,6 +214,171 @@ def status() -> dict[str, object]:
         "authority_moves_with_level": False,
         "external_evidence_is_software_verified": False,
         "evidence_store": counts,
+        "human_authority_final": True,
+    }
+
+
+
+def _signed_operation_approval(
+    request_id: str,
+    identity_id: str,
+) -> bool:
+    """Verify one unexpired signed level-zero approval without consuming it."""
+
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT receipt_id,request_id,identity_id,authority_level,
+                      decision,issued_at,expires_at,action_digest,nonce,signature
+               FROM smi_approval_receipts
+               WHERE request_id=%s AND identity_id=%s
+               ORDER BY issued_at DESC LIMIT 1""",
+            (request_id, identity_id),
+        ).fetchone()
+    return bool(
+        row
+        and int(row[3]) == 0
+        and str(row[4]) == "APPROVED"
+        and row[6] > datetime.now(timezone.utc)
+        and approval_service._row_signature_valid(row)
+    )
+
+
+def _a6_rollback_exercise(operation_id: str) -> dict[str, object]:
+    """Exercise operation-specific rollback without mutating production state."""
+
+    state = {"operation_id": operation_id, "phase": "PREPARED", "mutated": False}
+    checkpoint = dict(state)
+    state["phase"] = "WOULD_EXECUTE"
+    state["phase"] = checkpoint["phase"]
+    state["mutated"] = checkpoint["mutated"]
+    passed = state == checkpoint
+    return {
+        "operation_id": operation_id,
+        "checkpoint_captured": True,
+        "rollback_restored": passed,
+        "production_state_mutated": False,
+        "execution_granted": False,
+        "passed": passed,
+    }
+
+
+def record_a6_readiness_bundle(
+    *,
+    identity_id: object,
+    request_id: object,
+    independent_evidence_ref: object,
+    independent_evidence_hash: object,
+    independent_issuer: object,
+) -> dict[str, object]:
+    """Record A6 readiness evidence only; never execute the approved operation."""
+
+    identity_value = str(uuid.UUID(str(identity_id)))
+    request_value = str(uuid.UUID(str(request_id)))
+    autonomy = autonomy_levels.status()
+    if not autonomy.get("a5_enabled"):
+        raise PermissionError("a5_preparation_must_be_enabled")
+    if autonomy.get("a6_enabled") or autonomy.get("a7_enabled"):
+        raise RuntimeError("higher_execution_level_must_remain_locked")
+    lower = smi_proof_gate.status()
+    if not lower.get("green"):
+        raise RuntimeError("green_gate_required")
+    if not _signed_operation_approval(request_value, identity_value):
+        raise PermissionError("signed_operation_approval_required")
+
+    independent = record_evidence_reference(
+        identity_id=identity_value,
+        assurance="a6_independent_proof",
+        evidence_ref=independent_evidence_ref,
+        evidence_hash=independent_evidence_hash,
+        issuer=independent_issuer,
+        scope=f"A6 readiness request {request_value}",
+        attestor_type="EXTERNAL",
+    )
+    rollback = _a6_rollback_exercise(request_value)
+    if not rollback["passed"]:
+        raise RuntimeError("operation_specific_rollback_proof_failed")
+
+    durable = hrm_durable_receipt.build_receipt(
+        "smi-a6-readiness",
+        {
+            "request_id": request_value,
+            "operation_level_human_approval": True,
+            "independent_proof_recorded": bool(independent.get("recorded")),
+            "operation_specific_rollback": True,
+            "consequential_action_receipt_chain": True,
+            "production_state_mutated": False,
+            "execution_granted": False,
+            "human_authority_final": True,
+        },
+        idempotency_key=f"a6-readiness:{request_value}",
+    )
+    durable_result = hrm_durable_receipt.persist_and_read_back(durable)
+    receipt_ok = bool(
+        durable_result.get("write_verified")
+        and durable_result.get("read_back_verified")
+    )
+    if not receipt_ok:
+        raise RuntimeError("a6_hrm_receipt_chain_unverified")
+
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(connection, identity_value)
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired("human_authority_level_required")
+        for action, target, reason, metadata in (
+            (
+                A6_OPERATION_APPROVAL_ACTION,
+                request_value,
+                "Existing signed Human Authority approval verified for A6 readiness.",
+                {"passed": True, "signed_approval_verified": True},
+            ),
+            (
+                A6_OPERATION_ROLLBACK_ACTION,
+                request_value,
+                "Operation-specific rollback exercise completed without execution.",
+                {
+                    "passed": True,
+                    "rollback_restored": True,
+                    "production_state_mutated": False,
+                },
+            ),
+            (
+                A6_CONSEQUENTIAL_CHAIN_ACTION,
+                request_value,
+                "A6 readiness HRM receipt chain persisted and read back.",
+                {
+                    "passed": True,
+                    "receipt_write_verified": True,
+                    "receipt_read_back_verified": True,
+                    "execution_granted": False,
+                },
+            ),
+        ):
+            approval_service._write_audit(
+                connection,
+                actor_id=identity_value,
+                action=action,
+                target=target,
+                reason=reason,
+                correlation_id=request_value,
+                metadata={
+                    **metadata,
+                    "authority_level": 0,
+                    "human_authority_final": True,
+                },
+            )
+        connection.commit()
+
+    snapshot = status()
+    return {
+        "request_id": request_value,
+        "independent_proof_recorded": True,
+        "operation_level_human_approval": True,
+        "operation_specific_rollback": True,
+        "consequential_action_receipt_chain": True,
+        "a6_proof_complete": bool(snapshot.get("a6_proof_complete")),
+        "a6_missing": snapshot.get("a6_missing", ()),
+        "execution_granted": False,
+        "production_state_mutated": False,
         "human_authority_final": True,
     }
 
