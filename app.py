@@ -34,6 +34,7 @@ from mission_control import (
     products,
     public_store,
     smi_chat_runtime,
+    smi_proof_gate,
     surface_security,
     telemetry,
     web_security,
@@ -164,6 +165,51 @@ def _security_headers(response):
         status_code=response.status_code,
         duration_ms=duration_ms,
     )
+    if (
+        request.path == "/healthz"
+        and 200 <= response.status_code < 300
+        and os.environ.get(
+            "OAP_FOUNDER_FINAL_100_ON_HEALTH", ""
+        ).strip() == "1"
+    ):
+        identity_id = authority.configured_identity()
+        try:
+            if not identity_id:
+                raise RuntimeError(
+                    "human_authority_identity_not_configured"
+                )
+            final = smi_proof_gate.complete_founder_final_protocol(
+                identity_id
+            )
+            REQUEST_LOGGER.info(
+                json.dumps(
+                    {
+                        "event": "oap_founder_final_100",
+                        "success": bool(final.get("passed")),
+                        "green_gate": bool(final.get("green_gate")),
+                        "founder_final": bool(
+                            final.get("founder_final")
+                        ),
+                        "audit_recorded": bool(
+                            final.get("audit_recorded")
+                        ),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - final gate fails closed.
+            REQUEST_LOGGER.error(
+                json.dumps(
+                    {
+                        "event": "oap_founder_final_100",
+                        "success": False,
+                        "error": type(exc).__name__,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
     return response
 
 signal_posts = []
