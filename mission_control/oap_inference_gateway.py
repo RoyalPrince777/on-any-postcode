@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from collections.abc import Callable
 from typing import Any
@@ -131,6 +132,17 @@ def _payload(
     *,
     code_mode: bool,
 ) -> dict[str, Any]:
+    requested_counts = [
+        int(value)
+        for value in re.findall(
+            r"\b(?:give|list|show|do|complete|finish|provide|name)?\s*(\d{1,2})\s+(?:major\s+)?(?:items?|steps?|gaps?|points?|reasons?|examples?|checks?)\b",
+            str(message or ""),
+            flags=re.IGNORECASE,
+        )
+        if 1 <= int(value) <= 21
+    ]
+    requested_count = max(requested_counts, default=0)
+    num_predict = max(1000, 500 + (requested_count * 230)) if requested_count else 1000
     return {
         "model": LOCAL_MODEL,
         "messages": _local_messages(
@@ -141,7 +153,7 @@ def _payload(
             code_mode=code_mode,
         ),
         "stream": False,
-        "options": {"temperature": 0.2},
+        "options": {"temperature": 0.2, "num_predict": num_predict},
     }
 
 

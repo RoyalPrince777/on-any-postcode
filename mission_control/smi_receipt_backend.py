@@ -24,6 +24,8 @@ ALLOWED_RECEIPT_KINDS = {
     "ecosystem_outcome_receipt",
     "behaviour_response_receipt",
     "behaviour_score_receipt",
+    "behaviour_learning_receipt",
+    "behaviour_step4_readiness_receipt",
 }
 
 
@@ -337,6 +339,81 @@ def latest_receipts(limit: int = 20) -> dict[str, Any]:
         "count": len(rows),
         "receipts": rows,
         "neon_mirror": "optional_not_authoritative",
+    }
+
+
+
+def behaviour_progress(limit: int = 20) -> dict[str, Any]:
+    """Return Founder-safe Behaviour protocol receipt progress and score trends."""
+    safe_limit = max(1, min(int(limit or 20), 100))
+    kinds = (
+        "behaviour_response_receipt",
+        "behaviour_score_receipt",
+        "behaviour_learning_receipt",
+        "behaviour_step4_readiness_receipt",
+    )
+    rows: list[dict[str, Any]] = []
+    if _hrm_database_url():
+        try:
+            with _connect_postgres() as connection:
+                _init_postgres_schema(connection)
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT receipt_kind, gate, command, green_gate, founder_final,
+                               payload_json, created_at
+                        FROM smi_evidence_receipts
+                        WHERE receipt_kind = ANY(%s)
+                        ORDER BY created_at DESC
+                        LIMIT %s
+                        """,
+                        (list(kinds), safe_limit),
+                    )
+                    rows = [dict(row) for row in cursor.fetchall()]
+        except Exception:  # noqa: BLE001
+            rows = []
+
+    present = {str(row.get("receipt_kind")) for row in rows}
+    score_trend = []
+    for row in rows:
+        if row.get("receipt_kind") != "behaviour_score_receipt":
+            continue
+        payload = row.get("payload_json") or {}
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                payload = {}
+        score_trend.append(
+            {
+                "created_at": row.get("created_at"),
+                "coverage_percentage": payload.get("coverage_percentage"),
+                "measured_average_percentage": payload.get(
+                    "measured_average_percentage"
+                ),
+                "overall_percentage": payload.get("overall_percentage"),
+                "overall_evidence_state": payload.get("overall_evidence_state"),
+            }
+        )
+
+    proven = 0
+    if "behaviour_response_receipt" in present:
+        proven = 25
+    if "behaviour_score_receipt" in present:
+        proven = 50
+    if "behaviour_learning_receipt" in present:
+        proven = 75
+    step4_ready = "behaviour_step4_readiness_receipt" in present
+    return {
+        "protocol": "Behaviour Intelligence 4-step / 25% protocol",
+        "proven_percentage": proven,
+        "step4_readiness_receipt": step4_ready,
+        "full_green": False,
+        "founder_final": "waiting",
+        "green_gate": "required",
+        "score_trend": tuple(score_trend),
+        "receipt_kinds_present": tuple(sorted(present)),
+        "human_authority_final": True,
     }
 
 

@@ -173,6 +173,23 @@ def ai_behaviour():
     )
 
 
+
+@bp.get("/war-room/ai-behaviour/progress")
+@bp.get("/smi/ai-behaviour/progress")
+@web_security.login_required(api=True, founder_only=True)
+def ai_behaviour_progress():
+    """Return Founder-only Behaviour protocol proof progress and score trends."""
+
+    limit = request.args.get("limit", "20")
+    try:
+        safe_limit = max(1, min(int(limit), 100))
+    except ValueError:
+        safe_limit = 20
+    return _no_store(
+        make_response(jsonify(smi_receipt_backend.behaviour_progress(safe_limit)))
+    )
+
+
 @bp.get("/war-room/master-upgrade")
 @bp.get("/war-room/actions/master-upgrade")
 @bp.get("/smi/master-upgrade")

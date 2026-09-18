@@ -236,6 +236,8 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
     assert [item["kind"] for item in captured] == [
         "behaviour_response_receipt",
         "behaviour_score_receipt",
+        "behaviour_learning_receipt",
+        "behaviour_step4_readiness_receipt",
     ]
     step1 = captured[0]["payload"]
     assert step1["gate"] == 1
@@ -272,6 +274,13 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
     assert result["behaviour_score_receipt"]["protocol_percentage"] == 50
     assert result["behaviour_score_receipt"]["overall_percentage"] is None
     assert result["behaviour_score_receipt"]["full_green_allowed"] is False
+    assert result["behaviour_learning_receipt"]["protocol_percentage"] == 75
+    assert result["behaviour_learning_receipt"]["self_apply_changes"] is False
+    assert result["behaviour_step4_receipt"]["protocol_percentage"] == 100
+    assert result["behaviour_step4_receipt"]["step4_readiness_only"] is True
+    assert result["behaviour_step4_receipt"]["green_gate_passed"] is False
+    assert result["behaviour_step4_receipt"]["founder_final"] == "waiting"
+    assert result["behaviour_step4_receipt"]["full_green"] is False
 
 
 def test_text_chat_does_not_require_compatibility_provider_key_before_first_party_route():
@@ -281,3 +290,17 @@ def test_text_chat_does_not_require_compatibility_provider_key_before_first_part
     assert 'if attachment and not provider_key:' in code
     assert 'raise RuntimeError("provider_key_missing_for_media")' in code
     assert 'if not provider_key:\n            raise RuntimeError("provider_key_missing")' not in code
+
+
+def test_count_integrity_budget_supports_requested_seven_items():
+    from pathlib import Path
+
+    core = (
+        Path(__file__).parents[1] / "mission_control" / "smi_chat_runtime_core.py"
+    ).read_text()
+    gateway = (
+        Path(__file__).parents[1] / "mission_control" / "oap_inference_gateway.py"
+    ).read_text()
+    assert "COUNT INTEGRITY" in core
+    assert "requested_count * 230" in core
+    assert '"num_predict": num_predict' in gateway
