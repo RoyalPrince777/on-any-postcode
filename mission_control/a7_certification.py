@@ -144,7 +144,6 @@ def _capability_allowlist_ready() -> bool:
         pilot
         and pre_authorised
         and autonomy_levels.FORBIDDEN_DOMAINS
-        and autonomy_levels.A5_ENABLED is False
         and autonomy_levels.A6_ENABLED is False
         and autonomy_levels.A7_ENABLED is False
     )

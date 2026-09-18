@@ -32,9 +32,18 @@ A4_WORKFLOW_ACTIONS = A3_PILOT_ACTIONS
 A4_CHECKPOINT_EVERY = 3
 A4_MAX_WORKFLOW_STEPS = 21
 A4_REQUIRES_SUPERVISION = True
-A5_ENABLED = False
+A5_ENABLED = os.environ.get("OAP_A5_ENABLED", "false").strip().lower() in {"1", "true", "yes"}
 A6_ENABLED = False
 A7_ENABLED = False
+A5_PREPARATION_ACTIONS = frozenset(
+    {
+        "PROOF_PACK",
+        "ROLLBACK_PLAN",
+        "DEPLOY_PLAN",
+        "GAP_ANALYSIS",
+        "WAR_ROOM_PACK",
+    }
+)
 
 A5_REQUIREMENTS = (
     "independent proof runner results",
@@ -191,7 +200,7 @@ def level_ladder() -> tuple[dict[str, object], ...]:
         elif level == "A4":
             state = "live_governed" if configured == "A4" else "policy_ready"
         elif level == "A5":
-            state = "locked_ready_boundary"
+            state = "governed_preparation" if A5_ENABLED and configured == "A5" else "locked_ready_boundary"
         elif level == "A6":
             state = "future_locked"
         else:
@@ -228,7 +237,9 @@ def status() -> dict[str, object]:
         "a4_max_workflow_steps": A4_MAX_WORKFLOW_STEPS,
         "a4_supervision_required": A4_REQUIRES_SUPERVISION,
         "a4_expands_action_authority": False,
-        "a5_enabled": A5_ENABLED,
+        "a5_enabled": bool(A5_ENABLED and level == "A5"),
+        "a5_preparation_actions": tuple(sorted(A5_PREPARATION_ACTIONS)),
+        "a5_execution_authority_expanded": False,
         "a6_enabled": A6_ENABLED,
         "a7_enabled": A7_ENABLED,
         "a5_requirements": A5_REQUIREMENTS,
@@ -241,4 +252,31 @@ def status() -> dict[str, object]:
         "human_authority_final": True,
         "runtime_proof_required": True,
         "authority_moves_with_level": False,
+    }
+
+
+def evaluate_a5_preparation(action_type: object) -> dict[str, object]:
+    """Allow preparation-only A5 work without granting execution authority."""
+
+    action = str(action_type or "").strip().upper()
+    enabled = bool(A5_ENABLED and configured_level() == "A5")
+    allowlisted = action in A5_PREPARATION_ACTIONS
+    allowed = bool(enabled and allowlisted)
+    if allowed:
+        reason = "allowed_preparation_only"
+    elif not enabled:
+        reason = "a5_not_enabled"
+    else:
+        reason = "action_not_a5_preparation_allowlist"
+    return {
+        "configured_level": configured_level(),
+        "requested_level": "A5",
+        "action_type": action,
+        "allowed": allowed,
+        "reason": reason,
+        "preparation_only": True,
+        "execution_granted": False,
+        "consequential_action_allowed": False,
+        "dynamic_permission_expansion_allowed": False,
+        "human_authority_final": True,
     }
