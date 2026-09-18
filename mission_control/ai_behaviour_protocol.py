@@ -389,9 +389,14 @@ def behaviour_step4_readiness(
     learning: dict[str, object],
 ) -> dict[str, object]:
     """Describe Step-4 readiness without granting Founder Final."""
+    dimension_ids = {
+        str(item.get("id"))
+        for item in tuple(score.get("dimensions") or ())
+        if isinstance(item, dict)
+    }
     cross_agent_proof = {
         "guardian": True,
-        "war_room": "war_room" in score.get("dimensions", ()),
+        "war_room": "war_room" in dimension_ids,
         "hrm": True,
         "green_gate": False,
     }
