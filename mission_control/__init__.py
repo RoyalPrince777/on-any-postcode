@@ -43,6 +43,7 @@ def init_app(app: Flask) -> None:
         smi_founder_assets,
         smi_proof_gate,
         spot_step2_booking_proof,
+        spot_step3_creator_safety_proof,
         surface_security,
         travel_supply_core,
     )
@@ -219,6 +220,79 @@ def init_app(app: Flask) -> None:
                         "payment_capture": False,
                         "dispatch": False,
                         "production_state_mutated": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+
+    if os.environ.get("OAP_SPOT_STEP3_PROOF_ON_BOOT", "").strip() == "1":
+        operation_id = os.environ.get(
+            "OAP_SPOT_STEP3_PROOF_OPERATION_ID", ""
+        ).strip()
+        identity_id = authority.configured_identity()
+        try:
+            if not operation_id:
+                raise RuntimeError("spot_step3_operation_id_not_configured")
+            if not identity_id:
+                raise RuntimeError("human_authority_identity_not_configured")
+            proof = spot_step3_creator_safety_proof.run(
+                identity_id=identity_id,
+                operation_id=operation_id,
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_spot_step3_creator_safety_proof",
+                        "success": bool(proof.get("passed")),
+                        "quarter": 75,
+                        "receipt_verified": bool(proof.get("receipt_verified")),
+                        "creator_routes_proven": bool(
+                            proof.get("creator_routes_proven")
+                        ),
+                        "media_routes_proven": bool(
+                            proof.get("media_routes_proven")
+                        ),
+                        "safety_support_routes_proven": bool(
+                            proof.get("safety_support_routes_proven")
+                        ),
+                        "media_published": False,
+                        "external_distribution_performed": False,
+                        "public_safeguarding_case_created": False,
+                        "execution_authority_expanded": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception as exc:
+            reason = (
+                str(exc)[:220]
+                if isinstance(
+                    exc,
+                    (
+                        RuntimeError,
+                        ValueError,
+                        PermissionError,
+                        hrm_durable_receipt.ReceiptBlocked,
+                    ),
+                )
+                else ""
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_spot_step3_creator_safety_proof",
+                        "success": False,
+                        "quarter": 75,
+                        "error": type(exc).__name__,
+                        "reason": reason,
+                        "media_published": False,
+                        "external_distribution_performed": False,
+                        "public_safeguarding_case_created": False,
+                        "execution_authority_expanded": False,
                     },
                     separators=(",", ":"),
                     sort_keys=True,
