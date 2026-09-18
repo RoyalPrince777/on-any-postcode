@@ -24,6 +24,7 @@ def init_app(app: Flask) -> None:
     from . import (
         authority,
         esim_persistence,
+        hrm_durable_receipt,
         link_activity,
         link_call_audit,
         link_presence,
