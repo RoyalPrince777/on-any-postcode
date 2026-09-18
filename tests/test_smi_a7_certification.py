@@ -233,3 +233,17 @@ def test_record_a6_readiness_bundle_allows_matrix_governed_live_a6(monkeypatch):
             independent_evidence_hash="0" * 64,
             independent_issuer="ci",
         )
+
+
+def test_a6_readiness_request_id_is_versioned_by_evidence_hash():
+    source = Path(a7_certification.__file__).read_text(encoding="utf-8")
+    section = source.split("def complete_a6_readiness_protocol", 1)[1]
+    assert "oap:smi:a6-readiness:v2:" in section
+    assert "independent_evidence_hash" in section
+
+
+def test_a6_readiness_versioning_preserves_execution_lock():
+    source = Path(a7_certification.__file__).read_text(encoding="utf-8")
+    section = source.split("def complete_a6_readiness_protocol", 1)[1]
+    assert '"execution_granted": False' in section
+    assert '"production_state_mutated": False' in section
