@@ -319,6 +319,8 @@ def chat(
     attachment: object = None,
     *,
     code_mode: bool = False,
+    thinking_level: str = "auto",
+    studio_mode: bool = False,
     on_event: EventEmitter | None = None,
 ) -> dict:
     clean = _clean(message, MAX_INPUT)
@@ -401,6 +403,12 @@ def chat(
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
         )
+        level = str(thinking_level or "auto").strip().casefold().replace("-", "_")
+        level = {"deep": "deep_dive", "deepdive": "deep_dive"}.get(level, level)
+        if level not in {"instant", "think", "deep_dive", "auto"}:
+            raise ValueError("invalid_thinking_level")
+        brain["thinking_level"] = level
+        brain["studio_mode"] = bool(studio_mode)
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records
@@ -500,6 +508,8 @@ def chat(
                         "adaptive_memory_count": len(adaptive_memory),
                         "coherence": coherence,
                         "code_proposal": code_mode,
+                        "thinking_level": level,
+                        "studio_mode": bool(studio_mode),
                     }
                 ),
                 json.dumps(processing_states),
