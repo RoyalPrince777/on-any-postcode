@@ -156,6 +156,41 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    if os.environ.get("OAP_FOUNDER_FINAL_100_ON_BOOT", "").strip() == "1":
+        try:
+            identity_id = authority.configured_identity()
+            if not identity_id:
+                raise RuntimeError("human_authority_identity_not_configured")
+            final = smi_proof_gate.run_founder_final(identity_id)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_founder_final_100",
+                        "success": bool(final.get("passed")),
+                        "green_gate": bool(final.get("green_gate")),
+                        "founder_final": bool(final.get("founder_final")),
+                        "audit_recorded": bool(final.get("audit_recorded")),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_founder_final_100",
+                        "success": False,
+                        "error": "founder_final_100_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
     @app.cli.command("oap-db-status")
     @click.option("--json", "json_out", is_flag=True, default=False, help="JSON output")
     def _db_status(json_out: bool) -> None:  # pragma: no cover
