@@ -280,6 +280,19 @@ def _normalized_auth_rate_limit(
             response.headers[_CORRELATION_HEADER] = correlation_id
         return response
 
+    if request.method == "POST" and clean == "/auth/sign-in":
+        # Never replay credential-bearing POSTs. A 303 converts the browser follow-up
+        # into a safe GET on the existing Founder recovery lane, so a bounded auth
+        # lockout cannot strand the Founder on a raw 429/503 screen.
+        response = redirect(_FOUNDER_RECOVERY_FALLBACK, code=303)
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-OAP-Auth-Upstream"] = "rate-limited-recovery"
+        response.headers["X-OAP-Founder-Lane"] = "recovery"
+        response.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+        if correlation_id:
+            response.headers[_CORRELATION_HEADER] = correlation_id
+        return response
+
     response = make_response(
         "Secure identity verification is temporarily unavailable. Retry once shortly.",
         503,

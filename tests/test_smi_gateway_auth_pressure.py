@@ -102,8 +102,12 @@ def test_founder_password_post_is_never_replayed_on_429(monkeypatch):
     )
 
     assert opener.calls == 1
-    assert response.status_code == 503
-    assert response.headers["Retry-After"] == "5"
+    assert response.status_code == 303
+    assert response.headers["Location"] == (
+        "/auth/recover-founder?next=/mission/ollama"
+    )
+    assert response.headers["X-OAP-Auth-Upstream"] == "rate-limited-recovery"
+    assert response.headers["X-OAP-Founder-Lane"] == "recovery"
     assert b"private-value" not in response.get_data()
 
 
