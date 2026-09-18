@@ -202,3 +202,10 @@ def test_render_services_summary_has_truthful_self_runtime_fallback_without_api_
     assert "provider logs" in result["unavailable_without_api_key"]
     assert adapter.status()["ready"] is False
     assert adapter.status()["self_inspection_available"] is True
+
+
+def test_founder_tool_read_responses_require_explicit_proof_marker():
+    source = Path("mission_control/founder_tool_views.py").read_text(encoding="utf-8")
+    assert '"proven": True' in source
+    assert '"proof": "inspection_completed"' in source
+    assert 'proof="database_runtime_probe"' in source

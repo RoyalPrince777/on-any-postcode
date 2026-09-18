@@ -185,15 +185,20 @@ def get_workbench_status() -> dict[str, Any]:
         "connectors": [
             {
                 "id": "render",
-                "name": "Render",
-                "configured": render_configured,
+                "name": "Render · SMI Runtime" if not render_configured else "Render",
+                "configured": True,
+                "provider_api_configured": render_configured,
                 "ready": False,
                 "inspect_available": True,
                 "access_mode": "provider-api" if render_configured else "self-runtime-fallback",
                 "inspect_url": "/mission/tools/render/services",
-                "mode": "read-only inspection; deploy actions are not exposed here",
-                "purpose": "service health, deploy state and release evidence",
-                "readiness_reason": "Configuration alone is not treated as live proof; use the inspection route for current provider evidence.",
+                "mode": "read-only inspection; current request must return explicit proof",
+                "purpose": (
+                    "approved Render service inventory and release evidence"
+                    if render_configured
+                    else "current SMI Render runtime identity and revision evidence"
+                ),
+                "readiness_reason": "No preloaded green. The exact inspection response must return proven=true.",
             },
             {
                 "id": "github",
@@ -206,7 +211,7 @@ def get_workbench_status() -> dict[str, Any]:
                 "inspect_url": "/mission/tools/github/repository",
                 "mode": "read inspection; writes remain proposal + approval + Kernel governed",
                 "purpose": "repository state, code evidence and governed proposals",
-                "readiness_reason": "Configuration alone is not treated as live proof; use the inspection route for current repository evidence.",
+                "readiness_reason": "No preloaded green. The exact GitHub inspection response must return proven=true.",
             },
             {
                 "id": "neon",
@@ -219,7 +224,7 @@ def get_workbench_status() -> dict[str, Any]:
                 "management_api_configured": neon_management_configured,
                 "mode": "read-only database readiness; SQL writes and migrations are not exposed here",
                 "purpose": "identity, conversations, HRM receipts and operational data",
-                "readiness_reason": "Green only when the database and required schema both pass runtime checks.",
+                "readiness_reason": "Green only when the exact database inspection returns proven=true.",
             },
         ],
         "capabilities": capabilities,
