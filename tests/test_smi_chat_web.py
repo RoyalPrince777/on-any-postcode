@@ -168,3 +168,82 @@ def test_chat_event_bridge_marks_complete_after_chat_returns(monkeypatch):
     )
 
     assert [event["type"] for event in events] == ["delta", "complete"]
+
+
+def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
+    monkeypatch.setattr(
+        smi_chat_runtime._core,
+        "chat",
+        lambda *args, **kwargs: {
+            "status": "green",
+            "request_id": "req-1",
+            "conversation_id": "conv-1",
+            "response": "Done",
+            "output_state": "RECOMMENDATION_ONLY",
+            "guardian": "PASSED",
+        },
+    )
+    monkeypatch.setattr(
+        smi_chat_runtime._intelligence,
+        "public_route",
+        lambda message: {"active": False, "mode": "none", "subject": ""},
+    )
+    monkeypatch.setattr(
+        smi_chat_runtime._thinking,
+        "completion_summary",
+        lambda result: {"status": "complete"},
+    )
+    monkeypatch.setattr(
+        smi_chat_runtime._thinking,
+        "process_contract",
+        lambda: {
+            "name": "test",
+            "version": 1,
+            "stage_count": 5,
+            "first_party_only": True,
+            "private_reasoning_exposed": False,
+            "chain_of_thought_exposed": False,
+            "human_authority_final": True,
+        },
+    )
+    monkeypatch.setattr(smi_chat_runtime, "canonical_memory_status", dict)
+    monkeypatch.setattr(smi_chat_runtime, "governed_memory_status", dict)
+    monkeypatch.setattr(smi_chat_runtime, "memory_sync_status", dict)
+    captured = {}
+
+    def fake_receipt(kind, payload):
+        captured["kind"] = kind
+        captured["payload"] = payload
+        return {
+            "ok": True,
+            "receipt_id": "behaviour-r1",
+            "receipt_kind": kind,
+            "durable": True,
+        }
+
+    monkeypatch.setattr(smi_chat_runtime._receipts, "write_receipt", fake_receipt)
+
+    result = smi_chat_runtime.chat(
+        "Review OAP.",
+        "11111111-1111-4111-8111-111111111111",
+        "OAP Member",
+        thinking_level="think",
+    )
+
+    assert captured["kind"] == "behaviour_response_receipt"
+    assert captured["payload"]["gate"] == 1
+    safe = captured["payload"]["safe_payload"]
+    assert safe["protocol_percentage"] == 25
+    assert safe["scores_calculated"] is False
+    assert safe["behaviour_learning_applied"] is False
+    assert safe["war_room_escalation_applied"] is False
+    assert len(safe["dimension_ids"]) == 21
+    assert result["behaviour_receipt"] == {
+        "ok": True,
+        "receipt_id": "behaviour-r1",
+        "receipt_kind": "behaviour_response_receipt",
+        "durable": True,
+        "protocol_step": 1,
+        "protocol_percentage": 25,
+        "scores_calculated": False,
+    }

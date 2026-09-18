@@ -19,10 +19,12 @@ from oap.smi.memory_orchestrator import compose_text_memory
 from oap.smi.memory_orchestrator import status as governed_memory_status
 from oap.smi.memory_sync import status as memory_sync_status
 
+from . import ai_behaviour_protocol as _behaviour
 from . import intelligence_lenses as _intelligence
 from . import oap_inference_gateway as _inference
 from . import smi_chat_grounded as _grounded
 from . import smi_chat_runtime_core as _core
+from . import smi_receipt_backend as _receipts
 from . import smi_thinking_process as _thinking
 from . import world_crisis_intelligence as _world_crisis
 from .smi_chat_runtime_core import *
@@ -382,6 +384,41 @@ def chat(
     enriched["memory_sync"] = memory_sync_status()
     enriched["thinking_level"] = str(thinking_level or "auto")
     enriched["studio_mode"] = bool(studio_mode)
+    behaviour_receipt = _receipts.write_receipt(
+        "behaviour_response_receipt",
+        {
+            "brain_part": "behaviour_intelligence",
+            "gate": 1,
+            "command": "record_response_behaviour",
+            "signal": "🟣",
+            "guardian": str(enriched.get("guardian") or "unknown"),
+            "green_gate": "not_scored_step_1",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                "protocol_step": 1,
+                "protocol_percentage": 25,
+                "request_id": enriched.get("request_id"),
+                "conversation_id": enriched.get("conversation_id"),
+                "output_state": enriched.get("output_state"),
+                "thinking_level": enriched["thinking_level"],
+                "studio_mode": enriched["studio_mode"],
+                "intelligence_mode": enriched.get("intelligence", {}).get("mode"),
+                "dimension_ids": [item[0] for item in _behaviour.BEHAVIOUR_DIMENSIONS],
+                "scores_calculated": False,
+                "behaviour_learning_applied": False,
+                "war_room_escalation_applied": False,
+            },
+        },
+    )
+    enriched["behaviour_receipt"] = {
+        "ok": bool(behaviour_receipt.get("ok")),
+        "receipt_id": behaviour_receipt.get("receipt_id"),
+        "receipt_kind": behaviour_receipt.get("receipt_kind"),
+        "durable": bool(behaviour_receipt.get("durable")),
+        "protocol_step": 1,
+        "protocol_percentage": 25,
+        "scores_calculated": False,
+    }
     return enriched
 
 
