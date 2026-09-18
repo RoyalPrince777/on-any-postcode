@@ -11,7 +11,7 @@ def test_latest_founder_memory_contains_current_locked_rules():
     assert "one canonical Send/Enter/Mic/Voice/Stop runtime" in text
     assert (
         latest_founder_memory.status()["revision"]
-        == "2026-09-11-founder-parity"
+        == "2026-09-18-war-room-intelligence"
     )
 
 
@@ -30,3 +30,18 @@ def test_latest_founder_memory_never_claims_raw_chat_or_private_reasoning_copy()
     assert status["private_chain_of_thought_included"] is False
     assert status["credentials_or_secrets_included"] is False
     assert status["human_authority_final"] is True
+
+
+def test_war_room_intelligence_is_locked_in_joog_memory():
+    items = latest_founder_memory.latest_founder_memory_items()
+    text = "\n".join(item.summary for item in items)
+    assert "JOOG MEMORY War Room Intelligence lock" in text
+    assert "MISSION title" in text
+    assert "ALIGNMENT checks" in text
+    assert "25%=Rollback/Recovery" in text
+    assert "50%=Runtime Guard" in text
+    assert "75%=Aegis Isolation/Recovery" in text
+    assert "100%=Green Gate + Founder Final" in text
+    assert "3/7/21 controls review depth separately" in text
+    assert "DONE / LOCKED / NEXT" in text
+    assert "Human Authority remains final" in text
