@@ -93,3 +93,56 @@ def test_a6_route_matrix_boot_trigger_is_explicitly_opt_in():
     assert 'os.environ.get(flag, "").strip() != "1"' in block
     assert "_A6_ROUTE_MATRIX_STARTED.add(operation_id)" in block
     assert "production_state_mutated" in block
+
+
+def test_route_matrix_uses_real_methods_for_post_only_routes():
+    contract = {
+        str(item["route"]): item
+        for item in runner.ROUTE_MATRIX_CONTRACT
+    }
+    assert contract["/travel/direct/api/quote"]["method"] == "POST"
+    assert 400 in contract["/travel/direct/api/quote"]["expected_statuses"]
+    for route in (
+        "/mission/supply/suppliers/certify",
+        "/mission/supply/listings",
+        "/mission/supply/inventory",
+        "/mission/supply/reservations/confirm",
+        "/movement/route",
+        "/movement/bookings",
+    ):
+        assert contract[route]["method"] == "POST"
+        assert 405 not in contract[route]["expected_anonymous_statuses"]
+
+
+def test_probe_sends_empty_json_for_post_without_mutating_contract(monkeypatch):
+    captured = {}
+
+    class Response:
+        status = 400
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    class Opener:
+        def open(self, request, timeout):
+            captured["method"] = request.get_method()
+            captured["data"] = request.data
+            captured["content_type"] = request.headers.get("Content-type")
+            return Response()
+
+    monkeypatch.setattr(runner, "build_opener", lambda *args: Opener())
+    result = runner._probe_status(
+        "https://example.test",
+        "/travel/direct/api/quote",
+        method="POST",
+    )
+    assert result["status"] == 400
+    assert result["method"] == "POST"
+    assert captured == {
+        "method": "POST",
+        "data": b"{}",
+        "content_type": "application/json",
+    }
