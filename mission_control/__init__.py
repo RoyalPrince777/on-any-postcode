@@ -24,6 +24,7 @@ def init_app(app: Flask) -> None:
     from . import (
         authority,
         esim_persistence,
+        hrm_durable_receipt,
         link_activity,
         link_call_audit,
         link_presence,
@@ -41,6 +42,7 @@ def init_app(app: Flask) -> None:
         smi_auto,
         smi_founder_assets,
         smi_proof_gate,
+        spot_step2_booking_proof,
         surface_security,
         travel_supply_core,
     )
@@ -105,6 +107,75 @@ def init_app(app: Flask) -> None:
                 flush=True,
             )
             raise
+
+    if os.environ.get("OAP_SPOT_STEP2_PROOF_ON_BOOT", "").strip() == "1":
+        operation_id = os.environ.get(
+            "OAP_SPOT_STEP2_PROOF_OPERATION_ID", ""
+        ).strip()
+        identity_id = authority.configured_identity()
+        try:
+            if not operation_id:
+                raise RuntimeError("spot_step2_operation_id_not_configured")
+            if not identity_id:
+                raise RuntimeError("human_authority_identity_not_configured")
+            proof = spot_step2_booking_proof.run(
+                identity_id=identity_id,
+                operation_id=operation_id,
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_spot_step2_booking_proof",
+                        "success": bool(proof.get("passed")),
+                        "quarter": 50,
+                        "receipt_verified": bool(proof.get("receipt_verified")),
+                        "product_rows_rolled_back": bool(
+                            proof.get("product_rows_rolled_back")
+                        ),
+                        "real_supplier_created": False,
+                        "real_booking_created": False,
+                        "payment_capture": False,
+                        "dispatch": False,
+                        "production_state_mutated": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception as exc:  # noqa: BLE001 - proof must fail closed.
+            reason = (
+                str(exc)[:220]
+                if isinstance(
+                    exc,
+                    (
+                        RuntimeError,
+                        ValueError,
+                        PermissionError,
+                        hrm_durable_receipt.ReceiptBlocked,
+                    ),
+                )
+                else ""
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_spot_step2_booking_proof",
+                        "success": False,
+                        "quarter": 50,
+                        "error": type(exc).__name__,
+                        "reason": reason,
+                        "real_supplier_created": False,
+                        "real_booking_created": False,
+                        "payment_capture": False,
+                        "dispatch": False,
+                        "production_state_mutated": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
 
     if os.environ.get("OAP_FOUNDER_ASSETS_MIGRATION_ON_BOOT", "").strip() == "1":
         try:
