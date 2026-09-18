@@ -19,6 +19,12 @@ from mission_control import a6_matrix_execution, a7_certification, authority, ma
 
 app = Flask(__name__)
 _LOGGER = logging.getLogger(__name__)
+if not _LOGGER.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    _LOGGER.addHandler(_handler)
+_LOGGER.setLevel(logging.INFO)
+_LOGGER.propagate = False
 
 _UPSTREAM_DEFAULT = "https://on-any-postcode.onrender.com"
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"

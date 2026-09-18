@@ -62,13 +62,29 @@ FOUNDER_PRIVATE_ROUTES: tuple[str, ...] = (
     "/movement/bookings",
 )
 
+_PUBLIC_METHODS = {
+    "/travel/direct/api/quote": "POST",
+}
+_PRIVATE_METHODS = {
+    "/mission/supply/suppliers/certify": "POST",
+    "/mission/supply/listings": "POST",
+    "/mission/supply/inventory": "POST",
+    "/mission/supply/reservations/confirm": "POST",
+    "/movement/route": "POST",
+    "/movement/bookings": "POST",
+}
+
 ROUTE_MATRIX_CONTRACT: tuple[dict[str, object], ...] = (
     *(
         {
             "route": route,
             "surface": "public",
-            "method": "GET",
-            "expected_statuses": (200, 302),
+            "method": _PUBLIC_METHODS.get(route, "GET"),
+            "expected_statuses": (
+                (200, 302, 400)
+                if _PUBLIC_METHODS.get(route) == "POST"
+                else (200, 302)
+            ),
             "must_not_expose_private_state": True,
         }
         for route in SAFE_PUBLIC_ROUTES
@@ -77,7 +93,7 @@ ROUTE_MATRIX_CONTRACT: tuple[dict[str, object], ...] = (
         {
             "route": route,
             "surface": "founder_private",
-            "method": "GET",
+            "method": _PRIVATE_METHODS.get(route, "GET"),
             "expected_anonymous_statuses": (302, 401, 403, 404),
             "must_fail_closed_for_anonymous": True,
         }
@@ -142,15 +158,32 @@ class _NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def _probe_status(base_url: str, route: str, *, timeout: float = 5.0) -> dict[str, object]:
+def _probe_status(
+    base_url: str,
+    route: str,
+    *,
+    method: str = "GET",
+    timeout: float = 5.0,
+) -> dict[str, object]:
     if "<" in route or ">" in route:
-        return {"route": route, "skipped": True, "reason": "dynamic_route_requires_concrete_identifier", "status": None}
+        return {
+            "route": route,
+            "method": method,
+            "skipped": True,
+            "reason": "dynamic_route_requires_concrete_identifier",
+            "status": None,
+        }
+    verb = str(method or "GET").upper()
     url = base_url.rstrip("/") + route
-    request = Request(url, method="GET", headers={
+    body = b"{}" if verb == "POST" else None
+    headers = {
         "Accept": "application/json,text/html;q=0.8",
         "User-Agent": "OAP-A6-Route-Matrix/1.0",
         "Cache-Control": "no-cache",
-    })
+    }
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    request = Request(url, data=body, method=verb, headers=headers)
     opener = build_opener(_NoRedirect())
     try:
         with opener.open(request, timeout=timeout) as response:
@@ -158,8 +191,15 @@ def _probe_status(base_url: str, route: str, *, timeout: float = 5.0) -> dict[st
     except HTTPError as exc:
         status = int(exc.code)
     except (URLError, TimeoutError, OSError) as exc:
-        return {"route": route, "skipped": False, "status": None, "network_error": type(exc).__name__, "passed": False}
-    return {"route": route, "skipped": False, "status": status}
+        return {
+            "route": route,
+            "method": verb,
+            "skipped": False,
+            "status": None,
+            "network_error": type(exc).__name__,
+            "passed": False,
+        }
+    return {"route": route, "method": verb, "skipped": False, "status": status}
 
 
 def execute_route_matrix_capture(*, identity_id: object, base_url: object, operation_id: object) -> dict[str, object]:
@@ -176,7 +216,11 @@ def execute_route_matrix_capture(*, identity_id: object, base_url: object, opera
     public_results = []
     private_results = []
     for target in ROUTE_MATRIX_CONTRACT:
-        result = _probe_status(base, str(target["route"]))
+        result = _probe_status(
+            base,
+            str(target["route"]),
+            method=str(target.get("method") or "GET"),
+        )
         if target["surface"] == "public":
             expected = tuple(target["expected_statuses"])
             passed = bool(result.get("skipped") or (isinstance(result.get("status"), int) and result["status"] in expected))
