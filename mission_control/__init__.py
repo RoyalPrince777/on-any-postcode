@@ -43,6 +43,8 @@ def init_app(app: Flask) -> None:
         smi_proof_gate,
         surface_security,
         travel_supply_core,
+        listing_media,
+        travel_marketplace,
     )
     from . import db as dbmod
     from .alignment_views import bp as alignment_bp
@@ -137,6 +139,35 @@ def init_app(app: Flask) -> None:
                 flush=True,
             )
             raise
+
+    if os.environ.get("OAP_SPOT_BOOKING_EVIDENCE_ON_BOOT", "").strip() == "1":
+        supply = travel_supply_core.status()
+        media = listing_media.status()
+        offers = travel_marketplace.public_offers(limit=100)
+        print(
+            json.dumps(
+                {
+                    "event": "oap_spot_booking_evidence",
+                    "schema_ready": bool(supply.get("schema_ready")),
+                    "certified_supplier_count": int(supply.get("certified_supplier_count") or 0),
+                    "active_listing_count": int(supply.get("active_listing_count") or 0),
+                    "live_inventory_slot_count": int(supply.get("live_inventory_slot_count") or 0),
+                    "confirmed_reservation_count": int(supply.get("confirmed_reservation_count") or 0),
+                    "direct_booking_runtime_ready": bool(supply.get("direct_booking_runtime_ready")),
+                    "listing_media_schema_ready": bool(media.get("schema_ready")),
+                    "listing_photo_count": int(media.get("photo_count") or 0),
+                    "public_offer_count": int(offers.get("count") or 0),
+                    "payment_capture_live": False,
+                    "dispatch_enabled": False,
+                    "execution_granted": False,
+                    "secret_exposed": False,
+                    "read_only": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
 
     if os.environ.get("OAP_AEGIS_75_PROOF_ON_BOOT", "").strip() == "1":
         try:
