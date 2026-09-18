@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import app as app_module
 from mission_control import (
     founder_activation,
@@ -102,7 +104,11 @@ def test_anonymous_pages_do_not_disclose_internal_architecture(anonymous_client)
     public_copy_parts = []
     for path in public_paths:
         page = anonymous_client.get(path).get_data(as_text=True).lower()
-        page = web_security.CSRF_INPUT_RE.sub('csrf_token="[redacted]"', page)
+        page = re.sub(
+            r'<input\\b[^>]*\\bname=["\\']csrf_token["\\'][^>]*>',
+            '<input name="csrf_token" value="[redacted]">',
+            page,
+        )
         public_copy_parts.append(page)
     public_copy = "\n".join(public_copy_parts)
 
