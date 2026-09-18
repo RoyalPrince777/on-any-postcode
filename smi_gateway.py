@@ -410,6 +410,66 @@ def war_room_alias():
     return redirect("/mission/war-room", code=302)
 
 
+def _complete_a6_readiness_if_requested() -> None:
+    """Record A6 readiness proof for this gateway DB without enabling execution."""
+
+    if os.environ.get("OAP_A6_READINESS_ON_BOOT", "").strip() != "1":
+        return
+    try:
+        identity_id = _resolve_a6_human_authority()
+        evidence_ref = os.environ.get(
+            "OAP_A6_INDEPENDENT_EVIDENCE_REF", ""
+        ).strip()
+        evidence_hash = os.environ.get(
+            "OAP_A6_INDEPENDENT_EVIDENCE_HASH", ""
+        ).strip()
+        evidence_issuer = os.environ.get(
+            "OAP_A6_INDEPENDENT_EVIDENCE_ISSUER", ""
+        ).strip()
+        if not evidence_ref or not evidence_hash or not evidence_issuer:
+            raise RuntimeError("a6_independent_evidence_not_configured")
+        proof = a7_certification.complete_a6_readiness_protocol(
+            identity_id=identity_id,
+            independent_evidence_ref=evidence_ref,
+            independent_evidence_hash=evidence_hash,
+            independent_issuer=evidence_issuer,
+        )
+        _LOGGER.info(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_a6_readiness",
+                    "trigger": "boot",
+                    "success": bool(proof.get("a6_proof_complete")),
+                    "already_proven": bool(proof.get("already_proven")),
+                    "a6_proof_complete": bool(proof.get("a6_proof_complete")),
+                    "execution_granted": False,
+                    "production_state_mutated": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001 - readiness must fail closed.
+        reason = str(exc)[:180] if isinstance(exc, RuntimeError) else ""
+        _LOGGER.error(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_a6_readiness",
+                    "trigger": "boot",
+                    "success": False,
+                    "execution_granted": False,
+                    "production_state_mutated": False,
+                    "error": type(exc).__name__,
+                    "reason": reason,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+
+
 def _run_a6_route_matrix_operation(operation_id: str) -> None:
     """Run one approved A6 Route Matrix operation exactly once per process."""
 
@@ -540,6 +600,10 @@ def _maybe_start_a6_route_matrix_operation(*, trigger: str = "health") -> None:
         daemon=True,
     ).start()
 
+
+# Readiness is recorded first, against this gateway's own DB, then the
+# one-shot read-only Route Matrix capture may run. Neither step grants execution.
+_complete_a6_readiness_if_requested()
 
 # Render can mark the gateway live without issuing an observable /healthz request.
 # The boot trigger is therefore an explicit, opt-in equivalent for the same
