@@ -11,6 +11,7 @@ from . import (
     distribution_intelligence,
     oap_bank,
     smi_chat_runtime,
+    smi_founder_assets,
     studio_intelligence,
 )
 
@@ -89,6 +90,7 @@ def get_workbench_status() -> dict[str, Any]:
         ],
         "fail_closed": not database_ready,
     }
+    founder_library = smi_founder_assets.schema_status()
     studio = studio_intelligence.status()
     coherence = coherent_automation.status()
     distribution = distribution_intelligence.status()
@@ -163,6 +165,13 @@ def get_workbench_status() -> dict[str, Any]:
             code_ready,
             evidence="runtime checks code_mode/code_proposals",
             blocked_reason="Code mode may be exposed, but no runtime code-proposal certification check is green.",
+        ),
+        _capability(
+            "founder-library",
+            "Founder Library",
+            bool(founder_library.get("schema_ready")),
+            evidence="smi_founder_assets.schema_status()",
+            blocked_reason="Founder asset index schema has not produced runtime proof.",
         ),
         studio,
         coherence,
@@ -239,6 +248,13 @@ def get_workbench_status() -> dict[str, Any]:
             "human_authority_final": bool(a7.get("human_authority_final")),
             "external_evidence_is_software_verified": bool(a7.get("external_evidence_is_software_verified")),
             "fail_closed": True,
+        },
+        "founder_library": {
+            "schema_ready": bool(founder_library.get("schema_ready")),
+            "asset_count": int(founder_library.get("asset_count") or 0),
+            "raw_content_retained": False,
+            "owner_scoped": True,
+            "library_url": "/mission/founder-library",
         },
         "knowledge": {
             "name": "OAP operating context",
