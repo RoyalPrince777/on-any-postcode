@@ -204,8 +204,10 @@ def test_route_matrix_probe_retries_429_only_once(monkeypatch):
     class Response:
         def __init__(self, status):
             self.status = status
+
         def __enter__(self):
             return self
+
         def __exit__(self, *args):
             return False
 
@@ -217,7 +219,11 @@ def test_route_matrix_probe_retries_429_only_once(monkeypatch):
             return Response(200)
 
     monkeypatch.setattr(runner, "build_opener", lambda *args: Opener())
-    monkeypatch.setattr(runner.time, "sleep", lambda seconds: calls["sleep"].append(seconds))
+    monkeypatch.setattr(
+        runner.time,
+        "sleep",
+        lambda seconds: calls["sleep"].append(seconds),
+    )
 
     result = runner._probe_status(
         "https://example.test",
@@ -231,7 +237,11 @@ def test_route_matrix_probe_retries_429_only_once(monkeypatch):
 
 def test_route_matrix_capture_paces_targets(monkeypatch):
     sleeps = []
-    monkeypatch.setattr(runner.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(
+        runner.time,
+        "sleep",
+        lambda seconds: sleeps.append(seconds),
+    )
     source = Path(runner.__file__).read_text(encoding="utf-8")
     assert "if index:" in source
     assert "time.sleep(0.5)" in source
