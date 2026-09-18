@@ -31,6 +31,56 @@ from . import (
 
 bp = Blueprint("on_any_place", __name__)
 
+_ROUTE_ANCHORS: dict[str, dict[str, object]] = {
+    "mitcham": {
+        "query": "Mitcham",
+        "postcode": "CR4",
+        "borough": "Merton",
+        "county": "Greater London",
+        "country": "United Kingdom",
+        "continent": "Europe",
+        "global": "Global",
+        "universe": "Universe",
+        "latitude": 51.4036,
+        "longitude": -0.1687,
+        "provider": "OAP London route anchor",
+    },
+    "cr4": {
+        "query": "Mitcham",
+        "postcode": "CR4",
+        "borough": "Merton",
+        "county": "Greater London",
+        "country": "United Kingdom",
+        "continent": "Europe",
+        "global": "Global",
+        "universe": "Universe",
+        "latitude": 51.4036,
+        "longitude": -0.1687,
+        "provider": "OAP London route anchor",
+    },
+    "london bridge": {
+        "query": "London Bridge",
+        "postcode": "SE1",
+        "borough": "Southwark",
+        "county": "Greater London",
+        "country": "United Kingdom",
+        "continent": "Europe",
+        "global": "Global",
+        "universe": "Universe",
+        "latitude": 51.5079,
+        "longitude": -0.0877,
+        "provider": "OAP London route anchor",
+    },
+}
+
+
+def _route_location(value: str) -> dict[str, object]:
+    key = " ".join(str(value or "").strip().casefold().split())
+    anchor = _ROUTE_ANCHORS.get(key)
+    if anchor is not None:
+        return dict(anchor)
+    return location_intelligence.lookup(value)
+
 
 def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
@@ -241,8 +291,8 @@ def map_intelligence_route():
     if len(origin) < 2 or len(destination) < 2:
         return jsonify({"error": {"code": "route_places_required"}}), 400
     try:
-        start = location_intelligence.lookup(origin)
-        end = location_intelligence.lookup(destination)
+        start = _route_location(origin)
+        end = _route_location(destination)
         coverage = routing_federation.coverage_state(start, end)
         if not coverage["route_expected"]:
             response = jsonify({
