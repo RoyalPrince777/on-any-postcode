@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import logging
+
+import app as app_module
 from mission_control import coherent_automation, smi_proof_gate, telemetry
 
 
@@ -131,3 +135,85 @@ def test_local_traffic_alone_cannot_become_production_proof(monkeypatch):
     assert snapshot["checks"]["durable_hrm_receipt"] is False
     assert "observability" in snapshot["missing"]
     assert "durable_hrm_receipt" in snapshot["missing"]
+
+
+def test_smi_proof_snapshot_is_one_shot_allowlisted_and_read_only(monkeypatch, caplog):
+    calls = {"status": 0}
+
+    def fake_status():
+        calls["status"] += 1
+        return {
+            "green": True,
+            "checks": {
+                "rollback_recovery": True,
+                "runtime_guard": True,
+                "isolation_recovery": True,
+            },
+            "production_counts": {
+                "store_reachable": True,
+                "rollback_recovery_receipts": 2,
+                "runtime_guard_receipts": 3,
+                "isolation_recovery_receipts": 4,
+                "receipt_body": "SECRET_RECEIPT_BODY",
+            },
+            "identity_id": "SECRET_IDENTITY",
+            "correlation_id": "SECRET_CORRELATION",
+            "signature": "SECRET_SIGNATURE",
+            "nonce": "SECRET_NONCE",
+            "execution_granted": True,
+        }
+
+    def forbidden_write(*args, **kwargs):
+        raise AssertionError("snapshot logging must not execute proof/write paths")
+
+    monkeypatch.setattr(app_module, "_SMI_PROOF_SNAPSHOT_LOGGED", False)
+    monkeypatch.setattr(app_module, "_revision", lambda: "test-revision")
+    monkeypatch.setattr(smi_proof_gate, "status", fake_status)
+    monkeypatch.setattr(smi_proof_gate, "run_rollback_recovery_proof", forbidden_write)
+    monkeypatch.setattr(smi_proof_gate, "run_runtime_guard_proof", forbidden_write)
+    monkeypatch.setattr(smi_proof_gate, "run_isolation_recovery_proof", forbidden_write)
+
+    caplog.set_level(logging.INFO, logger=app_module._LOGGER.name)
+    app_module._log_smi_proof_snapshot_once()
+    app_module._log_smi_proof_snapshot_once()
+
+    snapshot_messages = [
+        record.getMessage()
+        for record in caplog.records
+        if '"event":"oap_smi_proof_snapshot"' in record.getMessage()
+    ]
+    assert len(snapshot_messages) == 1
+    assert calls["status"] == 1
+
+    payload = json.loads(snapshot_messages[0])
+    assert payload == {
+        "event": "oap_smi_proof_snapshot",
+        "revision": "test-revision",
+        "rollback_recovery": True,
+        "runtime_guard": True,
+        "isolation_recovery": True,
+        "rollback_recovery_receipts": 2,
+        "runtime_guard_receipts": 3,
+        "isolation_recovery_receipts": 4,
+        "store_reachable": True,
+        "green_gate": True,
+        "production_state_mutated": False,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
+    }
+
+    serialized = snapshot_messages[0]
+    for forbidden in (
+        "SECRET_IDENTITY",
+        "SECRET_CORRELATION",
+        "SECRET_SIGNATURE",
+        "SECRET_NONCE",
+        "SECRET_RECEIPT_BODY",
+        "identity_id",
+        "correlation_id",
+        "signature",
+        "nonce",
+        "receipt_body",
+        "execution_granted",
+    ):
+        assert forbidden not in serialized
