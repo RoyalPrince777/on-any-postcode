@@ -108,10 +108,21 @@ def init_app(app: Flask) -> None:
     if os.environ.get("OAP_AEGIS_75_PROOF_ON_BOOT", "").strip() == "1":
         try:
             proof_status = smi_proof_gate.status()
-            checks = proof_status.get("checks") if isinstance(proof_status, dict) else {}
-            already_proven = bool(isinstance(checks, dict) and checks.get("isolation_recovery"))
+            checks = (
+                proof_status.get("checks")
+                if isinstance(proof_status, dict)
+                else {}
+            )
+            already_proven = bool(
+                isinstance(checks, dict)
+                and checks.get("isolation_recovery")
+            )
             if already_proven:
-                proof = {"passed": True, "already_proven": True, "audit_recorded": True}
+                proof = {
+                    "passed": True,
+                    "already_proven": True,
+                    "audit_recorded": True,
+                }
             else:
                 identity_id = authority.configured_identity()
                 if not identity_id:
