@@ -196,3 +196,54 @@ def test_gateway_surfaces_bounded_value_error_reason_for_a6_readiness():
     assert "ValueError" in section
     assert "PermissionError" in section
     assert "str(exc)[:180]" in section
+
+
+def test_route_matrix_probe_retries_429_only_once(monkeypatch):
+    calls = {"open": 0, "sleep": []}
+
+    class Response:
+        def __init__(self, status):
+            self.status = status
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    class Opener:
+        def open(self, request, timeout):
+            calls["open"] += 1
+            if calls["open"] == 1:
+                raise runner.HTTPError(request.full_url, 429, "rate", {}, None)
+            return Response(200)
+
+    monkeypatch.setattr(runner, "build_opener", lambda *args: Opener())
+    monkeypatch.setattr(
+        runner.time,
+        "sleep",
+        lambda seconds: calls["sleep"].append(seconds),
+    )
+
+    result = runner._probe_status(
+        "https://example.test",
+        "/travel",
+        method="GET",
+    )
+    assert result["status"] == 200
+    assert calls["open"] == 2
+    assert calls["sleep"] == [2.0]
+
+
+def test_route_matrix_capture_paces_targets(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(
+        runner.time,
+        "sleep",
+        lambda seconds: sleeps.append(seconds),
+    )
+    source = Path(runner.__file__).read_text(encoding="utf-8")
+    assert "if index:" in source
+    assert "time.sleep(0.5)" in source
+    assert "retry_429=False" in source
+    assert '"production_state_mutated": False' in source
