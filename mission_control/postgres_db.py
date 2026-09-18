@@ -256,14 +256,29 @@ def _decode_database_secret(value: str) -> str:
 
 
 def _database_config() -> tuple[str, str]:
-    """Resolve one primary PostgreSQL URL without exposing the secret value.
+    """Resolve exactly one authoritative PostgreSQL URL without exposing secrets.
 
-    Explicit provider-neutral primary settings and Render-style ``DATABASE_URL``
-    must beat the legacy Neon-specific aliases. That lets OAP recover from a
-    Neon outage without deleting old settings or silently falling back to them.
-    If an explicitly selected encoded setting is malformed, resolution fails
-    closed instead of using a lower-priority database unexpectedly.
+    Primary remains authoritative by default. Aegis recovery may explicitly
+    promote the configured fallback by setting ``OAP_DATABASE_AUTHORITY=fallback``.
+    There is no silent health-based failover: ambiguous or malformed authority
+    configuration fails closed so two databases cannot accidentally become
+    writers at the same time.
     """
+
+    authority = os.environ.get("OAP_DATABASE_AUTHORITY", "primary").strip().lower()
+    if authority not in {"primary", "fallback"}:
+        return "", "invalid_authority"
+
+    if authority == "fallback":
+        encoded_fallback = os.environ.get("OAP_FALLBACK_DATABASE_URL_B64", "").strip()
+        if encoded_fallback:
+            return _decode_database_secret(encoded_fallback), "fallback_override"
+
+        fallback = os.environ.get("OAP_FALLBACK_DATABASE_URL", "").strip()
+        if fallback:
+            return fallback, "fallback_override"
+
+        return "", "fallback_unconfigured"
 
     encoded_primary = os.environ.get("OAP_PRIMARY_DATABASE_URL_B64", "").strip()
     if encoded_primary:
@@ -300,6 +315,13 @@ def database_source() -> str:
     """Return only the redacted configuration class, never a host or URL."""
 
     return _database_config()[1]
+
+
+def database_authority() -> str:
+    """Return the selected writer authority without exposing connection details."""
+
+    authority = os.environ.get("OAP_DATABASE_AUTHORITY", "primary").strip().lower()
+    return authority if authority in {"primary", "fallback"} else "invalid"
 
 
 def configured() -> bool:
