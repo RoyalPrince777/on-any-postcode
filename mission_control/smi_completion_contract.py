@@ -44,6 +44,15 @@ SMI_COMPLETION_CHECKS = (
     {"check": "A7 external/legal/halt/boundary/constitutional assurance", "status": "live_evidence_gate", "light": "🟣", "proof_class": "external"},
 )
 
+CORE_PROOF_GATE_IDS = (
+    "founder_chat_interaction",
+    "hrm_receipt_chain",
+    "green_gate_aggregation",
+    "rollback_recovery",
+    "observability",
+)
+
+
 PROOF_GATE_DEFINITIONS = (
     {
         "id": "founder_chat_interaction",
@@ -190,6 +199,17 @@ def completion_status() -> dict[str, object]:
     a7_snapshot = a7_certification.status()
     gates = _proof_gates(evidence, gate_snapshot, a7_snapshot)
     missing = tuple(item for item in gates if not item["proven"])
+    core_gates = tuple(item for item in gates if item["id"] in CORE_PROOF_GATE_IDS)
+    core_proven_count = sum(1 for item in core_gates if item["proven"])
+    core_expected_count = len(core_gates)
+    core_completion_percent = round(
+        (core_proven_count / core_expected_count) * 100.0, 1
+    ) if core_expected_count else 0.0
+    core_complete = bool(
+        core_expected_count
+        and core_proven_count == core_expected_count
+        and gate_snapshot.get("green")
+    )
     founder_proven = next(item for item in gates if item["id"] == "founder_chat_interaction")["proven"]
     receipt_proven = next(item for item in gates if item["id"] == "hrm_receipt_chain")["proven"]
     rollback_proven = next(item for item in gates if item["id"] == "rollback_recovery")["proven"]
@@ -218,6 +238,16 @@ def completion_status() -> dict[str, object]:
         "a7_certification": a7_snapshot,
         "proof_gates": gates,
         "missing_proof_gates": missing,
+        "core_completion": {
+            "scope": "bounded Founder SMI core",
+            "percent": core_completion_percent,
+            "complete": core_complete,
+            "proven_count": core_proven_count,
+            "expected_count": core_expected_count,
+            "proof_gate_ids": CORE_PROOF_GATE_IDS,
+            "higher_autonomy_certification_required": False,
+            "a5_a6_a7_remain_locked": True,
+        },
         "hard_locks": {
             "a5_enabled": autonomy["a5_enabled"],
             "a6_enabled": autonomy["a6_enabled"],
@@ -240,6 +270,7 @@ def completion_status() -> dict[str, object]:
             "a6": "locked",
             "a7": "ready_for_founder_certification" if a7_ready else "locked",
             "whole_smi_runtime": "green_bounded_runtime" if runtime_green else "not_full_green",
+            "bounded_core": "green" if core_complete else "proof_required",
         },
         "green_gate": {
             "code_boundary_ready": True,
