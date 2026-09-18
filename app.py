@@ -517,6 +517,16 @@ def _load_public_snapshot():
         app.logger.warning("durable_public_read_failed")
         return _local_public_snapshot()
 
+@app.get("/studio")
+def public_studio():
+    """Public OAP Studio Intelligence shell; no private SMI authority is exposed."""
+
+    response = make_response(render_template("studio_public.html"))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @app.get("/")
 @app.get("/world")
 def home():
