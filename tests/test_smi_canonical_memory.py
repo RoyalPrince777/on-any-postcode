@@ -9,6 +9,7 @@ from oap.hrm import HRMCore, initialize_brain_schema
 from oap.smi.canonical_memory import (
     CANONICAL_MEMORY_DIGEST,
     CANONICAL_MEMORY_REVISION,
+    canonical_memory_items,
     status,
 )
 from oap.smi.context_engine import ContextEngine
@@ -69,3 +70,16 @@ def test_live_provider_memory_includes_canonical_truth_and_recent_hrm():
     joined = " ".join(merged).casefold()
     assert "private chain-of-thought" in joined or "private chain of thought" in joined
     assert "credentials" in joined or "secrets" in joined
+
+
+def test_founder_working_protocol_is_locked_in_canonical_memory():
+    items = canonical_memory_items("GENERAL", limit=21)
+    joined = " ".join(item.summary for item in items)
+    assert "25%=Step 1 Rollback/Recovery" in joined
+    assert "50%=Step 2 Runtime Guard" in joined
+    assert "75%=Step 3 Aegis Isolation/Recovery" in joined
+    assert "100%=Step 4 Green Gate + Founder Final" in joined
+    assert "🟣 means active/in-progress" in joined
+    assert "Review depth 3/7/21 is separate" in joined
+    assert "DONE / LOCKED / NEXT" in joined
+    assert "no Green" in joined
