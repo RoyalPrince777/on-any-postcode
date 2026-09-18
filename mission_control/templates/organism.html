@@ -78,6 +78,41 @@
       </ol>
     </section>
 
+    <section class="mc-panel" aria-labelledby="physiology-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Whole-body physiology</p>
+          <h2 id="physiology-title">DNA · Blood · Organs · Recovery · Growth</h2>
+        </div>
+        <span class="mc-lock-badge">One organism · one brain</span>
+      </div>
+      <div class="mc-region-grid" role="list">
+        {% for system in anatomy.physiology_systems %}
+        <article class="mc-region-card" role="listitem">
+          <p class="mc-organ-type">{{ system.biology }}</p>
+          <h3>{{ system.name }}</h3>
+          <p>{{ system.responsibility }}</p>
+          <small><strong>Technical owner:</strong> {{ system.technical_owner }}</small><br>
+          <small><strong>Mutation rule:</strong> {{ system.mutation_rule }}</small>
+        </article>
+        {% endfor %}
+      </div>
+      <h3>Closed physiology loop</h3>
+      <ol class="mc-organism-flow">
+        {% for step in anatomy.physiology_flow %}
+        <li class="mc-organ-card">
+          <span class="mc-organ-index">{{ loop.index }}</span>
+          <div><h3>{{ step }}</h3></div>
+        </li>
+        {% endfor %}
+      </ol>
+      <div class="mc-boundary-grid" role="list">
+        {% for law in anatomy.physiology_laws %}
+        <article role="listitem"><p>{{ law }}</p></article>
+        {% endfor %}
+      </div>
+    </section>
+
     <section class="mc-panel" aria-labelledby="governance-law-title">
       <div class="mc-section-heading">
         <div>

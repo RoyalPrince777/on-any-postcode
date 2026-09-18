@@ -204,6 +204,223 @@ ORGANISM_SYSTEMS: tuple[dict[str, Any], ...] = (
 )
 
 
+
+PHYSIOLOGY_SYSTEMS: tuple[dict[str, Any], ...] = (
+    {
+        "id": "dna",
+        "name": "OAP DNA",
+        "biology": "DNA / genome",
+        "technical_owner": "Constitution + canonical memory + locked registries",
+        "responsibility": "Defines stable organism identity, laws, vocabulary, authority boundaries and canonical structure.",
+        "inputs": ("Founder-approved constitutional change", "canonical memory"),
+        "outputs": ("rules", "schemas", "identity constraints", "naming locks"),
+        "mutation_rule": "Founder-approved, tested, reversible governance change only.",
+        "can_execute": False,
+    },
+    {
+        "id": "genes",
+        "name": "OAP Genes",
+        "biology": "Genes",
+        "technical_owner": "Individual policies, route contracts, schemas and agent passports",
+        "responsibility": "Expresses smaller bounded traits from OAP DNA without overriding the constitution.",
+        "inputs": ("OAP DNA",),
+        "outputs": ("feature contracts", "route rules", "capability constraints"),
+        "mutation_rule": "Governed change with validation and rollback.",
+        "can_execute": False,
+    },
+    {
+        "id": "blood",
+        "name": "OAP Blood",
+        "biology": "Blood",
+        "technical_owner": "Signals + telemetry + Matrix envelopes + HRM receipt references",
+        "responsibility": "Carries truth-labelled state through the organism while minimising secrets and unnecessary private data.",
+        "inputs": ("sensor events", "tool results", "runtime state", "approved receipts"),
+        "outputs": ("bounded signals", "status", "evidence references"),
+        "mutation_rule": "Transport only; blood cannot decide or approve.",
+        "can_execute": False,
+    },
+    {
+        "id": "circulation",
+        "name": "OAP Circulation",
+        "biology": "Circulatory system",
+        "technical_owner": "NEXUS + signal routing",
+        "responsibility": "Moves bounded signals between brain, organs, memory and interfaces.",
+        "inputs": ("OAP Blood",),
+        "outputs": ("routed state", "organ feedback", "brain inputs"),
+        "mutation_rule": "Routing must preserve source, timestamp, privacy class and destination.",
+        "can_execute": False,
+    },
+    {
+        "id": "lungs",
+        "name": "OAP Lungs",
+        "biology": "Respiratory system",
+        "technical_owner": "Connectivity Intelligence + network adapters",
+        "responsibility": "Manages online/offline exchange, network reachability and resilient connectivity without granting telecom authority.",
+        "inputs": ("network state", "authorised external traffic"),
+        "outputs": ("connectivity status", "bounded ingress/egress"),
+        "mutation_rule": "External exchange remains policy-gated and privacy-reduced.",
+        "can_execute": False,
+    },
+    {
+        "id": "skin",
+        "name": "OAP Skin",
+        "biology": "Skin / epithelial boundary",
+        "technical_owner": "Authentication + CSRF + origin controls + public/private surfaces",
+        "responsibility": "Defines what may enter or leave the organism and separates Founder-private from public surfaces.",
+        "inputs": ("requests", "sessions", "origins", "permissions"),
+        "outputs": ("allow", "block", "challenge", "sanitised response"),
+        "mutation_rule": "Fail closed; no private boundary may be relaxed silently.",
+        "can_execute": False,
+    },
+    {
+        "id": "digestive",
+        "name": "OAP Digestive System",
+        "biology": "Digestive system",
+        "technical_owner": "Ingestion + parsing + validation pipelines",
+        "responsibility": "Breaks incoming files, messages, media and source data into validated usable components.",
+        "inputs": ("files", "media", "messages", "source payloads"),
+        "outputs": ("parsed content", "validated metadata", "safe structured inputs"),
+        "mutation_rule": "Malformed or untrusted payloads are rejected or quarantined.",
+        "can_execute": False,
+    },
+    {
+        "id": "liver_kidneys",
+        "name": "OAP Liver & Kidneys",
+        "biology": "Liver / renal filtering",
+        "technical_owner": "Sanitisation + minimisation + deduplication + retention controls",
+        "responsibility": "Filters secrets, unsafe payloads, stale data, duplicates and unnecessary personal information.",
+        "inputs": ("parsed content", "telemetry", "candidate memory"),
+        "outputs": ("minimised state", "quarantine", "safe memory candidates"),
+        "mutation_rule": "Filtering cannot remove required audit provenance or fabricate missing evidence.",
+        "can_execute": False,
+    },
+    {
+        "id": "metabolism",
+        "name": "OAP Metabolism",
+        "biology": "Metabolism",
+        "technical_owner": "Resource controller + rate limits + model/task budgeting",
+        "responsibility": "Balances CPU, memory, storage, bandwidth, model depth, queue pressure and operating cost.",
+        "inputs": ("load", "capacity", "task depth", "rate state"),
+        "outputs": ("resource budget", "throttle", "defer", "safe continue"),
+        "mutation_rule": "Stability outranks speed; overload must not become fake success.",
+        "can_execute": False,
+    },
+    {
+        "id": "energy",
+        "name": "OAP Energy",
+        "biology": "Cellular energy",
+        "technical_owner": "Compute + battery + service capacity",
+        "responsibility": "Represents available operating capacity required for healthy execution.",
+        "inputs": ("compute health", "battery/power", "service health", "capacity"),
+        "outputs": ("capacity signal", "degraded mode", "offline recommendation"),
+        "mutation_rule": "Capacity state informs decisions but cannot override governance.",
+        "can_execute": False,
+    },
+    {
+        "id": "endocrine",
+        "name": "OAP Endocrine System",
+        "biology": "Hormonal signalling",
+        "technical_owner": "Priority + urgency + maintenance + AUTO 3/7/21 mode signals",
+        "responsibility": "Broadcasts bounded organism-wide mode and priority signals.",
+        "inputs": ("risk", "load", "urgency", "maintenance state"),
+        "outputs": ("priority", "depth", "recovery mode", "War Room escalation"),
+        "mutation_rule": "Mode signals influence routing only; they never bypass permissions.",
+        "can_execute": False,
+    },
+    {
+        "id": "immune",
+        "name": "OAP Immune System",
+        "biology": "Immune system",
+        "technical_owner": "Guardian + Aegis + Green Gate",
+        "responsibility": "Detects threats, contains unsafe state and blocks fake-green or unauthorised progression.",
+        "inputs": ("risk signals", "auth state", "proof state", "policy state"),
+        "outputs": ("pass", "hold", "isolate", "block"),
+        "mutation_rule": "Protection may block progression but cannot grant final approval.",
+        "can_execute": False,
+    },
+    {
+        "id": "healing",
+        "name": "OAP Healing System",
+        "biology": "Repair / wound healing",
+        "technical_owner": "Rollback + Aegis isolation + recovery + Neo witness",
+        "responsibility": "Restores safe known-good state after failure using reversible, audited recovery.",
+        "inputs": ("failure", "rollback proof", "health state", "last known good"),
+        "outputs": ("isolated fault", "recovered state", "retest request"),
+        "mutation_rule": "Recovery cannot rewrite authority, erase audit, or silently promote unproven state.",
+        "can_execute": False,
+    },
+    {
+        "id": "muscles",
+        "name": "OAP Muscles",
+        "biology": "Muscular system",
+        "technical_owner": "Workers + bounded tools + approved execution paths",
+        "responsibility": "Performs approved work after governance and Human Authority requirements are satisfied.",
+        "inputs": ("approved kernel intent",),
+        "outputs": ("bounded action result",),
+        "mutation_rule": "No consequential movement before approval and Green Gate requirements.",
+        "can_execute": True,
+    },
+    {
+        "id": "cells",
+        "name": "OAP Cells",
+        "biology": "Cells",
+        "technical_owner": "Services + endpoints + workers + bounded modules",
+        "responsibility": "Provides the smallest operating units with defined lifecycle, ownership and health.",
+        "inputs": ("local contract", "signals"),
+        "outputs": ("local function result", "health", "telemetry"),
+        "mutation_rule": "Every cell must have a bounded purpose and observable failure state.",
+        "can_execute": False,
+    },
+    {
+        "id": "growth",
+        "name": "OAP Growth",
+        "biology": "Growth / adaptation",
+        "technical_owner": "Recursive Self-Improvement + HRM + Matrix learning",
+        "responsibility": "Turns observed outcomes into bounded improvement proposals and tested learning.",
+        "inputs": ("outcomes", "Founder corrections", "receipts", "Matrix learning"),
+        "outputs": ("lesson", "proposal", "test candidate"),
+        "mutation_rule": "Growth may propose; it cannot self-approve, self-deploy or rewrite DNA.",
+        "can_execute": False,
+    },
+)
+
+ORGANISM_PHYSIOLOGY_FLOW: tuple[str, ...] = (
+    "Environment",
+    "Senses",
+    "Skin",
+    "Digestive System",
+    "Liver & Kidneys",
+    "Blood",
+    "NEXUS / Circulation",
+    "Thalamus",
+    "SMI Brain",
+    "Matrix + HRM context",
+    "Judgement",
+    "Guardian + Green Gate",
+    "Human Authority",
+    "Living Kernel / Heart",
+    "Muscles + Body Organs",
+    "Outcome sensors",
+    "HRM Memory",
+    "Matrix Learning",
+    "Growth proposal",
+)
+
+PHYSIOLOGY_LAWS: tuple[str, ...] = (
+    "DNA defines identity; no subsystem rewrites it autonomously.",
+    "Blood carries truth-labelled state, not hidden authority.",
+    "NEXUS circulates signals; it does not decide.",
+    "SMI interprets; it does not independently execute consequential actions.",
+    "The Living Kernel coordinates approved action; it does not originate sovereignty.",
+    "Guardian and Green Gate may block but never grant Human Authority.",
+    "Muscles act only through bounded approved execution paths.",
+    "HRM records outcomes; Matrix learns bounded world-state lessons.",
+    "Growth proposes reversible improvements; it cannot self-promote.",
+    "Human Authority remains final.",
+)
+
+
+
 BODY_ORGANS: tuple[dict[str, Any], ...] = (
     {
         "id": "infrastructure",
@@ -519,6 +736,7 @@ def validate_architecture(
     governance_items = tuple(governance)
     agent_role_items = tuple(agent_roles)
     organ_items = tuple(body_organs)
+    physiology_items = tuple(PHYSIOLOGY_SYSTEMS)
     errors: list[str] = []
 
     duplicate_ids = _duplicates(item["id"] for item in system_items)
@@ -563,6 +781,15 @@ def validate_architecture(
         errors.append("Brainstem must remain a bridge, not a second Kernel.")
     if region_by_id.get("synthetic_mind", {}).get("kind") != "internal_organ":
         errors.append("Synthetic Mind must remain an internal SMI organ.")
+
+    duplicate_physiology_ids = _duplicates(item["id"] for item in physiology_items)
+    duplicate_physiology_names = _duplicates(item["name"] for item in physiology_items)
+    if duplicate_physiology_ids or duplicate_physiology_names:
+        errors.append("Physiology identifiers and names must be unique.")
+    if any(item.get("mutation_rule") in {None, ""} for item in physiology_items):
+        errors.append("Every physiology system requires an explicit mutation rule.")
+    if any(item.get("can_execute") is True for item in physiology_items if item["id"] != "muscles"):
+        errors.append("Only the Muscles physiology layer may represent bounded execution.")
 
     duplicate_organ_ids = _duplicates(item["id"] for item in organ_items)
     duplicate_organ_names = _duplicates(item["name"] for item in organ_items)
@@ -649,6 +876,7 @@ def validate_architecture(
         "checks": {
             "canonical_systems": len(system_items),
             "body_organs": len(organ_items),
+            "physiology_systems": len(physiology_items),
             "smi_regions": len(region_items),
             "intelligence_worlds": len(world_items),
             "intelligence_families": len(INTELLIGENCE_FAMILIES),
@@ -676,6 +904,9 @@ def get_public_anatomy() -> dict[str, Any]:
     return {
         "systems": ORGANISM_SYSTEMS,
         "body_organs": BODY_ORGANS,
+        "physiology_systems": PHYSIOLOGY_SYSTEMS,
+        "physiology_flow": ORGANISM_PHYSIOLOGY_FLOW,
+        "physiology_laws": PHYSIOLOGY_LAWS,
         "organism_signal_path": ORGANISM_SIGNAL_PATH,
         "safe_autonomy_actions": SAFE_AUTONOMY_ACTIONS,
         "blocked_consequential_actions": BLOCKED_CONSEQUENTIAL_ACTIONS,
