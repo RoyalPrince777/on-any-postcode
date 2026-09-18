@@ -53,21 +53,12 @@ def test_location_status_names_the_seven_tier_contract():
     assert tuple(status["spatial_levels"]) == location_intelligence.SPATIAL_LEVELS
 
 
-def test_world_front_door_is_local_first_and_keeps_football_separate():
+def test_world_front_door_routes_to_spatial_map_and_keeps_football_separate():
     html = Path("templates/home.html").read_text(encoding="utf-8")
-    hierarchy = (
-        "📍 Postcode",
-        "🏙️ Borough / District",
-        "🧭 County / Region",
-        "🏳️ Country",
-        "🌍 Continent",
-        "🌐 Global",
-        "✨ Universe",
-    )
 
-    positions = [html.index(label) for label in hierarchy]
-    assert positions == sorted(positions)
-    assert "Postcode to Universe" in html
-    assert 'href="#location"' in html
-    assert "🌍 Explore OAP World" in html
+    assert 'href="/on-any-place"' in html
+    assert "Map Intelligence" in html
+    assert "Search the world... any postcode..." in html
+    assert 'href="/the-spot"' in html
+    assert 'href="/world-cup"' not in html
     assert "url_for('world_cup')" not in html

@@ -1,25 +1,23 @@
 from __future__ import annotations
 
 
-def test_home_keeps_public_sections_without_private_founder_entry(client):
+def test_home_keeps_public_world_without_private_founder_entry(client):
     response = client.get("/")
 
     assert response.status_code == 200
     page = response.get_data(as_text=True)
     assert 'id="signal"' in page
-    assert 'id="location"' in page
-    assert 'id="myworld"' not in page
-    assert 'id="sovereign"' not in page
-    assert "PUBLIC" in page
-    assert "PRIVATE" not in page
-    assert 'href="/my-world"' not in page
-    assert "Enter My World" not in page
+    assert "OAP WORLD" in page
+    assert "The Spot" in page
+    assert "The Link" in page
+    assert "Map Intelligence" in page
+    assert "Enter My World" in page
+    assert 'href="/auth"' not in page
     assert 'href="/mission"' not in page
-    assert "Your location hierarchy" in page
+    assert 'href="/my-world"' not in page
+    assert "Founder" not in page
     assert "NEON" not in page
     assert "SMI" not in page
-    assert 'href="#location"' in page
-    assert "🌍 Explore OAP World" in page
     assert 'href="/world-cup"' not in page
 
     sport = client.get("/world-cup").get_data(as_text=True)
@@ -28,29 +26,31 @@ def test_home_keeps_public_sections_without_private_founder_entry(client):
     assert "🇬🇭 Ghana" in sport
 
 
-def test_public_main_menu_uses_locked_seven_items(client):
+def test_public_main_menu_uses_locked_oap_world_reference_items(client):
     page = client.get("/").get_data(as_text=True)
-    nav = page.split('<nav aria-label="Primary navigation">', 1)[1].split("</nav>", 1)[0]
+    nav = page.split('<nav class="rail-nav">', 1)[1].split("</nav>", 1)[0]
 
     expected = (
-        ("/the-spot", "📍 The Spot"),
-        ("/pulse", "📡 Pulse"),
-        ("/the-link", "🔗 The Link"),
-        ("/the-spot/signal", "📣 Signal"),
-        ("/the-spot/events", "🎪 Activity"),
-        ("/the-spot/market", "🏪 Market"),
-        ("/the-spot/discovery", "🧭 Explorer"),
+        ("/", "Home"),
+        ("/on-any-place", "Map Intelligence"),
+        ("/the-spot", "The Spot"),
+        ("/the-link", "The Link"),
+        ("/the-spot/market", "Market"),
+        ("/media", "Media"),
+        ("/store", "OAP Store"),
+        ("/sika", "SIKA"),
+        ("/hrm", "HRM"),
+        ("/guardian", "Guardian"),
+        ("/settings", "Settings"),
     )
-    assert nav.count("<a ") == 7
+    assert nav.count("<a ") == 11
     for href, label in expected:
         assert f'href="{href}"' in nav
         assert label in nav
 
-    for old_label in ("🌍 World", "🗣️ Languages", "💬 Link Up", "⚽ World Cup"):
-        assert old_label not in nav
-    assert "My World" not in nav
     assert "Founder" not in nav
-
+    assert 'href="/auth"' not in nav
+    assert 'href="/mission"' not in nav
 
 def test_public_home_and_sport_keep_only_public_post_forms(client):
     home = client.get("/").get_data(as_text=True)

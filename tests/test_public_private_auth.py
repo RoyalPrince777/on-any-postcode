@@ -124,8 +124,6 @@ def test_anonymous_pages_do_not_disclose_internal_architecture(anonymous_client)
         "mission control",
         "mission_control",
         "infrastructure",
-        "guardian",
-        "hrm",
         "agent registry",
         "provider key",
         "database",
