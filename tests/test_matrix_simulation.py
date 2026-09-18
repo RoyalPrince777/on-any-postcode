@@ -1,5 +1,6 @@
 from mission_control import matrix_simulation
 
+
 def test_matrix_simulation_is_environment_not_agent():
     status = matrix_simulation.status()
     assert status["kind"] == "bounded_training_environment"
@@ -8,6 +9,7 @@ def test_matrix_simulation_is_environment_not_agent():
     assert status["self_approval_allowed"] is False
     assert status["agent_creation_allowed"] is False
     assert status["human_authority_final"] is True
+
 
 def test_matrix_simulation_preserves_core_and_requires_real_world_gates():
     result = matrix_simulation.run_simulation("route conflict", "recovery")
