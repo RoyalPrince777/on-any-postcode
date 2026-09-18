@@ -51,3 +51,11 @@ def test_gateway_authority_resolver_distinct_order_expression_matches_select():
     source = Path("smi_gateway.py").read_text(encoding="utf-8")
     assert "SELECT DISTINCT i.identity_id::text" in source
     assert "ORDER BY i.identity_id::text" in source
+
+
+
+def test_gateway_logs_bounded_a6_blocker_reason():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    assert '"a6_route_matrix_precheck_blocked:"' in source
+    assert 'reason = str(exc)[:120] if isinstance(exc, RuntimeError) else ""' in source
+    assert '"reason": reason' in source

@@ -408,7 +408,10 @@ def healthz():
                 receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain")),
             )
             if not precheck.get("allowed"):
-                raise RuntimeError("a6_route_matrix_precheck_blocked")
+                raise RuntimeError(
+                    "a6_route_matrix_precheck_blocked:"
+                    + str(precheck.get("reason") or "unknown")[:80]
+                )
 
             capture = maps_movement_direct_proof_runner.execute_route_matrix_capture(
                 identity_id=identity_id,
@@ -445,6 +448,7 @@ def healthz():
                 ),
             )
         except Exception as exc:  # noqa: BLE001 - A6 operation must fail closed.
+            reason = str(exc)[:120] if isinstance(exc, RuntimeError) else ""
             _LOGGER.error(
                 "%s",
                 json.dumps(
@@ -452,6 +456,7 @@ def healthz():
                         "event": "oap_a6_route_matrix_capture",
                         "success": False,
                         "error": type(exc).__name__,
+                        "reason": reason,
                         "production_state_mutated": False,
                     },
                     separators=(",", ":"),
