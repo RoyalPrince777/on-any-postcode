@@ -21,7 +21,6 @@ def init_app(app: Flask) -> None:
     from flask import g, request
 
     from . import audit as auditmod
-    from . import db as dbmod
     from . import (
         authority,
         esim_persistence,
@@ -44,6 +43,7 @@ def init_app(app: Flask) -> None:
         surface_security,
         travel_supply_core,
     )
+    from . import db as dbmod
     from .alignment_views import bp as alignment_bp
     from .certification_views import bp as certification_bp
     from .checkpoint_views import bp as checkpoint_bp
