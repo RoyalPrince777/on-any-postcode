@@ -35,13 +35,23 @@ def test_latest_founder_memory_never_claims_raw_chat_or_private_reasoning_copy()
 def test_war_room_intelligence_is_locked_in_joog_memory():
     items = latest_founder_memory.latest_founder_memory_items()
     text = "\n".join(item.summary for item in items)
-    assert "JOOG MEMORY War Room Intelligence lock" in text
-    assert "MISSION title" in text
-    assert "ALIGNMENT checks" in text
-    assert "25%=Rollback/Recovery" in text
-    assert "50%=Runtime Guard" in text
-    assert "75%=Aegis Isolation/Recovery" in text
-    assert "100%=Green Gate + Founder Final" in text
-    assert "3/7/21 controls review depth separately" in text
-    assert "DONE / LOCKED / NEXT" in text
-    assert "Human Authority remains final" in text
+    assert "JOOG MEMORY full War Room Intelligence lock" in text
+    for marker in (
+        "Truth, Evidence, Gap, SWOT, Risk, Dependency, Architecture, Alignment",
+        "Civic, Jungle Book, Animal, Matrix, Civilisation, Akan Core and Akan Animal",
+        "Shere Khan, Bagheera, Agent Smith, Lion, Morpheus, Akela and Owl",
+        "SMI, Neo, Wolf Pack, Trinity, Oracle, Architect, Keymaker and Seraph",
+        "RUN, RESEARCH, CHALLENGE, 7X DEEP DIVE, STOP, COMPARE",
+        "Discovery, Verification, Alternatives, Adversarial, Systems, Consequence and Synthesis",
+        "Truth, Function, Security, Stability, Integration, Compliance and Learning",
+        "Neo -> Shere Khan -> Bagheera -> Agent Smith -> Judges -> SMI Return -> Green Gate",
+        "TITLE -> MODE/DEPTH -> QUESTION/MISSION -> EVIDENCE",
+        "MISSION, SIGNAL, EVIDENCE, CONFIDENCE",
+        "25%=Rollback/Recovery",
+        "50%=Runtime Guard",
+        "75%=Aegis Isolation/Recovery",
+        "100%=Green Gate + Founder Final",
+        "simulation passed is not production proven",
+        "Human Authority remains final",
+    ):
+        assert marker in text
