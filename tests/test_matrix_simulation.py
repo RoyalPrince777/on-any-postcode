@@ -19,3 +19,18 @@ def test_matrix_simulation_preserves_core_and_requires_real_world_gates():
     assert result["guardian_required_before_real_action"] is True
     assert result["green_gate_required_before_real_action"] is True
     assert result["founder_final_required"] is True
+
+
+def test_war_room_exposes_simulation_as_training_not_authority():
+    from mission_control import war_room
+
+    dashboard = war_room.get_war_room_dashboard()
+    training = dashboard["training_environment"]
+
+    assert training["name"] == "Matrix Simulation / Training Ground"
+    assert training["kind"] == "bounded_training_environment"
+    assert training["execution_granted"] is False
+    assert dashboard["can_approve"] is False
+    assert dashboard["can_execute"] is False
+    assert "War Room review" in dashboard["training_flow"]
+    assert "Human Authority" in dashboard["training_flow"]
