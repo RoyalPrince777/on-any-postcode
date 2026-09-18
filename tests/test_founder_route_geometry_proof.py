@@ -5,11 +5,6 @@ from mission_control import movement_routes
 
 def test_founder_route_geometry_proof_returns_first_party_result(client, monkeypatch):
     monkeypatch.setattr(
-        movement_routes.web_security,
-        "authenticated_identity",
-        lambda: "00000000-0000-0000-0000-000000000001",
-    )
-    monkeypatch.setattr(
         movement_routes.first_party_route_proof,
         "prove_route_geometry",
         lambda **kwargs: {
@@ -27,16 +22,9 @@ def test_founder_route_geometry_proof_returns_first_party_result(client, monkeyp
             "booking_confirmed": False,
         },
     )
-    monkeypatch.setattr(
-        movement_routes.web_security,
-        "login_required",
-        lambda *args, **kwargs: (lambda fn: fn),
-    )
-
-    with client.application.test_request_context(
+    response = client.get(
         "/mission/movement/route-geometry-proof?from_lat=51.4036&from_lon=-0.1687&to_lat=51.5079&to_lon=-0.0877"
-    ):
-        response = movement_routes.founder_route_geometry_proof()
+    )
 
     assert response.status_code == 200
     payload = response.get_json()
