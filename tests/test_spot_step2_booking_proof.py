@@ -77,7 +77,9 @@ def test_step2_proof_persists_only_governed_proof_after_rollback():
 
 
 def test_step2_boot_trigger_is_explicit_and_fail_closed():
-    source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
+    source = (ROOT / "mission_control" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
 
     assert 'OAP_SPOT_STEP2_PROOF_ON_BOOT' in source
     assert 'OAP_SPOT_STEP2_PROOF_OPERATION_ID' in source
