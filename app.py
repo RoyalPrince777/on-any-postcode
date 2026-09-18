@@ -538,7 +538,7 @@ def public_studio_chat():
         return jsonify(error={"code": "invalid_request", "message": "A JSON object is required."}), 400
     client_key = str(request.remote_addr or "anonymous")
     try:
-        result = public_studio_runtime.ask(payload.get("message"), rate_key=client_key)
+        result = public_studio_runtime.ask(payload.get("message"), rate_key=client_key, history=payload.get("history"))
         response = make_response(jsonify(result))
         response.headers["Cache-Control"] = "no-store"
         return response
