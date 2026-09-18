@@ -231,6 +231,81 @@ def smi_function_health_status():
     )
 
 
+@bp.get("/war-room/button-proof")
+@bp.get("/smi/button-proof")
+@web_security.login_required(api=True, founder_only=True)
+def smi_button_proof():
+    """Return server proof plus observed Founder UI click receipts."""
+
+    clicks = smi_receipt_backend.latest_safe_payloads("smi_button_click_receipt", 200)
+    clicked_ids = tuple(
+        str(item.get("button_id") or "")
+        for item in clicks
+        if item.get("response_class") == "success"
+    )
+    return _no_store(
+        make_response(
+            jsonify(
+                smi_function_health.button_proof(
+                    current_app.url_map,
+                    clicked_ids=clicked_ids,
+                )
+            )
+        )
+    )
+
+
+@bp.post("/smi/button-proof/click")
+@web_security.login_required(api=True, founder_only=True)
+def smi_button_click_receipt():
+    """Record one successful visible Founder control interaction."""
+
+    if not web_security.csrf_valid(request):
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "csrf_failed", "message": "Secure session expired."}),
+                403,
+            )
+        )
+    payload = request.get_json(silent=True) or {}
+    button_id = str(payload.get("button_id") or "").strip()
+    allowed = {item["id"] for item in smi_function_health.FUNCTION_SPECS}
+    if button_id not in allowed:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "unknown_button", "message": "Unknown SMI control."}),
+                400,
+            )
+        )
+    response_class = str(payload.get("response_class") or "").strip()
+    if response_class != "success":
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "unproven_response", "message": "Only successful control responses are receipted."}),
+                400,
+            )
+        )
+    receipt = smi_receipt_backend.write_receipt(
+        "smi_button_click_receipt",
+        {
+            "brain_part": "smi_chat_ui",
+            "gate": 21,
+            "command": "record_visible_control_success",
+            "signal": "🟢",
+            "guardian": "founder_only_csrf",
+            "green_gate": "click_observed_server_response_success",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                "button_id": button_id,
+                "response_class": "success",
+                "path": str(payload.get("path") or "")[:180],
+                "external_execution": False,
+            },
+        },
+    )
+    return _no_store(make_response(jsonify({"receipt": receipt, "recorded": bool(receipt.get("ok"))})))
+
+
 @bp.get("/war-room/routes")
 @bp.get("/smi/routes")
 @web_security.login_required(api=True, founder_only=True)
