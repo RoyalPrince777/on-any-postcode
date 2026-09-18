@@ -23,6 +23,7 @@ def test_smi_chat_control_surface_is_permanent():
         'data-oap-action="green-gate"',
         'data-oap-action="hrm"',
         'data-oap-action="improvement"',
+        'data-oap-action="swot"',
         'data-oap-action="github-governed"',
     ):
         assert marker in base
@@ -63,5 +64,7 @@ def test_smi_response_actions_include_feedback_and_voice():
         "SpeechSynthesisUtterance",
         "studioStatusUrl",
         "githubAction()",
+        "Run SWOT Intelligence on:",
+        "Strengths · Weaknesses · Opportunities · Threats · Practical Move",
     ):
         assert marker in script
