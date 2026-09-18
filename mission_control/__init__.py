@@ -39,6 +39,7 @@ def init_app(app: Flask) -> None:
         product_cores,
         routing,
         smi_auto,
+        smi_founder_assets,
         smi_proof_gate,
         surface_security,
         travel_supply_core,
@@ -97,6 +98,38 @@ def init_app(app: Flask) -> None:
                         "event": "oap_esim_migration",
                         "success": False,
                         "error": "esim_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_FOUNDER_ASSETS_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            asset_status = smi_founder_assets.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_founder_assets_migration",
+                        "success": True,
+                        "schema_ready": asset_status.get("schema_ready") is True,
+                        "migration": asset_status.get("migration"),
+                        "raw_content_retained": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_founder_assets_migration",
+                        "success": False,
+                        "error": "founder_assets_migration_failed",
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -206,6 +239,25 @@ def init_app(app: Flask) -> None:
             json.dumps(
                 esim_persistence.init_schema(
                     postgres_db.connect,
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
+
+    @app.cli.command("oap-founder-assets-status")
+    def _oap_founder_assets_status() -> None:
+        import json
+        print(json.dumps(smi_founder_assets.schema_status()))
+
+    @app.cli.command("oap-init-founder-assets")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_founder_assets(dry_run: bool, yes: bool) -> None:
+        import json
+        print(
+            json.dumps(
+                smi_founder_assets.init_schema(
                     dry_run=dry_run,
                     assume_yes=yes,
                 )

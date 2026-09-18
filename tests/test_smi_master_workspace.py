@@ -48,7 +48,7 @@ def test_visible_master_tool_buttons_have_real_handlers():
         assert f'data-connector-id="{connector}"' in base
     for action in (
         "war-room","function-health","green-gate","hrm",
-        "improvement","swot","behaviour","github-governed",
+        "founder-library","improvement","swot","behaviour","github-governed",
     ):
         assert f'data-oap-action="{action}"' in base
     assert "qa('[data-connector-id]').forEach" in final
@@ -77,4 +77,4 @@ def test_core_chat_controls_have_single_canonical_owners():
 
 def test_master_workspace_contract_is_explicit():
     final = FINAL.read_text(encoding="utf-8")
-    assert "window.OAP_SMI_MASTER={version:'1.1',masterTools:true,savedWork:true,search:true,studio21:true,governedActions:true}" in final
+    assert "window.OAP_SMI_MASTER={version:'1.2',masterTools:true,savedWork:true,founderLibrary:true,search:true,studio21:true,governedActions:true}" in final
