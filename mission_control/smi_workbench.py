@@ -44,7 +44,7 @@ def get_workbench_status() -> dict[str, Any]:
     checks = runtime.get("checks", {})
     database_ready = bool(checks.get("database") and checks.get("schema"))
     render_configured = _configured("OAP_RENDER_API_KEY", "RENDER_API_KEY")
-    github_configured = _configured("OAP_GITHUB_TOKEN")
+    github_token_configured = _configured("OAP_GITHUB_TOKEN")
     postgres_database_configured = _configured(
         "OAP_NEON_DATABASE_URL",
         "DATABASE_URL",
@@ -188,6 +188,8 @@ def get_workbench_status() -> dict[str, Any]:
                 "name": "Render",
                 "configured": render_configured,
                 "ready": False,
+                "inspect_available": True,
+                "access_mode": "provider-api" if render_configured else "self-runtime-fallback",
                 "inspect_url": "/mission/tools/render/services",
                 "mode": "read-only inspection; deploy actions are not exposed here",
                 "purpose": "service health, deploy state and release evidence",
@@ -196,8 +198,11 @@ def get_workbench_status() -> dict[str, Any]:
             {
                 "id": "github",
                 "name": "GitHub",
-                "configured": github_configured,
-                "ready": False,
+                "configured": True,
+                "token_configured": github_token_configured,
+                "ready": True,
+                "inspect_available": True,
+                "access_mode": "authenticated-api" if github_token_configured else "public-read-api",
                 "inspect_url": "/mission/tools/github/repository",
                 "mode": "read inspection; writes remain proposal + approval + Kernel governed",
                 "purpose": "repository state, code evidence and governed proposals",
@@ -208,6 +213,8 @@ def get_workbench_status() -> dict[str, Any]:
                 "name": "Neon · Identity/HRM" if database_ready else "Neon · Identity/HRM blocked",
                 "configured": neon_configured,
                 "ready": database_ready,
+                "inspect_available": bool(neon_configured),
+                "access_mode": "database-runtime" if postgres_database_configured else "management-api",
                 "inspect_url": "/mission/tools/neon/status",
                 "management_api_configured": neon_management_configured,
                 "mode": "read-only database readiness; SQL writes and migrations are not exposed here",

@@ -6,8 +6,9 @@ JS = Path("mission_control/static/smi_chat_final.js")
 
 def test_smi_chat_wrapper_does_not_fake_provider_success():
     text = JS.read_text(encoding="utf-8")
-    assert "item.ready?'green':'yellow'" in text
-    assert "Setup needed. Credentials are never shown." in text
+    assert "const proven=item.ready===true" in text
+    assert "state.textContent=proven?'Proven':'Limited'" in text
+    assert "state.textContent='Blocked'" in text
     assert "Truth gate attention" in text
 
 

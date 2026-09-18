@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = ROOT / "mission_control" / "templates" / "ollama_chat.html"
 BASE = ROOT / "mission_control" / "templates" / "ollama_chat_base.html"
+FINAL_JS = ROOT / "mission_control" / "static" / "smi_chat_final.js"
 
 
 def test_plus_is_single_connected_tools_and_attachment_entry():
@@ -40,3 +41,14 @@ def test_plus_connector_surface_does_not_add_mutation_shortcuts():
     assert "/mission/tools/neon/sql" not in wrapper
     assert "consequential actions still require Human Authority" in wrapper
     assert "toolsButton" not in wrapper
+
+
+def test_plus_tools_execute_inspection_before_readiness_label():
+    text = FINAL_JS.read_text(encoding="utf-8")
+
+    assert "item.inspect_available===false" in text
+    assert "if(!item.configured)" not in text
+    assert "fetch(item.inspect_url" in text
+    assert "state.textContent='Checking'" in text
+    assert "state.textContent=proven?'Proven':'Limited'" in text
+    assert "state.textContent='Blocked'" in text

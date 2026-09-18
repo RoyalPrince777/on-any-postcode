@@ -183,3 +183,22 @@ def test_render_and_neon_routes_expose_no_mutation_endpoint():
     assert '@bp.post("/tools/render' not in source
     assert '@bp.post("/tools/neon' not in source
     assert "founder_only=True" in source
+
+
+def test_render_services_summary_has_truthful_self_runtime_fallback_without_api_key(monkeypatch):
+    monkeypatch.setenv("RENDER_SERVICE_ID", "srv-test-smi")
+    monkeypatch.setenv("RENDER_SERVICE_NAME", "oap-smi")
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://oap-smi.onrender.com")
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "abc123")
+    adapter = founder_render.FounderRenderReadAdapter(token="")
+
+    result = adapter.services_summary().data
+
+    assert result["provider_api_connected"] is False
+    assert result["scope"] == "self-runtime-only"
+    assert result["services"][0]["alias"] == "smi"
+    assert result["services"][0]["id"] == "srv-test-smi"
+    assert result["services"][0]["commit"] == "abc123"
+    assert "provider logs" in result["unavailable_without_api_key"]
+    assert adapter.status()["ready"] is False
+    assert adapter.status()["self_inspection_available"] is True
