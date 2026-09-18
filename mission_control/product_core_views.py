@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    certification,
     distribution_intelligence,
     product_core_services,
     product_cores,
@@ -40,6 +41,16 @@ def _identity(*, sync: bool = False) -> str:
             display_name=str(user["name"]),
             email_verified=bool(user.get("email_verified")),
         )
+    return identity_id
+
+
+def _require_certified_merchant(identity_id: str) -> str:
+    try:
+        status = certification.identity_status(identity_id)
+    except certification.CertificationUnavailable as exc:
+        raise RuntimeError("merchant_certification_unavailable") from exc
+    if status.get("merchant") is not True:
+        raise PermissionError("certified_merchant_required")
     return identity_id
 
 
@@ -327,8 +338,9 @@ def market_status():
 def create_storefront():
     def action():
         payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
         return _store.create_storefront(
-            seller_identity_id=_identity(sync=True),
+            seller_identity_id=seller,
             store_name=payload.get("store_name"),
             slug=payload.get("slug"),
         )
@@ -341,8 +353,9 @@ def create_storefront():
 def create_product():
     def action():
         payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
         product_id = product_store.create_product(
-            _identity(sync=True),
+            seller,
             name=payload.get("name"),
             description=payload.get("description"),
             price=payload.get("price"),
