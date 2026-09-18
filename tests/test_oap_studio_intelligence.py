@@ -11,16 +11,36 @@ def test_studio_contract_is_smi_powered_and_governed():
     assert status["id"] == "oap-studio-intelligence"
     assert status["name"] == "OAP Studio Intelligence"
     assert status["powered_by"] == "SMI"
+    assert status["tabs"] == [
+        "Home",
+        "Projects",
+        "Bring In",
+        "Create",
+        "Shape",
+        "Intelligence",
+        "Rights",
+        "Release",
+        "Campaign",
+        "Analyse",
+        "Chronicle",
+    ]
     assert status["pipeline"] == [
         "Create",
-        "Edit",
+        "Shape",
         "Package",
         "Rights",
-        "Publish",
+        "Release",
         "Distribute",
         "Campaign",
         "Analyse",
+        "Chronicle",
     ]
+    assert "Imagine" in status["creation_modes"]
+    assert "Director" in status["intelligence_roles"]
+    assert status["review_depths"] == [3, 7, 21]
+    assert "Pulse Cut" in status["output_packs"]
+    assert status["spot_placement"]["public_surface"] == "OAP Studio"
+    assert status["spot_placement"]["private_engine"] == "OAP Studio Intelligence"
     governance = status["governance"]
     assert governance["human_authority_final"] is True
     assert governance["rights_proof_required"] is True
@@ -68,3 +88,25 @@ def test_smi_plus_menu_launches_studio():
     assert "OAP Studio Intelligence" in smi
     assert "launchStudio" in smi
     assert "activation_prompt" in smi
+
+
+def test_studio_v2_lock_preserves_oap_boundaries_and_one_source_many_outputs():
+    status = studio_intelligence.status()
+
+    assert status["alignment"]["one_source_many_outputs"] is True
+    assert status["alignment"]["studio_creates_destinations_publish"] is True
+    assert status["alignment"]["public_studio_private_intelligence_separated"] is True
+    assert status["studio_council"] == [
+        "Director",
+        "Producer",
+        "Visual",
+        "Sound",
+        "Story",
+        "Rights",
+        "Release",
+    ]
+    assert "Chronicle Master" in status["output_packs"]
+    assert "The Spot" in status["destinations"]
+    assert status["governance"]["human_authority_final"] is True
+    assert status["governance"]["publishing_authority_granted"] is False
+    assert status["governance"]["execution_authority_granted"] is False
