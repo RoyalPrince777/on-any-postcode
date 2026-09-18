@@ -105,7 +105,7 @@ def test_anonymous_pages_do_not_disclose_internal_architecture(anonymous_client)
     for path in public_paths:
         page = anonymous_client.get(path).get_data(as_text=True).lower()
         page = re.sub(
-            r'<input\\b[^>]*\\bname=["\\']csrf_token["\\'][^>]*>',
+            r"<input\\b[^>]*\\bname=[\"']csrf_token[\"'][^>]*>",
             '<input name="csrf_token" value="[redacted]">',
             page,
         )
