@@ -433,8 +433,8 @@ def chat(
         _chat_rate_limit(connection, identity)
         _emit(on_event, "stage", stage="permission", label="Permission checked")
         provider_key = os.environ.get("OPENAI_API_KEY", "").strip()
-        if not provider_key:
-            raise RuntimeError("provider_key_missing")
+        if attachment and not provider_key:
+            raise RuntimeError("provider_key_missing_for_media")
         if attachment:
             _emit(on_event, "stage", stage="media", label="Media preparing")
         media = media_intelligence.prepare(attachment, provider_key)
