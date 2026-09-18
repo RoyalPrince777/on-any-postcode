@@ -18,6 +18,7 @@ from . import approval_service, authority, coherent_automation, postgres_db, tel
 ROLLBACK_PROOF_ACTION = "SMI_ROLLBACK_RECOVERY_PROOF"
 RUNTIME_GUARD_PROOF_ACTION = "SMI_RUNTIME_GUARD_PROOF"
 ISOLATION_RECOVERY_PROOF_ACTION = "SMI_ISOLATION_RECOVERY_PROOF"
+FOUNDER_FINAL_ACTION = "SMI_FOUNDER_FINAL"
 
 
 def _production_counts() -> dict[str, object]:
@@ -433,6 +434,53 @@ def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
         **proof,
         "audit_recorded": True,
         "correlation_id": correlation_id,
+    }
+
+
+
+def run_founder_final(identity_id: object) -> dict[str, object]:
+    """Record Founder Final only when the production Green Gate is already true."""
+
+    try:
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_human_authority_identity") from exc
+
+    gate = status()
+    if not gate.get("green"):
+        missing = tuple(gate.get("missing") or ())
+        raise RuntimeError("green_gate_incomplete:" + ",".join(missing))
+
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(connection, identity_value)
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired("human_authority_level_required")
+        correlation_id = str(uuid.uuid4())
+        approval_service._write_audit(
+            connection,
+            actor_id=identity_value,
+            action=FOUNDER_FINAL_ACTION,
+            target="SMI_GREEN_GATE_100",
+            reason="Founder Final recorded after full production Green Gate proof.",
+            correlation_id=correlation_id,
+            metadata={
+                "passed": True,
+                "green_gate": True,
+                "authority_level": 0,
+                "execution_authority_expanded": False,
+                "human_authority_final": True,
+            },
+        )
+        connection.commit()
+
+    return {
+        "passed": True,
+        "green_gate": True,
+        "founder_final": True,
+        "audit_recorded": True,
+        "correlation_id": correlation_id,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
     }
 
 
