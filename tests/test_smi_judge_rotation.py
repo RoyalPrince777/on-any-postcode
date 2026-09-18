@@ -101,3 +101,32 @@ def test_evidence_runner_reports_canonical_review_truthfully(monkeypatch):
     assert result["top_bar"]["green_gate"] == "🟢 REQUIRED · SEPARATE GATE"
     assert result["top_bar"]["neo"] == "RECOVERY WITNESS"
     assert result["full_green"] is False
+
+
+def test_alignment_debate_panel_keeps_smi_pack_and_founder_gates_distinct():
+    panel = smi_brain_evidence_runner.smi_brain_protocol.ALIGNMENT_DEBATE_PANEL
+    names = tuple(item["name"] for item in panel)
+
+    assert names == ("SMI", "Bagheera", "Akela", "Wolf Pack", "Lion", "Shere Khan")
+    assert all(item["max_stars"] == 7 for item in panel)
+    assert next(item for item in panel if item["name"] == "Wolf Pack")["role"] == "Collective field intelligence"
+    assert next(item for item in panel if item["name"] == "Shere Khan")["authority"] == "challenge_only"
+    assert "Founder Authority" not in names
+    assert "Guardian" not in names
+    assert "Green Gate" not in names
+
+
+def test_war_room_simulation_exposes_alignment_debate_and_seven_star_rubric():
+    result = smi_brain_evidence_runner.smi_brain_protocol.war_room_simulation("alignment")
+
+    assert tuple(item["name"] for item in result["alignment_debate_panel"]) == (
+        "SMI",
+        "Bagheera",
+        "Akela",
+        "Wolf Pack",
+        "Lion",
+        "Shere Khan",
+    )
+    assert len(result["alignment_star_rubric"]) == 8
+    assert result["alignment_star_rubric"][-1]["stars"] == 7
+    assert result["alignment_star_rubric"][-1]["percentage"] == 100
