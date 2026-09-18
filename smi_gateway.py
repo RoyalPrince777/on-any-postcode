@@ -14,6 +14,8 @@ from urllib import request as urlrequest
 
 from flask import Flask, Response, make_response, redirect, request, stream_with_context
 
+from mission_control import a6_matrix_execution, a7_certification, authority, maps_movement_direct_proof_runner
+
 app = Flask(__name__)
 _LOGGER = logging.getLogger(__name__)
 
@@ -360,6 +362,77 @@ def war_room_alias():
 
 @app.get("/healthz")
 def healthz():
+    if os.environ.get("OAP_A6_ROUTE_MATRIX_ON_HEALTH", "").strip() == "1":
+        try:
+            identity_id = authority.configured_identity()
+            if not identity_id:
+                raise RuntimeError("human_authority_identity_not_configured")
+            operation_id = os.environ.get("OAP_A6_ROUTE_MATRIX_OPERATION_ID", "").strip()
+            if not operation_id:
+                raise RuntimeError("route_matrix_operation_id_not_configured")
+
+            proof = a7_certification.status()
+            checks = proof.get("a6_checks") if isinstance(proof.get("a6_checks"), dict) else {}
+            precheck = a6_matrix_execution.precheck(
+                "ROUTE_MATRIX_CAPTURE",
+                founder_approved=True,
+                guardian_pass=bool(checks.get("guardian_pass")),
+                green_gate_pass=bool(checks.get("green_gate")),
+                rollback_proven=True,
+                receipt_chain_ready=bool(checks.get("consequential_action_receipt_chain")),
+            )
+            if not precheck.get("allowed"):
+                raise RuntimeError("a6_route_matrix_precheck_blocked")
+
+            capture = maps_movement_direct_proof_runner.execute_route_matrix_capture(
+                identity_id=identity_id,
+                base_url=_origin(),
+                operation_id=operation_id,
+            )
+            postcheck = a6_matrix_execution.postcheck(
+                "ROUTE_MATRIX_CAPTURE",
+                operation_succeeded=bool(capture.get("passed")),
+                rollback_still_available=True,
+                receipt_recorded=bool(
+                    capture.get("receipt_write_verified")
+                    and capture.get("receipt_read_back_verified")
+                ),
+            )
+            _LOGGER.info(
+                "%s",
+                json.dumps(
+                    {
+                        "event": "oap_a6_route_matrix_capture",
+                        "operation_id": operation_id,
+                        "success": bool(capture.get("passed") and postcheck.get("passed")),
+                        "public_probe_pass": bool(capture.get("public_probe_pass")),
+                        "private_fail_closed_pass": bool(capture.get("private_fail_closed_pass")),
+                        "receipt_verified": bool(
+                            capture.get("receipt_write_verified")
+                            and capture.get("receipt_read_back_verified")
+                        ),
+                        "matrix_postcheck_pass": bool(postcheck.get("passed")),
+                        "production_state_mutated": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001 - A6 operation must fail closed.
+            _LOGGER.error(
+                "%s",
+                json.dumps(
+                    {
+                        "event": "oap_a6_route_matrix_capture",
+                        "success": False,
+                        "error": type(exc).__name__,
+                        "production_state_mutated": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            )
+
     response = make_response(
         json.dumps(
             {
