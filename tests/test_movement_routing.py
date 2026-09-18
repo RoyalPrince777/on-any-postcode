@@ -300,3 +300,27 @@ def test_owned_startup_probe_emits_geometry_receipt_without_promoting_production
     assert '"payment_performed": false' in output
     assert "-0.1687" not in output
     assert "51.4036" not in output
+
+
+def test_route_http_error_records_only_redacted_status(monkeypatch):
+    monkeypatch.setattr(routing, "_LAST_SUCCESS", None)
+    monkeypatch.setattr(routing, "_LAST_ERROR", None)
+
+    def fail(*args, **kwargs):
+        raise routing.urlerror.HTTPError(
+            "https://router.example.test/private-path",
+            404,
+            "Not Found",
+            hdrs=None,
+            fp=None,
+        )
+
+    monkeypatch.setattr(routing.urlrequest, "urlopen", fail)
+
+    with pytest.raises(routing.RoutingUnavailable, match="routing_provider_unavailable"):
+        routing._request_json(
+            "https://router.example.test/route/v1/driving/example",
+            expected_host="router.example.test",
+        )
+
+    assert routing._runtime_state()[1] == "routing_http_404"
