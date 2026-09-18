@@ -445,8 +445,12 @@ def complete_a6_readiness_protocol(
             "human_authority_final": True,
         }
 
+    evidence_key = str(independent_evidence_hash or "").strip().lower()
     request_value = str(
-        uuid.uuid5(uuid.NAMESPACE_URL, "oap:smi:a6-readiness:v1")
+        uuid.uuid5(
+            uuid.NAMESPACE_URL,
+            f"oap:smi:a6-readiness:v2:{evidence_key}",
+        )
     )
     summary = (
         "A6 readiness review only: verify operation-level approval, independent "
