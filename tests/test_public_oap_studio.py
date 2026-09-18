@@ -61,3 +61,20 @@ def test_public_chat_endpoint_is_bounded():
     assert "fetch('/studio/chat'" in page
     assert "'X-OAP-CSRF':csrf" in page
     assert "/mission/" not in page
+
+
+def test_public_chat_intelligence_is_bounded():
+    runtime = (ROOT / "mission_control" / "public_studio_runtime.py").read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    page = PUBLIC.read_text(encoding="utf-8")
+
+    assert "def _chat_mode(" in runtime
+    assert "def _bounded_history(" in runtime
+    assert "history[-8:]" in runtime
+    assert "intelligence_lenses.public_route" in runtime
+    assert '"execution_authority": False' in runtime
+    assert '"private_reasoning_exposed": False' in runtime
+    assert "history=payload.get(\"history\")" in app
+    assert "const history=[];" in page
+    assert "history.slice(-8)" in page
+    assert "Chat Intelligence" in page
