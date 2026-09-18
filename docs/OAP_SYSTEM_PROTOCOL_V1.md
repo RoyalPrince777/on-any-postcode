@@ -29,6 +29,17 @@ Agents may ask for help, challenge, review, teach, recommend a specialist and fo
 
 3 is the routine bounded path, 7 is the council path for elevated uncertainty/risk, and 21 is the full path for high risk or authority-changing decisions. The 3/7/21 second values are latency targets, never forced deadlines.
 
+## 4-stage build / learning law
+
+When SMI is building or learning, progress is governed in four evidence-backed quarters:
+
+- 25% — Step 1: Rollback / Recovery
+- 50% — Step 2: Runtime Guard
+- 75% — Step 3: Aegis Isolation / Recovery
+- 100% — Step 4: Green Gate + Founder Final
+
+No stage may be skipped. No percentage may advance without evidence for the current quarter. 100% is invalid until Green Gate passes and Founder Final is recorded. The 4-stage law measures build/learning progress; 3/7/21 measures review depth.
+
 ## Human Authority
 
 Promotion, permanent termination, constitutional/authority changes and other major governed actions remain Human Authority decisions. Safety containment may fail closed while waiting for review.
