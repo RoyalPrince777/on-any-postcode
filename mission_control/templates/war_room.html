@@ -6,24 +6,25 @@
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
 <section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
-<button class="btn primary js-war-action" type="button" data-action="smi-auto">🟣 SMI AUTO</button>
+<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
-<a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔️ COMPARE</a>
-<a class="btn" href="#seven-x">⭐ 7★ BOARD</a>
+<a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a>
+<a class="btn" href="#seven-x">⭐ 7× DEEP DIVE · 7★ BOARD</a>
 <a class="btn" href="#vote-board">🗳️ VOTE BOARD</a>
 <button class="btn js-war-action" type="button" data-action="aegis-check">🛡️ GUARDIAN</button>
 <button class="btn js-war-action" type="button" data-action="green-gate">🚦 GREEN GATE</button>
 <a class="btn" href="{{ url_for('mission_control.judgement_dashboard') }}">👑 FOUNDER FINAL</a>
 </div>
 <div class="bar" style="margin-top:8px">
-<a class="chip" href="/smi/brain/evidence-runner/run?command=war_room">🔬 Research</a>
+<a class="chip" href="/smi/brain/evidence-runner/run?command=war_room">🔬 RESEARCH</a>
 <button class="chip js-war-action" type="button" data-action="alignment-check">🔍 Alignment</button>
 <button class="chip js-war-action" type="button" data-action="function-health">📡 Function Health</button>
-<button class="chip js-war-action" type="button" data-action="hrm-receipt">🧾 HRM / JOOG</button>
+<button class="chip js-war-action" type="button" data-action="hrm-receipt">🐘 HRM / JOOG</button>
 <a class="chip" href="/mission/war-room/routes">🧭 Routes</a>
+<span class="chip" aria-disabled="true" title="Bounded reviews complete synchronously; there is no background task to stop.">■ STOP</span>
 </div>
 <div id="war-action-result" class="receipt action-result" data-signal="purple" role="status" aria-live="polite">🟣 Ready. SMI AUTO runs bounded review checks only; it cannot approve, deploy, spend, dispatch or bypass Founder Final.</div>
-<p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority.</p></section>
+<p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority. This surface performs no production write.</p></section>
 <section class="panel"><div class="ey">First-party protocol</div><h2>One clear War Room sequence</h2><div class="grid protocol">
 <div class="card purple"><strong>🧠 SMI First Look</strong><small>Classify · evidence · depth</small></div>
 <div class="card"><strong>🕶 Neo</strong><small>True Path check</small></div>
