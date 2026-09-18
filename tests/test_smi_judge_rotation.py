@@ -1,6 +1,6 @@
 # ruff: noqa: I001
 
-from mission_control import smi_brain_evidence_runner, smi_judge_rotation
+from mission_control import smi_brain_evidence_runner, smi_brain_protocol, smi_judge_rotation
 
 
 EXPECTED_JUDGES = (
@@ -104,7 +104,7 @@ def test_evidence_runner_reports_canonical_review_truthfully(monkeypatch):
 
 
 def test_alignment_debate_panel_keeps_smi_pack_and_founder_gates_distinct():
-    panel = smi_brain_evidence_runner.smi_brain_protocol.ALIGNMENT_DEBATE_PANEL
+    panel = smi_brain_protocol.ALIGNMENT_DEBATE_PANEL
     names = tuple(item["name"] for item in panel)
 
     assert names == ("SMI", "Bagheera", "Akela", "Wolf Pack", "Lion", "Shere Khan")
@@ -117,7 +117,7 @@ def test_alignment_debate_panel_keeps_smi_pack_and_founder_gates_distinct():
 
 
 def test_war_room_simulation_exposes_alignment_debate_and_seven_star_rubric():
-    result = smi_brain_evidence_runner.smi_brain_protocol.war_room_simulation("alignment")
+    result = smi_brain_protocol.war_room_simulation("alignment")
 
     assert tuple(item["name"] for item in result["alignment_debate_panel"]) == (
         "SMI",
