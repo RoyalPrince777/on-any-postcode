@@ -247,3 +247,40 @@ def test_route_matrix_capture_paces_targets(monkeypatch):
     assert "time.sleep(0.5)" in source
     assert "retry_429=False" in source
     assert '"production_state_mutated": False' in source
+
+
+def test_private_gateway_health_sequences_observability_before_a6():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    health = source.split('@app.get("/healthz")', 1)[1].split(
+        '@app.route("/<path:path>"', 1
+    )[0]
+    telemetry_call = health.index("telemetry.record_http_request(")
+    readiness_call = health.index(
+        '_complete_a6_readiness_if_requested(trigger="health")'
+    )
+    matrix_call = health.index(
+        '_maybe_start_a6_route_matrix_operation(trigger="health")'
+    )
+    assert telemetry_call < readiness_call < matrix_call
+
+
+def test_private_gateway_lower_green_preparation_is_explicitly_opt_in():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    section = source.split(
+        "def _complete_a6_readiness_if_requested", 1
+    )[1].split("def _run_a6_route_matrix_operation", 1)[0]
+    assert 'OAP_A6_PREPARE_LOWER_GREEN' in section
+    assert "smi_proof_gate.prepare_founder_final_evidence(identity_id)" in section
+    assert "smi_proof_gate.public_safe_status()" in section
+    assert "lower_green_gate_incomplete:" in section
+    assert '"execution_granted": False' in section
+    assert '"production_state_mutated": False' in section
+
+
+def test_private_gateway_supports_separate_boot_and_health_readiness_flags():
+    source = Path("smi_gateway.py").read_text(encoding="utf-8")
+    section = source.split(
+        "def _complete_a6_readiness_if_requested", 1
+    )[1].split("def _run_a6_route_matrix_operation", 1)[0]
+    assert '"OAP_A6_READINESS_ON_HEALTH"' in section
+    assert '"OAP_A6_READINESS_ON_BOOT"' in section
