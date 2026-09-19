@@ -77,6 +77,6 @@ def status() -> dict[str, Any]:
         result["ready"] = bool(
             result["idempotent_send"] and result["stable_cursor"]
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - readiness probe must fail closed.
         return result
     return result
