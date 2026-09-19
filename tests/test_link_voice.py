@@ -56,6 +56,11 @@ def _allow_link(monkeypatch):
     monkeypatch.setattr(
         link_voice.link_relationships, "accepted_between", lambda _first, _second: True
     )
+    monkeypatch.setattr(
+        link_voice.link_youth_safety,
+        "require_contact_allowed",
+        lambda _first, _second: {"allowed": True},
+    )
 
 
 def _webm() -> bytes:
