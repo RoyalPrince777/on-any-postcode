@@ -6,7 +6,8 @@
  const head=document.querySelector(".chat-head");
  const character=document.getElementById("smi-character");
  const messages=document.getElementById("messages");
- if(!chatbox||!head||!character||!messages||document.getElementById("smi-command-centre"))return;
+ const composer=document.getElementById("chat-form");
+ if(!chatbox||!head||!character||!messages||!composer||document.getElementById("smi-command-centre"))return;
  const actionHost=head.querySelector(".chat-head-actions")||head;
  const toggle=document.createElement("button");
  toggle.type="button";toggle.className="smi-command-toggle";
@@ -28,6 +29,15 @@
  stateLabel.textContent="SMI · "+(character.dataset.state||"ready");
  panel.querySelector(".smi-command-top").append(stateLabel);
  if(liveToggle)panel.querySelector(".smi-command-top").append(liveToggle);
+ // Relocate the EXISTING controls; there must never be a second chat form or
+ // a decorative copy of Plus/Mic/Send. Their canonical handlers remain bound.
+ const safetyTools=document.createElement("div");
+ safetyTools.className="smi-command-safety-tools";
+ for(const id of ["code-button","speaker-button","pause-button","stop-button"]){
+  const control=document.getElementById(id);
+  if(control)safetyTools.append(control);
+ }
+ panel.querySelector(".smi-command-top").append(safetyTools);
  let chatVisible=false;
  function setChatVisible(visible){
   chatVisible=Boolean(visible);
@@ -107,6 +117,29 @@
  // Load the exact approved picture from the first-party app asset.
  // Missing art stays unavailable; never substitute the obsolete character.
  const scene=panel.querySelector(".smi-command-scene");
+ const aligned=document.createElement("div");
+ aligned.className="smi-image-control-surface";
+ aligned.setAttribute("aria-label","Live SMI input controls aligned to the approved dashboard");
+ scene.append(aligned);
+ aligned.append(composer);
+ const picture={width:1448,height:1086};
+ function alignApprovedBar(){
+  const width=scene.clientWidth,height=scene.clientHeight;
+  if(!width||!height)return;
+  const scale=Math.min(width/picture.width,height/picture.height);
+  aligned.style.left=Math.max(0,(width-picture.width*scale)/2)+"px";
+  aligned.style.top=Math.max(0,(height-picture.height*scale)/2)+"px";
+  aligned.style.width=picture.width*scale+"px";
+  aligned.style.height=picture.height*scale+"px";
+  aligned.style.setProperty("--smi-image-scale",String(scale));
+ }
+ alignApprovedBar();
+ if(window.ResizeObserver){
+  const observer=new ResizeObserver(alignApprovedBar);
+  observer.observe(scene);
+  window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
+ }
+ window.addEventListener("resize",alignApprovedBar);
  if(cfg.approvedWallpaperUrl){
   const wallpaper=new Image();
   wallpaper.onload=()=>{
@@ -114,14 +147,22 @@
    scene.style.setProperty("--oap-smi-wallpaper",'url("'+cfg.approvedWallpaperUrl+'")');
    panel.classList.add("smi-room-art-loaded");
    scene.dataset.wallpaperReady="true";
+   picture.width=wallpaper.naturalWidth;
+   picture.height=wallpaper.naturalHeight;
+   panel.classList.remove("smi-art-error");
+   alignApprovedBar();
   };
   wallpaper.onerror=()=>{
    scene.dataset.wallpaperReady="false";
    panel.classList.remove("smi-room-art-loaded");
+   panel.classList.add("smi-art-error");
+   alignApprovedBar();
    const status=document.getElementById("status");
    if(status)status.textContent="Approved SMI dashboard unavailable · no substitute character shown";
   };
   wallpaper.src=cfg.approvedWallpaperUrl;
+ }else{
+  panel.classList.add("smi-art-error");
  }
  const anatomy=panel.querySelector(".smi-command-anatomy");
  const evidence=panel.querySelector(".smi-command-evidence");
