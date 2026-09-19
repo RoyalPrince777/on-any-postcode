@@ -31,7 +31,7 @@ def test_navigation_runtime_is_truth_first_and_privacy_safe():
     assert "individualPeopleTracking:false" in script
     assert "aggregate only" in script
     assert "oap-map-route-ready" in script
-    assert "/map-intelligence/mobility-providers" in script
+    assert "/map-intelligence/oap-adapter" in script
 
 
 def test_drive_and_cockpit_strip_sidebar_noise():
@@ -64,5 +64,6 @@ def test_uber_provider_is_fail_closed_without_approval(monkeypatch):
     )
     assert result["state"] == "locked"
     assert result["live_ready"] is False
+    assert status["component"] == "OAP Adapter · Mobility Intelligence"
     assert status["individual_people_tracking"] is False
     assert status["precise_device_location_stored"] is False
