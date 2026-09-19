@@ -68,3 +68,38 @@ def test_normal_smi_stream_completion_is_not_marked_cancelled(monkeypatch):
     assert events[-1]["type"] == "complete"
     assert events[-1]["result"]["response"] == "ok"
     assert not any(item["type"] == "cancelled" for item in events)
+
+
+def test_inference_gateway_never_falls_back_after_human_stop(monkeypatch):
+    from mission_control import oap_inference_gateway
+
+    token = smi_cancellation.new_token("founder")
+    bridge_called = False
+    fallback_called = False
+
+    def cancelled_local(*args, **kwargs):
+        token.cancel("human_stop")
+        token.raise_if_cancelled()
+
+    def bridge(*args, **kwargs):
+        nonlocal bridge_called
+        bridge_called = True
+        return "bridge"
+
+    def fallback(*args, **kwargs):
+        nonlocal fallback_called
+        fallback_called = True
+        return "fallback"
+
+    monkeypatch.setattr(oap_inference_gateway, "_call_local", cancelled_local)
+    monkeypatch.setattr(oap_inference_gateway, "_call_bridge", bridge)
+
+    with pytest.raises(smi_cancellation.SMIRequestCancelled):
+        oap_inference_gateway.generate(
+            fallback,
+            "status",
+            cancel_check=token.raise_if_cancelled,
+        )
+
+    assert bridge_called is False
+    assert fallback_called is False
