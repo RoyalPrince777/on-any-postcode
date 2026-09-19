@@ -199,14 +199,6 @@ def send_message(
             ).fetchall()
             if {str(row[0]) for row in users} != {sender, recipient}:
                 raise ValueError("recipient_unavailable")
-            recent = connection.execute(
-                """SELECT COUNT(*) FROM messages
-                   WHERE sender_id=%s
-                     AND created_at >= CURRENT_TIMESTAMP - INTERVAL '1 minute'""",
-                (sender,),
-            ).fetchone()
-            if recent and int(recent[0]) >= MAX_MESSAGES_PER_MINUTE:
-                raise ValueError("linkup_rate_limit")
             if client_id:
                 existing = connection.execute(
                     """SELECT id,recipient_id,body FROM messages
@@ -218,13 +210,28 @@ def send_message(
                         raise ValueError("client_message_id_conflict")
                     connection.commit()
                     return str(existing[0])
-            row = connection.execute(
-                """INSERT INTO messages(
-                       sender_id,recipient_id,body,client_message_id
-                   ) VALUES (%s,%s,%s,%s)
-                   RETURNING id""",
-                (sender, recipient, message, client_id),
+            recent = connection.execute(
+                """SELECT COUNT(*) FROM messages
+                   WHERE sender_id=%s
+                     AND created_at >= CURRENT_TIMESTAMP - INTERVAL '1 minute'""",
+                (sender,),
             ).fetchone()
+            if recent and int(recent[0]) >= MAX_MESSAGES_PER_MINUTE:
+                raise ValueError("linkup_rate_limit")
+            if client_id:
+                row = connection.execute(
+                    """INSERT INTO messages(
+                           sender_id,recipient_id,body,client_message_id
+                       ) VALUES (%s,%s,%s,%s)
+                       RETURNING id""",
+                    (sender, recipient, message, client_id),
+                ).fetchone()
+            else:
+                row = connection.execute(
+                    """INSERT INTO messages(sender_id,recipient_id,body)
+                       VALUES (%s,%s,%s) RETURNING id""",
+                    (sender, recipient, message),
+                ).fetchone()
             connection.commit()
     except ValueError:
         raise
@@ -317,7 +324,7 @@ def peer_messages_since(
                        %s='' OR
                        created_at>%s::timestamptz OR
                        (
-                         %s IS NOT NULL
+                         %s::uuid IS NOT NULL
                          AND created_at=%s::timestamptz
                          AND id>%s::uuid
                        )
