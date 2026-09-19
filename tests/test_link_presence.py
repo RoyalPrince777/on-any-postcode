@@ -53,6 +53,11 @@ def _allow_link(monkeypatch):
     monkeypatch.setattr(
         link_presence.link_relationships, "accepted_between", lambda _first, _second: True
     )
+    monkeypatch.setattr(
+        link_presence.link_youth_safety,
+        "require_contact_allowed",
+        lambda _first, _second: {"allowed": True},
+    )
 
 
 def test_presence_schema_is_explicit_first_party_and_bounded():
