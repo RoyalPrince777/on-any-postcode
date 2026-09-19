@@ -13,6 +13,8 @@ def test_ping_schema_is_explicit_and_additive():
     assert "CREATE TABLE IF NOT EXISTS link_ping_mutes" in statements
     assert "DROP TABLE" not in statements
     assert "ALTER TABLE" not in statements
+    source = Path("mission_control/link_ping.py").read_text(encoding="utf-8")
+    assert "pg_advisory_xact_lock" in source
 
 
 def test_ping_rejects_invalid_intensity_before_store_access(monkeypatch):
