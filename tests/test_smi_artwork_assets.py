@@ -36,5 +36,7 @@ def test_dashboard_shows_approved_image_only_when_loaded():
     assert 'panel.classList.add("smi-room-art-loaded")' in controller
     assert "smi-room-art-loaded" in css
     assert 'setOpen(true);' in controller
-    assert 'stage.append(character);' in controller
+    assert 'stage.append(character);' not in controller
+    assert 'setChatVisible(true)' in controller
+    assert 'background-size:contain!important' in css
     assert "data-proven" in css
