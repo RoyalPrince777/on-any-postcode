@@ -30,6 +30,20 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('state.textContent="Unavailable"', source)
         self.assertIn('credentials:"same-origin"', source)
 
+    def test_tools_tab_does_not_close_its_own_drawer(self):
+        controller = (STATIC / "smi_canonical_controller.js").read_text(
+            encoding="utf-8"
+        )
+        interaction = (STATIC / "smi_interaction_layer.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("!event.target.closest('#tools-mode-button')", controller)
+        self.assertIn('      plus.click();', interaction)
+        self.assertNotIn(
+            'if (!attachMenu.classList.contains("show")) plus.click();',
+            interaction,
+        )
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
