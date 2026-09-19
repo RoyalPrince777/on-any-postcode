@@ -242,6 +242,61 @@ def interaction_certification() -> dict[str, Any]:
     }
 
 
+
+def button_proof(url_map: Any, clicked_ids: tuple[str, ...] = ()) -> dict[str, Any]:
+    """Separate bounded server proof from actual Founder browser-response proof."""
+
+    health = function_health(url_map)
+    clicked = set(clicked_ids)
+    rows = []
+    for item in health["functions"]:
+        server_action_proven = bool(
+            item["available"] and item["proof_checked"] and item["runtime_proven"]
+        )
+        browser_click_proven = item["id"] in clicked
+        rows.append(
+            {
+                "id": item["id"],
+                "name": item["name"],
+                "path": item["path"],
+                "server_action_proven": server_action_proven,
+                "browser_click_proven": browser_click_proven,
+                "state": "server-proven" if server_action_proven else "proof-required",
+                "label": (
+                    "SERVER PROVEN · BROWSER RESPONSE PROVEN"
+                    if server_action_proven and browser_click_proven
+                    else "SERVER PROVEN · BROWSER PROOF PENDING"
+                    if server_action_proven
+                    else "PROOF REQUIRED"
+                ),
+                "consequential_execution": False,
+            }
+        )
+
+    expected_count = len(rows)
+    server_ready_count = sum(1 for row in rows if row["server_action_proven"])
+    browser_click_ready_count = sum(1 for row in rows if row["browser_click_proven"])
+    return {
+        "component": "SMI Founder Button Proof",
+        "generated_at": _now(),
+        "buttons": tuple(rows),
+        "expected_count": expected_count,
+        "server_ready_count": server_ready_count,
+        "server_ready_percent": _percent(server_ready_count, expected_count),
+        "browser_click_ready_count": browser_click_ready_count,
+        "browser_click_ready_percent": _percent(browser_click_ready_count, expected_count),
+        "server_gate_green": server_ready_count == expected_count,
+        "browser_click_gate_green": browser_click_ready_count == expected_count,
+        "whole_button_gate_green": bool(
+            server_ready_count == expected_count
+            and browser_click_ready_count == expected_count
+        ),
+        "execution_granted": False,
+        "no_fake_green": True,
+        "human_authority_final": True,
+    }
+
+
 def function_health(url_map: Any) -> dict[str, Any]:
     """Evaluate every primary Founder function with an explicit evidence source.
 
