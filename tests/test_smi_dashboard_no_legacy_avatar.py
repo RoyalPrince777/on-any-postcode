@@ -96,3 +96,12 @@ def test_no_artwork_gives_visible_fail_closed_real_input():
     assert 'panel.classList.remove("smi-art-error")' in JS
     assert 'no substitute character shown' in JS
     assert 'body.smi-command-open.smi-art-error' in CSS
+
+
+def test_baked_status_is_covered_by_real_evidence_not_fake_green():
+    assert 'aligned.append(dashboard)' in JS
+    assert 'evidence.append(dashboard)' not in JS
+    assert 'setRoom(roomStats.get("runtime"),health?.ready===true' in JS
+    assert 'setRoom(roomGates.get("founder"),false' in JS
+    assert '.smi-image-control-surface>.smi-room-status' in CSS
+    assert 'background:#020c1ef9!important' in CSS
