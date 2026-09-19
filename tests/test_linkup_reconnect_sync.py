@@ -33,6 +33,7 @@ def test_stable_cursor_uses_timestamp_and_message_id():
     routes = Path("mission_control/link_message_routes.py").read_text(encoding="utf-8")
 
     assert "after_id: object = None" in source
+    assert "incomplete_message_cursor" in source
     assert "created_at=%s::timestamptz" in source
     assert "id>%s::uuid" in source
     assert "ORDER BY created_at ASC,id ASC" in source
@@ -42,6 +43,8 @@ def test_stable_cursor_uses_timestamp_and_message_id():
 def test_browser_reconnect_reuses_same_client_id_without_persistent_body_storage():
     script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
 
+    assert 'typeof crypto !== "undefined"' in script
+    assert 'typeof crypto.randomUUID === "function"' in script
     assert "crypto.randomUUID()" in script
     assert "pendingRetries" in script
     assert 'window.addEventListener("online"' in script
