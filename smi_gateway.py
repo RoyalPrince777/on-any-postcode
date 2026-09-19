@@ -758,11 +758,6 @@ def healthz():
                 "service": "oap-smi-gateway",
                 "scope": "process",
                 "revision": _revision(),
-                "private_dispatch": (
-                    "local-process"
-                    if _local_dispatch_enabled()
-                    else "public-edge-proxy"
-                ),
             },
             separators=(",", ":"),
         )
