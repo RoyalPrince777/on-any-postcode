@@ -8,7 +8,10 @@ def test_youth_guard_stores_age_class_not_dob():
     assert "age_band" in source
     assert "minor" in source
     assert "adult" in source
-    assert "date_of_birth" not in source
+    schema = source.split("SCHEMA_SQL =", 1)[1].split(
+        "class LinkYouthSafetyUnavailable", 1
+    )[0]
+    assert "date_of_birth" not in schema
     assert '"stores_date_of_birth": False' in source
     assert '"unknown_is_guessed": False' in source
 
