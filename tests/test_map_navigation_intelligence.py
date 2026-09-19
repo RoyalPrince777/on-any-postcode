@@ -87,3 +87,15 @@ def test_uber_provider_is_fail_closed_without_approval(monkeypatch):
     assert status["component"] == "OAP Adapter · Mobility Intelligence"
     assert status["individual_people_tracking"] is False
     assert status["precise_device_location_stored"] is False
+
+
+def test_first_party_renderer_has_sparse_road_hierarchy_and_labels():
+    page = MAP.read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    assert "labelCount<32" in page
+    assert "feature.name" in page
+    assert "poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local')" in page
+    assert ".road-svg polyline.local" in css
+    assert ".road-svg polyline.secondary" in css
+    assert ".road-svg polyline.major" in css
+    assert ".road-label" in css
