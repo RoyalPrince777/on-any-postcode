@@ -316,7 +316,16 @@ def _emit(emitter: EventEmitter | None, event_type: str, **values: object) -> No
         emitter({"type": event_type, **values})
 
 
-def _chat_rate_limit(connection: object, identity_id: str) -> None:
+def _chat_rate_limit(
+    connection: object,
+    identity_id: str,
+    *,
+    is_human_authority: bool = False,
+) -> None:
+    """Keep member abuse protection without rate-locking Human Authority Chat."""
+
+    if is_human_authority:
+        return
     try:
         configured_limit = int(os.environ.get("OAP_CHAT_RATE_LIMIT", "12"))
     except ValueError:
@@ -559,7 +568,11 @@ def chat(
         _emit(on_event, "stage", stage="identity", label="Identity verified")
         if not _permission(connection, identity):
             raise PermissionError("REQUEST_RECOMMENDATION permission required")
-        _chat_rate_limit(connection, identity)
+        _chat_rate_limit(
+            connection,
+            identity,
+            is_human_authority=bool(authority_context.get("is_human_authority")),
+        )
         _emit(on_event, "stage", stage="permission", label="Permission checked")
         provider_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if attachment and not provider_key:

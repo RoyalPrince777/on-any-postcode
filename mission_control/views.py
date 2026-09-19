@@ -455,12 +455,6 @@ def smi_chat_message():
     if not isinstance(payload, dict):
         return _error("invalid_request", "A JSON object is required.", 400)
     identity_id = _chat_identity()
-    if not _chat_rate_allowed(identity_id):
-        response = _error(
-            "rate_limited", "Too many SMI requests. Wait one minute and try again.", 429
-        )
-        response.headers["Retry-After"] = "60"
-        return response
     try:
         result = smi_chat_runtime.chat(
             payload.get("message"),
@@ -511,12 +505,6 @@ def smi_chat_stream():
     if not isinstance(payload, dict):
         return _error("invalid_request", "A JSON object is required.", 400)
     identity_id = _chat_identity()
-    if not _chat_rate_allowed(identity_id):
-        response = _error(
-            "rate_limited", "Too many SMI requests. Wait one minute and try again.", 429
-        )
-        response.headers["Retry-After"] = "60"
-        return response
 
     def generate():
         events = smi_chat_runtime.chat_events(
