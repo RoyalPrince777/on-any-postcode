@@ -169,3 +169,23 @@ def test_plus_upload_aria_and_escape_focus_contract():
     assert "if(event.key!=='Escape'||!oapAttachMenu?.classList.contains('show'))return;" in canonical
     assert "oapCloseAttach();oapPlus?.focus();" in canonical
     assert canonical.count("oapPlus.addEventListener('click'") == 1
+
+
+def test_upload_preparation_blocks_premature_send_and_stale_callbacks():
+    base = (ROOT / "mission_control/templates/ollama_chat_base.html").read_text()
+    controller = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text()
+
+    assert "let imagePreparing=false,attachmentPreparing=false,imagePrepareToken=0,mediaPrepareToken=0;" in base
+    assert "const token=++imagePrepareToken" in base
+    assert "const token=++mediaPrepareToken" in base
+    assert "if(token!==imagePrepareToken)return;" in base
+    assert "if(token!==mediaPrepareToken)return;selectedAttachment=prepared;" in base
+    assert "++imagePrepareToken;++mediaPrepareToken;imagePreparing=false;attachmentPreparing=false" in base
+    assert "if((typeof imagePreparing!=='undefined'&&imagePreparing)" in controller
+    assert "(typeof attachmentPreparing!=='undefined'&&attachmentPreparing))" in controller
+    assert "Preparing attachment · send after the preview appears" in controller
+
+    submit = controller.index("async function oapSubmit(")
+    guard = controller.index("Preparing attachment · send after the preview appears", submit)
+    fetch = controller.index("await fetch(streamUrl", submit)
+    assert submit < guard < fetch
