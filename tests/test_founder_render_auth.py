@@ -346,8 +346,10 @@ def test_founder_auth_post_uses_local_password_without_email_selector(
                 },
             },
             set_cookie_headers=(
-                "oap_founder_session=opaque; Path=/; Secure; HttpOnly; "
-                "SameSite=Lax; Max-Age=43200",
+                (
+                    "oap_founder_session=opaque; Path=/; Secure; HttpOnly; "
+                    "SameSite=Lax; Max-Age=43200"
+                ),
             ),
         )
         if password == "existing-private-password"
