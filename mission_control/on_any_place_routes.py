@@ -251,6 +251,7 @@ def map_intelligence_live_pattern_report():
     return response, 201
 
 
+@bp.get("/map-intelligence/oap-adapter")
 @bp.get("/map-intelligence/mobility-providers")
 def map_intelligence_mobility_providers():
     payload = mobility_provider_intelligence.status()
