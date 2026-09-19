@@ -74,7 +74,7 @@ INTERACTION_CERTIFICATION_SPECS = (
         "id": "runtime-controls",
         "name": "Runtime Controls",
         "markers": ("pause-button", "stop-button"),
-        "backend": "client pause/resume + governed stream cancellation",
+        "backend": "client display pause/resume + governed stream cancellation on Stop",
     },
 )
 
