@@ -282,20 +282,19 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _latest_postgres(limit: int) -> tuple[dict[str, Any], ...]:
-    with _connect_postgres() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SET TRANSACTION READ ONLY")
-            cursor.execute(
-                """
-                SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
-                       guardian, green_gate, founder_final, created_at
-                FROM smi_evidence_receipts
-                ORDER BY created_at DESC
-                LIMIT %s
-                """,
-                (limit,),
-            )
-            rows = cursor.fetchall()
+    with _connect_postgres() as connection, connection.cursor() as cursor:
+        cursor.execute("SET TRANSACTION READ ONLY")
+        cursor.execute(
+            """
+            SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
+                   guardian, green_gate, founder_final, created_at
+            FROM smi_evidence_receipts
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        rows = cursor.fetchall()
     return tuple(dict(row) for row in rows)
 
 
