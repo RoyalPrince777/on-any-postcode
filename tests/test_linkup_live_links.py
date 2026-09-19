@@ -21,7 +21,8 @@ def test_linkup_live_delta_store_is_guarded_by_accepted_link():
 def test_linkup_client_pulls_new_links_and_supports_seen():
     script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
 
-    assert "/linkup/messages/incoming?peer_id=" in script
+    assert "new URLSearchParams({ peer_id: peerId })" in script
+    assert "/linkup/messages/incoming?${query.toString()}" in script
     assert "renderLiveLinks" in script
     assert "data-link-message-id" in script
     assert "/seen" in script
