@@ -6,14 +6,16 @@ from pathlib import Path
 import smi_gateway
 
 
-def test_gateway_founder_final_hook_is_wired_to_boot_and_health():
+def test_gateway_founder_final_waits_for_fresh_health_observability():
     source = Path("smi_gateway.py").read_text(encoding="utf-8")
     assert 'OAP_FOUNDER_FINAL_100_ON_HEALTH' in source
-    assert '_complete_founder_final_if_requested(trigger="boot")' in source
+    assert '_complete_founder_final_if_requested(trigger="boot")' not in source
     health = source.split('@app.get("/healthz")', 1)[1].split(
         '@app.route("/<path:path>"', 1
     )[0]
-    assert '_complete_founder_final_if_requested(trigger="health")' in health
+    telemetry_at = health.index('telemetry.record_http_request(path="/healthz"')
+    founder_at = health.index('_complete_founder_final_if_requested(trigger="health")')
+    assert telemetry_at < founder_at
     assert "smi_proof_gate.complete_founder_final_protocol(identity_id)" in source
 
 

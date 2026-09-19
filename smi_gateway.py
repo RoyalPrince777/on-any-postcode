@@ -804,8 +804,9 @@ def _maybe_start_a6_route_matrix_operation(*, trigger: str = "health") -> None:
 # Readiness is recorded first, against this gateway's own DB, then the
 # one-shot read-only Route Matrix capture may run. Neither step grants execution.
 _complete_a6_readiness_if_requested(trigger="boot")
-_complete_founder_final_if_requested(trigger="boot")
 
+# Founder Final intentionally waits for /healthz. telemetry.record_http_request()
+# must first establish fresh local observability before the Green Gate can close.
 # Render can mark the gateway live without issuing an observable /healthz request.
 # The boot trigger is therefore an explicit, opt-in equivalent for the same
 # one-shot, read-only A6 capture. The shared operation-id set prevents duplicates.
