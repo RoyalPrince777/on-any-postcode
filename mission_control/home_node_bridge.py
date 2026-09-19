@@ -14,6 +14,7 @@ import time
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
+from collections.abc import Callable
 from typing import Any
 
 _MAX_PENDING = 8
@@ -77,8 +78,17 @@ def _prune_locked(now: float) -> None:
         _PENDING.extend(job_id for job_id in alive if not _JOBS[job_id].claimed)
 
 
-def submit_inference(payload: dict[str, Any], *, timeout: float = _RESULT_WAIT_SECONDS) -> str:
-    """Queue work only when an authenticated Home Node worker is actually present."""
+def submit_inference(
+    payload: dict[str, Any],
+    *,
+    timeout: float = _RESULT_WAIT_SECONDS,
+    cancel_check: Callable[[], None] | None = None,
+) -> str:
+    """Queue work only when an authenticated Home Node worker is actually present.
+
+    Cancellation is cooperative and removes an uncompleted job before propagating
+    the Human STOP signal back to the SMI worker.
+    """
     if not configured():
         raise RuntimeError("home_node_bridge_not_configured")
     if not isinstance(payload, dict) or not payload.get("messages"):
@@ -98,14 +108,30 @@ def submit_inference(payload: dict[str, Any], *, timeout: float = _RESULT_WAIT_S
         _JOBS[job.job_id] = job
         _PENDING.append(job.job_id)
 
-    if not job.event.wait(max(0.1, min(float(timeout), _RESULT_WAIT_SECONDS))):
+    wait_seconds = max(0.1, min(float(timeout), _RESULT_WAIT_SECONDS))
+    deadline = time.monotonic() + wait_seconds
+    try:
+        while not job.event.is_set():
+            if cancel_check is not None:
+                cancel_check()
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                with _LOCK:
+                    _JOBS.pop(job.job_id, None)
+                    try:
+                        _PENDING.remove(job.job_id)
+                    except ValueError:
+                        pass
+                raise RuntimeError("home_node_bridge_timeout")
+            job.event.wait(min(0.1, remaining))
+    except BaseException:
         with _LOCK:
             _JOBS.pop(job.job_id, None)
             try:
                 _PENDING.remove(job.job_id)
             except ValueError:
                 pass
-        raise RuntimeError("home_node_bridge_timeout")
+        raise
 
     with _LOCK:
         _JOBS.pop(job.job_id, None)
