@@ -77,3 +77,21 @@ runtime = apply(runtime, "NOT_A_REAL_EVENT");
 assert.deepEqual(runtime, beforeUnknown);
 
 console.log("SMI_LIVE_CHARACTER_STATE_V2_PASS");
+
+
+// Auto-submit is allowed only for a current, idle, live, unpaused final transcript.
+runtime = state.initialState();
+runtime = apply(runtime, "LIVE_ON");
+assert.equal(state.canAutoSubmitFinal(runtime, "hello", true), true);
+runtime = apply(runtime, "PAUSE");
+assert.equal(state.canAutoSubmitFinal(runtime, "hello", true), false);
+runtime = apply(runtime, "RESUME");
+assert.equal(state.canAutoSubmitFinal(runtime, "hello", true), true);
+runtime = apply(runtime, "STOP");
+assert.equal(state.canAutoSubmitFinal(runtime, "hello", true), false);
+runtime = apply(runtime, "RESUME_FROM_STOP");
+runtime = apply(runtime, "LIVE_ON");
+assert.equal(state.canAutoSubmitFinal(runtime, "hello", false), false);
+runtime = apply(runtime, "LIVE_OFF");
+assert.equal(state.canAutoSubmitFinal(runtime, "hello", true), false);
+assert.equal(state.canAutoSubmitFinal(state.initialState(), "", true), false);
