@@ -25,6 +25,7 @@ from . import oap_inference_gateway as _inference
 from . import smi_chat_grounded as _grounded
 from . import smi_chat_runtime_core as _core
 from . import smi_receipt_backend as _receipts
+from . import smi_cancellation as _cancellation
 from . import smi_thinking_process as _thinking
 from . import world_crisis_intelligence as _world_crisis
 from .smi_chat_runtime_core import *
@@ -134,9 +135,17 @@ def _gateway_provider(
     *,
     code_mode: bool = False,
     on_delta: Callable[[str], None] | None = None,
+    cancellation_token: _cancellation.CancellationToken | None = None,
 ) -> str:
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
+
+    def compatibility_engine(*args, **kwargs):
+        kwargs["cancellation_token"] = cancellation_token
+        return _COMPATIBILITY_ENGINE(*args, **kwargs)
+
     return _inference.generate(
-        _COMPATIBILITY_ENGINE,
+        compatibility_engine,
         message,
         image_data,
         history,
@@ -145,6 +154,11 @@ def _gateway_provider(
         media,
         code_mode=code_mode,
         on_delta=on_delta,
+        cancel_check=(
+            cancellation_token.raise_if_cancelled
+            if cancellation_token is not None
+            else None
+        ),
     )
 
 
@@ -245,7 +259,10 @@ def _grounded_provider(
     *,
     code_mode: bool = False,
     on_delta: Callable[[str], None] | None = None,
+    cancellation_token: _cancellation.CancellationToken | None = None,
 ) -> str:
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     intelligence_route = _intelligence.route(message)
     grounded_message = _intelligence.enrich(
         _with_world_crisis_context(message, brain),
@@ -256,8 +273,12 @@ def _grounded_provider(
         adaptive_memory,
         query=message,
     )
+    def gateway_provider(*args, **kwargs):
+        kwargs["cancellation_token"] = cancellation_token
+        return _gateway_provider(*args, **kwargs)
+
     result = _grounded.grounded_provider(
-        _gateway_provider,
+        gateway_provider,
         health,
         grounded_message,
         image_data,
@@ -268,6 +289,8 @@ def _grounded_provider(
         code_mode=code_mode,
         on_delta=None,
     )
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     cleaned = _strip_identity_prefix(result)
     if on_delta is not None:
         on_delta(cleaned)
@@ -351,9 +374,12 @@ def chat(
     thinking_level: str = "auto",
     studio_mode: bool = False,
     on_event: Callable[[dict], None] | None = None,
+    cancellation_token: _cancellation.CancellationToken | None = None,
 ) -> dict:
     """Run governed chat and attach a safe first-party Thinking Process summary."""
 
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     result = _core.chat(
         message,
         identity_id,
@@ -365,7 +391,10 @@ def chat(
         thinking_level=thinking_level,
         studio_mode=studio_mode,
         on_event=_thinking_event_adapter(on_event),
+        cancellation_token=cancellation_token,
     )
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     enriched = dict(result)
     enriched["intelligence"] = _intelligence.public_route(message)
     enriched["thinking_process"] = _thinking.completion_summary(enriched)
@@ -420,6 +449,8 @@ def chat(
         "scores_calculated": False,
     }
 
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     behaviour_score = _behaviour.score_response_behaviour(enriched)
     score_receipt = _receipts.write_receipt(
         "behaviour_score_receipt",
@@ -477,6 +508,8 @@ def chat(
         "full_green_allowed": False,
     }
 
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     behaviour_learning = _behaviour.behaviour_learning_recovery(behaviour_score)
     learning_receipt = _receipts.write_receipt(
         "behaviour_learning_receipt",
@@ -509,6 +542,8 @@ def chat(
         "self_apply_changes": False,
     }
 
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     step4 = _behaviour.behaviour_step4_readiness(
         behaviour_score,
         behaviour_learning,
@@ -531,6 +566,8 @@ def chat(
         },
     )
     enriched["behaviour_step4"] = step4
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     enriched["behaviour_step4_receipt"] = {
         "ok": bool(step4_receipt.get("ok")),
         "receipt_id": step4_receipt.get("receipt_id"),
@@ -582,11 +619,17 @@ def chat_events(
     thinking_level: str = "auto",
     studio_mode: bool = False,
 ) -> Iterator[dict]:
-    """Facade-safe SSE bridge that calls the public facade ``chat`` symbol."""
+    """Facade-safe SSE bridge that calls the public facade ``chat`` symbol.
+
+    Closing this iterator is the server-side Human STOP signal for its worker.
+    """
 
     event_queue: queue.Queue[dict] = queue.Queue(maxsize=256)
+    cancellation_token = _cancellation.new_token(identity_id)
 
     def emit(item: dict) -> None:
+        if cancellation_token.cancelled and item.get("type") not in {"cancelled", "_done"}:
+            return
         event_queue.put(item, timeout=60)
 
     def worker() -> None:
@@ -602,8 +645,18 @@ def chat_events(
                 thinking_level=thinking_level,
                 studio_mode=studio_mode,
                 on_event=emit,
+                cancellation_token=cancellation_token,
             )
+            cancellation_token.raise_if_cancelled()
             emit({"type": "complete", "result": result})
+        except _cancellation.SMIRequestCancelled:
+            emit({
+                "type": "cancelled",
+                "state": "CANCELLED_BY_HUMAN",
+                "control_id": cancellation_token.control_id,
+                "human_authority_final": True,
+                "execution_authority_expanded": False,
+            })
         except (TypeError, ValueError) as exc:
             code = "rate_limited" if str(exc) == "chat_rate_limit" else "invalid_request"
             message_text = (
@@ -644,12 +697,19 @@ def chat_events(
             event_queue.put({"type": "_done"})
 
     threading.Thread(target=worker, name="oap-smi-stream-facade", daemon=True).start()
-    while True:
-        try:
-            item = event_queue.get(timeout=15)
-        except queue.Empty:
-            yield {"type": "heartbeat", "status": "working"}
-            continue
-        if item.get("type") == "_done":
-            return
-        yield item
+    finished = False
+    try:
+        while True:
+            try:
+                item = event_queue.get(timeout=15)
+            except queue.Empty:
+                cancellation_token.raise_if_cancelled()
+                yield {"type": "heartbeat", "status": "working"}
+                continue
+            if item.get("type") == "_done":
+                finished = True
+                return
+            yield item
+    finally:
+        if not finished:
+            cancellation_token.cancel("stream_closed_by_human")
