@@ -40,6 +40,7 @@ jobs:
           node tests/smi_live_character_state_test.cjs
           node tests/smi_live_character_exhaustive_test.cjs
           node tests/smi_attachment_async_test.cjs
+          node tests/smi_stop_stream_race_test.cjs
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
