@@ -530,13 +530,18 @@ def smi_chat_stream():
             thinking_level=str(payload.get("thinking_level") or "auto"),
             studio_mode=bool(payload.get("studio_mode")),
         )
-        for item in events:
-            event_name = str(item.get("type", "message"))
-            data = {key: value for key, value in item.items() if key != "type"}
-            yield (
-                f"event: {event_name}\n"
-                f"data: {json.dumps(data, ensure_ascii=False, separators=(',', ':'))}\n\n"
-            )
+        try:
+            for item in events:
+                event_name = str(item.get("type", "message"))
+                data = {key: value for key, value in item.items() if key != "type"}
+                yield (
+                    f"event: {event_name}\n"
+                    f"data: {json.dumps(data, ensure_ascii=False, separators=(',', ':'))}\n\n"
+                )
+        finally:
+            close_events = getattr(events, "close", None)
+            if callable(close_events):
+                close_events()
 
     response = Response(stream_with_context(generate()), mimetype="text/event-stream")
     response.headers["Cache-Control"] = "no-store, no-transform"
