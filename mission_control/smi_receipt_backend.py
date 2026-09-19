@@ -283,8 +283,8 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 def _latest_postgres(limit: int) -> tuple[dict[str, Any], ...]:
     with _connect_postgres() as connection:
-        _init_postgres_schema(connection)
         with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
             cursor.execute(
                 """
                 SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
@@ -300,8 +300,10 @@ def _latest_postgres(limit: int) -> tuple[dict[str, Any], ...]:
 
 
 def _latest_sqlite(limit: int) -> tuple[dict[str, Any], ...]:
-    with _connect_sqlite() as connection:
-        _init_sqlite_schema(connection)
+    # SQLite's normal connector and schema initializer create files/tables.
+    # Status reads must never create either on a missing fallback store.
+    with sqlite3.connect(Path(_db_path()).resolve().as_uri() + "?mode=ro", uri=True) as connection:
+        connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """
             SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
@@ -328,10 +330,16 @@ def latest_receipts(limit: int = 20) -> dict[str, Any]:
             backend = "independent_hrm_postgres"
             durable = True
         except Exception:  # noqa: BLE001
-            rows = _latest_sqlite(safe_limit)
             fallback_used = True
+            try:
+                rows = _latest_sqlite(safe_limit)
+            except (sqlite3.Error, OSError):
+                rows = ()
     else:
-        rows = _latest_sqlite(safe_limit)
+        try:
+            rows = _latest_sqlite(safe_limit)
+        except (sqlite3.Error, OSError):
+            rows = ()
     return {
         "name": "SMI Evidence Receipts",
         "backend": backend,
