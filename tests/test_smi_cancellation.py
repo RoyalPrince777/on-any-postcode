@@ -5,8 +5,7 @@ import time
 
 import pytest
 
-from mission_control import smi_cancellation
-from mission_control import smi_chat_runtime
+from mission_control import smi_cancellation, smi_chat_runtime
 
 
 def test_cancellation_token_is_idempotent_and_secret_safe():
