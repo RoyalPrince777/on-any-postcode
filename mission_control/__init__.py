@@ -160,6 +160,36 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    if os.environ.get("OAP_LINK_PING_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            ping_status = link_ping.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_ping_migration",
+                        "success": bool(ping_status.get("applied")),
+                        "schema_version": ping_status.get("version"),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_ping_migration",
+                        "success": False,
+                        "error": "link_ping_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
     if os.environ.get("OAP_SPOT_STEP2_PROOF_ON_BOOT", "").strip() == "1":
         operation_id = os.environ.get(
             "OAP_SPOT_STEP2_PROOF_OPERATION_ID", ""
