@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from . import linkup_safety, postgres_db
+from . import link_youth_safety, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_relationships_v1"
 SCHEMA_SQL = (
@@ -104,6 +104,15 @@ def status() -> dict[str, Any]:
     return result
 
 
+def _youth_guard(first_id: object, second_id: object) -> None:
+    try:
+        link_youth_safety.require_contact_allowed(first_id, second_id)
+    except ValueError:
+        raise
+    except link_youth_safety.LinkYouthSafetyUnavailable as exc:
+        raise LinkRelationshipsUnavailable("link_youth_guard_unavailable") from exc
+
+
 def accepted_between(first_id: object, second_id: object) -> bool:
     """Return whether two identities currently share an accepted Link."""
     first = _uuid(first_id, "invalid_identity")
@@ -133,6 +142,7 @@ def request_link(requester_id: object, recipient_id: object, *, link_kind: objec
         raise ValueError("cannot_link_self")
     if linkup_safety.blocked_between(requester, recipient):
         raise ValueError("link_blocked")
+    _youth_guard(requester, recipient)
     kind = _kind(link_kind)
     purpose = " ".join(str(purpose_text or "").split())[:240]
     if kind == "purpose" and not purpose:
@@ -175,6 +185,13 @@ def respond(recipient_id: object, relationship_id: object, decision: object) -> 
         raise ValueError("invalid_link_decision")
     try:
         with postgres_db.connect() as connection:
+            pending_pair = connection.execute(
+                """SELECT requester_id,recipient_id FROM link_relationships
+                   WHERE id=%s AND recipient_id=%s AND status='pending' LIMIT 1""",
+                (relationship, recipient),
+            ).fetchone()
+            if choice == "accepted" and pending_pair is not None:
+                _youth_guard(str(pending_pair[0]), str(pending_pair[1]))
             row = connection.execute(
                 """UPDATE link_relationships
                    SET status=%s,
@@ -186,6 +203,8 @@ def respond(recipient_id: object, relationship_id: object, decision: object) -> 
                 (choice, choice, relationship, recipient),
             ).fetchone()
             connection.commit()
+    except ValueError:
+        raise
     except Exception as exc:
         raise LinkRelationshipsUnavailable("link_response_failed") from exc
     return row is not None

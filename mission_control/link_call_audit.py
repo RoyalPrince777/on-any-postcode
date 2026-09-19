@@ -10,7 +10,7 @@ import os
 import uuid
 from typing import Any
 
-from . import link_relationships, linkup_safety, postgres_db
+from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_call_audit_v1"
 MIN_RETENTION_DAYS = 1
@@ -146,6 +146,7 @@ def start_session(initiator_id: object, recipient_id: object, *, mode: object) -
         raise ValueError("cannot_call_self")
     call_mode = _mode(mode)
     _relationship_guard(initiator, recipient)
+    _youth_guard(initiator, recipient)
     retention = _require_ready()
     session_id = str(uuid.uuid4())
     try:
@@ -194,6 +195,7 @@ def answer_session(identity_id: object, session_id: object) -> bool:
                 connection.commit()
                 return False
             _relationship_guard(identity, str(pending[0]))
+            _youth_guard(identity, str(pending[0]))
             row = connection.execute(
                 """UPDATE link_call_sessions
                    SET state='active',answered_at=CURRENT_TIMESTAMP

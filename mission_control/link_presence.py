@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from . import link_relationships, linkup_safety, postgres_db
+from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_presence_v2"
 PRESENCE_TTL_SECONDS = 120
@@ -138,6 +138,12 @@ def set_visibility(
     live_spot: object = False,
 ) -> dict[str, bool]:
     owner, viewer = _peer_guard(owner_id, viewer_id)
+    try:
+        link_youth_safety.require_contact_allowed(owner, viewer)
+    except ValueError:
+        raise
+    except link_youth_safety.LinkYouthSafetyUnavailable as exc:
+        raise LinkPresenceUnavailable("presence_youth_guard_unavailable") from exc
     if not isinstance(around_now, bool) or not isinstance(live_spot, bool):
         raise TypeError("invalid_visibility")
     try:

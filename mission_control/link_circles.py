@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from . import link_relationships, linkup_safety, postgres_db
+from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_circles_v1"
 MAX_CIRCLE_MEMBERS = 32
@@ -74,6 +74,12 @@ def _guard_link(first: str, second: str) -> None:
         raise ValueError("link_blocked")
     if not link_relationships.accepted_between(first, second):
         raise ValueError("accepted_link_required")
+    try:
+        link_youth_safety.require_contact_allowed(first, second)
+    except ValueError:
+        raise
+    except link_youth_safety.LinkYouthSafetyUnavailable as exc:
+        raise LinkCirclesUnavailable("circle_youth_guard_unavailable") from exc
 
 
 def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, Any]:

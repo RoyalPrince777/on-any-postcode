@@ -12,7 +12,7 @@ import uuid
 from pathlib import PurePath
 from typing import Any
 
-from . import link_relationships, linkup_safety, postgres_db
+from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_share_v1"
 MAX_SHARE_BYTES = 25 * 1024 * 1024
@@ -181,6 +181,12 @@ def create_share(
     original_name: object,
 ) -> dict[str, object]:
     sender, recipient = _peer_guard(sender_id, recipient_id)
+    try:
+        link_youth_safety.require_contact_allowed(sender, recipient)
+    except ValueError:
+        raise
+    except link_youth_safety.LinkYouthSafetyUnavailable as exc:
+        raise LinkShareUnavailable("share_youth_guard_unavailable") from exc
     mime, kind = _guardian_validate(media, mime_type)
     name = _safe_name(original_name)
     digest = hashlib.sha256(media).hexdigest()

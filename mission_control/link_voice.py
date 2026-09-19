@@ -10,7 +10,7 @@ import hashlib
 import uuid
 from typing import Any
 
-from . import link_relationships, linkup_safety, postgres_db
+from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_voice_v1"
 MAX_VOICE_BYTES = 5 * 1024 * 1024
@@ -161,6 +161,12 @@ def create_voice(
     duration_ms: object = None,
 ) -> dict[str, object]:
     sender, recipient = _peer_guard(sender_id, recipient_id)
+    try:
+        link_youth_safety.require_contact_allowed(sender, recipient)
+    except ValueError:
+        raise
+    except link_youth_safety.LinkYouthSafetyUnavailable as exc:
+        raise LinkVoiceUnavailable("voice_youth_guard_unavailable") from exc
     mime = _guardian_validate(media, mime_type)
     duration = _duration(duration_ms)
     digest = hashlib.sha256(media).hexdigest()

@@ -7,7 +7,7 @@ import uuid
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
-from . import link_relationships, linkup_safety, postgres_db
+from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
 MAX_MESSAGES_PER_MINUTE = 20
 MAX_LISTINGS_PER_HOUR = 20
@@ -38,11 +38,13 @@ def _link_guard(first_id: object, second_id: object) -> tuple[str, str]:
             raise ValueError("link_blocked")
         if not link_relationships.accepted_between(first, second):
             raise ValueError("accepted_link_required")
+        link_youth_safety.require_contact_allowed(first, second)
     except ValueError:
         raise
     except (
         linkup_safety.LinkUpSafetyUnavailable,
         link_relationships.LinkRelationshipsUnavailable,
+        link_youth_safety.LinkYouthSafetyUnavailable,
     ) as exc:
         raise ProductStoreUnavailable("linkup_guard_unavailable") from exc
     return first, second

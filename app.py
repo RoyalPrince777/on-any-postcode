@@ -36,6 +36,7 @@ from mission_control import (
     link_signalling,
     link_turn,
     link_voice,
+    link_youth_safety,
     linkup,
     linkup_safety,
     location_intelligence,
@@ -1320,7 +1321,10 @@ def linkup_front_door():
     except Exception:  # noqa: BLE001,S110 - readiness remains fail closed.
         pass
     try:
-        link_runtime["safety"] = bool(linkup_safety.status().get("ready"))
+        link_runtime["safety"] = bool(
+            linkup_safety.status().get("ready")
+            and link_youth_safety.status().get("ready")
+        )
     except Exception:  # noqa: BLE001,S110
         pass
     try:
