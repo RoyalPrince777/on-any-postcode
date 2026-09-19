@@ -146,6 +146,18 @@ class _CountConnection:
         return _CountResult(self.count)
 
 
+
+def test_human_authority_chat_bypasses_neon_message_window(monkeypatch):
+    connection = _CountConnection(999)
+
+    monkeypatch.setenv("OAP_CHAT_RATE_LIMIT", "1")
+    smi_chat_runtime_core._chat_rate_limit(
+        connection,
+        "founder",
+        is_human_authority=True,
+    )
+
+
 def test_neon_backed_chat_limiter_remains_separately_configurable(monkeypatch):
     connection = _CountConnection(12)
 
