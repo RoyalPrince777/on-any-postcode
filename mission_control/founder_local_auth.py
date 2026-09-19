@@ -41,10 +41,42 @@ def _session_secret() -> bytes:
 
 
 def _identity() -> str:
-    value = authority.configured_identity()
-    if not value:
+    """Resolve the sole active level-zero Human Authority without exposing identity data."""
+
+    configured = authority.configured_identity()
+    if configured:
+        return configured
+    if not postgres_db.configured():
         raise FounderLocalAuthUnavailable("human_authority_identity_not_configured")
-    return value
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT DISTINCT i.identity_id::text
+                   FROM oap_identities i
+                   JOIN oap_identity_roles ir ON ir.identity_id=i.identity_id
+                   JOIN oap_roles r ON r.role_id=ir.role_id
+                   JOIN oap_role_permissions rp ON rp.role_id=r.role_id
+                   WHERE i.status='ACTIVE'
+                     AND i.identity_type='HUMAN_AUTHORITY'
+                     AND r.authority_level=0
+                     AND rp.permission_id=%s
+                   ORDER BY i.identity_id::text
+                   LIMIT 2""",
+                (authority.APPROVAL_PERMISSION,),
+            ).fetchall()
+    except Exception as exc:
+        raise FounderLocalAuthUnavailable(
+            "human_authority_identity_unavailable"
+        ) from exc
+    if len(rows) != 1:
+        raise FounderLocalAuthUnavailable("single_human_authority_not_proven")
+    return str(rows[0][0])
+
+
+def resolved_identity() -> str:
+    """Return the canonical Founder UUID after the same fail-closed proof."""
+
+    return _identity()
 
 
 def _derive(password: str, salt: bytes) -> bytes:
@@ -68,18 +100,22 @@ def _table_exists(connection) -> bool:
 
 
 def bound() -> bool:
-    """Return whether one Render-local Founder verifier already exists."""
+    """Return whether one verifier is bound to the sole proven Human Authority."""
 
-    if not postgres_db.configured() or not authority.configured_identity():
+    if not postgres_db.configured():
         return False
     try:
+        identity_id = _identity()
         with postgres_db.connect(readonly=True) as connection:
             if not _table_exists(connection):
                 return False
             row = connection.execute(
-                "SELECT 1 FROM oap_founder_local_auth WHERE singleton_id=1 LIMIT 1"
+                """SELECT identity_id FROM oap_founder_local_auth
+                   WHERE singleton_id=1 LIMIT 1"""
             ).fetchone()
-            return row is not None
+            return row is not None and hmac.compare_digest(
+                str(row[0]), identity_id
+            )
     except Exception:  # noqa: BLE001 - auth readiness fails closed.
         return False
 
@@ -165,7 +201,13 @@ def verify(password: str) -> bool:
             ).fetchone()
     except Exception as exc:
         raise FounderLocalAuthUnavailable("founder_local_auth_store_unavailable") from exc
-    if row is None or str(row[0]) != authority.configured_identity():
+    if row is None:
+        return False
+    try:
+        identity_id = _identity()
+    except FounderLocalAuthUnavailable:
+        return False
+    if not hmac.compare_digest(str(row[0]), identity_id):
         return False
     try:
         salt = bytes.fromhex(str(row[1]))
@@ -241,7 +283,13 @@ def session_user(
         expires_at = int(payload.get("exp", 0))
     except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError):
         return None
-    if payload.get("v") != 1 or identity_id != authority.configured_identity():
+    try:
+        expected_identity = _identity()
+    except FounderLocalAuthUnavailable:
+        return None
+    if payload.get("v") != 1 or not hmac.compare_digest(
+        identity_id, expected_identity
+    ):
         return None
     if (
         issued_at > current + 60
