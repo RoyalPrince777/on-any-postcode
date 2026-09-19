@@ -31,7 +31,7 @@
       <button type="button" class="smi-interaction-tab" id="voice-mode-button" aria-pressed="false">🎙️ <span>Voice</span></button>
       <button type="button" class="smi-interaction-tab" id="vision-button" aria-pressed="false">👁️ <span>Vision</span></button>
       <button type="button" class="smi-interaction-tab" id="faceup-button" aria-pressed="false">📹 <span>Face Up</span></button>
-      <button type="button" class="smi-interaction-tab" id="screen-button" aria-pressed="false">🖥️ <span>Screen</span></button>
+      <button type="button" class="smi-interaction-tab" id="screen-mode-button" aria-pressed="false">🖥️ <span>Screen</span></button>
       <button type="button" class="smi-interaction-tab" id="tools-mode-button" aria-pressed="false">📎 <span>Tools</span></button>
     `;
     chatHead.insertAdjacentElement("afterend", strip);
@@ -134,7 +134,7 @@
     });
 
     async function captureScreen() {
-      activate("screen-button");
+      activate("screen-mode-button");
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
         setStatus("Screen Intelligence is unavailable in this browser.");
         return;
@@ -265,7 +265,7 @@
       cameraInput.click();
     });
     strip.querySelector("#faceup-button").addEventListener("click", startFaceUp);
-    strip.querySelector("#screen-button").addEventListener("click", captureScreen);
+    strip.querySelector("#screen-mode-button").addEventListener("click", captureScreen);
     strip.querySelector("#tools-mode-button").addEventListener("click", () => {
       activate("tools-mode-button");
       if (!attachMenu.classList.contains("show")) plus.click();
