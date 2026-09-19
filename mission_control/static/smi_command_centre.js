@@ -21,6 +21,23 @@
  panel.setAttribute("aria-label","OAP SMI Digital Organism Command Centre");
  panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">✕ Close</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
  messages.before(panel);
+ // Quick access reuses the existing, governed Master Tools handlers.
+ const universe=document.createElement("nav");
+ universe.className="smi-command-universe";
+ universe.setAttribute("aria-label","SMI universe tools");
+ const quickActions=[
+  ["⚔️ War Room","war-room"],
+  ["🕶 Matrix","agents"],
+  ["🧠 HRM","hrm"],
+  ["🛡 Guardian","guardian"],
+  ["🟣 Green Gate","green-gate"]
+ ];
+ for(const [label,action] of quickActions){
+  const button=document.createElement("button");button.type="button";button.textContent=label;
+  button.dataset.action=action;
+  universe.append(button);
+ }
+ panel.querySelector(".smi-command-layout").after(universe);
  const stage=panel.querySelector(".smi-command-stage");
  const anatomy=panel.querySelector(".smi-command-anatomy");
  const evidence=panel.querySelector(".smi-command-evidence");
@@ -102,6 +119,26 @@
  toggle.addEventListener("click",()=>setOpen(!active));
  panel.querySelector(".smi-command-close").addEventListener("click",()=>{setOpen(false);toggle.focus();});
  refresh.addEventListener("click",refreshEvidence);
+ universe.addEventListener("click",event=>{
+  const trigger=event.target.closest("[data-action]");
+  if(!trigger)return;
+  const action=trigger.dataset.action;
+  const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
+  if(!canonical||canonical.disabled){
+   const feedback=document.getElementById("status");
+   if(feedback)feedback.textContent="This SMI tool is not available for execution.";
+   return;
+  }
+  setOpen(false);
+  canonical.click();
+ });
+ // A real message should show the actual Chat response, not hide it behind the stage.
+ document.addEventListener("submit",event=>{
+  if(event.target?.id==="chat-form"&&active)setOpen(false);
+ },true);
+ document.addEventListener("keydown",event=>{
+  if(active&&event.target?.id==="message"&&event.key==="Enter"&&!event.shiftKey&&!event.isComposing)setOpen(false);
+ },true);
  document.addEventListener("keydown",event=>{
   if(event.key==="Escape"&&active&&!document.body.classList.contains("smi-live-fullscreen")){
    setOpen(false);toggle.focus();
