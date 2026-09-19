@@ -2,6 +2,8 @@
 
 Status: 🟣 BUILD COMPLETE / LIVE CERTIFICATION REQUIRED
 
+Founder Final: 🟢 APPROVED FOR MERGE on 2026-09-19. Live browser/device certification remains evidence-gated after deployment.
+
 This lane keeps SMI as one intelligence brain. Chat, Voice, Vision, Face Up, Screen Intelligence and Tools are interaction modes over the same governed SMI runtime.
 
 ## Canonical surface
