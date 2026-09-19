@@ -60,3 +60,39 @@ def test_live_voice_does_not_hijack_the_artwork_and_respects_reduced_motion():
     assert 'body.smi-live-fullscreen.smi-command-open .composer-left>*' in CSS
     assert 'prefers-reduced-motion:reduce' in CSS
     assert 'setRoom(roomGates.get("founder"),false' in JS
+
+
+def test_real_composer_is_aligned_to_painted_art_not_duplicated():
+    assert 'const composer=document.getElementById("chat-form")' in JS
+    assert 'aligned.append(composer)' in JS
+    assert 'scene.append(aligned)' in JS
+    assert 'picture.width=wallpaper.naturalWidth' in JS
+    assert 'picture.height=wallpaper.naturalHeight' in JS
+    assert 'const scale=Math.min(width/picture.width,height/picture.height)' in JS
+    assert 'observer.observe(scene)' in JS
+    assert 'id="chat-form"' in BASE
+    assert BASE.count('id="chat-form"') == 1
+    assert 'smi-image-control-surface #message' in CSS
+    assert 'smi-image-control-surface #plus-button' in CSS
+    assert 'smi-image-control-surface #mic-button' in CSS
+    assert 'smi-image-control-surface #thinking-level' in CSS
+    assert 'smi-image-control-surface #send' in CSS
+    assert 'pointer-events:auto!important' in CSS
+
+
+def test_stop_is_visible_outside_picture_and_mobile_controls_are_touch_sized():
+    assert 'for(const id of ["code-button","speaker-button","pause-button","stop-button"])' in JS
+    assert 'panel.querySelector(".smi-command-top").append(safetyTools)' in JS
+    assert 'smi-command-safety-tools #stop-button' in CSS
+    assert 'height:44px!important' in CSS
+    assert 'font-size:16px!important' in CSS
+    assert 'bottom:calc(126px + env(safe-area-inset-bottom))' in CSS
+    assert 'pointer-events:none' in CSS
+    assert 'pointer-events:auto' in CSS
+
+
+def test_no_artwork_gives_visible_fail_closed_real_input():
+    assert 'panel.classList.add("smi-art-error")' in JS
+    assert 'panel.classList.remove("smi-art-error")' in JS
+    assert 'no substitute character shown' in JS
+    assert '.smi-command-centre.smi-art-error' in CSS
