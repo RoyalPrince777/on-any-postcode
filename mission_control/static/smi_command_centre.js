@@ -38,6 +38,24 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+ // Mobile remains one command room: expose anatomy and live evidence as real tabs.
+ const mobileViews=document.createElement("nav");
+ mobileViews.className="smi-command-mobile-views";
+ mobileViews.setAttribute("aria-label","Mobile SMI room views");
+ for(const [name,label] of [["scene","👁 Presence"],["anatomy","🧬 Anatomy"],["evidence","📊 Evidence"]]){
+  const tab=document.createElement("button");tab.type="button";tab.textContent=label;tab.dataset.view=name;
+  tab.setAttribute("aria-pressed",String(name==="scene"));
+  mobileViews.append(tab);
+ }
+ panel.querySelector(".smi-command-layout").before(mobileViews);
+ panel.dataset.mobileView="scene";
+ mobileViews.addEventListener("click",event=>{
+  const tab=event.target.closest("button[data-view]");
+  if(!tab)return;
+  panel.dataset.mobileView=tab.dataset.view;
+  mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button===tab)));
+  if(tab.dataset.view==="evidence")refreshEvidence();
+ });
  const stage=panel.querySelector(".smi-command-stage");
  const anatomy=panel.querySelector(".smi-command-anatomy");
  const evidence=panel.querySelector(".smi-command-evidence");
@@ -51,12 +69,22 @@
   ["🛡️","Immune · Guardian","Safety · permissions",cfg.warRoomUrl],
   ["🧬","HRM · Memory","Receipts · recall",cfg.hrmUrl],
   ["⚔️","War Room · Judges","3 / 7 / 21 depth",cfg.warRoomUrl],
-  ["🗺️","Movement · Routes","Spatial intelligence","/movement"]
+  ["🗺️","Movement · Routes","Spatial intelligence","/movement"],
+  ["🧬","DNA · OAP Constitution","21 laws · approved authority",null],
+  ["🔗","Nervous System · NEXUS","Signals · governed routing",null],
+  ["🌐","Matrix · World State","Routes · events · dependencies",null],
+  ["💪","Muscles · Execution","Actions only when permitted",null],
+  ["🩸","Blood · Signals","Pulse · governed events",null],
+  ["🦴","Skeleton · Infrastructure","Render · storage · routing",null],
+  ["🧪","Sanitisation","Filter · validate · minimise",null],
+  ["🛡️","Skin · Security Boundary","Authentication · privacy",null],
+  ["⚡","Energy · Metabolism","Compute · bandwidth · cost",null],
+  ["🌱","Growth · Improvement","Evidence → proposal → approval",null]
  ];
  function addLink(parent,icon,name,detail,url){
-  if(!url)return;
-  const link=document.createElement("a");link.className="smi-command-link";
-  link.href=url;link.title=detail;
+  const link=document.createElement(url?"a":"div");link.className="smi-command-link";
+  if(url){link.href=url;link.title=detail;}
+  else{link.classList.add("smi-command-descriptive");link.title="Anatomy description · no live action implied";}
   const mark=document.createElement("span");mark.textContent=icon;
   const copy=document.createElement("div");const nameEl=document.createElement("strong");nameEl.textContent=name;
   const detailEl=document.createElement("small");detailEl.textContent=detail;
