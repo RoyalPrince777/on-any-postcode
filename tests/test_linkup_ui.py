@@ -171,7 +171,7 @@ def test_linkup_template_exposes_my_card_and_peer_identity_labels():
     page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert "My Card" in page
-    assert "dashboard.my_card.card_id" in page
+    assert "my_card.card_id" in page
     assert "thread.card_id" in page
     assert "thread.username" in page
     assert "Choose an OAP member" in page
@@ -187,3 +187,43 @@ def test_linkup_chat_surfaces_link_request_onboarding():
     assert "Messaging unlocks only after it is accepted." in page
     assert "Your My Card is still active above." in page
     assert "Link Requests are not ready, so new private chat remains locked." in page
+
+
+def test_linkup_seven_star_gate_fails_closed_until_all_runtime_evidence_is_true():
+    status = linkup.linkup_seven_star_status(
+        {
+            "identity": True,
+            "relationship": True,
+            "messaging": True,
+            "safety": True,
+            "privacy": False,
+            "resilience": False,
+            "live_gate": False,
+        }
+    )
+
+    assert status["star_count"] == 4
+    assert status["star_total"] == 7
+    assert status["ready"] is False
+    assert status["signal"] == "purple"
+    assert status["stars_display"] == "★★★★☆☆☆"
+
+
+def test_linkup_seven_star_gate_reaches_green_only_at_seven_of_seven():
+    evidence = {gate["id"]: True for gate in linkup.LINK_UP_SEVEN_STAR_GATE}
+    status = linkup.linkup_seven_star_status(evidence)
+
+    assert status["star_count"] == 7
+    assert status["percent"] == 100
+    assert status["ready"] is True
+    assert status["signal"] == "green"
+    assert status["human_authority_final"] is True
+
+
+def test_linkup_template_shows_runtime_seven_star_gate():
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "7-Star Gate" in page
+    assert "seven_star_gate.star_count" in page
+    assert "seven_star_gate.percent" in page
+    assert "star.proof" in page
