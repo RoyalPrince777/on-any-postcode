@@ -223,6 +223,50 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    try:
+        youth_runtime = link_youth_safety.status()
+        youth_self_test = youth_runtime.get("policy_self_test") or {}
+        print(
+            json.dumps(
+                {
+                    "event": "oap_link_youth_guard_runtime_proof",
+                    "ready": bool(youth_runtime.get("ready")),
+                    "policy_self_test_passed": bool(
+                        youth_self_test.get("passed")
+                    ),
+                    "cross_age_blocked": bool(
+                        youth_self_test.get("cross_age_blocked")
+                    ),
+                    "same_band_allowed": bool(
+                        youth_self_test.get("same_band_allowed")
+                    ),
+                    "unknown_unresolved": bool(
+                        youth_self_test.get("unknown_unresolved")
+                    ),
+                    "uses_production_identities": False,
+                    "stores_date_of_birth": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+    except Exception:
+        print(
+            json.dumps(
+                {
+                    "event": "oap_link_youth_guard_runtime_proof",
+                    "ready": False,
+                    "policy_self_test_passed": False,
+                    "uses_production_identities": False,
+                    "stores_date_of_birth": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+
     if os.environ.get("OAP_LINK_SHARE_MIGRATION_ON_BOOT", "").strip() == "1":
         try:
             share_status = link_share.init_schema(assume_yes=True)
