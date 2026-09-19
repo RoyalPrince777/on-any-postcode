@@ -1254,6 +1254,56 @@ def linkup_front_door():
                 reverse=True,
             )
 
+            card_identity_ids = [identity_id]
+            card_identity_ids.extend(
+                person.get("identity_id")
+                for person in dashboard.get("directory", [])
+                if person.get("identity_id")
+            )
+            try:
+                certification_labels = certification.labels_for_identities(
+                    card_identity_ids
+                )
+            except certification.CertificationUnavailable:
+                certification_labels = {}
+
+            if my_card:
+                my_card["certifications"] = certification_labels.get(identity_id, [])
+                my_card["avatar_initial"] = (
+                    str(my_card.get("display_name") or "?")[:1].upper()
+                )
+
+            for person in dashboard.get("directory", []):
+                peer_id = str(person.get("identity_id") or "")
+                person["certifications"] = certification_labels.get(peer_id, [])
+                person["avatar_initial"] = (
+                    str(person.get("display_name") or "?")[:1].upper()
+                )
+
+            for thread in dashboard.get("threads", []):
+                peer_id = str(thread.get("other_identity_id") or "")
+                peer = people_by_id.get(peer_id, {})
+                thread["certifications"] = certification_labels.get(peer_id, [])
+                thread["avatar_initial"] = (
+                    str(thread.get("display_name") or "?")[:1].upper()
+                )
+                relation = relation_by_peer.get(peer_id)
+                thread["link_status"] = (
+                    str(relation.get("status"))
+                    if relation
+                    else "accepted"
+                )
+                thread["link_kind"] = (
+                    str(relation.get("link_kind"))
+                    if relation
+                    else "permanent"
+                )
+                thread["purpose_text"] = (
+                    str(relation.get("purpose_text") or "")
+                    if relation
+                    else ""
+                )
+
     link_runtime = {
         "identity": bool(user and my_card),
         "relationship": relationships_ready,
