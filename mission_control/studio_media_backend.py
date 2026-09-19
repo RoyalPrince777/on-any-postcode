@@ -18,10 +18,43 @@ OPENAI_BASE_URL = "https://api.openai.com/v1"
 IMAGE_MODEL = os.environ.get("OAP_STUDIO_IMAGE_MODEL", "gpt-image-2").strip() or "gpt-image-2"
 VIDEO_MODEL = os.environ.get("OAP_STUDIO_VIDEO_MODEL", "sora-2").strip() or "sora-2"
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_VIDEO_BYTES = 250 * 1024 * 1024
 
 
 def _key() -> str:
     return os.environ.get("OPENAI_API_KEY", "").strip()
+
+
+
+def video_content(video_id: str) -> dict[str, Any]:
+    """Fetch a completed provider video through the private OAP Studio boundary."""
+
+    clean_id = str(video_id or "").strip()
+    if not clean_id.startswith("video_"):
+        raise ValueError("studio_video_id_invalid")
+    key = _key()
+    if not key:
+        raise RuntimeError("studio_generation_provider_unconfigured")
+    req = urlrequest.Request(
+        OPENAI_BASE_URL + f"/videos/{clean_id}/content",
+        headers={"Authorization": f"Bearer {key}"},
+        method="GET",
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=120) as response:
+            content_type = str(response.headers.get("Content-Type") or "video/mp4")
+            raw = response.read(MAX_VIDEO_BYTES + 1)
+    except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+        raise RuntimeError("studio_generation_provider_unavailable") from exc
+    if not raw or len(raw) > MAX_VIDEO_BYTES:
+        raise RuntimeError("studio_generation_artifact_missing")
+    return {
+        "id": clean_id,
+        "mime_type": content_type.split(";", 1)[0].strip() or "video/mp4",
+        "content": raw,
+        "artifact_proven": True,
+        "provider_is_authority": False,
+    }
 
 
 def status() -> dict[str, Any]:
