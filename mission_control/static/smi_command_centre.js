@@ -280,7 +280,7 @@
   if(detail.live&&active)setOpen(false);
  });
  window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
- // Command Centre is the approved visual front door; Chat remains immediately reachable.
- // Never override a voice-first/fullscreen session already active.
- if(!document.body.classList.contains("smi-live-fullscreen"))setOpen(true);
+ // Chat is the working front door. The approved Command Centre stays one tap away;
+ // never cover composer, upload or saved work immediately after sign-in.
+ // Fullscreen/voice transitions and the existing toggle keep their own guards.
 })();
