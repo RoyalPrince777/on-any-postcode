@@ -34,7 +34,7 @@
       <button type="button" class="smi-interaction-tab" id="screen-mode-button" aria-pressed="false">🖥️ <span>Screen</span></button>
       <button type="button" class="smi-interaction-tab" id="tools-mode-button" aria-pressed="false">📎 <span>Tools</span></button>
     `;
-    chatHead.insertAdjacentElement("afterend", strip);
+    (document.getElementById("thinking") || chatHead).insertAdjacentElement("afterend", strip);
 
     const drawer = document.createElement("section");
     drawer.id = "faceup-panel";
