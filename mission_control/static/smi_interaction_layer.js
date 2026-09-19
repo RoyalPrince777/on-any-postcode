@@ -290,6 +290,21 @@
       setStatus("Intelligence " + label + " selected · Human Authority remains final");
     });
 
+    const pauseControl = document.getElementById("pause-button");
+    if (pauseControl) {
+      pauseControl.title = "Pause/resume the local response display. Use Stop to cancel the governed stream.";
+      pauseControl.addEventListener("click", () => {
+        window.setTimeout(() => {
+          const paused = pauseControl.getAttribute("aria-pressed") === "true";
+          setStatus(
+            paused
+              ? "Display paused · backend/provider work may continue until Stop"
+              : "Display resumed · governed stream continues"
+          );
+        }, 0);
+      });
+    }
+
     window.addEventListener("pagehide", () => {
       if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
     }, {once: true});
