@@ -413,6 +413,8 @@ def chat(
     enriched["memory_sync"] = memory_sync_status()
     enriched["thinking_level"] = str(thinking_level or "auto")
     enriched["studio_mode"] = bool(studio_mode)
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     behaviour_receipt = _receipts.write_receipt(
         "behaviour_response_receipt",
         {
