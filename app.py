@@ -29,8 +29,14 @@ from mission_control import (
     founder_recovery,
     judgement,
     languages,
+    link_call_audit,
+    link_presence,
     link_relationships,
+    link_signalling,
+    link_turn,
+    link_voice,
     linkup,
+    linkup_safety,
     location_intelligence,
     neon_auth,
     product_store,
@@ -1246,6 +1252,43 @@ def linkup_front_door():
                 reverse=True,
             )
 
+    link_runtime = {
+        "identity": bool(user and my_card),
+        "relationship": relationships_ready,
+        "messaging": False,
+        "safety": False,
+        "privacy": False,
+        "resilience": False,
+    }
+    try:
+        store_state = product_store.status()
+        link_runtime["messaging"] = bool(
+            store_state.get("tables", {}).get("messages")
+        )
+    except Exception:  # noqa: BLE001,S110 - readiness remains fail closed.
+        pass
+    try:
+        link_runtime["safety"] = bool(linkup_safety.status().get("ready"))
+    except Exception:  # noqa: BLE001,S110
+        pass
+    try:
+        link_runtime["privacy"] = bool(link_presence.status().get("ready"))
+    except Exception:  # noqa: BLE001,S110
+        pass
+    try:
+        link_runtime["resilience"] = all(
+            (
+                bool(link_voice.status().get("ready")),
+                bool(link_call_audit.status().get("ready")),
+                bool(link_signalling.status().get("ready")),
+                bool(link_turn.status().get("ready")),
+            )
+        )
+    except Exception:  # noqa: BLE001,S110
+        pass
+    link_runtime["live_gate"] = all(link_runtime.values())
+    seven_star_gate = linkup.linkup_seven_star_status(link_runtime)
+
     response = make_response(
         render_template(
             "linkup.html",
@@ -1255,6 +1298,7 @@ def linkup_front_door():
             my_card=my_card,
             relationships=relationships,
             relationships_ready=relationships_ready,
+            seven_star_gate=seven_star_gate,
             private_unavailable=unavailable,
         )
     )
