@@ -236,3 +236,20 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre.smi-room-art
   animation:none!important;transition:none!important;opacity:0!important
  }
 }
+
+
+/* Asset-gated motion of the SAME approved artwork (not an avatar replacement).
+   Full-frame clip must be composed from the exact signed-off still, identical
+   dimensions/framing, with only the character articulated. Controls stay HTML. */
+.smi-command-scene .smi-approved-motion-clip{
+ display:none;position:absolute;left:50%;top:0;transform:translateX(-50%);
+ z-index:0;max-width:none;max-height:none;pointer-events:none;object-fit:fill
+}
+.smi-room-art-loaded .smi-command-scene .smi-approved-motion-clip.smi-approved-motion-playing{
+ display:block
+}
+@media(prefers-reduced-motion:reduce){
+ .smi-command-scene .smi-approved-motion-clip{
+  display:none!important;animation:none!important;transition:none!important
+ }
+}
