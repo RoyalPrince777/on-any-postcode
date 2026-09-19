@@ -218,3 +218,25 @@ def test_explicit_war_room_selector_forces_review_without_execution_authority():
     assert "bool(force_review)" in war_room
     assert '"decision_authority": False' in live_brain
     assert '"mode": "simulation_only"' in war_room
+
+
+
+def test_function_health_tracks_interaction_certification_without_fake_green():
+    from mission_control import smi_function_health
+
+    result = smi_function_health.interaction_certification()
+    assert result["all_implemented_for_certification"] is True
+    assert result["whole_interaction_green"] is False
+    assert result["live_proof_required"] is True
+    assert result["no_fake_green"] is True
+    assert {item["id"] for item in result["surfaces"]} == {
+        "chat",
+        "voice",
+        "vision",
+        "face-up",
+        "screen",
+        "tools",
+        "intelligence-selector",
+        "runtime-controls",
+    }
+    assert all(item["state"] == "purple" for item in result["surfaces"])
