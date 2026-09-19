@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from flask import Flask
 
-from mission_control import product_core_services, product_core_views
+from mission_control import certification, product_core_services, product_core_views
 
 
 def test_product_organ_blueprint_exposes_first_party_workflows_without_external_edges():
@@ -91,3 +93,51 @@ def test_playlist_write_rejects_invalid_identity_or_position_before_store_access
             track_id="00000000-0000-0000-0000-000000000002",
             position=0,
         )
+
+
+
+def test_commerce_core_merchant_guard_requires_certification(monkeypatch):
+    monkeypatch.setattr(
+        certification,
+        "identity_status",
+        lambda _identity_id: {"merchant": False},
+    )
+
+    with pytest.raises(PermissionError, match="certified_merchant_required"):
+        product_core_views._require_certified_merchant(
+            "00000000-0000-0000-0000-000000000258"
+        )
+
+
+def test_commerce_core_merchant_guard_fails_closed_when_store_unavailable(
+    monkeypatch,
+):
+    def unavailable(_identity_id):
+        raise certification.CertificationUnavailable(
+            "certification_read_unavailable"
+        )
+
+    monkeypatch.setattr(certification, "identity_status", unavailable)
+
+    with pytest.raises(RuntimeError, match="merchant_certification_unavailable"):
+        product_core_views._require_certified_merchant(
+            "00000000-0000-0000-0000-000000000258"
+        )
+
+
+def test_commerce_core_seller_writes_call_certified_merchant_guard():
+    source = (
+        Path(product_core_views.__file__).read_text(
+            encoding="utf-8"
+        )
+    )
+
+    storefront = source.split('def create_storefront():', 1)[1].split(
+        'def create_product():', 1
+    )[0]
+    product = source.split('def create_product():', 1)[1].split(
+        'def create_order():', 1
+    )[0]
+
+    assert "_require_certified_merchant(_identity(sync=True))" in storefront
+    assert "_require_certified_merchant(_identity(sync=True))" in product
