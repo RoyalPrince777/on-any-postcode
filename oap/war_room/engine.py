@@ -70,6 +70,7 @@ class WarRoomEngine:
         authority_roles: tuple[str, ...] = (),
         self_model: Mapping[str, object] | None = None,
         coherence: Mapping[str, object] | None = None,
+        force_review: bool = False,
     ) -> WarRoomReport:
         conflicts = self._coherence_conflicts(coherence)
         degraded = self._degraded_components(self_model)
@@ -80,7 +81,8 @@ class WarRoomEngine:
             finding.code for finding in safety.findings if finding.blocks
         )
         triggered = (
-            request.high_impact
+            bool(force_review)
+            or request.high_impact
             or safety.human_review_required
             or bool(conflicts)
             or bool(degraded)
@@ -121,6 +123,8 @@ class WarRoomEngine:
             f"signal_level={safety.signal_level.value}",
             f"analysis_confidence={analysis.confidence:.2f}",
         ]
+        if force_review:
+            evidence.append("war_room_requested=true")
         evidence.extend(f"guardian_blocker={code}" for code in blocking_codes)
         evidence.extend(f"provider_unavailable={provider}" for provider in unavailable)
         evidence.extend(f"coherence_conflict={conflict}" for conflict in conflicts)
