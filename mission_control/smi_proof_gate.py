@@ -19,6 +19,7 @@ from . import (
     approval_service,
     authority,
     coherent_automation,
+    embodiment_isolation,
     hrm_durable_receipt,
     postgres_db,
     telemetry,
@@ -339,7 +340,13 @@ def _isolation_recovery_exercise() -> dict[str, object]:
         and restored_state["sessions"]["founder"] == "BOUND"
         and restored_state["authority"] == "HUMAN"
     )
-    passed = bool(contained and restored and safe_resume)
+    embodiment_proof = embodiment_isolation.bounded_isolation_recovery_proof()
+    passed = bool(
+        contained
+        and restored
+        and safe_resume
+        and embodiment_proof["passed"]
+    )
     return {
         "contained": contained,
         "restored": restored,
@@ -348,6 +355,19 @@ def _isolation_recovery_exercise() -> dict[str, object]:
         "queue_state_restored": restored_state["queue"] == checkpoint["queue"],
         "session_state_restored": restored_state["sessions"] == checkpoint["sessions"],
         "memory_refs_restored": restored_state["memory_refs"] == checkpoint["memory_refs"],
+        "embodiment_isolation": embodiment_proof,
+        "embodiment_channels_independent": bool(
+            all(embodiment_proof["independent_isolation"].values())
+        ),
+        "embodiment_master_stop_contained": bool(
+            embodiment_proof["master_stop_contained"]
+        ),
+        "embodiment_recovery_proven": bool(
+            all(embodiment_proof["recovery"].values())
+        ),
+        "smi_chat_survived_body_isolation": bool(
+            embodiment_proof["smi_chat_survived"]
+        ),
         "passed": passed,
         "production_state_mutated": False,
         "execution_authority_expanded": False,
@@ -388,6 +408,18 @@ def run_isolation_recovery_proof(identity_id: object) -> dict[str, object]:
                 "queue_state_restored": bool(proof["queue_state_restored"]),
                 "session_state_restored": bool(proof["session_state_restored"]),
                 "memory_refs_restored": bool(proof["memory_refs_restored"]),
+                "embodiment_channels_independent": bool(
+                    proof["embodiment_channels_independent"]
+                ),
+                "embodiment_master_stop_contained": bool(
+                    proof["embodiment_master_stop_contained"]
+                ),
+                "embodiment_recovery_proven": bool(
+                    proof["embodiment_recovery_proven"]
+                ),
+                "smi_chat_survived_body_isolation": bool(
+                    proof["smi_chat_survived_body_isolation"]
+                ),
                 "production_state_mutated": False,
                 "execution_authority_expanded": False,
                 "authority_level": 0,
