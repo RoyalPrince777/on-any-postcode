@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from mission_control import config, linkup
+from mission_control import config, linkup, product_store
 
 
 def test_link_dashboard_preserves_three_approved_views():
@@ -157,3 +157,22 @@ def test_link_route_does_not_reflect_query_input(client):
     page = client.get("/linkup", query_string={"conversation": attack}).get_data(as_text=True)
     assert attack not in page
     assert "&lt;script&gt;" not in page
+
+
+def test_linkup_member_card_id_is_human_readable_without_exposing_raw_uuid():
+    identity = "00000000-0000-0000-0000-00000000abcd"
+    card_id = product_store._member_card_id(identity)
+
+    assert card_id == "OAP-00000000"
+    assert identity not in card_id
+
+
+def test_linkup_template_exposes_my_card_and_peer_identity_labels():
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "My Card" in page
+    assert "dashboard.my_card.card_id" in page
+    assert "thread.card_id" in page
+    assert "thread.username" in page
+    assert "Choose an OAP member" in page
+    assert "Choose a Certified member" not in page
