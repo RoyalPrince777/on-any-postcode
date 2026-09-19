@@ -25,7 +25,6 @@ def test_link_share_client_unlocks_only_after_runtime_status():
     assert '/linkup/share/status' in script
     assert 'status.ready === true && status.first_party === true' in script
     assert 'control.disabled = !state.ready' in script
-    assert 'accepted_link_required' not in script or True
 
 
 def test_link_share_is_bounded_and_first_party():
