@@ -36,6 +36,7 @@ jobs:
           node --check mission_control/static/smi_live_character_state.js
           node --check mission_control/static/smi_canonical_controller.js
           node tests/smi_live_character_state_test.cjs
+          node tests/smi_live_character_exhaustive_test.cjs
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
