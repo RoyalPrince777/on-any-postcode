@@ -117,3 +117,56 @@ def test_receipt_host_fingerprint_unconfigured(monkeypatch):
     ):
         monkeypatch.delenv(key, raising=False)
     assert smi_receipt_backend.backend_configuration_status()["hrm_host_sha256"] is None
+
+
+
+def test_sqlite_fallback_must_not_pass_durable_hrm_gates(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "write_receipt",
+        lambda *args, **kwargs: {
+            "ok": True,
+            "read_back_ok": True,
+            "backend": "local_sqlite_receipt_store",
+            "durable": False,
+            "fallback_used": True,
+        },
+    )
+    result = smi_receipt_backend.receipt_backend_status()
+    assert result["write_read_proof"]["ok"] is True
+    assert result["hrm_receipt_ready"] is False
+    assert result["matrix_learning_receipt_ready"] is False
+    assert result["ecosystem_outcome_receipt_ready"] is False
+    assert result["independent_durable_hrm_ready"] is False
+
+
+def test_postgres_requires_actual_readback_for_durable_hrm_gates(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "write_receipt",
+        lambda *args, **kwargs: {
+            "ok": True,
+            "read_back_ok": False,
+            "backend": "independent_hrm_postgres",
+            "durable": True,
+            "fallback_used": False,
+        },
+    )
+    assert smi_receipt_backend.receipt_backend_status()["hrm_receipt_ready"] is False
+
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "write_receipt",
+        lambda *args, **kwargs: {
+            "ok": True,
+            "read_back_ok": True,
+            "backend": "independent_hrm_postgres",
+            "durable": True,
+            "fallback_used": False,
+        },
+    )
+    assert smi_receipt_backend.receipt_backend_status()["hrm_receipt_ready"] is True
