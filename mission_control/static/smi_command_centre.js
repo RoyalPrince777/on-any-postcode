@@ -74,7 +74,7 @@
   if(!tab)return;
   panel.dataset.mobileView=tab.dataset.view;
   mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button===tab)));
-  if(tab.dataset.view==="evidence")refreshEvidence();
+  if(tab.dataset.view==="evidence"){refreshEvidence();refreshRoomStatus();}
  });
  const stage=panel.querySelector(".smi-command-stage");
  const anatomy=panel.querySelector(".smi-command-anatomy");
@@ -112,6 +112,13 @@
   parent.append(link);
  }
  anatomyLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
+ // The approved command-room picture keeps intelligence, signals and gate evidence
+ // in the scene itself; Status drawer remains a secondary detailed view.
+ const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
+ dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>FOUR CHECKPOINTS · NO FAKE GREEN</h3><div class="smi-room-gates"><article data-room-gate="rollback"><strong>25% · Recovery</strong><small>Proof pending</small></article><article data-room-gate="runtime_guard"><strong>50% · Runtime Guard</strong><small>Proof pending</small></article><article data-room-gate="isolation"><strong>75% · Aegis</strong><small>Proof pending</small></article><article data-room-gate="founder"><strong>100% · Founder Final</strong><small>Founder decision required</small></article></div><p class="smi-room-status-note">Live evidence, not sample population figures. Contract validity does not prove all systems operational.</p>';
+ evidence.append(dashboard);
+ const roomStats=new Map([...dashboard.querySelectorAll("[data-room-stat]")].map(el=>[el.dataset.roomStat,el]));
+ const roomGates=new Map([...dashboard.querySelectorAll("[data-room-gate]")].map(el=>[el.dataset.roomGate,el]));
  const proofList=document.createElement("div");proofList.className="smi-command-side";
  const monitored=[["biological_brain","Brain"],["nexus","NEXUS"],["hrm","HRM"],["guardian","Guardian"],["aegis","AEGIS"],["war_room","War Room"],["audit","Audit"],["human_authority","Human Authority"]];
  const proofNodes=new Map();
@@ -127,7 +134,52 @@
  evidence.append(refresh);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
- let active=false,request=null;
+ let active=false,request=null,roomRequest=null;
+ const setRoom=(node,proven,message)=>{
+  if(!node)return;
+  node.dataset.proven=String(proven===true);
+  node.querySelector("small").textContent=message;
+ };
+ async function refreshRoomStatus(){
+  if(roomRequest)roomRequest.abort();
+  roomRequest=new AbortController();
+  const signal=roomRequest.signal;
+  roomStats.forEach(node=>setRoom(node,false,"Checking live evidence…"));
+  roomGates.forEach((node,key)=>setRoom(node,false,key==="founder"?"Founder decision required":"Checking proof…"));
+  const targets=[
+   ["runtime",cfg.healthUrl],
+   ["functions",cfg.functionHealthUrl],
+   ["signals",cfg.signalsUrl],
+   ["alignment",cfg.greenGateUrl]
+  ];
+  const result=await Promise.allSettled(targets.map(async ([,url])=>{
+   if(!url)throw new Error("Route unavailable");
+   const response=await fetch(url,{cache:"no-store",credentials:"same-origin",signal});
+   if(!response.ok)throw new Error("HTTP "+response.status);
+   const value=await response.json();
+   if(!value||typeof value!=="object"||Array.isArray(value))throw new Error("Evidence unavailable");
+   return value;
+  }));
+  if(signal.aborted)return;
+  const value=index=>result[index].status==="fulfilled"?result[index].value:null;
+  const health=value(0),functions=value(1),signals=value(2),gate=value(3);
+  const count=Number(functions?.available_count||0),expected=Number(functions?.expected_count||0);
+  const functionsProven=expected>0&&count===expected&&Number(functions?.proof_checked_count||0)===expected&&Number(functions?.proof_required_count||0)===0;
+  const signalProven=signals?.ready===true&&signals?.signals_valid===true&&Number(signals?.signal_count)===21;
+  setRoom(roomStats.get("runtime"),health?.ready===true,
+   health?String(health.status||"Response received · proof not green"):"Unavailable · NOT PROVEN");
+  setRoom(roomStats.get("functions"),functionsProven,
+   functions?count+"/"+(expected||"?")+" routes · "+Number(functions?.proof_checked_count||0)+" checks":"Unavailable · NOT PROVEN");
+  setRoom(roomStats.get("signals"),signalProven,
+   signals?(signalProven?"21/21 contract validated":"NOT PROVEN · "+Number(signals.signal_count||0)+"/21"):"Unavailable · NOT PROVEN");
+  setRoom(roomStats.get("alignment"),gate?.green===true,
+   gate?(gate.green===true?"Backend checks satisfied · Founder final":"Proof required · "+(Array.isArray(gate.missing)?gate.missing.length:"?")+" gaps"):"Unavailable · NOT PROVEN");
+  const checks=gate?.checks||{};
+  setRoom(roomGates.get("rollback"),checks.rollback_recovery===true,checks.rollback_recovery===true?"Backend proof recorded":"Not proven");
+  setRoom(roomGates.get("runtime_guard"),checks.runtime_guard===true,checks.runtime_guard===true?"Backend proof recorded":"Not proven");
+  setRoom(roomGates.get("isolation"),checks.isolation_recovery===true,checks.isolation_recovery===true?"Backend proof recorded":"Not proven");
+  setRoom(roomGates.get("founder"),false,gate?.green===true?"Founder final decision pending":"Locked · all prior proof required");
+ }
  function setOpen(open){
   if(open===active)return;
   active=open;
@@ -137,6 +189,7 @@
    toggle.textContent="◈ Back to Chat";toggle.setAttribute("aria-label","Close SMI Command Centre");
    toggle.setAttribute("aria-pressed","true");
    refreshEvidence();
+   refreshRoomStatus();
   }else{
    if(marker.parentNode)marker.parentNode.insertBefore(character,marker);
    document.body.classList.remove("smi-command-open");
@@ -166,7 +219,7 @@
  }
  toggle.addEventListener("click",()=>setOpen(!active));
  panel.querySelector(".smi-command-close").addEventListener("click",()=>{setOpen(false);toggle.focus();});
- refresh.addEventListener("click",refreshEvidence);
+ refresh.addEventListener("click",()=>{refreshEvidence();refreshRoomStatus();});
  universe.addEventListener("click",event=>{
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
