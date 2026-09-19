@@ -86,6 +86,20 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('display:grid!important', styles)
         self.assertIn('smi-command-descriptive', source)
 
+    def test_status_and_signals_remain_visible_above_command_room(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
+        dashboard = (STATIC / "smi_sovereign_dashboard.js").read_text(encoding="utf-8")
+        self.assertIn('statusButton.textContent="📊 SMI Status"', source)
+        self.assertIn('signalsButton.textContent="◌ 21 Signals"', source)
+        self.assertIn('statusToggle.click()', source)
+        self.assertIn('details.open=true', source)
+        self.assertIn('.smi-command-status-actions button', styles)
+        self.assertIn('body.smi-status-open .smi-dashboard-layer{z-index:12500', styles)
+        self.assertIn("if(panel.tagName==='DETAILS')panel.open=true", dashboard)
+        self.assertIn('signals?.ready===true&&signals?.signals_valid===true', dashboard)
+        self.assertIn('21 Signals endpoint unavailable · NOT PROVEN', dashboard)
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
