@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from . import (
@@ -15,6 +16,66 @@ from . import (
     smi_chat_runtime,
     smi_proof_gate,
     smi_recursive_improvement,
+)
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
+INTERACTION_CERTIFICATION_SPECS = (
+    {
+        "id": "chat",
+        "name": "SMI Chat",
+        "markers": ("chat-mode-button", "streamUrl"),
+        "backend": "governed SMI stream",
+    },
+    {
+        "id": "voice",
+        "name": "SMI Voice",
+        "markers": ("voice-mode-button", "mic-button"),
+        "backend": "speech capture → governed SMI stream",
+    },
+    {
+        "id": "vision",
+        "name": "SMI Vision",
+        "markers": ("vision-button", "SMI Vision camera capture"),
+        "backend": "image_data → governed SMI stream",
+    },
+    {
+        "id": "face-up",
+        "name": "Face Up",
+        "markers": ("faceup-button", "getUserMedia", "faceup-capture"),
+        "backend": "local camera/mic + bounded frame → Vision path",
+        "known_gap": "continuous live SMI video participation is not certified",
+    },
+    {
+        "id": "screen",
+        "name": "Screen Intelligence",
+        "markers": ("screen-button", "getDisplayMedia", "Screen Intelligence capture"),
+        "backend": "bounded frame → Vision path",
+    },
+    {
+        "id": "tools",
+        "name": "Plus / Tools",
+        "markers": ("tools-mode-button", "plus-button"),
+        "backend": "existing governed tool and connector routes",
+    },
+    {
+        "id": "intelligence-selector",
+        "name": "Intelligence Selector",
+        "markers": (
+            '["manual", "Manual"]',
+            '["instant", "3"]',
+            '["think", "7"]',
+            '["deep_dive", "21"]',
+            '["war_room", "War Room"]',
+        ),
+        "backend": "Auto / Manual / 3 / 7 / 21 / War Room governed routing",
+    },
+    {
+        "id": "runtime-controls",
+        "name": "Runtime Controls",
+        "markers": ("pause-button", "stop-button"),
+        "backend": "client pause/resume + governed stream cancellation",
+    },
 )
 
 FUNCTION_SPECS = (
@@ -112,6 +173,71 @@ def route_status(url_map: Any) -> dict[str, Any]:
         "compatibility_aliases_hidden_from_primary_ui": True,
         "public_private_separation": True,
         "secrets_exposed": False,
+        "human_authority_final": True,
+    }
+
+
+def interaction_certification() -> dict[str, Any]:
+    """Track SMI interaction implementation separately from live Green Gate proof."""
+
+    try:
+        base = (
+            _REPOSITORY_ROOT / "mission_control" / "templates" / "ollama_chat_base.html"
+        ).read_text(encoding="utf-8")
+        wrapper = (
+            _REPOSITORY_ROOT / "mission_control" / "templates" / "ollama_chat.html"
+        ).read_text(encoding="utf-8")
+        script = (
+            _REPOSITORY_ROOT / "mission_control" / "static" / "smi_interaction_layer.js"
+        ).read_text(encoding="utf-8")
+        source = "\n".join((base, wrapper, script))
+        source_available = True
+    except OSError:
+        source = ""
+        source_available = False
+
+    surfaces = []
+    for spec in INTERACTION_CERTIFICATION_SPECS:
+        markers = tuple(str(item) for item in spec["markers"])
+        wired = bool(source_available and all(marker in source for marker in markers))
+        surfaces.append(
+            {
+                "id": spec["id"],
+                "name": spec["name"],
+                "implementation_wired": wired,
+                "backend_path": spec["backend"],
+                "known_gap": spec.get("known_gap"),
+                "live_runtime_proven": False,
+                "state": "purple" if wired else "red",
+                "label": "CERTIFICATION REQUIRED" if wired else "IMPLEMENTATION MISSING",
+            }
+        )
+
+    implemented_count = sum(
+        1 for item in surfaces if item["implementation_wired"]
+    )
+    expected_count = len(surfaces)
+    return {
+        "component": "SMI Interaction Certification",
+        "generated_at": _now(),
+        "surfaces": tuple(surfaces),
+        "implemented_count": implemented_count,
+        "expected_count": expected_count,
+        "implementation_percent": _percent(implemented_count, expected_count),
+        "all_implemented_for_certification": implemented_count == expected_count,
+        "whole_interaction_green": False,
+        "live_proof_required": True,
+        "proof_chain": (
+            "control",
+            "ui_action",
+            "governed_backend",
+            "correct_result",
+            "failure_handling",
+            "audit_where_required",
+            "independent_verification",
+            "green_gate",
+        ),
+        "no_fake_green": True,
         "human_authority_final": True,
     }
 
@@ -328,6 +454,7 @@ def function_health(url_map: Any) -> dict[str, Any]:
         "all_primary_routes_registered": routes["all_registered"],
         "duplicate_primary_paths": routes["duplicate_primary_paths"],
         "green_gate": gate,
+        "interaction_certification": interaction_certification(),
         "whole_smi_green": whole_smi_green,
         "readiness_scope": "Founder function operability; universal external-world readiness is measured separately",
         "execution_granted": False,
