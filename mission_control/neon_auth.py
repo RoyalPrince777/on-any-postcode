@@ -82,6 +82,12 @@ def configured_founder_email() -> str:
     return os.environ.get("OAP_HUMAN_AUTHORITY_EMAIL", "").strip().casefold()
 
 
+def local_founder_ready() -> bool:
+    """Return whether password-only Founder auth is safely bound locally."""
+
+    return founder_local_auth.bound()
+
+
 def configured_public_origin() -> str:
     """Return one validated server-controlled HTTPS origin for Auth mutations."""
 
@@ -193,7 +199,7 @@ def _local_founder_result(password: str) -> AuthResult | None:
         raise AuthUnavailable("founder_local_auth_unavailable") from exc
     if not valid:
         return AuthResult(status_code=401, payload={"code": "INVALID_PASSWORD"})
-    identity_id = os.environ.get("OAP_HUMAN_AUTHORITY_ID", "").strip()
+    identity_id = founder_local_auth.resolved_identity()
     email = configured_founder_email()
     return AuthResult(
         status_code=200,
@@ -210,11 +216,26 @@ def _local_founder_result(password: str) -> AuthResult | None:
     )
 
 
+def sign_in_founder(password: str) -> AuthResult:
+    """Prefer the bound password-only Founder verifier, then managed Auth."""
+
+    local_result = _local_founder_result(password)
+    if local_result is not None:
+        return local_result
+    email = configured_founder_email()
+    if not email:
+        raise AuthUnavailable("founder_selector_not_configured")
+    return _request(
+        "/sign-in/email",
+        method="POST",
+        payload={"email": email, "password": password, "rememberMe": True},
+        origin=_required_public_origin(),
+    )
+
+
 def sign_in(email: str, password: str) -> AuthResult:
     if founder_email_allowed(email):
-        local_result = _local_founder_result(password)
-        if local_result is not None:
-            return local_result
+        return sign_in_founder(password)
     return _request(
         "/sign-in/email",
         method="POST",
