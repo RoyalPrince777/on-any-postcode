@@ -77,6 +77,24 @@
   if(tab.dataset.view==="evidence"){refreshEvidence();refreshRoomStatus();}
  });
  const stage=panel.querySelector(".smi-command-stage");
+ // Load the exact approved picture from the first-party app asset.
+ // No visual green until the bytes resolve; the existing CSS character remains fallback.
+ const scene=panel.querySelector(".smi-command-scene");
+ if(cfg.approvedWallpaperUrl){
+  const wallpaper=new Image();
+  wallpaper.onload=()=>{
+   if(!wallpaper.naturalWidth||!wallpaper.naturalHeight)return;
+   scene.style.setProperty("--oap-smi-wallpaper",'url("'+cfg.approvedWallpaperUrl+'")');
+   panel.classList.add("smi-room-art-loaded");
+   scene.dataset.wallpaperReady="true";
+  };
+  wallpaper.onerror=()=>{
+   scene.dataset.wallpaperReady="false";
+   const status=document.getElementById("status");
+   if(status)status.textContent="Approved SMI artwork unavailable · existing organism preserved";
+  };
+  wallpaper.src=cfg.approvedWallpaperUrl;
+ }
  const anatomy=panel.querySelector(".smi-command-anatomy");
  const evidence=panel.querySelector(".smi-command-evidence");
  const anatomyLinks=[

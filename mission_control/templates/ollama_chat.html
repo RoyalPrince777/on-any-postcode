@@ -11,6 +11,7 @@
 <script>
 window.csrfToken=csrfToken;
 window.OAP_SMI_UI={
+  approvedWallpaperUrl:{{ url_for('static', filename='oap/smi_global_intelligence_command_centre.png')|tojson }},
   workbenchUrl:{{ url_for('mission_control.smi_workbench_status')|tojson }},
   healthUrl:{{ url_for('mission_control.smi_chat_health')|tojson }},
   streamUrl:{{ url_for('mission_control.smi_chat_stream')|tojson }},
