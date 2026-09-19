@@ -77,3 +77,43 @@ def test_missing_sqlite_fallback_is_not_created_by_status(monkeypatch, tmp_path)
     assert result["count"] == 0
     assert result["durable"] is False
     assert not missing.exists()
+
+
+
+def test_passive_receipt_host_fingerprint_is_secret_safe(monkeypatch):
+    import hashlib
+
+    from mission_control import smi_receipt_backend
+
+    for key in (
+        "OAP_HRM_DATABASE_URL",
+        "OAP_SMI_HRM_DATABASE_URL",
+        "OAP_HRM_DATABASE_URL_B64",
+        "OAP_SMI_HRM_DATABASE_URL_B64",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv(
+        "OAP_HRM_DATABASE_URL",
+        "postgresql://private-user:private-password@ep-example.neon.tech/neondb",
+    )
+    status = smi_receipt_backend.backend_configuration_status()
+    assert status["hrm_host_sha256"] == hashlib.sha256(
+        b"ep-example.neon.tech"
+    ).hexdigest()
+    assert status["live_store_identity_proven"] is False
+    assert "private-user" not in str(status)
+    assert "private-password" not in str(status)
+    assert "ep-example.neon.tech" not in str(status)
+
+
+def test_receipt_host_fingerprint_unconfigured(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    for key in (
+        "OAP_HRM_DATABASE_URL",
+        "OAP_SMI_HRM_DATABASE_URL",
+        "OAP_HRM_DATABASE_URL_B64",
+        "OAP_SMI_HRM_DATABASE_URL_B64",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    assert smi_receipt_backend.backend_configuration_status()["hrm_host_sha256"] is None
