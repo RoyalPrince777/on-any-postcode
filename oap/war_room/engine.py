@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from .agent_selection import status as agent_ranking_status
-from .role_growth import status as role_growth_status
-
 from oap.contracts import (
     BrainRequest,
     IntegratedAnalysis,
@@ -15,6 +12,9 @@ from oap.contracts import (
     SafetyDecision,
     WarRoomReport,
 )
+
+from .agent_selection import status as agent_ranking_status
+from .role_growth import status as role_growth_status
 
 
 class WarRoomEngine:
