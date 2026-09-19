@@ -13,6 +13,10 @@
 <a class="btn" href="#vote-board">🗳️ VOTE BOARD</a>
 <button class="btn js-war-action" type="button" data-action="aegis-check">🛡️ GUARDIAN</button>
 <button class="btn js-war-action" type="button" data-action="green-gate">🚦 GREEN GATE</button>
+<button class="btn js-recovery-proof" type="button" data-proof="rollback-recovery" data-step="25">↩️ 25% ROLLBACK</button>
+<button class="btn js-recovery-proof" type="button" data-proof="runtime-guard" data-step="50">🛡️ 50% RUNTIME GUARD</button>
+<button class="btn js-recovery-proof" type="button" data-proof="isolation-recovery" data-step="75">🧱 75% ISOLATION</button>
+<button class="btn primary js-complete-green" type="button">🟢 COMPLETE 25→100</button>
 <button class="btn js-founder-final" type="button">👑 FOUNDER FINAL</button>
 </div>
 <div class="bar" style="margin-top:8px">
@@ -175,6 +179,78 @@
       show('purple', '🟣 MANUAL ' + depth + ' selected · review depth only · Guardian, Green Gate and Founder Final remain mandatory.');
     });
   });
+  async function runRecoveryProof(proof, step) {
+    const response = await fetch('/mission/smi-proof/' + encodeURIComponent(proof), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json'}
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = payload?.error?.message || ('Recovery proof failed (' + response.status + ')');
+      throw new Error(message);
+    }
+    const passed = Boolean(payload?.proof?.passed);
+    if (!passed) throw new Error('Recovery proof did not return passed=true.');
+    show('green', '🟢 ' + step + '% proof passed · ' + proof + ' · audited · production state unchanged.');
+    return payload;
+  }
+  async function runFounderFinal() {
+    const response = await fetch('/mission/smi-proof/founder-final', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json'}
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const missing = payload?.error?.missing || payload?.missing || [];
+      const suffix = Array.isArray(missing) && missing.length ? '\nMissing: ' + missing.join(', ') : '';
+      throw new Error((payload?.error?.message || ('Founder Final failed (' + response.status + ')')) + suffix);
+    }
+    return payload;
+  }
+  document.querySelectorAll('.js-recovery-proof').forEach(button => {
+    button.addEventListener('click', async () => {
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = '🟣 PROVING…';
+      show('purple', '🟣 Running bounded ' + button.dataset.step + '% recovery proof · no product-state mutation.');
+      try {
+        await runRecoveryProof(button.dataset.proof, button.dataset.step);
+      } catch (error) {
+        show('yellow', '🟡 ' + error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    });
+  });
+  document.querySelectorAll('.js-complete-green').forEach(button => {
+    button.addEventListener('click', async () => {
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = '🟣 25→100…';
+      const sequence = [
+        ['rollback-recovery', '25'],
+        ['runtime-guard', '50'],
+        ['isolation-recovery', '75']
+      ];
+      try {
+        for (const [proof, step] of sequence) {
+          show('purple', '🟣 ' + step + '% · running ' + proof + ' proof…');
+          await runRecoveryProof(proof, step);
+        }
+        show('purple', '🟣 100% · all three recovery proofs passed · requesting Founder Final…');
+        await runFounderFinal();
+        show('green', '🟢 100% Green Gate passed · 👑 Founder Final recorded · HRM/JOOG receipt preserved · execution authority unchanged.');
+      } catch (error) {
+        show('yellow', '🟡 Protocol stopped safely · ' + error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    });
+  });
   document.querySelectorAll('.js-founder-final').forEach(button => {
     button.addEventListener('click', async () => {
       const original = button.textContent;
@@ -182,17 +258,7 @@
       button.textContent = '👑 FINALISING…';
       show('purple', '🟣 Founder Final requested · checking live Green Gate and writing the Human Authority receipt only if every proof is present.');
       try {
-        const response = await fetch('/mission/smi-proof/founder-final', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json'}
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const missing = payload?.error?.missing || payload?.missing || [];
-          const suffix = Array.isArray(missing) && missing.length ? '\nMissing: ' + missing.join(', ') : '';
-          throw new Error((payload?.error?.message || ('Founder Final failed (' + response.status + ')')) + suffix);
-        }
+        await runFounderFinal();
         show('green', '🟢 100% Green Gate passed · 👑 Founder Final recorded · HRM/JOOG receipt preserved · no execution authority expanded.');
       } catch (error) {
         show('yellow', '🟡 ' + error.message);
