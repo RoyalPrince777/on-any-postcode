@@ -1,6 +1,6 @@
 """Release gate for the exact approved OAP artwork, not mock images."""
-from pathlib import Path
 import hashlib
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTER = ROOT / "static/oap/enter_my_world_wallpaper.png"
