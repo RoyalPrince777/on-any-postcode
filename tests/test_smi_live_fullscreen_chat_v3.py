@@ -60,7 +60,8 @@ def test_plus_tool_green_requires_current_session_runtime_receipt():
 
 def test_legacy_action_handlers_are_gated_behind_single_control_surface():
     final = FINAL.read_text(encoding="utf-8")
-    assert final.startswith("window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;")
+    assert final.startswith("(()=>{")
+    assert "window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;" in final
     assert "if(!window.OAP_SMI_CONTROL_SURFACE_V2_PENDING)qa('[data-oap-action]')" in final
     assert "window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=false;" in final
 
