@@ -144,3 +144,24 @@ body.smi-status-open .smi-status-backdrop{z-index:12490!important}
  .smi-command-status-actions{width:100%;justify-content:stretch}
  .smi-command-status-actions button{flex:1 1 auto;min-height:34px}
 }
+
+
+/* Live evidence belongs in the right-hand command-room panel, not only a drawer.
+   This is deliberately proof-first: no fabricated "All Systems Operational" state. */
+.smi-room-status{display:grid;gap:7px;padding:7px;border:1px solid #25669a;border-radius:8px;background:linear-gradient(125deg,#05101ecf,#071e35ed);min-width:0}
+.smi-room-status h3{font-size:.68rem!important;letter-spacing:.08em!important;margin:2px 0!important;color:#dfc48e!important}
+.smi-room-status-grid,.smi-room-gates{display:grid;gap:5px;grid-template-columns:1fr 1fr;min-width:0}
+.smi-room-status-grid article,.smi-room-gates article{display:grid;gap:4px;min-width:0;padding:7px 6px;background:#08182b;border:1px solid #315477;border-radius:7px}
+.smi-room-status-grid strong,.smi-room-gates strong{font-size:.6rem;line-height:1.25;color:#d9edff}
+.smi-room-status-grid small,.smi-room-gates small{font-size:.57rem;line-height:1.35;color:#ebc270;overflow-wrap:anywhere}
+.smi-room-status [data-proven="true"]{border-color:#38735c}
+.smi-room-status [data-proven="true"] small{color:#6cddaf}
+.smi-room-status-note{font-size:.58rem;color:#adc7e0;line-height:1.45;margin:0}
+.smi-command-evidence>.smi-command-side{overflow:visible;max-height:none}
+body.smi-command-open:not(.smi-live-fullscreen) .smi-command-evidence{align-content:start;overflow-y:auto}
+@media(max-width:1100px){.smi-room-status-grid,.smi-room-gates{grid-template-columns:1fr}}
+@media(max-width:820px){
+ .smi-room-status-grid,.smi-room-gates{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .smi-room-status-grid strong,.smi-room-gates strong{font-size:.67rem}
+ .smi-room-status-grid small,.smi-room-gates small{font-size:.62rem}
+}

@@ -80,7 +80,7 @@ class CommandCentreUITest(unittest.TestCase):
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
         self.assertIn('panel.dataset.mobileView="scene"', source)
         self.assertIn('panel.dataset.mobileView=tab.dataset.view', source)
-        self.assertIn('if(tab.dataset.view==="evidence")refreshEvidence()', source)
+        self.assertIn('if(tab.dataset.view==="evidence"){refreshEvidence();refreshRoomStatus();}', source)
         self.assertIn('data-mobile-view="anatomy"', styles)
         self.assertIn('data-mobile-view="evidence"', styles)
         self.assertIn('display:grid!important', styles)
@@ -99,6 +99,26 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn("if(panel.tagName==='DETAILS')panel.open=true", dashboard)
         self.assertIn('signals?.ready===true&&signals?.signals_valid===true', dashboard)
         self.assertIn('21 Signals endpoint unavailable · NOT PROVEN', dashboard)
+
+    def test_live_dashboard_status_is_inline_and_fail_closed(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
+        for token in ('smi-room-status','smi-room-status-grid','smi-room-gates',
+                      'data-room-stat="signals"','data-room-stat="alignment"',
+                      'data-room-gate="rollback"','data-room-gate="runtime_guard"',
+                      'data-room-gate="isolation"','data-room-gate="founder"'):
+            self.assertIn(token, source)
+        self.assertIn('signals?.ready===true&&signals?.signals_valid===true', source)
+        self.assertIn('Number(signals?.signal_count)===21', source)
+        self.assertIn('checks.rollback_recovery===true', source)
+        self.assertIn('checks.runtime_guard===true', source)
+        self.assertIn('checks.isolation_recovery===true', source)
+        self.assertIn('setRoom(roomGates.get("founder"),false', source)
+        self.assertIn('credentials:"same-origin"', source)
+        self.assertIn('if(signal.aborted)return', source)
+        self.assertIn('.smi-room-status-grid', styles)
+        self.assertIn('.smi-room-status [data-proven="true"]', styles)
+        self.assertNotIn('All Systems Operational', source)
 
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
