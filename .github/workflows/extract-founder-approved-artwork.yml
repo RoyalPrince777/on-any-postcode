@@ -1,0 +1,50 @@
+name: One-time approved SMI artwork extraction
+on:
+  pull_request:
+    types: [opened, synchronize]
+permissions:
+  contents: write
+jobs:
+  extract-original-pngs:
+    if: >-
+      github.repository == 'RoyalPrince777/on-any-postcode' &&
+      github.event.pull_request.number == 449 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'smi/real-artwork-founder-wallpaper-dashboard'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - name: Validate and extract original image bytes uploaded by Founder
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f static/oap/oap_smi_artwork_upload.zip
+          mkdir -p static/oap
+          unzip -p static/oap/oap_smi_artwork_upload.zip static/oap/enter_my_world_wallpaper.png > static/oap/enter_my_world_wallpaper.png
+          unzip -p static/oap/oap_smi_artwork_upload.zip static/oap/smi_global_intelligence_command_centre.png > static/oap/smi_global_intelligence_command_centre.png
+          printf '%s\n' \
+            '114852c665388f8b3cba5c3a5f667631e4a69ac88de2af2b30a3c5f6fbaec01b  static/oap/enter_my_world_wallpaper.png' \
+            '9417a1293108350ccb6c3751377c9530d287a628c54f0659272c7c990cda4df3  static/oap/smi_global_intelligence_command_centre.png' | sha256sum --check --strict
+          python - <<'PY'
+          from pathlib import Path
+          for filename in ("enter_my_world_wallpaper.png","smi_global_intelligence_command_centre.png"):
+              source = Path("static/oap") / filename
+              assert source.stat().st_size > 100_000
+              assert source.read_bytes()[:8] == bytes.fromhex("89504e470d0a1a0a")
+          PY
+      - name: Commit validated original PNGs to approved PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static/oap/enter_my_world_wallpaper.png static/oap/smi_global_intelligence_command_centre.png
+          if git diff --cached --quiet; then
+            echo "Exact approved images already present"
+          else
+            git commit -m "Extract verified original Founder and SMI artwork PNGs"
+            git push origin "HEAD:refs/heads/smi/real-artwork-founder-wallpaper-dashboard"
+          fi
