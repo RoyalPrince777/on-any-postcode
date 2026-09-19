@@ -120,6 +120,10 @@
  const aligned=document.createElement("div");
  aligned.className="smi-image-control-surface";
  aligned.setAttribute("aria-label","Live SMI input controls aligned to the approved dashboard");
+ // While the approved PNG is still loading, show a visible real control dock;
+ // invisible hitboxes are never a valid pre-image fallback.
+ panel.classList.add("smi-art-error");
+ document.body.classList.add("smi-art-error");
  // Keep the real composer outside clipped/scaled scene panels, so Android
  // keyboard, Master Tools, focus rings and safe-area dock remain reachable.
  document.body.append(aligned);
