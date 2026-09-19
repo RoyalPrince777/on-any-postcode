@@ -44,9 +44,10 @@ class CommandCentreUITest(unittest.TestCase):
             interaction,
         )
 
-    def test_command_centre_is_visible_without_disabling_chat(self):
+    def test_chat_is_default_and_command_centre_remains_one_tap_away(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
-        self.assertIn('setOpen(true);', source)
+        self.assertNotIn('setOpen(true);', source)
+        self.assertIn('toggle.addEventListener("click",()=>setOpen(!active))', source)
         self.assertIn('setOpen(false);toggle.focus();', source)
         self.assertIn('stage.append(character)', source)
 
