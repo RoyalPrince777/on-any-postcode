@@ -579,11 +579,7 @@ def complete_a6_readiness_protocol(
         connection.commit()
 
     if not _signed_operation_approval(request_value, identity_value):
-        approval_service.record_decision(
-            request_id=request_value,
-            identity_id=identity_value,
-            decision="APPROVED",
-        )
+        raise PermissionError("fresh_human_approval_required")
 
     result = record_a6_readiness_bundle(
         identity_id=identity_value,
