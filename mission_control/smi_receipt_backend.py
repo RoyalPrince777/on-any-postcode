@@ -7,6 +7,7 @@ It records proof metadata only and grants no execution or approval authority.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import sqlite3
@@ -14,6 +15,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 DEFAULT_DB_PATH = "/tmp/oap_smi_receipts.sqlite3"
 ALLOWED_RECEIPT_KINDS = {
@@ -425,12 +427,26 @@ def behaviour_progress(limit: int = 20) -> dict[str, Any]:
     }
 
 
+def _configured_hrm_host_fingerprint() -> str | None:
+    """Fingerprint only the actual receipt-writer host; never return its URL."""
+
+    try:
+        hostname = (urlsplit(_hrm_database_url()).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return None
+    if not hostname:
+        return None
+    return hashlib.sha256(hostname.encode("utf-8")).hexdigest()
+
+
 def backend_configuration_status() -> dict[str, Any]:
     """Return configuration state without making a DB connection or leaking secrets."""
 
     durable_configured = bool(_hrm_database_url())
     return {
         "durable_backend_configured": durable_configured,
+        "hrm_host_sha256": _configured_hrm_host_fingerprint(),
+        "live_store_identity_proven": False,
         "preferred_backend": "independent_hrm_postgres" if durable_configured else "local_sqlite_receipt_store",
         "fallback_backend": "local_sqlite_receipt_store",
         "fallback_is_durable": False,
