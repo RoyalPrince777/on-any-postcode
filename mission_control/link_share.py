@@ -181,14 +181,14 @@ def create_share(
     original_name: object,
 ) -> dict[str, object]:
     sender, recipient = _peer_guard(sender_id, recipient_id)
+    mime, kind = _guardian_validate(media, mime_type)
+    name = _safe_name(original_name)
     try:
         link_youth_safety.require_contact_allowed(sender, recipient)
     except ValueError:
         raise
     except link_youth_safety.LinkYouthSafetyUnavailable as exc:
         raise LinkShareUnavailable("share_youth_guard_unavailable") from exc
-    mime, kind = _guardian_validate(media, mime_type)
-    name = _safe_name(original_name)
     digest = hashlib.sha256(media).hexdigest()
     size = len(media)
     try:
