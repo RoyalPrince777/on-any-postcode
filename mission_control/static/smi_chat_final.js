@@ -1,5 +1,5 @@
-window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;
 (()=>{
+window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;
 const cfg=window.OAP_SMI_UI||{};
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const input=q('#message'),messages=q('#messages'),history=q('.history'),historyList=q('#history-list'),head=q('.chat-head'),plus=q('#plus-button'),menu=q('#attach-menu'),thinking=q('#thinking');
