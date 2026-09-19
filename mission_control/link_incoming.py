@@ -48,7 +48,7 @@ def status() -> dict[str, Any]:
         present = {str(row[0]) for row in rows}
         result["ready"] = REQUIRED_TABLES <= present
         result["missing"] = sorted(REQUIRED_TABLES - present)
-    except Exception:
+    except Exception:  # noqa: BLE001 - status probe must fail closed.
         result["missing"] = sorted(REQUIRED_TABLES)
     return result
 
