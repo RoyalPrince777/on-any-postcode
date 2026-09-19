@@ -418,3 +418,47 @@ def test_local_founder_resolves_single_authority_from_ledger(monkeypatch):
     )
 
     assert founder_local_auth.resolved_identity() == AUTH_ID
+
+
+def test_founder_session_uses_domain_separated_gateway_secret(monkeypatch):
+    monkeypatch.delenv("OAP_SESSION_SECRET", raising=False)
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "g" * 64)
+    monkeypatch.setattr(founder_local_auth, "_identity", lambda: AUTH_ID)
+    monkeypatch.setattr(
+        founder_local_auth.authority,
+        "configured_email",
+        lambda: "",
+    )
+
+    header = founder_local_auth.issue_session_cookie(now=1000)
+    user = founder_local_auth.session_user(header, now=1001)
+
+    assert header.startswith("oap_founder_session=")
+    assert user is not None
+    assert user["id"] == AUTH_ID
+
+
+def test_founder_session_prefers_explicit_session_secret(monkeypatch):
+    monkeypatch.setenv("OAP_SESSION_SECRET", "s" * 64)
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "g" * 64)
+
+    assert founder_local_auth._session_secret() == b"s" * 64
+
+
+def test_missing_all_session_keys_fails_closed_not_500(monkeypatch):
+    monkeypatch.delenv("OAP_SESSION_SECRET", raising=False)
+    monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
+    monkeypatch.setattr(founder_local_auth, "bound", lambda: True)
+    monkeypatch.setattr(founder_local_auth, "verify", lambda _password: True)
+    monkeypatch.setattr(
+        founder_local_auth,
+        "resolved_identity",
+        lambda: AUTH_ID,
+    )
+
+    try:
+        neon_auth.sign_in_founder("existing-private-password")
+    except neon_auth.AuthUnavailable as exc:
+        assert str(exc) == "founder_local_auth_unavailable"
+    else:
+        raise AssertionError("Missing session signing key must fail closed")
