@@ -70,6 +70,7 @@ def test_missing_weather_fields_never_report_reassuring_conditions():
     assert signals["rain_signal"] == "unavailable"
     assert signals["wind_signal"] == "unavailable"
     assert signals["thermal_signal"] == "unavailable"
+    assert result["earth_intelligence"]["live_environment_ready"] is False
 
 
 def test_missing_weather_field_only_affects_its_own_signal():
@@ -92,7 +93,9 @@ def test_invalid_weather_payload_revokes_transport_success(monkeypatch):
         location_intelligence, "_json", lambda *_: {"current": {}, "daily": {}}
     )
 
-    with pytest.raises(location_intelligence.LocationUnavailable, match="invalid_weather_response"):
+    with pytest.raises(
+        location_intelligence.LocationUnavailable, match="invalid_weather_response"
+    ):
         location_intelligence.weather(9.87654, 8.76543)
 
     assert location_intelligence.status()["weather_provider_verified"] is False
