@@ -1213,6 +1213,39 @@ def linkup_front_door():
                     relation["peer_id"]
                 )
 
+            existing_thread_ids = {
+                thread["other_identity_id"]
+                for thread in dashboard.get("threads", [])
+            }
+            for relation in relationships:
+                if relation["status"] != "accepted":
+                    continue
+                peer_id = relation["peer_id"]
+                if peer_id in existing_thread_ids:
+                    continue
+                peer = people_by_id.get(peer_id, {})
+                dashboard.setdefault("threads", []).append(
+                    {
+                        "other_identity_id": peer_id,
+                        "display_name": peer.get("display_name")
+                        or relation["peer_display_name"],
+                        "username": peer.get("username", ""),
+                        "card_id": peer.get("card_id")
+                        or relation["peer_card_id"],
+                        "postcode": peer.get("postcode", ""),
+                        "borough": peer.get("borough", ""),
+                        "country": peer.get("country", ""),
+                        "unread_count": 0,
+                        "latest_at": relation["created_at"],
+                        "messages": [],
+                    }
+                )
+                existing_thread_ids.add(peer_id)
+            dashboard["threads"].sort(
+                key=lambda item: str(item.get("latest_at") or ""),
+                reverse=True,
+            )
+
     response = make_response(
         render_template(
             "linkup.html",
