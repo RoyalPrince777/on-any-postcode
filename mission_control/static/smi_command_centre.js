@@ -21,6 +21,26 @@
  panel.setAttribute("aria-label","OAP SMI Digital Organism Command Centre");
  panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">✕ Close</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
  messages.before(panel);
+ // The full-room overlay must expose Status itself: its old header control sits underneath it.
+ const statusActions=document.createElement("div");
+ statusActions.className="smi-command-status-actions";
+ const statusButton=document.createElement("button");statusButton.type="button";
+ statusButton.textContent="📊 SMI Status";statusButton.setAttribute("aria-label","Open live SMI status and percentages");
+ const signalsButton=document.createElement("button");signalsButton.type="button";
+ signalsButton.textContent="◌ 21 Signals";signalsButton.setAttribute("aria-label","Open canonical 21 Signals status");
+ statusActions.append(statusButton,signalsButton);
+ panel.querySelector(".smi-command-top").append(statusActions);
+ const openStatus=(signals=false)=>{
+  const statusToggle=document.querySelector(".smi-chat-return");
+  if(!statusToggle){const feedback=document.getElementById("status");if(feedback)feedback.textContent="SMI Status unavailable";return;}
+  if(!document.body.classList.contains("smi-status-open"))statusToggle.click();
+  if(signals){
+   const details=document.getElementById("smi-signal-intelligence");
+   if(details){details.open=true;details.scrollIntoView({block:"start",behavior:"auto"});}
+  }
+ };
+ statusButton.addEventListener("click",()=>openStatus(false));
+ signalsButton.addEventListener("click",()=>openStatus(true));
  // Quick access reuses the existing, governed Master Tools handlers.
  const universe=document.createElement("nav");
  universe.className="smi-command-universe";
