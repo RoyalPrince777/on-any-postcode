@@ -57,7 +57,7 @@
     if(s.stopped)return next;
 
     if(type==="LIVE_ON"){
-      return {...next,live:true,state:"ready",epoch:s.epoch+1};
+      return {...next,live:true,epoch:s.epoch+1};
     }
 
     if(type==="LIVE_OFF"){
