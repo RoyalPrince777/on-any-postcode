@@ -75,6 +75,17 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('setOpen(false)', source)
         self.assertNotIn("All Systems Operational", source)
 
+    def test_mobile_organism_and_evidence_are_reachable(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
+        self.assertIn('panel.dataset.mobileView="scene"', source)
+        self.assertIn('panel.dataset.mobileView=tab.dataset.view', source)
+        self.assertIn('if(tab.dataset.view==="evidence")refreshEvidence()', source)
+        self.assertIn('data-mobile-view="anatomy"', styles)
+        self.assertIn('data-mobile-view="evidence"', styles)
+        self.assertIn('display:grid!important', styles)
+        self.assertIn('smi-command-descriptive', source)
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
