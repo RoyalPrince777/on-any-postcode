@@ -1180,6 +1180,39 @@ def linkup_front_door():
         except link_relationships.LinkRelationshipsUnavailable:
             relationships_ready = False
 
+    if user:
+        identity_id = str(user["id"])
+        relation_by_peer = {}
+        for relation in relationships:
+            peer_id = (
+                relation["recipient_id"]
+                if relation["requester_id"] == identity_id
+                else relation["requester_id"]
+            )
+            relation["peer_id"] = peer_id
+            relation["direction"] = (
+                "outgoing" if relation["requester_id"] == identity_id else "incoming"
+            )
+            relation_by_peer[peer_id] = relation
+
+        if dashboard:
+            for person in dashboard.get("directory", []):
+                relation = relation_by_peer.get(person["identity_id"])
+                person["link_status"] = relation["status"] if relation else "none"
+                person["link_direction"] = relation["direction"] if relation else "none"
+                person["relationship_id"] = relation["relationship_id"] if relation else None
+
+            people_by_id = {
+                person["identity_id"]: person
+                for person in dashboard.get("directory", [])
+            }
+            for relation in relationships:
+                peer = people_by_id.get(relation["peer_id"], {})
+                relation["peer_display_name"] = peer.get("display_name") or relation["peer_id"]
+                relation["peer_card_id"] = peer.get("card_id") or product_store.member_card_id(
+                    relation["peer_id"]
+                )
+
     response = make_response(
         render_template(
             "linkup.html",
