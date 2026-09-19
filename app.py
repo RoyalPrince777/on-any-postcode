@@ -1265,15 +1265,15 @@ def linkup_front_door():
         link_runtime["messaging"] = bool(
             store_state.get("tables", {}).get("messages")
         )
-    except Exception:  # noqa: BLE001 - readiness remains fail closed.
+    except Exception:  # noqa: BLE001,S110 - readiness remains fail closed.
         pass
     try:
         link_runtime["safety"] = bool(linkup_safety.status().get("ready"))
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001,S110
         pass
     try:
         link_runtime["privacy"] = bool(link_presence.status().get("ready"))
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001,S110
         pass
     try:
         link_runtime["resilience"] = all(
@@ -1284,7 +1284,7 @@ def linkup_front_door():
                 bool(link_turn.status().get("ready")),
             )
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001,S110
         pass
     link_runtime["live_gate"] = all(link_runtime.values())
     seven_star_gate = linkup.linkup_seven_star_status(link_runtime)
