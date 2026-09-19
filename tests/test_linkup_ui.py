@@ -161,7 +161,7 @@ def test_link_route_does_not_reflect_query_input(client):
 
 def test_linkup_member_card_id_is_human_readable_without_exposing_raw_uuid():
     identity = "00000000-0000-0000-0000-00000000abcd"
-    card_id = product_store._member_card_id(identity)
+    card_id = product_store.member_card_id(identity)
 
     assert card_id == "OAP-00000000"
     assert identity not in card_id
@@ -176,3 +176,14 @@ def test_linkup_template_exposes_my_card_and_peer_identity_labels():
     assert "thread.username" in page
     assert "Choose an OAP member" in page
     assert "Choose a Certified member" not in page
+
+
+def test_linkup_chat_surfaces_link_request_onboarding():
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "Link Requests" in page
+    assert "Send Link Request" in page
+    assert "Accept Link" in page
+    assert "Messaging unlocks only after it is accepted." in page
+    assert "Your My Card is still active above." in page
+    assert "Link Requests are not ready, so new private chat remains locked." in page

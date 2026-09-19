@@ -29,6 +29,7 @@ from mission_control import (
     founder_recovery,
     judgement,
     languages,
+    link_relationships,
     linkup,
     location_intelligence,
     neon_auth,
@@ -1135,10 +1136,26 @@ def linkup_front_door():
     user = None
     dashboard = None
     unavailable = False
+    relationships_ready = False
+    relationships = []
+    my_card = None
     try:
         user = web_security.current_authenticated_user()
     except neon_auth.AuthUnavailable:
         user = None
+
+    if user:
+        identity_id = str(user["id"])
+        my_card = {
+            "identity_id": identity_id,
+            "card_id": product_store.member_card_id(identity_id),
+            "display_name": str(user["name"]),
+            "username": "",
+            "postcode": "",
+            "borough": "",
+            "country": "",
+        }
+
     if user and public_store.status()["configured"]:
         try:
             public_store.ensure_authenticated_user(
@@ -1147,17 +1164,97 @@ def linkup_front_door():
                 display_name=str(user["name"]),
             )
             dashboard = product_store.linkup_dashboard(str(user["id"]))
+            if dashboard and dashboard.get("my_card"):
+                my_card = dashboard["my_card"]
         except (
             public_store.PublicStoreUnavailable,
             product_store.ProductStoreUnavailable,
         ):
             unavailable = True
+
+        try:
+            relationship_state = link_relationships.status()
+            relationships_ready = bool(relationship_state.get("ready"))
+            if relationships_ready:
+                relationships = link_relationships.list_for_identity(str(user["id"]))
+        except link_relationships.LinkRelationshipsUnavailable:
+            relationships_ready = False
+
+    if user:
+        identity_id = str(user["id"])
+        relation_by_peer = {}
+        for relation in relationships:
+            peer_id = (
+                relation["recipient_id"]
+                if relation["requester_id"] == identity_id
+                else relation["requester_id"]
+            )
+            relation["peer_id"] = peer_id
+            relation["direction"] = (
+                "outgoing" if relation["requester_id"] == identity_id else "incoming"
+            )
+            relation_by_peer[peer_id] = relation
+
+        if dashboard:
+            for person in dashboard.get("directory", []):
+                relation = relation_by_peer.get(person["identity_id"])
+                person["link_status"] = relation["status"] if relation else "none"
+                person["link_direction"] = relation["direction"] if relation else "none"
+                person["relationship_id"] = relation["relationship_id"] if relation else None
+
+            people_by_id = {
+                person["identity_id"]: person
+                for person in dashboard.get("directory", [])
+            }
+            for relation in relationships:
+                peer = people_by_id.get(relation["peer_id"], {})
+                relation["peer_display_name"] = peer.get("display_name") or relation["peer_id"]
+                relation["peer_card_id"] = peer.get("card_id") or product_store.member_card_id(
+                    relation["peer_id"]
+                )
+
+            existing_thread_ids = {
+                thread["other_identity_id"]
+                for thread in dashboard.get("threads", [])
+            }
+            for relation in relationships:
+                if relation["status"] != "accepted":
+                    continue
+                peer_id = relation["peer_id"]
+                if peer_id in existing_thread_ids:
+                    continue
+                peer = people_by_id.get(peer_id, {})
+                dashboard.setdefault("threads", []).append(
+                    {
+                        "other_identity_id": peer_id,
+                        "display_name": peer.get("display_name")
+                        or relation["peer_display_name"],
+                        "username": peer.get("username", ""),
+                        "card_id": peer.get("card_id")
+                        or relation["peer_card_id"],
+                        "postcode": peer.get("postcode", ""),
+                        "borough": peer.get("borough", ""),
+                        "country": peer.get("country", ""),
+                        "unread_count": 0,
+                        "latest_at": relation["created_at"],
+                        "messages": [],
+                    }
+                )
+                existing_thread_ids.add(peer_id)
+            dashboard["threads"].sort(
+                key=lambda item: str(item.get("latest_at") or ""),
+                reverse=True,
+            )
+
     response = make_response(
         render_template(
             "linkup.html",
             link=linkup.get_public_link_dashboard(),
             auth_user=user,
             dashboard=dashboard,
+            my_card=my_card,
+            relationships=relationships,
+            relationships_ready=relationships_ready,
             private_unavailable=unavailable,
         )
     )
