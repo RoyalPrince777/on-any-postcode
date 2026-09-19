@@ -124,7 +124,7 @@ def submit_inference(
                         pass
                 raise RuntimeError("home_node_bridge_timeout")
             job.event.wait(min(0.1, remaining))
-    except BaseException:
+    except Exception:
         with _LOCK:
             _JOBS.pop(job.job_id, None)
             try:
