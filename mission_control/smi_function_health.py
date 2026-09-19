@@ -49,7 +49,7 @@ INTERACTION_CERTIFICATION_SPECS = (
     {
         "id": "screen",
         "name": "Screen Intelligence",
-        "markers": ("screen-button", "getDisplayMedia", "Screen Intelligence capture"),
+        "markers": ("screen-mode-button", "getDisplayMedia", "Screen Intelligence capture"),
         "backend": "bounded frame → Vision path",
     },
     {
