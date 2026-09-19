@@ -35,9 +35,18 @@ class FounderLocalAuthUnavailable(RuntimeError):
 
 def _session_secret() -> bytes:
     value = os.environ.get("OAP_SESSION_SECRET", "").strip()
-    if len(value) < 32:
-        raise FounderLocalAuthUnavailable("session_secret_not_configured")
-    return value.encode("utf-8")
+    if len(value) >= 32:
+        return value.encode("utf-8")
+
+    gateway_secret = os.environ.get("OAP_SMI_GATEWAY_SECRET", "").strip()
+    if len(gateway_secret) >= 32:
+        return hmac.new(
+            gateway_secret.encode("utf-8"),
+            b"oap-founder-session-v1",
+            hashlib.sha256,
+        ).digest()
+
+    raise FounderLocalAuthUnavailable("session_secret_not_configured")
 
 
 def _identity() -> str:
