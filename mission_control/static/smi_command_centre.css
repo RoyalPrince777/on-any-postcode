@@ -109,3 +109,24 @@ body.smi-command-open .attach-menu.show{z-index:12180!important}
  body.smi-command-open:not(.smi-live-fullscreen) .smi-command-note{display:none}
  body.smi-command-open:not(.smi-live-fullscreen) .smi-command-universe{padding:3px}
 }
+
+
+/* Mobile organism navigation: no hidden anatomy or evidence. */
+.smi-command-mobile-views{display:none;gap:5px;justify-content:stretch;padding:5px;border-bottom:1px solid #245b8f;background:#031024}
+.smi-command-mobile-views button{flex:1;min-width:0;background:#081b33;border:1px solid #225f99;border-radius:7px;color:#cde9ff;padding:7px 3px;font:inherit;font-size:.72rem;cursor:pointer}
+.smi-command-mobile-views button[aria-pressed="true"]{color:#f8da9c;border-color:#d6af6c;background:#173153}
+.smi-command-descriptive{cursor:default;opacity:.82}
+.smi-command-descriptive:hover{border-color:#174771!important;background:#07162ace!important;box-shadow:none!important}
+@media(max-width:820px){
+ .smi-command-mobile-views{display:flex}
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="anatomy"] .smi-command-anatomy,
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="evidence"] .smi-command-evidence{display:grid!important;min-height:0;overflow-y:auto}
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="anatomy"] .smi-command-scene,
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="evidence"] .smi-command-scene{display:none!important}
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="anatomy"] .smi-command-evidence,
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="evidence"] .smi-command-anatomy{display:none!important}
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="anatomy"] .smi-command-layout,
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="evidence"] .smi-command-layout{overflow-y:auto}
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="anatomy"] .smi-command-link,
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="evidence"] .smi-command-proof{min-height:36px}
+}
