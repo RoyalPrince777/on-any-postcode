@@ -130,3 +130,17 @@ body.smi-command-open .attach-menu.show{z-index:12180!important}
  body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="anatomy"] .smi-command-link,
  body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre[data-mobile-view="evidence"] .smi-command-proof{min-height:36px}
 }
+
+/* Status & Signals stay actionable even while the full-room stage covers the old header. */
+.smi-command-status-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.smi-command-status-actions button{border:1px solid #4085c4;background:#0b2646;color:#e4f3ff;border-radius:8px;padding:7px 9px;font:inherit;font-size:.72rem;cursor:pointer}
+.smi-command-status-actions button:focus-visible,.smi-command-status-actions button:hover{border-color:#e4bf7f;outline:1px solid #e4bf7f}
+body.smi-status-open .smi-dashboard-layer{z-index:12500!important}
+body.smi-status-open .smi-status-backdrop{z-index:12490!important}
+.smi-signal-runtime{padding:10px 12px;color:#f2c94c;border-bottom:1px solid #4c4329;background:#1b180e;font-size:.74rem}
+.smi-signal-runtime[data-proven="true"]{color:#75e9aa;border-bottom-color:#296347;background:#092019}
+@media(max-width:820px){
+ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-top{flex-wrap:wrap}
+ .smi-command-status-actions{width:100%;justify-content:stretch}
+ .smi-command-status-actions button{flex:1 1 auto;min-height:34px}
+}
