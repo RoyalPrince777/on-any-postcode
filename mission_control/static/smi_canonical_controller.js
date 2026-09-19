@@ -79,7 +79,7 @@ function oapSetLive(enabled){
  oapSpeechSeq+=1;
  oapApply('LIVE_OFF');
  oapRecognitionToken=null;
- if(oapRecognition&&oapListening){try{oapRecognition.stop()}catch{}}
+ if(oapRecognition){try{oapRecognition.stop()}catch{}}
  if('speechSynthesis' in window)window.speechSynthesis.cancel();
  oapUpdateLiveToggle();
  oapSetStatus('Live SMI off');
