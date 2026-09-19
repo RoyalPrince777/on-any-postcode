@@ -600,3 +600,57 @@ body.smi-command-open.smi-art-error
   max-height:min(62dvh,500px)!important;z-index:13000!important
  }
 }
+
+
+/* Broken/missing artwork: the existing live controls become a plainly visible
+   standalone fail-closed dock, NEVER an invisible hitbox on absent pixels. */
+body.smi-command-open.smi-art-error .smi-image-control-surface{
+ inset:auto 0 0!important;width:100%!important;height:auto!important;
+ background:#031025!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface #chat-form{
+ display:block!important;position:relative!important;inset:auto!important;
+ width:100%!important;height:auto!important;min-height:105px!important;
+ padding:7px 9px calc(7px + env(safe-area-inset-bottom))!important;
+ border-top:1px solid #3e87bd!important;
+ background:#06152cf7!important;pointer-events:auto!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface .composer-box{
+ display:flex!important;flex-direction:column!important;gap:5px!important;
+ padding:0!important;max-width:100%!important;margin:0!important;
+ border:0!important;background:transparent!important;box-shadow:none!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface #message{
+ display:block!important;position:relative!important;inset:auto!important;
+ width:100%!important;height:42px!important;min-height:42px!important;
+ font-size:16px!important;padding:8px 11px!important;
+ border:1px solid #3c87c1!important;pointer-events:auto!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface .composer-bar,
+body.smi-command-open.smi-art-error .smi-image-control-surface
+:is(.composer-left,.composer-right){
+ display:flex!important;align-items:center!important;gap:6px!important;
+ justify-content:space-between!important;max-width:none!important;
+ overflow:visible!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface .attach-wrap{
+ display:block!important;position:relative!important;inset:auto!important;
+ width:44px!important;height:44px!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface
+:is(#plus-button,#mic-button,#thinking-level,#send){
+ display:grid!important;position:relative!important;inset:auto!important;
+ width:44px!important;height:44px!important;min-height:44px!important;
+ font-size:17px!important;border:1px solid #397fba!important;
+ background:#08213cd9!important;color:#e8f4ff!important;
+ pointer-events:auto!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface #plus-button{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface #thinking-level{
+ display:block!important;width:90px!important;font-size:12px!important
+}
+body.smi-command-open.smi-art-error .smi-image-control-surface :is(.preview,.status-row){
+ position:relative!important;inset:auto!important;width:100%!important
+}
