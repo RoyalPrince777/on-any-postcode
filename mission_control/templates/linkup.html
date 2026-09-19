@@ -20,6 +20,9 @@
     .linkup-card{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center;margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
     .linkup-card-copy{display:grid;gap:.12rem;min-width:0}.linkup-card-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.linkup-card-copy small{color:rgba(255,255,255,.68);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .linkup-card-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;letter-spacing:.03em}
+    .linkup-stars{margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
+    .linkup-stars-head{display:flex;justify-content:space-between;gap:.75rem;align-items:center}.linkup-stars-head strong{font-size:.95rem}.linkup-stars-score{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .linkup-stars-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.6rem}.linkup-star{display:flex;gap:.4rem;align-items:center;font-size:.78rem;color:rgba(255,255,255,.72)}.linkup-star[data-passed="true"]{color:#fff}
   </style>
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
@@ -49,6 +52,23 @@
           <a href="{{ url_for('link_message_state.link_circles.circle_page') }}">Circle</a>
           <a href="{{ url_for('the_link_front_door') }}">The Link</a>
         </div>
+        {% if seven_star_gate %}
+        <section class="linkup-stars" aria-label="Link Up seven-star readiness">
+          <div class="linkup-stars-head">
+            <strong>⭐ 7-Star Gate</strong>
+            <span class="linkup-stars-score">{{ seven_star_gate.star_count }}/{{ seven_star_gate.star_total }} · {{ seven_star_gate.percent }}%</span>
+          </div>
+          <div class="linkup-stars-grid">
+            {% for star in seven_star_gate.stars %}
+            <span class="linkup-star" data-passed="{{ 'true' if star.passed else 'false' }}" title="{{ star.proof }}">
+              <span>{{ '★' if star.passed else '☆' }}</span>
+              <span>{{ star.name }}</span>
+            </span>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+
         {% if my_card %}
         <section class="linkup-card" aria-label="My Card">
           <span class="linkup-avatar">{{ my_card.display_name[:1]|upper }}</span>
