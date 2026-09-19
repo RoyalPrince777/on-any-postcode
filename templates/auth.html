@@ -27,37 +27,48 @@
     .error{background:#461b21;border:1px solid #ff7582}
     .small{opacity:.82;line-height:1.5}
 
-    /* Static Founder wallpaper. The real form, CSRF, password and server verification
-       remain over the artwork. No motion, mock credentials or public signup. */
-    body.oap-founder-wallpaper{position:relative;isolation:isolate;min-height:100dvh;background:#030b1b;color:#e7f3ff}
-    body.oap-founder-wallpaper::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
-      background:#030b1b url("{{ url_for('static',filename='oap/enter_my_world_wallpaper.png') }}") center center/cover no-repeat}
-    body.oap-founder-wallpaper::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-      background:linear-gradient(90deg,#02091a35 0%,#02091615 42%,#020817b8 60%,#020817d7 100%)}
-    body.oap-founder-wallpaper header,body.oap-founder-wallpaper main{width:min(1450px,calc(100% - 28px));position:relative}
-    body.oap-founder-wallpaper header{padding:19px 0 6px}
-    body.oap-founder-wallpaper .eyebrow{color:#eed0a0}
-    body.oap-founder-wallpaper header h1{font-size:clamp(1.35rem,3vw,2.5rem);text-shadow:0 2px 12px #000}
-    body.oap-founder-wallpaper header p:not(.eyebrow){max-width:500px;line-height:1.5;text-shadow:0 2px 10px #000}
-    body.oap-founder-wallpaper .grid{grid-template-columns:minmax(0,1fr) minmax(300px,470px);align-content:start;min-height:calc(100dvh - 220px);gap:12px;padding:7px 0 25px}
-    body.oap-founder-wallpaper .grid>.card{grid-column:2;background:#031229ed;color:#e7f3ff;border:1px solid #3486cb;box-shadow:0 0 28px #0b83e045}
-    body.oap-founder-wallpaper .card.private{padding:clamp(22px,3vw,35px)}
-    body.oap-founder-wallpaper .card.private h2{text-align:center;font-size:clamp(1.2rem,2.3vw,1.65rem);letter-spacing:.04em;color:#f1d4a4}
+    /* One Founder entrance: approved still wallpaper and the REAL secure form in
+       one surface. The image is decorative; no status or credentials are baked in. */
+    body.oap-founder-wallpaper{min-height:100dvh;background:#030b1b;color:#e7f3ff}
+    body.oap-founder-wallpaper header,
+    body.oap-founder-wallpaper main{width:min(1260px,calc(100% - 32px))}
+    body.oap-founder-wallpaper header{padding:18px 0 12px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;justify-content:space-between}
+    body.oap-founder-wallpaper header .eyebrow{width:100%;margin:0;color:#eed0a0;font-size:.73rem}
+    body.oap-founder-wallpaper header h1{margin:0;font-size:clamp(1.45rem,3vw,2.25rem);letter-spacing:-.02em}
+    body.oap-founder-wallpaper header>a{font-size:.86rem;color:#c9d9ed}
+    body.oap-founder-wallpaper header .error,
+    body.oap-founder-wallpaper header .notice{width:100%;margin:0}
+    body.oap-founder-wallpaper .grid{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:flex-end;
+      min-height:calc(100dvh - 110px);padding:clamp(18px,4vw,52px);overflow:hidden;
+      border:1px solid #77623e;border-radius:22px;
+      background:#030b1b url("{{ url_for('static',filename='oap/enter_my_world_wallpaper.png') }}") 42% center/cover no-repeat;
+      box-shadow:0 18px 60px #0009}
+    body.oap-founder-wallpaper .grid::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+      background:linear-gradient(90deg,#02091a0a 0%,#0209160d 37%,#020817a8 66%,#020817db 100%)}
+    body.oap-founder-wallpaper .grid>.card.private{position:relative;flex:0 1 410px;min-width:0;margin:0;
+      padding:clamp(22px,3vw,36px);background:#031229ee;color:#e7f3ff;
+      border:1px solid #9f8656;border-radius:18px;box-shadow:0 12px 42px #010616a8}
+    body.oap-founder-wallpaper .card.private h2{margin:0 0 16px;text-align:center;
+      font-size:clamp(1.13rem,2vw,1.45rem);letter-spacing:.02em;color:#f1d4a4}
     body.oap-founder-wallpaper .card.private label{color:#d7ebff}
     body.oap-founder-wallpaper .card.private input[type="password"],
-    body.oap-founder-wallpaper .card.private input[type="text"]{background:#04142b;color:#ecf5ff;border-color:#368fdb}
-    body.oap-founder-wallpaper .card.private button{background:linear-gradient(90deg,#201b17,#785d31,#201b17);color:#fff1d7;border-color:#efc778;box-shadow:0 0 14px #eab76557}
+    body.oap-founder-wallpaper .card.private input[type="text"]{background:#04142b;color:#ecf5ff;border-color:#568aba}
+    body.oap-founder-wallpaper .card.private button{min-height:48px;background:#a88953;
+      color:#08121d;border-color:#efc778;box-shadow:none}
+    body.oap-founder-wallpaper .card.private button:hover:not(:disabled){background:#dfba76}
+    body.oap-founder-wallpaper .card.private :focus-visible,
+    body.oap-founder-wallpaper header a:focus-visible{outline:3px solid #ffdb82;outline-offset:3px}
     body.oap-founder-wallpaper .show-control input{accent-color:#e6c27c}
-    body.oap-founder-wallpaper .card:not(.private){padding:12px 18px;font-size:.82rem;background:#030f20e8}
-    body.oap-founder-wallpaper .card:not(.private) h2{font-size:.96rem}
-    body.oap-founder-wallpaper *,body.oap-founder-wallpaper *::before,body.oap-founder-wallpaper *::after{animation:none!important;transition:none!important}
     @media(max-width:720px){
-      body.oap-founder-wallpaper::before{background-position:36% center}
-      body.oap-founder-wallpaper::after{background:linear-gradient(#020a19a3,#020a19a1)}
-      body.oap-founder-wallpaper header{padding-top:15px}
-      body.oap-founder-wallpaper header p:not(.eyebrow){font-size:.78rem}
-      body.oap-founder-wallpaper .grid{grid-template-columns:minmax(0,1fr);min-height:0}
-      body.oap-founder-wallpaper .grid>.card{grid-column:1}
+      body.oap-founder-wallpaper header{padding:14px 0 10px}
+      body.oap-founder-wallpaper .grid{min-height:calc(100dvh - 112px);padding:clamp(14px,4vw,22px);
+        align-items:flex-end;background-position:35% top}
+      body.oap-founder-wallpaper .grid::before{background:linear-gradient(180deg,#020a1900 0%,#020a1922 22%,#020a19c6 49%,#020a19ef 100%)}
+      body.oap-founder-wallpaper .grid>.card.private{flex:1 1 auto;width:100%;margin-top:clamp(150px,28dvh,290px)}
+    }
+    @media(prefers-reduced-motion:reduce){
+      body.oap-founder-wallpaper *,body.oap-founder-wallpaper *::before,
+      body.oap-founder-wallpaper *::after{animation:none!important;transition:none!important}
     }
   </style>
 </head>
@@ -65,8 +76,10 @@
   <header>
     <p class="eyebrow">{{ 'PRIVATE · FOUNDER' if founder_only else 'APPROVED ACCOUNT ACTION' }}</p>
     <h1>{{ 'Enter My World' if founder_only else 'Sign in for this action' }}</h1>
-    <p>Public OAP World is open to browse without an account or password. Sign-in is used only for private access and approved actions such as business monetisation or private messages.</p>
-    <a href="{{ url_for('home') }}">← Return to public OAP World</a>
+    {% if not founder_only %}
+    <p>Public OAP World is open to browse without an account or password. Sign-in is used only for private access and approved actions.</p>
+    {% endif %}
+    <a href="{{ url_for('home') }}">{{ '← OAP World' if founder_only else '← Return to public OAP World' }}</a>
     {% if auth_error %}<div class="error" role="alert">{{ auth_error }}</div>{% endif %}
     {% if auth_notice %}<div class="notice" role="status">{{ auth_notice }}</div>{% endif %}
     {% if not auth_configured %}
@@ -76,7 +89,7 @@
 
   <main class="grid">
     <section class="card private" aria-labelledby="sign-in-title">
-      <h2 id="sign-in-title">{{ 'Enter My World · Founder Access' if founder_only else 'Sign in' }}</h2>
+      <h2 id="sign-in-title">{{ 'Founder sign-in' if founder_only else 'Sign in' }}</h2>
       <form method="post" action="{{ url_for('auth_sign_in') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <input type="hidden" name="next" value="{{ next_path }}">
@@ -94,13 +107,7 @@
       </form>
     </section>
 
-    {% if founder_only %}
-    <section class="card" aria-labelledby="private-boundary-title">
-      <h2 id="private-boundary-title">Founder-only boundary</h2>
-      <p>Your private identity is selected server-side. This page accepts only your password.</p>
-      <p class="small">There is no public private-account signup. Your password is handled by the managed identity service and is never stored or displayed by OAP.</p>
-    </section>
-    {% else %}
+    {% if not founder_only %}
     <section class="card" aria-labelledby="public-access-title">
       <h2 id="public-access-title">Public access stays free</h2>
       <p>Reading public pages, maps, learning, events and local listings does not require sign-in.</p>
