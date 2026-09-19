@@ -388,7 +388,11 @@
           : code === "accepted_link_required"
             ? "Accepted Link required. Nothing landed."
             : "Link did not land.";
-      if (!navigator.onLine || code === "request_failed" || /^http_5/.test(code)) {
+      if (
+        state.syncReady &&
+        payload.client_message_id &&
+        (!navigator.onLine || code === "request_failed" || /^http_5/.test(code))
+      ) {
         state.pendingRetries.set(payload.client_message_id, { form, payload });
         showRetry(form, payload, "Offline or interrupted. Safe retry queued.");
       } else {
