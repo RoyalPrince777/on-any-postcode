@@ -47,8 +47,10 @@ def test_visible_master_tool_buttons_have_real_handlers():
     for connector in ("render", "github", "neon"):
         assert f'data-connector-id="{connector}"' in base
     for action in (
-        "war-room","function-health","green-gate","hrm",
-        "founder-library","improvement","swot","behaviour","github-governed",
+        "war-room","button-proof","signals-21","guardian","routes",
+        "brain","agents","infrastructure","judgement","function-health",
+        "green-gate","hrm","founder-library","improvement","swot",
+        "behaviour","github-governed",
     ):
         assert f'data-oap-action="{action}"' in base
     assert "qa('[data-connector-id]').forEach" in final
@@ -59,7 +61,7 @@ def test_visible_master_tool_buttons_have_real_handlers():
 
 def test_studio_button_reads_governed_21_backend_truth():
     final = FINAL.read_text(encoding="utf-8")
-    assert "generation_backend_proven" in final
+    assert "generation_backend_configured" in final
     assert "full_live_certificate" in final
     assert "generation_tools" in final
     assert "SMI 21 governed generation" in final
@@ -77,4 +79,36 @@ def test_core_chat_controls_have_single_canonical_owners():
 
 def test_master_workspace_contract_is_explicit():
     final = FINAL.read_text(encoding="utf-8")
-    assert "window.OAP_SMI_MASTER={version:'1.2',masterTools:true,savedWork:true,founderLibrary:true,search:true,studio21:true,governedActions:true}" in final
+    assert "window.OAP_SMI_MASTER={version:'1.3',masterTools:true,savedWork:true,founderLibrary:true,search:true,studio21:true,studioExecution:true,buttonProof:true,clickReceipts:true,allCoreTools:true,autoDepthVisible:true,governedActions:true}" in final
+
+
+def test_studio_creation_tools_execute_from_current_single_owner_chat():
+    base = BASE.read_text(encoding="utf-8")
+    final = FINAL.read_text(encoding="utf-8")
+    wrapper = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    for tool in ("imagine", "bring_alive", "scene_builder"):
+        assert f'data-studio-tool="{tool}"' in base
+    for marker in (
+        "studioGenerateUrl",
+        "studioVideoStatusUrlTemplate",
+        "studioVideoContentUrlTemplate",
+        "runStudioTool",
+        "pollStudioVideo",
+        "chronicle_receipt",
+        "X-OAP-CSRF",
+    ):
+        assert marker in final or marker in wrapper
+
+
+def test_button_proof_and_direct_master_tools_use_response_proof():
+    base = BASE.read_text(encoding="utf-8")
+    final = FINAL.read_text(encoding="utf-8")
+    wrapper = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    assert 'data-oap-action="button-proof"' in base
+    assert "buttonProofUrl" in wrapper
+    assert "buttonClickReceiptUrl" in wrapper
+    assert "recordButtonSuccess" in final
+    assert "navigateProven" in final
+    assert "if(!r.ok)throw new Error('Destination returned HTTP '+r.status)" in final
+    for action in ("signals-21","guardian","routes","brain","agents","infrastructure","judgement"):
+        assert f'data-oap-action="{action}"' in base
