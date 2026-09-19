@@ -99,10 +99,21 @@ def _store(key: str, value: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _mark_provider_failure(host: str, reason: str) -> None:
+    """Revoke earlier success when the latest provider attempt fails."""
+
+    with _PROVIDER_STATE_LOCK:
+        _PROVIDER_SUCCESS.pop(host, None)
+        _PROVIDER_ERROR[host] = reason
+
+
 def _json(url: str, expected_host: str) -> dict[str, Any]:
     parsed = urlparse.urlparse(url)
     if parsed.scheme != "https" or parsed.hostname != expected_host:
         raise ValueError("unapproved_location_provider")
+    # A previous request must not remain proof while a new attempt is in flight.
+    with _PROVIDER_STATE_LOCK:
+        _PROVIDER_SUCCESS.pop(expected_host, None)
     request = urlrequest.Request(
         url,
         headers={
@@ -114,19 +125,22 @@ def _json(url: str, expected_host: str) -> dict[str, Any]:
         with urlrequest.urlopen(request, timeout=LOOKUP_TIMEOUT_SECONDS) as response:
             final = urlparse.urlparse(response.geturl())
             if final.scheme != "https" or final.hostname != expected_host:
+                _mark_provider_failure(expected_host, "location_provider_redirect_rejected")
                 raise LocationUnavailable("location_provider_redirect_rejected")
             body = response.read(MAX_RESPONSE_BYTES + 1)
     except (OSError, TimeoutError) as exc:
-        with _PROVIDER_STATE_LOCK:
-            _PROVIDER_ERROR[expected_host] = type(exc).__name__
+        _mark_provider_failure(expected_host, type(exc).__name__)
         raise LocationUnavailable("location_provider_unavailable") from exc
     if len(body) > MAX_RESPONSE_BYTES:
+        _mark_provider_failure(expected_host, "location_response_too_large")
         raise LocationUnavailable("location_response_too_large")
     try:
         value = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _mark_provider_failure(expected_host, "invalid_location_response")
         raise LocationUnavailable("invalid_location_response") from exc
     if not isinstance(value, dict):
+        _mark_provider_failure(expected_host, "invalid_location_response")
         raise LocationUnavailable("invalid_location_response")
     with _PROVIDER_STATE_LOCK:
         _PROVIDER_SUCCESS[expected_host] = time.time()
@@ -240,9 +254,7 @@ def weather(latitude: object, longitude: object) -> dict[str, Any]:
     ):
         # A structurally valid JSON response is not a valid weather observation.
         # _json records transport success; revoke it before reporting source health.
-        with _PROVIDER_STATE_LOCK:
-            _PROVIDER_SUCCESS.pop("api.open-meteo.com", None)
-            _PROVIDER_ERROR["api.open-meteo.com"] = "invalid_weather_response"
+        _mark_provider_failure("api.open-meteo.com", "invalid_weather_response")
         raise LocationUnavailable("invalid_weather_response")
     observation = {
         "temperature": current.get("temperature_2m"),
@@ -282,9 +294,14 @@ def status() -> dict[str, object]:
     with _PROVIDER_STATE_LOCK:
         successes = dict(_PROVIDER_SUCCESS)
         errors = dict(_PROVIDER_ERROR)
-    postcode_verified = "api.postcodes.io" in successes
-    global_verified = "geocoding-api.open-meteo.com" in successes
-    weather_verified = "api.open-meteo.com" in successes
+    now = time.time()
+    fresh = {
+        host: (0 <= now - last_success <= CACHE_SECONDS and host not in errors)
+        for host, last_success in successes.items()
+    }
+    postcode_verified = fresh.get("api.postcodes.io", False)
+    global_verified = fresh.get("geocoding-api.open-meteo.com", False)
+    weather_verified = fresh.get("api.open-meteo.com", False)
     intelligence = weather_intelligence.status(weather_verified)
     return {
         "postcode_provider_verified": postcode_verified,
@@ -302,6 +319,10 @@ def status() -> dict[str, object]:
         "last_success_epoch": {
             host: int(timestamp) for host, timestamp in successes.items()
         },
+        "stale_providers": tuple(
+            host for host, last_success in successes.items()
+            if now - last_success > CACHE_SECONDS
+        ),
         "errors": errors,
         "ready": postcode_verified and global_verified and weather_verified,
     }
