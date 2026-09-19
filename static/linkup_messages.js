@@ -11,6 +11,7 @@
   const state = {
     ready: false,
     activityReady: false,
+    syncReady: false,
     activeForm: null,
     lastTypingSentAt: 0,
     typingStopTimer: null,
@@ -348,7 +349,9 @@
     const payload = fixedPayload || {
       recipient_id: recipientFor(form),
       body: textarea?.value.trim() || "",
-      client_message_id: crypto.randomUUID(),
+      ...(state.syncReady && crypto?.randomUUID
+        ? { client_message_id: crypto.randomUUID() }
+        : {}),
     };
     if (!payload.recipient_id || !payload.body) {
       return;
