@@ -185,3 +185,54 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre.smi-room-art
 @media(max-width:820px){
  body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre.smi-room-art-loaded .smi-command-scene{background-size:cover,auto 100%!important;background-position:center,50% 45%!important}
 }
+
+
+/* Approved still-scene ambient response — NOT facial, lip or limb animation.
+   The original first-party PNG and canonical human controls remain untouched. */
+.smi-command-stage{position:relative}
+.smi-scene-presence{display:none;position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.smi-room-art-loaded .smi-scene-presence{display:block}
+.smi-scene-presence::before,.smi-scene-presence::after{
+ content:"";position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);
+ border-radius:50%;opacity:0;pointer-events:none
+}
+.smi-scene-presence::before{
+ width:min(62%,360px);aspect-ratio:1;border:2px solid #68cfff;
+ box-shadow:0 0 24px #38a5ff80,inset 0 0 26px #38a5ff3d
+}
+.smi-scene-presence::after{
+ width:min(46%,260px);aspect-ratio:1;border:1px solid #e4c27b;
+ box-shadow:0 0 28px #b88dff73
+}
+.smi-room-art-loaded[data-presence-state="listening"] .smi-scene-presence::before{
+ animation:smi-presence-listening 1.8s ease-in-out infinite
+}
+.smi-room-art-loaded[data-presence-state="thinking"] .smi-scene-presence::before{
+ animation:smi-presence-thinking 2.7s ease-in-out infinite
+}
+.smi-room-art-loaded[data-presence-state="thinking"] .smi-scene-presence::after{
+ animation:smi-presence-thinking 2.7s ease-in-out .3s infinite
+}
+.smi-room-art-loaded[data-presence-state="speaking"] .smi-scene-presence::before{
+ animation:smi-presence-speaking .72s ease-in-out infinite
+}
+.smi-room-art-loaded[data-presence-state="speaking"] .smi-scene-presence::after{
+ animation:smi-presence-speaking .72s ease-in-out .18s infinite
+}
+@keyframes smi-presence-listening{
+ 0%,100%{opacity:.10;transform:translate(-50%,-50%) scale(.97)}
+ 50%{opacity:.42;transform:translate(-50%,-50%) scale(1.035)}
+}
+@keyframes smi-presence-thinking{
+ 0%,100%{opacity:.12;transform:translate(-50%,-50%) scale(.91)}
+ 50%{opacity:.52;transform:translate(-50%,-50%) scale(1.075)}
+}
+@keyframes smi-presence-speaking{
+ 0%,100%{opacity:.12;transform:translate(-50%,-50%) scale(.94)}
+ 50%{opacity:.54;transform:translate(-50%,-50%) scale(1.055)}
+}
+@media(prefers-reduced-motion:reduce){
+ .smi-scene-presence,.smi-scene-presence::before,.smi-scene-presence::after{
+  animation:none!important;transition:none!important;opacity:0!important
+ }
+}
