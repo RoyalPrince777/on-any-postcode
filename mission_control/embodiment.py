@@ -267,3 +267,72 @@ def status() -> dict[str, Any]:
         "human_authority_final": True,
         "no_fake_green": True,
     }
+
+
+
+def bounded_runtime_guard_proof() -> dict[str, Any]:
+    """Exercise Embodiment authority, truth, privacy and STOP guards in memory."""
+
+    controller = EmbodimentController("runtime-guard-proof")
+    no_execute_state = "EXECUTE" not in AUTHORITY_STATES
+    unknown_motor_blocked = False
+    privacy_blocked = False
+    restart_blocked = False
+
+    try:
+        controller.present(motor_intent="RAW_OVERRIDE")
+    except ValueError:
+        unknown_motor_blocked = True
+
+    try:
+        controller.present(
+            speech="private",
+            privacy_scope="FOUNDER_ONLY",
+            presentation_scope="PUBLIC",
+        )
+    except PermissionError:
+        privacy_blocked = True
+
+    controller = EmbodimentController("runtime-guard-stop-proof")
+    controller.present(
+        speech="active",
+        truth_signal="warning",
+        authority_state="RECOMMENDATION",
+        motor_intent="EXPLAIN",
+    )
+    stopped = controller.stop()
+    try:
+        controller.present(speech="self resume blocked")
+    except PermissionError:
+        restart_blocked = True
+
+    warning_truth_preserved = stopped["truth"]["id"] == "warning"
+    output_cleared = bool(
+        stopped["speech"] == ""
+        and stopped["panel_refs"] == ()
+        and stopped["capture_allowed"] is False
+        and stopped["motor_intent"] == "STOP"
+    )
+    passed = all(
+        (
+            no_execute_state,
+            unknown_motor_blocked,
+            privacy_blocked,
+            restart_blocked,
+            warning_truth_preserved,
+            output_cleared,
+        )
+    )
+    return {
+        "passed": passed,
+        "no_execute_state": no_execute_state,
+        "unknown_motor_blocked": unknown_motor_blocked,
+        "privacy_blocked": privacy_blocked,
+        "restart_blocked": restart_blocked,
+        "truth_preserved": warning_truth_preserved,
+        "stop_output_cleared": output_cleared,
+        "brain_count_added": 0,
+        "production_state_mutated": False,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
+    }
