@@ -22,7 +22,7 @@
     .linkup-card-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;letter-spacing:.03em}
     .linkup-stars{margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
     .linkup-stars-head{display:flex;justify-content:space-between;gap:.75rem;align-items:center}.linkup-stars-head strong{font-size:.95rem}.linkup-stars-score{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-    .linkup-stars-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.6rem}.linkup-star{display:flex;gap:.4rem;align-items:center;font-size:.78rem;color:rgba(255,255,255,.72)}.linkup-star[data-passed="true"]{color:#fff}
+    .linkup-stars-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.6rem}.linkup-star{display:flex;gap:.4rem;align-items:center;font-size:.78rem;color:rgba(255,255,255,.72)}.linkup-star[data-passed="true"]{color:#fff}.linkup-certifications{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.2rem}.linkup-certified{font-size:.7rem;padding:.2rem .42rem;border:1px solid rgba(255,215,0,.35);border-radius:999px}.linkup-card-state{opacity:.82}
   </style>
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
@@ -72,13 +72,18 @@
 
         {% if my_card %}
         <section class="linkup-card" aria-label="My Card">
-          <span class="linkup-avatar">{{ my_card.display_name[:1]|upper }}</span>
+          <span class="linkup-avatar">{{ my_card.avatar_initial or my_card.display_name[:1]|upper }}</span>
           <span class="linkup-card-copy">
             <strong>{{ my_card.display_name }}</strong>
             <small>{% if my_card.username %}@{{ my_card.username }} · {% endif %}My Card</small>
             <small class="linkup-card-id">{{ my_card.card_id }}</small>
             {% if my_card.borough or my_card.country %}
             <small>{{ my_card.borough }}{% if my_card.borough and my_card.country %} · {% endif %}{{ my_card.country }}</small>
+            {% endif %}
+            {% if my_card.certifications %}
+            <span class="linkup-certifications">
+              {% for badge in my_card.certifications %}<span class="linkup-certified">✓ {{ badge }}</span>{% endfor %}
+            </span>
             {% endif %}
           </span>
         </section>
@@ -138,8 +143,8 @@
           <p class="linkup-empty" role="alert">Link Ups are unavailable.</p>
         {% elif dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
-          <button class="linkup-thread-button" type="button" data-linkup-thread="{{ thread.other_identity_id }}" data-search="{{ thread.display_name }} {{ thread.postcode or '' }}" data-active="{{ 'true' if loop.first else 'false' }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
-            <span class="linkup-avatar">{{ thread.display_name[:1]|upper }}</span>
+          <button class="linkup-thread-button" type="button" data-linkup-thread="{{ thread.other_identity_id }}" data-search="{{ thread.display_name }} {{ thread.username or '' }} {{ thread.card_id or '' }} {{ thread.borough or '' }} {{ thread.country or '' }}" data-active="{{ 'true' if loop.first else 'false' }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
+            <span class="linkup-avatar">{{ thread.avatar_initial or thread.display_name[:1]|upper }}</span>
             <span class="linkup-thread-main"><strong>{{ thread.display_name }}</strong><span>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</span><span>{% if thread.messages %}{{ thread.messages[-1].body }}{% else %}Start a Link{% endif %}</span></span>
             {% if thread.unread_count %}<span class="linkup-unread">{{ thread.unread_count }}</span>{% endif %}
           </button>
@@ -169,8 +174,8 @@
           <article class="linkup-chat-panel" data-linkup-panel="{{ thread.other_identity_id }}" data-active="{{ 'true' if loop.first else 'false' }}">
             <header class="linkup-chat-head">
               <button class="linkup-icon-btn linkup-back" type="button" data-linkup-back aria-label="Back to chats">‹</button>
-              <span class="linkup-avatar">{{ thread.display_name[:1]|upper }}</span>
-              <span class="linkup-chat-name"><strong>{{ thread.display_name }}</strong><small>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</small>{% if thread.borough or thread.country %}<small>{{ thread.borough }}{% if thread.borough and thread.country %} · {% endif %}{{ thread.country }}</small>{% elif thread.postcode %}<small>{{ thread.postcode }}</small>{% endif %}</span>
+              <span class="linkup-avatar">{{ thread.avatar_initial or thread.display_name[:1]|upper }}</span>
+              <span class="linkup-chat-name"><strong>{{ thread.display_name }}</strong><small>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</small>{% if thread.borough or thread.country %}<small>{{ thread.borough }}{% if thread.borough and thread.country %} · {% endif %}{{ thread.country }}</small>{% endif %}<small class="linkup-card-state">🔗 {{ 'Purpose Link' if thread.link_kind == 'purpose' else 'Linked' }}{% if thread.purpose_text %} · {{ thread.purpose_text }}{% endif %}</small>{% if thread.certifications %}<span class="linkup-certifications">{% for badge in thread.certifications %}<span class="linkup-certified">✓ {{ badge }}</span>{% endfor %}</span>{% endif %}</span>
               <span class="linkup-chat-actions">
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
                 <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
@@ -239,11 +244,12 @@
             </div>
             {% for person in dashboard.directory %}
             <div class="linkup-card">
-              <span class="linkup-avatar">{{ person.display_name[:1]|upper }}</span>
+              <span class="linkup-avatar">{{ person.avatar_initial or person.display_name[:1]|upper }}</span>
               <span class="linkup-card-copy">
                 <strong>{{ person.display_name }}</strong>
                 <small>@{{ person.username }} · {{ person.card_id }}</small>
                 {% if person.borough or person.country %}<small>{{ person.borough }}{% if person.borough and person.country %} · {% endif %}{{ person.country }}</small>{% endif %}
+                {% if person.certifications %}<span class="linkup-certifications">{% for badge in person.certifications %}<span class="linkup-certified">✓ {{ badge }}</span>{% endfor %}</span>{% endif %}
                 {% if person.link_status == 'accepted' %}
                   <small>🔗 Linked · open from your Link Ups</small>
                 {% elif person.link_status == 'pending' and person.link_direction == 'outgoing' %}
