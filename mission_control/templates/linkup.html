@@ -29,7 +29,6 @@
   <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_share.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messages.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='linkup_ping.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_incoming.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messenger.js') }}" defer></script>
 </head>
@@ -157,7 +156,6 @@
 
       <section class="linkup-chat" aria-label="Open chat">
         <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
-        <div class="linkup-incoming" data-oap-incoming-pings hidden aria-live="polite"></div>
         <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
         <div class="linkup-call-stage" data-oap-call-stage hidden>
           <p data-oap-call-stage-label>Call</p>
@@ -179,7 +177,6 @@
               <span class="linkup-avatar">{{ thread.avatar_initial or thread.display_name[:1]|upper }}</span>
               <span class="linkup-chat-name"><strong>{{ thread.display_name }}</strong><small>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</small>{% if thread.borough or thread.country %}<small>{{ thread.borough }}{% if thread.borough and thread.country %} · {% endif %}{{ thread.country }}</small>{% endif %}<small class="linkup-card-state">🔗 {{ 'Purpose Link' if thread.link_kind == 'purpose' else 'Linked' }}{% if thread.purpose_text %} · {{ thread.purpose_text }}{% endif %}</small>{% if thread.certifications %}<span class="linkup-certifications">{% for badge in thread.certifications %}<span class="linkup-certified">✓ {{ badge }}</span>{% endfor %}</span>{% endif %}</span>
               <span class="linkup-chat-actions">
-                <button type="button" disabled data-oap-ping-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Ping Up">⚡</button>
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
                 <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
               </span>
@@ -216,8 +213,6 @@
                   <button class="mc-primary linkup-send" type="submit">Link</button>
                 </div>
                 <div class="linkup-tray" data-oap-tray data-open="false">
-                  <button class="mc-secondary" type="button" disabled data-oap-ping-control data-recipient-id="{{ thread.other_identity_id }}" data-intensity="double">⚡⚡ Double Ping</button>
-                  <button class="mc-secondary" type="button" disabled data-oap-ping-mute data-recipient-id="{{ thread.other_identity_id }}">🔕 Mute Ping</button>
                   <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-id="{{ thread.other_identity_id }}" title="Share">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
                   <button class="mc-secondary" type="button" disabled data-oap-share-spot-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('live-spot', 'oap-motion-spot') }} My Spot</button>
                   <button class="mc-secondary" type="button" disabled data-oap-around-control data-recipient-id="{{ thread.other_identity_id }}">{{ motion_icon('around-now', 'oap-motion-around') }} Around Now</button>
