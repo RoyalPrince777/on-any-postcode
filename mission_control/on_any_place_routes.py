@@ -23,6 +23,7 @@ from . import (
     local_map_intelligence,
     location_intelligence,
     map_live_pattern,
+    mobility_provider_intelligence,
     road_tile_geometry,
     routing,
     routing_federation,
@@ -250,6 +251,29 @@ def map_intelligence_live_pattern_report():
     return response, 201
 
 
+@bp.get("/map-intelligence/mobility-providers")
+def map_intelligence_mobility_providers():
+    payload = mobility_provider_intelligence.status()
+    values = request.args
+    try:
+        if values.get("start_latitude") and values.get("start_longitude"):
+            payload["uber_estimates"] = mobility_provider_intelligence.estimates(
+                start_latitude=float(values["start_latitude"]),
+                start_longitude=float(values["start_longitude"]),
+                end_latitude=float(values["end_latitude"]) if values.get("end_latitude") else None,
+                end_longitude=float(values["end_longitude"]) if values.get("end_longitude") else None,
+            )
+    except (ValueError, RuntimeError) as exc:
+        payload["uber_estimates"] = {
+            "state": "unavailable",
+            "reason": str(exc)[:100],
+            "live_ready": False,
+        }
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @bp.get("/map-intelligence/status")
 def map_intelligence_status():
     route_status = routing.status()
@@ -338,7 +362,21 @@ def canonical_on_any_place():
         end=values.get("to") or "London Bridge",
         profile=values.get("profile") or "driving",
     )
-    return _no_store(make_response(render_template("local_map.html", local_map=local_map)))
+    response = _no_store(make_response(render_template("local_map.html", local_map=local_map)))
+    # Map Intelligence may be embedded only by the same OAP origin inside SMI.
+    # Device geolocation remains browser-consent gated and is not persisted here.
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'self'; frame-ancestors 'self'; "
+        "form-action 'self'; object-src 'none'; img-src 'self' data: blob:; "
+        "media-src 'self' blob:; connect-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+    )
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(self), payment=()"
+    )
+    response.headers["X-OAP-Precise-Location-Stored"] = "false"
+    return response
 
 
 @bp.get("/places")
