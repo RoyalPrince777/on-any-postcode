@@ -32,6 +32,7 @@ ROLLBACK_PROOF_ACTION = "SMI_ROLLBACK_RECOVERY_PROOF"
 RUNTIME_GUARD_PROOF_ACTION = "SMI_RUNTIME_GUARD_PROOF"
 ISOLATION_RECOVERY_PROOF_ACTION = "SMI_ISOLATION_RECOVERY_PROOF"
 FOUNDER_FINAL_ACTION = "SMI_FOUNDER_FINAL"
+EMBODIMENT_PROOF_REVISION = "embodiment-v1"
 
 
 def _production_counts() -> dict[str, object]:
@@ -65,15 +66,21 @@ def _production_counts() -> dict[str, object]:
                   (SELECT COUNT(*) FROM smi_memory_records
                     WHERE task_type='OAP_EVENT'),
                   (SELECT COUNT(*) FROM audit_events
-                    WHERE action=%s AND metadata->>'passed'='true'),
+                    WHERE action=%s AND metadata->>'passed'='true'
+                      AND metadata->>'proof_revision'=%s),
                   (SELECT COUNT(*) FROM audit_events
-                    WHERE action=%s AND metadata->>'passed'='true'),
+                    WHERE action=%s AND metadata->>'passed'='true'
+                      AND metadata->>'proof_revision'=%s),
                   (SELECT COUNT(*) FROM audit_events
-                    WHERE action=%s AND metadata->>'passed'='true')""",
+                    WHERE action=%s AND metadata->>'passed'='true'
+                      AND metadata->>'proof_revision'=%s)""",
                 (
                     ROLLBACK_PROOF_ACTION,
+                    EMBODIMENT_PROOF_REVISION,
                     RUNTIME_GUARD_PROOF_ACTION,
+                    EMBODIMENT_PROOF_REVISION,
                     ISOLATION_RECOVERY_PROOF_ACTION,
+                    EMBODIMENT_PROOF_REVISION,
                 ),
             ).fetchone()
             receipt_table = connection.execute(
@@ -290,6 +297,7 @@ def run_rollback_recovery_proof(identity_id: object) -> dict[str, object]:
             correlation_id=correlation_id,
             metadata={
                 "passed": True,
+                "proof_revision": EMBODIMENT_PROOF_REVISION,
                 "fault_observed": bool(proof["fault_observed"]),
                 "restored": bool(proof["restored"]),
                 "safe_resume": bool(proof["safe_resume"]),
@@ -416,6 +424,7 @@ def run_isolation_recovery_proof(identity_id: object) -> dict[str, object]:
             correlation_id=correlation_id,
             metadata={
                 "passed": True,
+                "proof_revision": EMBODIMENT_PROOF_REVISION,
                 "contained": bool(proof["contained"]),
                 "restored": bool(proof["restored"]),
                 "safe_resume": bool(proof["safe_resume"]),
@@ -449,17 +458,12 @@ def run_isolation_recovery_proof(identity_id: object) -> dict[str, object]:
     }
 
 
-def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
-    """Run and audit bounded recursion, duplicate-work and privilege guards."""
-
-    try:
-        identity_value = str(uuid.UUID(str(identity_id)))
-    except (TypeError, ValueError, AttributeError) as exc:
-        raise ValueError("invalid_human_authority_identity") from exc
+def _runtime_guard_exercise() -> dict[str, object]:
+    """Combine canonical SMI guards with Embodiment-specific runtime guards."""
 
     proof = bounded_control_proof()
     embodiment_proof = embodiment.bounded_runtime_guard_proof()
-    proof = {
+    return {
         **proof,
         "embodiment_runtime_guard": embodiment_proof,
         "embodiment_no_execute_state": bool(embodiment_proof["no_execute_state"]),
@@ -473,7 +477,21 @@ def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
             embodiment_proof["stop_output_cleared"]
         ),
         "passed": bool(proof["passed"] and embodiment_proof["passed"]),
+        "production_state_mutated": False,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
     }
+
+
+def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
+    """Run and audit bounded recursion, duplicate-work and privilege guards."""
+
+    try:
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_human_authority_identity") from exc
+
+    proof = _runtime_guard_exercise()
     if not proof["passed"]:
         raise RuntimeError("runtime_guard_proof_failed")
 
@@ -491,6 +509,7 @@ def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
             correlation_id=correlation_id,
             metadata={
                 "passed": True,
+                "proof_revision": EMBODIMENT_PROOF_REVISION,
                 "duplicate_blocked": bool(proof["duplicate_blocked"]),
                 "recursion_blocked": bool(proof["recursion_blocked"]),
                 "retry_blocked": bool(proof["retry_blocked"]),
