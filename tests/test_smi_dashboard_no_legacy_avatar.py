@@ -65,7 +65,7 @@ def test_live_voice_does_not_hijack_the_artwork_and_respects_reduced_motion():
 def test_real_composer_is_aligned_to_painted_art_not_duplicated():
     assert 'const composer=document.getElementById("chat-form")' in JS
     assert 'aligned.append(composer)' in JS
-    assert 'scene.append(aligned)' in JS
+    assert 'document.body.append(aligned)' in JS
     assert 'picture.width=wallpaper.naturalWidth' in JS
     assert 'picture.height=wallpaper.naturalHeight' in JS
     assert 'const scale=Math.min(width/picture.width,height/picture.height)' in JS
@@ -95,4 +95,4 @@ def test_no_artwork_gives_visible_fail_closed_real_input():
     assert 'panel.classList.add("smi-art-error")' in JS
     assert 'panel.classList.remove("smi-art-error")' in JS
     assert 'no substitute character shown' in JS
-    assert '.smi-command-centre.smi-art-error' in CSS
+    assert 'body.smi-command-open.smi-art-error' in CSS
