@@ -129,14 +129,25 @@ async function loadRoadNetwork(b,mode){
  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){if(tiles.length<20)tiles.push([x,y])}
  try{
    const payloads=await Promise.all(tiles.map(async([x,y])=>{const r=await fetch('/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode));return r.ok?await r.json():null}));
-   let count=0;
+   let count=0,labelCount=0;const labelled=new Set();
    for(const d of payloads){if(!d||!Array.isArray(d.lines))continue;const t=d.tile||{};
      for(const feature of d.lines){if(count>=900)break;
        const pts=(feature.points||[]).map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
          .filter(ll=>ll[0]>=b.minX-.02&&ll[0]<=b.maxX+.02&&ll[1]>=b.minY-.02&&ll[1]<=b.maxY+.02).map(ll=>project(ll[0],ll[1],b));
        if(pts.length<2)continue;
+       const rawClass=String(feature.class||feature.layer||'road').toLowerCase();
+       const isMajor=feature.is_small===false||(+feature.speed||0)>=50||/(motorway|trunk|primary)/.test(rawClass);
+       const isSecondary=/(secondary|tertiary)/.test(rawClass);
        const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' ');
-       if(feature.is_small===false||(+feature.speed||0)>=50)poly.setAttribute('class','major');roadLayer.appendChild(poly);count++
+       poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local');
+       roadLayer.appendChild(poly);count++;
+       const name=String(feature.name||'').trim();
+       if(name&&labelCount<32&&!labelled.has(name)&&(isMajor||isSecondary)){
+         const mid=pts[Math.floor(pts.length/2)];
+         const text=document.createElementNS('http://www.w3.org/2000/svg','text');
+         text.setAttribute('x',mid[0]);text.setAttribute('y',mid[1]);text.setAttribute('class','road-label');
+         text.textContent=name;roadLayer.appendChild(text);labelled.add(name);labelCount++
+       }
      }
    }
  }catch{roadLayer.innerHTML=''}
