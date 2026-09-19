@@ -29,8 +29,8 @@ def init_app(app: Flask) -> None:
         link_call_audit,
         link_ping,
         link_presence,
-        link_relationships,
         link_share,
+        link_relationships,
         link_signalling,
         link_turn,
         link_voice,
@@ -58,9 +58,9 @@ def init_app(app: Flask) -> None:
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
-    from .link_incoming_routes import bp as link_incoming_bp
     from .link_message_routes import bp as link_message_bp
     from .link_ping_routes import bp as link_ping_bp
+    from .link_incoming_routes import bp as link_incoming_bp
     from .link_presence_routes import bp as link_presence_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
@@ -154,6 +154,36 @@ def init_app(app: Flask) -> None:
                         "error": type(exc).__name__,
                         "reason": reason,
                         "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LINK_MESSAGE_SYNC_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            sync_status = link_message_sync.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_message_sync_migration",
+                        "success": bool(sync_status.get("applied")),
+                        "schema_version": sync_status.get("version"),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_message_sync_migration",
+                        "success": False,
+                        "error": "link_message_sync_migration_failed",
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -643,6 +673,18 @@ def init_app(app: Flask) -> None:
         if not yes:
             raise click.ClickException("explicit_confirmation_required")
         print(link_presence.purge_expired())
+
+    @app.cli.command("oap-link-message-sync-status")
+    def _oap_link_message_sync_status() -> None:
+        import json
+        print(json.dumps(link_message_sync.status()))
+
+    @app.cli.command("oap-init-link-message-sync")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_message_sync(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_message_sync.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-link-share-status")
     def _oap_link_share_status() -> None:
