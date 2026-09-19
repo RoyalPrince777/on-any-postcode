@@ -304,3 +304,66 @@ body.smi-command-open.smi-command-chat-visible:not(.smi-live-fullscreen)
 .smi-command-scene .smi-person,
 .smi-command-scene .smi-cybernetic,
 .chatbox>.smi-character .smi-person{display:none!important}
+
+
+/* Voice-first Live SMI does not replace the Founder dashboard with an empty
+   retired avatar. Preserve the canonical Live/STOP handlers and bottom tools. */
+body.smi-live-fullscreen.smi-command-open .smi-command-centre{
+ display:flex!important;flex-direction:column!important;
+ position:fixed!important;inset:3px 3px calc(105px + env(safe-area-inset-bottom)) 3px!important;
+ z-index:11500!important;margin:0!important;max-height:none!important;
+ min-height:0!important;background:#030d1e!important
+}
+body.smi-live-fullscreen.smi-command-open .smi-command-layout{
+ grid-template-columns:minmax(0,1fr)!important;min-height:0!important
+}
+body.smi-live-fullscreen.smi-command-open .smi-command-mobile-views{display:flex!important}
+body.smi-live-fullscreen.smi-command-open .smi-command-side{display:none!important}
+body.smi-live-fullscreen.smi-command-open
+.smi-command-centre[data-mobile-view="anatomy"] .smi-command-anatomy,
+body.smi-live-fullscreen.smi-command-open
+.smi-command-centre[data-mobile-view="evidence"] .smi-command-evidence{display:grid!important}
+body.smi-live-fullscreen.smi-command-open
+.smi-command-centre[data-mobile-view="anatomy"] .smi-command-scene,
+body.smi-live-fullscreen.smi-command-open
+.smi-command-centre[data-mobile-view="evidence"] .smi-command-scene{display:none!important}
+body.smi-live-fullscreen.smi-command-open
+.smi-command-centre.smi-room-art-loaded .smi-command-scene{
+ background-image:var(--oap-smi-wallpaper)!important;
+ background-position:center center!important;background-size:contain!important;
+ background-repeat:no-repeat!important
+}
+body.smi-live-fullscreen.smi-command-open .composer{
+ z-index:11600!important;background:#030c1df0!important
+}
+body.smi-live-fullscreen.smi-command-open .composer-box{
+ max-width:min(1020px,calc(100vw - 20px))!important;padding:5px 6px!important;
+ background:#06152b!important;border:1px solid #3886d1!important
+}
+body.smi-live-fullscreen.smi-command-open .composer textarea{
+ display:block!important;color:#e3f2ff!important
+}
+body.smi-live-fullscreen.smi-command-open #send,
+body.smi-live-fullscreen.smi-command-open #speaker-button,
+body.smi-live-fullscreen.smi-command-open #code-button,
+body.smi-live-fullscreen.smi-command-open #thinking-level{
+ display:flex!important
+}
+body.smi-live-fullscreen.smi-command-open .composer-left>*{display:flex!important}
+body.smi-live-fullscreen.smi-command-open #live-character-toggle{
+ position:static!important;bottom:auto!important;right:auto!important;
+ z-index:auto!important;padding:6px 9px!important
+}
+body.smi-live-fullscreen.smi-command-open.smi-command-chat-visible
+.chatbox>.messages{
+ display:block!important;visibility:visible!important;pointer-events:auto!important;
+ position:fixed!important;top:clamp(90px,18dvh,153px)!important;
+ bottom:calc(105px + env(safe-area-inset-bottom))!important;
+ left:4px!important;right:4px!important;width:auto!important;
+ max-height:none!important;overflow-y:auto!important;
+ z-index:11520!important;background:#030d1ef2!important;
+ border:1px solid #397eb3;border-radius:12px
+}
+@media(prefers-reduced-motion:reduce){
+ body.smi-command-open .smi-command-centre *{animation:none!important;transition:none!important}
+}
