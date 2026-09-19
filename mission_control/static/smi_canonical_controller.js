@@ -59,6 +59,7 @@ function oapRenderCharacter(){
  const labels={ready:'Ready',listening:'Listening',thinking:'Thinking',speaking:'Speaking',paused:'Paused',stopped:'Stopped'};
  if(oapCharacter)oapCharacter.dataset.state=oapRuntime.state;
  if(oapCharacterLabel)oapCharacterLabel.textContent=labels[oapRuntime.state]||oapRuntime.state;
+ document.body.classList.toggle('smi-live-fullscreen',Boolean(oapRuntime.live&&!oapRuntime.stopped));
  oapSyncHumanControls();
  window.dispatchEvent(new CustomEvent('oap-smi-character-state',{detail:{...oapRuntime}}));
 }
@@ -85,7 +86,7 @@ function oapUpdateLiveToggle(){
  const live=Boolean(oapRuntime?.live);
  oapLiveToggle.classList.toggle('active',live);
  oapLiveToggle.setAttribute('aria-pressed',String(live));
- oapLiveToggle.textContent=live?'◉ Live On':'◉ Live SMI';
+ oapLiveToggle.textContent=live?'✕ Exit Live SMI':'◉ Live SMI';
 }
 function oapSetLive(enabled){
  if(!oapRuntime||!oapStateApi){oapSetStatus('Live SMI state engine unavailable');return false;}
@@ -95,7 +96,7 @@ function oapSetLive(enabled){
   oapApply('LIVE_ON');
   oapVoiceEnabled=true;
   if(oapSpeaker){oapSpeaker.classList.add('active');oapSpeaker.setAttribute('aria-pressed','true');oapSpeaker.textContent='🔊 Voice reply';}
-  oapSetStatus('Live SMI on · final recognised speech turns auto-send · browser speech-service locality not verified');
+  oapSetStatus('Live SMI full screen · voice-first · final recognised speech turns auto-send · browser speech-service locality not verified');
   oapUpdateLiveToggle();
   oapScheduleListening(180);
   return true;
@@ -107,7 +108,8 @@ function oapSetLive(enabled){
  if(oapRecognition){try{oapRecognition.stop()}catch{}}
  if('speechSynthesis' in window)window.speechSynthesis.cancel();
  oapUpdateLiveToggle();
- oapSetStatus('Live SMI off');
+ document.body.classList.remove('smi-live-fullscreen');
+ oapSetStatus('Live SMI off · text chat restored');
  return true;
 }
 function oapRequestListening(source='manual'){
@@ -277,10 +279,10 @@ if(oapMic){
  }
 }
 if(oapLiveToggle)oapLiveToggle.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapSetLive(!Boolean(oapRuntime?.live));},true);
-window.addEventListener('pagehide',()=>{oapClearLiveRestart();oapSpeechSeq+=1;if(oapRuntime&&!oapRuntime.stopped)oapApply('LIVE_OFF');oapRecognitionToken=null;if(oapRecognition){try{oapRecognition.stop()}catch{}}if('speechSynthesis' in window)window.speechSynthesis.cancel();});
+window.addEventListener('pagehide',()=>{document.body.classList.remove('smi-live-fullscreen');oapClearLiveRestart();oapSpeechSeq+=1;if(oapRuntime&&!oapRuntime.stopped)oapApply('LIVE_OFF');oapRecognitionToken=null;if(oapRecognition){try{oapRecognition.stop()}catch{}}if('speechSynthesis' in window)window.speechSynthesis.cancel();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&oapRuntime?.live){oapSetLive(false);oapSetStatus('Live SMI off while this page is hidden');}});
 oapRenderCharacter();oapUpdateLiveToggle();
 oapAddCaptureOptions();
 window.OAP_SMI_LIVE_PROOF={snapshot:oapProofSnapshot,privacy:{storesAudio:false,storesTranscript:false}};
-window.OAP_SMI_CANONICAL={version:'2.1',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,runtimeProofLedger:true,resultStreamOnly:true};
+window.OAP_SMI_CANONICAL={version:'2.2',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,liveFullscreen:true,voiceFirstFullscreen:true,persistentThinkingProcess:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,runtimeProofLedger:true,resultStreamOnly:true};
 })();
