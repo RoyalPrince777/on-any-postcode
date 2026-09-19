@@ -399,6 +399,8 @@ def generate(
                 on_delta(text)
             return text
         except RuntimeError as exc:
+            if cancel_check is not None:
+                cancel_check()
             first_party_error = exc
         try:
             text = _call_bridge(
@@ -415,6 +417,8 @@ def generate(
                 on_delta(text)
             return text
         except RuntimeError as exc:
+            if cancel_check is not None:
+                cancel_check()
             first_party_error = exc
     if cancel_check is not None:
         cancel_check()
