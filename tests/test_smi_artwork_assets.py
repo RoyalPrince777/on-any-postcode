@@ -9,7 +9,7 @@ ROOM = ROOT / "static/oap/smi_global_intelligence_command_centre.png"
 def test_exact_founder_and_dashboard_png_assets_are_in_repo():
     for path in (ENTER, ROOM):
         assert path.is_file(), f"Approved original artwork missing: {path.relative_to(ROOT)}"
-        assert path.read_bytes().startswith(b"\\x89PNG\\r\\n\\x1a\\n"), f"Not PNG: {path}"
+        assert path.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")), f"Not PNG: {path}"
         assert path.stat().st_size > 100_000, f"Placeholder artwork blocked: {path}"
 
 
