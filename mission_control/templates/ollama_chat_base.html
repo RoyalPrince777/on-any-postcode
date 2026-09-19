@@ -162,7 +162,29 @@ document.getElementById('remove-media').onclick=()=>{selectedAttachment=null;med
 codeButton.onclick=()=>{codeMode=!codeMode;codeButton.classList.toggle('active',codeMode);codeButton.setAttribute('aria-pressed',String(codeMode));messageInput.placeholder=codeMode?'Describe the code change for Human Authority review…':'Message OAP Mind…';statusEl.textContent=codeMode?'Code proposal mode · apply/deploy remain locked':'Recommendation mode'};
 function clearAttachments(){selectedImage='';imageInput.value='';document.getElementById('image-preview').classList.remove('show');selectedAttachment=null;mediaInput.value='';document.getElementById('media-preview').classList.remove('show')}
 function parseEventBlock(block){let eventName='message';const dataLines=[];block.split('\n').forEach(line=>{if(line.startsWith('event:'))eventName=line.slice(6).trim();if(line.startsWith('data:'))dataLines.push(line.slice(5).trim())});if(!dataLines.length)return null;return {event:eventName,data:JSON.parse(dataLines.join('\n'))}}
-async function loadHealth(){try{const response=await fetch(healthUrl,{cache:'no-store'}),data=await response.json();const names={database:'Neon',schema:'Schema',provider_key:'Provider',provider_assignment:'Assignment',identity:'Identity',permission:'Permission',nexus:'NEXUS',thalamus_input:'Thalamus',agent_registry:'Agents',agent_selection:'Selection',biological_brain:'Brain',aegis:'AEGIS',guardian:'Guardian',war_room:'War Room',hrm:'HRM',conversation_memory:'Memory',router:'Router',chat_route:'Streaming',audit:'Audit',human_authority:'Human Authority',execution_locked:'Execution Locked'};document.getElementById('lights').innerHTML=Object.entries(data.checks).map(([key,value])=>'<div class="light"><span class="lamp" style="'+(value?'':'background:#e24d4d;box-shadow:0 0 12px #e24d4d')+'"></span>'+(names[key]||key)+'</div>').join('')}catch(error){statusEl.textContent='Health check unavailable'}}
+async function loadHealth(){
+ try{
+  const response=await fetch(healthUrl,{cache:'no-store',credentials:'same-origin'});
+  if(!response.ok)throw new Error('Health request did not succeed');
+  const data=await response.json();
+  if(!data||typeof data.checks!=='object'||Array.isArray(data.checks))throw new Error('Health proof unavailable');
+  const names={database:'Neon',schema:'Schema',provider_key:'Provider',provider_assignment:'Assignment',identity:'Identity',permission:'Permission',nexus:'NEXUS',thalamus_input:'Thalamus',agent_registry:'Agents',agent_selection:'Selection',biological_brain:'Brain',aegis:'AEGIS',guardian:'Guardian',war_room:'War Room',hrm:'HRM',conversation_memory:'Memory',router:'Router',chat_route:'Streaming',audit:'Audit',human_authority:'Human Authority',execution_locked:'Execution Locked'};
+  const host=document.getElementById('lights');if(!host)return;
+  host.replaceChildren();
+  for(const [key,value] of Object.entries(data.checks)){
+   const proven=value===true;
+   const item=document.createElement('div');item.className='light';item.dataset.proven=String(proven);
+   const lamp=document.createElement('span');lamp.className='lamp';
+   if(!proven)lamp.style.cssText='background:#e24d4d;box-shadow:0 0 12px #e24d4d';
+   item.append(lamp,document.createTextNode((names[key]||key)+(proven?' · proven':' · not proven')));
+   host.append(item);
+  }
+ }catch(error){
+  const host=document.getElementById('lights');
+  if(host){host.replaceChildren();const item=document.createElement('div');item.className='light';item.textContent='🔴 Health proof unavailable';host.append(item);}
+  statusEl.textContent='Health check unavailable · no green inferred';
+ }
+}
 // Core Send / Enter / Plus / Mic / Voice / Pause / Stop ownership lives in
 // smi_canonical_controller.js. This base script keeps rendering, history,
 // attachments, health and shared helpers only.
