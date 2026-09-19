@@ -3,7 +3,13 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import link_activity, link_message_sync, product_store, public_store, web_security
+from . import (
+    link_activity,
+    link_message_sync,
+    product_store,
+    public_store,
+    web_security,
+)
 from .link_circle_routes import bp as link_circle_bp
 
 bp = Blueprint("link_message_state", __name__)
