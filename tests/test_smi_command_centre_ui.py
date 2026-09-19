@@ -63,6 +63,18 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('if(menu.classList.contains("show"))syncFunctionHealth()', source)
         self.assertIn('attributeFilter:["class"]', source)
 
+    def test_full_room_preserves_real_chat_and_tool_handlers(self):
+        styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn("position:fixed!important;inset:4px", styles)
+        self.assertIn(".smi-command-universe", styles)
+        self.assertIn('panel.querySelector(".smi-command-layout").after(universe)', source)
+        self.assertIn('canonical.click()', source)
+        self.assertIn('event.target?.id==="chat-form"&&active', source)
+        self.assertIn('event.target?.id==="message"&&event.key==="Enter"', source)
+        self.assertIn('setOpen(false)', source)
+        self.assertNotIn("All Systems Operational", source)
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
