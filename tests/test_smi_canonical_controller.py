@@ -5,12 +5,12 @@ WRAPPER = ROOT / "mission_control" / "templates" / "ollama_chat.html"
 CONTROLLER = ROOT / "mission_control" / "static" / "smi_canonical_controller.js"
 
 
-def test_canonical_controller_loads_before_legacy_request_guard():
+def test_canonical_controller_is_the_only_loaded_core_request_owner():
     wrapper = WRAPPER.read_text(encoding="utf-8")
     assert wrapper.count("smi_canonical_controller.js") == 1
+    assert "smi_request_guard.js" not in wrapper
     assert wrapper.index("smi_chat_final.js") < wrapper.index("smi_canonical_controller.js")
     assert wrapper.index("smi_chat_compat.js") < wrapper.index("smi_canonical_controller.js")
-    assert wrapper.index("smi_canonical_controller.js") < wrapper.index("smi_request_guard.js")
 
 
 def test_canonical_controller_owns_one_submit_path_fail_closed():
@@ -21,6 +21,8 @@ def test_canonical_controller_owns_one_submit_path_fail_closed():
     assert "oapForm.addEventListener('submit'" in text
     assert text.count("event.stopImmediatePropagation()") >= 6
     assert "oapSubmit();" in text
+    assert "add(userLabel,'user')" in text
+    assert "oapInput.dispatchEvent(new Event('input',{bubbles:true}))" in text
     assert "window.OAP_SMI_CANONICAL" in text
     assert "singleSubmitOwner:true" in text
     assert "composerOwner:true" in text
@@ -99,6 +101,8 @@ def test_canonical_controller_reuses_media_path_for_camera_and_screen():
     assert "Screen sharing unavailable on this device" in text
     assert "cameraCapture:true" in text
     assert "screenCapture:true" in text
+    assert "screen-capture-button" in text
+    assert "screen.id='screen-button'" not in text
     assert "studioDuplicate:false" in text
 
 
