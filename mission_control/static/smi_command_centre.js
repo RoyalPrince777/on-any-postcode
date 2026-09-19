@@ -292,10 +292,10 @@
   if(!detail||typeof detail.state!=="string"){setPresenceState("ready");stateLabel.textContent="SMI · ready";return;}
   setPresenceState(detail.state);
   stateLabel.textContent="SMI · "+panel.dataset.presenceState;
-  if(detail.live&&active)setOpen(false);
+  // Live voice stays within the same approved dashboard; do not expose old art.
  });
  window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
- // Command Centre is the approved visual front door; Chat remains immediately reachable.
- // Never override a voice-first/fullscreen session already active.
- if(!document.body.classList.contains("smi-live-fullscreen"))setOpen(true);
+ // The approved full dashboard stays the front door, including Live voice.
+ // The old CSS character has been removed and must never act as a fallback.
+ setOpen(true);
 })();
