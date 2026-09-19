@@ -77,6 +77,16 @@
   if(tab.dataset.view==="evidence"){refreshEvidence();refreshRoomStatus();}
  });
  const stage=panel.querySelector(".smi-command-stage");
+ // First-party state-linked ambient motion; never replace or deform the approved still.
+ const presence=document.createElement("div");
+ presence.className="smi-scene-presence";
+ presence.setAttribute("aria-hidden","true");
+ stage.append(presence);
+ const presenceStates=new Set(["ready","listening","thinking","speaking","paused","stopped"]);
+ const setPresenceState=(value)=>{
+  panel.dataset.presenceState=presenceStates.has(value)?value:"ready";
+ };
+ setPresenceState(character.dataset.state||"ready");
  // Load the exact approved picture from the first-party app asset.
  // No visual green until the bytes resolve; the existing CSS character remains fallback.
  const scene=panel.querySelector(".smi-command-scene");
@@ -264,7 +274,10 @@
   }
  });
  window.addEventListener("oap-smi-character-state",event=>{
-  if(event.detail&&event.detail.live&&active)setOpen(false);
+  const detail=event.detail;
+  if(!detail||typeof detail.state!=="string"){setPresenceState("ready");return;}
+  setPresenceState(detail.state);
+  if(detail.live&&active)setOpen(false);
  });
  window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
  // Command Centre is the approved visual front door; Chat remains immediately reachable.
