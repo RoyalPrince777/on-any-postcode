@@ -174,13 +174,22 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
     }
 
 
-def send_message(sender_id: object, recipient_id: object, body: object) -> str:
+def send_message(
+    sender_id: object,
+    recipient_id: object,
+    body: object,
+    *,
+    client_message_id: object = None,
+) -> str:
     sender, recipient = _link_guard(sender_id, recipient_id)
     message = str(body or "").strip()[:4000]
     if not message:
         raise ValueError("message_required")
     if _BLOCKED_MESSAGE.search(message):
         raise ValueError("guardian_blocked_message")
+    client_id = None
+    if client_message_id not in {None, ""}:
+        client_id = _identity(client_message_id, "invalid_client_message_id")
     try:
         with postgres_db.connect() as connection:
             users = connection.execute(
@@ -190,6 +199,17 @@ def send_message(sender_id: object, recipient_id: object, body: object) -> str:
             ).fetchall()
             if {str(row[0]) for row in users} != {sender, recipient}:
                 raise ValueError("recipient_unavailable")
+            if client_id:
+                existing = connection.execute(
+                    """SELECT id,recipient_id,body FROM messages
+                       WHERE sender_id=%s AND client_message_id=%s LIMIT 1""",
+                    (sender, client_id),
+                ).fetchone()
+                if existing is not None:
+                    if str(existing[1]) != recipient or str(existing[2]) != message:
+                        raise ValueError("client_message_id_conflict")
+                    connection.commit()
+                    return str(existing[0])
             recent = connection.execute(
                 """SELECT COUNT(*) FROM messages
                    WHERE sender_id=%s
@@ -198,11 +218,35 @@ def send_message(sender_id: object, recipient_id: object, body: object) -> str:
             ).fetchone()
             if recent and int(recent[0]) >= MAX_MESSAGES_PER_MINUTE:
                 raise ValueError("linkup_rate_limit")
-            row = connection.execute(
-                """INSERT INTO messages(sender_id,recipient_id,body)
-                   VALUES (%s,%s,%s) RETURNING id""",
-                (sender, recipient, message),
-            ).fetchone()
+            if client_id:
+                row = connection.execute(
+                    """INSERT INTO messages(
+                           sender_id,recipient_id,body,client_message_id
+                       ) VALUES (%s,%s,%s,%s)
+                       ON CONFLICT (sender_id,client_message_id)
+                         WHERE client_message_id IS NOT NULL
+                       DO NOTHING
+                       RETURNING id""",
+                    (sender, recipient, message, client_id),
+                ).fetchone()
+                if row is None:
+                    existing = connection.execute(
+                        """SELECT id,recipient_id,body FROM messages
+                           WHERE sender_id=%s AND client_message_id=%s LIMIT 1""",
+                        (sender, client_id),
+                    ).fetchone()
+                    if existing is None:
+                        raise ProductStoreUnavailable("linkup_idempotency_conflict")
+                    if str(existing[1]) != recipient or str(existing[2]) != message:
+                        raise ValueError("client_message_id_conflict")
+                    connection.commit()
+                    return str(existing[0])
+            else:
+                row = connection.execute(
+                    """INSERT INTO messages(sender_id,recipient_id,body)
+                       VALUES (%s,%s,%s) RETURNING id""",
+                    (sender, recipient, message),
+                ).fetchone()
             connection.commit()
     except ValueError:
         raise
@@ -271,13 +315,21 @@ def peer_messages_since(
     peer_id: object,
     *,
     after: object = None,
+    after_id: object = None,
     limit: int = 100,
 ) -> list[dict[str, object]]:
-    """Return new Link messages for one accepted peer conversation."""
+    """Return new Links after a stable (created_at,id) cursor."""
 
     identity, peer = _link_guard(identity_id, peer_id)
     bounded_limit = max(1, min(int(limit), 100))
     after_value = str(after or "").strip()
+    cursor_id = None
+    if after_value and after_id in {None, ""}:
+        raise ValueError("incomplete_message_cursor")
+    if not after_value and after_id not in {None, ""}:
+        raise ValueError("incomplete_message_cursor")
+    if after_value:
+        cursor_id = _identity(after_id, "invalid_cursor_message_id")
     try:
         with postgres_db.connect(readonly=True) as connection:
             rows = connection.execute(
@@ -287,8 +339,16 @@ def peer_messages_since(
                        (sender_id=%s AND recipient_id=%s)
                        OR (sender_id=%s AND recipient_id=%s)
                    )
-                     AND (%s='' OR created_at>%s::timestamptz)
-                   ORDER BY created_at ASC
+                     AND (
+                       %s='' OR
+                       created_at>%s::timestamptz OR
+                       (
+                         %s::uuid IS NOT NULL
+                         AND created_at=%s::timestamptz
+                         AND id>%s::uuid
+                       )
+                     )
+                   ORDER BY created_at ASC,id ASC
                    LIMIT %s""",
                 (
                     identity,
@@ -297,6 +357,9 @@ def peer_messages_since(
                     identity,
                     after_value,
                     after_value,
+                    cursor_id,
+                    after_value,
+                    cursor_id,
                     bounded_limit,
                 ),
             ).fetchall()
