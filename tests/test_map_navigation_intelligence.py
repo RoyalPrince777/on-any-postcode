@@ -99,3 +99,12 @@ def test_first_party_renderer_has_sparse_road_hierarchy_and_labels():
     assert ".road-svg polyline.secondary" in css
     assert ".road-svg polyline.major" in css
     assert ".road-label" in css
+
+
+def test_drive_camera_is_heading_up_without_rotating_controls():
+    script = NAV.read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    assert "rotate(${-lastHeading}deg) scale(1.08)" in script
+    assert "if(driveMode)applyView()" in script
+    assert 'body[data-map-mode="drive"] .road-label{display:none}' in css
+    assert "transform-origin:50% 50%" in css
