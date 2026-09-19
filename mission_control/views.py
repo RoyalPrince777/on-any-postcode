@@ -84,13 +84,13 @@ WAR_ROOM_RUNTIME_ACTIONS = {
         "label": "Function Health",
         "state": "building",
         "signal": "yellow",
-        "message": "Read-only function evidence is available; live button probes remain the next implementation layer.",
+        "message": "Read-only function evidence plus post-ack Button Proof receipts are implemented; signed-in browser certification remains required.",
     },
     "green-gate": {
         "label": "Green Gate",
         "state": "building",
         "signal": "yellow",
-        "message": "Evidence states are calculated; automatic route/button certification remains locked until proof runner wiring.",
+        "message": "Evidence states are calculated and Button Proof is post-ack only; full Green remains locked until runtime/device proof and Founder Final.",
     },
     "hrm-receipt": {
         "label": "HRM Receipt Boundary",
