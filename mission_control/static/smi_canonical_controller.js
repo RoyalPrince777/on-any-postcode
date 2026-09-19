@@ -223,7 +223,7 @@ async function oapSubmit(options={}){
 oapInput.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.shiftKey||event.isComposing)return;event.preventDefault();event.stopImmediatePropagation();oapSubmit();},true);
 oapForm.addEventListener('submit',event=>{event.preventDefault();event.stopImmediatePropagation();oapSubmit();},true);
 if(oapPlus)oapPlus.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapToggleAttach();},true);
-document.addEventListener('click',event=>{if(oapAttachMenu&&oapPlus&&!event.target.closest('.attach-wrap'))oapCloseAttach();});
+document.addEventListener('click',event=>{if(oapAttachMenu&&oapPlus&&!event.target.closest('.attach-wrap')&&!event.target.closest('#tools-mode-button'))oapCloseAttach();});
 if(oapPause)oapPause.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapTogglePause();},true);
 if(oapStop)oapStop.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapStopAll();},true);
 if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapSpeaker.classList.toggle('active',oapVoiceEnabled);oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';if(!oapVoiceEnabled&&'speechSynthesis' in window){oapSpeechSeq+=1;window.speechSynthesis.cancel();if(oapRuntime?.speaking)oapApply('SPEAK_END');if(oapRuntime?.live)oapScheduleListening(180);}oapSetStatus(oapVoiceEnabled?'Voice reply on':'Voice reply off');},true);
