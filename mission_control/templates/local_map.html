@@ -1,15 +1,187 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{% include "_oap_install_head.html" %}<title>OAP Map Intelligence</title><style>:root{--bg:#020202;--panel:#080603;--gold:#d7a13b;--bright:#ffe7a0;--line:#684b18;--text:#fff9e8;--muted:#ad9b76}*{box-sizing:border-box}body{margin:0;background:#020202;color:var(--text);font-family:Inter,Arial,sans-serif}a{color:inherit;text-decoration:none}.top{height:66px;display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--line);background:#030302;position:sticky;top:0;z-index:20}.logo{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--gold);transform:rotate(45deg)}.logo b{transform:rotate(-45deg);font:800 11px Georgia;color:var(--bright)}.title{font:900 1rem Georgia;color:var(--bright);letter-spacing:.1em}.spacer{flex:1}.pill{border:1px solid var(--line);border-radius:999px;padding:9px 13px;color:var(--bright);font-weight:800}.shell{display:grid;grid-template-columns:minmax(300px,380px) 1fr;min-height:calc(100vh - 66px)}.side{border-right:1px solid #3c2c10;background:#050403;padding:14px;overflow:auto}.eyebrow{color:var(--gold);font-size:.68rem;font-weight:900;letter-spacing:.15em;text-transform:uppercase}h1{margin:.2em 0;font:900 clamp(2rem,5vw,3.2rem)/.95 Georgia;color:var(--bright)}.muted{color:var(--muted);line-height:1.4}.form{display:grid;gap:8px;margin-top:12px}.form input,.form select{min-height:44px;border:1px solid #5f4618;border-radius:10px;background:#050403;color:#fff;padding:10px 12px;font:inherit}.form button{min-height:44px;border:1px solid var(--gold);border-radius:10px;background:linear-gradient(135deg,#ffe39a,#ab7213);color:#090603;font-weight:900}.suggestions{display:none;border:1px solid #5f4618;border-radius:10px;background:#050403;overflow:hidden}.suggestions.show{display:grid}.suggestions button{border:0;border-bottom:1px solid #2f2410;background:#050403;color:#f7e7b2;text-align:left;padding:9px 11px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.metric{border:1px solid #4e3a16;border-radius:10px;padding:10px;background:#0b0804}.metric strong{display:block;color:#ffe4a0}.status{margin-top:10px;padding:9px 10px;border:1px solid #4d3814;border-radius:10px;color:#d8c18a;font-size:.78rem}.roads,.directions,.places{margin-top:12px;border-top:1px solid #34270e;padding-top:9px}.section-title{font-weight:900;color:#ffe39a;margin-bottom:6px}.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid #4f3b17;border-radius:999px;padding:6px 8px;color:#d8be7d;font-size:.74rem}.step,.place{padding:8px 0;border-bottom:1px solid #2a200c}.step{display:grid;grid-template-columns:24px 1fr auto;gap:8px}.step small,.place small{color:#958460}.place strong{display:block;color:#f6e6b4}.map-wrap{position:relative;min-height:calc(100vh - 66px);overflow:hidden;background:radial-gradient(circle at 50% 45%,#291b07 0,#0d0904 35%,#020202 75%)}.grid{position:absolute;inset:0;background-image:linear-gradient(#a8863910 1px,transparent 1px),linear-gradient(90deg,#a8863910 1px,transparent 1px);background-size:42px 42px}.road-svg,.route-svg{position:absolute;inset:4%;width:92%;height:92%;overflow:visible}.road-svg{filter:drop-shadow(0 0 2px #000)}.road-svg polyline{fill:none;stroke:#655f51;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.82}.road-svg polyline.major{stroke:#978560;stroke-width:3.2;opacity:.95}.route-svg{filter:drop-shadow(0 0 8px #d7a13b)}.route-svg polyline{fill:none;stroke:#ffe79d;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}.route-svg circle{fill:#fff4bd;stroke:#a96f12;stroke-width:5}.coverage{position:absolute;top:14px;right:14px;z-index:3;border:1px solid #6b4e19;border-radius:999px;background:#050403dd;padding:9px 12px;color:#f0d486;font-size:.78rem;font-weight:800}.map-label{position:absolute;z-index:3;padding:6px 9px;border:1px solid #664a18;border-radius:999px;background:#050403df;color:#ffe2a0;font-size:.75rem;font-weight:800}.from-label{left:12%;bottom:18%}.to-label{right:12%;top:18%}.footer-nav{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:8px;padding:8px;border:1px solid #5c4317;border-radius:999px;background:#050403e8;z-index:4}.footer-nav a{white-space:nowrap;border:1px solid #4b3612;border-radius:999px;padding:8px 11px;color:#e6c979;font-size:.78rem;font-weight:800}@media(max-width:800px){.shell{grid-template-columns:1fr}.map-wrap{order:1;min-height:64vh;border-bottom:1px solid #3c2c10}.side{order:2;border-right:0;border-bottom:1px solid #3c2c10}.coverage{top:8px;right:8px}.footer-nav{left:8px;right:8px;transform:none;overflow:auto}.roads,.directions,.places{max-height:none}}</style><link rel="stylesheet" href="{{ url_for('mission_control.static', filename='oap_map_navigation.css') }}"></head><body><header class="top"><div class="logo"><b>OAP</b></div><div class="title">MAP INTELLIGENCE</div><div class="spacer"></div><a class="pill" href="/booking">Booking</a><a class="pill" href="/">OAP World</a></header><main class="shell"><aside class="side"><div class="eyebrow">Master Map Intelligence</div><h1>Find anywhere.</h1><p class="muted">Town and postcode autocomplete, OAP-owned road network, real route geometry, directions and source-backed nearby places.</p><form id="map-form" class="form" autocomplete="off"><input id="map-from" value="{{ local_map.query }}" placeholder="From · town, postcode or place"><div id="from-suggestions" class="suggestions"></div><input id="map-to" value="{{ local_map.route.to|title }}" placeholder="To · town, postcode or place"><div id="to-suggestions" class="suggestions"></div><select id="map-profile"><option value="driving">Driving</option><option value="walking">Walking</option><option value="cycling">Cycling</option><option value="transit">Public transport</option></select><button>Show Route</button></form><div class="metrics"><div class="metric"><strong id="distance">— km</strong><span class="muted">Distance</span></div><div class="metric"><strong id="eta">— min</strong><span class="muted">ETA</span></div></div><div id="route-state" class="status">Ready · current first-party graph: Greater London</div><section class="roads"><div class="section-title">Roads</div><div id="roads" class="chips"></div></section><section class="directions"><div class="section-title">Directions</div><div id="directions"></div></section><section class="places"><div class="section-title">Nearby Places</div><div id="places"><span class="muted">Search a town or postcode to load source-backed places.</span></div></section></aside><section class="map-wrap"><div class="grid"></div>
-<div class="map-mode-rail" aria-label="Map mode">
-  <button type="button" data-map-mode="explore" class="active">Explore</button>
-  <button type="button" data-map-mode="journey">Journey</button>
-  <button type="button" data-map-mode="drive">Drive</button>
-  <button type="button" data-map-mode="cockpit">Cockpit</button>
-</div>
-<section class="nav-hud" aria-label="Navigation intelligence">
-  <div class="nav-card next-turn"><div class="turn-icon" id="turn-icon">↑</div><div class="turn-copy"><strong id="turn-road">Choose a route</strong><span>Next guidance</span></div><div class="turn-distance" id="turn-distance">—</div></div>
-  <div class="nav-card journey-strip"><div><b id="eta-clock">—</b><span>Arrival</span></div><div><b id="eta-remain">— min</b><span>ETA Intelligence</span></div><div><b id="route-distance-hud">— km</b><span>Remaining</span></div></div>
-  <div class="nav-card intel-strip"><span class="intel-chip" id="route-intel">Route Intelligence · waiting</span><span class="intel-chip" id="eta-intel">ETA Intelligence · waiting</span><span class="intel-chip" id="people-intel">People Intelligence · aggregate only</span><span class="intel-chip" id="live-intel">Live Pattern · waiting</span><span class="intel-chip" id="provider-intel">Mobility · checking</span></div>
-</section>
-<div class="map-controls"><button class="map-float-btn" id="map-locate" type="button" aria-label="Use my location" title="Use my location">◎</button><button class="map-float-btn" id="map-source-toggle" type="button" aria-label="Map sources" title="Map sources">≡</button></div>
-<section class="nav-card map-source-drawer" id="map-source-drawer"><h3>Source intelligence</h3><div class="map-source-row"><b>Roads</b><span>OAP first-party routing graph</span></div><div class="map-source-row"><b>Live roads</b><span>TfL Open Data when available</span></div><div class="map-source-row"><b>People</b><span>Aggregate only · no individual tracking</span></div><div id="provider-source-list"></div></section>
-<svg id="roads-svg" class="road-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet"><g id="road-layer"></g></svg><div id="coverage" class="coverage">Greater London · first-party routing</div><svg id="route-svg" class="route-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" hidden><polyline id="route-line"></polyline><circle id="route-start" r="11"></circle><circle id="route-end" r="11"></circle></svg><div id="from-label" class="map-label from-label">{{ local_map.area_key|title }}</div><div id="to-label" class="map-label to-label">{{ local_map.route.to|title }}</div><nav class="footer-nav"><a href="/on-any-place">Map</a><a href="/map-intelligence/status">Status</a><a href="/booking">Booking</a><a href="/">OAP World</a></nav></section></main><script>(()=>{const q=s=>document.querySelector(s),endpoint='/map-intelligence/suggest';function bind(inputSel,boxSel){const input=q(inputSel),box=q(boxSel);let timer=0,seq=0;const clear=()=>{box.innerHTML='';box.classList.remove('show')};input.addEventListener('input',()=>{clearTimeout(timer);const term=input.value.trim();if(term.length<2){clear();return}const mine=++seq;timer=setTimeout(async()=>{try{const r=await fetch(endpoint+'?q='+encodeURIComponent(term));if(!r.ok||mine!==seq)return;const d=await r.json();const items=Array.isArray(d.suggestions)?d.suggestions:[];box.innerHTML='';items.forEach(item=>{const b=document.createElement('button');b.type='button';b.textContent=item.label||item.value;b.onclick=()=>{input.value=item.value||item.label;clear();loadPlaces(input.value)};box.appendChild(b)});box.classList.toggle('show',items.length>0)}catch(e){clear()}},180)});input.addEventListener('blur',()=>setTimeout(clear,150))}bind('#map-from','#from-suggestions');bind('#map-to','#to-suggestions');const form=q('#map-form'),from=q('#map-from'),to=q('#map-to'),profile=q('#map-profile'),state=q('#route-state'),svg=q('#route-svg'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),distance=q('#distance'),eta=q('#eta'),fromLabel=q('#from-label'),toLabel=q('#to-label'),roads=q('#roads'),directions=q('#directions'),places=q('#places'),coverage=q('#coverage'),roadLayer=q('#road-layer');let bounds=null;const padBounds=(coords)=>{const xs=coords.map(c=>+c[0]),ys=coords.map(c=>+c[1]);let minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);const dx=Math.max(maxX-minX,.01),dy=Math.max(maxY-minY,.01);return{minX:minX-dx*.14,maxX:maxX+dx*.14,minY:minY-dy*.18,maxY:maxY+dy*.18}};const project=(lon,lat,b)=>{const p=50,dx=b.maxX-b.minX||1,dy=b.maxY-b.minY||1;return[p+((lon-b.minX)/dx)*(1000-p*2),p+(1-(lat-b.minY)/dy)*(700-p*2)]};function draw(coords){if(!Array.isArray(coords)||coords.length<2)return false;bounds=padBounds(coords);const pts=coords.map(c=>project(+c[0],+c[1],bounds));line.setAttribute('points',pts.map(x=>x.join(',')).join(' '));start.setAttribute('cx',pts[0][0]);start.setAttribute('cy',pts[0][1]);end.setAttribute('cx',pts.at(-1)[0]);end.setAttribute('cy',pts.at(-1)[1]);svg.hidden=false;loadRoadNetwork(bounds,profile.value);return true}function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}async function loadRoadNetwork(b,mode){roadLayer.innerHTML='';const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);const tiles=[];for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){if(tiles.length<20)tiles.push([x,y])}try{const payloads=await Promise.all(tiles.map(async([x,y])=>{const r=await fetch('/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode));return r.ok?await r.json():null}));let count=0;for(const d of payloads){if(!d||!Array.isArray(d.lines))continue;const t=d.tile||{};for(const feature of d.lines){if(count>=900)break;const pts=(feature.points||[]).map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1])).filter(ll=>ll[0]>=b.minX-.02&&ll[0]<=b.maxX+.02&&ll[1]>=b.minY-.02&&ll[1]<=b.maxY+.02).map(ll=>project(ll[0],ll[1],b));if(pts.length<2)continue;const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' '));if(feature.is_small===false||(+feature.speed||0)>=50)poly.setAttribute('class','major');roadLayer.appendChild(poly);count++}}if(count>0)state.textContent=state.textContent.replace('source-backed geometry','source-backed geometry · first-party roads')}catch(e){roadLayer.innerHTML=''}}function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}function renderSteps(items){directions.innerHTML='';(items||[]).forEach(step=>{const row=document.createElement('div');row.className='step';const a=document.createElement('b');a.textContent=(step.modifier||'').includes('left')?'↰':(step.modifier||'').includes('right')?'↱':step.type==='arrive'?'●':'↑';const b=document.createElement('span');b.textContent=step.type==='arrive'?'Arrive at destination':(step.name?'Continue on '+step.name:'Continue');const c=document.createElement('small');c.textContent=Math.round(step.distance_m||0)+' m';row.append(a,b,c);directions.appendChild(row)})}async function loadPlaces(term){if(!term||term.trim().length<2)return;try{const r=await fetch('/map-intelligence/places?q='+encodeURIComponent(term));const d=await r.json();places.innerHTML='';(d.results||[]).slice(0,8).forEach(item=>{const row=document.createElement('div');row.className='place';const strong=document.createElement('strong');strong.textContent=item.name||'Place';const small=document.createElement('small');small.textContent=(item.category||'place')+' · '+(item.source||'source-backed');row.append(strong,small);places.appendChild(row)});if(!(d.results||[]).length)places.innerHTML='<span class="muted">No source-backed places returned for this search.</span>'}catch(e){places.innerHTML='<span class="muted">Places temporarily unavailable.</span>'}}async function route(){const a=from.value.trim(),b=to.value.trim();if(a.length<2||b.length<2)return;state.textContent='Finding OAP route…';try{const r=await fetch('/map-intelligence/route?from='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));const d=await r.json();if(!r.ok||!d.route){svg.hidden=true;roadLayer.innerHTML='';state.textContent=d?.error?.code==='outside_current_oap_map_coverage'?'Outside current OAP first-party routing coverage':'Route unavailable';return}draw(d.route.geometry?.coordinates||[]);distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';eta.textContent=Math.max(1,Math.round(d.route.duration_s/60))+' min';fromLabel.textContent=d.origin?.label||a;toLabel.textContent=d.destination?.label||b;coverage.textContent=(d.coverage?.selected_label||'Greater London')+' · OAP-owned routing';state.textContent='OAP route ready · source-backed geometry';renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));history.replaceState(null,'','/on-any-place?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value))}catch(e){svg.hidden=true;roadLayer.innerHTML='';state.textContent='Route temporarily unavailable'}}form.addEventListener('submit',e=>{e.preventDefault();route()});if(from.value.trim()&&to.value.trim())route();loadPlaces(from.value.trim())})();</script><script src="{{ url_for('mission_control.static', filename='oap_map_navigation.js') }}"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+{% include "_oap_install_head.html" %}
+<title>OAP Map Intelligence</title>
+<link rel="stylesheet" href="{{ url_for('mission_control.static', filename='oap_map_navigation.css') }}">
+</head>
+<body data-map-mode="explore">
+<main class="map-app">
+  <section class="map-wrap" aria-label="OAP Map Intelligence">
+    <div class="map-surface"></div>
+    <svg id="roads-svg" class="road-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"><g id="road-layer"></g></svg>
+    <svg id="route-svg" class="route-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" hidden>
+      <polyline id="route-line"></polyline>
+      <circle id="route-start" r="10"></circle>
+      <circle id="route-end" r="10"></circle>
+    </svg>
+
+    <a class="oap-mark" href="/" aria-label="Back to OAP World">OAP</a>
+
+    <form id="map-form" class="search-card" autocomplete="off">
+      <div class="search-row">
+        <input id="map-from" value="{{ local_map.query }}" placeholder="From">
+        <button class="locate-inline" id="map-locate" type="button" aria-label="Use my location">◎</button>
+      </div>
+      <div id="from-suggestions" class="suggestions"></div>
+      <div class="search-row">
+        <input id="map-to" value="{{ local_map.route.to|title }}" placeholder="Where to?">
+        <button class="go" type="submit">Go</button>
+      </div>
+      <div id="to-suggestions" class="suggestions"></div>
+      <select id="map-profile" aria-label="Travel mode">
+        <option value="driving">Drive</option>
+        <option value="walking">Walk</option>
+        <option value="cycling">Cycle</option>
+        <option value="transit">Transit</option>
+      </select>
+    </form>
+
+    <section class="turn-card" id="turn-card" hidden>
+      <div class="turn-icon" id="turn-icon">↑</div>
+      <div class="turn-copy"><strong id="turn-road">Route ready</strong><span id="turn-sub">Next turn</span></div>
+      <b id="turn-distance">—</b>
+    </section>
+
+    <div id="route-state" class="map-toast" hidden></div>
+
+    <div class="map-controls">
+      <button class="map-float-btn" id="zoom-in" type="button" aria-label="Zoom in">＋</button>
+      <button class="map-float-btn" id="zoom-out" type="button" aria-label="Zoom out">−</button>
+      <button class="map-float-btn" id="recenter" type="button" aria-label="Recenter">⌖</button>
+    </div>
+
+    <section class="trip-bar" id="trip-bar" hidden>
+      <div><b id="eta-clock">—</b><span>Arrive</span></div>
+      <div><b id="eta-remain">—</b><span>ETA</span></div>
+      <div><b id="route-distance-hud">—</b><span>Remaining</span></div>
+      <button id="drive-toggle" type="button">Drive</button>
+      <button id="details-toggle" type="button" aria-expanded="false">Details</button>
+    </section>
+
+    <section class="details-sheet" id="details-sheet" hidden>
+      <div class="sheet-head"><strong>Route</strong><button id="details-close" type="button">✕</button></div>
+      <div class="route-meta">
+        <span id="distance">— km</span>
+        <span id="eta">— min</span>
+        <span id="coverage">Greater London</span>
+      </div>
+      <div class="sheet-section"><strong>Directions</strong><div id="directions"></div></div>
+      <div class="sheet-section"><strong>Roads</strong><div id="roads" class="chips"></div></div>
+      <div class="sheet-section"><strong>Nearby</strong><div id="places"></div></div>
+      <div id="from-label" hidden>{{ local_map.area_key|title }}</div>
+      <div id="to-label" hidden>{{ local_map.route.to|title }}</div>
+    </section>
+  </section>
+</main>
+
+<script>
+(()=>{
+const q=s=>document.querySelector(s),endpoint='/map-intelligence/suggest';
+function bind(inputSel,boxSel){
+ const input=q(inputSel),box=q(boxSel);let timer=0,seq=0;
+ const clear=()=>{box.innerHTML='';box.classList.remove('show')};
+ input.addEventListener('input',()=>{
+   clearTimeout(timer);const term=input.value.trim();if(term.length<2){clear();return}
+   const mine=++seq;timer=setTimeout(async()=>{
+     try{
+       const r=await fetch(endpoint+'?q='+encodeURIComponent(term),{credentials:'same-origin'});
+       if(!r.ok||mine!==seq)return;
+       const d=await r.json(),items=Array.isArray(d.suggestions)?d.suggestions:[];
+       box.innerHTML='';
+       items.forEach(item=>{
+         const b=document.createElement('button');b.type='button';b.textContent=item.label||item.value;
+         b.onclick=()=>{input.value=item.value||item.label;clear();loadPlaces(input.value)};
+         box.appendChild(b)
+       });
+       box.classList.toggle('show',items.length>0)
+     }catch{clear()}
+   },180)
+ });
+ input.addEventListener('blur',()=>setTimeout(clear,150))
+}
+bind('#map-from','#from-suggestions');bind('#map-to','#to-suggestions');
+
+const form=q('#map-form'),from=q('#map-from'),to=q('#map-to'),profile=q('#map-profile');
+const state=q('#route-state'),distance=q('#distance'),eta=q('#eta'),roads=q('#roads'),directions=q('#directions'),places=q('#places');
+const roadLayer=q('#road-layer'),svg=q('#route-svg'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
+const fromLabel=q('#from-label'),toLabel=q('#to-label');
+let bounds=null;
+const toast=(text)=>{state.textContent=text;state.hidden=!text;if(text)setTimeout(()=>{if(state.textContent===text)state.hidden=true},2600)};
+function padBounds(coords){const xs=coords.map(c=>+c[0]),ys=coords.map(c=>+c[1]);let minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);const dx=Math.max(maxX-minX,.01),dy=Math.max(maxY-minY,.01);return{minX:minX-dx*.14,maxX:maxX+dx*.14,minY:minY-dy*.18,maxY:maxY+dy*.18}}
+const project=(lon,lat,b)=>{const p=50,dx=b.maxX-b.minX||1,dy=b.maxY-b.minY||1;return[p+((lon-b.minX)/dx)*(1000-p*2),p+(1-(lat-b.minY)/dy)*(700-p*2)]};
+function draw(coords){
+ if(!Array.isArray(coords)||coords.length<2)return false;
+ bounds=padBounds(coords);const pts=coords.map(c=>project(+c[0],+c[1],bounds));
+ line.setAttribute('points',pts.map(x=>x.join(',')).join(' '));
+ start.setAttribute('cx',pts[0][0]);start.setAttribute('cy',pts[0][1]);
+ end.setAttribute('cx',pts.at(-1)[0]);end.setAttribute('cy',pts.at(-1)[1]);
+ svg.hidden=false;loadRoadNetwork(bounds,profile.value);return true
+}
+function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
+function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
+function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
+async function loadRoadNetwork(b,mode){
+ roadLayer.innerHTML='';const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
+ let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);const tiles=[];
+ for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){if(tiles.length<20)tiles.push([x,y])}
+ try{
+   const payloads=await Promise.all(tiles.map(async([x,y])=>{const r=await fetch('/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode));return r.ok?await r.json():null}));
+   let count=0,labelCount=0;const labelled=new Set();
+   for(const d of payloads){if(!d||!Array.isArray(d.lines))continue;const t=d.tile||{};
+     for(const feature of d.lines){if(count>=900)break;
+       const pts=(feature.points||[]).map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
+         .filter(ll=>ll[0]>=b.minX-.02&&ll[0]<=b.maxX+.02&&ll[1]>=b.minY-.02&&ll[1]<=b.maxY+.02).map(ll=>project(ll[0],ll[1],b));
+       if(pts.length<2)continue;
+       const rawClass=String(feature.class||feature.layer||'road').toLowerCase();
+       const isMajor=feature.is_small===false||(+feature.speed||0)>=50||/(motorway|trunk|primary)/.test(rawClass);
+       const isSecondary=/(secondary|tertiary)/.test(rawClass);
+       const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' ');
+       poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local');
+       roadLayer.appendChild(poly);count++;
+       const name=String(feature.name||'').trim();
+       if(name&&labelCount<32&&!labelled.has(name)&&(isMajor||isSecondary)){
+         const mid=pts[Math.floor(pts.length/2)];
+         const text=document.createElementNS('http://www.w3.org/2000/svg','text');
+         text.setAttribute('x',mid[0]);text.setAttribute('y',mid[1]);text.setAttribute('class','road-label');
+         text.textContent=name;roadLayer.appendChild(text);labelled.add(name);labelCount++
+       }
+     }
+   }
+ }catch{roadLayer.innerHTML=''}
+}
+function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
+function renderSteps(items){directions.innerHTML='';(items||[]).forEach(step=>{const row=document.createElement('div');row.className='step';const a=document.createElement('b');a.textContent=(step.modifier||'').includes('left')?'↰':(step.modifier||'').includes('right')?'↱':step.type==='arrive'?'●':'↑';const b=document.createElement('span');b.textContent=step.type==='arrive'?'Arrive':(step.name?'Continue on '+step.name:'Continue');const c=document.createElement('small');c.textContent=Math.round(step.distance_m||0)+' m';row.append(a,b,c);directions.appendChild(row)})}
+async function loadPlaces(term){
+ if(!term||term.trim().length<2)return;
+ try{const r=await fetch('/map-intelligence/places?q='+encodeURIComponent(term));const d=await r.json();places.innerHTML='';
+   (d.results||[]).slice(0,6).forEach(item=>{const row=document.createElement('div');row.className='place';const strong=document.createElement('strong');strong.textContent=item.name||'Place';const small=document.createElement('small');small.textContent=item.category||'place';row.append(strong,small);places.appendChild(row)});
+ }catch{places.textContent='Nearby places unavailable'}
+}
+async function route(){
+ const a=from.value.trim(),b=to.value.trim();if(a.length<2||b.length<2)return;
+ toast('Finding route…');
+ try{
+   const r=await fetch('/map-intelligence/route?from='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+   const d=await r.json();
+   if(!r.ok||!d.route){svg.hidden=true;roadLayer.innerHTML='';toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');return}
+   draw(d.route.geometry?.coordinates||[]);
+   distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';
+   eta.textContent=Math.max(1,Math.round(d.route.duration_s/60))+' min';
+   fromLabel.textContent=d.origin?.label||a;toLabel.textContent=d.destination?.label||b;
+   coverage.textContent=d.coverage?.selected_label||'Greater London';
+   renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
+   window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
+   history.replaceState(null,'','/on-any-place?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+ }catch{svg.hidden=true;roadLayer.innerHTML='';toast('Route temporarily unavailable')}
+}
+form.addEventListener('submit',e=>{e.preventDefault();route()});
+if(from.value.trim()&&to.value.trim())route();
+loadPlaces(from.value.trim());
+})();
+</script>
+<script src="{{ url_for('mission_control.static', filename='oap_map_navigation.js') }}"></script>
+</body>
+</html>
