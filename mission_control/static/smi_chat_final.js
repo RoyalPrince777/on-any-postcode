@@ -638,7 +638,11 @@ refreshOps();
       functionHealthSync:true,
       clickOnlyProof:false,
       functionHealthIsNotButtonProof:true,
-      greenRequiresCurrentSessionReceipt:true
+      greenRequiresCurrentSessionReceipt:true,
+      liveFullscreen:true,
+      persistentThinkingProcess:true,
+      thoughtProcessTopPinned:true,
+      chatFirstDashboard:true
     };
     window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=false;
   }
