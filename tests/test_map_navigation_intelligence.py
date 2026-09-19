@@ -9,37 +9,57 @@ CSS = ROOT / "mission_control" / "static" / "oap_map_navigation.css"
 ROUTES = ROOT / "mission_control" / "on_any_place_routes.py"
 
 
-def test_major_app_navigation_modes_are_visible():
+def test_map_screen_is_low_noise_and_map_first():
     page = MAP.read_text(encoding="utf-8")
-    for mode in ("explore", "journey", "drive", "cockpit"):
-        assert f'data-map-mode="{mode}"' in page
-    for marker in (
-        "Navigation intelligence",
-        "ETA Intelligence",
-        "Route Intelligence",
-        "People Intelligence",
-        "Live Pattern",
-        "Mobility",
-    ):
-        assert marker in page
+    assert 'class="map-app"' in page
+    assert 'class="search-card"' in page
+    assert 'id="turn-card"' in page
+    assert 'id="trip-bar"' in page
+    assert 'id="details-sheet"' in page
+    assert "People Intelligence" not in page
+    assert "Route Intelligence" not in page
+    assert "ETA Intelligence" not in page
+    assert "Live Pattern" not in page
+    assert "Source intelligence" not in page
+    assert "Master Map Intelligence" not in page
 
 
-def test_navigation_runtime_is_truth_first_and_privacy_safe():
+def test_drive_runtime_updates_turns_and_follows_position():
     script = NAV.read_text(encoding="utf-8")
-    assert "navigator.geolocation.watchPosition" in script
-    assert "storesPreciseLocation:false" in script
-    assert "individualPeopleTracking:false" in script
-    assert "aggregate only" in script
-    assert "oap-map-route-ready" in script
-    assert "/map-intelligence/oap-adapter" in script
+    for marker in (
+        "navigator.geolocation.watchPosition",
+        "activeStep(progress)",
+        "updateTurn(progress)",
+        "driveMode",
+        "viewCenter=lastProjected",
+        "setZoom",
+        "storesPreciseLocation:false",
+        "individualPeopleTracking:false",
+        "lowNoise:true",
+        "driveFollow:true",
+        "progressiveTurnGuidance:true",
+    ):
+        assert marker in script
 
 
-def test_drive_and_cockpit_strip_sidebar_noise():
+def test_noise_heavy_chrome_is_removed():
     css = CSS.read_text(encoding="utf-8")
-    assert 'body[data-map-mode="drive"] .side' in css
-    assert 'body[data-map-mode="cockpit"] .side' in css
-    assert ".nav-hud" in css
-    assert ".vehicle-marker" in css
+    for removed in (
+        ".intel-strip",
+        ".intel-chip",
+        ".map-mode-rail",
+        ".map-source-drawer",
+        ".footer-nav",
+    ):
+        assert removed not in css
+    for kept in (
+        ".search-card",
+        ".turn-card",
+        ".trip-bar",
+        ".details-sheet",
+        ".vehicle-marker",
+    ):
+        assert kept in css
 
 
 def test_map_route_allows_only_same_origin_embedding_and_consented_location():
@@ -67,3 +87,27 @@ def test_uber_provider_is_fail_closed_without_approval(monkeypatch):
     assert status["component"] == "OAP Adapter · Mobility Intelligence"
     assert status["individual_people_tracking"] is False
     assert status["precise_device_location_stored"] is False
+
+
+def test_first_party_renderer_has_sparse_road_hierarchy_and_labels():
+    page = MAP.read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    assert "labelCount<32" in page
+    assert "feature.name" in page
+    assert "poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local')" in page
+    assert ".road-svg polyline.local" in css
+    assert ".road-svg polyline.secondary" in css
+    assert ".road-svg polyline.major" in css
+    assert ".road-label" in css
+
+
+def test_drive_camera_is_heading_up_without_rotating_controls():
+    script = NAV.read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    assert "lastHeading" in script
+    assert "scale(1.08)" in script
+    assert "if(driveMode)applyView()" in script
+    assert "roadsSvg.style.transform=mapTransform" in script
+    assert "routeSvg.style.transform=mapTransform" in script
+    assert 'body[data-map-mode="drive"] .road-label{display:none}' in css
+    assert "transform-origin:50% 50%" in css

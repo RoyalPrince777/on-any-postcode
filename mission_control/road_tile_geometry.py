@@ -62,9 +62,24 @@ def tile_lines(*, x: object, y: object, zoom: object, profile: object = "driving
                     if -0.25 <= px <= 1.25 and -0.25 <= py <= 1.25:
                         points.append([round(px, 6), round(py, 6)])
                 if len(points) >= 2:
+                    road_name = str(
+                        props.get("name")
+                        or props.get("ref")
+                        or props.get("road_name")
+                        or ""
+                    ).strip()[:96]
+                    road_class = str(
+                        props.get("class")
+                        or props.get("highway")
+                        or props.get("road_class")
+                        or layer_name
+                        or ""
+                    ).strip()[:40]
                     lines.append({
                         "points": points,
                         "layer": str(layer_name)[:40],
+                        "name": road_name,
+                        "class": road_class,
                         "speed": props.get("speed"),
                         "is_small": props.get("is_small"),
                     })
