@@ -44,6 +44,19 @@ class CommandCentreUITest(unittest.TestCase):
             interaction,
         )
 
+    def test_command_centre_is_visible_without_disabling_chat(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn('setOpen(true);', source)
+        self.assertIn('setOpen(false);toggle.focus();', source)
+        self.assertIn('stage.append(character)', source)
+
+    def test_mobile_master_tools_escapes_scroll_clipping(self):
+        styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
+        self.assertIn(".composer-left{overflow:visible!important", styles)
+        self.assertIn(".attach-menu{position:fixed!important", styles)
+        self.assertIn("max-height:min(67dvh,540px)", styles)
+        self.assertIn("body:not(.smi-live-fullscreen)", styles)
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
