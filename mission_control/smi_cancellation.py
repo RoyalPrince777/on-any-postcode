@@ -74,3 +74,41 @@ def new_token(identity_id: object) -> CancellationToken:
         identity_id=identity,
         created_at=_now(),
     )
+
+
+
+def bounded_stop_recovery_proof() -> dict[str, Any]:
+    """Exercise Human STOP plus a clean replacement token without product mutation."""
+
+    token = new_token("human-authority-proof")
+    first_cancel = token.cancel("bounded_human_stop")
+    second_cancel = token.cancel("bounded_human_stop_repeat")
+    stopped = token.cancelled
+    snapshot = token.snapshot()
+    secret_safe = bool(
+        snapshot["private_reasoning_stored"] is False
+        and snapshot["execution_authority_expanded"] is False
+        and snapshot["human_authority_final"] is True
+    )
+    replacement = new_token("human-authority-proof")
+    safe_resume = bool(
+        replacement.cancelled is False
+        and replacement.control_id != token.control_id
+    )
+    passed = bool(
+        first_cancel
+        and not second_cancel
+        and stopped
+        and secret_safe
+        and safe_resume
+    )
+    return {
+        "passed": passed,
+        "human_stop_observed": stopped,
+        "idempotent_stop": bool(first_cancel and not second_cancel),
+        "secret_safe": secret_safe,
+        "safe_resume": safe_resume,
+        "production_state_mutated": False,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
+    }
