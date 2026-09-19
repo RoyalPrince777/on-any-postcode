@@ -26,15 +26,15 @@
  const evidence=panel.querySelector(".smi-command-evidence");
  const anatomyLinks=[
   ["🧠","Brain · SMI","Intelligence · memory · reasoning",cfg.brainUrl],
-  ["👁️","Eyes · Vision","Screens · maps · insight",cfg.routesUrl],
+  ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
   ["🎙️","Ears · Language","Listening · communication",null],
   ["💬","Mouth · Communication","SMI Chat · messages",null],
-  ["❤️","Heart · Living Kernel","Governed work",cfg.workbenchUrl],
+  ["❤️","Heart · Living Kernel","Governed work","/mission"],
   ["🌐","Lungs · Connectivity","OAP infrastructure",cfg.infrastructureUrl],
-  ["🛡️","Immune · Guardian","Safety · permissions",cfg.guardianUrl],
+  ["🛡️","Immune · Guardian","Safety · permissions",cfg.warRoomUrl],
   ["🧬","HRM · Memory","Receipts · recall",cfg.hrmUrl],
   ["⚔️","War Room · Judges","3 / 7 / 21 depth",cfg.warRoomUrl],
-  ["🗺️","Movement · Routes","Spatial intelligence",cfg.routesUrl]
+  ["🗺️","Movement · Routes","Spatial intelligence","/movement"]
  ];
  function addLink(parent,icon,name,detail,url){
   if(!url)return;
@@ -60,7 +60,7 @@
  const refresh=document.createElement("button");refresh.className="smi-command-toggle";refresh.type="button";refresh.textContent="↻ Refresh evidence";
  refresh.setAttribute("aria-label","Check signed-in SMI health evidence");
  evidence.append(refresh);
- addLink(evidence,"🌍","OAP World","Explore · connect",cfg.routesUrl);
+ addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
  let active=false,request=null;
  function setOpen(open){
