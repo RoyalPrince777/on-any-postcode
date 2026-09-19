@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import link_activity, product_store, public_store, web_security
+from . import link_activity, link_message_sync, product_store, public_store, web_security
 from .link_circle_routes import bp as link_circle_bp
 
 bp = Blueprint("link_message_state", __name__)
@@ -64,6 +64,8 @@ def status():
                 landed_semantics="persisted_oap_data",
                 seen_semantics="recipient_read_receipt",
                 retry_client_side=True,
+                idempotent_send=bool(link_message_sync.status().get("idempotent_send")),
+                stable_cursor=bool(link_message_sync.status().get("stable_cursor")),
                 first_party=True,
                 activity_ready=bool(activity.get("ready")),
                 typing_ttl_seconds=activity.get("typing_ttl_seconds"),
@@ -90,6 +92,7 @@ def send_message():
             identity,
             payload.get("recipient_id"),
             payload.get("body"),
+            client_message_id=payload.get("client_message_id"),
         )
         return _no_store(make_response(jsonify(message_id=message_id, state="landed"), 201))
     except MESSAGE_ERRORS as exc:
@@ -105,6 +108,7 @@ def incoming_messages():
             identity,
             request.args.get("peer_id", ""),
             after=request.args.get("after", ""),
+            after_id=request.args.get("after_id", ""),
         )
         return _no_store(make_response(jsonify(messages=messages)))
     except MESSAGE_ERRORS as exc:
