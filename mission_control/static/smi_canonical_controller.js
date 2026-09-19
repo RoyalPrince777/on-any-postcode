@@ -217,11 +217,23 @@ if(oapMic){
    if(!oapStateApi.tokenIsCurrent(oapRuntime,expected))return;
    oapApply('LISTEN_END');
    if(oapRuntime.live){
-    if(oapFinalTranscript){
+    const submitToken=oapStateApi.token(oapRuntime);
+    const mayAutoSubmit=oapStateApi.canAutoSubmitFinal(
+      oapRuntime,
+      oapFinalTranscript,
+      oapStateApi.tokenIsCurrent(oapRuntime,submitToken)
+    );
+    if(mayAutoSubmit){
      oapInput.value=oapFinalTranscript;oapInput.dispatchEvent(new Event('input',{bubbles:true}));
-     const submitToken=oapStateApi.token(oapRuntime);
-     setTimeout(()=>{if(oapStateApi.tokenIsCurrent(oapRuntime,submitToken)&&oapRuntime.live)oapSubmit({fromLive:true});},120);
-    }else{oapSetStatus('Live SMI · no final speech captured');oapScheduleListening(350);}
+     setTimeout(()=>{
+      const stillAllowed=oapStateApi.canAutoSubmitFinal(
+        oapRuntime,
+        oapFinalTranscript,
+        oapStateApi.tokenIsCurrent(oapRuntime,submitToken)
+      );
+      if(stillAllowed)oapSubmit({fromLive:true});
+     },120);
+    }else if(!oapRuntime.paused){oapSetStatus('Live SMI · no final speech captured');oapScheduleListening(350);}
    }else{oapSetStatus(oapFinalTranscript?'Voice captured · edit or send':'Voice input ended without a final transcript');}
   };
   oapRecognition.onerror=event=>{
