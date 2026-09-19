@@ -35,6 +35,7 @@ def test_dashboard_shows_approved_image_only_when_loaded():
     assert "wallpaper.onload" in controller and "wallpaper.onerror" in controller
     assert 'panel.classList.add("smi-room-art-loaded")' in controller
     assert "smi-room-art-loaded" in css
-    assert 'setOpen(true);' in controller
+    assert 'toggle.addEventListener("click",()=>setOpen(!active))' in controller
+    assert "setOpen(true);" not in controller
     assert 'stage.append(character);' in controller
     assert "data-proven" in css
