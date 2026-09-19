@@ -10,7 +10,7 @@ import hashlib
 import uuid
 from typing import Any
 
-from . import link_relationships, linkup_safety, postgres_db
+from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
 SCHEMA_VERSION = "link_voice_v1"
 MAX_VOICE_BYTES = 5 * 1024 * 1024
