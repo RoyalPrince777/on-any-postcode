@@ -48,14 +48,27 @@ def _link_guard(first_id: object, second_id: object) -> tuple[str, str]:
     return first, second
 
 
+def _member_card_id(identity_id: str) -> str:
+    """Return a non-secret, human-readable OAP member card ID."""
+
+    return "OAP-" + identity_id.replace("-", "")[:8].upper()
+
+
 def linkup_dashboard(identity_id: object) -> dict[str, Any]:
-    """Return a private directory and conversation threads for this identity only."""
+    """Return identity cards, directory and conversation threads for this identity."""
 
     identity = _identity(identity_id)
     try:
         with postgres_db.connect(readonly=True) as connection:
+            self_row = connection.execute(
+                """SELECT id,COALESCE(display_name,username),username,
+                          postcode,borough,country
+                   FROM users WHERE status='active' AND id=%s LIMIT 1""",
+                (identity,),
+            ).fetchone()
             directory_rows = connection.execute(
-                """SELECT id,COALESCE(display_name,username),postcode,borough,country
+                """SELECT id,COALESCE(display_name,username),username,
+                          postcode,borough,country
                    FROM users WHERE status='active' AND id<>%s
                    ORDER BY COALESCE(display_name,username) LIMIT 100""",
                 (identity,),
@@ -75,13 +88,28 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
     except Exception as exc:
         raise ProductStoreUnavailable("linkup_read_failed") from exc
 
+    my_card = None
+    if self_row:
+        my_identity = str(self_row[0])
+        my_card = {
+            "identity_id": my_identity,
+            "card_id": _member_card_id(my_identity),
+            "display_name": str(self_row[1]),
+            "username": str(self_row[2]),
+            "postcode": str(self_row[3] or ""),
+            "borough": str(self_row[4] or ""),
+            "country": str(self_row[5] or ""),
+        }
+
     directory = [
         {
             "identity_id": str(row[0]),
+            "card_id": _member_card_id(str(row[0])),
             "display_name": str(row[1]),
-            "postcode": str(row[2] or ""),
-            "borough": str(row[3] or ""),
-            "country": str(row[4] or ""),
+            "username": str(row[2]),
+            "postcode": str(row[3] or ""),
+            "borough": str(row[4] or ""),
+            "country": str(row[5] or ""),
         }
         for row in directory_rows
     ]
@@ -120,7 +148,12 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
                     if message["direction"] == "sent"
                     else message["sender"]
                 ),
+                "username": people.get(other_id, {}).get("username", ""),
+                "card_id": people.get(other_id, {}).get("card_id")
+                or _member_card_id(other_id),
                 "postcode": people.get(other_id, {}).get("postcode", ""),
+                "borough": people.get(other_id, {}).get("borough", ""),
+                "country": people.get(other_id, {}).get("country", ""),
                 "unread_count": 0,
                 "latest_at": message["created_at"],
                 "messages": [],
@@ -133,7 +166,12 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
     for thread in threads:
         thread["messages"].reverse()
     threads.sort(key=lambda item: str(item["latest_at"]), reverse=True)
-    return {"directory": directory, "messages": messages, "threads": threads}
+    return {
+        "my_card": my_card,
+        "directory": directory,
+        "messages": messages,
+        "threads": threads,
+    }
 
 
 def send_message(sender_id: object, recipient_id: object, body: object) -> str:
