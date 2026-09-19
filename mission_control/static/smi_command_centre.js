@@ -209,7 +209,7 @@
  // in the scene itself; Status drawer remains a secondary detailed view.
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
  dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>FOUR CHECKPOINTS · NO FAKE GREEN</h3><div class="smi-room-gates"><article data-room-gate="rollback"><strong>25% · Recovery</strong><small>Proof pending</small></article><article data-room-gate="runtime_guard"><strong>50% · Runtime Guard</strong><small>Proof pending</small></article><article data-room-gate="isolation"><strong>75% · Aegis</strong><small>Proof pending</small></article><article data-room-gate="founder"><strong>100% · Founder Final</strong><small>Founder decision required</small></article></div><p class="smi-room-status-note">Live evidence, not sample population figures. Contract validity does not prove all systems operational.</p>';
- // Replace the picture's baked "All Systems Operational" panel with the
+ // Replace the picture's baked all-green illustrative panel with the
  // original evidence-driven status cards. Printed greens must never certify.
  aligned.append(dashboard);
  const roomStats=new Map([...dashboard.querySelectorAll("[data-room-stat]")].map(el=>[el.dataset.roomStat,el]));
