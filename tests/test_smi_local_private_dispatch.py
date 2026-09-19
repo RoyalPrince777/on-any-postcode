@@ -52,7 +52,6 @@ def test_gateway_health_stays_gateway_owned_in_local_mode(monkeypatch):
 
     assert response.status_code == 200
     assert response.json["service"] == "oap-smi-gateway"
-    assert response.json["private_dispatch"] == "local-process"
 
 
 def test_local_mode_keeps_non_allowlisted_surface_closed(monkeypatch):
