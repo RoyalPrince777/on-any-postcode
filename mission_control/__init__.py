@@ -252,7 +252,7 @@ def init_app(app: Flask) -> None:
             ),
             flush=True,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - redacted runtime proof must fail closed.
         print(
             json.dumps(
                 {
