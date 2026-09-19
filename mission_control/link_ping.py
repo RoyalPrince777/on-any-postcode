@@ -106,7 +106,7 @@ def status() -> dict[str, Any]:
             ).fetchall()
         tables = sorted(str(row[0]) for row in rows)
         result["schema_ready"] = tables == ["link_ping_events", "link_ping_mutes"]
-    except Exception:
+    except Exception:  # noqa: BLE001 - status probe must fail closed.
         return result
     result["ready"] = bool(result["schema_ready"])
     return result
