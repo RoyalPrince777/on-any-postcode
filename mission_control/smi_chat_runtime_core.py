@@ -144,6 +144,7 @@ def _provider(
         "think": " THINK MODE: perform a stronger evidence and challenge pass before answering.",
         "deep_dive": " DEEP DIVE MODE: perform the fullest bounded evidence, challenge, synthesis and governance pass available.",
         "auto": " AUTO MODE: choose the bounded depth appropriate to the request.",
+        "manual": " MANUAL MODE: keep the bounded baseline review; deeper review is selected by Human Authority.",
     }.get(thinking_level, " AUTO MODE: choose the bounded depth appropriate to the request.")
     system += thinking_instruction
     if studio_mode:
@@ -186,6 +187,7 @@ def _provider(
         "instant": 650,
         "think": 1100,
         "deep_dive": 1800,
+        "manual": 650,
         "auto": 1000,
     }.get(str((brain or {}).get("thinking_level") or "auto"), 1000)
     requested_counts = [
@@ -452,6 +454,23 @@ _DEEP_AUTO_TERMS = (
 )
 
 
+def _requested_runtime_mode(value: object) -> str:
+    """Normalize the Founder-facing Auto / Manual / 3 / 7 / 21 / War Room selector."""
+
+    requested = str(value or "auto").strip().casefold().replace("-", "_")
+    requested = {
+        "3": "instant",
+        "7": "think",
+        "21": "deep_dive",
+        "deep": "deep_dive",
+        "deepdive": "deep_dive",
+        "warroom": "war_room",
+    }.get(requested, requested)
+    if requested not in {"instant", "think", "deep_dive", "auto", "manual", "war_room"}:
+        raise ValueError("invalid_thinking_level")
+    return requested
+
+
 def _auto_runtime_mode(
     message: object,
     *,
@@ -462,18 +481,19 @@ def _auto_runtime_mode(
     media_kind: object = None,
     war_room_triggered: bool = False,
 ) -> tuple[str, bool, int]:
-    """Resolve SMI AUTO deterministically to 3, 7 or 21 without granting authority."""
+    """Resolve the canonical SMI selector without granting decision authority."""
 
-    requested = str(requested_level or "auto").strip().casefold().replace("-", "_")
-    requested = {"deep": "deep_dive", "deepdive": "deep_dive"}.get(requested, requested)
-    if requested not in {"instant", "think", "deep_dive", "auto"}:
-        raise ValueError("invalid_thinking_level")
+    requested = _requested_runtime_mode(requested_level)
 
     text = str(message or "").casefold()
     auto_studio = bool(
         studio_mode
         or any(term in text for term in _STUDIO_AUTO_TERMS)
     )
+    if requested == "manual":
+        return "manual", auto_studio, 3
+    if requested == "war_room":
+        return "deep_dive", auto_studio, 21
     if requested != "auto":
         return requested, auto_studio, {"instant": 3, "think": 7, "deep_dive": 21}[requested]
 
@@ -582,6 +602,7 @@ def chat(
             {"role": str(row[0]), "content": str(row[1])}
             for row in reversed(rows)
         ]
+        requested_mode = _requested_runtime_mode(thinking_level)
         brain = live_brain.review(
             request_id=request_id,
             identity_id=identity,
@@ -589,6 +610,7 @@ def chat(
             history=history,
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
+            force_war_room=requested_mode == "war_room",
         )
         level, resolved_studio_mode, resolved_depth = _auto_runtime_mode(
             clean,
@@ -602,7 +624,8 @@ def chat(
         brain["thinking_level"] = level
         brain["studio_mode"] = resolved_studio_mode
         brain["resolved_depth"] = resolved_depth
-        brain["auto_selected"] = str(thinking_level or "auto").strip().casefold() == "auto"
+        brain["requested_mode"] = requested_mode
+        brain["auto_selected"] = requested_mode == "auto"
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records
