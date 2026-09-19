@@ -57,6 +57,11 @@ def _allow_message_link(monkeypatch):
     monkeypatch.setattr(
         product_store.link_relationships, "accepted_between", lambda _first, _second: True
     )
+    monkeypatch.setattr(
+        product_store.link_youth_safety,
+        "require_contact_allowed",
+        lambda _first, _second: {"allowed": True},
+    )
 
 
 def _allow_activity_link(monkeypatch):
