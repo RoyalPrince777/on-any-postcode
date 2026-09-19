@@ -80,7 +80,7 @@ class CommandCentreUITest(unittest.TestCase):
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
         self.assertIn('panel.dataset.mobileView="scene"', source)
         self.assertIn('panel.dataset.mobileView=tab.dataset.view', source)
-        self.assertIn('if(tab.dataset.view==="evidence")refreshEvidence()', source)
+        self.assertIn('if(tab.dataset.view==="evidence"){refreshEvidence();refreshRoomStatus();}', source)
         self.assertIn('data-mobile-view="anatomy"', styles)
         self.assertIn('data-mobile-view="evidence"', styles)
         self.assertIn('display:grid!important', styles)
