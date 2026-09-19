@@ -95,3 +95,17 @@ assert.equal(state.canAutoSubmitFinal(runtime, "hello", false), false);
 runtime = apply(runtime, "LIVE_OFF");
 assert.equal(state.canAutoSubmitFinal(runtime, "hello", true), false);
 assert.equal(state.canAutoSubmitFinal(state.initialState(), "", true), false);
+
+
+// LIVE_ON must not erase Human Pause or another active phase.
+runtime = state.initialState();
+runtime = apply(runtime, "PAUSE");
+runtime = apply(runtime, "LIVE_ON");
+assert.equal(runtime.live, true);
+assert.equal(runtime.paused, true);
+assert.equal(runtime.state, "paused");
+runtime = apply(runtime, "RESUME");
+runtime = apply(runtime, "THINK_START");
+runtime = apply(runtime, "LIVE_ON");
+assert.equal(runtime.thinking, true);
+assert.equal(runtime.state, "thinking");
