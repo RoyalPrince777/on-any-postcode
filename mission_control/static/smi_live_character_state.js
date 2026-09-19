@@ -144,6 +144,20 @@
     return !s.stopped&&!s.paused&&!s.listening&&!s.thinking&&!s.speaking;
   }
 
+  function canAutoSubmitFinal(state, finalTranscript, tokenCurrent){
+    const s=normalize(state);
+    return Boolean(
+      tokenCurrent===true
+      && s.live
+      && !s.stopped
+      && !s.paused
+      && !s.listening
+      && !s.thinking
+      && !s.speaking
+      && String(finalTranscript||"").trim()
+    );
+  }
+
   function token(state){
     const s=normalize(state);
     return s.epoch;
@@ -159,6 +173,7 @@
     initialState,
     transition,
     canListen,
+    canAutoSubmitFinal,
     token,
     tokenIsCurrent,
   };
