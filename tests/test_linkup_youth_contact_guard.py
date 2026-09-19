@@ -66,3 +66,34 @@ def test_youth_guard_activation_is_explicit():
     assert "OAP_LINK_YOUTH_GUARD_MIGRATION_ON_BOOT" in source
     assert "oap-link-youth-guard-status" in source
     assert "oap-init-link-youth-guard" in source
+
+
+def test_youth_guard_failure_is_translated_by_link_subsystems():
+    checks = {
+        "mission_control/product_store.py": "link_youth_safety.LinkYouthSafetyUnavailable",
+        "mission_control/link_relationships.py": "link_youth_guard_unavailable",
+        "mission_control/link_voice.py": "voice_youth_guard_unavailable",
+        "mission_control/link_share.py": "share_youth_guard_unavailable",
+        "mission_control/link_call_audit.py": "link_call_youth_guard_unavailable",
+        "mission_control/link_circles.py": "circle_youth_guard_unavailable",
+        "mission_control/link_presence.py": "presence_youth_guard_unavailable",
+    }
+    for path, marker in checks.items():
+        source = Path(path).read_text(encoding="utf-8")
+        assert marker in source
+
+
+def test_age_classification_has_explicit_authority_command():
+    source = Path("mission_control/__init__.py").read_text(encoding="utf-8")
+
+    assert 'oap-set-link-age-band' in source
+    assert 'click.Choice(["minor", "adult"])' in source
+    assert "human_authority_identity_not_configured" in source
+    assert "human_authority_approved=True" in source
+
+
+def test_linkup_safety_star_requires_youth_guard_readiness():
+    source = Path("app.py").read_text(encoding="utf-8")
+
+    assert 'linkup_safety.status().get("ready")' in source
+    assert 'link_youth_safety.status().get("ready")' in source
