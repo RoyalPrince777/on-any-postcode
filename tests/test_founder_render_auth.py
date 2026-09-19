@@ -287,3 +287,132 @@ def test_local_store_rebind_updates_same_identity_without_second_row(monkeypatch
     statements = "\n".join(sql for sql, _params in connection.commands)
     assert "UPDATE oap_founder_local_auth" in statements
     assert "INSERT INTO oap_founder_local_auth" not in statements
+
+
+def test_password_only_founder_sign_in_needs_no_selector_env(monkeypatch):
+    monkeypatch.delenv("OAP_HUMAN_AUTHORITY_EMAIL", raising=False)
+    monkeypatch.delenv("OAP_HUMAN_AUTHORITY_ID", raising=False)
+    monkeypatch.setattr(founder_local_auth, "bound", lambda: True)
+    monkeypatch.setattr(
+        founder_local_auth,
+        "resolved_identity",
+        lambda: AUTH_ID,
+    )
+    monkeypatch.setattr(
+        founder_local_auth,
+        "verify",
+        lambda password: password == "existing-private-password",
+    )
+    monkeypatch.setattr(
+        founder_local_auth,
+        "issue_session_cookie",
+        lambda: (
+            "oap_founder_session=opaque; Path=/; Secure; HttpOnly; "
+            "SameSite=Lax; Max-Age=43200"
+        ),
+    )
+
+    def provider_must_not_run(*_args, **_kwargs):
+        raise AssertionError("Managed Auth must not run for local password-only Founder")
+
+    monkeypatch.setattr(neon_auth, "_request", provider_must_not_run)
+
+    result = neon_auth.sign_in_founder("existing-private-password")
+
+    assert result.status_code == 200
+    assert result.payload["user"]["id"] == AUTH_ID
+    assert result.payload["user"]["email"] == ""
+    assert result.set_cookie_headers[0].startswith("oap_founder_session=")
+
+
+def test_founder_auth_post_uses_local_password_without_email_selector(
+    anonymous_client, monkeypatch
+):
+    monkeypatch.delenv("OAP_HUMAN_AUTHORITY_EMAIL", raising=False)
+    monkeypatch.delenv("OAP_HUMAN_AUTHORITY_ID", raising=False)
+    monkeypatch.setattr(neon_auth, "local_founder_ready", lambda: True)
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_in_founder",
+        lambda password: neon_auth.AuthResult(
+            status_code=200,
+            payload={
+                "session": {"id": "render-local-founder"},
+                "user": {
+                    "id": AUTH_ID,
+                    "name": "OAP Founder",
+                    "email": "",
+                    "emailVerified": False,
+                },
+            },
+            set_cookie_headers=(
+                "oap_founder_session=opaque; Path=/; Secure; HttpOnly; "
+                "SameSite=Lax; Max-Age=43200",
+            ),
+        )
+        if password == "existing-private-password"
+        else neon_auth.AuthResult(
+            status_code=401,
+            payload={"code": "INVALID_PASSWORD"},
+        ),
+    )
+    monkeypatch.setattr(
+        web_security.AUTH_BURST_LIMITER,
+        "allow",
+        lambda _key: True,
+    )
+    token = "selector-free-founder-csrf-token-value-123456"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    response = anonymous_client.post(
+        "/auth/sign-in",
+        data={
+            "csrf_token": token,
+            "password": "existing-private-password",
+            "next": "/mission/ollama",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/mission/ollama")
+    assert any(
+        header.startswith("oap_founder_session=")
+        for header in response.headers.getlist("Set-Cookie")
+    )
+
+
+class _ResolvedAuthorityRows:
+    def fetchall(self):
+        return [(AUTH_ID,)]
+
+
+class _ResolvedAuthorityConnection:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, _sql, _params=()):
+        return _ResolvedAuthorityRows()
+
+
+def test_local_founder_resolves_single_authority_from_ledger(monkeypatch):
+    monkeypatch.setattr(
+        founder_local_auth.authority,
+        "configured_identity",
+        lambda: "",
+    )
+    monkeypatch.setattr(
+        founder_local_auth.postgres_db,
+        "configured",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        founder_local_auth.postgres_db,
+        "connect",
+        lambda readonly=False: _ResolvedAuthorityConnection(),
+    )
+
+    assert founder_local_auth.resolved_identity() == AUTH_ID
