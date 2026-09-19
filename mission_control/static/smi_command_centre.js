@@ -120,15 +120,18 @@
  const aligned=document.createElement("div");
  aligned.className="smi-image-control-surface";
  aligned.setAttribute("aria-label","Live SMI input controls aligned to the approved dashboard");
- scene.append(aligned);
+ // Keep the real composer outside clipped/scaled scene panels, so Android
+ // keyboard, Master Tools, focus rings and safe-area dock remain reachable.
+ document.body.append(aligned);
  aligned.append(composer);
  const picture={width:1448,height:1086};
  function alignApprovedBar(){
   const width=scene.clientWidth,height=scene.clientHeight;
   if(!width||!height)return;
   const scale=Math.min(width/picture.width,height/picture.height);
-  aligned.style.left=Math.max(0,(width-picture.width*scale)/2)+"px";
-  aligned.style.top=Math.max(0,(height-picture.height*scale)/2)+"px";
+  const rect=scene.getBoundingClientRect();
+  aligned.style.left=rect.left+Math.max(0,(width-picture.width*scale)/2)+"px";
+  aligned.style.top=rect.top+Math.max(0,(height-picture.height*scale)/2)+"px";
   aligned.style.width=picture.width*scale+"px";
   aligned.style.height=picture.height*scale+"px";
   aligned.style.setProperty("--smi-image-scale",String(scale));
@@ -150,12 +153,14 @@
    picture.width=wallpaper.naturalWidth;
    picture.height=wallpaper.naturalHeight;
    panel.classList.remove("smi-art-error");
+   document.body.classList.remove("smi-art-error");
    alignApprovedBar();
   };
   wallpaper.onerror=()=>{
    scene.dataset.wallpaperReady="false";
    panel.classList.remove("smi-room-art-loaded");
    panel.classList.add("smi-art-error");
+   document.body.classList.add("smi-art-error");
    alignApprovedBar();
    const status=document.getElementById("status");
    if(status)status.textContent="Approved SMI dashboard unavailable · no substitute character shown";
@@ -163,6 +168,7 @@
   wallpaper.src=cfg.approvedWallpaperUrl;
  }else{
   panel.classList.add("smi-art-error");
+  document.body.classList.add("smi-art-error");
  }
  const anatomy=panel.querySelector(".smi-command-anatomy");
  const evidence=panel.querySelector(".smi-command-evidence");
