@@ -170,3 +170,46 @@ def test_postgres_requires_actual_readback_for_durable_hrm_gates(monkeypatch):
         },
     )
     assert smi_receipt_backend.receipt_backend_status()["hrm_receipt_ready"] is True
+
+def test_selected_main_writer_fingerprint_is_passive_secret_safe(monkeypatch):
+    import hashlib
+
+    from mission_control import smi_receipt_backend
+
+    for key in (
+        "OAP_FALLBACK_DATABASE_URL_B64",
+        "OAP_PRIMARY_DATABASE_URL_B64",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("OAP_DATABASE_AUTHORITY", "fallback")
+    monkeypatch.setenv(
+        "OAP_PRIMARY_DATABASE_URL",
+        "postgresql://primary-user:primary-secret@unused.example/primary",
+    )
+    monkeypatch.setenv(
+        "OAP_FALLBACK_DATABASE_URL",
+        "postgresql://writer-user:writer-secret@selected.example/smi",
+    )
+
+    status = smi_receipt_backend.backend_configuration_status()
+    assert status["main_database_source"] == "fallback_override"
+    assert status["main_database_authority"] == "fallback"
+    assert status["main_host_sha256"] == hashlib.sha256(
+        b"selected.example"
+    ).hexdigest()
+    assert status["live_store_identity_proven"] is False
+    for sensitive in ("writer-user", "writer-secret", "selected.example", "primary-secret", "unused.example"):
+        assert sensitive not in str(status)
+
+
+def test_invalid_writer_configuration_cannot_prove_identity(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    monkeypatch.setenv("OAP_DATABASE_AUTHORITY", "invalid")
+    monkeypatch.setenv("OAP_FALLBACK_DATABASE_URL", "postgresql://secret@selected.example/smi")
+
+    status = smi_receipt_backend.backend_configuration_status()
+    assert status["main_database_authority"] == "invalid"
+    assert status["main_database_source"] == "invalid_authority"
+    assert status["main_host_sha256"] is None
+    assert status["live_store_identity_proven"] is False
