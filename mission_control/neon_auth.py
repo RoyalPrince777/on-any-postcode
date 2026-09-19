@@ -201,6 +201,10 @@ def _local_founder_result(password: str) -> AuthResult | None:
         return AuthResult(status_code=401, payload={"code": "INVALID_PASSWORD"})
     identity_id = founder_local_auth.resolved_identity()
     email = configured_founder_email()
+    try:
+        session_cookie = founder_local_auth.issue_session_cookie()
+    except founder_local_auth.FounderLocalAuthUnavailable as exc:
+        raise AuthUnavailable("founder_local_auth_unavailable") from exc
     return AuthResult(
         status_code=200,
         payload={
@@ -212,7 +216,7 @@ def _local_founder_result(password: str) -> AuthResult | None:
                 "emailVerified": bool(email),
             },
         },
-        set_cookie_headers=(founder_local_auth.issue_session_cookie(),),
+        set_cookie_headers=(session_cookie,),
     )
 
 
