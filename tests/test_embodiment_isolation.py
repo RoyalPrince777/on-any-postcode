@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from mission_control import embodiment_isolation
+from mission_control import embodiment_isolation, smi_proof_gate
 
 
 def test_each_embodiment_channel_isolates_without_killing_smi_chat():
@@ -71,3 +71,14 @@ def test_bounded_embodiment_isolation_recovery_proof_passes():
     assert proof["smi_chat_survived"] is True
     assert proof["production_state_mutated"] is False
     assert proof["execution_authority_expanded"] is False
+
+
+
+def test_canonical_aegis_gate_consumes_embodiment_isolation_proof():
+    proof = smi_proof_gate._isolation_recovery_exercise()
+
+    assert proof["passed"] is True
+    assert proof["embodiment_channels_independent"] is True
+    assert proof["embodiment_master_stop_contained"] is True
+    assert proof["embodiment_recovery_proven"] is True
+    assert proof["smi_chat_survived_body_isolation"] is True
