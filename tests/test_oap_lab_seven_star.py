@@ -120,3 +120,52 @@ def test_learning_seven_star_work_has_explicit_provenance():
     assert '{% extends "ollama_chat_base.html" %}' in wrapper
     assert "{% block smi_extra_head %}" in wrapper
     assert "{% block smi_extra_body %}" in wrapper
+
+
+def test_founder_can_open_actual_lab_route(client):
+    response = client.get("/mission/oap-lab", follow_redirects=False)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    page = response.get_data(as_text=True)
+    assert "<h1>OAP Lab</h1>" in page
+    assert "Research Intelligence" in page
+    assert "Matrix + War Room" in page
+    assert "Human Lab · planned division." in page
+
+
+def test_signed_in_non_founder_cannot_open_lab(client, monkeypatch):
+    from mission_control import neon_auth
+
+    def ordinary_user(_cookie_header):
+        return neon_auth.AuthResult(
+            status_code=200,
+            payload={
+                "session": {"id": "non-founder-test"},
+                "user": {
+                    "id": "22222222-2222-4222-8222-222222222222",
+                    "name": "OAP member",
+                    "email": "ordinary-member@example.test",
+                    "emailVerified": False,
+                },
+            },
+        )
+
+    monkeypatch.setattr(neon_auth, "get_session", ordinary_user)
+    result = client.get("/mission/oap-lab", follow_redirects=False)
+    assert result.status_code == 403
+    assert result.get_json()["error"]["code"] == "human_authority_required"
+    assert result.headers["Cache-Control"] == "no-store"
+
+
+def test_plus_upload_aria_and_escape_focus_contract():
+    base = (ROOT / "mission_control/templates/ollama_chat_base.html").read_text()
+    canonical = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text()
+
+    assert 'aria-controls="attach-menu" aria-expanded="false"' in base
+    assert base.count("plusButton.setAttribute('aria-expanded','false');") >= 3
+    assert "imageInput.click()" in base
+    assert "mediaInput.click()" in base
+    assert "cameraInput.click()" in base
+    assert "if(event.key!=='Escape'||!oapAttachMenu?.classList.contains('show'))return;" in canonical
+    assert "oapCloseAttach();oapPlus?.focus();" in canonical
+    assert canonical.count("oapPlus.addEventListener('click'") == 1
