@@ -54,6 +54,7 @@ def test_all_master_tool_actions_have_handlers():
     connectors = set(re.findall(r'data-connector-id="([^"]+)"', base))
 
     assert actions == {
+        "map-intelligence",
         "war-room",
         "function-health",
         "green-gate",
