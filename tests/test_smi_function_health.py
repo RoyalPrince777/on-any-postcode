@@ -262,14 +262,16 @@ def test_button_proof_separates_server_runtime_from_browser_response(monkeypatch
     assert "BROWSER RESPONSE PROVEN" in clicked["buttons"][0]["label"]
 
 
-def test_button_proof_routes_are_founder_only(client, anonymous_client):
+def test_button_proof_route_is_founder_only(client):
     response = client.get("/mission/smi/button-proof")
     assert response.status_code == 200
     assert response.get_json()["component"] == "SMI Founder Button Proof"
 
-    anonymous = anonymous_client.get("/mission/smi/button-proof")
-    assert anonymous.status_code == 401
-    assert anonymous.get_json()["error"]["code"] == "authentication_required"
+
+def test_button_proof_route_rejects_anonymous_access(anonymous_client):
+    response = anonymous_client.get("/mission/smi/button-proof")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
 
 
 def test_button_click_receipt_requires_csrf_and_known_success(client):
