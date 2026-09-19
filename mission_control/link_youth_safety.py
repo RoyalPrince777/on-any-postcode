@@ -76,7 +76,7 @@ def status() -> dict[str, Any]:
                      AND table_name='link_age_classifications'"""
             ).fetchone()
         result["ready"] = table is not None
-    except Exception:
+    except Exception:  # noqa: BLE001 - readiness probe must fail closed.
         return result
     return result
 
