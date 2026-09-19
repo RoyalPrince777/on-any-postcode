@@ -40,6 +40,9 @@ function applyView(){
  const cy=Math.min(700-h/2,Math.max(h/2,viewCenter[1]));
  const box=`${cx-w/2} ${cy-h/2} ${w} ${h}`;
  roadsSvg?.setAttribute('viewBox',box);routeSvg?.setAttribute('viewBox',box);
+ const mapTransform=driveMode?`rotate(${-lastHeading}deg) scale(1.08)`:'none';
+ if(roadsSvg)roadsSvg.style.transform=mapTransform;
+ if(routeSvg)routeSvg.style.transform=mapTransform;
 }
 function setZoom(next){
  zoom=Math.max(1,Math.min(3.2,next));applyView();
