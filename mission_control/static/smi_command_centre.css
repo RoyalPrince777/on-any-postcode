@@ -393,7 +393,9 @@ body.smi-command-open .smi-command-top{
 .smi-command-safety-tools{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}
 .smi-command-safety-tools button{min-height:34px;font-size:.66rem;padding:5px 7px}
 .smi-command-safety-tools #stop-button{
+ display:grid!important;place-items:center!important;
  position:static!important;inset:auto!important;
+ width:44px!important;height:44px!important;min-width:44px!important;
  border-color:#c76a70!important;background:#44151f!important;color:#fff1f1!important
 }
 .smi-command-safety-tools #pause-button{position:static!important;inset:auto!important}
