@@ -777,7 +777,9 @@ def _apply_auth_cookies(response, set_cookie_headers) -> bool:
 @app.get("/auth")
 @app.get("/enter-my-world")
 def auth_page():
-    next_path = _safe_next(request.args.get("next"))
+    # Default Founder entry should open Personal SMI; explicit public/other
+    # destinations continue to use the existing safe redirect contract.
+    next_path = _safe_next(request.args.get("next"), default="/mission/ollama")
     founder_only = _founder_only_path(next_path)
     error = None
     user = None
