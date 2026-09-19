@@ -58,6 +58,56 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
         raise LinkYouthSafetyUnavailable("link_youth_guard_schema_failed") from exc
     return {"version": SCHEMA_VERSION, "applied": True}
 
+def policy_from_bands(
+    first_band: str | None,
+    second_band: str | None,
+) -> dict[str, object]:
+    """Pure youth-contact decision used by runtime and deterministic self-test."""
+
+    if first_band is None or second_band is None:
+        return {
+            "allowed": True,
+            "reason": "age_proof_unresolved",
+            "resolved": False,
+            "first_band": first_band,
+            "second_band": second_band,
+        }
+    if first_band not in ALLOWED_BANDS or second_band not in ALLOWED_BANDS:
+        raise ValueError("invalid_age_band")
+    cross_age = {first_band, second_band} == {"minor", "adult"}
+    return {
+        "allowed": not cross_age,
+        "reason": "youth_contact_restricted" if cross_age else "age_policy_clear",
+        "resolved": True,
+        "first_band": first_band,
+        "second_band": second_band,
+    }
+
+
+def policy_self_test() -> dict[str, object]:
+    """Deterministic proof without creating or modifying member identities."""
+
+    cross_age = policy_from_bands("minor", "adult")
+    same_band = policy_from_bands("adult", "adult")
+    unresolved = policy_from_bands(None, "adult")
+    passed = bool(
+        cross_age["allowed"] is False
+        and cross_age["reason"] == "youth_contact_restricted"
+        and same_band["allowed"] is True
+        and same_band["resolved"] is True
+        and unresolved["allowed"] is True
+        and unresolved["resolved"] is False
+        and unresolved["reason"] == "age_proof_unresolved"
+    )
+    return {
+        "passed": passed,
+        "cross_age_blocked": cross_age["allowed"] is False,
+        "same_band_allowed": same_band["allowed"] is True,
+        "unknown_unresolved": unresolved["resolved"] is False,
+        "uses_production_identities": False,
+    }
+
+
 def status() -> dict[str, Any]:
     result = {
         "configured": postgres_db.configured(),
@@ -65,6 +115,7 @@ def status() -> dict[str, Any]:
         "stores_date_of_birth": False,
         "unknown_is_guessed": False,
         "cross_age_policy": "block_only_when_both_proven",
+        "policy_self_test": policy_self_test(),
     }
     if not result["configured"]:
         return result
@@ -75,7 +126,9 @@ def status() -> dict[str, Any]:
                    WHERE table_schema='public'
                      AND table_name='link_age_classifications'"""
             ).fetchone()
-        result["ready"] = table is not None
+        result["ready"] = bool(
+            table is not None and result["policy_self_test"]["passed"] is True
+        )
     except Exception:
         return result
     return result
@@ -158,22 +211,7 @@ def contact_policy(first_id: object, second_id: object) -> dict[str, object]:
     bands = {str(row[0]): str(row[1]) for row in rows}
     first_band = bands.get(first)
     second_band = bands.get(second)
-    if first_band is None or second_band is None:
-        return {
-            "allowed": True,
-            "reason": "age_proof_unresolved",
-            "resolved": False,
-            "first_band": first_band,
-            "second_band": second_band,
-        }
-    cross_age = {first_band, second_band} == {"minor", "adult"}
-    return {
-        "allowed": not cross_age,
-        "reason": "youth_contact_restricted" if cross_age else "age_policy_clear",
-        "resolved": True,
-        "first_band": first_band,
-        "second_band": second_band,
-    }
+    return policy_from_bands(first_band, second_band)
 
 def require_contact_allowed(first_id: object, second_id: object) -> dict[str, object]:
     policy = contact_policy(first_id, second_id)
