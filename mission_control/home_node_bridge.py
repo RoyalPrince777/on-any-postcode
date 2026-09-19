@@ -13,8 +13,8 @@ import threading
 import time
 import uuid
 from collections import deque
-from dataclasses import dataclass, field
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Any
 
 _MAX_PENDING = 8
