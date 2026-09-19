@@ -26,7 +26,7 @@ def _uber_enabled() -> bool:
 
 def status() -> dict[str, object]:
     return {
-        "component": "OAP Mobility Provider Intelligence",
+        "component": "OAP Adapter · Mobility Intelligence",
         "providers": [
             {
                 "id": "oap_direct",
