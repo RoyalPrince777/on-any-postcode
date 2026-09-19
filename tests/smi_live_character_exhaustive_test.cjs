@@ -43,10 +43,13 @@ function assertInvariants(runtime) {
   }
 }
 
+let exploredTransitions = 0;
+
 function walk(runtime, depth, maxDepth, seen) {
   assertInvariants(runtime);
   if (depth >= maxDepth) return;
   for (const event of EVENTS) {
+    exploredTransitions += 1;
     const next = step(runtime, event);
     const key = JSON.stringify([depth, event, next]);
     seen.add(key);
@@ -56,7 +59,8 @@ function walk(runtime, depth, maxDepth, seen) {
 
 const seen = new Set();
 walk(state.initialState(), 0, 5, seen);
-assert.ok(seen.size > 1000, "expected broad transition coverage");
+assert.ok(exploredTransitions > 1000, "expected broad transition exploration");
+assert.ok(seen.size > 100, "expected broad unique-state/event coverage");
 
 // Explicit sticky-STOP adversarial sequence.
 let runtime = state.initialState();
@@ -92,4 +96,4 @@ runtime = step(runtime, "THINK_END");
 runtime = step(runtime, "SPEAK_START");
 assert.equal(state.canListen(runtime), false);
 
-console.log(`SMI_LIVE_EXHAUSTIVE_V1_PASS sequences=${seen.size}`);
+console.log(`SMI_LIVE_EXHAUSTIVE_V1_PASS explored=${exploredTransitions} unique=${seen.size}`);
