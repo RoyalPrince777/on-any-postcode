@@ -74,6 +74,15 @@ def _permission(connection, identity_id: str) -> bool:
     ).fetchone()
     return row is not None
 
+def _commit_if_not_cancelled(
+    connection,
+    cancellation_token: smi_cancellation.CancellationToken | None = None,
+) -> None:
+    """Commit only while the active SMI request still owns a live Human session."""
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
+    connection.commit()
+
 def _provider(
     message: str,
     image_data: str = "",
@@ -778,9 +787,7 @@ def chat(
             correlation_id=request_id,
             metadata=audit_metadata,
         )
-        if cancellation_token is not None:
-            cancellation_token.raise_if_cancelled()
-        connection.commit()
+        _commit_if_not_cancelled(connection, cancellation_token)
     return {
         "status": "green",
         "request_id": request_id,
