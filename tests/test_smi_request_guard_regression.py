@@ -21,12 +21,11 @@ def test_smi_request_guard_is_fail_closed_and_non_polling():
     assert "XMLHttpRequest" not in guard
 
 
-def test_smi_request_guard_loads_once_after_chat_ui_layers():
+def test_legacy_request_guard_is_not_loaded_beside_canonical_owner():
     wrapper = WRAPPER.read_text(encoding="utf-8")
 
-    assert wrapper.count("smi_request_guard.js") == 1
-    assert wrapper.index("smi_chat_final.js") < wrapper.index("smi_request_guard.js")
-    assert wrapper.index("smi_chat_compat.js") < wrapper.index("smi_request_guard.js")
+    assert "smi_request_guard.js" not in wrapper
+    assert wrapper.count("smi_canonical_controller.js") == 1
 
 
 def test_request_guard_captures_enter_before_existing_bubble_handlers():
