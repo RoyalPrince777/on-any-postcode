@@ -77,6 +77,75 @@
   if(tab.dataset.view==="evidence"){refreshEvidence();refreshRoomStatus();}
  });
  const stage=panel.querySelector(".smi-command-stage");
+ // Approved, first-party motion clips may be attached later; never generate or infer
+ // body/lip animation from the flattened approved PNG.
+ const motion=document.createElement("video");
+ motion.className="smi-approved-motion-clip";
+ motion.setAttribute("aria-hidden","true");
+ motion.muted=true;
+ motion.loop=true;
+ motion.playsInline=true;
+ motion.preload="none";
+ sceneMotionSetup();
+ let motionSequence=0;
+ let motionBlobUrl=null;
+ let motionImageDimensions=null;
+ const motionClips=cfg.approvedMotionClips||{};
+ const motionOK=window.matchMedia&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+ function repositionMotion(){
+  if(!motionImageDimensions)return;
+  const height=scene.clientHeight;
+  if(!height)return;
+  motion.style.height=height+"px";
+  motion.style.width=Math.round(height*motionImageDimensions.width/motionImageDimensions.height)+"px";
+ }
+ function sceneMotionSetup(){
+  // DOM insert is passive: no clip URL, bytes or microphone permissions requested.
+  const target=panel.querySelector(".smi-command-scene");
+  if(target)target.prepend(motion);
+ }
+ function stopMotion(){
+  motionSequence++;
+  motion.pause();
+  motion.classList.remove("smi-approved-motion-playing");
+  motion.removeAttribute("src");
+  motion.load();
+  if(motionBlobUrl){URL.revokeObjectURL(motionBlobUrl);motionBlobUrl=null;}
+ }
+ async function applyApprovedMotion(state){
+  stopMotion();
+  if(!motionOK||!panel.classList.contains("smi-room-art-loaded")||!active)return;
+  if(!["listening","thinking","speaking"].includes(state))return;
+  const clip=motionClips[state];
+  if(!clip||typeof clip.url!=="string"||typeof clip.sha256!=="string")return;
+  if(!/^[a-f0-9]{64}$/i.test(clip.sha256)||!window.crypto?.subtle)return;
+  let url;
+  try{url=new URL(clip.url,window.location.origin);}catch(_){return;}
+  if(url.origin!==window.location.origin||!url.pathname.startsWith("/static/oap/smi_motion/"))return;
+  const token=++motionSequence;
+  try{
+   const response=await fetch(url.href,{credentials:"same-origin",cache:"no-store"});
+   const announced=Number(response.headers.get("content-length")||"0");
+   if(!response.ok||announced>15000000)return;
+   const bytes=await response.arrayBuffer();
+   if(bytes.byteLength>15000000||token!==motionSequence)return;
+   const digest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)),
+    byte=>byte.toString(16).padStart(2,"0")).join("");
+   if(digest.toLowerCase()!==clip.sha256.toLowerCase()||token!==motionSequence)return;
+   const mime=url.pathname.endsWith(".webm")?"video/webm":url.pathname.endsWith(".mp4")?"video/mp4":null;
+   if(!mime||!motion.canPlayType(mime))return;
+   motionBlobUrl=URL.createObjectURL(new Blob([bytes],{type:mime}));
+   motion.src=motionBlobUrl;
+   repositionMotion();
+   await motion.play();
+   if(token!==motionSequence){stopMotion();return;}
+   motion.classList.add("smi-approved-motion-playing");
+  }catch(_){
+   // No unapproved clip, network failure or autoplay denial can obscure the still.
+   if(token===motionSequence)stopMotion();
+  }
+ }
+ window.addEventListener("resize",repositionMotion);
  // First-party state-linked ambient motion; never replace or deform the approved still.
  const presence=document.createElement("div");
  presence.className="smi-scene-presence";
@@ -97,9 +166,13 @@
    scene.style.setProperty("--oap-smi-wallpaper",'url("'+cfg.approvedWallpaperUrl+'")');
    panel.classList.add("smi-room-art-loaded");
    scene.dataset.wallpaperReady="true";
+   motionImageDimensions={width:wallpaper.naturalWidth,height:wallpaper.naturalHeight};
+   repositionMotion();
+   if(active)applyApprovedMotion(panel.dataset.presenceState||"ready");
   };
   wallpaper.onerror=()=>{
    scene.dataset.wallpaperReady="false";
+   stopMotion();
    const status=document.getElementById("status");
    if(status)status.textContent="Approved SMI artwork unavailable · existing organism preserved";
   };
@@ -213,12 +286,14 @@
   active=open;
   if(open){
    stage.append(character);
+   applyApprovedMotion(panel.dataset.presenceState||"ready");
    document.body.classList.add("smi-command-open");
    toggle.textContent="◈ Back to Chat";toggle.setAttribute("aria-label","Close SMI Command Centre");
    toggle.setAttribute("aria-pressed","true");
    refreshEvidence();
    refreshRoomStatus();
   }else{
+   stopMotion();
    if(marker.parentNode)marker.parentNode.insertBefore(character,marker);
    document.body.classList.remove("smi-command-open");
    toggle.textContent="◈ Command Centre";toggle.setAttribute("aria-label","Open SMI Command Centre");
@@ -278,8 +353,9 @@
   if(!detail||typeof detail.state!=="string"){setPresenceState("ready");return;}
   setPresenceState(detail.state);
   if(detail.live&&active)setOpen(false);
+  else if(active)applyApprovedMotion(detail.state);
  });
- window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
+ window.addEventListener("pagehide",()=>{stopMotion();if(active)setOpen(false);});
  // Command Centre is the approved visual front door; Chat remains immediately reachable.
  // Never override a voice-first/fullscreen session already active.
  if(!document.body.classList.contains("smi-live-fullscreen"))setOpen(true);
