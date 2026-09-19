@@ -96,6 +96,21 @@ def send_message():
         return _failure(exc)
 
 
+@bp.get("/linkup/messages/incoming")
+@web_security.login_required(api=True)
+def incoming_messages():
+    identity, _user = _identity_user()
+    try:
+        messages = product_store.peer_messages_since(
+            identity,
+            request.args.get("peer_id", ""),
+            after=request.args.get("after", ""),
+        )
+        return _no_store(make_response(jsonify(messages=messages)))
+    except MESSAGE_ERRORS as exc:
+        return _failure(exc)
+
+
 @bp.get("/linkup/messages/state")
 @web_security.login_required(api=True)
 def message_state():

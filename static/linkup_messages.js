@@ -16,6 +16,12 @@
     typingStopTimer: null,
     typingRefreshTimer: null,
     pollTimer: null,
+    cursors: new Map(),
+    renderedMessageIds: new Set(
+      Array.from(document.querySelectorAll("[data-link-message-id]"))
+        .map((node) => node.dataset.linkMessageId)
+        .filter(Boolean),
+    ),
   };
 
   const recipientFor = (form) => {
@@ -74,6 +80,73 @@
     return payload;
   };
 
+  const initialCursorFor = (form) => {
+    const panel = form.closest("[data-linkup-panel]");
+    const nodes = Array.from(panel?.querySelectorAll("[data-created-at]") || []);
+    const latest = nodes
+      .map((node) => node.dataset.createdAt || "")
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    return latest || "";
+  };
+
+  const renderLiveLinks = (form, messages) => {
+    const panel = form.closest("[data-linkup-panel]");
+    const host = panel?.querySelector(".linkup-messages");
+    if (!host) return;
+    for (const message of messages || []) {
+      if (!message.message_id || state.renderedMessageIds.has(message.message_id)) continue;
+      state.renderedMessageIds.add(message.message_id);
+
+      const item = document.createElement("div");
+      item.className = `linkup-message ${message.direction === "sent" ? "outgoing" : "incoming"}`;
+      item.dataset.linkMessageId = message.message_id;
+      item.dataset.createdAt = message.created_at || "";
+
+      const body = document.createElement("p");
+      body.textContent = message.body || "";
+      item.appendChild(body);
+
+      const meta = document.createElement("div");
+      meta.className = "linkup-meta";
+      const time = document.createElement("span");
+      time.textContent = message.created_at || "now";
+      meta.appendChild(time);
+
+      if (message.direction === "sent") {
+        const stateNode = document.createElement("span");
+        stateNode.dataset.oapMessageState = "";
+        stateNode.dataset.messageId = message.message_id;
+        stateNode.dataset.state = message.state || "landed";
+        stateNode.textContent = message.state === "seen" ? "Seen" : "Landed";
+        meta.appendChild(stateNode);
+      } else {
+        const seenButton = document.createElement("button");
+        seenButton.type = "button";
+        seenButton.className = "linkup-icon-btn";
+        seenButton.textContent = "Seen";
+        seenButton.addEventListener("click", async () => {
+          try {
+            const result = await apiJson(
+              `/linkup/messages/${encodeURIComponent(message.message_id)}/seen`,
+              { method: "POST", body: "{}" },
+            );
+            if (result.state === "seen") {
+              seenButton.replaceWith(document.createTextNode("Seen"));
+            }
+          } catch (_error) {
+            seenButton.textContent = "Try again";
+          }
+        });
+        meta.appendChild(seenButton);
+      }
+      item.appendChild(meta);
+      host.appendChild(item);
+      host.scrollTop = host.scrollHeight;
+    }
+  };
+
   const updateRenderedStates = (messages) => {
     for (const message of messages || []) {
       const node = document.querySelector(
@@ -107,6 +180,25 @@
     } catch (_error) {
       // Existing persisted receipts remain valid if polling is unavailable.
     }
+
+    try {
+      const cursor = state.cursors.get(peerId) ?? initialCursorFor(form);
+      if (!state.cursors.has(peerId)) state.cursors.set(peerId, cursor);
+      const path = cursor
+        ? `/linkup/messages/incoming?peer_id=${encodeURIComponent(peerId)}&after=${encodeURIComponent(cursor)}`
+        : `/linkup/messages/incoming?peer_id=${encodeURIComponent(peerId)}`;
+      const delta = await apiJson(path);
+      const incoming = delta.messages || [];
+      renderLiveLinks(form, incoming);
+      if (incoming.length) {
+        const newest = incoming[incoming.length - 1]?.created_at || cursor;
+        state.cursors.set(peerId, newest);
+        const local = localStatusFor(form);
+        if (!local.querySelector("button")) local.textContent = "New Link landed";
+      }
+    } catch (_error) {
+      // Conversation remains usable if live delta sync temporarily degrades.
+    }
     if (!state.activityReady) {
       return;
     }
@@ -124,7 +216,7 @@
       window.clearInterval(state.pollTimer);
     }
     pollPeer();
-    state.pollTimer = window.setInterval(pollPeer, 4000);
+    state.pollTimer = window.setInterval(pollPeer, 2500);
   };
 
   const typingUpdate = async (form, active) => {

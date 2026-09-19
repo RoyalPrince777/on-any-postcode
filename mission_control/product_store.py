@@ -265,6 +265,62 @@ def message_states(
     ]
 
 
+
+def peer_messages_since(
+    identity_id: object,
+    peer_id: object,
+    *,
+    after: object = None,
+    limit: int = 100,
+) -> list[dict[str, object]]:
+    """Return new Link messages for one accepted peer conversation."""
+
+    identity, peer = _link_guard(identity_id, peer_id)
+    bounded_limit = max(1, min(int(limit), 100))
+    after_value = str(after or "").strip()
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT id,sender_id,recipient_id,body,read_at,created_at
+                   FROM messages
+                   WHERE (
+                       (sender_id=%s AND recipient_id=%s)
+                       OR (sender_id=%s AND recipient_id=%s)
+                   )
+                     AND (%s='' OR created_at>%s::timestamptz)
+                   ORDER BY created_at ASC
+                   LIMIT %s""",
+                (
+                    identity,
+                    peer,
+                    peer,
+                    identity,
+                    after_value,
+                    after_value,
+                    bounded_limit,
+                ),
+            ).fetchall()
+    except Exception as exc:
+        raise ProductStoreUnavailable("linkup_incoming_failed") from exc
+    return [
+        {
+            "message_id": str(row[0]),
+            "direction": "sent" if str(row[1]) == identity else "received",
+            "sender_id": str(row[1]),
+            "recipient_id": str(row[2]),
+            "body": str(row[3]),
+            "read": row[4] is not None,
+            "state": (
+                "seen"
+                if str(row[1]) == identity and row[4] is not None
+                else "landed" if str(row[1]) == identity else "received"
+            ),
+            "seen_at": row[4].isoformat() if row[4] else None,
+            "created_at": row[5].isoformat(),
+        }
+        for row in rows
+    ]
+
 def list_products(*, limit: int = 100) -> list[dict[str, Any]]:
     try:
         with postgres_db.connect(readonly=True) as connection:
