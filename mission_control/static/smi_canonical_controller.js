@@ -12,32 +12,154 @@ const oapStatus=document.getElementById('status');
 const oapAttachMenu=document.getElementById('attach-menu');
 const oapThinkingLevel=document.getElementById('thinking-level');
 const oapThinkingElapsed=document.getElementById('thinking-elapsed');
+const oapLiveToggle=document.getElementById('live-character-toggle');
+const oapCharacter=document.getElementById('smi-character');
+const oapCharacterLabel=document.getElementById('smi-character-state');
 if(!oapForm||!oapInput||!oapSend)return;
 
+const oapStateApi=window.OAP_SMI_LIVE_STATE;
+let oapRuntime=oapStateApi?.initialState?oapStateApi.initialState():null;
 let oapLocked=false,oapAbort=null,oapRecognition=null,oapListening=false,oapListenStarted=0,oapListenTimer=null;
-let oapPaused=false,oapWorkStarted=0,oapWorkTimer=null;
+let oapPaused=false,oapWorkStarted=0,oapWorkTimer=null,oapLiveRestartTimer=null,oapRecognitionToken=null,oapFinalTranscript='',oapResumeListenAfterPause=false,oapSpeechSeq=0;
 let oapVoiceEnabled=(oapSpeaker?.getAttribute('aria-pressed')!=='false');
 
 function oapSetStatus(text){if(oapStatus)oapStatus.textContent=text;}
-function oapRelease(){oapLocked=false;oapAbort=null;oapPaused=false;}
+function oapSyncHumanControls(){
+ if(!oapRuntime)return;
+ const active=Boolean(oapLocked||oapRuntime.live||oapRuntime.listening||oapRuntime.thinking||oapRuntime.speaking||oapRuntime.paused);
+ if(oapStop)oapStop.classList.toggle('show',active&&!oapRuntime.stopped);
+}
+function oapRenderCharacter(){
+ if(!oapRuntime)return;
+ const labels={ready:'Ready',listening:'Listening',thinking:'Thinking',speaking:'Speaking',paused:'Paused',stopped:'Stopped'};
+ if(oapCharacter)oapCharacter.dataset.state=oapRuntime.state;
+ if(oapCharacterLabel)oapCharacterLabel.textContent=labels[oapRuntime.state]||oapRuntime.state;
+ oapSyncHumanControls();
+ window.dispatchEvent(new CustomEvent('oap-smi-character-state',{detail:{...oapRuntime}}));
+}
+function oapApply(type){
+ if(!oapStateApi||!oapRuntime)return oapRuntime;
+ oapRuntime=oapStateApi.transition(oapRuntime,{type});
+ oapListening=Boolean(oapRuntime.listening);
+ oapPaused=Boolean(oapRuntime.paused);
+ oapRenderCharacter();
+ return oapRuntime;
+}
+function oapClearLiveRestart(){if(oapLiveRestartTimer)clearTimeout(oapLiveRestartTimer);oapLiveRestartTimer=null;}
+function oapScheduleListening(delay=320){
+ oapClearLiveRestart();
+ if(!oapRuntime?.live||oapRuntime.stopped)return;
+ const expected=oapStateApi.token(oapRuntime);
+ oapLiveRestartTimer=setTimeout(()=>{
+  oapLiveRestartTimer=null;
+  if(oapStateApi.tokenIsCurrent(oapRuntime,expected)&&oapRuntime.live)oapRequestListening('live');
+ },delay);
+}
+function oapUpdateLiveToggle(){
+ if(!oapLiveToggle)return;
+ const live=Boolean(oapRuntime?.live);
+ oapLiveToggle.classList.toggle('active',live);
+ oapLiveToggle.setAttribute('aria-pressed',String(live));
+ oapLiveToggle.textContent=live?'◉ Live On':'◉ Live SMI';
+}
+function oapSetLive(enabled){
+ if(!oapRuntime||!oapStateApi){oapSetStatus('Live SMI state engine unavailable');return false;}
+ if(enabled){
+  if(!oapRecognition){oapSetStatus('Live SMI unavailable · browser speech recognition is not supported');oapUpdateLiveToggle();return false;}
+  if(oapRuntime.stopped)oapApply('RESUME_FROM_STOP');
+  oapApply('LIVE_ON');
+  oapVoiceEnabled=true;
+  if(oapSpeaker){oapSpeaker.classList.add('active');oapSpeaker.setAttribute('aria-pressed','true');oapSpeaker.textContent='🔊 Voice reply';}
+  oapSetStatus('Live SMI on · final recognised speech turns auto-send · browser speech-service locality not verified');
+  oapUpdateLiveToggle();
+  oapScheduleListening(180);
+  return true;
+ }
+ oapClearLiveRestart();
+ oapSpeechSeq+=1;
+ oapApply('LIVE_OFF');
+ oapRecognitionToken=null;
+ if(oapRecognition&&oapListening){try{oapRecognition.stop()}catch{}}
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+ oapUpdateLiveToggle();
+ oapSetStatus('Live SMI off');
+ return true;
+}
+function oapRequestListening(source='manual'){
+ if(!oapRecognition||!oapRuntime||!oapStateApi)return false;
+ if(source==='live'&&!oapRuntime.live)return false;
+ if(!oapStateApi.canListen(oapRuntime)){
+  if(source==='manual')oapSetStatus(oapRuntime.stopped?'Stopped by Human Authority':oapRuntime.speaking?'Wait for SMI to finish speaking':oapRuntime.thinking?'SMI is thinking':oapRuntime.paused?'Paused by Human Authority':'Voice input already active');
+  return false;
+ }
+ oapFinalTranscript='';
+ oapRecognitionToken=oapStateApi.token(oapRuntime);
+ try{oapSetStatus('Microphone permission required…');oapRecognition.start();return true;}
+ catch{oapSetStatus('Voice input unavailable');return false;}
+}
+function oapRelease(){oapLocked=false;oapAbort=null;if(!oapRuntime?.stopped)oapPaused=false;}
 function oapElapsed(){return oapListenStarted?Math.max(0,Math.floor((Date.now()-oapListenStarted)/1000)):0;}
 function oapStopListenTimer(){if(oapListenTimer)clearInterval(oapListenTimer);oapListenTimer=null;}
 function oapWorkSeconds(){return oapWorkStarted?Math.max(0,Math.round((performance.now()-oapWorkStarted)/100)/10):0;}
 function oapUpdateWorkedFor(){if(oapThinkingElapsed)oapThinkingElapsed.textContent=`Worked for ${oapWorkSeconds().toFixed(1)}s`;}
-function oapBeginWork(){oapWorkStarted=performance.now();oapUpdateWorkedFor();if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=setInterval(oapUpdateWorkedFor,100);}
-function oapEndWork(){const seconds=oapWorkSeconds();if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=null;if(oapThinkingElapsed)oapThinkingElapsed.textContent=`Worked for ${seconds.toFixed(1)}s`;oapWorkStarted=0;return seconds;}
-function oapSpeak(text){if(!oapVoiceEnabled||!('speechSynthesis' in window)||!text)return;window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(String(text));utterance.lang='en-GB';window.speechSynthesis.speak(utterance);}
+function oapBeginWork(){oapWorkStarted=performance.now();oapApply('THINK_START');oapUpdateWorkedFor();if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=setInterval(oapUpdateWorkedFor,100);}
+function oapEndWork(){const seconds=oapWorkSeconds();if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=null;if(oapThinkingElapsed)oapThinkingElapsed.textContent=`Worked for ${seconds.toFixed(1)}s`;oapWorkStarted=0;if(!oapRuntime?.stopped)oapApply('THINK_END');return seconds;}
+function oapSpeak(text){
+ if(oapRuntime?.stopped)return;
+ if(!text||!oapVoiceEnabled||!('speechSynthesis' in window)){if(oapRuntime?.live)oapScheduleListening(250);return;}
+ oapSpeechSeq+=1;
+ const seq=oapSpeechSeq,expected=oapStateApi.token(oapRuntime);
+ window.speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(String(text));utterance.lang='en-GB';
+ utterance.onstart=()=>{if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected))return;oapApply('SPEAK_START');};
+ const finish=()=>{if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected))return;oapApply('SPEAK_END');if(oapRuntime.live)oapScheduleListening(320);};
+ utterance.onend=finish;utterance.onerror=finish;
+ window.speechSynthesis.speak(utterance);
+}
 function oapCloseAttach(){if(oapAttachMenu)oapAttachMenu.classList.remove('show');if(oapPlus)oapPlus.setAttribute('aria-expanded','false');}
 function oapToggleAttach(){if(!oapAttachMenu||!oapPlus)return;const open=!oapAttachMenu.classList.contains('show');oapAttachMenu.classList.toggle('show',open);oapPlus.setAttribute('aria-expanded',String(open));oapSetStatus(open?'Tools and attachments open':'Tools and attachments closed');}
-function oapStopAll(){responseStopped=true;oapPaused=false;if(oapAbort)oapAbort.abort();if(oapRecognition&&oapListening){try{oapRecognition.stop()}catch{}}oapStopListenTimer();if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=null;oapWorkStarted=0;if('speechSynthesis' in window)window.speechSynthesis.cancel();oapRelease();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapSetStatus('Response stopped by Human Authority');}
-function oapTogglePause(){if(!oapLocked)return;oapPaused=!oapPaused;if(oapPause){oapPause.classList.toggle('active',oapPaused);oapPause.setAttribute('aria-pressed',String(oapPaused));oapPause.textContent=oapPaused?'▶':'Ⅱ';}const provider=document.getElementById('provider-state');if(provider)provider.textContent=oapPaused?'Paused':'Working';if('speechSynthesis' in window){if(oapPaused)window.speechSynthesis.pause();else window.speechSynthesis.resume();}oapSetStatus(oapPaused?'Paused by Human Authority':'Resumed');}
+function oapStopAll(){
+ responseStopped=true;
+ oapClearLiveRestart();
+ oapSpeechSeq+=1;
+ oapApply('STOP');
+ oapUpdateLiveToggle();
+ if(oapAbort)oapAbort.abort();
+ if(oapRecognition){try{oapRecognition.stop()}catch{}}
+ oapStopListenTimer();
+ if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=null;oapWorkStarted=0;
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+ oapRelease();try{hideThinking()}catch{}try{setRunning(false)}catch{}
+ oapSetStatus('Response stopped by Human Authority · explicit new command or Live SMI restart required');
+}
+function oapTogglePause(){
+ if(!oapRuntime||oapRuntime.stopped)return;
+ const active=Boolean(oapLocked||oapRuntime.listening||oapRuntime.speaking||oapRuntime.paused);if(!active)return;
+ if(!oapRuntime.paused){
+  oapResumeListenAfterPause=Boolean(oapRuntime.listening&&oapRuntime.live);
+  if(oapRuntime.listening)oapRecognitionToken=null;
+  oapApply('PAUSE');
+  if(oapRecognition){try{oapRecognition.stop()}catch{}}
+  if('speechSynthesis' in window)window.speechSynthesis.pause();
+ }else{
+  oapApply('RESUME');
+  if('speechSynthesis' in window)window.speechSynthesis.resume();
+  if(oapResumeListenAfterPause&&oapRuntime.live)oapScheduleListening(180);
+  oapResumeListenAfterPause=false;
+ }
+ if(oapPause){oapPause.classList.toggle('active',oapRuntime.paused);oapPause.setAttribute('aria-pressed',String(oapRuntime.paused));oapPause.textContent=oapRuntime.paused?'▶':'Ⅱ';}
+ const provider=document.getElementById('provider-state');if(provider)provider.textContent=oapRuntime.paused?'Paused':'Working';
+ oapSetStatus(oapRuntime.paused?'Paused by Human Authority':'Resumed');
+}
 function oapSetCapturedImage(dataUrl,name){if(typeof selectedImage==='undefined')return false;selectedImage=dataUrl;const preview=document.getElementById('image-preview'),img=document.getElementById('preview-img'),label=document.getElementById('preview-name');if(img)img.src=dataUrl;if(label)label.textContent=name;if(preview)preview.classList.add('show');oapInput.dispatchEvent(new Event('input',{bubbles:true}));return true;}
 async function oapCaptureFrame(stream,label){try{const video=document.createElement('video');video.srcObject=stream;video.muted=true;video.playsInline=true;await video.play();await new Promise(resolve=>setTimeout(resolve,180));const track=stream.getVideoTracks()[0],settings=track?.getSettings?.()||{};const canvas=document.createElement('canvas');canvas.width=settings.width||video.videoWidth||1280;canvas.height=settings.height||video.videoHeight||720;canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);const ok=oapSetCapturedImage(canvas.toDataURL('image/jpeg',0.9),label);oapSetStatus(ok?`${label} captured · routed through existing image/Studio path`:`${label} capture unavailable`);}finally{stream.getTracks().forEach(track=>track.stop());}}
 async function oapCamera(){oapCloseAttach();if(!navigator.mediaDevices?.getUserMedia){oapSetStatus('Camera unavailable on this device');return;}oapSetStatus('Camera permission required…');try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});await oapCaptureFrame(stream,'Camera');}catch(error){oapSetStatus(error?.name==='NotAllowedError'?'Camera permission blocked':'Camera unavailable');}}
 async function oapScreen(){oapCloseAttach();if(!navigator.mediaDevices?.getDisplayMedia){oapSetStatus('Screen sharing unavailable on this device');return;}oapSetStatus('Choose a screen to share…');try{const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});oapSetStatus('Sharing · capturing one governed frame…');await oapCaptureFrame(stream,'Screen');}catch(error){oapSetStatus(error?.name==='NotAllowedError'?'Screen sharing cancelled or blocked':'Screen sharing unavailable');}}
 function oapAddCaptureOptions(){if(!oapAttachMenu||oapAttachMenu.dataset.oapCaptureReady==='true')return;oapAttachMenu.dataset.oapCaptureReady='true';const camera=document.createElement('button');camera.type='button';camera.className='attach-option';camera.id='camera-button';camera.textContent='📷 Camera';camera.setAttribute('aria-label','Capture camera image');camera.addEventListener('click',oapCamera);const screen=document.createElement('button');screen.type='button';screen.className='attach-option';screen.id='screen-capture-button';screen.textContent='🖥️ Share Screen';screen.setAttribute('aria-label','Share screen and capture frame');screen.addEventListener('click',oapScreen);oapAttachMenu.prepend(screen);oapAttachMenu.prepend(camera);}
 
-async function oapSubmit(){
+async function oapSubmit(options={}){
+ const fromLive=options?.fromLive===true;
+ if(oapRuntime?.stopped){if(fromLive)return;oapApply('RESUME_FROM_STOP');}
  if(oapLocked||oapSend.disabled)return;const text=oapInput.value.trim();const hasImage=typeof selectedImage!=='undefined'&&Boolean(selectedImage);const hasAttachment=typeof selectedAttachment!=='undefined'&&Boolean(selectedAttachment);if(!text&&!hasImage&&!hasAttachment)return;
  const selectedThinkingLevel=oapThinkingLevel?.value||'auto';
  const selectedStudioMode=(typeof studioMode!=='undefined')?Boolean(studioMode):Boolean(document.getElementById('studio-button')?.classList.contains('active'));
@@ -67,7 +189,7 @@ async function oapSubmit(){
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
   window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));oapSpeak(completeResult.response);clearAttachments();oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');await loadConversations();
  }catch(error){if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
- finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();try{loadHealth()}catch{}}
+ finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}
 }
 
 oapInput.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.shiftKey||event.isComposing)return;event.preventDefault();event.stopImmediatePropagation();oapSubmit();},true);
@@ -76,8 +198,49 @@ if(oapPlus)oapPlus.addEventListener('click',event=>{event.preventDefault();event
 document.addEventListener('click',event=>{if(oapAttachMenu&&oapPlus&&!event.target.closest('.attach-wrap'))oapCloseAttach();});
 if(oapPause)oapPause.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapTogglePause();},true);
 if(oapStop)oapStop.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapStopAll();},true);
-if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapSpeaker.classList.toggle('active',oapVoiceEnabled);oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';if(!oapVoiceEnabled&&'speechSynthesis' in window)window.speechSynthesis.cancel();oapSetStatus(oapVoiceEnabled?'Voice reply on':'Voice reply off');},true);
-if(oapMic){const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(Recognition){oapRecognition=new Recognition();oapRecognition.lang='en-GB';oapRecognition.interimResults=true;oapRecognition.continuous=false;oapRecognition.onstart=()=>{oapListening=true;oapListenStarted=Date.now();oapMic.classList.add('active');oapMic.setAttribute('aria-pressed','true');oapMic.setAttribute('aria-label','Stop voice input');oapMic.textContent='■';oapSetStatus('Listening · 0s');oapListenTimer=setInterval(()=>oapSetStatus(`Listening · ${oapElapsed()}s`),1000);};oapRecognition.onresult=event=>{oapInput.value=Array.from(event.results).map(result=>result[0].transcript).join('');oapInput.dispatchEvent(new Event('input',{bubbles:true}));};oapRecognition.onend=()=>{oapStopListenTimer();oapListening=false;oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';oapSetStatus('Voice captured · edit or send');};oapRecognition.onerror=event=>{oapStopListenTimer();oapListening=false;oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';oapSetStatus(event?.error==='not-allowed'?'Microphone permission blocked':'Voice input unavailable');};oapMic.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();try{if(oapListening)oapRecognition.stop();else{oapSetStatus('Microphone permission required…');oapRecognition.start();}}catch{oapSetStatus('Voice input unavailable');}},true);}else{oapMic.disabled=true;oapMic.title='Voice input is not supported by this browser';oapMic.setAttribute('aria-disabled','true');}}
+if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapSpeaker.classList.toggle('active',oapVoiceEnabled);oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';if(!oapVoiceEnabled&&'speechSynthesis' in window){oapSpeechSeq+=1;window.speechSynthesis.cancel();if(oapRuntime?.speaking)oapApply('SPEAK_END');if(oapRuntime?.live)oapScheduleListening(180);}oapSetStatus(oapVoiceEnabled?'Voice reply on':'Voice reply off');},true);
+if(oapMic){
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(Recognition&&oapStateApi){
+  oapRecognition=new Recognition();oapRecognition.lang='en-GB';oapRecognition.interimResults=true;oapRecognition.continuous=false;
+  oapRecognition.onstart=()=>{
+   const expected=oapRecognitionToken;
+   if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){try{oapRecognition.stop()}catch{}return;}
+   oapApply('LISTEN_START');oapListenStarted=Date.now();oapMic.classList.add('active');oapMic.setAttribute('aria-pressed','true');oapMic.setAttribute('aria-label','Stop voice input');oapMic.textContent='■';oapSetStatus('Listening · 0s');oapListenTimer=setInterval(()=>oapSetStatus(`Listening · ${oapElapsed()}s`),1000);
+  };
+  oapRecognition.onresult=event=>{
+   const results=Array.from(event.results),full=results.map(result=>result[0].transcript).join(' '),finalText=results.filter(result=>result.isFinal).map(result=>result[0].transcript).join(' ').trim();
+   oapInput.value=full;oapFinalTranscript=finalText;oapInput.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  oapRecognition.onend=()=>{
+   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
+   if(!oapStateApi.tokenIsCurrent(oapRuntime,expected))return;
+   oapApply('LISTEN_END');
+   if(oapRuntime.live){
+    if(oapFinalTranscript){
+     oapInput.value=oapFinalTranscript;oapInput.dispatchEvent(new Event('input',{bubbles:true}));
+     const submitToken=oapStateApi.token(oapRuntime);
+     setTimeout(()=>{if(oapStateApi.tokenIsCurrent(oapRuntime,submitToken)&&oapRuntime.live)oapSubmit({fromLive:true});},120);
+    }else{oapSetStatus('Live SMI · no final speech captured');oapScheduleListening(350);}
+   }else{oapSetStatus(oapFinalTranscript?'Voice captured · edit or send':'Voice input ended without a final transcript');}
+  };
+  oapRecognition.onerror=event=>{
+   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
+   if(!oapStateApi.tokenIsCurrent(oapRuntime,expected))return;
+   oapApply('LISTEN_END');
+   if(oapRuntime.live)oapSetLive(false);
+   oapSetStatus(event?.error==='not-allowed'?'Microphone permission blocked':'Voice input unavailable');
+  };
+  oapMic.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();if(oapRuntime?.listening){try{oapRecognition.stop()}catch{}}else{oapRequestListening('manual');}},true);
+ }else{
+  oapMic.disabled=true;oapMic.title='Voice input is not supported by this browser';oapMic.setAttribute('aria-disabled','true');
+  if(oapLiveToggle){oapLiveToggle.disabled=true;oapLiveToggle.setAttribute('aria-disabled','true');oapLiveToggle.title='Live SMI requires browser speech recognition';}
+ }
+}
+if(oapLiveToggle)oapLiveToggle.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapSetLive(!Boolean(oapRuntime?.live));},true);
+window.addEventListener('pagehide',()=>{oapClearLiveRestart();oapSpeechSeq+=1;if(oapRuntime&&!oapRuntime.stopped)oapApply('LIVE_OFF');oapRecognitionToken=null;if(oapRecognition){try{oapRecognition.stop()}catch{}}if('speechSynthesis' in window)window.speechSynthesis.cancel();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&oapRuntime?.live){oapSetLive(false);oapSetStatus('Live SMI off while this page is hidden');}});
+oapRenderCharacter();oapUpdateLiveToggle();
 oapAddCaptureOptions();
-window.OAP_SMI_CANONICAL={version:'1.4',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,resultStreamOnly:true};
+window.OAP_SMI_CANONICAL={version:'2.0',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,resultStreamOnly:true};
 })();
