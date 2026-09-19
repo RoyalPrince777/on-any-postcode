@@ -135,6 +135,9 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
         return {"version": SCHEMA_VERSION, "statements": list(SCHEMA_SQL), "applied": False}
     try:
         with postgres_db.connect() as connection:
+            connection.execute(
+                "SELECT pg_advisory_xact_lock(hashtext('oap_link_share_v1'))"
+            )
             for statement in SCHEMA_SQL:
                 connection.execute(statement)
             connection.commit()
