@@ -366,9 +366,11 @@ refreshOps();
       }catch{}
     }
 
-    plus.addEventListener("click",()=>setTimeout(()=>{
+    // The canonical Plus handler stops propagation. Observe the actual drawer state,
+    // rather than relying on a second click handler that cannot consistently fire.
+    new MutationObserver(()=>{
       if(menu.classList.contains("show"))syncFunctionHealth();
-    },0));
+    }).observe(menu,{attributes:true,attributeFilter:["class"]});
 
     async function inspectJson(actionId,title,target,button){
       button.disabled=true;
