@@ -93,6 +93,28 @@
 <div class="review-lens"><b>21 Learning</b><small>Feedback and HRM receipt</small></div>
 </div><p class="review-truth">Council views → judge findings → objections → minority report → 7★ and vote evidence → Guardian / Aegis → SMI synthesis → Green Gate → 👑 Founder Final. Unverified steps stay explicitly unverified.</p>
 </section>
+<section class="panel review-command" id="simulation-chamber" aria-labelledby="simulation-title">
+<div class="ey">⚔️ Simulation chamber · named voices</div><h2 id="simulation-title">Choose how the War Room challenges your mission</h2>
+<p class="review-note">Matrix, Jungle Book, Akan / Animal, Seven Judges, Seven Councils or Full 21×. Modes select debate perspectives; the existing governed actions supply the evidence. No synthetic voice is presented as an independent live agent.</p>
+<div class="bar" role="group" aria-label="War Room simulation mode">
+<button class="btn js-sim-mode" type="button" data-sim-mode="auto" aria-pressed="true">🟣 SMI Auto</button>
+<button class="btn js-sim-mode" type="button" data-sim-mode="matrix" aria-pressed="false">🕶 Matrix</button>
+<button class="btn js-sim-mode" type="button" data-sim-mode="jungle" aria-pressed="false">🐅 Jungle Book</button>
+<button class="btn js-sim-mode" type="button" data-sim-mode="animal" aria-pressed="false">🦁 Akan / Animal</button>
+<button class="btn js-sim-mode" type="button" data-sim-mode="judges" aria-pressed="false">⚖️ Seven Judges</button>
+<button class="btn js-sim-mode" type="button" data-sim-mode="councils" aria-pressed="false">🌍 Seven Councils</button>
+<button class="btn primary js-sim-mode" type="button" data-sim-mode="full" aria-pressed="false">⚔️ Full 21×</button>
+</div><div class="bar" style="margin-top:9px">
+<button class="btn js-sim-depth" data-sim-depth="auto" aria-pressed="true" type="button">Auto depth</button>
+<button class="btn js-sim-depth" data-sim-depth="3" aria-pressed="false" type="button">Manual 3</button>
+<button class="btn js-sim-depth" data-sim-depth="7" aria-pressed="false" type="button">Manual 7</button>
+<button class="btn js-sim-depth" data-sim-depth="21" aria-pressed="false" type="button">Manual 21</button>
+<button class="btn primary" id="run-simulation" type="button">▶ Run evidence-backed simulation</button>
+</div>
+<div class="receipt action-result" id="simulation-result" role="status" aria-live="polite" data-signal="purple">🟣 Enter a mission above; select a mode and depth. A review is not an approval.</div>
+<div class="review-judges" id="simulation-voices" aria-label="Simulated named perspectives"></div>
+<p class="review-truth">Simulated perspectives use supplied mission and returned check labels/statuses; they do not invent an agent's independent answer, vote, consensus or proof. Guardian, Green Gate, recovery proofs and Founder Final remain separately operated by the existing controls.</p>
+</section>
 <section class="panel" id="depth-3-7-21"><div class="ey">🟣 SMI AUTO · 3 / 7 / 21 Depth</div><h2>Depth scales with uncertainty, risk and consequence</h2>
 <div class="grid review-grid">
 <div class="card green"><strong>3 · Routine Bounded</strong><small>Fast first-pass review for ordinary, reversible, low-risk work. Minimum necessary agents / lenses; no authority expansion.</small></div>
@@ -230,6 +252,60 @@
     lines.push('👑 Founder Final: unchanged · separate authority');
     show('purple', lines.join('\n'));
   }
+  // Evidence-backed perspectives; this never claims separate agent execution.
+  const simResult=document.getElementById('simulation-result');
+  const simVoices=document.getElementById('simulation-voices');
+  const simMission=document.querySelector('.mission');
+  let simMode='auto',simDepth='auto';
+  const participants={
+    auto:[['🧠 SMI','Classify mission, select relevant perspectives and synthesise the returned evidence.'],['🐅 Shere Khan','Pressure-test the weakest returned check.'],['🐆 Bagheera','Check boundaries and recovery.']],
+    matrix:[['🕶 Neo','What is the true path and rollback?'],['🕶 Morpheus','Which apparent green lacks proof?'],['Trinity','Do handoffs stay coherent?'],['Oracle','Which scenario remains uncertain?'],['Architect','Which dependency can fail?'],['Keymaker','Is each route permitted?'],['Seraph','Does access preserve trust?']],
+    jungle:[['🐅 Shere Khan','Attack unsupported readiness claims.'],['🐆 Bagheera','Demand disciplined protection and recovery.'],['🐺 Akela','Check order and chain of command.'],['🐺 Wolf Pack','Which field perspectives remain missing?']],
+    animal:[['🦁 Gyata / Lion','Demand practical readiness evidence.'],['🦉 Owl','Check memory, law and continuity.'],['🐺 Akela','Examine collective responsibility.'],['🐆 Bagheera','Preserve protection and restraint.']],
+    judges:[['🐅 Shere Khan','Pressure'],['🐆 Bagheera','Protection'],['🕶 Agent Smith','Integrity'],['🦁 Gyata / Lion','Readiness'],['🕶 Morpheus','Truth'],['🐺 Akela','Order'],['🦉 Owl','Memory and law']],
+    councils:[['Civic','Public-interest context'],['Jungle Book','Discipline and challenge'],['Animal','Specialist field intelligence'],['Matrix','Routes, architecture and trust'],['Civilisation','Long-horizon consequence'],['Akan Core','Culture, identity and provenance'],['Akan Animal','Cultural specialist review']],
+    full:[['🧠 SMI','First look and synthesis'],['🕶 Matrix','Routes, uncertainty and trust'],['🐅 Jungle Book','Pressure, wisdom and order'],['🦁 Akan / Animal','Context and specialist challenge'],['⚖️ Seven Judges','Canonical findings and dissent'],['🌍 Seven Councils','Cross-system impacts'],['🛡 Guardian / Aegis','Independent safety gate']]
+  };
+  function chooseSim(selector,attribute,value){
+    document.querySelectorAll(selector).forEach(button=>button.setAttribute('aria-pressed',String(button.dataset[attribute]===value)));
+  }
+  document.querySelectorAll('.js-sim-mode').forEach(button=>button.addEventListener('click',()=>{
+    simMode=button.dataset.simMode;chooseSim('.js-sim-mode','simMode',simMode);
+    simResult.textContent='🟣 '+button.textContent.trim()+' selected · enter mission and run evidence-backed review.';
+    simResult.dataset.signal='purple';
+  }));
+  document.querySelectorAll('.js-sim-depth').forEach(button=>button.addEventListener('click',()=>{
+    simDepth=button.dataset.simDepth;chooseSim('.js-sim-depth','simDepth',simDepth);
+  }));
+  document.getElementById('run-simulation')?.addEventListener('click',async event=>{
+    const button=event.currentTarget,mission=(simMission?.value||'').trim();
+    if(!mission){simResult.textContent='🟡 Enter a mission before running a simulation.';simResult.dataset.signal='yellow';simMission?.focus();return;}
+    button.disabled=true;simResult.textContent='🟣 Running bounded existing evidence checks…';simResult.dataset.signal='purple';simVoices.replaceChildren();
+    const checks=['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
+    const evidence=[];
+    try{
+      for(const action of checks){
+        const payload=await run(action);
+        evidence.push({label:String(payload.label||payload.action?.label||action),signal:String(payload.signal||payload.action?.signal||'unknown'),state:String(payload.state||payload.action?.state||'unknown')});
+      }
+      const unresolved=evidence.filter(item=>item.signal!=='green');
+      const depth=simDepth==='auto'?(simMode==='full'?'21':unresolved.length?'7':'3'):simDepth;
+      const lines=['🟣 SIMULATED REVIEW · '+simMode.toUpperCase()+' · '+depth+' depth','Mission: '+mission,'Evidence: '+evidence.map(item=>item.label+'='+item.signal+'/'+item.state).join('; '),
+        'Unresolved checks: '+(unresolved.length?unresolved.map(item=>item.label).join(', '):'none reported by these bounded checks'),
+        'No votes, live agent executions or Founder approval inferred.'];
+      simResult.textContent=lines.join('\n');
+      for(const [name,focus] of participants[simMode]||participants.auto){
+        const card=document.createElement('article');card.className='review-judge';
+        const title=document.createElement('h3');title.textContent=name;
+        const badge=document.createElement('span');badge.className='review-badge';badge.textContent='Simulated perspective · no independent agent execution';
+        const finding=document.createElement('p');finding.textContent='Focus: '+focus;
+        const objection=document.createElement('p');objection.textContent='Open challenge: '+(unresolved.length?unresolved.map(item=>item.label+' ('+item.signal+')').join('; '):'These checks do not establish full live interaction or Founder Final.');
+        card.append(title,badge,finding,objection);simVoices.append(card);
+      }
+    }catch(error){simResult.dataset.signal='yellow';simResult.textContent='🟡 Review incomplete · '+error.message+' · no simulated result certified.';}
+    finally{button.disabled=false;}
+  });
+
   document.querySelectorAll('.js-war-mode').forEach(button => {
     button.addEventListener('click', () => {
       show('purple', '⚔️ WAR ROOM selected · full debate structure active · councils → judges → review agents → intelligence lenses → 7★ → vote → Guardian → Green Gate → SMI synthesis → 👑 Founder Final.');
