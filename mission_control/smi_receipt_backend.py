@@ -468,14 +468,21 @@ def receipt_backend_status() -> dict[str, Any]:
             "safe_payload": {"probe": True, "external_action": False},
         },
     )
+    durable_ready = bool(
+        probe.get("ok")
+        and probe.get("read_back_ok")
+        and probe.get("durable")
+        and not probe.get("fallback_used")
+        and probe.get("backend") == "independent_hrm_postgres"
+    )
     return {
         "name": "SMI Receipt Backend Status",
         "receipt_backend": probe["backend"],
         "write_read_proof": probe,
-        "hrm_receipt_ready": bool(probe["ok"]),
-        "matrix_learning_receipt_ready": bool(probe["ok"]),
-        "ecosystem_outcome_receipt_ready": bool(probe["ok"]),
-        "independent_durable_hrm_ready": bool(probe.get("ok") and probe.get("durable")),
+        "hrm_receipt_ready": durable_ready,
+        "matrix_learning_receipt_ready": durable_ready,
+        "ecosystem_outcome_receipt_ready": durable_ready,
+        "independent_durable_hrm_ready": durable_ready,
         "neon_mirror_ready": False,
         "neon_mirror_reason": "Neon is optional as a mirror; independent HRM durability is authoritative when configured and proven.",
         "full_system_green": False,
