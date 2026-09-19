@@ -60,6 +60,7 @@ def init_app(app: Flask) -> None:
     from .link_call_routes import bp as link_call_bp
     from .link_message_routes import bp as link_message_bp
     from .link_ping_routes import bp as link_ping_bp
+    from .link_incoming_routes import bp as link_incoming_bp
     from .link_presence_routes import bp as link_presence_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
@@ -764,6 +765,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_call_bp)
     app.register_blueprint(link_signalling_bp)
     app.register_blueprint(link_turn_bp)
+    app.register_blueprint(link_incoming_bp)
     app.register_blueprint(link_ping_bp)
     app.register_blueprint(link_presence_bp)
     app.register_blueprint(link_voice_bp)
