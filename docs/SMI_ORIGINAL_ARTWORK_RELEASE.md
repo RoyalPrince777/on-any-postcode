@@ -2,7 +2,7 @@
 
 Approved image bytes are present in the chat but **not yet in GitHub**. Do not merge or deploy the artwork PR until both original PNGs are checked in at:
 
-- `static/oap/smi_enter_my_world.png` (SHA-256 `114852c665388f8b3cba5c3a5f667631e4a69ac88de2af2b30a3c5f6fbaec01b`)
+- `static/oap/enter_my_world_wallpaper.png` (SHA-256 `114852c665388f8b3cba5c3a5f667631e4a69ac88de2af2b30a3c5f6fbaec01b`)
 - `static/oap/smi_global_intelligence_command_centre.png` (SHA-256 `9417a1293108350ccb6c3751377c9530d287a628c54f0659272c7c990cda4df3`)
 
 They are bundled as `oap_smi_artwork_upload.zip` in the conversation. In GitHub's **real-artwork branch**, add both PNGs at the exact paths (not just the zip), then confirm checksums, CI, merge and exact Render commit. The release test intentionally fails while the assets are absent.
