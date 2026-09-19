@@ -15,11 +15,12 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertLess(page.index("smi_canonical_controller.js"), page.index("smi_command_centre.js"))
         self.assertLess(page.index("smi_live_character.css"), page.index("smi_command_centre.css"))
 
-    def test_existing_character_and_controls_are_reused(self):
+    def test_old_character_is_not_painted_and_controls_are_reused(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn('getElementById("smi-character")', source)
         self.assertIn('getElementById("messages")', source)
-        self.assertIn("marker.parentNode.insertBefore(character,marker)", source)
+        self.assertNotIn("marker.parentNode.insertBefore(character,marker)", source)
+        self.assertIn('getElementById("live-character-toggle")', source)
         self.assertIn('oap-smi-character-state', source)
         self.assertNotIn("All Systems Operational", source)
 
@@ -47,8 +48,9 @@ class CommandCentreUITest(unittest.TestCase):
     def test_command_centre_is_visible_without_disabling_chat(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn('setOpen(true);', source)
-        self.assertIn('setOpen(false);toggle.focus();', source)
-        self.assertIn('stage.append(character)', source)
+        self.assertIn('setChatVisible(!chatVisible);toggle.focus();', source)
+        self.assertNotIn('stage.append(character)', source)
+        self.assertIn('setChatVisible(true)', source)
 
     def test_mobile_master_tools_escapes_scroll_clipping(self):
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
@@ -72,7 +74,8 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('canonical.click()', source)
         self.assertIn('event.target?.id==="chat-form"&&active', source)
         self.assertIn('event.target?.id==="message"&&event.key==="Enter"', source)
-        self.assertIn('setOpen(false)', source)
+        self.assertIn('setChatVisible(true)', source)
+        self.assertNotIn('if(event.target?.id==="chat-form"&&active)setOpen(false)', source)
         self.assertNotIn("All Systems Operational", source)
 
     def test_mobile_organism_and_evidence_are_reachable(self):
