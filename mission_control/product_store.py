@@ -48,7 +48,7 @@ def _link_guard(first_id: object, second_id: object) -> tuple[str, str]:
     return first, second
 
 
-def _member_card_id(identity_id: str) -> str:
+def member_card_id(identity_id: str) -> str:
     """Return a non-secret, human-readable OAP member card ID."""
 
     return "OAP-" + identity_id.replace("-", "")[:8].upper()
@@ -93,7 +93,7 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
         my_identity = str(self_row[0])
         my_card = {
             "identity_id": my_identity,
-            "card_id": _member_card_id(my_identity),
+            "card_id": member_card_id(my_identity),
             "display_name": str(self_row[1]),
             "username": str(self_row[2]),
             "postcode": str(self_row[3] or ""),
@@ -104,7 +104,7 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
     directory = [
         {
             "identity_id": str(row[0]),
-            "card_id": _member_card_id(str(row[0])),
+            "card_id": member_card_id(str(row[0])),
             "display_name": str(row[1]),
             "username": str(row[2]),
             "postcode": str(row[3] or ""),
@@ -150,7 +150,7 @@ def linkup_dashboard(identity_id: object) -> dict[str, Any]:
                 ),
                 "username": people.get(other_id, {}).get("username", ""),
                 "card_id": people.get(other_id, {}).get("card_id")
-                or _member_card_id(other_id),
+                or member_card_id(other_id),
                 "postcode": people.get(other_id, {}).get("postcode", ""),
                 "borough": people.get(other_id, {}).get("borough", ""),
                 "country": people.get(other_id, {}).get("country", ""),
