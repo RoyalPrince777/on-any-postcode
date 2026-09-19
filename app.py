@@ -264,6 +264,11 @@ def _security_headers(response):
                 )
             )
         except Exception as exc:  # noqa: BLE001 - readiness must fail closed.
+            reason = (
+                str(exc)[:180]
+                if isinstance(exc, (ValueError, PermissionError, RuntimeError))
+                else ""
+            )
             REQUEST_LOGGER.error(
                 json.dumps(
                     {
@@ -271,6 +276,7 @@ def _security_headers(response):
                         "success": False,
                         "execution_granted": False,
                         "error": type(exc).__name__,
+                        "reason": reason,
                     },
                     separators=(",", ":"),
                     sort_keys=True,
