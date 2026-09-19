@@ -23,6 +23,7 @@ from . import (
     local_map_intelligence,
     location_intelligence,
     map_live_pattern,
+    mobility_provider_intelligence,
     road_tile_geometry,
     routing,
     routing_federation,
@@ -248,6 +249,29 @@ def map_intelligence_live_pattern_report():
     response = jsonify({"report": report, "advisory_only": True, "authority_verified": False})
     response.headers["Cache-Control"] = "no-store"
     return response, 201
+
+
+@bp.get("/map-intelligence/mobility-providers")
+def map_intelligence_mobility_providers():
+    payload = mobility_provider_intelligence.status()
+    values = request.args
+    try:
+        if values.get("start_latitude") and values.get("start_longitude"):
+            payload["uber_estimates"] = mobility_provider_intelligence.estimates(
+                start_latitude=float(values["start_latitude"]),
+                start_longitude=float(values["start_longitude"]),
+                end_latitude=float(values["end_latitude"]) if values.get("end_latitude") else None,
+                end_longitude=float(values["end_longitude"]) if values.get("end_longitude") else None,
+            )
+    except (ValueError, RuntimeError) as exc:
+        payload["uber_estimates"] = {
+            "state": "unavailable",
+            "reason": str(exc)[:100],
+            "live_ready": False,
+        }
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @bp.get("/map-intelligence/status")
