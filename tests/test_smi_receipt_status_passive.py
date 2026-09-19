@@ -57,3 +57,23 @@ def test_receipt_post_requires_csrf_and_runs_explicit_proof(monkeypatch):
     assert response.status_code == 200
     assert response.get_json()["status"]["read_back_ok"] is True
     assert writes == ["proof"]
+
+
+def test_missing_sqlite_fallback_is_not_created_by_status(monkeypatch, tmp_path):
+    from mission_control import smi_receipt_backend
+
+    missing = tmp_path / "receipts.sqlite3"
+    for key in (
+        "OAP_HRM_DATABASE_URL",
+        "OAP_SMI_HRM_DATABASE_URL",
+        "OAP_HRM_DATABASE_URL_B64",
+        "OAP_SMI_HRM_DATABASE_URL_B64",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("OAP_SMI_RECEIPT_DB_PATH", str(missing))
+
+    result = smi_receipt_backend.latest_receipts(5)
+
+    assert result["count"] == 0
+    assert result["durable"] is False
+    assert not missing.exists()
