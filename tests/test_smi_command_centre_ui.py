@@ -1,6 +1,6 @@
 """Source-level regression contract for the additive SMI Command Centre."""
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "mission_control" / "static"
