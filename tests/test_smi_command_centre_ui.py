@@ -57,6 +57,12 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn("max-height:min(67dvh,540px)", styles)
         self.assertIn("body:not(.smi-live-fullscreen)", styles)
 
+    def test_master_tools_checks_follow_actual_drawer_state(self):
+        source = (STATIC / "smi_chat_final.js").read_text(encoding="utf-8")
+        self.assertIn('new MutationObserver(()=>{', source)
+        self.assertIn('if(menu.classList.contains("show"))syncFunctionHealth()', source)
+        self.assertIn('attributeFilter:["class"]', source)
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
