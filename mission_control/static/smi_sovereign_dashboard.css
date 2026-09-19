@@ -29,3 +29,21 @@ body.smi-sovereign-ready .navs{display:none!important}
 .smi-auto-fix{border-color:#54406f!important;color:var(--smi-purple)!important}.smi-auto-fix:disabled{opacity:.55}
 .smi-auto-fix-result .tool-meta{white-space:pre-line}
 @media(max-width:820px){.smi-chat-ops{grid-template-columns:repeat(2,minmax(0,1fr));padding:7px}.smi-chat-op:last-child{grid-column:1/-1}}
+
+/* Chat-first 2027 layout: Status is a drawer, never a replacement screen. */
+body.smi-sovereign-ready .workspace-grid{display:grid!important}
+.smi-dashboard-layer{display:none!important;position:fixed!important;inset:0 0 0 auto!important;width:min(92vw,560px)!important;height:100dvh!important;z-index:12000!important;border-left:1px solid var(--smi-line)!important;box-shadow:-24px 0 60px #000a!important}
+.smi-status-open .smi-dashboard-layer{display:flex!important}
+.smi-status-backdrop{display:none;position:fixed;inset:0;z-index:11990;border:0;background:#0007;padding:0}
+.smi-status-open .smi-status-backdrop{display:block}
+.smi-dashboard-shell{grid-template-columns:1fr!important}
+.smi-rail{display:none!important}
+.smi-dashboard-main{padding:16px 14px 80px!important}
+.smi-chat-return{position:static!important;display:inline-flex!important;z-index:auto!important}
+.smi-status-open .workspace-grid{display:grid!important}
+.smi-chat-ops{display:flex!important;align-items:center;gap:5px!important;overflow-x:auto;padding:4px 8px!important;scrollbar-width:none}
+.smi-chat-ops::-webkit-scrollbar{display:none}
+.smi-chat-op{display:flex!important;align-items:center;gap:5px!important;flex:0 0 auto;min-height:27px;padding:4px 7px!important}
+.smi-chat-op .smi-dot{margin:0!important}
+.smi-chat-op small{font-size:.54rem!important}
+@media(max-width:820px){.smi-dashboard-layer{width:min(96vw,480px)!important}.smi-chat-op small{display:none}.smi-chat-ops{padding:3px 6px!important}}
