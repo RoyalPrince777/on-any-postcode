@@ -29,3 +29,17 @@ def test_styles_target_the_actual_smi_message_renderer():
     assert ".smi-command-centre{" not in css
     assert ".composer{" not in css
     assert ".attach-menu{" not in css
+
+def test_pipe_tables_are_parsed_by_the_real_renderer_without_html_injection():
+    renderer = (ROOT / "mission_control/static/smi_chat_final.js").read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    assert "separators.every(value=>/^:?-{3,}:?$/.test(value))" in renderer
+    assert "headings.length>=2" in renderer
+    assert "document.createElement('table')" in renderer
+    assert "document.createElement('thead')" in renderer
+    assert "document.createElement('tbody')" in renderer
+    assert "inline(td,values[column]||'')" in renderer
+    assert "scroll.className='md-table-scroll'" in renderer
+    assert ".md-table-scroll" in css
+    assert "overflow-x:auto" in css
+    assert ".smi-command-centre{" not in css

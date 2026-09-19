@@ -22,3 +22,12 @@
 .msg.receipt-card .receipt-pill{border-color:var(--smi-review-border)}
 @media(max-width:600px){.msg.assistant .md-h.h1{font-size:1.24rem}.msg.assistant .md-h.h2{font-size:1.08rem}.msg.assistant :is(th,td){padding:.4rem .48rem}}
 @media(prefers-reduced-motion:reduce){.msg.assistant *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* The canonical renderer emits a scroll wrapper so wide tables do not break mobile Chat. */
+.msg.assistant .md-table-scroll{max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;margin:.8em 0;border:1px solid var(--smi-review-border);border-radius:10px}
+.msg.assistant .md-table{display:table;width:100%;max-width:none;margin:0;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.msg.assistant .md-table :is(th,td){min-width:85px;border:1px solid var(--smi-review-border);padding:.48rem .65rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.msg.assistant .md-table th{color:#f0e3ff;background:#231b37}
+.msg.assistant .md-table td{background:#101321}
+@media(max-width:600px){.msg.assistant .md-table :is(th,td){padding:.4rem .48rem}}
