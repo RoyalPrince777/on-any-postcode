@@ -27,6 +27,7 @@ def init_app(app: Flask) -> None:
         hrm_durable_receipt,
         link_activity,
         link_call_audit,
+        link_message_sync,
         link_ping,
         link_presence,
         link_relationships,
