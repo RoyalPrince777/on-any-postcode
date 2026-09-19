@@ -97,13 +97,13 @@ async function loadProviders(origin=null,destination=null){
    const params=new URLSearchParams();
    if(origin?.latitude!=null&&origin?.longitude!=null){params.set('start_latitude',origin.latitude);params.set('start_longitude',origin.longitude)}
    if(destination?.latitude!=null&&destination?.longitude!=null){params.set('end_latitude',destination.latitude);params.set('end_longitude',destination.longitude)}
-   const url='/map-intelligence/mobility-providers'+(params.size?'?'+params.toString():'');
+   const url='/map-intelligence/oap-adapter'+(params.size?'?'+params.toString():'');
    const r=await fetch(url,{cache:'no-store',credentials:'same-origin'}),d=await r.json();
    const uber=d?.providers?.find(x=>x.id==='uber');
-   providerIntel.textContent=uber?.live_ready?'Mobility · Uber live':'Mobility · OAP Direct';
+   providerIntel.textContent=uber?.live_ready?'OAP Adapter · mobility live':'OAP Adapter · OAP Direct';
    providerIntel.dataset.state=uber?.live_ready?'live':'attention';
-   const holder=q('#provider-source-list'); if(holder){holder.textContent='';(d.providers||[]).forEach(p=>{const row=document.createElement('div');row.className='map-source-row';row.innerHTML='<b></b><span></span>';row.querySelector('b').textContent=p.name;row.querySelector('span').textContent=p.live_ready?'Live':'Locked / unavailable';holder.append(row)})}
- }catch{providerIntel.textContent='Mobility · provider status unavailable';providerIntel.dataset.state='attention'}
+   const holder=q('#provider-source-list'); if(holder){holder.textContent='';(d.providers||[]).forEach(p=>{const row=document.createElement('div');row.className='map-source-row';row.innerHTML='<b></b><span></span>';row.querySelector('b').textContent=p.id==='oap_direct'?'OAP Direct':'External mobility source';row.querySelector('span').textContent=p.live_ready?'Live':'Locked / unavailable';holder.append(row)})}
+ }catch{providerIntel.textContent='OAP Adapter · status unavailable';providerIntel.dataset.state='attention'}
 }
 qa('[data-map-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mapMode)));
 sourceToggle?.addEventListener('click',()=>sourceDrawer?.classList.toggle('show'));
