@@ -8,7 +8,31 @@
 
   if (!pingControls.length && !muteControls.length && !incomingNode) return;
 
-  const state = { ready: false, busy: new Set(), timer: null };
+  const state = { ready: false, busy: new Set(), timer: null, sounded: new Set() };
+
+  const playPingTone = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const context = new AudioContext();
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.09, context.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.22);
+      gain.connect(context.destination);
+      [740, 980].forEach((frequency, index) => {
+        const oscillator = context.createOscillator();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, context.currentTime + (index * 0.08));
+        oscillator.connect(gain);
+        oscillator.start(context.currentTime + (index * 0.08));
+        oscillator.stop(context.currentTime + 0.18 + (index * 0.08));
+      });
+      window.setTimeout(() => context.close().catch(() => {}), 500);
+    } catch (_error) {
+      // Browsers may block sound until user interaction; Ping Up remains visual.
+    }
+  };
 
   const api = async (path, options = {}) => {
     const method = options.method || "GET";
@@ -130,6 +154,11 @@
     const unseen = (pings || []).filter((ping) => !ping.seen);
     incomingNode.hidden = unseen.length === 0;
     unseen.slice(0, 5).forEach((ping) => {
+      if (!state.sounded.has(ping.ping_id)) {
+        state.sounded.add(ping.ping_id);
+        playPingTone();
+        if (navigator.vibrate) navigator.vibrate(60);
+      }
       const card = document.createElement("div");
       const text = document.createElement("p");
       const icon = ping.intensity === "double" ? "⚡⚡" : ping.intensity === "priority" ? "🔥" : "⚡";
