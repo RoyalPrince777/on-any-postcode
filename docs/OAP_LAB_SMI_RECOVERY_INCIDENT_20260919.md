@@ -66,3 +66,10 @@ The canonical seven judges are review lenses, not seven executed independent mod
 
 ### Exit conditions
 Only reconsider the 25% gate after (a) matched secret-safe identity of authoritative live store(s), (b) incident-window write/receipt reconciliation or explicit documented irreducible uncertainty, (c) approved snapshot/backups for every authoritative store, (d) a truly isolated non-finalizing restore with verified readback AND no production endpoint movement, (e) any incident impact and rollback audits, and (f) reviewed CI + live production evidence + Founder final. No 21/21 score or percentage is inferred from the checklist.
+
+## Read-only continuity follow-up — 2026-09-19
+
+- Neon still lists the single manual snapshot `snap-nameless-tooth-arw9094g` and the derived branch; original `br-little-pine-arfbcpln` remains primary/default `production`. Snapshot existence is not a certified restore.
+- Latest original-branch timestamps: `oap_hrm_receipts` 2026-09-18 19:26:38 UTC (13 rows); `smi_memory_records` 2026-09-19 08:34:08 UTC (31); `smi_conversations` 2026-09-19 01:30:18 UTC (4); `smi_evidence_receipts` 2026-09-19 08:34:08 UTC (12).
+- None of those four tables contains an observed record dated within or after the 09:43–09:45 UTC endpoint-switch incident at this check. **This is an absence of evidence, not evidence of no attempted writes, no impact, or complete receipt continuity.** Reconciling attempts requires request/operation/receipt evidence from the live authoritative backend, where available.
+- Strict live identity and alternate stores remain unverified. Never conclude that an old latest timestamp alone identifies a backend outage.
