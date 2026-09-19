@@ -70,7 +70,7 @@ async function exercise(where) {
     requests[0].resolve({ok:true,body:{getReader(){throw Error("stale fetch must not consume body");}}});
   }else{
     readOld({done:false,value:new TextEncoder().encode(
-      'event: complete\\ndata: {"result":{"response":"stale result"}}\\n\\n'
+      'event: complete\ndata: {"result":{"response":"stale result"}}\n\n'
     )});
   }
   await old;
@@ -78,14 +78,14 @@ async function exercise(where) {
   assert.equal(shown.filter(item=>item.role==="assistant").length,0,
     "STOP must suppress stale assistant response");
   assert.equal(context.oapLocked,true,"stale finally must not unlock new work");
-  assert.equal(context.oapAbort,requests[1].signal ? context.oapAbort:null);
+  assert.equal(context.oapAbort.signal,requests[1].signal,"new request must still own active signal");
   assert.equal(running.filter(value=>value===false).length,0,
     "stale finally must not reset newer request UI");
 
   let readCount=0;
   requests[1].resolve({ok:true,body:{getReader(){return{async read(){
     if(readCount++===0)return{done:false,value:new TextEncoder().encode(
-      'event: complete\\ndata: {"result":{"response":"new result"}}\\n\\n'
+      'event: complete\ndata: {"result":{"response":"new result"}}\n\n'
     )};
     return{done:true};
   }};}}});
