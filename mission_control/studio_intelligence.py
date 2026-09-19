@@ -220,6 +220,16 @@ def execute_generation(
     }
 
 
+def generation_content(video_id: object) -> tuple[bytes, str]:
+    """Return one completed video artifact without expanding publishing authority."""
+
+    clean_id = str(video_id or "").strip()
+    status_payload = studio_media_backend.video_status(clean_id)
+    if not status_payload.get("artifact_proven"):
+        raise RuntimeError("studio_video_not_completed")
+    return studio_media_backend.video_content(clean_id)
+
+
 def generation_status(video_id: object) -> dict[str, Any]:
     """Check one Studio video job and Chronicle its current proof state."""
 

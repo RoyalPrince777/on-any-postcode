@@ -76,6 +76,19 @@ INTERACTION_CERTIFICATION_SPECS = (
         "markers": ("pause-button", "stop-button"),
         "backend": "client display pause/resume + governed stream cancellation on Stop",
     },
+    {
+        "id": "control-surface-v2",
+        "name": "SMI Control Surface v2",
+        "markers": (
+            "OAP_SMI_CONTROL_SURFACE",
+            "liveButtonProof:true",
+            "directStudioTools:true",
+            "autoDepthVisible:true",
+            "completedVideoPlayback:true",
+        ),
+        "backend": "runtime acknowledgement → Button Proof receipt + direct Studio generation",
+        "known_gap": "signed-in browser/device certification is still required for full green",
+    },
 )
 
 FUNCTION_SPECS = (
@@ -190,7 +203,10 @@ def interaction_certification() -> dict[str, Any]:
         script = (
             _REPOSITORY_ROOT / "mission_control" / "static" / "smi_interaction_layer.js"
         ).read_text(encoding="utf-8")
-        source = f"{base}\n{wrapper}\n{script}"
+        final_script = (
+            _REPOSITORY_ROOT / "mission_control" / "static" / "smi_chat_final.js"
+        ).read_text(encoding="utf-8")
+        source = f"{base}\n{wrapper}\n{script}\n{final_script}"
         source_available = True
     except OSError:
         source = ""

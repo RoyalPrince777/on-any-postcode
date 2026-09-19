@@ -18,6 +18,7 @@ OPENAI_BASE_URL = "https://api.openai.com/v1"
 IMAGE_MODEL = os.environ.get("OAP_STUDIO_IMAGE_MODEL", "gpt-image-2").strip() or "gpt-image-2"
 VIDEO_MODEL = os.environ.get("OAP_STUDIO_VIDEO_MODEL", "sora-2").strip() or "sora-2"
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_VIDEO_BYTES = 100 * 1024 * 1024
 
 
 def _key() -> str:
@@ -164,6 +165,40 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
         "artifact_proven": state == "completed",
         "provider_is_authority": False,
     }
+
+
+def video_content(video_id: str) -> tuple[bytes, str]:
+    """Fetch one completed provider video through the governed first-party boundary."""
+
+    clean_id = str(video_id or "").strip()
+    if not clean_id.startswith("video_"):
+        raise ValueError("studio_video_id_invalid")
+    key = _key()
+    if not key:
+        raise RuntimeError("studio_generation_provider_unconfigured")
+    req = urlrequest.Request(
+        f"{OPENAI_BASE_URL}/videos/{clean_id}/content",
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Accept": "video/mp4,application/octet-stream",
+            "User-Agent": "ON-ANY-POSTCODE-Studio/1.0",
+        },
+        method="GET",
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=120) as response:
+            content_type = str(response.headers.get("Content-Type") or "video/mp4")
+            body = response.read(MAX_VIDEO_BYTES + 1)
+    except (HTTPError, URLError, TimeoutError, OSError) as exc:
+        raise RuntimeError("studio_generation_provider_unavailable") from exc
+    if not body or len(body) > MAX_VIDEO_BYTES:
+        raise RuntimeError("studio_video_content_invalid")
+    mime_type = (
+        content_type.split(";", 1)[0].strip()
+        if content_type.startswith("video/")
+        else "video/mp4"
+    )
+    return body, mime_type
 
 
 def video_status(video_id: str) -> dict[str, Any]:

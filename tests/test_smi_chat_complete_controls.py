@@ -237,5 +237,6 @@ def test_function_health_tracks_interaction_certification_without_fake_green():
         "tools",
         "intelligence-selector",
         "runtime-controls",
+        "control-surface-v2",
     }
     assert all(item["state"] == "purple" for item in result["surfaces"])

@@ -30,6 +30,7 @@ from . import (
     public_store,
     smi_chat_runtime,
     smi_founder_assets,
+    smi_receipt_backend,
     smi_recursive_improvement,
     smi_workbench,
     status,
@@ -39,6 +40,27 @@ from . import (
 )
 
 ALLOWED_MODES = ("sovereign", "mission", "approval")
+BUTTON_PROOF_TARGETS = {
+    "map-intelligence": "/on-any-place",
+    "war-room": "/mission/war-room",
+    "function-health": "/mission/smi/function-health",
+    "green-gate": "/mission/smi/green-gate",
+    "hrm": "/mission/smi/brain/receipts",
+    "founder-library": "/mission/founder-library",
+    "improvement": "/mission/improvement",
+    "signals-21": "/mission/smi/coherent-automation",
+    "guardian": "/mission/smi/brain/evidence-runner/run?command=guardian_check",
+    "routes": "/mission/smi/routes",
+    "brain": "/mission/brain",
+    "agents": "/mission/agents",
+    "infrastructure": "/mission/infrastructure",
+    "judgement": "/mission/judgement",
+    "studio-imagine": "/mission/studio/generate",
+    "studio-bring-alive": "/mission/studio/generate",
+    "studio-scene-builder": "/mission/studio/generate",
+}
+
+
 WAR_ROOM_RUNTIME_ACTIONS = {
     "status": {
         "label": "War Room status",
@@ -62,13 +84,13 @@ WAR_ROOM_RUNTIME_ACTIONS = {
         "label": "Function Health",
         "state": "building",
         "signal": "yellow",
-        "message": "Read-only function evidence is available; live button probes remain the next implementation layer.",
+        "message": "Read-only function evidence plus post-ack Button Proof receipts are implemented; signed-in browser certification remains required.",
     },
     "green-gate": {
         "label": "Green Gate",
         "state": "building",
         "signal": "yellow",
-        "message": "Evidence states are calculated; automatic route/button certification remains locked until proof runner wiring.",
+        "message": "Evidence states are calculated and Button Proof is post-ack only; full Green remains locked until runtime/device proof and Founder Final.",
     },
     "hrm-receipt": {
         "label": "HRM Receipt Boundary",
@@ -666,6 +688,69 @@ def smi_founder_library():
         )
 
 
+@bp.post("/ui/button-proof")
+@web_security.login_required(api=True, founder_only=True)
+def smi_button_proof():
+    """Chronicle one successful Founder UI control only after runtime acknowledgement."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    action_id = str(payload.get("action_id") or "").strip()
+    target = str(payload.get("target") or "").strip()
+    expected = BUTTON_PROOF_TARGETS.get(action_id)
+    if expected is None or target != expected:
+        return _error("invalid_button_proof", "Unsupported SMI control proof.", 400)
+    try:
+        status_code = int(payload.get("status_code") or 0)
+    except (TypeError, ValueError):
+        return _error("invalid_button_proof", "Invalid runtime status.", 400)
+    if status_code < 200 or status_code >= 400:
+        return _error("button_not_proven", "Runtime acknowledgement did not succeed.", 409)
+    receipt = smi_receipt_backend.write_receipt(
+        "agent_tool_connection_receipt",
+        {
+            "brain_part": "smi_control_surface",
+            "gate": 1,
+            "command": "button_runtime_proof",
+            "signal": "🟣",
+            "guardian": "passed_read_only_runtime_ack",
+            "green_gate": "button_acknowledged_not_whole_smi_green",
+            "founder_final": "required_for_full_green",
+            "safe_payload": {
+                "action_id": action_id,
+                "target": target,
+                "status_code": status_code,
+                "runtime_acknowledged": True,
+                "click_only_proof": False,
+                "execution_authority_expanded": False,
+            },
+        },
+    )
+    return _no_store(
+        make_response(
+            jsonify(
+                proven=bool(receipt.get("ok")),
+                action_id=action_id,
+                target=target,
+                chronicle_receipt={
+                    "receipt_id": receipt.get("receipt_id"),
+                    "durable": bool(receipt.get("durable")),
+                    "backend": receipt.get("backend"),
+                },
+                whole_smi_green=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
 @bp.get("/studio/status")
 @web_security.login_required(api=True, founder_only=True)
 def smi_studio_status():
@@ -721,6 +806,26 @@ def smi_studio_video_status(video_id: str):
             503,
         )
     return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/studio/video/<video_id>/content")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_video_content(video_id: str):
+    """Proxy one completed Studio video artifact through the first-party Founder origin."""
+
+    try:
+        body, mime_type = studio_intelligence.generation_content(video_id)
+    except ValueError as exc:
+        return _error("invalid_studio_video", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "studio_generation_unavailable",
+            "Studio video content is temporarily unavailable.",
+            503,
+        )
+    response = Response(body, mimetype=mime_type)
+    response.headers["Content-Disposition"] = 'inline; filename="oap-studio-video.mp4"'
+    return _no_store(response)
 
 
 @bp.get("/improvement")

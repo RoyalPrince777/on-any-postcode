@@ -171,3 +171,470 @@ auto.addEventListener('click',async()=>{
 setOp('chat','purple','UNPROVEN');
 refreshOps();
 })();
+
+;(()=> {
+  "use strict";
+  const cfg=window.OAP_SMI_UI||{};
+  const q=(selector,root=document)=>root.querySelector(selector);
+  const qa=(selector,root=document)=>[...root.querySelectorAll(selector)];
+
+  function bootControlSurfaceV2(){
+    const menu=q("#attach-menu");
+    const plus=q("#plus-button");
+    const input=q("#message");
+    const messages=q("#messages");
+    const status=q("#status");
+    if(!menu||!plus||!input||!messages)return;
+
+    const setStatus=(text)=>{if(status)status.textContent=String(text||"");};
+    const addCard=(title,text,state="purple")=>{
+      const card=document.createElement("div");
+      card.className="msg tool-result smi-v2-result";
+      const heading=document.createElement("strong");
+      heading.textContent=(state==="green"?"🟢":state==="red"?"🔴":state==="yellow"?"🟡":"🟣")+" "+title;
+      const body=document.createElement("span");
+      body.className="tool-meta";
+      body.textContent=String(text||"");
+      card.append(heading,body);
+      messages.append(card);
+      messages.scrollTop=messages.scrollHeight;
+      return card;
+    };
+    const receiptId=(value)=>{
+      const receipt=value&&value.chronicle_receipt;
+      return receipt&&typeof receipt==="object"
+        ? String(receipt.receipt_id||receipt.id||"")
+        : "";
+    };
+    const endpoint=(template,id)=>String(template||"").replace("__VIDEO_ID__",encodeURIComponent(String(id||"")));
+
+    async function recordButtonProof(actionId,target,statusCode){
+      if(!cfg.buttonProofUrl)return null;
+      try{
+        const response=await fetch(cfg.buttonProofUrl,{
+          method:"POST",
+          credentials:"same-origin",
+          headers:{
+            "Content-Type":"application/json",
+            "X-OAP-CSRF":window.csrfToken||cfg.csrfToken||""
+          },
+          body:JSON.stringify({
+            action_id:actionId,
+            target,
+            status_code:Number(statusCode||0)
+          })
+        });
+        const payload=await response.json().catch(()=>({}));
+        if(!response.ok||payload.proven!==true)return null;
+        return payload.chronicle_receipt||null;
+      }catch{return null;}
+    }
+
+    async function fetchAck(actionId,target,{json=true}={}){
+      let response;
+      try{
+        response=await fetch(target,{
+          method:"HEAD",
+          credentials:"same-origin",
+          cache:"no-store",
+          redirect:"follow"
+        });
+        if(response.status===405||response.status===501){
+          response=await fetch(target,{credentials:"same-origin",cache:"no-store"});
+        }
+      }catch(error){
+        throw new Error("Runtime route unavailable");
+      }
+      if(!response.ok)throw new Error("Runtime route returned "+response.status);
+      const proof=await recordButtonProof(actionId,target,response.status);
+      if(!json)return {response,proof,payload:null};
+      let payload=null;
+      try{
+        const full=await fetch(target,{credentials:"same-origin",cache:"no-store"});
+        if(!full.ok)throw new Error("Runtime route returned "+full.status);
+        payload=await full.json();
+      }catch{
+        payload=null;
+      }
+      return {response,proof,payload};
+    }
+
+    function openMap(path="/on-any-place"){
+      const workspace=q("#smi-map-workspace");
+      const frame=q("#smi-map-frame");
+      const full=q("#smi-map-open-full");
+      if(!workspace||!frame)return;
+      workspace.hidden=false;
+      document.body.classList.add("smi-map-open");
+      frame.src=path;
+      if(full)full.href=path;
+      qa("[data-map-view]").forEach(button=>button.classList.toggle("active",button.dataset.mapView===path));
+      menu.classList.remove("show");
+      plus.setAttribute("aria-expanded","false");
+      setStatus("Map Intelligence open · OAP Spatial Core");
+    }
+
+    function makeOption({id,label,icon,state="Open",studioTool=""}){
+      let button=q('[data-oap-action="'+id+'"]',menu);
+      if(button)return button;
+      button=document.createElement("button");
+      button.type="button";
+      button.className="attach-option connector smi-v2-option";
+      if(studioTool){
+        button.dataset.studioTool=studioTool;
+      }else{
+        button.dataset.oapAction=id;
+      }
+      button.innerHTML='<span class="connector-copy"><span>'+icon+'</span><span>'+label+'</span></span><span class="connector-state">'+state+'</span>';
+      return button;
+    }
+
+    if(!q(".smi-tool-search",menu)){
+      const search=document.createElement("input");
+      search.type="search";
+      search.className="smi-tool-search";
+      search.placeholder="Search SMI tools…";
+      search.setAttribute("aria-label","Search SMI tools");
+      search.addEventListener("input",()=>{
+        const term=search.value.trim().toLowerCase();
+        qa(".attach-option",menu).forEach(button=>{
+          if(button.id==="image-button"||button.id==="file-button")return;
+          button.hidden=Boolean(term&&!button.innerText.toLowerCase().includes(term));
+        });
+      });
+      menu.prepend(search);
+    }
+
+    const note=q(".attach-note",menu);
+    const intelligenceLabel=document.createElement("div");
+    intelligenceLabel.className="attach-section-label smi-v2-label";
+    intelligenceLabel.textContent="SMI Intelligence";
+    const intelligenceButtons=[
+      {id:"signals-21",label:"21 Signals",icon:"📡",state:"Check"},
+      {id:"guardian",label:"Guardian",icon:"🛡️",state:"Check"},
+      {id:"routes",label:"Routes",icon:"🧭",state:"Check"},
+      {id:"brain",label:"SMI Brain",icon:"🧬"},
+      {id:"agents",label:"Agents",icon:"🧩"},
+      {id:"infrastructure",label:"Infrastructure",icon:"🏗️"},
+      {id:"judgement",label:"Judgement",icon:"⚖️"}
+    ].map(makeOption);
+    if(note&&!q(".smi-v2-label",menu)){
+      note.before(intelligenceLabel,...intelligenceButtons);
+    }
+
+    const studioButton=q("#studio-button",menu);
+    if(studioButton&&!q('[data-studio-tool="imagine"]',menu)){
+      const studioLabel=document.createElement("div");
+      studioLabel.className="attach-section-label smi-studio-tools-label";
+      studioLabel.textContent="Create with Studio";
+      const imagine=makeOption({id:"studio-imagine",studioTool:"imagine",label:"Imagine · Text → Image",icon:"✨",state:"Run"});
+      imagine.dataset.proofAction="studio-imagine";
+      const alive=makeOption({id:"studio-bring-alive",studioTool:"bring_alive",label:"Bring Alive · Image → Video",icon:"🎞️",state:"Run"});
+      alive.dataset.proofAction="studio-bring-alive";
+      const scene=makeOption({id:"studio-scene-builder",studioTool:"scene_builder",label:"Scene Builder · Text → Video",icon:"🎬",state:"Run"});
+      scene.dataset.proofAction="studio-scene-builder";
+      studioButton.after(studioLabel,imagine,alive,scene);
+    }
+
+    async function syncFunctionHealth(){
+      if(!cfg.functionHealthUrl)return;
+      try{
+        const response=await fetch(cfg.functionHealthUrl,{credentials:"same-origin",cache:"no-store"});
+        const data=await response.json();
+        if(!response.ok||!Array.isArray(data.functions))return;
+        const byId=new Map(data.functions.map(item=>[item.id,item]));
+        qa("[data-oap-action]",menu).forEach(button=>{
+          const item=byId.get(button.dataset.oapAction);
+          if(!item)return;
+          const chip=q(".connector-state",button);
+          if(!chip)return;
+          chip.textContent=item.state==="green"?"Proven":item.state==="red"?"Blocked":"Proof";
+          chip.classList.toggle("ready",item.state==="green");
+          chip.classList.toggle("attention",item.state!=="green");
+          button.dataset.runtimeState=item.state||"unknown";
+          button.title=item.evidence||item.label||"";
+        });
+      }catch{}
+    }
+
+    plus.addEventListener("click",()=>setTimeout(()=>{
+      if(menu.classList.contains("show"))syncFunctionHealth();
+    },0));
+
+    async function inspectJson(actionId,title,target,button){
+      button.disabled=true;
+      const chip=q(".connector-state",button);
+      if(chip)chip.textContent="Checking";
+      try{
+        const response=await fetch(target,{credentials:"same-origin",cache:"no-store"});
+        const payload=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(payload?.error?.message||title+" unavailable");
+        const proof=await recordButtonProof(actionId,target,response.status);
+        const proofText=proof?.receipt_id?"\nButton Proof "+proof.receipt_id:"\nButton Proof pending";
+        addCard(title,JSON.stringify(payload,null,2).slice(0,2600)+proofText,proof?.receipt_id?"green":"purple");
+        if(chip){
+          chip.textContent=proof?.receipt_id?"Proven":"Reached";
+          chip.classList.toggle("ready",Boolean(proof?.receipt_id));
+          chip.classList.toggle("attention",!proof?.receipt_id);
+        }
+      }catch(error){
+        addCard(title,error?.message||"Unavailable","red");
+        if(chip){chip.textContent="Blocked";chip.classList.add("attention");}
+      }finally{
+        button.disabled=false;
+        menu.classList.remove("show");
+        plus.setAttribute("aria-expanded","false");
+      }
+    }
+
+    async function navigateProven(actionId,target,button){
+      button.disabled=true;
+      const chip=q(".connector-state",button);
+      if(chip)chip.textContent="Checking";
+      try{
+        const ack=await fetchAck(actionId,target,{json:false});
+        if(chip)chip.textContent=ack.proof?.receipt_id?"Proven":"Reached";
+        window.location.assign(target);
+      }catch(error){
+        addCard(button.innerText.trim(),error?.message||"Route unavailable","red");
+        if(chip){chip.textContent="Blocked";chip.classList.add("attention");}
+        button.disabled=false;
+      }
+    }
+
+    function appendVideoCard(result,toolName){
+      const artifact=result?.artifact||{};
+      const card=document.createElement("div");
+      card.className="msg tool-result smi-studio-artifact";
+      const title=document.createElement("strong");
+      title.textContent="🟣 "+toolName;
+      const meta=document.createElement("span");
+      meta.className="tool-meta";
+      const receipt=receiptId(result);
+      meta.textContent=[
+        artifact.id?"Job "+artifact.id:"",
+        artifact.status?"Status "+artifact.status:"",
+        Number.isFinite(Number(artifact.progress))?"Progress "+Number(artifact.progress)+"%":"",
+        receipt?"Chronicle "+receipt:"Chronicle receipt pending"
+      ].filter(Boolean).join(" · ");
+      const controls=document.createElement("div");
+      controls.className="smi-studio-controls";
+      const check=document.createElement("button");
+      check.type="button";
+      check.className="action-btn primary";
+      check.textContent="Check progress";
+      controls.append(check);
+      card.append(title,meta,controls);
+      messages.append(card);
+      messages.scrollTop=messages.scrollHeight;
+      const refresh=async()=>{
+        check.disabled=true;
+        try{
+          const response=await fetch(endpoint(cfg.studioVideoStatusUrl,artifact.id),{credentials:"same-origin",cache:"no-store"});
+          const payload=await response.json();
+          if(!response.ok)throw new Error(payload?.error?.message||"Video status unavailable");
+          const current=payload.artifact||{};
+          const currentReceipt=receiptId(payload);
+          meta.textContent=[
+            current.id?"Job "+current.id:"",
+            current.status?"Status "+current.status:"",
+            Number.isFinite(Number(current.progress))?"Progress "+Number(current.progress)+"%":"",
+            currentReceipt?"Chronicle "+currentReceipt:""
+          ].filter(Boolean).join(" · ");
+          if(current.artifact_proven){
+            title.textContent="🟢 "+toolName+" · artifact proven";
+            if(!q("video",card)){
+              const video=document.createElement("video");
+              video.controls=true;
+              video.playsInline=true;
+              video.preload="metadata";
+              video.className="smi-studio-video";
+              video.src=endpoint(cfg.studioVideoContentUrl,current.id);
+              card.insertBefore(video,controls);
+            }
+            check.textContent="Completed ✓";
+            check.disabled=true;
+          }else{
+            check.disabled=false;
+            check.textContent="Check progress";
+          }
+        }catch(error){
+          meta.textContent=error?.message||"Video status unavailable";
+          check.disabled=false;
+        }
+      };
+      check.addEventListener("click",refresh);
+    }
+
+    async function runStudioTool(toolId,button){
+      const prompt=input.value.trim();
+      const sourceImage=(typeof selectedImage!=="undefined"&&selectedImage)?selectedImage:"";
+      if((toolId==="imagine"||toolId==="scene_builder")&&!prompt){
+        setStatus("Add a written brief first.");
+        input.focus();
+        return;
+      }
+      if(toolId==="bring_alive"&&!sourceImage){
+        setStatus("Bring Alive needs an image first · attach or capture one.");
+        return;
+      }
+      button.disabled=true;
+      const chip=q(".connector-state",button);
+      if(chip)chip.textContent="Running";
+      try{
+        const response=await fetch(cfg.studioGenerateUrl,{
+          method:"POST",
+          credentials:"same-origin",
+          headers:{
+            "Content-Type":"application/json",
+            "X-OAP-CSRF":window.csrfToken||cfg.csrfToken||""
+          },
+          body:JSON.stringify({
+            tool_id:toolId,
+            prompt:prompt||"Bring this image alive with natural cinematic motion.",
+            source_image_data:sourceImage
+          })
+        });
+        const result=await response.json();
+        if(!response.ok)throw new Error(result?.error?.message||"Studio generation unavailable");
+        const proofAction=button.dataset.proofAction;
+        const proof=await recordButtonProof(proofAction,"/mission/studio/generate",response.status);
+        const artifact=result.artifact||{};
+        const toolName=result?.tool?.name||toolId;
+        const receipt=receiptId(result);
+        if(artifact.kind==="image"&&artifact.b64_json){
+          const card=document.createElement("div");
+          card.className="msg tool-result smi-studio-artifact";
+          const heading=document.createElement("strong");
+          heading.textContent="🟢 "+toolName+" · artifact proven";
+          const image=document.createElement("img");
+          image.className="smi-studio-image";
+          image.alt="OAP Studio generated image";
+          image.src="data:"+(artifact.mime_type||"image/png")+";base64,"+artifact.b64_json;
+          const meta=document.createElement("span");
+          meta.className="tool-meta";
+          meta.textContent=(receipt?"Chronicle "+receipt:"Chronicle receipt pending")+(proof?.receipt_id?" · Button Proof "+proof.receipt_id:"");
+          card.append(heading,image,meta);
+          messages.append(card);
+          messages.scrollTop=messages.scrollHeight;
+        }else if(artifact.kind==="video_job"&&artifact.id){
+          appendVideoCard(result,toolName);
+        }else{
+          addCard(toolName,JSON.stringify(result,null,2).slice(0,2600),result.output_generated?"green":"purple");
+        }
+        if(chip){
+          chip.textContent=proof?.receipt_id?"Proven":result.output_generated?"Generated":"Started";
+          chip.classList.toggle("ready",Boolean(proof?.receipt_id));
+        }
+        menu.classList.remove("show");
+        plus.setAttribute("aria-expanded","false");
+        setStatus(toolName+" complete/current state recorded · Human Authority final");
+      }catch(error){
+        addCard("OAP Studio",error?.message||"Studio generation unavailable","red");
+        if(chip){chip.textContent="Blocked";chip.classList.add("attention");}
+        setStatus(error?.message||"Studio generation unavailable");
+      }finally{
+        button.disabled=false;
+      }
+    }
+
+    const inspectTargets={
+      "function-health":["Function Health",cfg.functionHealthUrl],
+      "green-gate":["Green Gate",cfg.greenGateUrl],
+      "hrm":["HRM / Jog Memory",cfg.hrmUrl],
+      "founder-library":["Founder Library",cfg.founderLibraryUrl],
+      "signals-21":["21 Signals",cfg.signalsUrl],
+      "guardian":["Guardian",cfg.guardianUrl],
+      "routes":["Routes",cfg.routesUrl]
+    };
+    const navTargets={
+      "war-room":cfg.warRoomUrl,
+      "improvement":cfg.improvementUrl,
+      "brain":cfg.brainUrl,
+      "agents":cfg.agentsUrl,
+      "infrastructure":cfg.infrastructureUrl,
+      "judgement":cfg.judgementUrl
+    };
+
+    menu.addEventListener("click",async event=>{
+      const studio=event.target.closest("[data-studio-tool]");
+      if(studio){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        await runStudioTool(studio.dataset.studioTool,studio);
+        return;
+      }
+      const button=event.target.closest("[data-oap-action]");
+      if(!button)return;
+      const id=button.dataset.oapAction;
+      if(id==="github-governed")return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if(id==="map-intelligence"){
+        button.disabled=true;
+        try{
+          const ack=await fetchAck(id,"/on-any-place",{json:false});
+          const chip=q(".connector-state",button);
+          if(chip)chip.textContent=ack.proof?.receipt_id?"Proven":"Reached";
+          openMap("/on-any-place");
+        }catch(error){
+          addCard("Map Intelligence",error?.message||"Map unavailable","red");
+        }finally{button.disabled=false;}
+        return;
+      }
+      if(id==="swot"||id==="behaviour"){
+        const prefix=id==="swot"?"Run SWOT Intelligence on this:\n":"Run Behaviour Intelligence on this:\n";
+        input.value=input.value.trim()?prefix+input.value.trim():prefix;
+        input.dispatchEvent(new Event("input",{bubbles:true}));
+        input.focus();
+        menu.classList.remove("show");
+        plus.setAttribute("aria-expanded","false");
+        setStatus(id==="swot"?"SWOT Intelligence ready":"Behaviour Intelligence ready · evidence-backed percentages only");
+        return;
+      }
+      if(inspectTargets[id]){
+        const [title,target]=inspectTargets[id];
+        await inspectJson(id,title,target,button);
+        return;
+      }
+      if(navTargets[id]){
+        await navigateProven(id,navTargets[id],button);
+      }
+    },true);
+
+    window.addEventListener("oap-smi-complete",event=>{
+      const result=event.detail||{};
+      const provider=q("#provider-state");
+      const resolved=Number(result.resolved_depth||0);
+      const auto=Boolean(result.auto_selected);
+      if(provider&&resolved){
+        provider.textContent=(auto?"AUTO → ":"Depth ")+resolved+" · Ready";
+      }
+      if(auto&&resolved){
+        const system=document.createElement("div");
+        system.className="msg system smi-depth-proof";
+        system.textContent="🧠 AUTO resolved to "+resolved+" · governed completion metadata";
+        messages.append(system);
+        messages.scrollTop=messages.scrollHeight;
+      }
+    });
+
+    syncFunctionHealth();
+    window.OAP_SMI_CONTROL_SURFACE={
+      version:"2.0",
+      liveButtonProof:true,
+      directStudioTools:true,
+      autoDepthVisible:true,
+      completedVideoPlayback:true,
+      functionHealthSync:true,
+      clickOnlyProof:false
+    };
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",bootControlSurfaceV2,{once:true});
+  }else{
+    bootControlSurfaceV2();
+  }
+})();
+
