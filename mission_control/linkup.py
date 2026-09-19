@@ -124,3 +124,42 @@ def get_public_link_dashboard() -> dict[str, Any]:
             {"name": "📞 Call & Face Up", "purpose": "Voice, Call and Face Up from a Link Up."},
         ],
     }
+
+
+LINK_UP_SEVEN_STAR_GATE: tuple[dict[str, str], ...] = (
+    {"id": "identity", "name": "Identity", "proof": "Authenticated My Card identity is available."},
+    {"id": "relationship", "name": "Relationship", "proof": "Protected Link relationship runtime is ready."},
+    {"id": "messaging", "name": "Messaging", "proof": "Message persistence and Landed / Seen state are ready."},
+    {"id": "safety", "name": "Safety", "proof": "Block / report protection is ready."},
+    {"id": "privacy", "name": "Privacy", "proof": "Private-by-default presence and scoped visibility are ready."},
+    {"id": "resilience", "name": "Resilience", "proof": "Voice, signalling and recovery dependencies are ready."},
+    {"id": "live_gate", "name": "Live Gate", "proof": "All required Link Up runtime gates are proven together."},
+)
+
+
+def linkup_seven_star_status(evidence: Mapping[str, object]) -> dict[str, Any]:
+    """Return a fail-closed seven-star readiness view from explicit evidence."""
+
+    stars = []
+    for gate in LINK_UP_SEVEN_STAR_GATE:
+        passed = evidence.get(gate["id"]) is True
+        stars.append(
+            {
+                **gate,
+                "passed": passed,
+                "signal": "green" if passed else "amber",
+            }
+        )
+    count = sum(item["passed"] for item in stars)
+    percent = round((count / len(stars)) * 100)
+    return {
+        "stars": tuple(stars),
+        "star_count": count,
+        "star_total": len(stars),
+        "stars_display": "★" * count + "☆" * (len(stars) - count),
+        "percent": percent,
+        "signal": "green" if count == len(stars) else "purple",
+        "ready": count == len(stars),
+        "human_authority_final": True,
+        "proof_rule": "A star turns green only from current runtime evidence.",
+    }
