@@ -100,3 +100,32 @@ def test_pagehide_invalidates_state_before_stopping_recognition():
     start = controller.index("window.addEventListener('pagehide'")
     block = controller[start:start + 500]
     assert block.index("oapApply('LIVE_OFF')") < block.index("oapRecognition.stop()")
+
+
+def test_runtime_proof_ledger_is_redacted_and_memory_only():
+    controller = CONTROLLER.read_text(encoding="utf-8")
+
+    assert "window.OAP_SMI_LIVE_PROOF" in controller
+    assert "storesAudio:false" in controller
+    assert "storesTranscript:false" in controller
+    assert "delete safe.transcript" in controller
+    assert "delete safe.text" in controller
+    assert "delete safe.audio" in controller
+    assert "localStorage" not in controller
+    assert "sessionStorage" not in controller
+    assert "indexedDB" not in controller
+
+
+def test_runtime_proof_records_authority_and_race_events():
+    controller = CONTROLLER.read_text(encoding="utf-8")
+
+    for marker in (
+        "staleCallbackSuppressed",
+        "halfDuplexDenied",
+        "permissionDenied",
+        "oapProof('stop'",
+        "oapProof('pause'",
+        "oapProof('resume'",
+        "oapProof('liveOff'",
+    ):
+        assert marker in controller
