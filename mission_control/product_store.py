@@ -44,6 +44,7 @@ def _link_guard(first_id: object, second_id: object) -> tuple[str, str]:
     except (
         linkup_safety.LinkUpSafetyUnavailable,
         link_relationships.LinkRelationshipsUnavailable,
+        link_youth_safety.LinkYouthSafetyUnavailable,
     ) as exc:
         raise ProductStoreUnavailable("linkup_guard_unavailable") from exc
     return first, second
