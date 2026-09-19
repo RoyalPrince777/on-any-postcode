@@ -1,0 +1,20 @@
+/* The chat and command room share the same approved first-party SMI character. */
+.smi-character-stage{overflow:hidden;border-radius:16px}
+.smi-approved-portrait{width:100%;height:110px;background:#061321 url('/static/oap/smi_global_intelligence_command_centre.png') center 5% / auto 390px no-repeat;filter:drop-shadow(0 0 8px #238cdd66);transition:filter .2s,transform .2s}
+.smi-character[data-state="listening"] .smi-approved-portrait{filter:drop-shadow(0 0 13px #a970ff);transform:scale(1.03)}
+.smi-character[data-state="thinking"] .smi-approved-portrait{filter:drop-shadow(0 0 14px #58adff)}
+.smi-character[data-state="speaking"] .smi-approved-portrait{filter:drop-shadow(0 0 15px #35d778);transform:translateY(-2px)}
+.smi-character[data-state="paused"] .smi-approved-portrait,.smi-character[data-state="stopped"] .smi-approved-portrait{filter:grayscale(.65)}
+.smi-presence-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.smi-presence-actions button{min-height:36px;border:1px solid #346a95;border-radius:999px;padding:6px 10px;background:#092137;color:#e4f5ff;cursor:pointer;font:inherit;font-size:.74rem}
+.smi-presence-actions button:focus-visible{outline:2px solid #91d9ff;outline-offset:2px}
+.smi-command-scene .smi-approved-portrait{width:min(100%,330px);height:min(52dvh,480px);background-position:center 17%;background-size:auto 200%;border-radius:24px}
+.smi-command-scene .smi-character{grid-template-rows:minmax(0,1fr) auto auto!important}
+/* The supplied picture has printed operational claims. Show only its character crop;
+   runtime status continues to come from the interactive evidence controls. */
+body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre.smi-room-art-loaded .smi-command-scene{background-image:radial-gradient(circle at 50% 38%,#1264a859,#041326 68%,#020a18)!important}
+.smi-command-centre.smi-room-art-loaded .smi-command-scene .smi-approved-portrait{opacity:1;pointer-events:none}
+body.smi-live-fullscreen .smi-approved-portrait{width:min(80vw,440px);height:min(55dvh,520px);background-size:auto 200%;background-position:center 17%}
+@media(max-width:820px){.smi-approved-portrait{height:80px;background-size:auto 290px}.smi-character{grid-template-columns:78px minmax(0,1fr);gap:7px}.smi-presence-actions{grid-column:1/-1;justify-content:center}.smi-presence-actions button{min-height:44px}.smi-command-scene .smi-approved-portrait{height:min(42dvh,360px);background-size:auto 200%}}
+@media(max-width:480px){.smi-presence-actions{justify-content:stretch}.smi-presence-actions button{flex:1 1 auto}}
+@media(prefers-reduced-motion:reduce){.smi-approved-portrait{transition:none!important;transform:none!important}}
