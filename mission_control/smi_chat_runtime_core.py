@@ -21,6 +21,7 @@ from . import (
     media_intelligence,
     postgres_db,
     smi_founder_assets,
+    smi_cancellation,
 )
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
@@ -83,9 +84,12 @@ def _provider(
     *,
     code_mode: bool = False,
     on_delta: Callable[[str], None] | None = None,
+    cancellation_token: smi_cancellation.CancellationToken | None = None,
 ) -> str:
     """Stream provider deltas and return the bounded complete response."""
 
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
@@ -216,6 +220,8 @@ def _provider(
     try:
         with urlrequest.urlopen(req, timeout=55) as response:
             for raw_line in response:
+                if cancellation_token is not None:
+                    cancellation_token.raise_if_cancelled()
                 line = raw_line.decode("utf-8", errors="replace").strip()
                 if not line.startswith("data:"):
                     continue
@@ -243,6 +249,8 @@ def _provider(
         raise RuntimeError(f"provider_http_{exc.code}") from exc
     except (URLError, TimeoutError) as exc:
         raise RuntimeError("provider_unavailable") from exc
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     text = "".join(chunks).strip()
     if not text:
         text = _clean(completed_response.get("output_text"), 12000)
@@ -487,7 +495,10 @@ def chat(
     thinking_level: str = "auto",
     studio_mode: bool = False,
     on_event: EventEmitter | None = None,
+    cancellation_token: smi_cancellation.CancellationToken | None = None,
 ) -> dict:
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     clean = _clean(message, MAX_INPUT)
     image = _clean(image_data, 7_000_000)
     if image and not re.match(
@@ -504,6 +515,8 @@ def chat(
     except (ValueError, TypeError) as exc:
         raise ValueError("invalid_identity") from exc
     request_id = str(uuid.uuid4())
+    if cancellation_token is not None:
+        cancellation_token.raise_if_cancelled()
     outcome, reason = guardian_review(clean)
     _emit(on_event, "stage", stage="received", label="Signal received")
     with postgres_db.connect() as connection:
@@ -602,6 +615,8 @@ def chat(
             (request_id, identity, outcome, reason),
         )
         provider_completed = False
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
         if outcome == "BLOCKED":
             response = reason
             state = "BLOCK_REQUEST"
@@ -613,6 +628,16 @@ def chat(
                 stage="provider",
                 label="SMI streaming recommendation",
             )
+            provider_kwargs = {
+                "code_mode": code_mode,
+                "on_delta": (
+                    (lambda delta: _emit(on_event, "delta", delta=delta))
+                    if on_event is not None
+                    else None
+                ),
+            }
+            if cancellation_token is not None:
+                provider_kwargs["cancellation_token"] = cancellation_token
             response = _provider(
                 clean,
                 image,
@@ -620,13 +645,10 @@ def chat(
                 brain,
                 adaptive_memory,
                 media,
-                code_mode=code_mode,
-                on_delta=(
-                    (lambda delta: _emit(on_event, "delta", delta=delta))
-                    if on_event is not None
-                    else None
-                ),
+                **provider_kwargs,
             )
+            if cancellation_token is not None:
+                cancellation_token.raise_if_cancelled()
             provider_completed = True
             state = brain["output_state"]
         coherence = coherence_review(response, brain)
@@ -643,6 +665,8 @@ def chat(
                    WHERE request_id=%s""",
                 (outcome, reason, request_id),
             )
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
         _emit(on_event, "stage", stage="hrm", label="HRM recording governed memory")
         hash_material = clean + ("|image" if image else "")
         if media.get("sha256"):
@@ -754,6 +778,8 @@ def chat(
             correlation_id=request_id,
             metadata=audit_metadata,
         )
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
         connection.commit()
     return {
         "status": "green",
