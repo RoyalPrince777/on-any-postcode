@@ -2,7 +2,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ENTER = ROOT / "static/oap/smi_enter_my_world.png"
+ENTER = ROOT / "static/oap/enter_my_world_wallpaper.png"
 ROOM = ROOT / "static/oap/smi_global_intelligence_command_centre.png"
 
 
@@ -15,7 +15,7 @@ def test_exact_founder_and_dashboard_png_assets_are_in_repo():
 
 def test_enter_world_uses_unchanged_secure_form_over_static_wallpaper():
     page = (ROOT / "templates/auth.html").read_text(encoding="utf-8")
-    assert "oap/smi_enter_my_world.png" in page
+    assert "oap/enter_my_world_wallpaper.png" in page
     assert "if founder_only" in page
     assert 'action="{{ url_for(\'auth_sign_in\') }}"' in page
     assert 'name="csrf_token"' in page
