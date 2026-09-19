@@ -7,20 +7,37 @@
  const character=document.getElementById("smi-character");
  const messages=document.getElementById("messages");
  if(!chatbox||!head||!character||!messages||document.getElementById("smi-command-centre"))return;
- const marker=document.createComment("original SMI character position");
- character.parentNode.insertBefore(marker,character);
  const actionHost=head.querySelector(".chat-head-actions")||head;
  const toggle=document.createElement("button");
  toggle.type="button";toggle.className="smi-command-toggle";
- toggle.textContent="◈ Command Centre";toggle.setAttribute("aria-pressed","false");
+ toggle.textContent="◈ Chat";toggle.setAttribute("aria-pressed","false");
  toggle.setAttribute("aria-controls","smi-command-centre");
- toggle.setAttribute("aria-label","Open SMI Command Centre");
+ toggle.setAttribute("aria-label","Show SMI Chat within Command Centre");
  actionHost.append(toggle);
  const panel=document.createElement("section");
  panel.className="smi-command-centre";panel.id="smi-command-centre";
  panel.setAttribute("aria-label","OAP SMI Digital Organism Command Centre");
- panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">✕ Close</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
+ panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">◈ Chat</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
  messages.before(panel);
+ // Preserve only the hidden one-brain state and original Live SMI control.
+ // The approved PNG is the sole visual character; there is no CSS avatar.
+ const liveToggle=document.getElementById("live-character-toggle");
+ const stateLabel=document.createElement("span");
+ stateLabel.className="smi-command-state";
+ stateLabel.setAttribute("aria-live","polite");
+ stateLabel.textContent="SMI · "+(character.dataset.state||"ready");
+ panel.querySelector(".smi-command-top").append(stateLabel);
+ if(liveToggle)panel.querySelector(".smi-command-top").append(liveToggle);
+ let chatVisible=false;
+ function setChatVisible(visible){
+  chatVisible=Boolean(visible);
+  document.body.classList.toggle("smi-command-chat-visible",chatVisible);
+  toggle.textContent=chatVisible?"◈ Dashboard":"◈ Chat";
+  toggle.setAttribute("aria-label",chatVisible?"Show full SMI dashboard":"Show SMI Chat within dashboard");
+  toggle.setAttribute("aria-pressed",String(chatVisible));
+  panel.querySelector(".smi-command-close").textContent=chatVisible?"◈ Dashboard":"◈ Chat";
+  if(chatVisible)messages.scrollTop=messages.scrollHeight;
+ }
  // The full-room overlay must expose Status itself: its old header control sits underneath it.
  const statusActions=document.createElement("div");
  statusActions.className="smi-command-status-actions";
@@ -88,7 +105,7 @@
  };
  setPresenceState(character.dataset.state||"ready");
  // Load the exact approved picture from the first-party app asset.
- // No visual green until the bytes resolve; the existing CSS character remains fallback.
+ // Missing art stays unavailable; never substitute the obsolete character.
  const scene=panel.querySelector(".smi-command-scene");
  if(cfg.approvedWallpaperUrl){
   const wallpaper=new Image();
@@ -100,8 +117,9 @@
   };
   wallpaper.onerror=()=>{
    scene.dataset.wallpaperReady="false";
+   panel.classList.remove("smi-room-art-loaded");
    const status=document.getElementById("status");
-   if(status)status.textContent="Approved SMI artwork unavailable · existing organism preserved";
+   if(status)status.textContent="Approved SMI dashboard unavailable · no substitute character shown";
   };
   wallpaper.src=cfg.approvedWallpaperUrl;
  }
@@ -212,17 +230,13 @@
   if(open===active)return;
   active=open;
   if(open){
-   stage.append(character);
    document.body.classList.add("smi-command-open");
-   toggle.textContent="◈ Back to Chat";toggle.setAttribute("aria-label","Close SMI Command Centre");
-   toggle.setAttribute("aria-pressed","true");
+   setChatVisible(false);
    refreshEvidence();
    refreshRoomStatus();
   }else{
-   if(marker.parentNode)marker.parentNode.insertBefore(character,marker);
+   setChatVisible(false);
    document.body.classList.remove("smi-command-open");
-   toggle.textContent="◈ Command Centre";toggle.setAttribute("aria-label","Open SMI Command Centre");
-   toggle.setAttribute("aria-pressed","false");
   }
  }
  async function refreshEvidence(){
@@ -245,8 +259,8 @@
    if(error.name!=="AbortError")proofNodes.forEach(({card,state})=>{card.dataset.proven="false";state.textContent="Unavailable";});
   }finally{refresh.disabled=false;refresh.textContent="↻ Refresh evidence";}
  }
- toggle.addEventListener("click",()=>setOpen(!active));
- panel.querySelector(".smi-command-close").addEventListener("click",()=>{setOpen(false);toggle.focus();});
+ toggle.addEventListener("click",()=>{if(!active)setOpen(true);else setChatVisible(!chatVisible);});
+ panel.querySelector(".smi-command-close").addEventListener("click",()=>{setChatVisible(!chatVisible);toggle.focus();});
  refresh.addEventListener("click",()=>{refreshEvidence();refreshRoomStatus();});
  universe.addEventListener("click",event=>{
   const trigger=event.target.closest("[data-action]");
@@ -258,25 +272,26 @@
    if(feedback)feedback.textContent="This SMI tool is not available for execution.";
    return;
   }
-  setOpen(false);
+  setChatVisible(true);
   canonical.click();
  });
  // A real message should show the actual Chat response, not hide it behind the stage.
  document.addEventListener("submit",event=>{
-  if(event.target?.id==="chat-form"&&active)setOpen(false);
+  if(event.target?.id==="chat-form"&&active)setChatVisible(true);
  },true);
  document.addEventListener("keydown",event=>{
-  if(active&&event.target?.id==="message"&&event.key==="Enter"&&!event.shiftKey&&!event.isComposing)setOpen(false);
+  if(active&&event.target?.id==="message"&&event.key==="Enter"&&!event.shiftKey&&!event.isComposing)setChatVisible(true);
  },true);
  document.addEventListener("keydown",event=>{
-  if(event.key==="Escape"&&active&&!document.body.classList.contains("smi-live-fullscreen")){
-   setOpen(false);toggle.focus();
+  if(event.key==="Escape"&&active&&chatVisible&&!document.body.classList.contains("smi-live-fullscreen")){
+   setChatVisible(false);toggle.focus();
   }
  });
  window.addEventListener("oap-smi-character-state",event=>{
   const detail=event.detail;
-  if(!detail||typeof detail.state!=="string"){setPresenceState("ready");return;}
+  if(!detail||typeof detail.state!=="string"){setPresenceState("ready");stateLabel.textContent="SMI · ready";return;}
   setPresenceState(detail.state);
+  stateLabel.textContent="SMI · "+panel.dataset.presenceState;
   if(detail.live&&active)setOpen(false);
  });
  window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
