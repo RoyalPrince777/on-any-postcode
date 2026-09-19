@@ -22,10 +22,10 @@ from oap.smi.memory_sync import status as memory_sync_status
 from . import ai_behaviour_protocol as _behaviour
 from . import intelligence_lenses as _intelligence
 from . import oap_inference_gateway as _inference
+from . import smi_cancellation as _cancellation
 from . import smi_chat_grounded as _grounded
 from . import smi_chat_runtime_core as _core
 from . import smi_receipt_backend as _receipts
-from . import smi_cancellation as _cancellation
 from . import smi_thinking_process as _thinking
 from . import world_crisis_intelligence as _world_crisis
 from .smi_chat_runtime_core import *
