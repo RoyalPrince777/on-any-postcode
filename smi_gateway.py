@@ -41,6 +41,10 @@ _CORRELATION_HEADER = "X-OAP-Request-ID"
 _FOUNDER_RECOVERY_FALLBACK = "/auth/recover-founder?next=/mission/ollama"
 _AUTH_RETRY_STATUSES = frozenset({429, 502, 503, 504})
 _AUTH_RETRY_DELAY_SECONDS = 0.75
+_LOCAL_DISPATCH_ENV = "OAP_SMI_LOCAL_DISPATCH"
+_GATEWAY_OWNED_PATHS = frozenset(
+    {"/", "/founder", "/smi", "/chat", "/war-room", "/healthz"}
+)
 _A6_ROUTE_MATRIX_LOCK = threading.Lock()
 _A6_ROUTE_MATRIX_STARTED: set[str] = set()
 _ALLOWED_REQUEST_HEADERS = {
@@ -170,6 +174,85 @@ def _allowed(path: str) -> bool:
         "/healthz",
         "/api/smi/thinking-certification",
     }
+
+
+def _local_dispatch_enabled() -> bool:
+    return os.environ.get(_LOCAL_DISPATCH_ENV, "").strip().casefold() in {
+        "1", "true", "yes", "on"
+    }
+
+
+def _client_ip_from_environ(environ) -> str:
+    candidate = str(environ.get("REMOTE_ADDR") or "").strip()
+    if os.environ.get("RENDER", "").strip().casefold() == "true":
+        forwarded = str(environ.get("HTTP_X_FORWARDED_FOR") or "")
+        first = forwarded.split(",", 1)[0].strip()
+        if first:
+            candidate = first
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        return "unknown"
+
+
+def _core_wsgi_app():
+    """Load the canonical OAP app lazily so rollback mode keeps the old gateway light."""
+
+    from app import app as core_app
+
+    return core_app.wsgi_app
+
+
+class _SMIApplication:
+    """Keep the SMI allowlist while optionally removing the second Render HTTP hop."""
+
+    def __init__(self, gateway_app):
+        self.gateway_app = gateway_app
+
+    def __getattr__(self, name):
+        # Preserve Flask test/client/introspection compatibility for existing tooling.
+        return getattr(self.gateway_app, name)
+
+    def __call__(self, environ, start_response):
+        path = "/" + str(environ.get("PATH_INFO") or "").lstrip("/")
+        if (
+            not _local_dispatch_enabled()
+            or path in _GATEWAY_OWNED_PATHS
+            or not _allowed(path)
+        ):
+            return self.gateway_app(environ, start_response)
+
+        local_environ = environ.copy()
+        local_environ["HTTP_X_OAP_SMI_GATEWAY"] = _secret()
+        local_environ["HTTP_X_OAP_CLIENT_IP"] = _client_ip_from_environ(environ)
+        correlation_id = str(
+            local_environ.get("HTTP_X_OAP_REQUEST_ID") or uuid.uuid4().hex
+        )
+        local_environ["HTTP_X_OAP_REQUEST_ID"] = correlation_id
+
+        def traced_start_response(status, headers, exc_info=None):
+            status_code = int(str(status).split(" ", 1)[0])
+            response_headers = list(headers)
+            response_headers.append(("X-OAP-Dispatch", "local-process"))
+            response_headers.append((_CORRELATION_HEADER, correlation_id))
+            _LOGGER.info(
+                "%s",
+                json.dumps(
+                    {
+                        "event": "smi_local_dispatch",
+                        "request_id": correlation_id,
+                        "method": str(environ.get("REQUEST_METHOD") or "GET"),
+                        "path": path,
+                        "status": status_code,
+                        "revision": _revision(),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            )
+            return start_response(status, response_headers, exc_info)
+
+        return _core_wsgi_app()(local_environ, traced_start_response)
 
 
 def _blocked(status: int = 404):
@@ -696,3 +779,9 @@ def gateway(path: str):
         return _proxy(path)
     except RuntimeError:
         return _blocked(503)
+
+
+# Gunicorn continues to load smi_gateway:app. The wrapper keeps the existing
+# gateway Flask object available through attribute delegation while routing only
+# allowlisted private SMI paths in-process when the rollback flag is enabled.
+app = _SMIApplication(app)
