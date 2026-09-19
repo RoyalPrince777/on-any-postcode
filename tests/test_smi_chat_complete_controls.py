@@ -159,7 +159,7 @@ def test_smi_interaction_layer_exposes_canonical_modes_and_capture_paths():
         'id="voice-mode-button"',
         'id="vision-button"',
         'id="faceup-button"',
-        'id="screen-button"',
+        'id="screen-mode-button"',
         'id="tools-mode-button"',
         'getUserMedia',
         'getDisplayMedia',
