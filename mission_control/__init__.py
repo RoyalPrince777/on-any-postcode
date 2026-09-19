@@ -27,6 +27,7 @@ def init_app(app: Flask) -> None:
         hrm_durable_receipt,
         link_activity,
         link_call_audit,
+        link_ping,
         link_presence,
         link_relationships,
         link_signalling,
@@ -57,6 +58,7 @@ def init_app(app: Flask) -> None:
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
     from .link_message_routes import bp as link_message_bp
+    from .link_ping_routes import bp as link_ping_bp
     from .link_presence_routes import bp as link_presence_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
@@ -549,6 +551,18 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(link_turn.status()))
 
+    @app.cli.command("oap-link-ping-status")
+    def _oap_link_ping_status() -> None:
+        import json
+        print(json.dumps(link_ping.status()))
+
+    @app.cli.command("oap-init-link-ping")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_ping(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_ping.init_schema(dry_run=dry_run, assume_yes=yes)))
+
     @app.cli.command("oap-link-presence-status")
     def _oap_link_presence_status() -> None:
         import json
@@ -677,6 +691,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_call_bp)
     app.register_blueprint(link_signalling_bp)
     app.register_blueprint(link_turn_bp)
+    app.register_blueprint(link_ping_bp)
     app.register_blueprint(link_presence_bp)
     app.register_blueprint(link_voice_bp)
     app.register_blueprint(link_message_bp)
