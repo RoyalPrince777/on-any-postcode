@@ -42,7 +42,9 @@ _FOUNDER_RECOVERY_FALLBACK = "/auth/recover-founder?next=/mission/ollama"
 _AUTH_RETRY_STATUSES = frozenset({429, 502, 503, 504})
 _AUTH_RETRY_DELAY_SECONDS = 0.75
 _LOCAL_DISPATCH_ENV = "OAP_SMI_LOCAL_DISPATCH"
-_GATEWAY_OWNED_PATHS = frozenset({"/", "/founder", "/smi", "/chat", "/war-room", "/healthz"})
+_GATEWAY_OWNED_PATHS = frozenset(
+    {"/", "/founder", "/smi", "/chat", "/war-room", "/healthz"}
+)
 _A6_ROUTE_MATRIX_LOCK = threading.Lock()
 _A6_ROUTE_MATRIX_STARTED: set[str] = set()
 _ALLOWED_REQUEST_HEADERS = {
@@ -243,7 +245,6 @@ class _SMIApplication:
                         "path": path,
                         "status": status_code,
                         "revision": _revision(),
-                "private_dispatch": "local-process" if _local_dispatch_enabled() else "public-edge-proxy",
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -757,6 +758,11 @@ def healthz():
                 "service": "oap-smi-gateway",
                 "scope": "process",
                 "revision": _revision(),
+                "private_dispatch": (
+                    "local-process"
+                    if _local_dispatch_enabled()
+                    else "public-edge-proxy"
+                ),
             },
             separators=(",", ":"),
         )
