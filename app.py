@@ -934,11 +934,7 @@ def auth_sign_in():
             next_path=next_path,
         )
     try:
-        result = (
-            neon_auth.sign_in_founder(password)
-            if founder_only
-            else neon_auth.sign_in(email, password)
-        )
+        result = neon_auth.sign_in(email, password)
     except neon_auth.AuthUnavailable:
         return _auth_page_response(
             status_code=503,
