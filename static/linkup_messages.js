@@ -349,7 +349,9 @@
     const payload = fixedPayload || {
       recipient_id: recipientFor(form),
       body: textarea?.value.trim() || "",
-      ...(state.syncReady && crypto?.randomUUID
+      ...(state.syncReady &&
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
         ? { client_message_id: crypto.randomUUID() }
         : {}),
     };
