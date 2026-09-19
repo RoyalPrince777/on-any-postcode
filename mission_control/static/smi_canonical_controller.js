@@ -24,11 +24,17 @@ let oapPaused=false,oapWorkStarted=0,oapWorkTimer=null,oapLiveRestartTimer=null,
 let oapVoiceEnabled=(oapSpeaker?.getAttribute('aria-pressed')!=='false');
 
 function oapSetStatus(text){if(oapStatus)oapStatus.textContent=text;}
+function oapSyncHumanControls(){
+ if(!oapRuntime)return;
+ const active=Boolean(oapLocked||oapRuntime.live||oapRuntime.listening||oapRuntime.thinking||oapRuntime.speaking||oapRuntime.paused);
+ if(oapStop)oapStop.classList.toggle('show',active&&!oapRuntime.stopped);
+}
 function oapRenderCharacter(){
  if(!oapRuntime)return;
  const labels={ready:'Ready',listening:'Listening',thinking:'Thinking',speaking:'Speaking',paused:'Paused',stopped:'Stopped'};
  if(oapCharacter)oapCharacter.dataset.state=oapRuntime.state;
  if(oapCharacterLabel)oapCharacterLabel.textContent=labels[oapRuntime.state]||oapRuntime.state;
+ oapSyncHumanControls();
  window.dispatchEvent(new CustomEvent('oap-smi-character-state',{detail:{...oapRuntime}}));
 }
 function oapApply(type){
@@ -179,7 +185,7 @@ async function oapSubmit(options={}){
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
   window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));oapSpeak(completeResult.response);clearAttachments();oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');await loadConversations();
  }catch(error){if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
- finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();try{loadHealth()}catch{}}
+ finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}
 }
 
 oapInput.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.shiftKey||event.isComposing)return;event.preventDefault();event.stopImmediatePropagation();oapSubmit();},true);
