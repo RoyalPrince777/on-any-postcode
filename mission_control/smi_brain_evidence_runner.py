@@ -211,7 +211,22 @@ def runner_status() -> dict[str, Any]:
     """Return the available private-safe runner catalogue."""
 
     protocol = smi_brain_evidence_protocol.evidence_gate_status()
-    receipt_status = smi_receipt_backend.receipt_backend_status()
+    receipt_config = smi_receipt_backend.backend_configuration_status()
+    # A catalogue GET must not write an evidence receipt or imply that a
+    # configured PostgreSQL backend has passed a durable write/read check.
+    receipt_status = {
+        "name": "SMI Receipt Backend Status",
+        "receipt_backend": receipt_config["preferred_backend"],
+        "backend_configuration_status": receipt_config,
+        "proof_state": "not_run_on_status_read",
+        "write_read_proof": None,
+        "hrm_receipt_ready": False,
+        "matrix_learning_receipt_ready": False,
+        "ecosystem_outcome_receipt_ready": False,
+        "independent_durable_hrm_ready": False,
+        "neon_mirror_ready": False,
+        "full_system_green": False,
+    }
     judge_status = smi_judge_rotation.status()
     return {
         "name": "SMI Brain Live Evidence Runner",
