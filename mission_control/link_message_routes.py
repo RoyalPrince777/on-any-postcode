@@ -57,6 +57,7 @@ def _failure(exc: Exception):
 def status():
     store = product_store.status()
     activity = link_activity.status()
+    sync = link_message_sync.status()
     return _no_store(
         make_response(
             jsonify(
@@ -64,8 +65,8 @@ def status():
                 landed_semantics="persisted_oap_data",
                 seen_semantics="recipient_read_receipt",
                 retry_client_side=True,
-                idempotent_send=bool(link_message_sync.status().get("idempotent_send")),
-                stable_cursor=bool(link_message_sync.status().get("stable_cursor")),
+                idempotent_send=bool(sync.get("idempotent_send")),
+                stable_cursor=bool(sync.get("stable_cursor")),
                 first_party=True,
                 activity_ready=bool(activity.get("ready")),
                 typing_ttl_seconds=activity.get("typing_ttl_seconds"),
