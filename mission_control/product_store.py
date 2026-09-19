@@ -324,7 +324,11 @@ def peer_messages_since(
     bounded_limit = max(1, min(int(limit), 100))
     after_value = str(after or "").strip()
     cursor_id = None
-    if after_value and after_id not in {None, ""}:
+    if after_value and after_id in {None, ""}:
+        raise ValueError("incomplete_message_cursor")
+    if not after_value and after_id not in {None, ""}:
+        raise ValueError("incomplete_message_cursor")
+    if after_value:
         cursor_id = _identity(after_id, "invalid_cursor_message_id")
     try:
         with postgres_db.connect(readonly=True) as connection:
