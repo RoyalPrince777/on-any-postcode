@@ -146,7 +146,7 @@ def start_session(initiator_id: object, recipient_id: object, *, mode: object) -
         raise ValueError("cannot_call_self")
     call_mode = _mode(mode)
     _relationship_guard(initiator, recipient)
-    link_youth_safety.require_contact_allowed(initiator, recipient)
+    _youth_guard(initiator, recipient)
     retention = _require_ready()
     session_id = str(uuid.uuid4())
     try:
@@ -195,7 +195,7 @@ def answer_session(identity_id: object, session_id: object) -> bool:
                 connection.commit()
                 return False
             _relationship_guard(identity, str(pending[0]))
-            link_youth_safety.require_contact_allowed(identity, str(pending[0]))
+            _youth_guard(identity, str(pending[0]))
             row = connection.execute(
                 """UPDATE link_call_sessions
                    SET state='active',answered_at=CURRENT_TIMESTAMP
