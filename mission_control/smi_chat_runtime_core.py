@@ -20,8 +20,8 @@ from . import (
     live_brain,
     media_intelligence,
     postgres_db,
-    smi_founder_assets,
     smi_cancellation,
+    smi_founder_assets,
 )
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
