@@ -182,6 +182,42 @@ def identity_status(identity_id: object) -> dict[str, object]:
     return result
 
 
+def labels_for_identities(identity_ids: list[object]) -> dict[str, list[str]]:
+    """Return only currently granted certification names for the supplied identities."""
+
+    normalized: list[str] = []
+    for value in identity_ids:
+        try:
+            normalized.append(_uuid(value, "identity_id"))
+        except ValueError:
+            continue
+    if not normalized:
+        return {}
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT identity_id,role_id
+                   FROM oap_identity_roles
+                   WHERE identity_id=ANY(%s::uuid[])
+                     AND role_id=ANY(%s)""",
+                (normalized, list(ROLE_IDS)),
+            ).fetchall()
+    except Exception as exc:
+        raise CertificationUnavailable("certification_read_unavailable") from exc
+
+    role_to_name = {
+        item["role_id"]: item["name"] for item in CERTIFICATIONS.values()
+    }
+    result: dict[str, list[str]] = {identity_id: [] for identity_id in normalized}
+    for identity_id, role_id in rows:
+        name = role_to_name.get(str(role_id))
+        if name:
+            result.setdefault(str(identity_id), []).append(name)
+    for identity_id in result:
+        result[identity_id].sort()
+    return result
+
+
 def status() -> dict[str, object]:
     """Return redacted readiness and certification counts without identity data."""
 
