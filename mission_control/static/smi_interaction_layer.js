@@ -268,7 +268,8 @@
     strip.querySelector("#screen-mode-button").addEventListener("click", captureScreen);
     strip.querySelector("#tools-mode-button").addEventListener("click", () => {
       activate("tools-mode-button");
-      if (!attachMenu.classList.contains("show")) plus.click();
+      plus.click();
+      if (!attachMenu.classList.contains("show")) activate("chat-mode-button");
     });
 
     cameraMenu.addEventListener("click", () => {
