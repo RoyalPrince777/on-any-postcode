@@ -30,6 +30,7 @@ from mission_control import (
     judgement,
     languages,
     link_call_audit,
+    link_ping,
     link_presence,
     link_relationships,
     link_signalling,
@@ -1264,6 +1265,7 @@ def linkup_front_door():
         store_state = product_store.status()
         link_runtime["messaging"] = bool(
             store_state.get("tables", {}).get("messages")
+            and link_ping.status().get("ready")
         )
     except Exception:  # noqa: BLE001 - readiness remains fail closed.
         pass
