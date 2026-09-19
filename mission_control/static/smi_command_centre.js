@@ -48,7 +48,7 @@
  }
  anatomyLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
  const proofList=document.createElement("div");proofList.className="smi-command-side";
- const monitored=[["brain","Brain"],["nexus","NEXUS"],["hrm","HRM"],["guardian","Guardian"],["aegis","AEGIS"],["war_room","War Room"],["audit","Audit"],["human_authority","Human Authority"]];
+ const monitored=[["biological_brain","Brain"],["nexus","NEXUS"],["hrm","HRM"],["guardian","Guardian"],["aegis","AEGIS"],["war_room","War Room"],["audit","Audit"],["human_authority","Human Authority"]];
  const proofNodes=new Map();
  monitored.forEach(([key,label])=>{
   const card=document.createElement("div");card.className="smi-command-proof";card.dataset.proven="false";
