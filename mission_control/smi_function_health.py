@@ -190,7 +190,7 @@ def interaction_certification() -> dict[str, Any]:
         script = (
             _REPOSITORY_ROOT / "mission_control" / "static" / "smi_interaction_layer.js"
         ).read_text(encoding="utf-8")
-        source = "\n".join((base, wrapper, script))
+        source = f"{base}\n{wrapper}\n{script}"
         source_available = True
     except OSError:
         source = ""
