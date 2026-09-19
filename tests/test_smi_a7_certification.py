@@ -175,6 +175,15 @@ def test_complete_a6_readiness_never_enables_execution_in_source():
     assert '"production_state_mutated": False' in section
 
 
+def test_complete_a6_readiness_requires_fresh_human_approval_in_source():
+    source = Path(a7_certification.__file__).read_text(encoding="utf-8")
+    section = source.split("def complete_a6_readiness_protocol", 1)[1].split(
+        "def _emergency_halt_exercise", 1
+    )[0]
+    assert 'raise PermissionError("fresh_human_approval_required")' in section
+    assert "approval_service.record_decision(" not in section
+
+
 
 def test_a6_readiness_receipt_uses_canonical_777_envelope():
     source = Path(a7_certification.__file__).read_text(encoding="utf-8")

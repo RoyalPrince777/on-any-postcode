@@ -190,6 +190,16 @@ def test_gateway_logs_bounded_route_matrix_failures_without_payloads():
     assert "request.data" not in source
 
 
+def test_front_door_logs_bounded_a6_blocker_reason_without_payloads():
+    source = Path("app.py").read_text(encoding="utf-8")
+    section = source.split('OAP_A6_READINESS_ON_HEALTH', 1)[1].split(
+        "return response", 1
+    )[0]
+    assert 'if isinstance(exc, (ValueError, PermissionError, RuntimeError))' in section
+    assert '"reason": reason' in section
+    assert "str(exc)[:180]" in section
+
+
 def test_gateway_surfaces_bounded_value_error_reason_for_a6_readiness():
     source = Path("smi_gateway.py").read_text(encoding="utf-8")
     section = source.split("def _complete_a6_readiness_if_requested", 1)[1].split(
