@@ -41,16 +41,20 @@ def test_unknown_route_place_still_uses_location_intelligence(monkeypatch):
     assert result == {"latitude": 1.0, "longitude": 2.0}
 
 
-def test_mobile_map_canvas_is_above_controls():
+def test_mobile_map_is_full_viewport_with_floating_controls():
     template = Path(
         "mission_control/templates/local_map.html"
     ).read_text(encoding="utf-8")
+    css = Path(
+        "mission_control/static/oap_map_navigation.css"
+    ).read_text(encoding="utf-8")
 
-    assert ".map-wrap{order:1;min-height:64vh" in template
-    assert ".side{order:2;" in template
     assert 'class="map-wrap"' in template
     assert 'id="route-svg"' in template
-    assert "Greater London · first-party routing" in template
+    assert 'class="search-card"' in template
+    assert 'id="trip-bar"' in template
+    assert ".map-app,.map-wrap{position:relative;width:100%;height:100dvh" in css
+    assert ".side{" not in css
 
 
 def test_public_map_door_uses_visible_first_party_renderer():
