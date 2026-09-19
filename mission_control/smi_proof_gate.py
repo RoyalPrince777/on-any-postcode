@@ -19,8 +19,10 @@ from . import (
     approval_service,
     authority,
     coherent_automation,
+    embodiment,
     embodiment_isolation,
     hrm_durable_receipt,
+    smi_cancellation,
     postgres_db,
     telemetry,
 )
@@ -241,11 +243,21 @@ def _rollback_exercise() -> dict[str, object]:
         and working["authority"] == "HUMAN"
         and working["sequence"] == 2
     )
-    passed = bool(fault_observed and restored and safe_resume)
+    stop_proof = smi_cancellation.bounded_stop_recovery_proof()
+    passed = bool(
+        fault_observed
+        and restored
+        and safe_resume
+        and stop_proof["passed"]
+    )
     return {
         "fault_observed": fault_observed,
         "restored": restored,
         "safe_resume": safe_resume,
+        "human_stop_recovery": stop_proof,
+        "human_stop_observed": bool(stop_proof["human_stop_observed"]),
+        "human_stop_idempotent": bool(stop_proof["idempotent_stop"]),
+        "human_stop_safe_resume": bool(stop_proof["safe_resume"]),
         "passed": passed,
         "production_state_mutated": False,
         "execution_authority_expanded": False,
@@ -281,6 +293,9 @@ def run_rollback_recovery_proof(identity_id: object) -> dict[str, object]:
                 "fault_observed": bool(proof["fault_observed"]),
                 "restored": bool(proof["restored"]),
                 "safe_resume": bool(proof["safe_resume"]),
+                "human_stop_observed": bool(proof["human_stop_observed"]),
+                "human_stop_idempotent": bool(proof["human_stop_idempotent"]),
+                "human_stop_safe_resume": bool(proof["human_stop_safe_resume"]),
                 "production_state_mutated": False,
                 "execution_authority_expanded": False,
                 "authority_level": 0,
@@ -443,6 +458,22 @@ def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
         raise ValueError("invalid_human_authority_identity") from exc
 
     proof = bounded_control_proof()
+    embodiment_proof = embodiment.bounded_runtime_guard_proof()
+    proof = {
+        **proof,
+        "embodiment_runtime_guard": embodiment_proof,
+        "embodiment_no_execute_state": bool(embodiment_proof["no_execute_state"]),
+        "embodiment_unknown_motor_blocked": bool(
+            embodiment_proof["unknown_motor_blocked"]
+        ),
+        "embodiment_privacy_blocked": bool(embodiment_proof["privacy_blocked"]),
+        "embodiment_restart_blocked": bool(embodiment_proof["restart_blocked"]),
+        "embodiment_truth_preserved": bool(embodiment_proof["truth_preserved"]),
+        "embodiment_stop_output_cleared": bool(
+            embodiment_proof["stop_output_cleared"]
+        ),
+        "passed": bool(proof["passed"] and embodiment_proof["passed"]),
+    }
     if not proof["passed"]:
         raise RuntimeError("runtime_guard_proof_failed")
 
@@ -465,6 +496,24 @@ def run_runtime_guard_proof(identity_id: object) -> dict[str, object]:
                 "retry_blocked": bool(proof["retry_blocked"]),
                 "escalation_blocked": bool(proof["escalation_blocked"]),
                 "protected_payload_blocked": bool(proof["protected_payload_blocked"]),
+                "embodiment_no_execute_state": bool(
+                    proof["embodiment_no_execute_state"]
+                ),
+                "embodiment_unknown_motor_blocked": bool(
+                    proof["embodiment_unknown_motor_blocked"]
+                ),
+                "embodiment_privacy_blocked": bool(
+                    proof["embodiment_privacy_blocked"]
+                ),
+                "embodiment_restart_blocked": bool(
+                    proof["embodiment_restart_blocked"]
+                ),
+                "embodiment_truth_preserved": bool(
+                    proof["embodiment_truth_preserved"]
+                ),
+                "embodiment_stop_output_cleared": bool(
+                    proof["embodiment_stop_output_cleared"]
+                ),
                 "production_state_mutated": False,
                 "execution_authority_expanded": False,
                 "authority_level": 0,
