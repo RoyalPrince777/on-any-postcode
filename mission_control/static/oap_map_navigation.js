@@ -90,10 +90,15 @@ function renderRoute(d){
  liveIntel.textContent=reports.length?`Live Pattern · ${reports.length} signal${reports.length===1?'':'s'}`:'Live Pattern · clear';liveIntel.dataset.state=verified?'attention':'live';
  peopleIntel.textContent='People Intelligence · aggregate only';peopleIntel.dataset.state='live';
  if(currentGeometry.length){const p=currentGeometry[0];placeVehicle(+p[0],+p[1],0)}
+ loadProviders(d?.origin,d?.destination);
 }
-async function loadProviders(){
+async function loadProviders(origin=null,destination=null){
  try{
-   const r=await fetch('/map-intelligence/mobility-providers',{cache:'no-store',credentials:'same-origin'}),d=await r.json();
+   const params=new URLSearchParams();
+   if(origin?.latitude!=null&&origin?.longitude!=null){params.set('start_latitude',origin.latitude);params.set('start_longitude',origin.longitude)}
+   if(destination?.latitude!=null&&destination?.longitude!=null){params.set('end_latitude',destination.latitude);params.set('end_longitude',destination.longitude)}
+   const url='/map-intelligence/mobility-providers'+(params.size?'?'+params.toString():'');
+   const r=await fetch(url,{cache:'no-store',credentials:'same-origin'}),d=await r.json();
    const uber=d?.providers?.find(x=>x.id==='uber');
    providerIntel.textContent=uber?.live_ready?'Mobility · Uber live':'Mobility · OAP Direct';
    providerIntel.dataset.state=uber?.live_ready?'live':'attention';
