@@ -97,3 +97,48 @@ def test_linkup_safety_star_requires_youth_guard_readiness():
 
     assert 'linkup_safety.status().get("ready")' in source
     assert 'link_youth_safety.status().get("ready")' in source
+
+
+def test_youth_policy_self_test_blocks_cross_age_without_real_identities():
+    from mission_control import link_youth_safety
+
+    proof = link_youth_safety.policy_self_test()
+
+    assert proof == {
+        "passed": True,
+        "cross_age_blocked": True,
+        "same_band_allowed": True,
+        "unknown_unresolved": True,
+        "uses_production_identities": False,
+    }
+
+
+def test_policy_from_bands_is_deterministic_and_privacy_minimised():
+    from mission_control import link_youth_safety
+
+    blocked = link_youth_safety.policy_from_bands("minor", "adult")
+    allowed = link_youth_safety.policy_from_bands("adult", "adult")
+    unknown = link_youth_safety.policy_from_bands(None, "adult")
+
+    assert blocked["allowed"] is False
+    assert blocked["reason"] == "youth_contact_restricted"
+    assert allowed["allowed"] is True
+    assert allowed["resolved"] is True
+    assert unknown["allowed"] is True
+    assert unknown["resolved"] is False
+
+
+def test_youth_runtime_status_requires_self_test_pass():
+    source = Path("mission_control/link_youth_safety.py").read_text(encoding="utf-8")
+
+    assert 'result["policy_self_test"]["passed"] is True' in source
+    assert "policy_from_bands(first_band, second_band)" in source
+
+
+def test_youth_runtime_attestation_is_redacted():
+    source = Path("mission_control/__init__.py").read_text(encoding="utf-8")
+
+    assert "oap_link_youth_guard_runtime_proof" in source
+    assert '"uses_production_identities": False' in source
+    assert '"stores_date_of_birth": False' in source
+    assert "policy_self_test_passed" in source
