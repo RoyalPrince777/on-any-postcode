@@ -157,6 +157,7 @@ def review(
     history: list[dict[str, str]],
     image_attached: bool,
     authority_context: dict[str, object] | None = None,
+    force_war_room: bool = False,
 ) -> dict[str, Any]:
     """Run the canonical NEXUS/Identity/Registry/Brain/Guardian/War Room review."""
 
@@ -260,6 +261,7 @@ def review(
         authority_roles=identity.roles,
         self_model=self_model.as_dict(),
         coherence=coherence.as_dict(),
+        force_review=bool(force_war_room),
     )
     return {
         "passed": safety.passed,
@@ -308,6 +310,7 @@ def review(
         "operational_coherence": coherence.as_dict(),
         "war_room": {
             "triggered": war_room.triggered,
+            "requested": bool(force_war_room),
             "recommendation": war_room.recommendation,
             "scenarios": list(war_room.scenarios),
             "evidence": list(war_room.evidence),
