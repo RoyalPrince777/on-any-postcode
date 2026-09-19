@@ -1,5 +1,6 @@
 """Release gate for the exact approved OAP artwork, not mock images."""
 from pathlib import Path
+import hashlib
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTER = ROOT / "static/oap/enter_my_world_wallpaper.png"
@@ -11,6 +12,8 @@ def test_exact_founder_and_dashboard_png_assets_are_in_repo():
         assert path.is_file(), f"Approved original artwork missing: {path.relative_to(ROOT)}"
         assert path.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")), f"Not PNG: {path}"
         assert path.stat().st_size > 100_000, f"Placeholder artwork blocked: {path}"
+    assert hashlib.sha256(ENTER.read_bytes()).hexdigest() == "114852c665388f8b3cba5c3a5f667631e4a69ac88de2af2b30a3c5f6fbaec01b"
+    assert hashlib.sha256(ROOM.read_bytes()).hexdigest() == "9417a1293108350ccb6c3751377c9530d287a628c54f0659272c7c990cda4df3"
 
 
 def test_enter_world_uses_unchanged_secure_form_over_static_wallpaper():
