@@ -74,7 +74,12 @@ def _guard_link(first: str, second: str) -> None:
         raise ValueError("link_blocked")
     if not link_relationships.accepted_between(first, second):
         raise ValueError("accepted_link_required")
-    link_youth_safety.require_contact_allowed(first, second)
+    try:
+        link_youth_safety.require_contact_allowed(first, second)
+    except ValueError:
+        raise
+    except link_youth_safety.LinkYouthSafetyUnavailable as exc:
+        raise LinkCirclesUnavailable("circle_youth_guard_unavailable") from exc
 
 
 def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, Any]:
