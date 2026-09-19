@@ -55,6 +55,14 @@ def test_all_master_tool_actions_have_handlers():
 
     assert actions == {
         "war-room",
+        "button-proof",
+        "signals-21",
+        "guardian",
+        "routes",
+        "brain",
+        "agents",
+        "infrastructure",
+        "judgement",
         "function-health",
         "green-gate",
         "hrm",
