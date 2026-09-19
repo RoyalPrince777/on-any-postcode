@@ -17,6 +17,9 @@
     .linkup-now>label:first-child{font-weight:800}.linkup-now input,.linkup-now select,.linkup-now button{min-height:2.5rem;border-radius:10px}.linkup-now input,.linkup-now select{padding:.55rem;border:1px solid rgba(255,255,255,.18);background:#0a1710;color:inherit}.linkup-free{display:flex;align-items:center;gap:.45rem}.linkup-free input{min-height:auto}
     .linkup-master-nav{display:flex;gap:.45rem;padding:.1rem .65rem .65rem}.linkup-master-nav a{flex:1;text-align:center;padding:.58rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#18232d;color:#fff;text-decoration:none;font-weight:800}
     .linkup-new-actions{display:flex;gap:.5rem;flex-wrap:wrap}.linkup-new-actions button{min-width:46px;min-height:42px;border:0;border-radius:14px;background:#1a232d;color:inherit}
+    .linkup-card{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center;margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
+    .linkup-card-copy{display:grid;gap:.12rem;min-width:0}.linkup-card-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.linkup-card-copy small{color:rgba(255,255,255,.68);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .linkup-card-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;letter-spacing:.03em}
   </style>
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
@@ -46,6 +49,19 @@
           <a href="{{ url_for('link_message_state.link_circles.circle_page') }}">Circle</a>
           <a href="{{ url_for('the_link_front_door') }}">The Link</a>
         </div>
+        {% if dashboard and dashboard.my_card %}
+        <section class="linkup-card" aria-label="My Card">
+          <span class="linkup-avatar">{{ dashboard.my_card.display_name[:1]|upper }}</span>
+          <span class="linkup-card-copy">
+            <strong>{{ dashboard.my_card.display_name }}</strong>
+            <small>@{{ dashboard.my_card.username }} · My Card</small>
+            <small class="linkup-card-id">{{ dashboard.my_card.card_id }}</small>
+            {% if dashboard.my_card.borough or dashboard.my_card.country %}
+            <small>{{ dashboard.my_card.borough }}{% if dashboard.my_card.borough and dashboard.my_card.country %} · {% endif %}{{ dashboard.my_card.country }}</small>
+            {% endif %}
+          </span>
+        </section>
+        {% endif %}
         <form class="linkup-now" data-oap-now-form>
           <label for="oap-now">💬 Now · What you on?</label>
           <input id="oap-now" maxlength="120" placeholder="Share a short status" data-oap-now-input>
@@ -60,7 +76,7 @@
           {% for thread in dashboard.threads %}
           <button class="linkup-thread-button" type="button" data-linkup-thread="{{ thread.other_identity_id }}" data-search="{{ thread.display_name }} {{ thread.postcode or '' }}" data-active="{{ 'true' if loop.first else 'false' }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
             <span class="linkup-avatar">{{ thread.display_name[:1]|upper }}</span>
-            <span class="linkup-thread-main"><strong>{{ thread.display_name }}</strong><span>{% if thread.messages %}{{ thread.messages[-1].body }}{% else %}Start a Link{% endif %}</span></span>
+            <span class="linkup-thread-main"><strong>{{ thread.display_name }}</strong><span>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</span><span>{% if thread.messages %}{{ thread.messages[-1].body }}{% else %}Start a Link{% endif %}</span></span>
             {% if thread.unread_count %}<span class="linkup-unread">{{ thread.unread_count }}</span>{% endif %}
           </button>
           {% endfor %}
@@ -89,7 +105,7 @@
             <header class="linkup-chat-head">
               <button class="linkup-icon-btn linkup-back" type="button" data-linkup-back aria-label="Back to chats">‹</button>
               <span class="linkup-avatar">{{ thread.display_name[:1]|upper }}</span>
-              <span class="linkup-chat-name"><strong>{{ thread.display_name }}</strong>{% if thread.postcode %}<small>{{ thread.postcode }}</small>{% endif %}</span>
+              <span class="linkup-chat-name"><strong>{{ thread.display_name }}</strong><small>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</small>{% if thread.borough or thread.country %}<small>{{ thread.borough }}{% if thread.borough and thread.country %} · {% endif %}{{ thread.country }}</small>{% elif thread.postcode %}<small>{{ thread.postcode }}</small>{% endif %}</span>
               <span class="linkup-chat-actions">
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
                 <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
@@ -142,7 +158,7 @@
         <article class="linkup-chat-panel" data-linkup-panel="new" data-active="{{ 'true' if not (dashboard and dashboard.threads) else 'false' }}">
           <header class="linkup-chat-head">
             <button class="linkup-icon-btn linkup-back" type="button" data-linkup-back aria-label="Back to chats">‹</button>
-            <span class="linkup-chat-name"><strong>New Link</strong><small>Choose a Certified member</small></span>
+            <span class="linkup-chat-name"><strong>New Link</strong><small>Choose an OAP member</small></span>
             <span class="linkup-chat-actions">
               <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-source="#linkup-recipient" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
               <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-source="#linkup-recipient" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
@@ -152,7 +168,7 @@
           {% if dashboard and dashboard.directory %}
             <form method="post" action="{{ url_for('linkup_send') }}" data-oap-link-composer>
               <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-              <select id="linkup-recipient" name="recipient_id" required aria-label="Person"><option value="">Choose a Certified member</option>{% for person in dashboard.directory %}<option value="{{ person.identity_id }}">{{ person.display_name }}{% if person.postcode %} · {{ person.postcode }}{% endif %}</option>{% endfor %}</select>
+              <select id="linkup-recipient" name="recipient_id" required aria-label="Person"><option value="">Choose an OAP member</option>{% for person in dashboard.directory %}<option value="{{ person.identity_id }}">{{ person.display_name }} · @{{ person.username }} · {{ person.card_id }}{% if person.borough %} · {{ person.borough }}{% elif person.postcode %} · {{ person.postcode }}{% endif %}</option>{% endfor %}</select>
               <div class="linkup-new-actions">
                 <button type="button" disabled data-oap-around-control data-recipient-source="#linkup-recipient">Around Now</button>
                 <button type="button" disabled data-oap-share-spot-control data-recipient-source="#linkup-recipient">My Spot</button>
