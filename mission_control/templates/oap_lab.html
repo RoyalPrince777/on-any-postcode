@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAP Lab · Private Founder Workspace</title>
+<style>
+:root{color-scheme:dark;--bg:#060c13;--panel:#0d1824;--gold:#dfbd76;--line:#536177;--text:#f2f6fc;--muted:#b4c4d7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,Arial,sans-serif}
+a{color:#d7e9ff}
+a:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
+.shell{max-width:1120px;margin:auto;padding:clamp(18px,4vw,42px)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.top nav{display:flex;flex-wrap:wrap;gap:16px}
+.eyebrow{color:var(--gold);font-weight:750;letter-spacing:.08em;font-size:.78rem}
+h1{font-size:clamp(2rem,6vw,3.6rem);line-height:1.1;margin:.3em 0}
+h2{font-size:1.35rem;margin:.2em 0}
+p{margin:.65em 0}
+.intro{max-width:760px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:26px 0}
+.card{border:1px solid var(--line);border-radius:16px;padding:clamp(18px,3vw,26px);background:var(--panel)}
+.card p{color:var(--muted)}
+.card a{display:inline-flex;align-items:center;min-height:44px;margin-top:10px;font-weight:750}
+.tag{font-size:.75rem;font-weight:800;color:var(--gold);letter-spacing:.08em}
+.boundary{border-left:3px solid var(--gold);padding:14px 18px;background:#191810;color:#f4e4c8}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.shell{padding:17px}.top nav{gap:12px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div><span class="eyebrow">👑 PRIVATE FOUNDER · ONE SMI BRAIN</span><h1>OAP Lab</h1></div>
+    <nav aria-label="Private workspace">
+      <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">← Personal SMI</a>
+      <a href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a>
+    </nav>
+  </header>
+  <p class="intro">Research, challenge and verify inside one governed workspace. OAP Lab does not create another brain, agent, database, approval authority or public dashboard.</p>
+  <section class="grid" aria-label="Lab areas">
+    <article class="card">
+      <span class="tag">01 · RESEARCH</span>
+      <h2>Research Intelligence</h2>
+      <p>Scope, retrieve, verify, compare and synthesise evidence. The existing research cluster declares {{ research.stage_count }} stages and {{ research.capability_count }} capabilities; this is a code contract, not proof of end-to-end research.</p>
+      <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Research with SMI →</a>
+    </article>
+    <article class="card">
+      <span class="tag">02 · EXPERIMENTS</span>
+      <h2>Matrix + War Room</h2>
+      <p>3×, 7× and 21× scrutiny, scenarios, alternatives and Red Team challenge. Simulated findings never grant execution authority.</p>
+      <a href="{{ url_for('mission_control.war_room_dashboard') }}">Open governed War Room →</a>
+    </article>
+    <article class="card">
+      <span class="tag">03 · BUILD & VERIFY</span>
+      <h2>Evidence before Green</h2>
+      <p>Inspect the existing first-party function proof surface. A configured tool, a visible button or a simulated result is not an independent completion receipt.</p>
+      <a href="/mission/smi/function-health">Inspect function evidence →</a>
+    </article>
+    <article class="card">
+      <span class="tag">04 · LAB RECORDS</span>
+      <h2>Founder asset index</h2>
+      <p>Inspect existing Founder-scoped asset metadata. This is not yet a full research-notebook, book reader or editable Lab record system.</p>
+      <a href="{{ url_for('mission_control.smi_founder_library') }}">Inspect private asset index →</a>
+    </article>
+  </section>
+  <aside class="boundary" aria-label="Lab boundary">
+    <strong>Human Lab · planned division.</strong> Human-centred research requires its own expert evidence, consent, safeguarding and privacy design before opening. Guardian reviews risk; Human Authority approves consequential action.
+  </aside>
+</main>
+</body>
+</html>
