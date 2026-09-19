@@ -17,6 +17,7 @@
     typingRefreshTimer: null,
     pollTimer: null,
     cursors: new Map(),
+    pendingRetries: new Map(),
     renderedMessageIds: new Set(
       Array.from(document.querySelectorAll("[data-link-message-id]"))
         .map((node) => node.dataset.linkMessageId)
@@ -82,13 +83,21 @@
 
   const initialCursorFor = (form) => {
     const panel = form.closest("[data-linkup-panel]");
-    const nodes = Array.from(panel?.querySelectorAll("[data-created-at]") || []);
-    const latest = nodes
-      .map((node) => node.dataset.createdAt || "")
-      .filter(Boolean)
-      .sort()
-      .at(-1);
-    return latest || "";
+    const nodes = Array.from(
+      panel?.querySelectorAll("[data-created-at][data-link-message-id]") || [],
+    );
+    const cursors = nodes
+      .map((node) => ({
+        createdAt: node.dataset.createdAt || "",
+        messageId: node.dataset.linkMessageId || "",
+      }))
+      .filter((cursor) => cursor.createdAt && cursor.messageId)
+      .sort((a, b) =>
+        a.createdAt === b.createdAt
+          ? a.messageId.localeCompare(b.messageId)
+          : a.createdAt.localeCompare(b.createdAt),
+      );
+    return cursors.at(-1) || { createdAt: "", messageId: "" };
   };
 
   const renderLiveLinks = (form, messages) => {
@@ -184,15 +193,18 @@
     try {
       const cursor = state.cursors.get(peerId) ?? initialCursorFor(form);
       if (!state.cursors.has(peerId)) state.cursors.set(peerId, cursor);
-      const path = cursor
-        ? `/linkup/messages/incoming?peer_id=${encodeURIComponent(peerId)}&after=${encodeURIComponent(cursor)}`
-        : `/linkup/messages/incoming?peer_id=${encodeURIComponent(peerId)}`;
-      const delta = await apiJson(path);
+      const query = new URLSearchParams({ peer_id: peerId });
+      if (cursor.createdAt) query.set("after", cursor.createdAt);
+      if (cursor.messageId) query.set("after_id", cursor.messageId);
+      const delta = await apiJson(`/linkup/messages/incoming?${query.toString()}`);
       const incoming = delta.messages || [];
       renderLiveLinks(form, incoming);
       if (incoming.length) {
-        const newest = incoming[incoming.length - 1]?.created_at || cursor;
-        state.cursors.set(peerId, newest);
+        const newest = incoming[incoming.length - 1];
+        state.cursors.set(peerId, {
+          createdAt: newest?.created_at || cursor.createdAt,
+          messageId: newest?.message_id || cursor.messageId,
+        });
         const local = localStatusFor(form);
         if (!local.querySelector("button")) local.textContent = "New Link landed";
       }
@@ -336,6 +348,7 @@
     const payload = fixedPayload || {
       recipient_id: recipientFor(form),
       body: textarea?.value.trim() || "",
+      client_message_id: crypto.randomUUID(),
     };
     if (!payload.recipient_id || !payload.body) {
       return;
@@ -361,6 +374,7 @@
         textarea.value = "";
       }
       localStatus.textContent = "Landed";
+      state.pendingRetries.delete(payload.client_message_id);
       ensureLocalReceipt(form, payload, result.message_id);
       startPolling(form);
     } catch (error) {
@@ -371,7 +385,12 @@
           : code === "accepted_link_required"
             ? "Accepted Link required. Nothing landed."
             : "Link did not land.";
-      showRetry(form, payload, message);
+      if (!navigator.onLine || code === "request_failed" || /^http_5/.test(code)) {
+        state.pendingRetries.set(payload.client_message_id, { form, payload });
+        showRetry(form, payload, "Offline or interrupted. Safe retry queued.");
+      } else {
+        showRetry(form, payload, message);
+      }
     } finally {
       if (submit) {
         submit.disabled = false;
@@ -400,6 +419,14 @@
     });
   });
 
+  window.addEventListener("online", () => {
+    pollPeer();
+    for (const [clientId, pending] of state.pendingRetries.entries()) {
+      state.pendingRetries.delete(clientId);
+      sendLink(pending.form, pending.payload);
+    }
+  });
+
   window.addEventListener("pagehide", () => {
     if (state.activeForm) {
       stopTyping(state.activeForm);
@@ -413,6 +440,8 @@
     .then((status) => {
       state.ready = status.ready === true && status.first_party === true;
       state.activityReady = status.activity_ready === true;
+      state.syncReady =
+        status.idempotent_send === true && status.stable_cursor === true;
       if (state.ready) {
         forms.forEach((form) => {
           localStatusFor(form).textContent = state.activityReady
