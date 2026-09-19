@@ -132,6 +132,15 @@ def _relationship_guard(first: str, second: str) -> None:
         raise LinkCallAuditUnavailable("link_call_relationship_guard_unavailable") from exc
 
 
+def _youth_guard(first: str, second: str) -> None:
+    try:
+        link_youth_safety.require_contact_allowed(first, second)
+    except ValueError:
+        raise
+    except link_youth_safety.LinkYouthSafetyUnavailable as exc:
+        raise LinkCallAuditUnavailable("link_call_youth_guard_unavailable") from exc
+
+
 def _require_ready() -> int:
     state = status()
     if not state["ready"] or state["retention_days"] is None:
