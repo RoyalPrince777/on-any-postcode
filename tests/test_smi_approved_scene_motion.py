@@ -11,14 +11,16 @@ def test_motion_follows_single_canonical_character_state():
     assert 'setPresenceState(detail.state)' in JS
     assert '"listening","thinking","speaking","paused","stopped"' in JS
     assert 'stage.append(presence)' in JS
-    assert 'if(detail.live&&active)setOpen(false)' in JS
+    assert 'if(detail.live&&active)setOpen(false)' not in JS
+    assert 'setPresenceState(detail.state)' in JS
 
 
 def test_approved_image_and_controls_are_preserved():
     assert 'wallpaper.src=cfg.approvedWallpaperUrl' in JS
     assert 'panel.classList.add("smi-room-art-loaded")' in JS
-    assert 'stage.append(character)' in JS
-    assert 'marker.parentNode.insertBefore(character,marker)' in JS
+    assert 'stage.append(character)' not in JS
+    assert 'getElementById("live-character-toggle")' in JS
+    assert 'marker.parentNode.insertBefore(character,marker)' not in JS
     assert 'setOpen(false);' in JS
     assert 'data-room-gate' in JS
     assert 'approved still' in CSS.lower()
