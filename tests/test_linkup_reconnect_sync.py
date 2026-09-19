@@ -59,7 +59,9 @@ def test_sync_rollout_falls_back_before_schema_activation():
     script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
 
     assert 'INSERT INTO messages(sender_id,recipient_id,body)' in source
-    assert "state.syncReady && crypto?.randomUUID" in script
+    assert "state.syncReady &&" in script
+    assert 'typeof crypto !== "undefined"' in script
+    assert 'typeof crypto.randomUUID === "function"' in script
     assert "status.idempotent_send === true && status.stable_cursor === true" in script
 
 
