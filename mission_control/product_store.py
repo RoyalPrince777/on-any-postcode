@@ -223,9 +223,24 @@ def send_message(
                     """INSERT INTO messages(
                            sender_id,recipient_id,body,client_message_id
                        ) VALUES (%s,%s,%s,%s)
+                       ON CONFLICT (sender_id,client_message_id)
+                         WHERE client_message_id IS NOT NULL
+                       DO NOTHING
                        RETURNING id""",
                     (sender, recipient, message, client_id),
                 ).fetchone()
+                if row is None:
+                    existing = connection.execute(
+                        """SELECT id,recipient_id,body FROM messages
+                           WHERE sender_id=%s AND client_message_id=%s LIMIT 1""",
+                        (sender, client_id),
+                    ).fetchone()
+                    if existing is None:
+                        raise ProductStoreUnavailable("linkup_idempotency_conflict")
+                    if str(existing[1]) != recipient or str(existing[2]) != message:
+                        raise ValueError("client_message_id_conflict")
+                    connection.commit()
+                    return str(existing[0])
             else:
                 row = connection.execute(
                     """INSERT INTO messages(sender_id,recipient_id,body)
