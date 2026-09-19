@@ -439,13 +439,32 @@ def _configured_hrm_host_fingerprint() -> str | None:
     return hashlib.sha256(hostname.encode("utf-8")).hexdigest()
 
 
+def _configured_main_host_fingerprint() -> str | None:
+    """Fingerprint the selected main writer host, not the unused primary URL."""
+
+    from . import postgres_db
+
+    try:
+        hostname = (urlsplit(postgres_db._database_url()).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return None
+    if not hostname:
+        return None
+    return hashlib.sha256(hostname.encode("utf-8")).hexdigest()
+
+
 def backend_configuration_status() -> dict[str, Any]:
     """Return configuration state without making a DB connection or leaking secrets."""
+
+    from . import postgres_db
 
     durable_configured = bool(_hrm_database_url())
     return {
         "durable_backend_configured": durable_configured,
         "hrm_host_sha256": _configured_hrm_host_fingerprint(),
+        "main_host_sha256": _configured_main_host_fingerprint(),
+        "main_database_source": postgres_db.database_source(),
+        "main_database_authority": postgres_db.database_authority(),
         "live_store_identity_proven": False,
         "preferred_backend": "independent_hrm_postgres" if durable_configured else "local_sqlite_receipt_store",
         "fallback_backend": "local_sqlite_receipt_store",
