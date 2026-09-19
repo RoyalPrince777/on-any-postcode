@@ -20,8 +20,10 @@ def test_sovereign_dashboard_is_primary_smi_surface():
     assert "mission_control.smi_chat_health" in wrapper
     assert "mission_control.war_room_status" in wrapper
     assert "founder_recovery.recover_founder" in wrapper
-    assert "smi-dashboard-mode" in script
-    assert "smi-chat-mode" in script
+    assert "smi-status-open" in script
+    assert "smi-dashboard-mode" not in script
+    assert "smi-chat-mode" not in script
+    assert "smi-status-open .workspace-grid{display:grid!important}" in stylesheet
     assert "Default deny." in script
     assert "Human Authority final" in script
     assert "green only" not in script.lower()
