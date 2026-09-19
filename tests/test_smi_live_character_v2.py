@@ -19,7 +19,8 @@ def test_live_voice_privacy_boundary_is_explicit():
     controller = CONTROLLER.read_text(encoding="utf-8")
 
     assert "audio-processing locality is not verified" in base
-    assert "final recognised speech turns auto-send" in base
+    assert "final recognised speech turns" in base
+    assert "auto-sends" in base
     assert "browserSpeechLocalityVerified:false" in controller
 
 
@@ -72,3 +73,30 @@ def test_human_stop_control_remains_visible_for_active_voice_states():
     assert "function oapSyncHumanControls" in controller
     assert "oapRuntime.speaking" in controller
     assert "oapStop.classList.toggle('show'" in controller
+
+
+def test_pause_suppresses_live_auto_submit():
+    controller = CONTROLLER.read_text(encoding="utf-8")
+    state = STATE.read_text(encoding="utf-8")
+
+    assert "if(oapRuntime.listening)oapRecognitionToken=null" in controller
+    assert "canAutoSubmitFinal" in controller
+    assert "!s.paused" in state
+
+
+def test_live_off_invalidates_state_before_browser_teardown():
+    controller = CONTROLLER.read_text(encoding="utf-8")
+
+    live_off = controller.index("function oapSetLive")
+    live_off_end = controller.index("function oapRequestListening", live_off)
+    block = controller[live_off:live_off_end]
+    assert block.index("oapApply('LIVE_OFF')") < block.index("oapRecognition.stop()")
+    assert "oapRecognitionToken=null" in block
+
+
+def test_pagehide_invalidates_state_before_stopping_recognition():
+    controller = CONTROLLER.read_text(encoding="utf-8")
+
+    start = controller.index("window.addEventListener('pagehide'")
+    block = controller[start:start + 500]
+    assert block.index("oapApply('LIVE_OFF')") < block.index("oapRecognition.stop()")
