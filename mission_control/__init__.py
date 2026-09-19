@@ -29,6 +29,7 @@ def init_app(app: Flask) -> None:
         link_call_audit,
         link_ping,
         link_presence,
+        link_share,
         link_relationships,
         link_signalling,
         link_turn,
@@ -152,6 +153,36 @@ def init_app(app: Flask) -> None:
                         "error": type(exc).__name__,
                         "reason": reason,
                         "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LINK_SHARE_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            share_status = link_share.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_share_migration",
+                        "success": bool(share_status.get("applied")),
+                        "schema_version": share_status.get("version"),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_share_migration",
+                        "success": False,
+                        "error": "link_share_migration_failed",
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -611,6 +642,18 @@ def init_app(app: Flask) -> None:
         if not yes:
             raise click.ClickException("explicit_confirmation_required")
         print(link_presence.purge_expired())
+
+    @app.cli.command("oap-link-share-status")
+    def _oap_link_share_status() -> None:
+        import json
+        print(json.dumps(link_share.status()))
+
+    @app.cli.command("oap-init-link-share")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_share(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_share.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-link-voice-status")
     def _oap_link_voice_status() -> None:
