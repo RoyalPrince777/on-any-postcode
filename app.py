@@ -29,6 +29,7 @@ from mission_control import (
     founder_recovery,
     judgement,
     languages,
+    link_relationships,
     linkup,
     location_intelligence,
     neon_auth,
@@ -1135,10 +1136,26 @@ def linkup_front_door():
     user = None
     dashboard = None
     unavailable = False
+    relationships_ready = False
+    relationships = []
+    my_card = None
     try:
         user = web_security.current_authenticated_user()
     except neon_auth.AuthUnavailable:
         user = None
+
+    if user:
+        identity_id = str(user["id"])
+        my_card = {
+            "identity_id": identity_id,
+            "card_id": product_store.member_card_id(identity_id),
+            "display_name": str(user["name"]),
+            "username": "",
+            "postcode": "",
+            "borough": "",
+            "country": "",
+        }
+
     if user and public_store.status()["configured"]:
         try:
             public_store.ensure_authenticated_user(
@@ -1147,17 +1164,31 @@ def linkup_front_door():
                 display_name=str(user["name"]),
             )
             dashboard = product_store.linkup_dashboard(str(user["id"]))
+            if dashboard and dashboard.get("my_card"):
+                my_card = dashboard["my_card"]
         except (
             public_store.PublicStoreUnavailable,
             product_store.ProductStoreUnavailable,
         ):
             unavailable = True
+
+        try:
+            relationship_state = link_relationships.status()
+            relationships_ready = bool(relationship_state.get("ready"))
+            if relationships_ready:
+                relationships = link_relationships.list_for_identity(str(user["id"]))
+        except link_relationships.LinkRelationshipsUnavailable:
+            relationships_ready = False
+
     response = make_response(
         render_template(
             "linkup.html",
             link=linkup.get_public_link_dashboard(),
             auth_user=user,
             dashboard=dashboard,
+            my_card=my_card,
+            relationships=relationships,
+            relationships_ready=relationships_ready,
             private_unavailable=unavailable,
         )
     )
