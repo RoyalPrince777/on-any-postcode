@@ -47,6 +47,8 @@ _GATEWAY_OWNED_PATHS = frozenset(
 )
 _A6_ROUTE_MATRIX_LOCK = threading.Lock()
 _A6_ROUTE_MATRIX_STARTED: set[str] = set()
+_FOUNDER_FINAL_LOCK = threading.Lock()
+_FOUNDER_FINAL_ATTEMPTED: set[str] = set()
 _ALLOWED_REQUEST_HEADERS = {
     "accept",
     "accept-language",
@@ -107,6 +109,70 @@ def _resolve_a6_human_authority() -> str:
         raise RuntimeError("single_human_authority_not_proven")
     return str(rows[0][0])
 
+
+
+def _founder_final_enabled() -> bool:
+    return os.environ.get("OAP_FOUNDER_FINAL_100_ON_HEALTH", "").strip().casefold() in {
+        "1", "true", "yes", "on"
+    }
+
+
+def _complete_founder_final_if_requested(*, trigger: str) -> None:
+    """Attempt Founder Final once per revision, but only after the real Green Gate passes."""
+
+    if not _founder_final_enabled():
+        return
+    revision = _revision()
+    operation_id = f"founder-final:{revision}"
+    with _FOUNDER_FINAL_LOCK:
+        if operation_id in _FOUNDER_FINAL_ATTEMPTED:
+            return
+        _FOUNDER_FINAL_ATTEMPTED.add(operation_id)
+
+    try:
+        identity_id = _resolve_a6_human_authority()
+        result = smi_proof_gate.complete_founder_final_protocol(identity_id)
+        _LOGGER.info(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_founder_final_100",
+                    "trigger": trigger,
+                    "revision": revision,
+                    "success": bool(result.get("passed")),
+                    "green_gate": bool(result.get("green_gate")),
+                    "founder_final": bool(result.get("founder_final")),
+                    "audit_recorded": bool(result.get("audit_recorded")),
+                    "execution_granted": False,
+                    "production_state_mutated": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001 - final gate must fail closed.
+        reason = (
+            str(exc)[:240]
+            if isinstance(exc, (ValueError, PermissionError, RuntimeError))
+            else ""
+        )
+        _LOGGER.error(
+            "%s",
+            json.dumps(
+                {
+                    "event": "oap_founder_final_100",
+                    "trigger": trigger,
+                    "revision": revision,
+                    "success": False,
+                    "execution_granted": False,
+                    "production_state_mutated": False,
+                    "error": type(exc).__name__,
+                    "reason": reason,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
 
 
 def _origin() -> str:
@@ -738,6 +804,7 @@ def _maybe_start_a6_route_matrix_operation(*, trigger: str = "health") -> None:
 # Readiness is recorded first, against this gateway's own DB, then the
 # one-shot read-only Route Matrix capture may run. Neither step grants execution.
 _complete_a6_readiness_if_requested(trigger="boot")
+_complete_founder_final_if_requested(trigger="boot")
 
 # Render can mark the gateway live without issuing an observable /healthz request.
 # The boot trigger is therefore an explicit, opt-in equivalent for the same
@@ -749,6 +816,7 @@ _maybe_start_a6_route_matrix_operation(trigger="boot")
 def healthz():
     telemetry.record_http_request(path="/healthz", status_code=200, duration_ms=0.0)
     _complete_a6_readiness_if_requested(trigger="health")
+    _complete_founder_final_if_requested(trigger="health")
     _maybe_start_a6_route_matrix_operation(trigger="health")
 
     response = make_response(
