@@ -9,6 +9,23 @@
  if(!chatbox||!head||!character||!messages||document.getElementById("smi-command-centre"))return;
  const marker=document.createComment("original SMI character position");
  character.parentNode.insertBefore(marker,character);
+ const presenceActions=document.createElement("nav");
+ presenceActions.className="smi-presence-actions";
+ presenceActions.setAttribute("aria-label","SMI character controls");
+ for(const [label,target] of [["💬 Chat","messages"],["＋ Tools","plus-button"],["⚔️ War Room","war-room"]]){
+  const button=document.createElement("button");button.type="button";button.textContent=label;
+  button.addEventListener("click",()=>{
+   if(target==="messages"){
+    if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+    document.getElementById("message")?.focus();return;
+   }
+   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+   if(target==="war-room")document.querySelector('#attach-menu [data-oap-action="war-room"]')?.click();
+   else document.getElementById(target)?.click();
+  });
+  presenceActions.append(button);
+ }
+ character.append(presenceActions);
  const actionHost=head.querySelector(".chat-head-actions")||head;
  const toggle=document.createElement("button");
  toggle.type="button";toggle.className="smi-command-toggle";
