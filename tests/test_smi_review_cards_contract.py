@@ -18,3 +18,14 @@ def test_review_styles_are_scoped_and_mobile_safe():
     for required in (".msg.assistant", "overflow-x:auto", ".receipt-card", "prefers-reduced-motion", "@media(max-width:600px)"):
         assert required in css
     assert "display:none" not in css
+
+def test_styles_target_the_actual_smi_message_renderer():
+    renderer = (ROOT / "mission_control/static/smi_chat_final.js").read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    for actual in ("md-h", "md-p", "md-list", "md-quote", "code-block", "md-inline-code", "md-link"):
+        assert actual in renderer
+        assert actual in css
+    assert ".msg.receipt-card" in css
+    assert ".smi-command-centre{" not in css
+    assert ".composer{" not in css
+    assert ".attach-menu{" not in css
