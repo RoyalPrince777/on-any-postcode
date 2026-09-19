@@ -84,6 +84,8 @@ def test_stop_is_visible_outside_picture_and_mobile_controls_are_touch_sized():
     assert 'for(const id of ["code-button","speaker-button","pause-button","stop-button"])' in JS
     assert 'panel.querySelector(".smi-command-top").append(safetyTools)' in JS
     assert 'smi-command-safety-tools #stop-button' in CSS
+    assert 'display:grid!important;place-items:center!important;' in CSS
+    assert 'width:44px!important;height:44px!important;min-width:44px!important' in CSS
     assert 'height:44px!important' in CSS
     assert 'font-size:16px!important' in CSS
     assert 'bottom:calc(126px + env(safe-area-inset-bottom))' in CSS
