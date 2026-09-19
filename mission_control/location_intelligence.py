@@ -232,7 +232,17 @@ def weather(latitude: object, longitude: object) -> dict[str, Any]:
     )
     current = payload.get("current")
     daily = payload.get("daily")
-    if not isinstance(current, dict) or not isinstance(daily, dict):
+    if (
+        not isinstance(current, dict)
+        or not isinstance(daily, dict)
+        or not str(current.get("time") or "").strip()
+        or current.get("weather_code") is None
+    ):
+        # A structurally valid JSON response is not a valid weather observation.
+        # _json records transport success; revoke it before reporting source health.
+        with _PROVIDER_STATE_LOCK:
+            _PROVIDER_SUCCESS.pop("api.open-meteo.com", None)
+            _PROVIDER_ERROR["api.open-meteo.com"] = "invalid_weather_response"
         raise LocationUnavailable("invalid_weather_response")
     observation = {
         "temperature": current.get("temperature_2m"),
