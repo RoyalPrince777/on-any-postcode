@@ -1,0 +1,20 @@
+/* Additive War Room presentation for SMI chat. No message rewriting or execution. */
+:root{--smi-review-purple:#a78bfa;--smi-review-border:rgba(167,139,250,.38);--smi-review-bg:rgba(90,65,140,.10)}
+.msg.assistant{overflow-wrap:anywhere}
+.msg.assistant :is(h1,h2,h3){letter-spacing:-.025em;line-height:1.22}
+.msg.assistant h1{font-size:clamp(1.35rem,3vw,1.9rem)}
+.msg.assistant h2{font-size:clamp(1.18rem,2.5vw,1.55rem);border-bottom:1px solid var(--smi-review-border);padding-bottom:.4em}
+.msg.assistant h3{font-size:1.07rem}
+.msg.assistant :is(blockquote,pre){max-width:100%;overflow-x:auto}
+.msg.assistant blockquote{border-left:3px solid var(--smi-review-purple);background:var(--smi-review-bg);padding:.7rem .85rem;border-radius:0 12px 12px 0;margin:.8em 0}
+.msg.assistant table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:.85em 0;font-variant-numeric:tabular-nums}
+.msg.assistant :is(th,td){border:1px solid var(--smi-review-border);padding:.55rem .7rem;text-align:left;vertical-align:top}
+.msg.assistant th{background:var(--smi-review-bg)}
+.msg.assistant :is(ul,ol){padding-left:1.35em}
+.msg.assistant :is(li,p){line-height:1.65}
+.msg.assistant hr{border:0;border-top:1px solid var(--smi-review-border);margin:1.2rem 0}
+.msg.assistant :is(code,pre){font-variant-ligatures:none}
+.msg.assistant a{overflow-wrap:anywhere}
+.receipt-card{border:1px solid var(--smi-review-border);border-radius:15px;background:var(--smi-review-bg)}
+@media(max-width:600px){.msg.assistant :is(th,td){padding:.4rem .48rem}.msg.assistant h1{font-size:1.35rem}.msg.assistant h2{font-size:1.18rem}}
+@media(prefers-reduced-motion:reduce){.msg.assistant *{scroll-behavior:auto!important}}
