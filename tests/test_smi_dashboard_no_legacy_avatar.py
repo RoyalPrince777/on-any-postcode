@@ -92,6 +92,8 @@ def test_stop_is_visible_outside_picture_and_mobile_controls_are_touch_sized():
 
 
 def test_no_artwork_gives_visible_fail_closed_real_input():
+    # Start in visible-fallback mode until the real first-party PNG finishes loading.
+    assert JS.index('document.body.classList.add("smi-art-error")') < JS.index("wallpaper.onload=()=>{")
     assert 'panel.classList.add("smi-art-error")' in JS
     assert 'panel.classList.remove("smi-art-error")' in JS
     assert 'no substitute character shown' in JS
