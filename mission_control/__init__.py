@@ -34,6 +34,7 @@ def init_app(app: Flask) -> None:
         link_signalling,
         link_turn,
         link_voice,
+        link_youth_safety,
         linkup_safety,
         movement_match_safety,
         movement_operations,
@@ -184,6 +185,36 @@ def init_app(app: Flask) -> None:
                         "event": "oap_link_message_sync_migration",
                         "success": False,
                         "error": "link_message_sync_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LINK_YOUTH_GUARD_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            youth_status = link_youth_safety.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_youth_guard_migration",
+                        "success": bool(youth_status.get("applied")),
+                        "schema_version": youth_status.get("version"),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_youth_guard_migration",
+                        "success": False,
+                        "error": "link_youth_guard_migration_failed",
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -685,6 +716,18 @@ def init_app(app: Flask) -> None:
     def _oap_init_link_message_sync(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(link_message_sync.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-link-youth-guard-status")
+    def _oap_link_youth_guard_status() -> None:
+        import json
+        print(json.dumps(link_youth_safety.status()))
+
+    @app.cli.command("oap-init-link-youth-guard")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_youth_guard(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_youth_safety.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-link-share-status")
     def _oap_link_share_status() -> None:
