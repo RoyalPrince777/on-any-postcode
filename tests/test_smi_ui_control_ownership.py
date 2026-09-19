@@ -65,7 +65,7 @@ def test_all_master_tool_actions_have_handlers():
         "github-governed",
     }
     for action in actions:
-        assert f"id==='{{action}}'" in final
+        assert f"id==='{action}'" in final
     for connector in connectors:
         assert connector in {"render", "github", "neon"}
     assert "qa('[data-connector-id]').forEach" in final
