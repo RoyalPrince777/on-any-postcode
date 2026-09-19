@@ -162,6 +162,36 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    if os.environ.get("OAP_LINK_MESSAGE_SYNC_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            sync_status = link_message_sync.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_message_sync_migration",
+                        "success": bool(sync_status.get("applied")),
+                        "schema_version": sync_status.get("version"),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_link_message_sync_migration",
+                        "success": False,
+                        "error": "link_message_sync_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
     if os.environ.get("OAP_LINK_SHARE_MIGRATION_ON_BOOT", "").strip() == "1":
         try:
             share_status = link_share.init_schema(assume_yes=True)
@@ -643,6 +673,18 @@ def init_app(app: Flask) -> None:
         if not yes:
             raise click.ClickException("explicit_confirmation_required")
         print(link_presence.purge_expired())
+
+    @app.cli.command("oap-link-message-sync-status")
+    def _oap_link_message_sync_status() -> None:
+        import json
+        print(json.dumps(link_message_sync.status()))
+
+    @app.cli.command("oap-init-link-message-sync")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_message_sync(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(link_message_sync.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-link-share-status")
     def _oap_link_share_status() -> None:
