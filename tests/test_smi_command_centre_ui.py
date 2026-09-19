@@ -26,7 +26,7 @@ class CommandCentreUITest(unittest.TestCase):
     def test_health_truth_is_fail_closed(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn("data.checks[key]===true", source)
-        self.assertIn('state.textContent="Not proven"', source)
+        self.assertIn('state.textContent=proven?"Proven by check":"Not proven"', source)
         self.assertIn('state.textContent="Unavailable"', source)
         self.assertIn('credentials:"same-origin"', source)
 
