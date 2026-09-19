@@ -443,7 +443,8 @@ def test_private_auth_is_password_only_and_has_no_web_signup(
         "/auth?next=/the-spot/market"
     ).get_data(as_text=True)
 
-    assert "open to browse without an account or password" in founder_page
+    assert "open to browse without an account or password" not in founder_page
+    assert "open to browse without an account or password" in business_page
     assert "Private password" in founder_page
     assert 'name="email"' not in founder_page
     assert 'type="email"' not in founder_page
