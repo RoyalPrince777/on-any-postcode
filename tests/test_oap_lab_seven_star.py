@@ -41,10 +41,14 @@ def _render_chat(anonymous_client):
         )
 
 
-def test_truth_default_founder_entry_reaches_chat(anonymous_client):
-    page = anonymous_client.get("/auth")
-    assert page.status_code == 200
-    body = page.get_data(as_text=True)
+def test_truth_dedicated_founder_entry_reaches_chat_without_public_leak(anonymous_client):
+    generic = anonymous_client.get("/auth")
+    assert generic.status_code == 200
+    assert "/mission/ollama" not in generic.get_data(as_text=True)
+
+    dedicated = anonymous_client.get("/auth?next=/mission/ollama")
+    assert dedicated.status_code == 200
+    body = dedicated.get_data(as_text=True)
     assert 'name="next" value="/mission/ollama"' in body
     assert 'name="password" type="password"' in body
     assert 'name="csrf_token"' in body
