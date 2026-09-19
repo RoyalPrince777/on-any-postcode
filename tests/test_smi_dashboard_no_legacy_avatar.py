@@ -107,3 +107,16 @@ def test_baked_status_is_covered_by_real_evidence_not_fake_green():
     assert 'setRoom(roomGates.get("founder"),false' in JS
     assert '.smi-image-control-surface>.smi-room-status' in CSS
     assert 'background:#020c1ef9!important' in CSS
+
+
+def test_android_keyboard_and_bfcache_restore_the_same_canonical_composer():
+    assert 'window.visualViewport.addEventListener("resize",alignApprovedBar)' in JS
+    assert 'window.visualViewport.addEventListener("scroll",alignApprovedBar)' in JS
+    assert 'window.addEventListener("pageshow",event=>' in JS
+    assert 'if(event.persisted)' in JS
+    assert 'if(sceneObserver)sceneObserver.observe(scene)' in JS
+    assert 'if(sceneObserver)sceneObserver.disconnect()' in JS
+    assert 'setOpen(true);' in JS
+    assert 'alignApprovedBar();' in JS
+    assert 'document.body.append(aligned)' in JS
+    assert BASE.count('id="chat-form"') == 1
