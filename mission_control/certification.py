@@ -213,8 +213,8 @@ def labels_for_identities(identity_ids: list[object]) -> dict[str, list[str]]:
         name = role_to_name.get(str(role_id))
         if name:
             result.setdefault(str(identity_id), []).append(name)
-    for identity_id in result:
-        result[identity_id].sort()
+    for _, names in result.items():
+        names.sort()
     return result
 
 
