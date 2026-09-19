@@ -60,7 +60,7 @@ ops.innerHTML=
   '<div class="smi-chat-op" data-op="intelligence"><span class="smi-dot purple"></span><strong>Intelligence</strong><small>CHECKING</small></div>'+
   '<div class="smi-chat-op" data-op="war-room"><span class="smi-dot purple"></span><strong>War Room</strong><small>CHECKING</small></div>'+
   '<div class="smi-chat-op" data-op="green-gate"><span class="smi-dot purple"></span><strong>Green Gate</strong><small>CHECKING</small></div>';
-head.insertAdjacentElement('afterend',ops);
+(q('#thinking')||head).insertAdjacentElement('afterend',ops);
 
 const actionHost=q('.chat-head-actions');
 const auto=document.createElement('button');
