@@ -709,8 +709,16 @@ def _auth_page_response(
     next_path: str = "/my-world",
 ):
     founder_only = _founder_only_path(next_path)
-    auth_ready = neon_auth.status()["valid"] and (
-        not founder_only or bool(neon_auth.configured_founder_email())
+    local_founder_ready = founder_only and neon_auth.local_founder_ready()
+    auth_ready = (
+        local_founder_ready
+        or (
+            neon_auth.status()["valid"]
+            and (
+                not founder_only
+                or bool(neon_auth.configured_founder_email())
+            )
+        )
     )
     response = make_response(
         render_template(
@@ -902,12 +910,13 @@ def auth_sign_in():
             ),
             next_path=next_path,
         )
+    local_founder_ready = founder_only and neon_auth.local_founder_ready()
     email = (
         neon_auth.configured_founder_email()
         if founder_only
         else _form_text("email", "", 320).lower()
     )
-    if not email:
+    if not email and not local_founder_ready:
         return _auth_page_response(
             status_code=503 if founder_only else 400,
             error=(
@@ -925,7 +934,11 @@ def auth_sign_in():
             next_path=next_path,
         )
     try:
-        result = neon_auth.sign_in(email, password)
+        result = (
+            neon_auth.sign_in_founder(password)
+            if founder_only
+            else neon_auth.sign_in(email, password)
+        )
     except neon_auth.AuthUnavailable:
         return _auth_page_response(
             status_code=503,
