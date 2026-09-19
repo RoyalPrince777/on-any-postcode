@@ -32,3 +32,37 @@ OAP Lab is the research, discovery and engineering home; Human Lab is one divisi
 
 ## OAP Lab result
 This is a real research dossier and explicit experimental protocol, not a claim that the Lab dashboard, restore automation, ChatGPT-to-SMI sync, live memory proof, or 25% gate is deployed or green. The governed receipt-status correction is committed and CI-passed in this draft PR, but remains unmerged and undeployed.
+
+## SMI 21x War Room — incident review (21 checks, one locked 25% stage)
+
+Evidence classes: PROVEN = direct connector/query/result; OPEN = requires further proof; FAIL = documented adverse event; NOT RUN = no claim of execution. Twenty-one checks are 21 scrutiny passes, **not** 21 sequential deployment gates, 21 independent model judges, or a claimed numeric success score. Three-pass quick mode and seven-pass deep dive are available subsets of this same evidence set. The canonical seven-judge registry and the separate full intelligence-lens catalogue remain intact.
+
+| # | War Room check | Current finding / dissent | State |
+|---|---|---|---|
+| 01 | Truth-Light | Original default branch and endpoint restored; recovery completion is unproven. | PROVEN / OPEN |
+| 02 | Evidence | Snapshot ID, original and derived branch IDs, endpoint ID, counts and hashes recorded; no full incident request log. | PROVEN / OPEN |
+| 03 | Gap | Live SMI HRM database host/project identity not independently matched. | OPEN |
+| 04 | SWOT | Snapshot preserves a checkpoint; implicit finalize moved production, a serious recovery-control weakness. | PROVEN / FAIL |
+| 05 | Risk | Potential missed or split writes during 09:43–09:45 UTC; no-loss claim prohibited. | OPEN |
+| 06 | Dependency | Render SMI, Neon HRM, Render Postgres fallback, receipt SQLite fallback must be distinguished. | OPEN |
+| 07 | Architecture | OAP Lab is evidence/research; SMI brain, Matrix simulation, War Room and Founder authority remain separate. | PROVEN (design) |
+| 08 | Alignment | Existing four equal 25% gates retained; no new stage, no duplicate memory/approval system. | PROVEN (design) |
+| 09 | Security | No credentials in dossier; avoid exposing database URLs or payloads in a proof. | PROVEN (review boundary) |
+| 10 | Privacy | Aggregate counts/digests only; raw HRM and user records not copied into PR. | PROVEN (review boundary) |
+| 11 | Performance | Compute/endpoint swap may have briefly interrupted requests; lack of logs is not availability proof. | OPEN |
+| 12 | Resilience | Original branch restored as default, original endpoint reattached; derived branch kept non-default. | PROVEN (control-plane) |
+| 13 | UX | Never render snapshot-created or CI-passed as 25% recovered; show incident blocked. | PROVEN (contract), NOT RUN (UI) |
+| 14 | Behaviour | Correct prior inaccurate “no branch replaced” claim and retain incident in receipts/audit. | PROVEN (documented correction) |
+| 15 | Data | Original four-table counts: 13 HRM receipts, 31 memories, 4 conversations, 12 evidence receipts; current digests stable. | PROVEN (sampled), OPEN (missing writes) |
+| 16 | Scenario | Re-run only a reviewed non-finalizing isolated simulation; no repeated implicit-finalize restore. | NOT RUN |
+| 17 | Impact | Potential short connection interruption; affected user requests not established. | OPEN |
+| 18 | Priority | Preserve original branch, original endpoint, snapshot and all available logs before unrelated features. | PROVEN (priority decision) |
+| 19 | Opportunity | Receipt passive GET and explicit Founder CSRF POST proof landed in draft CI-tested code, not deployed. | PROVEN (branch), NOT RUN (live) |
+| 20 | Readiness | CI passes draft code but does not prove production recoverability or live memory source. | OPEN |
+| 21 | Decision & judgement | HOLD 25% 🔴; 50/75/100 not entered; Founder final after verified recovery. | FAIL-CLOSED |
+
+### Seven-judge challenge / dissent register
+The canonical seven judges are review lenses, not seven executed independent models. Apply Shere Khan (adversarial promotion/finalize path), Bagheera (evidence sufficiency), Agent Smith (endpoint-swap escape), Lion (human authority), Morpheus (alternate recovery scenarios), Akela (dependency/pack coordination), and Owl (continuity and audit history) to the same 21-check dossier. **Judges were assigned review questions in this document, not executed as a live model run.** Any later live judge result must carry a real timestamp, version, receipt, dissent and Founder decision.
+
+### Exit conditions
+Only reconsider the 25% gate after (a) matched secret-safe identity of authoritative live store(s), (b) incident-window write/receipt reconciliation or explicit documented irreducible uncertainty, (c) approved snapshot/backups for every authoritative store, (d) a truly isolated non-finalizing restore with verified readback AND no production endpoint movement, (e) any incident impact and rollback audits, and (f) reviewed CI + live production evidence + Founder final. No 21/21 score or percentage is inferred from the checklist.
