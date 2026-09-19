@@ -196,6 +196,8 @@ def respond(recipient_id: object, relationship_id: object, decision: object) -> 
                 (choice, choice, relationship, recipient),
             ).fetchone()
             connection.commit()
+    except ValueError:
+        raise
     except Exception as exc:
         raise LinkRelationshipsUnavailable("link_response_failed") from exc
     return row is not None
