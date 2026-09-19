@@ -7,6 +7,7 @@ It records proof metadata only and grants no execution or approval authority.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import sqlite3
@@ -14,6 +15,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 DEFAULT_DB_PATH = "/tmp/oap_smi_receipts.sqlite3"
 ALLOWED_RECEIPT_KINDS = {
@@ -282,26 +284,27 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _latest_postgres(limit: int) -> tuple[dict[str, Any], ...]:
-    with _connect_postgres() as connection:
-        _init_postgres_schema(connection)
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
-                       guardian, green_gate, founder_final, created_at
-                FROM smi_evidence_receipts
-                ORDER BY created_at DESC
-                LIMIT %s
-                """,
-                (limit,),
-            )
-            rows = cursor.fetchall()
+    with _connect_postgres() as connection, connection.cursor() as cursor:
+        cursor.execute("SET TRANSACTION READ ONLY")
+        cursor.execute(
+            """
+            SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
+                   guardian, green_gate, founder_final, created_at
+            FROM smi_evidence_receipts
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        rows = cursor.fetchall()
     return tuple(dict(row) for row in rows)
 
 
 def _latest_sqlite(limit: int) -> tuple[dict[str, Any], ...]:
-    with _connect_sqlite() as connection:
-        _init_sqlite_schema(connection)
+    # SQLite's normal connector and schema initializer create files/tables.
+    # Status reads must never create either on a missing fallback store.
+    with sqlite3.connect(Path(_db_path()).resolve().as_uri() + "?mode=ro", uri=True) as connection:
+        connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """
             SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
@@ -328,10 +331,16 @@ def latest_receipts(limit: int = 20) -> dict[str, Any]:
             backend = "independent_hrm_postgres"
             durable = True
         except Exception:  # noqa: BLE001
-            rows = _latest_sqlite(safe_limit)
             fallback_used = True
+            try:
+                rows = _latest_sqlite(safe_limit)
+            except (sqlite3.Error, OSError):
+                rows = ()
     else:
-        rows = _latest_sqlite(safe_limit)
+        try:
+            rows = _latest_sqlite(safe_limit)
+        except (sqlite3.Error, OSError):
+            rows = ()
     return {
         "name": "SMI Evidence Receipts",
         "backend": backend,
@@ -418,12 +427,26 @@ def behaviour_progress(limit: int = 20) -> dict[str, Any]:
     }
 
 
+def _configured_hrm_host_fingerprint() -> str | None:
+    """Fingerprint only the actual receipt-writer host; never return its URL."""
+
+    try:
+        hostname = (urlsplit(_hrm_database_url()).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return None
+    if not hostname:
+        return None
+    return hashlib.sha256(hostname.encode("utf-8")).hexdigest()
+
+
 def backend_configuration_status() -> dict[str, Any]:
     """Return configuration state without making a DB connection or leaking secrets."""
 
     durable_configured = bool(_hrm_database_url())
     return {
         "durable_backend_configured": durable_configured,
+        "hrm_host_sha256": _configured_hrm_host_fingerprint(),
+        "live_store_identity_proven": False,
         "preferred_backend": "independent_hrm_postgres" if durable_configured else "local_sqlite_receipt_store",
         "fallback_backend": "local_sqlite_receipt_store",
         "fallback_is_durable": False,
@@ -445,14 +468,21 @@ def receipt_backend_status() -> dict[str, Any]:
             "safe_payload": {"probe": True, "external_action": False},
         },
     )
+    durable_ready = bool(
+        probe.get("ok")
+        and probe.get("read_back_ok")
+        and probe.get("durable")
+        and not probe.get("fallback_used")
+        and probe.get("backend") == "independent_hrm_postgres"
+    )
     return {
         "name": "SMI Receipt Backend Status",
         "receipt_backend": probe["backend"],
         "write_read_proof": probe,
-        "hrm_receipt_ready": bool(probe["ok"]),
-        "matrix_learning_receipt_ready": bool(probe["ok"]),
-        "ecosystem_outcome_receipt_ready": bool(probe["ok"]),
-        "independent_durable_hrm_ready": bool(probe.get("ok") and probe.get("durable")),
+        "hrm_receipt_ready": durable_ready,
+        "matrix_learning_receipt_ready": durable_ready,
+        "ecosystem_outcome_receipt_ready": durable_ready,
+        "independent_durable_hrm_ready": durable_ready,
         "neon_mirror_ready": False,
         "neon_mirror_reason": "Neon is optional as a mirror; independent HRM durability is authoritative when configured and proven.",
         "full_system_green": False,
