@@ -1,5 +1,3 @@
-import importlib
-
 from flask import Flask, request
 from werkzeug.test import Client
 from werkzeug.wrappers import Response as WerkzeugResponse
