@@ -114,15 +114,33 @@
       time.textContent = message.created_at || "now";
       meta.appendChild(time);
 
-      const stateNode = document.createElement("span");
-      stateNode.dataset.oapMessageState = "";
-      stateNode.dataset.messageId = message.message_id;
-      stateNode.dataset.state = message.state || "received";
-      stateNode.textContent =
-        message.direction === "sent"
-          ? (message.state === "seen" ? "Seen" : "Landed")
-          : "Incoming";
-      meta.appendChild(stateNode);
+      if (message.direction === "sent") {
+        const stateNode = document.createElement("span");
+        stateNode.dataset.oapMessageState = "";
+        stateNode.dataset.messageId = message.message_id;
+        stateNode.dataset.state = message.state || "landed";
+        stateNode.textContent = message.state === "seen" ? "Seen" : "Landed";
+        meta.appendChild(stateNode);
+      } else {
+        const seenButton = document.createElement("button");
+        seenButton.type = "button";
+        seenButton.className = "linkup-icon-btn";
+        seenButton.textContent = "Seen";
+        seenButton.addEventListener("click", async () => {
+          try {
+            const result = await apiJson(
+              `/linkup/messages/${encodeURIComponent(message.message_id)}/seen`,
+              { method: "POST", body: "{}" },
+            );
+            if (result.state === "seen") {
+              seenButton.replaceWith(document.createTextNode("Seen"));
+            }
+          } catch (_error) {
+            seenButton.textContent = "Try again";
+          }
+        });
+        meta.appendChild(seenButton);
+      }
       item.appendChild(meta);
       host.appendChild(item);
       host.scrollTop = host.scrollHeight;
