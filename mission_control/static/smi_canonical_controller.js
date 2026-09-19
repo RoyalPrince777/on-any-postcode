@@ -212,7 +212,7 @@ async function oapSubmit(options={}){
   }
   if(streamError)throw streamError;if(!completeResult)throw new Error('The governed response did not finish recording.');
   conversationId=completeResult.conversation_id;if(!assistantBody)assistantBody=add(completeResult.response,'assistant');else renderMessage(assistantBody,completeResult.response);
-  const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
+  const workedFor=oapEndWork();const resolvedLabel=completeResult.auto_selected?(`AUTO → ${completeResult.resolved_depth||'?'}`):(`${String(completeResult.thinking_level||selectedThinkingLevel).replace('_',' ').toUpperCase()}${completeResult.resolved_depth?(' · '+completeResult.resolved_depth):''}`);add(`🧠 ${resolvedLabel} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
   window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));oapSpeak(completeResult.response);clearAttachments();oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');await loadConversations();
  }catch(error){if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
  finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}
@@ -282,5 +282,5 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&oapRuntime
 oapRenderCharacter();oapUpdateLiveToggle();
 oapAddCaptureOptions();
 window.OAP_SMI_LIVE_PROOF={snapshot:oapProofSnapshot,privacy:{storesAudio:false,storesTranscript:false}};
-window.OAP_SMI_CANONICAL={version:'2.1',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,runtimeProofLedger:true,resultStreamOnly:true};
+window.OAP_SMI_CANONICAL={version:'2.2',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,runtimeProofLedger:true,resultStreamOnly:true};
 })();

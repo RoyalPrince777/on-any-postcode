@@ -737,7 +737,9 @@ def chat(
                         "coherence": coherence,
                         "code_proposal": code_mode,
                         "thinking_level": level,
-                        "studio_mode": bool(studio_mode),
+                        "resolved_depth": resolved_depth,
+                        "studio_mode": resolved_studio_mode,
+                        "auto_selected": bool(brain.get("auto_selected")),
                     }
                 ),
                 json.dumps(processing_states),
@@ -827,6 +829,10 @@ def chat(
         "signal_level": brain["signal_level"],
         "authority": brain["authority"],
         "war_room": brain["war_room"],
+        "thinking_level": level,
+        "resolved_depth": resolved_depth,
+        "studio_mode": resolved_studio_mode,
+        "auto_selected": bool(brain.get("auto_selected")),
         "can_execute": False,
         "adaptive": {"active": True, "hrm_lessons": len(adaptive_memory)},
         "media": {

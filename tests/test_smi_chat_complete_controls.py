@@ -11,14 +11,24 @@ def test_smi_chat_control_surface_is_permanent():
         'id="speaker-button"',
         'id="thinking-level"',
         'value="auto"',
+        'value="manual"',
         'value="instant"',
         'value="think"',
         'value="deep_dive"',
+        'value="war_room"',
         'data-connector-id="render"',
         'data-connector-id="github"',
         'data-connector-id="neon"',
         'id="studio-button"',
         'data-oap-action="war-room"',
+        'data-oap-action="button-proof"',
+        'data-oap-action="signals-21"',
+        'data-oap-action="guardian"',
+        'data-oap-action="routes"',
+        'data-oap-action="brain"',
+        'data-oap-action="agents"',
+        'data-oap-action="infrastructure"',
+        'data-oap-action="judgement"',
         'data-oap-action="function-health"',
         'data-oap-action="green-gate"',
         'data-oap-action="hrm"',
@@ -37,6 +47,9 @@ def test_smi_feedback_and_studio_routes_are_exposed():
     assert '@bp.get("/studio/status")' in views
     assert "feedbackUrl:" in wrapper
     assert "studioStatusUrl:" in wrapper
+    assert "studioGenerateUrl:" in wrapper
+    assert "studioVideoStatusUrlTemplate:" in wrapper
+    assert "studioVideoContentUrlTemplate:" in wrapper
 
 
 def test_smi_runtime_modes_reach_governed_brain_context():
@@ -239,3 +252,14 @@ def test_function_health_tracks_interaction_certification_without_fake_green():
         "runtime-controls",
     }
     assert all(item["state"] == "purple" for item in result["surfaces"])
+
+
+def test_smi_auto_result_exposes_safe_resolved_depth():
+    core = (ROOT / "mission_control" / "smi_chat_runtime_core.py").read_text()
+    facade = (ROOT / "mission_control" / "smi_chat_runtime.py").read_text()
+    canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text()
+    assert '"resolved_depth": resolved_depth' in core
+    assert '"auto_selected": bool(brain.get("auto_selected"))' in core
+    assert 'enriched["requested_thinking_level"]' in facade
+    assert 'enriched["resolved_depth"]' in facade
+    assert "AUTO →" in canonical
