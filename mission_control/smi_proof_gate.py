@@ -22,8 +22,8 @@ from . import (
     embodiment,
     embodiment_isolation,
     hrm_durable_receipt,
-    smi_cancellation,
     postgres_db,
+    smi_cancellation,
     telemetry,
 )
 from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
