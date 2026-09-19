@@ -141,12 +141,18 @@
   aligned.style.setProperty("--smi-image-scale",String(scale));
  }
  alignApprovedBar();
+ let sceneObserver=null;
  if(window.ResizeObserver){
-  const observer=new ResizeObserver(alignApprovedBar);
-  observer.observe(scene);
-  window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
+  sceneObserver=new ResizeObserver(alignApprovedBar);
+  sceneObserver.observe(scene);
  }
  window.addEventListener("resize",alignApprovedBar);
+ // Android's visual viewport can move during keyboard, address-bar and zoom
+ // changes without a reliable layout-viewport resize event.
+ if(window.visualViewport){
+  window.visualViewport.addEventListener("resize",alignApprovedBar);
+  window.visualViewport.addEventListener("scroll",alignApprovedBar);
+ }
  if(cfg.approvedWallpaperUrl){
   const wallpaper=new Image();
   wallpaper.onload=()=>{
@@ -347,7 +353,19 @@
   stateLabel.textContent="SMI · "+panel.dataset.presenceState;
   // Live voice stays within the same approved dashboard; do not expose old art.
  });
- window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
+ window.addEventListener("pagehide",()=>{
+  if(sceneObserver)sceneObserver.disconnect();
+  if(active)setOpen(false);
+ });
+ // BFCache restores the SAME document: scripts do not rerun, so restore
+ // the reparented real composer, live dashboard and alignment after pageshow.
+ window.addEventListener("pageshow",event=>{
+  if(event.persisted){
+   if(sceneObserver)sceneObserver.observe(scene);
+   setOpen(true);
+   alignApprovedBar();
+  }
+ });
  // The approved full dashboard stays the front door, including Live voice.
  // The old CSS character has been removed and must never act as a fallback.
  setOpen(true);
