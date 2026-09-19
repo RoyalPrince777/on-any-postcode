@@ -717,6 +717,40 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(link_message_sync.init_schema(dry_run=dry_run, assume_yes=yes)))
 
+    @app.cli.command("oap-set-link-age-band")
+    @click.option("--identity-id", required=True)
+    @click.option("--age-band", type=click.Choice(["minor", "adult"]), required=True)
+    @click.option(
+        "--source",
+        type=click.Choice(["verified_record", "human_authority"]),
+        default="human_authority",
+        show_default=True,
+    )
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_set_link_age_band(
+        identity_id: str,
+        age_band: str,
+        source: str,
+        yes: bool,
+    ) -> None:
+        import json
+        if not yes:
+            raise click.ClickException("explicit_confirmation_required")
+        confirmer = authority.configured_identity()
+        if not confirmer:
+            raise click.ClickException("human_authority_identity_not_configured")
+        try:
+            result = link_youth_safety.set_age_band(
+                identity_id,
+                age_band=age_band,
+                confirmed_by_identity_id=confirmer,
+                source=source,
+                human_authority_approved=True,
+            )
+        except Exception as exc:
+            raise click.ClickException(str(exc) or type(exc).__name__) from exc
+        print(json.dumps(result))
+
     @app.cli.command("oap-link-youth-guard-status")
     def _oap_link_youth_guard_status() -> None:
         import json
