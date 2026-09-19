@@ -234,7 +234,9 @@ def sign_in_founder(password: str) -> AuthResult:
 
 
 def sign_in(email: str, password: str) -> AuthResult:
-    if founder_email_allowed(email):
+    if founder_email_allowed(email) or (
+        not str(email or "").strip() and local_founder_ready()
+    ):
         return sign_in_founder(password)
     return _request(
         "/sign-in/email",
