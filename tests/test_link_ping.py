@@ -33,15 +33,14 @@ def test_ping_rejects_invalid_intensity_before_store_access(monkeypatch):
         raise AssertionError("invalid Ping Up intensity must fail closed")
 
 
-def test_ping_ui_and_client_runtime_are_wired():
+def test_ping_runtime_remains_first_party_without_cluttering_primary_linkup():
     page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
     script = Path("static/linkup_ping.js").read_text(encoding="utf-8")
 
-    assert "Ping Up" in page
-    assert "Double Ping" in page
-    assert "Mute Ping" in page
-    assert "data-oap-incoming-pings" in page
-    assert "linkup_ping.js" in page
+    assert "data-oap-ping-control" not in page
+    assert "data-oap-ping-mute" not in page
+    assert "data-oap-incoming-pings" not in page
+    assert "linkup_ping.js" not in page
 
     assert "/linkup/ping/status" in script
     assert "/linkup/ping/incoming" in script
