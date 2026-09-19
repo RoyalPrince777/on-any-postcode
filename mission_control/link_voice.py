@@ -161,6 +161,7 @@ def create_voice(
     duration_ms: object = None,
 ) -> dict[str, object]:
     sender, recipient = _peer_guard(sender_id, recipient_id)
+    link_youth_safety.require_contact_allowed(sender, recipient)
     mime = _guardian_validate(media, mime_type)
     duration = _duration(duration_ms)
     digest = hashlib.sha256(media).hexdigest()
