@@ -107,7 +107,7 @@ def test_drive_camera_is_heading_up_without_rotating_controls():
     assert "lastHeading" in script
     assert "scale(1.08)" in script
     assert "if(driveMode)applyView()" in script
-    assert "roadsSvg.style.transform=rotate" in script
-    assert "routeSvg.style.transform=rotate" in script
+    assert "roadsSvg.style.transform=mapTransform" in script
+    assert "routeSvg.style.transform=mapTransform" in script
     assert 'body[data-map-mode="drive"] .road-label{display:none}' in css
     assert "transform-origin:50% 50%" in css
