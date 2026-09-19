@@ -338,7 +338,21 @@ def canonical_on_any_place():
         end=values.get("to") or "London Bridge",
         profile=values.get("profile") or "driving",
     )
-    return _no_store(make_response(render_template("local_map.html", local_map=local_map)))
+    response = _no_store(make_response(render_template("local_map.html", local_map=local_map)))
+    # Map Intelligence may be embedded only by the same OAP origin inside SMI.
+    # Device geolocation remains browser-consent gated and is not persisted here.
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'self'; frame-ancestors 'self'; "
+        "form-action 'self'; object-src 'none'; img-src 'self' data: blob:; "
+        "media-src 'self' blob:; connect-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+    )
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(self), payment=()"
+    )
+    response.headers["X-OAP-Precise-Location-Stored"] = "false"
+    return response
 
 
 @bp.get("/places")
