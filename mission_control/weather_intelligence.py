@@ -72,6 +72,8 @@ def _advisory_level(*, code: int | None, precipitation: float | None, wind: floa
         return "yellow"
     if code in {45, 48, 51, 53, 55, 56, 57, 61, 63, 66, 71, 73, 77, 80, 81, 85}:
         return "yellow"
+    if code not in _WMO_CONDITIONS:
+        return "unavailable"
     return "green"
 
 
@@ -102,17 +104,20 @@ def enrich(observation: Mapping[str, Any]) -> dict[str, Any]:
             rain_chance=rain_chance,
         ),
         "rain_signal": (
-            "high" if rain_chance is not None and rain_chance >= 70
+            "unavailable" if rain_chance is None else
+            "high" if rain_chance >= 70
             else "possible" if rain_chance is not None and rain_chance >= 35
             else "low"
         ),
         "wind_signal": (
-            "strong" if wind is not None and wind >= 40
+            "unavailable" if wind is None else
+            "strong" if wind >= 40
             else "moderate" if wind is not None and wind >= 20
             else "light"
         ),
         "thermal_signal": (
-            "hot" if temperature is not None and temperature >= 30
+            "unavailable" if temperature is None else
+            "hot" if temperature >= 30
             else "cold" if temperature is not None and temperature <= 5
             else "mild"
         ),

@@ -93,7 +93,11 @@ def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
     """Project verified Weather Intelligence into bounded Earth context."""
 
     weather_signal = weather.get("intelligence")
-    weather_ready = isinstance(weather_signal, Mapping)
+    weather_ready = (
+        isinstance(weather_signal, Mapping)
+        and bool(_text(weather_signal.get("observation_time")))
+        and _text(weather_signal.get("advisory_level")) != "unavailable"
+    )
     return {
         "name": "Earth Intelligence",
         "world_id": "earth",
