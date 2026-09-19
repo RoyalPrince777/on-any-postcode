@@ -98,6 +98,7 @@ function updateFromPosition(pos){
  }
  lastHeading=h;lastPoint=[longitude,latitude];
  placeVehicle(longitude,latitude,h);
+ if(driveMode)applyView();
  const progress=nearestProgress(longitude,latitude);updateTurn(progress);
  if(currentRoute){
    const remain=Math.max(0,(+currentRoute.distance_m||0)*(1-progress));
