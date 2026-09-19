@@ -305,11 +305,13 @@ def _call_bridge(
     adaptive_memory: list[str] | None,
     *,
     code_mode: bool,
+    cancel_check: Callable[[], None] | None = None,
 ) -> str:
     if not BRIDGE_ENABLED:
         raise RuntimeError("home_node_bridge_disabled")
     return home_node_bridge.submit_inference(
-        _payload(message, history, brain, adaptive_memory, code_mode=code_mode)
+        _payload(message, history, brain, adaptive_memory, code_mode=code_mode),
+        cancel_check=cancel_check,
     )
 
 
@@ -369,9 +371,12 @@ def generate(
     *,
     code_mode: bool = False,
     on_delta: Callable[[str], None] | None = None,
+    cancel_check: Callable[[], None] | None = None,
 ) -> str:
     """Route generation local-direct -> outbound bridge -> compatibility fallback."""
 
+    if cancel_check is not None:
+        cancel_check()
     enriched_brain = _enrich_brain(message, brain)
     use_first_party = (
         not image_data
@@ -388,10 +393,14 @@ def generate(
                 adaptive_memory,
                 code_mode=code_mode,
             )
+            if cancel_check is not None:
+                cancel_check()
             if on_delta is not None:
                 on_delta(text)
             return text
         except RuntimeError as exc:
+            if cancel_check is not None:
+                cancel_check()
             first_party_error = exc
         try:
             text = _call_bridge(
@@ -400,15 +409,22 @@ def generate(
                 enriched_brain,
                 adaptive_memory,
                 code_mode=code_mode,
+                cancel_check=cancel_check,
             )
+            if cancel_check is not None:
+                cancel_check()
             if on_delta is not None:
                 on_delta(text)
             return text
         except RuntimeError as exc:
+            if cancel_check is not None:
+                cancel_check()
             first_party_error = exc
+    if cancel_check is not None:
+        cancel_check()
     if not FALLBACK_ENABLED:
         raise RuntimeError("first_party_inference_required") from first_party_error
-    return compatibility_engine(
+    result = compatibility_engine(
         message,
         image_data,
         history,
@@ -418,6 +434,9 @@ def generate(
         code_mode=code_mode,
         on_delta=on_delta,
     )
+    if cancel_check is not None:
+        cancel_check()
+    return result
 
 
 def generate_public(
