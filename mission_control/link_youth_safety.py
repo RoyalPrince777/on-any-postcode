@@ -129,7 +129,7 @@ def status() -> dict[str, Any]:
         result["ready"] = bool(
             table is not None and result["policy_self_test"]["passed"] is True
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - readiness probe must fail closed.
         return result
     return result
 
