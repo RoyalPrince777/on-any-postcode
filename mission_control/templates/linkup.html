@@ -29,6 +29,7 @@
   <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_share.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messages.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='linkup_incoming.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messenger.js') }}" defer></script>
 </head>
 <body>
@@ -149,6 +150,7 @@
       </aside>
 
       <section class="linkup-chat" aria-label="Open chat">
+        <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
         <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
         <div class="linkup-call-stage" data-oap-call-stage hidden>
           <p data-oap-call-stage-label>Call</p>
