@@ -49,15 +49,15 @@
           <a href="{{ url_for('link_message_state.link_circles.circle_page') }}">Circle</a>
           <a href="{{ url_for('the_link_front_door') }}">The Link</a>
         </div>
-        {% if dashboard and dashboard.my_card %}
+        {% if my_card %}
         <section class="linkup-card" aria-label="My Card">
-          <span class="linkup-avatar">{{ dashboard.my_card.display_name[:1]|upper }}</span>
+          <span class="linkup-avatar">{{ my_card.display_name[:1]|upper }}</span>
           <span class="linkup-card-copy">
-            <strong>{{ dashboard.my_card.display_name }}</strong>
-            <small>@{{ dashboard.my_card.username }} · My Card</small>
-            <small class="linkup-card-id">{{ dashboard.my_card.card_id }}</small>
-            {% if dashboard.my_card.borough or dashboard.my_card.country %}
-            <small>{{ dashboard.my_card.borough }}{% if dashboard.my_card.borough and dashboard.my_card.country %} · {% endif %}{{ dashboard.my_card.country }}</small>
+            <strong>{{ my_card.display_name }}</strong>
+            <small>{% if my_card.username %}@{{ my_card.username }} · {% endif %}My Card</small>
+            <small class="linkup-card-id">{{ my_card.card_id }}</small>
+            {% if my_card.borough or my_card.country %}
+            <small>{{ my_card.borough }}{% if my_card.borough and my_card.country %} · {% endif %}{{ my_card.country }}</small>
             {% endif %}
           </span>
         </section>
@@ -69,6 +69,49 @@
           <select data-oap-now-duration aria-label="Status duration"><option value="60">1 hour</option><option value="240" selected>4 hours</option><option value="1440">Today</option></select>
           <button type="submit">Update Now</button>
         </form>
+
+        <section class="linkup-card" aria-label="Link Requests">
+          <span class="linkup-avatar">🔗</span>
+          <span class="linkup-card-copy">
+            <strong>Link Requests</strong>
+            {% if not relationships_ready %}
+            <small>Link Requests are not ready yet. Chat stays locked rather than pretending it works.</small>
+            {% elif relationships %}
+            <small>Manage incoming and outgoing Links below.</small>
+            {% else %}
+            <small>No Link Requests yet. Tap + to find a person and send one.</small>
+            {% endif %}
+          </span>
+        </section>
+        {% if relationships_ready and relationships %}
+          {% for relation in relationships %}
+            {% if relation.status == 'pending' %}
+            <div class="linkup-card">
+              <span class="linkup-avatar">{{ relation.peer_display_name[:1]|upper }}</span>
+              <span class="linkup-card-copy">
+                <strong>{{ relation.peer_display_name }}</strong>
+                <small>{{ relation.peer_card_id }}</small>
+                {% if relation.direction == 'incoming' %}
+                <span class="linkup-new-actions">
+                  <form method="post" action="{{ url_for('link_relationships.respond_request', relationship_id=relation.relationship_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                    <input type="hidden" name="decision" value="accepted">
+                    <button class="mc-primary" type="submit">Accept Link</button>
+                  </form>
+                  <form method="post" action="{{ url_for('link_relationships.respond_request', relationship_id=relation.relationship_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                    <input type="hidden" name="decision" value="declined">
+                    <button class="mc-secondary" type="submit">Decline</button>
+                  </form>
+                </span>
+                {% else %}
+                <small>Link Request sent · Pending</small>
+                {% endif %}
+              </span>
+            </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
 
         {% if private_unavailable %}
           <p class="linkup-empty" role="alert">Link Ups are unavailable.</p>
@@ -165,29 +208,50 @@
             </span>
           </header>
           <div class="linkup-new-panel">
-          {% if dashboard and dashboard.directory %}
-            <form method="post" action="{{ url_for('linkup_send') }}" data-oap-link-composer>
-              <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-              <select id="linkup-recipient" name="recipient_id" required aria-label="Person"><option value="">Choose an OAP member</option>{% for person in dashboard.directory %}<option value="{{ person.identity_id }}">{{ person.display_name }} · @{{ person.username }} · {{ person.card_id }}{% if person.borough %} · {{ person.borough }}{% elif person.postcode %} · {{ person.postcode }}{% endif %}</option>{% endfor %}</select>
-              <div class="linkup-new-actions">
-                <button type="button" disabled data-oap-around-control data-recipient-source="#linkup-recipient">Around Now</button>
-                <button type="button" disabled data-oap-share-spot-control data-recipient-source="#linkup-recipient">My Spot</button>
-                <button type="button" disabled data-oap-live-spot-control data-recipient-source="#linkup-recipient">Live Spot</button>
-                <button type="button" hidden disabled data-oap-live-spot-stop data-recipient-source="#linkup-recipient">Stop Live Spot</button>
-              </div>
-              <div class="linkup-composer">
-                <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
-                <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
-                <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-source="#linkup-recipient" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
-                <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-source="#linkup-recipient" aria-label="Stop Voice">■</button>
-                <button class="mc-primary linkup-send" type="submit">Link</button>
-              </div>
-              <div class="linkup-tray" data-oap-tray data-open="false">
-                <button class="mc-secondary" type="button" disabled data-runtime-locked data-recipient-source="#linkup-recipient" title="Share">{{ motion_icon('share', 'oap-motion-share') }} Share</button>
-                <a class="mc-secondary-link" href="{{ url_for('link_message_state.link_circles.circle_page') }}">Circle</a>
-              </div>
-            </form>
-          {% else %}<p>No one available yet.</p>{% endif %}
+          {% if not relationships_ready %}
+            <p>Link Requests are not ready, so new private chat remains locked.</p>
+          {% elif dashboard and dashboard.directory %}
+            <div class="linkup-card-copy">
+              <strong>Find People</strong>
+              <small>Send a Link Request first. Messaging unlocks only after it is accepted.</small>
+            </div>
+            {% for person in dashboard.directory %}
+            <div class="linkup-card">
+              <span class="linkup-avatar">{{ person.display_name[:1]|upper }}</span>
+              <span class="linkup-card-copy">
+                <strong>{{ person.display_name }}</strong>
+                <small>@{{ person.username }} · {{ person.card_id }}</small>
+                {% if person.borough or person.country %}<small>{{ person.borough }}{% if person.borough and person.country %} · {% endif %}{{ person.country }}</small>{% endif %}
+                {% if person.link_status == 'accepted' %}
+                  <small>🔗 Linked · open from your Link Ups</small>
+                {% elif person.link_status == 'pending' and person.link_direction == 'outgoing' %}
+                  <small>Link Request pending</small>
+                {% elif person.link_status == 'pending' and person.link_direction == 'incoming' %}
+                  <form method="post" action="{{ url_for('link_relationships.respond_request', relationship_id=person.relationship_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                    <input type="hidden" name="decision" value="accepted">
+                    <button class="mc-primary" type="submit">Accept Link</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{{ url_for('link_relationships.create_request') }}">
+                    <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                    <input type="hidden" name="recipient_id" value="{{ person.identity_id }}">
+                    <input type="hidden" name="link_kind" value="permanent">
+                    <button class="mc-primary" type="submit">Send Link Request</button>
+                  </form>
+                {% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          {% else %}
+            <section class="linkup-card">
+              <span class="linkup-avatar">👤</span>
+              <span class="linkup-card-copy">
+                <strong>Your Link Up is ready.</strong>
+                <small>No other OAP members are available in the directory yet. Your My Card is still active above.</small>
+              </span>
+            </section>
+          {% endif %}
           </div>
         </article>
       </section>
