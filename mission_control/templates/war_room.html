@@ -2,6 +2,26 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OAP SMI War Room</title>
 <style>
 :root{--b:#050806;--p:#09110c;--l:#24382b;--t:#f4fff6;--m:#93a79a;--g:#39e57f;--pu:#b795ff;--y:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--b);color:var(--t);font-family:Inter,system-ui,sans-serif}.w{max-width:1120px;margin:auto;padding:18px 13px 82px}.hero,.bar,.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hero{justify-content:space-between}.hero h1{font-size:clamp(2.3rem,7vw,4.4rem);margin:3px 0}.ey{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--g)}.muted{color:var(--m)}.pill,.btn,.chip{border:1px solid var(--l);border-radius:999px;padding:9px 12px;background:#08130d;color:inherit;text-decoration:none;font-weight:850}.btn{cursor:pointer;font:inherit}.btn[disabled]{cursor:not-allowed;opacity:.55}.action-result{margin-top:10px;white-space:pre-wrap}.action-result[data-signal="green"]{border-color:#2c8c52}.action-result[data-signal="yellow"]{border-color:#7a682b}.action-result[data-signal="purple"]{border-color:#7256aa}.pill{border-color:#7256aa;background:#151022}.btn.primary{border-color:#7256aa}.btn:focus{outline:2px solid var(--pu);outline-offset:2px}.grid{display:grid;gap:9px}.status{grid-template-columns:repeat(5,1fr);margin:14px 0}.panel,.card,details{border:1px solid var(--l);background:var(--p);border-radius:14px}.panel{padding:14px;margin-top:10px}.card{padding:11px}.card small{display:block;color:var(--m);margin-top:4px}.purple{border-color:#7256aa}.yellow{border-color:#7a682b}.green{border-color:#2c8c52}.mission{width:100%;padding:13px;border:1px solid var(--l);border-radius:12px;background:#050b07;color:var(--t);font:inherit;font-size:16px}.passes,.stars{grid-template-columns:repeat(7,1fr)}.agents{grid-template-columns:repeat(4,1fr)}.vote{grid-template-columns:2fr repeat(3,1fr)}.truth{border-left:3px solid var(--y);padding:9px 11px;background:#171409;color:#eadfae}.receipt{font-family:ui-monospace,monospace;line-height:1.6;background:#050b07;padding:12px;border-radius:12px;border:1px solid var(--l)}.protocol{grid-template-columns:repeat(5,1fr)}.protocol .card{min-height:88px}.signal-row{display:flex;gap:8px;flex-wrap:wrap}.signal{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--l);border-radius:999px;padding:7px 10px;font-weight:850;background:#071009}.meter{height:9px;border-radius:99px;background:#111c14;border:1px solid var(--l);overflow:hidden;margin-top:8px}.meter>span{display:block;height:100%;background:linear-gradient(90deg,var(--pu),var(--g));max-width:100%}.voice-grid{grid-template-columns:repeat(5,1fr)}.voice-grid blockquote{margin:8px 0 0;color:var(--m);font-size:.86rem;line-height:1.4}.review-grid{grid-template-columns:repeat(4,1fr)}.council-grid{grid-template-columns:repeat(7,1fr)}.debate-grid{grid-template-columns:repeat(4,1fr)}details{margin-top:10px}summary{cursor:pointer;padding:13px;font-weight:850}.inside{padding:0 13px 13px}.bottom{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:7px;padding:8px;background:#050806ef;border-top:1px solid var(--l)}.bottom a{color:inherit;text-decoration:none;border:1px solid var(--l);border-radius:999px;padding:8px 11px;background:#08130d;font-weight:800;font-size:.78rem}@media(max-width:850px){.status,.passes,.stars,.agents,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.status,.passes,.stars,.agents,.vote,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}
+</style><style>
+/* Additive 21x review presentation: existing War Room controls and receipts remain canonical. */
+.review-command{background:linear-gradient(140deg,#121026,#080d1b 65%,#08180e);border:1px solid #7152a5;box-shadow:0 12px 40px #0007}
+.review-command h2{font-size:clamp(1.4rem,4vw,2.2rem);margin:6px 0}
+.review-command .review-note{color:#bbaed5}
+.review-quarters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:14px}
+.review-quarter{border:1px solid #574872;border-radius:13px;background:#101021;padding:12px}
+.review-quarter strong,.review-quarter small{display:block}.review-quarter small{color:#afa5c1;margin-top:6px}
+.review-quarter [data-proof]{color:#f0d17a}.review-quarter .gate-meter{height:6px;background:#29253c;border-radius:99px;margin-top:10px;overflow:hidden}
+.review-quarter .gate-meter span{display:block;height:100%;background:#a27bea;width:0}
+.review-judges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.review-judge{border:1px solid #453655;border-radius:14px;background:#0c0d1b;padding:15px}
+.review-judge h3{margin:0 0 7px;font-size:1rem}.review-judge p{margin:6px 0;color:#c9c0d7;line-height:1.55}
+.review-judge .review-badge{display:inline-block;border:1px solid #7957b2;border-radius:99px;color:#d8baff;padding:4px 8px;font-size:.72rem;font-weight:800}
+.review-judge.founder{border-color:#ab8c41;background:#15120d}
+.review-lenses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.review-lens{border:1px solid #302d45;background:#0c0c17;border-radius:10px;padding:10px}
+.review-lens b{display:block;color:#e5d8fc}.review-lens small{color:#b7adc8}
+.review-truth{border-left:3px solid #b39555;padding:12px;background:#1b1720;color:#e4d8c7;margin-top:12px}
+@media(max-width:760px){.review-quarters,.review-judges,.review-lenses{grid-template-columns:1fr}}
 </style></head><body><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
@@ -29,6 +49,50 @@
 </div>
 <div id="war-action-result" class="receipt action-result" data-signal="purple" role="status" aria-live="polite">🟣 Ready. SMI AUTO runs bounded review checks only; it cannot approve, deploy, spend, dispatch or bypass Founder Final.</div>
 <p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority. This surface performs no production write.</p></section>
+<section class="panel review-command" id="review-21x" aria-labelledby="review-21x-title">
+<div class="ey">🟣 SMI War Room · Additive 21× review</div><h2 id="review-21x-title">Seven judges · 21 lenses · seven-star proof · 👑 Founder Final</h2>
+<p class="review-note">An evidence-first review board layered over the existing councils, controls, vote board, Guardian, recovery proofs and receipts. These are review prompts, not fabricated judge executions or automatic approvals.</p>
+<div class="review-quarters" aria-label="Four-step release gate">
+<div class="review-quarter"><strong>25% · Rollback / Recovery</strong><small>Rollback evidence and safe return path</small><div class="gate-meter"><span></span></div></div>
+<div class="review-quarter"><strong>50% · Runtime Guard</strong><small>Exact deployed revision and runtime health</small><div class="gate-meter"><span></span></div></div>
+<div class="review-quarter"><strong>75% · Aegis Isolation</strong><small>Auth boundaries and real action receipts</small><div class="gate-meter"><span></span></div></div>
+<div class="review-quarter"><strong>100% · Green Gate + 👑</strong><small>All proofs plus Founder Final</small><div class="gate-meter"><span></span></div></div>
+</div><p class="review-truth">No static quarter is pre-coloured green: use the live recovery-proof buttons and Founder Final above for authoritative outcomes. The existing seven-star and vote boards below remain the source of their own evidence.</p>
+<h3>⚖️ Seven canonical judge seats</h3><div class="review-judges">
+<div class="review-judge"><h3>🐅 Shere Khan · Pressure</h3><span class="review-badge">Challenge</span><p><b>Finding:</b> What fails under pressure? <b>Objection:</b> Which claim is overconfident? <b>Gate:</b> Demand independent proof.</p></div>
+<div class="review-judge"><h3>🐆 Bagheera · Protection</h3><span class="review-badge">Control</span><p><b>Finding:</b> Which boundary holds? <b>Objection:</b> What is not reversible? <b>Gate:</b> Preserve safety and recovery.</p></div>
+<div class="review-judge"><h3>🕶 Agent Smith · Integrity</h3><span class="review-badge">Adversarial</span><p><b>Finding:</b> Detect duplicate ownership. <b>Objection:</b> False green or bypass? <b>Gate:</b> Prove the full action chain.</p></div>
+<div class="review-judge"><h3>🦁 Lion · Readiness</h3><span class="review-badge">Proof</span><p><b>Finding:</b> Is the outcome useful? <b>Objection:</b> Missing practical evidence? <b>Gate:</b> Verify delivered value.</p></div>
+<div class="review-judge"><h3>🕶 Morpheus · Truth</h3><span class="review-badge">Rotation</span><p><b>Finding:</b> Separate fact from appearance. <b>Objection:</b> What is unobserved? <b>Gate:</b> No claim without a receipt.</p></div>
+<div class="review-judge"><h3>🐺 Akela · Order</h3><span class="review-badge">Rotation</span><p><b>Finding:</b> Check chain of command. <b>Objection:</b> Competing handlers? <b>Gate:</b> One governed owner per action.</p></div>
+<div class="review-judge"><h3>🦉 Owl · Memory & Law</h3><span class="review-badge">Rotation</span><p><b>Finding:</b> Trace prior decisions. <b>Objection:</b> Missing audit or regression evidence? <b>Gate:</b> Retain receipts and dissent.</p></div>
+<div class="review-judge founder"><h3>👑 Founder · Human Authority</h3><span class="review-badge">Final authority · not an eighth judge</span><p>Review the seven seats, Guardian, Green Gate, minority report and receipts. No council vote or visual status replaces Founder Final.</p></div>
+</div>
+<h3>🔎 21 review lenses · three passes of seven</h3>
+<div class="review-lenses">
+<div class="review-lens"><b>01 Truth</b><small>What is directly known?</small></div>
+<div class="review-lens"><b>02 Evidence</b><small>Where is the receipt?</small></div>
+<div class="review-lens"><b>03 Gap</b><small>What is not yet proven?</small></div>
+<div class="review-lens"><b>04 SWOT</b><small>Strength, weakness, opportunity, threat</small></div>
+<div class="review-lens"><b>05 Risk</b><small>Failure and severity</small></div>
+<div class="review-lens"><b>06 Dependency</b><small>What must happen first?</small></div>
+<div class="review-lens"><b>07 Architecture</b><small>One owner and bounded path</small></div>
+<div class="review-lens"><b>08 Alignment</b><small>OAP DNA and approved direction</small></div>
+<div class="review-lens"><b>09 Security</b><small>Auth and fail-closed boundary</small></div>
+<div class="review-lens"><b>10 Privacy</b><small>Least data and consent</small></div>
+<div class="review-lens"><b>11 Performance</b><small>Latency and load</small></div>
+<div class="review-lens"><b>12 Resilience</b><small>Rollback, retry and recovery</small></div>
+<div class="review-lens"><b>13 UX</b><small>Real mobile and desktop use</small></div>
+<div class="review-lens"><b>14 Behaviour</b><small>State follows real actions</small></div>
+<div class="review-lens"><b>15 Data</b><small>Persistence and integrity</small></div>
+<div class="review-lens"><b>16 Scenario</b><small>Normal and adverse cases</small></div>
+<div class="review-lens"><b>17 Impact</b><small>People and product outcome</small></div>
+<div class="review-lens"><b>18 Priority</b><small>Repair before decoration</small></div>
+<div class="review-lens"><b>19 Opportunity</b><small>Upgrade without regression</small></div>
+<div class="review-lens"><b>20 Readiness</b><small>Proof before release</small></div>
+<div class="review-lens"><b>21 Learning</b><small>Feedback and HRM receipt</small></div>
+</div><p class="review-truth">Council views → judge findings → objections → minority report → 7★ and vote evidence → Guardian / Aegis → SMI synthesis → Green Gate → 👑 Founder Final. Unverified steps stay explicitly unverified.</p>
+</section>
 <section class="panel" id="depth-3-7-21"><div class="ey">🟣 SMI AUTO · 3 / 7 / 21 Depth</div><h2>Depth scales with uncertainty, risk and consequence</h2>
 <div class="grid review-grid">
 <div class="card green"><strong>3 · Routine Bounded</strong><small>Fast first-pass review for ordinary, reversible, low-risk work. Minimum necessary agents / lenses; no authority expansion.</small></div>
