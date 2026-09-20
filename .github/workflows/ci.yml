@@ -83,3 +83,21 @@ jobs:
           path: /tmp/oap-pytest.log
           if-no-files-found: error
           retention-days: 1
+
+  # Isolated Chromium run: REAL browser against local OAP pages, TEST-ONLY
+  # identity and SMI stream fixtures. No Founder secrets or production writes.
+  browser_chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install browser test dependencies
+        run: python -m pip install -r requirements.txt playwright==1.55.0
+      - name: Install isolated Chromium browser
+        run: python -m playwright install --with-deps chromium
+      - name: Exercise Founder sign-in, Lab, Plus, upload, Stop and narrow viewport
+        run: python tests/browser_founder_e2e.py
