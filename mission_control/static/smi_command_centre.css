@@ -712,3 +712,12 @@ body.smi-command-open .smi-image-control-surface>.smi-room-status :is(strong,sma
   inset:2px 2px calc(120px + env(safe-area-inset-bottom)) 2px!important
  }
 }
+
+
+/* Chat must own its reading surface. The live evidence overlay is useful over
+   the picture, but cannot sit on top of messages and intercept Chat taps. The
+   canonical Status button still opens first-party evidence on demand. */
+body.smi-command-open.smi-command-chat-visible
+.smi-image-control-surface>.smi-room-status{
+ visibility:hidden!important;pointer-events:none!important
+}
