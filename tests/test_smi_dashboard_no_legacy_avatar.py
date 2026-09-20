@@ -122,3 +122,18 @@ def test_android_keyboard_and_bfcache_restore_the_same_canonical_composer():
     assert 'alignApprovedBar();' in JS
     assert 'document.body.append(aligned)' in JS
     assert BASE.count('id="chat-form"') == 1
+
+
+def test_scene_only_hitboxes_and_chat_tab_recovery():
+    # Absolute picture hitboxes must never float over hidden Anatomy/Evidence.
+    assert 'let active=false;' in JS
+    assert 'let active=false,request=null,roomRequest=null;' not in JS
+    assert 'panel.dataset.mobileView!=="scene"||!width||!height' in JS
+    assert 'aligned.style.visibility="hidden"' in JS
+    assert 'aligned.setAttribute("inert","")' in JS
+    assert 'aligned.style.visibility="visible"' in JS
+    assert 'aligned.removeAttribute("inert")' in JS
+    assert 'panel.dataset.mobileView=tab.dataset.view;' in JS
+    assert 'panel.dataset.mobileView="scene";' in JS
+    assert 'alignApprovedBar();' in JS
+    assert 'button.dataset.view==="scene"' in JS
