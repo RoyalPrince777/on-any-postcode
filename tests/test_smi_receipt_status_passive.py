@@ -396,7 +396,6 @@ def test_recovery_second_connection_failure_keeps_uncertain_id_no_second_write(m
     from mission_control import smi_receipt_backend
 
     calls = []
-    original = smi_receipt_backend._write_postgres
 
     def simulate(*args, **kwargs):
         assert kwargs == {"independent_readback": True}
