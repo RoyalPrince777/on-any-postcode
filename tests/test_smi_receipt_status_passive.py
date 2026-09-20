@@ -42,7 +42,7 @@ def test_receipt_post_requires_csrf_and_runs_explicit_proof(monkeypatch):
     monkeypatch.setattr(
         alignment_views.smi_receipt_backend,
         "receipt_backend_status",
-        lambda: writes.append("proof") or {"durable": True, "read_back_ok": True},
+        lambda **kwargs: writes.append(kwargs) or {"durable": True, "read_back_ok": True},
     )
     monkeypatch.setattr(alignment_views.web_security, "csrf_valid", lambda request: False)
 
@@ -56,7 +56,7 @@ def test_receipt_post_requires_csrf_and_runs_explicit_proof(monkeypatch):
         response = alignment_views.smi_brain_receipts_proof.__wrapped__()
     assert response.status_code == 200
     assert response.get_json()["status"]["read_back_ok"] is True
-    assert writes == ["proof"]
+    assert writes == [{"require_durable": True}]
 
 
 def test_missing_sqlite_fallback_is_not_created_by_status(monkeypatch, tmp_path):
@@ -242,3 +242,65 @@ def test_evidence_runner_catalogue_does_not_write_receipts(monkeypatch):
     assert receipt["matrix_learning_receipt_ready"] is False
     assert receipt["independent_durable_hrm_ready"] is False
     assert result["full_green"] is False
+
+
+def test_durable_proof_blocks_absent_postgres_without_creating_sqlite(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "")
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_write_sqlite",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("durable proof must never create SQLite fallback")
+        ),
+    )
+    proof = smi_receipt_backend.receipt_backend_status(require_durable=True)
+    assert proof["write_read_proof"]["status"] == "blocked_durable_hrm_unconfigured"
+    assert proof["write_read_proof"]["receipt_id"] is None
+    assert proof["hrm_receipt_ready"] is False
+    assert proof["full_system_green"] is False
+
+
+def test_durable_proof_preserves_id_when_postgres_commit_state_unknown(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "configured")
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_write_postgres",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            RuntimeError("synthetic uncertain commit or readback")
+        ),
+    )
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_write_sqlite",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("no ephemeral second writer during recovery proof")
+        ),
+    )
+    proof = smi_receipt_backend.receipt_backend_status(require_durable=True)
+    result = proof["write_read_proof"]
+    assert result["status"] == "durable_commit_or_readback_unconfirmed"
+    assert result["receipt_id"].startswith("smi-")
+    assert result["ok"] is False
+    assert result["read_back_ok"] is False
+    assert result["durable"] is False
+    assert result["fallback_used"] is False
+    assert proof["independent_durable_hrm_ready"] is False
+
+
+def test_ordinary_receipts_retain_existing_sqlite_fallback(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "")
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_write_sqlite",
+        lambda *args, **kwargs: {"backend": "local_sqlite_receipt_store"},
+    )
+    receipt = smi_receipt_backend.write_receipt(
+        "hrm_neon_evidence_receipt", {"safe_payload": {"probe": False}}
+    )
+    assert receipt["backend"] == "local_sqlite_receipt_store"
