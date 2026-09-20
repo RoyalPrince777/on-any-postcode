@@ -21,9 +21,28 @@ These are review lenses inside the existing four quarters; never 21 autonomous a
 7. Learning: exact revision, reproducible evidence, failed cases and corrections are retained.
 
 The seven-star tests in tests/test_oap_lab_seven_star.py cover bounded repository
-and Flask-rendering evidence only. Browser, password-authenticated interaction
-and device testing remain separate evidence requirements. Do not award gold for
-this document, an unrun workflow, or a passing code test alone.
+and Flask-rendering evidence; tests/browser_founder_e2e.py drives real Chromium
+against LOCAL test-only identity and stream fixtures, not the real Founder
+password, real SMI provider, or a physical Android device. Do not award gold for
+this document, an unrun workflow, or a passing code/browser test alone.
+
+## Evidence from 20 September 2026 (controlled environment)
+- CI #35500974050, exact head 492ca1f438fc17b92f3830c272cadb673a29c165:
+  both jobs SUCCESS; 1,518 Python tests; Node async-attachment and Stop
+  replacement-race tests PASS; Chromium Founder flow, narrow viewport, and
+  CSRF/ten-attempt lockout PASS.
+- Chromium used the actual Flask forms/routes, private Lab, Plus picker and
+  browser streaming UI, with local-only authentication and provider fixtures.
+- The executable lockout test exposed a genuine Flask parsed-form fingerprint
+  defect: distinct wrong passwords coalesced and never reached 429. Fixed in
+  mission_control/web_security.py by digesting parsed form fields without
+  retaining/logging the passwords; both form regression and Chromium retest pass.
+- No third-party browser resource requests were observed in the fixture run;
+  browser keyboard Plus/ESC, chat-first reload and narrow viewport passed.
+- Full-experience gold remains 2/7: Truth and Learning. Function, Security,
+  Stability, Integration and Compliance have stronger test evidence, but the
+  separate real-account/provider/physical-device/manual checks and Founder
+  final decision have not been proven here. Do not call them green by proxy.
 
 ## Placement
 OAP Lab is a private Founder workspace containing Research, Matrix/War Room,
