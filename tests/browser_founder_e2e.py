@@ -207,7 +207,12 @@ def main():
                 page = context.new_page()
                 page.set_default_timeout(12000)
                 test_founder_browser(page, origin)
-                test_mobile_browser(context, origin)
+                # The wallpaper route must be tested before login in a clean context.
+                mobile_context = browser.new_context(ignore_https_errors=True)
+                try:
+                    test_mobile_browser(mobile_context, origin)
+                finally:
+                    mobile_context.close()
             finally:
                 browser.close()
     finally:
