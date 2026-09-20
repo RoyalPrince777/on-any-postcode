@@ -188,6 +188,40 @@ def test_mobile_browser(context, origin):
     page.close()
 
 
+
+def test_password_and_csrf_browser(context, origin):
+    # These are actual Flask CSRF and rate-limiter controls with FAKE credentials.
+    page = context.new_page()
+    page.goto(origin + "/auth?next=/mission/ollama")
+    csrf_failure = context.request.post(origin + "/auth/sign-in", data={
+        "next": "/mission/ollama",
+        "password": "wrong-no-csrf",
+    })
+    assert csrf_failure.status == 403, "Form mutation without CSRF must fail"
+
+    from mission_control import web_security
+
+    web_security.AUTH_BURST_LIMITER.reset()
+    for attempt in range(11):
+        page.locator('input[name="password"]').fill(
+            "wrong-local-fixture-" + str(attempt)
+        )
+        with page.expect_response(
+            lambda response: response.url.endswith("/auth/sign-in")
+        ) as submitted:
+            page.locator('button[type="submit"]').click()
+        response = submitted.value
+        if attempt < 10:
+            assert response.status == 401, "wrong password must not create session"
+            assert "Private password not recognised" in page.locator("body").inner_text()
+        else:
+            assert response.status == 429, "ten distinct attempts must enforce lockout"
+            assert "Too many sign-in attempts" in page.locator("body").inner_text()
+    assert page.locator("#plus-button").count() == 0
+    print("FOUNDER_CHROMIUM_CSRF_LOCKOUT_PASS")
+    page.close()
+
+
 def main():
     oap.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
     neon_auth.sign_in = mock_sign_in
@@ -211,6 +245,7 @@ def main():
                 mobile_context = browser.new_context(ignore_https_errors=True)
                 try:
                     test_mobile_browser(mobile_context, origin)
+                    test_password_and_csrf_browser(mobile_context, origin)
                 finally:
                     mobile_context.close()
             finally:
