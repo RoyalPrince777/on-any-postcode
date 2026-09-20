@@ -129,6 +129,13 @@ def test_founder_browser(page, origin):
     assert plus.get_attribute("aria-expanded") == "false"
     assert plus.evaluate("(el) => document.activeElement===el")
 
+    # Keyboard-only Master Tools opening and dismissal share the same owner.
+    page.keyboard.press("Enter")
+    assert plus.get_attribute("aria-expanded") == "true"
+    page.keyboard.press("Escape")
+    assert plus.get_attribute("aria-expanded") == "false"
+    assert plus.evaluate("(el) => document.activeElement===el")
+
     plus.click()
     with page.expect_file_chooser() as picked:
         page.locator("#file-button").click()
@@ -165,6 +172,16 @@ def test_founder_browser(page, origin):
     assert "THIS STOPPED COMPLETION MUST NEVER SHOW" not in page.locator(
         "#messages"
     ).inner_text()
+    # Fail closed on third-party telemetry: asset/resource requests remain local.
+    third_party = page.evaluate("""(origin) => performance.getEntriesByType('resource')
+      .map(item => item.name)
+      .filter(name => name.startsWith('http') && !name.startsWith(origin))""", origin)
+    assert third_party == [], "Unexpected external browser resource requests"
+    page.reload()
+    page.locator("#plus-button").wait_for(state="visible")
+    assert not page.locator("body").evaluate(
+        "(el) => el.classList.contains('smi-command-open')"
+    ), "Reload must not cover the chat with Command Centre"
     print("FOUNDER_CHROMIUM_UI_FLOW_PASS")
 
 
