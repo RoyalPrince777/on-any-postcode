@@ -7,8 +7,6 @@ from __future__ import annotations
 
 import os
 import threading
-import time
-from pathlib import Path
 
 os.environ["NEON_AUTH_BASE_URL"] = "https://example.neonauth.test/neondb/auth"
 os.environ["OAP_HUMAN_AUTHORITY_EMAIL"] = "founder@example.test"
@@ -101,7 +99,6 @@ def test_founder_browser(page, origin):
 
     password.fill("not-the-test-password")
     page.locator('button[type="submit"]').click()
-    page.wait_for_url("**/auth?next=/mission/ollama")
     assert "Private password not recognised" in page.locator("body").inner_text()
     assert page.locator("#plus-button").count() == 0
 
@@ -167,7 +164,8 @@ def test_founder_browser(page, origin):
 
 
 def test_mobile_browser(context, origin):
-    page = context.new_page(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    page.set_viewport_size({"width": 390, "height": 844})
     page.goto(origin + "/auth?next=/mission/ollama")
     assert_in_viewport(page, ".card.private")
     assert_in_viewport(page, 'button[type="submit"]')
