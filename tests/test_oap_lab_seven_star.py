@@ -195,6 +195,7 @@ def test_founder_form_fingerprint_distinguishes_passwords_after_flask_parsing(
     anonymous_client,
 ):
     from flask import request
+
     from mission_control import web_security
 
     limiter = web_security.SlidingWindowLimiter(
