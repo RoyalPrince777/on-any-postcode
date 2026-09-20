@@ -137,3 +137,9 @@ def test_scene_only_hitboxes_and_chat_tab_recovery():
     assert 'panel.dataset.mobileView="scene";' in JS
     assert 'alignApprovedBar();' in JS
     assert 'button.dataset.view==="scene"' in JS
+
+
+def test_evidence_panel_cannot_obscure_real_chat_taps():
+    assert 'body.smi-command-open.smi-command-chat-visible' in CSS
+    assert '.smi-image-control-surface>.smi-room-status' in CSS
+    assert 'visibility:hidden!important;pointer-events:none!important' in CSS
