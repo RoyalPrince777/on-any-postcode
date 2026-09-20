@@ -42,6 +42,12 @@
  let chatVisible=false;
  function setChatVisible(visible){
   chatVisible=Boolean(visible);
+  // The real composer is anchored to Scene, never an invisible off-tab image.
+  if(chatVisible&&panel.dataset.mobileView!=="scene"){
+   panel.dataset.mobileView="scene";
+   mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="scene")));
+   alignApprovedBar();
+  }
   document.body.classList.toggle("smi-command-chat-visible",chatVisible);
   toggle.textContent=chatVisible?"◈ Dashboard":"◈ Chat";
   toggle.setAttribute("aria-label",chatVisible?"Show full SMI dashboard":"Show SMI Chat within dashboard");
