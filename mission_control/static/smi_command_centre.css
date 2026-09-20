@@ -721,3 +721,14 @@ body.smi-command-open.smi-command-chat-visible
 .smi-image-control-surface>.smi-room-status{
  visibility:hidden!important;pointer-events:none!important
 }
+
+/* Missing approved artwork has no underlying baked status to cover. The
+   evidence panel belongs to the real picture and must not cover the live
+   fallback input or intercept its Tools/Mic/Send tap targets. Status remains
+   reachable via the existing first-party SMI Status action in the header. */
+body.smi-command-open.smi-art-error
+.smi-image-control-surface>.smi-room-status{
+ display:none!important;pointer-events:none!important
+}
+body.smi-command-open.smi-art-error
+.smi-image-control-surface::before{display:none!important}
