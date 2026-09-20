@@ -307,6 +307,7 @@ def test_ordinary_receipts_retain_existing_sqlite_fallback(monkeypatch):
 
 
 def test_recovery_receipt_commits_before_independent_new_session_readback(monkeypatch):
+    import json
     from mission_control import smi_receipt_backend
 
     events = []
@@ -328,6 +329,7 @@ def test_recovery_receipt_commits_before_independent_new_session_readback(monkey
                 assert self.role == "writer"
                 stored["id"] = values[0]
                 stored["kind"] = values[1]
+                stored["payload"] = json.loads(values[9])
             if sql == "SET TRANSACTION READ ONLY":
                 assert self.role == "reader"
                 events.append((self.role, "read_only"))
@@ -337,7 +339,11 @@ def test_recovery_receipt_commits_before_independent_new_session_readback(monkey
             assert ("writer", "committed") in events
             assert ("writer", "closed") in events
             assert ("reader", "read_only") in events
-            return {"receipt_id": stored["id"], "receipt_kind": stored["kind"]}
+            return {
+                "receipt_id": stored["id"],
+                "receipt_kind": stored["kind"],
+                "payload_json": stored["payload"],
+            }
 
     class Connection:
         def __init__(self, role):
@@ -379,6 +385,7 @@ def test_recovery_receipt_commits_before_independent_new_session_readback(monkey
     assert result["ok"] is True
     assert result["read_back_ok"] is True
     assert result["durable"] is True
+    assert len(result["read_back_checksum_sha256"]) == 64
     assert result["backend"] == "independent_hrm_postgres"
     assert len([item for item in events if item == ("writer", "committed")]) == 1
     assert ("reader", "read_only") in events
@@ -414,3 +421,79 @@ def test_recovery_second_connection_failure_keeps_uncertain_id_no_second_write(m
     assert result["durable"] is False
     assert result["read_back_ok"] is False
     assert len(calls) == 1
+
+
+def test_independent_recovery_readback_rejects_wrong_stored_payload(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    statements = []
+    class Cursor:
+        def __init__(self, role):
+            self.role = role
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def execute(self, sql, values=None):
+            statements.append((self.role, sql, values))
+        def fetchone(self):
+            assert self.role == "reader"
+            return {
+                "receipt_id": next(
+                    values[0] for role, sql, values in statements
+                    if role == "reader" and sql.startswith("SELECT")
+                ),
+                "receipt_kind": "hrm_neon_evidence_receipt",
+                "payload_json": {"wrong": True},
+            }
+    class Conn:
+        def __init__(self, role):
+            self.role = role
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def cursor(self):
+            return Cursor(self.role)
+        def commit(self):
+            statements.append(("writer", "committed", None))
+    connection_count = []
+    def connect():
+        connection_count.append(1)
+        return Conn("writer" if len(connection_count) == 1 else "reader")
+    monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "configured")
+    monkeypatch.setattr(smi_receipt_backend, "_connect_postgres", connect)
+    monkeypatch.setattr(smi_receipt_backend, "_init_postgres_schema", lambda *_: None)
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_write_sqlite",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("no nondurable fallback during recovery proof")
+        ),
+    )
+    result = smi_receipt_backend.write_receipt(
+        "hrm_neon_evidence_receipt", {"safe_payload": {"probe": True}},
+        require_durable=True,
+    )
+    assert len(connection_count) == 2
+    assert result["ok"] is False
+    assert result["read_back_ok"] is False
+    assert result["durable"] is False
+    assert result["read_back_checksum_sha256"] is None
+
+
+def test_recovery_probe_signal_cannot_pre_certify_green(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    captured = {}
+    def record(_kind, payload, **kwargs):
+        captured.update(payload)
+        assert kwargs == {"require_durable": True}
+        return {
+            "ok": False, "read_back_ok": False, "durable": False,
+            "fallback_used": False, "backend": "independent_hrm_postgres",
+        }
+    monkeypatch.setattr(smi_receipt_backend, "write_receipt", record)
+    result = smi_receipt_backend.receipt_backend_status(require_durable=True)
+    assert captured["signal"] == "🟣"
+    assert result["full_system_green"] is False
