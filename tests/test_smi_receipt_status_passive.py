@@ -213,3 +213,32 @@ def test_invalid_writer_configuration_cannot_prove_identity(monkeypatch):
     assert status["main_database_source"] == "invalid_authority"
     assert status["main_host_sha256"] is None
     assert status["live_store_identity_proven"] is False
+
+
+
+def test_evidence_runner_catalogue_does_not_write_receipts(monkeypatch):
+    from mission_control import smi_brain_evidence_runner, smi_receipt_backend
+
+    def unexpected_proof():
+        raise AssertionError("catalogue read attempted a durable proof write")
+
+    monkeypatch.setattr(
+        smi_receipt_backend, "receipt_backend_status", unexpected_proof
+    )
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "backend_configuration_status",
+        lambda: {
+            "preferred_backend": "independent_hrm_postgres",
+            "durable_backend_configured": True,
+        },
+    )
+    result = smi_brain_evidence_runner.runner_status()
+    receipt = result["receipt_backend"]
+
+    assert receipt["proof_state"] == "not_run_on_status_read"
+    assert receipt["write_read_proof"] is None
+    assert receipt["hrm_receipt_ready"] is False
+    assert receipt["matrix_learning_receipt_ready"] is False
+    assert receipt["independent_durable_hrm_ready"] is False
+    assert result["full_green"] is False
