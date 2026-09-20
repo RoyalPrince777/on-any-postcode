@@ -308,6 +308,7 @@ def test_ordinary_receipts_retain_existing_sqlite_fallback(monkeypatch):
 
 def test_recovery_receipt_commits_before_independent_new_session_readback(monkeypatch):
     import json
+
     from mission_control import smi_receipt_backend
 
     events = []
