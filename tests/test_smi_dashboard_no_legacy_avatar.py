@@ -143,3 +143,12 @@ def test_evidence_panel_cannot_obscure_real_chat_taps():
     assert 'body.smi-command-open.smi-command-chat-visible' in CSS
     assert '.smi-image-control-surface>.smi-room-status' in CSS
     assert 'visibility:hidden!important;pointer-events:none!important' in CSS
+
+
+def test_unavailable_picture_does_not_overlay_the_fallback_bar():
+    # The image-only status shield must never obscure a real editable fallback.
+    assert 'body.smi-command-open.smi-art-error' in CSS
+    assert '.smi-image-control-surface>.smi-room-status' in CSS
+    assert 'display:none!important;pointer-events:none!important' in CSS
+    assert '.smi-image-control-surface::before{display:none!important}' in CSS
+    assert 'smi-art-error' in JS
