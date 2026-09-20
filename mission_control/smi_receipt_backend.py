@@ -209,14 +209,13 @@ def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, crea
     if independent_readback:
         # A new connection after the writer closed must see the committed row.
         # No schema initialization, second insert, or ephemeral fallback here.
-        with _connect_postgres() as reader:
-            with reader.cursor() as cursor:
-                cursor.execute("SET TRANSACTION READ ONLY")
-                cursor.execute(
-                    "SELECT receipt_id, receipt_kind, payload_json FROM smi_evidence_receipts WHERE receipt_id = %s",
-                    (receipt_id,),
-                )
-                row = cursor.fetchone()
+        with _connect_postgres() as reader, reader.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute(
+                "SELECT receipt_id, receipt_kind, payload_json FROM smi_evidence_receipts WHERE receipt_id = %s",
+                (receipt_id,),
+            )
+            row = cursor.fetchone()
     read_back_ok = bool(row and row["receipt_id"] == receipt_id and row["receipt_kind"] == kind)
     if independent_readback:
         # Matching an ID and kind alone cannot detect a wrong/truncated payload.
