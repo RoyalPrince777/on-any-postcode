@@ -148,7 +148,7 @@ def smi_brain_receipts_proof():
                 403,
             )
         )
-    return _no_store(make_response(jsonify(status=smi_receipt_backend.receipt_backend_status())))
+    return _no_store(make_response(jsonify(status=smi_receipt_backend.receipt_backend_status(require_durable=True))))
 
 
 @bp.get("/war-room/smi-brain")
