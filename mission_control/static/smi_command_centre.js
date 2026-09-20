@@ -7,6 +7,7 @@
  const character=document.getElementById("smi-character");
  const messages=document.getElementById("messages");
  const composer=document.getElementById("chat-form");
+ let active=false;
  if(!chatbox||!head||!character||!messages||!composer||document.getElementById("smi-command-centre"))return;
  const actionHost=head.querySelector(".chat-head-actions")||head;
  const toggle=document.createElement("button");
@@ -101,6 +102,7 @@
   if(!tab)return;
   panel.dataset.mobileView=tab.dataset.view;
   mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button===tab)));
+  alignApprovedBar();
   if(tab.dataset.view==="evidence"){refreshEvidence();refreshRoomStatus();}
  });
  const stage=panel.querySelector(".smi-command-stage");
@@ -131,7 +133,16 @@
  const picture={width:1448,height:1086};
  function alignApprovedBar(){
   const width=scene.clientWidth,height=scene.clientHeight;
-  if(!width||!height)return;
+  // The input is body-level to avoid mobile keyboard/tool clipping. A hidden
+  // scene (Anatomy/Evidence view or closed room) must never leave active
+  // invisible hitboxes hovering above an unrelated screen.
+  if(!active||panel.dataset.mobileView!=="scene"||!width||!height){
+   aligned.style.visibility="hidden";
+   aligned.setAttribute("inert","");
+   return;
+  }
+  aligned.style.visibility="visible";
+  aligned.removeAttribute("inert");
   const scale=Math.min(width/picture.width,height/picture.height);
   const rect=scene.getBoundingClientRect();
   aligned.style.left=rect.left+Math.max(0,(width-picture.width*scale)/2)+"px";
@@ -239,7 +250,7 @@
  evidence.append(refresh);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
- let active=false,request=null,roomRequest=null;
+ let request=null,roomRequest=null;
  const setRoom=(node,proven,message)=>{
   if(!node)return;
   node.dataset.proven=String(proven===true);
@@ -291,11 +302,13 @@
   if(open){
    document.body.classList.add("smi-command-open");
    setChatVisible(false);
+   alignApprovedBar();
    refreshEvidence();
    refreshRoomStatus();
   }else{
    setChatVisible(false);
    document.body.classList.remove("smi-command-open");
+   alignApprovedBar();
   }
  }
  async function refreshEvidence(){
