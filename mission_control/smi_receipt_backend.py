@@ -171,7 +171,7 @@ def _base_result(kind: str, normalised: dict[str, Any], receipt_id: str, created
     }
 
 
-def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, created_at: str) -> dict[str, Any]:
+def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, created_at: str, *, independent_readback: bool = False) -> dict[str, Any]:
     with _connect_postgres() as connection:
         _init_postgres_schema(connection)
         with connection.cursor() as cursor:
@@ -197,12 +197,26 @@ def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, crea
                 ),
             )
         connection.commit()
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT receipt_id, receipt_kind FROM smi_evidence_receipts WHERE receipt_id = %s",
-                (receipt_id,),
-            )
-            row = cursor.fetchone()
+        if not independent_readback:
+            # Preserve the existing ordinary receipt flow. Recovery certification
+            # requires the stronger separate-connection readback below.
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT receipt_id, receipt_kind FROM smi_evidence_receipts WHERE receipt_id = %s",
+                    (receipt_id,),
+                )
+                row = cursor.fetchone()
+    if independent_readback:
+        # A new connection after the writer closed must see the committed row.
+        # No schema initialization, second insert, or ephemeral fallback here.
+        with _connect_postgres() as reader:
+            with reader.cursor() as cursor:
+                cursor.execute("SET TRANSACTION READ ONLY")
+                cursor.execute(
+                    "SELECT receipt_id, receipt_kind FROM smi_evidence_receipts WHERE receipt_id = %s",
+                    (receipt_id,),
+                )
+                row = cursor.fetchone()
     read_back_ok = bool(row and row["receipt_id"] == receipt_id and row["receipt_kind"] == kind)
     return {
         **_base_result(kind, normalised, receipt_id, created_at),
@@ -275,6 +289,10 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable
     created_at = _now()
     if _hrm_database_url():
         try:
+            if require_durable:
+                return _write_postgres(
+                    kind, normalised, receipt_id, created_at, independent_readback=True
+                )
             return _write_postgres(kind, normalised, receipt_id, created_at)
         except Exception:  # noqa: BLE001 - no secret or driver error in proof response
             if require_durable:
