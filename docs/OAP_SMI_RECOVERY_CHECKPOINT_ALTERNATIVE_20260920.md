@@ -44,3 +44,36 @@ Status: 🟣 OPERATOR RUNBOOK / REVIEW-ONLY — NOT an executed backup, restored
 A 25% **scoped operational-recoverability-from-new-checkpoint** 🟢 may be *considered* only when Phases A–D have independently verified receipts and the Founder explicitly accepts the truthful limited scope and irreducible historical UNKNOWN. If the required claim is **zero historical loss during the incident**, or policy disallows unresolved unknown operations, the 25% gate remains 🔴 despite successful new-checkpoint work. Never turn 50/75/100 green by implication; enter them sequentially with their own evidence and Founder final at 100%.
 
 **Prohibited by this runbook alone:** production writer/URL/env changes, paid plan creation, migrations, database writes, restores, branch/endpoint reassignment, GitHub merge, Render deployment, automatic receipt proof on GET, leaked connection strings/private data, arbitrary gap forgiveness. An audit-comment or this document is NOT a live SMI-memory sync receipt.
+
+
+## 2026-09-20 operational evidence checkpoint (read-only)
+
+- GitHub governed CI `#2087`, run `35501107817`, completed **SUCCESS** on this runbook PR head `ad690a7471fa05f1344543f808fc1df36635a751` (this is document/code-level checks, **not** an executed restore). Focused diagnostic PR #452 CI `#2047`, run `35439342845`, succeeded on its head `38895b4926078c0e132c5843c92599b3d595f636`. Neither focused PR nor runbook PR has been merged/deployed.
+- Neon provider listing still shows original primary/default branch and original RW endpoint attached, both recoverable branch and RO endpoint separate; both endpoints were **idle** at inspection. Avoid waking either merely to reconfirm the already-PASSED 36/36 historical copy comparison.
+- Fresh Render current-live-revision log `2026-09-19T12:28:06Z`: `oap_smi_database_certification` = PostgreSQL/`fallback_override`, reachable+initialized, pending migrations 0, checksum mismatches 0. At `12:28:23Z` the independent `oap_hrm_candidate_startup_probe` = configured/reachable, read-only, no schema change and **write_performed:false**. These are startup candidate/selection CLASS proofs only, not selected provider hostname/DB/branch or independent commit/readback.
+- Render SMI currently observed LIVE at `4839e40941ecdf48e982d9b91f567165f8d4be19` / `dep-dan7v90ae00c73dr528g`; the inactive older revision cannot be used as live proof. Separate Render PG provider listing `dpg-dahh4fss728c73b2sik0-a` remains available with 2026-10-10 expiry, but connector TLS handshake fails before SQL. **No backup archive has been produced or verified by this check.**
+
+### Operator-only TLS read-only backup template (NOT run here)
+
+Use an approved, separate trusted machine/workspace with current PostgreSQL client tools, an encrypted local volume, and **read-only** database credentials provisioned outside GitHub/chat. Define a private libpq `PGSERVICEFILE` with `[oap_hrm_readonly]` (the confirmed actual Render PG source only after provenance), `sslmode=require` plus verified host/certificate policy, and a separate `[oap_restore_offline]` service pointing **only at a disposable local Unix-socket PostgreSQL cluster** on a different isolated host. Use `PGPASSFILE` with strict file permissions; never paste URLs, passwords or private payloads into logs or GitHub. These shell examples are an **operator-reviewed template**, not execution proof:
+
+```sh
+set -eu
+umask 077
+archive_dir="${OAP_PRIVATE_RECOVERY_DIR:?private encrypted directory required}"
+test -d "$archive_dir"
+test ! -L "$archive_dir"
+# The operator must separately verify pg_service.conf, certificate, read-only
+# role, expected selected database, and offline restore target before commands.
+pg_dump --dbname='service=oap_hrm_readonly' --format=custom \
+  --no-owner --no-acl --file="$archive_dir/hrm-recovery.dump"
+pg_restore --list "$archive_dir/hrm-recovery.dump" \
+  > "$archive_dir/hrm-recovery.contents.private.txt"
+(cd "$archive_dir" && sha256sum hrm-recovery.dump \
+  > hrm-recovery.sha256.private.txt)
+# Stop here unless an independently confirmed, isolated and disposable local
+# PostgreSQL restore database is ready. Do NOT run pg_restore against Render or
+# Neon; do NOT confuse pg_restore --list with actual data restoration.
+```
+
+Before any `pg_restore --dbname='service=oap_restore_offline'` command, the operator must independently check that the target's service uses a local Unix socket, `inet_server_addr() IS NULL`, `current_database()` equals the newly created unique **disposable** database, and no production credentials/network routes exist. Verify the offline restore contents and the exact new receipt ID/checksum in a new read-only connection after restoration. Retain only encrypted access-controlled archives; a custom-format dump is **NOT inherently encrypted**. Compare all relevant source schemas, stable IDs, digests and audit continuity with the restored target and retain a first-party receipt. A source access/TLS failure, archive-only result, or missing new-checkpoint readback keeps 25% RED.
