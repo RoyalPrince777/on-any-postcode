@@ -189,3 +189,29 @@ def test_upload_preparation_blocks_premature_send_and_stale_callbacks():
     guard = controller.index("Preparing attachment · send after the preview appears", submit)
     fetch = controller.index("await fetch(streamUrl", submit)
     assert submit < guard < fetch
+
+
+def test_founder_form_fingerprint_distinguishes_passwords_after_flask_parsing(
+    anonymous_client,
+):
+    from flask import request
+    from mission_control import web_security
+
+    limiter = web_security.SlidingWindowLimiter(
+        limit=10,
+        window_seconds=300,
+        fingerprint_request_body=True,
+    )
+    app = anonymous_client.application
+    signatures = []
+    for password in ("wrong-alpha", "wrong-beta", "wrong-alpha"):
+        with app.test_request_context(
+            "/auth/sign-in",
+            method="POST",
+            data={"next": "/mission/ollama", "password": password},
+        ):
+            assert request.form["password"] == password
+            signatures.append(limiter._request_fingerprint())
+    assert signatures[0] != signatures[1]
+    assert signatures[0] == signatures[2]
+    assert all("wrong-" not in fingerprint for fingerprint in signatures)
