@@ -152,3 +152,12 @@ def test_unavailable_picture_does_not_overlay_the_fallback_bar():
     assert 'display:none!important;pointer-events:none!important' in CSS
     assert '.smi-image-control-surface::before{display:none!important}' in CSS
     assert 'smi-art-error' in JS
+
+
+def test_artwork_failure_reason_is_visible_beside_real_fallback_composer():
+    assert 'status.textContent="Approved SMI dashboard unavailable · no substitute character shown"' in JS
+    assert 'body.smi-command-open.smi-art-error' in CSS
+    assert '.smi-image-control-surface #chat-form .status-row' in CSS
+    assert '.smi-image-control-surface #chat-form .status{' in CSS
+    assert 'white-space:normal!important;overflow-wrap:anywhere!important' in CSS
+    assert 'display:none!important' in CSS  # compact normal dashboard remains quiet
