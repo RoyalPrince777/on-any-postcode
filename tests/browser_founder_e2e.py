@@ -6,7 +6,11 @@ physical device. Run separately: python tests/browser_founder_e2e.py
 from __future__ import annotations
 
 import os
+import sys
 import threading
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 os.environ["NEON_AUTH_BASE_URL"] = "https://example.neonauth.test/neondb/auth"
 os.environ["OAP_HUMAN_AUTHORITY_EMAIL"] = "founder@example.test"
