@@ -304,3 +304,113 @@ def test_ordinary_receipts_retain_existing_sqlite_fallback(monkeypatch):
         "hrm_neon_evidence_receipt", {"safe_payload": {"probe": False}}
     )
     assert receipt["backend"] == "local_sqlite_receipt_store"
+
+
+def test_recovery_receipt_commits_before_independent_new_session_readback(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    events = []
+    stored = {}
+
+    class Cursor:
+        def __init__(self, role):
+            self.role = role
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, values=None):
+            events.append((self.role, "sql", sql.split()[0]))
+            if sql.lstrip().startswith("INSERT"):
+                assert self.role == "writer"
+                stored["id"] = values[0]
+                stored["kind"] = values[1]
+            if sql == "SET TRANSACTION READ ONLY":
+                assert self.role == "reader"
+                events.append((self.role, "read_only"))
+
+        def fetchone(self):
+            assert self.role == "reader"
+            assert ("writer", "committed") in events
+            assert ("writer", "closed") in events
+            assert ("reader", "read_only") in events
+            return {"receipt_id": stored["id"], "receipt_kind": stored["kind"]}
+
+    class Connection:
+        def __init__(self, role):
+            self.role = role
+
+        def __enter__(self):
+            events.append((self.role, "opened"))
+            return self
+
+        def __exit__(self, *_args):
+            events.append((self.role, "closed"))
+            return False
+
+        def cursor(self):
+            return Cursor(self.role)
+
+        def commit(self):
+            events.append((self.role, "committed"))
+
+    def connect():
+        role = "writer" if not events else "reader"
+        return Connection(role)
+
+    monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "configured")
+    monkeypatch.setattr(smi_receipt_backend, "_connect_postgres", connect)
+    monkeypatch.setattr(smi_receipt_backend, "_init_postgres_schema", lambda *_args: None)
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_write_sqlite",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("recovery proof created nondurable fallback")
+        ),
+    )
+
+    result = smi_receipt_backend.write_receipt(
+        "hrm_neon_evidence_receipt", {"safe_payload": {"probe": True}},
+        require_durable=True,
+    )
+    assert result["ok"] is True
+    assert result["read_back_ok"] is True
+    assert result["durable"] is True
+    assert result["backend"] == "independent_hrm_postgres"
+    assert len([item for item in events if item == ("writer", "committed")]) == 1
+    assert ("reader", "read_only") in events
+    assert len([item for item in events if item == ("reader", "opened")]) == 1
+
+
+def test_recovery_second_connection_failure_keeps_uncertain_id_no_second_write(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    calls = []
+    original = smi_receipt_backend._write_postgres
+
+    def simulate(*args, **kwargs):
+        assert kwargs == {"independent_readback": True}
+        calls.append(args[2])
+        raise RuntimeError("synthetic failure after first connection committed")
+
+    monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "configured")
+    monkeypatch.setattr(smi_receipt_backend, "_write_postgres", simulate)
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_write_sqlite",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("no duplicate SQLite receipt")
+        ),
+    )
+    result = smi_receipt_backend.write_receipt(
+        "hrm_neon_evidence_receipt", {"safe_payload": {"probe": True}},
+        require_durable=True,
+    )
+    assert result["status"] == "durable_commit_or_readback_unconfirmed"
+    assert result["receipt_id"] == calls[0]
+    assert result["durable"] is False
+    assert result["read_back_ok"] is False
+    assert len(calls) == 1
