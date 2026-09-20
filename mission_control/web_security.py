@@ -197,8 +197,23 @@ class SlidingWindowLimiter:
     def _request_fingerprint(self) -> str | None:
         if not self.fingerprint_request_body or not has_request_context():
             return None
-        body = request.get_data(cache=True)
-        return hashlib.sha256(body).hexdigest()
+        # Authentication has already accessed request.form before it reaches
+        # the rate limiter. Werkzeug may have consumed the raw form bytes,
+        # making get_data() empty even for *different* passwords. Fingerprint
+        # the parsed form with length-prefix framing instead. Keep only its
+        # digest: never retain, log or echo the password/form values.
+        if request.form:
+            digest = hashlib.sha256()
+            for name in sorted(request.form):
+                name_bytes = name.encode("utf-8")
+                for value in request.form.getlist(name):
+                    value_bytes = value.encode("utf-8")
+                    digest.update(len(name_bytes).to_bytes(4, "big"))
+                    digest.update(name_bytes)
+                    digest.update(len(value_bytes).to_bytes(4, "big"))
+                    digest.update(value_bytes)
+            return digest.hexdigest()
+        return hashlib.sha256(request.get_data(cache=True)).hexdigest()
 
     def _release_event(self, key: str, event_time: float) -> None:
         """Release exactly one reserved attempt without clearing other evidence."""

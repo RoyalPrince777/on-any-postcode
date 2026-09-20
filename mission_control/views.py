@@ -448,6 +448,26 @@ def judgement_decision(request_id: str):
     return _no_store(make_response(redirect(url_for("mission_control.judgement_dashboard"))))
 
 
+@bp.get("/oap-lab")
+@web_security.login_required(founder_only=True)
+def oap_lab():
+    """Private, read-only map of existing research and governed proof organs.
+
+    The Lab is a workspace, never another brain, writer or execution authority.
+    Its links point to existing first-party capabilities; planned divisions
+    remain visibly unavailable rather than acting like finished buttons.
+    """
+    from oap.smi import research_intelligence
+
+    response = make_response(
+        render_template(
+            "oap_lab.html",
+            research=research_intelligence.status(),
+        )
+    )
+    return _no_store(response)
+
+
 @bp.get("/ollama")
 @web_security.login_required()
 def ollama_chat_dashboard():

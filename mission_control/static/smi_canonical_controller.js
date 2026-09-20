@@ -188,23 +188,29 @@ function oapAddCaptureOptions(){if(!oapAttachMenu||oapAttachMenu.dataset.oapCapt
 async function oapSubmit(options={}){
  const fromLive=options?.fromLive===true;
  if(oapRuntime?.stopped){if(fromLive)return;oapApply('RESUME_FROM_STOP');}
- if(oapLocked||oapSend.disabled)return;const text=oapInput.value.trim();const hasImage=typeof selectedImage!=='undefined'&&Boolean(selectedImage);const hasAttachment=typeof selectedAttachment!=='undefined'&&Boolean(selectedAttachment);if(!text&&!hasImage&&!hasAttachment)return;
+ if(oapLocked||oapSend.disabled)return;
+ // Do not send text-only while the Founder-selected media is still decoding.
+ if((typeof imagePreparing!=='undefined'&&imagePreparing)||(typeof attachmentPreparing!=='undefined'&&attachmentPreparing)){oapSetStatus('Preparing attachment · send after the preview appears');return;}
+ const text=oapInput.value.trim();const hasImage=typeof selectedImage!=='undefined'&&Boolean(selectedImage);const hasAttachment=typeof selectedAttachment!=='undefined'&&Boolean(selectedAttachment);if(!text&&!hasImage&&!hasAttachment)return;
  const selectedThinkingLevel=oapThinkingLevel?.value||'auto';
  const selectedStudioMode=(typeof studioMode!=='undefined')?Boolean(studioMode):Boolean(document.getElementById('studio-button')?.classList.contains('active'));
  const userLabel=(text||'Analyse attached media')+(hasImage?'\n📷 Image attached':'')+(hasAttachment?'\n📎 '+selectedAttachment.name:'')+(codeMode?'\n⌘ Code proposal mode':'');
  add(userLabel,'user');
- oapLocked=true;responseStopped=false;oapPaused=false;oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');oapAbort=new AbortController();activeController=oapAbort;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
+ oapLocked=true;responseStopped=false;oapPaused=false;oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');const requestController=new AbortController();oapAbort=requestController;activeController=requestController;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
  try{
-  const response=await fetch(streamUrl,{method:'POST',signal:oapAbort.signal,headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message:text,display_name:document.getElementById('display-name')?.value||'OAP Founder',conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode,thinking_level:selectedThinkingLevel,studio_mode:selectedStudioMode})});
+  const response=await fetch(streamUrl,{method:'POST',signal:requestController.signal,headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message:text,display_name:document.getElementById('display-name')?.value||'OAP Founder',conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode,thinking_level:selectedThinkingLevel,studio_mode:selectedStudioMode})});
+  if(requestController.signal.aborted||oapAbort!==requestController)return;
   if(!response.ok){let payload={};try{payload=await response.json()}catch{}throw new Error(payload?.error?.message||'Request failed');}
   if(!response.body)throw new Error('Streaming is not supported by this browser');
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
   while(true){
+   if(requestController.signal.aborted||oapAbort!==requestController)return;
    while(oapPaused&&!responseStopped)await new Promise(resolve=>setTimeout(resolve,80));
-   const chunk=await reader.read();if(chunk.done)break;
+   const chunk=await reader.read();if(requestController.signal.aborted||oapAbort!==requestController)return;if(chunk.done)break;
    buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n/g,'\n');
    let boundary=-1;
    while((boundary=buffer.indexOf('\n\n'))>=0){
+    if(requestController.signal.aborted||oapAbort!==requestController)return;
     const block=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);const parsed=parseEventBlock(block);if(!parsed)continue;
     if(parsed.event==='stage')showStage(parsed.data.label||parsed.data.stage||'Working');
     if(parsed.event==='delta'){if(!assistantBody)assistantBody=add('','assistant');streamText+=parsed.data.delta||'';renderMessage(assistantBody,streamText);messages.scrollTop=messages.scrollHeight;}
@@ -212,18 +218,20 @@ async function oapSubmit(options={}){
     if(parsed.event==='error')streamError=new Error(parsed.data.message||'Request failed');
    }
   }
+  if(requestController.signal.aborted||oapAbort!==requestController)return;
   if(streamError)throw streamError;if(!completeResult)throw new Error('The governed response did not finish recording.');
   conversationId=completeResult.conversation_id;if(!assistantBody)assistantBody=add(completeResult.response,'assistant');else renderMessage(assistantBody,completeResult.response);
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
   window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));oapSpeak(completeResult.response);clearAttachments();oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');await loadConversations();
- }catch(error){if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
- finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}
+ }catch(error){if(oapAbort!==requestController||requestController.signal.aborted)return;if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
+ finally{if(oapAbort!==requestController)return;if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}
 }
 
 oapInput.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.shiftKey||event.isComposing)return;event.preventDefault();event.stopImmediatePropagation();oapSubmit();},true);
 oapForm.addEventListener('submit',event=>{event.preventDefault();event.stopImmediatePropagation();oapSubmit();},true);
 if(oapPlus)oapPlus.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapToggleAttach();},true);
 document.addEventListener('click',event=>{if(oapAttachMenu&&oapPlus&&!event.target.closest('.attach-wrap')&&!event.target.closest('#tools-mode-button'))oapCloseAttach();});
+document.addEventListener('keydown',event=>{if(event.key!=='Escape'||!oapAttachMenu?.classList.contains('show'))return;event.preventDefault();event.stopImmediatePropagation();oapCloseAttach();oapPlus?.focus();},true);
 if(oapPause)oapPause.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapTogglePause();},true);
 if(oapStop)oapStop.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapStopAll();},true);
 if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapSpeaker.classList.toggle('active',oapVoiceEnabled);oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';if(!oapVoiceEnabled&&'speechSynthesis' in window){oapSpeechSeq+=1;window.speechSynthesis.cancel();if(oapRuntime?.speaking)oapApply('SPEAK_END');if(oapRuntime?.live)oapScheduleListening(180);}oapSetStatus(oapVoiceEnabled?'Voice reply on':'Voice reply off');},true);

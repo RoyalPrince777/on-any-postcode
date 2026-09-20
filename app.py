@@ -777,6 +777,8 @@ def _apply_auth_cookies(response, set_cookie_headers) -> bool:
 @app.get("/auth")
 @app.get("/enter-my-world")
 def auth_page():
+    # Generic public sign-in must not advertise the private chat route.
+    # The dedicated SMI entry supplies its own safe, explicit next target.
     next_path = _safe_next(request.args.get("next"))
     founder_only = _founder_only_path(next_path)
     error = None
