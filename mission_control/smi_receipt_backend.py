@@ -256,7 +256,7 @@ def _write_sqlite(kind: str, normalised: dict[str, Any], receipt_id: str, create
     }
 
 
-def write_receipt(receipt_kind: str, payload: dict[str, Any]) -> dict[str, Any]:
+def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable: bool = False) -> dict[str, Any]:
     """Write one bounded receipt; prefer independent durable Postgres."""
 
     kind = str(receipt_kind or "").strip()
@@ -276,10 +276,35 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any]) -> dict[str, Any]:
     if _hrm_database_url():
         try:
             return _write_postgres(kind, normalised, receipt_id, created_at)
-        except Exception:  # noqa: BLE001 - degraded fallback is deliberate and redacted
+        except Exception:  # noqa: BLE001 - no secret or driver error in proof response
+            if require_durable:
+                # A failed readback may follow a successful commit. Retain the
+                # correlation ID for later reconciliation and DO NOT write a
+                # misleading second proof into ephemeral SQLite.
+                return {
+                    "ok": False,
+                    "status": "durable_commit_or_readback_unconfirmed",
+                    "receipt_kind": kind,
+                    "receipt_id": receipt_id,
+                    "read_back_ok": False,
+                    "durable": False,
+                    "backend": "independent_hrm_postgres",
+                    "fallback_used": False,
+                }
             result = _write_sqlite(kind, normalised, receipt_id, created_at, fallback_used=True)
             result["primary_backend_error"] = "independent_hrm_postgres_unavailable"
             return result
+    if require_durable:
+        return {
+            "ok": False,
+            "status": "blocked_durable_hrm_unconfigured",
+            "receipt_kind": kind,
+            "receipt_id": None,
+            "read_back_ok": False,
+            "durable": False,
+            "backend": "unconfigured",
+            "fallback_used": False,
+        }
     return _write_sqlite(kind, normalised, receipt_id, created_at, fallback_used=False)
 
 
@@ -474,19 +499,22 @@ def backend_configuration_status() -> dict[str, Any]:
     }
 
 
-def receipt_backend_status() -> dict[str, Any]:
-    """Prove write/read readiness while preserving fail-closed truth labels."""
+def receipt_backend_status(*, require_durable: bool = False) -> dict[str, Any]:
+    """Prove write/read readiness; Recovery POST must never use SQLite."""
 
-    probe = write_receipt(
-        "hrm_neon_evidence_receipt",
-        {
-            "brain_part": "receipt_backend_probe",
-            "gate": 5,
-            "command": "backend_status",
-            "signal": "🟢",
-            "safe_payload": {"probe": True, "external_action": False},
-        },
-    )
+    probe_payload = {
+        "brain_part": "receipt_backend_probe",
+        "gate": 5,
+        "command": "backend_status",
+        "signal": "🟢",
+        "safe_payload": {"probe": True, "external_action": False},
+    }
+    if require_durable:
+        probe = write_receipt(
+            "hrm_neon_evidence_receipt", probe_payload, require_durable=True
+        )
+    else:
+        probe = write_receipt("hrm_neon_evidence_receipt", probe_payload)
     durable_ready = bool(
         probe.get("ok")
         and probe.get("read_back_ok")
