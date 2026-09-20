@@ -213,13 +213,38 @@ def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, crea
             with reader.cursor() as cursor:
                 cursor.execute("SET TRANSACTION READ ONLY")
                 cursor.execute(
-                    "SELECT receipt_id, receipt_kind FROM smi_evidence_receipts WHERE receipt_id = %s",
+                    "SELECT receipt_id, receipt_kind, payload_json FROM smi_evidence_receipts WHERE receipt_id = %s",
                     (receipt_id,),
                 )
                 row = cursor.fetchone()
     read_back_ok = bool(row and row["receipt_id"] == receipt_id and row["receipt_kind"] == kind)
+    if independent_readback:
+        # Matching an ID and kind alone cannot detect a wrong/truncated payload.
+        # JSONB is semantic data, so normalize its object rather than its
+        # incidental textual serialization or key order.
+        stored_payload = row.get("payload_json") if row else None
+        if isinstance(stored_payload, str):
+            stored_payload = json.loads(stored_payload)
+        read_back_ok = bool(read_back_ok and stored_payload == normalised["safe_payload"])
+    read_back_checksum_sha256 = (
+        hashlib.sha256(
+            json.dumps(
+                {
+                    "receipt_id": receipt_id,
+                    "receipt_kind": kind,
+                    "safe_payload": normalised["safe_payload"],
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        if independent_readback and read_back_ok
+        else None
+    )
     return {
         **_base_result(kind, normalised, receipt_id, created_at),
+        "read_back_checksum_sha256": read_back_checksum_sha256,
         "ok": read_back_ok,
         "status": "written_and_read_back" if read_back_ok else "write_failed_or_unreadable",
         "read_back_ok": read_back_ok,
@@ -528,6 +553,9 @@ def receipt_backend_status(*, require_durable: bool = False) -> dict[str, Any]:
         "safe_payload": {"probe": True, "external_action": False},
     }
     if require_durable:
+        # A probe has not passed the whole recovery gate even if this receipt
+        # later commits. Never write a pre-certified green signal.
+        probe_payload["signal"] = "🟣"
         probe = write_receipt(
             "hrm_neon_evidence_receipt", probe_payload, require_durable=True
         )
