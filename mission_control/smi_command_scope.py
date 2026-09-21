@@ -6,7 +6,10 @@ tool action, external publication, deployment, or Green Gate.
 """
 from __future__ import annotations
 
+import hashlib
+import re
 from typing import Any
+from uuid import UUID
 
 from . import smi_receipt_backend
 
@@ -19,12 +22,24 @@ DEPTHS = frozenset({3, 7, 21})
 MODES = frozenset({"AUTO", "MANUAL"})
 
 
-def record_command_scope(payload: object) -> dict[str, Any]:
+def _owner_digest(identity_id: object) -> str:
+    try:
+        owner = str(UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_founder_identity") from exc
+    return hashlib.sha256(("smi-command-scope-v1:" + owner).encode()).hexdigest()
+
+
+_RECEIPT_ID = re.compile(r"^smi-[0-9a-f]{32}$")
+
+
+def record_command_scope(payload: object, *, identity_id: object) -> dict[str, Any]:
     """Record a narrowly bounded command selection with durable readback.
 
     Fail closed on unavailable receipt storage: local SQLite fallback is
     unsuitable for claiming a durable Founder decision.
     """
+    owner_digest = _owner_digest(identity_id)
     if not isinstance(payload, dict):
         raise TypeError("invalid_command_scope")
     mode = payload.get("mode")
@@ -53,6 +68,7 @@ def record_command_scope(payload: object) -> dict[str, Any]:
             "green_gate": "not_execution_or_production_proof",
             "founder_final": "required_for_consequential_action",
             "safe_payload": {
+                "owner_digest": owner_digest,
                 "mode": mode,
                 "depth": depth,
                 "missions": sorted(missions),
@@ -81,5 +97,46 @@ def record_command_scope(payload: object) -> dict[str, Any]:
         "state": "scope_recorded" if durable else "durable_receipt_unavailable",
         "executed": False,
         "whole_smi_green": False,
+        "human_authority_final": True,
+    }
+
+
+def load_command_scope(*, identity_id: object, receipt_id: object) -> dict[str, Any]:
+    """Reopen only the matching Founder's durably stored scope; never execute."""
+    owner_digest = _owner_digest(identity_id)
+    if not isinstance(receipt_id, str) or not _RECEIPT_ID.fullmatch(receipt_id):
+        raise ValueError("invalid_scope_receipt")
+    read = smi_receipt_backend.read_command_scope_receipt(receipt_id, owner_digest)
+    if read is None:
+        return {"found": False, "state": "not_found", "executed": False}
+    if read.get("available") is False:
+        return {"found": False, "state": "durable_receipt_unavailable", "executed": False}
+    payload = read.get("payload")
+    if (
+        not isinstance(payload, dict)
+        or payload.get("owner_digest") != owner_digest
+        or payload.get("scope_only") is not True
+        or payload.get("executed") is not False
+        or payload.get("approval_grants_execution") is not False
+    ):
+        return {"found": False, "state": "not_found", "executed": False}
+    missions = payload.get("missions")
+    if (
+        payload.get("mode") not in MODES
+        or type(payload.get("depth")) is not int
+        or payload["depth"] not in DEPTHS
+        or payload.get("decision") not in DECISIONS
+        or not isinstance(missions, list)
+        or not missions
+        or len(missions) != len(set(missions))
+        or any(type(item) is not str or item not in MISSION_IDS for item in missions)
+    ):
+        return {"found": False, "state": "not_found", "executed": False}
+    return {
+        "found": True, "state": "saved_scope_loaded",
+        "receipt_id": receipt_id,
+        "mode": payload["mode"], "depth": payload["depth"],
+        "missions": missions, "decision": payload["decision"],
+        "executed": False, "whole_smi_green": False,
         "human_authority_final": True,
     }
