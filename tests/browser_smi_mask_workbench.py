@@ -169,11 +169,20 @@ def main():
                     accept_downloads=True,
                     viewport={"width": 390, "height": 844},
                 )
-                context.add_cookies([{
-                    "name": AUTH_COOKIE,
-                    "value": COOKIE_VALUE,
-                    "url": origin,
-                }])
+                # Auth's allowlisted cookie names live in Flask's signed
+                # session, so a stand-alone provider cookie is insufficient.
+                with oap.app.test_client() as test_client:
+                    test_client.set_cookie(AUTH_COOKIE, COOKIE_VALUE)
+                    with test_client.session_transaction() as flask_session:
+                        flask_session[neon_auth.AUTH_COOKIE_NAMES_SESSION_KEY] = [
+                            AUTH_COOKIE
+                        ]
+                    signed_session = test_client.get_cookie("session")
+                    assert signed_session is not None
+                context.add_cookies([
+                    {"name": AUTH_COOKIE, "value": COOKIE_VALUE, "url": origin},
+                    {"name": "session", "value": signed_session.value, "url": origin},
+                ])
                 page = context.new_page()
                 page.set_default_timeout(20_000)
                 with tempfile.TemporaryDirectory(prefix="oap-mask-browser-") as folder:
