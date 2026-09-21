@@ -47,6 +47,7 @@ body[data-smi-presence="speaking"] .smi-shell::after{background:radial-gradient(
 body[data-smi-presence="paused"] .smi-shell::after,body[data-smi-presence="stopped"] .smi-shell::after{background:rgba(0,4,12,.38)}
 @keyframes smiPresenceListen{to{filter:brightness(1.07)}}@keyframes smiPresenceThink{to{filter:brightness(1.12) saturate(1.08)}}@keyframes smiPresenceSpeak{to{filter:brightness(1.1) saturate(1.12)}}
 @media(max-width:760px){
+ /* Primary live controls stay visible on phones: Tools, Voice, 3/7/21 and Send. */
  .smi-shell::before{background-position:50% center;background-size:auto 100%}
  .chat-head{top:8px}.messages{top:52px;bottom:116px;width:96vw;padding:8px!important}.msg{max-width:92%!important}
  .composer{width:calc(100vw - 14px);bottom:max(7px,env(safe-area-inset-bottom))!important}
