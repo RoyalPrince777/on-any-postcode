@@ -15,21 +15,31 @@ from . import intelligence_lenses, smi_brain_protocol, smi_deep_dive_protocol
 _CONTINUE = frozenset({"🟣", "continue", "continue 🟣", "🟣 continue", "next", "🟣 smi", "smi auto"})
 _APPROVE = frozenset({"🟢", "approved", "approve", "🟢 approved"})
 _NO_MISSION = frozenset(_CONTINUE | _APPROVE | {"stop", "pause", "resume", "🟣 smi 21", "smi 21"})
+_EMOJI_ONLY = re.compile(r"[🟣🟢\s]+")
 _WAR_ROOM = re.compile(r"\bwar[\s-]*room\b", re.IGNORECASE)
 _DEPTH_21 = re.compile(r"(?:\bsmi\s*(?:auto\s*)?21\b|\bdeep\s*dive\b|\b21\s*protocol\b)", re.IGNORECASE)
 
 
 def _has_context(history: Sequence[Mapping[str, object]] | None) -> bool:
     """Only supplied, conversation-owned turns can establish a current mission."""
-    for item in history or ():
-        if item.get("role") not in {"user", "assistant"}:
+    return _latest_mission_user_turn(history) is not None
+
+
+def _latest_mission_user_turn(
+    history: Sequence[Mapping[str, object]] | None,
+) -> str | None:
+    """Do not infer a mission from an assistant answer or an old mode."""
+    for item in reversed(history or ()):
+        if item.get("role") != "user":
             continue
         content = str(item.get("content") or "").strip()
-        if content and (content.casefold() not in _NO_MISSION) and (
-            item.get("role") == "user" or len(content) >= 40
-        ):
-            return True
-    return False
+        if not content:
+            continue
+        lowered = re.sub(r"\s+", " ", content.casefold())
+        if lowered in _NO_MISSION or _EMOJI_ONLY.fullmatch(content):
+            continue
+        return content
+    return None
 
 
 def resolve_turn(
@@ -49,13 +59,17 @@ def resolve_turn(
     requested = str(requested_mode or "auto").strip().casefold()
     explicit_war = bool(_WAR_ROOM.search(text))
     explicit_21 = bool(_DEPTH_21.search(text))
-    recent_war = any(
-        _WAR_ROOM.search(str(item.get("content") or ""))
-        for item in (history or ())[-12:]
-        if item.get("role") in {"user", "assistant"}
-    )
+    # Only the latest substantive human mission can carry a War Room mode.
+    # An older assistant mention must not change a new subject.
+    mission_user_turn = _latest_mission_user_turn(history)
+    recent_war = bool(mission_user_turn and _WAR_ROOM.search(mission_user_turn))
 
-    if lowered in _APPROVE:
+    paired_signal = bool(
+        _EMOJI_ONLY.fullmatch(text) and "🟣" in text and "🟢" in text
+    )
+    if paired_signal:
+        intent = "CONTINUE_WITH_FOUNDER_DESIGN_APPROVAL"
+    elif lowered in _APPROVE:
         intent = "FOUNDER_DESIGN_APPROVAL"
     elif lowered in _CONTINUE or (text.startswith("🟣") and len(text) <= 32):
         intent = "CONTINUE_CURRENT_MISSION"
@@ -70,7 +84,14 @@ def resolve_turn(
 
     wants_war = bool(
         explicit_war
-        or (intent == "CONTINUE_CURRENT_MISSION" and recent_war and has_context)
+        or (
+            intent in {
+                "CONTINUE_CURRENT_MISSION",
+                "CONTINUE_WITH_FOUNDER_DESIGN_APPROVAL",
+            }
+            and recent_war
+            and has_context
+        )
     )
     preferred_depth = 21 if explicit_21 or wants_war else None
     if requested != "auto":
@@ -82,7 +103,12 @@ def resolve_turn(
         "war_room_requested": wants_war,
         "preferred_depth": preferred_depth,
         "response_contract": "MISSION / MODE / ALIGNMENT / PROTOCOL / DONE / LOCKED / NEXT",
-        "review_may_continue": has_context and intent == "CONTINUE_CURRENT_MISSION",
+        "review_may_continue": has_context and intent in {
+            "CONTINUE_CURRENT_MISSION",
+            "CONTINUE_WITH_FOUNDER_DESIGN_APPROVAL",
+        },
+        "design_approval_requires_identifiable_context": True,
+        "explicit_execution_approval_received": False,
         "design_approval_is_execution_authority": False,
         "review_votes_grant_authority": False,
         "production_status_requires_runtime_evidence": True,
@@ -102,7 +128,10 @@ def instruction() -> str:
         "Preserve seven councils, seven canonical judge seats, 26 lenses, "
         "Guardian/Aegis, dissent, seven-star evidence, End Review, HRM/JOOG "
         "and Founder Final. Treat judges as rule lenses unless independent agents "
-        "actually ran. Green approves only the explicitly identified decision/gate; "
+        "actually ran. A purple/green pair means continue the existing mission "
+        "with bounded design approval only; never invent a mission or authority. "
+        "Only the latest substantive human mission carries War Room mode. "
+        "Green approves only the explicitly identified decision/gate; "
         "a chat emoji is NEVER a signed exact-action receipt, tool execution, "
         "merge, deployment or production certification. For major work retain "
         "25/50/75/100 quarters separately from 3/7/21 depth. Never advance a "
