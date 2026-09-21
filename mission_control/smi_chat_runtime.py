@@ -25,6 +25,7 @@ from . import oap_inference_gateway as _inference
 from . import smi_cancellation as _cancellation
 from . import smi_chat_grounded as _grounded
 from . import smi_chat_runtime_core as _core
+from . import smi_communication_style as _communication_style
 from . import smi_receipt_backend as _receipts
 from . import smi_thinking_process as _thinking
 from . import world_crisis_intelligence as _world_crisis
@@ -268,9 +269,13 @@ def _grounded_provider(
         _with_world_crisis_context(message, brain),
         intelligence_route,
     )
+    dynamic_memory = list(adaptive_memory or ())
+    style_guidance = _communication_style.communication_style_guidance(history)
+    if style_guidance:
+        dynamic_memory.append(style_guidance)
     governed_memory = _canonical_provider_memory(
         brain,
-        adaptive_memory,
+        dynamic_memory,
         query=message,
     )
     def gateway_provider(*args, **kwargs):

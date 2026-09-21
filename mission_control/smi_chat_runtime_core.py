@@ -605,14 +605,19 @@ def chat(
             (conversation, identity, clean[:80] or "SMI Chat"),
         )
         rows = connection.execute(
-            """SELECT m.role,m.content FROM smi_messages m
+            """SELECT m.role,m.content,m.guardian_outcome FROM smi_messages m
                JOIN smi_conversations c ON c.conversation_id=m.conversation_id
                WHERE m.conversation_id=%s AND c.identity_id=%s
                ORDER BY m.created_at DESC LIMIT 12""",
             (conversation, identity),
         ).fetchall()
         history = [
-            {"role": str(row[0]), "content": str(row[1])}
+            {
+                "role": str(row[0]),
+                "content": str(row[1]),
+                "guardian_outcome": str(row[2] or ""),
+                "source": "typed",
+            }
             for row in reversed(rows)
         ]
         requested_mode = _requested_runtime_mode(thinking_level)
