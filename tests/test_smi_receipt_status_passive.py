@@ -42,7 +42,18 @@ def test_receipt_post_requires_csrf_and_runs_explicit_proof(monkeypatch):
     monkeypatch.setattr(
         alignment_views.smi_receipt_backend,
         "receipt_backend_status",
-        lambda **kwargs: writes.append(kwargs) or {"durable": True, "read_back_ok": True},
+        lambda **kwargs: writes.append(kwargs) or {
+            "independent_durable_hrm_ready": True,
+            "full_system_green": False,
+            "write_read_proof": {
+                "ok": True,
+                "read_back_ok": True,
+                "durable": True,
+                "fallback_used": False,
+                "backend": "independent_hrm_postgres",
+                "read_back_checksum_sha256": "a" * 64,
+            },
+        },
     )
     monkeypatch.setattr(alignment_views.web_security, "csrf_valid", lambda request: False)
 
@@ -55,7 +66,9 @@ def test_receipt_post_requires_csrf_and_runs_explicit_proof(monkeypatch):
     with app.test_request_context("/smi/brain/receipts/proof", method="POST"):
         response = alignment_views.smi_brain_receipts_proof.__wrapped__()
     assert response.status_code == 200
-    assert response.get_json()["status"]["read_back_ok"] is True
+    assert response.get_json()["status"]["independent_durable_hrm_ready"] is True
+    assert response.get_json()["status"]["full_system_green"] is False
+    assert response.headers["Cache-Control"] == "no-store"
     assert writes == [{"require_durable": True}]
 
 
@@ -553,3 +566,83 @@ def test_ordinary_receipt_still_initializes_schema(monkeypatch):
         "smi-ordinary", "2026-09-21T00:00:00Z",
     )
     assert events.index("schema") < events.index("insert")
+
+
+def test_recovery_proof_http_fail_closed_when_hrm_missing_or_unconfirmed(monkeypatch):
+    app = Flask(__name__)
+    monkeypatch.setattr(alignment_views.web_security, "csrf_valid", lambda _request: True)
+
+    def blocked_status(*, require_durable):
+        assert require_durable is True
+        return {
+            "independent_durable_hrm_ready": False,
+            "full_system_green": False,
+            "write_read_proof": {
+                "status": "blocked_durable_hrm_unconfigured",
+                "ok": False,
+                "read_back_ok": False,
+                "durable": False,
+                "backend": "unconfigured",
+                "receipt_id": None,
+            },
+        }
+
+    monkeypatch.setattr(
+        alignment_views.smi_receipt_backend, "receipt_backend_status", blocked_status
+    )
+    with app.test_request_context("/smi/brain/receipts/proof", method="POST"):
+        missing = alignment_views.smi_brain_receipts_proof.__wrapped__()
+    assert missing.status_code == 503
+    assert missing.get_json()["status"]["full_system_green"] is False
+    assert missing.headers["Cache-Control"] == "no-store"
+
+    def uncertain_status(*, require_durable):
+        assert require_durable is True
+        return {
+            "independent_durable_hrm_ready": False,
+            "full_system_green": False,
+            "write_read_proof": {
+                "status": "durable_commit_or_readback_unconfirmed",
+                "receipt_id": "smi-preserved-correlation-id",
+                "ok": False,
+                "read_back_ok": False,
+                "durable": False,
+                "backend": "independent_hrm_postgres",
+            },
+        }
+
+    monkeypatch.setattr(
+        alignment_views.smi_receipt_backend, "receipt_backend_status", uncertain_status
+    )
+    with app.test_request_context("/smi/brain/receipts/proof", method="POST"):
+        uncertain = alignment_views.smi_brain_receipts_proof.__wrapped__()
+    assert uncertain.status_code == 409
+    assert uncertain.get_json()["status"]["write_read_proof"]["receipt_id"] == (
+        "smi-preserved-correlation-id"
+    )
+    assert uncertain.headers["Cache-Control"] == "no-store"
+
+
+def test_recovery_proof_http_requires_independent_payload_checksum(monkeypatch):
+    app = Flask(__name__)
+    monkeypatch.setattr(alignment_views.web_security, "csrf_valid", lambda _request: True)
+    monkeypatch.setattr(
+        alignment_views.smi_receipt_backend,
+        "receipt_backend_status",
+        lambda **kwargs: {
+            "independent_durable_hrm_ready": True,
+            "full_system_green": False,
+            "write_read_proof": {
+                "ok": True,
+                "read_back_ok": True,
+                "durable": True,
+                "fallback_used": False,
+                "backend": "independent_hrm_postgres",
+                "read_back_checksum_sha256": None,
+            },
+        },
+    )
+    with app.test_request_context("/smi/brain/receipts/proof", method="POST"):
+        response = alignment_views.smi_brain_receipts_proof.__wrapped__()
+    assert response.status_code == 503
+    assert response.get_json()["status"]["full_system_green"] is False
