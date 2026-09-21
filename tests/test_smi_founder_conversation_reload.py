@@ -99,3 +99,70 @@ def test_mission_anchor_database_query_scoped_to_authenticated_owner():
     assert "(conversation, identity)" in core
     assert "owned_saved_mission_anchor" in core
     assert '_require_owned_conversation(supplied_conversation, owner, identity)' in core
+
+
+def test_owner_scoped_saved_conversation_load_blocks_other_identity(
+    client, monkeypatch
+):
+    """Exercise the authenticated HTTP read with a controlled DB substitute."""
+    from contextlib import nullcontext
+    from datetime import datetime, timezone
+
+    from mission_control import smi_chat_runtime, smi_chat_runtime_core
+    from mission_control import web_security
+
+    founder = "11111111-1111-4111-8111-111111111111"
+    other = "22222222-2222-4222-8222-222222222222"
+    conversation = "33333333-3333-4333-8333-333333333333"
+    now = datetime(2026, 9, 21, tzinfo=timezone.utc)
+    message_reads = []
+
+    class Result:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def fetchone(self):
+            return self.rows[0] if self.rows else None
+
+        def fetchall(self):
+            return self.rows
+
+    class Store:
+        def execute(self, query, params):
+            if "SELECT title,updated_at" in query:
+                return Result([("Founder private work", now)] if params[1] == founder else [])
+            if "SELECT message_id,role,content" in query:
+                message_reads.append(params)
+                return Result([
+                    (
+                        "44444444-4444-4444-8444-444444444444",
+                        "user", "Founder-only War Room mission", None, None,
+                        "PASSED", now,
+                    )
+                ])
+            raise AssertionError("Unexpected conversation query")
+
+    monkeypatch.setattr(
+        smi_chat_runtime_core.postgres_db,
+        "connect",
+        lambda readonly=False: nullcontext(Store()),
+    )
+    monkeypatch.setattr(
+        smi_chat_runtime,
+        "get_conversation",
+        smi_chat_runtime_core.get_conversation,
+    )
+
+    with client.session_transaction() as session:
+        session[web_security.IDENTITY_SESSION_KEY] = other
+    denied = client.get("/mission/conversations/" + conversation)
+    assert denied.status_code == 404
+    assert "Founder-only War Room mission" not in denied.get_data(as_text=True)
+    assert message_reads == []
+
+    with client.session_transaction() as session:
+        session[web_security.IDENTITY_SESSION_KEY] = founder
+    allowed = client.get("/mission/conversations/" + conversation)
+    assert allowed.status_code == 200
+    assert allowed.get_json()["messages"][0]["content"] == "Founder-only War Room mission"
+    assert message_reads == [(conversation,)]
