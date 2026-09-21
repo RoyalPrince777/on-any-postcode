@@ -106,3 +106,20 @@ def test_bad_landmarks_motion_and_mouth_timing_fail_closed(name, change, verdict
     assert result["motion_proven"] is False
     assert result["active"] is False
     assert result["reason"] == "geometry_or_timing_schema_incomplete"
+
+
+def test_malformed_untrusted_records_never_raise_or_prove_motion():
+    bundle = _sample()
+    report = _assets()
+    report["layers"] = ["eyes"]
+    assert inspect_geometry(bundle, report)["reason"] == "private_asset_bytes_unproven"
+
+    bundle["layers"]["eyes"]["landmarks"]["left_eye_center"] = [10**1000, 0.2]
+    assert inspect_geometry(bundle, _assets())["layers"]["eyes"] == "invalid_landmarks"
+
+    bundle = _sample()
+    bundle["layers"]["mouth_visemes"]["frames"][0]["audio_ms"] = True
+    assert (
+        inspect_geometry(bundle, _assets())["layers"]["mouth_visemes"]
+        == "invalid_viseme_timing_metadata"
+    )
