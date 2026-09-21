@@ -95,7 +95,8 @@ def _layer(record: object, name: str) -> str:
         previous = ms
         if name == "mouth_visemes":
             if (
-                frame.get("viseme") not in VISEMES
+                not isinstance(frame.get("viseme"), str)
+                or frame["viseme"] not in VISEMES
                 or type(frame.get("audio_ms")) is not int
                 or abs(frame["audio_ms"] - ms) > 80
                 or frame["audio_ms"] < 0
@@ -126,6 +127,7 @@ def inspect_geometry(
         return {**verdict, "reason": "source_identity_unproven"}
     if (
         not isinstance(asset_report, Mapping)
+        or not isinstance(asset_report.get("layers"), Mapping)
         or asset_report.get("reason")
         != "bytes_verified_only_requires_independent_rig_proofs"
         or set(asset_report.get("layers", {})) != set(LAYERS)
