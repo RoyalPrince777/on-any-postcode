@@ -37,6 +37,8 @@ jobs:
           node --check mission_control/static/smi_canonical_controller.js
           node --check mission_control/static/smi_chat_final.js
           node --check mission_control/static/smi_interaction_layer.js
+          node --check tests/smi_founder_saved_work_runtime_test.cjs
+          node tests/smi_founder_saved_work_runtime_test.cjs
           node tests/smi_live_character_state_test.cjs
           node tests/smi_live_character_exhaustive_test.cjs
           node --check mission_control/static/smi_exact_character_rig.js
