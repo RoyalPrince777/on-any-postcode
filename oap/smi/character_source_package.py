@@ -19,7 +19,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageChops, UnidentifiedImageError
 
 from .character_rig_assets import (
     APPROVED_SOURCE_SHA256,
@@ -83,6 +83,39 @@ def _mask_bytes(root: Path, layer: str) -> bytes:
     return _regular_bytes(path, limit=MAX_SOURCE_BYTES)
 
 
+def _mask_image(data: bytes) -> Image.Image:
+    """Accept reviewed L masks or browser-exported white RGBA alpha masks."""
+    try:
+        with Image.open(BytesIO(data)) as image:
+            if image.format != "PNG" or getattr(image, "n_frames", 1) != 1:
+                raise SourcePackageError("invalid_mask_format")
+            width, height = image.size
+            if (
+                not 1 <= width <= MAX_LAYER_DIMENSION
+                or not 1 <= height <= MAX_LAYER_DIMENSION
+                or width * height > MAX_PIXELS
+            ):
+                raise SourcePackageError("invalid_image_size")
+            image.load()
+            if image.mode == "L":
+                return image.copy()
+            if image.mode != "RGBA":
+                raise SourcePackageError("invalid_mask_format")
+            alpha = image.getchannel("A")
+            # A browser mask is WHITE with variable alpha, never a substitute
+            # full-colour character image disguised as a selection mask.
+            wrong_rgb = ImageChops.difference(
+                image.convert("RGB"), Image.new("RGB", image.size, "white")
+            ).convert("L")
+            if ImageChops.multiply(wrong_rgb, alpha).getbbox() is not None:
+                raise SourcePackageError("invalid_mask_colour")
+            return alpha
+    except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError) as error:
+        if isinstance(error, SourcePackageError):
+            raise
+        raise SourcePackageError("mask_decode_failed") from error
+
+
 def build_source_package(
     source_path: Path | str,
     approved_mask_root: Path | str,
@@ -117,7 +150,7 @@ def build_source_package(
     prepared: dict[str, tuple[bytes, list[int], str]] = {}
     for layer in LAYERS:
         mask_bytes = _mask_bytes(masks, layer)
-        mask = _image(mask_bytes, mode="L")
+        mask = _mask_image(mask_bytes)
         if mask.size != size:
             raise SourcePackageError("mask_canvas_mismatch")
         bbox = mask.getbbox()
