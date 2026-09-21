@@ -699,7 +699,7 @@ def smi_command_centre_scope():
         )
     payload = request.get_json(silent=True)
     try:
-        result = smi_command_scope.record_command_scope(payload)
+        result = smi_command_scope.record_command_scope(payload, identity_id=_chat_identity())
     except (TypeError, ValueError):
         return _error("invalid_command_scope", "Unsupported Command Centre scope.", 400)
     if not result["recorded"]:
@@ -708,6 +708,26 @@ def smi_command_centre_scope():
             "The Founder decision was not durably confirmed. Try again after recovery.",
             503,
         )
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/command-centre/scope/<receipt_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_command_centre_load_scope(receipt_id: str):
+    """Reopen only a recorded scope belonging to the signed-in Founder."""
+    try:
+        result = smi_command_scope.load_command_scope(
+            identity_id=_chat_identity(), receipt_id=receipt_id
+        )
+    except ValueError:
+        return _error("invalid_scope_receipt", "Invalid mission receipt.", 400)
+    if result["state"] == "durable_receipt_unavailable":
+        return _error(
+            "scope_receipt_unavailable",
+            "Saved mission cannot be read safely. No scope was restored.", 503
+        )
+    if not result["found"]:
+        return _error("scope_not_found", "Saved mission not found.", 404)
     return _no_store(make_response(jsonify(result)))
 
 
