@@ -7,6 +7,7 @@ It records proof metadata only and grants no execution or approval authority.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import sqlite3
@@ -14,6 +15,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 DEFAULT_DB_PATH = "/tmp/oap_smi_receipts.sqlite3"
 ALLOWED_RECEIPT_KINDS = {
@@ -169,9 +171,13 @@ def _base_result(kind: str, normalised: dict[str, Any], receipt_id: str, created
     }
 
 
-def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, created_at: str) -> dict[str, Any]:
+def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, created_at: str, *, independent_readback: bool = False) -> dict[str, Any]:
     with _connect_postgres() as connection:
-        _init_postgres_schema(connection)
+        if not independent_readback:
+            # Normal receipts keep their existing initialization behavior.
+            # A Recovery proof may write only to a previously prepared schema:
+            # it must not CREATE TABLE / INDEX as a diagnostic side effect.
+            _init_postgres_schema(connection)
         with connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -195,15 +201,53 @@ def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, crea
                 ),
             )
         connection.commit()
-        with connection.cursor() as cursor:
+        if not independent_readback:
+            # Preserve the existing ordinary receipt flow. Recovery certification
+            # requires the stronger separate-connection readback below.
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT receipt_id, receipt_kind FROM smi_evidence_receipts WHERE receipt_id = %s",
+                    (receipt_id,),
+                )
+                row = cursor.fetchone()
+    if independent_readback:
+        # A new connection after the writer closed must see the committed row.
+        # No schema initialization, second insert, or ephemeral fallback here.
+        with _connect_postgres() as reader, reader.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
             cursor.execute(
-                "SELECT receipt_id, receipt_kind FROM smi_evidence_receipts WHERE receipt_id = %s",
+                "SELECT receipt_id, receipt_kind, payload_json FROM smi_evidence_receipts WHERE receipt_id = %s",
                 (receipt_id,),
             )
             row = cursor.fetchone()
     read_back_ok = bool(row and row["receipt_id"] == receipt_id and row["receipt_kind"] == kind)
+    if independent_readback:
+        # Matching an ID and kind alone cannot detect a wrong/truncated payload.
+        # JSONB is semantic data, so normalize its object rather than its
+        # incidental textual serialization or key order.
+        stored_payload = row.get("payload_json") if row else None
+        if isinstance(stored_payload, str):
+            stored_payload = json.loads(stored_payload)
+        read_back_ok = bool(read_back_ok and stored_payload == normalised["safe_payload"])
+    read_back_checksum_sha256 = (
+        hashlib.sha256(
+            json.dumps(
+                {
+                    "receipt_id": receipt_id,
+                    "receipt_kind": kind,
+                    "safe_payload": normalised["safe_payload"],
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        if independent_readback and read_back_ok
+        else None
+    )
     return {
         **_base_result(kind, normalised, receipt_id, created_at),
+        "read_back_checksum_sha256": read_back_checksum_sha256,
         "ok": read_back_ok,
         "status": "written_and_read_back" if read_back_ok else "write_failed_or_unreadable",
         "read_back_ok": read_back_ok,
@@ -254,7 +298,7 @@ def _write_sqlite(kind: str, normalised: dict[str, Any], receipt_id: str, create
     }
 
 
-def write_receipt(receipt_kind: str, payload: dict[str, Any]) -> dict[str, Any]:
+def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable: bool = False) -> dict[str, Any]:
     """Write one bounded receipt; prefer independent durable Postgres."""
 
     kind = str(receipt_kind or "").strip()
@@ -273,35 +317,65 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any]) -> dict[str, Any]:
     created_at = _now()
     if _hrm_database_url():
         try:
+            if require_durable:
+                return _write_postgres(
+                    kind, normalised, receipt_id, created_at, independent_readback=True
+                )
             return _write_postgres(kind, normalised, receipt_id, created_at)
-        except Exception:  # noqa: BLE001 - degraded fallback is deliberate and redacted
+        except Exception:  # noqa: BLE001 - no secret or driver error in proof response
+            if require_durable:
+                # A failed readback may follow a successful commit. Retain the
+                # correlation ID for later reconciliation and DO NOT write a
+                # misleading second proof into ephemeral SQLite.
+                return {
+                    "ok": False,
+                    "status": "durable_commit_or_readback_unconfirmed",
+                    "receipt_kind": kind,
+                    "receipt_id": receipt_id,
+                    "read_back_ok": False,
+                    "durable": False,
+                    "backend": "independent_hrm_postgres",
+                    "fallback_used": False,
+                }
             result = _write_sqlite(kind, normalised, receipt_id, created_at, fallback_used=True)
             result["primary_backend_error"] = "independent_hrm_postgres_unavailable"
             return result
+    if require_durable:
+        return {
+            "ok": False,
+            "status": "blocked_durable_hrm_unconfigured",
+            "receipt_kind": kind,
+            "receipt_id": None,
+            "read_back_ok": False,
+            "durable": False,
+            "backend": "unconfigured",
+            "fallback_used": False,
+        }
     return _write_sqlite(kind, normalised, receipt_id, created_at, fallback_used=False)
 
 
 def _latest_postgres(limit: int) -> tuple[dict[str, Any], ...]:
-    with _connect_postgres() as connection:
-        _init_postgres_schema(connection)
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
-                       guardian, green_gate, founder_final, created_at
-                FROM smi_evidence_receipts
-                ORDER BY created_at DESC
-                LIMIT %s
-                """,
-                (limit,),
-            )
-            rows = cursor.fetchall()
+    with _connect_postgres() as connection, connection.cursor() as cursor:
+        cursor.execute("SET TRANSACTION READ ONLY")
+        cursor.execute(
+            """
+            SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
+                   guardian, green_gate, founder_final, created_at
+            FROM smi_evidence_receipts
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        rows = cursor.fetchall()
     return tuple(dict(row) for row in rows)
 
 
 def _latest_sqlite(limit: int) -> tuple[dict[str, Any], ...]:
-    with _connect_sqlite() as connection:
-        _init_sqlite_schema(connection)
+    # SQLite's normal connector and schema initializer create files/tables.
+    # Status reads must never create either on a missing fallback store.
+    with sqlite3.connect(Path(_db_path()).resolve().as_uri() + "?mode=ro", uri=True) as connection:
+        connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """
             SELECT receipt_id, receipt_kind, brain_part, gate, command, signal,
@@ -328,10 +402,16 @@ def latest_receipts(limit: int = 20) -> dict[str, Any]:
             backend = "independent_hrm_postgres"
             durable = True
         except Exception:  # noqa: BLE001
-            rows = _latest_sqlite(safe_limit)
             fallback_used = True
+            try:
+                rows = _latest_sqlite(safe_limit)
+            except (sqlite3.Error, OSError):
+                rows = ()
     else:
-        rows = _latest_sqlite(safe_limit)
+        try:
+            rows = _latest_sqlite(safe_limit)
+        except (sqlite3.Error, OSError):
+            rows = ()
     return {
         "name": "SMI Evidence Receipts",
         "backend": backend,
@@ -418,12 +498,45 @@ def behaviour_progress(limit: int = 20) -> dict[str, Any]:
     }
 
 
+def _configured_hrm_host_fingerprint() -> str | None:
+    """Fingerprint only the actual receipt-writer host; never return its URL."""
+
+    try:
+        hostname = (urlsplit(_hrm_database_url()).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return None
+    if not hostname:
+        return None
+    return hashlib.sha256(hostname.encode("utf-8")).hexdigest()
+
+
+def _configured_main_host_fingerprint() -> str | None:
+    """Fingerprint the selected main writer host, not the unused primary URL."""
+
+    from . import postgres_db
+
+    try:
+        hostname = (urlsplit(postgres_db._database_url()).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return None
+    if not hostname:
+        return None
+    return hashlib.sha256(hostname.encode("utf-8")).hexdigest()
+
+
 def backend_configuration_status() -> dict[str, Any]:
     """Return configuration state without making a DB connection or leaking secrets."""
+
+    from . import postgres_db
 
     durable_configured = bool(_hrm_database_url())
     return {
         "durable_backend_configured": durable_configured,
+        "hrm_host_sha256": _configured_hrm_host_fingerprint(),
+        "main_host_sha256": _configured_main_host_fingerprint(),
+        "main_database_source": postgres_db.database_source(),
+        "main_database_authority": postgres_db.database_authority(),
+        "live_store_identity_proven": False,
         "preferred_backend": "independent_hrm_postgres" if durable_configured else "local_sqlite_receipt_store",
         "fallback_backend": "local_sqlite_receipt_store",
         "fallback_is_durable": False,
@@ -432,27 +545,40 @@ def backend_configuration_status() -> dict[str, Any]:
     }
 
 
-def receipt_backend_status() -> dict[str, Any]:
-    """Prove write/read readiness while preserving fail-closed truth labels."""
+def receipt_backend_status(*, require_durable: bool = False) -> dict[str, Any]:
+    """Prove write/read readiness; Recovery POST must never use SQLite."""
 
-    probe = write_receipt(
-        "hrm_neon_evidence_receipt",
-        {
-            "brain_part": "receipt_backend_probe",
-            "gate": 5,
-            "command": "backend_status",
-            "signal": "🟢",
-            "safe_payload": {"probe": True, "external_action": False},
-        },
+    probe_payload = {
+        "brain_part": "receipt_backend_probe",
+        "gate": 5,
+        "command": "backend_status",
+        "signal": "🟢",
+        "safe_payload": {"probe": True, "external_action": False},
+    }
+    if require_durable:
+        # A probe has not passed the whole recovery gate even if this receipt
+        # later commits. Never write a pre-certified green signal.
+        probe_payload["signal"] = "🟣"
+        probe = write_receipt(
+            "hrm_neon_evidence_receipt", probe_payload, require_durable=True
+        )
+    else:
+        probe = write_receipt("hrm_neon_evidence_receipt", probe_payload)
+    durable_ready = bool(
+        probe.get("ok")
+        and probe.get("read_back_ok")
+        and probe.get("durable")
+        and not probe.get("fallback_used")
+        and probe.get("backend") == "independent_hrm_postgres"
     )
     return {
         "name": "SMI Receipt Backend Status",
         "receipt_backend": probe["backend"],
         "write_read_proof": probe,
-        "hrm_receipt_ready": bool(probe["ok"]),
-        "matrix_learning_receipt_ready": bool(probe["ok"]),
-        "ecosystem_outcome_receipt_ready": bool(probe["ok"]),
-        "independent_durable_hrm_ready": bool(probe.get("ok") and probe.get("durable")),
+        "hrm_receipt_ready": durable_ready,
+        "matrix_learning_receipt_ready": durable_ready,
+        "ecosystem_outcome_receipt_ready": durable_ready,
+        "independent_durable_hrm_ready": durable_ready,
         "neon_mirror_ready": False,
         "neon_mirror_reason": "Neon is optional as a mirror; independent HRM durability is authoritative when configured and proven.",
         "full_system_green": False,
