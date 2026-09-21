@@ -33,6 +33,7 @@ from . import (
     smi_receipt_backend,
     smi_recursive_improvement,
     smi_workbench,
+    smi_war_room_front_projection,
     status,
     studio_intelligence,
     war_room,
@@ -300,6 +301,7 @@ def war_room_dashboard():
         render_template(
             "war_room.html",
             war_room=war_room.get_war_room_dashboard(),
+            front_review=smi_war_room_front_projection.front_review_projection(),
         )
     )
     return _no_store(response)
