@@ -33,3 +33,12 @@ This record captures source-code inspection, not a production runtime attestatio
 6. Keep changes draft until all relevant CI, adversarial tests, rollback evidence and Founder final approval are recorded.
 
 CI #2182 passed on `f3796bbb` before this documentation commit. This document alone does not advance certified percentages or runtime gates.
+
+## CI evidence separation — latest checked run #2183
+
+- PR head for this run: `4a89b58a05d3c77fe41d9b4e1a4c9ac868650882`; workflow run `35602393424` completed **failure**.
+- Browser state-machine, Python compile, Ruff lint, RTL checks and **1,568 governed regression tests passed**.
+- The *separate* `scripts/routing_live_green_gate.py` check raised `TimeoutError: The read operation timed out` on an HTTPS response. The script sends 20 requests with four workers to `https://oap-routing.onrender.com` for two Mitcham routes, with a 10-second per-request timeout and six-second p95 limit.
+- The routing timeout is not proof of a first-party inference failure or success. It blocks the *overall* workflow; do not omit it, change acceptance limits to manufacture green, or confuse routing with SMI egress certification.
+- Next routing evidence: exact deployed routing commit, bounded probe retry and server-side request/latency logs for the failing window, using the correct user-selected Render workspace. Runtime/service configuration was **not** inspected during this review.
+- Next SMI evidence: a **distinct** private request-path test with external AI and telemetry network egress blocked, local/bridge availability combinations, end-to-end HRM receipt checks, and worker/relay custody proof.
