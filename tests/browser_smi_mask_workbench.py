@@ -71,11 +71,11 @@ def run_workbench(page, origin, output):
         "(el) => [el.naturalWidth,el.naturalHeight]"
     ) == list(dimensions)
     assert page.locator("#save-all").is_enabled()
-    assert page.locator("#coverage").input_value() == "0"
+    assert page.locator("#coverage").evaluate("(el) => el.value") == 0
 
     page.locator("#save-all").click()
     page.get_by_text("Finish all seven nonempty masks", exact=False).wait_for()
-    assert page.locator("#coverage").input_value() == "0"
+    assert page.locator("#coverage").evaluate("(el) => el.value") == 0
 
     names = list(LAYERS)
     for name in names:
@@ -93,7 +93,7 @@ def run_workbench(page, origin, output):
             "(el) => [...el.getContext('2d').getImageData(0,0,"
             "el.width,el.height).data].some((v,i) => i%4===3 && v>0)"
         )
-    assert page.locator("#coverage").input_value() == "7"
+    assert page.locator("#coverage").evaluate("(el) => el.value") == 7
 
     with page.expect_download() as download_event:
         page.locator("#save-all").click()
@@ -128,14 +128,14 @@ def run_workbench(page, origin, output):
         draft = archive.read("eyes.png")
     page.locator("#layers button[data-name='eyes']").click()
     page.locator("#clear").click()
-    assert page.locator("#coverage").input_value() == "6"
+    assert page.locator("#coverage").evaluate("(el) => el.value") == 6
     page.locator("#import-mask").set_input_files({
         "name": "eyes.png",
         "mimeType": "image/png",
         "buffer": draft,
     })
     page.get_by_text("Restored local eyes mask as draft.", exact=True).wait_for()
-    assert page.locator("#coverage").input_value() == "7"
+    assert page.locator("#coverage").evaluate("(el) => el.value") == 7
 
     assert not outside, "Mask workbench must not request external resources"
     assert not errors, "Browser exception during mask workflow"
