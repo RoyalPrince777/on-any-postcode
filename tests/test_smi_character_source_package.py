@@ -49,13 +49,12 @@ def test_source_pixel_extraction_and_read_only_asset_gate(tmp_path, monkeypatch)
     assert manifest["hidden_region_reconstruction"] is False
     assert list(manifest["layers"]) == list(LAYERS)
     assert target.stat().st_mode & 0o777 == 0o700
-    with Image.open(source) as original:
-        with Image.open(target / "eyes.png") as eyes:
-            eyes.load()
-            assert eyes.mode == "RGBA"
-            assert eyes.size == (16, 14)
-            assert eyes.getpixel((0, 0))[:3] == original.getpixel((3, 6))
-            assert eyes.getpixel((0, 0))[3] == 255
+    with Image.open(source) as original, Image.open(target / "eyes.png") as eyes:
+        eyes.load()
+        assert eyes.mode == "RGBA"
+        assert eyes.size == (16, 14)
+        assert eyes.getpixel((0, 0))[:3] == original.getpixel((3, 6))
+        assert eyes.getpixel((0, 0))[3] == 255
     assert all(
         (target / (name + ".png")).stat().st_mode & 0o777 == 0o600
         for name in LAYERS
