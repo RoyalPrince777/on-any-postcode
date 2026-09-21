@@ -21,15 +21,13 @@ os.environ["NEON_AUTH_BASE_URL"] = "https://example.neonauth.test/neondb/auth"
 os.environ["OAP_HUMAN_AUTHORITY_EMAIL"] = "founder@example.test"
 os.environ["OAP_AUTH_REQUIRED"] = "true"
 
-import app as oap  # noqa: E402
-from mission_control import neon_auth  # noqa: E402
-from oap.smi.character_rig_assets import (  # noqa: E402
-    APPROVED_SOURCE_SHA256,
-    LAYERS,
-)
-from PIL import Image  # noqa: E402
-from playwright.sync_api import sync_playwright  # noqa: E402
-from werkzeug.serving import make_server  # noqa: E402
+from PIL import Image
+from playwright.sync_api import sync_playwright
+from werkzeug.serving import make_server
+
+import app as oap
+from mission_control import neon_auth
+from oap.smi.character_rig_assets import APPROVED_SOURCE_SHA256, LAYERS
 
 AUTH_COOKIE = "better-auth.session_token"
 COOKIE_VALUE = "local-mask-test-fixture"
