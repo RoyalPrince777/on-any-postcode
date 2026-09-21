@@ -1,0 +1,13 @@
+{
+  "version": "0.1",
+  "approved_source_sha256": "f9503174f6f18b815f1c73e24faff3b4966c2e1fbae8d20a8d2bcc22e4a84a4b",
+  "layers": {
+    "eyes": null,
+    "head": null,
+    "breathing": null,
+    "mouth_visemes": null,
+    "face": null,
+    "hands": null,
+    "upper_body": null
+  }
+}
