@@ -354,6 +354,41 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable
     return _write_sqlite(kind, normalised, receipt_id, created_at, fallback_used=False)
 
 
+
+def read_command_scope_receipt(receipt_id: str, owner_digest: str) -> dict[str, Any] | None:
+    """Read only one matching Founder scope from the independent durable HRM store.
+
+    Never use local SQLite fallback and never initialize schema during a read.
+    A missing receipt reveals no details about another Founder's decisions.
+    """
+    if not _hrm_database_url():
+        return {"available": False}
+    try:
+        with _connect_postgres() as connection, connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute(
+                """SELECT payload_json FROM smi_evidence_receipts
+                   WHERE receipt_id=%s
+                     AND receipt_kind='agent_tool_connection_receipt'
+                     AND brain_part='smi_command_centre'
+                     AND command='founder_scope_decision'
+                     AND payload_json->>'owner_digest'=%s""",
+                (receipt_id, owner_digest),
+            )
+            row = cursor.fetchone()
+    except Exception:  # noqa: BLE001 - fail closed without leaking HRM details
+        return {"available": False}
+    if row is None:
+        return None
+    payload = row.get("payload_json") if isinstance(row, dict) else row[0]
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except json.JSONDecodeError:
+            return None
+    return {"available": True, "payload": payload} if isinstance(payload, dict) else None
+
+
 def _latest_postgres(limit: int) -> tuple[dict[str, Any], ...]:
     with _connect_postgres() as connection, connection.cursor() as cursor:
         cursor.execute("SET TRANSACTION READ ONLY")
