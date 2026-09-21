@@ -212,6 +212,7 @@ async function oapSubmit(options={}){
     if(parsed.event==='error')streamError=new Error(parsed.data.message||'Request failed');
    }
   }
+  if(responseStopped||oapAbort.signal.aborted)throw new DOMException('Request stopped by Human Authority','AbortError');
   if(streamError)throw streamError;if(!completeResult)throw new Error('The governed response did not finish recording.');
   conversationId=completeResult.conversation_id;if(!assistantBody)assistantBody=add(completeResult.response,'assistant');else renderMessage(assistantBody,completeResult.response);
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
