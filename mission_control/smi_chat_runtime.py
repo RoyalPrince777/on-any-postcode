@@ -142,8 +142,10 @@ def _gateway_provider(
         cancellation_token.raise_if_cancelled()
 
     def compatibility_engine(*args, **kwargs):
-        kwargs["cancellation_token"] = cancellation_token
-        return _COMPATIBILITY_ENGINE(*args, **kwargs)
+        # Private Founder chat must not reach the external compatibility engine,
+        # including when local inference or the Home Node is unavailable.
+        # The gateway may call this callback, but it always fails closed.
+        raise RuntimeError("first_party_inference_required")
 
     return _inference.generate(
         compatibility_engine,
