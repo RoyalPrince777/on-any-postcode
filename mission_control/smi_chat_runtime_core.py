@@ -636,10 +636,8 @@ def chat(
             history=history,
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
-            force_war_room=(
-                requested_mode == "war_room"
-                or founder_workflow["war_room_requested"]
-            ),
+            force_war_room=requested_mode == "war_room"
+            or founder_workflow["war_room_requested"],
         )
         level, resolved_studio_mode, resolved_depth = _auto_runtime_mode(
             clean,
