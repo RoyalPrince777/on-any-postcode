@@ -20,7 +20,11 @@
     document.getElementById("message")?.focus();return;
    }
    if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
-   if(target==="war-room")document.querySelector('#attach-menu [data-oap-action="war-room"]')?.click();
+   if(target==="war-room"){
+    const selector=document.querySelector("[data-smi-war-room-open]");
+    if(selector)selector.click();
+    else document.querySelector('#attach-menu [data-oap-action="war-room"]')?.click();
+   }
    else document.getElementById(target)?.click();
   });
   presenceActions.append(button);
@@ -269,6 +273,8 @@
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
   const action=trigger.dataset.action;
+  const selector=action==="war-room"?document.querySelector("[data-smi-war-room-open]"):null;
+  if(selector){selector.click();return;}
   const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
   if(!canonical||canonical.disabled){
    const feedback=document.getElementById("status");
