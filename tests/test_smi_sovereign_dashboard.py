@@ -12,7 +12,8 @@ def test_sovereign_dashboard_is_primary_smi_surface():
     stylesheet = DASHBOARD_CSS.read_text(encoding="utf-8")
 
     assert "Sovereign Megaverse Intelligence" in wrapper
-    assert "Live Intelligence Monitor" in wrapper
+    assert "Live Intelligence Monitor" not in wrapper
+    assert "visibleLiveStatus:false" in wrapper
     assert "smi_sovereign_dashboard.css" in wrapper
     assert "smi_sovereign_dashboard.js" in wrapper
     assert "warRoomStatusUrl" in wrapper
