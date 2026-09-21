@@ -3,6 +3,7 @@
 Local fixture only: does not claim hosted, Android or backend HRM proof.
 """
 from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
