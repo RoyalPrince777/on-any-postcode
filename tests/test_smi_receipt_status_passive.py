@@ -370,7 +370,13 @@ def test_recovery_receipt_commits_before_independent_new_session_readback(monkey
 
     monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "configured")
     monkeypatch.setattr(smi_receipt_backend, "_connect_postgres", connect)
-    monkeypatch.setattr(smi_receipt_backend, "_init_postgres_schema", lambda *_args: None)
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_init_postgres_schema",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("Recovery proof cannot initialize or migrate schema")
+        ),
+    )
     monkeypatch.setattr(
         smi_receipt_backend,
         "_write_sqlite",
@@ -497,3 +503,53 @@ def test_recovery_probe_signal_cannot_pre_certify_green(monkeypatch):
     result = smi_receipt_backend.receipt_backend_status(require_durable=True)
     assert captured["signal"] == "🟣"
     assert result["full_system_green"] is False
+
+
+def test_ordinary_receipt_still_initializes_schema(monkeypatch):
+    from mission_control import smi_receipt_backend
+
+    events = []
+
+    class Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, values=None):
+            if sql.lstrip().startswith("INSERT"):
+                events.append("insert")
+            if sql.lstrip().startswith("SELECT"):
+                events.append("select")
+
+        def fetchone(self):
+            return {"receipt_id": "smi-ordinary", "receipt_kind": "hrm_neon_evidence_receipt"}
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def cursor(self):
+            return Cursor()
+
+        def commit(self):
+            events.append("commit")
+
+    monkeypatch.setattr(smi_receipt_backend, "_connect_postgres", Connection)
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "_init_postgres_schema",
+        lambda *_args: events.append("schema"),
+    )
+    smi_receipt_backend._write_postgres(
+        "hrm_neon_evidence_receipt",
+        {"brain_part": "probe", "gate": 5, "command": "test",
+         "signal": "🟣", "guardian": "required", "green_gate": "required",
+         "founder_final": "required", "safe_payload": {}},
+        "smi-ordinary", "2026-09-21T00:00:00Z",
+    )
+    assert events.index("schema") < events.index("insert")
