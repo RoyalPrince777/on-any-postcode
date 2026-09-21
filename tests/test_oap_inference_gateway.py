@@ -1,5 +1,9 @@
 from pathlib import Path
 
+import pytest
+
+from mission_control import smi_chat_runtime
+
 from mission_control import oap_inference_gateway
 from oap.smi.capability_fabric import select_capabilities
 from oap.smi.capability_fabric import status as capability_status
@@ -110,3 +114,24 @@ def test_gateway_enriches_all_provider_paths_with_oap_capabilities():
     assert enriched["external_provider_authority"] is False
     assert enriched["human_authority_final"] is True
     assert oap_inference_gateway.status()["capability_fabric"]["ready"] is True
+
+
+def test_founder_chat_never_uses_external_compatibility_on_local_failure(monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise RuntimeError("local_unavailable")
+
+    monkeypatch.setattr(oap_inference_gateway, "_call_local", unavailable)
+    monkeypatch.setattr(oap_inference_gateway, "_call_bridge", unavailable)
+    monkeypatch.setattr(oap_inference_gateway, "FALLBACK_ENABLED", True)
+
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        smi_chat_runtime._gateway_provider("Private Founder request")
+
+
+def test_founder_chat_media_never_uses_external_compatibility(monkeypatch):
+    monkeypatch.setattr(oap_inference_gateway, "FALLBACK_ENABLED", True)
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        smi_chat_runtime._gateway_provider(
+            "Analyse my private image",
+            image_data="data:image/png;base64,example",
+        )
