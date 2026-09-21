@@ -26,7 +26,7 @@ def record_command_scope(payload: object) -> dict[str, Any]:
     unsuitable for claiming a durable Founder decision.
     """
     if not isinstance(payload, dict):
-        raise ValueError("invalid_command_scope")
+        raise TypeError("invalid_command_scope")
     mode = payload.get("mode")
     decision = payload.get("decision")
     depth = payload.get("depth")
