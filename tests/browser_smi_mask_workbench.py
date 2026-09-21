@@ -60,7 +60,10 @@ def run_workbench(page, origin, output):
         if request.url.startswith("http") and not request.url.startswith(origin)
         else None,
     )
-    page.goto(origin + "/mission/character-mask-workbench")
+    response = page.goto(origin + "/mission/character-mask-workbench")
+    assert response is not None and response.status == 200, (
+        "Local Founder fixture did not enter private mask workbench"
+    )
     page.locator("#source-art").wait_for(state="visible")
     page.get_by_text("Exact original verified.", exact=False).wait_for()
     original = ROOT / "static/oap/smi_live_chat_dashboard.jpg"
