@@ -82,3 +82,17 @@ def test_mask_editor_contains_no_remote_upload_or_false_rig_activation():
         "new WebSocket(", "navigator.serviceWorker",
     ):
         assert forbidden not in source
+
+
+
+def test_gateway_allows_only_sha_pinned_original_not_arbitrary_static():
+    import smi_gateway
+
+    assert smi_gateway._allowed("/mission/character-mask-workbench")
+    assert smi_gateway._allowed("/mission/static/smi_character_mask_workbench.js")
+    assert smi_gateway._allowed("/mission/static/smi_mask_zip.js")
+    assert smi_gateway._allowed("/static/oap/smi_live_chat_dashboard.jpg")
+    assert not smi_gateway._allowed("/static/oap/other-character.jpg")
+    assert not smi_gateway._allowed("/static/oap/private-mask.png")
+    assert not smi_gateway._allowed("/static")
+    assert not smi_gateway._allowed("/static/oap/smi_live_chat_dashboard.jpg/other")
