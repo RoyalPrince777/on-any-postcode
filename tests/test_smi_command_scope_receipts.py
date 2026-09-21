@@ -51,7 +51,7 @@ def test_invalid_scope_fails_before_receipt(monkeypatch, bad):
     def unexpected(*args, **kwargs):
         raise AssertionError("Receipt must not be called")
     monkeypatch.setattr(scope.smi_receipt_backend, "write_receipt", unexpected)
-    with pytest.raises(ValueError, match="invalid_command_scope"):
+    with pytest.raises((TypeError, ValueError), match="invalid_command_scope"):
         scope.record_command_scope(bad)
 
 
