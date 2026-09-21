@@ -19,7 +19,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageChops, UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError
 
 from .character_rig_assets import (
     APPROVED_SOURCE_SHA256,
@@ -114,7 +114,7 @@ def build_source_package(
     size = source_image.size
 
     # Read, decode, validate and crop EVERY layer before creating any outputs.
-    prepared: dict[str, tuple[bytes, list[int], int]] = {}
+    prepared: dict[str, tuple[bytes, list[int], str]] = {}
     for layer in LAYERS:
         mask_bytes = _mask_bytes(masks, layer)
         mask = _image(mask_bytes, mode="L")
@@ -135,7 +135,7 @@ def build_source_package(
         with BytesIO() as out:
             rgba.save(out, format="PNG", optimize=True)
             contents = out.getvalue()
-        prepared[layer] = (contents, list(bbox), len(mask_bytes))
+        prepared[layer] = (contents, list(bbox), hashlib.sha256(mask_bytes).hexdigest())
 
     # Stage privately; never publish incomplete sets. Do not overwrite work.
     staging: Path | None = None
@@ -143,7 +143,7 @@ def build_source_package(
         staging = Path(tempfile.mkdtemp(prefix=".smi-character-", dir=parent))
         staging.chmod(0o700)
         records: dict[str, dict[str, Any]] = {}
-        for layer, (contents, bbox, _mask_size) in prepared.items():
+        for layer, (contents, bbox, mask_digest) in prepared.items():
             filename = layer + ".png"
             fd = os.open(staging / filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, "wb") as target:
@@ -152,7 +152,7 @@ def build_source_package(
                 "file": filename,
                 "sha256": hashlib.sha256(contents).hexdigest(),
                 "bbox_xyxy": bbox,
-                "source_mask_sha256": hashlib.sha256(_mask_bytes(masks, layer)).hexdigest(),
+                "source_mask_sha256": mask_digest,
                 "asset_status": "source_derived_not_rig_approved",
             }
         manifest = {
