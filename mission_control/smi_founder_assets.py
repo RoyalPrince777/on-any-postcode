@@ -284,3 +284,56 @@ def list_assets(identity_id: object, *, limit: int = 100) -> dict[str, Any]:
         "owner_scoped": True,
         "human_authority_final": True,
     }
+
+
+
+def prepare_studio_handoff(
+    connection: object, *, identity_id: object, asset_id: object
+) -> dict[str, Any]:
+    """Resolve an owner-scoped Saved Work asset without pretending to retain media.
+
+    This index is metadata-only: an indexed asset is not a retrievable original.
+    Never return another owner's metadata, source bytes, a download URL, or
+    permission to generate, publish, distribute, or charge.
+    """
+    owner = _uuid(identity_id, "identity_id")
+    asset = _uuid(asset_id, "asset_id")
+    if not _table_available(connection):
+        return {
+            "asset_known": False,
+            "original_available": False,
+            "handoff_state": "index_unavailable",
+            "studio_execution_granted": False,
+            "publishing_granted": False,
+            "distribution_granted": False,
+        }
+    row = connection.execute(
+        """SELECT asset_id,source,asset_kind,filename,mime_type,raw_content_retained
+           FROM smi_founder_assets WHERE identity_id=%s AND asset_id=%s""",
+        (owner, asset),
+    ).fetchone()
+    if row is None:
+        return {
+            "asset_known": False,
+            "original_available": False,
+            "handoff_state": "not_found",
+            "studio_execution_granted": False,
+            "publishing_granted": False,
+            "distribution_granted": False,
+        }
+    # This schema deliberately CHECKs raw_content_retained=FALSE. A future
+    # separately authorised raw-media store must provide its own availability,
+    # owner, consent, purpose, retention and revocation proofs before retrieval.
+    return {
+        "asset_known": True,
+        "asset_id": str(row[0]),
+        "source": str(row[1]),
+        "kind": str(row[2]),
+        "filename": str(row[3]),
+        "mime_type": str(row[4]),
+        "original_available": False,
+        "handoff_state": "fresh_upload_required",
+        "studio_execution_granted": False,
+        "publishing_granted": False,
+        "distribution_granted": False,
+    }
