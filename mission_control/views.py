@@ -700,7 +700,7 @@ def smi_command_centre_scope():
     payload = request.get_json(silent=True)
     try:
         result = smi_command_scope.record_command_scope(payload)
-    except ValueError:
+    except (TypeError, ValueError):
         return _error("invalid_command_scope", "Unsupported Command Centre scope.", 400)
     if not result["recorded"]:
         return _error(
