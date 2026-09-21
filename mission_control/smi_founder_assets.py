@@ -272,6 +272,11 @@ def list_assets(identity_id: object, *, limit: int = 100) -> dict[str, Any]:
             "frame_count": int(row[8]),
             "created_at": row[9].isoformat(),
             "raw_content_retained": False,
+            # The existing Founder Library API must not present metadata as
+            # a reusable Studio original. The user may upload a fresh copy.
+            "original_available": False,
+            "studio_handoff_state": "fresh_upload_required",
+            "studio_execution_granted": False,
         }
         for row in rows
     )
