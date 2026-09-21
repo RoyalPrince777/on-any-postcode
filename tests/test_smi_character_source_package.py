@@ -118,7 +118,7 @@ def test_different_grayscale_and_empty_masks_rejected(tmp_path, monkeypatch):
     source, masks, target = _inputs(tmp_path, monkeypatch)
     Image.new("RGB", (48, 40), (0, 0, 0)).save(masks / "eyes.png")
     with pytest.raises(
-        source_pkg.SourcePackageError, match="invalid_image_format"
+        source_pkg.SourcePackageError, match="invalid_mask_format"
     ):
         source_pkg.build_source_package(source, masks, target)
     Image.new("L", (48, 40), 0).save(masks / "eyes.png")
