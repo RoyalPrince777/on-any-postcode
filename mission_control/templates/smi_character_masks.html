@@ -68,7 +68,7 @@ progress{width:100%}
 </fieldset>
 <fieldset><legend>Save draft masks locally</legend>
 <p class="muted">Every PNG uses the original image dimensions. Complete all seven before building the private ZIP. Export does not approve the masks.</p>
-<div class="inline"><button type="button" id="save-one">Download this PNG</button><button type="button" class="primary" id="save-all">Download seven-mask ZIP</button></div>
+<label for="import-mask">Restore an earlier draft PNG for the selected layer</label><input id="import-mask" type="file" accept="image/png,.png"><div class="inline"><button type="button" id="save-one">Download this PNG</button><button type="button" class="primary" id="save-all">Download seven-mask ZIP</button></div>
 <progress id="coverage" max="7" value="0" aria-label="Painted layers"></progress><small id="coverage-label">0 / 7 painted</small>
 </fieldset>
 <fieldset><legend>Continue with existing source extractor</legend>
@@ -77,6 +77,7 @@ progress{width:100%}
 </fieldset>
 </aside>
 </main>
+<script src="{{ url_for('mission_control.static',filename='smi_mask_zip.js') }}" defer></script>
 <script src="{{ url_for('mission_control.static',filename='smi_character_mask_workbench.js') }}" defer></script>
 </body>
 </html>
