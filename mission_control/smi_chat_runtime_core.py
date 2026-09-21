@@ -22,6 +22,7 @@ from . import (
     postgres_db,
     smi_cancellation,
     smi_founder_assets,
+    smi_founder_workflow,
 )
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
@@ -137,6 +138,10 @@ def _provider(
             "Label assumptions. Never claim the code was applied, committed, merged or "
             "deployed. End with the exact Human Authority approval boundary."
         )
+    system += " " + smi_founder_workflow.instruction()
+    system += " Founder turn flags: " + json.dumps(
+        (brain or {}).get("founder_workflow") or {}, separators=(",", ":")
+    )
     thinking_level = str((brain or {}).get("thinking_level") or "auto")
     studio_mode = bool((brain or {}).get("studio_mode"))
     thinking_instruction = {
@@ -621,6 +626,9 @@ def chat(
             for row in reversed(rows)
         ]
         requested_mode = _requested_runtime_mode(thinking_level)
+        founder_workflow = smi_founder_workflow.resolve_turn(
+            clean, history, requested_mode=requested_mode
+        )
         brain = live_brain.review(
             request_id=request_id,
             identity_id=identity,
@@ -628,7 +636,10 @@ def chat(
             history=history,
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
-            force_war_room=requested_mode == "war_room",
+            force_war_room=(
+                requested_mode == "war_room"
+                or founder_workflow["war_room_requested"]
+            ),
         )
         level, resolved_studio_mode, resolved_depth = _auto_runtime_mode(
             clean,
@@ -639,6 +650,9 @@ def chat(
             media_kind=media.get("kind"),
             war_room_triggered=bool(brain.get("war_room", {}).get("triggered")),
         )
+        if requested_mode == "auto" and founder_workflow["preferred_depth"] == 21:
+            level, resolved_depth = "deep_dive", 21
+        brain["founder_workflow"] = founder_workflow
         brain["thinking_level"] = level
         brain["studio_mode"] = resolved_studio_mode
         brain["resolved_depth"] = resolved_depth
