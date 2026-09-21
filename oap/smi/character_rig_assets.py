@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import struct
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Final
+
+from PIL import Image, UnidentifiedImageError
 
 APPROVED_SOURCE_SHA256: Final = (
     "f9503174f6f18b815f1c73e24faff3b4966c2e1fbae8d20a8d2bcc22e4a84a4b"
@@ -63,14 +65,23 @@ def _layer_bytes(root: Path, record: object) -> str:
         return "digest_mismatch"
     if data[:8] != PNG_SIGNATURE or data[12:16] != b"IHDR":
         return "invalid_png"
-    width, height, depth, color = struct.unpack(">IIBB", data[16:26])
-    if (
-        not (1 <= width <= MAX_LAYER_DIMENSION)
-        or not (1 <= height <= MAX_LAYER_DIMENSION)
-        or depth != 8
-        or color not in (4, 6)
-    ):
-        return "invalid_alpha_png"
+    try:
+        # Decode exactly the bytes that matched the digest, never a second
+        # file read; reject truncated, animated and non-alpha PNGs.
+        with Image.open(BytesIO(data)) as image:
+            width, height = image.size
+            if (
+                image.format != "PNG"
+                or image.mode not in {"RGBA", "LA"}
+                or getattr(image, "n_frames", 1) != 1
+                or not (1 <= width <= MAX_LAYER_DIMENSION)
+                or not (1 <= height <= MAX_LAYER_DIMENSION)
+                or width * height > 16_000_000
+            ):
+                return "invalid_alpha_png"
+            image.verify()
+    except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError):
+        return "invalid_png"
     return "bytes_valid_not_rig_proof"
 
 
