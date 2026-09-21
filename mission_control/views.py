@@ -448,6 +448,25 @@ def judgement_decision(request_id: str):
     return _no_store(make_response(redirect(url_for("mission_control.judgement_dashboard"))))
 
 
+@bp.get("/character-mask-workbench")
+@web_security.login_required(founder_only=True)
+def smi_character_mask_workbench():
+    """Founder-only, browser-local manual masks for the exact approved image."""
+    from oap.smi.character_rig_assets import APPROVED_SOURCE_SHA256
+
+    return _no_store(
+        make_response(
+            render_template(
+                "smi_character_masks.html",
+                approved_image_url=url_for(
+                    "static", filename="oap/smi_live_chat_dashboard.jpg"
+                ),
+                approved_image_sha256=APPROVED_SOURCE_SHA256,
+            )
+        )
+    )
+
+
 @bp.get("/ollama")
 @web_security.login_required()
 def ollama_chat_dashboard():
