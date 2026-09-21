@@ -23,7 +23,6 @@ _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 class _NoLocalRedirect(urlrequest.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         del req, fp, code, msg, headers, newurl
-        return None
 
 
 _LOCAL_OPENER = urlrequest.build_opener(_NoLocalRedirect())
