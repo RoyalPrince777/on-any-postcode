@@ -85,7 +85,7 @@
   ["＋ Tools","plus-button"],
   ["🖼️ Upload image","image-button"],
   ["📎 Upload file","file-button"],
-  ["🗂️ History","refresh-history"],
+  ["↻ Refresh Saved Work","refresh-history"],
   ["🔊 Voice","speaker-button"],
   ["Ⅱ Pause / Resume","pause-button"],
   ["■ STOP","stop-button"]
