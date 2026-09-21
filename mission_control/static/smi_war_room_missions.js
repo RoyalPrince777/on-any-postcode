@@ -45,7 +45,7 @@
   const selector = document.createElement("section");
   selector.className = "smi-war-missions";
   selector.setAttribute("aria-label", "Founder War Room mission selector");
-  selector.innerHTML = '<h3>🟣 SMI · 👑 GOLD WAR ROOM</h3>' +
+  selector.innerHTML = '<button type="button" data-war-close aria-label="Close War Room selector">✕ Close War Room</button><h3>🟣 SMI · 👑 GOLD WAR ROOM</h3>' +
     '<p>Multiple missions · one canonical chat request · Founder Final</p>' +
     '<div class="smi-war-options" role="group" aria-label="Select War Room missions"></div>' +
     '<div class="smi-war-fields"><label>Depth <select data-war-depth><option value="3">3 · Quick</option><option value="7">7 · Deep</option><option value="21" selected>21 · Full</option></select></label>' +
@@ -83,8 +83,13 @@
   toggle.after(open);
   open.addEventListener("click", () => {
     if (!document.body.classList.contains("smi-command-open")) toggle.click();
-    selector.scrollIntoView({block:"nearest", behavior:"auto"});
+    centre.classList.add("smi-war-missions-open");
     selector.querySelector("[data-war-instruction]").focus();
+  });
+  selector.querySelector("[data-war-close]").addEventListener("click", () => centre.classList.remove("smi-war-missions-open"));
+  centre.querySelector(".smi-command-close").addEventListener("click", () => centre.classList.remove("smi-war-missions-open"));
+  toggle.addEventListener("click", () => {
+    if (!document.body.classList.contains("smi-command-open")) centre.classList.remove("smi-war-missions-open");
   });
   selector.querySelector("[data-war-prepare]").addEventListener("click", () => {
     try {
@@ -103,6 +108,7 @@
       composer.value = prompt;
       composer.dispatchEvent(new Event("input", {bubbles:true}));
       feedback.textContent = "Prepared in the existing chat composer. Press Send to run; no action or proof has been claimed.";
+      centre.classList.remove("smi-war-missions-open");
       toggle.click();
       composer.focus();
     } catch (error) {
