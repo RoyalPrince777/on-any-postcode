@@ -9,10 +9,11 @@
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_command_centre.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_review_cards.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_approved_presence.css') }}">
+<link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_live_chat_dashboard.css') }}">
 <script>
 window.csrfToken=csrfToken;
 window.OAP_SMI_UI={
-  approvedWallpaperUrl:{{ url_for('static', filename='oap/smi_global_intelligence_command_centre.png')|tojson }},
+  approvedWallpaperUrl:{{ url_for('static', filename='oap/smi_live_chat_dashboard.jpg')|tojson }},
   workbenchUrl:{{ url_for('mission_control.smi_workbench_status')|tojson }},
   healthUrl:{{ url_for('mission_control.smi_chat_health')|tojson }},
   streamUrl:{{ url_for('mission_control.smi_chat_stream')|tojson }},
