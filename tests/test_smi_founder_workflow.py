@@ -1,7 +1,7 @@
 """Private SMI Founder continuity / War Room contract; no tool execution."""
 from mission_control import oap_inference_gateway as gateway
-from mission_control import smi_founder_workflow as workflow
 from mission_control import smi_chat_runtime_core as core
+from mission_control import smi_founder_workflow as workflow
 
 
 HISTORY = [
