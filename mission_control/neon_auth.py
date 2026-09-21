@@ -270,8 +270,11 @@ def get_session(cookie_header: str) -> AuthResult:
     An invalid, expired, or unverifiable local cookie is not a request to
     authenticate a different identity using other cookies in the same header.
     """
-    local_token = founder_local_auth._token_from_cookie_header(cookie_header)
-    if local_token:
+    local_cookie_present = any(
+        part.strip().partition("=")[0] == founder_local_auth.COOKIE_NAME
+        for part in (cookie_header or "").split(";")
+    )
+    if local_cookie_present:
         try:
             local_user = founder_local_auth.session_user(cookie_header)
         except founder_local_auth.FounderLocalAuthUnavailable as exc:
