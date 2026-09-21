@@ -45,7 +45,9 @@ def test_existing_chat_handlers_character_and_uploads_are_preserved():
     assert 'if(marker.parentNode)marker.parentNode.insertBefore(character,marker)' in command
     assert 'new Event("input", {bubbles:true})' in mission
     assert 'composer.value = prompt;' in mission
-    assert 'composer.value.trim()' in mission
+    assert 'composer.value.length' in mission
+    assert 'attachmentPending' in mission
+    assert 'Existing attachment preserved.' in mission
     assert 'composer.focus()' in mission
     assert 'requestSubmit(' not in mission
     assert 'fetch(' not in mission
