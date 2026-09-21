@@ -51,3 +51,13 @@ def test_valid_founder_cookie_remains_local(monkeypatch):
     result = neon_auth.get_session("oap_founder_session=valid")
     assert result.status_code == 200
     assert result.payload["user"]["id"] == "founder"
+
+
+def test_empty_founder_cookie_cannot_fall_back_to_managed_auth(monkeypatch):
+    monkeypatch.setattr(neon_auth, "_request", _provider_must_not_run)
+    monkeypatch.setattr(founder_local_auth, "session_user", lambda _header: None)
+    result = neon_auth.get_session(
+        "oap_founder_session=; better-auth.session_token=other-identity"
+    )
+    assert result.status_code == 401
+    assert neon_auth.safe_error_code(result) == "INVALID_FOUNDER_SESSION"
