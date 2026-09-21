@@ -8,6 +8,7 @@ import time
 from urllib import parse, request
 
 BASE = "https://oap-routing.onrender.com"
+APP_BASE = "https://on-any-postcode.onrender.com"
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -61,6 +62,41 @@ def run_one(index: int) -> dict[str, object]:
     }
 
 
+def run_app_integration(origin: str, destination: str) -> dict[str, object]:
+    query = parse.urlencode({"from": origin, "to": destination, "profile": "driving"})
+    url = f"{APP_BASE}/map-intelligence/route?{query}"
+    req = request.Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate-App/1.0"},
+    )
+    started = time.perf_counter()
+    with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
+        status = int(response.status)
+        payload = json.loads(response.read().decode("utf-8"))
+    elapsed = time.perf_counter() - started
+    route = payload.get("route") if isinstance(payload, dict) else {}
+    geometry = route.get("geometry") if isinstance(route, dict) else {}
+    coordinates = geometry.get("coordinates") if isinstance(geometry, dict) else None
+    ok = (
+        status == 200
+        and route.get("provider_ownership") == "oap_owned"
+        and float(route.get("distance_m") or 0) > 0
+        and float(route.get("duration_s") or 0) > 0
+        and geometry.get("type") == "LineString"
+        and isinstance(coordinates, list)
+        and len(coordinates) >= 2
+        and payload.get("operational_dispatch") is False
+        and payload.get("payment_capture") is False
+        and payload.get("hidden_tracking") is False
+    )
+    return {
+        "ok": ok,
+        "elapsed_s": elapsed,
+        "distance_m": round(float(route.get("distance_m") or 0), 1),
+        "duration_s": round(float(route.get("duration_s") or 0), 1),
+    }
+
+
 def main() -> None:
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as pool:
         results = list(pool.map(run_one, range(TOTAL_REQUESTS)))
@@ -69,6 +105,13 @@ def main() -> None:
     p95_index = max(0, min(len(latencies) - 1, int(0.95 * len(latencies)) - 1))
     p95 = latencies[p95_index]
     successes = sum(1 for item in results if item["ok"])
+    app_results = [
+        run_app_integration("Mitcham", "London Bridge"),
+        run_app_integration("Mitcham", "King's Cross"),
+    ]
+    app_successes = sum(1 for item in app_results if item["ok"])
+    app_p95_ms = round(max(float(item["elapsed_s"]) for item in app_results) * 1000, 1)
+
     receipt = {
         "event": "oap_routing_bounded_external_probe",
         "requests": TOTAL_REQUESTS,
@@ -84,12 +127,18 @@ def main() -> None:
         "dispatch_performed": False,
         "payment_performed": False,
         "tracking_performed": False,
+        "oap_app_requests": len(app_results),
+        "oap_app_successes": app_successes,
+        "oap_app_integration_proven": app_successes == len(app_results),
+        "oap_app_max_ms": app_p95_ms,
     }
     print(json.dumps(receipt, sort_keys=True))
     if successes != TOTAL_REQUESTS:
         raise SystemExit("live routing probe had failed requests")
     if p95 > P95_LIMIT_SECONDS:
         raise SystemExit(f"live routing probe p95 exceeded {P95_LIMIT_SECONDS}s")
+    if app_successes != len(app_results):
+        raise SystemExit("live OAP app routing integration probe failed")
 
 
 if __name__ == "__main__":
