@@ -140,7 +140,13 @@
  const missionFeedback=document.createElement("span");
  missionFeedback.setAttribute("role","status");
  missionFeedback.textContent="A selected scope grants no tool execution.";
- missionPanel.append(missionSave,missionApprove,missionFeedback);
+ const missionReceipt=document.createElement("input");
+ missionReceipt.type="text";missionReceipt.placeholder="Saved mission receipt ID";
+ missionReceipt.setAttribute("aria-label","Saved Founder mission receipt ID");
+ missionReceipt.autocomplete="off";
+ const missionLoad=document.createElement("button");missionLoad.type="button";
+ missionLoad.textContent="↶ Reopen saved mission";
+ missionPanel.append(missionSave,missionApprove,missionReceipt,missionLoad,missionFeedback);
  panel.querySelector(".smi-command-layout").after(missionPanel);
  async function recordMissionScope(decision){
   if(!cfg.commandScopeUrl){missionFeedback.textContent="Scope recording unavailable";return;}
@@ -157,10 +163,36 @@
    const value=await response.json();
    if(!response.ok||value?.recorded!==true||!value?.receipt_id)
     throw new Error(value?.error?.message||"Durable scope receipt unavailable");
+   missionReceipt.value=value.receipt_id;
    missionFeedback.textContent="Scope recorded · "+value.receipt_id+" · no execution granted";
   }catch(error){missionFeedback.textContent=error?.message||"Scope not recorded";}
   finally{missionSave.disabled=false;missionApprove.disabled=false;}
  }
+ async function reopenMissionScope(){
+  if(!cfg.commandScopeReadUrl){missionFeedback.textContent="Saved mission lookup unavailable";return;}
+  const receiptId=missionReceipt.value.trim();
+  if(!/^smi-[0-9a-f]{32}$/.test(receiptId)){missionFeedback.textContent="Enter a valid saved mission receipt ID";return;}
+  missionLoad.disabled=true;
+  missionFeedback.textContent="Reading saved mission…";
+  try{
+   const url=cfg.commandScopeReadUrl.replace("__RECEIPT_ID__",encodeURIComponent(receiptId));
+   const response=await fetch(url,{credentials:"same-origin",cache:"no-store"});
+   const value=await response.json();
+   if(!response.ok||value?.found!==true||value?.executed!==false)
+    throw new Error(value?.error?.message||"Saved mission unavailable");
+   if(!["AUTO","MANUAL"].includes(value.mode)||![3,7,21].includes(value.depth)
+      ||!Array.isArray(value.missions))throw new Error("Invalid saved mission scope");
+   const checks=[...missionChoices.querySelectorAll("input[type=checkbox]")];
+   if(value.missions.length===0||value.missions.some(id=>!checks.some(check=>check.value===id)))
+    throw new Error("Saved mission has unsupported systems");
+   missionMode.value=value.mode;
+   missionDepth.value=String(value.depth);
+   checks.forEach(check=>{check.checked=value.missions.includes(check.value);});
+   missionFeedback.textContent="Saved scope reopened · "+receiptId+" · no execution granted";
+  }catch(error){missionFeedback.textContent=error?.message||"Saved mission not restored";}
+  finally{missionLoad.disabled=false;}
+ }
+ missionLoad.addEventListener("click",reopenMissionScope);
  missionSave.addEventListener("click",()=>recordMissionScope("SELECT"));
  missionApprove.addEventListener("click",()=>recordMissionScope("APPROVE_NEXT_SCOPE"));
 
