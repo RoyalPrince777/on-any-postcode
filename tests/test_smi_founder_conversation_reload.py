@@ -108,8 +108,7 @@ def test_owner_scoped_saved_conversation_load_blocks_other_identity(
     from contextlib import nullcontext
     from datetime import datetime, timezone
 
-    from mission_control import smi_chat_runtime, smi_chat_runtime_core
-    from mission_control import web_security
+    from mission_control import smi_chat_runtime, smi_chat_runtime_core, web_security
 
     founder = "11111111-1111-4111-8111-111111111111"
     other = "22222222-2222-4222-8222-222222222222"
