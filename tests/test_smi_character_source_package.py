@@ -212,3 +212,38 @@ def test_compositor_requires_explicit_complete_order(tmp_path, monkeypatch):
             source, target, tmp_path / "private-packages" / "review.png",
             layer_order=("eyes",),
         )
+
+
+def test_white_alpha_editor_masks_build_exact_source_layers(tmp_path, monkeypatch):
+    source, masks, target = _inputs(tmp_path, monkeypatch)
+    for name in LAYERS:
+        with Image.open(masks / (name + ".png")) as gray:
+            alpha = gray.copy()
+        white = Image.new("RGBA", alpha.size, (255, 255, 255, 0))
+        white.putalpha(alpha)
+        white.save(masks / (name + ".png"))
+    result = source_pkg.build_source_package(source, masks, target)
+    assert result["created"] is True
+    assert result["layers"] == len(LAYERS)
+    with Image.open(target / "eyes.png") as extracted, Image.open(source) as original:
+        assert extracted.getpixel((0, 0))[:3] == original.getpixel((3, 6))
+        assert extracted.getpixel((0, 0))[3] == 255
+
+
+def test_coloured_rgba_mask_refused_as_substitute_art(tmp_path, monkeypatch):
+    source, masks, target = _inputs(tmp_path, monkeypatch)
+    coloured = Image.new("RGBA", (48, 40), (80, 120, 210, 180))
+    coloured.save(masks / "eyes.png")
+    with pytest.raises(source_pkg.SourcePackageError, match="invalid_mask_colour"):
+        source_pkg.build_source_package(source, masks, target)
+    assert not target.exists()
+
+
+def test_rgba_blank_mask_fails_before_package_written(tmp_path, monkeypatch):
+    source, masks, target = _inputs(tmp_path, monkeypatch)
+    Image.new("RGBA", (48, 40), (255, 255, 255, 0)).save(
+        masks / "eyes.png"
+    )
+    with pytest.raises(source_pkg.SourcePackageError, match="empty_layer_mask"):
+        source_pkg.build_source_package(source, masks, target)
+    assert not target.exists()
