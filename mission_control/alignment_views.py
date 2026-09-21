@@ -148,7 +148,26 @@ def smi_brain_receipts_proof():
                 403,
             )
         )
-    return _no_store(make_response(jsonify(status=smi_receipt_backend.receipt_backend_status(require_durable=True))))
+    status = smi_receipt_backend.receipt_backend_status(require_durable=True)
+    proof = status.get("write_read_proof") or {}
+    # A transport-level success cannot imply a durable proof unless the
+    # independent PostgreSQL readback actually passed. An uncertain commit
+    # must not be retried blindly: keep its original receipt ID available.
+    confirmed = bool(
+        status.get("independent_durable_hrm_ready")
+        and proof.get("ok")
+        and proof.get("read_back_ok")
+        and proof.get("durable")
+        and not proof.get("fallback_used")
+        and proof.get("backend") == "independent_hrm_postgres"
+        and proof.get("read_back_checksum_sha256")
+    )
+    http_status = (
+        200 if confirmed
+        else 409 if proof.get("status") == "durable_commit_or_readback_unconfirmed"
+        else 503
+    )
+    return _no_store(make_response(jsonify(status=status), http_status))
 
 
 @bp.get("/war-room/smi-brain")
