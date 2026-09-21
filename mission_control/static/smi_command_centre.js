@@ -36,7 +36,7 @@
  const panel=document.createElement("section");
  panel.className="smi-command-centre";panel.id="smi-command-centre";
  panel.setAttribute("aria-label","OAP SMI Digital Organism Command Centre");
- panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">✕ Close</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
+ panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">✕ Close</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Evidence and universe links"><h3>PROOF · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
  messages.before(panel);
  // The full-room overlay must expose Status itself: its old header control sits underneath it.
  const statusActions=document.createElement("div");
@@ -75,6 +75,40 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+
+ // Command shortcuts delegate to the canonical Chat controls; never own a
+ // second send, upload, speech, pause or STOP implementation.
+ const chatControls=document.createElement("nav");
+ chatControls.className="smi-command-chat-controls";
+ chatControls.setAttribute("aria-label","SMI Chat controls");
+ const chatShortcuts=[
+  ["＋ Tools","plus-button"],
+  ["🖼️ Upload image","image-button"],
+  ["📎 Upload file","file-button"],
+  ["↻ Refresh Saved Work","refresh-history"],
+  ["🔊 Voice","speaker-button"],
+  ["Ⅱ Pause / Resume","pause-button"],
+  ["■ STOP","stop-button"]
+ ];
+ for(const [label,target] of chatShortcuts){
+  const button=document.createElement("button");button.type="button";
+  button.textContent=label;button.dataset.chatTarget=target;
+  chatControls.append(button);
+ }
+ panel.querySelector(".smi-command-layout").after(chatControls);
+ chatControls.addEventListener("click",event=>{
+  const button=event.target.closest("button[data-chat-target]");
+  if(!button)return;
+  const canonical=document.getElementById(button.dataset.chatTarget);
+  if(!canonical||canonical.disabled){
+   const feedback=document.getElementById("status");
+   if(feedback)feedback.textContent="This SMI Chat control is unavailable.";
+   return;
+  }
+  setOpen(false);
+  canonical.click();
+ });
+
  // Mobile remains one command room: expose anatomy and live evidence as real tabs.
  const mobileViews=document.createElement("nav");
  mobileViews.className="smi-command-mobile-views";
@@ -162,6 +196,12 @@
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
  dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>FOUR CHECKPOINTS · NO FAKE GREEN</h3><div class="smi-room-gates"><article data-room-gate="rollback"><strong>25% · Recovery</strong><small>Proof pending</small></article><article data-room-gate="runtime_guard"><strong>50% · Runtime Guard</strong><small>Proof pending</small></article><article data-room-gate="isolation"><strong>75% · Aegis</strong><small>Proof pending</small></article><article data-room-gate="founder"><strong>100% · Founder Final</strong><small>Founder decision required</small></article></div><p class="smi-room-status-note">Live evidence, not sample population figures. Contract validity does not prove all systems operational.</p>';
  evidence.append(dashboard);
+ // The approved single Chat surface excludes visible Live Status. Keep the
+ // existing evidence routines available for private proof, not visible panels.
+ if(cfg.visibleLiveStatus===false){
+  statusActions.remove();
+  dashboard.remove();
+ }
  const roomStats=new Map([...dashboard.querySelectorAll("[data-room-stat]")].map(el=>[el.dataset.roomStat,el]));
  const roomGates=new Map([...dashboard.querySelectorAll("[data-room-gate]")].map(el=>[el.dataset.roomGate,el]));
  const proofList=document.createElement("div");proofList.className="smi-command-side";
@@ -186,6 +226,7 @@
   node.querySelector("small").textContent=message;
  };
  async function refreshRoomStatus(){
+  if(cfg.visibleLiveStatus===false)return;
   if(roomRequest)roomRequest.abort();
   roomRequest=new AbortController();
   const signal=roomRequest.signal;
