@@ -100,7 +100,12 @@
     if(!ready||busy||!NAMES.includes(name))return;
     active=name;undo=null;
     for(const [key,record] of state)record.canvas.hidden=key!==name;
-    getLayer(name).canvas.hidden=false;
+    const chosen=getLayer(name);chosen.canvas.hidden=false;
+    // On a narrow display the controls occupy a separate row. A newly
+    // selected layer must remain paintable without an off-screen tap.
+    if(window.matchMedia("(max-width: 820px)").matches){
+      chosen.canvas.scrollIntoView({block:"center",behavior:"instant"});
+    }
     cursor={x:image.naturalWidth/2,y:image.naturalHeight/2};
     paintState();say("Editing "+LABELS[NAMES.indexOf(name)]+"; draft only.");
   }
