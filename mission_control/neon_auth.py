@@ -265,11 +265,21 @@ def sign_up_founder(password: str, name: str) -> AuthResult:
 
 
 def get_session(cookie_header: str) -> AuthResult:
-    try:
-        local_user = founder_local_auth.session_user(cookie_header)
-    except founder_local_auth.FounderLocalAuthUnavailable:
-        local_user = None
-    if local_user is not None:
+    """Never fall back to managed Auth when a local Founder cookie was supplied.
+
+    An invalid, expired, or unverifiable local cookie is not a request to
+    authenticate a different identity using other cookies in the same header.
+    """
+    local_token = founder_local_auth._token_from_cookie_header(cookie_header)
+    if local_token:
+        try:
+            local_user = founder_local_auth.session_user(cookie_header)
+        except founder_local_auth.FounderLocalAuthUnavailable as exc:
+            raise AuthUnavailable("founder_local_auth_unavailable") from exc
+        if local_user is None:
+            return AuthResult(
+                status_code=401, payload={"code": "INVALID_FOUNDER_SESSION"}
+            )
         return AuthResult(
             status_code=200,
             payload={"session": {"id": "render-local-founder"}, "user": local_user},
