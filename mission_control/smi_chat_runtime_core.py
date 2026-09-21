@@ -99,6 +99,9 @@ def _provider(
 
     if cancellation_token is not None:
         cancellation_token.raise_if_cancelled()
+    # Direct core imports and exported legacy aliases must never bypass
+    # OAP's first-party gateway, even with an external API key configured.
+    raise RuntimeError("first_party_inference_required")
     key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
@@ -574,6 +577,12 @@ def chat(
             is_human_authority=bool(authority_context.get("is_human_authority")),
         )
         _emit(on_event, "stage", stage="permission", label="Permission checked")
+        # Audio preprocessing invokes an external transcription API before the
+        # inference gateway. Fail closed until a first-party transcriber exists.
+        if isinstance(attachment, dict) and str(
+            attachment.get("kind", "")
+        ).strip().lower() == "audio":
+            raise RuntimeError("first_party_media_required")
         provider_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if attachment and not provider_key:
             raise RuntimeError("provider_key_missing_for_media")

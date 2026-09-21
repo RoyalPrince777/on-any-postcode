@@ -65,7 +65,7 @@ class SovereignControlPlane:
     """Evaluate immutable SMI authority, ownership and execution controls."""
 
     component = "SMI Master Sovereign Control Plane"
-    policy_version = "smi-master-sovereignty-v2"
+    policy_version = "smi-master-sovereignty-v3"
 
     def policy(self) -> dict[str, Any]:
         return {
@@ -86,6 +86,8 @@ class SovereignControlPlane:
             "production_database_mutation": False,
             "secret_export": False,
             "external_provider_egress_default": "deny",
+            "first_party_inference_locked": True,
+            "external_provider_allowlist_ignored": True,
             "master_mode_external_provider_egress": "local_only",
             "provider_authority": False,
             "agent_authority": False,
@@ -158,11 +160,9 @@ class SovereignControlPlane:
         if not provider:
             return False
         is_local = bool(local or provider in _LOCAL_PROVIDER_IDS)
-        if self.master_mode_requested():
-            return is_local
-        if is_local:
-            return True
-        return provider in _external_provider_allowlist()
+        # First-party intelligence is an invariant, not an optional master-mode
+        # setting. An external allowlist cannot override private inference.
+        return is_local
 
     def execution_review(
         self,

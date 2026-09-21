@@ -17,6 +17,28 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 
+_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+class _NoLocalRedirect(urlrequest.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        del req, fp, code, msg, headers, newurl
+
+
+_LOCAL_OPENER = urlrequest.build_opener(_NoLocalRedirect())
+
+
+def _require_local_url(url: str) -> None:
+    parsed = urlsplit(url)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or parsed.hostname not in _LOCAL_HOSTS
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        raise RuntimeError("first_party_local_endpoint_required")
+
+
 from oap.smi.capability_fabric import capability_descriptions, select_capabilities
 from oap.smi.capability_fabric import status as capability_fabric_status
 
@@ -197,6 +219,7 @@ def _call_local_public(
 ) -> str:
     if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL:
         raise RuntimeError("local_inference_disabled")
+    _require_local_url(LOCAL_URL)
     req = urlrequest.Request(
         LOCAL_URL,
         data=json.dumps(_public_payload(message, history, brain, code_mode=code_mode)).encode(),
@@ -204,7 +227,7 @@ def _call_local_public(
         method="POST",
     )
     try:
-        with urlrequest.urlopen(req, timeout=2.0) as response:
+        with _LOCAL_OPENER.open(req, timeout=2.0) as response:
             body = json.loads(response.read().decode("utf-8", errors="replace"))
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
@@ -275,6 +298,7 @@ def _call_local(
 ) -> str:
     if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL:
         raise RuntimeError("local_inference_disabled")
+    _require_local_url(LOCAL_URL)
     req = urlrequest.Request(
         LOCAL_URL,
         data=json.dumps(
@@ -284,7 +308,7 @@ def _call_local(
         method="POST",
     )
     try:
-        with urlrequest.urlopen(req, timeout=2.0) as response:
+        with _LOCAL_OPENER.open(req, timeout=2.0) as response:
             body = json.loads(response.read().decode("utf-8", errors="replace"))
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
@@ -332,13 +356,14 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
         "reason": "local_inference_disabled" if not LOCAL_ENABLED else "unverified",
     }
     if LOCAL_ENABLED and LOCAL_URL and LOCAL_MODEL:
+        _require_local_url(LOCAL_URL)
         req = urlrequest.Request(
             _tags_url(),
             headers={"Accept": "application/json"},
             method="GET",
         )
         try:
-            with urlrequest.urlopen(req, timeout=1.0) as response:
+            with _LOCAL_OPENER.open(req, timeout=1.0) as response:
                 body = json.loads(response.read().decode("utf-8", errors="replace"))
             names = {
                 str(item.get("name") or item.get("model") or "")

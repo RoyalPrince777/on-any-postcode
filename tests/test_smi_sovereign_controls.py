@@ -59,7 +59,7 @@ def test_sovereign_policy_is_fail_closed_and_adds_no_brain(monkeypatch):
     assert status["ready"] is True
     assert status["brain_count"] == 0
     assert status["execution_enabled"] is True
-    assert status["policy_version"] == "smi-master-sovereignty-v2"
+    assert status["policy_version"] == "smi-master-sovereignty-v3"
     assert status["external_provider_egress_default"] == "deny"
     assert status["master_mode_external_provider_egress"] == "local_only"
     assert status["secret_export"] is False
@@ -72,6 +72,8 @@ def test_sovereign_policy_is_fail_closed_and_adds_no_brain(monkeypatch):
     assert status["full_sovereignty_claim"] is False
     assert status["sovereignty_grade"] == "CONTROLLED_HOSTED_OR_UNPROVEN"
     assert policy["default_execution"] == "deny"
+    assert policy["first_party_inference_locked"] is True
+    assert policy["external_provider_allowlist_ignored"] is True
     assert policy["signed_approval_receipt_required"] is True
     assert policy["exact_action_digest_required"] is True
     assert policy["single_use_receipt_required"] is True
@@ -177,7 +179,7 @@ def test_external_provider_egress_defaults_to_deny(monkeypatch):
     assert controls.provider_allowed("openai", local=False) is False
 
     monkeypatch.setenv("OAP_SOVEREIGN_EXTERNAL_PROVIDER_ALLOWLIST", "openai")
-    assert controls.provider_allowed("openai", local=False) is True
+    assert controls.provider_allowed("openai", local=False) is False
 
 
 def test_master_mode_is_local_only_even_if_external_provider_is_allowlisted(monkeypatch):
@@ -227,8 +229,8 @@ def test_provider_router_blocks_external_adapter_until_allowlisted(monkeypatch):
         "external-test",
     )
     allowed = router.route(signal)[0]
-    assert allowed.available is True
-    assert allowed.error_code is None
+    assert allowed.available is False
+    assert allowed.error_code == "sovereign_provider_blocked"
 
 
 def test_policy_fingerprint_is_stable_for_locked_policy(monkeypatch):
@@ -284,7 +286,7 @@ def test_live_smi_review_exposes_master_sovereign_controls_without_execution(
     assert result["sovereign_controls"]["ready"] is True
     assert result["sovereign_controls"]["brain_count"] == 0
     assert result["sovereign_controls"]["policy_version"] == (
-        "smi-master-sovereignty-v2"
+        "smi-master-sovereignty-v3"
     )
     assert result["sovereign_controls"]["master_full_sovereignty_active"] is False
     assert result["sovereign_controls"]["full_sovereignty_claim"] is False

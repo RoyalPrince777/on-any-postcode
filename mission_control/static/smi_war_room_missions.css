@@ -1,0 +1,21 @@
+/* Additive War Room mission selector; never restyle canonical chat controls. */
+.smi-war-open{border:1px solid #8765be;border-radius:999px;padding:7px 11px;background:#1a1230;color:#f2e5ff;cursor:pointer;font:inherit;font-size:.78rem;white-space:nowrap}
+.smi-war-missions{display:none;position:absolute;inset:52px 8px 8px;z-index:25;gap:10px;margin:10px;border:1px solid #8160b9;border-radius:15px;background:#110e24;color:#f1e9ff;padding:15px;overflow:auto;min-height:0;flex:0 0 auto}
+.smi-war-missions h3{margin:0;font-size:1.12rem}
+.smi-war-missions p{margin:0;color:#ccbce7;font-size:.78rem}
+.smi-war-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.smi-war-options label{display:flex;align-items:center;gap:6px;border:1px solid #4e3f70;border-radius:9px;padding:8px;font-size:.77rem;min-width:0}
+.smi-war-options input,.smi-war-approval input{accent-color:#ac82ec}
+.smi-war-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.smi-war-fields label,.smi-war-main{display:grid;gap:5px;font-size:.77rem}
+.smi-war-fields select,.smi-war-main textarea{width:100%;min-width:0;border:1px solid #6e5a94;border-radius:8px;background:#100d20;color:#f1e9ff;padding:8px;font:inherit}
+.smi-war-main textarea{resize:vertical}
+.smi-war-approval{display:flex;align-items:center;gap:7px;font-size:.78rem}
+.smi-war-controls{display:flex;gap:7px;flex-wrap:wrap}
+.smi-war-controls button,.smi-war-missions [data-war-prepare]{border:1px solid #7556a5;border-radius:9px;background:#261a41;color:#f1e9ff;padding:9px 12px;cursor:pointer;font:inherit;font-size:.8rem}
+.smi-war-missions [data-war-prepare]{background:#6636a4;font-weight:800}
+.smi-war-missions [data-war-feedback]{color:#e9d3ff}
+@media(max-width:700px){.smi-war-options,.smi-war-fields{grid-template-columns:1fr}.smi-war-missions{margin:5px;padding:10px}.smi-war-open{padding:6px;font-size:.72rem}}
+
+.smi-command-centre.smi-war-missions-open .smi-war-missions{display:grid;align-content:start}
+.smi-war-missions [data-war-close]{justify-self:end;border:1px solid #7556a5;border-radius:8px;background:#261a41;color:#f1e9ff;padding:6px 10px;cursor:pointer}
