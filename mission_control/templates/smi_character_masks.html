@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>SMI · Exact Character Mask Workbench</title>
+<style>
+:root{color-scheme:dark;--bg:#030913;--card:#0b182b;--edge:#345171;--gold:#dfb76e;--ink:#f4f7ff;--muted:#a9c3d9}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,sans-serif;margin:0}
+a{color:var(--gold)}
+header{padding:17px clamp(12px,3vw,36px);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--edge)}
+h1{font-size:clamp(1.35rem,3vw,2rem);margin:.15em 0}
+small,.muted{color:var(--muted)}
+main{max-width:1420px;padding:clamp(10px,2vw,24px);margin:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,340px);gap:18px}
+.art-wrap,.tools{background:var(--card);border:1px solid var(--edge);border-radius:18px;padding:12px}
+.art-stage{position:relative;display:inline-block;max-width:100%;line-height:0;background:#03070b;touch-action:none;overflow:hidden}
+.art-stage img{display:block;width:auto;max-width:100%;height:auto;max-height:75dvh;object-fit:contain}
+.art-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;opacity:.46}
+.art-stage canvas[hidden]{display:none}
+.tools{display:grid;align-content:start;gap:12px}
+fieldset{border:1px solid var(--edge);border-radius:12px;min-width:0;padding:10px}
+legend{font-weight:750;color:var(--gold);padding:0 6px}
+button,select,input[type=range]{font:inherit}button{cursor:pointer;border:1px solid #5684ad;border-radius:10px;background:#132c4d;color:#fff;padding:9px 10px;min-height:43px}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+button[aria-pressed=true]{background:#365a88;border-color:var(--gold)}
+button.primary{background:#574015;border-color:var(--gold)}
+.inline{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.inline button{flex:1}
+label{display:block;margin:6px 0;color:var(--ink)}
+select,input[type=range]{width:100%;min-height:36px}
+progress{width:100%}
+#feedback{color:var(--gold);min-height:3em}
+.privacy{padding:10px;border-left:3px solid var(--gold);background:#101d30}
+#layers{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#layers button{text-align:left}
+#layers button[data-filled=true]::after{content:"  • painted";color:#b9f2ce;font-size:.72em}
+@media(max-width:820px){main{grid-template-columns:1fr}.art-stage img{max-height:62dvh}.art-wrap{grid-row:1}.tools{grid-row:2}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body
+  data-approved-image="{{ approved_image_url }}"
+  data-approved-sha256="{{ approved_image_sha256 }}"
+>
+<header>
+<div><small>👑 FOUNDER ONLY · SMI BODY</small><h1>Exact Character · Mask Workbench</h1><small>Original pixels only · Draft masks · No substitute avatar</small></div>
+<a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">← Personal SMI Chat</a>
+</header>
+<main>
+<section class="art-wrap" aria-label="Original SMI artwork and editable active mask">
+<p class="muted">Paint the selected anatomical area over the original image. White alpha marks original source pixels; erase to remove a selection. This creates a draft mask, not approved motion.</p>
+<div class="art-stage" id="art-stage">
+<img id="source-art" alt="The exact approved SMI character artwork; editable masks are overlaid without changing the source" hidden>
+</div>
+<p id="feedback" role="status" aria-live="polite">Checking the exact approved image locally…</p>
+<p class="privacy"><strong>Private:</strong> Editing stays in this browser tab. Files download to your device only when you choose. No SMI provider, third-party model, microphone, background recording or server upload.</p>
+</section>
+<aside class="tools" aria-label="Character mask editing controls">
+<fieldset><legend>Seven source regions</legend><div id="layers" role="group" aria-label="Choose mask"></div></fieldset>
+<fieldset><legend>Brush</legend>
+<div class="inline"><button type="button" id="paint" aria-pressed="true">✍ Paint</button><button type="button" id="erase" aria-pressed="false">⌫ Erase</button></div>
+<label for="brush">Brush diameter: <output id="brush-label">30</output> original pixels</label>
+<input id="brush" type="range" min="2" max="220" value="30">
+<div class="inline"><button type="button" id="undo">↶ Undo stroke</button><button type="button" id="clear">Clear layer</button></div>
+</fieldset>
+<fieldset><legend>Save draft masks locally</legend>
+<p class="muted">Every PNG uses the original image dimensions. Complete all seven before building the private ZIP. Export does not approve the masks.</p>
+<label for="import-mask">Restore an earlier draft PNG for the selected layer</label><input id="import-mask" type="file" accept="image/png,.png"><div class="inline"><button type="button" id="save-one">Download this PNG</button><button type="button" class="primary" id="save-all">Download seven-mask ZIP</button></div>
+<progress id="coverage" max="7" value="0" aria-label="Painted layers"></progress><small id="coverage-label">0 / 7 painted</small>
+</fieldset>
+<fieldset><legend>Continue with existing source extractor</legend>
+<p class="muted">Review the seven local mask PNGs, then provide them privately to the existing source-package CLI. Hidden regions, depth, deformation and lip-sync remain separate Body work.</p>
+<a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Back to SMI Chat</a>
+</fieldset>
+</aside>
+</main>
+<script src="{{ url_for('mission_control.static',filename='smi_mask_zip.js') }}" defer></script>
+<script src="{{ url_for('mission_control.static',filename='smi_character_mask_workbench.js') }}" defer></script>
+</body>
+</html>
