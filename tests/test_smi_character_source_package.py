@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 
 import pytest
 from PIL import Image
@@ -73,9 +72,6 @@ def test_missing_or_wrong_mask_fails_with_no_output(tmp_path, monkeypatch):
         source_pkg.build_source_package(source, masks, target)
     assert not target.exists()
 
-    source, masks, target = _inputs(tmp_path / "second", monkeypatch) if False else (
-        source, masks, target
-    )
     Image.new("L", (47, 40), 255).save(masks / "hands.png")
     with pytest.raises(
         source_pkg.SourcePackageError, match="mask_canvas_mismatch"
