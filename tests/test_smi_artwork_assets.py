@@ -71,3 +71,15 @@ def test_live_chat_excludes_visible_status_and_uses_governed_presence_state():
     assert "oap-smi-character-state" in presence
     for state in ("listening", "thinking", "speaking", "paused", "stopped"):
         assert f'data-smi-presence="{state}"' in css
+
+
+def test_live_chat_keeps_character_clear_and_all_primary_mobile_controls_visible():
+    css = (ROOT / "mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
+    assert ".thinking{position:fixed!important;z-index:40;top:70px;left:12px" in css
+    assert 'thinking[data-complete="true"] .thinking-log{display:none!important}' in css
+    assert ".smi-character{display:contents!important}" in css
+    assert "#live-character-toggle{position:fixed!important" in css
+    assert "#plus-button,#mic-button{display:grid!important" in css
+    assert "#thinking-level{display:block!important" in css
+    mobile = css.split("@media(max-width:760px){", 1)[1]
+    assert "#mic-button,#thinking-level,.send-label{display:none!important}" not in mobile
