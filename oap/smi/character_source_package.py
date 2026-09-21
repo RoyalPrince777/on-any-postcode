@@ -167,7 +167,7 @@ def build_source_package(
             "human_authority_approved": False,
             "hidden_region_reconstruction": False,
         }
-        encoded = json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8") + b"\n"
+        encoded = json.dumps(manifest, indent=2).encode("utf-8") + b"\n"
         fd = os.open(staging / "manifest.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "wb") as target:
             target.write(encoded)
