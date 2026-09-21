@@ -173,7 +173,11 @@ def _base_result(kind: str, normalised: dict[str, Any], receipt_id: str, created
 
 def _write_postgres(kind: str, normalised: dict[str, Any], receipt_id: str, created_at: str, *, independent_readback: bool = False) -> dict[str, Any]:
     with _connect_postgres() as connection:
-        _init_postgres_schema(connection)
+        if not independent_readback:
+            # Normal receipts keep their existing initialization behavior.
+            # A Recovery proof may write only to a previously prepared schema:
+            # it must not CREATE TABLE / INDEX as a diagnostic side effect.
+            _init_postgres_schema(connection)
         with connection.cursor() as cursor:
             cursor.execute(
                 """
