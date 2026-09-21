@@ -574,6 +574,12 @@ def chat(
             is_human_authority=bool(authority_context.get("is_human_authority")),
         )
         _emit(on_event, "stage", stage="permission", label="Permission checked")
+        # Audio preprocessing invokes an external transcription API before the
+        # inference gateway. Fail closed until a first-party transcriber exists.
+        if isinstance(attachment, dict) and str(
+            attachment.get("kind", "")
+        ).strip().lower() == "audio":
+            raise RuntimeError("first_party_media_required")
         provider_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if attachment and not provider_key:
             raise RuntimeError("provider_key_missing_for_media")
