@@ -24,7 +24,7 @@ def latest_substantive_user_turn(contents: Sequence[str]) -> str | None:
     """Select a saved human mission, not short controls, from newest-first rows."""
     for raw in contents:
         content = str(raw or "").strip()
-        lowered = re.sub(r"\\s+", " ", content.casefold())
+        lowered = re.sub(r"\s+", " ", content.casefold())
         if content and lowered not in _NO_MISSION and not _EMOJI_ONLY.fullmatch(content):
             return content
     return None
