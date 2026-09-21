@@ -590,10 +590,12 @@ def chat(
             review_content = "CODE PROPOSAL REQUEST:\n" + review_content
         if media.get("transcript"):
             review_content += "\n\nAudio transcript: " + str(media["transcript"])
-        conversation = _clean(conversation_id, 40)
+        supplied_conversation = _clean(conversation_id, 40)
         try:
             conversation = (
-                str(uuid.UUID(conversation)) if conversation else str(uuid.uuid4())
+                str(uuid.UUID(supplied_conversation))
+                if supplied_conversation
+                else str(uuid.uuid4())
             )
         except ValueError as exc:
             raise ValueError("invalid_conversation") from exc
@@ -601,8 +603,10 @@ def chat(
             "SELECT identity_id FROM smi_conversations WHERE conversation_id=%s",
             (conversation,),
         ).fetchone()
-        if owner and str(owner[0]) != identity:
-            # Never silently switch a restore/continuation to a new mission.
+        if supplied_conversation and (
+            owner is None or str(owner[0]) != identity
+        ):
+            # A missing or foreign saved conversation cannot silently become new.
             raise ValueError("conversation_not_found")
         connection.execute(
             """INSERT INTO smi_conversations(conversation_id,identity_id,title)
