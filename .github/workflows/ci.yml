@@ -41,6 +41,9 @@ jobs:
           node tests/smi_live_character_exhaustive_test.cjs
           node --check mission_control/static/smi_exact_character_rig.js
           node tests/smi_exact_character_rig_foundation_test.cjs
+          node --check mission_control/static/smi_mask_zip.js
+          node --check mission_control/static/smi_character_mask_workbench.js
+          node tests/smi_mask_zip_test.cjs
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
