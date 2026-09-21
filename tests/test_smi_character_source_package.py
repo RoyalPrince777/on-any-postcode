@@ -128,3 +128,88 @@ def test_different_grayscale_and_empty_masks_rejected(tmp_path, monkeypatch):
     ):
         source_pkg.build_source_package(source, masks, target)
     assert not target.exists()
+
+
+def test_private_still_compositor_reuses_exact_source_pixels(tmp_path, monkeypatch):
+    from oap.smi import character_layer_review, character_rig_assets
+
+    source, masks, target = _inputs(tmp_path, monkeypatch)
+    source_pkg.build_source_package(source, masks, target)
+    approved = source_pkg.APPROVED_SOURCE_SHA256
+    monkeypatch.setattr(character_rig_assets, "APPROVED_SOURCE_SHA256", approved)
+    monkeypatch.setattr(character_layer_review, "APPROVED_SOURCE_SHA256", approved)
+    review = tmp_path / "private-packages" / "review.png"
+    result = character_layer_review.render_still_layer_review(
+        source, target, review, layer_order=tuple(LAYERS)
+    )
+    assert result["created"] is True
+    assert result["emits_motion"] is False
+    assert result["identity_approved"] is False
+    assert result["human_authority_approved"] is False
+    assert review.stat().st_mode & 0o777 == 0o600
+    with Image.open(review) as picture, Image.open(source) as original:
+        assert picture.size == original.size
+        assert picture.getpixel((3, 6))[:3] == original.getpixel((3, 6))
+    with pytest.raises(source_pkg.SourcePackageError):
+        character_layer_review.render_still_layer_review(
+            source, target, review, layer_order=tuple(LAYERS)
+        )
+
+
+def test_private_still_compositor_blocks_forged_pixels_and_bbox(
+    tmp_path, monkeypatch
+):
+    from oap.smi import character_layer_review, character_rig_assets
+
+    source, masks, target = _inputs(tmp_path, monkeypatch)
+    source_pkg.build_source_package(source, masks, target)
+    approved = source_pkg.APPROVED_SOURCE_SHA256
+    monkeypatch.setattr(character_rig_assets, "APPROVED_SOURCE_SHA256", approved)
+    monkeypatch.setattr(character_layer_review, "APPROVED_SOURCE_SHA256", approved)
+    manifest_path = target / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    layer_path = target / "eyes.png"
+    with Image.open(layer_path) as layer:
+        copy = layer.copy()
+    copy.putpixel((0, 0), (255, 255, 0, 255))
+    copy.save(layer_path)
+    manifest["layers"]["eyes"]["sha256"] = hashlib.sha256(
+        layer_path.read_bytes()
+    ).hexdigest()
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(
+        source_pkg.SourcePackageError, match="layer_pixel_identity_mismatch"
+    ):
+        character_layer_review.render_still_layer_review(
+            source, target, tmp_path / "private-packages" / "review.png",
+            layer_order=tuple(LAYERS),
+        )
+    assert not (tmp_path / "private-packages" / "review.png").exists()
+
+    manifest["layers"]["eyes"]["bbox_xyxy"] = [0, 0, 100, 100]
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(
+        source_pkg.SourcePackageError, match="invalid_layer_registration"
+    ):
+        character_layer_review.render_still_layer_review(
+            source, target, tmp_path / "private-packages" / "review.png",
+            layer_order=tuple(LAYERS),
+        )
+
+
+def test_compositor_requires_explicit_complete_order(tmp_path, monkeypatch):
+    from oap.smi import character_layer_review, character_rig_assets
+
+    source, masks, target = _inputs(tmp_path, monkeypatch)
+    source_pkg.build_source_package(source, masks, target)
+    approved = source_pkg.APPROVED_SOURCE_SHA256
+    monkeypatch.setattr(character_rig_assets, "APPROVED_SOURCE_SHA256", approved)
+    monkeypatch.setattr(character_layer_review, "APPROVED_SOURCE_SHA256", approved)
+    with pytest.raises(
+        source_pkg.SourcePackageError,
+        match="explicit_complete_layer_order_required",
+    ):
+        character_layer_review.render_still_layer_review(
+            source, target, tmp_path / "private-packages" / "review.png",
+            layer_order=("eyes",),
+        )
