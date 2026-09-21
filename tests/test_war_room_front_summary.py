@@ -29,3 +29,14 @@ def test_front_summary_scopes_metrics_and_does_not_fake_review_results():
     assert "not inferred" in front
     assert "0/7" not in front
     assert "7/7 passed" not in front
+
+
+def test_front_summary_shows_completed_and_next_without_fake_green():
+    html = TEMPLATE.read_text(encoding="utf-8")
+    front = html.split('id="war-room-front-summary"', 1)[1].split(
+        '<section class="grid status">', 1
+    )[0]
+    assert "Completed in this codebase" in front
+    assert "Next evidence gap" in front
+    assert "does not certify their deployed operation" in front
+    assert "before awarding mission-specific stars" in front
