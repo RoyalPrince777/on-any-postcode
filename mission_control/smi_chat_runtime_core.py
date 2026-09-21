@@ -526,6 +526,18 @@ def _auto_runtime_mode(
     return "instant", auto_studio, 3
 
 
+def _require_owned_conversation(
+    supplied_conversation: str,
+    owner: object,
+    identity: str,
+) -> None:
+    """Missing/foreign saved work must never silently become a new mission."""
+    if supplied_conversation and (
+        owner is None or str(owner[0]) != identity
+    ):
+        raise ValueError("conversation_not_found")
+
+
 def chat(
     message: object,
     identity_id: str,
@@ -603,11 +615,7 @@ def chat(
             "SELECT identity_id FROM smi_conversations WHERE conversation_id=%s",
             (conversation,),
         ).fetchone()
-        if supplied_conversation and (
-            owner is None or str(owner[0]) != identity
-        ):
-            # A missing or foreign saved conversation cannot silently become new.
-            raise ValueError("conversation_not_found")
+        _require_owned_conversation(supplied_conversation, owner, identity)
         connection.execute(
             """INSERT INTO smi_conversations(conversation_id,identity_id,title)
                VALUES (%s,%s,%s) ON CONFLICT (conversation_id) DO UPDATE
