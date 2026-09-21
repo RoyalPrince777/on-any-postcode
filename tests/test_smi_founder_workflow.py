@@ -87,3 +87,55 @@ def test_existing_mode_remains_manual_and_war_room_remains_21():
                                   image_attached=False)
     assert manual[0] == "manual" and manual[2] == 3
     assert war[0] == "deep_dive" and war[2] == 21
+
+
+def test_paired_purple_green_continues_only_known_mission():
+    turn = workflow.resolve_turn("🟣🟢", HISTORY)
+    assert turn["intent"] == "CONTINUE_WITH_FOUNDER_DESIGN_APPROVAL"
+    assert turn["review_may_continue"] is True
+    assert turn["war_room_requested"] is True
+    assert turn["design_approval_requires_identifiable_context"] is True
+    assert turn["explicit_execution_approval_received"] is False
+    assert turn["execution_granted"] is False
+
+
+def test_paired_signal_without_context_does_not_invent_approval_subject():
+    turn = workflow.resolve_turn("🟢 🟣", [])
+    assert turn["intent"] == "CONTINUE_WITH_FOUNDER_DESIGN_APPROVAL"
+    assert turn["history_has_mission_context"] is False
+    assert turn["review_may_continue"] is False
+    assert turn["execution_granted"] is False
+
+
+def test_assistant_alone_never_proves_mission_context():
+    history = [
+        {"role": "assistant", "content": "War Room result: choose a new mission."},
+        {"role": "user", "content": "🟣"},
+    ]
+    turn = workflow.resolve_turn("🟣", history)
+    assert turn["history_has_mission_context"] is False
+    assert turn["war_room_requested"] is False
+
+
+def test_new_founder_topic_cannot_inherit_old_war_room_mode():
+    changed = [
+        *HISTORY,
+        {"role": "user", "content": "Let's write a short birthday caption."},
+        {"role": "assistant", "content": "Caption prepared; older War Room notes remain."},
+    ]
+    turn = workflow.resolve_turn("🟣", changed)
+    assert turn["history_has_mission_context"] is True
+    assert turn["war_room_requested"] is False
+    assert turn["preferred_depth"] is None
+
+
+def test_latest_founder_war_room_mission_still_resumes():
+    changed = [
+        {"role": "user", "content": "First, write a birthday caption."},
+        {"role": "assistant", "content": "Caption prepared."},
+        *HISTORY,
+    ]
+    turn = workflow.resolve_turn("🟣", changed)
+    assert turn["review_may_continue"] is True
+    assert turn["war_room_requested"] is True
+    assert turn["preferred_depth"] == 21
