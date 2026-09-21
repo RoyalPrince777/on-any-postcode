@@ -1,4 +1,4 @@
-# SMI real-reply motion bridge v0.2 — no-guess lock
+# SMI real-reply motion bridge v0.3 — strict no-guess envelope
 
 Private candidate for binding bounded character cues to the audio clock of an
 actual SMI reply. It is not imported by the live page.
@@ -12,6 +12,12 @@ duration, clock source and canonical timeline hash must agree. Timeline cues
 must be ordered, bounded by the audio duration, free of reply text, above the
 confidence floor, and begin and end in silence. Text-predicted timelines and
 approval claims fail closed.
+
+The input envelope and alignment object now use exact allowlists. Extra fields
+such as reply text, transcripts or undeclared metadata reject the session
+instead of being silently ignored. This closes the privacy ambiguity where
+cue-level leakage was blocked but an extra object-level field could still be
+present beside the verified timeline.
 
 Playback starts only on an observed `playing` event with the declared audio
 clock. Every cue is selected from that timeline using the monotonically

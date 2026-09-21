@@ -13,8 +13,19 @@ const MAX_AUDIO_CLOCK_DELTA_MS=80;
 const MIN_ALIGNMENT_CONFIDENCE=0.8;
 const MAX_AUDIO_DURATION_MS=300000;
 const HASH=/^[a-f0-9]{64}$/;
+const INPUT_KEYS=Object.freeze(["source","replyId","humanStart","audioSha256","alignment"]);
+const ALIGNMENT_KEYS=Object.freeze(["source","audioSha256","audioDurationMs","clockSource","audioDecoded",
+  "predictedFromText","storesAudio","storesReplyText","productionApproved","humanFinalApproved",
+  "maxAlignmentErrorMs","cues","timelineSha256"]);
 
 function finite(value){return Number.isFinite(value)&&typeof value==="number";}
+function record(value){
+  if(!value||typeof value!=="object"||Array.isArray(value))return false;
+  const prototype=Object.getPrototypeOf(value);return prototype===Object.prototype||prototype===null;
+}
+function containsUnapprovedData(value,allowed){
+  if(!record(value))return false;const keys=new Set(allowed);return Object.keys(value).some(key=>!keys.has(key));
+}
 function timelineSha256({audioSha256,audioDurationMs,cues}={}){
   const canonical={audioSha256,audioDurationMs,cues:Array.isArray(cues)?cues.map(cue=>({
     atMs:cue?.atMs,viseme:cue?.viseme,confidence:cue?.confidence,
@@ -23,9 +34,10 @@ function timelineSha256({audioSha256,audioDurationMs,cues}={}){
 }
 function inspectAlignment(alignment,expectedAudioSha256){
   const reasons=[];
-  if(!alignment||typeof alignment!=="object"||Array.isArray(alignment)){
+  if(!record(alignment)){
     return Object.freeze({accepted:false,reasons:Object.freeze(["alignment_missing"])});
   }
+  if(containsUnapprovedData(alignment,ALIGNMENT_KEYS))reasons.push("alignment_contains_unapproved_data");
   if(alignment.source!==ALIGNMENT_SOURCE)reasons.push("decoded_audio_alignment_missing");
   if(!HASH.test(alignment.audioSha256||"")||alignment.audioSha256!==expectedAudioSha256)reasons.push("audio_hash_mismatch");
   if(!finite(alignment.audioDurationMs)||alignment.audioDurationMs<=0||alignment.audioDurationMs>MAX_AUDIO_DURATION_MS)reasons.push("audio_duration_invalid");
@@ -54,9 +66,16 @@ function inspectAlignment(alignment,expectedAudioSha256){
   }
   return Object.freeze({accepted:reasons.length===0,reasons:Object.freeze([...new Set(reasons)])});
 }
-function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}={}){
-  const identityAccepted=source===SOURCE&&typeof replyId==="string"&&/^[A-Za-z0-9._:-]{8,128}$/.test(replyId)&&
-    humanStart===true&&HASH.test(audioSha256||"");
+function createRealReplyBridge(input={}){
+  const identityReasons=[];
+  if(!record(input))identityReasons.push("input_missing");
+  else if(containsUnapprovedData(input,INPUT_KEYS))identityReasons.push("input_contains_unapproved_data");
+  const {source,replyId,humanStart,audioSha256,alignment}=record(input)?input:{};
+  if(source!==SOURCE)identityReasons.push("real_smi_reply_origin_missing");
+  if(typeof replyId!=="string"||!/^[A-Za-z0-9._:-]{8,128}$/.test(replyId))identityReasons.push("reply_id_invalid");
+  if(humanStart!==true)identityReasons.push("human_start_missing");
+  if(!HASH.test(audioSha256||""))identityReasons.push("audio_hash_invalid");
+  const identityAccepted=identityReasons.length===0;
   const inspection=inspectAlignment(alignment,audioSha256);
   const admitted=identityAccepted&&inspection.accepted;
   const cues=inspection.accepted?alignment.cues.map(cue=>Object.freeze({...cue})):[];
@@ -65,7 +84,8 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   const alignmentToleranceMs=inspection.accepted?alignment.maxAlignmentErrorMs:0;
   let epoch=0,started=false,stopped=false,failedClosed=false,failReason=null,events=0;
   let startAudioClockMs=-1,startObservedAtMs=-1,lastAudioClockMs=-1,lastObservedAtMs=-1,lastStopAcknowledgementMs=null;
-  const snapshot=()=>Object.freeze({version:"0.2-private-no-guess",admitted,
+  const snapshot=()=>Object.freeze({version:"0.3-private-no-guess-strict-envelope",admitted,
+    identityReasons:Object.freeze([...new Set(identityReasons)]),
     alignmentContractAccepted:inspection.accepted,alignmentReasons:inspection.reasons,
     epoch,started,stopped,failedClosed,failReason,events,lastAudioClockMs,lastObservedAtMs,
     lastStopAcknowledgementMs,storesText:false,storesAudio:false,attachedToLivePage:false,
