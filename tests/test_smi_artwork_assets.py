@@ -51,7 +51,7 @@ def test_live_chat_uses_full_screen_art_and_real_bottom_controls():
     css = (ROOT / "mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
     assert "smi_live_chat_dashboard.css" in wrapper
     assert "smi_live_chat_dashboard.jpg" in css
-    assert "background-position:50% center" in css
+    assert "background-position:47% center" in css
     for control in ("plus-button", "mic-button", "thinking-level", "send"):
         assert f'#{control}' in css
         assert f'id="{control}"' in base
