@@ -20,6 +20,16 @@ _WAR_ROOM = re.compile(r"\bwar[\s-]*room\b", re.IGNORECASE)
 _DEPTH_21 = re.compile(r"(?:\bsmi\s*(?:auto\s*)?21\b|\bdeep\s*dive\b|\b21\s*protocol\b)", re.IGNORECASE)
 
 
+def latest_substantive_user_turn(contents: Sequence[str]) -> str | None:
+    """Select a saved human mission, not short controls, from newest-first rows."""
+    for raw in contents:
+        content = str(raw or "").strip()
+        lowered = re.sub(r"\\s+", " ", content.casefold())
+        if content and lowered not in _NO_MISSION and not _EMOJI_ONLY.fullmatch(content):
+            return content
+    return None
+
+
 def _has_context(history: Sequence[Mapping[str, object]] | None) -> bool:
     """Only supplied, conversation-owned turns can establish a current mission."""
     return _latest_mission_user_turn(history) is not None
