@@ -46,6 +46,15 @@ const toggle = new Node();
 const options = new Node();
 const universe = new Node();
 const close = new Node();
+const imagePreview = new Node();
+const mediaPreview = new Node();
+const imageInput = new Node();
+const cameraInput = new Node();
+const mediaInput = new Node();
+const attachments = {
+  "image-preview": imagePreview, "media-preview": mediaPreview,
+  "image-input": imageInput, "camera-input": cameraInput, "media-input": mediaInput
+};
 const map = {};
 for (const key of ["feedback","depth","mode","instruction","approval","all","p0","clear","prepare","close"]) {
   map[key] = new Node();
@@ -56,7 +65,7 @@ centre.querySelector = q => centre.nodes[q];
 const originalCreate = global.document;
 global.document = {
   body:{classList:new Node().classList},
-  getElementById:id => id === "smi-command-centre" ? centre : id === "message" ? composer : null,
+  getElementById:id => id === "smi-command-centre" ? centre : id === "message" ? composer : (attachments[id] || null),
   querySelector:q => q === ".smi-command-toggle" ? toggle : null,
   createElement:tag => {
     const node = new Node();
@@ -96,7 +105,19 @@ composer.value = "Unsent private draft";
 map.prepare.click();
 if (composer.value !== "Unsent private draft") throw Error("overwrote chat draft");
 if (!map.feedback.textContent.includes("preserved")) throw Error("no preservation receipt");
+composer.value = "   ";
+map.prepare.click();
+if (composer.value !== "   ") throw Error("whitespace draft overwritten");
 composer.value = "";
+imagePreview.classList.add("show");
+map.prepare.click();
+if (composer.value) throw Error("private image preview attached to War Room");
+if (!map.feedback.textContent.includes("attachment preserved")) throw Error("no attachment preservation receipt");
+imagePreview.classList.remove("show");
+mediaInput.files = [{name:"private.pdf"}];
+map.prepare.click();
+if (composer.value) throw Error("pending document attached to War Room");
+mediaInput.files = [];
 map.mode.value = "build"; map.mode.change();
 map.prepare.click();
 if (composer.value) throw Error("unauthorised build prepared");
