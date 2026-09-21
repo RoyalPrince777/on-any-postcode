@@ -100,6 +100,8 @@ def _local_messages(
         "says it did. Use the OAP intelligence capabilities supplied in routing context as "
         "task strategies, not as proof that a tool/provider was actually used."
     )
+    from . import smi_founder_workflow
+    system += " " + smi_founder_workflow.instruction()
     if code_mode:
         system += (
             " CODE MODE: return concrete production-quality code or a unified diff with focused "
@@ -118,6 +120,7 @@ def _local_messages(
             "intelligence_capability_descriptions", ()
         ),
         "hrm_lessons": [str(item)[:300] for item in (adaptive_memory or [])[-5:]],
+        "founder_workflow": (brain or {}).get("founder_workflow") or {},
     }
     messages: list[dict[str, str]] = [
         {
