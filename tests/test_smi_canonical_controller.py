@@ -114,3 +114,14 @@ def test_canonical_controller_preserves_governed_backend_contract():
     assert "event: complete" not in text
     assert "oap-smi-complete" in text
     assert "Human Authority" in text
+
+
+def test_only_canonical_acceptance_emits_live_chat_completion():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    enhancement = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    assert canonical.count("new CustomEvent('oap-smi-complete'") == 1
+    assert "if(streamError)throw streamError;if(!completeResult)throw" in canonical
+    assert canonical.index("if(streamError)throw streamError;if(!completeResult)throw") < canonical.index("new CustomEvent('oap-smi-complete'")
+    assert "response.clone().text()" not in enhancement
+    assert "new CustomEvent('oap-smi-complete'" not in enhancement
+    assert "window.addEventListener('oap-smi-complete'" in enhancement
