@@ -118,13 +118,21 @@ const plusButton=document.getElementById('plus-button'),attachMenu=document.getE
 const micButton=document.getElementById('mic-button'),speakerButton=document.getElementById('speaker-button'),codeButton=document.getElementById('code-button'),thinkingLevel=document.getElementById('thinking-level'),studioButton=document.getElementById('studio-button');
 const historyList=document.getElementById('history-list'),historyStatus=document.getElementById('history-status'),historyCount=document.getElementById('history-count'),refreshHistory=document.getElementById('refresh-history');
 let conversationId=null,selectedImage='',selectedAttachment=null,readAloud=true,codeMode=false,activeController=null,responseStopped=false,workStartedAt=0,workTimer=null,streamPaused=false,studioMode=false;
+// Only an opaque conversation UUID is retained for this browser tab: never
+// cache chat messages, Founder data or approvals in web storage.
+const smiActiveConversationKey='oap:smi:active-conversation:v1';
+const smiConversationUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let smiRestoreAttempted=false;
+function smiReadActiveConversation(){try{const id=sessionStorage.getItem(smiActiveConversationKey)||'';if(smiConversationUuid.test(id))return id;if(id)sessionStorage.removeItem(smiActiveConversationKey)}catch{}return null}
+function smiRememberActiveConversation(id){if(!smiConversationUuid.test(String(id||'')))return;try{sessionStorage.setItem(smiActiveConversationKey,String(id))}catch{}}
+function smiForgetActiveConversation(){try{sessionStorage.removeItem(smiActiveConversationKey)}catch{}}
 
 function renderMessage(body,text){
  body.textContent='';const parts=String(text||'').split(/```/);
  parts.forEach((part,index)=>{if(index%2===0){if(part)body.append(document.createTextNode(part));return}const firstBreak=part.indexOf('\n'),language=firstBreak>=0?part.slice(0,firstBreak).trim():'code',code=firstBreak>=0?part.slice(firstBreak+1):part;const wrap=document.createElement('div');wrap.className='code-block';const head=document.createElement('div');head.className='code-head';const label=document.createElement('span');label.textContent=language||'code';const copy=document.createElement('button');copy.type='button';copy.className='copy';copy.textContent='Copy code';copy.onclick=async()=>{try{await navigator.clipboard.writeText(code);copy.textContent='Copied ✓'}catch(e){copy.textContent='Copy failed'}setTimeout(()=>copy.textContent='Copy code',1500)};head.append(label,copy);const pre=document.createElement('pre');const codeEl=document.createElement('code');codeEl.textContent=code;pre.append(codeEl);wrap.append(head,pre);body.append(wrap)});
 }
 function add(text,role){const el=document.createElement('div');el.className='msg '+role;const body=document.createElement('div');body.className='msg-text';renderMessage(body,text);el.append(body);if(role==='assistant'){const actions=document.createElement('div');actions.className='msg-actions';const copy=document.createElement('button');copy.type='button';copy.className='copy';copy.textContent='Copy';copy.onclick=async()=>{try{await navigator.clipboard.writeText(body.innerText);copy.textContent='Copied ✓'}catch(e){copy.textContent='Copy failed'}setTimeout(()=>copy.textContent='Copy',1500)};actions.append(copy);el.append(actions)}messages.append(el);messages.scrollTop=messages.scrollHeight;return body}
-function resetConversation(){if(activeController)activeController.abort();conversationId=null;messages.textContent='';add('Ready. What do you want to work on?','assistant');messageInput.focus();statusEl.textContent='New governed conversation ready.';hideThinking()}
+function resetConversation(){if(activeController)activeController.abort();smiRestoreAttempted=true;smiForgetActiveConversation();conversationId=null;messages.textContent='';add('Ready. What do you want to work on?','assistant');messageInput.focus();statusEl.textContent='New governed conversation ready.';hideThinking()}
 function workedSeconds(){return workStartedAt?Math.max(0,Math.round((performance.now()-workStartedAt)/1000)):0}
 function updateWorkedFor(){const el=document.getElementById('thinking-elapsed');if(el)el.textContent='Worked for '+workedSeconds()+'s'}
 function beginWork(){workStartedAt=performance.now();if(workTimer)clearInterval(workTimer);updateWorkedFor();workTimer=setInterval(updateWorkedFor,250)}
@@ -133,9 +141,41 @@ function showStage(label){if(thinking.dataset.runActive!=='true'){thinkingLog.te
 function hideThinking(){thinking.classList.add('show');thinking.dataset.runActive='false';thinking.dataset.complete='true';thinkingTitle.textContent='Thinking Process · last completed run';providerState.textContent='Ready';workStartedAt=0}
 function setRunning(running){send.disabled=running;stopButton.classList.toggle('show',running);pauseButton.classList.toggle('show',running);plusButton.disabled=false;cameraButton.disabled=running;micButton.disabled=running;thinkingLevel.disabled=running;imageButton.disabled=running;fileButton.disabled=running;if(!running){activeController=null;streamPaused=false;pauseButton.classList.remove('active');pauseButton.setAttribute('aria-pressed','false');pauseButton.textContent='Ⅱ'}}
 
-async function loadConversations(){historyStatus.textContent='Refreshing saved Founder work…';historyList.textContent='';try{const response=await fetch(conversationsUrl,{cache:'no-store',credentials:'same-origin'}),data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Saved work unavailable');const items=Array.isArray(data.conversations)?data.conversations:[];if(historyCount)historyCount.textContent=String(items.length);historyStatus.textContent=items.length?'Saved automatically · select work to continue':'No saved work yet · your first governed chat will appear here.';items.forEach(item=>{const row=document.createElement('div');row.className='history-item';row.dataset.conversationId=item.conversation_id;if(item.conversation_id===conversationId)row.classList.add('active');const open=document.createElement('button');open.type='button';open.className='history-open';const title=document.createElement('span');title.className='history-title';title.textContent=item.title;const preview=document.createElement('span');preview.className='history-preview';preview.textContent=item.preview||item.message_count+' message(s)';open.append(title,preview);open.onclick=()=>openConversation(item.conversation_id);const remove=document.createElement('button');remove.type='button';remove.className='history-delete';remove.textContent='×';remove.setAttribute('aria-label','Delete '+item.title);remove.onclick=()=>deleteConversation(item.conversation_id,item.title);row.append(open,remove);historyList.append(row)})}catch(error){if(historyCount)historyCount.textContent='!';historyStatus.textContent=error.message}}
-async function openConversation(id){statusEl.textContent='Loading saved work…';try{const response=await fetch(conversationsUrl+'/'+encodeURIComponent(id),{cache:'no-store',credentials:'same-origin'}),data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Saved work unavailable');conversationId=data.conversation_id;messages.textContent='';data.messages.forEach(item=>add(item.content,item.role==='user'?'user':item.role==='assistant'?'assistant':'system'));historyList.querySelectorAll('.history-item').forEach(row=>row.classList.toggle('active',row.dataset.conversationId===conversationId));document.querySelector('.history')?.classList.remove('mobile-open');document.querySelector('.history-backdrop')?.classList.remove('mobile-open');statusEl.textContent='Saved work restored · continue from here · Human Authority final'}catch(error){add(error.message,'system');statusEl.textContent='Saved work was not loaded.'}}
-async function deleteConversation(id,title){if(!window.confirm('Delete “'+title+'”? An audit receipt is retained.'))return;try{const response=await fetch(conversationsUrl+'/'+encodeURIComponent(id),{method:'DELETE',headers:{'X-OAP-CSRF':csrfToken},credentials:'same-origin'}),data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Delete failed');if(conversationId===id)resetConversation();await loadConversations();statusEl.textContent='Conversation deleted · audit receipt recorded'}catch(error){statusEl.textContent=error.message}}
+async function loadConversations(){historyStatus.textContent='Refreshing saved Founder work…';historyList.textContent='';try{const response=await fetch(conversationsUrl,{cache:'no-store',credentials:'same-origin'}),data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Saved work unavailable');const items=Array.isArray(data.conversations)?data.conversations:[];if(historyCount)historyCount.textContent=String(items.length);historyStatus.textContent=items.length?'Saved automatically · select work to continue':'No saved work yet · your first governed chat will appear here.';items.forEach(item=>{const row=document.createElement('div');row.className='history-item';row.dataset.conversationId=item.conversation_id;if(item.conversation_id===conversationId)row.classList.add('active');const open=document.createElement('button');open.type='button';open.className='history-open';const title=document.createElement('span');title.className='history-title';title.textContent=item.title;const preview=document.createElement('span');preview.className='history-preview';preview.textContent=item.preview||item.message_count+' message(s)';open.append(title,preview);open.onclick=()=>openConversation(item.conversation_id);const remove=document.createElement('button');remove.type='button';remove.className='history-delete';remove.textContent='×';remove.setAttribute('aria-label','Delete '+item.title);remove.onclick=()=>deleteConversation(item.conversation_id,item.title);row.append(open,remove);historyList.append(row)});
+if(!smiRestoreAttempted&&!conversationId&&!activeController){
+  smiRestoreAttempted=true;
+  const savedId=smiReadActiveConversation();
+  if(savedId)await openConversation(savedId,{silent:true});
+}
+}catch(error){if(historyCount)historyCount.textContent='!';historyStatus.textContent=error.message}}
+async function openConversation(id,{silent=false}={}){
+ if(!silent)smiRestoreAttempted=true;
+ statusEl.textContent='Loading saved work…';
+ try{
+  const response=await fetch(conversationsUrl+'/'+encodeURIComponent(id),{cache:'no-store',credentials:'same-origin'});
+  if(!response.ok){
+   if(response.status===404&&smiReadActiveConversation()===id)smiForgetActiveConversation();
+   const data=await response.json();
+   throw new Error(data.error?.message||'Saved work unavailable');
+  }
+  const data=await response.json();
+  // A delayed automatic restore cannot overwrite a new or manually opened chat.
+  if(silent&&(conversationId||activeController||smiReadActiveConversation()!==id))return;
+  if(data.conversation_id!==id||!Array.isArray(data.messages))throw new Error('Saved work verification failed');
+  conversationId=data.conversation_id;
+  smiRememberActiveConversation(conversationId);
+  messages.textContent='';
+  data.messages.forEach(item=>add(item.content,item.role==='user'?'user':item.role==='assistant'?'assistant':'system'));
+  historyList.querySelectorAll('.history-item').forEach(row=>row.classList.toggle('active',row.dataset.conversationId===conversationId));
+  document.querySelector('.history')?.classList.remove('mobile-open');
+  document.querySelector('.history-backdrop')?.classList.remove('mobile-open');
+  statusEl.textContent='Saved work restored · continue from here · Human Authority final';
+ }catch(error){
+  if(!silent)add(error.message,'system');
+  statusEl.textContent='Saved work was not loaded.';
+ }
+}
+async function deleteConversation(id,title){if(!window.confirm('Delete “'+title+'”? An audit receipt is retained.'))return;try{const response=await fetch(conversationsUrl+'/'+encodeURIComponent(id),{method:'DELETE',headers:{'X-OAP-CSRF':csrfToken},credentials:'same-origin'}),data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Delete failed');if(smiReadActiveConversation()===id)smiForgetActiveConversation();if(conversationId===id)resetConversation();await loadConversations();statusEl.textContent='Conversation deleted · audit receipt recorded'}catch(error){statusEl.textContent=error.message}}
 
 document.getElementById('new-chat').onclick=resetConversation;if(refreshHistory)refreshHistory.onclick=loadConversations;
 imageButton.onclick=()=>{attachMenu.classList.remove('show');imageInput.click()};fileButton.onclick=()=>{attachMenu.classList.remove('show');mediaInput.click()};
