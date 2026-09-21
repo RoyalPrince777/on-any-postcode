@@ -230,6 +230,9 @@ def _allowed(path: str) -> bool:
         if clean == prefix or clean.startswith(prefix + "/"):
             return True
     return clean in {
+        # First-party, SHA-pinned original needed by the private in-browser
+        # character mask editor. Do not broaden to /static or user assets.
+        "/static/oap/smi_live_chat_dashboard.jpg",
         "/auth",
         "/auth/sign-in",
         "/auth/sign-out",
