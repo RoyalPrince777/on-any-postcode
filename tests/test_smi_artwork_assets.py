@@ -57,3 +57,17 @@ def test_live_chat_uses_full_screen_art_and_real_bottom_controls():
         assert f'id="{control}"' in base
     assert "AUTO 3/7/21" in base
     assert "send-label" in base
+
+
+def test_live_chat_excludes_visible_status_and_uses_governed_presence_state():
+    wrapper = (ROOT / "mission_control/templates/ollama_chat.html").read_text(encoding="utf-8")
+    room = (ROOT / "mission_control/static/smi_command_centre.js").read_text(encoding="utf-8")
+    presence = (ROOT / "mission_control/static/smi_live_chat_presence.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
+    assert "singleLiveChatSurface:true" in wrapper
+    assert "visibleLiveStatus:false" in wrapper
+    assert "backgroundListening:false" in wrapper
+    assert "!cfg.singleLiveChatSurface" in room
+    assert "oap-smi-character-state" in presence
+    for state in ("listening", "thinking", "speaking", "paused", "stopped"):
+        assert f'data-smi-presence="{state}"' in css
