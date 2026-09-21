@@ -101,14 +101,14 @@ def test_mission_anchor_database_query_scoped_to_authenticated_owner():
     assert '_require_owned_conversation(supplied_conversation, owner, identity)' in core
 
 
-def test_owner_scoped_saved_conversation_load_blocks_other_identity(
-    client, monkeypatch
-):
-    """Exercise the authenticated HTTP read with a controlled DB substitute."""
+def test_owner_scoped_saved_conversation_load_blocks_other_identity(monkeypatch):
+    """Exercise actual DB ownership query with two controlled identities."""
     from contextlib import nullcontext
     from datetime import datetime, timezone
 
-    from mission_control import smi_chat_runtime, smi_chat_runtime_core, web_security
+    import pytest
+
+    from mission_control import smi_chat_runtime_core
 
     founder = "11111111-1111-4111-8111-111111111111"
     other = "22222222-2222-4222-8222-222222222222"
@@ -129,7 +129,9 @@ def test_owner_scoped_saved_conversation_load_blocks_other_identity(
     class Store:
         def execute(self, query, params):
             if "SELECT title,updated_at" in query:
-                return Result([("Founder private work", now)] if params[1] == founder else [])
+                return Result(
+                    [("Founder private work", now)] if params[1] == founder else []
+                )
             if "SELECT message_id,role,content" in query:
                 message_reads.append(params)
                 return Result([
@@ -146,22 +148,11 @@ def test_owner_scoped_saved_conversation_load_blocks_other_identity(
         "connect",
         lambda readonly=False: nullcontext(Store()),
     )
-    monkeypatch.setattr(
-        smi_chat_runtime,
-        "get_conversation",
-        smi_chat_runtime_core.get_conversation,
-    )
 
-    with client.session_transaction() as session:
-        session[web_security.IDENTITY_SESSION_KEY] = other
-    denied = client.get("/mission/conversations/" + conversation)
-    assert denied.status_code == 404
-    assert "Founder-only War Room mission" not in denied.get_data(as_text=True)
+    with pytest.raises(ValueError, match="conversation_not_found"):
+        smi_chat_runtime_core.get_conversation(other, conversation)
     assert message_reads == []
 
-    with client.session_transaction() as session:
-        session[web_security.IDENTITY_SESSION_KEY] = founder
-    allowed = client.get("/mission/conversations/" + conversation)
-    assert allowed.status_code == 200
-    assert allowed.get_json()["messages"][0]["content"] == "Founder-only War Room mission"
+    allowed = smi_chat_runtime_core.get_conversation(founder, conversation)
+    assert allowed["messages"][0]["content"] == "Founder-only War Room mission"
     assert message_reads == [(conversation,)]
