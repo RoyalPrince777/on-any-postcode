@@ -12,10 +12,31 @@ occlusion, depth or 3D geometry. It does **not** infer a mask from the original
 still. Approved source masks are a necessary input and are **not present in
 this PR**. Until then, no real SMI segmented package can be created.
 
+## Founder mask workbench — actual first-party editor
+
+Open `/mission/character-mask-workbench` after Founder sign-in. It verifies
+the **exact original JPG SHA-256 in the browser**, then exposes one local
+painting canvas per required region (eyes, head, breathing, mouth visemes,
+face, hands, upper body). Paint, erase, undo the last stroke, import an
+earlier full-size white-alpha PNG and download the current draft. Once all
+seven contain painted pixels, the built-in, dependency-free ZIP writer saves
+the seven full-canvas PNG masks and a draft-only manifest **to the local
+device**. No mask is submitted to a server, third-party editor, external
+model, analytics endpoint, microphone or HRM; a page reload does not retain
+the private masks, so save your ZIP before leaving the page.
+
+The workbench exports PNGs with **white RGB and variable alpha**; the
+first-party extractor now accepts these as well as conventional L-mode
+grayscale masks. Coloured alpha photos are rejected, and all masks must
+match the original image dimensions. Unzip the locally downloaded draft in
+a private directory and **review the masks before supplying them to the
+extractor**. Drawing a mark or exporting a ZIP does not record approval,
+generate occluded anatomy, or turn on motion.
+
 ## Prepare the real editable input
 
 In a private local directory OUTSIDE `static/`, prepare exactly seven
-**full-original-canvas grayscale L-mode PNG masks**, each named:
+**full-original-canvas grayscale L-mode or white-alpha RGBA PNG masks**, each named:
 
 `eyes.png`, `head.png`, `breathing.png`, `mouth_visemes.png`,
 `face.png`, `hands.png`, `upper_body.png`.
