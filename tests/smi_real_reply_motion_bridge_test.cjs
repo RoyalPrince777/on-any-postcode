@@ -20,13 +20,16 @@ function aligned(overrides={}){
 function bridge(overrides={}){return api.createRealReplyBridge({source:api.SOURCE,replyId:"reply-123",humanStart:true,audioSha256,alignment:aligned(),...overrides});}
 
 for(const forged of [
+  null,
+  [],
   {},
   {source:api.SOURCE,replyId:"short",humanStart:true,audioSha256,alignment:aligned()},
   {source:"manual_text",replyId:"reply-123",humanStart:true,audioSha256,alignment:aligned()},
   {source:api.SOURCE,replyId:"reply-123",humanStart:false,audioSha256,alignment:aligned()},
   {source:api.SOURCE,replyId:"reply-123",humanStart:true,audioSha256:"0".repeat(64),alignment:aligned()},
+  {source:api.SOURCE,replyId:"reply-123",humanStart:true,audioSha256,alignment:aligned(),replyText:"forbidden"},
 ]){
-  const candidate=api.createRealReplyBridge(forged);assert.equal(candidate.snapshot().admitted,false);assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:100,eventType:"playing",clockSource:"audio-context"}),null);
+  const candidate=api.createRealReplyBridge(forged),snapshot=candidate.snapshot();assert.equal(snapshot.admitted,false);assert.ok(snapshot.identityReasons.length||snapshot.alignmentReasons.length);assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:100,eventType:"playing",clockSource:"audio-context"}),null);
 }
 
 for(const invalidAlignment of [
@@ -36,6 +39,8 @@ for(const invalidAlignment of [
   aligned({cues:[...cues.slice(0,-1),{atMs:400,viseme:"unknown",confidence:1}]}),
   aligned({cues:[...cues.slice(0,-1),{atMs:400,viseme:"silence",confidence:.79}]}),
   aligned({cues:[cues[0],{atMs:20,viseme:"closed",confidence:1,text:"reply leak"},...cues.slice(2)]}),
+  aligned({replyText:"alignment-level reply leak"}),
+  aligned({transcript:"alignment-level transcript leak"}),
   aligned({cues:[cues[0],{atMs:20,viseme:"closed",confidence:1},{atMs:19,viseme:"wide",confidence:1},...cues.slice(3)]}),
   aligned({timelineSha256:"0".repeat(64)}),
 ]){
@@ -45,6 +50,8 @@ for(const invalidAlignment of [
 assert.equal(Object.prototype.hasOwnProperty.call(api,"visemeFor"),false);
 const candidate=bridge(),initial=candidate.snapshot();
 assert.equal(initial.admitted,true);assert.equal(initial.alignmentContractAccepted,true);
+assert.deepEqual(initial.identityReasons,[]);
+assert.equal(initial.version,"0.3-private-no-guess-strict-envelope");
 assert.equal(initial.attachedToLivePage,false);assert.equal(initial.storesText,false);assert.equal(initial.storesAudio,false);
 assert.equal(initial.accurateLipSyncProven,false);assert.equal(initial.physicalAndroidStopProven,false);
 assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:1020}),null);
