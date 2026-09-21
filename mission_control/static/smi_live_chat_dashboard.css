@@ -1,0 +1,51 @@
+/* Full-screen SMI Live Chat — approved 3325 command-centre artwork. */
+:root{--smi-blue:#21b8ff;--smi-violet:#9e6cff;--smi-night:#020817}
+html,body.mc-workspace-body{width:100%;height:100%;margin:0;background:var(--smi-night);overflow:hidden}
+.smi-shell{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;background:var(--smi-night)!important;isolation:isolate}
+.smi-shell::before{content:"";position:absolute;inset:0;z-index:-2;background:#020817 url('/static/oap/smi_live_chat_dashboard.jpg') center center/cover no-repeat}
+.smi-shell::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(1,7,18,.04) 0 65%,rgba(1,5,14,.28) 80%,rgba(1,4,12,.7) 100%)}
+.smi-shell>.navs,.smi-shell>.smi-hero{display:none!important}
+.workspace-grid{display:grid!important;grid-template-columns:1fr!important;position:absolute!important;inset:0!important;background:transparent!important}
+.history{position:fixed!important;inset:0 auto 0 0!important;width:min(380px,88vw)!important;z-index:150!important;display:block!important;transform:translateX(-105%);transition:transform .22s ease;background:rgba(2,8,20,.94)!important;border-right:1px solid #2189c9!important;backdrop-filter:blur(22px)}
+.history.mobile-open{transform:translateX(0)}
+.chatbox{position:relative!important;height:100dvh!important;min-height:0!important;background:transparent!important;overflow:hidden!important}
+.chat-head{position:fixed!important;top:12px!important;left:50%!important;z-index:30!important;transform:translateX(-50%);width:auto!important;min-width:220px;padding:7px 18px!important;border:1px solid rgba(46,176,255,.38)!important;border-radius:999px!important;background:rgba(2,9,23,.62)!important;backdrop-filter:blur(15px);text-align:center}
+.chat-title{font-size:.82rem;letter-spacing:.14em}.chat-subtitle{font-size:.62rem;color:#b9dcf7!important}
+.chat-head-actions{display:none!important}
+.smi-character{display:none!important}
+.messages{position:absolute!important;z-index:10;left:50%;top:62px;bottom:122px;transform:translateX(-50%);width:min(820px,92vw);padding:12px!important;overflow-y:auto!important;scrollbar-width:thin;mask-image:linear-gradient(transparent,#000 8%,#000 92%,transparent)}
+.messages:has(.msg:only-child){opacity:0;pointer-events:none}
+.msg{max-width:min(82%,720px)!important;border:1px solid rgba(53,186,255,.34)!important;background:rgba(2,10,24,.8)!important;color:#f4f9ff!important;box-shadow:0 10px 34px rgba(0,0,0,.35),inset 0 0 20px rgba(39,160,255,.06);backdrop-filter:blur(18px)}
+.msg.user{background:rgba(25,55,104,.83)!important;border-color:rgba(151,108,255,.55)!important}
+.thinking{position:fixed!important;z-index:40;top:62px;left:50%;transform:translateX(-50%);width:min(760px,92vw)!important;margin:0!important;border-color:rgba(126,96,231,.6)!important;background:rgba(2,8,22,.86)!important;backdrop-filter:blur(18px)}
+.composer{position:fixed!important;z-index:80;left:50%!important;right:auto!important;bottom:max(14px,env(safe-area-inset-bottom))!important;transform:translateX(-50%);width:min(1120px,calc(100vw - 30px));padding:0!important;border:0!important;background:transparent!important}
+.composer-box{position:relative;display:grid;grid-template-columns:auto auto minmax(180px,1fr) auto auto;align-items:center;gap:10px;max-width:none!important;min-height:66px;padding:8px 12px!important;border:1px solid rgba(63,180,255,.5)!important;border-radius:34px!important;background:linear-gradient(180deg,rgba(4,15,36,.78),rgba(2,8,22,.9))!important;box-shadow:0 0 0 1px rgba(150,97,255,.18),0 0 28px rgba(25,153,255,.25),inset 0 0 25px rgba(16,107,202,.12)!important;backdrop-filter:blur(20px)}
+.composer textarea{grid-column:3;grid-row:1;width:100%;min-height:48px!important;max-height:96px!important;padding:13px 18px!important;border:1px solid rgba(154,103,255,.82)!important;border-radius:25px!important;background:rgba(8,13,39,.74)!important;box-shadow:0 0 18px rgba(147,76,255,.28),inset 0 0 18px rgba(50,97,209,.12);font-size:1rem}
+.composer textarea::placeholder{color:#b9b9d8}
+.composer-bar{display:contents!important}.composer-left,.composer-right{display:contents!important}
+.attach-wrap{grid-column:1;grid-row:1;display:flex;align-items:center;gap:7px}.attach-wrap::after{content:"Tools";color:#e9f5ff;font-size:.86rem}
+#plus-button,#mic-button{width:46px!important;height:46px!important;border-color:rgba(48,180,255,.6)!important;background:rgba(4,15,35,.82)!important;box-shadow:0 0 15px rgba(21,167,255,.2)}
+#mic-button{grid-column:2;grid-row:1;margin-right:42px}
+#mic-button::after{content:"Voice";position:absolute;margin-left:82px;color:#e9f5ff;font-size:.86rem;font-weight:500}
+#code-button,#speaker-button,.name-input{display:none!important}
+#thinking-level{grid-column:4;grid-row:1;width:146px;min-height:46px;padding:0 12px;border:1px solid rgba(42,154,255,.38);border-radius:25px;background:rgba(3,12,30,.82);color:#dff4ff;font-weight:700;text-align:center}
+#send{grid-column:5;grid-row:1;display:flex!important;align-items:center;justify-content:center;gap:8px;width:128px!important;height:48px!important;border:1px solid rgba(57,200,255,.88)!important;border-radius:25px!important;background:rgba(6,48,91,.82)!important;color:#f5fbff!important;box-shadow:0 0 20px rgba(27,171,255,.35);font-size:.95rem}
+.send-label{display:inline!important}
+#pause-button,#stop-button{position:fixed;right:16px;bottom:90px;z-index:90}
+#pause-button:not(.show),#stop-button:not(.show){display:none!important}
+.preview{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);width:min(720px,90vw);background:rgba(2,8,20,.92)!important;border-color:#318dd0!important}
+.status-row{position:fixed;z-index:70;left:50%;bottom:90px;transform:translateX(-50%);width:min(900px,90vw);margin:0!important;pointer-events:none}.status{width:100%;text-align:center;color:#bfe7ff!important;text-shadow:0 1px 5px #000}.mode-tools{display:none!important}
+.attach-menu{bottom:62px!important;width:min(390px,calc(100vw - 24px))!important;max-height:min(68dvh,620px)!important;background:rgba(2,9,23,.97)!important;border-color:#238fd0!important;box-shadow:0 18px 55px #000b,0 0 20px #1688d044!important}
+.mobile-chats-toggle{position:fixed!important;top:12px;left:12px;z-index:60;border:1px solid rgba(47,172,245,.48)!important;background:rgba(2,9,23,.7)!important;color:#eef8ff!important;backdrop-filter:blur(14px)}
+@media(max-width:760px){
+ .smi-shell::before{background-position:50% center;background-size:auto 100%}
+ .chat-head{top:8px}.messages{top:52px;bottom:116px;width:96vw;padding:8px!important}.msg{max-width:92%!important}
+ .composer{width:calc(100vw - 14px);bottom:max(7px,env(safe-area-inset-bottom))!important}
+ .composer-box{grid-template-columns:auto minmax(0,1fr) auto;gap:6px;min-height:58px;padding:5px 7px!important;border-radius:29px!important}
+ .composer textarea{grid-column:2;min-width:0;min-height:46px!important;padding:11px 13px!important}
+ .attach-wrap{grid-column:1}.attach-wrap::after,#mic-button,#thinking-level,.send-label{display:none!important}
+ #plus-button{width:44px!important;height:44px!important}
+ #send{grid-column:3;width:48px!important;height:46px!important;padding:0!important}
+ .status-row{bottom:72px}.status{font-size:.62rem}.thinking{top:52px;width:calc(100vw - 16px)!important}
+}
+@media(prefers-reduced-motion:reduce){.history{transition:none}}
