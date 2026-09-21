@@ -109,3 +109,17 @@ def test_founder_library_lists_metadata_as_not_reusable(monkeypatch):
     assert asset["studio_handoff_state"] == "fresh_upload_required"
     assert asset["studio_execution_granted"] is False
     assert asset["raw_content_retained"] is False
+
+
+def test_founder_library_ui_offers_fresh_upload_without_claiming_reuse():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "mission_control/static/smi_chat_final.js").read_text()
+    assert "title==='Founder Library'" in source
+    assert "asset.original_available===true" in source
+    assert "Fresh upload required" in source
+    assert "Re-upload for Studio" in source
+    assert "q('#image-input')||q('#media-input')" in source
+    assert "picker.click()" in source
+    assert "Metadata alone cannot supply original media" in source
