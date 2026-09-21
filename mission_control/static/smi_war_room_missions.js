@@ -93,8 +93,21 @@
   });
   selector.querySelector("[data-war-prepare]").addEventListener("click", () => {
     try {
-      if (composer.value.trim()) {
+      // Never overwrite even whitespace-only drafts or attach private media to a new mission.
+      if (composer.value.length) {
         feedback.textContent = "Your current chat draft is preserved. Clear or send it before preparing a War Room request.";
+        return;
+      }
+      const attachmentControls = ["image-preview", "media-preview", "image-input", "camera-input", "media-input"];
+      const attachmentPending = attachmentControls.some(id => {
+        const node = document.getElementById(id);
+        return node && (
+          node.classList?.contains("show") ||
+          (node.files && node.files.length > 0)
+        );
+      });
+      if (attachmentPending) {
+        feedback.textContent = "Existing attachment preserved. Remove or send it before preparing a War Room request.";
         return;
       }
       const prompt = buildContract({
