@@ -2,9 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from mission_control import smi_chat_runtime
-
-from mission_control import oap_inference_gateway
+from mission_control import oap_inference_gateway, smi_chat_runtime
 from oap.smi.capability_fabric import select_capabilities
 from oap.smi.capability_fabric import status as capability_status
 
