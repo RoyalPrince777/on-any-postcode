@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from mission_control import smi_chat_runtime, web_security
 
 
@@ -114,43 +112,22 @@ def test_conversation_delete_requires_csrf(client, monkeypatch):
     assert called is False
 
 
-def test_provider_requests_streaming_and_forwards_true_deltas(monkeypatch):
-    captured = {}
+def test_direct_core_provider_alias_is_fail_closed_even_with_external_key(monkeypatch):
+    import pytest
 
-    class FakeResponse:
-        def __enter__(self):
-            return self
+    from mission_control import smi_chat_runtime_core
 
-        def __exit__(self, exc_type, exc, traceback):
-            del exc_type, exc, traceback
-
-        def __iter__(self):
-            events = (
-                {"type": "response.output_text.delta", "delta": "OAP "},
-                {"type": "response.output_text.delta", "delta": "ready"},
-                {"type": "response.completed", "response": {}},
-            )
-            return iter(
-                [f"data: {json.dumps(event)}\n\n".encode() for event in events]
-            )
-
-    def fake_urlopen(request, timeout):
-        captured["payload"] = json.loads(request.data.decode())
-        captured["timeout"] = timeout
-        return FakeResponse()
+    def forbidden_network(*args, **kwargs):
+        raise AssertionError("external_provider_call")
 
     monkeypatch.setenv("OPENAI_API_KEY", "test-provider-key")
-    monkeypatch.setattr(smi_chat_runtime.urlrequest, "urlopen", fake_urlopen)
-    deltas: list[str] = []
-
-    result = smi_chat_runtime._provider(
-        "Review OAP.", code_mode=True, on_delta=deltas.append
-    )
-
-    assert result == "OAP ready"
-    assert deltas == ["OAP ", "ready"]
-    assert captured["payload"]["stream"] is True
-    assert captured["payload"]["max_output_tokens"] == 1200
+    monkeypatch.setattr(smi_chat_runtime.urlrequest, "urlopen", forbidden_network)
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        smi_chat_runtime._provider("Private Founder context")
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        smi_chat_runtime_core._provider("Private Founder context")
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        smi_chat_runtime._COMPATIBILITY_ENGINE("Private Founder context")
 
 
 def test_chat_event_bridge_marks_complete_after_chat_returns(monkeypatch):
