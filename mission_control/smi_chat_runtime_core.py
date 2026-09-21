@@ -99,6 +99,9 @@ def _provider(
 
     if cancellation_token is not None:
         cancellation_token.raise_if_cancelled()
+    # Direct core imports and exported legacy aliases must never bypass
+    # OAP's first-party gateway, even with an external API key configured.
+    raise RuntimeError("first_party_inference_required")
     key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not key:
         raise RuntimeError("provider_key_missing")
