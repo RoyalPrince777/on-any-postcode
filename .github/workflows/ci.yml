@@ -43,6 +43,8 @@ jobs:
           node tests/smi_exact_character_rig_foundation_test.cjs
           node --check mission_control/smi_character_motion_candidate.js
           node tests/smi_character_motion_candidate_test.cjs
+          node --check mission_control/smi_android_motion_evidence_gate.js
+          node tests/smi_android_motion_evidence_gate_test.cjs
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
