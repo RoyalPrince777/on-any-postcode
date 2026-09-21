@@ -69,7 +69,7 @@ def test_unconfirmed_receipt_is_never_presented_as_saved(monkeypatch, receipt):
         scope.smi_receipt_backend, "write_receipt",
         lambda *args, **kwargs: {**receipt, "receipt_id": "unconfirmed"},
     )
-    result = scope.record_command_scope(valid())
+    result = scope.record_command_scope(valid(), identity_id=OWNER)
     assert result["recorded"] is False
     assert result["receipt_id"] is None
     assert result["state"] == "durable_receipt_unavailable"
