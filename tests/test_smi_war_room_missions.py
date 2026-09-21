@@ -60,7 +60,7 @@ def test_multi_select_contract_and_fail_closed_build_scope():
     program = r"""
 const fs = require("fs");
 global.window = {};
-global.document = {getElementById: () => null};
+global.document = {getElementById: () => null, querySelector: () => null};
 eval(fs.readFileSync(process.argv[1], "utf8"));
 const api = window.OAP_SMI_WAR_ROOM_MISSIONS;
 const make = (overrides = {}) => api.buildContract({
