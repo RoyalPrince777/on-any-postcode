@@ -133,3 +133,27 @@ def test_founder_chat_media_never_uses_external_compatibility(monkeypatch):
             "Analyse my private image",
             image_data="data:image/png;base64,example",
         )
+
+
+def test_local_inference_rejects_external_url_before_network(monkeypatch):
+    monkeypatch.setattr(
+        oap_inference_gateway, "LOCAL_URL", "https://example.com/api/chat"
+    )
+    monkeypatch.setattr(oap_inference_gateway, "LOCAL_ENABLED", True)
+    with pytest.raises(RuntimeError, match="first_party_local_endpoint_required"):
+        oap_inference_gateway._call_local("private", None, None, None, code_mode=False)
+
+
+def test_local_inference_rejects_url_credentials(monkeypatch):
+    monkeypatch.setattr(
+        oap_inference_gateway, "LOCAL_URL", "http://user:pass@127.0.0.1:11434/api/chat"
+    )
+    with pytest.raises(RuntimeError, match="first_party_local_endpoint_required"):
+        oap_inference_gateway._call_local("private", None, None, None, code_mode=False)
+
+
+def test_private_audio_preprocessing_block_is_before_transcription():
+    core = (ROOT / "mission_control" / "smi_chat_runtime_core.py").read_text()
+    guard = core.index('raise RuntimeError("first_party_media_required")')
+    preparation = core.index("media_intelligence.prepare(attachment, provider_key)")
+    assert guard < preparation
