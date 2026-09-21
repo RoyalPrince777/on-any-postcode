@@ -93,15 +93,14 @@ def _layer(record: object, name: str) -> str:
         ):
             return "invalid_motion_sequence"
         previous = ms
-        if name == "mouth_visemes":
-            if (
-                not isinstance(frame.get("viseme"), str)
-                or frame["viseme"] not in VISEMES
-                or type(frame.get("audio_ms")) is not int
-                or abs(frame["audio_ms"] - ms) > 80
-                or frame["audio_ms"] < 0
-            ):
-                return "invalid_viseme_timing_metadata"
+        if name == "mouth_visemes" and (
+            not isinstance(frame.get("viseme"), str)
+            or frame["viseme"] not in VISEMES
+            or type(frame.get("audio_ms")) is not int
+            or abs(frame["audio_ms"] - ms) > 80
+            or frame["audio_ms"] < 0
+        ):
+            return "invalid_viseme_timing_metadata"
     return "schema_consistent_not_motion_proof"
 
 
