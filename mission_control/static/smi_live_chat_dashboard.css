@@ -9,6 +9,7 @@ html,body.mc-workspace-body{width:100%;height:100%;margin:0;background:var(--smi
 .history{position:fixed!important;inset:0 auto 0 0!important;width:min(380px,88vw)!important;z-index:150!important;display:block!important;transform:translateX(-105%);transition:transform .22s ease;background:rgba(2,8,20,.94)!important;border-right:1px solid #2189c9!important;backdrop-filter:blur(22px)}
 .history.mobile-open{transform:translateX(0)}
 .chatbox{position:relative!important;height:100dvh!important;min-height:0!important;background:transparent!important;overflow:hidden!important}
+.chatbox::before{content:"";position:absolute;z-index:2;inset:0;pointer-events:none;background:linear-gradient(90deg,#061a31 0 2px,transparent 2px 100%),linear-gradient(180deg,rgba(3,16,35,.98),rgba(4,25,49,.99));background-size:34px 100%,100% 100%;clip-path:polygon(63.4% 20%,77.5% 20%,77.5% 67%,70% 67%,68.2% 61%,66.4% 53%,65.2% 43%,64.2% 32%)}
 .chat-head{position:fixed!important;top:12px!important;left:50%!important;z-index:30!important;transform:translateX(-50%);width:auto!important;min-width:220px;padding:7px 18px!important;border:1px solid rgba(46,176,255,.38)!important;border-radius:999px!important;background:rgba(2,9,23,.62)!important;backdrop-filter:blur(15px);text-align:center}
 .chat-title{font-size:.82rem;letter-spacing:.14em}.chat-subtitle{font-size:.62rem;color:#b9dcf7!important}
 .chat-head-actions{display:none!important}
@@ -48,7 +49,8 @@ body[data-smi-presence="paused"] .smi-shell::after,body[data-smi-presence="stopp
 @keyframes smiPresenceListen{to{filter:brightness(1.07)}}@keyframes smiPresenceThink{to{filter:brightness(1.12) saturate(1.08)}}@keyframes smiPresenceSpeak{to{filter:brightness(1.1) saturate(1.12)}}
 @media(max-width:760px){
  /* Primary live controls stay visible on phones: Tools, Voice, 3/7/21 and Send. */
- .smi-shell::before{background-position:50% center;background-size:auto 100%}
+ .smi-shell::before{background-position:47% center;background-size:auto 100%}
+ .chatbox::before{display:none}
  .chat-head{top:8px}.messages{top:52px;bottom:116px;width:96vw;padding:8px!important}.msg{max-width:92%!important}
  .composer{width:calc(100vw - 14px);bottom:max(7px,env(safe-area-inset-bottom))!important}
  .chat-head{max-width:44vw;min-width:0;padding:7px 10px!important}.chat-subtitle{display:none!important}
