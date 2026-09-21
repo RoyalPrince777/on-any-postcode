@@ -43,6 +43,12 @@
 <div class="review-quarter"><strong>75% · Aegis Isolation</strong><small>Not certified by this view</small></div>
 <div class="review-quarter"><strong>100% · Green Gate + Founder Final</strong><small>Not certified by this view</small></div>
 </div>
+<div class="grid review-quarters" aria-label="Canonical review inventory and scoped signal denominator">
+<div class="card purple"><small>CANONICAL JUDGE SEATS · RULE LENSES ONLY</small><strong>{% if front_review.rule_lenses_registered is not none %}{{ front_review.rule_lenses_registered }}/{{ front_review.rule_lens_denominator }} registered{% else %}Registry unverified{% endif %}</strong><small>Not independently executed votes</small></div>
+<div class="card"><small>MISSION SIGNALS</small><strong>— / {{ front_review.signal_denominator }} evidenced</strong><small>Unassessed, not 0 failures</small></div>
+<div class="card"><small>MISSION SEVEN-STAR PROOF</small><strong>— / {{ front_review.star_denominator }} certified</strong><small>Not determined by seat count</small></div>
+<div class="card"><small>ACTUAL AGENT VOTES</small><strong>Not verified</strong><small>Rule-lens perspectives are separate</small></div>
+</div>
 <div class="grid review-quarters" aria-label="Evidence and decision summary">
 <div class="card purple"><small>PORTFOLIO EVIDENCE · NOT MISSION COMPLETION</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong></div>
 <div class="card"><small>JUDGE VOTES</small><strong>Not verified for this mission</strong></div>
