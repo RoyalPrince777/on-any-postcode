@@ -120,6 +120,10 @@ def test_founder_library_ui_offers_fresh_upload_without_claiming_reuse():
     assert "asset.original_available===true" in source
     assert "Fresh upload required" in source
     assert "Re-upload for Studio" in source
-    assert "q('#image-input')||q('#media-input')" in source
+    assert "kind==='image'||kind==='studio_image'" in source
+    assert "'#image-input'" in source
+    assert "'#media-input'" in source
+    assert "picker.value=''" in source
     assert "picker.click()" in source
+    assert "Unsupported saved media type" in source
     assert "Metadata alone cannot supply original media" in source
