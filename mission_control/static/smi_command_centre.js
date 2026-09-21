@@ -109,6 +109,61 @@
   canonical.click();
  });
 
+
+ // Explicit Founder mission selection. A recorded selection is not execution.
+ const missionPanel=document.createElement("section");
+ missionPanel.className="smi-command-mission";
+ missionPanel.setAttribute("aria-label","SMI Founder mission scope");
+ const missionTitle=document.createElement("strong");
+ missionTitle.textContent="👑 Mission scope · Founder decision";
+ missionPanel.append(missionTitle);
+ const missionMode=document.createElement("select");
+ missionMode.setAttribute("aria-label","SMI mode");
+ for(const mode of ["AUTO","MANUAL"]){const item=document.createElement("option");item.value=mode;item.textContent=mode;missionMode.append(item);}
+ const missionDepth=document.createElement("select");
+ missionDepth.setAttribute("aria-label","SMI review depth");
+ for(const depth of [3,7,21]){const item=document.createElement("option");item.value=String(depth);item.textContent=String(depth)+" checks";missionDepth.append(item);}
+ missionDepth.value="21";
+ missionPanel.append(missionMode,missionDepth);
+ const missionChoices=document.createElement("div");
+ missionChoices.className="smi-command-mission-choices";
+ for(const [id,label] of [["command","Command Centre"],["chat","SMI Chat"],["war","War Room"],["studio","Studio"],["distribution","Distribution"],["hrm","HRM"]]){
+  const wrap=document.createElement("label"),check=document.createElement("input");
+  check.type="checkbox";check.value=id;check.checked=id==="command"||id==="chat";
+  wrap.append(check,document.createTextNode(label));missionChoices.append(wrap);
+ }
+ missionPanel.append(missionChoices);
+ const missionSave=document.createElement("button");missionSave.type="button";
+ missionSave.textContent="🟣 Record selected scope";
+ const missionApprove=document.createElement("button");missionApprove.type="button";
+ missionApprove.textContent="🟢 Approve next scope only";
+ const missionFeedback=document.createElement("span");
+ missionFeedback.setAttribute("role","status");
+ missionFeedback.textContent="A selected scope grants no tool execution.";
+ missionPanel.append(missionSave,missionApprove,missionFeedback);
+ panel.querySelector(".smi-command-layout").after(missionPanel);
+ async function recordMissionScope(decision){
+  if(!cfg.commandScopeUrl){missionFeedback.textContent="Scope recording unavailable";return;}
+  const selected=[...missionChoices.querySelectorAll("input:checked")].map(item=>item.value);
+  if(!selected.length){missionFeedback.textContent="Select at least one mission";return;}
+  missionSave.disabled=true;missionApprove.disabled=true;
+  missionFeedback.textContent="Recording Founder scope…";
+  try{
+   const response=await fetch(cfg.commandScopeUrl,{
+    method:"POST",credentials:"same-origin",cache:"no-store",
+    headers:{"Content-Type":"application/json","X-OAP-CSRF":cfg.csrfToken},
+    body:JSON.stringify({decision,missions:selected,mode:missionMode.value,depth:Number(missionDepth.value)})
+   });
+   const value=await response.json();
+   if(!response.ok||value?.recorded!==true||!value?.receipt_id)
+    throw new Error(value?.error?.message||"Durable scope receipt unavailable");
+   missionFeedback.textContent="Scope recorded · "+value.receipt_id+" · no execution granted";
+  }catch(error){missionFeedback.textContent=error?.message||"Scope not recorded";}
+  finally{missionSave.disabled=false;missionApprove.disabled=false;}
+ }
+ missionSave.addEventListener("click",()=>recordMissionScope("SELECT"));
+ missionApprove.addEventListener("click",()=>recordMissionScope("APPROVE_NEXT_SCOPE"));
+
  // Mobile remains one command room: expose anatomy and live evidence as real tabs.
  const mobileViews=document.createElement("nav");
  mobileViews.className="smi-command-mobile-views";
