@@ -35,8 +35,8 @@ MAX_DELTA: Final = 0.25
 def _finite_number(value: object, minimum: float, maximum: float) -> bool:
     return (
         type(value) in (int, float)
-        and math.isfinite(value)
         and minimum <= value <= maximum
+        and math.isfinite(value)
     )
 
 
