@@ -180,6 +180,19 @@ def record_action_outcome(
         idempotency_key=str(idempotency_key or "").strip(),
     )
     result = persist_and_read_back(receipt)
+    # Do not let a missing, mismatched, or unverified durable receipt be
+    # promoted to a completed constitutional action. The persistence layer
+    # verifies the DB read-back; this is the independent caller-side gate.
+    if (
+        not isinstance(result, Mapping)
+        or result.get("receipt_id") != receipt.receipt_id
+        or result.get("checksum") != receipt.checksum
+        or result.get("write_verified") is not True
+        or result.get("read_back_verified") is not True
+        or result.get("authority_transferred") is not False
+        or result.get("secret_exposed") is not False
+    ):
+        raise ActionBlocked("receipt_readback_verification_failed")
     return {
         **result,
         "stage": "HRM_RECEIPT",
