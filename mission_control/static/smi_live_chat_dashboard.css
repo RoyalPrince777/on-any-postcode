@@ -4,7 +4,7 @@ html,body.mc-workspace-body{width:100%;height:100%;margin:0;background:var(--smi
 .smi-shell{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;background:var(--smi-night)!important;isolation:isolate}
 .smi-shell::before{content:"";position:absolute;inset:0;z-index:-2;background:#020817 url('/static/oap/smi_live_chat_dashboard.jpg') center center/cover no-repeat}
 .smi-shell::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(1,7,18,.04) 0 65%,rgba(1,5,14,.28) 80%,rgba(1,4,12,.7) 100%)}
-.smi-shell>.navs,.smi-shell>.smi-hero{display:none!important}
+.smi-shell>.navs,.smi-shell>.smi-hero,.smi-command-toggle,.smi-chat-return,.smi-status-backdrop,.smi-dashboard-layer{display:none!important}
 .workspace-grid{display:grid!important;grid-template-columns:1fr!important;position:absolute!important;inset:0!important;background:transparent!important}
 .history{position:fixed!important;inset:0 auto 0 0!important;width:min(380px,88vw)!important;z-index:150!important;display:block!important;transform:translateX(-105%);transition:transform .22s ease;background:rgba(2,8,20,.94)!important;border-right:1px solid #2189c9!important;backdrop-filter:blur(22px)}
 .history.mobile-open{transform:translateX(0)}
@@ -37,6 +37,11 @@ html,body.mc-workspace-body{width:100%;height:100%;margin:0;background:var(--smi
 .status-row{position:fixed;z-index:70;left:50%;bottom:90px;transform:translateX(-50%);width:min(900px,90vw);margin:0!important;pointer-events:none}.status{width:100%;text-align:center;color:#bfe7ff!important;text-shadow:0 1px 5px #000}.mode-tools{display:none!important}
 .attach-menu{bottom:62px!important;width:min(390px,calc(100vw - 24px))!important;max-height:min(68dvh,620px)!important;background:rgba(2,9,23,.97)!important;border-color:#238fd0!important;box-shadow:0 18px 55px #000b,0 0 20px #1688d044!important}
 .mobile-chats-toggle{position:fixed!important;top:12px;left:12px;z-index:60;border:1px solid rgba(47,172,245,.48)!important;background:rgba(2,9,23,.7)!important;color:#eef8ff!important;backdrop-filter:blur(14px)}
+body[data-smi-presence="listening"] .smi-shell::after{background:radial-gradient(circle at 50% 18%,rgba(142,95,255,.18),transparent 15%),linear-gradient(180deg,rgba(1,7,18,.02) 0 65%,rgba(1,5,14,.28) 80%,rgba(1,4,12,.7) 100%);animation:smiPresenceListen 1.8s ease-in-out infinite alternate}
+body[data-smi-presence="thinking"] .smi-shell::after{background:radial-gradient(circle at 49% 17%,rgba(39,174,255,.25),transparent 16%),linear-gradient(180deg,rgba(1,7,18,.02) 0 65%,rgba(1,5,14,.28) 80%,rgba(1,4,12,.7) 100%);animation:smiPresenceThink .9s ease-in-out infinite alternate}
+body[data-smi-presence="speaking"] .smi-shell::after{background:radial-gradient(circle at 50% 27%,rgba(255,170,52,.16),transparent 13%),radial-gradient(circle at 50% 45%,rgba(36,178,255,.12),transparent 22%),linear-gradient(180deg,rgba(1,7,18,.02) 0 65%,rgba(1,5,14,.28) 80%,rgba(1,4,12,.7) 100%);animation:smiPresenceSpeak .48s ease-in-out infinite alternate}
+body[data-smi-presence="paused"] .smi-shell::after,body[data-smi-presence="stopped"] .smi-shell::after{background:rgba(0,4,12,.38)}
+@keyframes smiPresenceListen{to{filter:brightness(1.07)}}@keyframes smiPresenceThink{to{filter:brightness(1.12) saturate(1.08)}}@keyframes smiPresenceSpeak{to{filter:brightness(1.1) saturate(1.12)}}
 @media(max-width:760px){
  .smi-shell::before{background-position:50% center;background-size:auto 100%}
  .chat-head{top:8px}.messages{top:52px;bottom:116px;width:96vw;padding:8px!important}.msg{max-width:92%!important}
@@ -48,4 +53,4 @@ html,body.mc-workspace-body{width:100%;height:100%;margin:0;background:var(--smi
  #send{grid-column:3;width:48px!important;height:46px!important;padding:0!important}
  .status-row{bottom:72px}.status{font-size:.62rem}.thinking{top:52px;width:calc(100vw - 16px)!important}
 }
-@media(prefers-reduced-motion:reduce){.history{transition:none}}
+@media(prefers-reduced-motion:reduce){.history{transition:none}.smi-shell::after{animation:none!important}}
