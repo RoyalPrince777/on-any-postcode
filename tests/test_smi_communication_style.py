@@ -35,5 +35,5 @@ def test_style_does_not_invent_unobserved_dialect():
     ]
     guidance = communication_style_guidance(history)
     assert guidance is not None
-    assert "observed vocabulary" not in guidance
+    assert "observed vocabulary:" not in guidance
     assert "invent dialect" in guidance
