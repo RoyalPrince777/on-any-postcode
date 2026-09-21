@@ -3,7 +3,6 @@ from mission_control import oap_inference_gateway as gateway
 from mission_control import smi_chat_runtime_core as core
 from mission_control import smi_founder_workflow as workflow
 
-
 HISTORY = [
     {"role": "user", "content": "Review the OAP Civilization OS with the War Room."},
     {"role": "assistant", "content": "War Room architecture review: evidence is incomplete; no runtime Green Gate."},
