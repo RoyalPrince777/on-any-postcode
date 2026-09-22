@@ -97,9 +97,10 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     const {active,index}=activeCue(Math.min(audioClockMs,durationMs));
     return Object.freeze({type:"played-audio-viseme",epoch,audioClockMs,audioClockDeltaMs,
       cueIndex:index,viseme:active.viseme,confidence:active.confidence,
-      mouthScaleY:active.viseme==="silence"?1:1.08,
-      headRotateDeg:Math.sin(audioClockMs/900)*0.3,
-      handOffsetY:Math.sin(audioClockMs/650)*0.6,
+      // Keep existing output keys for callers, but do not invent artwork
+      // deformation or unrelated gestures from the audio clock. An accepted
+      // cue is timing evidence, not reviewed source-backed mouth geometry.
+      mouthScaleY:1,headRotateDeg:0,handOffsetY:0,
       productionApproved:false,humanFinalApproved:false});
   }
   function playbackEnd({audioClockMs,observedAtMs,eventType}={}){
