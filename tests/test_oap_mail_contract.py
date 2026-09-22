@@ -64,29 +64,24 @@ def test_commerce_product_route_uses_merchant_gate_source():
     source = Path(product_core_views.__file__).read_text(encoding="utf-8")
     function = source.split('def create_product():', 1)[1].split(
         '@bp.post("/commerce/orders")', 1)[0]
-    assert 'certification.identity_status(seller_id)' in function
+    assert '_require_certified_merchant(seller_id)' in function
     assert 'certified_merchant_required' in function
     assert 'product_store.create_product(' in function
 
 
-def test_commerce_product_action_fails_closed_before_storage(monkeypatch):
-    from mission_control import product_store
-
-    monkeypatch.setattr(product_core_views, "_payload",
-                        lambda: {"name": "Test", "price": "1.00"})
-    monkeypatch.setattr(product_core_views, "_identity",
-                        lambda **_kwargs: OWNER)
+def test_commerce_merchant_guard_refuses_uncertified_and_unavailable(monkeypatch):
     monkeypatch.setattr(certification, "identity_status",
                         lambda _id: {"merchant": False})
-    called = []
-    monkeypatch.setattr(product_store, "create_product",
-                        lambda *_args, **_kwargs: called.append(True))
+    with pytest.raises(PermissionError, match="certified_merchant_required"):
+        product_core_views._require_certified_merchant(OWNER)
 
-    def capture_action(action):
-        with pytest.raises(PermissionError, match="certified_merchant_required"):
-            action()
-        return None
+    def unavailable(_identity):
+        raise certification.CertificationUnavailable("unavailable")
 
-    monkeypatch.setattr(product_core_views, "_handle_write", capture_action)
-    product_core_views.create_product()
-    assert called == []
+    monkeypatch.setattr(certification, "identity_status", unavailable)
+    with pytest.raises(certification.CertificationUnavailable):
+        product_core_views._require_certified_merchant(OWNER)
+
+    monkeypatch.setattr(certification, "identity_status",
+                        lambda _id: {"merchant": True})
+    assert product_core_views._require_certified_merchant(OWNER) is None
