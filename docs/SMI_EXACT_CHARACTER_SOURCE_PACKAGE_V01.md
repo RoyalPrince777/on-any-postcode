@@ -72,6 +72,25 @@ real source digest, verified package files, bbox registration and each
 layer's original RGB pixels before rendering. It composites an editable
 **still**, not true expression, body movement or lip-sync.
 
+## Browser-local source-layer export (draft, stacked PR #484)
+
+The same Founder workbench now has **Download seven source layers · DRAFT**.
+After the exact original JPEG hash check and all seven nonempty hand-painted
+masks, it crops RGBA layers from the original's decoded pixels **inside the
+browser**, bundles seven PNGs and a `source-package.json` with source SHA-256,
+per-layer PNG SHA-256 and registration boxes, and downloads them locally.
+It never sends the artwork or masks to the server. No masks present means no
+layer output; the original source JPEG is already in the repository, but it
+does not by itself reveal anatomical segmentation or occluded parts.
+
+The browser export is a separate draft-review format, **not** a substitute for
+the existing Python extractor's independently verified private package.
+The browser applies binary alpha at threshold 128 so selected pixels contain
+the original RGB rather than guessed/interpolated hidden colors. Review rough
+edges, overlap, depth and occlusion before any animation; do not mistake the
+test-painted masks for approved SMI body segments. Each output is DRAFT and
+cannot enable motion, lip-sync, public publishing or Founder Final.
+
 ## What it does NOT approve
 
 Source-derived masks are **not** seven independently usable body parts.
