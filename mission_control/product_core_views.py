@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    certification,
     distribution_intelligence,
     product_core_services,
     product_cores,
@@ -341,8 +342,15 @@ def create_storefront():
 def create_product():
     def action():
         payload = _payload()
+        seller_id = _identity(sync=True)
+        try:
+            merchant = certification.identity_status(seller_id)
+        except certification.CertificationUnavailable:
+            return _error("merchant_certification_unavailable", "Merchant certification is unavailable.", 503)
+        if merchant.get("merchant") is not True:
+            return _error("certified_merchant_required", "Certified Merchant status is required.", 403)
         product_id = product_store.create_product(
-            _identity(sync=True),
+            seller_id,
             name=payload.get("name"),
             description=payload.get("description"),
             price=payload.get("price"),
