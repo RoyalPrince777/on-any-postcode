@@ -688,6 +688,13 @@ def smi_founder_library():
         )
 
 
+@bp.get("/food-book")
+@web_security.login_required()
+def food_book():
+    """Educational Food Book, separate from the Founder asset index."""
+    return _no_store(make_response(render_template("food_book.html")))
+
+
 @bp.post("/ui/button-proof")
 @web_security.login_required(api=True, founder_only=True)
 def smi_button_proof():
