@@ -13,7 +13,6 @@ from mission_control.mail_contract import (
     require_owner,
 )
 
-
 OWNER = str(uuid.uuid4())
 OTHER = str(uuid.uuid4())
 
