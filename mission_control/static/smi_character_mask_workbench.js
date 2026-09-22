@@ -13,7 +13,7 @@
   const state=new Map();
   let active=NAMES[0],ready=false,painting=false,erase=false,
     cursor={x:0,y:0},undo=null,objectUrl=null,busy=false;
-  const actionIds=["paint","erase","brush","undo","clear","save-one","save-all","import-mask"];
+  const actionIds=["paint","erase","brush","undo","clear","save-one","save-all","import-mask","mask-only"];
   function say(value){feedback.textContent=value;}
   function enable(value){for(const id of actionIds)$(id).disabled=!value;
     for(const btn of buttons.querySelectorAll("button"))btn.disabled=!value;}
@@ -116,6 +116,7 @@
     btn.addEventListener("click",()=>choose(NAMES[i]));buttons.append(btn);
   }
   enable(false);
+  $("mask-only").addEventListener("click",()=>{if(!ready||busy)return;const only=stage.classList.toggle("mask-only");$("mask-only").setAttribute("aria-pressed",String(only));$("mask-only").textContent=only?"Show original behind mask":"Show mask only";say(only?"Mask-only inspection. Original verified and retained. Draft only.":"Exact original shown behind draft mask.");});
   $("brush-label").textContent=brush.value;
   brush.addEventListener("input",()=>{$("brush-label").textContent=brush.value;});
   function setMode(value){
