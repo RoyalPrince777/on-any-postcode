@@ -690,6 +690,16 @@ def _safe_next(value: object, default: str = "/my-world") -> str:
     return candidate
 
 
+def _safe_library_next(value: object) -> str:
+    """Keep public member sign-in scoped to the working Food Book."""
+
+    candidate = _safe_next(value, default="/library/food-book")
+    path = urlparse.urlsplit(candidate).path.rstrip("/") or "/"
+    if path != "/library/food-book":
+        return "/library/food-book"
+    return candidate
+
+
 def _founder_only_path(value: object) -> bool:
     """Classify only explicit private-control destinations as Founder-only."""
 
@@ -728,6 +738,8 @@ def _auth_page_response(
             auth_notice=notice,
             next_path=_safe_next(next_path),
             founder_only=founder_only,
+            library_auth_lane=request.endpoint
+            in {"library_auth_page", "library_auth_sign_in"},
         ),
         status_code,
     )
@@ -774,10 +786,7 @@ def _apply_auth_cookies(response, set_cookie_headers) -> bool:
     return True
 
 
-@app.get("/auth")
-@app.get("/enter-my-world")
-def auth_page():
-    next_path = _safe_next(request.args.get("next"))
+def _auth_page_for(next_path: str):
     founder_only = _founder_only_path(next_path)
     error = None
     user = None
@@ -811,6 +820,19 @@ def auth_page():
             "you just chose."
         )
     return _auth_page_response(error=error, notice=notice, next_path=next_path)
+
+
+@app.get("/auth")
+@app.get("/enter-my-world")
+def auth_page():
+    return _auth_page_for(_safe_next(request.args.get("next")))
+
+
+@app.get("/library/sign-in")
+def library_auth_page():
+    """Render member sign-in on the public origin without exposing Founder auth."""
+
+    return _auth_page_for(_safe_library_next(request.args.get("next")))
 
 
 @app.get("/activate-founder")
@@ -890,8 +912,13 @@ def activate_founder():
 
 
 @app.post("/auth/sign-in")
+@app.post("/library/auth/sign-in", endpoint="library_auth_sign_in")
 def auth_sign_in():
-    next_path = _safe_next(request.form.get("next"))
+    next_path = (
+        _safe_library_next(request.form.get("next"))
+        if request.endpoint == "library_auth_sign_in"
+        else _safe_next(request.form.get("next"))
+    )
     founder_only = _founder_only_path(next_path)
     if not web_security.csrf_valid(request):
         return _auth_page_response(

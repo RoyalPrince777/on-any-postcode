@@ -134,7 +134,13 @@ def login_required(*, api: bool = False, founder_only: bool = False):
                 if api:
                     return _private_error("authentication_required", "Sign in to access this private OAP surface.", 401)
                 target = request.full_path.rstrip("?")
-                return redirect(url_for("auth_page", next=target))
+                login_endpoint = (
+                    "library_auth_page"
+                    if request.blueprint == "oap_library"
+                    and request.path.rstrip("/") == "/library/food-book"
+                    else "auth_page"
+                )
+                return redirect(url_for(login_endpoint, next=target))
             if user.get("recovery_founder") is True and not founder_recovery.private_path_allowed(request.path):
                 if api:
                     return _private_error("managed_identity_required", "Managed identity verification is required for this private surface.", 503)

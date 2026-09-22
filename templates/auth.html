@@ -90,7 +90,7 @@
   <main class="grid">
     <section class="card private" aria-labelledby="sign-in-title">
       <h2 id="sign-in-title">{{ 'Founder sign-in' if founder_only else 'Sign in' }}</h2>
-      <form method="post" action="{{ url_for('auth_sign_in') }}">
+      <form method="post" {% if library_auth_lane %}action="{{ url_for('library_auth_sign_in') }}"{% else %}action="{{ url_for('auth_sign_in') }}"{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <input type="hidden" name="next" value="{{ next_path }}">
         {% if not founder_only %}
