@@ -72,7 +72,7 @@ def schema_status() -> dict[str, Any]:
                 result["error"] = "mail_migration_pending"
             else:
                 result["schema_ready"] = True
-    except Exception:
+    except Exception:  # noqa: BLE001 - return redacted readiness; never expose DB details.
         result["error"] = "mail_migration_store_unavailable"
     return result
 
