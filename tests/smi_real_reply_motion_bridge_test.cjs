@@ -55,6 +55,11 @@ for(const [audioClockMs,expected] of [[20,"closed"],[80,"wide"],[140,"round"],[2
   const cue=candidate.playbackSample({audioClockMs,observedAtMs:1002+audioClockMs});
   assert.equal(cue.viseme,expected);assert.ok(cue.audioClockDeltaMs<=api.MAX_AUDIO_CLOCK_DELTA_MS);
   assert.equal(cue.productionApproved,false);assert.equal(cue.humanFinalApproved,false);
+  // A real audio cue is not permission to fabricate mouth/head/hand motion.
+  assert.equal(cue.mouthScaleY,1);
+  assert.equal(cue.headRotateDeg,0);
+  assert.equal(cue.handOffsetY,0);
+
 }
 assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:1402,eventType:"ended"}).viseme,"silence");
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:2000,eventType:"playing",clockSource:"audio-context"}).type,"playback-start");
