@@ -78,7 +78,7 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   function playbackStart({audioClockMs=0,observedAtMs,eventType,clockSource}={}){
     if(!admitted||stopped||eventType!=="playing"||clockSource!==expectedClock||
       !finite(audioClockMs)||audioClockMs<0||audioClockMs>MAX_AUDIO_CLOCK_DELTA_MS||!finite(observedAtMs))return null;
-    started=true;startAudioClockMs=audioClockMs;startObservedAtMs=observedAtMs;
+    // A duplicate playing event must not rebase an active audio clock.\n    if(started)return failClosed("duplicate_playback_start");\n    started=true;startAudioClockMs=audioClockMs;startObservedAtMs=observedAtMs;
     lastAudioClockMs=audioClockMs;lastObservedAtMs=observedAtMs;events+=1;
     return Object.freeze({type:"playback-start",epoch,audioClockMs,productionApproved:false,humanFinalApproved:false});
   }
