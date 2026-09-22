@@ -62,7 +62,6 @@ def init_app(app: Flask) -> None:
     from .link_call_routes import bp as link_call_bp
     from .link_incoming_routes import bp as link_incoming_bp
     from .link_message_routes import bp as link_message_bp
-    from .mail_routes import bp as mail_bp
     from .link_ping_routes import bp as link_ping_bp
     from .link_presence_routes import bp as link_presence_bp
     from .link_relationship_routes import bp as link_relationship_bp
@@ -70,6 +69,7 @@ def init_app(app: Flask) -> None:
     from .link_turn_routes import bp as link_turn_bp
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
+    from .mail_routes import bp as mail_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
     from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
