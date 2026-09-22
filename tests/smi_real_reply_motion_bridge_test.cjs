@@ -66,6 +66,14 @@ assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:2000,eventType
 const stoppedEpoch=candidate.humanStop({pointerAtMs:2010,handledAtMs:2012}).epoch;
 assert.equal(candidate.snapshot().lastStopAcknowledgementMs,2);assert.equal(candidate.snapshot().physicalAndroidStopProven,false);
 assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:2020}),null);
+// A delayed end callback after Human STOP must not overwrite stop state or epoch.
+const stoppedSnapshot=candidate.snapshot();
+assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:2400,eventType:"ended"}),null);
+assert.deepEqual(candidate.snapshot(),stoppedSnapshot);
+// An end callback before playback begins must be ignored, not convert to an error.
+const notStarted=bridge(),notStartedSnapshot=notStarted.snapshot();
+assert.equal(notStarted.playbackEnd({audioClockMs:0,observedAtMs:0,eventType:"ended"}),null);
+assert.deepEqual(notStarted.snapshot(),notStartedSnapshot);
 assert.equal(candidate.resetAfterHumanAction(false).stopped,true);
 assert.equal(candidate.resetAfterHumanAction(true).epoch,stoppedEpoch+1);
 
