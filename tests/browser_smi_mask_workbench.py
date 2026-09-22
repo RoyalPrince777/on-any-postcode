@@ -243,6 +243,62 @@ def run_workbench(page, origin, output):
     print("SMI_MASK_WORKBENCH_TAMPER_FAIL_CLOSED_PASS")
 
 
+
+def run_command_centre_dock(page):
+    """Click the actual additive Founder buttons in isolated mobile Chromium.
+
+    This checks delegated browser actions, not live SMI, Android timing or release.
+    """
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.set_content(
+        '<div class="chatbox"><header class="chat-head">'
+        '<div class="chat-head-actions"></div></header>'
+        '<div id="smi-character" data-state="ready"></div>'
+        '<div id="messages"></div></div>'
+        '<div id="attach-menu"><button data-oap-action="green-gate" '
+        'type="button">Canonical gate</button></div>'
+        '<div id="status"></div><input id="message">'
+    )
+    page.evaluate("""() => {
+        window.OAP_SMI_UI={singleLiveChatSurface:true};
+        window.__gateReviewClicks=0;
+        document.querySelector('[data-oap-action="green-gate"]')
+          .addEventListener('click',()=>window.__gateReviewClicks++);
+    }""")
+    page.add_script_tag(
+        path=str(ROOT / "mission_control/static/smi_command_centre.js")
+    )
+    toggle = page.locator(".smi-command-toggle")
+    toggle.click()
+    panel = page.locator("#smi-command-centre")
+    assert page.locator("body").evaluate(
+        "(el) => el.classList.contains('smi-command-open')"
+    )
+    assert panel.locator('[data-founder-action="continue"]').is_visible()
+    panel.locator('[data-founder-action="continue"]').click()
+    assert panel.get_attribute("data-mobile-view") == "evidence"
+    assert panel.locator('[data-view="evidence"]').get_attribute(
+        "aria-pressed"
+    ) == "true"
+    assert panel.locator('[data-room-stat="runtime"] small').inner_text() == (
+        "Unavailable · NOT PROVEN"
+    )
+    panel.locator('[data-founder-action="review"]').click()
+    assert page.evaluate("window.__gateReviewClicks") == 1
+    assert not page.locator("body").evaluate(
+        "(el) => el.classList.contains('smi-command-open')"
+    )
+    assert page.locator("#smi-character").count() == 1
+    toggle.click()
+    page.locator('[data-oap-action="green-gate"]').evaluate(
+        "(el) => el.disabled=true"
+    )
+    panel.locator('[data-founder-action="review"]').click()
+    assert page.evaluate("window.__gateReviewClicks") == 1
+    assert "no approval recorded" in page.locator("#status").inner_text()
+    print("SMI_COMMAND_CENTRE_FOUNDER_BUTTON_BROWSER_PASS")
+
+
 def main():
     neon_auth.get_session = mock_session
     oap.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
@@ -276,6 +332,7 @@ def main():
                 page.set_default_timeout(20_000)
                 with tempfile.TemporaryDirectory(prefix="oap-mask-browser-") as folder:
                     run_workbench(page, origin, Path(folder) / "draft.zip")
+                run_command_centre_dock(context.new_page())
             finally:
                 browser.close()
     finally:
