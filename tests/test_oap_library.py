@@ -67,6 +67,42 @@ def test_food_book_remains_inside_authenticated_member_boundary(anonymous_client
         assert "Vegetables, nutrients" not in response.get_data(as_text=True)
 
 
+def test_food_book_member_sign_in_is_live_on_the_public_origin(
+    anonymous_client,
+    monkeypatch,
+):
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+
+    protected = anonymous_client.get("/library/food-book", follow_redirects=False)
+    assert protected.status_code == 302
+    assert protected.headers["Location"].startswith(
+        "/library/sign-in?next=/library/food-book"
+    )
+
+    sign_in = anonymous_client.get(protected.headers["Location"])
+    body = sign_in.get_data(as_text=True)
+    assert sign_in.status_code == 200
+    assert 'action="/library/auth/sign-in"' in body
+    assert 'name="next" value="/library/food-book"' in body
+    assert "Sign in for this action" in body
+    assert "PRIVATE · FOUNDER" not in body
+
+
+def test_library_member_sign_in_cannot_be_retargeted_to_founder_control(
+    anonymous_client,
+    monkeypatch,
+):
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+
+    response = anonymous_client.get("/library/sign-in?next=/mission/ollama")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'name="next" value="/library/food-book"' in body
+    assert 'action="/library/auth/sign-in"' in body
+    assert "PRIVATE · FOUNDER" not in body
+
+
 def test_signed_in_member_can_use_source_scoped_food_book(client):
     response = client.get("/library/food-book")
     body = response.get_data(as_text=True)
