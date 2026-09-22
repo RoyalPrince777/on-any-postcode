@@ -69,3 +69,40 @@ def test_preflight_redacts_database_failures(monkeypatch):
     assert result["error"] == "mail_preflight_unavailable"
     assert "secret" not in str(result)
     assert result["release_ready"] is False
+
+
+def test_preflight_rejects_a_secret_shaped_source_before_reading_db(monkeypatch):
+    _sources(monkeypatch, source="postgres://user:secret@host/private")
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: (_ for _ in ()).throw(
+                            AssertionError("must not connect")))
+    result = mail_preflight.report()
+    assert result["error"] == "database_selection_unavailable"
+    assert "secret" not in str(result)
+    assert result["target_mapping_proven"] is False
+
+
+def test_preflight_redacts_failure_in_source_resolution(monkeypatch):
+    _sources(monkeypatch)
+    def fail():
+        raise RuntimeError("postgres://user:secret@host/private")
+    monkeypatch.setattr(postgres_db, "database_source", fail)
+    result = mail_preflight.report()
+    assert result["error"] == "mail_preflight_unavailable"
+    assert "secret" not in str(result)
+    assert result["database_source"] == "unverified"
+    assert result["release_ready"] is False
+
+
+def test_preflight_reachable_flag_is_required_before_mail_lookup(monkeypatch):
+    _sources(monkeypatch)
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: {"reachable": False, "initialized": True})
+    monkeypatch.setattr(mail_migration, "schema_status",
+                        lambda: (_ for _ in ()).throw(
+                            AssertionError("must not query Mail")))
+    result = mail_preflight.report()
+    assert result["base_schema_ready"] is True
+    assert result["database_reachable"] is False
+    assert result["error"] == "base_postgres_not_ready"
+    assert result["release_ready"] is False
