@@ -176,6 +176,42 @@ def run_workbench(page, origin, output):
                         *original_rgb.getpixel(center), 255
                     )
     print("SMI_PRIVATE_ORIGINAL_PIXEL_SOURCE_EXPORT_PASS")
+    with page.expect_download() as frame_event:
+        page.locator("#save-frames").click()
+    frame_download = frame_event.value
+    assert frame_download.suggested_filename == (
+        "smi-private-original-pixel-frames-DRAFT.zip"
+    )
+    frame_output = output.with_name("private-original-frames-draft.zip")
+    frame_download.save_as(frame_output)
+    with zipfile.ZipFile(frame_output) as archive:
+        assert archive.testzip() is None
+        assert set(archive.namelist()) == {
+            "frame-neutral.png", "frame-offset.png", "frame-evidence.json"
+        }
+        receipt = json.loads(archive.read("frame-evidence.json"))
+        assert receipt["approved_source_sha256"] == APPROVED_SOURCE_SHA256
+        assert receipt["motion_proven"] is False
+        assert receipt["speech_sync_proven"] is False
+        assert receipt["human_authority_approved"] is False
+        assert receipt["mask_review_approved"] is False
+        assert receipt["hidden_regions_reconstructed"] is False
+        for filename in ("frame-neutral.png", "frame-offset.png"):
+            contents = archive.read(filename)
+            assert hashlib.sha256(contents).hexdigest() == (
+                receipt["file_sha256"][filename]
+            )
+            with Image.open(io.BytesIO(contents)) as frame:
+                frame.load()
+                assert frame.mode == "RGBA"
+                assert frame.size == dimensions
+        with Image.open(io.BytesIO(archive.read("frame-neutral.png"))) as frame:
+            center = (dimensions[0] // 2, dimensions[1] // 2)
+            assert frame.getpixel(center) == (
+                *original_rgb.getpixel(center), 255
+            )
+    print("SMI_PRIVATE_REAL_PIXEL_FRAME_BROWSER_PASS")
+
 
     page.locator("#layers button[data-name='eyes']").click()
     page.locator("#clear").click()
@@ -201,6 +237,7 @@ def run_workbench(page, origin, output):
     page.get_by_text("Original character identity mismatch", exact=False).wait_for()
     assert page.locator("#save-all").is_disabled()
     assert page.locator("#save-layers").is_disabled()
+    assert page.locator("#save-frames").is_disabled()
     assert page.locator("#source-art").is_hidden()
     assert not errors
     print("SMI_MASK_WORKBENCH_TAMPER_FAIL_CLOSED_PASS")
