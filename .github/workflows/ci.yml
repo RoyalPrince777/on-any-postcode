@@ -101,3 +101,19 @@ jobs:
           python-version: "3.12"
       - name: Run bounded external live routing Green Gate probe
         run: python scripts/routing_live_green_gate.py
+
+  security-codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize independent JavaScript security analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - name: Analyse code with CodeQL
+        uses: github/codeql-action/analyze@v3
