@@ -268,7 +268,7 @@ def run_command_centre_dock(page):
     page.add_script_tag(
         path=str(ROOT / "mission_control/static/smi_command_centre.js")
     )
-    toggle = page.locator(".smi-command-toggle")
+    toggle = page.locator('button[aria-controls="smi-command-centre"]')
     toggle.click()
     panel = page.locator("#smi-command-centre")
     assert page.locator("body").evaluate(
