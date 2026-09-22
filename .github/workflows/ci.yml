@@ -38,6 +38,7 @@ jobs:
           node --check mission_control/static/smi_chat_final.js
           node --check mission_control/static/smi_interaction_layer.js
           node tests/smi_live_character_state_test.cjs
+          node tests/smi_stop_stream_race_test.cjs
           node tests/smi_live_character_exhaustive_test.cjs
           node --check mission_control/static/smi_exact_character_rig.js
           node tests/smi_exact_character_rig_foundation_test.cjs
@@ -81,8 +82,6 @@ jobs:
         run: |
           set -o pipefail
           python -m pytest -q 2>&1 | tee /tmp/oap-pytest.log
-      - name: Run bounded external live routing Green Gate probe
-        run: python scripts/routing_live_green_gate.py
       - name: Preserve regression report
         if: always()
         uses: actions/upload-artifact@v4
@@ -91,3 +90,30 @@ jobs:
           path: /tmp/oap-pytest.log
           if-no-files-found: error
           retention-days: 1
+
+  routing-live-green-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run bounded external live routing Green Gate probe
+        run: python scripts/routing_live_green_gate.py
+
+  security-codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize independent JavaScript security analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - name: Analyse code with CodeQL
+        uses: github/codeql-action/analyze@v3
