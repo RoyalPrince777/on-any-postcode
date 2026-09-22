@@ -64,6 +64,8 @@ def _handle_write(action):
         return _error("permission_denied", str(exc), 403)
     except (TypeError, ValueError) as exc:
         return _error("invalid_request", str(exc), 400)
+    except certification.CertificationUnavailable:
+        return _error("merchant_certification_unavailable", "Merchant certification is unavailable.", 503)
     except (public_store.PublicStoreUnavailable, product_store.ProductStoreUnavailable, RuntimeError):
         return _error("organ_unavailable", "The OAP organ store is temporarily unavailable.", 503)
     except Exception:  # noqa: BLE001 - redact storage/provider implementation details.
@@ -343,12 +345,9 @@ def create_product():
     def action():
         payload = _payload()
         seller_id = _identity(sync=True)
-        try:
-            merchant = certification.identity_status(seller_id)
-        except certification.CertificationUnavailable:
-            return _error("merchant_certification_unavailable", "Merchant certification is unavailable.", 503)
+        merchant = certification.identity_status(seller_id)
         if merchant.get("merchant") is not True:
-            return _error("certified_merchant_required", "Certified Merchant status is required.", 403)
+            raise PermissionError("certified_merchant_required")
         product_id = product_store.create_product(
             seller_id,
             name=payload.get("name"),
