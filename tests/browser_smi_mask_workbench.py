@@ -139,6 +139,44 @@ def run_workbench(page, origin, output):
                 assert middle[3] > 0
 
         draft = archive.read("eyes.png")
+    with page.expect_download() as source_event:
+        page.locator("#save-layers").click()
+    source_download = source_event.value
+    assert source_download.suggested_filename == (
+        "smi-private-original-pixel-layers-DRAFT.zip"
+    )
+    source_output = output.with_name("original-pixel-source-draft.zip")
+    source_download.save_as(source_output)
+    with zipfile.ZipFile(source_output) as archive:
+        assert archive.testzip() is None
+        assert set(archive.namelist()) == {
+            name + ".png" for name in names
+        } | {"source-package.json"}
+        package = json.loads(archive.read("source-package.json"))
+        assert package["approved_source_sha256"] == APPROVED_SOURCE_SHA256
+        assert package["motion_proven"] is False
+        assert package["speech_sync_proven"] is False
+        assert package["human_authority_approved"] is False
+        assert package["hidden_region_reconstruction"] is False
+        with Image.open(original) as image:
+            original_rgb = image.convert("RGB")
+            for name in names:
+                record = package["layers"][name]
+                data = archive.read(name + ".png")
+                assert hashlib.sha256(data).hexdigest() == record["sha256"]
+                with Image.open(io.BytesIO(data)) as layer:
+                    layer.load()
+                    assert layer.mode == "RGBA"
+                    x0, y0, x1, y1 = record["bbox_xyxy"]
+                    assert layer.size == (x1 - x0, y1 - y0)
+                    # The wholly selected source pixels stay the original RGB.
+                    center = (dimensions[0] // 2, dimensions[1] // 2)
+                    local = (center[0] - x0, center[1] - y0)
+                    assert layer.getpixel(local) == (
+                        *original_rgb.getpixel(center), 255
+                    )
+    print("SMI_PRIVATE_ORIGINAL_PIXEL_SOURCE_EXPORT_PASS")
+
     page.locator("#layers button[data-name='eyes']").click()
     page.locator("#clear").click()
     assert page.locator("#coverage").evaluate("(el) => el.value") == 6
@@ -162,6 +200,7 @@ def run_workbench(page, origin, output):
     page.reload()
     page.get_by_text("Original character identity mismatch", exact=False).wait_for()
     assert page.locator("#save-all").is_disabled()
+    assert page.locator("#save-layers").is_disabled()
     assert page.locator("#source-art").is_hidden()
     assert not errors
     print("SMI_MASK_WORKBENCH_TAMPER_FAIL_CLOSED_PASS")
