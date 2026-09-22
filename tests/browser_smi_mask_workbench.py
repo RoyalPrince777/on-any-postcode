@@ -74,6 +74,16 @@ def run_workbench(page, origin, output):
         "(el) => [el.naturalWidth,el.naturalHeight]"
     ) == list(dimensions)
     assert page.locator("#save-all").is_enabled()
+    preview = page.locator("#mask-only")
+    assert preview.is_enabled()
+    preview.click()
+    assert preview.get_attribute("aria-pressed") == "true"
+    assert page.locator("#art-stage").evaluate("(el) => el.classList.contains('mask-only')")
+    assert page.locator("#source-art").is_visible() is False
+    assert page.locator("#source-art").evaluate("(el) => el.naturalWidth") == dimensions[0]
+    preview.click()
+    assert preview.get_attribute("aria-pressed") == "false"
+    assert page.locator("#source-art").is_visible()
     assert page.locator("#coverage").evaluate("(el) => el.value") == 0
 
     page.locator("#save-all").click()
