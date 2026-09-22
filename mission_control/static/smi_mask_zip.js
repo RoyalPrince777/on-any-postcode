@@ -12,6 +12,9 @@
   const ALLOWED=new Set(["eyes.png","head.png","breathing.png",
     "mouth_visemes.png","face.png","hands.png","upper_body.png",
     "mask-bundle.json"]);
+  const SOURCE_ALLOWED=new Set(["eyes.png","head.png","breathing.png",
+    "mouth_visemes.png","face.png","hands.png","upper_body.png",
+    "source-package.json"]);
   const table=new Uint32Array(256);
   for(let n=0;n<256;n++){
     let c=n;
@@ -23,12 +26,12 @@
     for(const x of bytes)crc=table[(crc^x)&255]^(crc>>>8);
     return (crc^0xffffffff)>>>0;
   }
-  function createZip(entries){
+  function makeZip(entries,allowed){
     if(!Array.isArray(entries)||entries.length!==8)throw Error("exact_eight_bundle_entries_required");
     const encoder=new TextEncoder(),seen=new Set(),files=[];
     let total=22;
     for(const entry of entries){
-      if(!entry||!ALLOWED.has(entry.name)||seen.has(entry.name)
+      if(!entry||!allowed.has(entry.name)||seen.has(entry.name)
         ||!(entry.data instanceof Uint8Array)||entry.data.length===0){
         throw Error("invalid_private_mask_bundle");
       }
@@ -39,7 +42,7 @@
       total+=30+name.length+entry.data.length+46+name.length;
       if(total>MAX_BYTES)throw Error("mask_bundle_too_large");
     }
-    if(seen.size!==ALLOWED.size)throw Error("incomplete_mask_bundle");
+    if(seen.size!==allowed.size)throw Error("incomplete_mask_bundle");
     const output=new Uint8Array(total),dv=new DataView(output.buffer);
     let offset=0;
     const central=[];
@@ -82,5 +85,8 @@
     if(offset+22!==total)throw Error("mask_zip_length_mismatch");
     return output;
   }
-  return Object.freeze({createZip,crc32});
+  return Object.freeze({
+    createZip:entries=>makeZip(entries,ALLOWED),
+    createSourceZip:entries=>makeZip(entries,SOURCE_ALLOWED),crc32
+  });
 });
