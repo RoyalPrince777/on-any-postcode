@@ -217,7 +217,7 @@ async function oapSubmit(options={}){
   conversationId=completeResult.conversation_id;if(!assistantBody)assistantBody=add(completeResult.response,'assistant');else renderMessage(assistantBody,completeResult.response);
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
   window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));oapSpeak(completeResult.response);clearAttachments();oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');await loadConversations();
- }catch(error){if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
+ }catch(error){if(error?.name!=='AbortError'&&!responseStopped&&!requestAbort.signal.aborted&&oapAbort===requestAbort){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
  finally{if(oapAbort===requestAbort){if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}}
 }
 
