@@ -54,7 +54,7 @@
       epoch+=1;stopped=false;
       return Object.freeze({epoch,stopped});
     }
-    function frame({translations={},expectedEpoch=epoch}={}){
+    function frame({translations={},headGroupTranslation=null,expectedEpoch=epoch}={}){
       if(stopped||expectedEpoch!==epoch)return null;
       if(!translations||typeof translations!=="object"
         ||Array.isArray(translations)
@@ -67,9 +67,19 @@
           throw Error("unapproved_or_unbounded_offset");
         }
       }
+      // Inspection-only inherited translation. This does not certify neck/hair
+      // anatomy, create hidden pixels, or enable live character motion.
+      const HEAD_GROUP=new Set(["head","face","eyes","mouth_visemes"]);
+      if(headGroupTranslation!==null&&
+        (!Array.isArray(headGroupTranslation)||headGroupTranslation.length!==2||
+          headGroupTranslation.some(n=>!Number.isInteger(n)||Math.abs(n)>2)||
+          [...HEAD_GROUP].some(name=>Object.hasOwn(translations,name)))){
+        throw Error("private_head_group_translation_invalid");
+      }
       const out=new Uint8ClampedArray(source.length);
       for(const name of layerOrder){
-        const [dx,dy]=translations[name]||[0,0];
+        const [dx,dy]=headGroupTranslation!==null&&HEAD_GROUP.has(name)
+          ?headGroupTranslation:(translations[name]||[0,0]);
         for(const p of pixels.get(name)){
           const x=p%width+dx,y=Math.floor(p/width)+dy;
           if(x<0||x>=width||y<0||y>=height)continue;
