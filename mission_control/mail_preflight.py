@@ -46,6 +46,12 @@ def report() -> dict[str, object]:
             result["error"] = "database_selection_unavailable"
             return result
         base = postgres_db.postgres_status()
+        if base.get("source") not in {None, source}:
+            result["error"] = "database_source_changed_during_preflight"
+            return result
+        if base.get("checksum_mismatches"):
+            result["error"] = "base_migration_checksum_mismatch"
+            return result
         result["database_reachable"] = base.get("reachable") is True
         result["base_schema_ready"] = base.get("initialized") is True
         if not result["database_reachable"] or not result["base_schema_ready"]:
