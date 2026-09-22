@@ -30,7 +30,7 @@
   }
   function makeZip(entries,allowed){
     if(!Array.isArray(entries)||entries.length!==allowed.size)
-      throw Error("exact_bundle_entry_count_required");
+      throw Error(allowed.size===8?"exact_eight_bundle_entries_required":"exact_frame_bundle_entries_required");
     const encoder=new TextEncoder(),seen=new Set(),files=[];
     let total=22;
     for(const entry of entries){
