@@ -37,6 +37,7 @@ def init_app(app: Flask) -> None:
         link_voice,
         link_youth_safety,
         linkup_safety,
+        mail_migration,
         movement_match_safety,
         movement_operations,
         organism_runtime,
@@ -69,7 +70,6 @@ def init_app(app: Flask) -> None:
     from .link_turn_routes import bp as link_turn_bp
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
-    from . import mail_migration
     from .mail_routes import bp as mail_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
     from .membership_revenue import bp as membership_revenue_bp
