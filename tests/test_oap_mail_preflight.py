@@ -106,3 +106,32 @@ def test_preflight_reachable_flag_is_required_before_mail_lookup(monkeypatch):
     assert result["database_reachable"] is False
     assert result["error"] == "base_postgres_not_ready"
     assert result["release_ready"] is False
+
+
+def test_preflight_rejects_source_change_before_mail_lookup(monkeypatch):
+    _sources(monkeypatch, source="primary_override")
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: {"source": "fallback_override",
+                                 "reachable": True, "initialized": True})
+    monkeypatch.setattr(mail_migration, "schema_status",
+                        lambda: (_ for _ in ()).throw(
+                            AssertionError("must not query Mail")))
+    result = mail_preflight.report()
+    assert result["error"] == "database_source_changed_during_preflight"
+    assert result["mail_schema_ready"] is False
+    assert result["release_ready"] is False
+
+
+def test_preflight_rejects_base_checksum_mismatch_before_mail_lookup(monkeypatch):
+    _sources(monkeypatch)
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: {"source": "primary_override",
+                                 "reachable": True, "initialized": True,
+                                 "checksum_mismatches": ["0003_product_governance"]})
+    monkeypatch.setattr(mail_migration, "schema_status",
+                        lambda: (_ for _ in ()).throw(
+                            AssertionError("must not query Mail")))
+    result = mail_preflight.report()
+    assert result["error"] == "base_migration_checksum_mismatch"
+    assert result["mail_schema_ready"] is False
+    assert result["release_ready"] is False
