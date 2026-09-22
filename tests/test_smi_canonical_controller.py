@@ -150,3 +150,11 @@ def test_stale_stopped_error_does_not_overwrite_new_request():
     canonical = CONTROLLER.read_text(encoding="utf-8")
     assert "!requestAbort.signal.aborted&&oapAbort===requestAbort" in canonical
     assert canonical.index("}catch(error){if(error?.name!=='AbortError'&&!responseStopped&&!requestAbort.signal.aborted&&oapAbort===requestAbort)") < canonical.index("finally{if(oapAbort===requestAbort){")
+
+
+def test_stopped_or_superseded_stream_cannot_render_late_chunks():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    chunk = "const chunk=await reader.read();if(chunk.done)break;"
+    guard = "if(responseStopped||requestAbort.signal.aborted||oapAbort!==requestAbort)throw new DOMException('Stopped or superseded stream','AbortError');"
+    render = "if(parsed.event==='delta')"
+    assert canonical.index(chunk) < canonical.index(guard) < canonical.index(render)
