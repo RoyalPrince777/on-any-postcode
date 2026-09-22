@@ -73,6 +73,7 @@ def init_app(app: Flask) -> None:
     from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
     from .oap_data_views import bp as oap_data_bp
+    from .oap_library_views import bp as oap_library_bp
     from .on_any_place_routes import bp as on_any_place_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
@@ -921,6 +922,7 @@ def init_app(app: Flask) -> None:
         return response
 
     surface_security.register(app)
+    app.register_blueprint(oap_library_bp)
     app.register_blueprint(on_any_place_bp)
     app.register_blueprint(membership_revenue_bp)
     app.register_blueprint(movement_bp)

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="OAP Food Book explores vegetables, nutrients and normal body functions using a source-scoped interactive body map.">
+  <title>Food Book · OAP Library</title>
+  {% include "_oap_install_head.html" %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='oap/oap_library.css') }}">
+  <script defer src="{{ url_for('static', filename='oap/oap_food_book.js') }}"></script>
+</head>
+<body class="food-book-page">
+  <header class="library-topbar">
+    <a class="library-brand" href="/library" aria-label="Return to OAP Library">
+      <span class="library-brand-mark">OAP</span>
+      <span>FOOD BOOK</span>
+    </a>
+    <nav aria-label="Food Book navigation">
+      <a href="/library">← OAP Library</a>
+      <a href="/">OAP World</a>
+    </nav>
+  </header>
+
+  <main class="food-book-main">
+    <header class="food-book-heading">
+      <p class="library-kicker">OAP LIBRARY · FOOD & NATURE</p>
+      <h1>Vegetables, nutrients & your body</h1>
+      <p>Choose a body area or vegetable to understand how nutrients contribute to normal body functions. Foods support the whole body as part of a varied, balanced diet.</p>
+    </header>
+
+    <div class="food-book-layout">
+      <section class="body-map-panel" aria-labelledby="body-map-title">
+        <div class="panel-heading">
+          <p>EXPLORE THE BODY</p>
+          <h2 id="body-map-title">What feeds what?</h2>
+        </div>
+        <svg class="body-map" viewBox="0 0 320 560" role="img" aria-labelledby="body-title body-description">
+          <title id="body-title">Interactive human body map</title>
+          <desc id="body-description">Select the eyes, brain, heart, bones, blood or gut to read a source-scoped nutrition explanation.</desc>
+          <path class="body-silhouette" d="M160 25c-33 0-45 22-45 48 0 21 8 35 21 45l-10 20-48 16-35 116 20 8 42-91 4 115-13 203h40l24-157 24 157h40l-13-203 4-115 42 91 20-8-35-116-48-16-10-20c13-10 21-24 21-45 0-26-12-48-45-48z"/>
+          <g class="body-area" role="button" tabindex="0" data-body-area="eyes" aria-label="Eyes"><ellipse cx="145" cy="73" rx="8" ry="5"/><ellipse cx="175" cy="73" rx="8" ry="5"/></g>
+          <ellipse class="body-area" role="button" tabindex="0" data-body-area="brain" aria-label="Brain" cx="160" cy="50" rx="23" ry="13"/>
+          <path class="body-area" role="button" tabindex="0" data-body-area="heart" aria-label="Heart" d="M158 188c-30-26-38 13 0 38 38-25 30-64 0-38z"/>
+          <path class="body-area body-area-lines" role="button" tabindex="0" data-body-area="bones" aria-label="Bones" d="M122 266h75m-66 13h57m-53 13h49"/>
+          <ellipse class="body-area" role="button" tabindex="0" data-body-area="blood" aria-label="Blood" cx="111" cy="230" rx="10" ry="17"/>
+          <path class="body-area" role="button" tabindex="0" data-body-area="gut" aria-label="Gut" d="M136 239c35-17 58 5 44 27 20 13 0 37-21 32-28 7-47-29-23-59z"/>
+        </svg>
+        <div class="body-area-buttons" aria-label="Body areas">
+          {% for area in areas %}
+          <button type="button" data-area-button="{{ area.id }}" data-area-name="{{ area.name }}" data-area-summary="{{ area.summary }}" aria-pressed="false">{{ area.name }}</button>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="food-facts-panel" aria-labelledby="food-fact-title">
+        <div class="food-fact" aria-live="polite" aria-atomic="true">
+          <p class="fact-label">BODY KNOWLEDGE</p>
+          <h2 id="food-fact-title">Choose a body area</h2>
+          <p id="food-fact-copy">Explore how everyday nutrients contribute to normal body functions without treating food as medicine for one organ.</p>
+        </div>
+
+        <div class="vegetable-section">
+          <p class="fact-label">EXPLORE VEGETABLES</p>
+          <div class="vegetable-grid">
+            {% for food in foods %}
+            <button class="vegetable-card" type="button" data-food="{{ food.id }}" data-food-name="{{ food.name }}" data-food-nutrients="{{ food.nutrients }}" data-food-area="{{ food.area }}" data-colour="{{ food.colour }}" aria-pressed="false">
+              <span class="vegetable-mark" aria-hidden="true"></span>
+              <strong>{{ food.name }}</strong>
+              <small>{{ food.nutrients }}</small>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <aside class="food-safety-note">
+          <strong>Food supports the whole body.</strong>
+          <p>This educational page does not diagnose illness, measure your intake or replace advice from a doctor or registered dietitian. Nutrient content varies with variety, portion and preparation.</p>
+        </aside>
+      </section>
+    </div>
+
+    <section class="food-sources" aria-labelledby="food-sources-title">
+      <p class="library-kicker">SOURCE SHELF</p>
+      <h2 id="food-sources-title">Official reading used for this book</h2>
+      <ul>
+        {% for source in sources %}
+        <li><a href="{{ source.url }}" target="_blank" rel="noreferrer noopener">{{ source.name }} <span aria-hidden="true">↗</span></a></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>READ. UNDERSTAND. LEARN. CREATE. PRESERVE. SHARE.</span>
+    <span>ON ANY POSTCODE</span>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="OAP Library connects people, places and knowledge through first-party OAP learning collections.">
+  <title>OAP Library · A Brighter Tomorrow</title>
+  {% include "_oap_install_head.html" %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='oap/oap_library.css') }}">
+</head>
+<body>
+  <header class="library-topbar">
+    <a class="library-brand" href="/" aria-label="Return to OAP World">
+      <span class="library-brand-mark">OAP</span>
+      <span>LIBRARY</span>
+    </a>
+    <nav aria-label="Library navigation">
+      <a href="/">OAP World</a>
+      <a href="/the-spot">The Spot</a>
+      <a href="/enter-my-world">Enter My World</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="library-intro" aria-labelledby="library-title">
+      <figure class="library-art">
+        <img src="{{ url_for('static', filename='oap/oap_library_brighter_tomorrow.webp') }}" width="900" height="1125" alt="A grand OAP Library connecting local knowledge to a glowing world, with people reading, learning and creating together.">
+      </figure>
+
+      <div class="library-opening">
+        <p class="library-kicker">ON ANY POSTCODE · PEOPLE · PLACES · KNOWLEDGE</p>
+        <h1 id="library-title">Knowledge belongs in your world.</h1>
+        <p class="library-lead">One World. One Library. Unlimited Learning.</p>
+
+        <form class="library-search" action="/library" method="get" role="search">
+          <label for="library-query">Search OAP knowledge</label>
+          <div class="library-search-row">
+            <input id="library-query" name="q" value="{{ query }}" maxlength="80" placeholder="Try food, languages, culture, nature or places">
+            <button type="submit">Search</button>
+          </div>
+        </form>
+
+        <ol class="library-journey" aria-label="OAP Library learning journey">
+          {% for step in journey %}
+          <li><span>{{ loop.index }}</span>{{ step }}</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </section>
+
+    <section class="library-collections" aria-labelledby="collections-title">
+      <div class="section-heading">
+        <div>
+          <p class="library-kicker">OPEN THE KNOWLEDGE</p>
+          <h2 id="collections-title">{% if query %}Results for “{{ query }}”{% else %}Explore the Library{% endif %}</h2>
+        </div>
+        {% if query %}<a class="clear-search" href="/library">Clear search</a>{% endif %}
+      </div>
+
+      {% if collections %}
+      <div class="collection-grid">
+        {% for collection in collections %}
+        <article class="collection-card" data-access="{{ collection.access }}">
+          <div class="collection-symbol" aria-hidden="true">{{ collection.symbol }}</div>
+          <p class="collection-name">{{ collection.collection }}</p>
+          <h3>{{ collection.name }}</h3>
+          <p>{{ collection.description }}</p>
+          <a href="{{ collection.route }}">{{ collection.action }} <span aria-hidden="true">→</span></a>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="library-empty">
+        <h3>No OAP collection matches that search.</h3>
+        <p>Try a broader word such as food, language, culture, nature or places.</p>
+        <a href="/library">Show every collection</a>
+      </div>
+      {% endif %}
+    </section>
+
+    <aside class="library-boundary" aria-label="OAP Library privacy boundary">
+      <strong>Public knowledge stays separate from private memory.</strong>
+      <span>Founder files, personal notes and protected youth records are never published into OAP Library automatically.</span>
+    </aside>
+  </main>
+
+  <footer>
+    <span>BORN LOCAL. BUILT GLOBAL. EARTH IS OUR TURF.</span>
+    <span>ON ANY POSTCODE</span>
+  </footer>
+</body>
+</html>

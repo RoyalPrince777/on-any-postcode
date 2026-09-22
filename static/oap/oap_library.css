@@ -1,0 +1,778 @@
+:root {
+  color-scheme: dark;
+  --ink: #03050a;
+  --navy: #071428;
+  --navy-soft: #0e213c;
+  --gold: #d8a94f;
+  --gold-bright: #ffdd83;
+  --cream: #fff5dc;
+  --muted: #c9bea5;
+  --line: rgba(222, 174, 82, 0.32);
+  --panel: rgba(8, 20, 38, 0.88);
+  --blue: #5ab6ef;
+}
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--ink);
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(22, 82, 143, 0.24), transparent 34rem),
+    linear-gradient(145deg, #02040a, #071224 52%, #03060c);
+  color: var(--cream);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--gold-bright);
+  outline-offset: 4px;
+}
+
+.library-topbar {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  min-height: 72px;
+  padding: 12px clamp(18px, 4vw, 64px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(2, 6, 13, 0.92);
+  backdrop-filter: blur(18px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.library-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 13px;
+  color: var(--gold-bright);
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+.library-brand-mark {
+  position: relative;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  letter-spacing: -0.06em;
+}
+
+.library-brand-mark::before {
+  content: "♛";
+  position: absolute;
+  top: -0.72rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+}
+
+.library-topbar nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.library-topbar nav a {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 9px 13px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.library-topbar nav a:hover {
+  border-color: var(--line);
+  color: var(--gold-bright);
+}
+
+main {
+  width: min(1440px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.library-intro {
+  min-height: calc(100vh - 72px);
+  padding: clamp(22px, 4vw, 56px) 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.86fr) minmax(360px, 1.14fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 80px);
+}
+
+.library-art {
+  position: relative;
+  width: min(100%, 590px);
+  aspect-ratio: 4 / 5;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 214, 125, 0.58);
+  border-radius: 26px;
+  background: #061226;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 58px rgba(68, 149, 220, 0.18);
+}
+
+.library-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 45px rgba(0, 0, 0, 0.35);
+}
+
+.library-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-opening {
+  max-width: 760px;
+}
+
+.library-kicker,
+.collection-name,
+.fact-label,
+.panel-heading p {
+  margin: 0 0 12px;
+  color: var(--gold-bright);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.library-opening h1,
+.food-book-heading h1,
+.library-unavailable h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3.2rem, 7vw, 7.4rem);
+  font-weight: 500;
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+  background: linear-gradient(110deg, #fff8df, #e3b85b 55%, #fff0b7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.library-lead {
+  margin: 24px 0 32px;
+  color: #e8d8b7;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.25rem, 2.3vw, 2rem);
+  line-height: 1.45;
+}
+
+.library-search {
+  margin-top: 32px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(4, 12, 25, 0.78);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.library-search label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.library-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.library-search input {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid rgba(218, 174, 88, 0.44);
+  border-radius: 12px;
+  background: #07111e;
+  color: var(--cream);
+  padding: 0 16px;
+}
+
+.library-search input::placeholder {
+  color: #9d978a;
+}
+
+.library-search button,
+.library-empty a,
+.library-unavailable a {
+  min-height: 52px;
+  border: 1px solid var(--gold-bright);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f7d681, #b97820);
+  color: #100b03;
+  cursor: pointer;
+  padding: 0 20px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.library-journey {
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.library-journey li {
+  min-height: 62px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ddd4c1;
+  font-size: 0.9rem;
+}
+
+.library-journey li span {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--gold-bright);
+  font-size: 0.78rem;
+}
+
+.library-collections,
+.food-sources {
+  padding: clamp(64px, 8vw, 112px) 0;
+  border-top: 1px solid var(--line);
+}
+
+.section-heading {
+  margin-bottom: 28px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.section-heading h2,
+.food-sources h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.3rem, 5vw, 4.8rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.clear-search {
+  color: var(--gold-bright);
+  font-weight: 800;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.collection-card {
+  grid-column: span 4;
+  min-height: 310px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background:
+    linear-gradient(155deg, rgba(19, 45, 79, 0.93), rgba(5, 14, 29, 0.96)),
+    radial-gradient(circle at 80% 0, rgba(226, 176, 79, 0.2), transparent 45%);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
+}
+
+.collection-card:first-child,
+.collection-card:nth-child(2) {
+  grid-column: span 6;
+}
+
+.collection-symbol {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 36px;
+  border: 1px solid rgba(245, 205, 113, 0.55);
+  border-radius: 17px;
+  background: rgba(217, 170, 79, 0.1);
+  display: grid;
+  place-items: center;
+  color: var(--gold-bright);
+  font-size: 1.65rem;
+}
+
+.collection-card h3 {
+  margin: 0 0 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.7rem, 3vw, 2.55rem);
+  font-weight: 500;
+}
+
+.collection-card > p:not(.collection-name) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.collection-card > a {
+  width: fit-content;
+  margin-top: auto;
+  padding-top: 28px;
+  color: var(--gold-bright);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.collection-card > a:hover {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+.library-empty {
+  padding: 42px;
+  border: 1px dashed var(--line);
+  border-radius: 22px;
+  text-align: center;
+}
+
+.library-empty h3 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+}
+
+.library-empty p {
+  margin: 12px 0 28px;
+  color: var(--muted);
+}
+
+.library-empty a,
+.library-unavailable a {
+  display: inline-flex;
+  align-items: center;
+}
+
+.library-boundary {
+  margin-bottom: clamp(60px, 8vw, 100px);
+  padding: 24px 28px;
+  border: 1px solid rgba(101, 176, 230, 0.38);
+  border-radius: 18px;
+  background: rgba(4, 29, 53, 0.64);
+  display: grid;
+  grid-template-columns: minmax(180px, 0.6fr) minmax(280px, 1.4fr);
+  gap: 22px;
+  color: #d7eafb;
+  line-height: 1.55;
+}
+
+footer {
+  min-height: 90px;
+  padding: 24px clamp(18px, 4vw, 64px);
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: var(--gold-bright);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+}
+
+/* Food Book */
+.food-book-main {
+  width: min(1280px, calc(100% - 32px));
+}
+
+.food-book-heading {
+  max-width: 920px;
+  padding: clamp(58px, 8vw, 108px) 0 42px;
+}
+
+.food-book-heading h1 {
+  font-size: clamp(3.2rem, 7vw, 6.6rem);
+}
+
+.food-book-heading > p:last-child {
+  max-width: 760px;
+  margin: 26px 0 0;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.food-book-layout {
+  padding-bottom: clamp(64px, 8vw, 110px);
+  display: grid;
+  grid-template-columns: minmax(320px, 0.86fr) minmax(380px, 1.14fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.body-map-panel,
+.food-facts-panel {
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: rgba(7, 20, 38, 0.88);
+  padding: clamp(20px, 3vw, 34px);
+}
+
+.panel-heading h2,
+.food-fact h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 500;
+}
+
+.body-map {
+  display: block;
+  width: min(100%, 410px);
+  max-height: 600px;
+  margin: 14px auto 0;
+}
+
+.body-silhouette {
+  fill: #142e4c;
+  stroke: rgba(211, 171, 91, 0.66);
+  stroke-width: 3;
+}
+
+.body-area {
+  fill: #8b78a9;
+  stroke: #f0cd7c;
+  stroke-width: 2;
+  cursor: pointer;
+  transition: fill 150ms ease, filter 150ms ease, stroke-width 150ms ease;
+}
+
+.body-area-lines {
+  fill: none;
+  stroke-width: 8;
+}
+
+.body-area:hover,
+.body-area.is-active,
+.body-area:focus {
+  fill: #d49b58;
+  filter: drop-shadow(0 0 8px rgba(246, 208, 115, 0.72));
+  stroke-width: 4;
+}
+
+.body-area-lines:hover,
+.body-area-lines.is-active,
+.body-area-lines:focus {
+  fill: none;
+  stroke-width: 11;
+}
+
+.body-area-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.body-area-buttons button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0b1b31;
+  color: var(--cream);
+  cursor: pointer;
+  padding: 0 15px;
+}
+
+.body-area-buttons button[aria-pressed="true"] {
+  border-color: var(--gold-bright);
+  background: #3c2c16;
+  color: var(--gold-bright);
+}
+
+.food-facts-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.food-fact {
+  min-height: 250px;
+  padding: clamp(24px, 4vw, 46px);
+  border: 1px solid rgba(222, 174, 82, 0.28);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 90% 0, rgba(82, 169, 225, 0.2), transparent 42%),
+    rgba(4, 13, 27, 0.72);
+}
+
+.food-fact > p:last-child {
+  margin: 20px 0 0;
+  color: #ded4c0;
+  font-size: 1.04rem;
+  line-height: 1.7;
+}
+
+.vegetable-section {
+  padding-top: 28px;
+}
+
+.vegetable-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vegetable-card {
+  min-height: 112px;
+  border: 1px solid rgba(218, 174, 88, 0.28);
+  border-radius: 16px;
+  background: rgba(7, 18, 33, 0.88);
+  color: var(--cream);
+  cursor: pointer;
+  padding: 15px;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  column-gap: 11px;
+  align-content: center;
+}
+
+.vegetable-card:hover,
+.vegetable-card[aria-pressed="true"] {
+  border-color: var(--gold-bright);
+  background: rgba(42, 35, 22, 0.94);
+}
+
+.vegetable-mark {
+  grid-row: span 2;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: #ca8b3c;
+  box-shadow: 0 0 16px rgba(235, 178, 83, 0.45);
+}
+
+.vegetable-card[data-colour="green"] .vegetable-mark,
+.vegetable-card[data-colour="emerald"] .vegetable-mark,
+.vegetable-card[data-colour="lime"] .vegetable-mark {
+  background: #68b86d;
+  box-shadow: 0 0 16px rgba(104, 184, 109, 0.45);
+}
+
+.vegetable-card[data-colour="red"] .vegetable-mark {
+  background: #df5c4f;
+  box-shadow: 0 0 16px rgba(223, 92, 79, 0.45);
+}
+
+.vegetable-card strong,
+.vegetable-card small {
+  display: block;
+}
+
+.vegetable-card small {
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.food-safety-note {
+  margin-top: 22px;
+  padding: 18px 20px;
+  border-left: 3px solid var(--blue);
+  background: rgba(17, 54, 84, 0.44);
+  color: #d8eaf7;
+  line-height: 1.55;
+}
+
+.food-safety-note p {
+  margin: 6px 0 0;
+}
+
+.food-sources ul {
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.food-sources a {
+  min-height: 60px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--gold-bright);
+  text-decoration: none;
+}
+
+.library-unavailable-page {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.library-unavailable {
+  width: min(680px, 100%);
+  padding: 42px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--panel);
+}
+
+.library-unavailable h1 {
+  font-size: clamp(2.6rem, 7vw, 5rem);
+}
+
+.library-unavailable > p:not(.library-kicker) {
+  margin: 24px 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+@media (max-width: 920px) {
+  .library-intro,
+  .food-book-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .library-opening {
+    grid-row: 1;
+  }
+
+  .library-art {
+    grid-row: 2;
+    width: min(100%, 680px);
+  }
+
+  .collection-card,
+  .collection-card:first-child,
+  .collection-card:nth-child(2) {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 660px) {
+  .library-topbar {
+    align-items: flex-start;
+    padding: 14px 16px;
+  }
+
+  .library-brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .library-brand-mark::before {
+    display: none;
+  }
+
+  .library-topbar nav a {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+
+  .library-intro {
+    min-height: auto;
+  }
+
+  .library-opening h1 {
+    font-size: clamp(3.2rem, 16vw, 5rem);
+  }
+
+  .library-search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .library-search button {
+    width: 100%;
+  }
+
+  .library-journey {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .collection-card,
+  .collection-card:first-child,
+  .collection-card:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .section-heading,
+  .library-boundary,
+  footer {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .vegetable-grid,
+  .food-sources ul {
+    grid-template-columns: 1fr;
+  }
+
+  .body-map-panel,
+  .food-facts-panel {
+    padding: 18px;
+  }
+
+  footer {
+    display: flex;
+    font-size: 0.66rem;
+    line-height: 1.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .body-area {
+    transition: none;
+  }
+}
