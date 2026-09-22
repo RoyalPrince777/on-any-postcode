@@ -23,9 +23,9 @@ def _statements() -> tuple[str, ...]:
     )
     statements = tuple(part.strip() for part in cleaned.split(";") if part.strip())
     if len(statements) != 2 or not statements[0].startswith(
-        "CREATE TABLE IF NOT EXISTS oap_mail_items "
+        "CREATE TABLE IF NOT EXISTS oap_mail_items ("
     ) or not statements[1].startswith(
-        "CREATE INDEX IF NOT EXISTS idx_oap_mail_owner_folder_created "
+        "CREATE INDEX IF NOT EXISTS idx_oap_mail_owner_folder_created"
     ):
         raise RuntimeError("mail_migration_sql_unrecognised")
     return statements
