@@ -253,6 +253,7 @@
   if(!cfg.healthUrl)return;
   if(request)request.abort();
   request=new AbortController();
+  const currentRequest=request;
   refresh.disabled=true;refresh.textContent="Checking…";
   proofNodes.forEach(({card,state})=>{card.dataset.proven="false";state.textContent="Checking";});
   try{
@@ -267,7 +268,12 @@
    });
   }catch(error){
    if(error.name!=="AbortError")proofNodes.forEach(({card,state})=>{card.dataset.proven="false";state.textContent="Unavailable";});
-  }finally{refresh.disabled=false;refresh.textContent="↻ Refresh evidence";}
+  }finally{
+   // An aborted earlier request cannot unlock a newer refresh.
+   if(request===currentRequest){
+    refresh.disabled=false;refresh.textContent="↻ Refresh evidence";
+   }
+  }
  }
  toggle.addEventListener("click",()=>setOpen(!active));
  panel.querySelector(".smi-command-close").addEventListener("click",()=>{setOpen(false);toggle.focus();});
