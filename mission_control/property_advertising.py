@@ -43,7 +43,7 @@ def _money(value: object) -> str:
         number = Decimal(str(value)).quantize(Decimal("0.01"))
     except (InvalidOperation, ValueError) as exc:
         raise ValueError("invalid_property_price") from exc
-    if not number.is_finite() or number < 0 or number > Decimal("1000000000000"):
+    if not number.is_finite() or number < 0 or number > Decimal(1000000000000):
         raise ValueError("invalid_property_price")
     return str(number)
 
