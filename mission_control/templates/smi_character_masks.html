@@ -77,6 +77,8 @@ progress{width:100%}
 <fieldset><legend>Extract private original-pixel layers</legend>
 <p class="muted">After painting all seven masks, download seven cropped PNG layers directly from the SHA-verified original. Selection edges use binary alpha; review their accuracy before use. Hidden anatomy, depth, deformation and lip-sync remain separate work.</p>
 <button type="button" id="save-layers" class="primary" disabled>Download seven source layers · DRAFT</button>
+<p class="muted">Two local original-pixel frame snapshots for Founder inspection only. No mouth shape or live motion claim.</p>
+<button type="button" id="save-frames" disabled>Download two private pixel frames · DRAFT</button>
 <p class="muted">The existing private source-package CLI remains available. Neither route uploads artwork or certifies motion.</p>
 <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Back to SMI Chat</a>
 </fieldset>
@@ -84,6 +86,7 @@ progress{width:100%}
 </main>
 <script src="{{ url_for('mission_control.static',filename='smi_mask_zip.js') }}" defer></script>
 <script src="{{ url_for('mission_control.static',filename='smi_character_source_pixels.js') }}" defer></script>
+<script src="{{ url_for('mission_control.static',filename='smi_private_source_frame.js') }}" defer></script>
 <script src="{{ url_for('mission_control.static',filename='smi_character_mask_workbench.js') }}" defer></script>
 </body>
 </html>
