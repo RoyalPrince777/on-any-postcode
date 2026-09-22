@@ -45,4 +45,15 @@ assert.equal(rig.restart(false).stopped,true);
 assert.equal(rig.restart(true).stopped,false);
 assert.equal(rig.frame({expectedEpoch:stop.epoch}),null);
 assert.equal(rig.frame({expectedEpoch:rig.snapshot().epoch}).rgba.length,source.length);
+const zip=require("../mission_control/static/smi_mask_zip.js");
+const files=["frame-neutral.png","frame-offset.png"].map((name,i)=>({
+  name,data:Uint8Array.from([137,80,78,71,13,10,26,10,i])
+}));
+files.push({name:"frame-evidence.json",
+  data:new TextEncoder().encode('{"motion_proven":false}')});
+const bytes=zip.createFrameZip(files);
+assert.equal(new DataView(bytes.buffer).getUint32(0,true),0x04034b50);
+assert.throws(()=>zip.createFrameZip(files.slice(0,2)),/exact_frame_bundle/);
+assert.throws(()=>zip.createFrameZip([...files.slice(0,2),
+  {name:"../frame-evidence.json",data:files[2].data}]),/invalid_private_mask_bundle/);
 console.log("SMI_PRIVATE_REAL_PIXEL_FRAME_STOP_PASS");
