@@ -18,6 +18,8 @@ class Connection:
 
     def execute(self, sql, params=None):
         self.commands.append((sql, params))
+        if sql.startswith("INSERT INTO oap_schema_migrations"):
+            self.version = params[1]
         if self.fail_schema and sql.startswith("CREATE TABLE"):
             raise RuntimeError("forced_migration_failure")
         return self
