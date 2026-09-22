@@ -339,15 +339,20 @@ def create_storefront():
     return _handle_write(action)
 
 
+def _require_certified_merchant(identity_id: str) -> None:
+    """Shared Commerce entry guard; identity certification is not listing rights."""
+    merchant = certification.identity_status(identity_id)
+    if merchant.get("merchant") is not True:
+        raise PermissionError("certified_merchant_required")
+
+
 @bp.post("/commerce/products")
 @web_security.login_required(api=True)
 def create_product():
     def action():
         payload = _payload()
         seller_id = _identity(sync=True)
-        merchant = certification.identity_status(seller_id)
-        if merchant.get("merchant") is not True:
-            raise PermissionError("certified_merchant_required")
+        _require_certified_merchant(seller_id)
         product_id = product_store.create_product(
             seller_id,
             name=payload.get("name"),
