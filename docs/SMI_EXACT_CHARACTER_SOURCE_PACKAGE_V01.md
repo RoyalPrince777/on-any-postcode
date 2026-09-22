@@ -91,6 +91,24 @@ edges, overlap, depth and occlusion before any animation; do not mistake the
 test-painted masks for approved SMI body segments. Each output is DRAFT and
 cannot enable motion, lip-sync, public publishing or Founder Final.
 
+## Two real-source pixel inspection frames (private candidate)
+
+The Founder workbench also offers **Download two private pixel frames · DRAFT**.
+It rasterises original JPEG pixels under all seven nonempty, user-painted
+masks into a neutral transparent RGBA frame and one narrowly offset frame.
+It uses an explicit provisional occlusion order and at most two-pixel
+translations of selected eyes, hands and breathing layers. Mouth and face
+shapes are not synthesised, and no word/text prediction controls lips.
+A private ZIP contains the two actual frame PNGs and integrity digests,
+with all approval and live-motion flags false.
+
+These frames demonstrate a working first-party raster path, **not** natural
+body language, acceptable segmentation/occlusion, a genuine live rig or
+lip-sync. Without independently reviewed masks and hidden-region handling,
+visual realism remains unproven. The isolated renderer has a STOP epoch that
+invalidates stale frame requests; this does not prove physical Android STOP.
+The existing live artwork, chat controls and server remain unchanged.
+
 ## What it does NOT approve
 
 Source-derived masks are **not** seven independently usable body parts.
