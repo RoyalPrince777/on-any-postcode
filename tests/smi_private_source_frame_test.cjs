@@ -35,6 +35,19 @@ const from=(1*width+1)*4,to=(1*width+2)*4;
 assert.deepEqual([...moved.rgba.slice(to,to+4)],
   [...source.slice(from,from+3),255]);
 assert.equal(moved.rgba[from+3],0);
+// Head, face, eyes and mouth inherit one inspection-only offset.
+const grouped=rig.frame({expectedEpoch:current,headGroupTranslation:[1,0]});
+for(const name of ["head","face","eyes","mouth_visemes"]){
+  const n=NAMES.indexOf(name),from=((n+1)*width+n+1)*4,to=from+4;
+  assert.deepEqual([...grouped.rgba.slice(to,to+4)],
+    [...source.slice(from,from+3),255]);
+}
+assert.equal(grouped.motion_proven,false);
+assert.equal(grouped.attached_to_live_page,false);
+assert.throws(()=>rig.frame({headGroupTranslation:[3,0]}),
+  /private_head_group_translation_invalid/);
+assert.throws(()=>rig.frame({headGroupTranslation:[1,0],
+  translations:{eyes:[1,0]}}),/private_head_group_translation_invalid/);
 assert.throws(()=>rig.frame({translations:{mouth_visemes:[1,0]}}),/unapproved_or_unbounded/);
 assert.throws(()=>rig.frame({translations:{eyes:[3,0]}}),/unapproved_or_unbounded/);
 assert.throws(()=>rig.frame({translations:{eyes:[0.5,0]}}),/unapproved_or_unbounded/);
