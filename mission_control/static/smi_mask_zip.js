@@ -15,6 +15,8 @@
   const SOURCE_ALLOWED=new Set(["eyes.png","head.png","breathing.png",
     "mouth_visemes.png","face.png","hands.png","upper_body.png",
     "source-package.json"]);
+  const FRAME_ALLOWED=new Set(["frame-neutral.png","frame-offset.png",
+    "frame-evidence.json"]);
   const table=new Uint32Array(256);
   for(let n=0;n<256;n++){
     let c=n;
@@ -27,7 +29,8 @@
     return (crc^0xffffffff)>>>0;
   }
   function makeZip(entries,allowed){
-    if(!Array.isArray(entries)||entries.length!==8)throw Error("exact_eight_bundle_entries_required");
+    if(!Array.isArray(entries)||entries.length!==allowed.size)
+      throw Error("exact_bundle_entry_count_required");
     const encoder=new TextEncoder(),seen=new Set(),files=[];
     let total=22;
     for(const entry of entries){
@@ -87,6 +90,7 @@
   }
   return Object.freeze({
     createZip:entries=>makeZip(entries,ALLOWED),
-    createSourceZip:entries=>makeZip(entries,SOURCE_ALLOWED),crc32
+    createSourceZip:entries=>makeZip(entries,SOURCE_ALLOWED),
+    createFrameZip:entries=>makeZip(entries,FRAME_ALLOWED),crc32
   });
 });
