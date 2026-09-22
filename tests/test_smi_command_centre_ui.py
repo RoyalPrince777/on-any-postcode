@@ -120,6 +120,21 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('.smi-room-status [data-proven="true"]', styles)
         self.assertNotIn('All Systems Operational', source)
 
+    def test_founder_dock_reuses_canonical_controls_without_auto_approval(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
+        self.assertIn('data-founder-action="continue"', source)
+        self.assertIn('data-founder-action="review"', source)
+        self.assertIn('founderDock.addEventListener("click"', source)
+        self.assertIn('panel.dataset.mobileView="evidence"', source)
+        self.assertIn('refreshEvidence();refreshRoomStatus();', source)
+        self.assertIn('data-oap-action="green-gate"', source)
+        self.assertIn('Founder Final review unavailable · no approval recorded.', source)
+        self.assertIn('canonical.click()', source)
+        self.assertIn('.smi-command-founder-dock button', styles)
+        self.assertIn('min-height:44px', styles)
+        self.assertNotIn('founderFinalApproved=true', source)
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
