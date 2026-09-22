@@ -38,6 +38,7 @@ def init_app(app: Flask) -> None:
         link_youth_safety,
         linkup_safety,
         mail_migration,
+        mail_preflight,
         movement_match_safety,
         movement_operations,
         organism_runtime,
@@ -590,6 +591,11 @@ def init_app(app: Flask) -> None:
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-mail-preflight")
+    def _oap_mail_preflight() -> None:
+        import json
+        print(json.dumps(mail_preflight.report()))
 
     @app.cli.command("oap-mail-status")
     def _oap_mail_status() -> None:
