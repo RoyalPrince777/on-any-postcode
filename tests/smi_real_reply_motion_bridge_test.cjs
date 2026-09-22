@@ -66,6 +66,11 @@ assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:2000,eventType
 const stoppedEpoch=candidate.humanStop({pointerAtMs:2010,handledAtMs:2012}).epoch;
 assert.equal(candidate.snapshot().lastStopAcknowledgementMs,2);assert.equal(candidate.snapshot().physicalAndroidStopProven,false);
 assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:2020}),null);
+assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:2400,eventType:"ended"}),null);
+assert.equal(candidate.snapshot().epoch,stoppedEpoch);
+assert.equal(candidate.snapshot().stopped,true);
+assert.equal(candidate.snapshot().failReason,null);
+
 assert.equal(candidate.resetAfterHumanAction(false).stopped,true);
 assert.equal(candidate.resetAfterHumanAction(true).epoch,stoppedEpoch+1);
 
