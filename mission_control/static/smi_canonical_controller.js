@@ -202,6 +202,7 @@ async function oapSubmit(options={}){
   while(true){
    while(oapPaused&&!responseStopped)await new Promise(resolve=>setTimeout(resolve,80));
    const chunk=await reader.read();if(chunk.done)break;
+   if(responseStopped||requestAbort.signal.aborted||oapAbort!==requestAbort)throw new DOMException('Stopped or superseded stream','AbortError');
    buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n/g,'\n');
    let boundary=-1;
    while((boundary=buffer.indexOf('\n\n'))>=0){
