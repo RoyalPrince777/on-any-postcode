@@ -30,6 +30,23 @@ assert.equal(neutral.attached_to_live_page,false);
 assert.deepEqual([...neutral.rgba.slice((1*width+1)*4,(1*width+1)*4+4)],
   [...source.slice((1*width+1)*4,(1*width+1)*4+3),255]);
 assert.deepEqual([...source.slice(0,4)],[0,0,0,255]);
+// Source-backed neutral artwork may accompany a validated silent audio cue.
+// Real timing is not proof of any non-neutral mouth geometry.
+const silentCue={type:"played-audio-viseme",viseme:"silence",
+  audioClockMs:0,confidence:1,productionApproved:false,humanFinalApproved:false};
+const silentFrame=rig.frame({expectedEpoch:current,audioCue:silentCue});
+assert.deepEqual([...silentFrame.rgba],[...neutral.rgba]);
+assert.equal(silentFrame.speech_sync_proven,false);
+assert.equal(rig.frame({expectedEpoch:current,
+  audioCue:{...silentCue,viseme:"wide"}}),null);
+assert.equal(rig.frame({expectedEpoch:current,
+  audioCue:{...silentCue,confidence:0.79}}),null);
+assert.equal(rig.frame({expectedEpoch:current,
+  audioCue:{...silentCue,productionApproved:true}}),null);
+assert.equal(rig.frame({expectedEpoch:current,
+  audioCue:{...silentCue,type:"predicted-text-viseme"}}),null);
+assert.equal(rig.snapshot().stopped,false);
+
 const moved=rig.frame({expectedEpoch:current,translations:{eyes:[1,0]}});
 const from=(1*width+1)*4,to=(1*width+2)*4;
 assert.deepEqual([...moved.rgba.slice(to,to+4)],
