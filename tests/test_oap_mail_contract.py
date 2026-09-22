@@ -64,7 +64,9 @@ def test_commerce_product_route_uses_merchant_gate_source():
     function = source.split('def create_product():', 1)[1].split(
         '@bp.post("/commerce/orders")', 1)[0]
     assert '_require_certified_merchant(seller_id)' in function
-    assert 'certified_merchant_required' in function
+    assert function.index('_require_certified_merchant(seller_id)') < function.index(
+        'product_store.create_product('
+    )
     assert 'product_store.create_product(' in function
 
 
