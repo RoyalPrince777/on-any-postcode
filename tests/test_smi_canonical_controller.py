@@ -130,8 +130,16 @@ def test_only_canonical_acceptance_emits_live_chat_completion():
 def test_stop_cannot_emit_canonical_completion_or_duplicate_receipt_card():
     canonical = CONTROLLER.read_text(encoding="utf-8")
     enhancement = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
-    guard = "if(responseStopped||oapAbort.signal.aborted)throw new DOMException"
+    guard = "if(responseStopped||requestAbort.signal.aborted||oapAbort!==requestAbort)throw new DOMException"
     assert guard in canonical
     assert canonical.index(guard) < canonical.index("new CustomEvent('oap-smi-complete'")
     assert "const seenReceiptIds=new Set()" in enhancement
     assert "if(!receiptId||seenReceiptIds.has(receiptId))return" in enhancement
+
+
+def test_request_local_abort_identity_prevents_old_stream_acceptance():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    assert "const requestAbort=oapAbort;activeController=oapAbort" in canonical
+    assert "signal:requestAbort.signal" in canonical
+    assert "oapAbort!==requestAbort" in canonical
+    assert canonical.index("oapAbort!==requestAbort") < canonical.index("new CustomEvent('oap-smi-complete'")
