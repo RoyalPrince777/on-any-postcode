@@ -27,6 +27,16 @@ assert.equal(neutral.rgba.length,source.length);
 assert.equal(neutral.motion_proven,false);
 assert.equal(neutral.speech_sync_proven,false);
 assert.equal(neutral.attached_to_live_page,false);
+assert.equal(neutral.overlappingSourcePixels,0);
+assert.equal(neutral.occlusionReviewed,false);
+assert.equal(neutral.geometryApproved,false);
+const overlapping={...masks,hands:new Uint8ClampedArray(masks.hands)};
+overlapping.hands.set([255,255,255,255],(1*width+1)*4);
+const reviewRig=create(args({masks:overlapping}));
+assert.equal(reviewRig.snapshot().overlappingSourcePixels,1);
+assert.equal(reviewRig.frame().overlappingSourcePixels,1);
+assert.equal(reviewRig.frame().occlusionReviewed,false);
+assert.equal(reviewRig.frame().geometryApproved,false);
 assert.deepEqual([...neutral.rgba.slice((1*width+1)*4,(1*width+1)*4+4)],
   [...source.slice((1*width+1)*4,(1*width+1)*4+3),255]);
 assert.deepEqual([...source.slice(0,4)],[0,0,0,255]);
