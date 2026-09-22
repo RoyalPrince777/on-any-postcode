@@ -69,6 +69,7 @@ def init_app(app: Flask) -> None:
     from .link_turn_routes import bp as link_turn_bp
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
+    from . import mail_migration
     from .mail_routes import bp as mail_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
     from .membership_revenue import bp as membership_revenue_bp
@@ -589,6 +590,20 @@ def init_app(app: Flask) -> None:
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-mail-status")
+    def _oap_mail_status() -> None:
+        import json
+        print(json.dumps(mail_migration.schema_status()))
+
+    @app.cli.command("oap-init-mail")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_mail(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(mail_migration.init_schema(
+            dry_run=dry_run, assume_yes=yes,
+        )))
 
     @app.cli.command("oap-esim-status")
     def _oap_esim_status() -> None:
