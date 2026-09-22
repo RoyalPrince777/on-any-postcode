@@ -39,6 +39,7 @@ def init_app(app: Flask) -> None:
         linkup_safety,
         movement_match_safety,
         movement_operations,
+        oap_library_learning,
         organism_runtime,
         postgres_db,
         product_cores,
@@ -291,6 +292,36 @@ def init_app(app: Flask) -> None:
                         "event": "oap_link_share_migration",
                         "success": False,
                         "error": "link_share_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LIBRARY_LEARNING_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            learning_status = oap_library_learning.init_schema(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_learning_migration",
+                        "success": bool(learning_status.get("applied")),
+                        "schema_version": learning_status.get("version"),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_learning_migration",
+                        "success": False,
+                        "error": "library_learning_migration_failed",
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -582,6 +613,25 @@ def init_app(app: Flask) -> None:
     def _oap_postgres_status() -> None:
         import json
         print(json.dumps(postgres_db.postgres_status()))
+
+    @app.cli.command("oap-library-learning-status")
+    def _oap_library_learning_status() -> None:
+        import json
+        print(json.dumps(oap_library_learning.status()))
+
+    @app.cli.command("oap-init-library-learning")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_library_learning(dry_run: bool, yes: bool) -> None:
+        import json
+        print(
+            json.dumps(
+                oap_library_learning.init_schema(
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
 
     @app.cli.command("oap-init-postgres")
     @click.option("--dry-run", is_flag=True, default=False)

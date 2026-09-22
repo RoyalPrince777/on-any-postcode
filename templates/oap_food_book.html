@@ -28,6 +28,25 @@
       <p>Choose a body area or vegetable to understand how nutrients contribute to normal body functions. Foods support the whole body as part of a varied, balanced diet.</p>
     </header>
 
+    <section class="food-reader" id="read" aria-labelledby="food-reader-title">
+      <div class="section-heading">
+        <div>
+          <p class="library-kicker">READ · UNDERSTAND</p>
+          <h2 id="food-reader-title">Start with the evidence</h2>
+        </div>
+        <p>Short chapters keep the sourced fact separate from your own learning.</p>
+      </div>
+      <div class="food-reader-grid">
+        {% for chapter in chapters %}
+        <article data-chapter="{{ chapter.id }}" data-chapter-sources="{{ chapter.sources }}">
+          <span>{{ "%02d"|format(loop.index) }}</span>
+          <h3>{{ chapter.title }}</h3>
+          <p>{{ chapter.copy }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
     <div class="food-book-layout">
       <section class="body-map-panel" aria-labelledby="body-map-title">
         <div class="panel-heading">
@@ -47,7 +66,7 @@
         </svg>
         <div class="body-area-buttons" aria-label="Body areas">
           {% for area in areas %}
-          <button type="button" data-area-button="{{ area.id }}" data-area-name="{{ area.name }}" data-area-summary="{{ area.summary }}" aria-pressed="false">{{ area.name }}</button>
+          <button type="button" data-area-button="{{ area.id }}" data-area-name="{{ area.name }}" data-area-summary="{{ area.summary }}" data-area-sources="{{ area.sources }}" aria-pressed="false">{{ area.name }}</button>
           {% endfor %}
         </div>
       </section>
@@ -63,7 +82,7 @@
           <p class="fact-label">EXPLORE VEGETABLES</p>
           <div class="vegetable-grid">
             {% for food in foods %}
-            <button class="vegetable-card" type="button" data-food="{{ food.id }}" data-food-name="{{ food.name }}" data-food-nutrients="{{ food.nutrients }}" data-food-area="{{ food.area }}" data-colour="{{ food.colour }}" aria-pressed="false">
+            <button class="vegetable-card" type="button" data-food="{{ food.id }}" data-food-name="{{ food.name }}" data-food-nutrients="{{ food.nutrients }}" data-food-area="{{ food.area }}" data-food-sources="{{ food.sources }}" data-colour="{{ food.colour }}" aria-pressed="false">
               <span class="vegetable-mark" aria-hidden="true"></span>
               <strong>{{ food.name }}</strong>
               <small>{{ food.nutrients }}</small>
@@ -79,12 +98,97 @@
       </section>
     </div>
 
+    <section class="food-checkpoint" id="learn" aria-labelledby="food-checkpoint-title">
+      <div class="section-heading">
+        <div>
+          <p class="library-kicker">LEARN</p>
+          <h2 id="food-checkpoint-title">Check your understanding</h2>
+        </div>
+        <p>This checkpoint is educational. It is not a medical assessment or qualification.</p>
+      </div>
+      <form id="food-checkpoint-form" novalidate>
+        <div class="checkpoint-grid">
+          {% for checkpoint in checkpoints %}
+          <fieldset data-checkpoint="{{ checkpoint.id }}" data-checkpoint-answer="{{ checkpoint.answer }}">
+            <legend>{{ checkpoint.question }}</legend>
+            {% for value, label in checkpoint.options %}
+            <label>
+              <input type="radio" name="checkpoint-{{ checkpoint.id }}" value="{{ value }}">
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </fieldset>
+          {% endfor %}
+        </div>
+        <button class="food-primary-button" type="submit">Check understanding</button>
+        <p id="food-checkpoint-result" class="food-action-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="learning-card-workspace" id="create" aria-labelledby="learning-card-title" data-learning-records-url="/library/food-book/learning-records" data-csrf-token="{{ csrf_token }}">
+      <div class="section-heading">
+        <div>
+          <p class="library-kicker">CREATE · PRESERVE · SHARE</p>
+          <h2 id="learning-card-title">Make a source-backed learning card</h2>
+        </div>
+        <p>Private OAP preservation never publishes the card. Downloading and sharing happen only when you press the relevant control.</p>
+      </div>
+
+      <div class="learning-card-layout">
+        <form id="learning-card-form" novalidate>
+          <p class="fact-label">YOUR LEARNING</p>
+          <p id="learning-card-selection">Choose a vegetable above to attach an official Food Book fact.</p>
+          <label for="learning-reflection">What did you understand or want to remember?</label>
+          <textarea id="learning-reflection" name="reflection" maxlength="600" rows="6" required></textarea>
+          <p class="learning-character-count"><span id="learning-character-count">0</span>/600</p>
+          <label class="learning-rights-check">
+            <input id="learning-rights" type="checkbox" required>
+            <span>I wrote this reflection. Keep the official source links attached if I share it.</span>
+          </label>
+          <button class="food-primary-button" type="submit">Build learning card</button>
+          <p id="learning-card-message" class="food-action-message" role="status" aria-live="polite"></p>
+        </form>
+
+        <article id="learning-card-preview" class="learning-card-preview" aria-labelledby="learning-card-preview-title">
+          <p class="fact-label">OAP LIBRARY · FOOD BOOK</p>
+          <h3 id="learning-card-preview-title">Your card will appear here</h3>
+          <div>
+            <strong>Source-backed fact</strong>
+            <p id="learning-card-fact">Choose a vegetable, add your reflection and build the card.</p>
+          </div>
+          <div>
+            <strong>My reflection</strong>
+            <p id="learning-card-reflection">Nothing has been created yet.</p>
+          </div>
+          <div>
+            <strong>Official sources</strong>
+            <ul id="learning-card-sources"></ul>
+          </div>
+          <div class="learning-card-actions">
+            <button id="preserve-learning-card" type="button" disabled>Preserve privately</button>
+            <button id="download-learning-card" type="button" disabled>Download</button>
+            <button id="share-learning-card" type="button" disabled>Share from device</button>
+          </div>
+          <p class="learning-boundary">Private by default · no automatic sharing · no advertising telemetry</p>
+        </article>
+      </div>
+
+      <div class="private-learning-records" aria-labelledby="private-learning-records-title">
+        <div>
+          <p class="fact-label">PRIVATE OAP PRESERVATION</p>
+          <h3 id="private-learning-records-title">Your saved learning cards</h3>
+        </div>
+        <p id="private-learning-records-message" class="food-action-message" role="status" aria-live="polite"></p>
+        <div id="private-learning-records-list"></div>
+      </div>
+    </section>
+
     <section class="food-sources" aria-labelledby="food-sources-title">
       <p class="library-kicker">SOURCE SHELF</p>
       <h2 id="food-sources-title">Official reading used for this book</h2>
       <ul>
         {% for source in sources %}
-        <li><a href="{{ source.url }}" target="_blank" rel="noreferrer noopener">{{ source.name }} <span aria-hidden="true">↗</span></a></li>
+        <li data-food-source="{{ source.id }}"><a href="{{ source.url }}" target="_blank" rel="noreferrer noopener">{{ source.name }} <span aria-hidden="true">↗</span></a></li>
         {% endfor %}
       </ul>
     </section>

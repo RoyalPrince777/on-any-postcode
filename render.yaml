@@ -38,6 +38,8 @@ services:
         fromDatabase:
           name: oap-smi-hrm-fallback
           property: connectionString
+      - key: OAP_LIBRARY_LEARNING_MIGRATION_ON_BOOT
+        value: "1"
 
   - type: web
     name: oap-routing
