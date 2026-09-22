@@ -54,8 +54,21 @@
       epoch+=1;stopped=false;
       return Object.freeze({epoch,stopped});
     }
-    function frame({translations={},headGroupTranslation=null,expectedEpoch=epoch}={}){
+    function frame({translations={},headGroupTranslation=null,
+      audioCue=null,expectedEpoch=epoch}={}){
       if(stopped||expectedEpoch!==epoch)return null;
+      // The recovered still has only neutral source-backed mouth pixels.
+      // An audio timestamp/viseme cannot authorize an invented mouth shape.
+      // Fail closed on every non-neutral or unverified cue until reviewed
+      // source-derived viseme geometry is actually supplied.
+      if(audioCue!==null&&(!audioCue||typeof audioCue!=="object"||
+        audioCue.type!=="played-audio-viseme"||
+        audioCue.viseme!=="silence"||
+        !Number.isFinite(audioCue.audioClockMs)||
+        !Number.isFinite(audioCue.confidence)||
+        audioCue.confidence<0.8||
+        audioCue.productionApproved!==false||
+        audioCue.humanFinalApproved!==false))return null;
       if(!translations||typeof translations!=="object"
         ||Array.isArray(translations)
         ||Object.keys(translations).some(k=>!NAMES.includes(k))){
