@@ -44,6 +44,16 @@
       if(!selected.length)throw Error("empty_private_source_mask");
       pixels.set(name,selected);
     }
+    // Count pixels selected by multiple source masks for explicit occlusion review.
+    // Counts are diagnostic only: they cannot approve geometry or hidden anatomy.
+    const ownership=new Uint8Array(width*height);
+    for(const name of NAMES){
+      for(const p of pixels.get(name))ownership[p]+=1;
+    }
+    let overlappingSourcePixels=0;
+    for(const owners of ownership)if(owners>1)overlappingSourcePixels+=1;
+    const overlapEvidence=Object.freeze({overlappingSourcePixels,
+      occlusionReviewed:false,geometryApproved:false});
     let epoch=0,stopped=false;
     function stop(){
       epoch+=1;stopped=true;
@@ -78,10 +88,10 @@
           out[to+2]=source[from+2];out[to+3]=255;
         }
       }
-      return Object.freeze({width,height,rgba:out,epoch,...NO_APPROVAL});
+      return Object.freeze({width,height,rgba:out,epoch,...overlapEvidence,...NO_APPROVAL});
     }
     return Object.freeze({frame,stop,restart,
-      snapshot:()=>Object.freeze({epoch,stopped,...NO_APPROVAL})});
+      snapshot:()=>Object.freeze({epoch,stopped,...overlapEvidence,...NO_APPROVAL})});
   }
   return Object.freeze({NAMES,create});
 });
