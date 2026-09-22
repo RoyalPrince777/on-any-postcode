@@ -30,6 +30,7 @@ def test_public_world_and_product_surfaces_remain_anonymous(anonymous_client):
         "/the-spot/carnival",
         "/the-link",
         "/linkup",
+        "/library",
     ):
         assert anonymous_client.get(path).status_code == 200
 
