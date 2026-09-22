@@ -47,6 +47,11 @@ jobs:
           node tests/smi_android_motion_evidence_gate_test.cjs
           node --check mission_control/smi_real_reply_motion_bridge.js
           node tests/smi_real_reply_motion_bridge_test.cjs
+      - name: Verify accepted SMI receipt in Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          python tests/browser_smi_receipt_acceptance.py
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code

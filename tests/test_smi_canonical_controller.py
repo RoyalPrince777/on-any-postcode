@@ -114,3 +114,47 @@ def test_canonical_controller_preserves_governed_backend_contract():
     assert "event: complete" not in text
     assert "oap-smi-complete" in text
     assert "Human Authority" in text
+
+
+def test_only_canonical_acceptance_emits_live_chat_completion():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    enhancement = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    assert canonical.count("new CustomEvent('oap-smi-complete'") == 1
+    assert "if(streamError)throw streamError;if(!completeResult)throw" in canonical
+    assert canonical.index("if(streamError)throw streamError;if(!completeResult)throw") < canonical.index("new CustomEvent('oap-smi-complete'")
+    assert "response.clone().text()" not in enhancement
+    assert "new CustomEvent('oap-smi-complete'" not in enhancement
+    assert "window.addEventListener('oap-smi-complete'" in enhancement
+
+
+def test_stop_cannot_emit_canonical_completion_or_duplicate_receipt_card():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    enhancement = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    guard = "if(responseStopped||requestAbort.signal.aborted||oapAbort!==requestAbort)throw new DOMException"
+    assert guard in canonical
+    assert canonical.index(guard) < canonical.index("new CustomEvent('oap-smi-complete'")
+    assert "const seenReceiptIds=new Set()" in enhancement
+    assert "if(!receiptId||seenReceiptIds.has(receiptId))return" in enhancement
+
+
+def test_request_local_abort_identity_prevents_old_stream_acceptance():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    assert "const requestAbort=oapAbort;activeController=oapAbort" in canonical
+    assert "signal:requestAbort.signal" in canonical
+    assert "oapAbort!==requestAbort" in canonical
+    assert "finally{if(oapAbort===requestAbort){" in canonical
+    assert canonical.index("oapAbort!==requestAbort") < canonical.index("new CustomEvent('oap-smi-complete'")
+
+
+def test_stale_stopped_error_does_not_overwrite_new_request():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    assert "!requestAbort.signal.aborted&&oapAbort===requestAbort" in canonical
+    assert canonical.index("}catch(error){if(error?.name!=='AbortError'&&!responseStopped&&!requestAbort.signal.aborted&&oapAbort===requestAbort)") < canonical.index("finally{if(oapAbort===requestAbort){")
+
+
+def test_stopped_or_superseded_stream_cannot_render_late_chunks():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    chunk = "const chunk=await reader.read();if(chunk.done)break;"
+    guard = "if(responseStopped||requestAbort.signal.aborted||oapAbort!==requestAbort)throw new DOMException('Stopped or superseded stream','AbortError');"
+    render = "if(parsed.event==='delta')"
+    assert canonical.index(chunk) < canonical.index(guard) < canonical.index(render)
