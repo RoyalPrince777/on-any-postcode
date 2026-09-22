@@ -142,4 +142,5 @@ def test_request_local_abort_identity_prevents_old_stream_acceptance():
     assert "const requestAbort=oapAbort;activeController=oapAbort" in canonical
     assert "signal:requestAbort.signal" in canonical
     assert "oapAbort!==requestAbort" in canonical
+    assert "finally{if(oapAbort===requestAbort){" in canonical
     assert canonical.index("oapAbort!==requestAbort") < canonical.index("new CustomEvent('oap-smi-complete'")
