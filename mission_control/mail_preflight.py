@@ -8,14 +8,21 @@ from __future__ import annotations
 
 from . import mail_migration, postgres_db
 
+_ALLOWED_AUTHORITIES = frozenset({"primary", "fallback"})
+_ALLOWED_SOURCES = frozenset({
+    "primary_override", "fallback_override", "platform_database_url",
+    "legacy_oap_secret", "legacy_neon", "unconfigured",
+    "fallback_unconfigured", "invalid_authority",
+})
+
 
 def report() -> dict[str, object]:
     """Collect bounded metadata only; never expose URLs, credentials or messages."""
     result: dict[str, object] = {
         "component": "OAP Mail / database preflight",
         "read_only": True,
-        "database_authority": postgres_db.database_authority(),
-        "database_source": postgres_db.database_source(),
+        "database_authority": "unverified",
+        "database_source": "unverified",
         "database_configured": False,
         "database_reachable": False,
         "base_schema_ready": False,
@@ -27,14 +34,21 @@ def report() -> dict[str, object]:
         "error": None,
     }
     try:
+        authority = postgres_db.database_authority()
+        source = postgres_db.database_source()
+        if authority not in _ALLOWED_AUTHORITIES or source not in _ALLOWED_SOURCES:
+            result["error"] = "database_selection_unavailable"
+            return result
+        result["database_authority"] = authority
+        result["database_source"] = source
         result["database_configured"] = postgres_db.configured()
-        if result["database_authority"] == "invalid" or not result["database_configured"]:
+        if not result["database_configured"]:
             result["error"] = "database_selection_unavailable"
             return result
         base = postgres_db.postgres_status()
         result["database_reachable"] = base.get("reachable") is True
         result["base_schema_ready"] = base.get("initialized") is True
-        if not result["base_schema_ready"]:
+        if not result["database_reachable"] or not result["base_schema_ready"]:
             result["error"] = "base_postgres_not_ready"
             return result
         mail = mail_migration.schema_status()
