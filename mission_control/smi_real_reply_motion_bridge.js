@@ -103,6 +103,8 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
       productionApproved:false,humanFinalApproved:false});
   }
   function playbackEnd({audioClockMs,observedAtMs,eventType}={}){
+    // A late end event may not overwrite Human STOP or a previous fail-closed state.
+    if(!admitted||!started||stopped)return null;
     if(eventType!=="ended"||!finite(audioClockMs)||Math.abs(audioClockMs-durationMs)>alignmentToleranceMs)return failClosed("played_audio_end_unproven");
     const finalCue=playbackSample({audioClockMs,observedAtMs});
     if(!finalCue)return null;
