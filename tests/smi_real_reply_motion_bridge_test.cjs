@@ -69,6 +69,19 @@ assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:2020}),null)
 assert.equal(candidate.resetAfterHumanAction(false).stopped,true);
 assert.equal(candidate.resetAfterHumanAction(true).epoch,stoppedEpoch+1);
 
+// A second "playing" event cannot silently reset a running audio-clock baseline.
+const duplicate=bridge();
+assert.equal(duplicate.playbackStart({audioClockMs:0,observedAtMs:1000,
+  eventType:"playing",clockSource:"audio-context"}).type,"playback-start");
+assert.equal(duplicate.playbackSample({audioClockMs:80,observedAtMs:1080}).viseme,"wide");
+assert.equal(duplicate.playbackStart({audioClockMs:0,observedAtMs:2000,
+  eventType:"playing",clockSource:"audio-context"}),null);
+assert.equal(duplicate.snapshot().failedClosed,true);
+assert.equal(duplicate.snapshot().failReason,"duplicate_playback_start");
+assert.equal(duplicate.playbackSample({audioClockMs:140,observedAtMs:1140}),null);
+assert.equal(duplicate.resetAfterHumanAction(false).stopped,true);
+assert.equal(duplicate.resetAfterHumanAction(true).stopped,false);
+
 const reversal=bridge();reversal.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"audio-context"});
 assert.equal(reversal.playbackSample({audioClockMs:100,observedAtMs:1100}).viseme,"wide");
 assert.equal(reversal.playbackSample({audioClockMs:90,observedAtMs:1110}),null);assert.equal(reversal.snapshot().failedClosed,true);
