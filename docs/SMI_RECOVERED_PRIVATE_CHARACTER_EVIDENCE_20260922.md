@@ -30,6 +30,25 @@ source-derived *draft* layer bytes are not missing. What remains missing is
 Founder-reviewed usable anatomy/occlusion/hidden-region geometry, genuine
 speech alignment, witnessed continuous live motion and physical Android STOP.
 
+## Recovered v0.4 audio transport — reuse, do not duplicate
+
+The existing private `SMI-private-motion-proof-v04.zip` is a local-only,
+first-party motion/audio transport harness using the **same seven source-layer
+digests** and approved image SHA. Its README states that it binds Human-selected
+reply audio to proof JSON with SHA-256, checks the Web Audio decoded duration,
+requires an audio-derived viseme timeline, and handles pause/resume/STOP.
+There is **no supplied real SMI audio/proof pair**, no live-page integration
+and no Android acoustic-stop receipt in this package. Its manifest locks
+`liveConnected`, `accurateLipSyncProven`,
+`physicalAndroidStopProven`, `productionApproved` and
+`humanFinalApproved` to false.
+
+Reuse this lab and the existing detached real-reply motion bridge as
+references. Do **not** create a third speech/motion controller or infer
+phonemes from reply text. The remaining evidence is a genuine SMI audio
+generator + decoded-audio aligner receipt, independently reviewed anatomy
+and mobile live playback/STOP validation.
+
 ## Exact-head security issue
 
 PR #484 governed CI #35753399165 passed, including 1,580 Python
