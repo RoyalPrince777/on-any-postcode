@@ -9,7 +9,6 @@ import pytest
 
 from mission_control import mail_store, postgres_db
 
-
 OWNER = str(uuid.uuid4())
 OTHER = str(uuid.uuid4())
 
