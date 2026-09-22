@@ -75,6 +75,13 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+ // Upgrade-only Founder dock: actions reuse evidence checks and the canonical
+ // Green Gate. Its green review button never records approval by itself.
+ const founderDock=document.createElement("nav");
+ founderDock.className="smi-command-founder-dock";
+ founderDock.setAttribute("aria-label","SMI Founder recovery controls");
+ founderDock.innerHTML='<button type="button" data-founder-action="continue">🟣 Continue · Check evidence</button><button type="button" data-founder-action="review">🟢 Founder Final · Review</button><small>Review opens the governed gate · no automatic approval</small>';
+ universe.after(founderDock);
  // Mobile remains one command room: expose anatomy and live evidence as real tabs.
  const mobileViews=document.createElement("nav");
  mobileViews.className="smi-command-mobile-views";
@@ -265,6 +272,24 @@
  toggle.addEventListener("click",()=>setOpen(!active));
  panel.querySelector(".smi-command-close").addEventListener("click",()=>{setOpen(false);toggle.focus();});
  refresh.addEventListener("click",()=>{refreshEvidence();refreshRoomStatus();});
+ founderDock.addEventListener("click",event=>{
+  const action=event.target.closest("button[data-founder-action]")?.dataset.founderAction;
+  if(action==="continue"){
+   panel.dataset.mobileView="evidence";
+   mobileViews.querySelectorAll("button[data-view]").forEach(button=>
+    button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
+   refreshEvidence();refreshRoomStatus();
+  }else if(action==="review"){
+   const canonical=document.querySelector('#attach-menu [data-oap-action="green-gate"]');
+   if(!canonical||canonical.disabled){
+    const feedback=document.getElementById("status");
+    if(feedback)feedback.textContent="Founder Final review unavailable · no approval recorded.";
+    return;
+   }
+   setOpen(false);
+   canonical.click();
+  }
+ });
  universe.addEventListener("click",event=>{
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
