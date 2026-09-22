@@ -144,3 +144,9 @@ def test_request_local_abort_identity_prevents_old_stream_acceptance():
     assert "oapAbort!==requestAbort" in canonical
     assert "finally{if(oapAbort===requestAbort){" in canonical
     assert canonical.index("oapAbort!==requestAbort") < canonical.index("new CustomEvent('oap-smi-complete'")
+
+
+def test_stale_stopped_error_does_not_overwrite_new_request():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    assert "!requestAbort.signal.aborted&&oapAbort===requestAbort" in canonical
+    assert canonical.index("}catch(error){if(error?.name!=='AbortError'&&!responseStopped&&!requestAbort.signal.aborted&&oapAbort===requestAbort)") < canonical.index("finally{if(oapAbort===requestAbort){")
