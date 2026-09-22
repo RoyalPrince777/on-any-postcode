@@ -12,7 +12,7 @@ assert.ok(start >= 0 && end > start, "canonical submit function must be extracta
 const submitSource = source.slice(start,end);
 
 async function exercise(where) {
-  const requests=[],shown=[],completions=[],running=[];
+  const requests=[],shown=[],completions=[],running=[],spoken=[],cleared=[];
   let readOld;
   const context={
     AbortController, TextDecoder, TextEncoder,
@@ -21,18 +21,18 @@ async function exercise(where) {
     window:{dispatchEvent:event=>completions.push(event)},
     document:{getElementById:()=>null},
     messages:{scrollTop:0,scrollHeight:10},
-    streamUrl:"/test-stream",csrfToken:"test-csrf",conversationId:null,
+    streamUrl:"/test-stream",csrfToken:"test-csrf",conversationId:"original", 
     oapRuntime:{stopped:false},oapLocked:false,oapAbort:null,responseStopped:false,
     oapSend:{disabled:false},oapInput:{value:"old",dispatchEvent(){}},
     oapThinkingLevel:{value:"auto"},
-    selectedImage:"",selectedAttachment:null,codeMode:false,studioMode:false,
+    selectedImage:"",selectedAttachment:{name:"A",data:"A-private"},codeMode:false,studioMode:false,
     oapPaused:false,oapWorkStarted:1,
-    fetch:(_url,options)=>new Promise(resolve=>requests.push({resolve,signal:options.signal})),
+    fetch:(_url,options)=>new Promise((resolve,reject)=>requests.push({resolve,reject,signal:options.signal,body:JSON.parse(options.body)})),
     oapApply(type){if(type==="RESUME_FROM_STOP")context.oapRuntime.stopped=false;},
     oapSetStatus(){},setRunning(value){running.push(value);},
     add(value,role){shown.push({value,role});return{};},
     showStage(){},oapBeginWork(){},oapEndWork(){return 0.1;},
-    renderMessage(){},oapSpeak(){},clearAttachments(){},
+    renderMessage(){},oapSpeak(value){spoken.push(value);},clearAttachments(){cleared.push(context.selectedAttachment?.name);context.selectedAttachment=null;},
     loadConversations:async()=>{},
     hideThinking(){},oapSyncHumanControls(){},loadHealth(){},
     oapRelease(){context.oapLocked=false;context.oapAbort=null;},
@@ -48,7 +48,8 @@ async function exercise(where) {
 
   const old = context.oapSubmit();
   assert.equal(requests.length,1);
-  if(where==="read"){
+  assert.equal(requests[0].body.attachment.name,"A");
+  if(where==="read"){ 
     requests[0].resolve({
       ok:true,body:{getReader(){return{read:()=>new Promise(resolve=>{readOld=resolve;})};}}
     });
@@ -63,11 +64,15 @@ async function exercise(where) {
   context.oapLocked=false;
   context.oapRuntime.stopped=true;
   context.oapInput.value="new";
+  context.selectedAttachment={name:"B",data:"B-private"};
   const next=context.oapSubmit();
   assert.equal(requests.length,2);
+  assert.equal(requests[1].body.attachment.name,"B");
 
-  if(where==="fetch"){
+  if(where==="fetch"){ 
     requests[0].resolve({ok:true,body:{getReader(){throw Error("stale fetch must not consume body");}}});
+  }else if(where==="reject"){
+    requests[0].reject(new Error("stale failure must not reach R2"));
   }else{
     readOld({done:false,value:new TextEncoder().encode(
       'event: complete\ndata: {"result":{"response":"stale result"}}\n\n'
@@ -78,6 +83,11 @@ async function exercise(where) {
   assert.equal(shown.filter(item=>item.role==="assistant").length,0,
     "STOP must suppress stale assistant response");
   assert.equal(context.oapLocked,true,"stale finally must not unlock new work");
+  assert.equal(context.conversationId,"original","old completion cannot replace conversation");
+  assert.equal(context.selectedAttachment.name,"B","old cleanup cannot erase new attachment");
+  assert.equal(cleared.length,0,"old request cannot clear attachments");
+  assert.equal(spoken.length,0,"old request cannot speak");
+  assert.equal(shown.filter(item=>item.role==="system"&&/stale failure/.test(item.value)).length,0,"stale error must be suppressed");
   assert.equal(context.oapAbort.signal,requests[1].signal,"new request must still own active signal");
   assert.equal(running.filter(value=>value===false).length,0,
     "stale finally must not reset newer request UI");
@@ -95,9 +105,14 @@ async function exercise(where) {
   assert.equal(shown.find(item=>item.role==="assistant").value,"new result");
   assert.equal(running.filter(value=>value===false).length,1,
     "only current request cleanup should end running UI");
+  assert.equal(context.conversationId,"new","only R2 changes conversation");
+  assert.equal(spoken.length,1,"only R2 speaks");
+  assert.equal(cleared.length,1,"only R2 clears its submitted attachment");
+  assert.equal(cleared[0],"B");
 }
 (async()=>{
  await exercise("fetch");
  await exercise("read");
+ await exercise("reject");
  console.log("SMI_STOP_STREAM_RACE_PASS");
 })().catch(error=>{console.error(error);process.exitCode=1;});
