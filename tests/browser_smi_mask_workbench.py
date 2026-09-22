@@ -280,9 +280,10 @@ def run_command_centre_dock(page):
     assert panel.locator('[data-view="evidence"]').get_attribute(
         "aria-pressed"
     ) == "true"
-    assert panel.locator('[data-room-stat="runtime"] small').inner_text() == (
-        "Unavailable · NOT PROVEN"
-    )
+    page.wait_for_function("""() =>
+        document.querySelector('[data-room-stat="runtime"] small')
+          ?.textContent === 'Unavailable · NOT PROVEN'
+    """)
     panel.locator('[data-founder-action="review"]').click()
     assert page.evaluate("window.__gateReviewClicks") == 1
     assert not page.locator("body").evaluate(
