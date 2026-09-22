@@ -135,6 +135,15 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('min-height:44px', styles)
         self.assertNotIn('founderFinalApproved=true', source)
 
+    def test_overlapping_evidence_refresh_keeps_newer_request_in_control(self):
+        source = (STATIC / "smi_command_centre.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("if(request)request.abort();", source)
+        self.assertIn("const currentRequest=request;", source)
+        self.assertIn("if(request===currentRequest){", source)
+        self.assertIn('refresh.disabled=false;refresh.textContent="↻ Refresh evidence";', source)
+
     def test_mobile_and_accessibility(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
