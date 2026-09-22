@@ -69,18 +69,24 @@ def test_commerce_product_route_uses_merchant_gate_source():
     assert 'product_store.create_product(' in function
 
 
-def test_commerce_product_route_fails_closed_before_storage(client, csrf, monkeypatch):
-    from mission_control import product_store, public_store
+def test_commerce_product_action_fails_closed_before_storage(monkeypatch):
+    from mission_control import product_store
 
-    monkeypatch.setattr(public_store, "ensure_authenticated_user",
-                        lambda *args, **kwargs: None)
+    monkeypatch.setattr(product_core_views, "_payload",
+                        lambda: {"name": "Test", "price": "1.00"})
+    monkeypatch.setattr(product_core_views, "_identity",
+                        lambda **_kwargs: OWNER)
     monkeypatch.setattr(certification, "identity_status",
                         lambda _id: {"merchant": False})
     called = []
     monkeypatch.setattr(product_store, "create_product",
                         lambda *_args, **_kwargs: called.append(True))
-    response = client.post("/mission/organs/commerce/products",
-                           json={"name": "Test", "price": "1.00"},
-                           headers={"X-OAP-CSRF": csrf["csrf_token"]})
+
+    def capture_action(action):
+        with pytest.raises(PermissionError, match="certified_merchant_required"):
+            action()
+        return None
+
+    monkeypatch.setattr(product_core_views, "_handle_write", capture_action)
+    product_core_views.create_product()
     assert called == []
-    assert response.status_code in (403, 404)  # 404 is NOT runtime proof
