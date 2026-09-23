@@ -140,7 +140,10 @@ def candidate_preview(rows: object) -> dict[str, object]:
 
 
 
-def private_catalogue_intelligence(\n    rows: object, *, genres: object = None, licence_filter: str = "all",\n    mood: str = "All moods", vocals: str = "All",\n) -> dict[str, object]:
+def private_catalogue_intelligence(
+    rows: object, *, genres: object = None, licence_filter: str = "all",
+    mood: str = "All moods", vocals: str = "All",
+) -> dict[str, object]:
     """Deduplicate externally discovered *claims* into an inert review queue.
 
     The caller supplies metadata already discovered elsewhere. No network access,
