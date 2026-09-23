@@ -48,7 +48,11 @@ def test_authenticated_smi_page_to_subject_only_mail_route(client, csrf, monkeyp
     assert "smi_mail_read_control.js" in html
     assert "oap-mail-read-inbox" in html or "smi_mail_read_control.js" in html
     assert "/mission/chat/tools/mail/read" in html
-    assert opens == []
+    # The page may perform its existing read-only authority lookup; it
+    # must not query Mail before an explicit action.
+    assert db.queries == []
+    page_opens = len(opens)
+    assert all(readonly is True for readonly in opens)
 
     payload = {"folder": "inbox", "owner_consent": True, "ability": "mail.read"}
     route = "/mission/chat/tools/mail/read"
@@ -67,7 +71,7 @@ def test_authenticated_smi_page_to_subject_only_mail_route(client, csrf, monkeyp
     assert result["execute"] is False
     assert result["delivery_enabled"] is False
     assert result["production_approved"] is False
-    assert opens == [True]
+    assert opens == [True] * (page_opens + 1)
     assert db.readonly is True
     assert db.committed is False
     assert len(db.queries) == 1
@@ -88,7 +92,7 @@ def test_authenticated_smi_page_to_subject_only_mail_route(client, csrf, monkeyp
     )
     assert denied.status_code == 403
     assert denied.get_json()["error"]["code"] == "mail_smi_access_denied"
-    assert opens == [True]
+    assert opens == [True] * (page_opens + 1)
     assert len(db.queries) == 1
 
 
