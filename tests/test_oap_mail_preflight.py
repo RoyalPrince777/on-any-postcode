@@ -40,6 +40,7 @@ def test_preflight_never_promotes_a_reachable_mail_schema_to_green(monkeypatch):
     result = mail_preflight.report()
     assert result["database_reachable"] is True
     assert result["mail_schema_ready"] is True
+    assert result["error"] == "independent_recovery_evidence_missing"
     assert result["database_source"] == "fallback_override"
     assert result["target_mapping_proven"] is False
     assert result["recovery_point_verified"] is False
@@ -194,6 +195,7 @@ def test_independent_recovery_evidence_is_explicit_and_not_auto_attested(
     ]
     assert len(required) == len(set(required))
     assert result["mail_schema_ready"] is True
+    assert result["error"] == "independent_recovery_evidence_missing"
     assert result["independent_release_evidence_verified"] is False
     assert result["target_mapping_proven"] is False
     assert result["recovery_point_verified"] is False
@@ -217,3 +219,44 @@ def test_recovery_evidence_never_autoverifies_when_preflight_unavailable(
     assert result["independent_release_evidence_verified"] is False
     assert result["recovery_point_verified"] is False
     assert result["release_ready"] is False
+
+
+def test_preflight_preserves_specific_schema_error_over_recovery_hold(
+    monkeypatch,
+):
+    _sources(monkeypatch)
+    monkeypatch.setattr(
+        postgres_db, "postgres_status",
+        lambda: {"source": "primary_override", "reachable": True,
+                 "initialized": True},
+    )
+    monkeypatch.setattr(
+        mail_migration, "schema_status",
+        lambda: {"schema_ready": False,
+                 "error": "mail_migration_checksum_mismatch"},
+    )
+    result = mail_preflight.report()
+    assert result["error"] == "mail_migration_checksum_mismatch"
+    assert result["mail_schema_ready"] is False
+    assert result["recovery_point_verified"] is False
+    assert result["release_ready"] is False
+
+
+def test_preflight_redacts_unrecognised_mail_schema_error(monkeypatch):
+    _sources(monkeypatch)
+    monkeypatch.setattr(
+        postgres_db, "postgres_status",
+        lambda: {"source": "primary_override", "reachable": True,
+                 "initialized": True},
+    )
+    monkeypatch.setattr(
+        mail_migration, "schema_status",
+        lambda: {"schema_ready": True,
+                 "error": "postgres://private:password@host/mail"},
+    )
+    result = mail_preflight.report()
+    assert result["error"] == "mail_preflight_unavailable"
+    assert result["mail_schema_ready"] is False
+    assert result["recovery_point_verified"] is False
+    assert result["release_ready"] is False
+    assert "password" not in str(result)
