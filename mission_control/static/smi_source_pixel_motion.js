@@ -93,7 +93,7 @@
   function onState(event){
    const state=String(event?.detail?.state||"ready");
    phase=STATES.has(state)?state:"stopped";
-   live=event?.detail?.live===true&&!event?.detail?.stopped;
+   live=(event?.detail?.live===true||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
    if(!live||phase==="paused"||phase==="stopped")draw(0);
   }
   win.addEventListener("oap-smi-character-state",onState);
