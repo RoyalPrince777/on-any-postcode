@@ -17,7 +17,9 @@ class ContextEngine:
     def load(self, signal: FocusedSignal) -> ContextSnapshot:
         """Load governed OAP memory with canonical truth always taking priority."""
 
-        dynamic = self.hrm.retrieve_context(signal.task_type, limit=4)
+        dynamic = self.hrm.retrieve_context(
+            signal.task_type, identity_id=signal.identity_id, limit=4
+        )
         return ContextSnapshot(
             memories=compose_memory(
                 signal.task_type,
