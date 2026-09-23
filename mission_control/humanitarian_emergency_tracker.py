@@ -20,7 +20,7 @@ from typing import Any
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 
-from . import world_crisis_intelligence
+from . import humanitarian_first_party_evidence, world_crisis_intelligence
 
 WHO_DON_ENDPOINT = "https://www.who.int/api/emergencies/diseaseoutbreaknews"
 UNHCR_NOWCAST_ENDPOINT = "https://api.unhcr.org/population/v1/nowcasting/"
@@ -412,6 +412,7 @@ def _build_snapshot(*, live_fetch: bool) -> dict[str, object]:
         "weapons_support": False,
         "autonomous_dispatch": False,
         "autonomous_public_warning": False,
+        "first_party_verification": humanitarian_first_party_evidence.first_party_verification_state(),
         "human_authority_final": True,
     }
 
