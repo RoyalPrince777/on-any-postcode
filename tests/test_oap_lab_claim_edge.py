@@ -7,6 +7,7 @@ import pytest
 from mission_control.oap_lab_claim_edge import (
     ClaimEdge,
     ClaimEdgeBlocked,
+    RESEARCH_TRACKS,
     Source,
     admit_claim,
 )
@@ -60,6 +61,14 @@ def test_all_twenty_one_domains_use_one_contract(domain):
     assert result["domain"] == domain
 
 
+@pytest.mark.parametrize("track", RESEARCH_TRACKS)
+def test_all_thirteen_selected_research_tracks_share_the_contract(track):
+    result = admit_claim(edge(research_track=track), notebook(), (source(),),
+                         authenticated_owner_id=OWNER)
+    assert result["research_track"] == track
+    assert result["scientific_truth_established"] is False
+
+
 def test_verified_source_bytes_are_required():
     with pytest.raises(ClaimEdgeBlocked, match="source_byte_integrity_failed"):
         source(original=b"modified")
@@ -80,6 +89,7 @@ def test_invalid_source_rejected(changes):
 @pytest.mark.parametrize("changes", [
     {"relation": "secret_collusion"},
     {"domain": "nonexistent"},
+    {"research_track": "unapproved_track"},
     {"classification": "proven_by_founder"},
     {"owner_id": "not-an-id"},
     {"private_subject": True},
