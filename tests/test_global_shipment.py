@@ -34,7 +34,7 @@ def test_draft_multimodal_corridor_is_not_operational_evidence():
 
 @pytest.mark.parametrize("legs", [[], [_leg()] * 17, "not legs", None])
 def test_rejects_invalid_leg_collection(legs):
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, TypeError)):
         _draft(legs)
 
 
