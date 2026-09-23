@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from mission_control import open_cinema, open_cinema_worldwide as world
+from mission_control import open_cinema
+from mission_control import open_cinema_worldwide as world
 
 
 def _claim(**overrides):
