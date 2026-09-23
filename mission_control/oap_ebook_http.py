@@ -69,10 +69,10 @@ def create_ebook_blueprint(
                 page_number=page_number,
                 preview=excerpt_only,
             )
-        except (BookEntitlementsUnavailable, OSError):
-            return respond({"error": "reader_unavailable"}, 503)
         except (PermissionError, ValueError, TypeError):
             return respond({"error": "book_unavailable"}, 404)
+        except (BookEntitlementsUnavailable, OSError):
+            return respond({"error": "reader_unavailable"}, 503)
         return respond(
             {
                 "page": page.number,
