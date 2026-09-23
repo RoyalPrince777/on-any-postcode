@@ -1,0 +1,125 @@
+"""Private candidate-only OAP Open Music intake; never a rights authority.
+
+Reuse OAP Tune Core and entertainment_catalogue for release records and projection.
+This function never downloads, persists, publishes, streams or approves media.
+"""
+from __future__ import annotations
+
+import hashlib
+from collections.abc import Mapping
+from uuid import UUID
+
+SOURCE_KINDS = frozenset({
+    "direct_artist", "free_music_archive", "ccmixter", "internet_archive",
+    "musopen", "other_open_archive",
+})
+LICENCE_KINDS = frozenset({
+    "CC0", "CC_BY", "CC_BY_SA", "PUBLIC_DOMAIN", "DIRECT_PERMISSION",
+})
+MAX_CANDIDATES = 25
+
+
+def _uuid(value: object) -> str | None:
+    try:
+        return str(UUID(str(value)))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def _safe_text(value: object, limit: int) -> str | None:
+    if not isinstance(value, str):
+        return None
+    cleaned = " ".join(value.split())
+    return cleaned if 0 < len(cleaned) <= limit else None
+
+
+def candidate_preview(rows: object) -> dict[str, object]:
+    """Sanitise untrusted leads; no assertion becomes verified evidence."""
+    source = rows if isinstance(rows, list) else []
+    candidates: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for row in source[:MAX_CANDIDATES]:
+        if not isinstance(row, Mapping):
+            continue
+        uid = _uuid(row.get("candidate_id"))
+        title = _safe_text(row.get("title"), 180)
+        artist = _safe_text(row.get("artist"), 180)
+        source_kind = row.get("source_kind")
+        claimed_licence = row.get("claimed_licence")
+        if (
+            uid is None or uid in seen or title is None or artist is None
+            or source_kind not in SOURCE_KINDS
+            or claimed_licence not in LICENCE_KINDS
+        ):
+            continue
+        seen.add(uid)
+        candidates.append({
+            "candidate_id": f"oap:open-music:{uid}",
+            "title": title,
+            "artist": artist,
+            "source_kind": source_kind,
+            "claimed_licence": claimed_licence,
+            "review_state": "private_candidate",
+            "rights_verified": False,
+            "source_bytes_verified": False,
+            "recording_rights_verified": False,
+            "composition_rights_verified": False,
+            "territory_verified": False,
+            "tune_release_created": False,
+            "public_catalogue_enabled": False,
+            "playback_enabled": False,
+        })
+    return {
+        "organ": "OAP Music",
+        "canonical_catalogue": "OAP Tune Core",
+        "candidates": candidates,
+        "candidate_count": len(candidates),
+        "ingest_performed": False,
+        "external_provider_dependency": False,
+        "human_authority_final": True,
+    }
+
+
+def evidence_bytes_digest(evidence: object, *, max_bytes: int = 8_388_608) -> dict[str, object]:
+    """Compute a digest of bytes actually supplied, never verify their origin."""
+    if not isinstance(evidence, bytes) or not evidence or len(evidence) > max_bytes:
+        return {
+            "accepted": False, "sha256": None, "byte_length": None,
+            "independently_verified": False, "rights_verified": False,
+        }
+    return {
+        "accepted": True,
+        "sha256": hashlib.sha256(evidence).hexdigest(),
+        "byte_length": len(evidence),
+        "independently_verified": False,
+        "rights_verified": False,
+    }
+
+
+def rights_review(candidate: object, evidence: object = None) -> dict[str, object]:
+    """Fail closed even when claimant supplies plausible licence and hash fields."""
+    row = candidate if isinstance(candidate, Mapping) else {}
+    proof = evidence if isinstance(evidence, Mapping) else {}
+    return {
+        "candidate_id": row.get("candidate_id") if isinstance(row.get("candidate_id"), str) else None,
+        "submitted_evidence_id": _uuid(proof.get("evidence_id")),
+        "claimed_licence": row.get("claimed_licence") if row.get("claimed_licence") in LICENCE_KINDS else None,
+        "rights_verified": False,
+        "recording_rights_verified": False,
+        "composition_rights_verified": False,
+        "territory_verified": False,
+        "source_bytes_verified": False,
+        "attribution_verified": False,
+        "playback_authorised": False,
+        "public_catalogue_enabled": False,
+        "distribution_authorised": False,
+        "blockers": [
+            "independent_source_and_licensor_verification_not_connected",
+            "source_byte_to_asset_integrity_not_connected",
+            "composition_and_recording_rights_not_verified",
+            "territory_and_use_permissions_not_verified",
+            "attribution_and_revocation_not_connected",
+            "owner_scoped_tune_release_and_human_approval_not_connected",
+        ],
+        "human_authority_final": True,
+    }
