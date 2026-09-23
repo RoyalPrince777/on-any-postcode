@@ -155,3 +155,61 @@ def asset_integrity_review(
         "playback_enabled": False,
         "human_authority_final": True,
     }
+
+
+# Discovery references only. None is a connected source, licensor, or provider.
+OPEN_SOURCE_DIRECTORY = (
+    ("direct_artist", "Direct OAP artist submission", None),
+    ("free_music_archive", "Free Music Archive", "https://freemusicarchive.org/"),
+    ("ccmixter", "ccMixter", "https://dig.ccmixter.org/"),
+    ("internet_archive", "Internet Archive Netlabels", "https://archive.org/details/netlabels"),
+    ("musopen", "Musopen", "https://musopen.org/music/"),
+    ("other_open_archive", "Individually reviewed open archive", None),
+)
+
+
+def source_directory() -> dict[str, object]:
+    """Static discovery leads; deliberately no scrape, API or licence claim."""
+    return {
+        "canonical_catalogue": "OAP Tune Core",
+        "entries": [
+            {"source_kind": kind, "label": label, "discovery_url": url,
+             "connected": False, "licence_verified": False,
+             "bulk_import_allowed": False}
+            for kind, label, url in OPEN_SOURCE_DIRECTORY
+        ],
+        "source_fetch_performed": False,
+        "catalogue_write_performed": False,
+        "human_authority_final": True,
+    }
+
+
+def tune_handoff_preview(candidate: object) -> dict[str, object]:
+    """Inert Tune Core handoff: avoid a second release store and authority."""
+    row = candidate if isinstance(candidate, Mapping) else {}
+    uid = _uuid(row.get("candidate_id"))
+    title = _safe_text(row.get("title"), 180)
+    artist = _safe_text(row.get("artist"), 180)
+    kind = row.get("source_kind")
+    licence = row.get("claimed_licence")
+    valid = bool(uid and title and artist and kind in SOURCE_KINDS
+                 and licence in LICENCE_KINDS)
+    return {
+        "candidate_id": f"oap:open-music:{uid}" if valid else None,
+        "target_organ": "OAP Tune Core",
+        "target_release_type": "single" if valid else None,
+        "title": title if valid else None,
+        "artist": artist if valid else None,
+        "claimed_licence": licence if valid else None,
+        "handoff_ready": False,
+        "rights_verified": False,
+        "release_created": False,
+        "playback_enabled": False,
+        "public_catalogue_enabled": False,
+        "blockers": [
+            "independent_rights_verification_required",
+            "authenticated_owner_scoped_tune_write_not_authorised",
+            "human_release_approval_required",
+        ],
+        "human_authority_final": True,
+    }
