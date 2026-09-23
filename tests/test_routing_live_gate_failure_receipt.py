@@ -11,7 +11,7 @@ from scripts import routing_live_green_gate as gate
 
 def test_reset_and_timeout_are_negative_not_missing(monkeypatch):
     for error in (TimeoutError("timed out"), URLError("reset by peer")):
-        def fail(_req, timeout):
+        def fail(_req, timeout, error=error):
             assert timeout == gate.TIMEOUT_SECONDS
             raise error
 
