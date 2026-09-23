@@ -335,7 +335,7 @@ def test_claimed_music_licences_only_change_review_questions():
 
 
 def test_real_named_fma_track_can_be_prepared_only_as_private_review_lead():
-    # Named source-page fixture, not a downloaded/verified recording or clearance.
+    # Named discovery lead only; no verified source URL, recording or clearance.
     from uuid import UUID
 
     item = music.candidate_preview([_candidate(
