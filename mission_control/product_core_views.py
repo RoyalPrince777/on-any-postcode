@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
     distribution_intelligence,
+    entertainment_catalogue,
     product_core_services,
     product_cores,
     product_store,
@@ -78,6 +79,7 @@ def _media_projection(identity_id: str) -> dict[str, object]:
         "playlists": tune.get("playlists", []),
         "release_count": len(tune.get("releases", [])),
         "playlist_count": len(tune.get("playlists", [])),
+        "entertainment": entertainment_catalogue.project_catalogue(tune),
         "licensed_audio_delivery": False,
         "external_distribution": False,
         "royalty_payout": False,
@@ -93,6 +95,7 @@ def _distribution_projection(identity_id: str) -> dict[str, object]:
         "contract": contract,
         "releases": tune.get("releases", []),
         "release_count": len(tune.get("releases", [])),
+        "entertainment": entertainment_catalogue.project_catalogue(tune),
         "external_execution_enabled": False,
         "external_distribution_state": contract.get("external_distribution_state"),
         "rights_proof_required": True,
@@ -121,6 +124,7 @@ def _distribution_market_media_projection(identity_id: str) -> dict[str, object]
     return {
         "suite": "OAP Distribution / Market / Media",
         "read_projection_ready": True,
+        "entertainment": entertainment_catalogue.project_catalogue(tune),
         "media": {
             "organ": "OAP Media",
             "source_organ": tune.get("organ", "OAP Tune Core"),
@@ -177,6 +181,19 @@ def media_status():
         return _no_store(make_response(jsonify(_media_projection(_identity()))))
     except (ValueError, RuntimeError):
         return _error("media_unavailable", "OAP Media is temporarily unavailable.", 503)
+
+
+@bp.get("/entertainment")
+@web_security.login_required(api=True)
+def entertainment_status():
+    """Read-only owner-scoped catalogue; no media delivery or public projection."""
+    try:
+        tune = product_core_services.tune_dashboard(_identity())
+        return _no_store(make_response(jsonify(
+            entertainment_catalogue.project_catalogue(tune)
+        )))
+    except (ValueError, RuntimeError):
+        return _error("entertainment_unavailable", "OAP Entertainment is temporarily unavailable.", 503)
 
 
 @bp.get("/distribution")
