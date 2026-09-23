@@ -109,3 +109,13 @@ def test_cross_claim_history_rejected():
 def test_soul_direct_readback_requires_explicit_stop_state(invalid_stop):
     with pytest.raises(ClaimEdgeBlocked, match="explicit_stop_state_required"):
         verify(stopped=invalid_stop)
+
+
+def test_direct_readback_cannot_claim_independent_recovery_or_release():
+    result = verify()
+    assert result["history_integrity_verified"] is True
+    assert result["independent_recovery_verified"] is False
+    assert result["release_ready"] is False
+    assert result["resume_mode"] == "review_only"
+    assert result["scientific_truth_established"] is False
+    assert result["execution_authorised"] is False
