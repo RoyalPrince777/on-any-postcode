@@ -37,6 +37,8 @@ def init_app(app: Flask) -> None:
         link_voice,
         link_youth_safety,
         linkup_safety,
+        mail_migration,
+        mail_preflight,
         movement_match_safety,
         movement_operations,
         oap_library_learning,
@@ -70,6 +72,7 @@ def init_app(app: Flask) -> None:
     from .link_turn_routes import bp as link_turn_bp
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
+    from .mail_routes import bp as mail_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
     from .matrix_founder_decision_views import bp as matrix_founder_decisions_bp
     from .membership_revenue import bp as membership_revenue_bp
@@ -641,6 +644,25 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
 
+    @app.cli.command("oap-mail-preflight")
+    def _oap_mail_preflight() -> None:
+        import json
+        print(json.dumps(mail_preflight.report()))
+
+    @app.cli.command("oap-mail-status")
+    def _oap_mail_status() -> None:
+        import json
+        print(json.dumps(mail_migration.schema_status()))
+
+    @app.cli.command("oap-init-mail")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_mail(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(mail_migration.init_schema(
+            dry_run=dry_run, assume_yes=yes,
+        )))
+
     @app.cli.command("oap-esim-status")
     def _oap_esim_status() -> None:
         import json
@@ -987,6 +1009,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_presence_bp)
     app.register_blueprint(link_voice_bp)
     app.register_blueprint(link_message_bp)
+    app.register_blueprint(mail_bp)
     app.register_blueprint(travel_supply_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
