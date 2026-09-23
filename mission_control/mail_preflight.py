@@ -91,6 +91,7 @@ def report() -> dict[str, object]:
             "base_postgres_not_ready",
             "mail_migration_checksum_mismatch",
             "mail_migration_pending",
+            "mail_schema_structure_mismatch",
             "mail_migration_store_unavailable",
         }
         if mail_error not in allowed_mail_errors:
