@@ -15,6 +15,8 @@
     alignment.audioSha256!==actualSha||alignment.audioDecoded!==true||
     alignment.predictedFromText!==false||alignment.storesAudio!==false||
     alignment.storesReplyText!==false||
+    alignment.alignmentErrorMeasured===true||
+    (alignment.maxAlignmentErrorMs!==undefined&&alignment.maxAlignmentErrorMs!==null)||
     !Number.isFinite(alignment.audioDurationMs)||
     alignment.audioDurationMs<100||alignment.audioDurationMs>300000||
     Math.abs(alignment.audioDurationMs-durationMs)>1||
