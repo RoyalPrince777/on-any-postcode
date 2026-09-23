@@ -53,3 +53,16 @@ def test_stale_voice_results_cannot_refill_composer_after_stop_or_live_off():
     assert "oapRecognitionToken=null;oapFinalTranscript=''" in live_off
     pagehide = source[source.index("window.addEventListener('pagehide'"):]
     assert "oapFinalTranscript='';oapShowLiveReply('')" in pagehide
+
+
+def test_paused_speech_never_restarts_mic_until_explicit_resume():
+    source = CONTROLLER.read_text(encoding="utf-8")
+    schedule = source[source.index("function oapScheduleListening("):source.index("function oapUpdateLiveToggle(")]
+    assert "oapRuntime.stopped||oapRuntime.paused" in schedule
+    assert "oapRuntime.live&&!oapRuntime.paused)oapRequestListening('live')" in schedule
+    speak = source[source.index("function oapSpeak("):source.index("function oapCloseAttach(")]
+    assert "oapRuntime.live&&!oapRuntime.paused)oapScheduleListening(320)" in speak
+    pause = source[source.index("function oapTogglePause("):source.index("function oapSetCapturedImage(")]
+    assert "oapRuntime.live&&!oapRuntime.listening&&!oapRuntime.thinking&&!oapRuntime.speaking)oapScheduleListening(180)" in pause
+    assert "if('speechSynthesis' in window)window.speechSynthesis.pause()" in pause
+    assert "if('speechSynthesis' in window)window.speechSynthesis.resume()" in pause
