@@ -54,6 +54,19 @@ window.runMailBrowserCheck=async()=>{
   await afterTick();await afterTick();
   check(!document.getElementById("oap-mail-private-dialog"),"late response recreated dialog");
   check(document.getElementById("messages").children.length===0,"chat contaminated by late response");
+  button.click();
+  await afterTick();
+  dialog=document.getElementById("oap-mail-private-dialog");
+  respond({ok:true,json:async()=>({
+    items:[{subject:"NEVER_RENDER_PARTIAL"},{subject:"unsafe",body:"SECRET_BODY"}],
+    execute:false,delivery_enabled:false
+  })});
+  await afterTick();await afterTick();
+  check(dialog.textContent.includes("OAP Mail read unavailable"),"malformed Mail did not fail closed");
+  check(!dialog.textContent.includes("NEVER_RENDER_PARTIAL"),"partial Mail content leaked");
+  check(!dialog.textContent.includes("SECRET_BODY"),"unexpected Mail body leaked");
+  dialog.querySelector("button").click();
+  await afterTick();
   return "OAP_MAIL_CHROMIUM_BOUNDARY_PASS";
 };
 </script>
