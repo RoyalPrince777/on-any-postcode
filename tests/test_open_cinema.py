@@ -62,9 +62,26 @@ def test_direct_creator_is_lead_not_permission():
         "candidate_id": str(uuid4()), "source": "direct_creator",
         "title": "Indie film", "licence_claim": "DIRECT_PERMISSION",
         "reference_url": "https://untrusted.invalid/private",
+        "work_origin": "oap_original",
     })
     assert item["source_reference"] is None
     assert item["rights_evidence_checked"] is False
+    assert item["collection"] == "oap_originals"
+    assert item["creator_ownership_verified"] is False
+    assert item["embedded_rights_verified"] is False
+
+
+def test_scope_rejects_commercial_purchase_and_generic_permissions():
+    for mutation in (
+        {"source": "direct_creator", "licence_claim": "DIRECT_PERMISSION"},
+        {"source": "direct_creator", "licence_claim": "DIRECT_PERMISSION",
+         "work_origin": "purchased_commercial"},
+        {"source": "direct_creator", "licence_claim": "CC_BY",
+         "work_origin": "oap_original"},
+        {"source": "wikimedia_commons", "licence_claim": "DIRECT_PERMISSION"},
+    ):
+        candidate = {**GOOD, **mutation}
+        assert open_cinema.candidate(candidate) is None
 
 
 def test_existing_auth_boundary_on_private_preview(anonymous_client):
