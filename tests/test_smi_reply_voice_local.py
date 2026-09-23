@@ -26,6 +26,8 @@ def test_real_reply_audio_and_synthesis_issued_cues():
         ) <= 1
     assert hashlib.sha256(raw).hexdigest() == alignment["audioSha256"]
     assert alignment["predictedFromText"] is False
+    assert alignment["alignmentErrorMeasured"] is False
+    assert alignment["maxAlignmentErrorMs"] is None
     assert alignment["source"] == "decoded_audio_phoneme_timeline"
     assert result["phonemeIssuedBySynth"] is True
     assert result["engine"] == "self_hosted_espeak"
