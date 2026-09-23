@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "mission_control/templates/local_map.html").read_text(encoding="utf-8")
 CSS = (ROOT / "mission_control/static/oap_map_navigation.css").read_text(encoding="utf-8")
 NAV = (ROOT / "mission_control/static/oap_map_navigation.js").read_text(encoding="utf-8")
+OS_MAP = (ROOT / "mission_control/static/oap_os_map_bridge.js").read_text(encoding="utf-8")
 HTML = re.sub(r'{% include [^%]+%}', '', HTML)
 HTML = re.sub(r'{{[^}]+}}', '', HTML)
 HTML = re.sub(r'<link rel="stylesheet"[^>]*>', '', HTML)
@@ -48,7 +49,10 @@ with sync_playwright() as p:
         ("android_mobile_emulation", {"width": 393, "height": 852}, True),
     ]:
         context = browser.new_context(viewport=viewport, is_mobile=mobile,
-                                      has_touch=mobile, device_scale_factor=2 if mobile else 1)
+                                      has_touch=mobile, device_scale_factor=2 if mobile else 1,
+                                      user_agent=("Mozilla/5.0 (Linux; Android 15; Pixel 8) "
+                                                  "AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36")
+                                      if mobile else None)
         page = context.new_page()
         errors = []
         page.on("pageerror", lambda error, sink=errors: sink.append(str(error)))
@@ -57,6 +61,14 @@ with sync_playwright() as p:
         page.set_content(HTML, wait_until="load")
         page.add_style_tag(content=CSS)
         page.add_script_tag(content=NAV)
+        page.add_script_tag(content=OS_MAP)
+        runtime = page.locator("#oap-os-map-runtime")
+        assert runtime.is_visible(), label
+        assert runtime.get_attribute("data-oap-os-map-runtime") == (
+            "android-web" if mobile else "web"
+        ), label
+        assert "native" not in runtime.inner_text().lower(), label
+        assert runtime.get_attribute("data-road-source") == "unverified", label
         try:
             page.wait_for_function(
                 "() => document.querySelectorAll('#road-layer polyline').length > 0",
