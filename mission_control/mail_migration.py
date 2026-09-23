@@ -35,6 +35,61 @@ def _checksum(statements: tuple[str, ...]) -> str:
     return hashlib.sha256("\n".join(statements).encode()).hexdigest()
 
 
+# Read-only structural checks prevent a table with the expected name alone
+# from being promoted to a usable owner-scoped Mail schema.
+_EXPECTED_COLUMNS = {
+    "id": ("uuid", "NO"),
+    "owner_id": ("uuid", "NO"),
+    "folder": ("text", "NO"),
+    "subject": ("text", "NO"),
+    "body": ("text", "NO"),
+    "correspondent": ("text", "NO"),
+    "created_at": ("timestamp with time zone", "NO"),
+    "updated_at": ("timestamp with time zone", "NO"),
+}
+
+
+def _schema_structure(connection: Any, indexdef: object) -> tuple[bool, bool, bool]:
+    columns = connection.execute(
+        """SELECT column_name,data_type,is_nullable
+           FROM information_schema.columns
+           WHERE table_schema='public' AND table_name=%s""",
+        (MAIL_TABLE,),
+    ).fetchall()
+    actual = {str(row[0]): (str(row[1]), str(row[2])) for row in columns}
+    columns_ready = all(
+        actual.get(name) == expected
+        for name, expected in _EXPECTED_COLUMNS.items()
+    )
+    definition = " ".join(
+        str(indexdef or "").replace('"', "").lower().split()
+    )
+    index_shape_ready = (
+        "create index " in definition
+        and MAIL_INDEX in definition
+        and "oap_mail_items" in definition
+        and "(owner_id, folder, created_at desc)" in definition
+    )
+    definitions = connection.execute(
+        """SELECT pg_get_constraintdef(c.oid)
+           FROM pg_constraint c
+           JOIN pg_class t ON c.conrelid=t.oid
+           JOIN pg_namespace n ON t.relnamespace=n.oid
+           WHERE n.nspname='public' AND t.relname=%s AND c.contype='f'""",
+        (MAIL_TABLE,),
+    ).fetchall()
+    foreign_keys = {
+        " ".join(str(row[0]).replace('"', "").replace("public.", "")
+                 .lower().split())
+        for row in definitions
+    }
+    owner_fk_ready = any(
+        "foreign key (owner_id) references users(id) on delete cascade" in fk
+        for fk in foreign_keys
+    )
+    return columns_ready, index_shape_ready, owner_fk_ready
+
+
 def schema_status() -> dict[str, Any]:
     statements = _statements()
     result = {
@@ -43,6 +98,9 @@ def schema_status() -> dict[str, Any]:
         "schema_ready": False,
         "table_ready": False,
         "index_ready": False,
+        "columns_ready": False,
+        "index_shape_ready": False,
+        "owner_fk_ready": False,
         "error": None,
     }
     if not postgres_db.postgres_status().get("initialized"):
@@ -56,7 +114,7 @@ def schema_status() -> dict[str, Any]:
                 (MAIL_TABLE,),
             ).fetchone()
             index = connection.execute(
-                """SELECT 1 FROM pg_indexes
+                """SELECT indexdef FROM pg_indexes
                    WHERE schemaname='public' AND indexname=%s""",
                 (MAIL_INDEX,),
             ).fetchone()
@@ -71,7 +129,16 @@ def schema_status() -> dict[str, Any]:
             elif not all((table, index, version)):
                 result["error"] = "mail_migration_pending"
             else:
-                result["schema_ready"] = True
+                columns, index_shape, owner_fk = _schema_structure(
+                    connection, index[0],
+                )
+                result["columns_ready"] = columns
+                result["index_shape_ready"] = index_shape
+                result["owner_fk_ready"] = owner_fk
+                if all((columns, index_shape, owner_fk)):
+                    result["schema_ready"] = True
+                else:
+                    result["error"] = "mail_schema_structure_mismatch"
     except Exception:  # noqa: BLE001 - return redacted readiness; never expose DB details.
         result["error"] = "mail_migration_store_unavailable"
     return result
