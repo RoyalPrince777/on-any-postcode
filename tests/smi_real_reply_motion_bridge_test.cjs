@@ -70,7 +70,9 @@ for(const [audioClockMs,expected] of [[20,"closed"],[80,"wide"],[140,"round"],[2
   assert.equal(cue.handOffsetY,0);
 
 }
+const staleFromEarlierSample=candidate.playbackSample({audioClockMs:400,observedAtMs:1402});
 const issuedBeforeEnd=candidate.playbackSample({audioClockMs:400,observedAtMs:1402});
+assert.equal(candidate.acceptsIssuedCue(staleFromEarlierSample),false);
 assert.equal(candidate.acceptsIssuedCue(issuedBeforeEnd),true);
 assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:1402,eventType:"ended"}).viseme,"silence");
 assert.equal(candidate.acceptsIssuedCue(issuedBeforeEnd),false);
