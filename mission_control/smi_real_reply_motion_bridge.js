@@ -107,7 +107,7 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   }
   function playbackEnd({audioClockMs,observedAtMs,eventType}={}){
     // STOP wins over delayed media events; do not rewrite its epoch or reason.
-    if(stopped)return null;
+    if(!admitted||!started||stopped)return null;
     if(eventType!=="ended"||!finite(audioClockMs)||Math.abs(audioClockMs-durationMs)>alignmentToleranceMs)return failClosed("played_audio_end_unproven");
     const finalCue=playbackSample({audioClockMs,observedAtMs});
     if(!finalCue)return null;
