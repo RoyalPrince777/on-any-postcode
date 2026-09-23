@@ -88,3 +88,31 @@ def test_asset_integrity_match_is_not_independent_rights_proof():
     assert music.asset_integrity_review(uid, b"tampered", digest)["digest_matches_submission"] is False
     assert music.asset_integrity_review("not-uuid", asset, digest)["digest_matches_submission"] is False
     assert music.asset_integrity_review(uid, asset, "A" * 64)["digest_matches_submission"] is False
+
+
+def test_discovery_directory_never_claims_source_or_import_authority():
+    directory = music.source_directory()
+    kinds = {entry["source_kind"] for entry in directory["entries"]}
+    assert kinds == music.SOURCE_KINDS
+    assert directory["canonical_catalogue"] == "OAP Tune Core"
+    assert directory["source_fetch_performed"] is False
+    assert directory["catalogue_write_performed"] is False
+    assert all(entry["connected"] is False for entry in directory["entries"])
+    assert all(entry["licence_verified"] is False for entry in directory["entries"])
+    assert all(entry["bulk_import_allowed"] is False for entry in directory["entries"])
+
+
+def test_tune_handoff_is_inert_even_with_false_approval_flags():
+    candidate = _candidate(rights_verified=True, founder_approved=True,
+                           playback_enabled=True, media_url="https://example.test/x")
+    result = music.tune_handoff_preview(candidate)
+    assert result["target_organ"] == "OAP Tune Core"
+    assert result["target_release_type"] == "single"
+    assert result["handoff_ready"] is False
+    assert result["rights_verified"] is False
+    assert result["release_created"] is False
+    assert result["public_catalogue_enabled"] is False
+    assert result["playback_enabled"] is False
+    assert "media_url" not in result
+    assert music.tune_handoff_preview(_candidate(claimed_licence="CC_BY_NC"))["candidate_id"] is None
+    assert music.tune_handoff_preview(_candidate(candidate_id="broken"))["candidate_id"] is None
