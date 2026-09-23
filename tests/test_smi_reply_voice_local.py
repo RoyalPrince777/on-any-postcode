@@ -71,7 +71,7 @@ def test_render_runtime_uses_pinned_bundled_voice_library():
     assert build == "espeak-ng-1.51-bundled"
 
 
-@pytest.mark.parametrize("content", ["a" * 1501, " ", "unsafe\\x00reply"])
+@pytest.mark.parametrize("content", ["a" * 1501, " ", "unsafe\x00reply"])
 def test_owned_but_unvoiceable_reply_is_not_misreported_as_missing(monkeypatch, content):
     from contextlib import contextmanager
     from mission_control import postgres_db
