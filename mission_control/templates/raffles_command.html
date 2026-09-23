@@ -7,9 +7,9 @@
 <label>Campaign <select id="kind"><option value="free_draw">Free draw</option><option value="paid_skill">Paid skill (blocked)</option><option value="dual_route">Dual route (blocked)</option><option value="property_prize">Property (blocked)</option><option value="community_reward">Community reward</option></select></label>
 <label><input type="checkbox" id="funded"> Sponsor funding evidenced (self-reported, not verified)</label>
 <button type="button" data-action="REVIEW">🟣 Review</button></section>
-<section><h2>⚙️ Body · Controls</h2><p>Canonical durable STOP and recovery integration is pending. These buttons return a real denial until wired.</p>
-<button type="button" data-action="STOP">🛑 STOP · check lock</button>
-<button type="button" data-action="RECOVER">Resume · check lock</button>
+<section><h2>⚙️ Body · Controls</h2><p>STOP and recovery require the existing canonical OAP database schema and Founder authority. Missing runtime proof returns a real denial. No release permission.</p>
+<button type="button" data-action="STOP">🛑 STOP · durable check</button>
+<button type="button" data-action="RECOVER">Resume · Founder check</button>
 <button type="button" data-action="CONTINUE">Continue · check lock</button></section>
 <section><h2>💜 Soul · Founder Final</h2><button type="button" data-action="APPROVE_FOR_REVIEW">🟢 Approval · check lock</button><p>Human approval is not permission to publish, accept entries or collect payments.</p></section>
 <section aria-live="polite"><h2>Actual response</h2><pre id="result">Not checked · No green awarded</pre></section>
@@ -22,10 +22,11 @@ for(const button of document.querySelectorAll("button[data-action]")){
  button.addEventListener("click",async()=>{
   button.disabled=true;output.textContent="Requesting actual backend acknowledgement…";
   try{
-   const response=await fetch("/mission/raffles/command",{
+   const target=["STOP","RECOVER"].includes(button.dataset.action)?"/mission/raffles/stop-control":"/mission/raffles/command";
+   const response=await fetch(target,{
     method:"POST",credentials:"same-origin",cache:"no-store",
     headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},
-    body:JSON.stringify({action:button.dataset.action,
+    body:JSON.stringify({action:button.dataset.action,campaign_id:"everyday-rewards",
       territory:document.getElementById("territory").value,
       kind:document.getElementById("kind").value,
       sponsor_funded:document.getElementById("funded").checked})
