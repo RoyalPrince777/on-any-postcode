@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-BANK_NAME = "Prince Sovereign Bank"
+BANK_NAME = "United States of Africa Royalty Bank"
+HERITAGE_BANK_NAME = "Prince Sovereign Bank"
 CURRENCY_NAME = "SIKA"
 SUBUNIT_NAME = "SEEDS"
 SUBUNITS_PER_SIKA = 100
@@ -34,7 +35,7 @@ SOUL = (
     "lawful_financial_authorisation", "human_approved_execution",
 )
 INTEGRATIONS = (
-    "oap_world", "market", "post_core", "movement", "global_transport",
+    "oap_world", "market", "post_core", "post_office", "oap_store", "movement", "global_transport",
     "media", "distribution", "community_treasury",
 )
 REGULATED_CAPABILITIES = frozenset({
@@ -47,7 +48,8 @@ def status() -> dict[str, Any]:
     """Return an honest architecture snapshot, not an operational bank claim."""
     return {
         "name": BANK_NAME,
-        "institutional_vision": "United States of Africa Royalty Bank",
+        "banking_family": HERITAGE_BANK_NAME,
+        "brand_status": "proposed; no licence or operational claim",
         "parent": "ON ANY POSTCODE LTD",
         "currency": {
             "name": CURRENCY_NAME,
