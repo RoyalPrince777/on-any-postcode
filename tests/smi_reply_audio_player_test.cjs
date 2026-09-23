@@ -64,6 +64,19 @@ async function sha256(bytes){
   requestAnimationFrame:fn=>{raf=fn;return 1;},cancelAnimationFrame:()=>{raf=null;}
  };
  const player=create(win);
+ let externalFetches=0;
+ const originalFetch=win.fetch;
+ win.fetch=async(...args)=>{externalFetches++;return originalFetch(...args);};
+ for(const unsafeUrl of [
+  "https://attacker.example/collect","//attacker.example/collect",
+  "http://attacker.example/collect","/\\\\attacker.example/collect",
+  "/mission/chat/reply-audio\\nmalformed"
+ ]){
+  assert.equal(await player.play({
+   url:unsafeUrl,csrf:"csrf",conversationId,requestId
+  }),false,"off-origin or malformed reply route must fail closed");
+ }
+ assert.equal(externalFetches,0,"do not send CSRF or reply IDs to an untrusted URL");
  assert.equal(await player.prepare(),true);
  assert.equal(player.snapshot().prepared,true);
  let starts=0,cues=0;
