@@ -203,8 +203,9 @@ function oapAddCaptureOptions(){if(!oapAttachMenu||oapAttachMenu.dataset.oapCapt
 
 async function oapSubmit(options={}){
  const fromLive=options?.fromLive===true;
- if(oapRuntime?.stopped){if(fromLive)return;oapApply('RESUME_FROM_STOP');}
+ if(oapRuntime?.stopped&&fromLive)return;
  if(oapLocked||oapSend.disabled)return;const text=oapInput.value.trim();const hasImage=typeof selectedImage!=='undefined'&&Boolean(selectedImage);const hasAttachment=typeof selectedAttachment!=='undefined'&&Boolean(selectedAttachment);if(!text&&!hasImage&&!hasAttachment)return;
+ if(oapRuntime?.stopped)oapApply('RESUME_FROM_STOP');
  const selectedThinkingLevel=oapThinkingLevel?.value||'auto';
  const selectedStudioMode=(typeof studioMode!=='undefined')?Boolean(studioMode):Boolean(document.getElementById('studio-button')?.classList.contains('active'));
  const userLabel=(text||'Analyse attached media')+(hasImage?'\n📷 Image attached':'')+(hasAttachment?'\n📎 '+selectedAttachment.name:'')+(codeMode?'\n⌘ Code proposal mode':'');
