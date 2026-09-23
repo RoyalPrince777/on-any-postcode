@@ -259,8 +259,17 @@ def test_authenticated_smi_and_chat_alias_never_transfer_mail_body(
     calls = []
     def read(actor, owner, folder):
         calls.append((actor, owner, folder))
-        return [private]
+        return [{
+            "subject": private["subject"],
+            "correspondent": private["correspondent"],
+        }]
     monkeypatch.setattr(mail_store, "list_subjects", read)
+    monkeypatch.setattr(
+        mail_store, "list_items",
+        lambda *_: (_ for _ in ()).throw(
+            AssertionError("SMI must not use the full-message query")
+        ),
+    )
     for path in ("/mail/smi/read", "/mission/chat/tools/mail/read"):
         response = client.post(
             path,
