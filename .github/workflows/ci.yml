@@ -36,6 +36,8 @@ jobs:
           node --check mission_control/static/smi_live_character_state.js
           node --check mission_control/static/smi_canonical_controller.js
           node --check mission_control/static/smi_chat_final.js
+          node --check mission_control/static/smi_mail_read_control.js
+          node tests/smi_mail_read_control_test.cjs
           node --check mission_control/static/smi_interaction_layer.js
           node tests/smi_live_character_state_test.cjs
           node tests/smi_live_character_exhaustive_test.cjs
@@ -47,6 +49,32 @@ jobs:
           node tests/smi_android_motion_evidence_gate_test.cjs
           node --check mission_control/smi_real_reply_motion_bridge.js
           node tests/smi_real_reply_motion_bridge_test.cjs
+      - name: Real Chromium Mail-control privacy acceptance
+        run: |
+          set -o pipefail
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER" ]; then
+            echo "No real Chromium browser available: Mail acceptance blocked"
+            exit 1
+          fi
+          timeout 45 "$BROWSER" --headless=new --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --virtual-time-budget=4000 \
+            --dump-dom "file://$PWD/tests/smi_mail_browser_acceptance.html" \
+            2>/tmp/oap-mail-browser-stderr.log | tee /tmp/oap-mail-browser-proof.html
+          grep -Fq '<pre id="browser-proof">OAP_MAIL_CHROMIUM_BOUNDARY_PASS</pre>' /tmp/oap-mail-browser-proof.html
+          if grep -Fq '<pre id="browser-proof">OAP_MAIL_CHROMIUM_BOUNDARY_FAIL' /tmp/oap-mail-browser-proof.html; then exit 1; fi
+      - name: Real rendered SMI-page Mail acceptance
+        run: |
+          set -o pipefail
+          python tests/smi_mail_full_page_fixture.py
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER" ]; then echo "Full-page Chromium missing"; exit 1; fi
+          timeout 45 "$BROWSER" --headless=new --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --virtual-time-budget=5000 \
+            --dump-dom "file://$PWD/tests/.smi_mail_full_page.html" \
+            2>/tmp/oap-mail-full-browser-stderr.log | tee /tmp/oap-mail-full-browser-proof.html
+          grep -Fq '<pre id="oap-mail-full-page-proof">OAP_MAIL_FULL_SMI_PAGE_PASS</pre>' /tmp/oap-mail-full-browser-proof.html
+          if grep -Fq '<pre id="oap-mail-full-page-proof">OAP_MAIL_FULL_SMI_PAGE_FAIL' /tmp/oap-mail-full-browser-proof.html; then exit 1; fi
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
