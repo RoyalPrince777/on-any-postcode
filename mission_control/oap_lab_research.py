@@ -6,11 +6,12 @@ and persistence. Nothing in this module writes to a database or network.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from hashlib import sha256
 import json
 import math
-from typing import Any, Mapping
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from hashlib import sha256
+from typing import Any
 
 MISSIONS = (
     "debt_dependency", "digital_identity", "future_communications",
