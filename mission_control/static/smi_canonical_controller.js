@@ -90,11 +90,11 @@ function oapApply(type){
 function oapClearLiveRestart(){if(oapLiveRestartTimer)clearTimeout(oapLiveRestartTimer);oapLiveRestartTimer=null;}
 function oapScheduleListening(delay=320){
  oapClearLiveRestart();
- if(!oapRuntime?.live||oapRuntime.stopped)return;
+ if(!oapRuntime?.live||oapRuntime.stopped||oapRuntime.paused)return;
  const expected=oapStateApi.token(oapRuntime);
  oapLiveRestartTimer=setTimeout(()=>{
   oapLiveRestartTimer=null;
-  if(oapStateApi.tokenIsCurrent(oapRuntime,expected)&&oapRuntime.live)oapRequestListening('live');
+  if(oapStateApi.tokenIsCurrent(oapRuntime,expected)&&oapRuntime.live&&!oapRuntime.paused)oapRequestListening('live');
  },delay);
 }
 function oapUpdateLiveToggle(){
@@ -156,7 +156,7 @@ function oapSpeak(text){
  window.speechSynthesis.cancel();
  const utterance=new SpeechSynthesisUtterance(String(text));utterance.lang='en-GB';
  utterance.onstart=()=>{if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'tts-start'});return;}oapApply('SPEAK_START');oapPlaybackState('playing',oapRuntime?.epoch);oapProof('speakStart',{epoch:oapRuntime?.epoch});};
- const finish=phase=>{if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'tts-finish'});return;}oapApply('SPEAK_END');oapPlaybackState(phase,oapRuntime?.epoch);if(phase==='ended')oapProof('speakEnd',{epoch:oapRuntime?.epoch});else oapSetStatus('Voice playback failed · reply remains in chat');if(oapRuntime.live)oapScheduleListening(320);};
+ const finish=phase=>{if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'tts-finish'});return;}oapApply('SPEAK_END');oapPlaybackState(phase,oapRuntime?.epoch);if(phase==='ended')oapProof('speakEnd',{epoch:oapRuntime?.epoch});else oapSetStatus('Voice playback failed · reply remains in chat');if(oapRuntime.live&&!oapRuntime.paused)oapScheduleListening(320);};
  utterance.onend=()=>finish('ended');utterance.onerror=()=>finish('error');
  window.speechSynthesis.speak(utterance);
 }
@@ -188,7 +188,7 @@ function oapTogglePause(){
  }else{
   oapApply('RESUME');oapProof('resume',{epoch:oapRuntime?.epoch});
   if('speechSynthesis' in window)window.speechSynthesis.resume();
-  if(oapResumeListenAfterPause&&oapRuntime.live)oapScheduleListening(180);
+  if(oapRuntime.live&&!oapRuntime.listening&&!oapRuntime.thinking&&!oapRuntime.speaking)oapScheduleListening(180);
   oapResumeListenAfterPause=false;
  }
  if(oapPause){oapPause.classList.toggle('active',oapRuntime.paused);oapPause.setAttribute('aria-pressed',String(oapRuntime.paused));oapPause.textContent=oapRuntime.paused?'▶':'Ⅱ';}
