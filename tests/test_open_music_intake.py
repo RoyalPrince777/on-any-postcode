@@ -595,3 +595,49 @@ def test_private_catalogue_intelligence_rejects_malformed_and_spoofed_sources():
     assert result["review_queue"][0]["source_page_url"] is None
     assert result["review_queue"][0]["playback_enabled"] is False
     assert music.private_catalogue_intelligence(None)["review_count"] == 0
+
+
+def test_private_intelligence_dedupes_before_quota_and_preserves_distinct_pages():
+    first = _candidate(
+        title="Same title", artist="An artist", source_kind="free_music_archive",
+        claimed_licence="CC_BY",
+        source_page_url="https://freemusicarchive.org/music/artist/take-one/",
+    )
+    repeated = [_candidate(
+        title="Duplicate", artist="Someone", source_kind="free_music_archive",
+        claimed_licence="CC_BY", source_page_url=first["source_page_url"],
+    ) for _ in range(40)]
+    second = _candidate(
+        title="Same title", artist="An artist", source_kind="free_music_archive",
+        claimed_licence="CC_BY",
+        source_page_url="https://freemusicarchive.org/music/artist/take-two/",
+    )
+    without_page = [_candidate(
+        title="Untitled", artist="An artist",
+        source_kind="free_music_archive", claimed_licence="CC_BY",
+    ) for _ in range(2)]
+    result = music.private_catalogue_intelligence(
+        [first, *repeated, second, *without_page]
+    )
+    assert result["review_count"] == 3
+    assert [r["source_page_url"] for r in result["review_queue"][:2]] == [
+        first["source_page_url"], second["source_page_url"],
+    ]
+    assert result["review_queue"][2]["source_page_url"] is None
+    assert all(not r["playback_enabled"] for r in result["review_queue"])
+    assert result["catalogue_write_performed"] is False
+    assert result["source_fetch_performed"] is False
+
+
+def test_private_intelligence_scan_and_post_dedupe_limits():
+    valid = [_candidate(
+        title=f"Track {i}", source_kind="free_music_archive",
+        claimed_licence="CC_BY",
+    ) for i in range(music.MAX_LEADS_SCAN + 1)]
+    result = music.private_catalogue_intelligence(valid)
+    assert result["review_count"] == music.MAX_CANDIDATES
+    assert result["review_queue"][-1]["title"] == (
+        f"Track {music.MAX_CANDIDATES - 1}"
+    )
+    assert all(not row["human_release_approved"]
+               for row in result["review_queue"])
