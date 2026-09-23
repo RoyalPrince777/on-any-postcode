@@ -198,6 +198,15 @@ def entertainment_status():
         return _error("entertainment_unavailable", "OAP Entertainment is temporarily unavailable.", 503)
 
 
+@bp.get("/entertainment/open-cinema/private-collections")
+@web_security.login_required(api=True, founder_only=True)
+def open_cinema_private_collections():
+    """Founder-only film purchase leads and existing open-source discovery."""
+    return _no_store(make_response(jsonify(
+        open_cinema.private_collection_intake()
+    )))
+
+
 @bp.post("/entertainment/open-cinema/preview")
 @web_security.login_required(api=True, founder_only=True)
 def open_cinema_preview():
