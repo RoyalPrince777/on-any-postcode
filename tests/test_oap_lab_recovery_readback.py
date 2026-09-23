@@ -103,3 +103,9 @@ def test_cross_claim_history_rejected():
     altered = ({**records[0], "state": {**records[0]["state"], "claim_id": OTHER_CLAIM}}, records[1])
     with pytest.raises(ClaimEdgeBlocked, match="recovery_record_scope_mismatch"):
         verify(records=altered, anchor=anchor)
+
+
+@pytest.mark.parametrize("invalid_stop", [0, None, "false", "true"])
+def test_soul_direct_readback_requires_explicit_stop_state(invalid_stop):
+    with pytest.raises(ClaimEdgeBlocked, match="explicit_stop_state_required"):
+        verify(stopped=invalid_stop)
