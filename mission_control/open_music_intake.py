@@ -192,7 +192,7 @@ def tune_handoff_preview(candidate: object) -> dict[str, object]:
     artist = _safe_text(row.get("artist"), 180)
     kind = row.get("source_kind")
     licence = row.get("claimed_licence")
-    valid = bool(uid and title and artist and kind in SOURCE_KINDS
+    valid = bool(uid and title and artist
                  and isinstance(kind, str) and kind in SOURCE_KINDS
                  and isinstance(licence, str) and licence in LICENCE_KINDS)
     return {
