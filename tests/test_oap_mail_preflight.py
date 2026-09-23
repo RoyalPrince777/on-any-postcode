@@ -166,3 +166,54 @@ def test_preflight_rejects_source_switch_after_mail_inspection(monkeypatch):
     assert result["mail_schema_ready"] is False
     assert result["target_mapping_proven"] is False
     assert result["recovery_point_verified"] is False
+
+
+
+def test_independent_recovery_evidence_is_explicit_and_not_auto_attested(
+    monkeypatch,
+):
+    _sources(monkeypatch)
+    monkeypatch.setattr(
+        postgres_db, "postgres_status",
+        lambda: {"source": "primary_override", "reachable": True,
+                 "initialized": True},
+    )
+    monkeypatch.setattr(
+        mail_migration, "schema_status",
+        lambda: {"schema_ready": True, "error": None},
+    )
+    result = mail_preflight.report()
+    required = result["independent_release_evidence_required"]
+    assert required == [
+        "service_to_database_target_mapping",
+        "backup_owner_and_source_target_match",
+        "independent_backup_integrity_verification",
+        "isolated_restore_completion_and_readback",
+        "restore_timestamp_and_operator_attestation",
+        "founder_release_approval",
+    ]
+    assert len(required) == len(set(required))
+    assert result["mail_schema_ready"] is True
+    assert result["independent_release_evidence_verified"] is False
+    assert result["target_mapping_proven"] is False
+    assert result["recovery_point_verified"] is False
+    assert result["live_migration_authorized"] is False
+    assert result["release_ready"] is False
+    assert all("://" not in str(value) for value in result.values())
+
+
+def test_recovery_evidence_never_autoverifies_when_preflight_unavailable(
+    monkeypatch,
+):
+    _sources(monkeypatch, configured=False)
+    monkeypatch.setattr(
+        postgres_db, "postgres_status",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("unconfigured must not touch database")
+        ),
+    )
+    result = mail_preflight.report()
+    assert len(result["independent_release_evidence_required"]) == 6
+    assert result["independent_release_evidence_verified"] is False
+    assert result["recovery_point_verified"] is False
+    assert result["release_ready"] is False
