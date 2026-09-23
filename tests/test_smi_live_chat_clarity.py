@@ -74,3 +74,14 @@ def test_stale_microphone_callbacks_cannot_mutate_mobile_controls():
         callback = controller[start:controller.index("oapApply('LISTEN_END')", start)]
         assert callback.index("staleCallbackSuppressed") < callback.index("oapStopListenTimer()")
         assert callback.index("staleCallbackSuppressed") < callback.index("oapMic.classList.remove('active')")
+
+
+def test_camera_and_screen_cannot_restore_media_after_stop():
+    source = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text(encoding="utf-8")
+    capture = source[source.index("async function oapCaptureFrame("):source.index("function oapAddCaptureOptions()")]
+    assert "async function oapCaptureFrame(stream,label,expectedEpoch)" in capture
+    assert capture.count("oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,expectedEpoch)") >= 3
+    assert "stream.getTracks().forEach(track=>track.stop())" in capture
+    assert "await oapCaptureFrame(stream,'Camera',captureEpoch)" in capture
+    assert "await oapCaptureFrame(stream,'Screen',captureEpoch)" in capture
+    assert capture.count("if(oapRuntime?.stopped){oapSetStatus('Stopped by Human Authority');return;}") >= 2
