@@ -3,13 +3,13 @@ from uuid import uuid4
 
 import pytest
 
+from mission_control.global_shipment import draft_global_shipment
 from mission_control.global_transport_intelligence import (
     assess_cross_border,
     assess_global_transport,
     assess_operator,
     review_custody,
 )
-from mission_control.global_shipment import draft_global_shipment
 
 
 def _legs():
