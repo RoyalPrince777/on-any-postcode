@@ -62,7 +62,7 @@ window.addEventListener("load",async()=>{
       check(options.headers["X-OAP-CSRF"]==="browser-test-csrf","missing CSRF");
       check(JSON.parse(options.body).owner_consent===true,"missing fresh consent");
       return Promise.resolve({ok:true,json:async()=>({
-        items:[{subject:"<PRIVATE SUBJECT>",body:"NEVER IN SMI CHAT"}],
+        items:[{subject:"<PRIVATE SUBJECT>"}],
         execute:false,delivery_enabled:false
       })});
     };
