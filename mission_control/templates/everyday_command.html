@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAP EVERYDAY · Founder</title><style>
+body{background:#090b12;color:#f8f3ff;font:16px system-ui;margin:0}.wrap{max-width:920px;margin:auto;padding:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+article,section{border:1px solid #72559c;border-radius:14px;padding:15px;margin:12px 0;background:#160f24}
+small{color:#d2c5e5}a{color:#e3c6ff}.hold{color:#ffdd98}
+</style></head><body><main class="wrap"><h1>🟣 SMI · 👑 OAP EVERYDAY</h1>
+<p>Everyday Needs. Everyday Opportunities.</p>
+<p class="hold">Founder-only proposed programme · no verified prizes · no public entries · no payments · no deployment</p>
+<h2>Mind × Body × Soul</h2>
+<div class="grid">{% for category in programme.categories %}
+<article><h3>{{ category.label }}</h3><p>{{ category.purpose }}</p><small>{{ category.status }}</small></article>
+{% endfor %}</div>
+<section><h2>🧠 Mind</h2><p>Resource, community need and partner research. No unverified support directory listings.</p></section>
+<section><h2>⚙️ Body</h2><p>Use existing OAP Raffles for Everyday Rewards; partner and direct-support workflows remain unlaunched.</p><a href="{{ url_for('raffles_command.dashboard') }}">Open existing Raffles review →</a></section>
+<section><h2>💜 Soul</h2><p>Direct help never requires draw entry. Preserve privacy, youth safety and Founder Final.</p></section>
+<section><h2>👑 Evidence</h2><p>Partners confirmed: {{ programme.partners_confirmed }} · Prize secured: No · Public launch: Locked.</p>
+<p>No new payment engine, prize-draw engine, Matrix or audit system is created by this programme.</p></section>
+<a href="/mission">← Mission Control</a></main></body></html>
