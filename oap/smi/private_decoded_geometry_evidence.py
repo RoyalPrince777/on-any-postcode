@@ -29,6 +29,7 @@ def verify_decoded_visible_geometry(
     """Return private evidence only; never inferred anatomy or active rig status."""
     result: dict[str, object] = {
         "source_pixels_proven": False,
+        "receipt": None,
         "anatomy_proven": False,
         "speech_sync_proven": False,
         "active": False,
@@ -100,6 +101,19 @@ def verify_decoded_visible_geometry(
     if not selected:
         result["reason"] = "empty_mask"
         return result
+    # Private cross-runtime identity receipt: SHA references only, no pixels,
+    # approval token, paths, spoken text or permission to activate a rig.
+    result["receipt"] = {
+        "version": "source-pixel-lineage-v1",
+        "source_sha256": APPROVED_SOURCE_SHA256,
+        "mask_sha256": expected_mask_sha256,
+        "geometry_sha256": expected_geometry_sha256,
+        "width": width,
+        "height": height,
+        "anatomy_proven": False,
+        "speech_sync_proven": False,
+        "human_authority_approved": False,
+    }
     result["source_pixels_proven"] = True
     result["reason"] = "decoded_source_pixels_only_not_anatomy_proof"
     return result
