@@ -255,6 +255,58 @@ def private_source_review_receipt(candidate: object) -> dict[str, object]:
     }
 
 
+
+def private_music_release_review_plan(
+    candidate: object, owner_identity_id: object = None,
+) -> dict[str, object]:
+    """Private planning only: an owner UUID is not an authenticated session.
+
+    Reuses existing OAP Music release functions; never persists, approves,
+    downloads, changes rights, or creates a second catalogue.
+    """
+    receipt = private_source_review_receipt(candidate)
+    handoff = music_handoff_preview(candidate)
+    owner = _uuid(owner_identity_id) if isinstance(owner_identity_id, str) else None
+    candidate_id = receipt["candidate_id"]
+    requirements = (
+        "independently_verify_original_source_and_licensor",
+        "bind_independently_obtained_source_bytes_to_exact_asset",
+        "verify_recording_rights_and_contributors",
+        "verify_composition_rights_and_samples",
+        "verify_territory_duration_and_intended_uses",
+        "verify_attribution_licence_notice_changes_and_revocation",
+        "authenticate_owner_and_bind_existing_music_release",
+        "obtain_auditable_human_release_approval",
+    )
+    return {
+        "candidate_id": candidate_id,
+        "submitted_owner_identity_id": owner if candidate_id else None,
+        "owner_authenticated": False,
+        "owner_bound_to_music_release": False,
+        "target_organ": "OAP Music",
+        "target_release_type": handoff["target_release_type"],
+        "source_page_url": receipt["source_page_url"],
+        "claimed_licence": receipt["claimed_licence"],
+        "attribution_draft": receipt["attribution_draft"],
+        "review_requirements": [
+            {"requirement": name, "independently_proven": False}
+            for name in requirements
+        ],
+        "ready_for_authenticated_handoff": False,
+        "independent_rights_verified": False,
+        "asset_provenance_verified": False,
+        "human_release_approved": False,
+        "private_plan_only": True,
+        "receipt_persisted": False,
+        "release_created": False,
+        "media_retrieval_performed": False,
+        "public_catalogue_enabled": False,
+        "playback_enabled": False,
+        "payments_enabled": False,
+        "human_authority_final": True,
+    }
+
+
 def asset_integrity_review(
     candidate_id: object, asset_bytes: object, expected_sha256: object,
 ) -> dict[str, object]:
