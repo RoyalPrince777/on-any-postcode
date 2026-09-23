@@ -1379,4 +1379,9 @@ def get_war_room_dashboard() -> dict[str, Any]:
             ),
         },
     }
-\n\ndef get_matrix_signal_war_room_review(signal: Mapping[str, Any]) -> dict[str, Any]:\n    """Prepare a bounded Matrix review pack; never execute or certify it."""\n\n    return matrix_war_room.review_pack(signal)\n
+
+
+def get_matrix_signal_war_room_review(signal: Mapping[str, Any]) -> dict[str, Any]:
+    """Prepare a bounded Matrix review pack; never execute or certify it."""
+
+    return matrix_war_room.review_pack(signal)
