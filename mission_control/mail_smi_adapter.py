@@ -48,9 +48,22 @@ def read_owner_folder(
     selected = require_folder(folder)
     owner = decision["mailbox_owner_id"]
     items = mail_store.list_items(actor_id, owner, selected)
+    # The SMI inbox tool is a subject-list action, not permission to deliver
+    # message bodies, IDs, addresses or unknown store fields to the browser.
+    # Keep the full owner-scoped store result intact for other Mail surfaces.
+    projected = [
+        {
+            "subject": item.get("subject"),
+            **(
+                {"correspondent": item["correspondent"]}
+                if "correspondent" in item else {}
+            ),
+        }
+        for item in items
+    ]
     return {
         "folder": selected,
-        "items": items,
+        "items": projected,
         "execute": False,
         "delivery_enabled": False,
         "production_approved": False,
