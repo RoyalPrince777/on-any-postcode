@@ -5,7 +5,12 @@ from uuid import UUID
 
 import pytest
 
-from mission_control.oap_lab_claim_edge import ClaimEdge, ClaimEdgeBlocked, Source, admit_claim
+from mission_control.oap_lab_claim_edge import (
+    ClaimEdge,
+    ClaimEdgeBlocked,
+    Source,
+    admit_claim,
+)
 from mission_control.oap_lab_evidence_review import (
     CorroborationReview,
     bind_review_to_claim,
