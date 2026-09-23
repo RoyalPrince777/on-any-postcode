@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
+from oap.everyday import catalogue
 from oap.raffles_mind import assess
 from oap.raffles_soul import review
 
@@ -23,6 +24,16 @@ def _reply(body: dict[str, object], status: int = 200):
 def dashboard():
     response = make_response(render_template(
         "raffles_command.html", csrf_token=web_security.csrf_token()
+    ))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/everyday")
+@web_security.login_required(founder_only=True)
+def everyday_dashboard():
+    response = make_response(render_template(
+        "everyday_command.html", programme=catalogue()
     ))
     response.headers["Cache-Control"] = "no-store"
     return response
