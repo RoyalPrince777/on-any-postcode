@@ -134,6 +134,9 @@ def verify_separate_readback_snapshots(
         "external_store_readback_verified": False,
         "namespace_independence_authenticated": False,
         "anchor_authenticity_verified": False,
+        # Supplied snapshot metadata cannot attest real-store recovery or release.
+        "independent_recovery_verified": False,
+        "release_ready": False,
     }
 
 
