@@ -102,9 +102,11 @@ def verify_separate_readback_snapshots(
             raise ClaimEdgeBlocked("storage_namespace_required")
     history_namespace = history_snapshot["storage_namespace"]
     anchor_namespace = anchor_snapshot["storage_namespace"]
-    if history_namespace == anchor_namespace:
+    # Comparison normalisation prevents cosmetic whitespace from masquerading
+    # as separation; it does NOT authenticate the declared store origins.
+    if history_namespace.strip() == anchor_namespace.strip():
         raise ClaimEdgeBlocked("independent_anchor_namespace_required")
-    if history_snapshot["retrieval_id"] == anchor_snapshot["retrieval_id"]:
+    if history_snapshot["retrieval_id"].strip() == anchor_snapshot["retrieval_id"].strip():
         raise ClaimEdgeBlocked("independent_retrieval_reference_required")
     if history_snapshot.get("claim_id") != anchor_snapshot.get("claim_id"):
         raise ClaimEdgeBlocked("snapshot_claim_mismatch")
