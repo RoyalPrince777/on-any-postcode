@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hmac
+
 from collections.abc import Callable
 from typing import Any
 
-from oap.contracts import ActionPlan, BuilderContext
+from oap.contracts import ActionPlan, BuilderContext, action_plan_digest
 
 BuilderHandler = Callable[[dict[str, Any], BuilderContext], None]
 
@@ -27,6 +29,10 @@ class BuilderRegistry:
             raise LookupError("No approved Builder handler is registered")
         if context.request_id != plan.request_id:
             raise PermissionError("Builder context does not match the action plan")
+        if not plan.requires_human_approval or not context.receipt_id or not context.identity_id or context.authority_level != 0:
+            raise PermissionError("Builder requires a Human-approved action context")
+        if not hmac.compare_digest(context.action_digest, action_plan_digest(plan)):
+            raise PermissionError("Builder context does not match the approved action digest")
         handler(dict(plan.payload), context)
 
     def status(self) -> dict[str, object]:
