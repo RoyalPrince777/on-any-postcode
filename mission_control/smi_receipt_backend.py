@@ -354,6 +354,69 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable
     return _write_sqlite(kind, normalised, receipt_id, created_at, fallback_used=False)
 
 
+
+def verify_matrix_review_outcome(
+    receipt_id: str, *, proposal_id: str, signal_id: str
+) -> dict[str, Any]:
+    """Read one independent HRM review row; never infer approval from a supplied ID.
+
+    This checks stored evidence identity and declared review fields, not the
+    independent reasoning ability of any specialist or external execution.
+    """
+    reference = str(receipt_id or "").strip()
+    proposal = str(proposal_id or "").strip()
+    signal = str(signal_id or "").strip()
+    result: dict[str, Any] = {
+        "verified": False,
+        "receipt_id": reference,
+        "source": "independent_hrm_postgres",
+        "status": "review_unverified",
+        "authority_granted": False,
+        "actual_votes_proven": False,
+    }
+    if not reference or not proposal or not signal or not _hrm_database_url():
+        return result
+    try:
+        with _connect_postgres() as connection, connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute(
+                """SELECT receipt_id, receipt_kind, brain_part, command, payload_json
+                   FROM smi_evidence_receipts WHERE receipt_id = %s""",
+                (reference,),
+            )
+            row = cursor.fetchone()
+    except Exception:  # noqa: BLE001 - no storage details in proof response
+        return result
+    if not row or row["receipt_id"] != reference:
+        return result
+    payload = row.get("payload_json")
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except ValueError:
+            return result
+    if not isinstance(payload, dict):
+        return result
+    valid = (
+        row["receipt_kind"] == "war_room_live_proof_receipt"
+        and row["brain_part"] == "matrix"
+        and row["command"] == "matrix_review_outcome"
+        and payload.get("proposal_id") == proposal
+        and payload.get("signal_id") == signal
+        and payload.get("review_mode") == "first_party_matrix_review"
+        and payload.get("evidence_verified") is True
+        and payload.get("reviewed") is True
+        and payload.get("founder_approved") is True
+        and payload.get("guardian_pass") is True
+        and payload.get("green_gate_pass") is True
+        and payload.get("execution_granted") is False
+    )
+    if valid:
+        result["verified"] = True
+        result["status"] = "stored_review_fields_matched"
+    return result
+
+
 def _latest_postgres(limit: int) -> tuple[dict[str, Any], ...]:
     with _connect_postgres() as connection, connection.cursor() as cursor:
         cursor.execute("SET TRANSACTION READ ONLY")
