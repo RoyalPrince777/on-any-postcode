@@ -48,8 +48,8 @@ def candidate_preview(rows: object) -> dict[str, object]:
         claimed_licence = row.get("claimed_licence")
         if (
             uid is None or uid in seen or title is None or artist is None
-            or source_kind not in SOURCE_KINDS
-            or claimed_licence not in LICENCE_KINDS
+            or not isinstance(source_kind, str) or source_kind not in SOURCE_KINDS
+            or not isinstance(claimed_licence, str) or claimed_licence not in LICENCE_KINDS
         ):
             continue
         seen.add(uid)
@@ -103,7 +103,7 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
     return {
         "candidate_id": row.get("candidate_id") if isinstance(row.get("candidate_id"), str) else None,
         "submitted_evidence_id": _uuid(proof.get("evidence_id")),
-        "claimed_licence": row.get("claimed_licence") if row.get("claimed_licence") in LICENCE_KINDS else None,
+        "claimed_licence": row.get("claimed_licence") if isinstance(row.get("claimed_licence"), str) and row.get("claimed_licence") in LICENCE_KINDS else None,
         "rights_verified": False,
         "recording_rights_verified": False,
         "composition_rights_verified": False,
@@ -193,7 +193,8 @@ def tune_handoff_preview(candidate: object) -> dict[str, object]:
     kind = row.get("source_kind")
     licence = row.get("claimed_licence")
     valid = bool(uid and title and artist and kind in SOURCE_KINDS
-                 and licence in LICENCE_KINDS)
+                 and isinstance(kind, str) and kind in SOURCE_KINDS
+                 and isinstance(licence, str) and licence in LICENCE_KINDS)
     return {
         "candidate_id": f"oap:open-music:{uid}" if valid else None,
         "target_organ": "OAP Tune Core",
