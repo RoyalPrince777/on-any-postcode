@@ -138,6 +138,7 @@ def private_catalogue_intelligence(rows: object) -> dict[str, object]:
     review: list[dict[str, object]] = []
     seen_pages: set[str] = set()
     seen_titles: set[tuple[str, str, str]] = set()
+    seen_candidate_ids: set[str] = set()
     for row in source[:MAX_LEADS_SCAN]:
         if len(review) == MAX_CANDIDATES:
             break
@@ -150,8 +151,11 @@ def private_catalogue_intelligence(rows: object) -> dict[str, object]:
                      item["title"].casefold())
         # A shared page is one lead. Without a page, dedupe the title claim.
         # Separate source pages can be distinct recordings with the same title.
-        if (page is not None and page in seen_pages) or (page is None and title_key in seen_titles):
+        if (item["candidate_id"] in seen_candidate_ids
+                or (page is not None and page in seen_pages)
+                or (page is None and title_key in seen_titles)):
             continue
+        seen_candidate_ids.add(item["candidate_id"])
         if page is not None:
             seen_pages.add(page)
         seen_titles.add(title_key)
