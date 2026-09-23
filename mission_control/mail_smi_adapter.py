@@ -5,8 +5,22 @@ reader, summariser, or mail transport. No implicit consent is persisted.
 """
 from __future__ import annotations
 
+from oap.registry.tools import ToolCapability, ToolRegistry
+
 from . import mail_store
 from .mail_contract import authorize_smi, require_folder
+
+_MAIL_READ_TOOLS = ToolRegistry((
+    ToolCapability(
+        tool_id="oap.mail.owner.read",
+        name="OAP Mail Owner Read",
+        category="mail",
+        abilities=("mail.read",),
+        read_only=True,
+        requires_human_approval=True,
+        requires_kernel=True,
+    ),
+))
 
 
 def read_owner_folder(
@@ -14,6 +28,12 @@ def read_owner_folder(
     owner_consent: bool, ability: object = "mail.read",
 ) -> dict[str, object]:
     """Return a single bounded, owner-scoped folder read after explicit consent."""
+    requested = str(ability or "").strip().casefold()
+    if requested != "mail.read":
+        raise PermissionError("mail_smi_read_only")
+    _MAIL_READ_TOOLS.authorize_capability(
+        "oap.mail.owner.read", requested, mutation=False,
+    )
     decision = authorize_smi(
         actor_id=actor_id,
         mailbox_owner_id=mailbox_owner_id,
