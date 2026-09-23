@@ -206,7 +206,7 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
 def private_source_review_receipt(candidate: object) -> dict[str, object]:
     """In-memory, non-authoritative review receipt for one named source lead.
 
-    Never stores evidence, grants rights, downloads music or creates a Tune release.
+    Never stores evidence, grants rights, downloads music or creates an OAP Music release.
     A source-page claim cannot prove recording or composition ownership.
     """
     row = candidate if isinstance(candidate, Mapping) else {}
@@ -223,6 +223,16 @@ def private_source_review_receipt(candidate: object) -> dict[str, object]:
         "title": attribution_title,
         "artist": attribution_name,
         "claimed_licence": rights["claimed_licence"] if candidate_id else None,
+        "claimed_licence_reference_url": {
+            "CC_BY": "https://creativecommons.org/licenses/by/4.0/",
+            "CC_BY_SA": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "CC0": "https://creativecommons.org/publicdomain/zero/1.0/",
+        }.get(rights["claimed_licence"]) if candidate_id else None,
+        "attribution_source_url": page,
+        "attribution_changes_disclosure_review_required": (
+            rights["claimed_licence"] in ("CC_BY", "CC_BY_SA")
+            if candidate_id else False
+        ),
         "attribution_draft": (
             f"{attribution_title} — {attribution_name}"
             if attribution_title and attribution_name else None
