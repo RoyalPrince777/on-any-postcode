@@ -37,3 +37,21 @@ def test_invalid_and_unknown_actions_blocked():
     c = RafflesControl("p1")
     assert c.control("ADD_EVIDENCE", "operator", proof={"unknown": "doc"})["outcome"] == "BLOCKED_INVALID_PROOF"
     assert c.control("MAGIC_APPROVE", "operator")["outcome"] == "BLOCKED_UNKNOWN_ACTION"
+
+def test_stop_is_idempotent_and_blocks_all_execution():
+    c = RafflesControl("p1")
+    assert c.control("STOP", "operator")["outcome"] == "STOPPED"
+    assert c.control("STOP", "operator")["outcome"] == "STOPPED"
+    for action in ("open_entries", "take_payment", "select_winner", "publish", "deliver_prize"):
+        assert c.control(action, "founder")["outcome"] == "BLOCKED_STOP"
+    assert c.state == State.STOPPED
+    assert c.verify_receipts()
+
+def test_audit_chain_detects_missing_middle_receipt():
+    c = RafflesControl("p1")
+    c.control("REVIEW", "operator")
+    c.control("STOP", "operator")
+    c.control("RECOVER", "founder")
+    assert c.verify_receipts()
+    c.receipts.pop(1)
+    assert not c.verify_receipts()
