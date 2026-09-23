@@ -1,4 +1,5 @@
 """Isolated Book Access policy regressions; no DB, payments or deployment."""
+
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -85,4 +86,4 @@ def test_invalid_rotation_length_and_naive_clock_fail_closed():
     wrong = Rotation("premium-1", NOW, NOW + timedelta(days=8))
     assert decide_access(book(), user_id="reader", rotation=wrong, now=NOW).access is Access.DENIED
     with pytest.raises(ValueError, match="timezone_required"):
-        decide_access(book(), user_id="reader", now=datetime(2026, 9, 23))
+        decide_access(book(), user_id="reader", now=NOW.replace(tzinfo=None))
