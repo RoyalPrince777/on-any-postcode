@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import contextmanager
 
-from mission_control import mail_store, public_store
+from mission_control import mail_store, postgres_db, public_store
 
 
 def test_mail_folder_get_is_owner_scoped_and_no_store(client, monkeypatch):
@@ -290,3 +291,69 @@ def test_authenticated_smi_and_chat_alias_never_transfer_mail_body(
     assert len(calls) == 2
     assert all(actor == owner and folder == "inbox"
                for actor, owner, folder in calls)
+
+
+
+def test_authenticated_chat_mail_subject_read_binds_session_to_readonly_sql(
+    client, csrf, monkeypatch,
+):
+    expected_owner = "11111111-1111-4111-8111-111111111111"
+    queries = []
+    opens = []
+
+    class ReadOnlyConnection:
+        def execute(self, sql, parameters):
+            queries.append((sql, parameters))
+            return self
+
+        def fetchall(self):
+            return [("<private subject>", "sender@example.test")]
+
+        def commit(self):
+            raise AssertionError("SMI Mail read cannot commit")
+
+    @contextmanager
+    def connect(*, readonly=False):
+        opens.append(readonly)
+        assert readonly is True
+        yield ReadOnlyConnection()
+
+    monkeypatch.setattr(postgres_db, "connect", connect)
+    path = "/mission/chat/tools/mail/read"
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+
+    # Neither an omitted grant nor a supplied owner can reach SQL.
+    for payload in (
+        {"folder": "inbox"},
+        {"folder": "inbox", "owner_consent": True,
+         "owner_id": str(uuid.uuid4())},
+    ):
+        denied = client.post(path, json=payload, headers=headers)
+        assert denied.status_code == 403
+    assert opens == []
+
+    accepted = client.post(
+        path, json={"folder": "inbox", "owner_consent": True},
+        headers=headers,
+    )
+    assert accepted.status_code == 200
+    assert accepted.headers["Cache-Control"] == "no-store"
+    assert accepted.get_json()["items"] == [{
+        "subject": "<private subject>",
+        "correspondent": "sender@example.test",
+    }]
+    assert accepted.get_json()["execute"] is False
+    assert opens == [True]
+    assert len(queries) == 1
+    sql, params = queries[0]
+    assert sql.split("FROM oap_mail_items", 1)[0].strip() == (
+        "SELECT subject,correspondent"
+    )
+    assert params == (expected_owner, "inbox")
+    assert "WHERE owner_id=%s AND folder=%s" in sql
+    assert "body" not in accepted.get_data(as_text=True).casefold()
+
+    # Consent is one-call only, not sticky after a successful response.
+    denied_again = client.post(path, json={"folder": "inbox"}, headers=headers)
+    assert denied_again.status_code == 403
+    assert opens == [True]
