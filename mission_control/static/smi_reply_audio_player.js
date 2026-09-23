@@ -16,6 +16,7 @@
     alignment.predictedFromText!==false||alignment.storesAudio!==false||
     alignment.storesReplyText!==false||
     !Number.isFinite(alignment.audioDurationMs)||
+    alignment.audioDurationMs<100||alignment.audioDurationMs>300000||
     Math.abs(alignment.audioDurationMs-durationMs)>1||
     !Array.isArray(alignment.cues)||alignment.cues.length<3||
     alignment.cues.length>10000)return false;
@@ -23,7 +24,7 @@
   for(const cue of alignment.cues){
    if(!Number.isFinite(cue.atMs)||cue.atMs<=at||
       cue.atMs>alignment.audioDurationMs||!VISEMES.has(cue.viseme)||
-      cue.confidence<.8||cue.confidence>1||
+      !Number.isFinite(cue.confidence)||cue.confidence<.8||cue.confidence>1||
       Object.keys(cue).some(key=>!["atMs","viseme","confidence"].includes(key)))return false;
    at=cue.atMs;
   }
