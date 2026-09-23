@@ -19,7 +19,12 @@ MAX_SOURCE_BYTES = 32_000_000
 
 
 def verify_decoded_visible_geometry(
-    original_jpg: bytes, mask_rgba: bytes, geometry_rgba: bytes
+    original_jpg: bytes,
+    mask_rgba: bytes,
+    geometry_rgba: bytes,
+    *,
+    expected_mask_sha256: str | None = None,
+    expected_geometry_sha256: str | None = None,
 ) -> dict[str, object]:
     """Return private evidence only; never inferred anatomy or active rig status."""
     result: dict[str, object] = {
@@ -62,6 +67,21 @@ def verify_decoded_visible_geometry(
     ):
         result["reason"] = "full_canvas_geometry_required"
         return result
+    # A decoded source match must refer to the exact mask and geometry
+    # payloads named by the offline review manifest. Caller-supplied hashes
+    # are integrity checks, not independent Human Authority approval.
+    for payload, expected in (
+        (mask_rgba, expected_mask_sha256),
+        (geometry_rgba, expected_geometry_sha256),
+    ):
+        if (
+            not isinstance(expected, str)
+            or len(expected) != 64
+            or any(ch not in "0123456789abcdef" for ch in expected)
+            or not hmac.compare_digest(hashlib.sha256(payload).hexdigest(), expected)
+        ):
+            result["reason"] = "mask_or_geometry_digest_mismatch"
+            return result
     selected = 0
     for pixel in range(width * height):
         i, s = pixel * 4, pixel * 3
