@@ -101,3 +101,17 @@ def test_rehashed_restored_authority_still_rejected():
         verify_separate_readback_snapshots(
             history, anchor, authenticated_owner_id=OWNER,
         )
+
+
+@pytest.mark.parametrize("which,key,value", [
+    ("anchor", "storage_namespace", " history-store "),
+    ("anchor", "retrieval_id", " history-read-1 "),
+])
+def test_cosmetic_whitespace_cannot_prove_snapshot_separation(which, key, value):
+    history, anchor = snapshots()
+    target = history if which == "history" else anchor
+    target[key] = value
+    with pytest.raises(ClaimEdgeBlocked):
+        verify_separate_readback_snapshots(
+            history, anchor, authenticated_owner_id=OWNER,
+        )
