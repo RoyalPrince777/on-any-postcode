@@ -36,6 +36,8 @@ async function sha256(bytes){
   {...alignment,cues:[alignment.cues[0],{atMs:0,viseme:"wide",confidence:1},alignment.cues[2]]},
   {...alignment,audioDurationMs:300001},
   {...alignment,audioDurationMs:99},
+  {...alignment,alignmentErrorMeasured:true},
+  {...alignment,maxAlignmentErrorMs:40},
   {...alignment,cues:[alignment.cues[0],{atMs:100,viseme:"wide"},alignment.cues[2]]},
   {...alignment,cues:[alignment.cues[0],{atMs:100,viseme:"wide",confidence:"1"},alignment.cues[2]]},
   {...alignment,cues:[alignment.cues[0],{atMs:100,viseme:"wide",confidence:null},alignment.cues[2]]}
