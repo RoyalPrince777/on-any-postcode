@@ -61,8 +61,8 @@ jobs:
             --disable-dev-shm-usage --virtual-time-budget=4000 \
             --dump-dom "file://$PWD/tests/smi_mail_browser_acceptance.html" \
             2>/tmp/oap-mail-browser-stderr.log | tee /tmp/oap-mail-browser-proof.html
-          grep -q "OAP_MAIL_CHROMIUM_BOUNDARY_PASS" /tmp/oap-mail-browser-proof.html
-          if grep -q "OAP_MAIL_CHROMIUM_BOUNDARY_FAIL" /tmp/oap-mail-browser-proof.html; then exit 1; fi
+          grep -Fq '<pre id="browser-proof">OAP_MAIL_CHROMIUM_BOUNDARY_PASS</pre>' /tmp/oap-mail-browser-proof.html
+          if grep -Fq '<pre id="browser-proof">OAP_MAIL_CHROMIUM_BOUNDARY_FAIL' /tmp/oap-mail-browser-proof.html; then exit 1; fi
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
