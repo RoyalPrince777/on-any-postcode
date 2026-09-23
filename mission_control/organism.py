@@ -460,7 +460,7 @@ BODY_ORGANS: tuple[dict[str, Any], ...] = (
     },
     {
         "id": "tune_core",
-        "name": "OAP Tune Core",
+        "name": "OAP Music",
         "anatomy": "Auditory culture and expression",
         "responsibility": "Owns OAP music catalogue, release, playlist, rights and royalty workflow.",
         "safe_autonomy": ("observe", "self_check", "coherence_review", "queue_intent", "draft"),
