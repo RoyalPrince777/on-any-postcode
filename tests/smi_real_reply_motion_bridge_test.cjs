@@ -71,3 +71,5 @@ assert.equal(reversal.snapshot().failReason,"played_audio_clock_invalid");
 const drift=bridge();drift.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"audio-context"});
 assert.equal(drift.playbackSample({audioClockMs:10,observedAtMs:1051}),null);assert.equal(drift.snapshot().failReason,"played_audio_clock_drift");
 console.log("SMI_REAL_REPLY_MOTION_BRIDGE_PASS");
+
+require('./smi_reply_pcm_audio_gate_test.cjs');
