@@ -72,6 +72,8 @@ def verify_lab_readback(
         "storage_authenticity_verified": False,
         "independent_anchor_authenticity_verified": False,
         "durable_persistence_verified": False,
+        "independent_recovery_verified": False,
+        "release_ready": False,
         "scientific_truth_established": False,
         "publication_authorised": False,
         "execution_authorised": False,
