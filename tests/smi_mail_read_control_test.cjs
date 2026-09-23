@@ -58,7 +58,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
   assert.equal(yes.button.disabled,true);
   const dlg=yes.dialog();
   assert.equal(dlg.open,true);
-  yes.respond({ok:true,json:async()=>({items:[{subject:"<private>",correspondent:"owner@example.test",body:"SECRET BODY"}],execute:false,delivery_enabled:false})});
+  yes.respond({ok:true,json:async()=>({items:[{subject:"<private>",correspondent:"owner@example.test"}],execute:false,delivery_enabled:false})});
   await pending;
   const result=dlg.children[2];
   assert.equal(result.children[0].textContent,"<private> · owner@example.test");
