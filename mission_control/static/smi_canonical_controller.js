@@ -21,6 +21,7 @@ if(!oapForm||!oapInput||!oapSend)return;
 const oapStateApi=window.OAP_SMI_LIVE_STATE;
 let oapRuntime=oapStateApi?.initialState?oapStateApi.initialState():null;
 let oapLocked=false,oapAbort=null,oapRecognition=null,oapListening=false,oapListenStarted=0,oapListenTimer=null;
+const oapActiveCaptureStreams=new Set();
 let oapPaused=false,oapWorkStarted=0,oapWorkTimer=null,oapLiveRestartTimer=null,oapRecognitionToken=null,oapFinalTranscript='',oapResumeListenAfterPause=false,oapSpeechSeq=0;
 let oapVoiceEnabled=(oapSpeaker?.getAttribute('aria-pressed')!=='false');
 const oapLiveProof={
@@ -164,6 +165,8 @@ function oapCloseAttach(){if(oapAttachMenu)oapAttachMenu.classList.remove('show'
 function oapToggleAttach(){if(!oapAttachMenu||!oapPlus)return;const open=!oapAttachMenu.classList.contains('show');oapAttachMenu.classList.toggle('show',open);oapPlus.setAttribute('aria-expanded',String(open));oapSetStatus(open?'Tools and attachments open':'Tools and attachments closed');}
 function oapStopAll(){
  responseStopped=true;
+ for(const stream of oapActiveCaptureStreams){try{stream.getTracks().forEach(track=>track.stop())}catch{}}
+ oapActiveCaptureStreams.clear();
  oapClearLiveRestart();
  oapSpeechSeq+=1;
  oapApply('STOP');oapRecognitionToken=null;oapFinalTranscript='';oapShowLiveReply('');oapPlaybackState('stopped',oapRuntime?.epoch);oapProof('stop',{epoch:oapRuntime?.epoch});
@@ -196,28 +199,29 @@ function oapTogglePause(){
  oapSetStatus(oapRuntime.paused?'Paused by Human Authority':'Resumed');
 }
 function oapSetCapturedImage(dataUrl,name){if(typeof selectedImage==='undefined')return false;selectedImage=dataUrl;const preview=document.getElementById('image-preview'),img=document.getElementById('preview-img'),label=document.getElementById('preview-name');if(img)img.src=dataUrl;if(label)label.textContent=name;if(preview)preview.classList.add('show');oapInput.dispatchEvent(new Event('input',{bubbles:true}));return true;}
-async function oapCaptureFrame(stream,label){try{const video=document.createElement('video');video.srcObject=stream;video.muted=true;video.playsInline=true;await video.play();await new Promise(resolve=>setTimeout(resolve,180));const track=stream.getVideoTracks()[0],settings=track?.getSettings?.()||{};const canvas=document.createElement('canvas');canvas.width=settings.width||video.videoWidth||1280;canvas.height=settings.height||video.videoHeight||720;canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);const ok=oapSetCapturedImage(canvas.toDataURL('image/jpeg',0.9),label);oapSetStatus(ok?`${label} captured · routed through existing image/Studio path`:`${label} capture unavailable`);}finally{stream.getTracks().forEach(track=>track.stop());}}
-async function oapCamera(){oapCloseAttach();if(!navigator.mediaDevices?.getUserMedia){oapSetStatus('Camera unavailable on this device');return;}oapSetStatus('Camera permission required…');try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});await oapCaptureFrame(stream,'Camera');}catch(error){oapSetStatus(error?.name==='NotAllowedError'?'Camera permission blocked':'Camera unavailable');}}
-async function oapScreen(){oapCloseAttach();if(!navigator.mediaDevices?.getDisplayMedia){oapSetStatus('Screen sharing unavailable on this device');return;}oapSetStatus('Choose a screen to share…');try{const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});oapSetStatus('Sharing · capturing one governed frame…');await oapCaptureFrame(stream,'Screen');}catch(error){oapSetStatus(error?.name==='NotAllowedError'?'Screen sharing cancelled or blocked':'Screen sharing unavailable');}}
+async function oapCaptureFrame(stream,label,expectedEpoch){try{if(oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,expectedEpoch))return;const video=document.createElement('video');video.srcObject=stream;video.muted=true;video.playsInline=true;await video.play();await new Promise(resolve=>setTimeout(resolve,180));if(oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,expectedEpoch))return;const track=stream.getVideoTracks()[0],settings=track?.getSettings?.()||{};const canvas=document.createElement('canvas');canvas.width=settings.width||video.videoWidth||1280;canvas.height=settings.height||video.videoHeight||720;canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);if(oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,expectedEpoch))return;const ok=oapSetCapturedImage(canvas.toDataURL('image/jpeg',0.9),label);oapSetStatus(ok?`${label} captured · routed through existing image/Studio path`:`${label} capture unavailable`);}finally{stream.getTracks().forEach(track=>track.stop());oapActiveCaptureStreams.delete(stream);}}
+async function oapCamera(){oapCloseAttach();if(oapRuntime?.stopped){oapSetStatus('Stopped by Human Authority');return;}const captureEpoch=oapStateApi.token(oapRuntime);if(!navigator.mediaDevices?.getUserMedia){oapSetStatus('Camera unavailable on this device');return;}oapSetStatus('Camera permission required…');try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});oapActiveCaptureStreams.add(stream);await oapCaptureFrame(stream,'Camera',captureEpoch);}catch(error){if(oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,captureEpoch))return;oapSetStatus(error?.name==='NotAllowedError'?'Camera permission blocked':'Camera unavailable');}}
+async function oapScreen(){oapCloseAttach();if(oapRuntime?.stopped){oapSetStatus('Stopped by Human Authority');return;}const captureEpoch=oapStateApi.token(oapRuntime);if(!navigator.mediaDevices?.getDisplayMedia){oapSetStatus('Screen sharing unavailable on this device');return;}oapSetStatus('Choose a screen to share…');try{const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});if(oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,captureEpoch)){stream.getTracks().forEach(track=>track.stop());return;}oapSetStatus('Sharing · capturing one governed frame…');oapActiveCaptureStreams.add(stream);await oapCaptureFrame(stream,'Screen',captureEpoch);}catch(error){if(oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,captureEpoch))return;oapSetStatus(error?.name==='NotAllowedError'?'Screen sharing cancelled or blocked':'Screen sharing unavailable');}}
 function oapAddCaptureOptions(){if(!oapAttachMenu||oapAttachMenu.dataset.oapCaptureReady==='true')return;oapAttachMenu.dataset.oapCaptureReady='true';const camera=document.createElement('button');camera.type='button';camera.className='attach-option';camera.id='camera-button';camera.textContent='📷 Camera';camera.setAttribute('aria-label','Capture camera image');camera.addEventListener('click',oapCamera);const screen=document.createElement('button');screen.type='button';screen.className='attach-option';screen.id='screen-capture-button';screen.textContent='🖥️ Share Screen';screen.setAttribute('aria-label','Share screen and capture frame');screen.addEventListener('click',oapScreen);oapAttachMenu.prepend(screen);oapAttachMenu.prepend(camera);}
 
 async function oapSubmit(options={}){
  const fromLive=options?.fromLive===true;
- if(oapRuntime?.stopped){if(fromLive)return;oapApply('RESUME_FROM_STOP');}
+ if(oapRuntime?.stopped&&fromLive)return;
  if(oapLocked||oapSend.disabled)return;const text=oapInput.value.trim();const hasImage=typeof selectedImage!=='undefined'&&Boolean(selectedImage);const hasAttachment=typeof selectedAttachment!=='undefined'&&Boolean(selectedAttachment);if(!text&&!hasImage&&!hasAttachment)return;
+ if(oapRuntime?.stopped)oapApply('RESUME_FROM_STOP');
  const selectedThinkingLevel=oapThinkingLevel?.value||'auto';
  const selectedStudioMode=(typeof studioMode!=='undefined')?Boolean(studioMode):Boolean(document.getElementById('studio-button')?.classList.contains('active'));
  const userLabel=(text||'Analyse attached media')+(hasImage?'\n📷 Image attached':'')+(hasAttachment?'\n📎 '+selectedAttachment.name:'')+(codeMode?'\n⌘ Code proposal mode':'');
  add(userLabel,'user');
- oapLocked=true;responseStopped=false;oapPaused=false;oapShowLiveReply('');oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');oapAbort=new AbortController();activeController=oapAbort;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
+ oapLocked=true;responseStopped=false;oapPaused=false;oapShowLiveReply('');oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');oapAbort=new AbortController();const requestAbort=oapAbort;activeController=requestAbort;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
  try{
-  const response=await fetch(streamUrl,{method:'POST',signal:oapAbort.signal,headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message:text,display_name:document.getElementById('display-name')?.value||'OAP Founder',conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode,thinking_level:selectedThinkingLevel,studio_mode:selectedStudioMode})});
+  const response=await fetch(streamUrl,{method:'POST',signal:requestAbort.signal,headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message:text,display_name:document.getElementById('display-name')?.value||'OAP Founder',conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode,thinking_level:selectedThinkingLevel,studio_mode:selectedStudioMode})});
   if(!response.ok){let payload={};try{payload=await response.json()}catch{}throw new Error(payload?.error?.message||'Request failed');}
   if(!response.body)throw new Error('Streaming is not supported by this browser');
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
   while(true){
    while(oapPaused&&!responseStopped)await new Promise(resolve=>setTimeout(resolve,80));
-   const chunk=await reader.read();if(chunk.done)break;
+   const chunk=await reader.read();if(requestAbort.signal.aborted||oapAbort!==requestAbort)return;if(chunk.done)break;
    buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n/g,'\n');
    let boundary=-1;
    while((boundary=buffer.indexOf('\n\n'))>=0){
@@ -228,12 +232,13 @@ async function oapSubmit(options={}){
     if(parsed.event==='error')streamError=new Error(parsed.data.message||'Request failed');
    }
   }
-  if(streamError)throw streamError;if(!completeResult)throw new Error('The governed response did not finish recording.');
+  if(requestAbort.signal.aborted||oapAbort!==requestAbort)return;
+   if(streamError)throw streamError;if(!completeResult)throw new Error('The governed response did not finish recording.');
   conversationId=completeResult.conversation_id;if(!assistantBody)assistantBody=add(completeResult.response,'assistant');else renderMessage(assistantBody,completeResult.response);
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
   window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));oapShowLiveReply(completeResult.response);oapSpeak(completeResult.response);clearAttachments();oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');await loadConversations();
- }catch(error){if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
- finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}
+ }catch(error){if(error?.name!=='AbortError'&&!requestAbort.signal.aborted&&oapAbort===requestAbort&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
+ finally{if(oapAbort===requestAbort){if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}}
 }
 
 oapInput.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.shiftKey||event.isComposing)return;event.preventDefault();event.stopImmediatePropagation();oapSubmit();},true);
@@ -258,8 +263,8 @@ if(oapMic){
    oapInput.value=full;oapFinalTranscript=finalText;oapInput.dispatchEvent(new Event('input',{bubbles:true}));
   };
   oapRecognition.onend=()=>{
-   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
-   if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-end'});return;}
+   const expected=oapRecognitionToken;if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-end'});return;}
+   oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
    oapApply('LISTEN_END');oapProof('listenEnd',{epoch:oapRuntime?.epoch});
    if(oapRuntime.live){
     const submitToken=oapStateApi.token(oapRuntime);
@@ -282,8 +287,8 @@ if(oapMic){
    }else{oapSetStatus(oapFinalTranscript?'Voice captured · edit or send':'Voice input ended without a final transcript');}
   };
   oapRecognition.onerror=event=>{
-   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
-   if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-error'});return;}
+   const expected=oapRecognitionToken;if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-error'});return;}
+   oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
    oapApply('LISTEN_END');oapProof('listenEnd',{epoch:oapRuntime?.epoch,error:String(event?.error||'unknown')});
    if(event?.error==='not-allowed')oapProof('permissionDenied',{});
    if(oapRuntime.live)oapSetLive(false);

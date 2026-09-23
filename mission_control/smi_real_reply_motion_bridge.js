@@ -76,7 +76,7 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     return null;
   }
   function playbackStart({audioClockMs=0,observedAtMs,eventType,clockSource}={}){
-    if(!admitted||stopped||eventType!=="playing"||clockSource!==expectedClock||
+    if(!admitted||stopped||started||eventType!=="playing"||clockSource!==expectedClock||
       !finite(audioClockMs)||audioClockMs<0||audioClockMs>MAX_AUDIO_CLOCK_DELTA_MS||!finite(observedAtMs))return null;
     started=true;startAudioClockMs=audioClockMs;startObservedAtMs=observedAtMs;
     lastAudioClockMs=audioClockMs;lastObservedAtMs=observedAtMs;events+=1;
@@ -117,7 +117,7 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   function resetAfterHumanAction(approved){
     if(approved!==true||!stopped)return snapshot();
     epoch+=1;started=false;stopped=false;failedClosed=false;failReason=null;
-    startAudioClockMs=-1;startObservedAtMs=-1;lastAudioClockMs=-1;lastObservedAtMs=-1;events+=1;
+    startAudioClockMs=-1;startObservedAtMs=-1;lastAudioClockMs=-1;lastObservedAtMs=-1;lastStopAcknowledgementMs=null;events+=1;
     return snapshot();
   }
   return Object.freeze({snapshot,playbackStart,playbackSample,playbackEnd,humanStop,resetAfterHumanAction});
