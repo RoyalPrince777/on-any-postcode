@@ -1,39 +1,41 @@
-"""Private catalogue intake: no purchase or free-source claim becomes rights."""
+"""Open Cinema private collection: only open works and OAP originals."""
 from __future__ import annotations
 
 from mission_control import open_cinema
 
 
-def test_reported_purchases_are_private_unverified_unplayable():
+def test_scope_excludes_purchased_commercial_catalogue_and_invented_originals():
     result = open_cinema.private_collection_intake()
-    assert result["scope"] == "founder_only_private_editorial_intake"
+    assert result["scope"] == "founder_only_open_and_originals"
     assert result["existing_catalogue_preserved"] is True
-    assert [(item["title"], item["kind"]) for item in result["reported_purchases"]] == [
-        ("The Wire", "television_series"),
-        ("Friday", "feature_film_1995"),
+    assert result["eligible_collections"] == [
+        "open_licensed_and_public_domain", "oap_originals",
     ]
-    for item in result["reported_purchases"]:
-        assert item["purchase_receipt_checked"] is False
-        assert item["oap_distribution_licence_verified"] is False
-        assert item["territories_licensed"] == []
-        assert item["public_catalogue_enabled"] is False
-        assert item["playback_enabled"] is False
-        assert item["stream_url"] is None
-        assert item["download_url"] is None
+    assert result["purchased_commercial_films_in_scope"] is False
+    assert result["purchased_commercial_films"] == []
+    assert result["own_originals"] == []
+    assert result["original_titles_received"] is False
+    assert result["originals_require_embedded_rights_review"] is True
+    assert "reported_purchases" not in result
+    assert "other_old_films" not in result
 
 
-def test_no_invented_older_titles_or_automatic_free_licences():
+def test_open_discovery_is_not_free_to_watch_or_automatic_global_licence():
     result = open_cinema.private_collection_intake()
-    assert result["other_old_film_titles_received"] is False
-    assert result["other_old_films"] == []
-    assert {item["source"] for item in result["free_catalogue_discovery"]} == set(
-        open_cinema.SOURCES
-    )
+    assert {item["source"] for item in result["free_catalogue_discovery"]} == {
+        "wikimedia_commons", "library_of_congress", "internet_archive",
+    }
+    assert result["permitted_open_claims_for_review"] == [
+        "PUBLIC_DOMAIN", "CC0", "CC_BY", "CC_BY_SA",
+    ]
+    assert result["free_to_watch_alone_qualifies"] is False
     for item in result["free_catalogue_discovery"]:
+        assert item["title_clearance_state"] == "per_title_evidence_required"
         assert item["films_imported"] == 0
         assert item["licences_acquired"] is False
         assert item["playback_enabled"] is False
     assert result["public_catalogue_enabled"] is False
+    assert result["playback_enabled"] is False
     assert result["payments_enabled"] is False
     assert result["media_import_performed"] is False
 
