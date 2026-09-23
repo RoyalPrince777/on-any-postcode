@@ -39,3 +39,17 @@ def test_error_never_counts_as_successful_audio_end():
     assert "Voice playback failed" in finish
     assert "utterance.onerror=()=>finish('error')" in finish
     assert "mouthScaleY" not in finish
+
+
+def test_stale_voice_results_cannot_refill_composer_after_stop_or_live_off():
+    source = CONTROLLER.read_text(encoding="utf-8")
+    result = source[source.index("oapRecognition.onresult=event=>"):source.index("oapRecognition.onend=()=>")]
+    assert "tokenIsCurrent(oapRuntime,oapRecognitionToken)" in result
+    assert "!oapRuntime?.listening" in result
+    assert result.index("staleCallbackSuppressed") < result.index("oapInput.value=full")
+    stop = source[source.index("function oapStopAll()"):source.index("function oapTogglePause()")]
+    live_off = source[source.index("function oapSetLive("):source.index("function oapRequestListening(")]
+    assert "oapRecognitionToken=null;oapFinalTranscript=''" in stop
+    assert "oapRecognitionToken=null;oapFinalTranscript=''" in live_off
+    pagehide = source[source.index("window.addEventListener('pagehide'"):]
+    assert "oapFinalTranscript='';oapShowLiveReply('')" in pagehide
