@@ -32,7 +32,7 @@ window.runMailBrowserCheck=async()=>{
   check(captured.opts.headers["X-OAP-CSRF"]==="test-csrf","CSRF missing");
   check(JSON.parse(captured.opts.body).owner_consent===true,"consent missing");
   respond({ok:true,json:async()=>({items:[{
-    subject:"<private-test>",correspondent:"owner@example.test",body:"SECRET_MAIL_BODY"
+    subject:"<private-test>",correspondent:"owner@example.test"
   }],execute:false,delivery_enabled:false})});
   await afterTick();await afterTick();
   check(dialog.textContent.includes("<private-test>"),"subject absent");
