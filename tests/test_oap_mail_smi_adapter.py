@@ -116,7 +116,19 @@ def test_smi_subject_list_excludes_body_ids_and_unknown_fields(monkeypatch):
         "created_at": "secret-timestamp",
         "debug_secret": "INTERNAL_SECRET",
     }
-    monkeypatch.setattr(mail_store, "list_subjects", lambda *_: [private_row])
+    monkeypatch.setattr(
+        mail_store, "list_subjects",
+        lambda *_: [{
+            "subject": private_row["subject"],
+            "correspondent": private_row["correspondent"],
+        }],
+    )
+    monkeypatch.setattr(
+        mail_store, "list_items",
+        lambda *_: (_ for _ in ()).throw(
+            AssertionError("SMI cannot invoke the full-message query")
+        ),
+    )
     result = mail_smi_adapter.read_owner_folder(
         actor_id=OWNER, mailbox_owner_id=OWNER,
         folder="inbox", owner_consent=True,
