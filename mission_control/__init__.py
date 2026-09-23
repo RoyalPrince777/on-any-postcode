@@ -71,6 +71,7 @@ def init_app(app: Flask) -> None:
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
+    from .matrix_founder_decision_views import bp as matrix_founder_decisions_bp
     from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
     from .oap_data_views import bp as oap_data_bp
@@ -995,6 +996,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
+    app.register_blueprint(matrix_founder_decisions_bp)
     app.register_blueprint(checkpoint_bp, url_prefix="/mission")
     app.register_blueprint(maps_movement_direct_proof_bp, url_prefix="/mission")
     app.register_blueprint(alignment_bp, url_prefix="/mission")
