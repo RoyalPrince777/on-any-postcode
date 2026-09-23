@@ -37,6 +37,8 @@ def init_app(app: Flask) -> None:
         link_voice,
         link_youth_safety,
         linkup_safety,
+        mail_migration,
+        mail_preflight,
         movement_match_safety,
         movement_operations,
         oap_library_learning,
@@ -641,6 +643,24 @@ def init_app(app: Flask) -> None:
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-mail-preflight")
+    def _oap_mail_preflight() -> None:
+        """Read-only redacted Mail database/recovery observations."""
+        import json
+        print(json.dumps(mail_preflight.report()))
+
+    @app.cli.command("oap-mail-status")
+    def _oap_mail_status() -> None:
+        """Read-only Mail schema status; never performs migration."""
+        import json
+        print(json.dumps(mail_migration.schema_status()))
+
+    @app.cli.command("oap-mail-migration-plan")
+    def _oap_mail_migration_plan() -> None:
+        """Dry-run checksum/statement count only; no live DDL command."""
+        import json
+        print(json.dumps(mail_migration.init_schema(dry_run=True, assume_yes=True)))
 
     @app.cli.command("oap-esim-status")
     def _oap_esim_status() -> None:
