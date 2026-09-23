@@ -26,6 +26,15 @@ def _uuid(value: object) -> str | None:
         return None
 
 
+def _candidate_uid(value: object) -> str | None:
+    """Accept a bare UUID or exactly one canonical OAP Music prefix."""
+    if not isinstance(value, str):
+        return None
+    if value.startswith("oap:open-music:"):
+        value = value[len("oap:open-music:"):]
+    return _uuid(value)
+
+
 def _safe_text(value: object, limit: int) -> str | None:
     if not isinstance(value, str):
         return None
@@ -104,10 +113,7 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
     """Fail closed even when claimant supplies plausible licence and hash fields."""
     row = candidate if isinstance(candidate, Mapping) else {}
     proof = evidence if isinstance(evidence, Mapping) else {}
-    raw_id = row.get("candidate_id")
-    if isinstance(raw_id, str) and raw_id.startswith("oap:open-music:"):
-        raw_id = raw_id[len("oap:open-music:"):]
-    candidate_uid = _uuid(raw_id)
+    candidate_uid = _candidate_uid(row.get("candidate_id"))
     return {
         "candidate_id": f"oap:open-music:{candidate_uid}" if candidate_uid else None,
         "submitted_evidence_id": _uuid(proof.get("evidence_id")),
@@ -141,7 +147,7 @@ def asset_integrity_review(
     This is not an independent provenance check or a licence verification. A
     matching attacker-supplied digest must never make content publishable.
     """
-    uid = _uuid(candidate_id)
+    uid = _candidate_uid(candidate_id)
     actual = evidence_bytes_digest(asset_bytes)
     expected_valid = (
         isinstance(expected_sha256, str)
@@ -195,7 +201,7 @@ def source_directory() -> dict[str, object]:
 def tune_handoff_preview(candidate: object) -> dict[str, object]:
     """Inert Tune Core handoff: avoid a second release store and authority."""
     row = candidate if isinstance(candidate, Mapping) else {}
-    uid = _uuid(row.get("candidate_id"))
+    uid = _candidate_uid(row.get("candidate_id"))
     title = _safe_text(row.get("title"), 180)
     artist = _safe_text(row.get("artist"), 180)
     kind = row.get("source_kind")
