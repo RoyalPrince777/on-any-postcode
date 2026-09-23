@@ -64,12 +64,14 @@ def validate_draft_fields(
     if any(value is not None and not isinstance(value, str)
            for value in (subject, body, correspondent)):
         raise ValueError("mail_draft_field_invalid")
+    # Reject the raw header-bound fields before normalisation: stripping
+    # first could hide leading/trailing CR or LF and silently accept them.
+    if any(char in value for value in (subject or "", correspondent or "")
+           for char in ("\r", "\n", "\x00")):
+        raise ValueError("mail_draft_header_invalid")
     subject_text = (subject or "").strip()
     body_text = (body or "").strip()
     contact_text = (correspondent or "").strip()
-    if any(char in value for value in (subject_text, contact_text)
-           for char in ("\r", "\n", "\x00")):
-        raise ValueError("mail_draft_header_invalid")
     if not subject_text and not body_text:
         raise ValueError("mail_draft_empty")
     if len(subject_text) > 200 or len(body_text) > 20000 or len(contact_text) > 320:
