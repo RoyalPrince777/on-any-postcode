@@ -4,7 +4,8 @@ from mission_control import prince_sovereign_bank as bank
 
 def test_identity_and_units() -> None:
     state = bank.status()
-    assert state["name"] == "Prince Sovereign Bank"
+    assert state["name"] == "United States of Africa Royalty Bank"
+    assert state["banking_family"] == "Prince Sovereign Bank"
     assert state["currency"]["name"] == "SIKA"
     assert state["currency"]["subunit"] == "SEEDS"
     assert state["currency"]["subunits_per_unit"] == 100
