@@ -60,6 +60,8 @@ jobs:
           node tests/smi_private_source_provenance_test.cjs
           node --check mission_control/smi_private_provenance_admission.js
           node tests/smi_private_provenance_admission_test.cjs
+          node --check mission_control/smi_private_offline_receipt_binding.js
+          node tests/smi_private_offline_receipt_binding_test.cjs
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
