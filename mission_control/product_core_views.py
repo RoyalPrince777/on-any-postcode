@@ -208,6 +208,17 @@ def tune_catalogue_intelligence_preview():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict) or not isinstance(payload.get("candidates"), list):
         return _error("invalid_request", "Candidate list required.", 400)
+    genres = payload.get("genres")
+    if genres is not None and (not isinstance(genres, list)
+                               or len(genres) > len(open_music_intake.GENRES)
+                               or len(set(g for g in genres if isinstance(g, str))) != len(genres)
+                               or any(not isinstance(g, str) or g not in open_music_intake.GENRES
+                                      for g in genres)):
+        return _error("invalid_request", "Invalid genre filter.", 400)
+    if payload.get("licence_filter", "all") not in ("all", "preferred"):
+        return _error("invalid_request", "Invalid licence filter.", 400)
+    if payload.get("vocals", "All") not in ("All", "Vocals", "Instrumental"):
+        return _error("invalid_request", "Invalid vocals filter.", 400)
     try:
         _identity()  # The session, never claimant-supplied owner fields.
         return _no_store(make_response(jsonify(
