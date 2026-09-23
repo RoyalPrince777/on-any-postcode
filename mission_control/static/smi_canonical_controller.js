@@ -260,8 +260,8 @@ if(oapMic){
    oapInput.value=full;oapFinalTranscript=finalText;oapInput.dispatchEvent(new Event('input',{bubbles:true}));
   };
   oapRecognition.onend=()=>{
-   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
-   if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-end'});return;}
+   const expected=oapRecognitionToken;if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-end'});return;}
+   oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
    oapApply('LISTEN_END');oapProof('listenEnd',{epoch:oapRuntime?.epoch});
    if(oapRuntime.live){
     const submitToken=oapStateApi.token(oapRuntime);
@@ -284,8 +284,8 @@ if(oapMic){
    }else{oapSetStatus(oapFinalTranscript?'Voice captured · edit or send':'Voice input ended without a final transcript');}
   };
   oapRecognition.onerror=event=>{
-   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
-   if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-error'});return;}
+   const expected=oapRecognitionToken;if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-error'});return;}
+   oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
    oapApply('LISTEN_END');oapProof('listenEnd',{epoch:oapRuntime?.epoch,error:String(event?.error||'unknown')});
    if(event?.error==='not-allowed')oapProof('permissionDenied',{});
    if(oapRuntime.live)oapSetLive(false);
