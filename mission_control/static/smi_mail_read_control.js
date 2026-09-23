@@ -38,16 +38,26 @@
       results.textContent="Reading your inbox…";
       dialog.append(heading,close,results);
       let controller=new AbortController();
-      dialog.addEventListener("close",()=>{
+      let cleared=false;
+      const clearMail=()=>{
+        if(cleared)return;
+        cleared=true;
         controller.abort();
         dialog.replaceChildren();
         dialog.remove();
         button.disabled=false;
         button.focus();
-      },{once:true});
-      close.addEventListener("click",()=>dialog.close());
-      const leave=()=>{if(dialog.open)dialog.close();};
-      window.addEventListener("pagehide",leave,{once:true});
+        window.removeEventListener("pagehide",leave);
+      };
+      const leave=()=>{if(dialog.open)dialog.close();clearMail();};
+      dialog.addEventListener("close",clearMail,{once:true});
+      dialog.addEventListener("cancel",event=>{
+        event.preventDefault();
+        dialog.close();
+        clearMail();
+      });
+      close.addEventListener("click",()=>{dialog.close();clearMail();});
+      window.addEventListener("pagehide",leave);
       document.body.append(dialog);
       try{
         dialog.showModal();
@@ -79,10 +89,7 @@
         }
       }finally{
         if(!dialog.open){
-          controller.abort();
-          dialog.replaceChildren();
-          dialog.remove();
-          button.disabled=false;
+          clearMail();
         }
       }
     });
