@@ -5,6 +5,7 @@ on:
     paths:
       - "mission_control/templates/local_map.html"
       - "mission_control/static/oap_map_navigation.*"
+      - "mission_control/static/oap_os_map_bridge.js"
       - "tests/map_chromium_visibility_proof.py"
       - ".github/workflows/map-chromium-proof.yml"
 
