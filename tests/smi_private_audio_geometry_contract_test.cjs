@@ -6,7 +6,7 @@ const sha="a".repeat(64),geometryBytes=Uint8Array.from([1,2,3,4]);
 const geometrySha=crypto.createHash("sha256").update(geometryBytes).digest("hex");
 let audio={admitted:true,alignmentContractAccepted:true,started:true,stopped:false,failedClosed:false,epoch:0};
 let body={stopped:false,geometryApproved:false,epoch:0};
-const audioBridge={snapshot:()=>({...audio})},characterRig={snapshot:()=>({...body})};
+const audioBridge={snapshot:()=>({...audio}),acceptsIssuedCue:issued=>issued===cue},characterRig={snapshot:()=>({...body})};
 const cue={type:"played-audio-viseme",epoch:0,viseme:"wide",audioClockMs:80,confidence:.96,
  productionApproved:false,humanFinalApproved:false};
 const geometry={reviewedByFounder:true,sourceVerified:true,sourceSha256:sha,replyId:"reply-123",
@@ -30,6 +30,9 @@ for(const override of [
  {geometry:{...geometry,viseme:"closed"}},
  {geometry:{...geometry,replyId:"reply-124"}},
  {geometry:{...geometry,productionApproved:true}},
+ {cue:{...cue}},
+ {audioBridge:{snapshot:()=>({...audio})}},
+ {audioBridge:{snapshot:()=>({...audio}),acceptsIssuedCue:()=>false}},
  {cue:{...cue,viseme:"silence"}},
  {cue:{...cue,epoch:1}},
  {cue:{...cue,confidence:.79}},
@@ -51,7 +54,7 @@ assert.equal(accepted.lipSyncProven,false);
 audio={admitted:true,alignmentContractAccepted:true,started:true,stopped:false,failedClosed:false,epoch:0};
 body={stopped:false,geometryApproved:false,epoch:0};
 let audioReads=0;
-const stopDuringVerification={snapshot:()=>{
+const stopDuringVerification={acceptsIssuedCue:issued=>issued===cue,snapshot:()=>{
   audioReads++;
   if(audioReads===2)audio={...audio,started:false,stopped:true,epoch:1};
   return {...audio};
@@ -60,7 +63,7 @@ assert.equal(admit({...args,audioBridge:stopDuringVerification}),null);
 assert.equal(audioReads,2);
 audio={admitted:true,alignmentContractAccepted:true,started:true,stopped:false,failedClosed:false,epoch:0};
 let bodyReads=0;
-const bodyStopsDuringVerification={snapshot:()=>{
+const bodyStopsDuringVerification={acceptsIssuedCue:issued=>issued===cue,snapshot:()=>{
   bodyReads++;
   if(bodyReads===2)body={...body,stopped:true,epoch:1};
   return {...body};
