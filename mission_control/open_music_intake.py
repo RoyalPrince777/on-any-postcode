@@ -17,6 +17,7 @@ LICENCE_KINDS = frozenset({
     "CC0", "CC_BY", "CC_BY_SA", "PUBLIC_DOMAIN", "DIRECT_PERMISSION",
 })
 MAX_CANDIDATES = 25
+MAX_LEADS_SCAN = 250
 
 
 def _uuid(value: object) -> str | None:
@@ -46,7 +47,9 @@ def candidate_preview(rows: object) -> dict[str, object]:
     source = rows if isinstance(rows, list) else []
     candidates: list[dict[str, object]] = []
     seen: set[str] = set()
-    for row in source[:MAX_CANDIDATES]:
+    for row in source[:MAX_LEADS_SCAN]:
+        if len(candidates) == MAX_CANDIDATES:
+            break
         if not isinstance(row, Mapping):
             continue
         uid = _uuid(row.get("candidate_id"))
