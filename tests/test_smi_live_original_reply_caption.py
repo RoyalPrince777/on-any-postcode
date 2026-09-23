@@ -17,7 +17,7 @@ def test_one_accessible_live_reply_caption_in_original_character():
 def test_only_real_completed_reply_is_displayed_without_html_injection():
     source = CONTROLLER.read_text(encoding="utf-8")
     assert "oapLiveCaption.textContent=visible?String(text):''" in source
-    assert "oapShowLiveReply(completeResult.response);oapSpeak(completeResult.response)" in source
+    assert "oapShowLiveReply(completeResult.response);oapSpeak(completeResult.response,completeResult)" in source
     assert "oapRuntime?.live&&!oapRuntime.stopped" in source
     assert "oapLiveCaption.innerHTML" not in source
     assert "oap-smi-playback-state" in source
