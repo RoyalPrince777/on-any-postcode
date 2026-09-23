@@ -29,7 +29,7 @@ def test_authenticated_mail_app_does_not_read_or_write_on_page_load(
     assert "OAP Mail" in page
     assert "No email delivery" in page
     assert "Saving a draft does not send a message" in page
-    assert "Store installation remains release pending" in page
+    assert "This preview is not a released email service" in page
     assert "oap_mail_app.js" in page
     assert "/mail/drafts" in page
     assert "/mail/__FOLDER__" in page
