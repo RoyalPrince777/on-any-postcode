@@ -26,7 +26,7 @@ def test_full_anatomy_contains_oap_owned_organs_and_single_brain():
     assert systems["oap_core"]["name"] == "OAP CORE"
     assert systems["nexus"]["anatomy"] == "Nervous system"
     assert systems["living_kernel"]["anatomy"] == "Heart"
-    assert organs["tune_core"]["name"] == "OAP Tune Core"
+    assert organs["tune_core"]["name"] == "OAP Music"
     assert organs["commerce_core"]["name"] == "OAP Commerce Core"
     assert organs["post_core"]["name"] == "OAP Post Core"
     assert organs["movement"]["anatomy"] == "Locomotor system"
