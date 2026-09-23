@@ -72,6 +72,7 @@ def init_app(app: Flask) -> None:
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .mail_routes import bp as mail_bp
+    from .mail_store_catalog_routes import bp as mail_store_catalog_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
     from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
@@ -957,6 +958,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_voice_bp)
     app.register_blueprint(link_message_bp)
     app.register_blueprint(mail_bp)
+    app.register_blueprint(mail_store_catalog_bp)
     app.register_blueprint(travel_supply_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
