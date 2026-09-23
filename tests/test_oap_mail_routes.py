@@ -218,17 +218,27 @@ def test_chat_tool_alias_denies_implicit_consent_and_owner_override(
     assert calls == []
 
 
-def test_chat_tool_alias_requires_auth_and_csrf(
-    client, anonymous_client, monkeypatch,
+def test_chat_tool_alias_requires_authentication(
+    anonymous_client, monkeypatch,
 ):
     calls = []
     monkeypatch.setattr(mail_store, "list_items",
                         lambda *_: calls.append(True))
-    payload = {"folder": "inbox", "owner_consent": True}
-    assert anonymous_client.post(
-        "/mission/chat/tools/mail/read", json=payload,
-    ).status_code == 401
-    assert client.post(
-        "/mission/chat/tools/mail/read", json=payload,
-    ).status_code == 403
+    response = anonymous_client.post(
+        "/mission/chat/tools/mail/read",
+        json={"folder": "inbox", "owner_consent": True},
+    )
+    assert response.status_code == 401
+    assert calls == []
+
+
+def test_chat_tool_alias_requires_csrf(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True))
+    response = client.post(
+        "/mission/chat/tools/mail/read",
+        json={"folder": "inbox", "owner_consent": True},
+    )
+    assert response.status_code == 403
     assert calls == []
