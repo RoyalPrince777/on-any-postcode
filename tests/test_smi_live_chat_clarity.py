@@ -94,3 +94,16 @@ def test_stale_capture_permission_outcomes_do_not_overwrite_stop():
     assert capture.count(guard) >= 2
     assert "stream.getTracks().forEach(track=>track.stop());return;}oapSetStatus('Sharing" in capture
     assert capture.index("stream.getTracks().forEach(track=>track.stop());return;}oapSetStatus('Sharing") < capture.index("await oapCaptureFrame(stream,'Screen',captureEpoch)")
+
+
+def test_human_stop_closes_active_camera_and_screen_tracks_synchronously():
+    source = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text(encoding="utf-8")
+    assert "const oapActiveCaptureStreams=new Set();" in source
+    stop = source[source.index("function oapStopAll(){"):source.index("function oapTogglePause(){")]
+    assert "for(const stream of oapActiveCaptureStreams)" in stop
+    assert "stream.getTracks().forEach(track=>track.stop())" in stop
+    assert stop.index("oapActiveCaptureStreams.clear()") < stop.index("oapApply('STOP')")
+    capture = source[source.index("async function oapCaptureFrame("):source.index("function oapAddCaptureOptions()")]
+    assert "oapActiveCaptureStreams.delete(stream)" in capture
+    assert "oapActiveCaptureStreams.add(stream);await oapCaptureFrame(stream,'Camera',captureEpoch)" in capture
+    assert "oapActiveCaptureStreams.add(stream);await oapCaptureFrame(stream,'Screen',captureEpoch)" in capture
