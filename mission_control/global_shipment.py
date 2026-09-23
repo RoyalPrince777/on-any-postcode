@@ -43,13 +43,13 @@ def draft_global_shipment(
     parcel = _uuid(parcel_id, "parcel_id")
     owner = _uuid(owner_identity_id, "owner_identity_id")
     if isinstance(legs, (str, bytes)) or not isinstance(legs, Sequence):
-        raise ValueError("invalid_legs")
+        raise TypeError("invalid_legs")
     if not 1 <= len(legs) <= 16:
         raise ValueError("invalid_leg_count")
     clean: list[dict[str, object]] = []
     for index, raw in enumerate(legs, start=1):
         if not isinstance(raw, Mapping):
-            raise ValueError("invalid_leg")
+            raise TypeError("invalid_leg")
         if set(raw) & _BLOCKED or set(raw) != _ALLOWED_FIELDS:
             raise ValueError("unsupported_leg_fields")
         sequence = raw["sequence"]
