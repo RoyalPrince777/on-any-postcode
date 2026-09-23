@@ -1,6 +1,6 @@
 """Guard the live SMI surface against persistent status/finished-work overlays."""
-from pathlib import Path
 import hashlib
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
