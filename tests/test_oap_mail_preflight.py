@@ -260,3 +260,27 @@ def test_preflight_redacts_unrecognised_mail_schema_error(monkeypatch):
     assert result["recovery_point_verified"] is False
     assert result["release_ready"] is False
     assert "password" not in str(result)
+
+
+def test_preflight_does_not_promote_matching_named_but_wrong_shaped_mail(
+    monkeypatch,
+):
+    _sources(monkeypatch, source="platform_database_url")
+    monkeypatch.setattr(
+        postgres_db, "postgres_status",
+        lambda: {"source": "platform_database_url", "reachable": True,
+                 "initialized": True},
+    )
+    monkeypatch.setattr(
+        mail_migration, "schema_status",
+        lambda: {"schema_ready": False,
+                 "error": "mail_schema_structure_mismatch"},
+    )
+    result = mail_preflight.report()
+    assert result["database_reachable"] is True
+    assert result["base_schema_ready"] is True
+    assert result["mail_schema_ready"] is False
+    assert result["error"] == "mail_schema_structure_mismatch"
+    assert result["target_mapping_proven"] is False
+    assert result["recovery_point_verified"] is False
+    assert result["release_ready"] is False

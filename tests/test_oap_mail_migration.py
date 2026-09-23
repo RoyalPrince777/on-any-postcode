@@ -9,9 +9,10 @@ from mission_control import mail_migration, mail_preflight, postgres_db
 
 
 class Connection:
-    def __init__(self, version=None, fail_schema=False):
+    def __init__(self, version=None, fail_schema=False, invalid_structure=None):
         self.version = version
         self.fail_schema = fail_schema
+        self.invalid_structure = invalid_structure
         self.commands = []
         self.committed = False
         self.rolled_back = False
@@ -28,7 +29,33 @@ class Connection:
         sql = self.commands[-1][0]
         if "SELECT checksum FROM oap_schema_migrations" in sql:
             return (self.version,) if self.version is not None else None
+        if "SELECT indexdef FROM pg_indexes" in sql:
+            if self.invalid_structure == "index":
+                return ("CREATE INDEX idx_oap_mail_owner_folder_created "
+                        + "ON oap_mail_items (subject)",)
+            return ("CREATE INDEX idx_oap_mail_owner_folder_created "
+                    + "ON oap_mail_items (owner_id, folder, created_at DESC)",)
         return (1,)
+
+    def fetchall(self):
+        sql = self.commands[-1][0]
+        if "FROM information_schema.columns" in sql:
+            columns = [
+                ("id", "uuid", "NO"), ("owner_id", "uuid", "NO"),
+                ("folder", "text", "NO"), ("subject", "text", "NO"),
+                ("body", "text", "NO"), ("correspondent", "text", "NO"),
+                ("created_at", "timestamp with time zone", "NO"),
+                ("updated_at", "timestamp with time zone", "NO"),
+            ]
+            if self.invalid_structure == "columns":
+                columns = [row for row in columns if row[0] != "owner_id"]
+            return columns
+        if "FROM pg_constraint" in sql:
+            if self.invalid_structure == "owner_fk":
+                return [("FOREIGN KEY (owner_id) REFERENCES other(id)",)]
+            return [("FOREIGN KEY (owner_id) REFERENCES users(id) "
+                     + "ON DELETE CASCADE",)]
+        raise AssertionError("unexpected read-only catalogue query")
 
     def commit(self):
         self.committed = True
@@ -153,3 +180,23 @@ def test_mail_migration_rejects_target_switch_before_connection(monkeypatch):
     with pytest.raises(RuntimeError, match="mail_database_target_changed"):
         mail_migration.init_schema(assume_yes=True)
     assert operations == []
+
+
+@pytest.mark.parametrize("invalid,missing", [
+    ("columns", "columns_ready"),
+    ("index", "index_shape_ready"),
+    ("owner_fk", "owner_fk_ready"),
+])
+def test_mail_schema_rejects_matching_names_with_wrong_shape(
+    monkeypatch, invalid, missing,
+):
+    checksum = mail_migration._checksum(mail_migration._statements())
+    connection = Connection(version=checksum, invalid_structure=invalid)
+    attach(monkeypatch, connection)
+    result = mail_migration.schema_status()
+    assert result["table_ready"] is True
+    assert result["index_ready"] is True
+    assert result[missing] is False
+    assert result["schema_ready"] is False
+    assert result["error"] == "mail_schema_structure_mismatch"
+    assert not connection.committed
