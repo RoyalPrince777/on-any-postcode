@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from . import (
     distribution_intelligence,
     entertainment_catalogue,
+    open_cinema,
     product_core_services,
     product_cores,
     product_store,
@@ -194,6 +195,20 @@ def entertainment_status():
         )))
     except (ValueError, RuntimeError):
         return _error("entertainment_unavailable", "OAP Entertainment is temporarily unavailable.", 503)
+
+
+@bp.post("/entertainment/open-cinema/preview")
+@web_security.login_required(api=True, founder_only=True)
+def open_cinema_preview():
+    """Private candidate preview, no fetch, persistence or publishing."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("candidates"), list):
+        return _error("invalid_request", "Candidate list required.", 400)
+    return _no_store(make_response(jsonify(
+        open_cinema.preview(payload["candidates"])
+    )))
 
 
 @bp.get("/distribution")
