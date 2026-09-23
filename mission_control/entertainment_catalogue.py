@@ -41,8 +41,11 @@ def _release(row: object) -> dict[str, object] | None:
         not isinstance(title, str)
         or not title.strip()
         or len(title) > 180
+        or not isinstance(kind, str)
         or kind not in RELEASE_TYPES
+        or not isinstance(state, str)
         or state not in RELEASE_STATES
+        or not isinstance(rights, str)
         or rights not in RIGHTS_STATES
     ):
         return None
