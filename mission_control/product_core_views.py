@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    certification,
     distribution_intelligence,
     product_core_services,
     product_cores,
@@ -63,6 +64,8 @@ def _handle_write(action):
         return _error("permission_denied", str(exc), 403)
     except (TypeError, ValueError) as exc:
         return _error("invalid_request", str(exc), 400)
+    except certification.CertificationUnavailable:
+        return _error("merchant_certification_unavailable", "Merchant certification is unavailable.", 503)
     except (public_store.PublicStoreUnavailable, product_store.ProductStoreUnavailable, RuntimeError):
         return _error("organ_unavailable", "The OAP organ store is temporarily unavailable.", 503)
     except Exception:  # noqa: BLE001 - redact storage/provider implementation details.
@@ -336,13 +339,22 @@ def create_storefront():
     return _handle_write(action)
 
 
+def _require_certified_merchant(identity_id: str) -> None:
+    """Shared Commerce entry guard; identity certification is not listing rights."""
+    merchant = certification.identity_status(identity_id)
+    if merchant.get("merchant") is not True:
+        raise PermissionError("certified_merchant_required")
+
+
 @bp.post("/commerce/products")
 @web_security.login_required(api=True)
 def create_product():
     def action():
         payload = _payload()
+        seller_id = _identity(sync=True)
+        _require_certified_merchant(seller_id)
         product_id = product_store.create_product(
-            _identity(sync=True),
+            seller_id,
             name=payload.get("name"),
             description=payload.get("description"),
             price=payload.get("price"),
