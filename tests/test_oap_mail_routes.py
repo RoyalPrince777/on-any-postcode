@@ -74,3 +74,102 @@ def test_mail_migration_is_explicit_and_separate():
     assert "owner_id UUID NOT NULL REFERENCES users(id)" in sql
     assert "ON oap_mail_items(owner_id,folder,created_at DESC)" in sql
     assert "CREATE TABLE IF NOT EXISTS messages" not in sql
+
+
+
+def test_smi_mail_requires_authentication_and_never_calls_store(
+    anonymous_client, monkeypatch,
+):
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True))
+    response = anonymous_client.post(
+        "/mail/smi/read", json={"owner_consent": True, "folder": "inbox"},
+    )
+    assert response.status_code == 401
+    assert calls == []
+
+
+def test_smi_mail_requires_csrf_and_never_calls_store(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True))
+    response = client.post(
+        "/mail/smi/read", json={"owner_consent": True, "folder": "inbox"},
+    )
+    assert response.status_code == 403
+    assert calls == []
+
+
+def test_smi_mail_one_call_consent_returns_owner_scoped_read(
+    client, csrf, monkeypatch,
+):
+    calls = []
+    def read(actor, owner, folder):
+        calls.append((actor, owner, folder))
+        return [{"subject": "private"}]
+    monkeypatch.setattr(mail_store, "list_items", read)
+    response = client.post(
+        "/mail/smi/read",
+        json={"owner_consent": True, "folder": "inbox"},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    payload = response.get_json()
+    assert payload["items"] == [{"subject": "private"}]
+    assert payload["execute"] is False
+    assert payload["delivery_enabled"] is False
+    assert payload["production_approved"] is False
+    assert calls and calls[0][0] == calls[0][1]
+
+
+def test_smi_mail_does_not_remember_consent(client, csrf, monkeypatch):
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True) or [])
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+    accepted = client.post(
+        "/mail/smi/read",
+        json={"owner_consent": True, "folder": "inbox"},
+        headers=headers,
+    )
+    denied = client.post(
+        "/mail/smi/read", json={"folder": "inbox"}, headers=headers,
+    )
+    assert accepted.status_code == 200
+    assert denied.status_code == 403
+    assert calls == [True]
+
+
+def test_smi_mail_refuses_owner_override_and_send(
+    client, csrf, monkeypatch,
+):
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True))
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+    for extra in ({"owner_id": str(uuid.uuid4())},
+                  {"mailbox_owner_id": str(uuid.uuid4())},
+                  {"ability": "mail.send"}):
+        response = client.post(
+            "/mail/smi/read",
+            json={"owner_consent": True, "folder": "inbox", **extra},
+            headers=headers,
+        )
+        assert response.status_code == 403
+    assert calls == []
+
+
+def test_smi_mail_store_unavailable_redacts_detail(client, csrf, monkeypatch):
+    def unavailable(*_):
+        raise mail_store.MailUnavailable("secret-database-host")
+    monkeypatch.setattr(mail_store, "list_items", unavailable)
+    response = client.post(
+        "/mail/smi/read",
+        json={"owner_consent": True, "folder": "inbox"},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 503
+    assert "secret-database-host" not in response.get_data(as_text=True)
