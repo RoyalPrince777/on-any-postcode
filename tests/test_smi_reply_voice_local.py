@@ -1,9 +1,9 @@
 """Real local voice requires WAV bytes and eSpeak-issued phoneme events."""
 import hashlib
 import io
-from itertools import pairwise
 import json
 import wave
+from itertools import pairwise
 
 import pytest
 
