@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>OAP Mail · My World</title>
+  <style>
+    :root{font-family:system-ui,sans-serif;color-scheme:dark;background:#10131a;color:#faf7ff}
+    *{box-sizing:border-box}body{margin:0;min-height:100dvh}
+    main{max-width:880px;margin:auto;padding:clamp(1rem,4vw,3rem)}
+    header{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+    a{color:#d4b5ff}h1{margin:.25rem 0}p{line-height:1.5}
+    .notice{border:1px solid #8a6caf;border-radius:12px;padding:1rem;background:#231932}
+    nav{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}
+    button,input,textarea{font:inherit;border-radius:9px;padding:.7rem;color:inherit}
+    button{cursor:pointer;border:1px solid #a27acb;background:#38284a}
+    button:disabled{opacity:.55;cursor:default}
+    input,textarea{width:100%;border:1px solid #715a8b;background:#191723}
+    label{display:block;margin:.8rem 0}textarea{min-height:8rem;resize:vertical}
+    section{border:1px solid #494057;border-radius:12px;padding:1rem;margin:1rem 0}
+    .mail-entry{border-top:1px solid #4d435c;padding:.75rem 0;white-space:pre-wrap;overflow-wrap:anywhere}
+    .mail-entry:first-child{border-top:0} .secondary{color:#d9c9e3}
+    #mail-status{min-height:1.6rem}
+  </style>
+</head>
+<body>
+<main id="oap-mail-app"
+  data-folder-url="{{ url_for('oap_mail_private.folder_items',folder='__FOLDER__') }}"
+  data-draft-url="{{ url_for('oap_mail_private.create_draft') }}"
+  data-csrf-token="{{ csrf_token }}">
+  <header><div><small>ON ANY POSTCODE LTD · My World</small><h1>✉ OAP Mail</h1>
+  <p>Your Mail. Your World. Your Control.</p></div><a href="/">OAP World</a></header>
+  <p class="notice" role="note"><strong>Private Mail preview · No email delivery.</strong>
+  Inbox and drafts require your authenticated mailbox and configured Mail database.
+  Saving a draft does not send a message. OAP Store installation remains release pending.</p>
+  <nav aria-label="Mail folders">
+    <button type="button" data-mail-folder="inbox">Inbox</button>
+    <button type="button" data-mail-folder="draft">Drafts</button>
+    <button type="button" data-mail-folder="sent">Sent</button>
+    <button type="button" data-mail-folder="review">Review</button>
+  </nav>
+  <p id="mail-status" role="status" aria-live="polite">Choose a folder to read your Mail.</p>
+  <section aria-label="Private mailbox"><h2 id="mail-folder-title">Mailbox</h2>
+    <div id="mail-items"></div></section>
+  <section aria-label="Save a draft">
+    <h2>Write an unsent draft</h2>
+    <form id="mail-draft-form">
+      <label>Correspondent<input name="correspondent" maxlength="320" autocomplete="off"></label>
+      <label>Subject<input name="subject" maxlength="200" autocomplete="off"></label>
+      <label>Body<textarea name="body" maxlength="20000"></textarea></label>
+      <button type="submit">Save draft — do not send</button>
+    </form>
+  </section>
+</main>
+<script defer src="{{ url_for('mission_control.static',filename='oap_mail_app.js') }}"></script>
+</body>
+</html>
