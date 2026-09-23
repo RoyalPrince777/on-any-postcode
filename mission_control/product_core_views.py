@@ -211,7 +211,7 @@ def tune_catalogue_intelligence_preview():
     genres = payload.get("genres")
     if genres is not None and (not isinstance(genres, list)
                                or len(genres) > len(open_music_intake.GENRES)
-                               or len(set(g for g in genres if isinstance(g, str))) != len(genres)
+                               or len({g for g in genres if isinstance(g, str)}) != len(genres)
                                or any(not isinstance(g, str) or g not in open_music_intake.GENRES
                                       for g in genres)):
         return _error("invalid_request", "Invalid genre filter.", 400)
