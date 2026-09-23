@@ -65,6 +65,7 @@ assert.equal(candidate.snapshot().lastStopAcknowledgementMs,2);assert.equal(cand
 assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:2020}),null);
 assert.equal(candidate.resetAfterHumanAction(false).stopped,true);
 assert.equal(candidate.resetAfterHumanAction(true).epoch,stoppedEpoch+1);
+assert.equal(candidate.snapshot().lastStopAcknowledgementMs,null);
 
 const reversal=bridge();reversal.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"audio-context"});
 assert.equal(reversal.playbackSample({audioClockMs:100,observedAtMs:1100}).viseme,"wide");
