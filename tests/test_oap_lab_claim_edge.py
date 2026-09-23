@@ -156,3 +156,15 @@ def test_reproducible_secret_safe_receipt():
     assert a["receipt_sha256"] != a["source_sha256"][0]
     assert RAW.decode() not in str(a)
     assert "Synthetic research claim" not in str(a)
+
+
+@pytest.mark.parametrize("changes", [
+    {"private_subject": "false"},
+    {"private_subject": 1},
+    {"private_subject": True, "consent_for_research": "yes", "redacted": True},
+    {"private_subject": True, "consent_for_research": True, "redacted": "yes"},
+    {"stopped": "false"},
+])
+def test_mind_privacy_and_stop_controls_require_explicit_booleans(changes):
+    with pytest.raises(ClaimEdgeBlocked, match="explicit_boolean_privacy_controls_required"):
+        edge(**changes)
