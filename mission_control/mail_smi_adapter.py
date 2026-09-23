@@ -49,7 +49,18 @@ def read_owner_folder(
     owner = decision["mailbox_owner_id"]
     # Restrict columns at the database boundary as well as the response.
     # The original full-record Mail store remains available separately.
-    projected = mail_store.list_subjects(actor_id, owner, selected)
+    subjects = mail_store.list_subjects(actor_id, owner, selected)
+    # Defence in depth: future store fields must not cross the SMI route.
+    projected = [
+        {
+            "subject": item.get("subject"),
+            **(
+                {"correspondent": item["correspondent"]}
+                if "correspondent" in item else {}
+            ),
+        }
+        for item in subjects
+    ]
     return {
         "folder": selected,
         "items": projected,
