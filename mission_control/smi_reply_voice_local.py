@@ -180,3 +180,29 @@ def render_reply(text: str) -> dict:
         "retainsAudio": False,
         "externalVoiceProvider": False,
     }
+
+
+def render_persisted_reply(identity_id: object, conversation_id: object, request_id: object) -> dict:
+    """Voice only a committed SMI assistant reply belonging to this signed-in user."""
+    import uuid
+
+    from . import postgres_db
+
+    try:
+        identity = str(uuid.UUID(str(identity_id)))
+        conversation = str(uuid.UUID(str(conversation_id)))
+        request_value = str(uuid.UUID(str(request_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("reply_voice_target_invalid") from exc
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT m.content FROM smi_messages m
+               JOIN smi_conversations c ON c.conversation_id=m.conversation_id
+               WHERE m.conversation_id=%s AND m.request_id=%s
+                 AND c.identity_id=%s AND m.role='assistant'
+               ORDER BY m.created_at DESC LIMIT 1""",
+            (conversation, request_value, identity),
+        ).fetchone()
+    if row is None:
+        raise ValueError("reply_voice_not_owned_or_unrecorded")
+    return render_reply(str(row[0]))
