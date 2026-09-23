@@ -7,7 +7,8 @@ const crypto=require("node:crypto");
 const HASH=/^[a-f0-9]{64}$/;
 const VISEMES=new Set(["closed","wide","round","teeth","tongue"]);
 function admit({audioBridge,characterRig,cue,geometry,geometryBytes,replyId,sourceSha256,expectedEpoch}={}){
-  if(!audioBridge||typeof audioBridge.snapshot!=="function"||
+  if(!audioBridge||typeof audioBridge.acceptsIssuedCue!=="function"||
+     typeof audioBridge.snapshot!=="function"||
      !characterRig||typeof characterRig.snapshot!=="function")return null;
   const audio=audioBridge.snapshot(),body=characterRig.snapshot();
   if(audio.admitted!==true||audio.alignmentContractAccepted!==true||
@@ -19,7 +20,8 @@ function admit({audioBridge,characterRig,cue,geometry,geometryBytes,replyId,sour
      !VISEMES.has(cue.viseme)||!Number.isFinite(cue.audioClockMs)||
      cue.audioClockMs<0||!Number.isFinite(cue.confidence)||
      cue.confidence<0.8||cue.confidence>1||
-     cue.productionApproved!==false||cue.humanFinalApproved!==false)return null;
+     cue.productionApproved!==false||cue.humanFinalApproved!==false||
+     audioBridge.acceptsIssuedCue(cue)!==true)return null;
   // No user-origin text, model-inferred phonemes or placeholder geometry.
   if(typeof replyId!=="string"||!/^[A-Za-z0-9._:-]{8,128}$/.test(replyId)||
      !HASH.test(sourceSha256||"")||
@@ -35,7 +37,8 @@ function admit({audioBridge,characterRig,cue,geometry,geometryBytes,replyId,sour
      crypto.createHash("sha256").update(geometryBytes).digest("hex")!==geometry.geometrySha256)return null;
   // Recheck both epochs after byte verification; never emit for a stopped rig.
   const currentAudio=audioBridge.snapshot(),currentBody=characterRig.snapshot();
-  if(currentAudio.epoch!==expectedEpoch||currentBody.epoch!==expectedEpoch||
+  if(audioBridge.acceptsIssuedCue(cue)!==true||
+     currentAudio.epoch!==expectedEpoch||currentBody.epoch!==expectedEpoch||
      currentAudio.started!==true||currentAudio.stopped!==false||
      currentAudio.failedClosed!==false||currentBody.stopped!==false)return null;
   // A matching digest proves byte integrity, not authentic reviewed anatomy.

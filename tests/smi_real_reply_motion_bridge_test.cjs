@@ -61,6 +61,8 @@ assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType
 for(const [audioClockMs,expected] of [[20,"closed"],[80,"wide"],[140,"round"],[200,"teeth"],[260,"tongue"],[400,"silence"]]){
   const cue=candidate.playbackSample({audioClockMs,observedAtMs:1002+audioClockMs});
   assert.equal(cue.viseme,expected);assert.ok(cue.audioClockDeltaMs<=api.MAX_AUDIO_CLOCK_DELTA_MS);
+  assert.equal(candidate.acceptsIssuedCue(cue),true);
+  assert.equal(candidate.acceptsIssuedCue({...cue}),false);
   assert.equal(cue.productionApproved,false);assert.equal(cue.humanFinalApproved,false);
   // A real audio cue is not permission to fabricate mouth/head/hand motion.
   assert.equal(cue.mouthScaleY,1);
@@ -68,7 +70,12 @@ for(const [audioClockMs,expected] of [[20,"closed"],[80,"wide"],[140,"round"],[2
   assert.equal(cue.handOffsetY,0);
 
 }
+const staleFromEarlierSample=candidate.playbackSample({audioClockMs:400,observedAtMs:1402});
+const issuedBeforeEnd=candidate.playbackSample({audioClockMs:400,observedAtMs:1402});
+assert.equal(candidate.acceptsIssuedCue(staleFromEarlierSample),false);
+assert.equal(candidate.acceptsIssuedCue(issuedBeforeEnd),true);
 assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:1402,eventType:"ended"}).viseme,"silence");
+assert.equal(candidate.acceptsIssuedCue(issuedBeforeEnd),false);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:2000,eventType:"playing",clockSource:"audio-context"}).type,"playback-start");
 const stoppedEpoch=candidate.humanStop({pointerAtMs:2010,handledAtMs:2012}).epoch;
 assert.equal(candidate.snapshot().lastStopAcknowledgementMs,2);assert.equal(candidate.snapshot().physicalAndroidStopProven,false);
@@ -76,6 +83,7 @@ assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:2020}),null)
 assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:2400,eventType:"ended"}),null);
 assert.equal(candidate.snapshot().epoch,stoppedEpoch);
 assert.equal(candidate.snapshot().stopped,true);
+assert.equal(candidate.acceptsIssuedCue(issuedBeforeEnd),false);
 assert.equal(candidate.snapshot().failReason,null);
 
 assert.equal(candidate.resetAfterHumanAction(false).stopped,true);
