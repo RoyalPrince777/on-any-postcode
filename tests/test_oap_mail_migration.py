@@ -32,9 +32,9 @@ class Connection:
         if "SELECT indexdef FROM pg_indexes" in sql:
             if self.invalid_structure == "index":
                 return ("CREATE INDEX idx_oap_mail_owner_folder_created "
-                        "ON oap_mail_items (subject)",)
+                        + "ON oap_mail_items (subject)",)
             return ("CREATE INDEX idx_oap_mail_owner_folder_created "
-                    "ON oap_mail_items (owner_id, folder, created_at DESC)",)
+                    + "ON oap_mail_items (owner_id, folder, created_at DESC)",)
         return (1,)
 
     def fetchall(self):
@@ -54,7 +54,7 @@ class Connection:
             if self.invalid_structure == "owner_fk":
                 return [("FOREIGN KEY (owner_id) REFERENCES other(id)",)]
             return [("FOREIGN KEY (owner_id) REFERENCES users(id) "
-                     "ON DELETE CASCADE",)]
+                     + "ON DELETE CASCADE",)]
         raise AssertionError("unexpected read-only catalogue query")
 
     def commit(self):
