@@ -14,6 +14,14 @@ from uuid import UUID
 
 from mission_control.oap_lab_research import DOMAINS, Notebook
 
+RESEARCH_TRACKS = (
+    "global_truth_graph", "evidence_chain", "organiser_jog_memory",
+    "human_cure_discovery", "government_royal_accountability",
+    "war_nato_resources", "nwo_claims_investigation", "debt_freedom_economy",
+    "follow_the_money", "sovereign_communications", "space_universal_intelligence",
+    "smi_self_improving_research", "all_21_research_divisions",
+)
+
 Verdict = Literal["under_investigation", "disputed", "unsupported", "established"]
 Relation = Literal["documents", "supports", "challenges", "mentions", "contracts_with"]
 _ALLOWED_RELATIONS = frozenset(("documents", "supports", "challenges", "mentions", "contracts_with"))
@@ -81,6 +89,7 @@ class ClaimEdge:
     event_at: str
     classification: Verdict = "under_investigation"
     owner_id: str = ""
+    research_track: str = "global_truth_graph"
     private_subject: bool = False
     consent_for_research: bool = False
     redacted: bool = False
@@ -92,6 +101,8 @@ class ClaimEdge:
         _id(self.owner_id)
         for name in ("notebook_id", "claim", "subject", "object"):
             _required(getattr(self, name), name)
+        if self.research_track not in RESEARCH_TRACKS:
+            raise ClaimEdgeBlocked("research_track_not_allowlisted")
         if self.domain not in DOMAINS or self.relation not in _ALLOWED_RELATIONS:
             raise ClaimEdgeBlocked("domain_or_relationship_not_allowlisted")
         if self.classification not in (
@@ -145,6 +156,7 @@ def admit_claim(
         "mission_id": _id(edge.mission_id),
         "notebook_id": edge.notebook_id,
         "domain": edge.domain,
+        "research_track": edge.research_track,
         "relation": edge.relation,
         "classification": edge.classification,
         "source_ids": source_ids,
