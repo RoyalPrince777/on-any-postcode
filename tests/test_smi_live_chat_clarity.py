@@ -1,5 +1,6 @@
 """Guard the live SMI surface against persistent status/finished-work overlays."""
 from pathlib import Path
+import hashlib
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,3 +54,14 @@ def test_stopped_state_requires_a_valid_explicit_command_before_resume():
     assert "if(oapRuntime?.stopped&&fromLive)return;" in submit
     assert submit.index("if(oapLocked||oapSend.disabled)return") < submit.index("if(oapRuntime?.stopped)oapApply('RESUME_FROM_STOP')")
     assert submit.index("if(!text&&!hasImage&&!hasAttachment)return;") < submit.index("if(oapRuntime?.stopped)oapApply('RESUME_FROM_STOP')")
+
+
+def test_recovery_preserves_exact_approved_character_and_fail_closed_rig():
+    source = ROOT / "static/oap/smi_live_chat_dashboard.jpg"
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == (
+        "f9503174f6f18b815f1c73e24faff3b4966c2e1fbae8d20a8d2bcc22e4a84a4b"
+    )
+    rig = (ROOT / "mission_control/static/smi_exact_character_rig.js").read_text(encoding="utf-8")
+    assert 'const LOCK="design_only_no_approved_layered_rig"' in rig
+    assert "function frame(){return null;}" in rig
+    assert "function activate(){rejectedEvents+=1;return freezeSnapshot();}" in rig
