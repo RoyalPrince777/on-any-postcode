@@ -1,6 +1,7 @@
 """Real local voice requires WAV bytes and eSpeak-issued phoneme events."""
 import hashlib
 import io
+from itertools import pairwise
 import json
 import wave
 
@@ -34,7 +35,7 @@ def test_real_reply_audio_and_synthesis_issued_cues():
     assert cues[0] == {"atMs": 0, "viseme": "silence", "confidence": 1}
     assert cues[-1]["atMs"] == alignment["audioDurationMs"]
     assert cues[-1]["viseme"] == "silence"
-    assert all(a["atMs"] < b["atMs"] for a, b in zip(cues, cues[1:]))
+    assert all(a["atMs"] < b["atMs"] for a, b in pairwise(cues))
     canonical = {
         "audioSha256": alignment["audioSha256"],
         "audioDurationMs": alignment["audioDurationMs"],
