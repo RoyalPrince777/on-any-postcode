@@ -237,6 +237,7 @@ def _allowed(path: str) -> bool:
         "/auth/repair-founder-password",
         "/enter-my-world",
         "/assets/oap.css",
+        "/static/oap/smi_live_chat_dashboard.jpg",
         "/healthz",
         "/api/smi/thinking-certification",
     }
