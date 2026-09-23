@@ -124,3 +124,31 @@ def test_soul_snapshot_readback_requires_explicit_stop_state(invalid_stop):
         verify_separate_readback_snapshots(
             history, anchor, authenticated_owner_id=OWNER, stopped=invalid_stop,
         )
+
+
+@pytest.mark.parametrize("claimed_flag", [
+    "external_store_readback_verified",
+    "namespace_independence_authenticated",
+    "anchor_authenticity_verified",
+    "independent_recovery_verified",
+    "release_ready",
+])
+def test_supplied_provenance_claim_cannot_green_recovery_or_release(claimed_flag):
+    history, anchor = snapshots()
+    history[claimed_flag] = True
+    anchor[claimed_flag] = True
+    outcome = verify_separate_readback_snapshots(
+        history, anchor, authenticated_owner_id=OWNER,
+    )
+    assert outcome["history_integrity_verified"] is True
+    for key in (
+        "external_store_readback_verified",
+        "namespace_independence_authenticated",
+        "anchor_authenticity_verified",
+        "independent_recovery_verified",
+        "release_ready",
+    ):
+        assert outcome[key] is False
+    assert outcome["resume_mode"] == "review_only"
+    assert outcome["scientific_truth_established"] is False
+    assert outcome["execution_authorised"] is False
