@@ -64,6 +64,7 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   const expectedClock=inspection.accepted?alignment.clockSource:null;
   const alignmentToleranceMs=inspection.accepted?alignment.maxAlignmentErrorMs:0;
   let epoch=0,started=false,stopped=false,failedClosed=false,failReason=null,events=0;
+  let latestIssuedCue=null;
   let startAudioClockMs=-1,startObservedAtMs=-1,lastAudioClockMs=-1,lastObservedAtMs=-1,lastStopAcknowledgementMs=null;
   const snapshot=()=>Object.freeze({version:"0.2-private-no-guess",admitted,
     alignmentContractAccepted:inspection.accepted,alignmentReasons:inspection.reasons,
@@ -72,6 +73,7 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     accurateLipSyncProven:false,physicalAndroidStopProven:false,
     productionApproved:false,humanFinalApproved:false});
   function failClosed(reason){
+    latestIssuedCue=null;
     epoch+=1;started=false;stopped=true;failedClosed=true;failReason=reason;events+=1;
     return null;
   }
@@ -97,13 +99,14 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     if(audioClockDeltaMs>alignmentToleranceMs)return failClosed("played_audio_clock_drift");
     lastAudioClockMs=audioClockMs;lastObservedAtMs=observedAtMs;events+=1;
     const {active,index}=activeCue(Math.min(audioClockMs,durationMs));
-    return Object.freeze({type:"played-audio-viseme",epoch,audioClockMs,audioClockDeltaMs,
+    latestIssuedCue=Object.freeze({type:"played-audio-viseme",epoch,audioClockMs,audioClockDeltaMs,
       cueIndex:index,viseme:active.viseme,confidence:active.confidence,
       // Keep existing output keys for callers, but do not invent artwork
       // deformation or unrelated gestures from the audio clock. An accepted
       // cue is timing evidence, not reviewed source-backed mouth geometry.
       mouthScaleY:1,headRotateDeg:0,handOffsetY:0,
       productionApproved:false,humanFinalApproved:false});
+    return latestIssuedCue;
   }
   function playbackEnd({audioClockMs,observedAtMs,eventType}={}){
     // STOP wins over delayed media events; do not rewrite its epoch or reason.
@@ -111,21 +114,28 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     if(eventType!=="ended"||!finite(audioClockMs)||Math.abs(audioClockMs-durationMs)>alignmentToleranceMs)return failClosed("played_audio_end_unproven");
     const finalCue=playbackSample({audioClockMs,observedAtMs});
     if(!finalCue)return null;
-    started=false;events+=1;
+    started=false;latestIssuedCue=null;events+=1;
     return Object.freeze({type:"playback-end",epoch,audioClockMs,viseme:"silence",mouthScaleY:1,
       productionApproved:false,humanFinalApproved:false});
   }
   function humanStop({pointerAtMs,handledAtMs}={}){
     lastStopAcknowledgementMs=finite(pointerAtMs)&&finite(handledAtMs)&&handledAtMs>=pointerAtMs?handledAtMs-pointerAtMs:null;
+    latestIssuedCue=null;
     epoch+=1;started=false;stopped=true;events+=1;return snapshot();
   }
   function resetAfterHumanAction(approved){
     if(approved!==true||!stopped)return snapshot();
+    latestIssuedCue=null;
     epoch+=1;started=false;stopped=false;failedClosed=false;failReason=null;
     startAudioClockMs=-1;startObservedAtMs=-1;lastAudioClockMs=-1;lastObservedAtMs=-1;events+=1;
     return snapshot();
   }
-  return Object.freeze({snapshot,playbackStart,playbackSample,playbackEnd,humanStop,resetAfterHumanAction});
+  // Object identity is an in-process provenance check, not audio authenticity proof.
+  function acceptsIssuedCue(cue){
+    return admitted&&started&&!stopped&&!failedClosed&&cue!==null&&
+      cue===latestIssuedCue&&cue.epoch===epoch;
+  }
+  return Object.freeze({snapshot,playbackStart,playbackSample,playbackEnd,humanStop,resetAfterHumanAction,acceptsIssuedCue});
 }
 
 module.exports=Object.freeze({SOURCE,ALIGNMENT_SOURCE,CLOCK_SOURCES,VISEMES,
