@@ -57,6 +57,13 @@ def candidate(row: object) -> dict[str, object] | None:
         or not isinstance(licence, str) or licence not in LICENCE_CLAIMS
     ):
         return None
+    # Only open-use leads or claimed OAP originals enter this private preview.
+    # A caller's original-work label is NOT proof of ownership or embedded rights.
+    if source == "direct_creator":
+        if licence != "DIRECT_PERMISSION" or row.get("work_origin") != "oap_original":
+            return None
+    elif licence == "DIRECT_PERMISSION":
+        return None
     reference = (
         _reference_url(row.get("reference_url"), source)
         if SOURCES[source] else None
@@ -69,6 +76,9 @@ def candidate(row: object) -> dict[str, object] | None:
         "source": source,
         "source_reference": reference,
         "licence_claim": licence,
+        "collection": "oap_originals" if source == "direct_creator" else "open_licensed_and_public_domain",
+        "creator_ownership_verified": False,
+        "embedded_rights_verified": False,
         "rights_evidence_checked": False,
         "uk_cleared": False,
         "ghana_cleared": False,
