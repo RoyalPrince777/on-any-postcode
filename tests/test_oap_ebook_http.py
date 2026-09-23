@@ -6,8 +6,8 @@ from flask import Flask
 from mission_control import oap_ebook_http, oap_ebook_service
 from mission_control.oap_book_access import Book
 from mission_control.oap_book_publication import EditionEvidence
-from mission_control.oap_ebook_reader import EbookEdition, manuscript_digest
 from mission_control.oap_ebook_http import TrustedEbook, create_ebook_blueprint
+from mission_control.oap_ebook_reader import EbookEdition, manuscript_digest
 
 PAGES = ("first", "second")
 DIGEST = manuscript_digest(PAGES)
