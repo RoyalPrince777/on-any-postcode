@@ -491,3 +491,46 @@ def test_release_uuid_is_untrusted_and_never_unlocks_existing_release():
     )
     assert invalid["submitted_release_id"] is None
     assert invalid["submitted_owner_identity_id"] is None
+
+
+
+def test_open_music_archive_is_only_private_uk_review_lead():
+    lead = music.candidate_preview([_candidate(
+        source_kind="open_music_archive", claimed_licence="PUBLIC_DOMAIN",
+        source_page_url="https://www.openmusicarchive.org/faq.php",
+        rights_verified=True, territory_verified=True,
+        playback_enabled=True, founder_approved=True,
+    )])["candidates"][0]
+    assert lead["source_page_url"] == "https://www.openmusicarchive.org/faq.php"
+    assert lead["source_page_independently_checked"] is False
+    assert lead["territory_verified"] is False
+    assert lead["recording_rights_verified"] is False
+    assert lead["composition_rights_verified"] is False
+    assert lead["playback_enabled"] is False
+    receipt = music.private_source_review_receipt(lead)
+    assert receipt["territory_and_use_verified"] is False
+    assert receipt["source_asset_integrity_verified"] is False
+    assert receipt["music_release_created"] is False
+    entries = music.source_directory()["entries"]
+    assert any(e["source_kind"] == "open_music_archive" and
+               e["connected"] is False and e["bulk_import_allowed"] is False
+               for e in entries)
+
+
+def test_open_music_archive_rejects_fake_hosts_and_unrelated_source_types():
+    for url in (
+        "https://openmusicarchive.org.evil.test/recording",
+        "http://www.openmusicarchive.org/recording",
+        "https://www.openmusicarchive.org/recording?tracking=yes",
+        "https://www.openmusicarchive.org/",
+    ):
+        candidate = music.candidate_preview([_candidate(
+            source_kind="open_music_archive", source_page_url=url,
+        )])["candidates"][0]
+        assert candidate["source_page_url"] is None
+        assert candidate["rights_verified"] is False
+    wrong = music.candidate_preview([_candidate(
+        source_kind="musopen",
+        source_page_url="https://www.openmusicarchive.org/faq.php",
+    )])["candidates"][0]
+    assert wrong["source_page_url"] is None
