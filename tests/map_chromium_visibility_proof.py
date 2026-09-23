@@ -51,7 +51,7 @@ with sync_playwright() as p:
                                       has_touch=mobile, device_scale_factor=2 if mobile else 1)
         page = context.new_page()
         errors = []
-        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.on("pageerror", lambda error, sink=errors: sink.append(str(error)))
         page.route("https://oap-map.test/**", fixture)
         page.goto("https://oap-map.test/on-any-place")
         page.set_content(HTML, wait_until="load")
