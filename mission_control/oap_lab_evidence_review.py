@@ -102,17 +102,21 @@ def verify_recovery_chain(
     for index, record in enumerate(records, start=1):
         if not isinstance(record, Mapping):
             raise ClaimEdgeBlocked("invalid_recovery_record")
-        if record.get("version") != index or record.get("previous_hash") != previous:
+        if (type(record.get("version")) is not int
+                or record["version"] != index
+                or record.get("previous_hash") != previous):
             raise ClaimEdgeBlocked("recovery_history_break")
         state = record.get("state")
         if not isinstance(state, Mapping) or not state:
             raise ClaimEdgeBlocked("recovery_state_required")
-        expected = sha256(
-            json.dumps(
+        try:
+            canonical = json.dumps(
                 {"version": index, "previous_hash": previous, "state": state},
                 sort_keys=True, separators=(",", ":"), allow_nan=False,
-            ).encode()
-        ).hexdigest()
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ClaimEdgeBlocked("invalid_recovery_state_encoding") from exc
+        expected = sha256(canonical.encode()).hexdigest()
         if record.get("receipt_hash") != expected:
             raise ClaimEdgeBlocked("recovery_hash_mismatch")
         previous = expected
