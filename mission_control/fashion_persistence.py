@@ -63,7 +63,7 @@ def fashion_schema_status() -> dict[str, object]:
             if migration is None or str(migration[0]) != FASHION_MIGRATION_CHECKSUM:
                 result["error"] = "fashion_migration_not_verified"
                 return result
-    except Exception:
+    except Exception:  # noqa: BLE001 - readiness must fail closed.
         result["error"] = "fashion_store_unavailable"
         return result
     result["schema_ready"] = True
