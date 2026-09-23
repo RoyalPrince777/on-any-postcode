@@ -20,6 +20,7 @@ window.OAP_SMI_UI={
   workbenchUrl:{{ url_for('mission_control.smi_workbench_status')|tojson }},
   healthUrl:{{ url_for('mission_control.smi_chat_health')|tojson }},
   streamUrl:{{ url_for('mission_control.smi_chat_stream')|tojson }},
+  mailReadUrl:{{ url_for('oap_mail_private.smi_read_owner_folder')|tojson }},
   warRoomUrl:{{ url_for('mission_control.war_room_dashboard')|tojson }},
   warRoomStatusUrl:{{ url_for('mission_control.war_room_status')|tojson }},
   warRoomActionsUrl:{{ url_for('mission_control.war_room_actions')|tojson }},
@@ -65,3 +66,4 @@ window.OAP_SMI_UI={
 <script src="{{ url_for('mission_control.static', filename='smi_sovereign_dashboard.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_interaction_layer.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_command_centre.js') }}"></script>
+<script src="{{ url_for('mission_control.static', filename='smi_mail_read_control.js') }}"></script>
