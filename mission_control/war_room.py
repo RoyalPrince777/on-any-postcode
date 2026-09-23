@@ -22,6 +22,8 @@ from . import (
     infrastructure,
     judgement,
     matrix_simulation,
+    matrix_signal_bus,
+    matrix_war_room,
     neon_auth,
     organism,
     organism_runtime,
@@ -1366,6 +1368,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
         "controls_enabled": False,
         "can_approve": False,
         "can_execute": False,
+        "matrix_signal_bus": matrix_signal_bus.topology(),
         "training_environment": snapshot["matrix_simulation"],
         "training_flow": "Matrix Simulation -> War Room review -> Guardian -> Green Gate -> Human Authority",
         "human_authority": {
@@ -1376,3 +1379,4 @@ def get_war_room_dashboard() -> dict[str, Any]:
             ),
         },
     }
+\n\ndef get_matrix_signal_war_room_review(signal: Mapping[str, Any]) -> dict[str, Any]:\n    """Prepare a bounded Matrix review pack; never execute or certify it."""\n\n    return matrix_war_room.review_pack(signal)\n
