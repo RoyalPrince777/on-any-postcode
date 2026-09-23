@@ -9,15 +9,20 @@ from .mail_contract import require_folder
 bp = Blueprint("oap_mail_private", __name__)
 
 
-def _reply(payload: dict, status: int = 200):
-    response = make_response(jsonify(payload), status)
+@bp.after_request
+def _private_mail_response(response):
+    """Apply privacy headers even when authentication rejects before the view."""
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
-    response.headers["Vary"] = "Cookie"
+    response.vary.add("Cookie")
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+def _reply(payload: dict, status: int = 200):
+    return make_response(jsonify(payload), status)
 
 
 @bp.get("/mail/<folder>")
