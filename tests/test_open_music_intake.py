@@ -534,3 +534,64 @@ def test_open_music_archive_rejects_fake_hosts_and_unrelated_source_types():
         source_page_url="https://www.openmusicarchive.org/faq.php",
     )])["candidates"][0]
     assert wrong["source_page_url"] is None
+
+
+
+def test_private_catalogue_intelligence_deduplicates_metadata_not_rights():
+    a = _candidate(
+        title="Window", artist="1000 Handz", source_kind="free_music_archive",
+        claimed_licence="CC_BY",
+        source_page_url="https://freemusicarchive.org/music/1000-handz/window-1/",
+        rights_verified=True, human_release_approved=True,
+    )
+    b = _candidate(
+        title="Other", artist="Other artist", source_kind="free_music_archive",
+        claimed_licence="CC_BY", source_page_url=a["source_page_url"],
+    )
+    c = _candidate(
+        title="WINDOW", artist="1000 HANDZ", source_kind="free_music_archive",
+        claimed_licence="CC_BY",
+        source_page_url="https://freemusicarchive.org/music/1000-handz/window-2/",
+    )
+    d = _candidate(
+        title="A Grateful Universe", artist="Matthew C. Wright",
+        source_kind="ccmixter", claimed_licence="CC_BY",
+        source_page_url="https://ccmixter.org/files/matthew_c_wright/71164",
+    )
+    result = music.private_catalogue_intelligence([a, b, c, d])
+    assert result["review_count"] == 2
+    assert [row["title"] for row in result["review_queue"]] == [
+        "Window", "A Grateful Universe",
+    ]
+    assert all(row["review_state"] == "private_unverified_lead"
+               for row in result["review_queue"])
+    for row in result["review_queue"]:
+        for field in (
+            "source_page_independently_checked", "licensor_authority_verified",
+            "recording_rights_verified", "composition_rights_verified",
+            "source_asset_integrity_verified", "territory_and_use_verified",
+            "attribution_verified", "owner_authenticated",
+            "human_release_approved", "playback_enabled",
+            "public_catalogue_enabled",
+        ):
+            assert row[field] is False
+    for flag in (
+        "source_fetch_performed", "audio_retrieval_performed",
+        "rights_verified", "catalogue_write_performed",
+        "music_release_created", "playback_enabled",
+    ):
+        assert result[flag] is False
+
+
+def test_private_catalogue_intelligence_rejects_malformed_and_spoofed_sources():
+    result = music.private_catalogue_intelligence([
+        _candidate(candidate_id="not-a-uuid"),
+        _candidate(source_page_url="https://evil.test/song",
+                   founder_approved=True, rights_verified=True),
+        _candidate(source_kind="spotify"),
+        {}, None,
+    ])
+    assert result["review_count"] == 1
+    assert result["review_queue"][0]["source_page_url"] is None
+    assert result["review_queue"][0]["playback_enabled"] is False
+    assert music.private_catalogue_intelligence(None)["review_count"] == 0
