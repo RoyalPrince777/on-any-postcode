@@ -56,7 +56,7 @@ CATALOGUE_SCHEMA_SQL = (
 )
 
 
-class EbookCatalogueUnavailable(RuntimeError):
+class EbookCatalogueUnavailable(OSError):
     """Trusted catalogue was not available or did not satisfy its contract."""
 
 
