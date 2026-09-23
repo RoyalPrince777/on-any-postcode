@@ -44,14 +44,21 @@ def create_draft():
         return _reply({"error": {"code": "json_object_required"}}, 400)
     if "owner_id" in payload or "mailbox_owner_id" in payload:
         return _reply({"error": {"code": "mail_owner_override_forbidden"}}, 403)
+    try:
+        subject, body, correspondent = mail_store.validate_draft_fields(
+            subject=payload.get("subject"), body=payload.get("body"),
+            correspondent=payload.get("correspondent"),
+        )
+    except ValueError as exc:
+        return _reply({"error": {"code": str(exc)}}, 400)
     user = web_security.current_authenticated_user()
     try:
         public_store.ensure_authenticated_user(
             owner_id, email=str(user["email"]), display_name=str(user["name"]),
         )
         draft_id = mail_store.save_draft(
-            owner_id, owner_id, subject=payload.get("subject"),
-            body=payload.get("body"), correspondent=payload.get("correspondent"),
+            owner_id, owner_id, subject=subject,
+            body=body, correspondent=correspondent,
         )
     except (TypeError, ValueError) as exc:
         return _reply({"error": {"code": str(exc)}}, 400)
