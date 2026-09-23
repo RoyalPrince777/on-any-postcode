@@ -250,8 +250,14 @@
   }
  }
  async function refreshEvidence(){
-  if(!cfg.healthUrl)return;
   if(request)request.abort();
+  if(!cfg.healthUrl){
+   proofNodes.forEach(({card,state})=>{
+    card.dataset.proven="false";state.textContent="Unavailable";
+   });
+   refresh.disabled=false;refresh.textContent="↻ Refresh evidence";
+   return;
+  }
   request=new AbortController();
   const currentRequest=request;
   refresh.disabled=true;refresh.textContent="Checking…";
