@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 
 import app as app_module
-
 from mission_control import mail_migration, mail_preflight, postgres_db
 
 
