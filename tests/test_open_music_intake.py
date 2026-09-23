@@ -164,3 +164,41 @@ def test_rights_review_identifier_is_canonical_and_never_reflects_untrusted_text
         assert review["candidate_id"] is None
         assert review["rights_verified"] is False
         assert review["distribution_authorised"] is False
+
+
+def test_preview_candidate_flows_to_private_tune_handoff_without_release():
+    preview = music.candidate_preview([_candidate()])
+    item = preview["candidates"][0]
+    handoff = music.tune_handoff_preview(item)
+    assert handoff["candidate_id"] == item["candidate_id"]
+    assert handoff["title"] == item["title"]
+    assert handoff["artist"] == item["artist"]
+    assert handoff["target_organ"] == "OAP Tune Core"
+    assert handoff["handoff_ready"] is False
+    assert handoff["release_created"] is False
+    assert handoff["playback_enabled"] is False
+
+
+def test_canonical_candidate_integrity_and_prefix_injection_fail_closed():
+    import hashlib
+
+    uid = str(uuid4())
+    canonical = f"oap:open-music:{uid}"
+    digest = hashlib.sha256(b"asset").hexdigest()
+    integrity = music.asset_integrity_review(canonical, b"asset", digest)
+    assert integrity["candidate_id"] == canonical
+    assert integrity["digest_matches_submission"] is True
+    assert integrity["rights_verified"] is False
+    assert integrity["playback_enabled"] is False
+    for invalid in (
+        f"oap:open-music:oap:open-music:{uid}",
+        f"oap:another:{uid}",
+        f"oap:open-music:{uid}:extra",
+        "<script>alert(1)</script>",
+        [],
+        {},
+        None,
+    ):
+        assert music.tune_handoff_preview(_candidate(candidate_id=invalid))["candidate_id"] is None
+        assert music.rights_review({"candidate_id": invalid})["candidate_id"] is None
+        assert music.asset_integrity_review(invalid, b"asset", digest)["digest_matches_submission"] is False
