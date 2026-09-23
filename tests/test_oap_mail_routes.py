@@ -81,7 +81,7 @@ def test_smi_mail_requires_authentication_and_never_calls_store(
     anonymous_client, monkeypatch,
 ):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     response = anonymous_client.post(
         "/mail/smi/read", json={"owner_consent": True, "folder": "inbox"},
@@ -92,7 +92,7 @@ def test_smi_mail_requires_authentication_and_never_calls_store(
 
 def test_smi_mail_requires_csrf_and_never_calls_store(client, monkeypatch):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     response = client.post(
         "/mail/smi/read", json={"owner_consent": True, "folder": "inbox"},
@@ -108,7 +108,7 @@ def test_smi_mail_one_call_consent_returns_owner_scoped_read(
     def read(actor, owner, folder):
         calls.append((actor, owner, folder))
         return [{"subject": "private"}]
-    monkeypatch.setattr(mail_store, "list_items", read)
+    monkeypatch.setattr(mail_store, "list_subjects", read)
     response = client.post(
         "/mail/smi/read",
         json={"owner_consent": True, "folder": "inbox"},
@@ -127,7 +127,7 @@ def test_smi_mail_one_call_consent_returns_owner_scoped_read(
 
 def test_smi_mail_does_not_remember_consent(client, csrf, monkeypatch):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True) or [])
     headers = {"X-OAP-CSRF": csrf["csrf_token"]}
     accepted = client.post(
@@ -147,7 +147,7 @@ def test_smi_mail_refuses_owner_override_and_send(
     client, csrf, monkeypatch,
 ):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     headers = {"X-OAP-CSRF": csrf["csrf_token"]}
     for extra in ({"owner_id": str(uuid.uuid4())},
@@ -165,7 +165,7 @@ def test_smi_mail_refuses_owner_override_and_send(
 def test_smi_mail_store_unavailable_redacts_detail(client, csrf, monkeypatch):
     def unavailable(*_):
         raise mail_store.MailUnavailable("secret-database-host")
-    monkeypatch.setattr(mail_store, "list_items", unavailable)
+    monkeypatch.setattr(mail_store, "list_subjects", unavailable)
     response = client.post(
         "/mail/smi/read",
         json={"owner_consent": True, "folder": "inbox"},
@@ -183,7 +183,7 @@ def test_chat_tool_alias_reuses_owner_consent_and_read_only_store(
     def read(actor, owner, folder):
         calls.append((actor, owner, folder))
         return [{"subject": "owner only"}]
-    monkeypatch.setattr(mail_store, "list_items", read)
+    monkeypatch.setattr(mail_store, "list_subjects", read)
     response = client.post(
         "/mission/chat/tools/mail/read",
         json={"folder": "inbox", "owner_consent": True},
@@ -200,7 +200,7 @@ def test_chat_tool_alias_denies_implicit_consent_and_owner_override(
     client, csrf, monkeypatch,
 ):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     headers = {"X-OAP-CSRF": csrf["csrf_token"]}
     for payload in (
@@ -222,7 +222,7 @@ def test_chat_tool_alias_requires_authentication(
     anonymous_client, monkeypatch,
 ):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     response = anonymous_client.post(
         "/mission/chat/tools/mail/read",
@@ -234,7 +234,7 @@ def test_chat_tool_alias_requires_authentication(
 
 def test_chat_tool_alias_requires_csrf(client, monkeypatch):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     response = client.post(
         "/mission/chat/tools/mail/read",
@@ -260,7 +260,7 @@ def test_authenticated_smi_and_chat_alias_never_transfer_mail_body(
     def read(actor, owner, folder):
         calls.append((actor, owner, folder))
         return [private]
-    monkeypatch.setattr(mail_store, "list_items", read)
+    monkeypatch.setattr(mail_store, "list_subjects", read)
     for path in ("/mail/smi/read", "/mission/chat/tools/mail/read"):
         response = client.post(
             path,
