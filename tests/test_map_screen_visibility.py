@@ -91,3 +91,19 @@ def test_route_failure_preserves_independent_road_layer():
     assert "if(request!==roadRequest)return;" in template
     assert "if(request===roadRequest)" in template
     assert "profile.addEventListener('change'" in template
+
+
+def test_oap_os_generation_zero_map_binding_is_truthful_and_consent_safe():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    bridge = Path("mission_control/static/oap_os_map_bridge.js").read_text(encoding="utf-8")
+    documentation = Path("docs/OAP_OPERATING_SYSTEM_V0.md").read_text(encoding="utf-8")
+
+    assert 'id="oap-os-map-runtime"' in template
+    assert "oap_os_map_bridge.js" in template
+    assert "android-web" in bridge
+    assert "installed web shell" in bridge
+    assert "unverified" in bridge
+    assert "MutationObserver" in bridge
+    assert "geolocation." not in bridge
+    assert "serviceWorker.register" not in bridge
+    assert "Android/Linux host kernel" in documentation
