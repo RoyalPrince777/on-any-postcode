@@ -28,7 +28,7 @@ def test_private_candidate_never_claims_ingest_or_playback():
 def test_reject_invalid_leads_and_duplicate_ids():
     row = _candidate()
     result = music.candidate_preview([
-        row, row, _candidate(claimed_licence="CC_BY_NC"),
+        row, row, _candidate(claimed_licence="FORGED_LICENCE"),
         _candidate(source_kind="Spotify"),
         _candidate(title=" "),
         {"candidate_id": "not-a-uuid"},
@@ -662,3 +662,73 @@ def test_soul_evidence_id_cannot_attach_to_invalid_music_candidate():
     assert valid["submitted_evidence_id"] == evidence_id
     assert valid["rights_verified"] is False
     assert valid["human_authority_final"] is True
+
+
+def test_genre_first_catalogue_filters_and_restricted_rights_fail_closed():
+    rows = [
+        _candidate(title="One", genre="Afrobeats", claimed_licence="CC_BY",
+                   mood="Party / Carnival", vocals="Vocals",
+                   source_kind="free_music_archive",
+                   source_page_url="https://freemusicarchive.org/music/artist/one/"),
+        _candidate(title="Two", genre="Amapiano", claimed_licence="CC_BY_NC",
+                   mood="Party / Carnival", vocals="Instrumental",
+                   source_kind="ccmixter",
+                   source_page_url="https://ccmixter.org/files/artist/one"),
+        _candidate(title="Three", genre="Highlife", claimed_licence="UNKNOWN",
+                   mood="Chill / Relax", vocals="Vocals"),
+        _candidate(title="Four", genre="Not a real genre",
+                   claimed_licence="ALL_RIGHTS_RESERVED"),
+    ]
+    result = music.private_catalogue_intelligence(
+        rows, genres=["Afrobeats", "Amapiano", "Highlife"],
+        licence_filter="all", mood="All moods", vocals="All",
+    )
+    assert result["review_count"] == 3
+    assert [r["genre"] for r in result["review_queue"]] == [
+        "Afrobeats", "Amapiano", "Highlife",
+    ]
+    assert [r["licence_review_class"] for r in result["review_queue"]] == [
+        "priority_claim", "restricted_or_unclear", "restricted_or_unclear",
+    ]
+    assert all(r["playback_enabled"] is False
+               and r["human_release_approved"] is False
+               and r["recording_rights_verified"] is False
+               for r in result["review_queue"])
+    assert all("media_url" not in r and "stream_url" not in r
+               for r in result["review_queue"])
+    assert result["source_fetch_performed"] is False
+    assert result["catalogue_write_performed"] is False
+    preferred = music.private_catalogue_intelligence(
+        rows, genres=["Afrobeats", "Amapiano"], licence_filter="preferred",
+    )
+    assert preferred["review_count"] == 1
+    assert preferred["review_queue"][0]["title"] == "One"
+    instrumental = music.private_catalogue_intelligence(
+        rows, genres=["Amapiano"], vocals="Instrumental",
+        mood="Party / Carnival",
+    )
+    assert instrumental["review_count"] == 1
+    assert instrumental["review_queue"][0]["claimed_licence"] == "CC_BY_NC"
+    assert music.rights_review(rows[1])["playback_authorised"] is False
+    assert "restricted_or_unclear_licence_requires_separate_permission" in (
+        music.rights_review(rows[1])["review_topics"]
+    )
+
+
+def test_genre_first_does_not_invent_genre_or_trust_fake_approval():
+    lead = _candidate(
+        genre="Afrobeats", claimed_licence="ALL_RIGHTS_RESERVED",
+        playback_enabled=True, rights_verified=True,
+        human_release_approved=True, artist="Artist",
+    )
+    result = music.private_catalogue_intelligence(
+        [lead], genres=["Afrobeats", "fake", "Afrobeats"],
+    )
+    assert result["genre_filter"] == []
+    assert result["review_count"] == 1
+    assert result["review_queue"][0]["licence_review_class"] == "restricted_or_unclear"
+    assert result["review_queue"][0]["playback_enabled"] is False
+    unclassified = music.private_catalogue_intelligence(
+        [_candidate(genre="Invented", claimed_licence="UNKNOWN")],
+    )
+    assert unclassified["review_queue"][0]["genre"] is None
