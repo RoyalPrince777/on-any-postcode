@@ -116,3 +116,25 @@ def test_tune_handoff_is_inert_even_with_false_approval_flags():
     assert "media_url" not in result
     assert music.tune_handoff_preview(_candidate(claimed_licence="CC_BY_NC"))["candidate_id"] is None
     assert music.tune_handoff_preview(_candidate(candidate_id="broken"))["candidate_id"] is None
+
+
+
+def test_nested_untrusted_source_and_licence_fail_closed():
+    for bad in ([], {}, {"CC0": True}, ["CC0"]):
+        assert music.candidate_preview([_candidate(source_kind=bad)])["candidate_count"] == 0
+        assert music.candidate_preview([_candidate(claimed_licence=bad)])["candidate_count"] == 0
+        assert music.tune_handoff_preview(_candidate(source_kind=bad))["candidate_id"] is None
+        assert music.tune_handoff_preview(_candidate(claimed_licence=bad))["candidate_id"] is None
+        assert music.rights_review({"claimed_licence": bad})["rights_verified"] is False
+        assert music.rights_review({"claimed_licence": bad})["claimed_licence"] is None
+
+
+def test_candidate_preview_never_trusts_caller_approval_or_rights():
+    for licence in sorted(music.LICENCE_KINDS):
+        item = music.candidate_preview([_candidate(
+            claimed_licence=licence, rights_verified=True,
+            founder_approved=True, release_created=True
+        )])["candidates"][0]
+        assert item["rights_verified"] is False
+        assert item["tune_release_created"] is False
+        assert item["playback_enabled"] is False
