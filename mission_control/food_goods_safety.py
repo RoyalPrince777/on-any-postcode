@@ -33,7 +33,7 @@ def _expiry(value: object) -> str | None:
     if value is None:
         return None
     if not isinstance(value, str):
-        raise ValueError("invalid_expiry_date")
+        raise TypeError("invalid_expiry_date")
     try:
         parsed = date.fromisoformat(value)
     except ValueError as exc:
