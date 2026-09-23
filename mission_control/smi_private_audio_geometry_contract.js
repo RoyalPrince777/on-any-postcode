@@ -6,7 +6,7 @@
 const crypto=require("node:crypto");
 const HASH=/^[a-f0-9]{64}$/;
 const VISEMES=new Set(["closed","wide","round","teeth","tongue"]);
-function admit({audioBridge,characterRig,cue,geometry,replyId,sourceSha256,expectedEpoch}={}){
+function admit({audioBridge,characterRig,cue,geometry,geometryBytes,replyId,sourceSha256,expectedEpoch}={}){
   if(!audioBridge||typeof audioBridge.snapshot!=="function"||
      !characterRig||typeof characterRig.snapshot!=="function")return null;
   const audio=audioBridge.snapshot(),body=characterRig.snapshot();
@@ -29,8 +29,16 @@ function admit({audioBridge,characterRig,cue,geometry,replyId,sourceSha256,expec
      geometry.nonNeutralSourceGeometryReviewed!==true||
      geometry.hiddenRegionsReconstructed!==true||
      !HASH.test(geometry.geometrySha256||"")||
-     geometry.productionApproved!==false)return null;
-  // The identifier is an integrity reference, not generated pixel data.
+     geometry.productionApproved!==false||
+     !(geometryBytes instanceof Uint8Array)||geometryBytes.byteLength<1||
+     geometryBytes.byteLength>16000000||
+     crypto.createHash("sha256").update(geometryBytes).digest("hex")!==geometry.geometrySha256)return null;
+  // Recheck both epochs after byte verification; never emit for a stopped rig.
+  const currentAudio=audioBridge.snapshot(),currentBody=characterRig.snapshot();
+  if(currentAudio.epoch!==expectedEpoch||currentBody.epoch!==expectedEpoch||
+     currentAudio.started!==true||currentAudio.stopped!==false||
+     currentAudio.failedClosed!==false||currentBody.stopped!==false)return null;
+  // A matching digest proves byte integrity, not authentic reviewed anatomy.
   return Object.freeze({type:"private-reviewed-viseme-reference",
     replyId,viseme:cue.viseme,audioClockMs:cue.audioClockMs,
     epoch:expectedEpoch,sourceSha256,geometrySha256:geometry.geometrySha256,
