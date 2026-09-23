@@ -261,6 +261,12 @@ async function oapSubmit(options={}){
  const selectedThinkingLevel=oapThinkingLevel?.value||'auto';
  const selectedStudioMode=(typeof studioMode!=='undefined')?Boolean(studioMode):Boolean(document.getElementById('studio-button')?.classList.contains('active'));
  const userLabel=(text||'Analyse attached media')+(hasImage?'\n📷 Image attached':'')+(hasAttachment?'\n📎 '+selectedAttachment.name:'')+(codeMode?'\n⌘ Code proposal mode':'');
+ // An accepted new command supersedes prior reply audio; never leave stale
+ // speech/cues running while the next governed response is being prepared.
+ oapClearLiveRestart();oapSpeechSeq+=1;oapLocalPlayer?.stop();
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+ if(oapRuntime?.speaking)oapApply('SPEAK_END');
+ oapPlaybackState('cancelled',oapRuntime?.epoch);
  add(userLabel,'user');
  oapLocked=true;responseStopped=false;oapPaused=false;oapShowLiveReply('');oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');oapAbort=new AbortController();activeController=oapAbort;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
  try{
