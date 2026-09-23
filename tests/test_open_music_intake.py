@@ -224,3 +224,63 @@ def test_free_music_lead_scan_and_accepted_candidate_quotas_are_bounded():
     excluded = music.candidate_preview(beyond_scan + [hidden])
     assert excluded["candidate_count"] == 0
     assert excluded["ingest_performed"] is False
+
+
+
+def test_allowlisted_open_source_page_is_private_reference_not_rights_proof():
+    pages = {
+        "free_music_archive": "https://freemusicarchive.org/music/example/",
+        "ccmixter": "https://dig.ccmixter.org/files/artist/123",
+        "internet_archive": "https://archive.org/details/example-recording",
+        "musopen": "https://musopen.org/music/123/example/",
+    }
+    for source_kind, source_page_url in pages.items():
+        item = music.candidate_preview([_candidate(
+            source_kind=source_kind, claimed_licence="CC_BY",
+            source_page_url=source_page_url, rights_verified=True,
+            public_catalogue_enabled=True,
+        )])["candidates"][0]
+        assert item["source_page_url"] == source_page_url
+        assert item["source_page_independently_checked"] is False
+        assert item["rights_verified"] is False
+        assert item["playback_enabled"] is False
+        handoff = music.tune_handoff_preview(item)
+        assert "source_page_url" not in handoff
+        assert handoff["handoff_ready"] is False
+
+
+def test_open_music_source_page_rejects_spoofed_external_and_tracking_urls():
+    hostile = (
+        "http://archive.org/details/sample",
+        "https://archive.org.evil.test/details/sample",
+        "https://archive.org@evil.test/details/sample",
+        "https://evil.test@archive.org/details/sample",
+        "https://archive.org:443/details/sample",
+        "https://archive.org/details/sample?tracking=1",
+        "https://archive.org/details/sample#fragment",
+        "https://archive.org/",
+        "https://archive.org//evil.test/path",
+        "https://127.0.0.1/details/sample",
+        "https://archive.org/details/sample\\nX:injected",
+        "https://archive.org/details/sample inside",
+        ["https://archive.org/details/sample"],
+        {"url": "https://archive.org/details/sample"},
+    )
+    for url in hostile:
+        item = music.candidate_preview([_candidate(
+            source_kind="internet_archive", source_page_url=url,
+        )])["candidates"][0]
+        assert item["source_page_url"] is None
+        assert item["rights_verified"] is False
+        assert item["public_catalogue_enabled"] is False
+    for kind in ("direct_artist", "other_open_archive"):
+        item = music.candidate_preview([_candidate(
+            source_kind=kind,
+            source_page_url="https://archive.org/details/unrelated",
+        )])["candidates"][0]
+        assert item["source_page_url"] is None
+    wrong_source = music.candidate_preview([_candidate(
+        source_kind="musopen",
+        source_page_url="https://archive.org/details/not-musopen",
+    )])["candidates"][0]
+    assert wrong_source["source_page_url"] is None
