@@ -73,10 +73,12 @@
   context.drawImage(image,0,0);
   const samples=Object.fromEntries(REGIONS.map(region=>[region.id,context.getImageData(region.x,region.y,region.w,region.h)]));
   let epoch=0,frame=0,last=0,phase="ready",live=false,reduced=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),played=0,speechUntil=0;
+  let playbackEpoch=null,localAudio=false,localViseme="silence";
+  const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
   function draw(ms){
    context.drawImage(image,0,0);
    if(!live||reduced||phase==="paused"||phase==="stopped")return;
-   const pulse=phase==="speaking"?Math.max(0,Math.min(1,(speechUntil-ms)/170)):0;
+   const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
    const poses=motionFor(phase,ms,pulse);
    for(const region of REGIONS){
     const params=region.id==="left-hand"||region.id==="right-hand"?poses.hands:region.id==="chest"?poses.chest:region.id==="eyes"?poses.eyes:region.id==="mouth"?poses.mouth:poses.head;
@@ -90,17 +92,31 @@
   function tick(now){
    if(epoch<0)return;
    frame=win.requestAnimationFrame(tick);
-   if(now-last<66||!live||reduced||phase==="paused"||phase==="stopped")return;
+   if(now-last<30||!live||reduced||phase==="paused"||phase==="stopped")return;
    last=now;draw(now);
   }
   function onState(event){
    const state=String(event?.detail?.state||"ready");
    phase=STATES.has(state)?state:"stopped";
+   playbackEpoch=event?.detail?.epoch;
    live=(event?.detail?.live===true||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
-   if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;draw(0);}
+   if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
   }
   win.addEventListener("oap-smi-character-state",onState);
-  win.addEventListener("oap-smi-playback-state",event=>{if(event?.detail?.phase!=="playing")speechUntil=0;});
+  win.addEventListener("oap-smi-playback-state",event=>{
+   localAudio=event?.detail?.phase==="playing"&&event?.detail?.source==="oap-first-party-pcm"&&event?.detail?.decodedAudio===true;
+   if(!localAudio){speechUntil=0;localViseme="silence";}
+  });
+  win.addEventListener("oap-smi-audio-cue",event=>{
+   const cue=event?.detail;
+   if(!localAudio||phase!=="speaking"||!live||reduced||
+      cue?.source!=="oap-first-party-pcm"||cue?.decodedAudio!==true||
+      cue?.synthesisPhonemeTiming!==true||cue?.epoch!==playbackEpoch||
+      !Number.isFinite(cue?.audioClockMs)||cue.audioClockMs<0||
+      !Object.hasOwn(LOCAL_POSE,cue?.viseme))return;
+   localViseme=cue.viseme;
+   draw(win.performance.now());
+  });
   win.addEventListener("oap-smi-speech-boundary",event=>{
    if(phase!=="speaking"||!live||event?.detail?.source!=="browser-speech-synthesis"||event?.detail?.decodedAudio!==false)return;
    if(!Number.isFinite(event.detail.elapsedMs)||event.detail.elapsedMs<0)return;
