@@ -65,3 +65,12 @@ def test_recovery_preserves_exact_approved_character_and_fail_closed_rig():
     assert 'const LOCK="design_only_no_approved_layered_rig"' in rig
     assert "function frame(){return null;}" in rig
     assert "function activate(){rejectedEvents+=1;return freezeSnapshot();}" in rig
+
+
+def test_stale_microphone_callbacks_cannot_mutate_mobile_controls():
+    controller = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text(encoding="utf-8")
+    for ending in ("recognition-end", "recognition-error"):
+        start = controller.index("const expected=oapRecognitionToken;if(!oapStateApi.tokenIsCurrent", controller.index("oapRecognition.onend=()=>" if ending == "recognition-end" else "oapRecognition.onerror=event=>"))
+        callback = controller[start:controller.index("oapApply('LISTEN_END')", start)]
+        assert callback.index("staleCallbackSuppressed") < callback.index("oapStopListenTimer()")
+        assert callback.index("staleCallbackSuppressed") < callback.index("oapMic.classList.remove('active')")
