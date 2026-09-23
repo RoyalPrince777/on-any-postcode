@@ -82,6 +82,55 @@ def candidate(row: object) -> dict[str, object] | None:
     }
 
 
+def private_collection_intake() -> dict[str, object]:
+    """Private editorial intake, not owned assets or OAP distribution rights.
+
+    Named works are user-reported purchases, not corroborated transactions.
+    Discovery sources are already present in SOURCES; no duplicate catalogue,
+    public route, file retrieval, new provider dependency or playback contract.
+    """
+    purchased = (
+        ("The Wire", "television_series", "HBO"),
+        ("Friday", "feature_film_1995", "New Line Cinema"),
+    )
+    titles = [{
+        "title": title,
+        "kind": kind,
+        "production_reference": reference,
+        "purchase_reported_by": "founder",
+        "purchase_receipt_checked": False,
+        "oap_distribution_licence_verified": False,
+        "territories_licensed": [],
+        "public_catalogue_enabled": False,
+        "playback_enabled": False,
+        "stream_url": None,
+        "download_url": None,
+        "stage": "private_rights_review",
+    } for title, kind, reference in purchased]
+    return {
+        "collection": "OAP Open Cinema",
+        "scope": "founder_only_private_editorial_intake",
+        "existing_catalogue_preserved": True,
+        "reported_purchases": titles,
+        "other_old_film_titles_received": False,
+        "other_old_films": [],
+        "free_catalogue_discovery": [{
+            "source": source,
+            "title_clearance_state": "per_title_evidence_required",
+            "films_imported": 0,
+            "licences_acquired": False,
+            "public_catalogue_enabled": False,
+            "playback_enabled": False,
+        } for source in SOURCES],
+        "rights_registry_connected": False,
+        "public_catalogue_enabled": False,
+        "playback_enabled": False,
+        "payments_enabled": False,
+        "media_import_performed": False,
+        "human_authority_final": True,
+    }
+
+
 def preview(rows: object) -> dict[str, object]:
     """Stateless owner-side import preview; not a rights registry or DB."""
     source_rows = rows if isinstance(rows, list) else []
