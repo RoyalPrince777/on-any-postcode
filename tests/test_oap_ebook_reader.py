@@ -1,6 +1,6 @@
 """Ebook contract regressions; no live files or purchase execution."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -9,12 +9,15 @@ from mission_control.oap_book_delivery import ReadingGrant
 from mission_control.oap_ebook_reader import (
     EbookEdition,
     deliver_page,
+    manuscript_digest,
     protected_reader_headers,
 )
 
+PAGES = ("chapter one", "chapter two", "chapter three")
+NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
 BOOK = EbookEdition(
-    book_id="oap-book", edition_id="first", manuscript_sha256="a" * 64,
-    pages=("chapter one", "chapter two", "chapter three"),
+    book_id="oap-book", edition_id="first", manuscript_sha256=manuscript_digest(PAGES),
+    pages=PAGES,
     preview_pages=frozenset({0}),
 )
 
@@ -31,7 +34,7 @@ def grant(access=Access.PURCHASED, **changes):
 def page(access=Access.PURCHASED, **changes):
     values = {
         "edition": BOOK, "grant": grant(access),
-        "authenticated_identity": "member-id", "page_number": 0,
+        "authenticated_identity": "member-id", "page_number": 0, "now": NOW,
     }
     values.update(changes)
     return deliver_page(**values)
@@ -97,3 +100,30 @@ def test_protected_web_headers_do_not_claim_capture_proof():
     assert "no-store" in headers["Cache-Control"]
     assert "display-capture=()" in headers["Permissions-Policy"]
     assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
+
+
+def test_rotation_requires_unexpired_trusted_clock():
+    expiry = datetime(2026, 9, 28, tzinfo=timezone.utc)
+    rotated = grant(Access.ROTATION, expires_at=expiry)
+    with pytest.raises(PermissionError, match="rotation_expired"):
+        page(grant=rotated, now=expiry)
+    with pytest.raises(PermissionError, match="rotation_expired"):
+        page(grant=rotated, now=expiry + timedelta(seconds=1))
+    with pytest.raises(PermissionError, match="rotation_expired"):
+        page(grant=grant(Access.ROTATION))
+    with pytest.raises(PermissionError, match="clock_unavailable"):
+        page(now=NOW.replace(tzinfo=None))
+
+
+def test_manuscript_content_must_match_approved_digest():
+    tampered = EbookEdition(
+        "oap-book", "first", BOOK.manuscript_sha256,
+        ("changed page", "chapter two", "chapter three"),
+    )
+    with pytest.raises(PermissionError, match="manuscript_integrity_failed"):
+        page(edition=tampered)
+
+
+def test_purchase_not_revoked_by_rotation_expiry():
+    past = NOW - timedelta(days=7)
+    assert page(grant=grant(Access.PURCHASED, expires_at=past)).content == "chapter one"
