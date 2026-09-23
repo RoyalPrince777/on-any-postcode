@@ -41,6 +41,8 @@ jobs:
           node tests/smi_live_character_exhaustive_test.cjs
           node --check mission_control/static/smi_exact_character_rig.js
           node tests/smi_exact_character_rig_foundation_test.cjs
+          node --check mission_control/static/smi_source_pixel_motion.js
+          node tests/smi_source_pixel_motion_test.cjs
           node --check mission_control/smi_character_motion_candidate.js
           node tests/smi_character_motion_candidate_test.cjs
           node --check mission_control/smi_android_motion_evidence_gate.js
