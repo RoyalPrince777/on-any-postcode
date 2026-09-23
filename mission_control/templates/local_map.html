@@ -143,7 +143,7 @@ async function loadRoadNetwork(b,mode){
        const rawClass=String(feature.class||feature.layer||'road').toLowerCase();
        const isMajor=feature.is_small===false||(+feature.speed||0)>=50||/(motorway|trunk|primary)/.test(rawClass);
        const isSecondary=/(secondary|tertiary)/.test(rawClass);
-       const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' ');
+       const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' '));
        poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local');
        roadLayer.appendChild(poly);count++;
        const name=String(feature.name||'').trim();
