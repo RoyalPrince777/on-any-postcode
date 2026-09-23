@@ -25,3 +25,14 @@ def test_only_canonical_controller_emits_stream_completion():
     assert "response.clone().text()" not in legacy
     assert "window.addEventListener('oap-smi-complete'" in legacy
     assert "window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}))" in controller
+
+
+def test_hrm_receipt_requires_a_unique_recorded_request():
+    legacy = (ROOT / "mission_control/static/smi_chat_final.js").read_text(encoding="utf-8")
+    assert "const oapRenderedReceiptIds=new Set()" in legacy
+    assert "typeof r.request_id!=='string'" in legacy
+    assert "typeof r.conversation_id!=='string'" in legacy
+    assert "if(oapRenderedReceiptIds.has(receiptKey))return" in legacy
+    assert "oapRenderedReceiptIds.add(receiptKey)" in legacy
+    assert "oapRenderedReceiptIds.size>128" in legacy
+    assert "Shown only after the governed response completed" in legacy
