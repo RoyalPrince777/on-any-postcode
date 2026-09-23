@@ -6,21 +6,21 @@ schema on the same supplied connection. No public listing or entry routes.
 from __future__ import annotations
 
 import sqlite3
-from datetime import date
+from datetime import date, datetime, timezone
 from urllib.parse import urlsplit
 
 from oap.audit import append_event, audit_schema_ready
 
 SCHEMA = (
-    "CREATE TABLE IF NOT EXISTS everyday_partners ("
+    ("CREATE TABLE IF NOT EXISTS everyday_partners ("
     "id TEXT PRIMARY KEY, organisation TEXT NOT NULL, prize TEXT NOT NULL,"
     "status TEXT NOT NULL CHECK(status='proposed'),"
     "sponsor_confirmed INTEGER NOT NULL DEFAULT 0 CHECK(sponsor_confirmed=0),"
-    "prize_secured INTEGER NOT NULL DEFAULT 0 CHECK(prize_secured=0))",
-    "CREATE TABLE IF NOT EXISTS everyday_resources ("
+    "prize_secured INTEGER NOT NULL DEFAULT 0 CHECK(prize_secured=0))"),
+    ("CREATE TABLE IF NOT EXISTS everyday_resources ("
     "id TEXT PRIMARY KEY, title TEXT NOT NULL, url TEXT NOT NULL,"
     "source_name TEXT NOT NULL, checked_on TEXT NOT NULL,"
-    "status TEXT NOT NULL CHECK(status='private_review'))",
+    "status TEXT NOT NULL CHECK(status='private_review'))"),
 )
 
 
@@ -81,7 +81,7 @@ def propose_resource(connection: sqlite3.Connection, *, record_id: str,
         reviewed = date.fromisoformat(checked_on)
     except (TypeError, ValueError) as exc:
         raise ValueError("invalid_review_date") from exc
-    if reviewed > date.today():
+    if reviewed > datetime.now(timezone.utc).date():
         raise ValueError("future_review_date")
 
     def work():
