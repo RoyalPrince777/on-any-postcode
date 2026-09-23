@@ -17,7 +17,7 @@ def test_exact_hashed_jpeg_decodes_to_supplied_rgba(monkeypatch):
     rgba = Image.open(BytesIO(data)).convert("RGBA").tobytes()
     monkeypatch.setattr(proof, "APPROVED_SOURCE_SHA256", hashlib.sha256(data).hexdigest())
     assert proof.matches_approved_decoded_rgba(data, rgba, 3, 2)
-    assert not proof.matches_approved_decoded_rgba(data, rgba[:-1] + b"\\x00", 3, 2)
+    assert not proof.matches_approved_decoded_rgba(data, rgba[:-1] + bytes([0]), 3, 2)
     assert not proof.matches_approved_decoded_rgba(data, rgba, 2, 3)
     assert not proof.matches_approved_decoded_rgba(data + b"tampered", rgba, 3, 2)
     assert not proof.matches_approved_decoded_rgba(data, rgba, True, 2)
