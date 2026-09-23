@@ -59,7 +59,12 @@ def verify_lab_readback(
         if any(state.get(key) is not False for key in (
             "scientific_truth_established", "canonical_promotion_authorised",
             "publication_authorised", "execution_authorised",
-        )):
+        )) or any(key in state and state[key] is not False for key in (
+            "storage_authenticity_verified", "independent_anchor_authenticity_verified",
+            "durable_persistence_verified", "external_store_readback_verified",
+            "namespace_independence_authenticated", "anchor_authenticity_verified",
+            "independent_recovery_verified", "release_ready",
+        )) or ("resume_mode" in state and state["resume_mode"] != "review_only"):
             raise ClaimEdgeBlocked("recovery_cannot_restore_authority")
     outcome = verify_recovery_chain(records, expected_last_hash=expected_last_hash)
     return {
