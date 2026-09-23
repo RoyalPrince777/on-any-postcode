@@ -53,7 +53,7 @@ def _country(value: object) -> str:
 
 def _timestamp(value: object) -> str:
     if not isinstance(value, str):
-        raise ValueError("invalid_event_timestamp")
+        raise TypeError("invalid_event_timestamp")
     try:
         stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
