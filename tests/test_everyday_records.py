@@ -1,6 +1,6 @@
 """Offline SQLite persistence / canonical audit / fail-closed tests."""
 import sqlite3
-from datetime import date
+from datetime import datetime, timezone
 
 import pytest
 
@@ -48,14 +48,14 @@ def test_resource_stays_private_and_stores_source_date(tmp_path):
     conn, path = database(tmp_path)
     result = propose_resource(conn, record_id="r1", title="Local help",
                               url="https://example.org/help", source="Source",
-                              checked_on=date.today().isoformat(),
+                              checked_on=datetime.now(timezone.utc).date().isoformat(),
                               actor="private-operator")
     assert result["published"] is False and result["receipt_seq"] == 1
     conn.close()
     with sqlite3.connect(path) as recovered:
         saved = records(recovered)["resources"][0]
         assert saved["status"] == "private_review"
-        assert saved["checked_on"] == date.today().isoformat()
+        assert saved["checked_on"] == datetime.now(timezone.utc).date().isoformat()
 
 
 def test_invalid_resource_rejected_before_write(tmp_path):
@@ -64,7 +64,7 @@ def test_invalid_resource_rejected_before_write(tmp_path):
                 "file:///etc/passwd"):
         with pytest.raises(ValueError, match="invalid_private_resource"):
             propose_resource(conn, record_id="r1", title="Resource", url=url,
-                             source="Source", checked_on=date.today().isoformat(),
+                             source="Source", checked_on=datetime.now(timezone.utc).date().isoformat(),
                              actor="private-operator")
     assert records(conn)["resources"] == []
     assert conn.execute("SELECT count(*) FROM audit_events").fetchone()[0] == 0
