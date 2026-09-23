@@ -134,15 +134,23 @@ def private_catalogue_intelligence(rows: object) -> dict[str, object]:
     The caller supplies metadata already discovered elsewhere. No network access,
     media retrieval, catalogue persistence, licence proof or OAP release occurs.
     """
-    preview = candidate_preview(rows)
+    source = rows if isinstance(rows, list) else []
     review: list[dict[str, object]] = []
     seen_pages: set[str] = set()
     seen_titles: set[tuple[str, str, str]] = set()
-    for item in preview["candidates"]:
+    for row in source[:MAX_LEADS_SCAN]:
+        if len(review) == MAX_CANDIDATES:
+            break
+        candidates = candidate_preview([row])["candidates"]
+        if not candidates:
+            continue
+        item = candidates[0]
         page = item["source_page_url"]
         title_key = (item["source_kind"], item["artist"].casefold(),
                      item["title"].casefold())
-        if (page is not None and page in seen_pages) or title_key in seen_titles:
+        # A shared page is one lead. Without a page, dedupe the title claim.
+        # Separate source pages can be distinct recordings with the same title.
+        if (page is not None and page in seen_pages) or (page is None and title_key in seen_titles):
             continue
         if page is not None:
             seen_pages.add(page)
