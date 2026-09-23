@@ -67,7 +67,7 @@ def test_unreviewed_alpha_and_unmasked_pixels_fail_closed(monkeypatch):
 
 
 def test_wrong_format_is_not_approved_original(monkeypatch):
-    source, mask, geometry = _fixture(monkeypatch)
+    _, mask, geometry = _fixture(monkeypatch)
     png = BytesIO()
     Image.new("RGB", (2, 2)).save(png, format="PNG")
     monkeypatch.setattr(proof, "APPROVED_SOURCE_SHA256", hashlib.sha256(png.getvalue()).hexdigest())
