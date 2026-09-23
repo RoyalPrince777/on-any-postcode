@@ -154,6 +154,10 @@ def test_smi_gateway_allowlist_is_founder_private_only():
     assert smi_gateway._allowed("api/infrastructure/status") is True
     assert smi_gateway._allowed("healthz") is True
     assert smi_gateway._allowed("assets/oap.css") is True
+    assert smi_gateway._allowed("static/oap/smi_live_chat_dashboard.jpg") is True
+    assert smi_gateway._allowed("static/oap/private-masks.zip") is False
+    assert smi_gateway._allowed("static/oap/other-character.jpg") is False
+    assert smi_gateway._allowed("static/oap/smi_live_chat_dashboard.jpg/extra") is False
     assert smi_gateway._allowed("auth/sign-up") is False
     assert smi_gateway._allowed("activate-founder") is False
     assert smi_gateway._allowed("world") is False
