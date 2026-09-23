@@ -136,10 +136,10 @@ class SMICore:
             return self._block_early(request, state, permission.reason)
         state.advance(ProcessingState.IDENTITY_VERIFIED)
 
-        agi_route = self.agi_core.route(request.content, request.task_type)
+        agi_route = self.agi_core.route(signal.content, signal.task_type)
         command_review = self.command_intelligence.review(
-            request.content,
-            request.task_type,
+            signal.content,
+            signal.task_type,
             agi_route,
             high_impact=request.high_impact,
         )
