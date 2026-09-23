@@ -353,6 +353,11 @@ def test_real_named_fma_track_can_be_prepared_only_as_private_review_lead():
     assert receipt["artist"] == "1000 Handz"
     assert receipt["source_page_url"] == item["source_page_url"]
     assert receipt["attribution_draft"] == "Window — 1000 Handz"
+    assert receipt["attribution_source_url"] == item["source_page_url"]
+    assert receipt["claimed_licence_reference_url"] == (
+        "https://creativecommons.org/licenses/by/4.0/"
+    )
+    assert receipt["attribution_changes_disclosure_review_required"] is True
     assert receipt["review_state"] == "private_unverified_lead"
     assert receipt["receipt_persisted"] is False
     for key in (
@@ -386,3 +391,24 @@ def test_private_source_review_receipt_rejects_hostile_or_unrelated_claims():
     assert receipt["source_page_url"] is None
     assert receipt["recording_rights_verified"] is False
     assert receipt["composition_rights_verified"] is False
+
+
+
+def test_licence_reference_is_only_a_reference_not_actual_music_clearance():
+    expected = {
+        "CC_BY": "https://creativecommons.org/licenses/by/4.0/",
+        "CC_BY_SA": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "CC0": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "PUBLIC_DOMAIN": None,
+        "DIRECT_PERMISSION": None,
+    }
+    for claim, link in expected.items():
+        result = music.private_source_review_receipt(_candidate(
+            claimed_licence=claim, rights_verified=True,
+            recording_rights_verified=True, composition_rights_verified=True,
+        ))
+        assert result["claimed_licence_reference_url"] == link
+        assert result["attribution_verified"] is False
+        assert result["recording_rights_verified"] is False
+        assert result["composition_rights_verified"] is False
+        assert result["playback_enabled"] is False
