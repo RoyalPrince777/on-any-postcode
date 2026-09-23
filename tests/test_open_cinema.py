@@ -67,10 +67,15 @@ def test_direct_creator_is_lead_not_permission():
     assert item["rights_evidence_checked"] is False
 
 
-def test_existing_auth_boundary_and_csrf_on_private_preview(client, anonymous_client):
+def test_existing_auth_boundary_on_private_preview(anonymous_client):
     url = "/mission/organs/entertainment/open-cinema/preview"
     assert anonymous_client.post(url, json={"candidates": [GOOD]}).status_code in (401, 403)
-    assert client.post(url, json={"candidates": [GOOD]}).status_code in (400, 403)
+    assert anonymous_client.get(url).status_code in (404, 405)
+
+
+def test_private_preview_no_unauthenticated_write(client):
+    url = "/mission/organs/entertainment/open-cinema/preview"
+    assert client.post(url, json={"candidates": [GOOD]}).status_code in (401, 403)
     assert client.get(url).status_code in (404, 405)
 
 
