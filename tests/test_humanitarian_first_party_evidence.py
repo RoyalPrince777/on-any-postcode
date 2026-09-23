@@ -41,6 +41,26 @@ class FirstPartyHumanitarianEvidenceTests(unittest.TestCase):
         self.assertEqual(result["origin"], "unestablished")
         self.assertEqual(result["status"], "unconfirmed")
 
+    def test_two_external_references_cannot_verify_oap_original_claim(self):
+        finding = {"id": "oap-external-only", "claim": "A reported condition", "authored_by": "OAP",
+                   "human_reviewed": True,
+                   "evidence": [{"id": "report-1", "kind": "external_reference", "reviewed": True, "supports_claim": True},
+                                {"id": "report-2", "kind": "external_reference", "reviewed": True, "supports_claim": True}]}
+        result = verify_original_finding(finding)
+        self.assertEqual(result["accepted_evidence_count"], 2)
+        self.assertEqual(result["status"], "unconfirmed")
+        self.assertFalse(result["public_release_authorised"])
+
+    def test_original_observation_plus_external_reference_can_be_reviewed(self):
+        finding = {"id": "oap-mixed", "claim": "Observed condition", "authored_by": "OAP",
+                   "human_reviewed": True,
+                   "evidence": [{"id": "oap-observation", "kind": "first_party_observation", "reviewed": True, "supports_claim": True},
+                                {"id": "report-1", "kind": "external_reference", "reviewed": True, "supports_claim": True}]}
+        result = verify_original_finding(finding)
+        self.assertEqual(result["status"], "internally_verified")
+        self.assertFalse(result["official_emergency_alert"])
+        self.assertFalse(result["public_release_authorised"])
+
     def test_existing_tracker_snapshot_has_unclaimed_first_party_state(self):
         snapshot = humanitarian_emergency_snapshot(live_fetch=False)
         self.assertEqual(snapshot["first_party_verification"], first_party_verification_state())
