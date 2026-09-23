@@ -105,6 +105,12 @@ def _operation_error(exc: Exception):
         code = str(exc) or "movement_access_denied"
         status_code = 404 if code in {"booking_not_found"} else 403
         return _error(code, "Movement access is not available for this request.", status_code)
+    if isinstance(exc, ValueError) and str(exc) == "idempotency_conflict":
+        return _error(
+            "idempotency_conflict",
+            "The request key cannot be reused for different booking details.",
+            409,
+        )
     if isinstance(exc, (TypeError, ValueError)):
         return _error(str(exc) or "invalid_movement_request", "Invalid Movement request.", 400)
     return _error("movement_unavailable", "Movement is temporarily unavailable.", 503)

@@ -382,6 +382,16 @@ class PostgresMovementStore:
                    VALUES (%s,%s,%s::jsonb,%s::jsonb,%s,'REQUESTED',%s::jsonb,%s)
                    ON CONFLICT (idempotency_key) DO UPDATE
                    SET idempotency_key=EXCLUDED.idempotency_key
+                   WHERE oap_movement_bookings.member_identity_id =
+                         EXCLUDED.member_identity_id
+                     AND oap_movement_bookings.service_type = EXCLUDED.service_type
+                     AND oap_movement_bookings.pickup = EXCLUDED.pickup
+                     AND oap_movement_bookings.destination IS NOT DISTINCT FROM
+                         EXCLUDED.destination
+                     AND oap_movement_bookings.scheduled_for IS NOT DISTINCT FROM
+                         EXCLUDED.scheduled_for
+                     AND oap_movement_bookings.route_snapshot IS NOT DISTINCT FROM
+                         EXCLUDED.route_snapshot
                    RETURNING booking_id,service_type,state,scheduled_for,
                              created_at,updated_at""",
                 (
@@ -394,6 +404,8 @@ class PostgresMovementStore:
                     key,
                 ),
             ).fetchone()
+            if row is None:
+                raise ValueError("idempotency_conflict")
             connection.commit()
         return {
             "booking_id": str(row[0]),
@@ -758,9 +770,17 @@ class PostgresMovementStore:
                    VALUES (%s,%s,%s,%s,'PROVIDER_REQUIRED',%s)
                    ON CONFLICT (idempotency_key) DO UPDATE
                    SET idempotency_key=EXCLUDED.idempotency_key
+                   WHERE oap_movement_payment_intents.booking_id = EXCLUDED.booking_id
+                     AND oap_movement_payment_intents.member_identity_id =
+                         EXCLUDED.member_identity_id
+                     AND oap_movement_payment_intents.amount_minor =
+                         EXCLUDED.amount_minor
+                     AND oap_movement_payment_intents.currency = EXCLUDED.currency
                    RETURNING intent_id,state,amount_minor,currency,created_at""",
                 (booking, member, amount, currency_code, key),
             ).fetchone()
+            if row is None:
+                raise ValueError("idempotency_conflict")
             connection.commit()
         return {
             "intent_id": str(row[0]),
