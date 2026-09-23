@@ -181,3 +181,111 @@ def bind_review_to_claim(
         "publication_authorised": False,
         "execution_authorised": False,
     }
+
+
+@dataclass(frozen=True)
+class Challenge:
+    """Reviewer-specific finding; no inferred source independence or truth."""
+    reviewer_id: str
+    source_id: str
+    source_sha256: str
+    outcome: str
+
+    def __post_init__(self) -> None:
+        from uuid import UUID
+
+        try:
+            UUID(self.reviewer_id)
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ClaimEdgeBlocked("canonical_reviewer_id_required") from exc
+        if not isinstance(self.source_id, str) or not self.source_id.strip():
+            raise ClaimEdgeBlocked("reviewed_source_id_required")
+        if not isinstance(self.source_sha256, str) or (
+            len(self.source_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in self.source_sha256)
+        ):
+            raise ClaimEdgeBlocked("reviewed_source_digest_required")
+        if self.outcome not in ("supports", "challenges", "inconclusive"):
+            raise ClaimEdgeBlocked("review_outcome_not_allowlisted")
+
+
+def challenge_claim_receipt(
+    admitted: Mapping[str, object],
+    challenges: tuple[Challenge, ...],
+    *,
+    authenticated_reviewer_ids: frozenset[str],
+    stopped: bool = False,
+) -> dict[str, object]:
+    """Port #570's unique contradiction review onto #565's canonical contract.
+
+    Never duplicate recovery, persist evidence, authenticate independent
+    source origins, or promote synthetic research to scientific truth.
+    """
+    from uuid import UUID
+
+    if stopped:
+        raise ClaimEdgeBlocked("stop_asserted")
+    if not isinstance(admitted, Mapping):
+        raise ClaimEdgeBlocked("verified_admission_required")
+    digest = admitted.get("receipt_sha256")
+    payload = {key: value for key, value in admitted.items() if key != "receipt_sha256"}
+    try:
+        expected = sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        ).hexdigest()
+    except (TypeError, ValueError) as exc:
+        raise ClaimEdgeBlocked("invalid_admission_receipt") from exc
+    if not isinstance(digest, str) or digest != expected:
+        raise ClaimEdgeBlocked("admission_receipt_tampered")
+    if admitted.get("review_only") is not True or any(
+        admitted.get(key) is not False for key in (
+            "independence_verified", "scientific_truth_established",
+            "canonical_promotion_authorised", "publication_authorised",
+            "execution_authorised",
+        )
+    ):
+        raise ClaimEdgeBlocked("review_only_admission_required")
+    source_ids = admitted.get("source_ids")
+    source_hashes = admitted.get("source_sha256")
+    if not isinstance(source_ids, list) or not isinstance(source_hashes, list):
+        raise ClaimEdgeBlocked("verified_sources_required")
+    if not source_ids or len(source_ids) != len(source_hashes) or len(set(source_ids)) != len(source_ids):
+        raise ClaimEdgeBlocked("invalid_admitted_source_links")
+    sources = dict(zip(source_ids, source_hashes, strict=True))
+    if not isinstance(challenges, tuple) or not challenges or any(
+        not isinstance(item, Challenge) for item in challenges
+    ):
+        raise ClaimEdgeBlocked("typed_challenge_required")
+    try:
+        reviewers = {str(UUID(x)) for x in authenticated_reviewer_ids}
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ClaimEdgeBlocked("authenticated_reviewers_required") from exc
+    if any(
+        str(UUID(item.reviewer_id)) not in reviewers
+        or sources.get(item.source_id) != item.source_sha256
+        for item in challenges
+    ):
+        raise ClaimEdgeBlocked("reviewer_or_source_mismatch")
+    if len({(item.reviewer_id, item.source_id) for item in challenges}) != len(challenges):
+        raise ClaimEdgeBlocked("duplicate_challenge")
+    outcomes = {item.outcome for item in challenges}
+    result = {
+        "claim_id": admitted["claim_id"],
+        "admission_receipt_sha256": digest,
+        "reviewer_count": len({item.reviewer_id for item in challenges}),
+        "reviewed_source_count": len({item.source_id for item in challenges}),
+        "has_support": "supports" in outcomes,
+        "has_challenge": "challenges" in outcomes,
+        "has_inconclusive": "inconclusive" in outcomes,
+        "contradictions_preserved": True,
+        "source_independence_verified": False,
+        "scientific_truth_established": False,
+        "canonical_promotion_authorised": False,
+        "publication_authorised": False,
+        "execution_authorised": False,
+        "review_only": True,
+    }
+    result["receipt_sha256"] = sha256(
+        json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return result
