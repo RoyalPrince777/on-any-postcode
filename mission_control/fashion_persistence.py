@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
-from . import postgres_db
+from . import certification, postgres_db
 from .fashion_first_party import FashionDraft, FashionError, identity
 from .fashion_snapshot import restore, snapshot
 
@@ -44,7 +44,10 @@ def read_fashion(*, actor_id: object, product_id: object) -> tuple[FashionDraft,
         raise FashionError("fashion_snapshot_not_found")
     envelope = row[0]
     if isinstance(envelope, str):
-        envelope = json.loads(envelope)
+        try:
+            envelope = json.loads(envelope)
+        except (TypeError, ValueError) as exc:
+            raise FashionError("invalid_fashion_snapshot") from exc
     if type(row[1]) is not int or row[1] < 1:
         raise FashionError("invalid_fashion_revision")
     return restore(envelope, actor_id=owner, product_id=product), row[1]
@@ -55,7 +58,7 @@ def save_fashion(
 ) -> int:
     """CAS write: revision 0 is create-only; positive revision is update-only.
 
-    Caller must have established a trusted, current Certified Merchant status.
+    Recheck current OAP Certified Merchant status, never trust draft flags.
     This is not an HTTP action. A separate approved migration must exist.
     """
     owner = identity(actor_id)
@@ -64,6 +67,12 @@ def save_fashion(
     if type(expected_revision) is not int or expected_revision < 0:
         raise FashionError("invalid_fashion_revision")
     if not draft.merchant_certified:
+        raise FashionError("certified_merchant_required")
+    try:
+        status = certification.identity_status(owner)
+    except certification.CertificationUnavailable as exc:
+        raise FashionError("merchant_certification_unavailable") from exc
+    if status.get("merchant") is not True:
         raise FashionError("certified_merchant_required")
     envelope = snapshot(draft, actor_id=owner)
     payload = _encode({"payload": envelope["payload"], "sha256": envelope["sha256"]})
