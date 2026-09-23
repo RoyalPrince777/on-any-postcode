@@ -53,6 +53,7 @@ def reconcile(
         and submitted.get("country") == review["country"]
         and type(submitted.get("models")) is list
         and len(submitted["models"]) == len(review["models"])
+        and all(type(model) is str for model in submitted["models"])
         and sorted(submitted["models"]) == review["models"]
         and submitted.get("starts_on") == review["starts_on"]
         and submitted.get("ends_on") == review["ends_on"]
