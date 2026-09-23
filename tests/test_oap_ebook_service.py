@@ -4,11 +4,11 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from mission_control import oap_ebook_service as service
 from mission_control.oap_book_access import Book, Rotation
 from mission_control.oap_book_delivery import PurchaseReceipt
 from mission_control.oap_book_publication import EditionEvidence
 from mission_control.oap_ebook_reader import EbookEdition, manuscript_digest
-from mission_control import oap_ebook_service as service
 
 NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
 PAGES = ("one", "two")
