@@ -115,3 +115,12 @@ def test_cosmetic_whitespace_cannot_prove_snapshot_separation(which, key, value)
         verify_separate_readback_snapshots(
             history, anchor, authenticated_owner_id=OWNER,
         )
+
+
+@pytest.mark.parametrize("invalid_stop", [0, None, "false", "true"])
+def test_soul_snapshot_readback_requires_explicit_stop_state(invalid_stop):
+    history, anchor = snapshots()
+    with pytest.raises(ClaimEdgeBlocked, match="explicit_stop_state_required"):
+        verify_separate_readback_snapshots(
+            history, anchor, authenticated_owner_id=OWNER, stopped=invalid_stop,
+        )
