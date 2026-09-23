@@ -123,3 +123,35 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
         ],
         "human_authority_final": True,
     }
+
+
+def asset_integrity_review(
+    candidate_id: object, asset_bytes: object, expected_sha256: object,
+) -> dict[str, object]:
+    """Compare supplied asset bytes to a submitted digest without trusting its origin.
+
+    This is not an independent provenance check or a licence verification. A
+    matching attacker-supplied digest must never make content publishable.
+    """
+    uid = _uuid(candidate_id)
+    actual = evidence_bytes_digest(asset_bytes)
+    expected_valid = (
+        isinstance(expected_sha256, str)
+        and len(expected_sha256) == 64
+        and all(char in "0123456789abcdef" for char in expected_sha256)
+    )
+    matches = bool(
+        uid and actual["accepted"] and expected_valid
+        and actual["sha256"] == expected_sha256
+    )
+    return {
+        "candidate_id": f"oap:open-music:{uid}" if uid else None,
+        "digest_matches_submission": matches,
+        "asset_bytes_accepted": actual["accepted"],
+        "actual_sha256": actual["sha256"] if uid else None,
+        "independent_source_provenance_verified": False,
+        "rights_verified": False,
+        "public_catalogue_enabled": False,
+        "playback_enabled": False,
+        "human_authority_final": True,
+    }
