@@ -8,6 +8,7 @@ from . import (
     entertainment_catalogue,
     open_cinema,
     open_cinema_evidence,
+    open_music_intake,
     product_core_services,
     product_cores,
     product_store,
@@ -196,6 +197,24 @@ def entertainment_status():
         )))
     except (ValueError, RuntimeError):
         return _error("entertainment_unavailable", "OAP Entertainment is temporarily unavailable.", 503)
+
+
+@bp.post("/tune/catalogue-intelligence/preview")
+@web_security.login_required(api=True, founder_only=True)
+def tune_catalogue_intelligence_preview():
+    """Founder-only OAP Music metadata review; never imports audio or grants rights."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("candidates"), list):
+        return _error("invalid_request", "Candidate list required.", 400)
+    try:
+        _identity()  # The session, never claimant-supplied owner fields.
+        return _no_store(make_response(jsonify(
+            open_music_intake.private_catalogue_intelligence(payload["candidates"])
+        )))
+    except (PermissionError, ValueError):
+        return _error("permission_denied", "Authenticated Founder required.", 403)
 
 
 @bp.post("/entertainment/open-cinema/preview")
