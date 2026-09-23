@@ -67,3 +67,27 @@ def test_public_map_door_uses_visible_first_party_renderer():
     assert "'/map-intelligence/road-geometry/" in Path(
         "mission_control/templates/local_map.html"
     ).read_text(encoding="utf-8")
+
+
+def test_road_network_loads_without_successful_route():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+
+    assert "loadRoadNetwork(defaultBounds,profile.value);" in template
+    assert "if(from.value.trim()&&to.value.trim())route();" in template
+    assert template.index("loadRoadNetwork(defaultBounds,profile.value);") < template.index(
+        "if(from.value.trim()&&to.value.trim())route();"
+    )
+    assert 'id="road-source-state"' in template
+    assert "showRoadStatus(count?'': 'Road network unavailable" in template
+
+
+def test_route_failure_preserves_independent_road_layer():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    route_section = template.split("async function route(){", 1)[1].split(
+        "form.addEventListener('submit'", 1
+    )[0]
+
+    assert "roadLayer.innerHTML=''" not in route_section
+    assert "if(request!==roadRequest)return;" in template
+    assert "if(request===roadRequest)" in template
+    assert "profile.addEventListener('change'" in template
