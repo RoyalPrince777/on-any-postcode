@@ -42,6 +42,8 @@ def create_draft():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return _reply({"error": {"code": "json_object_required"}}, 400)
+    if "owner_id" in payload or "mailbox_owner_id" in payload:
+        return _reply({"error": {"code": "mail_owner_override_forbidden"}}, 403)
     user = web_security.current_authenticated_user()
     try:
         public_store.ensure_authenticated_user(
