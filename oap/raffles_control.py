@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+
 class State(str, Enum):
     DRAFT = "draft"
     REVIEW = "review"
@@ -52,7 +53,7 @@ class RafflesControl:
             return False
         try:
             return self.authority_checker(actor) is True
-        except Exception:
+        except Exception:  # noqa: BLE001 - authority-store failure must fail closed.
             return False
 
     def control(self, action: str, actor: str, *,
