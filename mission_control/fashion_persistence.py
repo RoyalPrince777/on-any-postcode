@@ -6,10 +6,11 @@ No supplier, publication, payment, order, or deployment execution.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 
-from . import certification, postgres_db
+from . import certification, postgres_db, product_cores
 from .fashion_first_party import FashionDraft, FashionError, identity
 from .fashion_snapshot import restore, snapshot
 
@@ -25,6 +26,60 @@ FASHION_SCHEMA_STATEMENTS = (
     """CREATE INDEX IF NOT EXISTS ix_oap_fashion_owner
        ON oap_fashion_snapshots(owner_identity_id, updated_at DESC)""",
 )
+
+
+
+FASHION_MIGRATION_CHECKSUM = hashlib.sha256(
+    json.dumps(FASHION_SCHEMA_STATEMENTS, separators=(",", ":")).encode("utf-8")
+).hexdigest()
+
+
+def fashion_schema_status() -> dict[str, object]:
+    """Read-only verification; missing schema or altered checksum cannot be green."""
+    result: dict[str, object] = {
+        "migration": FASHION_MIGRATION_VERSION,
+        "checksum": FASHION_MIGRATION_CHECKSUM,
+        "schema_ready": False,
+        "error": None,
+        "live_migration_performed": False,
+    }
+    if not product_cores.product_core_schema_status().get("schema_ready"):
+        result["error"] = "product_core_schema_not_ready"
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT table_name FROM information_schema.tables
+                   WHERE table_schema='public'
+                     AND table_name='oap_fashion_snapshots'"""
+            ).fetchone()
+            if row is None:
+                result["error"] = "fashion_table_missing"
+                return result
+            migration = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (FASHION_MIGRATION_VERSION,),
+            ).fetchone()
+            if migration is None or str(migration[0]) != FASHION_MIGRATION_CHECKSUM:
+                result["error"] = "fashion_migration_not_verified"
+                return result
+    except Exception:
+        result["error"] = "fashion_store_unavailable"
+        return result
+    result["schema_ready"] = True
+    return result
+
+
+def fashion_schema_dry_run() -> dict[str, object]:
+    """No connection, DDL or migration. Return audit-ready schema metadata."""
+    return {
+        "migration": FASHION_MIGRATION_VERSION,
+        "checksum": FASHION_MIGRATION_CHECKSUM,
+        "statements": len(FASHION_SCHEMA_STATEMENTS),
+        "dry_run": True,
+        "schema_applied": False,
+        "human_authority_final": True,
+    }
 
 
 def _encode(envelope: Mapping[str, object]) -> str:
