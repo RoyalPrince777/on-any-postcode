@@ -42,6 +42,7 @@ def test_link_up_language_law_keeps_messenger_terms_simple():
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["new_conversation"] == "New Link"
     assert "group" not in linkup.LINK_UP_PUBLIC_VOCABULARY
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Face Up"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Incoming"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["read"] == "Seen"
