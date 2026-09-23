@@ -59,7 +59,6 @@ def init_app(app: Flask) -> None:
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
-    from .matrix_founder_decision_views import bp as matrix_founder_decisions_bp
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
     from .link_incoming_routes import bp as link_incoming_bp
@@ -72,6 +71,7 @@ def init_app(app: Flask) -> None:
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
+    from .matrix_founder_decision_views import bp as matrix_founder_decisions_bp
     from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
     from .oap_data_views import bp as oap_data_bp
