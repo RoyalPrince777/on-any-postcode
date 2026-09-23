@@ -36,6 +36,18 @@ def test_smi_consent_denial_has_private_headers(client, csrf):
     _assert_private_headers(response)
 
 
+@pytest.mark.parametrize("method,path", [
+    ("GET", "/mail/inbox"),
+    ("POST", "/mail/drafts"),
+    ("POST", "/mail/smi/read"),
+    ("POST", "/mission/chat/tools/mail/read"),
+])
+def test_anonymous_mail_denials_are_private(anonymous_client, method, path):
+    response = anonymous_client.open(path, method=method)
+    assert response.status_code == 401
+    _assert_private_headers(response)
+
+
 def _assert_private_headers(response):
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["Pragma"] == "no-cache"
