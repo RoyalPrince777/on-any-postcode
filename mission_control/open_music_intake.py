@@ -30,8 +30,7 @@ def _candidate_uid(value: object) -> str | None:
     """Accept a bare UUID or exactly one canonical OAP Music prefix."""
     if not isinstance(value, str):
         return None
-    if value.startswith("oap:open-music:"):
-        value = value[len("oap:open-music:"):]
+    value = value.removeprefix("oap:open-music:")
     return _uuid(value)
 
 
