@@ -258,6 +258,7 @@ def private_source_review_receipt(candidate: object) -> dict[str, object]:
 
 def private_music_release_review_plan(
     candidate: object, owner_identity_id: object = None,
+    release_id: object = None,
 ) -> dict[str, object]:
     """Private planning only: an owner UUID is not an authenticated session.
 
@@ -267,6 +268,7 @@ def private_music_release_review_plan(
     receipt = private_source_review_receipt(candidate)
     handoff = music_handoff_preview(candidate)
     owner = _uuid(owner_identity_id) if isinstance(owner_identity_id, str) else None
+    submitted_release = _uuid(release_id) if isinstance(release_id, str) else None
     candidate_id = receipt["candidate_id"]
     requirements = (
         "independently_verify_original_source_and_licensor",
@@ -281,6 +283,7 @@ def private_music_release_review_plan(
     return {
         "candidate_id": candidate_id,
         "submitted_owner_identity_id": owner if candidate_id else None,
+        "submitted_release_id": submitted_release if candidate_id else None,
         "owner_authenticated": False,
         "owner_bound_to_music_release": False,
         "target_organ": "OAP Music",
