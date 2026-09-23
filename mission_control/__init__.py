@@ -59,6 +59,7 @@ def init_app(app: Flask) -> None:
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
+    from .matrix_founder_decision_views import bp as matrix_founder_decisions_bp
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
     from .link_incoming_routes import bp as link_incoming_bp
@@ -995,6 +996,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
+    app.register_blueprint(matrix_founder_decisions_bp)
     app.register_blueprint(checkpoint_bp, url_prefix="/mission")
     app.register_blueprint(maps_movement_direct_proof_bp, url_prefix="/mission")
     app.register_blueprint(alignment_bp, url_prefix="/mission")
