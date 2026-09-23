@@ -9,7 +9,7 @@
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
  "use strict";
  const VISEMES=new Set(["silence","closed","wide","round","teeth","tongue"]);
- const MAX_BYTES=8*1024*1024;
+ const MAX_BYTES=32*1024*1024;
  function validate(alignment,actualSha,durationMs){
   if(!alignment||alignment.source!=="decoded_audio_phoneme_timeline"||
     alignment.audioSha256!==actualSha||alignment.audioDecoded!==true||
@@ -74,6 +74,10 @@
     context=new win.AudioContext();
     const buffer=await context.decodeAudioData(audio);
     if(!allowed()||!validate(payload.alignment,sha,buffer.duration*1000))return false;
+    const canonical=JSON.stringify({audioSha256:sha,audioDurationMs:payload.alignment.audioDurationMs,cues:payload.alignment.cues});
+    const timelineDigest=await win.crypto.subtle.digest("SHA-256",new win.TextEncoder().encode(canonical));
+    const timelineSha=Array.from(new Uint8Array(timelineDigest),x=>x.toString(16).padStart(2,"0")).join("");
+    if(!allowed()||timelineSha!==payload.alignment.timelineSha256)return false;
     await context.resume();
     if(!allowed()||context.state!=="running")return false;
     source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);
@@ -105,6 +109,7 @@
     source.start(startAt);
     active=true;
     onStart?.();
+    if(!allowed()||!active)return false;
     frame=win.requestAnimationFrame(tick);
     return true;
    }catch(_error){
