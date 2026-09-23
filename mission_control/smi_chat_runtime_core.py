@@ -22,6 +22,7 @@ from . import (
     postgres_db,
     smi_cancellation,
     smi_founder_assets,
+    smi_founder_workflow,
 )
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
@@ -137,6 +138,10 @@ def _provider(
             "Label assumptions. Never claim the code was applied, committed, merged or "
             "deployed. End with the exact Human Authority approval boundary."
         )
+    system += " " + smi_founder_workflow.instruction()
+    system += " Founder turn flags: " + json.dumps(
+        (brain or {}).get("founder_workflow") or {}, separators=(",", ":")
+    )
     thinking_level = str((brain or {}).get("thinking_level") or "auto")
     studio_mode = bool((brain or {}).get("studio_mode"))
     thinking_instruction = {
@@ -521,6 +526,18 @@ def _auto_runtime_mode(
     return "instant", auto_studio, 3
 
 
+def _require_owned_conversation(
+    supplied_conversation: str,
+    owner: object,
+    identity: str,
+) -> None:
+    """Missing/foreign saved work must never silently become a new mission."""
+    if supplied_conversation and (
+        owner is None or str(owner[0]) != identity
+    ):
+        raise ValueError("conversation_not_found")
+
+
 def chat(
     message: object,
     identity_id: str,
@@ -585,19 +602,20 @@ def chat(
             review_content = "CODE PROPOSAL REQUEST:\n" + review_content
         if media.get("transcript"):
             review_content += "\n\nAudio transcript: " + str(media["transcript"])
-        conversation = _clean(conversation_id, 40)
+        supplied_conversation = _clean(conversation_id, 40)
         try:
             conversation = (
-                str(uuid.UUID(conversation)) if conversation else str(uuid.uuid4())
+                str(uuid.UUID(supplied_conversation))
+                if supplied_conversation
+                else str(uuid.uuid4())
             )
-        except ValueError:
-            conversation = str(uuid.uuid4())
+        except ValueError as exc:
+            raise ValueError("invalid_conversation") from exc
         owner = connection.execute(
             "SELECT identity_id FROM smi_conversations WHERE conversation_id=%s",
             (conversation,),
         ).fetchone()
-        if owner and str(owner[0]) != identity:
-            conversation = str(uuid.uuid4())
+        _require_owned_conversation(supplied_conversation, owner, identity)
         connection.execute(
             """INSERT INTO smi_conversations(conversation_id,identity_id,title)
                VALUES (%s,%s,%s) ON CONFLICT (conversation_id) DO UPDATE
@@ -621,6 +639,44 @@ def chat(
             for row in reversed(rows)
         ]
         requested_mode = _requested_runtime_mode(thinking_level)
+        founder_workflow = smi_founder_workflow.resolve_turn(
+            clean, history, requested_mode=requested_mode
+        )
+        if (
+            owner
+            and founder_workflow["intent"] in {
+                "CONTINUE_CURRENT_MISSION",
+                "CONTINUE_WITH_FOUNDER_DESIGN_APPROVAL",
+            }
+            and not founder_workflow["history_has_mission_context"]
+        ):
+            # Recover a substantive mission that has fallen outside the
+            # recent-message window after repeated short directives.
+            # The query is scoped to the authenticated conversation owner.
+            anchor_rows = connection.execute(
+                """SELECT m.content FROM smi_messages m
+                   JOIN smi_conversations c
+                     ON c.conversation_id=m.conversation_id
+                   WHERE c.conversation_id=%s AND c.identity_id=%s
+                     AND m.role='user'
+                   ORDER BY m.created_at DESC LIMIT 200""",
+                (conversation, identity),
+            ).fetchall()
+            anchor = smi_founder_workflow.latest_substantive_user_turn(
+                [str(row[0]) for row in anchor_rows]
+            )
+            if anchor:
+                history = [
+                    {
+                        "role": "user",
+                        "content": anchor,
+                        "source": "owned_saved_mission_anchor",
+                    },
+                    *history[-11:],
+                ]
+                founder_workflow = smi_founder_workflow.resolve_turn(
+                    clean, history, requested_mode=requested_mode
+                )
         brain = live_brain.review(
             request_id=request_id,
             identity_id=identity,
@@ -628,7 +684,8 @@ def chat(
             history=history,
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
-            force_war_room=requested_mode == "war_room",
+            force_war_room=requested_mode == "war_room"
+            or founder_workflow["war_room_requested"],
         )
         level, resolved_studio_mode, resolved_depth = _auto_runtime_mode(
             clean,
@@ -639,6 +696,9 @@ def chat(
             media_kind=media.get("kind"),
             war_room_triggered=bool(brain.get("war_room", {}).get("triggered")),
         )
+        if requested_mode == "auto" and founder_workflow["preferred_depth"] == 21:
+            level, resolved_depth = "deep_dive", 21
+        brain["founder_workflow"] = founder_workflow
         brain["thinking_level"] = level
         brain["studio_mode"] = resolved_studio_mode
         brain["resolved_depth"] = resolved_depth
