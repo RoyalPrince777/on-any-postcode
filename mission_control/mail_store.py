@@ -67,6 +67,9 @@ def validate_draft_fields(
     subject_text = (subject or "").strip()
     body_text = (body or "").strip()
     contact_text = (correspondent or "").strip()
+    if any(char in value for value in (subject_text, contact_text)
+           for char in ("\r", "\n", "\x00")):
+        raise ValueError("mail_draft_header_invalid")
     if not subject_text and not body_text:
         raise ValueError("mail_draft_empty")
     if len(subject_text) > 200 or len(body_text) > 20000 or len(contact_text) > 320:
