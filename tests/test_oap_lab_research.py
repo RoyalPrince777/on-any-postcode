@@ -4,7 +4,13 @@ from dataclasses import replace
 import pytest
 
 from mission_control.oap_lab_research import (
-    DOMAINS, MISSIONS, Evidence, Experiment, Invention, Notebook, run_isolated,
+    DOMAINS,
+    MISSIONS,
+    Evidence,
+    Experiment,
+    Invention,
+    Notebook,
+    run_isolated,
 )
 
 
@@ -18,11 +24,11 @@ def notebook(mission="debt_dependency"):
 
 
 def experiment(**overrides):
-    values = dict(
-        identifier="exp-001", notebook_id="lab-001", operation="mean",
-        dataset=(2.0, 4.0, 6.0),
-        synthetic=True, human_approved=True,
-    )
+    values = {
+        "identifier": "exp-001", "notebook_id": "lab-001", "operation": "mean",
+        "dataset": (2.0, 4.0, 6.0),
+        "synthetic": True, "human_approved": True,
+    }
     values.update(overrides)
     return Experiment(**values)
 
