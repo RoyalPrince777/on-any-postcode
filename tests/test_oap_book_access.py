@@ -6,7 +6,6 @@ import pytest
 
 from mission_control.oap_book_access import Access, Book, Rotation, decide_access
 
-
 NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
 
 
