@@ -9,6 +9,8 @@ from collections.abc import Mapping
 from urllib.parse import urlsplit
 from uuid import UUID
 
+from . import open_cinema_worldwide
+
 SOURCES = {
     "wikimedia_commons": "commons.wikimedia.org",
     "library_of_congress": "loc.gov",
@@ -76,6 +78,7 @@ def candidate(row: object) -> dict[str, object] | None:
         "playback_enabled": False,
         "stream_url": None,
         "download_url": None,
+        "worldwide_rights": open_cinema_worldwide.matrix(row.get("territories")),
     }
 
 
@@ -98,6 +101,7 @@ def preview(rows: object) -> dict[str, object]:
         "item_count": len(items),
         "rights_registry_connected": False,
         "licences_acquired": False,
+        "worldwide_rights_enabled": False,
         "public_catalogue_enabled": False,
         "playback_enabled": False,
         "publication_performed": False,
