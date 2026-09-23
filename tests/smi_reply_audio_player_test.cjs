@@ -125,6 +125,10 @@ async function sha256(bytes){
  assert.ok(html.indexOf("smi_reply_audio_player.js")<html.indexOf("smi_canonical_controller.js"));
  assert.ok(controller.includes("oapSpeak(completeResult.response,completeResult)"));
  assert.ok(controller.includes("oapLocalPlayer?.prepare?.()"));
+ const liveClick=controller.slice(controller.indexOf("if(oapLiveToggle)oapLiveToggle.addEventListener"),controller.indexOf("window.addEventListener('pagehide'"));
+ assert.ok(liveClick.includes("if(!oapRuntime?.live&&oapRecognition)oapLocalPlayer?.prepare?.();"),"first Live tap must unlock local audio before recognition/auto-send");
+ assert.ok(liveClick.indexOf("oapLocalPlayer?.prepare?.()")<liveClick.indexOf("oapSetLive(!Boolean(oapRuntime?.live))"));
+ assert.ok(!liveClick.includes("if(oapVoiceEnabled)oapLocalPlayer?.prepare?.()"),"first voice-first entry starts with voice disabled");
  assert.ok(controller.includes("oapLocalPlayer?.destroy?.()"));
  assert.ok(controller.includes("oap-smi-audio-cue"));
  assert.ok(renderer.includes('cue?.source!=="oap-first-party-pcm"'));
