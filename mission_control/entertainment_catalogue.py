@@ -97,15 +97,24 @@ def rights_gate(record: object) -> dict[str, object]:
     }
 
 
+
+def _owner_music_content_id(value: object) -> str | None:
+    """Recognise one legacy music content ID, never caller-injected URLs/IDs."""
+    if not isinstance(value, str) or not value.startswith("oap:tune:"):
+        return None
+    try:
+        return f"oap:tune:{UUID(value[len('oap:tune:'):])}"
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
 def universal_player_contract(record: object = None) -> dict[str, object]:
     """One future player contract reused by Music, TV, Media, Live and Records."""
     item = record if isinstance(record, Mapping) else {}
     return {
         "owner": PLAYER_OWNER,
         "mode": "contract_only",
-        "content_id": item.get("content_id") if isinstance(
-            item.get("content_id"), str
-        ) else None,
+        "content_id": _owner_music_content_id(item.get("content_id")),
         "destinations": DESTINATIONS,
         "controls_planned": (
             "play_pause", "seek", "captions", "quality", "resume", "stop",
