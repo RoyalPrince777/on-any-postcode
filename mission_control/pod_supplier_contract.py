@@ -21,7 +21,6 @@ class PODState(str, Enum):
     APPROVED = "APPROVED"
     SUBMITTED = "SUBMITTED"
     ACCEPTED = "ACCEPTED"
-    FAILED = "FAILED"
     STOPPED = "STOPPED"
     RECOVERY_REQUIRED = "RECOVERY_REQUIRED"
 
@@ -149,7 +148,7 @@ class PODIntent:
                 or self.quote.product_type != self.order.product_type
                 or self.quote.quantity != self.order.quantity):
             raise PODContractError("quote_order_mismatch")
-        if len(self.idempotency_key) < 8 or len(self.idempotency_key) > 160:
+        if not isinstance(self.idempotency_key, str) or not 8 <= len(self.idempotency_key) <= 160:
             raise PODContractError("invalid_idempotency_key")
         self._event(PODState.QUOTED, self.quote.evidence_ref)
 
@@ -158,8 +157,8 @@ class PODIntent:
             raise PODContractError("invalid_state")
         if _uuid(actor_id, "actor_id") != _uuid(self.order.seller_id, "seller_id"):
             raise PODContractError("seller_not_owned")
-        self.approved_by = str(actor_id)
         self._event(PODState.APPROVED, approval_ref)
+        self.approved_by = str(actor_id)
 
     def prepare_handoff(self, actor_id: str, approval_ref: str) -> Mapping[str, object]:
         """Prepare, never send, an opaque supplier payload."""
@@ -181,13 +180,19 @@ class PODIntent:
         }
 
     def record_submission(self, actor_id: str, external_ref: str) -> None:
-        """Only an authorised caller may report evidence from a separate connector."""
+        """Record a supplied reference; does not authenticate the external provider.
+
+        A future connector MUST independently verify the provider response before
+        calling this method. Never expose this method directly as a client API.
+        """
         if self.state != PODState.APPROVED or not self.approved_by:
             raise PODContractError("not_approved")
         if _uuid(actor_id, "actor_id") != _uuid(self.approved_by, "approved_by"):
             raise PODContractError("approval_owner_mismatch")
-        self.submission_reference = external_ref
+        if not isinstance(external_ref, str) or not external_ref.strip():
+            raise PODContractError("submission_evidence_required")
         self._event(PODState.SUBMITTED, external_ref)
+        self.submission_reference = external_ref
 
     def record_receipt(self, actor_id: str, submission_ref: str, receipt_ref: str) -> None:
         if self.state != PODState.SUBMITTED or not self.submission_reference:
@@ -196,8 +201,10 @@ class PODIntent:
             raise PODContractError("approval_owner_mismatch")
         if submission_ref != self.submission_reference:
             raise PODContractError("submission_receipt_mismatch")
-        self.receipt_reference = receipt_ref
+        if not isinstance(receipt_ref, str) or not receipt_ref.strip():
+            raise PODContractError("receipt_evidence_required")
         self._event(PODState.ACCEPTED, receipt_ref)
+        self.receipt_reference = receipt_ref
 
     def stop(self, actor_id: str, reason: str) -> None:
         if _uuid(actor_id, "actor_id") != _uuid(self.order.seller_id, "seller_id"):
