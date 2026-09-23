@@ -115,7 +115,10 @@ def test_music_handoff_is_inert_even_with_false_approval_flags():
     assert result["public_catalogue_enabled"] is False
     assert result["playback_enabled"] is False
     assert "media_url" not in result
-    assert music.music_handoff_preview(_candidate(claimed_licence="CC_BY_NC"))["candidate_id"] is None
+    restricted = music.music_handoff_preview(_candidate(claimed_licence="CC_BY_NC"))
+    assert restricted["candidate_id"] is not None
+    assert restricted["handoff_ready"] is False
+    assert restricted["playback_enabled"] is False
     assert music.music_handoff_preview(_candidate(candidate_id="broken"))["candidate_id"] is None
 
 
@@ -329,7 +332,10 @@ def test_claimed_music_licences_only_change_review_questions():
         source_kind="internet_archive", claimed_licence="CC_BY_NC",
         source_page_url="https://evil.test/x", rights_verified=True,
     ))
-    assert invalid["claimed_licence"] is None
+    assert invalid["claimed_licence"] == "CC_BY_NC"
+    assert invalid["rights_verified"] is False
+    assert invalid["playback_authorised"] is False
+    assert "restricted_or_unclear_licence_requires_separate_permission" in invalid["review_topics"]
     assert invalid["source_page_url"] is None
     assert invalid["rights_verified"] is False
 
