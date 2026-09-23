@@ -1,5 +1,5 @@
 """Offline tests for isolated Raffles controls; no prize or payment activity."""
-from oap.raffles_control import RafflesControl, State, REQUIRED
+from oap.raffles_control import REQUIRED, RafflesControl, State
 
 def test_default_closed():
     c = RafflesControl("p1")
