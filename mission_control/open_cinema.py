@@ -83,37 +83,25 @@ def candidate(row: object) -> dict[str, object] | None:
 
 
 def private_collection_intake() -> dict[str, object]:
-    """Private editorial intake, not owned assets or OAP distribution rights.
+    """Founder-only scope: open-licence discovery and OAP's own originals.
 
-    Named works are user-reported purchases, not corroborated transactions.
-    Discovery sources are already present in SOURCES; no duplicate catalogue,
-    public route, file retrieval, new provider dependency or playback contract.
+    Source listings never attest film licences. An OAP original cannot assume
+    ownership of embedded music, stock clips, performances or artwork.
+    No purchased commercial films or invented owner assets are included.
     """
-    purchased = (
-        ("The Wire", "television_series", "HBO"),
-        ("Friday", "feature_film_1995", "New Line Cinema"),
+    free_sources = (
+        "wikimedia_commons", "library_of_congress", "internet_archive",
     )
-    titles = [{
-        "title": title,
-        "kind": kind,
-        "production_reference": reference,
-        "purchase_reported_by": "founder",
-        "purchase_receipt_checked": False,
-        "oap_distribution_licence_verified": False,
-        "territories_licensed": [],
-        "public_catalogue_enabled": False,
-        "playback_enabled": False,
-        "stream_url": None,
-        "download_url": None,
-        "stage": "private_rights_review",
-    } for title, kind, reference in purchased]
     return {
         "collection": "OAP Open Cinema",
-        "scope": "founder_only_private_editorial_intake",
+        "scope": "founder_only_open_and_originals",
         "existing_catalogue_preserved": True,
-        "reported_purchases": titles,
-        "other_old_film_titles_received": False,
-        "other_old_films": [],
+        "eligible_collections": ["open_licensed_and_public_domain", "oap_originals"],
+        "purchased_commercial_films_in_scope": False,
+        "purchased_commercial_films": [],
+        "own_originals": [],
+        "original_titles_received": False,
+        "originals_require_embedded_rights_review": True,
         "free_catalogue_discovery": [{
             "source": source,
             "title_clearance_state": "per_title_evidence_required",
@@ -121,7 +109,11 @@ def private_collection_intake() -> dict[str, object]:
             "licences_acquired": False,
             "public_catalogue_enabled": False,
             "playback_enabled": False,
-        } for source in SOURCES],
+        } for source in free_sources],
+        "permitted_open_claims_for_review": [
+            "PUBLIC_DOMAIN", "CC0", "CC_BY", "CC_BY_SA",
+        ],
+        "free_to_watch_alone_qualifies": False,
         "rights_registry_connected": False,
         "public_catalogue_enabled": False,
         "playback_enabled": False,
