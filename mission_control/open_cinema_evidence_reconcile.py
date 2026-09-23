@@ -44,11 +44,26 @@ def reconcile(
         and date.fromisoformat(review["starts_on"])
         <= checked_today <= date.fromisoformat(review["ends_on"])
     )
+    # The submitted evidence must identify the exact claim it accompanies.
+    # These fields are still untrusted applicant statements, not source attestation.
+    submitted = evidence if isinstance(evidence, Mapping) else {}
+    bound = bool(
+        review["candidate_id"] and review["country"] and review["models"]
+        and submitted.get("candidate_id") == review["candidate_id"]
+        and submitted.get("country") == review["country"]
+        and type(submitted.get("models")) is list
+        and len(submitted["models"]) == len(review["models"])
+        and sorted(submitted["models"]) == review["models"]
+        and submitted.get("starts_on") == review["starts_on"]
+        and submitted.get("ends_on") == review["ends_on"]
+    )
     receipt_valid = bool(
         review["candidate_id"] and review["country"] and review["models"]
-        and linked and bytes_result["digest_match"] and window
+        and bound and linked and bytes_result["digest_match"] and window
     )
     blockers = list(review["blockers"])
+    if not bound:
+        blockers.append("evidence_not_bound_to_exact_candidate_country_models_window")
     if not linked:
         blockers.append("evidence_reference_mismatch_or_missing")
     if not bytes_result["digest_match"]:
@@ -60,6 +75,7 @@ def reconcile(
         "country": review["country"],
         "models": review["models"],
         "evidence_id": ref["evidence_id"] if ref else None,
+        "claim_binding_matches_submission": bound,
         "local_digest_matches_submission": bool(
             linked and bytes_result["digest_match"]
         ),
