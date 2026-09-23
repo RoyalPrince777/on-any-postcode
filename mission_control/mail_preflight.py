@@ -58,6 +58,14 @@ def report() -> dict[str, object]:
             result["error"] = "base_postgres_not_ready"
             return result
         mail = mail_migration.schema_status()
+        # Status is advisory only: reject an authority/source switch while
+        # collecting the two independent read-only database observations.
+        if (
+            postgres_db.database_authority() != authority
+            or postgres_db.database_source() != source
+        ):
+            result["error"] = "database_selection_changed_during_preflight"
+            return result
         result["mail_schema_ready"] = mail.get("schema_ready") is True
         result["error"] = mail.get("error")
     except Exception:  # noqa: BLE001 - redacted evidence boundary
