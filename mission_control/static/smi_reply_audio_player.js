@@ -80,7 +80,8 @@
     const startAt=context.currentTime+.025;
     let cueIndex=-1;
     function tick(){
-     if(!allowed()||!active||!context||context.state!=="running")return;
+     if(!allowed()||!active||!context)return;
+     if(context.state!=="running"){frame=win.requestAnimationFrame(tick);return;}
      const ms=Math.max(0,(context.currentTime-startAt)*1000);
      const cues=payload.alignment.cues;
      let index=cueIndex;
