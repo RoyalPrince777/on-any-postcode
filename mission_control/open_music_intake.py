@@ -12,7 +12,7 @@ from uuid import UUID
 
 SOURCE_KINDS = frozenset({
     "direct_artist", "free_music_archive", "ccmixter", "internet_archive",
-    "musopen", "other_open_archive",
+    "musopen", "open_music_archive", "other_open_archive",
 })
 LICENCE_KINDS = frozenset({
     "CC0", "CC_BY", "CC_BY_SA", "PUBLIC_DOMAIN", "DIRECT_PERMISSION",
@@ -26,6 +26,7 @@ SOURCE_PAGE_HOSTS = {
     "ccmixter": frozenset({"ccmixter.org", "www.ccmixter.org", "dig.ccmixter.org"}),
     "internet_archive": frozenset({"archive.org", "www.archive.org"}),
     "musopen": frozenset({"musopen.org", "www.musopen.org"}),
+    "open_music_archive": frozenset({"openmusicarchive.org", "www.openmusicarchive.org"}),
 }
 
 
@@ -349,6 +350,7 @@ OPEN_SOURCE_DIRECTORY = (
     ("ccmixter", "ccMixter", "https://dig.ccmixter.org/"),
     ("internet_archive", "Internet Archive Netlabels", "https://archive.org/details/netlabels"),
     ("musopen", "Musopen", "https://musopen.org/music/"),
+    ("open_music_archive", "Open Music Archive (UK rights review)", "https://www.openmusicarchive.org/"),
     ("other_open_archive", "Individually reviewed open archive", None),
 )
 
