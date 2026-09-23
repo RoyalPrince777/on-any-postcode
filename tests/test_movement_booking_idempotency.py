@@ -86,11 +86,12 @@ def test_booking_retry_binds_owner_and_immutable_payload(monkeypatch, row):
 def test_payment_intent_retry_binds_booking_owner_amount_currency(monkeypatch, row):
     connection = _Connection(row)
     monkeypatch.setattr(movement_operations.postgres_db, "connect", lambda **_: connection)
-    operation = lambda: movement_operations.STORE.create_payment_intent(
-        booking_id=BOOKING, member_identity_id=MEMBER,
-        amount_minor=123, currency="GBP",
-        idempotency_key="movement-payment-test-001",
-    )
+    def operation():
+        return movement_operations.STORE.create_payment_intent(
+            booking_id=BOOKING, member_identity_id=MEMBER,
+            amount_minor=123, currency="GBP",
+            idempotency_key="movement-payment-test-001",
+        )
     if row is None:
         with pytest.raises(ValueError, match="^idempotency_conflict$"):
             operation()
