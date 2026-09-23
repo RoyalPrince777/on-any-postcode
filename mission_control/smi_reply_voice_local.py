@@ -23,6 +23,11 @@ class VoiceUnavailable(RuntimeError):
     pass
 
 
+class ReplyVoiceContentUnavailable(ValueError):
+    """The owned reply exists but cannot fit the bounded local voice contract."""
+
+
+
 def _resolve_voice_backend() -> tuple[str, bytes | None, str]:
     """Prefer the pinned bundled engine; retain a fail-closed system fallback."""
     try:
@@ -236,4 +241,7 @@ def render_persisted_reply(identity_id: object, conversation_id: object, request
         ).fetchone()
     if row is None:
         raise ValueError("reply_voice_not_owned_or_unrecorded")
-    return render_reply(str(row[0]))
+    content = str(row[0])
+    if not content.strip() or len(content) > MAX_TEXT or "\x00" in content:
+        raise ReplyVoiceContentUnavailable("reply_voice_content_outside_local_capacity")
+    return render_reply(content)
