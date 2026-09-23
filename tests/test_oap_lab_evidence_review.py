@@ -6,13 +6,13 @@ from uuid import UUID
 import pytest
 
 from mission_control.oap_lab_claim_edge import ClaimEdge, ClaimEdgeBlocked, Source, admit_claim
-from mission_control.oap_lab_research import DOMAINS, MISSIONS, Notebook
 from mission_control.oap_lab_evidence_review import (
     CorroborationReview,
     bind_review_to_claim,
     corroboration_receipt,
     verify_recovery_chain,
 )
+from mission_control.oap_lab_research import DOMAINS, MISSIONS, Notebook
 
 CLAIM = str(UUID(int=11))
 REVIEWER = str(UUID(int=12))
