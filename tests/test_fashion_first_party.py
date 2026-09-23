@@ -2,7 +2,10 @@
 import pytest
 
 from mission_control.fashion_first_party import (
-    FashionDraft, FashionError, FashionState, FashionVariant,
+    FashionDraft,
+    FashionError,
+    FashionState,
+    FashionVariant,
 )
 
 OWNER = "11111111-1111-4111-8111-111111111111"
