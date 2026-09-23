@@ -45,3 +45,11 @@ def test_cancelled_stream_cannot_complete_or_clear_newer_request():
     assert controller.count("if(requestAbort.signal.aborted||oapAbort!==requestAbort)return") >= 2
     assert "if(oapAbort===requestAbort){if(oapWorkStarted)oapEndWork()" in controller
     assert "window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}))" in controller
+
+
+def test_stopped_state_requires_a_valid_explicit_command_before_resume():
+    controller = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text(encoding="utf-8")
+    submit = controller[controller.index("async function oapSubmit("):controller.index("oapInput.addEventListener('keydown'")]
+    assert "if(oapRuntime?.stopped&&fromLive)return;" in submit
+    assert submit.index("if(oapLocked||oapSend.disabled)return") < submit.index("if(oapRuntime?.stopped)oapApply('RESUME_FROM_STOP')")
+    assert submit.index("if(!text&&!hasImage&&!hasAttachment)return;") < submit.index("if(oapRuntime?.stopped)oapApply('RESUME_FROM_STOP')")
