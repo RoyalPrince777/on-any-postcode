@@ -7,7 +7,7 @@ const source=fs.readFileSync("mission_control/static/smi_mail_read_control.js","
 
 class Element{
   constructor(tag="div"){this.tag=tag;this.children=[];this.handlers={};this.dataset={};this.attributes={};this.open=false;this.disabled=false;this.textContent="";this.style={};this.classList={remove:()=>{},add:()=>{}};this.removed=false;}
-  append(...children){this.children.push(...children);}
+  append(...children){for(const child of children){if(child.tag==="#fragment")this.children.push(...child.children);else this.children.push(child);}}
   replaceChildren(...children){this.children=[...children];this.textContent="";}
   setAttribute(k,v){this.attributes[k]=v;}
   addEventListener(type,handler){(this.handlers[type]??=[]).push(handler);}
@@ -25,6 +25,7 @@ function setup(confirm=true){
     readyState:"complete",body,
     getElementById:id=>elements[id]||null,
     createElement:tag=>new Element(tag),
+    createDocumentFragment:()=>new Element("#fragment"),
   };
   const window={
     OAP_SMI_UI:{mailReadUrl:"/mission/chat/tools/mail/read",csrfToken:"csrf"},
@@ -84,5 +85,17 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
   await attempt;
   assert.equal(failed.dialog().children[2].textContent,"OAP Mail read unavailable · no Mail sent.");
   failed.dialog().close();
-  console.log("OAP_MAIL_DOM_BOUNDARY_PASS: cancel, consent, CSRF, subject-only, isolation, close, abort, late response, error");
+
+  const malformed=setup(true);
+  const invalid=malformed.button.click();
+  malformed.respond({ok:true,json:async()=>({
+    items:[{subject:"SHOULD_NOT_SHOW"},{subject:"unsafe",body:"FORBIDDEN_BODY"}],
+    execute:false,delivery_enabled:false
+  })});
+  await invalid;
+  const privateResults=malformed.dialog().children[2];
+  assert.equal(privateResults.textContent,"OAP Mail read unavailable · no Mail sent.");
+  assert.equal(privateResults.children.length,0,"malformed response must render no partial subjects");
+  malformed.dialog().close();
+  console.log("OAP_MAIL_DOM_BOUNDARY_PASS: cancel, consent, CSRF, subject-only, isolation, close, abort, late response, malformed projection, error");
 })().catch(e=>{console.error(e);process.exitCode=1;});
