@@ -39,7 +39,7 @@
   if(state==="stopped"||state==="paused")return Object.freeze({head:[0,0,1],eyes:[0,0,1],chest:[0,0,1],hands:[0,0,1]});
   const focus=state==="thinking"?1.45:state==="listening"?1.2:1;
   return Object.freeze({head:[a*1.65*focus,b*.95*focus,1],
-   eyes:[c*1.45*focus,Math.max(0,b)*.55,1],
+   eyes:[a*3.1*focus,Math.max(0,b)*1.2,1],
    chest:[0,b*1.15,1+b*.006],hands:[a*.72,-b*.6,1]});
  }
  async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
