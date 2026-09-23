@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 
+
 class Triage(str, Enum):
     REQUEST_EVIDENCE = "REQUEST_EVIDENCE"
     BLOCK = "BLOCK"
@@ -33,6 +34,7 @@ class MindResult:
     evidence_verified: bool = False
     founder_approved: bool = False
     actual_matrix_votes: tuple[str, ...] = ()
+
 
 def assess(*, territory: str, kind: str,
            evidence: Mapping[str, str] | None = None,
