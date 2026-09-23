@@ -6,11 +6,14 @@ from __future__ import annotations
 
 import pathlib
 import re
-
-import app as app_module
-from flask import render_template
+import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+import app as app_module  # noqa: E402
+from flask import render_template
+
 OUTPUT = ROOT / "tests" / ".smi_mail_full_page.html"
 
 with app_module.app.test_request_context("/mission/ollama"):
