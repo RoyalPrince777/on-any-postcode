@@ -5,9 +5,9 @@ from uuid import UUID
 import pytest
 
 from mission_control.oap_lab_claim_edge import (
+    RESEARCH_TRACKS,
     ClaimEdge,
     ClaimEdgeBlocked,
-    RESEARCH_TRACKS,
     Source,
     admit_claim,
 )
