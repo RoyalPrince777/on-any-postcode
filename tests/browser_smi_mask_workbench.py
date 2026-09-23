@@ -284,6 +284,10 @@ def run_command_centre_dock(page):
         document.querySelector('[data-room-stat="runtime"] small')
           ?.textContent === 'Unavailable · NOT PROVEN'
     """)
+    assert panel.locator(".smi-command-proof[data-proven=\"false\"]").count() == 8
+    assert panel.locator(".smi-command-proof small").all_inner_texts() == [
+        "Unavailable"
+    ] * 8
     panel.locator('[data-founder-action="review"]').click()
     assert page.evaluate("window.__gateReviewClicks") == 1
     assert not page.locator("body").evaluate(
