@@ -412,3 +412,55 @@ def test_licence_reference_is_only_a_reference_not_actual_music_clearance():
         assert result["recording_rights_verified"] is False
         assert result["composition_rights_verified"] is False
         assert result["playback_enabled"] is False
+
+
+
+def test_private_release_plan_is_one_owner_aware_review_not_release_authority():
+    from uuid import uuid4
+
+    owner = str(uuid4())
+    lead = music.candidate_preview([_candidate(
+        source_kind="free_music_archive", claimed_licence="CC_BY",
+        source_page_url="https://freemusicarchive.org/music/sample/track/",
+        rights_verified=True, founder_approved=True,
+    )])["candidates"][0]
+    plan = music.private_music_release_review_plan(lead, owner)
+    assert plan["candidate_id"] == lead["candidate_id"]
+    assert plan["submitted_owner_identity_id"] == owner
+    assert plan["owner_authenticated"] is False
+    assert plan["owner_bound_to_music_release"] is False
+    assert plan["target_organ"] == "OAP Music"
+    assert plan["target_release_type"] == "single"
+    assert plan["source_page_url"] == lead["source_page_url"]
+    assert plan["attribution_draft"] == lead["title"] + " — " + lead["artist"]
+    assert len(plan["review_requirements"]) == 8
+    assert all(not row["independently_proven"] for row in plan["review_requirements"])
+    assert plan["private_plan_only"] is True
+    for field in (
+        "ready_for_authenticated_handoff", "independent_rights_verified",
+        "asset_provenance_verified", "human_release_approved",
+        "receipt_persisted", "release_created", "media_retrieval_performed",
+        "public_catalogue_enabled", "playback_enabled", "payments_enabled",
+    ):
+        assert plan[field] is False
+
+
+def test_private_release_plan_rejects_unauthenticated_or_malformed_claims():
+    from uuid import uuid4
+
+    good = _candidate(rights_verified=True, owner_authenticated=True,
+                      public_catalogue_enabled=True, human_release_approved=True)
+    for owner in (str(uuid4()), "not-uuid", [], {"owner": str(uuid4())}, None):
+        plan = music.private_music_release_review_plan(good, owner)
+        assert plan["owner_authenticated"] is False
+        assert plan["human_release_approved"] is False
+        assert plan["ready_for_authenticated_handoff"] is False
+        assert plan["playback_enabled"] is False
+        if not isinstance(owner, str) or owner == "not-uuid":
+            assert plan["submitted_owner_identity_id"] is None
+    for bad in ({}, None, [], {"candidate_id": "spoofed", "title": "x"}):
+        plan = music.private_music_release_review_plan(bad, str(uuid4()))
+        assert plan["candidate_id"] is None
+        assert plan["submitted_owner_identity_id"] is None
+        assert plan["target_release_type"] is None
+        assert plan["release_created"] is False
