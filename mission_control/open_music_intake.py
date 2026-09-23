@@ -127,6 +127,60 @@ def candidate_preview(rows: object) -> dict[str, object]:
     }
 
 
+
+def private_catalogue_intelligence(rows: object) -> dict[str, object]:
+    """Deduplicate externally discovered *claims* into an inert review queue.
+
+    The caller supplies metadata already discovered elsewhere. No network access,
+    media retrieval, catalogue persistence, licence proof or OAP release occurs.
+    """
+    preview = candidate_preview(rows)
+    review: list[dict[str, object]] = []
+    seen_pages: set[str] = set()
+    seen_titles: set[tuple[str, str, str]] = set()
+    for item in preview["candidates"]:
+        page = item["source_page_url"]
+        title_key = (item["source_kind"], item["artist"].casefold(),
+                     item["title"].casefold())
+        if (page is not None and page in seen_pages) or title_key in seen_titles:
+            continue
+        if page is not None:
+            seen_pages.add(page)
+        seen_titles.add(title_key)
+        review.append({
+            "candidate_id": item["candidate_id"],
+            "title": item["title"],
+            "artist": item["artist"],
+            "source_kind": item["source_kind"],
+            "source_page_url": page,
+            "claimed_licence": item["claimed_licence"],
+            "review_state": "private_unverified_lead",
+            "source_page_independently_checked": False,
+            "licensor_authority_verified": False,
+            "recording_rights_verified": False,
+            "composition_rights_verified": False,
+            "source_asset_integrity_verified": False,
+            "territory_and_use_verified": False,
+            "attribution_verified": False,
+            "owner_authenticated": False,
+            "human_release_approved": False,
+            "playback_enabled": False,
+            "public_catalogue_enabled": False,
+        })
+    return {
+        "organ": "OAP Music",
+        "review_queue": review,
+        "review_count": len(review),
+        "source_fetch_performed": False,
+        "audio_retrieval_performed": False,
+        "rights_verified": False,
+        "catalogue_write_performed": False,
+        "music_release_created": False,
+        "playback_enabled": False,
+        "human_authority_final": True,
+    }
+
+
 def evidence_bytes_digest(evidence: object, *, max_bytes: int = 8_388_608) -> dict[str, object]:
     """Compute a digest of bytes actually supplied, never verify their origin."""
     if (
