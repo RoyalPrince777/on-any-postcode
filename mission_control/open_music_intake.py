@@ -104,8 +104,12 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
     """Fail closed even when claimant supplies plausible licence and hash fields."""
     row = candidate if isinstance(candidate, Mapping) else {}
     proof = evidence if isinstance(evidence, Mapping) else {}
+    raw_id = row.get("candidate_id")
+    if isinstance(raw_id, str) and raw_id.startswith("oap:open-music:"):
+        raw_id = raw_id[len("oap:open-music:"):]
+    candidate_uid = _uuid(raw_id)
     return {
-        "candidate_id": row.get("candidate_id") if isinstance(row.get("candidate_id"), str) else None,
+        "candidate_id": f"oap:open-music:{candidate_uid}" if candidate_uid else None,
         "submitted_evidence_id": _uuid(proof.get("evidence_id")),
         "claimed_licence": row.get("claimed_licence") if isinstance(row.get("claimed_licence"), str) and row.get("claimed_licence") in LICENCE_KINDS else None,
         "rights_verified": False,
