@@ -6,9 +6,9 @@ consequential execution. Extend the canonical LAB Claim Edge, not the graph.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Mapping
 
 from mission_control.oap_lab_claim_edge import ClaimEdgeBlocked, Source
 
@@ -30,7 +30,7 @@ class CorroborationReview:
             UUID(self.reviewer_id)
         except (TypeError, ValueError, AttributeError) as exc:
             raise ClaimEdgeBlocked("valid_claim_and_reviewer_ids_required") from exc
-        if not self.rationale.strip() or len(self.rationale) > 1024:
+        if not isinstance(self.rationale, str) or not self.rationale.strip() or len(self.rationale) > 1024:
             raise ClaimEdgeBlocked("bounded_review_rationale_required")
         if len(self.source_ids) != len(self.source_sha256) or len(self.source_ids) < 2:
             raise ClaimEdgeBlocked("two_evidence_references_required")
