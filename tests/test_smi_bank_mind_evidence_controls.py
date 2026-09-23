@@ -1,5 +1,6 @@
 """Bank Mind CC must use founder authentication and refuse invented green."""
 from pathlib import Path
+
 from mission_control import prince_sovereign_bank as bank
 
 ROOT = Path(__file__).resolve().parents[1]
