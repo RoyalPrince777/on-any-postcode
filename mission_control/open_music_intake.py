@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
+from urllib.parse import urlsplit
 from uuid import UUID
 
 SOURCE_KINDS = frozenset({
@@ -18,6 +19,14 @@ LICENCE_KINDS = frozenset({
 })
 MAX_CANDIDATES = 25
 MAX_LEADS_SCAN = 250
+
+# Discovery-page references only; not content hosts, rights registries or APIs.
+SOURCE_PAGE_HOSTS = {
+    "free_music_archive": frozenset({"freemusicarchive.org", "www.freemusicarchive.org"}),
+    "ccmixter": frozenset({"ccmixter.org", "www.ccmixter.org", "dig.ccmixter.org"}),
+    "internet_archive": frozenset({"archive.org", "www.archive.org"}),
+    "musopen": frozenset({"musopen.org", "www.musopen.org"}),
+}
 
 
 def _uuid(value: object) -> str | None:
@@ -40,6 +49,30 @@ def _safe_text(value: object, limit: int) -> str | None:
         return None
     cleaned = " ".join(value.split())
     return cleaned if 0 < len(cleaned) <= limit else None
+
+
+def _source_page(source_kind: object, url: object) -> str | None:
+    """Allowlist only reviewable HTTPS archive pages; never fetch or resolve."""
+    if not isinstance(source_kind, str) or not isinstance(url, str):
+        return None
+    allowed = SOURCE_PAGE_HOSTS.get(source_kind)
+    if allowed is None or not 0 < len(url) <= 2048:
+        return None
+    if any(char.isspace() or ord(char) < 32 for char in url):
+        return None
+    try:
+        parsed = urlsplit(url)
+        host = parsed.hostname
+    except ValueError:
+        return None
+    if (
+        parsed.scheme != "https" or host not in allowed
+        or parsed.netloc != host
+        or parsed.path in ("", "/") or parsed.path.startswith("//")
+        or parsed.query or parsed.fragment
+    ):
+        return None
+    return url
 
 
 def candidate_preview(rows: object) -> dict[str, object]:
@@ -70,6 +103,8 @@ def candidate_preview(rows: object) -> dict[str, object]:
             "artist": artist,
             "source_kind": source_kind,
             "claimed_licence": claimed_licence,
+            "source_page_url": _source_page(source_kind, row.get("source_page_url")),
+            "source_page_independently_checked": False,
             "review_state": "private_candidate",
             "rights_verified": False,
             "source_bytes_verified": False,
