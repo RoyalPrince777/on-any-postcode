@@ -39,6 +39,8 @@ def run_one(index: int) -> dict[str, object]:
         with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
             status = int(response.status)
             payload = json.loads(response.read().decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("routing response must be a JSON object")
     except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
         elapsed = time.perf_counter() - started
         return {
