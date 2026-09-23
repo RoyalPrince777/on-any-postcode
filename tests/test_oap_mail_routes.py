@@ -242,3 +242,42 @@ def test_chat_tool_alias_requires_csrf(client, monkeypatch):
     )
     assert response.status_code == 403
     assert calls == []
+
+
+
+def test_authenticated_smi_and_chat_alias_never_transfer_mail_body(
+    client, csrf, monkeypatch,
+):
+    private = {
+        "id": str(uuid.uuid4()),
+        "subject": "<safe subject>",
+        "body": "PRIVATE_MAIL_BODY_NEVER_TRANSFER",
+        "correspondent": "member@example.test",
+        "created_at": "private-time",
+        "unapproved_field": "PRIVATE_INTERNAL_FIELD",
+    }
+    calls = []
+    def read(actor, owner, folder):
+        calls.append((actor, owner, folder))
+        return [private]
+    monkeypatch.setattr(mail_store, "list_items", read)
+    for path in ("/mail/smi/read", "/mission/chat/tools/mail/read"):
+        response = client.post(
+            path,
+            json={"folder": "inbox", "owner_consent": True},
+            headers={"X-OAP-CSRF": csrf["csrf_token"]},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["items"] == [{
+            "subject": "<safe subject>",
+            "correspondent": "member@example.test",
+        }]
+        assert response.headers["Cache-Control"] == "no-store"
+        for forbidden in (
+            "PRIVATE_MAIL_BODY_NEVER_TRANSFER", "PRIVATE_INTERNAL_FIELD",
+            private["id"], "private-time",
+        ):
+            assert forbidden not in response.get_data(as_text=True)
+    assert len(calls) == 2
+    assert all(actor == owner and folder == "inbox"
+               for actor, owner, folder in calls)
