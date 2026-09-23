@@ -58,7 +58,7 @@ def _source_page(source_kind: object, url: object) -> str | None:
     allowed = SOURCE_PAGE_HOSTS.get(source_kind)
     if allowed is None or not 0 < len(url) <= 2048:
         return None
-    if any(char.isspace() or ord(char) < 32 for char in url):
+    if any(char.isspace() or ord(char) < 32 or char == "\\" for char in url):
         return None
     try:
         parsed = urlsplit(url)
