@@ -33,7 +33,12 @@ async function sha256(bytes){
   {...alignment,audioSha256:"b".repeat(64)},
   {...alignment,predictedFromText:true},
   {...alignment,cues:[alignment.cues[0],{atMs:100,viseme:"invented",confidence:1},alignment.cues[2]]},
-  {...alignment,cues:[alignment.cues[0],{atMs:0,viseme:"wide",confidence:1},alignment.cues[2]]}
+  {...alignment,cues:[alignment.cues[0],{atMs:0,viseme:"wide",confidence:1},alignment.cues[2]]},
+  {...alignment,audioDurationMs:300001},
+  {...alignment,audioDurationMs:99},
+  {...alignment,cues:[alignment.cues[0],{atMs:100,viseme:"wide"},alignment.cues[2]]},
+  {...alignment,cues:[alignment.cues[0],{atMs:100,viseme:"wide",confidence:"1"},alignment.cues[2]]},
+  {...alignment,cues:[alignment.cues[0],{atMs:100,viseme:"wide",confidence:null},alignment.cues[2]]}
  ])assert.equal(validate(invalid,audioSha,1000),false);
 
  let raf=null,contextInstance=null;
