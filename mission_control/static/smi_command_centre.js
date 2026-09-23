@@ -107,10 +107,35 @@
   button.addEventListener("click",()=>{
    bankTabs.querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed",String(item===button)));
    bankDetail.textContent=detail;
+   if(index===0)refreshBankMind();
   });
   bankTabs.append(button);
  });
  bankDetail.textContent=bankReviews[0][1];
+ const bankMindFallback=bankReviews[0][1];
+ const refreshBankMind=async()=>{
+  const selected=bankTabs.querySelector("button[aria-pressed='true']");
+  if(!selected||!selected.textContent.includes("Mind"))return;
+  bankDetail.textContent="Checking private Mind contract…";
+  try{
+   const response=await fetch("/mission/smi/bank/mind",{credentials:"same-origin",cache:"no-store"});
+   if(!response.ok)throw new Error("HTTP "+response.status);
+   const value=await response.json();
+   if(value.proof_scope!=="read_only_contract"||value.release_proven!==false||
+      value.regulated_execution_enabled!==false||!Array.isArray(value.value_classes))throw new Error("Invalid evidence");
+   const classes=value.value_classes.map(item=>item.id+" · "+item.unit+
+      (item.monetary===false?" · NON-MONEY":"")+
+      (item.issued===false?" · NOT ISSUED":"")).join(" | ");
+   bankDetail.textContent=value.name+" · "+value.heritage+" | "+classes+
+      " | Customer approval required: "+String(value.customer_approval_required)+
+      " | Identity/permissions operational proof: NOT PROVEN | Risk engine operational proof: NOT PROVEN"+
+      " | Accounts, ledger, payments, conversion, installation and regulated execution: LOCKED"+
+      " | Source: signed-in read-only bank contract; NOT a banking release.";
+  }catch(error){
+   bankDetail.textContent="Mind evidence unavailable · NOT PROVEN. "+bankMindFallback;
+  }
+ };
+
  bankControls.append(bankHeading,bankHeritage,bankNotice,bankTabs,bankDetail);
  universe.after(bankControls);
 
@@ -311,6 +336,7 @@
   if(action==="oap-bank-controls"){
    bankControls.hidden=!bankControls.hidden;
    trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
+   if(!bankControls.hidden)refreshBankMind();
    return;
   }
   const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
