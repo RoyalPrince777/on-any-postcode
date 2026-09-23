@@ -62,6 +62,7 @@ def create_draft():
 
 
 @bp.post("/mail/smi/read")
+@bp.post("/mission/chat/tools/mail/read")
 @web_security.login_required(api=True)
 def smi_read_owner_folder():
     """One explicit, authenticated, consented read; no retained Mail authority."""
