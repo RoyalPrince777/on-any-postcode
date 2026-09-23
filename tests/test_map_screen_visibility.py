@@ -67,3 +67,43 @@ def test_public_map_door_uses_visible_first_party_renderer():
     assert "'/map-intelligence/road-geometry/" in Path(
         "mission_control/templates/local_map.html"
     ).read_text(encoding="utf-8")
+
+
+def test_road_network_loads_without_successful_route():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+
+    assert "loadRoadNetwork(defaultBounds,profile.value);" in template
+    assert "if(from.value.trim()&&to.value.trim())route();" in template
+    assert template.index("loadRoadNetwork(defaultBounds,profile.value);") < template.index(
+        "if(from.value.trim()&&to.value.trim())route();"
+    )
+    assert 'id="road-source-state"' in template
+    assert "showRoadStatus(count?'': 'Road network unavailable" in template
+
+
+def test_route_failure_preserves_independent_road_layer():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    route_section = template.split("async function route(){", 1)[1].split(
+        "form.addEventListener('submit'", 1
+    )[0]
+
+    assert "roadLayer.innerHTML=''" not in route_section
+    assert "if(request!==roadRequest)return;" in template
+    assert "if(request===roadRequest)" in template
+    assert "profile.addEventListener('change'" in template
+
+
+def test_oap_os_generation_zero_map_binding_is_truthful_and_consent_safe():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    bridge = Path("mission_control/static/oap_os_map_bridge.js").read_text(encoding="utf-8")
+    documentation = Path("docs/OAP_OPERATING_SYSTEM_V0.md").read_text(encoding="utf-8")
+
+    assert 'id="oap-os-map-runtime"' in template
+    assert "oap_os_map_bridge.js" in template
+    assert "android-web" in bridge
+    assert "installed web shell" in bridge
+    assert "unverified" in bridge
+    assert "MutationObserver" in bridge
+    assert "geolocation." not in bridge
+    assert "serviceWorker.register" not in bridge
+    assert "Android/Linux host kernel" in documentation
