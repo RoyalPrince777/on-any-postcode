@@ -85,3 +85,12 @@ def test_camera_and_screen_cannot_restore_media_after_stop():
     assert "await oapCaptureFrame(stream,'Camera',captureEpoch)" in capture
     assert "await oapCaptureFrame(stream,'Screen',captureEpoch)" in capture
     assert capture.count("if(oapRuntime?.stopped){oapSetStatus('Stopped by Human Authority');return;}") >= 2
+
+
+def test_stale_capture_permission_outcomes_do_not_overwrite_stop():
+    source = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text(encoding="utf-8")
+    capture = source[source.index("async function oapCamera()"):source.index("function oapAddCaptureOptions()")]
+    guard = "if(oapRuntime?.stopped||!oapStateApi.tokenIsCurrent(oapRuntime,captureEpoch))return;"
+    assert capture.count(guard) >= 2
+    assert "stream.getTracks().forEach(track=>track.stop());return;}oapSetStatus('Sharing" in capture
+    assert capture.index("stream.getTracks().forEach(track=>track.stop());return;}oapSetStatus('Sharing") < capture.index("await oapCaptureFrame(stream,'Screen',captureEpoch)")
