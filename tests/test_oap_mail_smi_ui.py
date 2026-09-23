@@ -27,11 +27,18 @@ def test_mail_ui_requires_fresh_explicit_click_and_csrf():
 def test_mail_ui_no_auto_model_context_or_send():
     js = CONTROL.read_text(encoding="utf-8")
     assert "fetch(cfg.mailReadUrl" in js
-    assert "messages.append(panel)" in js
+    assert "document.body.append(dialog)" in js
+    assert "messages.append(" not in js
+    assert "dialog.replaceChildren()" in js
+    assert "controller.abort()" in js
+    assert "dialog.close()" in js
+    assert "dialog.showModal()" in js
     assert "messageInput.value" not in js
     assert "form.submit(" not in js
     assert "mail.send" not in js
     assert "item.body" not in js
-    assert "textContent=subject" in js
+    assert "entry.textContent=subject" in js
+    assert "item.body" not in js
+    assert "innerHTML" not in js
     assert "payload.execute!==false" in js
     assert "payload.delivery_enabled!==false" in js
