@@ -127,3 +127,57 @@ def verify_recovery_chain(
         "approval_restored": False,
         "execution_authorised": False,
     }
+
+
+def bind_review_to_claim(
+    claim_receipt: Mapping[str, object],
+    review_receipt: Mapping[str, object],
+) -> dict[str, object]:
+    """Reconcile exact, unmodified read-only receipts; never restore authority.
+
+    Caller authentication and persistent storage are owned by existing systems.
+    Receipts are integrity evidence, NOT cryptographic signatures or proof of truth.
+    """
+    if not isinstance(claim_receipt, Mapping) or not isinstance(review_receipt, Mapping):
+        raise ClaimEdgeBlocked("typed_receipts_required")
+    for receipt in (claim_receipt, review_receipt):
+        digest = receipt.get("receipt_sha256")
+        if not isinstance(digest, str) or len(digest) != 64:
+            raise ClaimEdgeBlocked("receipt_hash_required")
+        payload = {key: value for key, value in receipt.items() if key != "receipt_sha256"}
+        try:
+            verified = sha256(
+                json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+            ).hexdigest()
+        except (TypeError, ValueError) as exc:
+            raise ClaimEdgeBlocked("invalid_receipt_content") from exc
+        if digest != verified:
+            raise ClaimEdgeBlocked("receipt_tampered")
+    if claim_receipt.get("claim_id") != review_receipt.get("claim_id"):
+        raise ClaimEdgeBlocked("review_claim_mismatch")
+    if claim_receipt.get("source_ids") != list(review_receipt.get("source_ids", ())):
+        raise ClaimEdgeBlocked("review_source_ids_mismatch")
+    if claim_receipt.get("source_sha256") != list(review_receipt.get("source_sha256", ())):
+        raise ClaimEdgeBlocked("review_source_bytes_mismatch")
+    if (claim_receipt.get("review_only") is not True
+            or review_receipt.get("human_review_attested") is not True):
+        raise ClaimEdgeBlocked("review_only_attestation_required")
+    if any(receipt.get(flag) is not False for receipt in (claim_receipt, review_receipt)
+           for flag in ("scientific_truth_established", "canonical_promotion_authorised",
+                        "publication_authorised", "execution_authorised")):
+        raise ClaimEdgeBlocked("unauthorised_promotion_detected")
+    return {
+        "claim_id": claim_receipt["claim_id"],
+        "mission_id": claim_receipt["mission_id"],
+        "notebook_id": claim_receipt["notebook_id"],
+        "claim_receipt_sha256": claim_receipt["receipt_sha256"],
+        "review_receipt_sha256": review_receipt["receipt_sha256"],
+        "handoff": "read_only_research_review",
+        "jog_memory_pointer_only": True,
+        "durable_storage_verified": False,
+        "independent_origin_verified": False,
+        "scientific_truth_established": False,
+        "canonical_promotion_authorised": False,
+        "publication_authorised": False,
+        "execution_authorised": False,
+    }
