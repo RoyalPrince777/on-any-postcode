@@ -5,7 +5,7 @@ import concurrent.futures
 import json
 import statistics
 import time
-from urllib import parse, request
+from urllib import error, parse, request
 
 BASE = "https://oap-routing.onrender.com"
 ROUTES = (
@@ -35,9 +35,20 @@ def run_one(index: int) -> dict[str, object]:
         headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate/1.0"},
     )
     started = time.perf_counter()
-    with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
-        status = int(response.status)
-        payload = json.loads(response.read().decode("utf-8"))
+    try:
+        with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
+            status = int(response.status)
+            payload = json.loads(response.read().decode("utf-8"))
+    except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
+        elapsed = time.perf_counter() - started
+        return {
+            "route_id": route_id,
+            "ok": False,
+            "elapsed_s": elapsed,
+            "failure_type": "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error",
+            "distance_m": 0.0,
+            "duration_s": 0.0,
+        }
     elapsed = time.perf_counter() - started
     routes = payload.get("routes")
     first = routes[0] if isinstance(routes, list) and routes else {}
@@ -69,12 +80,14 @@ def main() -> None:
     p95_index = max(0, min(len(latencies) - 1, int(0.95 * len(latencies)) - 1))
     p95 = latencies[p95_index]
     successes = sum(1 for item in results if item["ok"])
+    timed_out = sum(1 for item in results if item.get("failure_type") == "timeout")
     receipt = {
         "event": "oap_routing_bounded_external_probe",
         "requests": TOTAL_REQUESTS,
         "workers": WORKERS,
         "successes": successes,
         "failures": TOTAL_REQUESTS - successes,
+        "timeouts": timed_out,
         "success_rate": round(successes / TOTAL_REQUESTS, 3),
         "p50_ms": round(statistics.median(latencies) * 1000, 1),
         "p95_ms": round(p95 * 1000, 1),
