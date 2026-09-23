@@ -119,7 +119,7 @@ function oapSetLive(enabled){
  }
  oapClearLiveRestart();
  oapSpeechSeq+=1;
- oapApply('LIVE_OFF');oapShowLiveReply('');oapPlaybackState('cancelled',oapRuntime?.epoch);oapProof('liveOff',{epoch:oapRuntime?.epoch});
+ oapApply('LIVE_OFF');oapRecognitionToken=null;oapFinalTranscript='';oapShowLiveReply('');oapPlaybackState('cancelled',oapRuntime?.epoch);oapProof('liveOff',{epoch:oapRuntime?.epoch});
  oapRecognitionToken=null;
  if(oapRecognition){try{oapRecognition.stop()}catch{}}
  if('speechSynthesis' in window)window.speechSynthesis.cancel();
@@ -166,7 +166,7 @@ function oapStopAll(){
  responseStopped=true;
  oapClearLiveRestart();
  oapSpeechSeq+=1;
- oapApply('STOP');oapShowLiveReply('');oapPlaybackState('stopped',oapRuntime?.epoch);oapProof('stop',{epoch:oapRuntime?.epoch});
+ oapApply('STOP');oapRecognitionToken=null;oapFinalTranscript='';oapShowLiveReply('');oapPlaybackState('stopped',oapRuntime?.epoch);oapProof('stop',{epoch:oapRuntime?.epoch});
  oapUpdateLiveToggle();
  if(oapAbort)oapAbort.abort();
  if(oapRecognition){try{oapRecognition.stop()}catch{}}
@@ -253,6 +253,7 @@ if(oapMic){
    oapApply('LISTEN_START');oapProof('listenStart',{epoch:oapRuntime?.epoch});oapListenStarted=Date.now();oapMic.classList.add('active');oapMic.setAttribute('aria-pressed','true');oapMic.setAttribute('aria-label','Stop voice input');oapMic.textContent='■';oapSetStatus('Listening · 0s');oapListenTimer=setInterval(()=>oapSetStatus(`Listening · ${oapElapsed()}s`),1000);
   };
   oapRecognition.onresult=event=>{
+   if(!oapStateApi.tokenIsCurrent(oapRuntime,oapRecognitionToken)||!oapRuntime?.listening){oapProof('staleCallbackSuppressed',{source:'recognition-result'});return;}
    const results=Array.from(event.results),full=results.map(result=>result[0].transcript).join(' '),finalText=results.filter(result=>result.isFinal).map(result=>result[0].transcript).join(' ').trim();
    oapInput.value=full;oapFinalTranscript=finalText;oapInput.dispatchEvent(new Event('input',{bubbles:true}));
   };
@@ -295,7 +296,7 @@ if(oapMic){
  }
 }
 if(oapLiveToggle)oapLiveToggle.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapSetLive(!Boolean(oapRuntime?.live));},true);
-window.addEventListener('pagehide',()=>{document.body.classList.remove('smi-live-fullscreen');oapClearLiveRestart();oapSpeechSeq+=1;if(oapRuntime&&!oapRuntime.stopped)oapApply('LIVE_OFF');oapRecognitionToken=null;if(oapRecognition){try{oapRecognition.stop()}catch{}}if('speechSynthesis' in window)window.speechSynthesis.cancel();});
+window.addEventListener('pagehide',()=>{document.body.classList.remove('smi-live-fullscreen');oapClearLiveRestart();oapSpeechSeq+=1;if(oapRuntime&&!oapRuntime.stopped)oapApply('LIVE_OFF');oapRecognitionToken=null;oapFinalTranscript='';oapShowLiveReply('');oapPlaybackState('cancelled',oapRuntime?.epoch);if(oapRecognition){try{oapRecognition.stop()}catch{}}if('speechSynthesis' in window)window.speechSynthesis.cancel();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&oapRuntime?.live){oapSetLive(false);oapSetStatus('Live SMI off while this page is hidden');}});
 oapRenderCharacter();oapUpdateLiveToggle();
 oapAddCaptureOptions();
