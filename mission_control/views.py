@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 
 from flask import (
@@ -29,6 +30,7 @@ from . import (
     products,
     public_store,
     smi_chat_runtime,
+    smi_reply_voice_local,
     smi_founder_assets,
     smi_receipt_backend,
     smi_recursive_improvement,
@@ -558,6 +560,43 @@ def smi_chat_stream():
     response.headers["X-Accel-Buffering"] = "no"
     response.headers["Connection"] = "keep-alive"
     return response
+
+
+@bp.post("/chat/reply-audio")
+@web_security.login_required(api=True)
+def smi_chat_reply_audio():
+    """Return ephemeral PCM and phonemes only for this user's completed SMI reply."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    identity_id = _chat_identity()
+    if not _chat_rate_allowed(identity_id):
+        return _error("rate_limited", "Voice requests are temporarily limited.", 429)
+    try:
+        voice = smi_reply_voice_local.render_persisted_reply(
+            identity_id,
+            payload.get("conversation_id"),
+            payload.get("request_id"),
+        )
+    except ValueError:
+        return _error("reply_voice_unavailable", "No eligible owned reply was found.", 404)
+    except (RuntimeError, OSError):
+        return _error("reply_voice_unavailable", "Local reply audio is unavailable.", 503)
+    return _no_store(
+        make_response(
+            jsonify(
+                audioBase64=base64.b64encode(voice["audio_wav"]).decode("ascii"),
+                mime="audio/wav",
+                alignment=voice["alignment"],
+                engine=voice["engine"],
+                phonemeIssuedBySynth=True,
+                accurateHumanLipSyncProven=False,
+                fullRigProven=False,
+            )
+        )
+    )
 
 
 @bp.post("/chat/feedback")
