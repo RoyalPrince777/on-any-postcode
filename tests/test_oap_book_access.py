@@ -49,7 +49,6 @@ def test_purchase_survives_rotation_end():
     {"rights_evidence": None},
     {"rights_allow_rotation": False},
     {"private": True},
-    {"core_free": True},
     {"premium": False},
     {"youth": True},
 ])
@@ -86,3 +85,8 @@ def test_invalid_rotation_length_and_naive_clock_fail_closed():
     assert decide_access(book(), user_id="reader", rotation=wrong, now=NOW).access is Access.DENIED
     with pytest.raises(ValueError, match="timezone_required"):
         decide_access(book(), user_id="reader", now=NOW.replace(tzinfo=None))
+
+
+def test_core_free_precedence_never_depends_on_rotation_permission():
+    core = Book(book_id="premium-1", core_free=True, premium=True)
+    assert decide_access(core, user_id=None, rotation=rotation(), now=NOW).access is Access.FREE
