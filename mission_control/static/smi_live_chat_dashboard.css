@@ -50,6 +50,7 @@ body[data-smi-presence="paused"] .smi-shell::after,body[data-smi-presence="stopp
 @media(max-width:760px){
  /* Primary live controls stay visible on phones: Tools, Voice, 3/7/21 and Send. */
  .smi-shell::before{background-position:47% center;background-size:auto 100%}
+ #smi-source-pixel-motion{object-position:47% center!important}
  .chatbox::before{display:none}
  .chat-head{top:8px}.messages{top:52px;bottom:116px;width:96vw;padding:8px!important}.msg{max-width:92%!important}
  .composer{width:calc(100vw - 14px);bottom:max(7px,env(safe-area-inset-bottom))!important}
