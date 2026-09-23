@@ -69,3 +69,56 @@ def test_render_runtime_uses_pinned_bundled_voice_library():
     assert library.endswith(("libespeak-ng.so", "libespeak-ng.dylib", "espeak-ng.dll"))
     assert data_root and data_root.decode()
     assert build == "espeak-ng-1.51-bundled"
+
+
+@pytest.mark.parametrize("content", ["a" * 1501, " ", "unsafe\\x00reply"])
+def test_owned_but_unvoiceable_reply_is_not_misreported_as_missing(monkeypatch, content):
+    from contextlib import contextmanager
+    from mission_control import postgres_db
+
+    class FakeConnection:
+        def execute(self, _query, _params):
+            return self
+
+        def fetchone(self):
+            return (content,)
+
+    @contextmanager
+    def owned_readonly_connection(*, readonly):
+        assert readonly is True
+        yield FakeConnection()
+
+    monkeypatch.setattr(postgres_db, "connect", owned_readonly_connection)
+    monkeypatch.setattr(
+        voice,
+        "render_reply",
+        lambda _text: pytest.fail("Unvoiceable content must never enter synthesis"),
+    )
+    target = "12345678-1234-4234-8234-123456789abc"
+    with pytest.raises(
+        voice.ReplyVoiceContentUnavailable,
+        match="reply_voice_content_outside_local_capacity",
+    ):
+        voice.render_persisted_reply(target, target, target)
+
+
+def test_missing_owned_reply_remains_a_distinct_fail_closed_error(monkeypatch):
+    from contextlib import contextmanager
+    from mission_control import postgres_db
+
+    class MissingConnection:
+        def execute(self, _query, _params):
+            return self
+
+        def fetchone(self):
+            return None
+
+    @contextmanager
+    def missing_readonly_connection(*, readonly):
+        assert readonly is True
+        yield MissingConnection()
+
+    monkeypatch.setattr(postgres_db, "connect", missing_readonly_connection)
+    target = "12345678-1234-4234-8234-123456789abc"
+    with pytest.raises(ValueError, match="reply_voice_not_owned_or_unrecorded"):
+        voice.render_persisted_reply(target, target, target)
