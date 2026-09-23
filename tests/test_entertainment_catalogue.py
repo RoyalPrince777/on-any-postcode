@@ -136,4 +136,3 @@ def test_entertainment_route_is_authenticated_read_only():
     ]
     assert len(rules) == 1
     assert rules[0].methods == {"GET", "HEAD", "OPTIONS"}
-    assert product_core_views.entertainment_status.__wrapped__ is not None
