@@ -76,7 +76,7 @@ def _media_projection(identity_id: str) -> dict[str, object]:
     tune = product_core_services.tune_dashboard(identity_id)
     return {
         "organ": "OAP Media",
-        "source_organ": tune.get("organ", "OAP Tune Core"),
+        "source_organ": tune.get("organ", "OAP Music"),
         "releases": tune.get("releases", []),
         "playlists": tune.get("playlists", []),
         "release_count": len(tune.get("releases", [])),
@@ -129,7 +129,7 @@ def _distribution_market_media_projection(identity_id: str) -> dict[str, object]
         "entertainment": entertainment_catalogue.project_catalogue(tune),
         "media": {
             "organ": "OAP Media",
-            "source_organ": tune.get("organ", "OAP Tune Core"),
+            "source_organ": tune.get("organ", "OAP Music"),
             "releases": tune.get("releases", []),
             "playlists": tune.get("playlists", []),
             "licensed_audio_delivery": False,
@@ -173,7 +173,7 @@ def tune_status():
     try:
         return _no_store(make_response(jsonify(product_core_services.tune_dashboard(_identity()))))
     except (ValueError, RuntimeError):
-        return _error("tune_unavailable", "OAP Tune Core is temporarily unavailable.", 503)
+        return _error("tune_unavailable", "OAP Music is temporarily unavailable.", 503)
 
 
 @bp.get("/media")
