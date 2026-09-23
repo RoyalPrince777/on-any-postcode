@@ -141,3 +141,26 @@ def test_smi_subject_list_excludes_body_ids_and_unknown_fields(monkeypatch):
     assert "NEVER_TRANSFER_MAIL_BODY" not in repr(result)
     assert "INTERNAL_SECRET" not in repr(result)
     assert "secret-message-id" not in repr(result)
+
+
+
+def test_subject_store_extra_fields_are_rejected_by_response_allowlist(
+    monkeypatch,
+):
+    monkeypatch.setattr(mail_store, "list_subjects", lambda *_: [{
+        "subject": "approved",
+        "correspondent": "member@example.test",
+        "body": "NEVER_LEAK_BODY",
+        "id": "NEVER_LEAK_ID",
+        "unexpected": "NEVER_LEAK_FIELD",
+    }])
+    result = mail_smi_adapter.read_owner_folder(
+        actor_id=OWNER, mailbox_owner_id=OWNER,
+        folder="inbox", owner_consent=True,
+    )
+    assert result["items"] == [{
+        "subject": "approved",
+        "correspondent": "member@example.test",
+    }]
+    for secret in ("NEVER_LEAK_BODY", "NEVER_LEAK_ID", "NEVER_LEAK_FIELD"):
+        assert secret not in repr(result)
