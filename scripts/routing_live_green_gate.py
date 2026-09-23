@@ -35,9 +35,21 @@ def run_one(index: int) -> dict[str, object]:
         headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate/1.0"},
     )
     started = time.perf_counter()
-    with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
-        status = int(response.status)
-        payload = json.loads(response.read().decode("utf-8"))
+    try:
+        with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
+            status = int(response.status)
+            payload = json.loads(response.read().decode("utf-8"))
+    except (OSError, ValueError, TypeError) as exc:
+        # Preserve the failed request as bounded evidence; never grant green
+        # because a timeout, reset, HTTP error or malformed JSON was omitted.
+        return {
+            "route_id": route_id,
+            "ok": False,
+            "elapsed_s": time.perf_counter() - started,
+            "failure_type": type(exc).__name__,
+            "distance_m": 0.0,
+            "duration_s": 0.0,
+        }
     elapsed = time.perf_counter() - started
     routes = payload.get("routes")
     first = routes[0] if isinstance(routes, list) and routes else {}
@@ -75,6 +87,7 @@ def main() -> None:
         "workers": WORKERS,
         "successes": successes,
         "failures": TOTAL_REQUESTS - successes,
+        "failure_types": sorted({str(item["failure_type"]) for item in results if not item["ok"] and "failure_type" in item}),
         "success_rate": round(successes / TOTAL_REQUESTS, 3),
         "p50_ms": round(statistics.median(latencies) * 1000, 1),
         "p95_ms": round(p95 * 1000, 1),
