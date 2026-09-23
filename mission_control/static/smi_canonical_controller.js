@@ -157,6 +157,15 @@ function oapSpeak(text){
  const utterance=new SpeechSynthesisUtterance(String(text));utterance.lang='en-GB';
  utterance.onstart=()=>{if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'tts-start'});return;}oapApply('SPEAK_START');oapPlaybackState('playing',oapRuntime?.epoch);oapProof('speakStart',{epoch:oapRuntime?.epoch});};
  const finish=phase=>{if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'tts-finish'});return;}oapApply('SPEAK_END');oapPlaybackState(phase,oapRuntime?.epoch);if(phase==='ended')oapProof('speakEnd',{epoch:oapRuntime?.epoch});else oapSetStatus('Voice playback failed · reply remains in chat');if(oapRuntime.live&&!oapRuntime.paused)oapScheduleListening(320);};
+ // This is the browser's actual speech-boundary event, not decoded audio or a phoneme alignment.
+ utterance.onboundary=event=>{
+  if(seq!==oapSpeechSeq||oapRuntime?.stopped||oapRuntime?.paused||!oapRuntime?.speaking)return;
+  if(!Number.isFinite(event?.elapsedTime)||event.elapsedTime<0)return;
+  window.dispatchEvent(new CustomEvent('oap-smi-speech-boundary',{detail:{
+   source:'browser-speech-synthesis',decodedAudio:false,phonemeAligned:false,
+   elapsedMs:event.elapsedTime*1000,epoch:oapRuntime.epoch
+  }}));
+ };
  utterance.onend=()=>finish('ended');utterance.onerror=()=>finish('error');
  window.speechSynthesis.speak(utterance);
 }
