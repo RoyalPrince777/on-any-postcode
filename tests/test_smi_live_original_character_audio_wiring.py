@@ -66,3 +66,17 @@ def test_paused_speech_never_restarts_mic_until_explicit_resume():
     assert "oapRuntime.live&&!oapRuntime.listening&&!oapRuntime.thinking&&!oapRuntime.speaking)oapScheduleListening(180)" in pause
     assert "if('speechSynthesis' in window)window.speechSynthesis.pause()" in pause
     assert "if('speechSynthesis' in window)window.speechSynthesis.resume()" in pause
+
+
+def test_accepted_new_turn_cancels_old_reply_audio_before_starting_work():
+    source = CONTROLLER.read_text(encoding="utf-8")
+    submit = source[source.index("async function oapSubmit("):source.index("oapInput.addEventListener('keydown'")]
+    valid = submit.index("if(!text&&!hasImage&&!hasAttachment)return;")
+    cancel = submit.index("oapClearLiveRestart();oapSpeechSeq+=1;oapLocalPlayer?.stop();")
+    browser = submit.index("window.speechSynthesis.cancel();")
+    state = submit.index("if(oapRuntime?.speaking)oapApply('SPEAK_END');")
+    receipt = submit.index("oapPlaybackState('cancelled',oapRuntime?.epoch);")
+    work = submit.index("oapBeginWork();")
+    assert valid < cancel < browser < state < receipt < work
+    assert submit.index("if(oapLocked||oapSend.disabled)return;") < cancel
+    assert submit.index("oapLocalPlayer?.prepare?.()") < cancel
