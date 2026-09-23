@@ -1,9 +1,10 @@
 """Isolated first-party Raffles governance kernel. No public entry or payment execution."""
 from __future__ import annotations
+
+import json
 from dataclasses import dataclass, field
 from enum import Enum
 from hashlib import sha256
-import json
 from typing import Any
 
 class State(str, Enum):
