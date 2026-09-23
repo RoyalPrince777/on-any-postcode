@@ -36,7 +36,10 @@ def verify_original_finding(finding: Mapping[str, Any]) -> dict[str, Any]:
             continue
         ids.add(evidence_id)
         accepted.add(kind)
-    independent = len(ids) >= MIN_INDEPENDENT_EVIDENCE
+    # External reports can corroborate an OAP finding, but cannot alone establish
+    # that the finding rests on OAP's own original evidence.
+    first_party_evidence = bool(accepted - {"external_reference"})
+    independent = len(ids) >= MIN_INDEPENDENT_EVIDENCE and first_party_evidence
     original = bool(finding_id and claim and finding.get("authored_by") == "OAP")
     human_review = finding.get("human_reviewed") is True
     status = "internally_verified" if original and independent and human_review else "unconfirmed"
