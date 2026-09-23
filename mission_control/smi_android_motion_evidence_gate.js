@@ -19,7 +19,7 @@ function evaluateAndroidReceipt(receipt,{nowMs=Date.now()}={}){
   if(typeof receipt.deviceModel!=="string"||receipt.deviceModel.trim().length<2)reasons.push("device_model_missing");
   if(typeof receipt.androidVersion!=="string"||receipt.androidVersion.trim().length<1)reasons.push("android_version_missing");
   if(receipt.approvedSourceSha256!==APPROVED_SHA)reasons.push("source_sha_mismatch");
-  if(!receipt.layerSha256||Object.keys(receipt.layerSha256).length!==LAYERS.length||LAYERS.some(x=>!(/^[a-f0-9]{64}$/).test(receipt.layerSha256[x]||"")))reasons.push("seven_layer_hashes_invalid");
+  if(!receipt.layerSha256||typeof receipt.layerSha256!=="object"||Array.isArray(receipt.layerSha256)||Object.keys(receipt.layerSha256).length!==LAYERS.length||LAYERS.some(x=>!Object.prototype.hasOwnProperty.call(receipt.layerSha256,x)||!(/^[a-f0-9]{64}$/).test(receipt.layerSha256[x]||"")))reasons.push("seven_layer_hashes_invalid");
   if(receipt.exactCharacterIntact!==true)reasons.push("exact_character_not_approved");
   if(receipt.playedAudioObserved!==true||!Number.isFinite(receipt.maxAudioClockDeltaMs)||receipt.maxAudioClockDeltaMs>80||receipt.maxAudioClockDeltaMs<0)reasons.push("played_audio_timing_unproven");
   if(receipt.motionStopped!==true||receipt.audioStopped!==true||!Number.isFinite(receipt.stopAcknowledgementMs)||receipt.stopAcknowledgementMs>50||receipt.stopAcknowledgementMs<0)reasons.push("immediate_stop_unproven");
