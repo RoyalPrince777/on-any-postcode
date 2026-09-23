@@ -69,6 +69,10 @@ def validate_draft_fields(
     if any(char in value for value in (subject or "", correspondent or "")
            for char in ("\r", "\n", "\x00")):
         raise ValueError("mail_draft_header_invalid")
+    # Message bodies may contain line breaks, but PostgreSQL text cannot
+    # store a NUL and must reject it before user or Mail persistence.
+    if "\x00" in (body or ""):
+        raise ValueError("mail_draft_body_invalid")
     subject_text = (subject or "").strip()
     body_text = (body or "").strip()
     contact_text = (correspondent or "").strip()
