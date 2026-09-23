@@ -16,6 +16,10 @@ def test_founder_mask_workbench_renders_exact_art_and_local_export(client):
     assert APPROVED_SOURCE_SHA256 in page
     assert "smi_character_mask_workbench.js" in page
     assert "smi_mask_zip.js" in page
+    assert "smi_character_source_pixels.js" in page
+    assert "smi_private_source_frame.js" in page
+    assert "Download two private pixel frames" in page
+    assert "Download seven source layers" in page
     assert "Download seven-mask ZIP" in page
     assert "Draft masks" in page
     assert "No SMI provider" in page
@@ -72,6 +76,9 @@ def test_mask_editor_contains_no_remote_upload_or_false_rig_activation():
     assert 'cache:"no-store"' in source
     assert 'crypto.subtle.digest("SHA-256",bytes)' in source
     assert "new Uint8Array(await blob.arrayBuffer())" in source
+    assert "createSourceZip(entries)" in source
+    assert "createFrameZip(entries)" in source
+    assert "speech_sync_proven:false" in source
     assert "new Blob([bytes],{type:" in source
     assert "active:false" not in source or "animation_active:false" in source
     assert "approval:\"DRAFT_REQUIRES_FOUNDER_REVIEW\"" in source
@@ -91,6 +98,8 @@ def test_gateway_allows_only_sha_pinned_original_not_arbitrary_static():
     assert smi_gateway._allowed("/mission/character-mask-workbench")
     assert smi_gateway._allowed("/mission/static/smi_character_mask_workbench.js")
     assert smi_gateway._allowed("/mission/static/smi_mask_zip.js")
+    assert smi_gateway._allowed("/mission/static/smi_character_source_pixels.js")
+    assert smi_gateway._allowed("/mission/static/smi_private_source_frame.js")
     assert smi_gateway._allowed("/static/oap/smi_live_chat_dashboard.jpg")
     assert not smi_gateway._allowed("/static/oap/other-character.jpg")
     assert not smi_gateway._allowed("/static/oap/private-mask.png")

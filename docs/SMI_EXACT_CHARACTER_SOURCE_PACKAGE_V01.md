@@ -72,6 +72,43 @@ real source digest, verified package files, bbox registration and each
 layer's original RGB pixels before rendering. It composites an editable
 **still**, not true expression, body movement or lip-sync.
 
+## Browser-local source-layer export (draft, stacked PR #484)
+
+The same Founder workbench now has **Download seven source layers · DRAFT**.
+After the exact original JPEG hash check and all seven nonempty hand-painted
+masks, it crops RGBA layers from the original's decoded pixels **inside the
+browser**, bundles seven PNGs and a `source-package.json` with source SHA-256,
+per-layer PNG SHA-256 and registration boxes, and downloads them locally.
+It never sends the artwork or masks to the server. No masks present means no
+layer output; the original source JPEG is already in the repository, but it
+does not by itself reveal anatomical segmentation or occluded parts.
+
+The browser export is a separate draft-review format, **not** a substitute for
+the existing Python extractor's independently verified private package.
+The browser applies binary alpha at threshold 128 so selected pixels contain
+the original RGB rather than guessed/interpolated hidden colors. Review rough
+edges, overlap, depth and occlusion before any animation; do not mistake the
+test-painted masks for approved SMI body segments. Each output is DRAFT and
+cannot enable motion, lip-sync, public publishing or Founder Final.
+
+## Two real-source pixel inspection frames (private candidate)
+
+The Founder workbench also offers **Download two private pixel frames · DRAFT**.
+It rasterises original JPEG pixels under all seven nonempty, user-painted
+masks into a neutral transparent RGBA frame and one narrowly offset frame.
+It uses an explicit provisional occlusion order and at most two-pixel
+translations of selected eyes, hands and breathing layers. Mouth and face
+shapes are not synthesised, and no word/text prediction controls lips.
+A private ZIP contains the two actual frame PNGs and integrity digests,
+with all approval and live-motion flags false.
+
+These frames demonstrate a working first-party raster path, **not** natural
+body language, acceptable segmentation/occlusion, a genuine live rig or
+lip-sync. Without independently reviewed masks and hidden-region handling,
+visual realism remains unproven. The isolated renderer has a STOP epoch that
+invalidates stale frame requests; this does not prove physical Android STOP.
+The existing live artwork, chat controls and server remain unchanged.
+
 ## What it does NOT approve
 
 Source-derived masks are **not** seven independently usable body parts.

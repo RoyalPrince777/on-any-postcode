@@ -139,6 +139,80 @@ def run_workbench(page, origin, output):
                 assert middle[3] > 0
 
         draft = archive.read("eyes.png")
+    with page.expect_download() as source_event:
+        page.locator("#save-layers").click()
+    source_download = source_event.value
+    assert source_download.suggested_filename == (
+        "smi-private-original-pixel-layers-DRAFT.zip"
+    )
+    source_output = output.with_name("original-pixel-source-draft.zip")
+    source_download.save_as(source_output)
+    with zipfile.ZipFile(source_output) as archive:
+        assert archive.testzip() is None
+        assert set(archive.namelist()) == {
+            name + ".png" for name in names
+        } | {"source-package.json"}
+        package = json.loads(archive.read("source-package.json"))
+        assert package["approved_source_sha256"] == APPROVED_SOURCE_SHA256
+        assert package["motion_proven"] is False
+        assert package["speech_sync_proven"] is False
+        assert package["human_authority_approved"] is False
+        assert package["hidden_region_reconstruction"] is False
+        with Image.open(original) as image:
+            original_rgb = image.convert("RGB")
+            for name in names:
+                record = package["layers"][name]
+                data = archive.read(name + ".png")
+                assert hashlib.sha256(data).hexdigest() == record["sha256"]
+                with Image.open(io.BytesIO(data)) as layer:
+                    layer.load()
+                    assert layer.mode == "RGBA"
+                    x0, y0, x1, y1 = record["bbox_xyxy"]
+                    assert layer.size == (x1 - x0, y1 - y0)
+                    # The wholly selected source pixels stay the original RGB.
+                    center = (dimensions[0] // 2, dimensions[1] // 2)
+                    local = (center[0] - x0, center[1] - y0)
+                    assert layer.getpixel(local) == (
+                        *original_rgb.getpixel(center), 255
+                    )
+    print("SMI_PRIVATE_ORIGINAL_PIXEL_SOURCE_EXPORT_PASS")
+    with page.expect_download() as frame_event:
+        page.locator("#save-frames").click()
+    frame_download = frame_event.value
+    assert frame_download.suggested_filename == (
+        "smi-private-original-pixel-frames-DRAFT.zip"
+    )
+    frame_output = output.with_name("private-original-frames-draft.zip")
+    frame_download.save_as(frame_output)
+    with zipfile.ZipFile(frame_output) as archive:
+        assert archive.testzip() is None
+        assert set(archive.namelist()) == {
+            "frame-neutral.png", "frame-offset.png", "frame-evidence.json"
+        }
+        receipt = json.loads(archive.read("frame-evidence.json"))
+        assert receipt["approved_source_sha256"] == APPROVED_SOURCE_SHA256
+        assert receipt["motion_proven"] is False
+        assert receipt["speech_sync_proven"] is False
+        assert receipt["human_authority_approved"] is False
+        assert receipt["mask_review_approved"] is False
+        assert receipt["hidden_regions_reconstructed"] is False
+        for filename in ("frame-neutral.png", "frame-offset.png"):
+            contents = archive.read(filename)
+            assert hashlib.sha256(contents).hexdigest() == (
+                receipt["file_sha256"][filename]
+            )
+            with Image.open(io.BytesIO(contents)) as frame:
+                frame.load()
+                assert frame.mode == "RGBA"
+                assert frame.size == dimensions
+        with Image.open(io.BytesIO(archive.read("frame-neutral.png"))) as frame:
+            center = (dimensions[0] // 2, dimensions[1] // 2)
+            assert frame.getpixel(center) == (
+                *original_rgb.getpixel(center), 255
+            )
+    print("SMI_PRIVATE_REAL_PIXEL_FRAME_BROWSER_PASS")
+
+
     page.locator("#layers button[data-name='eyes']").click()
     page.locator("#clear").click()
     assert page.locator("#coverage").evaluate("(el) => el.value") == 6
@@ -162,9 +236,72 @@ def run_workbench(page, origin, output):
     page.reload()
     page.get_by_text("Original character identity mismatch", exact=False).wait_for()
     assert page.locator("#save-all").is_disabled()
+    assert page.locator("#save-layers").is_disabled()
+    assert page.locator("#save-frames").is_disabled()
     assert page.locator("#source-art").is_hidden()
     assert not errors
     print("SMI_MASK_WORKBENCH_TAMPER_FAIL_CLOSED_PASS")
+
+
+
+def run_command_centre_dock(page):
+    """Click the actual additive Founder buttons in isolated mobile Chromium.
+
+    This checks delegated browser actions, not live SMI, Android timing or release.
+    """
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.set_content(
+        '<div class="chatbox"><header class="chat-head">'
+        '<div class="chat-head-actions"></div></header>'
+        '<div id="smi-character" data-state="ready"></div>'
+        '<div id="messages"></div></div>'
+        '<div id="attach-menu"><button data-oap-action="green-gate" '
+        'type="button">Canonical gate</button></div>'
+        '<div id="status"></div><input id="message">'
+    )
+    page.evaluate("""() => {
+        window.OAP_SMI_UI={singleLiveChatSurface:true};
+        window.__gateReviewClicks=0;
+        document.querySelector('[data-oap-action="green-gate"]')
+          .addEventListener('click',()=>window.__gateReviewClicks++);
+    }""")
+    page.add_script_tag(
+        path=str(ROOT / "mission_control/static/smi_command_centre.js")
+    )
+    toggle = page.locator('button[aria-controls="smi-command-centre"]')
+    toggle.click()
+    panel = page.locator("#smi-command-centre")
+    assert page.locator("body").evaluate(
+        "(el) => el.classList.contains('smi-command-open')"
+    )
+    assert panel.locator('[data-founder-action="continue"]').is_visible()
+    panel.locator('[data-founder-action="continue"]').click()
+    assert panel.get_attribute("data-mobile-view") == "evidence"
+    assert panel.locator('[data-view="evidence"]').get_attribute(
+        "aria-pressed"
+    ) == "true"
+    page.wait_for_function("""() =>
+        document.querySelector('[data-room-stat="runtime"] small')
+          ?.textContent === 'Unavailable · NOT PROVEN'
+    """)
+    assert panel.locator(".smi-command-proof[data-proven=\"false\"]").count() == 8
+    assert panel.locator(".smi-command-proof small").all_inner_texts() == [
+        "Unavailable"
+    ] * 8
+    panel.locator('[data-founder-action="review"]').click()
+    assert page.evaluate("window.__gateReviewClicks") == 1
+    assert not page.locator("body").evaluate(
+        "(el) => el.classList.contains('smi-command-open')"
+    )
+    assert page.locator("#smi-character").count() == 1
+    toggle.click()
+    page.locator('[data-oap-action="green-gate"]').evaluate(
+        "(el) => el.disabled=true"
+    )
+    panel.locator('[data-founder-action="review"]').click()
+    assert page.evaluate("window.__gateReviewClicks") == 1
+    assert "no approval recorded" in page.locator("#status").inner_text()
+    print("SMI_COMMAND_CENTRE_FOUNDER_BUTTON_BROWSER_PASS")
 
 
 def main():
@@ -200,6 +337,7 @@ def main():
                 page.set_default_timeout(20_000)
                 with tempfile.TemporaryDirectory(prefix="oap-mask-browser-") as folder:
                     run_workbench(page, origin, Path(folder) / "draft.zip")
+                run_command_centre_dock(context.new_page())
             finally:
                 browser.close()
     finally:

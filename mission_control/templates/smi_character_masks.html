@@ -74,13 +74,19 @@ progress{width:100%}
 <label for="import-mask">Restore an earlier draft PNG for the selected layer</label><input id="import-mask" type="file" accept="image/png,.png"><div class="inline"><button type="button" id="save-one">Download this PNG</button><button type="button" class="primary" id="save-all">Download seven-mask ZIP</button></div>
 <progress id="coverage" max="7" value="0" aria-label="Painted layers"></progress><small id="coverage-label">0 / 7 painted</small>
 </fieldset>
-<fieldset><legend>Continue with existing source extractor</legend>
-<p class="muted">Review the seven local mask PNGs, then provide them privately to the existing source-package CLI. Hidden regions, depth, deformation and lip-sync remain separate Body work.</p>
+<fieldset><legend>Extract private original-pixel layers</legend>
+<p class="muted">After painting all seven masks, download seven cropped PNG layers directly from the SHA-verified original. Selection edges use binary alpha; review their accuracy before use. Hidden anatomy, depth, deformation and lip-sync remain separate work.</p>
+<button type="button" id="save-layers" class="primary" disabled>Download seven source layers · DRAFT</button>
+<p class="muted">Two local original-pixel frame snapshots for Founder inspection only. No mouth shape or live motion claim.</p>
+<button type="button" id="save-frames" disabled>Download two private pixel frames · DRAFT</button>
+<p class="muted">The existing private source-package CLI remains available. Neither route uploads artwork or certifies motion.</p>
 <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">Back to SMI Chat</a>
 </fieldset>
 </aside>
 </main>
 <script src="{{ url_for('mission_control.static',filename='smi_mask_zip.js') }}" defer></script>
+<script src="{{ url_for('mission_control.static',filename='smi_character_source_pixels.js') }}" defer></script>
+<script src="{{ url_for('mission_control.static',filename='smi_private_source_frame.js') }}" defer></script>
 <script src="{{ url_for('mission_control.static',filename='smi_character_mask_workbench.js') }}" defer></script>
 </body>
 </html>

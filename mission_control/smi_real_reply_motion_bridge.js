@@ -78,6 +78,8 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   function playbackStart({audioClockMs=0,observedAtMs,eventType,clockSource}={}){
     if(!admitted||stopped||eventType!=="playing"||clockSource!==expectedClock||
       !finite(audioClockMs)||audioClockMs<0||audioClockMs>MAX_AUDIO_CLOCK_DELTA_MS||!finite(observedAtMs))return null;
+    // A duplicate playing event must not rebase an active audio clock.
+    if(started)return failClosed("duplicate_playback_start");
     started=true;startAudioClockMs=audioClockMs;startObservedAtMs=observedAtMs;
     lastAudioClockMs=audioClockMs;lastObservedAtMs=observedAtMs;events+=1;
     return Object.freeze({type:"playback-start",epoch,audioClockMs,productionApproved:false,humanFinalApproved:false});
@@ -97,12 +99,15 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     const {active,index}=activeCue(Math.min(audioClockMs,durationMs));
     return Object.freeze({type:"played-audio-viseme",epoch,audioClockMs,audioClockDeltaMs,
       cueIndex:index,viseme:active.viseme,confidence:active.confidence,
-      mouthScaleY:active.viseme==="silence"?1:1.08,
-      headRotateDeg:Math.sin(audioClockMs/900)*0.3,
-      handOffsetY:Math.sin(audioClockMs/650)*0.6,
+      // Keep existing output keys for callers, but do not invent artwork
+      // deformation or unrelated gestures from the audio clock. An accepted
+      // cue is timing evidence, not reviewed source-backed mouth geometry.
+      mouthScaleY:1,headRotateDeg:0,handOffsetY:0,
       productionApproved:false,humanFinalApproved:false});
   }
   function playbackEnd({audioClockMs,observedAtMs,eventType}={}){
+    // STOP wins over delayed media events; do not rewrite its epoch or reason.
+    if(stopped)return null;
     if(eventType!=="ended"||!finite(audioClockMs)||Math.abs(audioClockMs-durationMs)>alignmentToleranceMs)return failClosed("played_audio_end_unproven");
     const finalCue=playbackSample({audioClockMs,observedAtMs});
     if(!finalCue)return null;

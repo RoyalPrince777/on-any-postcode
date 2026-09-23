@@ -13,7 +13,7 @@
   const state=new Map();
   let active=NAMES[0],ready=false,painting=false,erase=false,
     cursor={x:0,y:0},undo=null,objectUrl=null,busy=false;
-  const actionIds=["paint","erase","brush","undo","clear","save-one","save-all","import-mask","mask-only"];
+  const actionIds=["paint","erase","brush","undo","clear","save-one","save-all","save-layers","save-frames","import-mask","mask-only"];
   function say(value){feedback.textContent=value;}
   function enable(value){for(const id of actionIds)$(id).disabled=!value;
     for(const btn of buttons.querySelectorAll("button"))btn.disabled=!value;}
@@ -180,6 +180,119 @@
       say("Seven original-canvas draft masks saved locally. Human review required.");
     }catch(error){say("ZIP export blocked: "+error.message);}
     finally{busy=false;enable(true);}
+  });
+  $("save-layers").addEventListener("click",async()=>{
+    if(!ready||busy)return;
+    busy=true;enable(false);
+    try{
+      // The existing start() SHA-256 verification is the only entry to ready.
+      if(!window.OAP_SMI_SOURCE_PIXELS)throw Error("source_extractor_unavailable");
+      const width=image.naturalWidth,height=image.naturalHeight;
+      const original=document.createElement("canvas");
+      original.width=width;original.height=height;
+      const ctx=original.getContext("2d",{willReadFrequently:true});
+      ctx.drawImage(image,0,0,width,height);
+      const source=ctx.getImageData(0,0,width,height).data;
+      const entries=[],records={};
+      for(const name of NAMES){
+        const rec=state.get(name);
+        if(!rec?.filled)throw Error("Finish all seven reviewed draft masks; missing "+name);
+        const mask=rec.ctx.getImageData(0,0,width,height).data;
+        const layer=window.OAP_SMI_SOURCE_PIXELS.extract(source,mask,width,height);
+        const crop=document.createElement("canvas");
+        crop.width=layer.width;crop.height=layer.height;
+        crop.getContext("2d").putImageData(
+          new ImageData(layer.rgba,layer.width,layer.height),0,0);
+        const blob=await maskBlob(crop),bytes=new Uint8Array(await blob.arrayBuffer());
+        const sha=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)))
+          .map(x=>x.toString(16).padStart(2,"0")).join("");
+        entries.push({name:name+".png",data:bytes});
+        records[name]={file:name+".png",sha256:sha,
+          bbox_xyxy:layer.bbox_xyxy,selected_pixels:layer.selected_pixels,
+          alpha_rule:layer.alpha_rule,approval:"DRAFT_REQUIRES_FOUNDER_REVIEW"};
+      }
+      const manifest={version:"0.1-browser-private-draft",
+        approved_source_sha256:expected,canvas_width:width,canvas_height:height,
+        provenance:"original_source_pixels_only",layers:records,
+        hidden_region_reconstruction:false,geometry_proven:false,
+        motion_proven:false,speech_sync_proven:false,active:false,
+        human_authority_approved:false};
+      entries.push({name:"source-package.json",
+        data:new TextEncoder().encode(JSON.stringify(manifest,null,2)+"\n")});
+      const zip=window.OAP_SMI_MASK_ZIP.createSourceZip(entries);
+      download(new Blob([zip],{type:"application/zip"}),
+        "smi-private-original-pixel-layers-DRAFT.zip");
+      say("Seven private source-derived DRAFT layers saved locally. No hidden anatomy, motion or lip-sync is approved.");
+    }catch(error){say("Source-layer export blocked: "+error.message);}
+    finally{busy=false;enable(true);}
+  });
+  $("save-frames").addEventListener("click",async()=>{
+    if(!ready||busy)return;
+    busy=true;enable(false);
+    let compositor=null;
+    try{
+      if(!window.OAP_SMI_PRIVATE_SOURCE_FRAME)
+        throw Error("private_frame_renderer_unavailable");
+      const width=image.naturalWidth,height=image.naturalHeight;
+      const original=document.createElement("canvas");
+      original.width=width;original.height=height;
+      const ctx=original.getContext("2d",{willReadFrequently:true});
+      ctx.drawImage(image,0,0,width,height);
+      const source=ctx.getImageData(0,0,width,height).data;
+      const masks={};
+      for(const name of NAMES){
+        const rec=state.get(name);
+        if(!rec?.filled)throw Error("Finish all seven private draft masks; missing "+name);
+        masks[name]=rec.ctx.getImageData(0,0,width,height).data;
+      }
+      // Explicit order is provisional; these are private Founder inspection
+      // frames, never approved occlusion, animation or viseme geometry.
+      const order=["upper_body","breathing","hands","head","face",
+        "mouth_visemes","eyes"];
+      compositor=window.OAP_SMI_PRIVATE_SOURCE_FRAME.create({
+        source,masks,width,height,sourceVerified:ready,layerOrder:order});
+      const epoch=compositor.snapshot().epoch;
+      const specs=[
+        {name:"frame-neutral.png",translations:{}},
+        {name:"frame-offset.png",translations:{
+          breathing:[0,1],hands:[0,2],eyes:[2,0]}},
+      ];
+      const entries=[],hashes={};
+      for(const spec of specs){
+        const frame=compositor.frame({
+          expectedEpoch:epoch,translations:spec.translations});
+        if(!frame||frame.motion_proven||frame.speech_sync_proven)
+          throw Error("private_frame_proof_boundary");
+        const canvas=document.createElement("canvas");
+        canvas.width=width;canvas.height=height;
+        canvas.getContext("2d").putImageData(
+          new ImageData(frame.rgba,width,height),0,0);
+        const blob=await maskBlob(canvas);
+        const bytes=new Uint8Array(await blob.arrayBuffer());
+        const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",bytes));
+        hashes[spec.name]=Array.from(digest)
+          .map(n=>n.toString(16).padStart(2,"0")).join("");
+        entries.push({name:spec.name,data:bytes});
+      }
+      const evidence={version:"0.1-private-pixel-frames",
+        approved_source_sha256:expected,canvas:[width,height],
+        original_pixels_only:true,layer_order:order,
+        offsets:{breathing:[0,1],hands:[0,2],eyes:[2,0]},
+        file_sha256:hashes,mask_review_approved:false,
+        occlusion_approved:false,hidden_regions_reconstructed:false,
+        motion_proven:false,speech_sync_proven:false,
+        attached_to_live_page:false,human_authority_approved:false};
+      entries.push({name:"frame-evidence.json",
+        data:new TextEncoder().encode(JSON.stringify(evidence,null,2)+"\n")});
+      const zip=window.OAP_SMI_MASK_ZIP.createFrameZip(entries);
+      download(new Blob([zip],{type:"application/zip"}),
+        "smi-private-original-pixel-frames-DRAFT.zip");
+      say("Two actual original-pixel inspection frames downloaded locally. Real animation, occlusion and lip-sync remain unproven.");
+    }catch(error){say("Private frame capture blocked: "+error.message);}
+    finally{
+      if(compositor)compositor.stop();
+      busy=false;enable(true);
+    }
   });
   $("import-mask").addEventListener("change",async event=>{
     const file=event.target.files?.[0];event.target.value="";

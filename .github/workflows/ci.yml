@@ -43,7 +43,11 @@ jobs:
           node tests/smi_exact_character_rig_foundation_test.cjs
           node --check mission_control/static/smi_mask_zip.js
           node --check mission_control/static/smi_character_mask_workbench.js
+          node --check mission_control/static/smi_character_source_pixels.js
+          node --check mission_control/static/smi_private_source_frame.js
+          node tests/smi_private_source_frame_test.cjs
           node tests/smi_mask_zip_test.cjs
+          node tests/smi_character_source_pixels_test.cjs
           node --check mission_control/smi_character_motion_candidate.js
           node tests/smi_character_motion_candidate_test.cjs
           node --check mission_control/smi_android_motion_evidence_gate.js

@@ -236,3 +236,11 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre.smi-room-art
   animation:none!important;transition:none!important;opacity:0!important
  }
 }
+
+/* Founder command dock: additive actions, never evidence or automatic approval. */
+.smi-command-founder-dock{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px;padding:8px;border-top:1px solid #335075;background:#050d20}
+.smi-command-founder-dock button{min-height:40px;padding:8px 13px;border:1px solid #7355ba;border-radius:11px;background:#21173e;color:#f5ebff;font:inherit;font-size:.76rem;cursor:pointer}
+.smi-command-founder-dock button[data-founder-action="review"]{border-color:#987833;background:#28200e;color:#ffdda1}
+.smi-command-founder-dock button:hover,.smi-command-founder-dock button:focus-visible{outline:2px solid #e2c582;outline-offset:2px}
+.smi-command-founder-dock small{font-size:.61rem;color:#acc2dc}
+@media(max-width:820px){.smi-command-founder-dock{padding:6px;gap:5px}.smi-command-founder-dock button{flex:1 1 42%;font-size:.67rem;min-height:44px}.smi-command-founder-dock small{flex:1 1 100%;text-align:center}}
