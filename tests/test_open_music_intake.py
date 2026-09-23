@@ -149,3 +149,18 @@ def test_digest_size_policy_cannot_be_bypassed_or_crash_on_untrusted_types():
     assert music.evidence_bytes_digest(b"ok", max_bytes=2)["accepted"] is True
     assert music.evidence_bytes_digest(bytearray(b"ok"))["accepted"] is False
     assert music.evidence_bytes_digest(memoryview(b"ok"))["accepted"] is False
+
+
+
+def test_rights_review_identifier_is_canonical_and_never_reflects_untrusted_text():
+    uid = str(uuid4())
+    for identifier in (uid, f"oap:open-music:{uid}"):
+        review = music.rights_review({"candidate_id": identifier})
+        assert review["candidate_id"] == f"oap:open-music:{uid}"
+        assert review["rights_verified"] is False
+        assert review["playback_authorised"] is False
+    for value in ("<script>alert(1)</script>", "oap:open-music:invalid", ["x"], {}, None):
+        review = music.rights_review({"candidate_id": value})
+        assert review["candidate_id"] is None
+        assert review["rights_verified"] is False
+        assert review["distribution_authorised"] is False
