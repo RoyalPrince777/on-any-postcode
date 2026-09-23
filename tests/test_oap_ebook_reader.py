@@ -61,7 +61,7 @@ def test_preview_cannot_leak_other_pages():
 @pytest.mark.parametrize("access", (Access.PURCHASED, Access.ROTATION))
 def test_paid_and_rotation_require_member(access):
     with pytest.raises(PermissionError, match="identity_required"):
-        page(grant=grant(access), authenticated_identity=None)
+        page(grant=grant(access, expires_at=NOW + timedelta(days=7)), authenticated_identity=None)
 
 
 def test_rotation_expiration_is_explicit():
