@@ -34,7 +34,7 @@ def test_catalogue_reuses_owner_scoped_tune_records_without_leaking_media():
     )
     result = entertainment_catalogue.project_catalogue({"releases": [record]})
     assert result["scope"] == "authenticated_owner_tune_releases_only"
-    assert result["source_organ"] == "OAP Tune Core"
+    assert result["source_organ"] == "OAP Music"
     assert result["item_count"] == 1
     item = result["items"][0]
     assert item["content_id"] == f"oap:tune:{RELEASE_ID}"
@@ -108,7 +108,7 @@ def test_existing_media_distribution_suite_reuses_canonical_projection(monkeypat
     calls = []
     def owner_tune(identity):
         calls.append(identity)
-        return {"organ": "OAP Tune Core", "releases": [_row()], "playlists": []}
+        return {"organ": "OAP Music", "releases": [_row()], "playlists": []}
     monkeypatch.setattr(product_core_views.product_core_services, "tune_dashboard", owner_tune)
     monkeypatch.setattr(
         product_core_views.product_core_services,
