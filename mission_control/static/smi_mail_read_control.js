@@ -73,18 +73,30 @@
         if(!Array.isArray(payload.items)||payload.execute!==false||payload.delivery_enabled!==false){
           throw new Error("Unexpected Mail read response");
         }
+        // Validate every returned item before exposing any subject in the DOM.
+        // Unexpected fields and malformed types fail closed, not partially.
+        if(payload.items.length>50||!payload.items.every(item=>
+          item!==null&&typeof item==="object"&&!Array.isArray(item)&&
+          Object.keys(item).every(key=>key==="subject"||key==="correspondent")&&
+          (item.subject===null||typeof item.subject==="string")&&
+          (item.correspondent===undefined||item.correspondent===null||
+            typeof item.correspondent==="string")
+        ))throw new Error("Malformed Mail subject projection");
         if(!dialog.open||controller.signal.aborted)return;
+        const fragment=document.createDocumentFragment();
+        for(const item of payload.items){
+          const entry=document.createElement("p");
+          const subject=item.subject||"(no subject)";
+          const correspondent=item.correspondent||"";
+          entry.textContent=subject+(correspondent?" · "+correspondent:"");
+          fragment.append(entry);
+        }
         results.replaceChildren();
         if(!payload.items.length)results.textContent="No inbox items returned.";
-        for(const item of payload.items.slice(0,50)){
-          const entry=document.createElement("p");
-          const subject=String(item.subject||"(no subject)");
-          const correspondent=String(item.correspondent||"");
-          entry.textContent=subject+(correspondent?" · "+correspondent:"");
-          results.append(entry);
-        }
+        else results.append(fragment);
       }catch{
         if(dialog.open&&!controller.signal.aborted){
+          results.replaceChildren();
           results.textContent="OAP Mail read unavailable · no Mail sent.";
         }
       }finally{
