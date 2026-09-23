@@ -49,16 +49,19 @@ def test_mail_store_html_is_information_only(request, fixture):
     assert "/mail/drafts" not in html
 
 
-def test_information_does_not_register_mailbox_or_write_paths(client):
+def test_information_does_not_expose_store_write_or_installer_paths(client):
     for path in (
         "/oap-store/apps/oap.mail",
         "/oap-store/apps/oap.mail/view",
         "/oap-store/apps/oap.mail/install",
     ):
         assert client.post(path, json={"install": True}).status_code in (404, 405)
-    assert client.get("/mail/app").status_code == 404
-    assert client.get("/mail/inbox").status_code == 404
-    assert client.post("/mail/drafts", json={"subject": "x"}).status_code == 404
+    # Store information stays inert even if a separate authenticated,
+    # unreleased private Mail preview is registered in the same app.
+    page = client.get("/oap-store/apps/oap.mail/view").get_data(as_text=True)
+    assert "not the private Mail application" in page
+    assert 'href="/mail/app"' not in page
+    assert "/mail/drafts" not in page
 
 
 def test_catalogue_module_has_no_transport_database_or_package_dependencies():
