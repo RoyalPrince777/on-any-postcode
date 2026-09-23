@@ -138,3 +138,14 @@ def test_candidate_preview_never_trusts_caller_approval_or_rights():
         assert item["rights_verified"] is False
         assert item["tune_release_created"] is False
         assert item["playback_enabled"] is False
+
+
+def test_digest_size_policy_cannot_be_bypassed_or_crash_on_untrusted_types():
+    for bad in (None, True, False, 0, -1, 1.0, "8", [], {}, 8_388_609):
+        result = music.evidence_bytes_digest(b"evidence", max_bytes=bad)
+        assert result["accepted"] is False
+        assert result["sha256"] is None
+        assert result["rights_verified"] is False
+    assert music.evidence_bytes_digest(b"ok", max_bytes=2)["accepted"] is True
+    assert music.evidence_bytes_digest(bytearray(b"ok"))["accepted"] is False
+    assert music.evidence_bytes_digest(memoryview(b"ok"))["accepted"] is False
