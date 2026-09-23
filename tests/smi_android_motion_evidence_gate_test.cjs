@@ -18,5 +18,9 @@ for(const mutation of [
   assert.equal(result.productionApproved,false);assert.ok(result.reasons.length);
 }
 for(const layer of gate.LAYERS){const layerSha256={...valid.layerSha256};delete layerSha256[layer];assert.equal(gate.evaluateAndroidReceipt({...valid,layerSha256},{nowMs:now}).accepted,false);}
+const inherited=Object.create({eyes:hash});for(const layer of gate.LAYERS.filter(x=>x!=="eyes"))inherited[layer]=hash;
+assert.equal(gate.evaluateAndroidReceipt({...valid,layerSha256:inherited},{nowMs:now}).accepted,false);
+assert.equal(gate.evaluateAndroidReceipt({...valid,layerSha256:gate.LAYERS.map(()=>hash)},{nowMs:now}).accepted,false);
+assert.equal(gate.evaluateAndroidReceipt({...valid,layerSha256:"not-a-layer-map"},{nowMs:now}).accepted,false);
 assert.equal(gate.evaluateAndroidReceipt(null,{nowMs:now}).accepted,false);
 console.log("SMI_ANDROID_MOTION_EVIDENCE_GATE_PASS");
