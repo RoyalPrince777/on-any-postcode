@@ -12,6 +12,10 @@ bp = Blueprint("oap_mail_private", __name__)
 def _reply(payload: dict, status: int = 200):
     response = make_response(jsonify(payload), status)
     response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Vary"] = "Cookie"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
