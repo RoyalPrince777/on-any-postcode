@@ -93,28 +93,112 @@ def test_consequential_change_requires_war_room_and_human_authority() -> None:
     assert reviewed["automatic_deploy_allowed"] is False
 
 
-def test_learning_uses_existing_matrix_receipt_backend(
+def test_learning_without_reviewed_outcome_ref_has_no_write(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_write(*args, **kwargs):
+        raise AssertionError("Missing review must not write a receipt")
+
+    monkeypatch.setattr(rsi.smi_receipt_backend, "write_receipt", unexpected_write)
+    with pytest.raises(ValueError, match="Reviewed outcome reference"):
+        rsi.record_learning(
+            _proposal(),
+            outcome="not reviewed",
+            before_state="before",
+            after_state="after",
+            lesson="unreviewed lesson",
+            tests_passed=True,
+            rollback_available=True,
+        )
+
+
+def test_sqlite_success_cannot_be_accepted_as_durable_learning(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv(
-        "OAP_SMI_RECEIPT_DB_PATH",
-        str(tmp_path / "recursive-learning.sqlite3"),
-    )
-    proposal = _proposal()
-
+    monkeypatch.setenv("OAP_SMI_RECEIPT_DB_PATH", str(tmp_path / "local.sqlite3"))
     result = rsi.record_learning(
-        proposal,
+        _proposal(),
         outcome="fallback design reviewed",
-        before_state="single evidence path",
+        before_state="single path",
         after_state="bounded fallback proposed",
-        lesson="Resilience needs an independently provable recovery path.",
+        lesson="Prove fallback resilience.",
         tests_passed=True,
         rollback_available=True,
+        reviewed_outcome_ref="war-room-review-001",
     )
+    assert result["state"] == "durable_learning_unproven"
+    assert result["matrix_update_allowed"] is False
+    assert result["receipt"]["read_back_ok"] is False
+    assert result["receipt"]["durable"] is False
+    assert result["receipt"]["status"] == "blocked_durable_hrm_unconfigured"
+    assert result["execution_granted"] is False
+    assert result["full_green"] is False
 
+
+@pytest.mark.parametrize(
+    "receipt",
+    [
+        {"ok": True, "read_back_ok": True, "durable": False, "fallback_used": False, "receipt_kind": "matrix_learning_receipt"},
+        {"ok": True, "read_back_ok": False, "durable": True, "fallback_used": False, "receipt_kind": "matrix_learning_receipt"},
+        {"ok": True, "read_back_ok": True, "durable": True, "fallback_used": True, "receipt_kind": "matrix_learning_receipt"},
+        {"ok": True, "read_back_ok": True, "durable": True, "fallback_used": False, "receipt_kind": "war_room_live_proof_receipt"},
+        {"ok": False, "read_back_ok": True, "durable": True, "fallback_used": False, "receipt_kind": "matrix_learning_receipt"},
+    ],
+)
+def test_insufficient_learning_receipts_fail_closed(
+    monkeypatch: pytest.MonkeyPatch, receipt: dict[str, object]
+) -> None:
+    monkeypatch.setattr(
+        rsi.smi_receipt_backend,
+        "write_receipt",
+        lambda *args, **kwargs: receipt,
+    )
+    result = rsi.record_learning(
+        _proposal(),
+        outcome="reviewed",
+        before_state="before",
+        after_state="after",
+        lesson="preserve recovery",
+        tests_passed=True,
+        rollback_available=True,
+        reviewed_outcome_ref="war-room-review-002",
+    )
+    assert result["matrix_update_allowed"] is False
+    assert result["state"] == "durable_learning_unproven"
+    assert result["full_green"] is False
+
+
+def test_durable_receipt_is_required_but_never_grants_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requests = []
+
+    def durable_write(kind, payload, *, require_durable=False):
+        requests.append((kind, payload, require_durable))
+        return {
+            "ok": True,
+            "read_back_ok": True,
+            "durable": True,
+            "fallback_used": False,
+            "receipt_kind": "matrix_learning_receipt",
+        }
+
+    monkeypatch.setattr(rsi.smi_receipt_backend, "write_receipt", durable_write)
+    result = rsi.record_learning(
+        _proposal(),
+        outcome="reviewed",
+        before_state="before",
+        after_state="after",
+        lesson="preserve recovery",
+        tests_passed=True,
+        rollback_available=True,
+        reviewed_outcome_ref="war-room-review-003",
+    )
+    assert len(requests) == 1
+    assert requests[0][0] == "matrix_learning_receipt"
+    assert requests[0][1]["safe_payload"]["reviewed_outcome_ref"] == "war-room-review-003"
+    assert requests[0][2] is True
     assert result["state"] == "learning_recorded"
-    assert result["receipt"]["receipt_kind"] == "matrix_learning_receipt"
-    assert result["receipt"]["read_back_ok"] is True
     assert result["matrix_update_allowed"] is True
     assert result["authority_changed"] is False
     assert result["permissions_changed"] is False
