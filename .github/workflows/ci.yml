@@ -63,6 +63,18 @@ jobs:
             2>/tmp/oap-mail-browser-stderr.log | tee /tmp/oap-mail-browser-proof.html
           grep -Fq '<pre id="browser-proof">OAP_MAIL_CHROMIUM_BOUNDARY_PASS</pre>' /tmp/oap-mail-browser-proof.html
           if grep -Fq '<pre id="browser-proof">OAP_MAIL_CHROMIUM_BOUNDARY_FAIL' /tmp/oap-mail-browser-proof.html; then exit 1; fi
+      - name: Real rendered SMI-page Mail acceptance
+        run: |
+          set -o pipefail
+          python tests/smi_mail_full_page_fixture.py
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER" ]; then echo "Full-page Chromium missing"; exit 1; fi
+          timeout 45 "$BROWSER" --headless=new --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --virtual-time-budget=5000 \
+            --dump-dom "file://$PWD/tests/.smi_mail_full_page.html" \
+            2>/tmp/oap-mail-full-browser-stderr.log | tee /tmp/oap-mail-full-browser-proof.html
+          grep -Fq '<pre id="oap-mail-full-page-proof">OAP_MAIL_FULL_SMI_PAGE_PASS</pre>' /tmp/oap-mail-full-browser-proof.html
+          if grep -Fq '<pre id="oap-mail-full-page-proof">OAP_MAIL_FULL_SMI_PAGE_FAIL' /tmp/oap-mail-full-browser-proof.html; then exit 1; fi
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
