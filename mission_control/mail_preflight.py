@@ -83,8 +83,26 @@ def report() -> dict[str, object]:
         ):
             result["error"] = "database_selection_changed_during_preflight"
             return result
-        result["mail_schema_ready"] = mail.get("schema_ready") is True
-        result["error"] = mail.get("error")
+        mail_error = mail.get("error")
+        # Report only stable, non-secret internal error codes. A ready schema
+        # cannot attest to externally verified target mapping or recovery.
+        allowed_mail_errors = {
+            None,
+            "base_postgres_not_ready",
+            "mail_migration_checksum_mismatch",
+            "mail_migration_pending",
+            "mail_migration_store_unavailable",
+        }
+        if mail_error not in allowed_mail_errors:
+            result["error"] = "mail_preflight_unavailable"
+            return result
+        result["mail_schema_ready"] = (
+            mail.get("schema_ready") is True and mail_error is None
+        )
+        result["error"] = (
+            mail_error if mail_error is not None
+            else "independent_recovery_evidence_missing"
+        )
     except Exception:  # noqa: BLE001 - redacted evidence boundary
         result["error"] = "mail_preflight_unavailable"
     return result
