@@ -97,6 +97,9 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
     from . import mail_preflight
     readiness = mail_preflight.report()
     required = (
+        "database_configured",
+        "database_reachable",
+        "base_schema_ready",
         "target_mapping_proven",
         "recovery_point_verified",
         "independent_release_evidence_verified",
@@ -108,7 +111,10 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
     source = readiness.get("database_source")
     if (
         authority not in {"primary", "fallback"}
-        or source not in mail_preflight._ALLOWED_SOURCES
+        or source not in {
+            "primary_override", "fallback_override",
+            "platform_database_url", "legacy_oap_secret", "legacy_neon",
+        }
         or postgres_db.database_authority() != authority
         or postgres_db.database_source() != source
     ):
