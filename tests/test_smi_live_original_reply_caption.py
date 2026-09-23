@@ -25,8 +25,8 @@ def test_only_real_completed_reply_is_displayed_without_html_injection():
 
 def test_stop_live_off_and_new_turn_clear_caption():
     source = CONTROLLER.read_text(encoding="utf-8")
-    assert "oapApply('STOP');oapShowLiveReply('')" in source
-    assert "oapApply('LIVE_OFF');oapShowLiveReply('')" in source
+    assert "oapApply('STOP');oapRecognitionToken=null;oapFinalTranscript='';oapShowLiveReply('')" in source
+    assert "oapApply('LIVE_OFF');oapRecognitionToken=null;oapFinalTranscript='';oapShowLiveReply('')" in source
     assert "oapLocked=true;responseStopped=false;oapPaused=false;oapShowLiveReply('')" in source
     assert "if(seq!==oapSpeechSeq||!oapStateApi.tokenIsCurrent(oapRuntime,expected))" in source
 
