@@ -16,6 +16,19 @@ _ALLOWED_SOURCES = frozenset({
 })
 
 
+# Operator evidence is external to this application and cannot be inferred
+# from a reachable database, a migration record, a branch or a service name.
+# This checklist contains categories only: never credentials or backup IDs.
+_INDEPENDENT_RELEASE_EVIDENCE = (
+    "service_to_database_target_mapping",
+    "backup_owner_and_source_target_match",
+    "independent_backup_integrity_verification",
+    "isolated_restore_completion_and_readback",
+    "restore_timestamp_and_operator_attestation",
+    "founder_release_approval",
+)
+
+
 def report() -> dict[str, object]:
     """Collect bounded metadata only; never expose URLs, credentials or messages."""
     result: dict[str, object] = {
@@ -29,6 +42,10 @@ def report() -> dict[str, object]:
         "mail_schema_ready": False,
         "target_mapping_proven": False,
         "recovery_point_verified": False,
+        "independent_release_evidence_required": list(
+            _INDEPENDENT_RELEASE_EVIDENCE
+        ),
+        "independent_release_evidence_verified": False,
         "live_migration_authorized": False,
         "release_ready": False,
         "error": None,
