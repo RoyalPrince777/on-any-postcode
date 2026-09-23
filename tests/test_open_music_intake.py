@@ -285,3 +285,49 @@ def test_open_music_source_page_rejects_spoofed_external_and_tracking_urls():
         source_page_url="https://archive.org/details/not-musopen",
     )])["candidates"][0]
     assert wrong_source["source_page_url"] is None
+
+
+
+def test_private_rights_review_carries_source_reference_without_promoting_claims():
+    preview = music.candidate_preview([_candidate(
+        source_kind="internet_archive", claimed_licence="CC_BY",
+        source_page_url="https://archive.org/details/sample",
+    )])["candidates"][0]
+    review = music.rights_review(preview, {
+        "independently_verified": True, "rights_verified": True,
+    })
+    assert review["candidate_id"] == preview["candidate_id"]
+    assert review["source_kind"] == "internet_archive"
+    assert review["source_page_url"] == preview["source_page_url"]
+    assert review["source_page_independently_checked"] is False
+    assert "verify_recording_rights_separately" in review["review_topics"]
+    assert "verify_composition_rights_separately" in review["review_topics"]
+    assert "verify_credit_and_licence_notice_requirements" in review["review_topics"]
+    assert review["rights_verified"] is False
+    assert review["playback_authorised"] is False
+    assert review["distribution_authorised"] is False
+
+
+def test_claimed_music_licences_only_change_review_questions():
+    expected = {
+        "CC0": "verify_recording_and_composition_public_domain_separately",
+        "PUBLIC_DOMAIN": "verify_recording_and_composition_public_domain_separately",
+        "CC_BY": "verify_credit_and_licence_notice_requirements",
+        "CC_BY_SA": "verify_share_alike_scope_for_planned_uses",
+        "DIRECT_PERMISSION": "verify_direct_grant_signatory_scope_and_expiry",
+    }
+    for licence, topic in expected.items():
+        review = music.rights_review(_candidate(
+            claimed_licence=licence, rights_verified=True,
+        ))
+        assert topic in review["review_topics"]
+        assert review["rights_verified"] is False
+        assert review["source_page_independently_checked"] is False
+        assert review["public_catalogue_enabled"] is False
+    invalid = music.rights_review(_candidate(
+        source_kind="internet_archive", claimed_licence="CC_BY_NC",
+        source_page_url="https://evil.test/x", rights_verified=True,
+    ))
+    assert invalid["claimed_licence"] is None
+    assert invalid["source_page_url"] is None
+    assert invalid["rights_verified"] is False
