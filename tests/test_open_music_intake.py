@@ -419,14 +419,16 @@ def test_private_release_plan_is_one_owner_aware_review_not_release_authority():
     from uuid import uuid4
 
     owner = str(uuid4())
+    release_id = str(uuid4())
     lead = music.candidate_preview([_candidate(
         source_kind="free_music_archive", claimed_licence="CC_BY",
         source_page_url="https://freemusicarchive.org/music/sample/track/",
         rights_verified=True, founder_approved=True,
     )])["candidates"][0]
-    plan = music.private_music_release_review_plan(lead, owner)
+    plan = music.private_music_release_review_plan(lead, owner, release_id)
     assert plan["candidate_id"] == lead["candidate_id"]
     assert plan["submitted_owner_identity_id"] == owner
+    assert plan["submitted_release_id"] == release_id
     assert plan["owner_authenticated"] is False
     assert plan["owner_bound_to_music_release"] is False
     assert plan["target_organ"] == "OAP Music"
@@ -464,3 +466,29 @@ def test_private_release_plan_rejects_unauthenticated_or_malformed_claims():
         assert plan["submitted_owner_identity_id"] is None
         assert plan["target_release_type"] is None
         assert plan["release_created"] is False
+
+
+
+def test_release_uuid_is_untrusted_and_never_unlocks_existing_release():
+    from uuid import uuid4
+
+    owner, release = str(uuid4()), str(uuid4())
+    for submitted in (release, "not-a-uuid", None, [release], {"id": release}):
+        plan = music.private_music_release_review_plan(
+            _candidate(owner_authenticated=True, owner_bound_to_music_release=True,
+                       human_release_approved=True), owner, submitted
+        )
+        assert plan["submitted_release_id"] == (
+            release if submitted == release else None
+        )
+        assert plan["owner_authenticated"] is False
+        assert plan["owner_bound_to_music_release"] is False
+        assert plan["ready_for_authenticated_handoff"] is False
+        assert plan["release_created"] is False
+        assert plan["public_catalogue_enabled"] is False
+        assert plan["playback_enabled"] is False
+    invalid = music.private_music_release_review_plan(
+        {"candidate_id": "bad", "title": "fake"}, owner, release
+    )
+    assert invalid["submitted_release_id"] is None
+    assert invalid["submitted_owner_identity_id"] is None
