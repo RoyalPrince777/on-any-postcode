@@ -35,6 +35,28 @@ def list_items(actor_id: object, owner_id: object, folder: object) -> list[dict[
     ]
 
 
+def list_subjects(
+    actor_id: object, owner_id: object, folder: object,
+) -> list[dict[str, object]]:
+    """Bounded SMI subject list: never SELECT message body or message ID."""
+    owner = require_owner(actor_id, owner_id)
+    selected = require_folder(folder)
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT subject,correspondent
+                   FROM oap_mail_items WHERE owner_id=%s AND folder=%s
+                   ORDER BY created_at DESC,id DESC LIMIT 50""",
+                (owner, selected),
+            ).fetchall()
+    except Exception as exc:
+        raise MailUnavailable("mail_store_unavailable") from exc
+    return [
+        {"subject": row[0], "correspondent": row[1]}
+        for row in rows
+    ]
+
+
 def save_draft(
     actor_id: object, owner_id: object, *, subject: object, body: object,
     correspondent: object = "",
