@@ -25,6 +25,8 @@ def test_extended_matrix_names_remain_passport_review() -> None:
         "Twinz",
         "Niobe",
         "Apoc",
+        "Switch",
+        "Ghost",
     )
     projection = matrix_signal_bus.topology()
     extended = {
@@ -35,6 +37,12 @@ def test_extended_matrix_names_remain_passport_review() -> None:
     assert all(item["status"] == "passport_review" for item in extended.values())
     assert all(item["can_emit_signal"] is False for item in extended.values())
     assert all(item["can_execute"] is False for item in extended.values())
+    assert projection["registered_count"] == 7
+    assert projection["extended_review_count"] == 8
+    assert len(projection["participants"]) == 15
+    assert {item["name"] for item in projection["participants"]} == set(
+        matrix_signal_bus.CORE_MATRIX_ORDER + matrix_signal_bus.EXTENDED_REVIEW_ORDER
+    )
 
 
 def test_registered_agent_signal_routes_through_matrix_and_trinity() -> None:
@@ -112,3 +120,19 @@ def test_niobe_and_apoc_are_review_only() -> None:
         assert participants[name]["status"] == "passport_review"
         assert participants[name]["can_emit_signal"] is False
         assert participants[name]["can_execute"] is False
+
+
+def test_switch_and_ghost_remain_review_only_and_cannot_route() -> None:
+    participants = {
+        item["name"]: item for item in matrix_signal_bus.topology()["participants"]
+    }
+    for name in ("Switch", "Ghost"):
+        assert participants[name]["status"] == "passport_review"
+        assert participants[name]["can_emit_signal"] is False
+        assert participants[name]["can_execute"] is False
+        with pytest.raises(ValueError, match="not a registered Matrix agent"):
+            matrix_signal_bus.route_signal(sender=name, topic="Review-only check")
+        with pytest.raises(ValueError, match="Unknown or unregistered Matrix recipient"):
+            matrix_signal_bus.route_signal(
+                sender="Trinity", topic="Review-only check", recipients=(name,)
+            )
