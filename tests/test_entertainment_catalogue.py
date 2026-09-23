@@ -161,3 +161,57 @@ def test_universal_player_rejects_untrusted_content_ids_without_playback():
     assert entertainment_catalogue.universal_player_contract(
         {"content_id": valid}
     )["content_id"] == valid
+
+
+
+def test_tune_catalogue_intelligence_route_is_private_csrf_and_read_only(monkeypatch):
+    from uuid import uuid4
+
+    from mission_control import web_security
+
+    app = Flask(__name__)
+    app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
+    client = app.test_client()
+    path = "/mission/organs/tune/catalogue-intelligence/preview"
+    rules = [r for r in app.url_map.iter_rules() if r.rule == path]
+    assert len(rules) == 1
+    assert rules[0].methods == {"POST", "OPTIONS"}
+
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
+    assert client.post(path, json={"candidates": []}).status_code == 401
+
+    monkeypatch.setattr(web_security, "current_authenticated_user",
+                        lambda: {"id": "founder"})
+    monkeypatch.setattr(web_security, "private_authority_allowed",
+                        lambda user: False)
+    assert client.post(path, json={"candidates": []}).status_code == 403
+
+    monkeypatch.setattr(web_security, "private_authority_allowed",
+                        lambda user: True)
+    monkeypatch.setattr(product_core_views, "_identity",
+                        lambda: str(uuid4()))
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: False)
+    assert client.post(path, json={"candidates": []}).status_code == 403
+
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: True)
+    assert client.post(path, json={"candidates": "not-a-list"}).status_code == 400
+    response = client.post(path, json={"candidates": [{
+        "candidate_id": str(uuid4()), "title": "Track",
+        "artist": "Artist", "source_kind": "direct_artist",
+        "claimed_licence": "DIRECT_PERMISSION",
+        "owner_identity_id": str(uuid4()), "rights_verified": True,
+        "human_release_approved": True,
+        "stream_url": "https://untrusted.example/file.mp3",
+    }]})
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    body = response.get_json()
+    assert body["organ"] == "OAP Music"
+    assert body["review_count"] == 1
+    assert body["catalogue_write_performed"] is False
+    assert body["audio_retrieval_performed"] is False
+    lead = body["review_queue"][0]
+    assert lead["playback_enabled"] is False
+    assert lead["human_release_approved"] is False
+    assert "stream_url" not in lead
+    assert "owner_identity_id" not in lead
