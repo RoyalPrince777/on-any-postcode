@@ -191,3 +191,23 @@ def test_unverified_claim_receipt_cannot_be_promoted():
     ).hexdigest()
     with pytest.raises(ClaimEdgeBlocked, match="unauthorised_promotion_detected"):
         bind_review_to_claim(altered, review_receipt)
+
+
+@pytest.mark.parametrize("bad_version", [True, 1.0, "1", None])
+def test_recovery_version_must_be_exact_integer(bad_version):
+    records, anchor = chain()
+    corrupted = ({**records[0], "version": bad_version}, records[1])
+    with pytest.raises(ClaimEdgeBlocked, match="recovery_history_break"):
+        verify_recovery_chain(corrupted, expected_last_hash=anchor)
+
+
+@pytest.mark.parametrize("invalid_state", [
+    {"bad": float("nan")},
+    {"bad": {1, 2}},
+    {"bad": object()},
+])
+def test_recovery_unserializable_state_fails_with_canonical_block(invalid_state):
+    records, anchor = chain()
+    corrupted = ({**records[0], "state": invalid_state}, records[1])
+    with pytest.raises(ClaimEdgeBlocked, match="invalid_recovery_state_encoding"):
+        verify_recovery_chain(corrupted, expected_last_hash=anchor)
