@@ -19,9 +19,9 @@ SMI remains organised around real brain anatomy: left/right hemispheres, corpus 
 
 ### OAP body organs
 
-The Body Systems boundary now explicitly contains OAP-owned organs including Infrastructure, Trust, World/The Spot, Link Up, Tune Core, Commerce Core, SIKA, Post Core, Movement, Media, Youth, Nature and Arena.
+The Body Systems boundary now explicitly contains OAP-owned organs including Infrastructure, Trust, World/The Spot, Link Up, OAP Music, Commerce Core, SIKA, Post Core, Movement, Media, Youth, Nature and Arena.
 
-OAP Tune Core is the OAP-owned music catalogue/release/rights/royalty workflow. OAP Commerce Core is the OAP-owned storefront/order/payment-intent/fulfilment workflow. OAP Post Core is the OAP-owned Post Office/service/parcel workflow.
+OAP Music is the OAP-owned music catalogue/release/rights/royalty workflow. OAP Commerce Core is the OAP-owned storefront/order/payment-intent/fulfilment workflow. OAP Post Core is the OAP-owned Post Office/service/parcel workflow.
 
 ## Autonomy law
 
