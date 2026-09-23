@@ -34,6 +34,8 @@ EXTENDED_REVIEW_ORDER: tuple[str, ...] = (
     "Twinz",
     "Niobe",
     "Apoc",
+    "Switch",
+    "Ghost",
 )
 
 MATRIX_ROLE_CHANNELS: dict[str, str] = {
@@ -50,6 +52,8 @@ MATRIX_ROLE_CHANNELS: dict[str, str] = {
     "Twinz": "dual_path_contradiction",
     "Niobe": "movement_and_route_command",
     "Apoc": "failure_and_collapse_warning",
+    "Switch": "mode_and_state_transition_review",
+    "Ghost": "quiet_observation_and_anomaly_review",
 }
 
 MATRIX_COMMUNICATION_LAW: tuple[str, ...] = (
