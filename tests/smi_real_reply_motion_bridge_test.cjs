@@ -51,6 +51,8 @@ assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:1020}),null)
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"boundary",clockSource:"audio-context"}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"media-element"}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"audio-context"}).type,"playback-start");
+assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1050,eventType:"playing",clockSource:"audio-context"}),null);
+assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:1020}).viseme,"closed");
 for(const [audioClockMs,expected] of [[20,"closed"],[80,"wide"],[140,"round"],[200,"teeth"],[260,"tongue"],[400,"silence"]]){
   const cue=candidate.playbackSample({audioClockMs,observedAtMs:1002+audioClockMs});
   assert.equal(cue.viseme,expected);assert.ok(cue.audioClockDeltaMs<=api.MAX_AUDIO_CLOCK_DELTA_MS);
