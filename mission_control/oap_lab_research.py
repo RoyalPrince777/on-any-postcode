@@ -121,13 +121,15 @@ def run_isolated(experiment: Experiment, notebook: Notebook, *, stopped: bool = 
     human_approved denotes bounded design authorisation, NOT clinical,
     financial, publication, merge or deployment permission.
     """
+    if type(stopped) is not bool:
+        raise PermissionError("explicit STOP state required")
     if stopped:
         raise PermissionError("STOP: experiment not run")
     if not isinstance(experiment, Experiment) or not isinstance(notebook, Notebook):
         raise TypeError("typed laboratory records required")
     if experiment.notebook_id != notebook.identifier:
         raise ValueError("notebook reference mismatch")
-    if not experiment.synthetic or not experiment.human_approved:
+    if experiment.synthetic is not True or experiment.human_approved is not True:
         raise PermissionError("synthetic data and bounded human approval required")
     if experiment.effects or experiment.effects.intersection(PROHIBITED):
         raise PermissionError("side effects forbidden in isolated experiment")
@@ -140,12 +142,17 @@ def run_isolated(experiment: Experiment, notebook: Notebook, *, stopped: bool = 
     if any(type(x) not in (float, int) or not math.isfinite(x) for x in experiment.dataset):
         raise ValueError("finite numeric synthetic values only")
     values = experiment.dataset
-    result = {
-        "mean": lambda: math.fsum(values) / len(values),
-        "sum": lambda: math.fsum(values),
-        "minimum": lambda: min(values),
-        "maximum": lambda: max(values),
-    }[experiment.operation]()
+    try:
+        result = {
+            "mean": lambda: math.fsum(values) / len(values),
+            "sum": lambda: math.fsum(values),
+            "minimum": lambda: min(values),
+            "maximum": lambda: max(values),
+        }[experiment.operation]()
+    except (OverflowError, ValueError) as exc:
+        raise ValueError("synthetic_result_not_representable") from exc
+    if not math.isfinite(result):
+        raise ValueError("synthetic_result_not_representable")
     receipt = {
         "experiment_id": experiment.identifier,
         "notebook_id": notebook.identifier,
