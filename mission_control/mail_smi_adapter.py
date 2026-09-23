@@ -31,9 +31,12 @@ def read_owner_folder(
     requested = str(ability or "").strip().casefold()
     if requested != "mail.read":
         raise PermissionError("mail_smi_read_only")
-    _MAIL_READ_TOOLS.authorize_capability(
-        "oap.mail.owner.read", requested, mutation=False,
-    )
+    try:
+        _MAIL_READ_TOOLS.authorize_capability(
+            "oap.mail.owner.read", requested, mutation=False,
+        )
+    except (LookupError, PermissionError) as exc:
+        raise PermissionError("mail_smi_capability_unavailable") from exc
     decision = authorize_smi(
         actor_id=actor_id,
         mailbox_owner_id=mailbox_owner_id,
