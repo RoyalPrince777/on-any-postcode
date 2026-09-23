@@ -66,15 +66,20 @@ class HRMCore:
     def retrieve_context(
         self,
         task_type: str,
+        *,
+        identity_id: str,
         limit: int = 5,
     ) -> tuple[MemoryItem, ...]:
+        """Retrieve only the current identity's HRM working memory."""
         self._require_ready()
+        if not isinstance(identity_id, str) or not identity_id.strip():
+            raise ValueError("HRM context requires a verified identity")
         safe_limit = min(max(limit, 1), 21)
         rows = self.connection.execute(
             "SELECT memory_id, task_type, summary, output_state, created_at "
-            "FROM smi_memory_records WHERE task_type = ? "
+            "FROM smi_memory_records WHERE task_type = ? AND identity_id = ? "
             "ORDER BY created_at DESC LIMIT ?",
-            (task_type, safe_limit),
+            (task_type, identity_id, safe_limit),
         ).fetchall()
         return tuple(
             MemoryItem(
