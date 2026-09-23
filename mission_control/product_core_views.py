@@ -222,7 +222,12 @@ def tune_catalogue_intelligence_preview():
     try:
         _identity()  # The session, never claimant-supplied owner fields.
         return _no_store(make_response(jsonify(
-            open_music_intake.private_catalogue_intelligence(\n                payload["candidates"], genres=payload.get("genres"),\n                licence_filter=payload.get("licence_filter", "all"),\n                mood=payload.get("mood", "All moods"),\n                vocals=payload.get("vocals", "All"),\n            )
+            open_music_intake.private_catalogue_intelligence(
+                payload["candidates"], genres=payload.get("genres"),
+                licence_filter=payload.get("licence_filter", "all"),
+                mood=payload.get("mood", "All moods"),
+                vocals=payload.get("vocals", "All"),
+            )
         )))
     except (PermissionError, ValueError):
         return _error("permission_denied", "Authenticated Founder required.", 403)
