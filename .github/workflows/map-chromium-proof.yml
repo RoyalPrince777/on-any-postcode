@@ -1,0 +1,28 @@
+name: OAP Map Chromium visibility proof
+
+on:
+  pull_request:
+    paths:
+      - "mission_control/templates/local_map.html"
+      - "mission_control/static/oap_map_navigation.*"
+      - "tests/map_chromium_visibility_proof.py"
+      - ".github/workflows/map-chromium-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  map-visual-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install actual Chromium test browser
+        run: |
+          python -m pip install 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+      - name: Render desktop and Android-emulated first-party SVG roads
+        run: python tests/map_chromium_visibility_proof.py
