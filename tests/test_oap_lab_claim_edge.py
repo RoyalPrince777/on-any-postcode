@@ -5,7 +5,10 @@ from uuid import UUID
 import pytest
 
 from mission_control.oap_lab_claim_edge import (
-    ClaimEdge, ClaimEdgeBlocked, Source, admit_claim,
+    ClaimEdge,
+    ClaimEdgeBlocked,
+    Source,
+    admit_claim,
 )
 from mission_control.oap_lab_research import DOMAINS, MISSIONS, Notebook
 
@@ -21,24 +24,31 @@ def notebook(mission=MISSIONS[0], domain=DOMAINS[0]):
 
 
 def edge(**changes):
-    values = dict(
-        claim_id=CLAIM, mission_id=MISSION, notebook_id="lab-001",
-        domain=DOMAINS[0], claim="Synthetic research claim", subject="OAP LAB",
-        relation="documents", object="Research", event_at="2026-01-01T00:00:00Z",
-        owner_id=OWNER,
-    )
+    values = {
+        "claim_id": CLAIM,
+        "mission_id": MISSION,
+        "notebook_id": "lab-001",
+        "domain": DOMAINS[0],
+        "claim": "Synthetic research claim",
+        "subject": "OAP LAB",
+        "relation": "documents",
+        "object": "Research",
+        "event_at": "2026-01-01T00:00:00Z",
+        "owner_id": OWNER,
+    }
     values.update(changes)
     return ClaimEdge(**values)
 
 
 def source(**changes):
-    values = dict(
-        source_id="src-a", original=RAW,
-        expected_sha256=sha256(RAW).hexdigest(),
-        published_at="2026-01-01T00:00:00Z",
-        retrieved_at="2026-01-02T00:00:00Z",
-        independent_origin="original-a",
-    )
+    values = {
+        "source_id": "src-a",
+        "original": RAW,
+        "expected_sha256": sha256(RAW).hexdigest(),
+        "published_at": "2026-01-01T00:00:00Z",
+        "retrieved_at": "2026-01-02T00:00:00Z",
+        "independent_origin": "original-a",
+    }
     values.update(changes)
     return Source(**values)
 
