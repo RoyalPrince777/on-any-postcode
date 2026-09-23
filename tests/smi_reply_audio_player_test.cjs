@@ -48,5 +48,9 @@ pending.then(result=>{
  assert.ok(controller.includes("oapSpeak(completeResult.response,completeResult)"));
  assert.ok(controller.includes("oap-smi-audio-cue"));
  assert.ok(renderer.includes('cue?.source!=="oap-first-party-pcm"'));
+ assert.ok(fs.readFileSync("mission_control/static/smi_reply_audio_player.js","utf8").includes('if(context.state!=="running"){frame=win.requestAnimationFrame(tick);return;}'));
+ assert.ok(controller.includes("oapLocalPlayer?.pause()"));
+ assert.ok(controller.includes("oapLocalPlayer?.resume()"));
+ assert.ok(controller.includes("oapLocalPlayer?.stop()"));
  console.log("SMI_LOCAL_AUDIO_CLOCK_STOP_AND_WIRING_PASS");
 }).catch(error=>{console.error(error);process.exitCode=1});
