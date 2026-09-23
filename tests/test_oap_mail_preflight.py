@@ -135,3 +135,34 @@ def test_preflight_rejects_base_checksum_mismatch_before_mail_lookup(monkeypatch
     assert result["error"] == "base_migration_checksum_mismatch"
     assert result["mail_schema_ready"] is False
     assert result["release_ready"] is False
+
+
+def test_preflight_rejects_authority_switch_after_mail_inspection(monkeypatch):
+    _sources(monkeypatch)
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: {"source": "primary_override",
+                                 "reachable": True, "initialized": True})
+    monkeypatch.setattr(mail_migration, "schema_status",
+                        lambda: {"schema_ready": True, "error": None})
+    calls = iter(("primary", "fallback"))
+    monkeypatch.setattr(postgres_db, "database_authority", lambda: next(calls))
+    result = mail_preflight.report()
+    assert result["error"] == "database_selection_changed_during_preflight"
+    assert result["mail_schema_ready"] is False
+    assert result["release_ready"] is False
+
+
+def test_preflight_rejects_source_switch_after_mail_inspection(monkeypatch):
+    _sources(monkeypatch)
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: {"source": "primary_override",
+                                 "reachable": True, "initialized": True})
+    monkeypatch.setattr(mail_migration, "schema_status",
+                        lambda: {"schema_ready": True, "error": None})
+    calls = iter(("primary_override", "fallback_override"))
+    monkeypatch.setattr(postgres_db, "database_source", lambda: next(calls))
+    result = mail_preflight.report()
+    assert result["error"] == "database_selection_changed_during_preflight"
+    assert result["mail_schema_ready"] is False
+    assert result["target_mapping_proven"] is False
+    assert result["recovery_point_verified"] is False
