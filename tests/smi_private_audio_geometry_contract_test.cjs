@@ -47,4 +47,24 @@ body={...body,stopped:false,epoch:0,geometryApproved:true};
 assert.equal(admit(args),null);
 // A real digest never proves that synthetic bytes represent approved SMI anatomy.
 assert.equal(accepted.lipSyncProven,false);
+// STOP may arrive during integrity validation; final snapshots must win.
+audio={admitted:true,alignmentContractAccepted:true,started:true,stopped:false,failedClosed:false,epoch:0};
+body={stopped:false,geometryApproved:false,epoch:0};
+let audioReads=0;
+const stopDuringVerification={snapshot:()=>{
+  audioReads++;
+  if(audioReads===2)audio={...audio,started:false,stopped:true,epoch:1};
+  return {...audio};
+}};
+assert.equal(admit({...args,audioBridge:stopDuringVerification}),null);
+assert.equal(audioReads,2);
+audio={admitted:true,alignmentContractAccepted:true,started:true,stopped:false,failedClosed:false,epoch:0};
+let bodyReads=0;
+const bodyStopsDuringVerification={snapshot:()=>{
+  bodyReads++;
+  if(bodyReads===2)body={...body,stopped:true,epoch:1};
+  return {...body};
+}};
+assert.equal(admit({...args,characterRig:bodyStopsDuringVerification}),null);
+assert.equal(bodyReads,2);
 console.log("SMI_PRIVATE_AUDIO_GEOMETRY_CONTRACT_PASS");
