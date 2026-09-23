@@ -3,10 +3,12 @@ import hashlib
 import io
 import json
 import wave
+from contextlib import contextmanager
 from itertools import pairwise
 
 import pytest
 
+from mission_control import postgres_db
 from mission_control import smi_reply_voice_local as voice
 
 
@@ -73,9 +75,6 @@ def test_render_runtime_uses_pinned_bundled_voice_library():
 
 @pytest.mark.parametrize("content", ["a" * 1501, " ", "unsafe\x00reply"])
 def test_owned_but_unvoiceable_reply_is_not_misreported_as_missing(monkeypatch, content):
-    from contextlib import contextmanager
-    from mission_control import postgres_db
-
     class FakeConnection:
         def execute(self, _query, _params):
             return self
@@ -103,9 +102,6 @@ def test_owned_but_unvoiceable_reply_is_not_misreported_as_missing(monkeypatch, 
 
 
 def test_missing_owned_reply_remains_a_distinct_fail_closed_error(monkeypatch):
-    from contextlib import contextmanager
-    from mission_control import postgres_db
-
     class MissingConnection:
         def execute(self, _query, _params):
             return self
