@@ -71,3 +71,20 @@ def test_rights_review_rejects_applicant_supplied_proofs():
     assert result["playback_authorised"] is False
     assert result["distribution_authorised"] is False
     assert result["human_authority_final"] is True
+
+
+def test_asset_integrity_match_is_not_independent_rights_proof():
+    import hashlib
+
+    uid = str(uuid4())
+    asset = b"locally supplied music bytes"
+    digest = hashlib.sha256(asset).hexdigest()
+    match = music.asset_integrity_review(uid, asset, digest)
+    assert match["digest_matches_submission"] is True
+    assert match["independent_source_provenance_verified"] is False
+    assert match["rights_verified"] is False
+    assert match["playback_enabled"] is False
+    assert match["public_catalogue_enabled"] is False
+    assert music.asset_integrity_review(uid, b"tampered", digest)["digest_matches_submission"] is False
+    assert music.asset_integrity_review("not-uuid", asset, digest)["digest_matches_submission"] is False
+    assert music.asset_integrity_review(uid, asset, "A" * 64)["digest_matches_submission"] is False
