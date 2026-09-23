@@ -6,8 +6,8 @@ evidence in an authenticated, audited service before any reader integration.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Iterable
 
 from .oap_book_access import Book, Rotation, rotation_valid
 
