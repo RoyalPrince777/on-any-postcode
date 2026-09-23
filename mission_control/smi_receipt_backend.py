@@ -429,8 +429,10 @@ def verify_matrix_review_outcome(
         and payload.get("execution_granted") is False
     )
     if valid:
-        result["verified"] = True
-        result["status"] = "stored_review_fields_matched"
+        # Earlier receipts predate the generic-writer reservation. Matching
+        # self-declared fields does not authenticate a legacy review producer.
+        # Fail closed until a separately governed producer is registered.
+        result["status"] = "matched_legacy_fields_producer_unattested"
     return result
 
 
