@@ -30,10 +30,10 @@
   data-draft-url="{{ url_for('oap_mail_private.create_draft') }}"
   data-csrf-token="{{ csrf_token }}">
   <header><div><small>ON ANY POSTCODE LTD · My World</small><h1>✉ OAP Mail</h1>
-  <p>Your Mail. Your World. Your Control.</p></div><div><a href="{{ url_for('oap_mail_store_catalog.mail_store_detail') }}">OAP Store listing</a> · <a href="/">OAP World</a></div></header>
+  <p>Your Mail. Your World. Your Control.</p></div><a href="/">OAP World</a></header>
   <p class="notice" role="note"><strong>Private Mail preview · No email delivery.</strong>
   Inbox and drafts require your authenticated mailbox and configured Mail database.
-  Saving a draft does not send a message. OAP Store installation remains release pending.</p>
+  Saving a draft does not send a message. This preview is not a released email service.</p>
   <nav aria-label="Mail folders">
     <button type="button" data-mail-folder="inbox">Inbox</button>
     <button type="button" data-mail-folder="draft">Drafts</button>
