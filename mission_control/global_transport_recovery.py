@@ -6,7 +6,6 @@ OAP Post Core remains authoritative for parcels and fulfilment.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from uuid import UUID
 
 from .global_shipment import draft_global_shipment
 
@@ -31,7 +30,7 @@ def _plan(plan: object) -> list[Mapping[str, object]]:
     # Revalidate the actual contract, not merely a caller-supplied DRAFT label.
     original_legs = plan.get("legs")
     if not isinstance(original_legs, list):
-        raise ValueError("draft_legs_required")
+        raise TypeError("draft_legs_required")
     proposed: list[dict[str, object]] = []
     for leg in original_legs:
         if not isinstance(leg, Mapping):
