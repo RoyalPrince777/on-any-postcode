@@ -90,8 +90,42 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
             "statements": len(statements),
             "applied": False,
         }
+    # Approval and a reachable database are not proof of independent recovery.
+    # The first-party preflight currently cannot attest external backup/restore
+    # evidence, so live DDL stays blocked until a separately reviewed verifier
+    # establishes every required field. Dry-run above remains available.
+    from . import mail_preflight
+    readiness = mail_preflight.report()
+    required = (
+        "database_configured",
+        "database_reachable",
+        "base_schema_ready",
+        "target_mapping_proven",
+        "recovery_point_verified",
+        "independent_release_evidence_verified",
+        "live_migration_authorized",
+    )
+    if any(readiness.get(key) is not True for key in required):
+        raise RuntimeError("mail_independent_recovery_evidence_required")
+    authority = readiness.get("database_authority")
+    source = readiness.get("database_source")
+    if (
+        authority not in {"primary", "fallback"}
+        or source not in {
+            "primary_override", "fallback_override",
+            "platform_database_url", "legacy_oap_secret", "legacy_neon",
+        }
+        or postgres_db.database_authority() != authority
+        or postgres_db.database_source() != source
+    ):
+        raise RuntimeError("mail_database_target_changed")
     if not postgres_db.postgres_status().get("initialized"):
         raise RuntimeError("base_postgres_not_ready")
+    if (
+        postgres_db.database_authority() != authority
+        or postgres_db.database_source() != source
+    ):
+        raise RuntimeError("mail_database_target_changed")
     with postgres_db.connect() as connection:
         try:
             connection.execute("SELECT pg_advisory_xact_lock(%s)", (25800010,))

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 import pytest
 
-from mission_control import mail_migration, postgres_db
+from mission_control import mail_migration, mail_preflight, postgres_db
 
 
 class Connection:
@@ -44,6 +44,20 @@ def attach(monkeypatch, connection):
     monkeypatch.setattr(postgres_db, "connect", connect)
     monkeypatch.setattr(postgres_db, "postgres_status",
                         lambda: {"initialized": True})
+    # The fake recovery attestation is test-only, never operator proof.
+    monkeypatch.setattr(mail_preflight, "report", lambda: {
+        "database_configured": True,
+        "database_reachable": True,
+        "base_schema_ready": True,
+        "target_mapping_proven": True,
+        "recovery_point_verified": True,
+        "independent_release_evidence_verified": True,
+        "live_migration_authorized": True,
+        "database_authority": "primary",
+        "database_source": "primary_override",
+    })
+    monkeypatch.setattr(postgres_db, "database_authority", lambda: "primary")
+    monkeypatch.setattr(postgres_db, "database_source", lambda: "primary_override")
 
 
 def test_mail_requires_explicit_approval_and_dry_run_never_connects(monkeypatch):
@@ -96,3 +110,46 @@ def test_mail_schema_status_detects_mismatch(monkeypatch):
     result = mail_migration.schema_status()
     assert result["schema_ready"] is False
     assert result["error"] == "mail_migration_checksum_mismatch"
+
+
+def test_mail_migration_refuses_yes_without_independent_proof(monkeypatch):
+    """A --yes flag and reachable base DB must never cause any write."""
+    operations = []
+    monkeypatch.setattr(mail_preflight, "report", lambda: {
+        "target_mapping_proven": False,
+        "recovery_point_verified": False,
+        "independent_release_evidence_verified": False,
+        "live_migration_authorized": False,
+    })
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: operations.append("status"))
+    monkeypatch.setattr(postgres_db, "connect",
+                        lambda **_kw: operations.append("connect"))
+    with pytest.raises(RuntimeError, match="mail_independent_recovery_evidence_required"):
+        mail_migration.init_schema(assume_yes=True)
+    assert operations == []
+
+
+def test_mail_migration_rejects_target_switch_before_connection(monkeypatch):
+    operations = []
+    monkeypatch.setattr(mail_preflight, "report", lambda: {
+        "database_configured": True,
+        "database_reachable": True,
+        "base_schema_ready": True,
+        "target_mapping_proven": True,
+        "recovery_point_verified": True,
+        "independent_release_evidence_verified": True,
+        "live_migration_authorized": True,
+        "database_authority": "primary",
+        "database_source": "primary_override",
+    })
+    monkeypatch.setattr(postgres_db, "database_authority", lambda: "primary")
+    monkeypatch.setattr(postgres_db, "database_source",
+                        lambda: "fallback_override")
+    monkeypatch.setattr(postgres_db, "postgres_status",
+                        lambda: operations.append("status"))
+    monkeypatch.setattr(postgres_db, "connect",
+                        lambda **_kw: operations.append("connect"))
+    with pytest.raises(RuntimeError, match="mail_database_target_changed"):
+        mail_migration.init_schema(assume_yes=True)
+    assert operations == []
