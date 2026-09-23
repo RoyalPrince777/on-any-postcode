@@ -17,7 +17,7 @@ def test_bank_control_uses_existing_smi_command_centre() -> None:
 def test_all_bank_review_controls_are_non_operational() -> None:
     script = JS.read_text(encoding="utf-8")
     for label in ("Mind", "Body", "Soul", "Post Office", "OAP Store", "Founder Final"):
-        assert f'["' in script and label in script
+        assert '["' in script and label in script
     for invariant in (
         "SIKA Recognition is not GBP or issued SIKA",
         "Cash-in, cash-out and physical service locations are not verified or activated",
