@@ -312,6 +312,23 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable
             "durable": False,
         }
 
+    # A generic caller cannot mint a stored Matrix review that the learning
+    # verifier would interpret as a genuine War Room decision. A separate,
+    # authenticated producer is required before this receipt class is writable.
+    if (
+        kind == "war_room_live_proof_receipt"
+        and str(payload.get("command") or "").strip() == "matrix_review_outcome"
+    ):
+        return {
+            "ok": False,
+            "status": "blocked_reserved_matrix_review_producer",
+            "receipt_kind": kind,
+            "receipt_id": None,
+            "read_back_ok": False,
+            "durable": False,
+            "fallback_used": False,
+        }
+
     normalised = _normalise_payload(payload)
     receipt_id = f"smi-{uuid.uuid4().hex}"
     created_at = _now()
