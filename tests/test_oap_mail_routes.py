@@ -173,3 +173,62 @@ def test_smi_mail_store_unavailable_redacts_detail(client, csrf, monkeypatch):
     )
     assert response.status_code == 503
     assert "secret-database-host" not in response.get_data(as_text=True)
+
+
+
+def test_chat_tool_alias_reuses_owner_consent_and_read_only_store(
+    client, csrf, monkeypatch,
+):
+    calls = []
+    def read(actor, owner, folder):
+        calls.append((actor, owner, folder))
+        return [{"subject": "owner only"}]
+    monkeypatch.setattr(mail_store, "list_items", read)
+    response = client.post(
+        "/mission/chat/tools/mail/read",
+        json={"folder": "inbox", "owner_consent": True},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.get_json()["items"] == [{"subject": "owner only"}]
+    assert response.get_json()["execute"] is False
+    assert calls and calls[0][0] == calls[0][1]
+
+
+def test_chat_tool_alias_denies_implicit_consent_and_owner_override(
+    client, csrf, monkeypatch,
+):
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True))
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+    for payload in (
+        {"folder": "inbox"},
+        {"folder": "inbox", "owner_consent": True,
+         "owner_id": str(uuid.uuid4())},
+        {"folder": "inbox", "owner_consent": True,
+         "ability": "mail.send"},
+    ):
+        response = client.post(
+            "/mission/chat/tools/mail/read", json=payload,
+            headers=headers,
+        )
+        assert response.status_code == 403
+    assert calls == []
+
+
+def test_chat_tool_alias_requires_auth_and_csrf(
+    client, anonymous_client, monkeypatch,
+):
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True))
+    payload = {"folder": "inbox", "owner_consent": True}
+    assert anonymous_client.post(
+        "/mission/chat/tools/mail/read", json=payload,
+    ).status_code == 401
+    assert client.post(
+        "/mission/chat/tools/mail/read", json=payload,
+    ).status_code == 403
+    assert calls == []
