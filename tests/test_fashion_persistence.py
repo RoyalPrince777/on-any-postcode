@@ -22,6 +22,14 @@ def draft():
     )
 
 
+@pytest.fixture(autouse=True)
+def current_merchant(monkeypatch):
+    monkeypatch.setattr(
+        fashion_persistence.certification, "identity_status",
+        lambda identity_id: {"merchant": identity_id == OWNER},
+    )
+
+
 class FakeConnection:
     def __init__(self, *, product=True, revision=0):
         self.product = product
@@ -141,3 +149,35 @@ def test_staged_migration_is_not_executed():
     assert fashion_persistence.FASHION_MIGRATION_VERSION == "0007_first_party_fashion"
     assert all("IF NOT EXISTS" in statement for statement in
                fashion_persistence.FASHION_SCHEMA_STATEMENTS)
+
+
+def test_revoked_certification_blocks_save_before_database(monkeypatch):
+    monkeypatch.setattr(
+        fashion_persistence.certification, "identity_status",
+        lambda identity_id: {"merchant": False},
+    )
+    with pytest.raises(FashionError, match="certified_merchant_required"):
+        fashion_persistence.save_fashion(
+            actor_id=OWNER, draft=draft(), expected_revision=0
+        )
+
+
+def test_certification_store_unavailable_fails_closed(monkeypatch):
+    def unavailable(identity_id):
+        raise fashion_persistence.certification.CertificationUnavailable("down")
+
+    monkeypatch.setattr(
+        fashion_persistence.certification, "identity_status", unavailable
+    )
+    with pytest.raises(FashionError, match="merchant_certification_unavailable"):
+        fashion_persistence.save_fashion(
+            actor_id=OWNER, draft=draft(), expected_revision=0
+        )
+
+
+def test_corrupt_json_snapshot_fails_closed(monkeypatch):
+    c = FakeConnection(revision=1)
+    c.stored = "{invalid-json"
+    install(monkeypatch, c)
+    with pytest.raises(FashionError, match="invalid_fashion_snapshot"):
+        fashion_persistence.read_fashion(actor_id=OWNER, product_id=PRODUCT)
