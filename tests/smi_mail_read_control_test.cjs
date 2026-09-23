@@ -6,7 +6,7 @@ const vm=require("node:vm");
 const source=fs.readFileSync("mission_control/static/smi_mail_read_control.js","utf8");
 
 class Element{
-  constructor(tag="div"){this.tag=tag;this.children=[];this.handlers={};this.dataset={};this.attributes={};this.open=false;this.disabled=false;this.textContent="";this.style={};this.removed=false;}
+  constructor(tag="div"){this.tag=tag;this.children=[];this.handlers={};this.dataset={};this.attributes={};this.open=false;this.disabled=false;this.textContent="";this.style={};this.classList={remove:()=>{},add:()=>{}};this.removed=false;}
   append(...children){this.children.push(...children);}
   replaceChildren(...children){this.children=[...children];this.textContent="";}
   setAttribute(k,v){this.attributes[k]=v;}
