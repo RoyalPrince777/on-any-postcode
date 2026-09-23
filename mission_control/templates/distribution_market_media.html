@@ -16,7 +16,7 @@
     <div>
       <p class="eyebrow">Founder private organ view</p>
       <h1>Distribution · Market · Media</h1>
-      <p class="muted">One low-noise screen reading the real OAP Tune, Commerce and Distribution state.</p>
+      <p class="muted">One low-noise screen reading the real OAP Music, Commerce and Distribution state.</p>
     </div>
     <nav class="actions" aria-label="Dashboard navigation">
       <a class="button" href="/mission">← Mission Control</a>
@@ -36,8 +36,8 @@
         <div class="mini"><span class="muted">Releases</span><strong>{{ suite.media.releases|length }}</strong></div>
         <div class="mini"><span class="muted">Playlists</span><strong>{{ suite.media.playlists|length }}</strong></div>
       </div>
-      <span class="state">Tune Core connected</span>
-      <p class="muted">Owned release and playlist state is read from the authenticated Tune Core. Licensed audio delivery remains locked until proven.</p>
+      <span class="state">OAP Music records connected</span>
+      <p class="muted">Owned release and playlist state is read from the authenticated OAP Music. Licensed audio delivery remains locked until proven.</p>
       <div class="list">
         {% for release in suite.media.releases[:4] %}
         <div class="item"><strong>{{ release.title }}</strong><span class="muted">{{ release.release_type }} · {{ release.state }} · rights {{ release.rights_status }}</span></div>
