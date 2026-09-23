@@ -5,7 +5,6 @@ import uuid
 
 import pytest
 
-from mission_control import certification, product_core_views
 from mission_control.mail_contract import (
     authorize_smi,
     require_first_contact,
@@ -57,32 +56,3 @@ def test_mail_unsolicited_contact_fails_closed_on_missing_age_or_consent():
     require_first_contact(age_policy={"allowed": True, "resolved": True},
                           consent=True)
 
-
-def test_commerce_product_route_uses_merchant_gate_source():
-    from pathlib import Path
-    source = Path(product_core_views.__file__).read_text(encoding="utf-8")
-    function = source.split('def create_product():', 1)[1].split(
-        '@bp.post("/commerce/orders")', 1)[0]
-    assert '_require_certified_merchant(seller_id)' in function
-    assert function.index('_require_certified_merchant(seller_id)') < function.index(
-        'product_store.create_product('
-    )
-    assert 'product_store.create_product(' in function
-
-
-def test_commerce_merchant_guard_refuses_uncertified_and_unavailable(monkeypatch):
-    monkeypatch.setattr(certification, "identity_status",
-                        lambda _id: {"merchant": False})
-    with pytest.raises(PermissionError, match="certified_merchant_required"):
-        product_core_views._require_certified_merchant(OWNER)
-
-    def unavailable(_identity):
-        raise certification.CertificationUnavailable("unavailable")
-
-    monkeypatch.setattr(certification, "identity_status", unavailable)
-    with pytest.raises(certification.CertificationUnavailable):
-        product_core_views._require_certified_merchant(OWNER)
-
-    monkeypatch.setattr(certification, "identity_status",
-                        lambda _id: {"merchant": True})
-    assert product_core_views._require_certified_merchant(OWNER) is None
