@@ -13,6 +13,20 @@ from mission_control import mail_store, public_store
     ("correspondent", "user@example.test\r\nBcc: outsider@example.test"),
     ("correspondent", "user@example.test\nInjected"),
     ("correspondent", "user@example.test\x00secret"),
+    ("subject", "\rPrivate"),
+    ("subject", "\nPrivate"),
+    ("subject", "Private\r"),
+    ("subject", "Private\n"),
+    ("subject", "Private\r\n"),
+    ("subject", "\r\nPrivate"),
+    ("subject", "\x00Private"),
+    ("correspondent", "\ruser@example.test"),
+    ("correspondent", "\nuser@example.test"),
+    ("correspondent", "user@example.test\r"),
+    ("correspondent", "user@example.test\n"),
+    ("correspondent", "user@example.test\r\n"),
+    ("correspondent", "\r\nuser@example.test"),
+    ("correspondent", "user@example.test\x00"),
 ])
 def test_header_injection_fails_without_persistence(
     client, csrf, monkeypatch, field, value,
@@ -37,3 +51,25 @@ def test_multiline_message_body_remains_supported():
     assert mail_store.validate_draft_fields(
         subject="Private", body="first line\nsecond line",
     )[1] == "first line\nsecond line"
+
+
+@pytest.mark.parametrize("body", [
+    "\x00", "message\x00part", "\x00message", "message\x00",
+])
+def test_body_nul_rejected_before_user_or_mail_persistence(
+    client, csrf, monkeypatch, body,
+):
+    calls = []
+    monkeypatch.setattr(public_store, "ensure_authenticated_user",
+                        lambda *_args, **_kwargs: calls.append("user"))
+    monkeypatch.setattr(mail_store, "save_draft",
+                        lambda *_args, **_kwargs: calls.append("draft"))
+    response = client.post(
+        "/mail/drafts",
+        json={"subject": "Private", "body": body},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 400
+    assert response.get_json() == {"error": {"code": "mail_draft_body_invalid"}}
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == []
