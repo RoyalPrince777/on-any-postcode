@@ -1,7 +1,7 @@
 """Authenticated private OAP Mail API; no send/delivery interface."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import mail_smi_adapter, mail_store, public_store, web_security
 from .mail_contract import require_folder
@@ -23,6 +23,16 @@ def _private_mail_response(response):
 
 def _reply(payload: dict, status: int = 200):
     return make_response(jsonify(payload), status)
+
+
+@bp.get("/mail/app")
+@web_security.login_required()
+def mail_app():
+    """Owner-only first-party Mail web surface; never a delivery claim."""
+    return render_template(
+        "oap_mail_app.html",
+        csrf_token=web_security.csrf_token(),
+    )
 
 
 @bp.get("/mail/<folder>")
