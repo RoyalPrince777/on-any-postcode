@@ -201,6 +201,50 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
     }
 
 
+
+
+def private_source_review_receipt(candidate: object) -> dict[str, object]:
+    """In-memory, non-authoritative review receipt for one named source lead.
+
+    Never stores evidence, grants rights, downloads music or creates a Tune release.
+    A source-page claim cannot prove recording or composition ownership.
+    """
+    row = candidate if isinstance(candidate, Mapping) else {}
+    handoff = tune_handoff_preview(row)
+    rights = rights_review(row)
+    candidate_id = handoff["candidate_id"]
+    page = rights["source_page_url"] if candidate_id else None
+    attribution_name = _safe_text(row.get("artist"), 180) if candidate_id else None
+    attribution_title = _safe_text(row.get("title"), 180) if candidate_id else None
+    return {
+        "candidate_id": candidate_id,
+        "source_kind": rights["source_kind"] if candidate_id else None,
+        "source_page_url": page,
+        "title": attribution_title,
+        "artist": attribution_name,
+        "claimed_licence": rights["claimed_licence"] if candidate_id else None,
+        "attribution_draft": (
+            f"{attribution_title} — {attribution_name}"
+            if attribution_title and attribution_name else None
+        ),
+        "source_page_independently_checked": False,
+        "recording_rights_verified": False,
+        "composition_rights_verified": False,
+        "licensor_authority_verified": False,
+        "territory_and_use_verified": False,
+        "attribution_verified": False,
+        "source_asset_integrity_verified": False,
+        "review_state": "private_unverified_lead",
+        "receipt_persisted": False,
+        "evidence_bytes_retained": False,
+        "tune_release_created": False,
+        "playback_enabled": False,
+        "public_catalogue_enabled": False,
+        "blockers": rights["blockers"],
+        "human_authority_final": True,
+    }
+
+
 def asset_integrity_review(
     candidate_id: object, asset_bytes: object, expected_sha256: object,
 ) -> dict[str, object]:
