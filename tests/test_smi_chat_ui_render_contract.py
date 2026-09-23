@@ -16,8 +16,11 @@ def test_smi_chat_wrapper_does_not_fake_provider_success():
 
 def test_smi_chat_receipt_is_bound_to_completed_stream_result():
     text = JS.read_text(encoding="utf-8")
-    assert "event: complete" in text
-    assert "oap-smi-complete" in text
+    controller = Path("mission_control/static/smi_canonical_controller.js").read_text(encoding="utf-8")
+    assert "parsed.event==='complete'" in controller
+    assert "window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}))" in controller
+    assert "response.clone().text()" not in text
+    assert "window.addEventListener('oap-smi-complete'" in text
     assert "Shown only after the governed response completed" in text
 
 
