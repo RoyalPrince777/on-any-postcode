@@ -136,3 +136,28 @@ def test_entertainment_route_is_authenticated_read_only():
     ]
     assert len(rules) == 1
     assert rules[0].methods == {"GET", "HEAD", "OPTIONS"}
+
+
+
+def test_universal_player_rejects_untrusted_content_ids_without_playback():
+    valid = f"oap:tune:{RELEASE_ID}"
+    for supplied in (
+        "https://example.test/media.mp3",
+        "oap:tune:bad",
+        f"oap:tune:oap:tune:{RELEASE_ID}",
+        f"oap:tune:{RELEASE_ID}/other",
+        "oap:open-music:" + RELEASE_ID,
+        [], {"content_id": valid}, None,
+    ):
+        result = entertainment_catalogue.universal_player_contract({
+            "content_id": supplied,
+            "rights_proof": True, "human_approval": True,
+            "stream_url": "https://example.test/media.mp3",
+        })
+        assert result["content_id"] is None
+        assert result["playback_enabled"] is False
+        assert result["stream_url"] is None
+        assert result["rights"]["allowed"] is False
+    assert entertainment_catalogue.universal_player_contract(
+        {"content_id": valid}
+    )["content_id"] == valid
