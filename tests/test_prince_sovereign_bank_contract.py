@@ -39,3 +39,21 @@ def test_all_capabilities_fail_closed_even_with_flags() -> None:
             customer_approved=True,
             production_gate_passed=True,
         )
+
+
+def test_value_classes_never_conflate_recognition_fiat_or_currency() -> None:
+    state = bank.status()
+    value = state["currency"]
+    classes = {item["id"]: item for item in value["value_classes"]}
+    assert set(classes) == {"recognition", "fiat", "proposed_currency"}
+    assert classes["recognition"]["monetary"] is False
+    assert classes["recognition"]["redeemable"] is False
+    assert classes["fiat"]["unit"] == "GBP"
+    assert classes["fiat"]["balance_available"] is False
+    assert classes["proposed_currency"]["unit"] == "SIKA"
+    assert classes["proposed_currency"]["subunit"] == "SEEDS"
+    assert classes["proposed_currency"]["issued"] is False
+    assert classes["proposed_currency"]["legal_tender"] is False
+    assert not value["recognition_to_fiat_enabled"]
+    assert not value["recognition_to_currency_enabled"]
+    assert not value["fiat_to_currency_enabled"]
