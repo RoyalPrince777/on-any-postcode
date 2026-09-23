@@ -33,10 +33,13 @@ def test_public_store_preview_link_does_not_bypass_auth(anonymous_client):
     assert private.headers["Cache-Control"] == "no-store"
 
 
-def test_authenticated_mail_preview_links_back_to_store(client):
+def test_store_listing_stays_outside_private_mail_preview(client):
     private = client.get("/mail/app")
     assert private.status_code == 200
-    assert 'href="/oap-store/apps/oap.mail/view"' in private.get_data(as_text=True)
+    page = private.get_data(as_text=True)
+    assert 'href="/oap-store/apps/oap.mail/view"' not in page
+    assert "OAP Store listing" not in page
+    assert "Inbox" in page and "Drafts" in page
 
 
 def test_store_detail_cannot_be_published_or_installed_via_post(client):
