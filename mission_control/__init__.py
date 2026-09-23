@@ -82,6 +82,7 @@ def init_app(app: Flask) -> None:
     from .on_any_place_routes import bp as on_any_place_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
+    from .raffles_command_views import bp as raffles_command_bp
     from .travel_supply_views import bp as travel_supply_bp
     from .views import bp
 
@@ -1019,6 +1020,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
     app.register_blueprint(matrix_founder_decisions_bp)
+    app.register_blueprint(raffles_command_bp)
     app.register_blueprint(checkpoint_bp, url_prefix="/mission")
     app.register_blueprint(maps_movement_direct_proof_bp, url_prefix="/mission")
     app.register_blueprint(alignment_bp, url_prefix="/mission")

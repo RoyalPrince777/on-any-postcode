@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAP EVERYDAY · Founder</title><style>
+body{background:#090b12;color:#f8f3ff;font:16px system-ui;margin:0}.wrap{max-width:920px;margin:auto;padding:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+article,section{border:1px solid #72559c;border-radius:14px;padding:15px;margin:12px 0;background:#160f24}
+small{color:#d2c5e5}a{color:#e3c6ff}.hold{color:#ffdd98}input,button{font:inherit;padding:10px;margin:5px;background:#281945;color:white;border:1px solid #9975c3;border-radius:8px}input{max-width:95%}button[disabled]{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere}label{display:block;margin:8px 0}
+</style></head><body><main class="wrap"><h1>🟣 SMI · 👑 OAP EVERYDAY</h1>
+<p>Everyday Needs. Everyday Opportunities.</p>
+<p class="hold">Founder-only proposed programme · no verified prizes · no public entries · no payments · no deployment</p>
+<h2>Mind × Body × Soul</h2>
+<div class="grid">{% for category in programme.categories %}
+<article><h3>{{ category.label }}</h3><p>{{ category.purpose }}</p><small>{{ category.status }}</small></article>
+{% endfor %}</div>
+<section><h2>🧠 Mind</h2><p>Resource, community need and partner research. No unverified support directory listings.</p></section>
+<section><h2>⚙️ Body</h2><p>Use existing OAP Raffles for Everyday Rewards; partner and direct-support workflows remain unlaunched.</p><a href="{{ url_for('raffles_command.dashboard') }}">Open existing Raffles review →</a></section>
+<section><h2>🤝 Private partner proposal</h2><p>No contact is sent and no sponsor or prize is confirmed.</p>
+<form data-kind="partner"><label>Organisation <input name="organisation" required maxlength="120"></label>
+<label>Proposed prize <input name="prize" required maxlength="280"></label>
+<button type="submit">Save private proposal</button></form></section>
+<section><h2>📚 Private support resource</h2><p>HTTPS reference only. Saving is not publication or independent verification.</p>
+<form data-kind="resource"><label>Title <input name="title" required maxlength="160"></label>
+<label>HTTPS link <input name="url" required type="url" maxlength="800"></label>
+<label>Source <input name="source" required maxlength="160"></label>
+<label>Reviewed date <input name="checked_on" required type="date"></label>
+<button type="submit">Save private resource</button></form></section>
+<section><h2>🛡️ Real control receipts</h2><button type="button" id="reload">↻ Read private records</button>
+<pre id="result" role="status" aria-live="polite">Not checked · no Green awarded</pre></section>
+<section><h2>💜 Soul</h2><p>Direct help never requires draw entry. Preserve privacy, youth safety and Founder Final.</p></section>
+<section><h2>👑 Evidence</h2><p>Partners confirmed: {{ programme.partners_confirmed }} · Prize secured: No · Public launch: Locked.</p>
+<p>No new payment engine, prize-draw engine, Matrix or audit system is created by this programme.</p></section>
+<a href="/mission">← Mission Control</a></main>
+<script>
+"use strict";
+const csrf={{ csrf_token|tojson }};
+const result=document.getElementById("result");
+async function request(endpoint,payload){
+ const response=await fetch(endpoint,{
+  method:payload?"POST":"GET",credentials:"same-origin",cache:"no-store",
+  headers:payload?{"Content-Type":"application/json","X-OAP-CSRF":csrf}:{},
+  ...(payload?{body:JSON.stringify(payload)}:{})
+ });
+ const value=await response.json();
+ result.textContent=JSON.stringify({http_status:response.status,...value},null,2);
+ return response.ok&&value.ok===true;
+}
+for(const form of document.querySelectorAll("form[data-kind]")){
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const button=form.querySelector('button[type="submit"]');
+  if(button.disabled)return;
+  button.disabled=true;
+  result.textContent="Submitting private proposal · awaiting actual receipt…";
+  try{
+   const payload=Object.fromEntries(new FormData(form).entries());
+   payload.kind=form.dataset.kind;
+   const ok=await request("/mission/raffles/everyday/propose",payload);
+   if(ok)form.reset();
+  }catch(_error){result.textContent="Request unavailable · no save confirmed · NOT GREEN";}
+  finally{button.disabled=false;}
+ });
+}
+document.getElementById("reload").addEventListener("click",async()=>{
+ result.textContent="Reading persisted private records…";
+ try{await request("/mission/raffles/everyday/records");}
+ catch(_error){result.textContent="Readback unavailable · NOT GREEN";}
+});
+</script></body></html>

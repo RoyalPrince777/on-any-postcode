@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAP Raffles · SMI Command Centre</title>
+<style>body{background:#090b12;color:#f5f1ff;font:16px system-ui;margin:0}.wrap{max-width:850px;margin:auto;padding:24px}section{border:1px solid #66518b;border-radius:16px;padding:18px;margin:14px 0}button,select{font:inherit;padding:12px;border-radius:10px;margin:5px;background:#281945;color:#fff;border:1px solid #9c80cf}button:focus-visible{outline:3px solid #fff}button[disabled]{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere}label{display:block;margin:10px 0}small{color:#d8cbe8}</style>
+</head><body><main class="wrap"><h1>🟣 SMI · OAP Raffles</h1><p>Founder Command Centre · review only · no public entry, prize selection or payment execution.</p>
+<section><h2>🧠 Mind · Review</h2><label>Territory <select id="territory"><option value="uk">UK</option><option value="global">Global (blocked pending country review)</option></select></label>
+<label>Campaign <select id="kind"><option value="free_draw">Free draw</option><option value="paid_skill">Paid skill (blocked)</option><option value="dual_route">Dual route (blocked)</option><option value="property_prize">Property (blocked)</option><option value="community_reward">Community reward</option></select></label>
+<label><input type="checkbox" id="funded"> Sponsor funding evidenced (self-reported, not verified)</label>
+<button type="button" data-action="REVIEW">🟣 Review</button></section>
+<section><h2>⚙️ Body · Controls</h2><p>STOP and recovery require the existing canonical OAP database schema and Founder authority. Missing runtime proof returns a real denial. No release permission.</p>
+<button type="button" data-action="STOP">🛑 STOP · durable check</button>
+<button type="button" data-action="RECOVER">Resume · Founder check</button>
+<button type="button" data-action="CONTINUE">Continue · check lock</button></section>
+<section><h2>💜 Soul · Founder Final</h2><button type="button" data-action="APPROVE_FOR_REVIEW">🟢 Approval · check lock</button><p>Human approval is not permission to publish, accept entries or collect payments.</p></section>
+<section aria-live="polite"><h2>Actual response</h2><pre id="result">Not checked · No green awarded</pre></section>
+<a href="/mission">← Mission Control</a></main>
+<script>
+"use strict";
+const csrf={{ csrf_token|tojson }};
+const output=document.getElementById("result");
+for(const button of document.querySelectorAll("button[data-action]")){
+ button.addEventListener("click",async()=>{
+  button.disabled=true;output.textContent="Requesting actual backend acknowledgement…";
+  try{
+   const target=["STOP","RECOVER"].includes(button.dataset.action)?"/mission/raffles/stop-control":"/mission/raffles/command";
+   const response=await fetch(target,{
+    method:"POST",credentials:"same-origin",cache:"no-store",
+    headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},
+    body:JSON.stringify({action:button.dataset.action,campaign_id:"everyday-rewards",
+      territory:document.getElementById("territory").value,
+      kind:document.getElementById("kind").value,
+      sponsor_funded:document.getElementById("funded").checked})
+   });
+   const data=await response.json();
+   output.textContent=JSON.stringify({http_status:response.status,...data},null,2);
+  }catch(_error){output.textContent="Request unavailable · no action confirmed · NOT GREEN";}
+  finally{button.disabled=false;}
+ });
+}
+</script></body></html>
