@@ -17,7 +17,7 @@ def test_consented_read_passes_exact_owner_and_folder(monkeypatch):
     def read(actor, owner, folder):
         calls.append((actor, owner, folder))
         return [{"subject": "private"}]
-    monkeypatch.setattr(mail_store, "list_items", read)
+    monkeypatch.setattr(mail_store, "list_subjects", read)
     result = mail_smi_adapter.read_owner_folder(
         actor_id=OWNER, mailbox_owner_id=OWNER,
         folder=" Inbox ", owner_consent=True,
@@ -44,7 +44,7 @@ def test_adapter_denials_never_read_store(
     monkeypatch, actor, owner, consent, ability, folder,
 ):
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     with pytest.raises((PermissionError, ValueError)):
         mail_smi_adapter.read_owner_folder(
@@ -57,7 +57,7 @@ def test_adapter_denials_never_read_store(
 def test_store_unavailable_is_not_recast_as_success(monkeypatch):
     def unavailable(*_):
         raise mail_store.MailUnavailable("mail_store_unavailable")
-    monkeypatch.setattr(mail_store, "list_items", unavailable)
+    monkeypatch.setattr(mail_store, "list_subjects", unavailable)
     with pytest.raises(mail_store.MailUnavailable):
         mail_smi_adapter.read_owner_folder(
             actor_id=OWNER, mailbox_owner_id=OWNER,
@@ -88,7 +88,7 @@ def test_disabled_mail_capability_fails_before_store(monkeypatch):
         ),)),
     )
     calls = []
-    monkeypatch.setattr(mail_store, "list_items",
+    monkeypatch.setattr(mail_store, "list_subjects",
                         lambda *_: calls.append(True))
     with pytest.raises(PermissionError, match="mail_smi_capability_unavailable"):
         mail_smi_adapter.read_owner_folder(
@@ -116,7 +116,7 @@ def test_smi_subject_list_excludes_body_ids_and_unknown_fields(monkeypatch):
         "created_at": "secret-timestamp",
         "debug_secret": "INTERNAL_SECRET",
     }
-    monkeypatch.setattr(mail_store, "list_items", lambda *_: [private_row])
+    monkeypatch.setattr(mail_store, "list_subjects", lambda *_: [private_row])
     result = mail_smi_adapter.read_owner_folder(
         actor_id=OWNER, mailbox_owner_id=OWNER,
         folder="inbox", owner_consent=True,
