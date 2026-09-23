@@ -1,11 +1,13 @@
 """Regression tests for first-party humanitarian evidence and tracker linkage."""
 import unittest
 
+from mission_control.humanitarian_emergency_tracker import (
+    humanitarian_emergency_snapshot,
+)
 from mission_control.humanitarian_first_party_evidence import (
     first_party_verification_state,
     verify_original_finding,
 )
-from mission_control.humanitarian_emergency_tracker import humanitarian_emergency_snapshot
 
 
 class FirstPartyHumanitarianEvidenceTests(unittest.TestCase):
