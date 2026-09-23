@@ -8,16 +8,16 @@ from mission_control import open_cinema_evidence as gate
 
 def _territory(**overrides):
     return {
-        **{"country": "GB", "models": ["FREE_TO_VIEW"],
-           "starts_on": "2026-09-23", "ends_on": "2027-09-23"},
+        "country": "GB", "models": ["FREE_TO_VIEW"],
+           "starts_on": "2026-09-23", "ends_on": "2027-09-23",
         **overrides,
     }
 
 
 def _evidence(**overrides):
     return {
-        **{"evidence_id": str(uuid4()),
-           "kind": "signed_distribution_agreement", "sha256": "a" * 64},
+        "evidence_id": str(uuid4()),
+           "kind": "signed_distribution_agreement", "sha256": "a" * 64,
         **overrides,
     }
 
