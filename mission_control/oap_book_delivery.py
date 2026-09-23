@@ -7,7 +7,7 @@ may supply these records to a public reader.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 
 from .oap_book_access import Access, Book, Rotation, decide_access
 from .oap_book_publication import EditionEvidence, publication_blocks
@@ -66,16 +66,17 @@ def authorize_read(
     if publication_blocks(edition, now=now):
         return denied
     purchased = frozenset()
-    if receipt is not None and authenticated_user_id:
-        if (
-            receipt.owner_id == authenticated_user_id
-            and receipt.book_id == book.book_id
-            and receipt.edition_id == edition.edition_id
-            and bool(receipt.payment_receipt_id)
-            and receipt.payment_verified
-            and not receipt.revoked
-        ):
-            purchased = frozenset({book.book_id})
+    if (
+        receipt is not None
+        and authenticated_user_id
+        and receipt.owner_id == authenticated_user_id
+        and receipt.book_id == book.book_id
+        and receipt.edition_id == edition.edition_id
+        and bool(receipt.payment_receipt_id)
+        and receipt.payment_verified
+        and not receipt.revoked
+    ):
+        purchased = frozenset({book.book_id})
     result = decide_access(
         book,
         user_id=authenticated_user_id,
