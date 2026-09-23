@@ -19,7 +19,7 @@ def _candidate(**changes):
 def test_private_candidate_never_claims_ingest_or_playback():
     result = music.candidate_preview([_candidate()])
     assert result["candidate_count"] == 1
-    assert result["canonical_catalogue"] == "OAP Tune Core"
+    assert result["canonical_catalogue"] == "OAP Music"
     assert result["ingest_performed"] is False
     assert result["candidates"][0]["rights_verified"] is False
     assert result["candidates"][0]["playback_enabled"] is False
@@ -94,7 +94,7 @@ def test_discovery_directory_never_claims_source_or_import_authority():
     directory = music.source_directory()
     kinds = {entry["source_kind"] for entry in directory["entries"]}
     assert kinds == music.SOURCE_KINDS
-    assert directory["canonical_catalogue"] == "OAP Tune Core"
+    assert directory["canonical_catalogue"] == "OAP Music"
     assert directory["source_fetch_performed"] is False
     assert directory["catalogue_write_performed"] is False
     assert all(entry["connected"] is False for entry in directory["entries"])
@@ -102,11 +102,11 @@ def test_discovery_directory_never_claims_source_or_import_authority():
     assert all(entry["bulk_import_allowed"] is False for entry in directory["entries"])
 
 
-def test_tune_handoff_is_inert_even_with_false_approval_flags():
+def test_music_handoff_is_inert_even_with_false_approval_flags():
     candidate = _candidate(rights_verified=True, founder_approved=True,
                            playback_enabled=True, media_url="https://example.test/x")
-    result = music.tune_handoff_preview(candidate)
-    assert result["target_organ"] == "OAP Tune Core"
+    result = music.music_handoff_preview(candidate)
+    assert result["target_organ"] == "OAP Music"
     assert result["target_release_type"] == "single"
     assert result["handoff_ready"] is False
     assert result["rights_verified"] is False
@@ -114,8 +114,8 @@ def test_tune_handoff_is_inert_even_with_false_approval_flags():
     assert result["public_catalogue_enabled"] is False
     assert result["playback_enabled"] is False
     assert "media_url" not in result
-    assert music.tune_handoff_preview(_candidate(claimed_licence="CC_BY_NC"))["candidate_id"] is None
-    assert music.tune_handoff_preview(_candidate(candidate_id="broken"))["candidate_id"] is None
+    assert music.music_handoff_preview(_candidate(claimed_licence="CC_BY_NC"))["candidate_id"] is None
+    assert music.music_handoff_preview(_candidate(candidate_id="broken"))["candidate_id"] is None
 
 
 
@@ -123,8 +123,8 @@ def test_nested_untrusted_source_and_licence_fail_closed():
     for bad in ([], {}, {"CC0": True}, ["CC0"]):
         assert music.candidate_preview([_candidate(source_kind=bad)])["candidate_count"] == 0
         assert music.candidate_preview([_candidate(claimed_licence=bad)])["candidate_count"] == 0
-        assert music.tune_handoff_preview(_candidate(source_kind=bad))["candidate_id"] is None
-        assert music.tune_handoff_preview(_candidate(claimed_licence=bad))["candidate_id"] is None
+        assert music.music_handoff_preview(_candidate(source_kind=bad))["candidate_id"] is None
+        assert music.music_handoff_preview(_candidate(claimed_licence=bad))["candidate_id"] is None
         assert music.rights_review({"claimed_licence": bad})["rights_verified"] is False
         assert music.rights_review({"claimed_licence": bad})["claimed_licence"] is None
 
@@ -136,7 +136,7 @@ def test_candidate_preview_never_trusts_caller_approval_or_rights():
             founder_approved=True, release_created=True
         )])["candidates"][0]
         assert item["rights_verified"] is False
-        assert item["tune_release_created"] is False
+        assert item["music_release_created"] is False
         assert item["playback_enabled"] is False
 
 
@@ -166,14 +166,14 @@ def test_rights_review_identifier_is_canonical_and_never_reflects_untrusted_text
         assert review["distribution_authorised"] is False
 
 
-def test_preview_candidate_flows_to_private_tune_handoff_without_release():
+def test_preview_candidate_flows_to_private_music_handoff_without_release():
     preview = music.candidate_preview([_candidate()])
     item = preview["candidates"][0]
-    handoff = music.tune_handoff_preview(item)
+    handoff = music.music_handoff_preview(item)
     assert handoff["candidate_id"] == item["candidate_id"]
     assert handoff["title"] == item["title"]
     assert handoff["artist"] == item["artist"]
-    assert handoff["target_organ"] == "OAP Tune Core"
+    assert handoff["target_organ"] == "OAP Music"
     assert handoff["handoff_ready"] is False
     assert handoff["release_created"] is False
     assert handoff["playback_enabled"] is False
@@ -199,7 +199,7 @@ def test_canonical_candidate_integrity_and_prefix_injection_fail_closed():
         {},
         None,
     ):
-        assert music.tune_handoff_preview(_candidate(candidate_id=invalid))["candidate_id"] is None
+        assert music.music_handoff_preview(_candidate(candidate_id=invalid))["candidate_id"] is None
         assert music.rights_review({"candidate_id": invalid})["candidate_id"] is None
         assert music.asset_integrity_review(invalid, b"asset", digest)["digest_matches_submission"] is False
 
@@ -244,7 +244,7 @@ def test_allowlisted_open_source_page_is_private_reference_not_rights_proof():
         assert item["source_page_independently_checked"] is False
         assert item["rights_verified"] is False
         assert item["playback_enabled"] is False
-        handoff = music.tune_handoff_preview(item)
+        handoff = music.music_handoff_preview(item)
         assert "source_page_url" not in handoff
         assert handoff["handoff_ready"] is False
 
@@ -360,7 +360,7 @@ def test_real_named_fma_track_can_be_prepared_only_as_private_review_lead():
         "composition_rights_verified", "licensor_authority_verified",
         "territory_and_use_verified", "attribution_verified",
         "source_asset_integrity_verified", "evidence_bytes_retained",
-        "tune_release_created", "playback_enabled", "public_catalogue_enabled",
+        "music_release_created", "playback_enabled", "public_catalogue_enabled",
     ):
         assert receipt[key] is False
 
