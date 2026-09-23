@@ -119,3 +119,33 @@ def test_direct_readback_cannot_claim_independent_recovery_or_release():
     assert result["resume_mode"] == "review_only"
     assert result["scientific_truth_established"] is False
     assert result["execution_authorised"] is False
+
+
+@pytest.mark.parametrize("key,value", [
+    ("storage_authenticity_verified", True),
+    ("independent_anchor_authenticity_verified", True),
+    ("durable_persistence_verified", True),
+    ("external_store_readback_verified", True),
+    ("namespace_independence_authenticated", True),
+    ("anchor_authenticity_verified", True),
+    ("independent_recovery_verified", True),
+    ("release_ready", True),
+    ("release_ready", "false"),
+    ("resume_mode", "execute"),
+])
+def test_rehashed_history_cannot_restore_store_proof_or_release(key, value):
+    records, _ = history()
+    state = {**records[0]["state"], key: value}
+    payload = {"version": 1, "previous_hash": "GENESIS", "state": state}
+    digest = sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    second = {
+        "version": 2, "previous_hash": digest, "state": records[1]["state"],
+    }
+    second_digest = sha256(
+        json.dumps(second, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    with pytest.raises(ClaimEdgeBlocked, match="recovery_cannot_restore_authority"):
+        verify(records=({**payload, "receipt_hash": digest},
+                        {**second, "receipt_hash": second_digest}), anchor=second_digest)
