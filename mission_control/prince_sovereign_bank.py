@@ -14,6 +14,14 @@ CURRENCY_NAME = "SIKA"
 SUBUNIT_NAME = "SEEDS"
 SUBUNITS_PER_SIKA = 100
 
+# Descriptive classes only: this module cannot issue, convert or transfer value.
+VALUE_CLASSES = (
+    {"id": "recognition", "unit": "SIKA Recognition", "monetary": False, "redeemable": False},
+    {"id": "fiat", "unit": "GBP", "monetary": True, "balance_available": False},
+    {"id": "proposed_currency", "unit": CURRENCY_NAME, "subunit": SUBUNIT_NAME,
+     "subunits_per_unit": SUBUNITS_PER_SIKA, "issued": False, "legal_tender": False},
+)
+
 MIND = (
     "first_party_financial_intelligence",
     "certified_identity_and_bank_specific_permissions",
@@ -55,6 +63,10 @@ def status() -> dict[str, Any]:
             "name": CURRENCY_NAME,
             "subunit": SUBUNIT_NAME,
             "subunits_per_unit": SUBUNITS_PER_SIKA,
+            "value_classes": [dict(item) for item in VALUE_CLASSES],
+            "recognition_to_fiat_enabled": False,
+            "recognition_to_currency_enabled": False,
+            "fiat_to_currency_enabled": False,
             "rewards_are_money": False,
             "proposed_currency_is_legal_tender": False,
         },

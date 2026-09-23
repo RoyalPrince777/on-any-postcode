@@ -9,9 +9,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from . import prince_sovereign_bank as bank
+
 APP_ID = "oap.usa_royalty_bank"
-DISPLAY_NAME = "United States of Africa Royalty Bank"
-HERITAGE_BANK = "Prince Sovereign Bank"
+DISPLAY_NAME = bank.BANK_NAME
+HERITAGE_BANK = bank.HERITAGE_BANK_NAME
 STORE = "OAP Store"
 CHANNELS = ("android", "pwa")
 REQUIRED_EVIDENCE = frozenset({
