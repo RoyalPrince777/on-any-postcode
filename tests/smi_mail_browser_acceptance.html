@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>OAP Mail Chromium boundary</title>
+<button id="plus-button" aria-expanded="true">Plus</button>
+<div id="attach-menu" class="show"></div>
+<div id="messages"></div>
+<pre id="browser-proof">PENDING</pre>
+<script>
+"use strict";
+window.OAP_SMI_UI={mailReadUrl:"/mission/chat/tools/mail/read",csrfToken:"test-csrf"};
+let consent=false, requests=0, captured=null, respond;
+window.confirm=()=>consent;
+window.fetch=(url,opts)=>{
+  requests++;captured={url,opts};
+  return new Promise(resolve=>{respond=resolve;});
+};
+const proof=document.getElementById("browser-proof");
+function check(value,label){if(!value)throw Error(label);}
+function afterTick(){return new Promise(resolve=>setTimeout(resolve,0));}
+window.runMailBrowserCheck=async()=>{
+  const button=document.getElementById("oap-mail-read-inbox");
+  check(Boolean(button),"button absent");
+  button.click();
+  await afterTick();
+  check(requests===0&&!document.querySelector("dialog"),"cancel leaked consent");
+  consent=true;
+  button.click();
+  await afterTick();
+  let dialog=document.getElementById("oap-mail-private-dialog");
+  check(dialog&&dialog.open,"real modal did not open");
+  check(document.activeElement.textContent==="Close and clear Mail","focus not in dialog");
+  check(requests===1&&captured.opts.method==="POST","read was not explicit POST");
+  check(captured.opts.headers["X-OAP-CSRF"]==="test-csrf","CSRF missing");
+  check(JSON.parse(captured.opts.body).owner_consent===true,"consent missing");
+  respond({ok:true,json:async()=>({items:[{
+    subject:"<private-test>",correspondent:"owner@example.test",body:"SECRET_MAIL_BODY"
+  }],execute:false,delivery_enabled:false})});
+  await afterTick();await afterTick();
+  check(dialog.textContent.includes("<private-test>"),"subject absent");
+  check(!dialog.textContent.includes("SECRET_MAIL_BODY"),"body leaked");
+  check(document.getElementById("messages").children.length===0,"chat DOM contaminated");
+  check(!dialog.querySelector("private-test"),"subject parsed as HTML");
+  dialog.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
+  dialog.close();
+  await afterTick();
+  check(!document.getElementById("oap-mail-private-dialog"),"dialog not cleared");
+  check(captured.opts.signal.aborted,"request not aborted on close");
+  check(document.activeElement===button,"focus not returned");
+  button.click();
+  await afterTick();
+  dialog=document.getElementById("oap-mail-private-dialog");
+  const lateRespond=respond;
+  dialog.close();
+  lateRespond({ok:true,json:async()=>({items:[{subject:"late private"}],execute:false,delivery_enabled:false})});
+  await afterTick();await afterTick();
+  check(!document.getElementById("oap-mail-private-dialog"),"late response recreated dialog");
+  check(document.getElementById("messages").children.length===0,"chat contaminated by late response");
+  return "OAP_MAIL_CHROMIUM_BOUNDARY_PASS";
+};
+</script>
+<script src="../mission_control/static/smi_mail_read_control.js"></script>
+<script>
+window.addEventListener("load",()=>{
+  window.runMailBrowserCheck().then(
+    message=>{proof.textContent=message;},
+    error=>{proof.textContent="OAP_MAIL_CHROMIUM_BOUNDARY_FAIL "+error.message;}
+  );
+});
+</script>
+</html>
