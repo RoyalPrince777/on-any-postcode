@@ -74,3 +74,65 @@ def verify_lab_readback(
         "publication_authorised": False,
         "execution_authorised": False,
     }
+
+
+def verify_separate_readback_snapshots(
+    history_snapshot: Mapping[str, object],
+    anchor_snapshot: Mapping[str, object],
+    *,
+    authenticated_owner_id: str,
+    stopped: bool = False,
+) -> dict[str, object]:
+    """Check two supplied read snapshots, without claiming store authenticity.
+
+    Namespace separation and retrieval evidence are caller-supplied metadata,
+    not a substitute for independent, authenticated real-store read-back.
+    """
+    if stopped:
+        raise ClaimEdgeBlocked("stop_asserted")
+    if not isinstance(history_snapshot, Mapping) or not isinstance(anchor_snapshot, Mapping):
+        raise ClaimEdgeBlocked("two_readback_snapshots_required")
+    owner = _uuid_for_snapshot(authenticated_owner_id)
+    for item in (history_snapshot, anchor_snapshot):
+        if item.get("owner_id") != owner:
+            raise ClaimEdgeBlocked("snapshot_owner_mismatch")
+        if not isinstance(item.get("retrieval_id"), str) or not item["retrieval_id"].strip():
+            raise ClaimEdgeBlocked("retrieval_reference_required")
+        if not isinstance(item.get("storage_namespace"), str) or not item["storage_namespace"].strip():
+            raise ClaimEdgeBlocked("storage_namespace_required")
+    history_namespace = history_snapshot["storage_namespace"]
+    anchor_namespace = anchor_snapshot["storage_namespace"]
+    if history_namespace == anchor_namespace:
+        raise ClaimEdgeBlocked("independent_anchor_namespace_required")
+    if history_snapshot["retrieval_id"] == anchor_snapshot["retrieval_id"]:
+        raise ClaimEdgeBlocked("independent_retrieval_reference_required")
+    if history_snapshot.get("claim_id") != anchor_snapshot.get("claim_id"):
+        raise ClaimEdgeBlocked("snapshot_claim_mismatch")
+    records = history_snapshot.get("records")
+    if not isinstance(records, tuple):
+        raise ClaimEdgeBlocked("immutable_snapshot_records_required")
+    outcome = verify_lab_readback(
+        records,
+        expected_last_hash=anchor_snapshot.get("last_hash"),
+        authenticated_owner_id=owner,
+        stored_owner_id=history_snapshot["owner_id"],
+        stored_claim_id=history_snapshot["claim_id"],
+        anchor_owner_id=anchor_snapshot["owner_id"],
+        anchor_claim_id=anchor_snapshot["claim_id"],
+        anchor_retained_separately=True,
+    )
+    return {
+        **outcome,
+        "distinct_declared_namespaces": True,
+        "distinct_retrieval_references": True,
+        "external_store_readback_verified": False,
+        "namespace_independence_authenticated": False,
+        "anchor_authenticity_verified": False,
+    }
+
+
+def _uuid_for_snapshot(value: object) -> str:
+    try:
+        return str(UUID(str(value)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ClaimEdgeBlocked("snapshot_owner_invalid") from exc
