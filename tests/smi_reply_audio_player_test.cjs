@@ -70,7 +70,7 @@ async function sha256(bytes){
  for(const unsafeUrl of [
   "https://attacker.example/collect","//attacker.example/collect",
   "http://attacker.example/collect","/\\\\attacker.example/collect",
-  "/mission/chat/reply-audio\\nmalformed"
+  "/mission/chat/reply-audio\nmalformed"
  ]){
   assert.equal(await player.play({
    url:unsafeUrl,csrf:"csrf",conversationId,requestId
