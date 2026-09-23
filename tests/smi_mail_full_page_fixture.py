@@ -4,15 +4,17 @@ No HTTP service, credentials, DB calls or persistence. Generated file is CI-only
 """
 from __future__ import annotations
 
+import importlib
 import pathlib
 import re
 import sys
 
+from flask import render_template
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import app as app_module  # noqa: E402
-from flask import render_template
+app_module = importlib.import_module("app")
 
 OUTPUT = ROOT / "tests" / ".smi_mail_full_page.html"
 
@@ -25,7 +27,7 @@ with app_module.app.test_request_context("/mission/ollama"):
 # unspecified external navigations/requests are blocked by the file scheme.
 html = html.replace('src="/mission/static/', 'src="../mission_control/static/')
 html = html.replace('href="/mission/static/', 'href="../mission_control/static/')
-html = re.sub(r'<script>\s*window\.OAP_SMI_RIG_FOUNDATION=.*?</script>', "", html, flags=re.S)
+html = re.sub(r'<script>\s*window\.OAP_SMI_RIG_FOUNDATION=.*?</script>', "", html, flags=re.DOTALL)
 
 # Set the Mail endpoint to a fake same-page fetch; do not call a Mail server.
 html += """
