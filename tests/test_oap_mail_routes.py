@@ -357,3 +357,67 @@ def test_authenticated_chat_mail_subject_read_binds_session_to_readonly_sql(
     denied_again = client.post(path, json={"folder": "inbox"}, headers=headers)
     assert denied_again.status_code == 403
     assert opens == [True]
+
+
+
+def test_signed_session_smi_reads_only_subject_columns_end_to_end(
+    client, csrf, monkeypatch,
+):
+    """Actual auth/CSRF/adapter/SQL path; fake read-only connection, no live DB."""
+    from contextlib import contextmanager
+
+    from mission_control import postgres_db
+
+    captured = []
+    class ReadOnlyConnection:
+        def execute(self, sql, params):
+            captured.append((sql, params))
+            return self
+
+        def fetchall(self):
+            return [("<private subject>", "owner@example.test")]
+
+    @contextmanager
+    def fake_connect(*, readonly=False):
+        assert readonly is True
+        yield ReadOnlyConnection()
+
+    monkeypatch.setattr(postgres_db, "connect", fake_connect)
+    response = client.post(
+        "/mission/chat/tools/mail/read",
+        json={"owner_consent": True, "folder": "inbox"},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.get_json()["items"] == [{
+        "subject": "<private subject>",
+        "correspondent": "owner@example.test",
+    }]
+    assert response.get_json()["execute"] is False
+    assert response.get_json()["delivery_enabled"] is False
+    assert len(captured) == 1
+    sql, params = captured[0]
+    assert sql.split("FROM oap_mail_items")[0].strip() == (
+        "SELECT subject,correspondent"
+    )
+    assert "WHERE owner_id=%s AND folder=%s" in sql
+    assert params == ("11111111-1111-4111-8111-111111111111", "inbox")
+
+
+def test_signed_session_mail_consent_denial_precedes_database_connection(
+    client, csrf, monkeypatch,
+):
+    from mission_control import postgres_db
+
+    def forbidden_connection(**_kwargs):
+        raise AssertionError("consent denial must precede any DB connection")
+
+    monkeypatch.setattr(postgres_db, "connect", forbidden_connection)
+    response = client.post(
+        "/mission/chat/tools/mail/read",
+        json={"folder": "inbox"},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "mail_smi_access_denied"
