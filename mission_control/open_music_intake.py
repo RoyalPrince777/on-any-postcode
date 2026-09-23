@@ -82,7 +82,11 @@ def candidate_preview(rows: object) -> dict[str, object]:
 
 def evidence_bytes_digest(evidence: object, *, max_bytes: int = 8_388_608) -> dict[str, object]:
     """Compute a digest of bytes actually supplied, never verify their origin."""
-    if (\n        type(max_bytes) is not int or not 0 < max_bytes <= 8_388_608\n        or not isinstance(evidence, bytes) or not evidence\n        or len(evidence) > max_bytes\n    ):
+    if (
+        type(max_bytes) is not int or not 0 < max_bytes <= 8_388_608
+        or not isinstance(evidence, bytes) or not evidence
+        or len(evidence) > max_bytes
+    ):
         return {
             "accepted": False, "sha256": None, "byte_length": None,
             "independently_verified": False, "rights_verified": False,
