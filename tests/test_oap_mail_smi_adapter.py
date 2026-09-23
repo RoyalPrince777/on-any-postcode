@@ -6,6 +6,7 @@ import uuid
 import pytest
 
 from mission_control import mail_smi_adapter, mail_store
+from oap.registry.tools import ToolCapability, ToolRegistry
 
 OWNER = str(uuid.uuid4())
 OTHER = str(uuid.uuid4())
@@ -62,3 +63,44 @@ def test_store_unavailable_is_not_recast_as_success(monkeypatch):
             actor_id=OWNER, mailbox_owner_id=OWNER,
             folder="inbox", owner_consent=True,
         )
+
+
+def test_mail_capability_registry_is_read_only_and_not_independent():
+    capability = mail_smi_adapter._MAIL_READ_TOOLS.authorize_capability(
+        "oap.mail.owner.read", "mail.read", mutation=False,
+    )
+    assert capability.read_only is True
+    assert capability.requires_human_approval is True
+    assert capability.requires_kernel is True
+    assert capability.can_execute_independently is False
+    with pytest.raises(PermissionError):
+        mail_smi_adapter._MAIL_READ_TOOLS.authorize_capability(
+            "oap.mail.owner.read", "mail.read", mutation=True,
+        )
+
+
+def test_disabled_mail_capability_fails_before_store(monkeypatch):
+    monkeypatch.setattr(
+        mail_smi_adapter, "_MAIL_READ_TOOLS",
+        ToolRegistry((ToolCapability(
+            tool_id="oap.mail.owner.read", name="OAP Mail Owner Read",
+            category="mail", abilities=("mail.read",), enabled=False,
+        ),)),
+    )
+    calls = []
+    monkeypatch.setattr(mail_store, "list_items",
+                        lambda *_: calls.append(True))
+    with pytest.raises(PermissionError, match="mail_smi_capability_unavailable"):
+        mail_smi_adapter.read_owner_folder(
+            actor_id=OWNER, mailbox_owner_id=OWNER,
+            folder="inbox", owner_consent=True,
+        )
+    assert calls == []
+
+
+def test_mail_registry_does_not_authorize_send_or_forward():
+    for ability in ("mail.send", "mail.forward", "mail.delete"):
+        with pytest.raises(PermissionError):
+            mail_smi_adapter._MAIL_READ_TOOLS.authorize_capability(
+                "oap.mail.owner.read", ability, mutation=False,
+            )
