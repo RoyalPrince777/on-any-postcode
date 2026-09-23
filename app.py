@@ -2057,5 +2057,81 @@ def infrastructure_status():
     )
 
 
+@app.route("/oap-lab", methods=["GET", "POST"])
+@web_security.login_required(founder_only=True)
+def oap_lab_workbench():
+    """Founder-only, transient LAB research workbench; no persistence or live claims."""
+    from mission_control.oap_lab_research import (
+        DOMAINS, MISSIONS, Experiment, Notebook, run_isolated,
+    )
+
+    values = {
+        "mission": MISSIONS[0], "domain": DOMAINS[0],
+        "question": "", "hypothesis": "", "falsification": "",
+        "operation": "", "dataset": "", "synthetic": False,
+        "human_approved": False, "stopped": False,
+    }
+    error = None
+    result = None
+    if request.method == "POST":
+        if not web_security.csrf_valid(request):
+            return _csrf_failure()
+        values.update({
+            key: str(request.form.get(key, ""))[:limit].strip()
+            for key, limit in (
+                ("mission", 80), ("domain", 80), ("question", 1024),
+                ("hypothesis", 1024), ("falsification", 1024),
+                ("operation", 24), ("dataset", 4000),
+            )
+        })
+        for key in ("synthetic", "human_approved", "stopped"):
+            values[key] = request.form.get(key) == "yes"
+        try:
+            notebook = Notebook(
+                identifier=str(uuid.uuid4()),
+                mission=values["mission"],
+                domain=values["domain"],
+                question=values["question"],
+                hypothesis=values["hypothesis"],
+                falsification=values["falsification"],
+            )
+            result = {
+                "mission": notebook.mission,
+                "domain": notebook.domain,
+                "experiment": None,
+                "persisted": False,
+                "scientific_truth_established": False,
+                "release_ready": False,
+            }
+            if values["operation"]:
+                if values["operation"] not in ("mean", "sum", "minimum", "maximum"):
+                    raise ValueError("operation_not_allowlisted")
+                try:
+                    dataset = tuple(float(item.strip()) for item in values["dataset"].split(","))
+                except ValueError as exc:
+                    raise ValueError("synthetic_numeric_dataset_required") from exc
+                experiment = Experiment(
+                    identifier=str(uuid.uuid4()),
+                    notebook_id=notebook.identifier,
+                    operation=values["operation"],
+                    dataset=dataset,
+                    synthetic=values["synthetic"],
+                    human_approved=values["human_approved"],
+                )
+                result["experiment"] = run_isolated(
+                    experiment, notebook, stopped=values["stopped"],
+                )
+        except (ValueError, TypeError, PermissionError) as exc:
+            result = None
+            error = str(exc)
+    response = make_response(render_template(
+        "oap_lab.html", missions=MISSIONS, domains=DOMAINS,
+        operations=("mean", "sum", "minimum", "maximum"),
+        values=values, error=error, result=result,
+    ))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)
