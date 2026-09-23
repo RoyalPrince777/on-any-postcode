@@ -1,6 +1,4 @@
 """Isolated Mind / Body / Soul tests: never invoke providers or databases."""
-from uuid import UUID
-
 import pytest
 
 from mission_control.pod_supplier_contract import (
@@ -124,3 +122,33 @@ def test_no_external_execution_switch_and_money_validation():
         Quote(SUPPLIER, "variant", -1, 0, "GBP", "quote", "GB", "hoodie", 1)
     with pytest.raises(PODContractError, match="invalid_shipping_minor"):
         Quote(SUPPLIER, "variant", 100, True, "GBP", "quote", "GB", "hoodie", 1)
+
+
+def test_missing_submission_evidence_leaves_approved_state_unchanged():
+    p = intent()
+    p.quote_ready(SELLER)
+    p.approve(SELLER, "approval")
+    with pytest.raises(PODContractError, match="submission_evidence_required"):
+        p.record_submission(SELLER, "")
+    assert p.state == PODState.APPROVED
+    assert p.submission_reference is None
+
+
+def test_missing_receipt_evidence_cannot_mark_accepted():
+    p = intent()
+    p.quote_ready(SELLER)
+    p.approve(SELLER, "approval")
+    p.record_submission(SELLER, "external-id")
+    with pytest.raises(PODContractError, match="receipt_evidence_required"):
+        p.record_receipt(SELLER, "external-id", "")
+    assert p.state == PODState.SUBMITTED
+    assert p.receipt_reference is None
+
+
+def test_missing_approval_receipt_cannot_set_approver():
+    p = intent()
+    p.quote_ready(SELLER)
+    with pytest.raises(PODContractError, match="evidence_required"):
+        p.approve(SELLER, "")
+    assert p.state == PODState.QUOTED
+    assert p.approved_by is None
