@@ -342,18 +342,17 @@ def test_real_named_fma_track_can_be_prepared_only_as_private_review_lead():
         candidate_id=str(UUID("316822c4-0d81-4944-a413-d33e49c11710")),
         title="Window", artist="1000 Handz",
         source_kind="free_music_archive", claimed_licence="CC_BY",
-        source_page_url=(
-            "https://freemusicarchive.org/music/1000-handz/"
-            "cc-by-free-to-use-melodic-rap-instrumentals/window-1/"
-        ),
+        # No invented/unchecked exact URL: a named lead is not source proof.
         rights_verified=True, source_page_independently_checked=True,
     )])["candidates"][0]
     receipt = music.private_source_review_receipt(item)
     assert receipt["title"] == "Window"
     assert receipt["artist"] == "1000 Handz"
-    assert receipt["source_page_url"] == item["source_page_url"]
+    assert item["source_page_url"] is None
+    assert receipt["source_page_url"] is None
     assert receipt["attribution_draft"] == "Window — 1000 Handz"
-    assert receipt["attribution_source_url"] == item["source_page_url"]
+    assert receipt["attribution_source_url"] is None
+    assert receipt["source_page_independently_checked"] is False
     assert receipt["claimed_licence_reference_url"] == (
         "https://creativecommons.org/licenses/by/4.0/"
     )
