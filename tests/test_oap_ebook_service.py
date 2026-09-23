@@ -99,10 +99,10 @@ def test_rotation_expires_at_every_page(monkeypatch):
         rights_allow_rotation=True,
     )
     rotation = Rotation("oap", NOW, NOW + timedelta(days=7))
-    assert read(book=book, rotation=rotation, page_number=1).content == "two"
+    assert read(book=book, rotation=rotation, authenticated_identity="member", page_number=1).content == "two"
     with pytest.raises(PermissionError, match="access_denied"):
         read(
-            book=book, rotation=rotation,
+            book=book, rotation=rotation, authenticated_identity="member",
             now=NOW + timedelta(days=7),
         )
 
