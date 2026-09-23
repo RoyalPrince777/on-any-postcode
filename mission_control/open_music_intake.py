@@ -241,7 +241,7 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
         topics.append("verify_direct_grant_signatory_scope_and_expiry")
     return {
         "candidate_id": f"oap:open-music:{candidate_uid}" if candidate_uid else None,
-        "submitted_evidence_id": _uuid(proof.get("evidence_id")),
+        "submitted_evidence_id": _uuid(proof.get("evidence_id")) if candidate_uid else None,
         "source_kind": kind,
         "source_page_url": _source_page(kind, row.get("source_page_url")),
         "source_page_independently_checked": False,
