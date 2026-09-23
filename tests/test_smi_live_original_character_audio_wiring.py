@@ -9,7 +9,7 @@ CONTROLLER = (
 
 def test_original_character_receives_real_browser_playback_lifecycle_only():
     source = CONTROLLER.read_text(encoding="utf-8")
-    assert "function oapPlaybackState(phase,epoch)" in source
+    assert "function oapPlaybackState(phase,epoch,source=" in source
     assert "oapCharacter.dataset.audioPlayback=phase" in source
     assert "oap-smi-playback-state" in source
     assert "source:'browser-speech-synthesis'" in source
