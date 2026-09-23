@@ -195,6 +195,10 @@ def test_tune_catalogue_intelligence_route_is_private_csrf_and_read_only(monkeyp
 
     monkeypatch.setattr(product_core_views, "_write_allowed", lambda: True)
     assert client.post(path, json={"candidates": "not-a-list"}).status_code == 400
+    assert client.post(path, json={"candidates": [], "genres": ["unknown"]}).status_code == 400
+    assert client.post(path, json={"candidates": [], "genres": ["Afrobeats", "Afrobeats"]}).status_code == 400
+    assert client.post(path, json={"candidates": [], "licence_filter": "stream_all"}).status_code == 400
+    assert client.post(path, json={"candidates": [], "vocals": "Any"}).status_code == 400
     response = client.post(path, json={"candidates": [{
         "candidate_id": str(uuid4()), "title": "Track",
         "artist": "Artist", "source_kind": "direct_artist",
