@@ -99,3 +99,26 @@ def test_evidence_and_invention_are_proposals_not_patents():
     invention = Invention("inv-001", entry.identifier, "Idea", "Proposed novelty", "Synthetic research")
     assert entry.evidence[0].classification == "unverified"
     assert invention.status == "unproven"
+
+
+@pytest.mark.parametrize("change", [
+    {"synthetic": "yes"},
+    {"synthetic": 1},
+    {"human_approved": "yes"},
+    {"human_approved": 1},
+])
+def test_body_requires_explicit_synthetic_and_approval_flags(change):
+    with pytest.raises(PermissionError, match="synthetic data and bounded human approval required"):
+        run_isolated(experiment(**change), notebook())
+
+
+@pytest.mark.parametrize("invalid_stop", ["false", 0, None])
+def test_body_rejects_non_boolean_stop_state(invalid_stop):
+    with pytest.raises(PermissionError, match="explicit STOP state required"):
+        run_isolated(experiment(), notebook(), stopped=invalid_stop)
+
+
+@pytest.mark.parametrize("operation", ["sum", "mean"])
+def test_body_arithmetic_overflow_fails_closed(operation):
+    with pytest.raises(ValueError, match="synthetic_result_not_representable"):
+        run_isolated(experiment(operation=operation, dataset=(1e308, 1e308)), notebook())
