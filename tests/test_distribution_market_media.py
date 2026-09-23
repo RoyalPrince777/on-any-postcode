@@ -20,7 +20,7 @@ def test_media_projection_uses_real_tune_state(monkeypatch):
         product_core_views.product_core_services,
         "tune_dashboard",
         lambda identity: {
-            "organ": "OAP Tune Core",
+            "organ": "OAP Music",
             "releases": [{"release_id": "release-1", "state": "DRAFT"}],
             "playlists": [{"playlist_id": "playlist-1"}],
         },
@@ -62,7 +62,7 @@ def test_distribution_projection_stays_fail_closed(monkeypatch):
         product_core_views.product_core_services,
         "tune_dashboard",
         lambda identity: {
-            "organ": "OAP Tune Core",
+            "organ": "OAP Music",
             "releases": [{"release_id": "release-1", "rights_status": "PENDING"}],
             "playlists": [],
         },
