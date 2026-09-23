@@ -1,6 +1,6 @@
 """Private candidate-only OAP Open Music intake; never a rights authority.
 
-Reuse OAP Tune Core and entertainment_catalogue for release records and projection.
+Reuse existing first-party OAP Music release records and entertainment_catalogue projection.
 This function never downloads, persists, publishes, streams or approves media.
 """
 from __future__ import annotations
@@ -111,13 +111,13 @@ def candidate_preview(rows: object) -> dict[str, object]:
             "recording_rights_verified": False,
             "composition_rights_verified": False,
             "territory_verified": False,
-            "tune_release_created": False,
+            "music_release_created": False,
             "public_catalogue_enabled": False,
             "playback_enabled": False,
         })
     return {
         "organ": "OAP Music",
-        "canonical_catalogue": "OAP Tune Core",
+        "canonical_catalogue": "OAP Music",
         "candidates": candidates,
         "candidate_count": len(candidates),
         "ingest_performed": False,
@@ -162,7 +162,7 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
         "verify_territory_and_distribution_uses",
         "verify_attribution_and_revocation",
         "verify_asset_to_evidence_binding",
-        "obtain_owner_scoped_tune_and_human_approval",
+        "obtain_owner_scoped_music_and_human_approval",
     ]
     if claim in ("CC_BY", "CC_BY_SA"):
         topics.append("verify_credit_and_licence_notice_requirements")
@@ -195,7 +195,7 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
             "composition_and_recording_rights_not_verified",
             "territory_and_use_permissions_not_verified",
             "attribution_and_revocation_not_connected",
-            "owner_scoped_tune_release_and_human_approval_not_connected",
+            "owner_scoped_music_release_and_human_approval_not_connected",
         ],
         "human_authority_final": True,
     }
@@ -210,7 +210,7 @@ def private_source_review_receipt(candidate: object) -> dict[str, object]:
     A source-page claim cannot prove recording or composition ownership.
     """
     row = candidate if isinstance(candidate, Mapping) else {}
-    handoff = tune_handoff_preview(row)
+    handoff = music_handoff_preview(row)
     rights = rights_review(row)
     candidate_id = handoff["candidate_id"]
     page = rights["source_page_url"] if candidate_id else None
@@ -237,7 +237,7 @@ def private_source_review_receipt(candidate: object) -> dict[str, object]:
         "review_state": "private_unverified_lead",
         "receipt_persisted": False,
         "evidence_bytes_retained": False,
-        "tune_release_created": False,
+        "music_release_created": False,
         "playback_enabled": False,
         "public_catalogue_enabled": False,
         "blockers": rights["blockers"],
@@ -291,7 +291,7 @@ OPEN_SOURCE_DIRECTORY = (
 def source_directory() -> dict[str, object]:
     """Static discovery leads; deliberately no scrape, API or licence claim."""
     return {
-        "canonical_catalogue": "OAP Tune Core",
+        "canonical_catalogue": "OAP Music",
         "entries": [
             {"source_kind": kind, "label": label, "discovery_url": url,
              "connected": False, "licence_verified": False,
@@ -304,8 +304,8 @@ def source_directory() -> dict[str, object]:
     }
 
 
-def tune_handoff_preview(candidate: object) -> dict[str, object]:
-    """Inert Tune Core handoff: avoid a second release store and authority."""
+def music_handoff_preview(candidate: object) -> dict[str, object]:
+    """Inert OAP Music handoff: preserve one release store and authority."""
     row = candidate if isinstance(candidate, Mapping) else {}
     uid = _candidate_uid(row.get("candidate_id"))
     title = _safe_text(row.get("title"), 180)
@@ -317,7 +317,7 @@ def tune_handoff_preview(candidate: object) -> dict[str, object]:
                  and isinstance(licence, str) and licence in LICENCE_KINDS)
     return {
         "candidate_id": f"oap:open-music:{uid}" if valid else None,
-        "target_organ": "OAP Tune Core",
+        "target_organ": "OAP Music",
         "target_release_type": "single" if valid else None,
         "title": title if valid else None,
         "artist": artist if valid else None,
@@ -329,7 +329,7 @@ def tune_handoff_preview(candidate: object) -> dict[str, object]:
         "public_catalogue_enabled": False,
         "blockers": [
             "independent_rights_verification_required",
-            "authenticated_owner_scoped_tune_write_not_authorised",
+            "authenticated_owner_scoped_music_write_not_authorised",
             "human_release_approval_required",
         ],
         "human_authority_final": True,
