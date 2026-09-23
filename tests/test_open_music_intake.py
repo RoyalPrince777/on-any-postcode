@@ -202,3 +202,25 @@ def test_canonical_candidate_integrity_and_prefix_injection_fail_closed():
         assert music.tune_handoff_preview(_candidate(candidate_id=invalid))["candidate_id"] is None
         assert music.rights_review({"candidate_id": invalid})["candidate_id"] is None
         assert music.asset_integrity_review(invalid, b"asset", digest)["digest_matches_submission"] is False
+
+
+def test_invalid_or_duplicate_leads_do_not_consume_private_candidate_quota():
+    invalid = [_candidate(candidate_id="not-a-uuid") for _ in range(25)]
+    valid = _candidate()
+    result = music.candidate_preview(invalid + [valid, valid])
+    assert result["candidate_count"] == 1
+    assert result["candidates"][0]["candidate_id"].endswith(valid["candidate_id"])
+    assert result["ingest_performed"] is False
+
+
+def test_free_music_lead_scan_and_accepted_candidate_quotas_are_bounded():
+    rows = [_candidate() for _ in range(music.MAX_LEADS_SCAN + 10)]
+    result = music.candidate_preview(rows)
+    assert result["candidate_count"] == music.MAX_CANDIDATES
+    assert all(c["rights_verified"] is False for c in result["candidates"])
+    assert all(c["playback_enabled"] is False for c in result["candidates"])
+    hidden = _candidate()
+    beyond_scan = [_candidate(candidate_id="bad") for _ in range(music.MAX_LEADS_SCAN)]
+    excluded = music.candidate_preview(beyond_scan + [hidden])
+    assert excluded["candidate_count"] == 0
+    assert excluded["ingest_performed"] is False
