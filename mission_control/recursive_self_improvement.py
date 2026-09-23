@@ -251,8 +251,9 @@ def record_learning(
     lesson: str,
     tests_passed: bool,
     rollback_available: bool,
+    reviewed_outcome_ref: str = "",
 ) -> dict[str, Any]:
-    """Write one bounded HRM-style Matrix learning receipt."""
+    """Write a governed Matrix learning receipt only with reviewed outcome provenance."""
 
     proposal_id = str(proposal.get("proposal_id") or "").strip()
     if not proposal_id:
@@ -260,6 +261,9 @@ def record_learning(
     lesson = lesson.strip()
     if not lesson:
         raise ValueError("Learning lesson is required")
+    reviewed_outcome_ref = reviewed_outcome_ref.strip()
+    if not reviewed_outcome_ref:
+        raise ValueError("Reviewed outcome reference is required")
 
     receipt = smi_receipt_backend.write_receipt(
         "matrix_learning_receipt",
@@ -267,12 +271,13 @@ def record_learning(
             "brain_part": "recursive_self_improvement",
             "gate": 7,
             "command": "record_learning",
-            "signal": "🟢" if tests_passed else "🟠",
+            "signal": "🟡" if tests_passed else "🟠",
             "guardian": "required",
             "green_gate": "required",
             "founder_final": "required_for_full_green",
             "safe_payload": {
                 "proposal_id": proposal_id,
+                "reviewed_outcome_ref": reviewed_outcome_ref,
                 "outcome": str(outcome).strip(),
                 "before_state": str(before_state).strip(),
                 "after_state": str(after_state).strip(),
@@ -285,15 +290,24 @@ def record_learning(
                 "automatic_deploy": False,
             },
         },
+        require_durable=True,
+    )
+    durable_learning = bool(
+        receipt.get("ok") is True
+        and receipt.get("read_back_ok") is True
+        and receipt.get("durable") is True
+        and receipt.get("fallback_used") is False
+        and receipt.get("receipt_kind") == "matrix_learning_receipt"
     )
 
     return {
         "proposal_id": proposal_id,
-        "state": "learning_recorded" if receipt.get("ok") else "receipt_failed",
+        "reviewed_outcome_ref": reviewed_outcome_ref,
+        "state": "learning_recorded" if durable_learning else "durable_learning_unproven",
         "receipt": receipt,
         "tests_passed": bool(tests_passed),
         "rollback_available": bool(rollback_available),
-        "matrix_update_allowed": bool(receipt.get("ok")),
+        "matrix_update_allowed": durable_learning,
         "authority_changed": False,
         "permissions_changed": False,
         "execution_granted": False,
