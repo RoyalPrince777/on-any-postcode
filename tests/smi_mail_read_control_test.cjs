@@ -30,6 +30,7 @@ function setup(confirm=true){
     OAP_SMI_UI:{mailReadUrl:"/mission/chat/tools/mail/read",csrfToken:"csrf"},
     confirm:()=>confirm,
     addEventListener:()=>{},
+    removeEventListener:()=>{},
   };
   let respond;
   const fetch=(url,opts)=>{requested++;request={url,opts};return new Promise(resolve=>{respond=resolve;});};
