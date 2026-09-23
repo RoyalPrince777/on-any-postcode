@@ -181,3 +181,53 @@ def test_corrupt_json_snapshot_fails_closed(monkeypatch):
     install(monkeypatch, c)
     with pytest.raises(FashionError, match="invalid_fashion_snapshot"):
         fashion_persistence.read_fashion(actor_id=OWNER, product_id=PRODUCT)
+
+
+def test_fashion_schema_dry_run_performs_no_sql(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("No connection on dry run")
+
+    monkeypatch.setattr(fashion_persistence.postgres_db, "connect", forbidden)
+    result = fashion_persistence.fashion_schema_dry_run()
+    assert result["schema_applied"] is False
+    assert result["dry_run"] is True
+    assert len(result["checksum"]) == 64
+
+
+def test_fashion_schema_status_requires_existing_commerce_core(monkeypatch):
+    monkeypatch.setattr(
+        fashion_persistence.product_cores, "product_core_schema_status",
+        lambda: {"schema_ready": False},
+    )
+    result = fashion_persistence.fashion_schema_status()
+    assert result["schema_ready"] is False
+    assert result["error"] == "product_core_schema_not_ready"
+
+
+def test_fashion_schema_status_fails_closed_on_missing_table(monkeypatch):
+    monkeypatch.setattr(
+        fashion_persistence.product_cores, "product_core_schema_status",
+        lambda: {"schema_ready": True},
+    )
+    c = FakeConnection()
+    c.execute = lambda statement, params=None: c
+    c.fetchone = lambda: None
+    install(monkeypatch, c)
+    result = fashion_persistence.fashion_schema_status()
+    assert result["schema_ready"] is False
+    assert result["error"] == "fashion_table_missing"
+
+
+def test_fashion_schema_status_requires_matching_checksum(monkeypatch):
+    monkeypatch.setattr(
+        fashion_persistence.product_cores, "product_core_schema_status",
+        lambda: {"schema_ready": True},
+    )
+    c = FakeConnection()
+    values = iter((("oap_fashion_snapshots",), ("mismatched",)))
+    c.execute = lambda statement, params=None: c
+    c.fetchone = lambda: next(values)
+    install(monkeypatch, c)
+    result = fashion_persistence.fashion_schema_status()
+    assert result["schema_ready"] is False
+    assert result["error"] == "fashion_migration_not_verified"
