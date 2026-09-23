@@ -28,6 +28,27 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
     assert result["duration_s"] == 0.0
 
 
+def test_non_object_json_is_bounded_failure(monkeypatch):
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b"[]"
+
+    monkeypatch.setattr(gate.request, "urlopen", lambda *args, **kwargs: FakeResponse())
+    result = gate.run_one(0)
+    assert result["ok"] is False
+    assert result["failure_type"] == "request_or_response_error"
+    assert result["distance_m"] == 0.0
+    assert result["duration_s"] == 0.0
+
+
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
