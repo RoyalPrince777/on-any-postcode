@@ -36,3 +36,12 @@ def test_hrm_receipt_requires_a_unique_recorded_request():
     assert "oapRenderedReceiptIds.add(receiptKey)" in legacy
     assert "oapRenderedReceiptIds.size>128" in legacy
     assert "Shown only after the governed response completed" in legacy
+
+
+def test_cancelled_stream_cannot_complete_or_clear_newer_request():
+    controller = (ROOT / "mission_control/static/smi_canonical_controller.js").read_text(encoding="utf-8")
+    assert "const requestAbort=oapAbort" in controller
+    assert "signal:requestAbort.signal" in controller
+    assert controller.count("if(requestAbort.signal.aborted||oapAbort!==requestAbort)return") >= 2
+    assert "if(oapAbort===requestAbort){if(oapWorkStarted)oapEndWork()" in controller
+    assert "window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}))" in controller
