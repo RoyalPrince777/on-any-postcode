@@ -47,6 +47,13 @@ const candidate=bridge(),initial=candidate.snapshot();
 assert.equal(initial.admitted,true);assert.equal(initial.alignmentContractAccepted,true);
 assert.equal(initial.attachedToLivePage,false);assert.equal(initial.storesText,false);assert.equal(initial.storesAudio,false);
 assert.equal(initial.accurateLipSyncProven,false);assert.equal(initial.physicalAndroidStopProven,false);
+// A delayed/stray end before any valid start cannot rewrite STOP or failure state.
+const beforeStart=candidate.snapshot();
+assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:1400,eventType:"ended"}),null);
+assert.deepEqual(candidate.snapshot(),beforeStart);
+const invalid=bridge({humanStart:false}),invalidBefore=invalid.snapshot();
+assert.equal(invalid.playbackEnd({audioClockMs:400,observedAtMs:1400,eventType:"ended"}),null);
+assert.deepEqual(invalid.snapshot(),invalidBefore);
 assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:1020}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"boundary",clockSource:"audio-context"}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"media-element"}),null);
