@@ -44,9 +44,10 @@ def set_stop(connection: sqlite3.Connection, *, campaign_id: str,
         raise ValueError("invalid_raffles_stop_command")
     if not audit_schema_ready(connection):
         raise RuntimeError("canonical_audit_schema_required")
-    if action == "RECOVER":
-        if authority_checker is None or authority_checker(actor) is not True:
-            raise PermissionError("canonical_founder_authority_required")
+    if action == "RECOVER" and (
+        authority_checker is None or authority_checker(actor) is not True
+    ):
+        raise PermissionError("canonical_founder_authority_required")
     if connection.in_transaction:
         raise RuntimeError("exclusive_raffles_transaction_required")
     connection.execute("BEGIN IMMEDIATE")
