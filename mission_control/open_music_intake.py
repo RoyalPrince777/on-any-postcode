@@ -16,6 +16,18 @@ SOURCE_KINDS = frozenset({
 })
 LICENCE_KINDS = frozenset({
     "CC0", "CC_BY", "CC_BY_SA", "PUBLIC_DOMAIN", "DIRECT_PERMISSION",
+    "CC_BY_NC", "CC_BY_ND", "CC_BY_NC_SA", "CC_BY_NC_ND",
+    "ALL_RIGHTS_RESERVED", "UNKNOWN",
+})
+GENRES = frozenset({
+    "Afrobeats", "Amapiano", "Hip-Hop / Rap", "R&B / Soul",
+    "Reggae / Roots", "Dancehall", "Highlife", "House / Garage",
+    "Drill / Grime", "Instrumental / Beats",
+})
+PREFERRED_LICENCES = frozenset({"CC0", "CC_BY"})
+RESTRICTED_LICENCES = frozenset({
+    "CC_BY_NC", "CC_BY_ND", "CC_BY_NC_SA", "CC_BY_NC_ND",
+    "ALL_RIGHTS_RESERVED", "UNKNOWN",
 })
 MAX_CANDIDATES = 25
 MAX_LEADS_SCAN = 250
@@ -128,13 +140,20 @@ def candidate_preview(rows: object) -> dict[str, object]:
 
 
 
-def private_catalogue_intelligence(rows: object) -> dict[str, object]:
+def private_catalogue_intelligence(\n    rows: object, *, genres: object = None, licence_filter: str = "all",\n    mood: str = "All moods", vocals: str = "All",\n) -> dict[str, object]:
     """Deduplicate externally discovered *claims* into an inert review queue.
 
     The caller supplies metadata already discovered elsewhere. No network access,
     media retrieval, catalogue persistence, licence proof or OAP release occurs.
     """
     source = rows if isinstance(rows, list) else []
+    chosen = (frozenset(genres) if isinstance(genres, list)
+              and len(genres) <= len(GENRES)
+              and all(isinstance(g, str) and g in GENRES for g in genres)
+              else frozenset())
+    allowed_filter = licence_filter if licence_filter in ("all", "preferred") else "all"
+    allowed_mood = _safe_text(mood, 60) if isinstance(mood, str) else None
+    allowed_vocals = vocals if vocals in ("All", "Vocals", "Instrumental") else "All"
     review: list[dict[str, object]] = []
     seen_pages: set[str] = set()
     seen_titles: set[tuple[str, str, str]] = set()
@@ -146,6 +165,19 @@ def private_catalogue_intelligence(rows: object) -> dict[str, object]:
         if not candidates:
             continue
         item = candidates[0]
+        genre = row.get("genre") if isinstance(row, Mapping) else None
+        genre = genre if isinstance(genre, str) and genre in GENRES else None
+        track_mood = _safe_text(row.get("mood"), 60) if isinstance(row, Mapping) else None
+        vocal_type = row.get("vocals") if isinstance(row, Mapping) else None
+        vocal_type = vocal_type if vocal_type in ("Vocals", "Instrumental") else None
+        if chosen and genre not in chosen:
+            continue
+        if allowed_filter == "preferred" and item["claimed_licence"] not in PREFERRED_LICENCES:
+            continue
+        if allowed_mood and allowed_mood != "All moods" and track_mood != allowed_mood:
+            continue
+        if allowed_vocals != "All" and vocal_type != allowed_vocals:
+            continue
         page = item["source_page_url"]
         title_key = (item["source_kind"], item["artist"].casefold(),
                      item["title"].casefold())
@@ -166,6 +198,14 @@ def private_catalogue_intelligence(rows: object) -> dict[str, object]:
             "source_kind": item["source_kind"],
             "source_page_url": page,
             "claimed_licence": item["claimed_licence"],
+            "genre": genre,
+            "mood": track_mood,
+            "vocals": vocal_type,
+            "licence_review_class": (
+                "restricted_or_unclear" if item["claimed_licence"] in RESTRICTED_LICENCES
+                else "priority_claim" if item["claimed_licence"] in PREFERRED_LICENCES
+                else "separate_rights_review"
+            ),
             "review_state": "private_unverified_lead",
             "source_page_independently_checked": False,
             "licensor_authority_verified": False,
@@ -183,6 +223,10 @@ def private_catalogue_intelligence(rows: object) -> dict[str, object]:
         "organ": "OAP Music",
         "review_queue": review,
         "review_count": len(review),
+        "genre_filter": sorted(chosen),
+        "licence_filter": allowed_filter,
+        "mood_filter": allowed_mood or "All moods",
+        "vocal_filter": allowed_vocals,
         "source_fetch_performed": False,
         "audio_retrieval_performed": False,
         "rights_verified": False,
@@ -239,6 +283,8 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
         topics.append("verify_recording_and_composition_public_domain_separately")
     if claim == "DIRECT_PERMISSION":
         topics.append("verify_direct_grant_signatory_scope_and_expiry")
+    if claim in RESTRICTED_LICENCES:
+        topics.append("restricted_or_unclear_licence_requires_separate_permission")
     return {
         "candidate_id": f"oap:open-music:{candidate_uid}" if candidate_uid else None,
         "submitted_evidence_id": _uuid(proof.get("evidence_id")) if candidate_uid else None,
