@@ -110,7 +110,13 @@ class ClaimEdge:
         ):
             raise ClaimEdgeBlocked("invalid_evidence_classification")
         _date(self.event_at)
-        if self.private_subject and (not self.consent_for_research or not self.redacted):
+        if any(type(value) is not bool for value in (
+            self.private_subject, self.consent_for_research, self.redacted, self.stopped,
+        )):
+            raise ClaimEdgeBlocked("explicit_boolean_privacy_controls_required")
+        if self.private_subject and (
+            self.consent_for_research is not True or self.redacted is not True
+        ):
             raise ClaimEdgeBlocked("private_subject_requires_consent_and_redaction")
 
 
