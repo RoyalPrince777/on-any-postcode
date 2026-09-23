@@ -7,6 +7,7 @@ from . import (
     distribution_intelligence,
     entertainment_catalogue,
     open_cinema,
+    open_cinema_evidence,
     product_core_services,
     product_cores,
     product_store,
@@ -208,6 +209,23 @@ def open_cinema_preview():
         return _error("invalid_request", "Candidate list required.", 400)
     return _no_store(make_response(jsonify(
         open_cinema.preview(payload["candidates"])
+    )))
+
+
+@bp.post("/entertainment/open-cinema/evidence-preview")
+@web_security.login_required(api=True, founder_only=True)
+def open_cinema_evidence_preview():
+    """Inert private review envelope; never verifies document bytes or rights."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Evidence review object required.", 400)
+    return _no_store(make_response(jsonify(
+        open_cinema_evidence.review_envelope(
+            payload.get("candidate_id"), payload.get("territory"),
+            payload.get("evidence"),
+        )
     )))
 
 
