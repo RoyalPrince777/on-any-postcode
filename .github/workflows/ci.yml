@@ -49,6 +49,20 @@ jobs:
           node tests/smi_android_motion_evidence_gate_test.cjs
           node --check mission_control/smi_real_reply_motion_bridge.js
           node tests/smi_real_reply_motion_bridge_test.cjs
+      - name: Real Chromium Mail-control privacy acceptance
+        run: |
+          set -o pipefail
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER" ]; then
+            echo "No real Chromium browser available: Mail acceptance blocked"
+            exit 1
+          fi
+          timeout 45 "$BROWSER" --headless=new --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --virtual-time-budget=4000 \
+            --dump-dom "file://$PWD/tests/smi_mail_browser_acceptance.html" \
+            2>/tmp/oap-mail-browser-stderr.log | tee /tmp/oap-mail-browser-proof.html
+          grep -q "OAP_MAIL_CHROMIUM_BOUNDARY_PASS" /tmp/oap-mail-browser-proof.html
+          if grep -q "OAP_MAIL_CHROMIUM_BOUNDARY_FAIL" /tmp/oap-mail-browser-proof.html; then exit 1; fi
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
