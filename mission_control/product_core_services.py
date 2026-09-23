@@ -11,6 +11,8 @@ from typing import Any
 from uuid import UUID
 
 from . import postgres_db, product_cores
+from .fashion_first_party import FashionDraft
+from .fashion_market_bridge import fashion_market_projection
 
 
 def _uuid(value: object, name: str) -> str:
@@ -203,6 +205,22 @@ def commerce_dashboard(identity_id: object, *, limit: int = 100) -> dict[str, An
         "external_fulfilment": False,
         "human_authority_final": True,
     }
+
+
+def owner_fashion_market_projection(
+    identity_id: object, draft: FashionDraft
+) -> dict[str, object]:
+    """Resolve the Market product from OAP-owned read-only storage.
+
+    Draft metadata remains caller-owned and transient until separate durable
+    Fashion storage is approved. No client-supplied Market records are trusted.
+    """
+    owner = _uuid(identity_id, "identity_id")
+    return fashion_market_projection(
+        actor_id=owner,
+        draft=draft,
+        commerce=commerce_dashboard(owner),
+    )
 
 
 def post_dashboard(identity_id: object, *, limit: int = 100) -> dict[str, Any]:
