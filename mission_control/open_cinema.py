@@ -25,7 +25,11 @@ def _reference_url(url: object, source: str) -> str | None:
         return None
     parsed = urlsplit(url)
     host = parsed.hostname
-    if parsed.scheme != "https" or parsed.username or parsed.password or parsed.port:
+    try:
+        forbidden_authority = parsed.username or parsed.password or parsed.port
+    except ValueError:
+        return None
+    if parsed.scheme != "https" or forbidden_authority:
         return None
     if host is None or host != SOURCES[source] or not parsed.path:
         return None
