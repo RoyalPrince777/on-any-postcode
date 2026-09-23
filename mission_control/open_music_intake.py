@@ -151,10 +151,35 @@ def rights_review(candidate: object, evidence: object = None) -> dict[str, objec
     row = candidate if isinstance(candidate, Mapping) else {}
     proof = evidence if isinstance(evidence, Mapping) else {}
     candidate_uid = _candidate_uid(row.get("candidate_id"))
+    kind = row.get("source_kind")
+    kind = kind if isinstance(kind, str) and kind in SOURCE_KINDS else None
+    claim = row.get("claimed_licence")
+    claim = claim if isinstance(claim, str) and claim in LICENCE_KINDS else None
+    topics = [
+        "identify_original_source_and_licensor",
+        "verify_recording_rights_separately",
+        "verify_composition_rights_separately",
+        "verify_territory_and_distribution_uses",
+        "verify_attribution_and_revocation",
+        "verify_asset_to_evidence_binding",
+        "obtain_owner_scoped_tune_and_human_approval",
+    ]
+    if claim in ("CC_BY", "CC_BY_SA"):
+        topics.append("verify_credit_and_licence_notice_requirements")
+    if claim == "CC_BY_SA":
+        topics.append("verify_share_alike_scope_for_planned_uses")
+    if claim in ("CC0", "PUBLIC_DOMAIN"):
+        topics.append("verify_recording_and_composition_public_domain_separately")
+    if claim == "DIRECT_PERMISSION":
+        topics.append("verify_direct_grant_signatory_scope_and_expiry")
     return {
         "candidate_id": f"oap:open-music:{candidate_uid}" if candidate_uid else None,
         "submitted_evidence_id": _uuid(proof.get("evidence_id")),
-        "claimed_licence": row.get("claimed_licence") if isinstance(row.get("claimed_licence"), str) and row.get("claimed_licence") in LICENCE_KINDS else None,
+        "source_kind": kind,
+        "source_page_url": _source_page(kind, row.get("source_page_url")),
+        "source_page_independently_checked": False,
+        "claimed_licence": claim,
+        "review_topics": topics,
         "rights_verified": False,
         "recording_rights_verified": False,
         "composition_rights_verified": False,
