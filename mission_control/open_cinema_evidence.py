@@ -7,7 +7,6 @@ review envelope only; it never fetches documents, stores evidence or grants righ
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import date
 from uuid import UUID
 
 from . import open_cinema_worldwide as world
