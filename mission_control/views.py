@@ -580,6 +580,12 @@ def smi_chat_reply_audio():
             payload.get("conversation_id"),
             payload.get("request_id"),
         )
+    except smi_reply_voice_local.ReplyVoiceContentUnavailable:
+        return _error(
+            "reply_voice_capacity_exceeded",
+            "This reply is outside the current local voice capacity.",
+            422,
+        )
     except ValueError:
         return _error("reply_voice_unavailable", "No eligible owned reply was found.", 404)
     except (RuntimeError, OSError):
