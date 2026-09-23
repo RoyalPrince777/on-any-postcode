@@ -104,8 +104,8 @@ def test_matching_stored_review_is_not_an_agent_vote_or_authority(
     result = smi_receipt_backend.verify_matrix_review_outcome(
         "review-123", proposal_id="RSI-123", signal_id="MATRIX-SIGNAL-123"
     )
-    assert result["verified"] is True
-    assert result["status"] == "stored_review_fields_matched"
+    assert result["verified"] is False
+    assert result["status"] == "matched_legacy_fields_producer_unattested"
     assert result["actual_votes_proven"] is False
     assert result["authority_granted"] is False
     assert store.calls[1][1] == ("review-123",)
@@ -141,4 +141,39 @@ def test_unverified_review_never_writes_learning_receipt(
     assert result["receipt"] is None
     assert result["matrix_update_allowed"] is False
     assert result["execution_granted"] is False
+    assert result["full_green"] is False
+
+
+def test_matching_legacy_review_cannot_create_learning_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pre-reservation matching row is not independent producer proof."""
+    store = ReadOnlyReviewStore(review_row())
+    monkeypatch.setattr(smi_receipt_backend, "_hrm_database_url", lambda: "configured")
+    monkeypatch.setattr(smi_receipt_backend, "_connect_postgres", lambda: store)
+
+    def unexpected_write(*_args, **_kwargs):
+        raise AssertionError("Unattested legacy review cannot write HRM learning")
+
+    monkeypatch.setattr(smi_receipt_backend, "write_receipt", unexpected_write)
+    proposal = {
+        "proposal_id": "RSI-123",
+        "matrix_signal": {"signal_id": "MATRIX-SIGNAL-123"},
+    }
+    result = rsi.record_learning(
+        proposal,
+        outcome="historical row claims approval",
+        before_state="before",
+        after_state="after",
+        lesson="self-declared fields are not independent provenance",
+        tests_passed=True,
+        rollback_available=True,
+        reviewed_outcome_ref="review-123",
+    )
+    assert result["state"] == "reviewed_outcome_unverified"
+    assert result["review_proof"]["status"] == (
+        "matched_legacy_fields_producer_unattested"
+    )
+    assert result["receipt"] is None
+    assert result["matrix_update_allowed"] is False
     assert result["full_green"] is False
