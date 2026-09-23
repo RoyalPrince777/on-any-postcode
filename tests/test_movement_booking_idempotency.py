@@ -38,6 +38,9 @@ class _Connection:
     def __exit__(self, *args):
         return False
 
+    def commit(self):
+        self.committed = True
+
     def execute(self, sql, params):
         self.sql.append((sql, params))
         if "SELECT 1 FROM oap_movement_bookings" in sql:
