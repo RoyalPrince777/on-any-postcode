@@ -23,9 +23,18 @@ def _fixture(monkeypatch):
     return encoded, mask, geometry
 
 
+
+def _verify(source, mask, geometry, **overrides):
+    digests = {
+        "expected_mask_sha256": hashlib.sha256(mask).hexdigest(),
+        "expected_geometry_sha256": hashlib.sha256(geometry).hexdigest(),
+    }
+    digests.update(overrides)
+    return proof.verify_decoded_visible_geometry(source, mask, geometry, **digests)
+
 def test_exact_decoded_jpeg_visible_pixels_are_only_lineage(monkeypatch):
     source, mask, geometry = _fixture(monkeypatch)
-    report = proof.verify_decoded_visible_geometry(source, mask, geometry)
+    report = _verify(source, mask, geometry)
     assert report["source_pixels_proven"] is True
     assert report["reason"] == "decoded_source_pixels_only_not_anatomy_proof"
     assert all(report[key] is False for key in (
@@ -35,15 +44,15 @@ def test_exact_decoded_jpeg_visible_pixels_are_only_lineage(monkeypatch):
 
 def test_modified_jpeg_or_forged_source_pixels_fail_closed(monkeypatch):
     source, mask, geometry = _fixture(monkeypatch)
-    assert proof.verify_decoded_visible_geometry(source + b"x", mask, geometry)[
+    assert _verify(source + b"x", mask, geometry)[
         "reason"
     ] == "source_unverified"
     tampered = bytearray(geometry)
     tampered[0] ^= 1
-    assert proof.verify_decoded_visible_geometry(source, mask, bytes(tampered))[
+    assert _verify(source, mask, bytes(tampered))[
         "reason"
     ] == "visible_pixel_mismatch"
-    assert proof.verify_decoded_visible_geometry(source, mask, geometry[:-4])[
+    assert _verify(source, mask, geometry[:-4])[
         "reason"
     ] == "full_canvas_geometry_required"
 
@@ -52,16 +61,16 @@ def test_unreviewed_alpha_and_unmasked_pixels_fail_closed(monkeypatch):
     source, mask, geometry = _fixture(monkeypatch)
     coloured = bytearray(mask)
     coloured[0] = 1
-    assert proof.verify_decoded_visible_geometry(source, bytes(coloured), geometry)[
+    assert _verify(source, bytes(coloured), geometry)[
         "reason"
     ] == "mask_not_white_alpha"
     extras = bytearray(geometry)
     extras[7] = 255
-    assert proof.verify_decoded_visible_geometry(source, mask, bytes(extras))[
+    assert _verify(source, mask, bytes(extras))[
         "reason"
     ] == "unmasked_pixel_present"
     empty = bytes(len(mask))
-    assert proof.verify_decoded_visible_geometry(source, empty, bytes(len(geometry)))[
+    assert _verify(source, empty, bytes(len(geometry)))[
         "reason"
     ] == "empty_mask"
 
@@ -71,6 +80,34 @@ def test_wrong_format_is_not_approved_original(monkeypatch):
     png = BytesIO()
     Image.new("RGB", (2, 2)).save(png, format="PNG")
     monkeypatch.setattr(proof, "APPROVED_SOURCE_SHA256", hashlib.sha256(png.getvalue()).hexdigest())
-    assert proof.verify_decoded_visible_geometry(png.getvalue(), mask, geometry)[
+    assert _verify(png.getvalue(), mask, geometry)[
         "reason"
     ] == "source_format_or_size_invalid"
+
+
+def test_offline_review_payload_digests_fail_closed(monkeypatch):
+    source, mask, geometry = _fixture(monkeypatch)
+    mask_hash = hashlib.sha256(mask).hexdigest()
+    geometry_hash = hashlib.sha256(geometry).hexdigest()
+    original = {
+        "expected_mask_sha256": mask_hash,
+        "expected_geometry_sha256": geometry_hash,
+    }
+    assert _verify(source, mask, geometry, **original)["source_pixels_proven"] is True
+    assert _verify(source, mask, geometry, expected_mask_sha256="a" * 64)[
+        "reason"
+    ] == "mask_or_geometry_digest_mismatch"
+    assert _verify(source, mask, geometry, expected_geometry_sha256="b" * 64)[
+        "reason"
+    ] == "mask_or_geometry_digest_mismatch"
+    assert _verify(source, mask, geometry, expected_geometry_sha256=geometry_hash.upper())[
+        "reason"
+    ] == "mask_or_geometry_digest_mismatch"
+    modified = bytearray(mask)
+    modified[0] = 0
+    assert _verify(source, bytes(modified), geometry, **original)[
+        "reason"
+    ] == "mask_or_geometry_digest_mismatch"
+    assert proof.verify_decoded_visible_geometry(source, mask, geometry)[
+        "reason"
+    ] == "mask_or_geometry_digest_mismatch"
