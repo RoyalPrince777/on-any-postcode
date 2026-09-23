@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>{{ app.name }} · OAP Store</title>
+  <style>
+    :root{font-family:system-ui,sans-serif;color-scheme:dark;background:#10131a;color:#faf7ff}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100dvh}
+    main{max-width:760px;margin:auto;padding:clamp(1rem,4vw,3rem)}
+    header{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+    a{color:#d4b5ff} h1{margin:.5rem 0} p{line-height:1.6}
+    .badge{display:inline-block;border:1px solid #aa84d1;border-radius:2rem;padding:.25rem .8rem}
+    .panel{border:1px solid #715a8b;border-radius:12px;padding:1.2rem;margin:1.25rem 0;background:#211a2e}
+    .secondary{color:#d9c9e3}
+  </style>
+</head>
+<body>
+<main>
+  <header><span>ON ANY POSTCODE · OAP Store</span><a href="/">OAP World</a></header>
+  <article aria-labelledby="app-title">
+    <p class="badge">First-party · Release pending</p>
+    <h1 id="app-title">{{ app.name }}</h1>
+    <p>{{ app.tagline }}</p>
+    <p class="secondary">Publisher: {{ app.publisher }}</p>
+    <section class="panel" aria-label="Release information">
+      <h2>OAP Mail information</h2>
+      <p>This is an informational Store page, not the private Mail application.
+      Email sending and receiving are not released.</p>
+      <p><strong>Installation unavailable.</strong> No application package,
+      installer, mailbox or sign-in action is offered on this page.</p>
+    </section>
+    <p class="secondary">No claim of end-to-end encryption, independent security
+    certification or completed email delivery. Human Authority remains final.</p>
+  </article>
+</main>
+</body>
+</html>
