@@ -331,3 +331,58 @@ def test_claimed_music_licences_only_change_review_questions():
     assert invalid["claimed_licence"] is None
     assert invalid["source_page_url"] is None
     assert invalid["rights_verified"] is False
+
+
+
+def test_real_named_fma_track_can_be_prepared_only_as_private_review_lead():
+    # Named source-page fixture, not a downloaded/verified recording or clearance.
+    from uuid import UUID
+
+    item = music.candidate_preview([_candidate(
+        candidate_id=str(UUID("316822c4-0d81-4944-a413-d33e49c11710")),
+        title="Window", artist="1000 Handz",
+        source_kind="free_music_archive", claimed_licence="CC_BY",
+        source_page_url=(
+            "https://freemusicarchive.org/music/1000-handz/"
+            "cc-by-free-to-use-melodic-rap-instrumentals/window-1/"
+        ),
+        rights_verified=True, source_page_independently_checked=True,
+    )])["candidates"][0]
+    receipt = music.private_source_review_receipt(item)
+    assert receipt["title"] == "Window"
+    assert receipt["artist"] == "1000 Handz"
+    assert receipt["source_page_url"] == item["source_page_url"]
+    assert receipt["attribution_draft"] == "Window — 1000 Handz"
+    assert receipt["review_state"] == "private_unverified_lead"
+    assert receipt["receipt_persisted"] is False
+    for key in (
+        "source_page_independently_checked", "recording_rights_verified",
+        "composition_rights_verified", "licensor_authority_verified",
+        "territory_and_use_verified", "attribution_verified",
+        "source_asset_integrity_verified", "evidence_bytes_retained",
+        "tune_release_created", "playback_enabled", "public_catalogue_enabled",
+    ):
+        assert receipt[key] is False
+
+
+def test_private_source_review_receipt_rejects_hostile_or_unrelated_claims():
+    for row in (
+        {"candidate_id": "<script>", "title": "Window", "artist": "Claimant"},
+        _candidate(candidate_id="broken", source_page_url="https://evil.test/x"),
+        [], None,
+    ):
+        receipt = music.private_source_review_receipt(row)
+        assert receipt["candidate_id"] is None
+        assert receipt["source_page_url"] is None
+        assert receipt["attribution_draft"] is None
+        assert receipt["playback_enabled"] is False
+        assert receipt["receipt_persisted"] is False
+    receipt = music.private_source_review_receipt(_candidate(
+        source_kind="free_music_archive",
+        source_page_url="https://evil.test/track",
+        claimed_licence="CC_BY",
+        rights_verified=True,
+    ))
+    assert receipt["source_page_url"] is None
+    assert receipt["recording_rights_verified"] is False
+    assert receipt["composition_rights_verified"] is False
