@@ -17,7 +17,7 @@ def review_pack(signal: Mapping[str, Any]) -> dict[str, Any]:
     """Prepare a fail-closed review-only pack for the existing War Room."""
 
     if not isinstance(signal, Mapping):
-        raise ValueError("Matrix Signal mapping required")
+        raise TypeError("Matrix Signal mapping required")
     sender = signal.get("sender")
     if sender not in matrix_signal_bus.registered_matrix_names():
         raise ValueError("Registered Matrix sender required")
