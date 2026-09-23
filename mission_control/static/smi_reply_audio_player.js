@@ -66,6 +66,9 @@
    cancelCurrent();
    const current=token;
    const allowed=()=>current===token&&(!isCurrent||isCurrent());
+   // Never send the session CSRF token or owned reply identifiers off-origin.
+   if(typeof url!=="string"||!url.startsWith("/")||url.startsWith("//")||
+      url.includes("\\\\")||/[\\x00-\\x1f\\x7f]/.test(url))return false;
    if(!win?.fetch||!win?.crypto?.subtle||!win?.AudioContext||
       !/^[a-f0-9-]{36}$/i.test(String(conversationId||""))||
       !/^[a-f0-9-]{36}$/i.test(String(requestId||"")))return false;
