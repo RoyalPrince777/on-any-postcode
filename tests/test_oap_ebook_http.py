@@ -1,7 +1,5 @@
 """Isolated ebook HTTP tests; no registration in the live OAP application."""
 
-from datetime import datetime, timezone
-
 import pytest
 from flask import Flask
 
