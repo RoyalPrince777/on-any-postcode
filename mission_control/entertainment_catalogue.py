@@ -1,6 +1,6 @@
 """Read-only first-party entertainment catalogue and player *contract*.
 
-Adapt existing owner-scoped OAP Tune Core records. This creates no alternative
+Project existing owner-scoped OAP Music records. This creates no alternative
 content store, raw-media access, rights evidence, playback engine or authority.
 Until a server-owned rights/evidence/entitlement chain is connected, playback
 MUST remain disabled even for PUBLISHED/VERIFIED catalogue metadata.
@@ -21,7 +21,7 @@ DESTINATIONS = (
     "OAP TV", "OAP Media", "OAP Music", "OAP Live", "OAP Records",
 )
 PLAYER_OWNER = "OAP Player"
-SOURCE_ORGAN = "OAP Tune Core"
+SOURCE_ORGAN = "OAP Music"
 MAX_ITEMS = 100
 
 
@@ -123,7 +123,7 @@ def universal_player_contract(record: object = None) -> dict[str, object]:
 
 
 def project_catalogue(tune_dashboard: object) -> dict[str, object]:
-    """Project already-owner-scoped Tune releases without storing a second copy.
+    """Project already-owner-scoped OAP Music releases without storing a second copy.
 
     Caller MUST obtain tune_dashboard using the existing authenticated
     product_core_services.tune_dashboard(identity_id), never request JSON.
