@@ -36,6 +36,18 @@ def test_exact_decoded_jpeg_visible_pixels_are_only_lineage(monkeypatch):
     source, mask, geometry = _fixture(monkeypatch)
     report = _verify(source, mask, geometry)
     assert report["source_pixels_proven"] is True
+    receipt = report["receipt"]
+    assert receipt == {
+        "version": "source-pixel-lineage-v1",
+        "source_sha256": proof.APPROVED_SOURCE_SHA256,
+        "mask_sha256": hashlib.sha256(mask).hexdigest(),
+        "geometry_sha256": hashlib.sha256(geometry).hexdigest(),
+        "width": 2,
+        "height": 2,
+        "anatomy_proven": False,
+        "speech_sync_proven": False,
+        "human_authority_approved": False,
+    }
     assert report["reason"] == "decoded_source_pixels_only_not_anatomy_proof"
     assert all(report[key] is False for key in (
         "anatomy_proven", "speech_sync_proven", "active", "human_authority_approved"
@@ -47,6 +59,7 @@ def test_modified_jpeg_or_forged_source_pixels_fail_closed(monkeypatch):
     assert _verify(source + b"x", mask, geometry)[
         "reason"
     ] == "source_unverified"
+    assert _verify(source + b"x", mask, geometry)["receipt"] is None
     tampered = bytearray(geometry)
     tampered[0] ^= 1
     assert _verify(source, mask, bytes(tampered))[
