@@ -46,6 +46,9 @@ def attach(monkeypatch, connection):
                         lambda: {"initialized": True})
     # The fake recovery attestation is test-only, never operator proof.
     monkeypatch.setattr(mail_preflight, "report", lambda: {
+        "database_configured": True,
+        "database_reachable": True,
+        "base_schema_ready": True,
         "target_mapping_proven": True,
         "recovery_point_verified": True,
         "independent_release_evidence_verified": True,
@@ -130,6 +133,9 @@ def test_mail_migration_refuses_yes_without_independent_proof(monkeypatch):
 def test_mail_migration_rejects_target_switch_before_connection(monkeypatch):
     operations = []
     monkeypatch.setattr(mail_preflight, "report", lambda: {
+        "database_configured": True,
+        "database_reachable": True,
+        "base_schema_ready": True,
         "target_mapping_proven": True,
         "recovery_point_verified": True,
         "independent_release_evidence_verified": True,
