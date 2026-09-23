@@ -52,5 +52,12 @@ pending.then(result=>{
  assert.ok(controller.includes("oapLocalPlayer?.pause()"));
  assert.ok(controller.includes("oapLocalPlayer?.resume()"));
  assert.ok(controller.includes("oapLocalPlayer?.stop()"));
+ const audioCode=fs.readFileSync("mission_control/static/smi_reply_audio_player.js","utf8");
+ assert.ok(audioCode.includes("timelineSha!==payload.alignment.timelineSha256"));
+ assert.ok(audioCode.includes("if(!allowed()||!active)return false"));
+ assert.ok(audioCode.includes("MAX_BYTES=32*1024*1024"));
+ assert.ok(!audioCode.includes("localStorage"));
+ assert.ok(!audioCode.includes("sendBeacon"));
+ assert.ok(!audioCode.includes("WebSocket"));
  console.log("SMI_LOCAL_AUDIO_CLOCK_STOP_AND_WIRING_PASS");
 }).catch(error=>{console.error(error);process.exitCode=1});
