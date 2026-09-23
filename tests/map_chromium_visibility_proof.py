@@ -57,10 +57,16 @@ with sync_playwright() as p:
         page.set_content(HTML, wait_until="load")
         page.add_style_tag(content=CSS)
         page.add_script_tag(content=NAV)
-        page.wait_for_function(
-            "() => document.querySelectorAll('#road-layer polyline').length > 0",
-            timeout=15000,
-        )
+        try:
+            page.wait_for_function(
+                "() => document.querySelectorAll('#road-layer polyline').length > 0",
+                timeout=15000,
+            )
+        except Exception:
+            print("MAP_VISUAL_DEBUG", label, "errors", errors,
+                  "status", page.locator("#road-source-state").text_content(),
+                  "url", page.url)
+            raise
         count = page.locator("#road-layer polyline").count()
         assert count > 0, (label, "No actual SVG road polylines")
         assert page.locator("#roads-svg").is_visible(), label
