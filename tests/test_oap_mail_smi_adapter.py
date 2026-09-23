@@ -104,3 +104,28 @@ def test_mail_registry_does_not_authorize_send_or_forward():
             mail_smi_adapter._MAIL_READ_TOOLS.authorize_capability(
                 "oap.mail.owner.read", ability, mutation=False,
             )
+
+
+
+def test_smi_subject_list_excludes_body_ids_and_unknown_fields(monkeypatch):
+    private_row = {
+        "id": "secret-message-id",
+        "subject": "<private>",
+        "body": "NEVER_TRANSFER_MAIL_BODY",
+        "correspondent": "owner@example.test",
+        "created_at": "secret-timestamp",
+        "debug_secret": "INTERNAL_SECRET",
+    }
+    monkeypatch.setattr(mail_store, "list_items", lambda *_: [private_row])
+    result = mail_smi_adapter.read_owner_folder(
+        actor_id=OWNER, mailbox_owner_id=OWNER,
+        folder="inbox", owner_consent=True,
+    )
+    assert result["items"] == [{
+        "subject": "<private>",
+        "correspondent": "owner@example.test",
+    }]
+    assert private_row["body"] == "NEVER_TRANSFER_MAIL_BODY"
+    assert "NEVER_TRANSFER_MAIL_BODY" not in repr(result)
+    assert "INTERNAL_SECRET" not in repr(result)
+    assert "secret-message-id" not in repr(result)
