@@ -57,18 +57,31 @@ def list_subjects(
     ]
 
 
+def validate_draft_fields(
+    *, subject: object, body: object, correspondent: object = "",
+) -> tuple[str, str, str]:
+    """Validate without database access; share the same guard with route and store."""
+    if any(value is not None and not isinstance(value, str)
+           for value in (subject, body, correspondent)):
+        raise ValueError("mail_draft_field_invalid")
+    subject_text = (subject or "").strip()
+    body_text = (body or "").strip()
+    contact_text = (correspondent or "").strip()
+    if not subject_text and not body_text:
+        raise ValueError("mail_draft_empty")
+    if len(subject_text) > 200 or len(body_text) > 20000 or len(contact_text) > 320:
+        raise ValueError("mail_draft_too_large")
+    return subject_text, body_text, contact_text
+
+
 def save_draft(
     actor_id: object, owner_id: object, *, subject: object, body: object,
     correspondent: object = "",
 ) -> str:
     owner = require_owner(actor_id, owner_id)
-    subject_text = str(subject or "").strip()
-    body_text = str(body or "").strip()
-    contact_text = str(correspondent or "").strip()
-    if not subject_text and not body_text:
-        raise ValueError("mail_draft_empty")
-    if len(subject_text) > 200 or len(body_text) > 20000 or len(contact_text) > 320:
-        raise ValueError("mail_draft_too_large")
+    subject_text, body_text, contact_text = validate_draft_fields(
+        subject=subject, body=body, correspondent=correspondent,
+    )
     try:
         with postgres_db.connect() as connection:
             row = connection.execute(
