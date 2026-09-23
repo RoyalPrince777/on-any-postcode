@@ -3,9 +3,14 @@ const assert=require("node:assert/strict");
 const api=require("../mission_control/static/smi_source_pixel_motion.js");
 assert.equal(api.SHA256,"f9503174f6f18b815f1c73e24faff3b4966c2e1fbae8d20a8d2bcc22e4a84a4b");
 assert.equal(api.SOURCE,"/static/oap/smi_live_chat_dashboard.jpg");
-assert.deepEqual(Object.keys(api.motionFor("stopped",200)),["head","eyes","chest","hands"]);
+assert.deepEqual(Object.keys(api.motionFor("stopped",200)),["head","eyes","mouth","chest","hands"]);
 assert.equal(api.motionFor("paused",220).head[0],0);
 assert.ok(api.motionFor("listening",1020).head[0]!==0);
+assert.equal(api.motionFor("stopped",220,1).mouth[2],1);
+assert.equal(api.motionFor("paused",220,1).mouth[2],1);
+assert.equal(api.motionFor("speaking",220,0).mouth[2],1);
+assert.ok(api.motionFor("speaking",220,1).mouth[2]>1);
+assert.ok(api.motionFor("thinking",220,1).mouth[2]===1);
 const region={x:0,y:0,w:11,h:11,cx:5,cy:5,rx:5,ry:5};
 const data=new Uint8ClampedArray(11*11*4);
 for(let y=0;y<11;y++)for(let x=0;x<11;x++){
