@@ -641,3 +641,23 @@ def test_private_intelligence_scan_and_post_dedupe_limits():
     )
     assert all(not row["human_release_approved"]
                for row in result["review_queue"])
+
+
+def test_soul_evidence_id_cannot_attach_to_invalid_music_candidate():
+    from uuid import uuid4
+
+    evidence_id = str(uuid4())
+    result = music.rights_review(
+        {"candidate_id": "invalid", "claimed_licence": "CC_BY",
+         "rights_verified": True},
+        {"evidence_id": evidence_id, "source_verified": True,
+         "licensor_authority_verified": True, "human_release_approved": True},
+    )
+    assert result["candidate_id"] is None
+    assert result["submitted_evidence_id"] is None
+    assert result["rights_verified"] is False
+    assert result["playback_authorised"] is False
+    valid = music.rights_review(_candidate(), {"evidence_id": evidence_id})
+    assert valid["submitted_evidence_id"] == evidence_id
+    assert valid["rights_verified"] is False
+    assert valid["human_authority_final"] is True
