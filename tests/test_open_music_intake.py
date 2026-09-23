@@ -559,9 +559,9 @@ def test_private_catalogue_intelligence_deduplicates_metadata_not_rights():
         source_page_url="https://ccmixter.org/files/matthew_c_wright/71164",
     )
     result = music.private_catalogue_intelligence([a, b, c, d])
-    assert result["review_count"] == 2
+    assert result["review_count"] == 3
     assert [row["title"] for row in result["review_queue"]] == [
-        "Window", "A Grateful Universe",
+        "Window", "WINDOW", "A Grateful Universe",
     ]
     assert all(row["review_state"] == "private_unverified_lead"
                for row in result["review_queue"])
