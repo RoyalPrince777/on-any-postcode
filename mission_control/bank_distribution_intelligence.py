@@ -48,6 +48,15 @@ def missing_evidence(package: PackageEvidence | None = None) -> tuple[str, ...]:
     return tuple(sorted(REQUIRED_EVIDENCE - present))
 
 
+def unverified_evidence(package: PackageEvidence | None = None) -> tuple[str, ...]:
+    """Inputs may be present, but this contract has no trusted verifier."""
+    if package is None:
+        return ()
+    return tuple(sorted(
+        key for key in REQUIRED_EVIDENCE if getattr(package, key, None)
+    ))
+
+
 def release_policy(
     package: PackageEvidence | None = None,
     *,
@@ -76,5 +85,10 @@ def release_policy(
         "package_published": False,
         "banking_execution_enabled": False,
         "missing_evidence": list(missing_evidence(package)),
+        "unverified_evidence": list(unverified_evidence(package)),
+        "verified_evidence": [],
+        "artifact_bound_receipt": None,
+        "signing_key_access": False,
+        "founder_approval_is_not_package_proof": True,
         "reason": "No signed, independently verified installable release is registered.",
     }
