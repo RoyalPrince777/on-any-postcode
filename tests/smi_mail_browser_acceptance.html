@@ -39,9 +39,7 @@ window.runMailBrowserCheck=async()=>{
   check(!dialog.textContent.includes("SECRET_MAIL_BODY"),"body leaked");
   check(document.getElementById("messages").children.length===0,"chat DOM contaminated");
   check(!dialog.querySelector("private-test"),"subject parsed as HTML");
-  const closed=new Promise(resolve=>dialog.addEventListener("close",resolve,{once:true}));
   dialog.querySelector("button").click();
-  await closed;
   await afterTick();
   check(!document.getElementById("oap-mail-private-dialog"),"dialog not cleared");
   check(captured.opts.signal.aborted,"request not aborted on close");
@@ -50,9 +48,8 @@ window.runMailBrowserCheck=async()=>{
   await afterTick();
   dialog=document.getElementById("oap-mail-private-dialog");
   const lateRespond=respond;
-  const lateClosed=new Promise(resolve=>dialog.addEventListener("close",resolve,{once:true}));
-  dialog.close();
-  await lateClosed;
+  dialog.querySelector("button").click();
+  await afterTick();
   lateRespond({ok:true,json:async()=>({items:[{subject:"late private"}],execute:false,delivery_enabled:false})});
   await afterTick();await afterTick();
   check(!document.getElementById("oap-mail-private-dialog"),"late response recreated dialog");
