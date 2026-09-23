@@ -72,7 +72,7 @@
   if(!context){canvas.remove();image.close?.();return null;}
   context.drawImage(image,0,0);
   const samples=Object.fromEntries(REGIONS.map(region=>[region.id,context.getImageData(region.x,region.y,region.w,region.h)]));
-  let epoch=0,frame=0,last=0,phase="ready",live=false,reduced=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),played=0,speechUntil=0;
+  let epoch=0,frame=0,last=0,phase="ready",live=false,reduced=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),played=0,speechUntil=0,audioCues=0;
   let playbackEpoch=null,localAudio=false,localViseme="silence";
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
   function draw(ms){
@@ -115,6 +115,7 @@
       !Number.isFinite(cue?.audioClockMs)||cue.audioClockMs<0||
       !Object.hasOwn(LOCAL_POSE,cue?.viseme))return;
    localViseme=cue.viseme;
+   audioCues+=1;
    draw(win.performance.now());
   });
   win.addEventListener("oap-smi-speech-boundary",event=>{
@@ -127,7 +128,8 @@
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
    accurateLipSyncProven:false,fullBodyRigProven:false,privacyNoTelemetry:true,
-   snapshot:()=>Object.freeze({phase,live,frames:played}),
+   snapshot:()=>Object.freeze({phase,live,frames:played,audioCues,localAudio,
+    localViseme,sourceSha256:actual,fullSceneSourcePixelMotion:played>0}),
    stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);}});
  }
  return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,attach});

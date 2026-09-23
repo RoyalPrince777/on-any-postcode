@@ -8,6 +8,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.util
 import hashlib
+import importlib
 import io
 import json
 import threading
@@ -20,6 +21,36 @@ _LOCK = threading.Lock()
 
 class VoiceUnavailable(RuntimeError):
     pass
+
+
+def _resolve_voice_backend() -> tuple[str, bytes | None, str]:
+    """Prefer the pinned bundled engine; retain a fail-closed system fallback."""
+    try:
+        bundled = importlib.import_module("espeak_english")
+    except ModuleNotFoundError as exc:
+        if exc.name != "espeak_english":
+            raise VoiceUnavailable("bundled_voice_engine_invalid") from exc
+    else:
+        try:
+            library_path = bundled.library_path()
+            data_root = bundled.data_path().parent
+            version = str(bundled.ESPEAK_VERSION)
+        except (AttributeError, OSError, RuntimeError) as exc:
+            raise VoiceUnavailable("bundled_voice_engine_invalid") from exc
+        # libespeak-ng copies this path into a fixed-size internal buffer.
+        if len(str(data_root)) > 130:
+            raise VoiceUnavailable("bundled_voice_data_path_too_long")
+        return (
+            str(library_path),
+            str(data_root).encode(),
+            f"espeak-ng-{version}-bundled",
+        )
+
+    for candidate in ("espeak-ng", "espeak"):
+        name = ctypes.util.find_library(candidate)
+        if name:
+            return name, None, f"{candidate}-system-compatibility"
+    raise VoiceUnavailable("local_voice_engine_unavailable")
 
 
 class _EventId(ctypes.Union):
@@ -64,9 +95,7 @@ def render_reply(text: str) -> dict:
         or "\x00" in text
     ):
         raise ValueError("reply_voice_text_invalid")
-    name = ctypes.util.find_library("espeak")
-    if not name:
-        raise VoiceUnavailable("local_voice_engine_unavailable")
+    name, data_root, engine_build = _resolve_voice_backend()
     with _LOCK:
         library = ctypes.CDLL(name)
         library.espeak_Initialize.argtypes = [
@@ -111,7 +140,7 @@ def render_reply(text: str) -> dict:
                         phonemes.append((int(event.audio_position), symbol))
             return 0
 
-        rate = library.espeak_Initialize(2, 60, None, 1)
+        rate = library.espeak_Initialize(2, 60, data_root, 1)
         if not 8000 <= rate <= 48000:
             raise VoiceUnavailable("local_voice_engine_initialization_failed")
         try:
@@ -174,6 +203,8 @@ def render_reply(text: str) -> dict:
             "timelineSha256": timeline_sha,
         },
         "engine": "self_hosted_espeak",
+        "engineBuild": engine_build,
+        "voiceLocale": "en",
         "phonemeIssuedBySynth": True,
         "accurateHumanLipSyncProven": False,
         "fullRigProven": False,

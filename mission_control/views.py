@@ -591,6 +591,8 @@ def smi_chat_reply_audio():
                 mime="audio/wav",
                 alignment=voice["alignment"],
                 engine=voice["engine"],
+                engineBuild=voice["engineBuild"],
+                voiceLocale=voice["voiceLocale"],
                 phonemeIssuedBySynth=True,
                 accurateHumanLipSyncProven=False,
                 fullRigProven=False,

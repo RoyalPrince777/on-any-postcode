@@ -31,10 +31,6 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y iverilog
           fi
-          if ! ldconfig -p | grep -q 'libespeak.so.1'; then
-            sudo apt-get update
-            sudo apt-get install -y espeak libespeak1 espeak-data
-          fi
       - name: Verify Live SMI browser state machine
         run: |
           node --check mission_control/static/smi_live_character_state.js

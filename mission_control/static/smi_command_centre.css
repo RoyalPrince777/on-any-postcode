@@ -236,3 +236,13 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre.smi-room-art
   animation:none!important;transition:none!important;opacity:0!important
  }
 }
+
+/* Review-only bank controls inside the existing private SMI Command Centre. */
+.smi-command-bank-controls{margin:6px 10px;padding:12px;border:1px solid #8d7438;border-radius:12px;background:#101a2a;color:#f4e1b5;max-height:32vh;overflow:auto}
+.smi-command-bank-controls[hidden]{display:none!important}
+.smi-command-bank-controls h3{margin:0 0 6px;font-size:.86rem;color:#ffdc90}
+.smi-command-bank-controls p{margin:4px 0;font-size:.75rem}
+.smi-command-bank-controls nav{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.smi-command-bank-controls button{padding:7px 9px;background:#162c45;border:1px solid #8d7438;color:#ffe3a8;border-radius:8px;cursor:pointer}
+.smi-command-bank-controls button[aria-pressed="true"]{background:#61491d;color:#fff}
+.smi-command-bank-controls [aria-live]{font-size:.78rem;line-height:1.45}

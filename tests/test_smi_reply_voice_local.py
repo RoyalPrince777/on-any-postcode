@@ -26,6 +26,9 @@ def test_real_reply_audio_and_synthesis_issued_cues():
     assert alignment["predictedFromText"] is False
     assert alignment["source"] == "decoded_audio_phoneme_timeline"
     assert result["phonemeIssuedBySynth"] is True
+    assert result["engine"] == "self_hosted_espeak"
+    assert result["engineBuild"] == "espeak-ng-1.51-bundled"
+    assert result["voiceLocale"] == "en"
     assert result["retainsAudio"] is False
     assert result["externalVoiceProvider"] is False
     assert result["accurateHumanLipSyncProven"] is False
@@ -53,6 +56,16 @@ def test_unapproved_voice_requests_fail_closed(bad):
 
 
 def test_missing_native_voice_stays_disabled(monkeypatch):
-    monkeypatch.setattr(voice.ctypes.util, "find_library", lambda name: None)
+    def unavailable():
+        raise voice.VoiceUnavailable("local_voice_engine_unavailable")
+
+    monkeypatch.setattr(voice, "_resolve_voice_backend", unavailable)
     with pytest.raises(voice.VoiceUnavailable, match="local_voice_engine_unavailable"):
         voice.render_reply("SMI")
+
+
+def test_render_runtime_uses_pinned_bundled_voice_library():
+    library, data_root, build = voice._resolve_voice_backend()
+    assert library.endswith(("libespeak-ng.so", "libespeak-ng.dylib", "espeak-ng.dll"))
+    assert data_root and data_root.decode()
+    assert build == "espeak-ng-1.51-bundled"

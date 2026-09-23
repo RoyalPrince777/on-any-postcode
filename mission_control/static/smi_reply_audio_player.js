@@ -33,19 +33,37 @@
    Math.abs(at-alignment.audioDurationMs)<=1;
  }
  function create(win=typeof window!=="undefined"?window:null){
-  let token=0,abort=null,context=null,source=null,frame=null,active=false;
-  function stop(){
+  let token=0,abort=null,context=null,source=null,frame=null,active=false,prepared=false;
+  function cancelCurrent(){
    token+=1;active=false;
    try{abort?.abort()}catch{}
    abort=null;
    try{source?.stop()}catch{}
+   try{source?.disconnect()}catch{}
    source=null;
    if(frame!==null){try{win?.cancelAnimationFrame?.(frame)}catch{}frame=null;}
-   const previous=context;context=null;
+  }
+  function stop(){cancelCurrent();}
+  function ensureContext(){
+   if(!context||context.state==="closed")context=new win.AudioContext();
+   return context;
+  }
+  async function prepare(){
+   if(!win?.AudioContext)return false;
+   try{
+    const candidate=ensureContext();
+    await candidate.resume();
+    prepared=candidate===context&&candidate.state==="running";
+    return prepared;
+   }catch(_error){prepared=false;return false;}
+  }
+  function destroy(){
+   cancelCurrent();
+   const previous=context;context=null;prepared=false;
    if(previous){try{previous.close()}catch{}}
   }
   async function play({url,csrf,conversationId,requestId,isCurrent,onStart,onCue,onEnd,onError}={}){
-   stop();
+   cancelCurrent();
    const current=token;
    const allowed=()=>current===token&&(!isCurrent||isCurrent());
    if(!win?.fetch||!win?.crypto?.subtle||!win?.AudioContext||
@@ -61,6 +79,8 @@
     const payload=await response.json();
     if(!allowed()||payload?.mime!=="audio/wav"||
       payload?.engine!=="self_hosted_espeak"||
+      payload?.engineBuild!=="espeak-ng-1.51-bundled"||
+      payload?.voiceLocale!=="en"||payload?.phonemeIssuedBySynth!==true||
       typeof payload.audioBase64!=="string"||
       payload.audioBase64.length>MAX_BYTES*1.34||
       !/^[A-Za-z0-9+/]*={0,2}$/.test(payload.audioBase64))return false;
@@ -71,22 +91,24 @@
     const sha=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,"0")).join("");
     if(!allowed())return false;
     const audio=bytes.buffer.slice(0);
-    context=new win.AudioContext();
-    const buffer=await context.decodeAudioData(audio);
-    if(!allowed()||!validate(payload.alignment,sha,buffer.duration*1000))return false;
+    const playbackContext=ensureContext();
+    const buffer=await playbackContext.decodeAudioData(audio);
+    if(!allowed()||playbackContext!==context||
+      !validate(payload.alignment,sha,buffer.duration*1000))return false;
     const canonical=JSON.stringify({audioSha256:sha,audioDurationMs:payload.alignment.audioDurationMs,cues:payload.alignment.cues});
     const timelineDigest=await win.crypto.subtle.digest("SHA-256",new win.TextEncoder().encode(canonical));
     const timelineSha=Array.from(new Uint8Array(timelineDigest),x=>x.toString(16).padStart(2,"0")).join("");
     if(!allowed()||timelineSha!==payload.alignment.timelineSha256)return false;
-    await context.resume();
-    if(!allowed()||context.state!=="running")return false;
-    source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);
-    const startAt=context.currentTime+.025;
+    await playbackContext.resume();
+    if(!allowed()||playbackContext!==context||playbackContext.state!=="running")return false;
+    prepared=true;
+    source=playbackContext.createBufferSource();source.buffer=buffer;source.connect(playbackContext.destination);
+    const startAt=playbackContext.currentTime+.025;
     let cueIndex=-1;
     function tick(){
-     if(!allowed()||!active||!context)return;
-     if(context.state!=="running"){frame=win.requestAnimationFrame(tick);return;}
-     const ms=Math.max(0,(context.currentTime-startAt)*1000);
+     if(!allowed()||!active||playbackContext!==context)return;
+     if(playbackContext.state!=="running"){frame=win.requestAnimationFrame(tick);return;}
+     const ms=Math.max(0,(playbackContext.currentTime-startAt)*1000);
      const cues=payload.alignment.cues;
      let index=cueIndex;
      while(index+1<cues.length&&cues[index+1].atMs<=ms)index++;
@@ -104,7 +126,7 @@
        audioClockMs:payload.alignment.audioDurationMs,decodedAudio:true,
        source:"oap-first-party-pcm",synthesisPhonemeTiming:true,
        accurateLipSyncProven:false});
-     stop();onEnd?.();
+     cancelCurrent();onEnd?.();
     };
     source.start(startAt);
     active=true;
@@ -116,14 +138,14 @@
     if(allowed())onError?.();
     return false;
    }finally{
-    if(!active&&allowed())stop();
+    if(!active&&allowed())cancelCurrent();
    }
   }
   function pause(){if(context&&active){try{context.suspend()}catch{}}}
   function resume(){if(context&&active){try{context.resume()}catch{}}}
-  return Object.freeze({play,stop,pause,resume,snapshot:()=>Object.freeze({
+  return Object.freeze({prepare,play,stop,pause,resume,destroy,snapshot:()=>Object.freeze({
    active,hasDecodedAudio:Boolean(active&&context),retainsAudio:false,
-   externalTelemetry:false,accurateHumanLipSyncProven:false
+   externalTelemetry:false,accurateHumanLipSyncProven:false,prepared
   })});
  }
  return Object.freeze({create,validate});
