@@ -65,7 +65,8 @@ def test_rights_review_rejects_applicant_supplied_proofs():
         {"candidate_id": "claimed", "claimed_licence": "CC0", "rights_verified": True},
         {"evidence_id": str(uuid4()), "independently_verified": True},
     )
-    assert result["submitted_evidence_id"] is not None
+    assert result["candidate_id"] is None
+    assert result["submitted_evidence_id"] is None
     assert result["rights_verified"] is False
     assert result["source_bytes_verified"] is False
     assert result["playback_authorised"] is False
