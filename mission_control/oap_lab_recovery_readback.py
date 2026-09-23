@@ -26,6 +26,8 @@ def verify_lab_readback(
     stopped: bool = False,
 ) -> dict[str, object]:
     """Read-back equality and scope; NOT a durable-store attestation."""
+    if type(stopped) is not bool:
+        raise ClaimEdgeBlocked("explicit_stop_state_required")
     if stopped:
         raise ClaimEdgeBlocked("stop_asserted")
     try:
@@ -88,6 +90,8 @@ def verify_separate_readback_snapshots(
     Namespace separation and retrieval evidence are caller-supplied metadata,
     not a substitute for independent, authenticated real-store read-back.
     """
+    if type(stopped) is not bool:
+        raise ClaimEdgeBlocked("explicit_stop_state_required")
     if stopped:
         raise ClaimEdgeBlocked("stop_asserted")
     if not isinstance(history_snapshot, Mapping) or not isinstance(anchor_snapshot, Mapping):
