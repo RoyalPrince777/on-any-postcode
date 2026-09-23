@@ -264,6 +264,28 @@ def record_learning(
     reviewed_outcome_ref = reviewed_outcome_ref.strip()
     if not reviewed_outcome_ref:
         raise ValueError("Reviewed outcome reference is required")
+    signal = proposal.get("matrix_signal")
+    signal_id = str(signal.get("signal_id") or "").strip() if isinstance(signal, Mapping) else ""
+    if not signal_id:
+        raise ValueError("Matrix proposal Signal ID is required")
+    reviewed_outcome = smi_receipt_backend.verify_matrix_review_outcome(
+        reviewed_outcome_ref, proposal_id=proposal_id, signal_id=signal_id
+    )
+    if reviewed_outcome.get("verified") is not True:
+        return {
+            "proposal_id": proposal_id,
+            "reviewed_outcome_ref": reviewed_outcome_ref,
+            "state": "reviewed_outcome_unverified",
+            "review_proof": reviewed_outcome,
+            "receipt": None,
+            "tests_passed": bool(tests_passed),
+            "rollback_available": bool(rollback_available),
+            "matrix_update_allowed": False,
+            "authority_changed": False,
+            "permissions_changed": False,
+            "execution_granted": False,
+            "full_green": False,
+        }
 
     receipt = smi_receipt_backend.write_receipt(
         "matrix_learning_receipt",
@@ -278,6 +300,7 @@ def record_learning(
             "safe_payload": {
                 "proposal_id": proposal_id,
                 "reviewed_outcome_ref": reviewed_outcome_ref,
+                "reviewed_signal_id": signal_id,
                 "outcome": str(outcome).strip(),
                 "before_state": str(before_state).strip(),
                 "after_state": str(after_state).strip(),
@@ -303,6 +326,7 @@ def record_learning(
     return {
         "proposal_id": proposal_id,
         "reviewed_outcome_ref": reviewed_outcome_ref,
+        "review_proof": reviewed_outcome,
         "state": "learning_recorded" if durable_learning else "durable_learning_unproven",
         "receipt": receipt,
         "tests_passed": bool(tests_passed),

@@ -116,6 +116,10 @@ def test_sqlite_success_cannot_be_accepted_as_durable_learning(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("OAP_SMI_RECEIPT_DB_PATH", str(tmp_path / "local.sqlite3"))
+    monkeypatch.setattr(
+        rsi.smi_receipt_backend, "verify_matrix_review_outcome",
+        lambda *args, **kwargs: {"verified": True},
+    )
     result = rsi.record_learning(
         _proposal(),
         outcome="fallback design reviewed",
@@ -148,6 +152,10 @@ def test_sqlite_success_cannot_be_accepted_as_durable_learning(
 def test_insufficient_learning_receipts_fail_closed(
     monkeypatch: pytest.MonkeyPatch, receipt: dict[str, object]
 ) -> None:
+    monkeypatch.setattr(
+        rsi.smi_receipt_backend, "verify_matrix_review_outcome",
+        lambda *args, **kwargs: {"verified": True},
+    )
     monkeypatch.setattr(
         rsi.smi_receipt_backend,
         "write_receipt",
@@ -184,6 +192,10 @@ def test_durable_receipt_is_required_but_never_grants_execution(
         }
 
     monkeypatch.setattr(rsi.smi_receipt_backend, "write_receipt", durable_write)
+    monkeypatch.setattr(
+        rsi.smi_receipt_backend, "verify_matrix_review_outcome",
+        lambda *args, **kwargs: {"verified": True},
+    )
     result = rsi.record_learning(
         _proposal(),
         outcome="reviewed",
