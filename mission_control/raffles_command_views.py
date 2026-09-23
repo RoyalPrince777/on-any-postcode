@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import sqlite3
-from uuid import uuid4
 from pathlib import Path
+from uuid import uuid4
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
