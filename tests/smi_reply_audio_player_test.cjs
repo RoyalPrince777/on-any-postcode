@@ -84,6 +84,21 @@ async function sha256(bytes){
   }),false,"off-origin or malformed reply route must fail closed");
  }
  assert.equal(externalFetches,0,"do not send CSRF or reply IDs to an untrusted URL");
+ // Android audio focus denial and missing Web Audio must not start or export a reply.
+ const denied=create({
+  AudioContext:class{constructor(){throw new Error("audio focus denied");}},
+  fetch:async()=>{throw new Error("permission denial must not fetch audio");},
+  crypto:webcrypto
+ });
+ assert.equal(await denied.prepare(),false);
+ assert.equal(denied.snapshot().prepared,false);
+ denied.stop();denied.destroy();
+ const unsupported=create({fetch:win.fetch,crypto:webcrypto});
+ assert.equal(await unsupported.prepare(),false);
+ assert.equal(unsupported.snapshot().active,false);
+ assert.equal(await unsupported.play({
+  url:"/mission/chat/reply-audio",csrf:"csrf",conversationId,requestId
+ }),false);
  assert.equal(await player.prepare(),true);
  assert.equal(player.snapshot().prepared,true);
  let starts=0,cues=0;
