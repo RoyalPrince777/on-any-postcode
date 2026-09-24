@@ -55,6 +55,8 @@ def _entries(owner_id: str, notebook_id: str) -> list[dict[str, object]]:
         # A matching body alone is insufficient: the first-party record title
         # must identify exactly the same version, and no authority can be
         # restored through extra or silently altered notebook fields.
+        if record.get("status") != "draft":
+            raise NotebookHistoryUnavailable("notebook_workspace_status_invalid")
         if record["title"] != f"{prefix}v{entry.get('version')}":
             raise NotebookHistoryUnavailable("notebook_version_title_mismatch")
         if (
@@ -77,7 +79,9 @@ def _entries(owner_id: str, notebook_id: str) -> list[dict[str, object]]:
         ):
             raise NotebookHistoryUnavailable("notebook_review_scope_invalid")
         versions.append(entry)
-    versions.sort(key=lambda item: item.get("version", -1))
+    if any(type(item.get("version")) is not int for item in versions):
+        raise NotebookHistoryUnavailable("notebook_history_version_invalid")
+    versions.sort(key=lambda item: item["version"])
     previous = "GENESIS"
     for index, entry in enumerate(versions, 1):
         digest = entry.get("digest")
@@ -101,11 +105,15 @@ def reopen(owner_id: object, notebook_id: object) -> dict[str, object]:
     )):
         raise NotebookHistoryUnavailable("notebook_history_invalid")
     # Validate against the original LAB research contract, never elevate state.
-    Notebook(identifier=notebook, **{
-        key: data[key] for key in (
-            "mission", "domain", "question", "hypothesis", "falsification",
-        )
-    })
+    try:
+        Notebook(identifier=notebook, **{
+            key: data[key] for key in (
+                "mission", "domain", "question", "hypothesis",
+                "falsification",
+            )
+        })
+    except (TypeError, ValueError) as exc:
+        raise NotebookHistoryUnavailable("notebook_history_invalid") from exc
     return {
         "notebook_id": notebook, "version": latest["version"],
         "digest": latest["digest"], "notebook": data,
