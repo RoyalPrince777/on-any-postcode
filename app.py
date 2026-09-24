@@ -2127,6 +2127,40 @@ def oap_lab_workbench():
                 result["experiment"] = run_isolated(
                     experiment, notebook, stopped=values["stopped"],
                 )
+            if request.form.get("notebook_action") == "download":
+                from hashlib import sha256
+
+                # A Founder-initiated, transient export; never an authenticated
+                # store receipt, independent recovery anchor or claim promotion.
+                payload = {
+                    "format": "oap_lab_review_only_notebook_v1",
+                    "notebook": {
+                        "identifier": notebook.identifier,
+                        "mission": notebook.mission,
+                        "domain": notebook.domain,
+                        "question": notebook.question,
+                        "hypothesis": notebook.hypothesis,
+                        "falsification": notebook.falsification,
+                        "state": notebook.state,
+                    },
+                    "experiment": result["experiment"],
+                    "persisted_by_oap": False,
+                    "independently_recoverable": False,
+                    "scientific_truth_established": False,
+                    "publication_authorised": False,
+                    "execution_authorised": False,
+                }
+                raw = json.dumps(
+                    payload, sort_keys=True, separators=(",", ":"), allow_nan=False,
+                ).encode("utf-8")
+                response = make_response(raw)
+                response.headers["Content-Type"] = "application/json"
+                response.headers["Content-Disposition"] = (
+                    'attachment; filename="oap-lab-notebook.json"'
+                )
+                response.headers["Cache-Control"] = "no-store"
+                response.headers["X-OAP-Notebook-SHA256"] = sha256(raw).hexdigest()
+                return response
         except (ValueError, TypeError, PermissionError) as exc:
             result = None
             error = str(exc)
