@@ -176,7 +176,7 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
     assert saved.status_code == 200
     assert b"Saved in My World" in saved.data
     assert len(records) == 1
-    path = re.search(rb'/oap-lab\\?notebook_id=[a-f0-9-]+', saved.data)
+    path = re.search(rb'/oap-lab[?]notebook_id=[a-f0-9-]+', saved.data)
     assert path is not None
     reopened = client.get(path.group().decode().replace("&amp;", "&"))
     assert reopened.status_code == 200
