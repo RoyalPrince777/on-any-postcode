@@ -99,6 +99,21 @@ async function sha256(bytes){
  assert.equal(await unsupported.play({
   url:"/mission/chat/reply-audio",csrf:"csrf",conversationId,requestId
  }),false);
+ // If Android audio focus is lost after the authenticated fetch, no source may start.
+ let focusErrors=0,focusFetches=0;
+ const deniedDuringPlay=create({
+  ...win,
+  AudioContext:class{constructor(){throw new Error("audio focus denied after fetch");}},
+  fetch:async()=>{focusFetches++;return {ok:true,json:async()=>payload};}
+ });
+ assert.equal(await deniedDuringPlay.play({
+  url:"/mission/chat/reply-audio",csrf:"csrf",conversationId,requestId,
+  onError:()=>focusErrors++
+ }),false);
+ assert.equal(focusFetches,1);
+ assert.equal(focusErrors,1);
+ assert.equal(deniedDuringPlay.snapshot().active,false);
+ deniedDuringPlay.destroy();
  assert.equal(await player.prepare(),true);
  assert.equal(player.snapshot().prepared,true);
  let starts=0,cues=0;
