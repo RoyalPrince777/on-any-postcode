@@ -58,13 +58,13 @@ def test_rejects_host_spoof_redirect_and_private_dns(monkeypatch):
     with pytest.raises(fetch.SourceFetchDenied, match="invalid_source_page"):
         fetch.fetch_permitted_track_page(
             "free_music_archive", "https://freemusicarchive.org.evil.test/music/x",
-            source_permission=True,
+            source_permission=True, stop_check=lambda: False,
         )
     with patch.object(fetch.socket, "getaddrinfo", return_value=[
         (2, 1, 6, "", ("127.0.0.1", 443)),
     ]), pytest.raises(fetch.SourceFetchDenied, match="non_public_dns"):
         fetch.fetch_permitted_track_page(
-            "free_music_archive", URL, source_permission=True,
+            "free_music_archive", URL, source_permission=True, stop_check=lambda: False,
         )
     conn = _Connection("freemusicarchive.org", "8.8.8.8")
     conn.response.status = 302
@@ -72,7 +72,7 @@ def test_rejects_host_spoof_redirect_and_private_dns(monkeypatch):
     monkeypatch.setattr(fetch, "_PinnedHTTPS", lambda host, address: conn)
     with pytest.raises(fetch.SourceFetchDenied, match="source_response_not_200"):
         fetch.fetch_permitted_track_page(
-            "free_music_archive", URL, source_permission=True,
+            "free_music_archive", URL, source_permission=True, stop_check=lambda: False,
         )
     assert conn.closed
 
@@ -82,7 +82,7 @@ def test_exact_html_page_is_a_non_authoritative_hash_receipt(monkeypatch):
     monkeypatch.setattr(fetch, "_public_addresses", lambda host: ("8.8.8.8",))
     monkeypatch.setattr(fetch, "_PinnedHTTPS", lambda host, address: conn)
     result = fetch.fetch_permitted_track_page(
-        "free_music_archive", URL, source_permission=True,
+        "free_music_archive", URL, source_permission=True, stop_check=lambda: False,
     )
     assert result["html_title"] == "Exact track page"
     assert len(result["source_page_sha256"]) == 64
@@ -113,6 +113,38 @@ def test_no_oversize_audio_or_compressed_data(monkeypatch, body, mime, encoding)
     monkeypatch.setattr(fetch, "_PinnedHTTPS", lambda host, address: conn)
     with pytest.raises(fetch.SourceFetchDenied):
         fetch.fetch_permitted_track_page(
+            "free_music_archive", URL, source_permission=True, stop_check=lambda: False,
+        )
+    assert conn.closed
+
+
+def test_stop_authority_required_before_dns(monkeypatch):
+    monkeypatch.setattr(fetch, "_public_addresses",
+                        lambda host: pytest.fail("DNS must not run"))
+    with pytest.raises(fetch.SourceFetchDenied, match="stop_check_required"):
+        fetch.fetch_permitted_track_page(
             "free_music_archive", URL, source_permission=True,
+        )
+    with pytest.raises(fetch.SourceFetchDenied, match="stopped"):
+        fetch.fetch_permitted_track_page(
+            "free_music_archive", URL, source_permission=True,
+            stop_check=lambda: True,
+        )
+    with pytest.raises(fetch.SourceFetchDenied, match="stop_check_unavailable"):
+        fetch.fetch_permitted_track_page(
+            "free_music_archive", URL, source_permission=True,
+            stop_check=lambda: 1 / 0,
+        )
+
+
+def test_stop_after_fetch_prevents_receipt_and_closes_connection(monkeypatch):
+    conn = _Connection("freemusicarchive.org", "8.8.8.8")
+    monkeypatch.setattr(fetch, "_public_addresses", lambda host: ("8.8.8.8",))
+    monkeypatch.setattr(fetch, "_PinnedHTTPS", lambda host, address: conn)
+    observations = iter((False, True))
+    with pytest.raises(fetch.SourceFetchDenied, match="stopped"):
+        fetch.fetch_permitted_track_page(
+            "free_music_archive", URL, source_permission=True,
+            stop_check=lambda: next(observations),
         )
     assert conn.closed
