@@ -24,7 +24,7 @@
 <label class="check"><input type="checkbox" name="synthetic" value="yes" {% if values.synthetic %}checked{% endif %}>I confirm all experiment input is synthetic.</label>
 <label class="check"><input type="checkbox" name="human_approved" value="yes" {% if values.human_approved %}checked{% endif %}>I approve this isolated arithmetic run only.</label>
 <label class="check"><input type="checkbox" name="stopped" value="yes" {% if values.stopped %}checked{% endif %}>STOP — block experiment execution.</label>
-<button type="submit">🟢 SMI · Finalise review-only notebook</button>
+<button type="submit">🟢 SMI · Finalise review-only notebook</button><button type="submit" name="notebook_action" value="download">⬇️ Export reviewed notebook · JSON</button><p class="quiet">Explicit download only. An exported file is not OAP durable storage or independent recovery.</p>
 </form>
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 {% if result %}<div class="result" role="status"><strong>SMI review finalised · not saved</strong><p>Mission: {{ result.mission.replace('_',' ').title() }} · Domain: {{ result.domain.replace('_',' ').title() }}</p>{% if result.experiment %}<div class="metric">{{ result.experiment.result }}</div><span>{{ result.experiment.operation }} of {{ result.experiment.sample_size }} synthetic values</span>{% endif %}<p>Not saved · Not scientific proof · Not publication or execution approval</p></div>{% endif %}
