@@ -342,6 +342,11 @@
 
   const sendLink = async (form, fixedPayload = null) => {
     if (!state.ready) {
+      if (fixedPayload) {
+        // Never replace an interrupted idempotent retry with the current composer.
+        showRetry(form, fixedPayload, "Link not ready. Retry when messaging is ready.");
+        return;
+      }
       form.submit();
       return;
     }
