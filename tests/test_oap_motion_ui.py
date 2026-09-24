@@ -70,3 +70,19 @@ def test_oap_motion_sprite_is_local_vector_art():
         assert f'id="{symbol}"' in sprite
     assert "http://www.w3.org/2000/svg" in sprite
     assert "https://" not in sprite
+
+
+def test_linkup_plus_has_one_first_party_event_owner():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    realtime = Path("static/linkup_realtime.js").read_text(encoding="utf-8")
+    messenger = Path("static/linkup_messenger.js").read_text(encoding="utf-8")
+
+    assert 'data-oap-plus aria-expanded="false"' in template
+    assert 'data-oap-tray data-open="false"' in template
+    assert 'composer.querySelector("[data-oap-plus]")' in realtime
+    assert 'plus.addEventListener("click"' in realtime
+    assert 'plus.setAttribute("aria-expanded", String(nextOpen))' in realtime
+    assert 'tray.setAttribute("data-open", String(nextOpen))' in realtime
+    assert '[data-oap-plus]' not in messenger
+    assert '[data-linkup-thread]' in messenger
+    assert '[data-linkup-new]' in messenger
