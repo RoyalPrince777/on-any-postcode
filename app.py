@@ -2074,9 +2074,24 @@ def oap_lab_workbench():
         "question": "", "hypothesis": "", "falsification": "",
         "operation": "", "dataset": "", "synthetic": False,
         "human_approved": False, "stopped": False,
+        "notebook_id": "", "expected_last_hash": "",
     }
     error = None
     result = None
+    from mission_control import oap_lab_workspace
+
+    if request.method == "GET" and request.args.get("notebook_id"):
+        try:
+            owner = web_security.current_authenticated_user()
+            restored = oap_lab_workspace.reopen(
+                str(owner["id"]), request.args["notebook_id"],
+            )
+            values.update(restored["notebook"])
+            values["notebook_id"] = restored["notebook_id"]
+            values["expected_last_hash"] = restored["digest"]
+        except (ValueError, oap_lab_workspace.NotebookHistoryUnavailable,
+                workspaces.WorkspaceUnavailable):
+            return jsonify(error={"code": "notebook_unavailable"}), 404
     if request.method == "POST":
         if not web_security.csrf_valid(request):
             return _csrf_failure()
@@ -2090,11 +2105,13 @@ def oap_lab_workbench():
         })
         for key in ("synthetic", "human_approved", "stopped"):
             values[key] = request.form.get(key) == "yes"
+        values["notebook_id"] = str(request.form.get("notebook_id", ""))[:80]
+        values["expected_last_hash"] = str(request.form.get("expected_last_hash", ""))[:64]
         try:
             if values["stopped"]:
                 raise PermissionError("STOP: notebook review not run")
             notebook = Notebook(
-                identifier=str(uuid.uuid4()),
+                identifier=values["notebook_id"] or str(uuid.uuid4()),
                 mission=values["mission"],
                 domain=values["domain"],
                 question=values["question"],
@@ -2127,6 +2144,21 @@ def oap_lab_workbench():
                 result["experiment"] = run_isolated(
                     experiment, notebook, stopped=values["stopped"],
                 )
+            if request.form.get("notebook_action") == "save":
+                owner = web_security.current_authenticated_user()
+                # Reuse the canonical workspace user registration, not a LAB identity.
+                public_store.ensure_authenticated_user(
+                    str(owner["id"]), email=str(owner["email"]),
+                    display_name=str(owner["name"]), store_email=False,
+                )
+                saved = oap_lab_workspace.save(
+                    str(owner["id"]), notebook,
+                    expected_last_hash=values["expected_last_hash"],
+                    stopped=values["stopped"],
+                )
+                values["notebook_id"] = saved["notebook_id"]
+                values["expected_last_hash"] = saved["digest"]
+                result["saved"] = saved
             if request.form.get("notebook_action") == "download":
                 from hashlib import sha256
 
@@ -2164,6 +2196,11 @@ def oap_lab_workbench():
         except (ValueError, TypeError, PermissionError) as exc:
             result = None
             error = str(exc)
+        except (oap_lab_workspace.NotebookHistoryUnavailable,
+                workspaces.WorkspaceUnavailable,
+                public_store.PublicStoreUnavailable):
+            result = None
+            error = "notebook_store_unavailable"
     response = make_response(render_template(
         "oap_lab.html", missions=MISSIONS, domains=DOMAINS,
         operations=("mean", "sum", "minimum", "maximum"),
