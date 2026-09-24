@@ -98,3 +98,48 @@ def test_stop_blocks_notebook_only_review(monkeypatch):
     result = client.post("/oap-lab", data=_form(operation="", stopped="yes"))
     assert b"STOP: notebook review not run" in result.data
     assert b"SMI review finalised" not in result.data
+
+
+def test_founder_explicit_export_is_review_only_and_hash_bound(monkeypatch):
+    import hashlib
+    import json
+
+    client = _client(monkeypatch)
+    with client.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    result = client.post("/oap-lab", data=_form(
+        notebook_action="download", operation="",
+    ))
+    assert result.status_code == 200
+    assert result.headers["Cache-Control"] == "no-store"
+    assert "attachment;" in result.headers["Content-Disposition"]
+    assert result.headers["X-OAP-Notebook-SHA256"] == hashlib.sha256(result.data).hexdigest()
+    data = json.loads(result.data)
+    assert data["format"] == "oap_lab_review_only_notebook_v1"
+    assert data["notebook"]["question"] == "Can this claim be checked?"
+    assert data["persisted_by_oap"] is False
+    assert data["independently_recoverable"] is False
+    assert data["publication_authorised"] is False
+    assert data["execution_authorised"] is False
+
+
+def test_export_requires_founder_csrf_and_unstopped_notebook(monkeypatch):
+    client = _client(monkeypatch)
+    assert client.post("/oap-lab", data=_form(
+        notebook_action="download", operation="",
+    )).status_code == 403
+    with client.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    stopped = client.post("/oap-lab", data=_form(
+        notebook_action="download", operation="", stopped="yes",
+    ))
+    assert "attachment" not in stopped.headers.get("Content-Disposition", "")
+    assert b"STOP: notebook review not run" in stopped.data
+    invalid = client.post("/oap-lab", data=_form(
+        notebook_action="download", operation="external_io",
+    ))
+    assert "attachment" not in invalid.headers.get("Content-Disposition", "")
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: False)
+    assert client.post("/oap-lab", data=_form(
+        notebook_action="download", operation="",
+    )).status_code == 403
