@@ -356,7 +356,15 @@ if(oapMic){
 }
 if(oapLiveToggle)oapLiveToggle.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();if(!oapRuntime?.live&&oapRecognition)oapLocalPlayer?.prepare?.();oapSetLive(!Boolean(oapRuntime?.live));},true);
 window.addEventListener('pagehide',()=>{document.body.classList.remove('smi-live-fullscreen');oapClearLiveRestart();oapSpeechSeq+=1;oapLocalPlayer?.destroy?.();if(oapRuntime&&!oapRuntime.stopped)oapApply('LIVE_OFF');oapRecognitionToken=null;oapFinalTranscript='';oapShowLiveReply('');oapPlaybackState('cancelled',oapRuntime?.epoch);if(oapRecognition){try{oapRecognition.stop()}catch{}}if('speechSynthesis' in window)window.speechSynthesis.cancel();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&oapRuntime?.live){oapSetLive(false);oapSetStatus('Live SMI off while this page is hidden');}});
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)return;
+ if(oapRuntime?.live){oapSetLive(false);oapSetStatus('Live SMI off while this page is hidden');return;}
+ // Backgrounding OAP OS also cancels ordinary reply audio, not only Live SMI.
+ oapSpeechSeq+=1;oapLocalPlayer?.stop();
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+ if(oapRuntime?.speaking)oapApply('SPEAK_END');
+ oapPlaybackState('cancelled',oapRuntime?.epoch);
+});
 oapRenderCharacter();oapUpdateLiveToggle();
 oapAddCaptureOptions();
 window.OAP_SMI_LIVE_PROOF={snapshot:oapProofSnapshot,privacy:{storesAudio:false,storesTranscript:false}};
