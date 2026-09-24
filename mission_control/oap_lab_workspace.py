@@ -52,6 +52,30 @@ def _entries(owner_id: str, notebook_id: str) -> list[dict[str, object]]:
             entry.get("notebook_id") != notebook_id
         ):
             raise NotebookHistoryUnavailable("notebook_history_scope_mismatch")
+        # A matching body alone is insufficient: the first-party record title
+        # must identify exactly the same version, and no authority can be
+        # restored through extra or silently altered notebook fields.
+        if record["title"] != f"{prefix}v{entry.get('version')}":
+            raise NotebookHistoryUnavailable("notebook_version_title_mismatch")
+        if (
+            entry.get("state") != "research_draft"
+            or any(entry.get(key) is not False for key in (
+                "publication_authorised", "execution_authorised",
+                "scientific_truth_established",
+            ))
+            or set(entry) != {
+                "owner_id", "notebook_id", "version", "previous_hash",
+                "notebook", "state", "publication_authorised",
+                "execution_authorised", "scientific_truth_established",
+                "digest",
+            }
+            or not isinstance(entry.get("notebook"), dict)
+            or set(entry["notebook"]) != {
+                "mission", "domain", "question", "hypothesis",
+                "falsification",
+            }
+        ):
+            raise NotebookHistoryUnavailable("notebook_review_scope_invalid")
         versions.append(entry)
     versions.sort(key=lambda item: item.get("version", -1))
     previous = "GENESIS"
