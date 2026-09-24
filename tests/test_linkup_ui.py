@@ -228,3 +228,20 @@ def test_linkup_template_shows_runtime_seven_star_gate():
     assert "seven_star_gate.star_count" in page
     assert "seven_star_gate.percent" in page
     assert "star.proof" in page
+
+
+def test_linkup_emoji_and_conversation_settings_reuse_existing_owners():
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    script = Path("static/linkup_realtime.js").read_text(encoding="utf-8")
+    assert "data-oap-emoji-picker" in page
+    assert "data-oap-emoji=" in page
+    assert 'aria-label="Choose emoji"' in page
+    assert "data-oap-emoji" in script
+    assert "textarea.setRangeText(emoji, start, end," in script
+    assert "next.length > textarea.maxLength" in script
+    assert 'textarea.dispatchEvent(new Event("input", { bubbles: true }))' in script
+    assert "data-oap-conversation-settings" not in page
+    assert 'aria-label="Conversation settings"' in page
+    assert "linkup_safety.block_member" in page
+    assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in page
+    assert "My Card sharing enabled" not in page
