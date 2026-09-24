@@ -64,6 +64,8 @@ def policy_from_bands(
 ) -> dict[str, object]:
     """Pure youth-contact decision used by runtime and deterministic self-test."""
 
+    if any(band is not None and band not in ALLOWED_BANDS for band in (first_band, second_band)):
+        raise ValueError("invalid_age_band")
     if first_band is None or second_band is None:
         return {
             "allowed": True,

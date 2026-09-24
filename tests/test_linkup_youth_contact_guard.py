@@ -131,6 +131,19 @@ def test_policy_from_bands_is_deterministic_and_privacy_minimised():
     assert unknown["resolved"] is False
 
 
+def test_policy_rejects_malformed_age_band_even_when_other_age_is_unknown():
+    import pytest
+
+    from mission_control import link_youth_safety
+
+    for first, second in ((None, "unverified"), ("invalid", None), ("invalid", "adult")):
+        with pytest.raises(ValueError, match="invalid_age_band"):
+            link_youth_safety.policy_from_bands(first, second)
+    unknown = link_youth_safety.policy_from_bands(None, "adult")
+    assert unknown["reason"] == "age_proof_unresolved"
+    assert unknown["resolved"] is False
+
+
 def test_youth_runtime_status_requires_self_test_pass():
     source = Path("mission_control/link_youth_safety.py").read_text(encoding="utf-8")
 
