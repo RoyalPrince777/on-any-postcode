@@ -55,7 +55,7 @@ def test_lab_synthetic_arithmetic_never_claims_persistence(monkeypatch):
         session[web_security.CSRF_SESSION_KEY] = "a" * 48
     result = client.post("/oap-lab", data=_form())
     assert result.status_code == 200
-    assert b"Review-only notebook validated" in result.data
+    assert b"SMI review finalised" in result.data
     assert b"4.0" in result.data
     assert b"Not saved" in result.data
     assert b"Not scientific proof" in result.data
@@ -67,7 +67,7 @@ def test_lab_stop_blocks_experiment(monkeypatch):
         session[web_security.CSRF_SESSION_KEY] = "a" * 48
     result = client.post("/oap-lab", data=_form(stopped="yes"))
     assert b"STOP: experiment not run" in result.data
-    assert b"Review-only notebook validated" not in result.data
+    assert b"SMI review finalised" not in result.data
 
 
 def test_lab_rejects_nonsynthetic_and_live_actions(monkeypatch):
@@ -77,4 +77,24 @@ def test_lab_rejects_nonsynthetic_and_live_actions(monkeypatch):
     for data in (_form(synthetic=""), _form(operation="external_io")):
         result = client.post("/oap-lab", data=data)
         assert result.status_code == 200
-        assert b"Review-only notebook validated" not in result.data
+        assert b"SMI review finalised" not in result.data
+
+
+def test_organiser_notebook_smi_finalise_is_not_durable(monkeypatch):
+    client = _client(monkeypatch)
+    with client.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    result = client.post("/oap-lab", data=_form(operation=""))
+    assert result.status_code == 200
+    assert b"Organiser" in result.data
+    assert b"SMI review finalised" in result.data
+    assert b"Not saved" in result.data
+
+
+def test_stop_blocks_notebook_only_review(monkeypatch):
+    client = _client(monkeypatch)
+    with client.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    result = client.post("/oap-lab", data=_form(operation="", stopped="yes"))
+    assert b"STOP: notebook review not run" in result.data
+    assert b"SMI review finalised" not in result.data
