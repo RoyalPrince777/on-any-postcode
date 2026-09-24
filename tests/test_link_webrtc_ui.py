@@ -56,6 +56,17 @@ def test_webrtc_media_permission_is_not_requested_during_readiness_check():
     assert "audio: true" in source
 
 
+def test_webrtc_constructor_failure_stops_captured_media_before_rethrow():
+    source = (ROOT / "static" / "linkup_realtime.js").read_text(encoding="utf-8")
+    acquired = source.index("const localStream = await navigator.mediaDevices.getUserMedia(")
+    constructor = source.index("pc = new RTCPeerConnection(", acquired)
+    cleanup = source.index("localStream.getTracks().forEach((track) => track.stop());", constructor)
+    rethrow = source.index("throw error;", cleanup)
+    state_assignment = source.index("state.localStream = localStream;", rethrow)
+    assert acquired < constructor < cleanup < rethrow < state_assignment
+    assert "catch (error) {" in source[constructor:cleanup]
+
+
 def test_webrtc_controls_render_locked_and_recipient_scoped():
     template = (
         ROOT / "mission_control" / "templates" / "linkup.html"
