@@ -36,10 +36,12 @@ def _hash(payload: dict[str, object]) -> str:
 
 
 def _entries(owner_id: str, notebook_id: str) -> list[dict[str, object]]:
-    records = workspaces.list_records(owner_id, _WORKSPACE, limit=_LIMIT)
+    prefix = f"{_PREFIX}{notebook_id}:"
+    records = workspaces.list_records_with_title_prefix(
+        owner_id, _WORKSPACE, title_prefix=prefix, limit=_LIMIT,
+    )
     if len(records) >= _LIMIT:
         raise NotebookHistoryUnavailable("workspace_history_limit_reached")
-    prefix = f"{_PREFIX}{notebook_id}:"
     versions = []
     for record in records:
         if not record["title"].startswith(prefix):
