@@ -2091,6 +2091,8 @@ def oap_lab_workbench():
         for key in ("synthetic", "human_approved", "stopped"):
             values[key] = request.form.get(key) == "yes"
         try:
+            if values["stopped"]:
+                raise PermissionError("STOP: notebook review not run")
             notebook = Notebook(
                 identifier=str(uuid.uuid4()),
                 mission=values["mission"],
