@@ -2062,7 +2062,11 @@ def infrastructure_status():
 def oap_lab_workbench():
     """Founder-only, transient LAB research workbench; no persistence or live claims."""
     from mission_control.oap_lab_research import (
-        DOMAINS, MISSIONS, Experiment, Notebook, run_isolated,
+        DOMAINS,
+        MISSIONS,
+        Experiment,
+        Notebook,
+        run_isolated,
     )
 
     values = {
