@@ -149,13 +149,25 @@
   }
   function pause(){
    if(!context||!active)return false;
-   try{Promise.resolve(context.suspend()).catch(()=>{});return true;}
-   catch(_error){return false;}
+   const current=token;
+   try{
+    Promise.resolve(context.suspend()).catch(()=>{
+     // An audio-focus interruption cannot leave a claimed paused stream playing.
+     if(current===token)cancelCurrent();
+    });
+    return true;
+   }catch(_error){if(current===token)cancelCurrent();return false;}
   }
   function resume(){
    if(!context||!active)return false;
-   try{Promise.resolve(context.resume()).catch(()=>{});return true;}
-   catch(_error){return false;}
+   const current=token;
+   try{
+    Promise.resolve(context.resume()).catch(()=>{
+     // Fail closed if Android/browser refuses to resume the decoded audio.
+     if(current===token)cancelCurrent();
+    });
+    return true;
+   }catch(_error){if(current===token)cancelCurrent();return false;}
   }
   return Object.freeze({prepare,play,stop,pause,resume,destroy,snapshot:()=>Object.freeze({
    active,hasDecodedAudio:Boolean(active&&context),retainsAudio:false,
