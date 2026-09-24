@@ -5,7 +5,8 @@ from uuid import uuid4
 
 import pytest
 
-from mission_control import oap_lab_workspace as lab, workspaces
+from mission_control import oap_lab_workspace as lab
+from mission_control import workspaces
 from mission_control.oap_lab_research import Notebook
 
 
