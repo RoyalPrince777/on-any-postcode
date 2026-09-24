@@ -93,7 +93,7 @@ def list_records_with_title_prefix(
                 """SELECT record_id,title,body,status,created_at,updated_at
                    FROM oap_workspace_records
                    WHERE identity_id=%s AND workspace_id=%s
-                     AND status <> 'archived' AND title LIKE %s
+                     AND title LIKE %s
                    ORDER BY updated_at DESC LIMIT %s""",
                 (identity, workspace["id"], title_prefix + "%", bounded),
             ).fetchall()
