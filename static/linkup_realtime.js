@@ -16,6 +16,23 @@
       });
     }
 
+    const emojiPicker = composer.querySelector("[data-oap-emoji-picker]");
+    emojiPicker?.querySelectorAll("[data-oap-emoji]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!textarea || textarea.disabled || textarea.readOnly) return;
+        const emoji = button.dataset.oapEmoji || "";
+        if (!emoji) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const next = textarea.value.slice(0, start) + emoji + textarea.value.slice(end);
+        if (next.length > textarea.maxLength && textarea.maxLength >= 0) return;
+        textarea.setRangeText(emoji, start, end, "end");
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        emojiPicker.open = false;
+        textarea.focus();
+      });
+    });
+
     if (textarea) {
       textarea.addEventListener("input", () => {
         textarea.style.height = "auto";
