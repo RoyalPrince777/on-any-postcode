@@ -40,7 +40,7 @@ def test_lab_is_private_review_only_and_not_cached(monkeypatch):
     assert result.status_code == 200
     assert result.headers["Cache-Control"] == "no-store"
     assert b"OAP LAB" in result.data
-    assert b"does not save notebooks" in result.data
+    assert b"Ordinary workspace records are not proven immutable" in result.data
     assert b"21" in result.data
 
 
