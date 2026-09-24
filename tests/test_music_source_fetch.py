@@ -62,11 +62,10 @@ def test_rejects_host_spoof_redirect_and_private_dns(monkeypatch):
         )
     with patch.object(fetch.socket, "getaddrinfo", return_value=[
         (2, 1, 6, "", ("127.0.0.1", 443)),
-    ]):
-        with pytest.raises(fetch.SourceFetchDenied, match="non_public_dns"):
-            fetch.fetch_permitted_track_page(
-                "free_music_archive", URL, source_permission=True,
-            )
+    ]), pytest.raises(fetch.SourceFetchDenied, match="non_public_dns"):
+        fetch.fetch_permitted_track_page(
+            "free_music_archive", URL, source_permission=True,
+        )
     conn = _Connection("freemusicarchive.org", "8.8.8.8")
     conn.response.status = 302
     monkeypatch.setattr(fetch, "_public_addresses", lambda host: ("8.8.8.8",))
