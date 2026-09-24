@@ -96,8 +96,19 @@ async function sha256(bytes){
  assert.equal(player.snapshot().active,true);
  contextInstance.currentTime=.2;raf?.(.2);
  assert.equal(cues,1);
- player.pause();assert.equal(contextInstance.state,"suspended");
- player.resume();assert.equal(contextInstance.state,"running");
+ assert.equal(player.pause(),true);assert.equal(contextInstance.state,"suspended");
+ assert.equal(player.resume(),true);assert.equal(contextInstance.state,"running");
+ // Android/browser interruptions can reject suspend/resume asynchronously.
+ // Both must be handled without an unhandled rejection or false STOP Green.
+ contextInstance.suspend=()=>Promise.reject(new Error("audio interruption"));
+ contextInstance.resume=()=>Promise.reject(new Error("audio focus denied"));
+ assert.equal(player.pause(),true);
+ assert.equal(player.resume(),true);
+ await new Promise(resolve=>setImmediate(resolve));
+ contextInstance.suspend=()=>{throw new Error("synchronous interruption");};
+ contextInstance.resume=()=>{throw new Error("synchronous interruption");};
+ assert.equal(player.pause(),false);
+ assert.equal(player.resume(),false);
  player.stop();
  assert.equal(player.snapshot().active,false);
  assert.equal(player.snapshot().prepared,true);
