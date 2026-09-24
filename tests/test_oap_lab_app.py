@@ -6,7 +6,7 @@ from mission_control import web_security
 def _client(monkeypatch, *, founder=True):
     monkeypatch.setattr(
         web_security, "current_authenticated_user",
-        lambda: {"id": "11111111-1111-4111-8111-111111111111", "name": "Founder"}
+        lambda: {"id": "11111111-1111-4111-8111-111111111111", "name": "Founder", "email": "founder@example.test"}
     )
     monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: founder)
     return app_module.app.test_client()
@@ -143,3 +143,71 @@ def test_export_requires_founder_csrf_and_unstopped_notebook(monkeypatch):
     assert client.post("/oap-lab", data=_form(
         notebook_action="download", operation="",
     )).status_code == 403
+
+
+def test_lab_save_reopen_through_existing_workspace(monkeypatch):
+    import re
+
+    from mission_control import public_store, workspaces
+
+    records = []
+
+    monkeypatch.setattr(
+        public_store, "ensure_authenticated_user", lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        workspaces, "list_records",
+        lambda owner, workspace, *, limit=50: list(reversed(records))[:limit],
+    )
+
+    def add(owner, workspace, *, title, body, status):
+        assert workspace == "governance"
+        assert owner == "11111111-1111-4111-8111-111111111111"
+        records.append({"title": title, "body": body})
+        return "22222222-2222-4222-8222-222222222222"
+
+    monkeypatch.setattr(workspaces, "add_record", add)
+    client = _client(monkeypatch)
+    with client.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    saved = client.post("/oap-lab", data=_form(
+        notebook_action="save", operation="",
+    ))
+    assert saved.status_code == 200
+    assert b"Saved in My World" in saved.data
+    assert len(records) == 1
+    path = re.search(rb'/oap-lab\\?notebook_id=[a-f0-9-]+', saved.data)
+    assert path is not None
+    reopened = client.get(path.group().decode().replace("&amp;", "&"))
+    assert reopened.status_code == 200
+    assert b"Can this claim be checked?" in reopened.data
+    assert b"First question" not in reopened.data
+    stopped = client.post("/oap-lab", data=_form(
+        notebook_action="save", operation="", stopped="yes",
+    ))
+    assert b"STOP: notebook review not run" in stopped.data
+    assert len(records) == 1
+
+
+def test_lab_store_failure_does_not_claim_saved(monkeypatch):
+    from mission_control import public_store, workspaces
+
+    monkeypatch.setattr(
+        public_store, "ensure_authenticated_user", lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        workspaces, "list_records", lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        workspaces, "add_record", lambda *args, **kwargs: (
+            (_ for _ in ()).throw(workspaces.WorkspaceUnavailable("offline"))
+        ),
+    )
+    client = _client(monkeypatch)
+    with client.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    result = client.post("/oap-lab", data=_form(
+        notebook_action="save", operation="",
+    ))
+    assert b"notebook_store_unavailable" in result.data
+    assert b"Saved in My World" not in result.data
