@@ -10,6 +10,7 @@ import http.client
 import ipaddress
 import socket
 import ssl
+from collections.abc import Callable
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
@@ -71,6 +72,7 @@ class _PageTitle(HTMLParser):
 
 def fetch_permitted_track_page(
     source_kind: str, page_url: str, *, source_permission: bool = False,
+    stop_check: Callable[[], bool] | None = None,
 ) -> dict[str, object]:
     """Fetch one explicitly permitted HTML page, not media or a licence verdict.
 
@@ -81,6 +83,15 @@ def fetch_permitted_track_page(
     """
     if source_permission is not True:
         raise SourceFetchDenied("source_permission_required")
+    if stop_check is None or not callable(stop_check):
+        raise SourceFetchDenied("stop_check_required")
+    try:
+        if stop_check():
+            raise SourceFetchDenied("stopped")
+    except SourceFetchDenied:
+        raise
+    except Exception as exc:
+        raise SourceFetchDenied("stop_check_unavailable") from exc
     url = _source_page(source_kind, page_url)
     if url is None:
         raise SourceFetchDenied("invalid_source_page")
@@ -113,6 +124,13 @@ def fetch_permitted_track_page(
         raise SourceFetchDenied("source_fetch_failed") from exc
     finally:
         conn.close()
+    try:
+        if stop_check():
+            raise SourceFetchDenied("stopped")
+    except SourceFetchDenied:
+        raise
+    except Exception as exc:
+        raise SourceFetchDenied("stop_check_unavailable") from exc
     parser = _PageTitle()
     parser.feed(body.decode("utf-8", errors="replace"))
     return {
