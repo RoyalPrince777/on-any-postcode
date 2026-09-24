@@ -34,17 +34,6 @@
     button.addEventListener("click", () => openPanel("new"));
   });
 
-  document.querySelectorAll("[data-oap-plus]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const composer = button.closest("form") || button.closest(".linkup-composer-wrap");
-      const tray = composer?.querySelector("[data-oap-tray]");
-      if (!tray) return;
-      const open = tray.dataset.open !== "true";
-      tray.dataset.open = open ? "true" : "false";
-      button.setAttribute("aria-expanded", open ? "true" : "false");
-    });
-  });
-
   if (search) {
     search.addEventListener("input", () => {
       const query = search.value.trim().toLowerCase();
