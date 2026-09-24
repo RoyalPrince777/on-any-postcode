@@ -132,8 +132,9 @@ def test_policy_from_bands_is_deterministic_and_privacy_minimised():
 
 
 def test_policy_rejects_malformed_age_band_even_when_other_age_is_unknown():
-    from mission_control import link_youth_safety
     import pytest
+
+    from mission_control import link_youth_safety
 
     for first, second in ((None, "unverified"), ("invalid", None), ("invalid", "adult")):
         with pytest.raises(ValueError, match="invalid_age_band"):
