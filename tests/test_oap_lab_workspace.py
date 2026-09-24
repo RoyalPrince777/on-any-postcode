@@ -29,7 +29,7 @@ def store(monkeypatch):
     def add_record(owner, workspace, *, title, body, status):
         assert workspace == "governance"
         assert status == "draft"
-        rows[owner].append({"title": title, "body": body})
+        rows[owner].append({"title": title, "body": body, "status": status})
         return str(uuid4())
 
     monkeypatch.setattr(workspaces, "list_records", list_records)
@@ -138,4 +138,33 @@ def test_notebook_extra_field_cannot_be_restored(store):
     entry["digest"] = lab._hash(payload)
     store[owner][0]["body"] = json.dumps(entry)
     with pytest.raises(lab.NotebookHistoryUnavailable, match="review_scope"):
+        lab.reopen(owner, notebook.identifier)
+
+
+def test_archived_or_active_record_rejected_even_if_hash_matches(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    lab.save(owner, notebook)
+    store[owner][0]["status"] = "active"
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="status"):
+        lab.reopen(owner, notebook.identifier)
+
+
+def test_invalid_recomputed_research_contract_and_version_fail_closed(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    lab.save(owner, notebook)
+    entry = json.loads(store[owner][0]["body"])
+    entry["notebook"]["mission"] = "not_an_existing_mission"
+    payload = {key: value for key, value in entry.items() if key != "digest"}
+    entry["digest"] = lab._hash(payload)
+    store[owner][0]["body"] = json.dumps(entry)
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="history_invalid"):
+        lab.reopen(owner, notebook.identifier)
+    entry["version"] = True
+    store[owner][0]["title"] = f"OAP-LAB:{notebook.identifier}:vTrue"
+    payload = {key: value for key, value in entry.items() if key != "digest"}
+    entry["digest"] = lab._hash(payload)
+    store[owner][0]["body"] = json.dumps(entry)
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="version_invalid"):
         lab.reopen(owner, notebook.identifier)
