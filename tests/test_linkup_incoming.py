@@ -25,6 +25,14 @@ def test_unified_incoming_requires_existing_sources():
         assert f'"{table}"' in source
 
 
+
+def test_incoming_excludes_expired_purpose_requests_without_hiding_permanent_links():
+    source = Path("mission_control/link_incoming.py").read_text(encoding="utf-8")
+    request_query = source.split("FROM link_relationships r", 1)[1].split("UNION ALL", 1)[0]
+    assert "r.recipient_id=%s AND r.status='pending'" in request_query
+    assert "(r.link_kind='permanent' OR r.expires_at>CURRENT_TIMESTAMP)" in request_query
+
+
 def test_unified_incoming_api_is_authenticated():
     source = Path("mission_control/link_incoming_routes.py").read_text(encoding="utf-8")
 
