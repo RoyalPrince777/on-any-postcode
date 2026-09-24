@@ -66,7 +66,7 @@ def test_lab_stop_blocks_experiment(monkeypatch):
     with client.session_transaction() as session:
         session[web_security.CSRF_SESSION_KEY] = "a" * 48
     result = client.post("/oap-lab", data=_form(stopped="yes"))
-    assert b"STOP: experiment not run" in result.data
+    assert b"STOP: notebook review not run" in result.data
     assert b"SMI review finalised" not in result.data
 
 
