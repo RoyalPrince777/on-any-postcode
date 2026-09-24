@@ -94,14 +94,14 @@ def test_store_failure_and_bounded_history_fail_closed(store, monkeypatch):
 def test_wrong_scope_and_fork_fail_closed(store):
     owner = str(uuid4())
     notebook = _notebook()
-    first = lab.save(owner, notebook)
+    lab.save(owner, notebook)
     entry = json.loads(store[owner][0]["body"])
     entry["owner_id"] = str(uuid4())
     store[owner][0]["body"] = json.dumps(entry)
     with pytest.raises(lab.NotebookHistoryUnavailable, match="scope"):
         lab.reopen(owner, notebook.identifier)
     store[owner].clear()
-    first = lab.save(owner, notebook)
+    lab.save(owner, notebook)
     store[owner].append(dict(store[owner][0]))
     with pytest.raises(lab.NotebookHistoryUnavailable, match="forked"):
         lab.reopen(owner, notebook.identifier)
