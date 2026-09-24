@@ -179,6 +179,13 @@
               <span class="linkup-chat-actions">
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
                 <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
+                <details class="linkup-conversation-settings" aria-label="Conversation settings">
+                  <summary>⚙ Settings</summary>
+                  <form method="post" action="{{ url_for('linkup_safety.block_member', member_id=thread.other_identity_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+                    <button class="mc-secondary" type="submit">Block this member</button>
+                  </form>
+                </details>
               </span>
             </header>
 
@@ -208,6 +215,14 @@
                 <div class="linkup-composer">
                   <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
                   <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
+                  <details data-oap-emoji-picker>
+                    <summary aria-label="Choose emoji" title="Emoji">😀</summary>
+                    <div role="group" aria-label="Insert emoji">
+                      {% for emoji in ['😀', '😂', '❤️', '👍', '🙏', '🔥', '👑', '💜', '🎉', '🤝', '🌍', '💯'] %}
+                      <button type="button" data-oap-emoji="{{ emoji }}" aria-label="Insert {{ emoji }}">{{ emoji }}</button>
+                      {% endfor %}
+                    </div>
+                  </details>
                   <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
                   <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop Voice">■</button>
                   <button class="mc-primary linkup-send" type="submit">Link</button>
