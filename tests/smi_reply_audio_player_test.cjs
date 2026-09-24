@@ -132,6 +132,11 @@ async function sha256(bytes){
  assert.ok(liveClick.indexOf("oapLocalPlayer?.prepare?.()")<liveClick.indexOf("oapSetLive(!Boolean(oapRuntime?.live))"));
  assert.ok(!liveClick.includes("if(oapVoiceEnabled)oapLocalPlayer?.prepare?.()"),"first voice-first entry starts with voice disabled");
  assert.ok(controller.includes("oapLocalPlayer?.destroy?.()"));
+ assert.ok(controller.includes("if(!document.hidden)return;"));
+ assert.ok(controller.includes("if(oapRuntime?.live){oapSetLive(false);"));
+ const hiddenHandler=controller.slice(controller.indexOf("document.addEventListener('visibilitychange'"));
+ assert.ok(hiddenHandler.includes("oapSpeechSeq+=1;oapLocalPlayer?.stop()"),"background ordinary audio must STOP");
+ assert.ok(hiddenHandler.includes("oapPlaybackState('cancelled',oapRuntime?.epoch)"),"background must clear character playback");
  assert.ok(controller.includes("oap-smi-audio-cue"));
  assert.ok(renderer.includes('cue?.source!=="oap-first-party-pcm"'));
  const audioCode=fs.readFileSync("mission_control/static/smi_reply_audio_player.js","utf8");
