@@ -106,3 +106,24 @@ def test_chat_completion_has_one_stop_gated_event_producer():
     assert "if(buffer.trim())receiveEvent(buffer);" in canonical
     assert "plus.click();" in interaction
     assert canonical.count("oapPlus.addEventListener('click'") == 1
+
+
+def test_live_scene_styles_precede_base_ui_without_removing_working_controls():
+    """The approved scene must paint before legacy chat markup; controls stay first-party."""
+    base = BASE.read_text(encoding="utf-8")
+    wrapper = WRAPPER.read_text(encoding="utf-8")
+    live_css = (ROOT / "mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
+    canonical = CANONICAL.read_text(encoding="utf-8")
+
+    head = base[:base.index("</head>")]
+    assert "smi_live_chat_dashboard.css" in head
+    assert head.index("smi_live_chat_dashboard.css") < head.index("</style>")
+    assert base.index("smi_live_chat_dashboard.css") < base.index('<main class="smi-shell">')
+    assert "smi_live_chat_dashboard.css" in wrapper
+    for control in ('id="plus-button"', 'id="mic-button"', 'id="speaker-button"', 'id="send"'):
+        assert base.count(control) == 1
+    assert "#code-button,#speaker-button,.name-input{display:none!important}" not in live_css
+    assert "#speaker-button{position:fixed!important" in live_css
+    assert "oapSpeaker.addEventListener('click'" in canonical
+    assert "oapMic.addEventListener('click'" in canonical
+    assert "data-oap-action=\"hrm\"" in base
