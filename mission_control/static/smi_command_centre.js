@@ -168,6 +168,7 @@
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
   ["🎙️","Ears · Language","Listening · communication",null],
   ["💬","Mouth · Communication","SMI Chat · messages",null],
+  ["🔗","Link Up · Messenger","Open first-party Link Up · existing permissions","/linkup"],
   ["❤️","Heart · Living Kernel","Governed work","/mission"],
   ["🌐","Lungs · Connectivity","OAP infrastructure",cfg.infrastructureUrl],
   ["🛡️","Immune · Guardian","Safety · permissions",cfg.warRoomUrl],
