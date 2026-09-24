@@ -70,6 +70,46 @@ def list_records(
     ]
 
 
+
+def list_records_with_title_prefix(
+    identity_id: object, workspace_id: object, *, title_prefix: str,
+    limit: int = 100,
+) -> list[dict[str, str]]:
+    """Owner-scoped title-prefix read without the unrelated workspace top-100.
+
+    This is ordinary mutable workspace storage, not an immutable or
+    independently anchored research ledger. Never hide an over-limit history.
+    """
+    identity = _identity(identity_id)
+    workspace = get(workspace_id)
+    if workspace is None:
+        raise ValueError("invalid_workspace")
+    if not isinstance(title_prefix, str) or not title_prefix.startswith("OAP-LAB:"):
+        raise ValueError("invalid_lab_prefix")
+    bounded = min(100, max(1, int(limit)))
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT record_id,title,body,status,created_at,updated_at
+                   FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id=%s
+                     AND status <> 'archived' AND title LIKE %s
+                   ORDER BY updated_at DESC LIMIT %s""",
+                (identity, workspace["id"], title_prefix + "%", bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise WorkspaceUnavailable("workspace_read_failed") from exc
+    return [
+        {
+            "record_id": str(row[0]), "title": str(row[1]),
+            "body": str(row[2]), "status": str(row[3]),
+            "created_at": row[4].isoformat(),
+            "updated_at": row[5].isoformat(),
+        }
+        for row in rows
+    ]
+
+
 def add_record(
     identity_id: object,
     workspace_id: object,
