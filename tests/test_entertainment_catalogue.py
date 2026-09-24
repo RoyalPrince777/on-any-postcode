@@ -219,3 +219,64 @@ def test_tune_catalogue_intelligence_route_is_private_csrf_and_read_only(monkeyp
     assert lead["human_release_approved"] is False
     assert "stream_url" not in lead
     assert "owner_identity_id" not in lead
+
+
+def test_tune_catalogue_handoff_requires_real_session_owner_release(monkeypatch):
+    from uuid import uuid4
+    from flask import Flask
+    from mission_control import product_core_views, product_core_services, web_security
+
+    app = Flask(__name__)
+    app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
+    client = app.test_client()
+    path = "/mission/organs/tune/catalogue-intelligence/review-handoff"
+    owner, own_release, other_release = str(uuid4()), str(uuid4()), str(uuid4())
+    candidate = {
+        "candidate_id": str(uuid4()), "title": "Review lead",
+        "artist": "Independent artist", "source_kind": "direct_artist",
+        "claimed_licence": "DIRECT_PERMISSION",
+        "rights_verified": True, "playback_enabled": True,
+        "owner_identity_id": str(uuid4()),
+    }
+    payload = {"candidate": candidate, "release_id": own_release}
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
+    assert client.post(path, json=payload).status_code == 401
+    monkeypatch.setattr(web_security, "current_authenticated_user",
+                        lambda: {"id": "founder"})
+    monkeypatch.setattr(web_security, "private_authority_allowed",
+                        lambda user: False)
+    assert client.post(path, json=payload).status_code == 403
+    monkeypatch.setattr(web_security, "private_authority_allowed",
+                        lambda user: True)
+    monkeypatch.setattr(product_core_views, "_identity", lambda: owner)
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: False)
+    assert client.post(path, json=payload).status_code == 403
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: True)
+    assert client.post(path, json={"candidate": []}).status_code == 400
+    seen = []
+    def owned_projection(identity):
+        seen.append(identity)
+        return {"releases": [{
+            "release_id": own_release, "title": "Owner release",
+            "state": "DRAFT", "rights_status": "UNVERIFIED",
+        }]}
+    monkeypatch.setattr(product_core_services, "tune_dashboard",
+                        owned_projection)
+    assert client.post(path, json={**payload, "release_id": other_release}).status_code == 404
+    result = client.post(path, json=payload)
+    assert result.status_code == 200
+    assert result.headers["Cache-Control"] == "no-store"
+    body = result.get_json()
+    assert seen == [owner, owner]
+    assert body["owner_authenticated"] is True
+    assert body["owner_bound_to_music_release"] is True
+    assert body["existing_release"]["release_id"] == own_release
+    assert body["independent_rights_verified"] is False
+    assert body["ready_for_authenticated_handoff"] is False
+    assert body["playback_enabled"] is False
+    assert body["receipt_persisted"] is False
+    assert body["release_created"] is False
+    assert "owner_identity_id" not in body
+    monkeypatch.setattr(product_core_services, "tune_dashboard",
+                        lambda identity: (_ for _ in ()).throw(RuntimeError("DB offline")))
+    assert client.post(path, json=payload).status_code == 503
