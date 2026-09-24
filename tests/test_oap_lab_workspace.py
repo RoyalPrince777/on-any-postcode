@@ -106,3 +106,36 @@ def test_wrong_scope_and_fork_fail_closed(store):
     store[owner].append(dict(store[owner][0]))
     with pytest.raises(lab.NotebookHistoryUnavailable, match="forked"):
         lab.reopen(owner, notebook.identifier)
+
+
+def test_signed_hash_does_not_make_authority_or_title_trustworthy(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    lab.save(owner, notebook)
+    original = store[owner][0]["body"]
+    store[owner][0]["title"] += "-forged"
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="title"):
+        lab.reopen(owner, notebook.identifier)
+    store[owner][0]["title"] = (
+        f"OAP-LAB:{notebook.identifier}:v1"
+    )
+    entry = json.loads(original)
+    entry["publication_authorised"] = True
+    payload = {key: value for key, value in entry.items() if key != "digest"}
+    entry["digest"] = lab._hash(payload)
+    store[owner][0]["body"] = json.dumps(entry)
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="review_scope"):
+        lab.reopen(owner, notebook.identifier)
+
+
+def test_notebook_extra_field_cannot_be_restored(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    lab.save(owner, notebook)
+    entry = json.loads(store[owner][0]["body"])
+    entry["notebook"]["execution_instructions"] = "forbidden"
+    payload = {key: value for key, value in entry.items() if key != "digest"}
+    entry["digest"] = lab._hash(payload)
+    store[owner][0]["body"] = json.dumps(entry)
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="review_scope"):
+        lab.reopen(owner, notebook.identifier)
