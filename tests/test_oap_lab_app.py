@@ -163,7 +163,7 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
     def add(owner, workspace, *, title, body, status):
         assert workspace == "governance"
         assert owner == "11111111-1111-4111-8111-111111111111"
-        records.append({"title": title, "body": body})
+        records.append({"title": title, "body": body, "status": status})
         return "22222222-2222-4222-8222-222222222222"
 
     monkeypatch.setattr(workspaces, "add_record", add)
