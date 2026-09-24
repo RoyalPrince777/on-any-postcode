@@ -357,7 +357,14 @@
       audio: true,
       video: mode === "face_up",
     });
-    const pc = new RTCPeerConnection({ iceServers: credentials.ice_servers });
+    let pc;
+    try {
+      pc = new RTCPeerConnection({ iceServers: credentials.ice_servers });
+    } catch (error) {
+      // Capture succeeded but peer setup failed: never leave a microphone or camera live.
+      localStream.getTracks().forEach((track) => track.stop());
+      throw error;
+    }
 
     state.current = sessionId;
     state.peer = peerId;
