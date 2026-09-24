@@ -147,8 +147,16 @@
     if(!active&&allowed())cancelCurrent();
    }
   }
-  function pause(){if(context&&active){try{context.suspend()}catch{}}}
-  function resume(){if(context&&active){try{context.resume()}catch{}}}
+  function pause(){
+   if(!context||!active)return false;
+   try{Promise.resolve(context.suspend()).catch(()=>{});return true;}
+   catch(_error){return false;}
+  }
+  function resume(){
+   if(!context||!active)return false;
+   try{Promise.resolve(context.resume()).catch(()=>{});return true;}
+   catch(_error){return false;}
+  }
   return Object.freeze({prepare,play,stop,pause,resume,destroy,snapshot:()=>Object.freeze({
    active,hasDecodedAudio:Boolean(active&&context),retainsAudio:false,
    externalTelemetry:false,accurateHumanLipSyncProven:false,prepared
