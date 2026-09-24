@@ -22,9 +22,12 @@ def _notebook(identifier=None, question="First question"):
 def store(monkeypatch):
     rows = defaultdict(list)
 
-    def list_records(owner, workspace, *, limit=50):
+    def list_records(owner, workspace, *, title_prefix, limit=100):
         assert workspace == "governance"
-        return list(reversed(rows[owner]))[:limit]
+        return [
+            row for row in reversed(rows[owner])
+            if row["title"].startswith(title_prefix)
+        ][:limit]
 
     def add_record(owner, workspace, *, title, body, status):
         assert workspace == "governance"
@@ -32,7 +35,7 @@ def store(monkeypatch):
         rows[owner].append({"title": title, "body": body, "status": status})
         return str(uuid4())
 
-    monkeypatch.setattr(workspaces, "list_records", list_records)
+    monkeypatch.setattr(workspaces, "list_records_with_title_prefix", list_records)
     monkeypatch.setattr(workspaces, "add_record", add_record)
     return rows
 
@@ -167,4 +170,25 @@ def test_invalid_recomputed_research_contract_and_version_fail_closed(store):
     entry["digest"] = lab._hash(payload)
     store[owner][0]["body"] = json.dumps(entry)
     with pytest.raises(lab.NotebookHistoryUnavailable, match="version_invalid"):
+        lab.reopen(owner, notebook.identifier)
+
+
+def test_unrelated_workspace_records_do_not_truncate_lab_history(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    store[owner].extend([
+        {"title": f"OTHER:{i}", "body": "unrelated", "status": "draft"}
+        for i in range(180)
+    ])
+    saved = lab.save(owner, notebook)
+    assert saved["version"] == 1
+    assert lab.reopen(owner, notebook.identifier)["version"] == 1
+
+
+def test_archived_version_is_not_silently_omitted(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    lab.save(owner, notebook)
+    store[owner][0]["status"] = "archived"
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="status"):
         lab.reopen(owner, notebook.identifier)
