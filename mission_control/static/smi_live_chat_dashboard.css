@@ -32,7 +32,9 @@ body.smi-live-fullscreen #live-character-toggle{top:12px!important;right:12px!im
 #plus-button,#mic-button{width:46px!important;height:46px!important;border-color:rgba(48,180,255,.6)!important;background:rgba(4,15,35,.82)!important;box-shadow:0 0 15px rgba(21,167,255,.2)}
 #mic-button{grid-column:2;grid-row:1;margin-right:42px}
 #mic-button::after{content:"Voice";position:absolute;margin-left:82px;color:#e9f5ff;font-size:.86rem;font-weight:500}
-#code-button,#speaker-button,.name-input{display:none!important}
+#code-button,.name-input{display:none!important}
+/* Upgrade-only: retain the original voice-output control, separately from microphone input. */
+#speaker-button{position:fixed!important;top:62px;right:12px;z-index:91;display:inline-flex!important;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid rgba(48,180,255,.6)!important;border-radius:999px;background:rgba(4,15,35,.82)!important;color:#eef8ff!important;backdrop-filter:blur(14px)}
 #thinking-level{grid-column:4;grid-row:1;width:146px;min-height:46px;padding:0 12px;border:1px solid rgba(42,154,255,.38);border-radius:25px;background:rgba(3,12,30,.82);color:#dff4ff;font-weight:700;text-align:center}
 #send{grid-column:5;grid-row:1;display:flex!important;align-items:center;justify-content:center;gap:8px;width:128px!important;height:48px!important;border:1px solid rgba(57,200,255,.88)!important;border-radius:25px!important;background:rgba(6,48,91,.82)!important;color:#f5fbff!important;box-shadow:0 0 20px rgba(27,171,255,.35);font-size:.95rem}
 .send-label{display:inline!important}
