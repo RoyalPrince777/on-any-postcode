@@ -135,8 +135,9 @@ async function sha256(bytes){
  assert.equal(player.pause(),true);
  assert.equal(player.resume(),true);
  await new Promise(resolve=>setImmediate(resolve));
- contextInstance.suspend=()=>{throw new Error("synchronous interruption");};
- contextInstance.resume=()=>{throw new Error("synchronous interruption");};
+ assert.equal(player.snapshot().active,false,"rejected audio focus must cancel playback");
+ assert.equal(sources[0].stopped,true);
+ assert.equal(sources[0].disconnected,true);
  assert.equal(player.pause(),false);
  assert.equal(player.resume(),false);
  player.stop();
