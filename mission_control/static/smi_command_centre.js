@@ -14,7 +14,8 @@
  presenceActions.setAttribute("aria-label","SMI character controls");
  for(const [label,target] of [["💬 Chat","messages"],["＋ Tools","plus-button"],["⚔️ War Room","war-room"]]){
   const button=document.createElement("button");button.type="button";button.textContent=label;
-  button.addEventListener("click",()=>{
+  button.addEventListener("click",event=>{
+   event.stopPropagation(); // Prevent the canonical outside-click guard closing Master Tools.
    if(target==="messages"){
     if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
     document.getElementById("message")?.focus();return;
@@ -63,10 +64,10 @@
  universe.className="smi-command-universe";
  universe.setAttribute("aria-label","SMI universe tools");
  const quickActions=[
+  ["＋ Master Tools","master-tools"],
   ["⚔️ War Room","war-room"],
-  ["🕶 Matrix","agents"],
   ["🧠 HRM","hrm"],
-  ["🛡 Guardian","guardian"],
+  ["🩺 Function Health","function-health"],
   ["🟣 Green Gate","green-gate"],
   ["🏦 Bank Controls","oap-bank-controls"]
  ];
@@ -168,6 +169,7 @@
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
   ["🎙️","Ears · Language","Listening · communication",null],
   ["💬","Mouth · Communication","SMI Chat · messages",null],
+  ["🔗","Link Up · Messenger","Open first-party Link Up · existing permissions","/linkup"],
   ["❤️","Heart · Living Kernel","Governed work","/mission"],
   ["🌐","Lungs · Connectivity","OAP infrastructure",cfg.infrastructureUrl],
   ["🛡️","Immune · Guardian","Safety · permissions",cfg.warRoomUrl],
@@ -308,6 +310,20 @@
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
   const action=trigger.dataset.action;
+  if(action==="master-tools"){
+   // Only the original composer owns the drawer. The originating click must not
+   // bubble to its outside-click guard after the canonical button opens it.
+   event.stopPropagation();
+   const plus=document.getElementById("plus-button");
+   if(!plus||plus.disabled){
+    const feedback=document.getElementById("status");
+    if(feedback)feedback.textContent="Master Tools unavailable.";
+    return;
+   }
+   setOpen(false);
+   plus.click();
+   return;
+  }
   if(action==="oap-bank-controls"){
    bankControls.hidden=!bankControls.hidden;
    trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
