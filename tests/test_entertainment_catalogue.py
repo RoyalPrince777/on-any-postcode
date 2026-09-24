@@ -223,8 +223,10 @@ def test_tune_catalogue_intelligence_route_is_private_csrf_and_read_only(monkeyp
 
 def test_tune_catalogue_handoff_requires_real_session_owner_release(monkeypatch):
     from uuid import uuid4
+
     from flask import Flask
-    from mission_control import product_core_views, product_core_services, web_security
+
+    from mission_control import product_core_services, product_core_views, web_security
 
     app = Flask(__name__)
     app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
