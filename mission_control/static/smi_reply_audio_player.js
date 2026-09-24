@@ -36,9 +36,9 @@
    Math.abs(at-alignment.audioDurationMs)<=1;
  }
  function create(win=typeof window!=="undefined"?window:null){
-  let token=0,abort=null,context=null,source=null,frame=null,active=false,prepared=false;
+  let token=0,abort=null,context=null,source=null,frame=null,active=false,prepared=false,playbackError=null;
   function cancelCurrent(){
-   token+=1;active=false;
+   token+=1;active=false;playbackError=null;
    try{abort?.abort()}catch{}
    abort=null;
    try{source?.stop()}catch{}
@@ -135,7 +135,7 @@
      cancelCurrent();onEnd?.();
     };
     source.start(startAt);
-    active=true;
+    active=true;playbackError=onError;
     onStart?.();
     if(!allowed()||!active)return false;
     frame=win.requestAnimationFrame(tick);
@@ -153,10 +153,11 @@
    try{
     Promise.resolve(context.suspend()).catch(()=>{
      // An audio-focus interruption cannot leave a claimed paused stream playing.
-     if(current===token)cancelCurrent();
+     if(current===token){const notify=playbackError;cancelCurrent();try{notify?.()}catch{}}
+
     });
     return true;
-   }catch(_error){if(current===token)cancelCurrent();return false;}
+   }catch(_error){if(current===token){const notify=playbackError;cancelCurrent();try{notify?.()}catch{}}return false;}
   }
   function resume(){
    if(!context||!active)return false;
@@ -164,10 +165,11 @@
    try{
     Promise.resolve(context.resume()).catch(()=>{
      // Fail closed if Android/browser refuses to resume the decoded audio.
-     if(current===token)cancelCurrent();
+     if(current===token){const notify=playbackError;cancelCurrent();try{notify?.()}catch{}}
+
     });
     return true;
-   }catch(_error){if(current===token)cancelCurrent();return false;}
+   }catch(_error){if(current===token){const notify=playbackError;cancelCurrent();try{notify?.()}catch{}}return false;}
   }
   return Object.freeze({prepare,play,stop,pause,resume,destroy,snapshot:()=>Object.freeze({
    active,hasDecodedAudio:Boolean(active&&context),retainsAudio:false,
