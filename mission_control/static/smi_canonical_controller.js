@@ -274,19 +274,29 @@ async function oapSubmit(options={}){
   if(!response.ok){let payload={};try{payload=await response.json()}catch{}throw new Error(payload?.error?.message||'Request failed');}
   if(!response.body)throw new Error('Streaming is not supported by this browser');
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+  function receiveEvent(block){
+   const parsed=parseEventBlock(block);if(!parsed)return;
+   if(parsed.event==='stage')showStage(parsed.data.label||parsed.data.stage||'Working');
+   if(parsed.event==='delta'){if(!assistantBody)assistantBody=add('','assistant');streamText+=parsed.data.delta||'';renderMessage(assistantBody,streamText);messages.scrollTop=messages.scrollHeight;}
+   if(parsed.event==='complete')completeResult=parsed.data.result;
+   if(parsed.event==='error')streamError=new Error(parsed.data.message||'Request failed');
+  }
   while(true){
    while(oapPaused&&!responseStopped)await new Promise(resolve=>setTimeout(resolve,80));
    const chunk=await reader.read();if(chunk.done)break;
-   buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n/g,'\n');
+   // Normalise after concatenation: Android streams can split CRLF across reads.
+   buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n?/g,'\n');
    let boundary=-1;
    while((boundary=buffer.indexOf('\n\n'))>=0){
-    const block=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);const parsed=parseEventBlock(block);if(!parsed)continue;
-    if(parsed.event==='stage')showStage(parsed.data.label||parsed.data.stage||'Working');
-    if(parsed.event==='delta'){if(!assistantBody)assistantBody=add('','assistant');streamText+=parsed.data.delta||'';renderMessage(assistantBody,streamText);messages.scrollTop=messages.scrollHeight;}
-    if(parsed.event==='complete')completeResult=parsed.data.result;
-    if(parsed.event==='error')streamError=new Error(parsed.data.message||'Request failed');
+    const block=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);
+    receiveEvent(block);
    }
   }
+  // Flush the decoder and accept an intact terminal SSE event even if the
+  // network stream ended without an extra blank line. A truncated JSON
+  // payload still fails closed rather than producing a fabricated reply.
+  buffer=(buffer+decoder.decode()).replace(/\r\n?/g,'\n');
+  if(buffer.trim())receiveEvent(buffer);
   if(streamError)throw streamError;if(!completeResult)throw new Error('The governed response did not finish recording.');
   conversationId=completeResult.conversation_id;if(!assistantBody)assistantBody=add(completeResult.response,'assistant');else renderMessage(assistantBody,completeResult.response);
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
