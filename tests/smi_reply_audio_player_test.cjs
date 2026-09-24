@@ -194,5 +194,40 @@ async function sha256(bytes){
  assert.ok(!audioCode.includes("localStorage"));
  assert.ok(!audioCode.includes("sendBeacon"));
  assert.ok(!audioCode.includes("WebSocket"));
+
+ // Exercise the actual browser SSE reader with split CRLF, EOF without a
+ // final blank line, and malformed terminal payload. No invented reply.
+ const streamStart=controller.indexOf("  const reader=response.body.getReader()");
+ const streamEnd=controller.indexOf("  conversationId=completeResult.conversation_id",streamStart);
+ assert.ok(streamStart>=0&&streamEnd>streamStart);
+ const streamBody=controller.slice(streamStart,streamEnd);
+ const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+ const runActualStream=new AsyncFunction("response","parseEventBlock","TextDecoder",`
+  let oapPaused=false,responseStopped=false,assistantBody=null,completeResult=null,streamError=null,streamText='';
+  const messages={scrollTop:0,scrollHeight:0};
+  const add=()=>({});const renderMessage=()=>{};const showStage=()=>{};
+  ${streamBody}
+  return {completeResult,streamText};
+ `);
+ const parseSse=block=>{
+  const lines=block.split("\\n"),event=lines.find(x=>x.startsWith("event:"))?.slice(6).trim()||"message";
+  const data=lines.filter(x=>x.startsWith("data:")).map(x=>x.slice(5).trim()).join("\\n");
+  return data?{event,data:JSON.parse(data)}:null;
+ };
+ const respond=parts=>({body:{getReader:()=>{
+  let index=0;
+  return {read:async()=>index<parts.length?
+   {done:false,value:new TextEncoder().encode(parts[index++])}:{done:true}};
+ }}});
+ assert.equal((await runActualStream(
+  respond(['event: complete\\ndata: {"result":{"response":"final"}}']),
+  parseSse,TextDecoder)).completeResult.response,"final");
+ assert.equal((await runActualStream(
+  respond(['event: com','plete\\r','\\ndata: {"result":{"response":"split"}}\\r','\\n\\r','\\n']),
+  parseSse,TextDecoder)).completeResult.response,"split");
+ await assert.rejects(
+  runActualStream(respond(['event: complete\\ndata: {"result":']),parseSse,TextDecoder),
+  /Unexpected end|JSON|governed response/
+ );
  console.log("SMI_LOCAL_AUDIO_CLOCK_STOP_AND_WIRING_PASS");
 })().catch(error=>{console.error(error);process.exitCode=1;});
