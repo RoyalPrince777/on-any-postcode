@@ -74,6 +74,17 @@ def test_canonical_controller_owns_worked_for_timing_and_safe_progress():
     assert "timingOwner:true" in text
 
 
+def test_reply_read_aloud_uses_canonical_voice_and_honours_stop():
+    canonical = CONTROLLER.read_text(encoding="utf-8")
+    final = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    assert "window.OAP_SMI_READ_ALOUD=text=>" in canonical
+    assert "if(oapRuntime?.stopped||oapRuntime?.paused)" in canonical
+    assert "oapSpeak(text,true);return true;" in canonical
+    assert "if(oapRuntime?.stopped)return;" in canonical
+    assert "window.OAP_SMI_READ_ALOUD?.(body?.innerText||'')" in final
+    assert "window.speechSynthesis.speak(u)" not in final
+
+
 def test_canonical_controller_owns_voice_mic_and_stop():
     text = CONTROLLER.read_text(encoding="utf-8")
     assert "window.SpeechRecognition||window.webkitSpeechRecognition" in text
