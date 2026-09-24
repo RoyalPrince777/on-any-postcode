@@ -54,6 +54,17 @@ def test_browser_reconnect_reuses_same_client_id_without_persistent_body_storage
     assert "indexedDB" not in script
 
 
+def test_interrupted_retry_never_falls_back_to_changed_composer():
+    script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
+    guard = script.split("const sendLink = async (form, fixedPayload = null) => {", 1)[1]
+    readiness = guard.split("const textarea = bodyFor(form);", 1)[0]
+    assert "if (fixedPayload) {" in readiness
+    assert "showRetry(form, fixedPayload," in readiness
+    assert readiness.index("if (fixedPayload) {") < readiness.index("form.submit();")
+    assert "pending.payload" in script
+    assert "localStorage" not in script
+
+
 def test_sync_rollout_falls_back_before_schema_activation():
     source = Path("mission_control/product_store.py").read_text(encoding="utf-8")
     script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
