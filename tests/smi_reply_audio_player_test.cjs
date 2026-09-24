@@ -210,8 +210,8 @@ async function sha256(bytes){
   return {completeResult,streamText};
  `);
  const parseSse=block=>{
-  const lines=block.split("\\n"),event=lines.find(x=>x.startsWith("event:"))?.slice(6).trim()||"message";
-  const data=lines.filter(x=>x.startsWith("data:")).map(x=>x.slice(5).trim()).join("\\n");
+  const lines=block.split("\n"),event=lines.find(x=>x.startsWith("event:"))?.slice(6).trim()||"message";
+  const data=lines.filter(x=>x.startsWith("data:")).map(x=>x.slice(5).trim()).join("\n");
   return data?{event,data:JSON.parse(data)}:null;
  };
  const respond=parts=>({body:{getReader:()=>{
@@ -220,13 +220,13 @@ async function sha256(bytes){
    {done:false,value:new TextEncoder().encode(parts[index++])}:{done:true}};
  }}});
  assert.equal((await runActualStream(
-  respond(['event: complete\\ndata: {"result":{"response":"final"}}']),
+  respond(['event: complete\ndata: {"result":{"response":"final"}}']),
   parseSse,TextDecoder,{stopped:false})).completeResult.response,"final");
  assert.equal((await runActualStream(
-  respond(['event: com','plete\\r','\\ndata: {"result":{"response":"split"}}\\r','\\n\\r','\\n']),
+  respond(['event: com','plete\r','\ndata: {"result":{"response":"split"}}\r','\n\r','\n']),
   parseSse,TextDecoder,{stopped:false})).completeResult.response,"split");
  await assert.rejects(
-  runActualStream(respond(['event: complete\\ndata: {"result":']),parseSse,TextDecoder,{stopped:false}),
+  runActualStream(respond(['event: complete\ndata: {"result":']),parseSse,TextDecoder,{stopped:false}),
   /Unexpected end|JSON|governed response/
  );
  // The network can resolve one last buffered completion after STOP; it must
@@ -235,7 +235,7 @@ async function sha256(bytes){
  const delayedResponse={body:{getReader:()=>({read:async()=>{
   stoppedRuntime.stopped=true;
   return {done:false,value:new TextEncoder().encode(
-   'event: complete\\ndata: {"result":{"response":"must not display"}}\\n\\n')};
+   'event: complete\ndata: {"result":{"response":"must not display"}}\n\n')};
  }})}};
  assert.equal(await runActualStream(delayedResponse,parseSse,TextDecoder,stoppedRuntime),undefined);
  console.log("SMI_LOCAL_AUDIO_CLOCK_STOP_AND_WIRING_PASS");
