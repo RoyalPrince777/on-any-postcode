@@ -23,6 +23,12 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('oap-smi-character-state', source)
         self.assertNotIn("All Systems Operational", source)
 
+    def test_link_up_control_is_a_real_first_party_route(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn('["🔗","Link Up · Messenger","Open first-party Link Up · existing permissions","/linkup"]', source)
+        self.assertIn('const link=document.createElement(url?"a":"div")', source)
+        self.assertIn('if(url){link.href=url;link.title=detail;}', source)
+
     def test_health_truth_is_fail_closed(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn("data.checks[key]===true", source)
