@@ -91,3 +91,18 @@ def test_status_drawer_never_hides_chat_workspace():
     assert "smi-chat-mode" not in dashboard
     assert "smi-status-open .workspace-grid{display:grid!important}" in css
     assert "smi-status-open .smi-dashboard-layer{display:flex!important}" in css
+
+
+def test_chat_completion_has_one_stop_gated_event_producer():
+    """A clone of raw SSE must never bypass canonical STOP or double-issue receipts."""
+    final = FINAL.read_text(encoding="utf-8")
+    canonical = CANONICAL.read_text(encoding="utf-8")
+    interaction = INTERACTION.read_text(encoding="utf-8")
+    assert "window.fetch=async function" not in final
+    assert "response.clone().text()" not in final
+    assert "dispatchEvent(new CustomEvent('oap-smi-complete'" not in final
+    assert canonical.count("dispatchEvent(new CustomEvent('oap-smi-complete'") == 1
+    assert "if(responseStopped||oapRuntime?.stopped)return;" in canonical
+    assert "if(buffer.trim())receiveEvent(buffer);" in canonical
+    assert "plus.click();" in interaction
+    assert canonical.count("oapPlus.addEventListener('click'") == 1
