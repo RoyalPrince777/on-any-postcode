@@ -202,7 +202,7 @@ async function sha256(bytes){
  assert.ok(streamStart>=0&&streamEnd>streamStart);
  const streamBody=controller.slice(streamStart,streamEnd);
  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
- const runActualStream=new AsyncFunction("response","parseEventBlock","TextDecoder",`
+ const runActualStream=new AsyncFunction("response","parseEventBlock","TextDecoder","oapRuntime",`
   let oapPaused=false,responseStopped=false,assistantBody=null,completeResult=null,streamError=null,streamText='';
   const messages={scrollTop:0,scrollHeight:0};
   const add=()=>({});const renderMessage=()=>{};const showStage=()=>{};
@@ -221,13 +221,22 @@ async function sha256(bytes){
  }}});
  assert.equal((await runActualStream(
   respond(['event: complete\\ndata: {"result":{"response":"final"}}']),
-  parseSse,TextDecoder)).completeResult.response,"final");
+  parseSse,TextDecoder,{stopped:false})).completeResult.response,"final");
  assert.equal((await runActualStream(
   respond(['event: com','plete\\r','\\ndata: {"result":{"response":"split"}}\\r','\\n\\r','\\n']),
-  parseSse,TextDecoder)).completeResult.response,"split");
+  parseSse,TextDecoder,{stopped:false})).completeResult.response,"split");
  await assert.rejects(
-  runActualStream(respond(['event: complete\\ndata: {"result":']),parseSse,TextDecoder),
+  runActualStream(respond(['event: complete\\ndata: {"result":']),parseSse,TextDecoder,{stopped:false}),
   /Unexpected end|JSON|governed response/
  );
+ // The network can resolve one last buffered completion after STOP; it must
+ // not reappear as an assistant message or an accepted completion.
+ const stoppedRuntime={stopped:false};
+ const delayedResponse={body:{getReader:()=>({read:async()=>{
+  stoppedRuntime.stopped=true;
+  return {done:false,value:new TextEncoder().encode(
+   'event: complete\\ndata: {"result":{"response":"must not display"}}\\n\\n')};
+ }})}};
+ assert.equal(await runActualStream(delayedResponse,parseSse,TextDecoder,stoppedRuntime),undefined);
  console.log("SMI_LOCAL_AUDIO_CLOCK_STOP_AND_WIRING_PASS");
 })().catch(error=>{console.error(error);process.exitCode=1;});
