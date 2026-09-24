@@ -99,7 +99,7 @@ def save(
     if type(stopped) is not bool or stopped:
         raise PermissionError("STOP: notebook save blocked")
     if not isinstance(notebook, Notebook):
-        raise ValueError("typed_lab_notebook_required")
+        raise TypeError("typed_lab_notebook_required")
     owner, notebook_id = _uuid(owner_id), _uuid(notebook.identifier)
     versions = _entries(owner, notebook_id)
     previous = versions[-1]["digest"] if versions else "GENESIS"
