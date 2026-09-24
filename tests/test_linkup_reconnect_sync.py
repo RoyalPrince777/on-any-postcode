@@ -82,3 +82,18 @@ def test_explicit_sync_activation_commands_exist():
     assert "OAP_LINK_MESSAGE_SYNC_MIGRATION_ON_BOOT" in source
     assert "oap-link-message-sync-status" in source
     assert "oap-init-link-message-sync" in source
+
+
+def test_permission_denials_cannot_be_retried_or_queued_after_reconnect():
+    script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
+    denied = script.split('if (code === "link_blocked" || code === "accepted_link_required") {', 1)[1]
+    terminal = denied.split("} else if (", 1)[0]
+    retry = denied.split("} else if (", 1)[1]
+    assert "state.pendingRetries.delete(payload.client_message_id)" in terminal
+    assert "localStatus.textContent = message;" in terminal
+    assert "showRetry(" not in terminal
+    assert "state.pendingRetries.set(payload.client_message_id" in retry
+    assert "showRetry(form, payload, message)" in retry
+    assert 'code === "link_blocked"' in script
+    assert 'code === "accepted_link_required"' in script
+    assert 'window.addEventListener("online"' in script
