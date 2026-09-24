@@ -148,9 +148,9 @@ function oapWorkSeconds(){return oapWorkStarted?Math.max(0,Math.round((performan
 function oapUpdateWorkedFor(){if(oapThinkingElapsed)oapThinkingElapsed.textContent=`Worked for ${oapWorkSeconds().toFixed(1)}s`;}
 function oapBeginWork(){oapWorkStarted=performance.now();oapApply('THINK_START');oapUpdateWorkedFor();if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=setInterval(oapUpdateWorkedFor,100);}
 function oapEndWork(){const seconds=oapWorkSeconds();if(oapWorkTimer)clearInterval(oapWorkTimer);oapWorkTimer=null;if(oapThinkingElapsed)oapThinkingElapsed.textContent=`Worked for ${seconds.toFixed(1)}s`;oapWorkStarted=0;if(!oapRuntime?.stopped)oapApply('THINK_END');return seconds;}
-function oapSpeak(text){
+function oapSpeak(text,explicit=false){
  if(oapRuntime?.stopped)return;
- if(!text||!oapVoiceEnabled||!('speechSynthesis' in window)){if(oapRuntime?.live)oapScheduleListening(250);return;}
+ if(!text||(!oapVoiceEnabled&&!explicit)||!('speechSynthesis' in window)){if(oapRuntime?.live)oapScheduleListening(250);return;}
  oapSpeechSeq+=1;
  const seq=oapSpeechSeq,expected=oapStateApi.token(oapRuntime);
  window.speechSynthesis.cancel();
@@ -309,6 +309,11 @@ window.addEventListener('pagehide',()=>{document.body.classList.remove('smi-live
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&oapRuntime?.live){oapSetLive(false);oapSetStatus('Live SMI off while this page is hidden');}});
 oapRenderCharacter();oapUpdateLiveToggle();
 oapAddCaptureOptions();
+window.OAP_SMI_READ_ALOUD=text=>{
+ if(oapRuntime?.stopped||oapRuntime?.paused){oapSetStatus(oapRuntime.stopped?'Stopped by Human Authority · use an explicit new command':'Paused by Human Authority');return false;}
+ if(typeof text!=='string'||!text.trim()||!('speechSynthesis' in window)){oapSetStatus('Read aloud unavailable');return false;}
+ oapSpeak(text,true);return true;
+};
 window.OAP_SMI_LIVE_PROOF={snapshot:oapProofSnapshot,privacy:{storesAudio:false,storesTranscript:false}};
 window.OAP_SMI_CANONICAL={version:'2.2',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,liveFullscreen:true,voiceFirstFullscreen:true,persistentThinkingProcess:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,runtimeProofLedger:true,resultStreamOnly:true};
 })();
