@@ -156,8 +156,11 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
         public_store, "ensure_authenticated_user", lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
-        workspaces, "list_records",
-        lambda owner, workspace, *, limit=50: list(reversed(records))[:limit],
+        workspaces, "list_records_with_title_prefix",
+        lambda owner, workspace, *, title_prefix, limit=100: [
+            row for row in reversed(records)
+            if row["title"].startswith(title_prefix)
+        ][:limit],
     )
 
     def add(owner, workspace, *, title, body, status):
@@ -196,7 +199,7 @@ def test_lab_store_failure_does_not_claim_saved(monkeypatch):
         public_store, "ensure_authenticated_user", lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
-        workspaces, "list_records", lambda *args, **kwargs: [],
+        workspaces, "list_records_with_title_prefix", lambda *args, **kwargs: [],
     )
     monkeypatch.setattr(
         workspaces, "add_record", lambda *args, **kwargs: (
