@@ -116,10 +116,10 @@ async function sha256(bytes){
  deniedDuringPlay.destroy();
  assert.equal(await player.prepare(),true);
  assert.equal(player.snapshot().prepared,true);
- let starts=0,cues=0;
+ let starts=0,cues=0,playbackErrors=0;
  assert.equal(await player.play({
   url:"/mission/chat/reply-audio",csrf:"csrf",conversationId,requestId,
-  onStart:()=>starts++,onCue:()=>cues++
+  onStart:()=>starts++,onCue:()=>cues++,onError:()=>playbackErrors++
  }),true);
  assert.equal(starts,1);
  assert.equal(sources[0].started,true);
@@ -136,6 +136,7 @@ async function sha256(bytes){
  assert.equal(player.resume(),true);
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(player.snapshot().active,false,"rejected audio focus must cancel playback");
+ assert.equal(playbackErrors,1,"audio-focus failure must notify canonical character controller exactly once");
  assert.equal(sources[0].stopped,true);
  assert.equal(sources[0].disconnected,true);
  assert.equal(player.pause(),false);
