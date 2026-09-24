@@ -285,7 +285,7 @@ async function oapSubmit(options={}){
    while(oapPaused&&!responseStopped)await new Promise(resolve=>setTimeout(resolve,80));
    const chunk=await reader.read();if(chunk.done)break;
    // Normalise after concatenation: Android streams can split CRLF across reads.
-   buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n?/g,'\n');
+   buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n|\r(?!$)/g,'\n');
    let boundary=-1;
    while((boundary=buffer.indexOf('\n\n'))>=0){
     const block=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);
