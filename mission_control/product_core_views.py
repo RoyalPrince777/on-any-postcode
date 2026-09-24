@@ -233,6 +233,49 @@ def tune_catalogue_intelligence_preview():
         return _error("permission_denied", "Authenticated Founder required.", 403)
 
 
+@bp.post("/tune/catalogue-intelligence/review-handoff")
+@web_security.login_required(api=True, founder_only=True)
+def tune_catalogue_review_handoff():
+    """Session-owner-scoped, read-only plan for an existing OAP Music release."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("candidate"), dict):
+        return _error("invalid_request", "Candidate object required.", 400)
+    release_id = payload.get("release_id")
+    if not isinstance(release_id, str):
+        return _error("invalid_request", "Release ID required.", 400)
+    try:
+        owner = _identity()
+        # Read from the existing canonical, owner-scoped Tune Core projection.
+        tune = product_core_services.tune_dashboard(owner)
+        plan = open_music_intake.private_music_release_review_plan(
+            payload["candidate"], owner, release_id,
+        )
+        if plan["candidate_id"] is None or plan["submitted_release_id"] is None:
+            return _error("invalid_request", "Invalid candidate or release.", 400)
+        release = next(
+            (row for row in tune["releases"]
+             if row["release_id"] == plan["submitted_release_id"]), None
+        )
+        if release is None:
+            return _error("not_found", "Release unavailable for this owner.", 404)
+        plan["owner_authenticated"] = True
+        plan["owner_bound_to_music_release"] = True
+        plan["existing_release"] = {
+            "release_id": release["release_id"],
+            "title": release["title"],
+            "state": release["state"],
+            "rights_status": release["rights_status"],
+        }
+        # Existing release status is not proof of the candidate's rights.
+        return _no_store(make_response(jsonify(plan)))
+    except (PermissionError, ValueError):
+        return _error("permission_denied", "Authenticated Founder required.", 403)
+    except Exception:  # noqa: BLE001 - fail closed, redact storage details.
+        return _error("organ_unavailable", "OAP Music is temporarily unavailable.", 503)
+
+
 @bp.post("/entertainment/open-cinema/preview")
 @web_security.login_required(api=True, founder_only=True)
 def open_cinema_preview():
