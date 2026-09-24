@@ -283,7 +283,10 @@ async function oapSubmit(options={}){
   }
   while(true){
    while(oapPaused&&!responseStopped)await new Promise(resolve=>setTimeout(resolve,80));
-   const chunk=await reader.read();if(chunk.done)break;
+   const chunk=await reader.read();
+   // A buffered completion after Human STOP must never appear as a new reply.
+   if(responseStopped||oapRuntime?.stopped)return;
+   if(chunk.done)break;
    // Normalise after concatenation: Android streams can split CRLF across reads.
    buffer=(buffer+decoder.decode(chunk.value,{stream:true})).replace(/\r\n|\r(?!$)/g,'\n');
    let boundary=-1;
