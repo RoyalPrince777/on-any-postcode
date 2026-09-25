@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 
 from . import postgres_db
@@ -108,6 +110,97 @@ def list_records_with_title_prefix(
         }
         for row in rows
     ]
+
+
+
+def add_lab_record_atomic(
+    identity_id: object,
+    *,
+    title: object,
+    body: object,
+    notebook_id: object,
+    version: int,
+    digest: str,
+) -> str:
+    """Write one LAB draft and canonical audit event in one transaction.
+
+    Reuses existing oap_workspace_records and audit_events tables. This proves
+    transactional coupling in software; it does not make workspace rows
+    immutable or create an independent recovery store.
+    """
+    identity = _identity(identity_id)
+    notebook = str(uuid.UUID(str(notebook_id)))
+    title_value = str(title or "").strip()[:160]
+    body_value = str(body or "").strip()[:5000]
+    if not title_value or not body_value:
+        raise ValueError("workspace_title_and_body_required")
+    if type(version) is not int or version < 1:
+        raise ValueError("invalid_lab_version")
+    if (
+        not isinstance(digest, str) or len(digest) != 64
+        or any(char not in "0123456789abcdef" for char in digest)
+    ):
+        raise ValueError("invalid_lab_digest")
+    metadata = {
+        "workspace_id": "governance",
+        "notebook_id": notebook,
+        "version": version,
+        "digest": digest,
+        "record_status": "draft",
+        "publication_authorised": False,
+        "execution_authorised": False,
+    }
+    try:
+        with postgres_db.connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680260,))
+            recent = connection.execute(
+                """SELECT COUNT(*) FROM oap_workspace_records
+                   WHERE identity_id=%s
+                     AND created_at >= CURRENT_TIMESTAMP - INTERVAL '1 minute'""",
+                (identity,),
+            ).fetchone()
+            if recent and int(recent[0]) >= 20:
+                raise ValueError("workspace_rate_limit")
+            row = connection.execute(
+                """INSERT INTO oap_workspace_records(
+                       identity_id,workspace_id,title,body,status
+                   ) VALUES (%s,'governance',%s,%s,'draft')
+                   RETURNING record_id""",
+                (identity, title_value, body_value),
+            ).fetchone()
+            record_id = str(row[0])
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+            previous = connection.execute(
+                "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+            ).fetchone()
+            previous_hash = str(previous[0]) if previous else "GENESIS"
+            canonical = json.dumps(
+                {**metadata, "record_id": record_id},
+                sort_keys=True, separators=(",", ":"),
+            )
+            current_hash = hashlib.sha256(
+                (previous_hash + canonical).encode("utf-8")
+            ).hexdigest()
+            connection.execute(
+                """INSERT INTO audit_events(
+                       prev_hash,curr_hash,actor_id,actor_type,authority_level,
+                       action,target,reason,correlation_id,metadata
+                   ) VALUES (
+                       %s,%s,%s,'HUMAN_AUTHORITY',0,
+                       'OAP_LAB_NOTEBOOK_SAVE',%s,
+                       'owner_scoped_research_draft_save',%s,%s::jsonb
+                   )""",
+                (
+                    previous_hash, current_hash, identity,
+                    f"oap_lab_notebook:{notebook}", notebook, canonical,
+                ),
+            )
+            connection.commit()
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise WorkspaceUnavailable("workspace_atomic_audit_write_failed") from exc
+    return record_id
 
 
 def add_record(
