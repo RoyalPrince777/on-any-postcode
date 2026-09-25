@@ -29,6 +29,7 @@ ALLOWED_RECEIPT_KINDS = {
     "behaviour_learning_receipt",
     "behaviour_step4_readiness_receipt",
     "studio_generation_receipt",
+    "oap_lab_recovery_anchor",
 }
 
 
@@ -370,6 +371,125 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable
         }
     return _write_sqlite(kind, normalised, receipt_id, created_at, fallback_used=False)
 
+
+
+
+def write_lab_recovery_anchor(payload: dict[str, Any]) -> dict[str, Any]:
+    """Write one LAB recovery anchor only to a proven-separate durable HRM DB.
+
+    This never initializes schema and never falls back to SQLite.
+    """
+    status = backend_configuration_status()
+    if (
+        not status.get("durable_backend_configured")
+        or not status.get("hrm_host_sha256")
+        or not status.get("main_host_sha256")
+        or status["hrm_host_sha256"] == status["main_host_sha256"]
+    ):
+        return {
+            "ok": False,
+            "status": "blocked_independent_hrm_not_proven_separate",
+            "receipt_kind": "oap_lab_recovery_anchor",
+            "receipt_id": None,
+            "read_back_ok": False,
+            "durable": False,
+            "fallback_used": False,
+            "backend": "independent_hrm_postgres",
+        }
+    return write_receipt(
+        "oap_lab_recovery_anchor",
+        {
+            "brain_part": "oap_lab",
+            "gate": 21,
+            "command": "lab_recovery_anchor",
+            "signal": "🟣",
+            "guardian": "required",
+            "green_gate": "recovery_readback_required",
+            "founder_final": "required_for_release",
+            "safe_payload": dict(payload),
+        },
+        require_durable=True,
+    )
+
+
+def read_lab_recovery_anchor(
+    *, owner_id: str, notebook_id: str, version: int | None = None,
+) -> dict[str, Any]:
+    """Read the newest matching LAB anchor from independent HRM Postgres.
+
+    No schema initialization or fallback store is allowed on recovery reads.
+    """
+    status = backend_configuration_status()
+    if (
+        not status.get("durable_backend_configured")
+        or not status.get("hrm_host_sha256")
+        or not status.get("main_host_sha256")
+        or status["hrm_host_sha256"] == status["main_host_sha256"]
+    ):
+        return {
+            "ok": False,
+            "status": "blocked_independent_hrm_not_proven_separate",
+            "payload": None,
+            "receipt_id": None,
+        }
+    try:
+        with _connect_postgres() as connection, connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            params: list[Any] = [owner_id, notebook_id]
+            version_filter = ""
+            if version is not None:
+                version_filter = " AND (payload_json->>'version')::int = %s"
+                params.append(int(version))
+            cursor.execute(
+                f"""
+                SELECT receipt_id,payload_json,created_at
+                FROM smi_evidence_receipts
+                WHERE receipt_kind='oap_lab_recovery_anchor'
+                  AND payload_json->>'owner_id' = %s
+                  AND payload_json->>'notebook_id' = %s
+                  {version_filter}
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                tuple(params),
+            )
+            row = cursor.fetchone()
+    except Exception:
+        return {
+            "ok": False,
+            "status": "independent_recovery_read_failed",
+            "payload": None,
+            "receipt_id": None,
+        }
+    if not row:
+        return {
+            "ok": False,
+            "status": "independent_recovery_anchor_not_found",
+            "payload": None,
+            "receipt_id": None,
+        }
+    payload = row.get("payload_json")
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except ValueError:
+            payload = None
+    if not isinstance(payload, dict):
+        return {
+            "ok": False,
+            "status": "independent_recovery_anchor_invalid",
+            "payload": None,
+            "receipt_id": row.get("receipt_id"),
+        }
+    return {
+        "ok": True,
+        "status": "independent_recovery_anchor_read",
+        "payload": payload,
+        "receipt_id": row.get("receipt_id"),
+        "created_at": row.get("created_at"),
+        "backend": "independent_hrm_postgres",
+        "fallback_used": False,
+    }
 
 
 def verify_matrix_review_outcome(
