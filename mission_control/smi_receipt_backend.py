@@ -454,7 +454,7 @@ def read_lab_recovery_anchor(
                 tuple(params),
             )
             row = cursor.fetchone()
-    except Exception:
+    except Exception:  # noqa: BLE001 - no storage details in recovery response
         return {
             "ok": False,
             "status": "independent_recovery_read_failed",
