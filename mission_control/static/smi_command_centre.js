@@ -68,6 +68,7 @@
   ["⚔️ War Room","war-room"],
   ["🧠 HRM","hrm"],
   ["🗺️ Maps Controls","oap-maps-controls"],
+  ["🖥️ Screen Intelligence","screen-intelligence"],
   ["🩺 Function Health","function-health"],
   ["🟣 Green Gate","green-gate"],
   ["🏦 Bank Controls","oap-bank-controls"]
@@ -378,6 +379,17 @@
   if(action==="oap-maps-controls"){
    mapsControls.hidden=!mapsControls.hidden;
    trigger.setAttribute("aria-expanded",String(!mapsControls.hidden));
+   return;
+  }
+  if(action==="screen-intelligence"){
+   const screen=document.getElementById("screen-menu-button");
+   if(!screen||screen.disabled){
+    const feedback=document.getElementById("status");
+    if(feedback)feedback.textContent="Screen Intelligence unavailable.";
+    return;
+   }
+   setOpen(false);
+   screen.click();
    return;
   }
   const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
