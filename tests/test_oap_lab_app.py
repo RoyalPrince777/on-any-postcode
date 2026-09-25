@@ -163,13 +163,14 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
         ][:limit],
     )
 
-    def add(owner, workspace, *, title, body, status):
-        assert workspace == "governance"
+    def add(owner, *, title, body, notebook_id, version, digest):
         assert owner == "11111111-1111-4111-8111-111111111111"
-        records.append({"title": title, "body": body, "status": status})
+        assert title == f"OAP-LAB:{notebook_id}:v{version}"
+        assert len(digest) == 64
+        records.append({"title": title, "body": body, "status": "draft"})
         return "22222222-2222-4222-8222-222222222222"
 
-    monkeypatch.setattr(workspaces, "add_record", add)
+    monkeypatch.setattr(workspaces, "add_lab_record_atomic", add)
     client = _client(monkeypatch)
     with client.session_transaction() as session:
         session[web_security.CSRF_SESSION_KEY] = "a" * 48
@@ -202,7 +203,7 @@ def test_lab_store_failure_does_not_claim_saved(monkeypatch):
         workspaces, "list_records_with_title_prefix", lambda *args, **kwargs: [],
     )
     monkeypatch.setattr(
-        workspaces, "add_record", lambda *args, **kwargs: (
+        workspaces, "add_lab_record_atomic", lambda *args, **kwargs: (
             (_ for _ in ()).throw(workspaces.WorkspaceUnavailable("offline"))
         ),
     )
