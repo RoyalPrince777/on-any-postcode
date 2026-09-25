@@ -48,7 +48,7 @@ def list_records(
     if workspace is None:
         raise ValueError("invalid_workspace")
     try:
-        with postgres_db.connect(readonly=True) as connection:
+        with postgres_db.lab_connect(readonly=True) as connection:
             rows = connection.execute(
                 """SELECT record_id,title,body,status,created_at,updated_at
                    FROM oap_workspace_records
@@ -90,7 +90,7 @@ def list_records_with_title_prefix(
         raise ValueError("invalid_lab_prefix")
     bounded = min(100, max(1, int(limit)))
     try:
-        with postgres_db.connect(readonly=True) as connection:
+        with postgres_db.lab_connect(readonly=True) as connection:
             rows = connection.execute(
                 """SELECT record_id,title,body,status,created_at,updated_at
                    FROM oap_workspace_records
@@ -122,7 +122,7 @@ def list_lab_audit_receipts(
     notebook = str(uuid.UUID(str(notebook_id)))
     bounded = min(100, max(1, int(limit)))
     try:
-        with postgres_db.connect(readonly=True) as connection:
+        with postgres_db.lab_connect(readonly=True) as connection:
             rows = connection.execute(
                 """SELECT event_seq,actor_id,target,metadata
                    FROM audit_events
@@ -191,7 +191,7 @@ def add_lab_record_atomic(
         "execution_authorised": False,
     }
     try:
-        with postgres_db.connect() as connection:
+        with postgres_db.lab_connect() as connection:
             connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680260,))
             recent = connection.execute(
                 """SELECT COUNT(*) FROM oap_workspace_records
@@ -303,7 +303,7 @@ def lab_immutability_status() -> dict[str, object]:
         "error": None,
     }
     try:
-        with postgres_db.connect(readonly=True) as connection:
+        with postgres_db.lab_connect(readonly=True) as connection:
             privileges = connection.execute(
                 """SELECT
                        has_table_privilege(current_user,'oap_workspace_records','UPDATE'),
@@ -348,7 +348,7 @@ def status() -> dict[str, object]:
         "error": None,
     }
     try:
-        with postgres_db.connect(readonly=True) as connection:
+        with postgres_db.lab_connect(readonly=True) as connection:
             exists = connection.execute(
                 """SELECT 1 FROM information_schema.tables
                    WHERE table_schema='public'
