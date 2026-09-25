@@ -59,10 +59,14 @@ with sync_playwright() as p:
             context.set_geolocation({"latitude": 51.4036, "longitude": -0.1687})
             page.add_init_script("""
                 window.__oapSpoken=[];
-                window.SpeechSynthesisUtterance=function(text){this.text=String(text);this.lang='';};
-                window.speechSynthesis={
-                    speak:function(u){window.__oapSpoken.push(String(u.text||''));},
-                    cancel:function(){},
+                const nativeSpeak=window.speechSynthesis.speak.bind(window.speechSynthesis);
+                const nativeCancel=window.speechSynthesis.cancel.bind(window.speechSynthesis);
+                window.speechSynthesis.speak=function(u){
+                    window.__oapSpoken.push(String((u&&u.text)||''));
+                    try{return nativeSpeak(u)}catch(_){return undefined}
+                };
+                window.speechSynthesis.cancel=function(){
+                    try{return nativeCancel()}catch(_){return undefined}
                 };
             """)
         errors = []
