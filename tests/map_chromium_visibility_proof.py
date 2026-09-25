@@ -98,6 +98,17 @@ with sync_playwright() as p:
         page.locator("#map-to").fill("London Bridge")
         page.locator("#map-form button.go").click()
         if mobile:
+            page.evaluate("""
+                () => window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:{route:{
+                    distance_m:4200,duration_s:720,
+                    geometry:{coordinates:[[-0.1687,51.4036],[-0.1500,51.4300],[-0.0877,51.5079]]},
+                    steps:[
+                        {type:'turn',modifier:'right',name:'Fixture Road',distance_m:1800},
+                        {type:'arrive',modifier:'',name:'',distance_m:2400}
+                    ]
+                }}}))
+            """)
+            assert page.locator("#trip-bar").is_visible()
             page.locator("#voice-toggle").click()
             assert page.locator("#voice-toggle").get_attribute("aria-pressed") == "true"
             page.locator("#drive-toggle").click()
