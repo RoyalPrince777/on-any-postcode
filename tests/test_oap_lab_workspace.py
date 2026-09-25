@@ -135,6 +135,7 @@ def test_wrong_scope_and_fork_fail_closed(store):
     with pytest.raises(lab.NotebookHistoryUnavailable, match="scope"):
         lab.reopen(owner, notebook.identifier)
     store[owner].clear()
+    store._lab_receipts[(owner, notebook.identifier)].clear()
     lab.save(owner, notebook)
     store[owner].append(dict(store[owner][0]))
     with pytest.raises(lab.NotebookHistoryUnavailable, match="forked"):
@@ -157,7 +158,7 @@ def test_signed_hash_does_not_make_authority_or_title_trustworthy(store):
     payload = {key: value for key, value in entry.items() if key != "digest"}
     entry["digest"] = lab._hash(payload)
     store[owner][0]["body"] = json.dumps(entry)
-    with pytest.raises(lab.NotebookHistoryUnavailable, match="review_scope"):
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="receipt_mismatch"):
         lab.reopen(owner, notebook.identifier)
 
 
@@ -170,7 +171,7 @@ def test_notebook_extra_field_cannot_be_restored(store):
     payload = {key: value for key, value in entry.items() if key != "digest"}
     entry["digest"] = lab._hash(payload)
     store[owner][0]["body"] = json.dumps(entry)
-    with pytest.raises(lab.NotebookHistoryUnavailable, match="review_scope"):
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="receipt_mismatch"):
         lab.reopen(owner, notebook.identifier)
 
 
@@ -192,7 +193,7 @@ def test_invalid_recomputed_research_contract_and_version_fail_closed(store):
     payload = {key: value for key, value in entry.items() if key != "digest"}
     entry["digest"] = lab._hash(payload)
     store[owner][0]["body"] = json.dumps(entry)
-    with pytest.raises(lab.NotebookHistoryUnavailable, match="history_invalid"):
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="receipt_mismatch"):
         lab.reopen(owner, notebook.identifier)
     entry["version"] = True
     store[owner][0]["title"] = f"OAP-LAB:{notebook.identifier}:vTrue"
