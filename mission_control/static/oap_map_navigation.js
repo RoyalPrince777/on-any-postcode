@@ -3,12 +3,12 @@ const q=s=>document.querySelector(s);
 const body=document.body,routeSvg=q('#route-svg'),roadsSvg=q('#roads-svg');
 const turnCard=q('#turn-card'),turnIcon=q('#turn-icon'),turnRoad=q('#turn-road'),turnSub=q('#turn-sub'),turnDistance=q('#turn-distance');
 const etaClock=q('#eta-clock'),etaRemain=q('#eta-remain'),routeDistance=q('#route-distance-hud');
-const tripBar=q('#trip-bar'),driveToggle=q('#drive-toggle');
+const tripBar=q('#trip-bar'),driveToggle=q('#drive-toggle'),voiceToggle=q('#voice-toggle');
 const details=q('#details-sheet'),detailsToggle=q('#details-toggle'),detailsClose=q('#details-close');
 const locate=q('#map-locate'),recenter=q('#recenter'),zoomIn=q('#zoom-in'),zoomOut=q('#zoom-out');
 const status=q('#route-state');
 let currentRoute=null,currentGeometry=[],watchId=null,lastPoint=null,lastHeading=0,lastProjected=null;
-let zoom=1,viewCenter=[500,350],driveMode=false,offRouteSamples=0,lastRerouteAt=0;
+let zoom=1,viewCenter=[500,350],driveMode=false,voiceEnabled=false,lastSpokenKey='',offRouteSamples=0,lastRerouteAt=0;
 const OFF_ROUTE_METERS=80,REROUTE_SAMPLES=3,REROUTE_COOLDOWN_MS=15000;
 
 function iconFor(step){
@@ -19,6 +19,26 @@ function instruction(step){
  if(!step)return 'Route ready';
  if(step.type==='arrive')return 'Arrive at destination';
  return step.name?('Continue on '+step.name):'Continue';
+}
+function cancelGuidanceVoice(){
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+}
+function speakGuidance(text,key){
+ if(!voiceEnabled||!text||key===lastSpokenKey)return;
+ if(!('speechSynthesis' in window)||typeof window.SpeechSynthesisUtterance!=='function'){
+  voiceEnabled=false;if(voiceToggle){voiceToggle.textContent='Voice unavailable';voiceToggle.setAttribute('aria-pressed','false')}return;
+ }
+ lastSpokenKey=key;window.speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(String(text));utterance.lang='en-GB';
+ window.speechSynthesis.speak(utterance);
+}
+function setVoice(on){
+ voiceEnabled=!!on;lastSpokenKey='';cancelGuidanceVoice();
+ if(voiceToggle){
+  voiceToggle.textContent=voiceEnabled?'Voice on':'Voice off';
+  voiceToggle.setAttribute('aria-pressed',String(voiceEnabled));
+ }
+ if(voiceEnabled&&currentRoute)speakGuidance('Navigation voice on','voice-on');
 }
 function formatEta(seconds){
  const d=new Date(Date.now()+Math.max(0,+seconds||0)*1000);
@@ -88,6 +108,7 @@ function maybeReroute(lon,lat,distanceM){
  if(offRouteSamples<REROUTE_SAMPLES||now-lastRerouteAt<REROUTE_COOLDOWN_MS)return;
  lastRerouteAt=now;offRouteSamples=0;
  status.textContent='Off route · recalculating';status.hidden=false;
+ speakGuidance('Off route. Recalculating.','reroute-'+Math.floor(now/REROUTE_COOLDOWN_MS));
  window.dispatchEvent(new CustomEvent('oap-map-reroute-request',{detail:{latitude:lat,longitude:lon}}));
 }
 function activeStep(progress){
@@ -101,9 +122,12 @@ function activeStep(progress){
 }
 function updateTurn(progress){
  const hit=activeStep(progress);if(!hit)return;
- turnIcon.textContent=iconFor(hit.step);turnRoad.textContent=instruction(hit.step);
+ const text=instruction(hit.step),remaining=Math.round(hit.remaining);
+ turnIcon.textContent=iconFor(hit.step);turnRoad.textContent=text;
  turnSub.textContent=hit.step.type==='arrive'?'Destination':'Next turn';
- turnDistance.textContent=Math.round(hit.remaining)+' m';
+ turnDistance.textContent=remaining+' m';
+ const key=[hit.step.type||'',hit.step.modifier||'',hit.step.name||'',Math.round(remaining/50)].join('|');
+ if(remaining<=350||hit.step.type==='arrive')speakGuidance((remaining>20?remaining+' metres. ':'')+text,key);
 }
 function updateFromPosition(pos){
  const {longitude,latitude,heading}=pos.coords;
@@ -144,6 +168,7 @@ function renderRoute(d){
  if(currentGeometry.length){const p=currentGeometry[0];placeVehicle(+p[0],+p[1],0)}
 }
 driveToggle?.addEventListener('click',()=>setDrive(!driveMode));
+voiceToggle?.addEventListener('click',()=>setVoice(!voiceEnabled));
 detailsToggle?.addEventListener('click',()=>{details.hidden=!details.hidden;detailsToggle.setAttribute('aria-expanded',String(!details.hidden))});
 detailsClose?.addEventListener('click',()=>{details.hidden=true;detailsToggle?.setAttribute('aria-expanded','false')});
 locate?.addEventListener('click',startLocation);
@@ -151,6 +176,6 @@ recenter?.addEventListener('click',()=>{if(lastProjected){viewCenter=lastProject
 zoomIn?.addEventListener('click',()=>setZoom(zoom+.45));
 zoomOut?.addEventListener('click',()=>setZoom(zoom-.45));
 window.addEventListener('oap-map-route-ready',e=>renderRoute(e.detail||{}));
-window.addEventListener('pagehide',()=>{if(watchId!==null)navigator.geolocation?.clearWatch(watchId)});
-window.OAP_MAP_NAVIGATION={version:'2.1',lowNoise:true,driveFollow:true,progressiveTurnGuidance:true,offRouteReroute:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};
+window.addEventListener('pagehide',()=>{if(watchId!==null)navigator.geolocation?.clearWatch(watchId);cancelGuidanceVoice()});
+window.OAP_MAP_NAVIGATION={version:'2.2',lowNoise:true,driveFollow:true,progressiveTurnGuidance:true,voiceTurnGuidance:true,voiceUserControlled:true,voiceAudioStored:false,offRouteReroute:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};
 })();
