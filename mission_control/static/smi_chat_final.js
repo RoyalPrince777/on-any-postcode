@@ -48,7 +48,13 @@ function openMapWorkspace(path='/on-any-place'){
 function closeMapWorkspace(){
   if(!mapWorkspace)return;
   mapWorkspace.hidden=true;document.body.classList.remove('smi-map-open');
-  q('#status').textContent='Map Intelligence closed · SMI ready';
+  // SOUL boundary: hiding is not STOP. Unload the same-origin map document so
+  // any consented geolocation/navigation work inside it cannot continue unseen.
+  if(mapFrame){
+    mapFrame.src='about:blank';
+    mapFrame.removeAttribute('srcdoc');
+  }
+  q('#status').textContent='Map Intelligence stopped · SMI ready';
 }
 qa('[data-map-view]').forEach(button=>button.onclick=()=>openMapWorkspace(button.dataset.mapView||'/on-any-place'));
 if(mapClose)mapClose.onclick=closeMapWorkspace;
