@@ -54,6 +54,17 @@ with sync_playwright() as p:
                                                   "AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36")
                                       if mobile else None)
         page = context.new_page()
+        if mobile:
+            context.grant_permissions(["geolocation"], origin="https://oap-map.test")
+            context.set_geolocation({"latitude": 51.4036, "longitude": -0.1687})
+            page.add_init_script("""
+                window.__oapSpoken=[];
+                window.SpeechSynthesisUtterance=function(text){this.text=String(text);this.lang='';};
+                window.speechSynthesis={
+                    speak:function(u){window.__oapSpoken.push(String(u.text||''));},
+                    cancel:function(){},
+                };
+            """)
         errors = []
         page.on("pageerror", lambda error, sink=errors: sink.append(str(error)))
         page.route("https://oap-map.test/**", fixture)
@@ -86,12 +97,27 @@ with sync_playwright() as p:
         page.locator("#map-from").fill("Mitcham")
         page.locator("#map-to").fill("London Bridge")
         page.locator("#map-form button.go").click()
+        if mobile:
+            page.locator("#voice-toggle").click()
+            assert page.locator("#voice-toggle").get_attribute("aria-pressed") == "true"
+            page.locator("#drive-toggle").click()
+            assert page.locator("body").get_attribute("data-map-mode") == "drive"
+            page.locator("#map-locate").click()
+            page.wait_for_function(
+                "() => document.querySelector('#map-locate').classList.contains('active')",
+                timeout=10000,
+            )
+            assert page.locator("#map-locate").get_attribute("class").find("active") >= 0
         page.wait_for_function(
             "() => document.querySelector('#route-state').textContent.includes('Route unavailable')"
             " || document.querySelector('#route-state').textContent.includes('temporarily unavailable')",
             timeout=10000,
         )
         assert page.locator("#road-layer polyline").count() > 0, label
+        if mobile:
+            assert page.locator("#voice-toggle").inner_text() == "Voice on"
+            assert page.locator("#oap-os-map-runtime").get_attribute("data-oap-os-map-runtime") == "android-web"
+            assert page.evaluate("() => Array.isArray(window.__oapSpoken)") is True
         assert not errors, (label, errors)
         print(f"OAP_MAP_CHROMIUM_FIXTURE_PASS {label} roads={count} route_failure_retained=true")
         context.close()
