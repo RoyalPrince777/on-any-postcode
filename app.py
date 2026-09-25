@@ -2061,7 +2061,7 @@ def infrastructure_status():
 @web_security.login_required(api=True, founder_only=True)
 def oap_lab_status():
     """Founder-only read-only LAB evidence surface; never changes release state."""
-    from mission_control import smi_receipt_backend
+    from mission_control import postgres_db, smi_receipt_backend
 
     immutability = workspaces.lab_immutability_status()
     recovery = smi_receipt_backend.backend_configuration_status()
