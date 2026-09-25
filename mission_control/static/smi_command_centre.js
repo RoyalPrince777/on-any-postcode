@@ -14,7 +14,8 @@
  presenceActions.setAttribute("aria-label","SMI character controls");
  for(const [label,target] of [["💬 Chat","messages"],["＋ Tools","plus-button"],["⚔️ War Room","war-room"]]){
   const button=document.createElement("button");button.type="button";button.textContent=label;
-  button.addEventListener("click",()=>{
+  button.addEventListener("click",event=>{
+   event.stopPropagation(); // Prevent the canonical outside-click guard closing Master Tools.
    if(target==="messages"){
     if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
     document.getElementById("message")?.focus();return;
@@ -63,11 +64,12 @@
  universe.className="smi-command-universe";
  universe.setAttribute("aria-label","SMI universe tools");
  const quickActions=[
+  ["＋ Master Tools","master-tools"],
   ["⚔️ War Room","war-room"],
-  ["🕶 Matrix","agents"],
   ["🧠 HRM","hrm"],
-  ["🛡 Guardian","guardian"],
-  ["🟣 Green Gate","green-gate"]
+  ["🩺 Function Health","function-health"],
+  ["🟣 Green Gate","green-gate"],
+  ["🏦 Bank Controls","oap-bank-controls"]
  ];
  for(const [label,action] of quickActions){
   const button=document.createElement("button");button.type="button";button.textContent=label;
@@ -75,6 +77,44 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+ // Founder Command Centre: non-operational banking controls. Do not create a
+ // second banking engine, manufacture proof, or expose a transactional action.
+ const bankControls=document.createElement("section");
+ bankControls.className="smi-command-bank-controls";
+ bankControls.hidden=true;
+ bankControls.setAttribute("aria-label","USA Royalty Bank Founder controls · review only");
+ const bankHeading=document.createElement("h3");
+ bankHeading.textContent="🏦 USA ROYALTY BANK · FOUNDER REVIEW";
+ const bankHeritage=document.createElement("p");
+ bankHeritage.textContent="Prince Sovereign Bank · heritage | SIKA · separate value classes";
+ const bankNotice=document.createElement("p");
+ bankNotice.textContent="READ ONLY · no bank licence, balance, account, cash service, signed package or release is asserted.";
+ const bankTabs=document.createElement("nav");
+ bankTabs.setAttribute("aria-label","Bank review controls");
+ const bankDetail=document.createElement("div");
+ bankDetail.setAttribute("aria-live","polite");
+ const bankReviews=[
+  ["🧠 Mind","Primary: United States of Africa Royalty Bank. Prince Sovereign Bank is the heritage identity. SIKA Recognition is not GBP or issued SIKA; 1 proposed SIKA = 100 SEEDS."],
+  ["⚙️ Body","OAP Bank is a planning rail. Accounts, ledger posting, payments and SIKA issuance are disabled. Post Core logistics and OAP Post Office financial access are separate."],
+  ["💛 Soul","Customer consent and bank-specific permissions are separate from Founder approval. Financial records, bank signing keys and public Store data remain isolated."],
+  ["📮 Post Office","Cash-in, cash-out and physical service locations are not verified or activated. Existing Post Core remains preserved."],
+  ["📦 OAP Store","Bank package signing, installation and publication are not enabled. Supplied package checklist fields do not constitute independently verified artifact proof."],
+  ["👑 Founder Final","Review-only control. No action here authorises transfers, cash, currency issuance, package publication, merge or deployment."]
+ ];
+ bankReviews.forEach(([label,detail],index)=>{
+  const button=document.createElement("button");
+  button.type="button";button.textContent=label;
+  button.setAttribute("aria-pressed",String(index===0));
+  button.addEventListener("click",()=>{
+   bankTabs.querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed",String(item===button)));
+   bankDetail.textContent=detail;
+  });
+  bankTabs.append(button);
+ });
+ bankDetail.textContent=bankReviews[0][1];
+ bankControls.append(bankHeading,bankHeritage,bankNotice,bankTabs,bankDetail);
+ universe.after(bankControls);
+
  // Mobile remains one command room: expose anatomy and live evidence as real tabs.
  const mobileViews=document.createElement("nav");
  mobileViews.className="smi-command-mobile-views";
@@ -129,6 +169,7 @@
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
   ["🎙️","Ears · Language","Listening · communication",null],
   ["💬","Mouth · Communication","SMI Chat · messages",null],
+  ["🔗","Link Up · Messenger","Open first-party Link Up · existing permissions","/linkup"],
   ["❤️","Heart · Living Kernel","Governed work","/mission"],
   ["🌐","Lungs · Connectivity","OAP infrastructure",cfg.infrastructureUrl],
   ["🛡️","Immune · Guardian","Safety · permissions",cfg.warRoomUrl],
@@ -269,6 +310,25 @@
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
   const action=trigger.dataset.action;
+  if(action==="master-tools"){
+   // Only the original composer owns the drawer. The originating click must not
+   // bubble to its outside-click guard after the canonical button opens it.
+   event.stopPropagation();
+   const plus=document.getElementById("plus-button");
+   if(!plus||plus.disabled){
+    const feedback=document.getElementById("status");
+    if(feedback)feedback.textContent="Master Tools unavailable.";
+    return;
+   }
+   setOpen(false);
+   plus.click();
+   return;
+  }
+  if(action==="oap-bank-controls"){
+   bankControls.hidden=!bankControls.hidden;
+   trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
+   return;
+  }
   const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
   if(!canonical||canonical.disabled){
    const feedback=document.getElementById("status");

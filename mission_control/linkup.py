@@ -39,7 +39,7 @@ LINK_UP_PUBLIC_VOCABULARY: dict[str, str] = {
     "live_location": "Live Spot",
     "short_status": "Now",
     "status_prompt": "What you on?",
-    "notifications": "Alerts",
+    "notifications": "Incoming",
     "announcement": "Signal",
     "profile": "My Card",
     "trust_status": "Certified",

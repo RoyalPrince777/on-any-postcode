@@ -63,7 +63,7 @@ def test_smi_response_actions_include_feedback_and_voice():
         "feedbackUrl",
         "'helpful'",
         "'not_helpful'",
-        "SpeechSynthesisUtterance",
+        "window.OAP_SMI_READ_ALOUD",
         "studioStatusUrl",
         "githubAction()",
         "Run SWOT Intelligence on:",

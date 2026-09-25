@@ -342,6 +342,11 @@
 
   const sendLink = async (form, fixedPayload = null) => {
     if (!state.ready) {
+      if (fixedPayload) {
+        // Never replace an interrupted idempotent retry with the current composer.
+        showRetry(form, fixedPayload, "Link not ready. Retry when messaging is ready.");
+        return;
+      }
       form.submit();
       return;
     }
@@ -390,7 +395,13 @@
           : code === "accepted_link_required"
             ? "Accepted Link required. Nothing landed."
             : "Link did not land.";
-      if (
+      if (code === "link_blocked" || code === "accepted_link_required") {
+        // Permission denials are terminal, never queued or offered for replay.
+        if (payload.client_message_id) {
+          state.pendingRetries.delete(payload.client_message_id);
+        }
+        localStatus.textContent = message;
+      } else if (
         state.syncReady &&
         payload.client_message_id &&
         (!navigator.onLine || code === "request_failed" || /^http_5/.test(code))

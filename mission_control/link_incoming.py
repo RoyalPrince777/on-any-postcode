@@ -90,6 +90,7 @@ def list_incoming(identity_id: object, *, limit: int = 80) -> list[dict[str, obj
                   FROM link_relationships r
                   JOIN users u ON u.id=r.requester_id
                   WHERE r.recipient_id=%s AND r.status='pending'
+                    AND (r.link_kind='permanent' OR r.expires_at>CURRENT_TIMESTAMP)
 
                   UNION ALL
 

@@ -23,6 +23,27 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('oap-smi-character-state', source)
         self.assertNotIn("All Systems Operational", source)
 
+    def test_link_up_control_is_a_real_first_party_route(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn('["🔗","Link Up · Messenger","Open first-party Link Up · existing permissions","/linkup"]', source)
+        self.assertIn('const link=document.createElement(url?"a":"div")', source)
+        self.assertIn('if(url){link.href=url;link.title=detail;}', source)
+
+    def test_command_quick_actions_are_real_canonical_controls(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+        self.assertIn('["＋ Master Tools","master-tools"]', source)
+        self.assertIn('event.stopPropagation(); // Prevent the canonical outside-click guard', source)
+        self.assertIn('if(action==="master-tools"){', source)
+        self.assertIn('event.stopPropagation();', source)
+        self.assertIn('const plus=document.getElementById("plus-button");', source)
+        self.assertIn('plus.click();', source)
+        self.assertIn('["🩺 Function Health","function-health"]', source)
+        for action in ("war-room", "hrm", "function-health", "green-gate"):
+            self.assertIn('data-oap-action="'+action+'"', base)
+        self.assertNotIn('["🕶 Matrix","agents"]', source)
+        self.assertNotIn('["🛡 Guardian","guardian"]', source)
+
     def test_health_truth_is_fail_closed(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn("data.checks[key]===true", source)
