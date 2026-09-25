@@ -27,3 +27,13 @@ def test_canonical_map_workspace_keeps_same_origin_map_body() -> None:
     assert "openMapWorkspace" in master
     assert "/on-any-place" in master
     assert "data-map-view" in master
+
+
+def test_map_close_unloads_hidden_runtime_for_privacy_and_stop() -> None:
+    master = MASTER.read_text(encoding="utf-8")
+    start = master.index("function closeMapWorkspace()")
+    end = master.index("qa('[data-map-view]')", start)
+    close = master[start:end]
+    assert "mapWorkspace.hidden=true" in close
+    assert "mapFrame.src='about:blank'" in close
+    assert "Map Intelligence stopped" in close
