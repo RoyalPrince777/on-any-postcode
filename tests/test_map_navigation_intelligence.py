@@ -141,3 +141,26 @@ def test_reroute_requires_drive_mode_and_sustained_deviation():
     assert "if(!driveMode||!currentRoute||!Number.isFinite(distanceM))return;" in script
     assert "distanceM>OFF_ROUTE_METERS?offRouteSamples+1:0" in script
     assert "offRouteSamples<REROUTE_SAMPLES" in script
+
+
+def test_map_voice_guidance_is_user_controlled_and_non_persistent():
+    script = NAV.read_text(encoding="utf-8")
+    page = MAP.read_text(encoding="utf-8")
+    assert 'id="voice-toggle"' in page
+    assert "voiceEnabled=false" in script
+    assert "voiceToggle?.addEventListener('click',()=>setVoice(!voiceEnabled))" in script
+    assert "SpeechSynthesisUtterance" in script
+    assert "utterance.lang='en-GB'" in script
+    assert "voiceTurnGuidance:true" in script
+    assert "voiceUserControlled:true" in script
+    assert "voiceAudioStored:false" in script
+    assert "cancelGuidanceVoice()" in script
+    assert "window.addEventListener('pagehide'" in script
+
+
+def test_map_voice_does_not_open_microphone_or_store_precise_location():
+    script = NAV.read_text(encoding="utf-8")
+    assert "getUserMedia" not in script
+    assert "SpeechRecognition" not in script
+    assert "storesPreciseLocation:false" in script
+    assert "individualPeopleTracking:false" in script
