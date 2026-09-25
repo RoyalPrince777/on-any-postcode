@@ -29,14 +29,14 @@ def store(monkeypatch):
             if row["title"].startswith(title_prefix)
         ][:limit]
 
-    def add_record(owner, workspace, *, title, body, status):
-        assert workspace == "governance"
-        assert status == "draft"
-        rows[owner].append({"title": title, "body": body, "status": status})
+    def add_record(owner, *, title, body, notebook_id, version, digest):
+        assert title == f"OAP-LAB:{notebook_id}:v{version}"
+        assert len(digest) == 64
+        rows[owner].append({"title": title, "body": body, "status": "draft"})
         return str(uuid4())
 
     monkeypatch.setattr(workspaces, "list_records_with_title_prefix", list_records)
-    monkeypatch.setattr(workspaces, "add_record", add_record)
+    monkeypatch.setattr(workspaces, "add_lab_record_atomic", add_record)
     return rows
 
 
@@ -47,6 +47,7 @@ def test_save_reopen_and_version_chain(store):
     assert saved["version"] == 1
     assert saved["notebook"]["question"] == "First question"
     assert saved["workspace_record_persisted"] is True
+    assert saved["atomic_audit_write_contract"] is True
     assert saved["immutable_history_verified"] is False
     assert saved["independent_recovery_verified"] is False
     next_note = _notebook(first.identifier, "Revised question")
@@ -87,7 +88,7 @@ def test_stop_stale_and_corrupt_history_fail_closed(store):
 def test_store_failure_and_bounded_history_fail_closed(store, monkeypatch):
     owner = str(uuid4())
     notebook = _notebook()
-    monkeypatch.setattr(workspaces, "add_record", lambda *args, **kwargs: (
+    monkeypatch.setattr(workspaces, "add_lab_record_atomic", lambda *args, **kwargs: (
         (_ for _ in ()).throw(workspaces.WorkspaceUnavailable("failed"))
     ))
     with pytest.raises(workspaces.WorkspaceUnavailable):
@@ -192,3 +193,52 @@ def test_archived_version_is_not_silently_omitted(store):
     store[owner][0]["status"] = "archived"
     with pytest.raises(lab.NotebookHistoryUnavailable, match="status"):
         lab.reopen(owner, notebook.identifier)
+
+
+def test_atomic_audit_failure_cannot_leave_notebook_row(monkeypatch):
+    class FakeConnection:
+        def __init__(self):
+            self.calls = []
+            self.committed = False
+
+        def execute(self, sql, params=None):
+            self.calls.append((sql, params))
+            if "SELECT COUNT(*)" in sql:
+                return self
+            if "INSERT INTO oap_workspace_records" in sql:
+                return self
+            if "SELECT curr_hash" in sql:
+                return self
+            if "INSERT INTO audit_events" in sql:
+                raise RuntimeError("audit unavailable")
+            return self
+
+        def fetchone(self):
+            sql = self.calls[-1][0]
+            if "SELECT COUNT(*)" in sql:
+                return (0,)
+            if "INSERT INTO oap_workspace_records" in sql:
+                return (uuid4(),)
+            if "SELECT curr_hash" in sql:
+                return None
+            return None
+
+        def commit(self):
+            self.committed = True
+
+    connection = FakeConnection()
+
+    class Context:
+        def __enter__(self):
+            return connection
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(workspaces.postgres_db, "connect", lambda: Context())
+    with pytest.raises(workspaces.WorkspaceUnavailable, match="atomic_audit"):
+        workspaces.add_lab_record_atomic(
+            str(uuid4()), title=f"OAP-LAB:{uuid4()}:v1",
+            body="{}", notebook_id=str(uuid4()), version=1, digest="a" * 64,
+        )
+    assert connection.committed is False
