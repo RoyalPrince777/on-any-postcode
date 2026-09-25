@@ -151,6 +151,7 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
     from mission_control import public_store, workspaces
 
     records = []
+    receipts = []
 
     monkeypatch.setattr(
         public_store, "ensure_authenticated_user", lambda *args, **kwargs: None,
@@ -167,9 +168,32 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
         assert owner == "11111111-1111-4111-8111-111111111111"
         assert title == f"OAP-LAB:{notebook_id}:v{version}"
         assert len(digest) == 64
-        records.append({"title": title, "body": body, "status": "draft"})
-        return "22222222-2222-4222-8222-222222222222"
+        record_id = "22222222-2222-4222-8222-222222222222"
+        records.append({
+            "record_id": record_id, "title": title,
+            "body": body, "status": "draft",
+        })
+        receipts.append({
+            "event_seq": version,
+            "actor_id": owner,
+            "target": f"oap_lab_notebook:{notebook_id}",
+            "metadata": {
+                "workspace_id": "governance",
+                "notebook_id": notebook_id,
+                "version": version,
+                "digest": digest,
+                "record_id": record_id,
+                "record_status": "draft",
+                "publication_authorised": False,
+                "execution_authorised": False,
+            },
+        })
+        return record_id
 
+    monkeypatch.setattr(
+        workspaces, "list_lab_audit_receipts",
+        lambda owner, notebook_id, *, limit=100: list(receipts)[:limit],
+    )
     monkeypatch.setattr(workspaces, "add_lab_record_atomic", add)
     client = _client(monkeypatch)
     with client.session_transaction() as session:
@@ -201,6 +225,9 @@ def test_lab_store_failure_does_not_claim_saved(monkeypatch):
     )
     monkeypatch.setattr(
         workspaces, "list_records_with_title_prefix", lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        workspaces, "list_lab_audit_receipts", lambda *args, **kwargs: [],
     )
     monkeypatch.setattr(
         workspaces, "add_lab_record_atomic", lambda *args, **kwargs: (
