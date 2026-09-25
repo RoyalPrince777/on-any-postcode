@@ -2090,6 +2090,11 @@ def oap_lab_status():
             or os.environ.get("OAP_ENV_REVISION")
             or "unreported"
         ),
+        database_authority={
+            "provider": "render" if postgres_db.lab_database_source().startswith("lab_primary") else "unconfigured",
+            "source": postgres_db.lab_database_source(),
+            "silent_fallback": False,
+        },
         database={
             "immutability_proven": database_immutability_proven,
             "protective_trigger_present": bool(
