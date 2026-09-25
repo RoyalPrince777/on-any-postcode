@@ -37,3 +37,22 @@ def test_map_close_unloads_hidden_runtime_for_privacy_and_stop() -> None:
     assert "mapWorkspace.hidden=true" in close
     assert "mapFrame.src='about:blank'" in close
     assert "Map Intelligence stopped" in close
+
+
+def test_maps_command_centre_exposes_mind_body_soul_controls() -> None:
+    command = COMMAND.read_text(encoding="utf-8")
+    assert '["🗺️ Maps Controls","oap-maps-controls"]' in command
+    assert 'mapsControls.setAttribute("aria-label","Maps Mind Body Soul controls")' in command
+    assert '["🧠 Mind"' in command
+    assert '["⚙️ Body"' in command
+    assert '["💛 Soul"' in command
+    assert '["📊 Status"' in command
+    assert 'action==="oap-maps-controls"' in command
+
+
+def test_maps_body_button_reuses_existing_canonical_map_action() -> None:
+    command = COMMAND.read_text(encoding="utf-8")
+    assert 'button.dataset.mapsReview==="body"' in command
+    assert 'data-oap-action="map-intelligence"' in command
+    assert "canonical.click()" in command
+    assert "navigator.geolocation" not in command
