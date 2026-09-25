@@ -67,7 +67,7 @@
   ["＋ Master Tools","master-tools"],
   ["⚔️ War Room","war-room"],
   ["🧠 HRM","hrm"],
-  ["🗺️ Maps · Mind","map-intelligence"],
+  ["🗺️ Maps Controls","oap-maps-controls"],
   ["🩺 Function Health","function-health"],
   ["🟣 Green Gate","green-gate"],
   ["🏦 Bank Controls","oap-bank-controls"]
@@ -115,6 +115,51 @@
  bankDetail.textContent=bankReviews[0][1];
  bankControls.append(bankHeading,bankHeritage,bankNotice,bankTabs,bankDetail);
  universe.after(bankControls);
+
+ // Maps MIND × BODY × SOUL controls reuse the existing first-party map owners.
+ // These controls review or open canonical surfaces; they never create a second
+ // map engine, request location, dispatch, book, pay, merge or deploy.
+ const mapsControls=document.createElement("section");
+ mapsControls.className="smi-command-bank-controls smi-command-maps-controls";
+ mapsControls.hidden=true;
+ mapsControls.setAttribute("aria-label","Maps Mind Body Soul controls");
+ const mapsHeading=document.createElement("h3");
+ mapsHeading.textContent="🗺️ MAPS · MIND × BODY × SOUL";
+ const mapsNotice=document.createElement("p");
+ mapsNotice.textContent="FIRST-PARTY · source proof before live claims · location by consent only · STOP unloads hidden map runtime.";
+ const mapsTabs=document.createElement("nav");
+ mapsTabs.setAttribute("aria-label","Maps review controls");
+ const mapsDetail=document.createElement("div");
+ mapsDetail.setAttribute("aria-live","polite");
+ const mapsReviews=[
+  ["🧠 Mind","Map Intelligence owns hierarchy, source health, stale-data boundaries and route evidence. Production navigation stays locked until runtime proof passes."],
+  ["⚙️ Body","Open the existing SMI Map Intelligence workspace. This reuses /on-any-place and the existing road/routing renderer; no duplicate map runtime is created."],
+  ["💛 Soul","Privacy and STOP boundary: precise location is consent-gated and not persisted by the map route; closing Maps unloads the hidden iframe."],
+  ["📊 Status","Read-only evidence remains available through the existing Map Intelligence status surfaces. A button or configured source is never treated as Green by itself."],
+  ["👑 Founder Final","No Maps control here authorises hidden tracking, dispatch, booking, payment, merge or deployment."]
+ ];
+ mapsReviews.forEach(([label,detail],index)=>{
+  const button=document.createElement("button");
+  button.type="button";button.textContent=label;
+  button.dataset.mapsReview=label.includes("Mind")?"mind":label.includes("Body")?"body":label.includes("Soul")?"soul":label.includes("Status")?"status":"founder";
+  button.setAttribute("aria-pressed",String(index===0));
+  button.addEventListener("click",()=>{
+   mapsTabs.querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed",String(item===button)));
+   mapsDetail.textContent=detail;
+   if(button.dataset.mapsReview==="body"){
+    const canonical=document.querySelector('#attach-menu [data-oap-action="map-intelligence"]');
+    if(canonical&&!canonical.disabled){
+     mapsControls.hidden=true;
+     setOpen(false);
+     canonical.click();
+    }
+   }
+  });
+  mapsTabs.append(button);
+ });
+ mapsDetail.textContent=mapsReviews[0][1];
+ mapsControls.append(mapsHeading,mapsNotice,mapsTabs,mapsDetail);
+ bankControls.after(mapsControls);
 
  // Mobile remains one command room: expose anatomy and live evidence as real tabs.
  const mobileViews=document.createElement("nav");
@@ -328,6 +373,11 @@
   if(action==="oap-bank-controls"){
    bankControls.hidden=!bankControls.hidden;
    trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
+   return;
+  }
+  if(action==="oap-maps-controls"){
+   mapsControls.hidden=!mapsControls.hidden;
+   trigger.setAttribute("aria-expanded",String(!mapsControls.hidden));
    return;
   }
   const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
