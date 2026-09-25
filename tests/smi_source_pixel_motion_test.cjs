@@ -1,5 +1,6 @@
 "use strict";
 const assert=require("node:assert/strict");
+const fs=require("node:fs");
 const api=require("../mission_control/static/smi_source_pixel_motion.js");
 assert.equal(api.SHA256,"f9503174f6f18b815f1c73e24faff3b4966c2e1fbae8d20a8d2bcc22e4a84a4b");
 assert.equal(api.SOURCE,"/static/oap/smi_live_chat_dashboard.jpg");
@@ -24,4 +25,9 @@ assert.deepEqual([...moving.data.slice(0,4)],[...data.slice(0,4)]);
 const center=(5*11+5)*4;
 assert.notDeepEqual([...moving.data.slice(center,center+4)],[...data.slice(center,center+4)]);
 assert.deepEqual(original.data,data);
+const source=fs.readFileSync("mission_control/static/smi_source_pixel_motion.js","utf8");
+const html=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
+assert.ok(source.includes("fullSceneSourcePixelMotion:played>0"));
+assert.ok(source.includes("audioCues+=1"));
+assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session"));
 console.log("SMI_SOURCE_PIXEL_MOTION_PASS");
