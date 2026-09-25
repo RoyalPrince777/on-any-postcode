@@ -83,7 +83,7 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin main
           tree="$(git merge-tree --write-tree HEAD origin/main)"
-          combined="$(printf '%s\n' 'OAP ephemeral combined-main proof' | git commit-tree "$tree" -p HEAD -p origin/main)"
+          combined="$(printf '%s\n' 'OAP ephemeral combined-main proof' | git -c user.name='OAP CI' -c user.email='ci@localhost' commit-tree "$tree" -p HEAD -p origin/main)"
           git worktree add --detach /tmp/oap-combined-main "$combined"
           cd /tmp/oap-combined-main
           python -m compileall -q app.py mission_control oap
