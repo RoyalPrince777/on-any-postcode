@@ -40,8 +40,20 @@ def _entries(owner_id: str, notebook_id: str) -> list[dict[str, object]]:
     records = workspaces.list_records_with_title_prefix(
         owner_id, _WORKSPACE, title_prefix=prefix, limit=_LIMIT,
     )
-    if len(records) >= _LIMIT:
+    receipts = workspaces.list_lab_audit_receipts(
+        owner_id, notebook_id, limit=_LIMIT,
+    )
+    if len(records) >= _LIMIT or len(receipts) >= _LIMIT:
         raise NotebookHistoryUnavailable("workspace_history_limit_reached")
+    receipt_by_version: dict[int, dict[str, object]] = {}
+    for receipt in receipts:
+        metadata = receipt.get("metadata")
+        if not isinstance(metadata, dict) or type(metadata.get("version")) is not int:
+            raise NotebookHistoryUnavailable("notebook_audit_receipt_invalid")
+        version = metadata["version"]
+        if version in receipt_by_version:
+            raise NotebookHistoryUnavailable("notebook_audit_receipt_duplicate")
+        receipt_by_version[version] = receipt
     versions = []
     for record in records:
         if not record["title"].startswith(prefix):
@@ -59,6 +71,22 @@ def _entries(owner_id: str, notebook_id: str) -> list[dict[str, object]]:
         # restored through extra or silently altered notebook fields.
         if record.get("status") != "draft":
             raise NotebookHistoryUnavailable("notebook_workspace_status_invalid")
+        receipt = receipt_by_version.get(entry.get("version"))
+        if receipt is None:
+            raise NotebookHistoryUnavailable("notebook_audit_receipt_missing")
+        metadata = receipt["metadata"]
+        if (
+            receipt.get("actor_id") != owner_id
+            or receipt.get("target") != f"oap_lab_notebook:{notebook_id}"
+            or metadata.get("workspace_id") != "governance"
+            or metadata.get("notebook_id") != notebook_id
+            or metadata.get("record_id") != record.get("record_id")
+            or metadata.get("digest") != entry.get("digest")
+            or metadata.get("record_status") != "draft"
+            or metadata.get("publication_authorised") is not False
+            or metadata.get("execution_authorised") is not False
+        ):
+            raise NotebookHistoryUnavailable("notebook_audit_receipt_mismatch")
         if record["title"] != f"{prefix}v{entry.get('version')}":
             raise NotebookHistoryUnavailable("notebook_version_title_mismatch")
         if (
@@ -121,6 +149,7 @@ def reopen(owner_id: object, notebook_id: object) -> dict[str, object]:
         "digest": latest["digest"], "notebook": data,
         "workspace_record_persisted": True,
         "atomic_audit_write_contract": True,
+        "audit_readback_verified": True,
         "immutable_history_verified": False,
         "independent_recovery_verified": False,
         "release_ready": False,
