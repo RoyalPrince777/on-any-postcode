@@ -55,3 +55,15 @@ def test_readiness_source_does_not_change_phone_or_run_worker():
         assert forbidden not in source
     assert "subprocess.run(" in source
     assert '"rev-parse", "--verify", "HEAD"' in source
+
+
+def test_android_map_acceptance_never_claims_physical_device_certification():
+    source = Path("scripts/oap_os_home_node_readiness.py").read_text(encoding="utf-8")
+    doc = Path("docs/OAP_OS_ANDROID_HOME_NODE_READINESS.md").read_text(encoding="utf-8")
+    assert '"physical_device_verified": False' in source
+    assert '"device_location_permission": "not_checked"' in source
+    assert '"map_road_source": "not_checked"' in source
+    assert '"production_mapping": "not_checked"' in source
+    assert "never certifies actual hardware" in doc
+    assert "permission-controlled location" in doc
+    assert "navigation failure recovery" in doc
