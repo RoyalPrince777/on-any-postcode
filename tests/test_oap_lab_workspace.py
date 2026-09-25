@@ -21,6 +21,7 @@ def _notebook(identifier=None, question="First question"):
 @pytest.fixture
 def store(monkeypatch):
     rows = defaultdict(list)
+    receipts = defaultdict(list)
 
     def list_records(owner, workspace, *, title_prefix, limit=100):
         assert workspace == "governance"
@@ -29,14 +30,38 @@ def store(monkeypatch):
             if row["title"].startswith(title_prefix)
         ][:limit]
 
+    def list_receipts(owner, notebook_id, *, limit=100):
+        return list(receipts[(owner, notebook_id)])[:limit]
+
     def add_record(owner, *, title, body, notebook_id, version, digest):
         assert title == f"OAP-LAB:{notebook_id}:v{version}"
         assert len(digest) == 64
-        rows[owner].append({"title": title, "body": body, "status": "draft"})
-        return str(uuid4())
+        record_id = str(uuid4())
+        rows[owner].append({
+            "record_id": record_id, "title": title,
+            "body": body, "status": "draft",
+        })
+        receipts[(owner, notebook_id)].append({
+            "event_seq": version,
+            "actor_id": owner,
+            "target": f"oap_lab_notebook:{notebook_id}",
+            "metadata": {
+                "workspace_id": "governance",
+                "notebook_id": notebook_id,
+                "version": version,
+                "digest": digest,
+                "record_id": record_id,
+                "record_status": "draft",
+                "publication_authorised": False,
+                "execution_authorised": False,
+            },
+        })
+        return record_id
 
     monkeypatch.setattr(workspaces, "list_records_with_title_prefix", list_records)
+    monkeypatch.setattr(workspaces, "list_lab_audit_receipts", list_receipts)
     monkeypatch.setattr(workspaces, "add_lab_record_atomic", add_record)
+    rows._lab_receipts = receipts
     return rows
 
 
@@ -48,6 +73,7 @@ def test_save_reopen_and_version_chain(store):
     assert saved["notebook"]["question"] == "First question"
     assert saved["workspace_record_persisted"] is True
     assert saved["atomic_audit_write_contract"] is True
+    assert saved["audit_readback_verified"] is True
     assert saved["immutable_history_verified"] is False
     assert saved["independent_recovery_verified"] is False
     next_note = _notebook(first.identifier, "Revised question")
@@ -242,3 +268,27 @@ def test_atomic_audit_failure_cannot_leave_notebook_row(monkeypatch):
             body="{}", notebook_id=str(uuid4()), version=1, digest="a" * 64,
         )
     assert connection.committed is False
+
+
+def test_missing_or_tampered_audit_receipt_blocks_reopen(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    lab.save(owner, notebook)
+    receipts = store._lab_receipts[(owner, notebook.identifier)]
+    original = receipts.pop()
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="receipt_missing"):
+        lab.reopen(owner, notebook.identifier)
+    receipts.append(original)
+    receipts[0]["metadata"]["digest"] = "f" * 64
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="receipt_mismatch"):
+        lab.reopen(owner, notebook.identifier)
+
+
+def test_duplicate_audit_receipt_blocks_reopen(store):
+    owner = str(uuid4())
+    notebook = _notebook()
+    lab.save(owner, notebook)
+    receipts = store._lab_receipts[(owner, notebook.identifier)]
+    receipts.append(dict(receipts[0]))
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="receipt_duplicate"):
+        lab.reopen(owner, notebook.identifier)
