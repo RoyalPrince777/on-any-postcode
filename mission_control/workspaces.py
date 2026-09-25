@@ -113,6 +113,46 @@ def list_records_with_title_prefix(
 
 
 
+
+def list_lab_audit_receipts(
+    identity_id: object, notebook_id: object, *, limit: int = 100,
+) -> list[dict[str, object]]:
+    """Read canonical LAB save receipts for one owner/notebook from audit_events."""
+    identity = _identity(identity_id)
+    notebook = str(uuid.UUID(str(notebook_id)))
+    bounded = min(100, max(1, int(limit)))
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT event_seq,actor_id,target,metadata
+                   FROM audit_events
+                   WHERE actor_id=%s
+                     AND action='OAP_LAB_NOTEBOOK_SAVE'
+                     AND target=%s
+                   ORDER BY event_seq ASC LIMIT %s""",
+                (identity, f"oap_lab_notebook:{notebook}", bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise WorkspaceUnavailable("workspace_audit_read_failed") from exc
+    receipts = []
+    for row in rows:
+        metadata = row[3]
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except ValueError as exc:
+                raise WorkspaceUnavailable("workspace_audit_metadata_invalid") from exc
+        if not isinstance(metadata, dict):
+            raise WorkspaceUnavailable("workspace_audit_metadata_invalid")
+        receipts.append({
+            "event_seq": int(row[0]),
+            "actor_id": str(row[1]),
+            "target": str(row[2]),
+            "metadata": metadata,
+        })
+    return receipts
+
+
 def add_lab_record_atomic(
     identity_id: object,
     *,
