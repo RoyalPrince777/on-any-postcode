@@ -244,3 +244,78 @@ def test_lab_store_failure_does_not_claim_saved(monkeypatch):
     ))
     assert b"notebook_store_unavailable" in result.data
     assert b"Saved in My World" not in result.data
+
+
+def test_lab_status_is_founder_only_read_only_and_fail_closed(monkeypatch):
+    from mission_control import smi_receipt_backend, workspaces
+
+    client = _client(monkeypatch)
+    monkeypatch.setattr(
+        workspaces,
+        "lab_immutability_status",
+        lambda: {
+            "database_enforced": False,
+            "update_denied": False,
+            "delete_denied": False,
+            "protective_trigger_present": False,
+            "schema_changed": False,
+            "error": "workspace_immutability_probe_failed",
+        },
+    )
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "backend_configuration_status",
+        lambda: {
+            "durable_backend_configured": True,
+            "hrm_host_sha256": "a" * 64,
+            "main_host_sha256": "b" * 64,
+            "live_store_identity_proven": False,
+            "fallback_is_durable": False,
+        },
+    )
+    result = client.get("/api/oap-lab/status")
+    assert result.status_code == 200
+    assert result.headers["Cache-Control"] == "no-store"
+    data = result.get_json()
+    assert data["system"] == "OAP LAB"
+    assert data["database"]["immutability_proven"] is False
+    assert data["recovery"]["independent_backend_configured"] is True
+    assert data["recovery"]["live_store_identity_proven"] is False
+    assert data["gates"]["release_proof_complete"] is False
+    assert data["gates"]["founder_final_required"] is True
+    assert data["gates"]["automatic_execution"] is False
+
+
+def test_lab_status_can_report_complete_evidence_without_granting_execution(monkeypatch):
+    from mission_control import smi_receipt_backend, workspaces
+
+    client = _client(monkeypatch)
+    monkeypatch.setattr(
+        workspaces,
+        "lab_immutability_status",
+        lambda: {
+            "database_enforced": True,
+            "update_denied": False,
+            "delete_denied": False,
+            "protective_trigger_present": True,
+            "schema_changed": False,
+            "error": None,
+        },
+    )
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "backend_configuration_status",
+        lambda: {
+            "durable_backend_configured": True,
+            "hrm_host_sha256": "a" * 64,
+            "main_host_sha256": "b" * 64,
+            "live_store_identity_proven": True,
+            "fallback_is_durable": False,
+        },
+    )
+    data = client.get("/api/oap-lab/status").get_json()
+    assert data["database"]["immutability_proven"] is True
+    assert data["recovery"]["independent_backend_configured"] is True
+    assert data["recovery"]["live_store_identity_proven"] is True
+    assert data["gates"]["release_proof_complete"] is True
+    assert data["gates"]["automatic_execution"] is False
