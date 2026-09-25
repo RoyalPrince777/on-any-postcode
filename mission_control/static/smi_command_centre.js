@@ -67,6 +67,7 @@
   ["＋ Master Tools","master-tools"],
   ["⚔️ War Room","war-room"],
   ["🧠 HRM","hrm"],
+  ["🗺️ Maps · Mind","map-intelligence"],
   ["🩺 Function Health","function-health"],
   ["🟣 Green Gate","green-gate"],
   ["🏦 Bank Controls","oap-bank-controls"]
@@ -327,6 +328,13 @@
   if(action==="oap-bank-controls"){
    bankControls.hidden=!bankControls.hidden;
    trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
+   return;
+  }
+  if(action==="map-intelligence"){
+   // MIND is the existing private Map Intelligence brain surface. This button
+   // only navigates to it; it does not request location, dispatch, book or pay.
+   setOpen(false);
+   window.location.assign("/mission/map-intelligence");
    return;
   }
   const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
