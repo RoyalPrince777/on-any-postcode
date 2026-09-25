@@ -2057,6 +2057,70 @@ def infrastructure_status():
     )
 
 
+@app.get("/api/oap-lab/status")
+@web_security.login_required(api=True, founder_only=True)
+def oap_lab_status():
+    """Founder-only read-only LAB evidence surface; never changes release state."""
+    from mission_control import smi_receipt_backend
+
+    immutability = workspaces.lab_immutability_status()
+    recovery = smi_receipt_backend.backend_configuration_status()
+    independent_recovery_configured = bool(
+        recovery.get("durable_backend_configured")
+        and recovery.get("hrm_host_sha256")
+        and recovery.get("main_host_sha256")
+        and recovery["hrm_host_sha256"] != recovery["main_host_sha256"]
+    )
+    live_recovery_identity_proven = bool(
+        recovery.get("live_store_identity_proven")
+    )
+    database_immutability_proven = bool(
+        immutability.get("database_enforced")
+    )
+    release_proof_complete = bool(
+        database_immutability_proven
+        and independent_recovery_configured
+        and live_recovery_identity_proven
+    )
+    response = jsonify(
+        system="OAP LAB",
+        mode="founder_private_evidence",
+        revision=(
+            os.environ.get("RENDER_GIT_COMMIT")
+            or os.environ.get("OAP_ENV_REVISION")
+            or "unreported"
+        ),
+        database={
+            "immutability_proven": database_immutability_proven,
+            "protective_trigger_present": bool(
+                immutability.get("protective_trigger_present")
+            ),
+            "update_denied_by_role": bool(immutability.get("update_denied")),
+            "delete_denied_by_role": bool(immutability.get("delete_denied")),
+            "probe_error": immutability.get("error"),
+        },
+        recovery={
+            "independent_backend_configured": independent_recovery_configured,
+            "live_store_identity_proven": live_recovery_identity_proven,
+            "fallback_durable": bool(recovery.get("fallback_is_durable")),
+            "separate_host_fingerprints_present": bool(
+                recovery.get("hrm_host_sha256")
+                and recovery.get("main_host_sha256")
+            ),
+        },
+        gates={
+            "stop_fail_closed": True,
+            "owner_scoped": True,
+            "automatic_publication": False,
+            "automatic_execution": False,
+            "release_proof_complete": release_proof_complete,
+            "founder_final_required": True,
+        },
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.route("/oap-lab", methods=["GET", "POST"])
 @web_security.login_required(founder_only=True)
 def oap_lab_workbench():
