@@ -16,6 +16,7 @@ TOTAL_REQUESTS = 20
 WORKERS = 4
 TIMEOUT_SECONDS = 10
 P95_LIMIT_SECONDS = 6.0
+WARMUP_TIMEOUT_SECONDS = 60
 
 
 def run_one(index: int) -> dict[str, object]:
@@ -74,7 +75,20 @@ def run_one(index: int) -> dict[str, object]:
     }
 
 
+def _warm_up() -> None:
+    """Wake a sleeping free Render instance without diluting the measured gate."""
+    original_timeout = globals()["TIMEOUT_SECONDS"]
+    try:
+        globals()["TIMEOUT_SECONDS"] = WARMUP_TIMEOUT_SECONDS
+        result = run_one(0)
+    finally:
+        globals()["TIMEOUT_SECONDS"] = original_timeout
+    if not result["ok"]:
+        raise SystemExit("live routing warm-up failed")
+
+
 def main() -> None:
+    _warm_up()
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as pool:
         results = list(pool.map(run_one, range(TOTAL_REQUESTS)))
 
