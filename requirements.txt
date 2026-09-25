@@ -7,3 +7,5 @@ slowapi>=0.1.9,<1
 starlette>=0.37,<1
 psycopg[binary]>=3.2,<4
 mapbox-vector-tile>=2.2,<3
+# Offline bundled eSpeak NG 1.51 runtime (GPL-3.0-or-later).
+espeak-english==0.1.1
