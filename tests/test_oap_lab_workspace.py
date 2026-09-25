@@ -200,7 +200,7 @@ def test_invalid_recomputed_research_contract_and_version_fail_closed(store):
     payload = {key: value for key, value in entry.items() if key != "digest"}
     entry["digest"] = lab._hash(payload)
     store[owner][0]["body"] = json.dumps(entry)
-    with pytest.raises(lab.NotebookHistoryUnavailable, match="version_invalid"):
+    with pytest.raises(lab.NotebookHistoryUnavailable, match="receipt_mismatch"):
         lab.reopen(owner, notebook.identifier)
 
 
