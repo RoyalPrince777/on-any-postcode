@@ -330,13 +330,6 @@
    trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
    return;
   }
-  if(action==="map-intelligence"){
-   // MIND is the existing private Map Intelligence brain surface. This button
-   // only navigates to it; it does not request location, dispatch, book or pay.
-   setOpen(false);
-   window.location.assign("/mission/map-intelligence");
-   return;
-  }
   const canonical=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
   if(!canonical||canonical.disabled){
    const feedback=document.getElementById("status");
