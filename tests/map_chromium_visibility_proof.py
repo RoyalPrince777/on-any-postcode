@@ -113,12 +113,19 @@ with sync_playwright() as p:
             assert page.locator("#voice-toggle").get_attribute("aria-pressed") == "true"
             page.locator("#drive-toggle").click()
             assert page.locator("body").get_attribute("data-map-mode") == "drive"
+            page.evaluate("""
+                () => {
+                    window.__oapGeoWatchCalls=0;
+                    const original=navigator.geolocation.watchPosition.bind(navigator.geolocation);
+                    navigator.geolocation.watchPosition=(ok,err,opts)=>{
+                        window.__oapGeoWatchCalls+=1;
+                        return original(ok,err,opts);
+                    };
+                }
+            """)
             page.locator("#map-locate").click()
-            page.wait_for_function(
-                "() => document.querySelector('#map-locate').classList.contains('active')",
-                timeout=10000,
-            )
-            assert page.locator("#map-locate").get_attribute("class").find("active") >= 0
+            page.wait_for_function("() => window.__oapGeoWatchCalls === 1", timeout=5000)
+            assert page.evaluate("() => window.__oapGeoWatchCalls") == 1
         page.wait_for_function(
             "() => document.querySelector('#route-state').textContent.includes('Route unavailable')"
             " || document.querySelector('#route-state').textContent.includes('temporarily unavailable')",
