@@ -48,7 +48,7 @@ def list_records(
     if workspace is None:
         raise ValueError("invalid_workspace")
     try:
-        with postgres_db.lab_connect(readonly=True) as connection:
+        with postgres_db.connect(readonly=True) as connection:
             rows = connection.execute(
                 """SELECT record_id,title,body,status,created_at,updated_at
                    FROM oap_workspace_records
@@ -348,7 +348,7 @@ def status() -> dict[str, object]:
         "error": None,
     }
     try:
-        with postgres_db.lab_connect(readonly=True) as connection:
+        with postgres_db.connect(readonly=True) as connection:
             exists = connection.execute(
                 """SELECT 1 FROM information_schema.tables
                    WHERE table_schema='public'
