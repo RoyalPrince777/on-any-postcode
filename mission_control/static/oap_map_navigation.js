@@ -8,7 +8,8 @@ const details=q('#details-sheet'),detailsToggle=q('#details-toggle'),detailsClos
 const locate=q('#map-locate'),recenter=q('#recenter'),zoomIn=q('#zoom-in'),zoomOut=q('#zoom-out');
 const status=q('#route-state');
 let currentRoute=null,currentGeometry=[],watchId=null,lastPoint=null,lastHeading=0,lastProjected=null;
-let zoom=1,viewCenter=[500,350],driveMode=false;
+let zoom=1,viewCenter=[500,350],driveMode=false,offRouteSamples=0,lastRerouteAt=0;
+const OFF_ROUTE_METERS=80,REROUTE_SAMPLES=3,REROUTE_COOLDOWN_MS=15000;
 
 function iconFor(step){
  const m=String(step?.modifier||'').toLowerCase(),t=String(step?.type||'').toLowerCase();
@@ -68,14 +69,26 @@ function placeVehicle(lon,lat,heading){
  g.setAttribute('transform',`translate(${p[0]} ${p[1]}) rotate(${Number.isFinite(heading)?heading:0})`);
  if(driveMode){viewCenter=p;applyView()}
 }
-function nearestProgress(lon,lat){
- if(!currentGeometry.length)return 0;
+function nearestRouteState(lon,lat){
+ if(!currentGeometry.length)return{progress:0,distanceM:Infinity};
  let best=Infinity,index=0;
  currentGeometry.forEach((p,i)=>{
    const dx=(+p[0]-lon)*Math.cos(lat*Math.PI/180),dy=(+p[1]-lat),d=dx*dx+dy*dy;
    if(d<best){best=d;index=i}
  });
- return currentGeometry.length>1?index/(currentGeometry.length-1):0;
+ return{
+  progress:currentGeometry.length>1?index/(currentGeometry.length-1):0,
+  distanceM:Math.sqrt(best)*111320
+ };
+}
+function maybeReroute(lon,lat,distanceM){
+ if(!driveMode||!currentRoute||!Number.isFinite(distanceM))return;
+ offRouteSamples=distanceM>OFF_ROUTE_METERS?offRouteSamples+1:0;
+ const now=Date.now();
+ if(offRouteSamples<REROUTE_SAMPLES||now-lastRerouteAt<REROUTE_COOLDOWN_MS)return;
+ lastRerouteAt=now;offRouteSamples=0;
+ status.textContent='Off route · recalculating';status.hidden=false;
+ window.dispatchEvent(new CustomEvent('oap-map-reroute-request',{detail:{latitude:lat,longitude:lon}}));
 }
 function activeStep(progress){
  const steps=Array.isArray(currentRoute?.steps)?currentRoute.steps:[];
@@ -102,7 +115,8 @@ function updateFromPosition(pos){
  lastHeading=h;lastPoint=[longitude,latitude];
  placeVehicle(longitude,latitude,h);
  if(driveMode)applyView();
- const progress=nearestProgress(longitude,latitude);updateTurn(progress);
+ const routeState=nearestRouteState(longitude,latitude),progress=routeState.progress;
+ updateTurn(progress);maybeReroute(longitude,latitude,routeState.distanceM);
  if(currentRoute){
    const remain=Math.max(0,(+currentRoute.distance_m||0)*(1-progress));
    routeDistance.textContent=(remain/1000).toFixed(remain<10000?1:0)+' km';
@@ -120,6 +134,7 @@ function startLocation(){
 }
 function renderRoute(d){
  currentRoute=d?.route||null;currentGeometry=currentRoute?.geometry?.coordinates||[];
+ offRouteSamples=0;
  if(!currentRoute)return;
  turnCard.hidden=false;tripBar.hidden=false;
  etaClock.textContent=formatEta(currentRoute.duration_s);
@@ -137,5 +152,5 @@ zoomIn?.addEventListener('click',()=>setZoom(zoom+.45));
 zoomOut?.addEventListener('click',()=>setZoom(zoom-.45));
 window.addEventListener('oap-map-route-ready',e=>renderRoute(e.detail||{}));
 window.addEventListener('pagehide',()=>{if(watchId!==null)navigator.geolocation?.clearWatch(watchId)});
-window.OAP_MAP_NAVIGATION={version:'2.0',lowNoise:true,driveFollow:true,progressiveTurnGuidance:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};
+window.OAP_MAP_NAVIGATION={version:'2.1',lowNoise:true,driveFollow:true,progressiveTurnGuidance:true,offRouteReroute:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};
 })();
