@@ -313,10 +313,23 @@ def map_intelligence_route():
     origin = " ".join(str(request.args.get("from") or request.args.get("location") or "").strip().split())[:120]
     destination = " ".join(str(request.args.get("to") or "").strip().split())[:120]
     profile = str(request.args.get("profile") or "driving")[:20]
-    if len(origin) < 2 or len(destination) < 2:
+    from_lat = request.args.get("from_lat")
+    from_lon = request.args.get("from_lon")
+    coordinate_origin = from_lat is not None or from_lon is not None
+    if coordinate_origin and (from_lat is None or from_lon is None):
+        return jsonify({"error": {"code": "route_origin_coordinates_incomplete"}}), 400
+    if (not coordinate_origin and len(origin) < 2) or len(destination) < 2:
         return jsonify({"error": {"code": "route_places_required"}}), 400
     try:
-        start = _route_location(origin)
+        if coordinate_origin:
+            latitude = float(from_lat)
+            longitude = float(from_lon)
+            if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+                raise ValueError("route_origin_coordinates_invalid")
+            start = {"label": "Current position", "latitude": latitude, "longitude": longitude}
+            origin = "Current position"
+        else:
+            start = _route_location(origin)
         end = _route_location(destination)
         coverage = routing_federation.coverage_state(start, end)
         if not coverage["route_expected"]:

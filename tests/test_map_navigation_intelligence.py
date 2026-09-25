@@ -111,3 +111,56 @@ def test_drive_camera_is_heading_up_without_rotating_controls():
     assert "routeSvg.style.transform=mapTransform" in script
     assert 'body[data-map-mode="drive"] .road-label{display:none}' in css
     assert "transform-origin:50% 50%" in css
+
+
+def test_drive_runtime_has_bounded_off_route_reroute_without_location_storage():
+    script = NAV.read_text(encoding="utf-8")
+    page = MAP.read_text(encoding="utf-8")
+    routes = ROUTES.read_text(encoding="utf-8")
+
+    for marker in (
+        "OFF_ROUTE_METERS=80",
+        "REROUTE_SAMPLES=3",
+        "REROUTE_COOLDOWN_MS=15000",
+        "oap-map-reroute-request",
+        "offRouteReroute:true",
+        "storesPreciseLocation:false",
+    ):
+        assert marker in script
+
+    assert "from_lat" in page
+    assert "from_lon" in page
+    assert "cache:'no-store'" in page
+    assert "Current position" in routes
+    assert "route_origin_coordinates_incomplete" in routes
+    assert "route_origin_coordinates_invalid" in routes
+
+
+def test_reroute_requires_drive_mode_and_sustained_deviation():
+    script = NAV.read_text(encoding="utf-8")
+    assert "if(!driveMode||!currentRoute||!Number.isFinite(distanceM))return;" in script
+    assert "distanceM>OFF_ROUTE_METERS?offRouteSamples+1:0" in script
+    assert "offRouteSamples<REROUTE_SAMPLES" in script
+
+
+def test_map_voice_guidance_is_user_controlled_and_non_persistent():
+    script = NAV.read_text(encoding="utf-8")
+    page = MAP.read_text(encoding="utf-8")
+    assert 'id="voice-toggle"' in page
+    assert "voiceEnabled=false" in script
+    assert "voiceToggle?.addEventListener('click',()=>setVoice(!voiceEnabled))" in script
+    assert "SpeechSynthesisUtterance" in script
+    assert "utterance.lang='en-GB'" in script
+    assert "voiceTurnGuidance:true" in script
+    assert "voiceUserControlled:true" in script
+    assert "voiceAudioStored:false" in script
+    assert "cancelGuidanceVoice()" in script
+    assert "window.addEventListener('pagehide'" in script
+
+
+def test_map_voice_does_not_open_microphone_or_store_precise_location():
+    script = NAV.read_text(encoding="utf-8")
+    assert "getUserMedia" not in script
+    assert "SpeechRecognition" not in script
+    assert "storesPreciseLocation:false" in script
+    assert "individualPeopleTracking:false" in script
