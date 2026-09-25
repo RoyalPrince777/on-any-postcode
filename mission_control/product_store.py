@@ -312,6 +312,41 @@ def message_states(
 
 
 
+def message_acceptance_receipt(identity_id: object, message_id: object) -> dict[str, object] | None:
+    """Return an owner-scoped, content-free persistence/read receipt for one sent Link."""
+
+    identity = _identity(identity_id)
+    message = _identity(message_id, "invalid_message")
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT id,read_at,created_at,client_message_id
+                   FROM messages
+                   WHERE id=%s AND sender_id=%s
+                   LIMIT 1""",
+                (message, identity),
+            ).fetchone()
+    except Exception as exc:
+        raise ProductStoreUnavailable("linkup_acceptance_receipt_failed") from exc
+    if row is None:
+        return None
+    created_at = row[2].isoformat()
+    return {
+        "sent": True,
+        "persisted": True,
+        "landed": True,
+        "seen": row[1] is not None,
+        "sent_at": created_at,
+        "persisted_at": created_at,
+        "landed_at": created_at,
+        "seen_at": row[1].isoformat() if row[1] else None,
+        "reconnect_readback_capable": row[3] is not None,
+        "content_included": False,
+        "owner_scoped": True,
+        "first_party": True,
+    }
+
+
 def peer_messages_since(
     identity_id: object,
     peer_id: object,
