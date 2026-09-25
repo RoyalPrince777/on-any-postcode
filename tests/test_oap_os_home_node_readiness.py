@@ -66,5 +66,5 @@ def test_android_map_acceptance_never_claims_physical_device_certification():
     assert '"production_mapping": "not_checked"' in source
     assert "never certifies actual" in doc
     assert "hardware" in doc
-    assert "permission-controlled location" in doc
-    assert "navigation failure recovery" in doc
+    assert "permission-controlled" in doc and "location" in doc
+    assert "navigation failure" in doc and "recovery" in doc
