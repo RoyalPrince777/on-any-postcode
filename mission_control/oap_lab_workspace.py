@@ -10,7 +10,7 @@ import json
 from hashlib import sha256
 from uuid import UUID
 
-from mission_control import workspaces
+from mission_control import smi_receipt_backend, workspaces
 from mission_control.oap_lab_research import Notebook
 
 _PREFIX = "OAP-LAB:"
@@ -144,6 +144,18 @@ def reopen(owner_id: object, notebook_id: object) -> dict[str, object]:
         })
     except (TypeError, ValueError) as exc:
         raise NotebookHistoryUnavailable("notebook_history_invalid") from exc
+    recovery = smi_receipt_backend.read_lab_recovery_anchor(
+        owner_id=owner, notebook_id=notebook, version=latest["version"],
+    )
+    recovery_payload = recovery.get("payload") if recovery.get("ok") else None
+    recovery_verified = bool(
+        isinstance(recovery_payload, dict)
+        and recovery_payload.get("owner_id") == owner
+        and recovery_payload.get("notebook_id") == notebook
+        and recovery_payload.get("version") == latest["version"]
+        and recovery_payload.get("digest") == latest["digest"]
+        and recovery_payload.get("entry") == latest
+    )
     return {
         "notebook_id": notebook, "version": latest["version"],
         "digest": latest["digest"], "notebook": data,
@@ -151,7 +163,8 @@ def reopen(owner_id: object, notebook_id: object) -> dict[str, object]:
         "atomic_audit_write_contract": True,
         "audit_readback_verified": True,
         "immutable_history_verified": False,
-        "independent_recovery_verified": False,
+        "independent_recovery_verified": recovery_verified,
+        "recovery_receipt_id": recovery.get("receipt_id") if recovery_verified else None,
         "release_ready": False,
     }
 
@@ -198,4 +211,82 @@ def save(
     saved = reopen(owner, notebook_id)
     if saved["digest"] != entry["digest"] or saved["version"] != version:
         raise NotebookHistoryUnavailable("notebook_write_readback_mismatch")
-    return saved
+    anchor = smi_receipt_backend.write_lab_recovery_anchor({
+        "owner_id": owner,
+        "notebook_id": notebook_id,
+        "version": version,
+        "digest": entry["digest"],
+        "entry": entry,
+        "authority_transferred": False,
+        "publication_authorised": False,
+        "execution_authorised": False,
+    })
+    recovery_verified = bool(
+        anchor.get("ok")
+        and anchor.get("read_back_ok")
+        and anchor.get("durable")
+        and anchor.get("fallback_used") is False
+    )
+    return {
+        **saved,
+        "independent_recovery_verified": recovery_verified,
+        "recovery_receipt_id": anchor.get("receipt_id") if recovery_verified else None,
+        "recovery_status": anchor.get("status"),
+    }
+
+
+def recover_from_independent(
+    owner_id: object, notebook_id: object, *, version: int | None = None,
+) -> dict[str, object]:
+    """Recover a validated notebook version from the separate HRM anchor only."""
+    owner, notebook = _uuid(owner_id), _uuid(notebook_id)
+    result = smi_receipt_backend.read_lab_recovery_anchor(
+        owner_id=owner, notebook_id=notebook, version=version,
+    )
+    payload = result.get("payload") if result.get("ok") else None
+    if not isinstance(payload, dict):
+        raise NotebookHistoryUnavailable("independent_recovery_unavailable")
+    entry = payload.get("entry")
+    if (
+        not isinstance(entry, dict)
+        or payload.get("owner_id") != owner
+        or payload.get("notebook_id") != notebook
+        or payload.get("version") != entry.get("version")
+        or payload.get("digest") != entry.get("digest")
+        or entry.get("owner_id") != owner
+        or entry.get("notebook_id") != notebook
+    ):
+        raise NotebookHistoryUnavailable("independent_recovery_scope_mismatch")
+    digest = entry.get("digest")
+    body = {key: value for key, value in entry.items() if key != "digest"}
+    if digest != _hash(body):
+        raise NotebookHistoryUnavailable("independent_recovery_tampered")
+    if (
+        entry.get("state") != "research_draft"
+        or entry.get("publication_authorised") is not False
+        or entry.get("execution_authorised") is not False
+        or entry.get("scientific_truth_established") is not False
+        or not isinstance(entry.get("notebook"), dict)
+    ):
+        raise NotebookHistoryUnavailable("independent_recovery_scope_invalid")
+    data = entry["notebook"]
+    try:
+        Notebook(identifier=notebook, **{
+            key: data[key] for key in (
+                "mission", "domain", "question", "hypothesis", "falsification",
+            )
+        })
+    except (KeyError, TypeError, ValueError) as exc:
+        raise NotebookHistoryUnavailable("independent_recovery_invalid") from exc
+    return {
+        "notebook_id": notebook,
+        "version": entry["version"],
+        "digest": digest,
+        "notebook": data,
+        "independent_recovery_verified": True,
+        "recovery_receipt_id": result.get("receipt_id"),
+        "backend": result.get("backend"),
+        "fallback_used": False,
+        "authority_transferred": False,
+        "release_ready": False,
+    }
