@@ -137,16 +137,38 @@
   ["⚙️ Body","Open the existing SMI Map Intelligence workspace. This reuses /on-any-place and the existing road/routing renderer; no duplicate map runtime is created."],
   ["💛 Soul","Privacy and STOP boundary: precise location is consent-gated and not persisted by the map route; closing Maps unloads the hidden iframe."],
   ["📊 Status","Read-only evidence remains available through the existing Map Intelligence status surfaces. A button or configured source is never treated as Green by itself."],
+  ["📈 Public %","Loading evidence-backed public Maps percentages…"],
   ["👑 Founder Final","No Maps control here authorises hidden tracking, dispatch, booking, payment, merge or deployment."]
  ];
  mapsReviews.forEach(([label,detail],index)=>{
   const button=document.createElement("button");
   button.type="button";button.textContent=label;
-  button.dataset.mapsReview=label.includes("Mind")?"mind":label.includes("Body")?"body":label.includes("Soul")?"soul":label.includes("Status")?"status":"founder";
+  button.dataset.mapsReview=label.includes("Mind")?"mind":label.includes("Body")?"body":label.includes("Soul")?"soul":label.includes("Status")?"status":label.includes("Public")?"public-percent":"founder";
   button.setAttribute("aria-pressed",String(index===0));
   button.addEventListener("click",()=>{
    mapsTabs.querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed",String(item===button)));
    mapsDetail.textContent=detail;
+   if(button.dataset.mapsReview==="public-percent"){
+    mapsDetail.textContent="Checking public Maps proof percentages…";
+    fetch("/mission/map-intelligence",{cache:"no-store",credentials:"same-origin"})
+     .then(response=>{if(!response.ok)throw new Error("Map Intelligence evidence unavailable");return response.json();})
+     .then(data=>{
+      const summary=data&&data.summary?data.summary:{};
+      const counts=summary.counts||{};
+      const total=Number(summary.total_checks||0);
+      const percent=value=>total?Math.round((Number(value||0)/total)*100):0;
+      const proven=Number(summary.green_or_guarded||0);
+      mapsDetail.textContent=[
+       "Public Maps proof · "+percent(proven)+"% proven/guarded",
+       percent(summary.building)+"% building",
+       percent(summary.locked)+"% locked",
+       percent(summary.attention)+"% attention",
+       "Checks: "+total+" · no missing proof hidden"
+      ].join(" · ");
+     })
+     .catch(()=>{mapsDetail.textContent="Public Maps percentages unavailable · evidence remains unproven.";});
+    return;
+   }
    if(button.dataset.mapsReview==="body"){
     const canonical=document.querySelector('#attach-menu [data-oap-action="map-intelligence"]');
     if(canonical&&!canonical.disabled){
