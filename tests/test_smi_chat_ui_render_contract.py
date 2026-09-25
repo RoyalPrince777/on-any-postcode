@@ -27,3 +27,15 @@ def test_smi_chat_wrapper_only_passes_server_generated_routes():
     assert "founder_tools.github_propose_branch" in text
     assert "founder_tools.github_action_approval" in text
     assert "founder_tools.github_execute_approved_action" in text
+
+
+def test_smi_live_dashboard_quiet_alignment_contract():
+    css = Path("mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
+    assert "Quiet alignment pass" in css
+    assert "#speaker-button{" in css
+    assert 'display:flex!important' in css
+    assert 'grid-template-columns:44px 44px 44px minmax(180px,1fr) 120px 52px!important' in css
+    assert '.thinking:not(.show){display:none!important}' in css
+    assert '.thinking[data-complete="true"]{display:none!important}' in css
+    assert '.smi-chat-ops{display:none!important}' in css
+    assert '@media(max-width:760px)' in css
