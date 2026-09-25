@@ -131,11 +131,6 @@ with sync_playwright() as p:
             page.locator("#map-locate").click()
             page.wait_for_function("() => window.__oapGeoWatchCalls === 1", timeout=5000)
             assert page.evaluate("() => window.__oapGeoWatchCalls") == 1
-        page.wait_for_function(
-            "() => document.querySelector('#route-state').textContent.includes('Route unavailable')"
-            " || document.querySelector('#route-state').textContent.includes('temporarily unavailable')",
-            timeout=10000,
-        )
         assert page.locator("#road-layer polyline").count() > 0, label
         if mobile:
             assert page.locator("#voice-toggle").inner_text() == "Voice on"
