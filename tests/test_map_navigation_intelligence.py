@@ -111,3 +111,33 @@ def test_drive_camera_is_heading_up_without_rotating_controls():
     assert "routeSvg.style.transform=mapTransform" in script
     assert 'body[data-map-mode="drive"] .road-label{display:none}' in css
     assert "transform-origin:50% 50%" in css
+
+
+def test_drive_runtime_has_bounded_off_route_reroute_without_location_storage():
+    script = NAV.read_text(encoding="utf-8")
+    page = MAP.read_text(encoding="utf-8")
+    routes = ROUTES.read_text(encoding="utf-8")
+
+    for marker in (
+        "OFF_ROUTE_METERS=80",
+        "REROUTE_SAMPLES=3",
+        "REROUTE_COOLDOWN_MS=15000",
+        "oap-map-reroute-request",
+        "offRouteReroute:true",
+        "storesPreciseLocation:false",
+    ):
+        assert marker in script
+
+    assert "from_lat" in page
+    assert "from_lon" in page
+    assert "cache:'no-store'" in page
+    assert "Current position" in routes
+    assert "route_origin_coordinates_incomplete" in routes
+    assert "route_origin_coordinates_invalid" in routes
+
+
+def test_reroute_requires_drive_mode_and_sustained_deviation():
+    script = NAV.read_text(encoding="utf-8")
+    assert "if(!driveMode||!currentRoute||!Number.isFinite(distanceM))return;" in script
+    assert "distanceM>OFF_ROUTE_METERS?offRouteSamples+1:0" in script
+    assert "offRouteSamples<REROUTE_SAMPLES" in script
