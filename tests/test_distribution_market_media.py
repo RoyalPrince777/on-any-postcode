@@ -87,3 +87,104 @@ def test_distribution_projection_stays_fail_closed(monkeypatch):
         "locked_until_authenticated_adapter_and_receipt"
     )
     assert result["rights_proof_required"] is True
+
+
+def test_music_review_handoff_binds_to_authenticated_owner_release(monkeypatch):
+    from uuid import uuid4
+
+    app = Flask(__name__)
+    release_id = str(uuid4())
+    candidate_id = str(uuid4())
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: True)
+    monkeypatch.setattr(product_core_views, "_identity", lambda **kwargs: "11111111-1111-1111-1111-111111111111")
+    monkeypatch.setattr(
+        product_core_views.product_core_services,
+        "tune_dashboard",
+        lambda identity: {
+            "organ": "OAP Music",
+            "releases": [{
+                "release_id": release_id,
+                "title": "Owner release",
+                "release_type": "single",
+                "state": "DRAFT",
+                "rights_status": "REVIEW_REQUIRED",
+            }],
+            "playlists": [],
+        },
+    )
+    payload = {
+        "candidate": {
+            "candidate_id": candidate_id,
+            "title": "Candidate",
+            "artist": "Artist",
+            "source_kind": "free_music_archive",
+            "claimed_licence": "CC_BY",
+            "source_page_url": "https://freemusicarchive.org/music/artist/candidate/",
+        },
+        "release_id": release_id,
+    }
+    with app.test_request_context("/", method="POST", json=payload):
+        response = product_core_views.tune_catalogue_review_handoff()
+    body = response.get_json()
+
+    assert response.status_code == 200
+    assert body["owner_authenticated"] is True
+    assert body["owner_bound_to_music_release"] is True
+    assert body["existing_release"]["release_id"] == release_id
+    assert body["independent_rights_verified"] is False
+    assert body["receipt_persisted"] is False
+    assert body["release_created"] is False
+    assert body["playback_enabled"] is False
+
+
+def test_music_review_handoff_rejects_wrong_owner_release(monkeypatch):
+    from uuid import uuid4
+
+    app = Flask(__name__)
+    release_id = str(uuid4())
+    candidate_id = str(uuid4())
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: True)
+    monkeypatch.setattr(product_core_views, "_identity", lambda **kwargs: "11111111-1111-1111-1111-111111111111")
+    monkeypatch.setattr(
+        product_core_views.product_core_services,
+        "tune_dashboard",
+        lambda identity: {"organ": "OAP Music", "releases": [], "playlists": []},
+    )
+    payload = {
+        "candidate": {
+            "candidate_id": candidate_id,
+            "title": "Candidate",
+            "artist": "Artist",
+            "source_kind": "free_music_archive",
+            "claimed_licence": "CC_BY",
+            "source_page_url": "https://freemusicarchive.org/music/artist/candidate/",
+        },
+        "release_id": release_id,
+    }
+    with app.test_request_context("/", method="POST", json=payload):
+        response = product_core_views.tune_catalogue_review_handoff()
+
+    assert response.status_code == 404
+    assert response.get_json()["error"]["code"] == "not_found"
+
+
+def test_music_review_handoff_fails_closed_on_csrf_before_store_read(monkeypatch):
+    app = Flask(__name__)
+    touched = {"store": False}
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: False)
+
+    def forbidden_store(identity):
+        touched["store"] = True
+        raise AssertionError("store must not be read after CSRF failure")
+
+    monkeypatch.setattr(
+        product_core_views.product_core_services,
+        "tune_dashboard",
+        forbidden_store,
+    )
+    with app.test_request_context("/", method="POST", json={"candidate": {}, "release_id": "x"}):
+        response = product_core_views.tune_catalogue_review_handoff()
+
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "csrf_failed"
+    assert touched["store"] is False
