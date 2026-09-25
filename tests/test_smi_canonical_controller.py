@@ -79,7 +79,7 @@ def test_reply_read_aloud_uses_canonical_voice_and_honours_stop():
     final = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
     assert "window.OAP_SMI_READ_ALOUD=text=>" in canonical
     assert "if(oapRuntime?.stopped||oapRuntime?.paused)" in canonical
-    assert "oapSpeak(text,true);return true;" in canonical
+    assert "oapSpeak(text,null,true);return true;" in canonical
     assert "if(oapRuntime?.stopped)return;" in canonical
     assert "window.OAP_SMI_READ_ALOUD?.(body?.innerText||'')" in final
     assert "window.speechSynthesis.speak(u)" not in final
