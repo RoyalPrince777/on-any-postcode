@@ -286,6 +286,58 @@ def add_record(
     return str(row[0])
 
 
+
+def lab_immutability_status() -> dict[str, object]:
+    """Read-only proof that LAB workspace rows are DB-protected from mutation.
+
+    Software hashes/audit receipts are not enough. Green requires the active
+    database itself to deny UPDATE and DELETE for the application role or to
+    expose an enabled trigger that rejects those mutations for LAB rows.
+    """
+    result: dict[str, object] = {
+        "database_enforced": False,
+        "update_denied": False,
+        "delete_denied": False,
+        "protective_trigger_present": False,
+        "schema_changed": False,
+        "error": None,
+    }
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            privileges = connection.execute(
+                """SELECT
+                       has_table_privilege(current_user,'oap_workspace_records','UPDATE'),
+                       has_table_privilege(current_user,'oap_workspace_records','DELETE')"""
+            ).fetchone()
+            update_allowed = bool(privileges and privileges[0])
+            delete_allowed = bool(privileges and privileges[1])
+            result["update_denied"] = not update_allowed
+            result["delete_denied"] = not delete_allowed
+            trigger = connection.execute(
+                """SELECT 1
+                   FROM pg_trigger t
+                   JOIN pg_class c ON c.oid=t.tgrelid
+                   JOIN pg_namespace n ON n.oid=c.relnamespace
+                   WHERE n.nspname='public'
+                     AND c.relname='oap_workspace_records'
+                     AND NOT t.tgisinternal
+                     AND t.tgenabled <> 'D'
+                     AND (
+                       pg_get_triggerdef(t.oid) ILIKE '%UPDATE%'
+                       OR pg_get_triggerdef(t.oid) ILIKE '%DELETE%'
+                     )
+                   LIMIT 1"""
+            ).fetchone()
+            result["protective_trigger_present"] = trigger is not None
+    except Exception:  # noqa: BLE001 - readiness probe exposes no DB details
+        result["error"] = "workspace_immutability_probe_failed"
+    result["database_enforced"] = bool(
+        (result["update_denied"] and result["delete_denied"])
+        or result["protective_trigger_present"]
+    )
+    return result
+
+
 def status() -> dict[str, object]:
     result: dict[str, object] = {
         "workspaces": len(WORKSPACES),
