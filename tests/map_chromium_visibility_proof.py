@@ -97,6 +97,11 @@ with sync_playwright() as p:
         page.locator("#map-from").fill("Mitcham")
         page.locator("#map-to").fill("London Bridge")
         page.locator("#map-form button.go").click()
+        page.wait_for_function(
+            "() => document.querySelector('#route-state').textContent.includes('Route unavailable')"
+            " || document.querySelector('#route-state').textContent.includes('temporarily unavailable')",
+            timeout=10000,
+        )
         if mobile:
             page.evaluate("""
                 () => window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:{route:{
