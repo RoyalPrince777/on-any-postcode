@@ -147,6 +147,7 @@ def reopen(owner_id: object, notebook_id: object) -> dict[str, object]:
     recovery = smi_receipt_backend.read_lab_recovery_anchor(
         owner_id=owner, notebook_id=notebook, version=latest["version"],
     )
+    immutability = workspaces.lab_immutability_status()
     recovery_payload = recovery.get("payload") if recovery.get("ok") else None
     recovery_verified = bool(
         isinstance(recovery_payload, dict)
@@ -162,7 +163,8 @@ def reopen(owner_id: object, notebook_id: object) -> dict[str, object]:
         "workspace_record_persisted": True,
         "atomic_audit_write_contract": True,
         "audit_readback_verified": True,
-        "immutable_history_verified": False,
+        "immutable_history_verified": bool(immutability.get("database_enforced")),
+        "immutability_probe_error": immutability.get("error"),
         "independent_recovery_verified": recovery_verified,
         "recovery_receipt_id": recovery.get("receipt_id") if recovery_verified else None,
         "release_ready": False,
