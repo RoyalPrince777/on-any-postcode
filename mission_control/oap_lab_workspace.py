@@ -120,6 +120,7 @@ def reopen(owner_id: object, notebook_id: object) -> dict[str, object]:
         "notebook_id": notebook, "version": latest["version"],
         "digest": latest["digest"], "notebook": data,
         "workspace_record_persisted": True,
+        "atomic_audit_write_contract": True,
         "immutable_history_verified": False,
         "independent_recovery_verified": False,
         "release_ready": False,
@@ -157,9 +158,13 @@ def save(
     body = json.dumps(entry, sort_keys=True, separators=(",", ":"), allow_nan=False)
     if len(body) > 5000:
         raise ValueError("notebook_exceeds_workspace_limit")
-    workspaces.add_record(
-        owner, _WORKSPACE, title=f"{_PREFIX}{notebook_id}:v{version}",
-        body=body, status="draft",
+    workspaces.add_lab_record_atomic(
+        owner,
+        title=f"{_PREFIX}{notebook_id}:v{version}",
+        body=body,
+        notebook_id=notebook_id,
+        version=version,
+        digest=entry["digest"],
     )
     saved = reopen(owner, notebook_id)
     if saved["digest"] != entry["digest"] or saved["version"] != version:
