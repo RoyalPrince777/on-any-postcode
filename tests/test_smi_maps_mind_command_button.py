@@ -9,7 +9,7 @@ MASTER = ROOT / "mission_control/static/smi_chat_final.js"
 def test_maps_mind_button_reuses_canonical_smi_action() -> None:
     command = COMMAND.read_text(encoding="utf-8")
     master = MASTER.read_text(encoding="utf-8")
-    assert '["🗺️ Maps · Mind","map-intelligence"]' in command
+    assert '["🗺️ Maps Controls","oap-maps-controls"]' in command
     assert 'const canonical=document.querySelector(\'#attach-menu [data-oap-action="\'+action+\'"]\')' in command
     assert 'id==="map-intelligence"' in master
     assert 'openMapWorkspace("/on-any-place")' in master or "openMapWorkspace('/on-any-place')" in master
