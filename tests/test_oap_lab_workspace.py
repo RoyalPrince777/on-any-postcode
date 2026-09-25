@@ -20,7 +20,10 @@ def _notebook(identifier=None, question="First question"):
 
 @pytest.fixture
 def store(monkeypatch):
-    rows = defaultdict(list)
+    class Store(defaultdict):
+        pass
+
+    rows = Store(list)
     receipts = defaultdict(list)
 
     def list_records(owner, workspace, *, title_prefix, limit=100):
