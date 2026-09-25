@@ -311,6 +311,27 @@ def _database_url() -> str:
     return _database_config()[0]
 
 
+def _lab_database_url() -> str:
+    """Resolve the dedicated OAP LAB primary store.
+
+    LAB never silently falls back to the general production database. This
+    keeps a provider switch explicit and prevents accidental dual writers.
+    """
+    encoded = os.environ.get("OAP_LAB_DATABASE_URL_B64", "").strip()
+    if encoded:
+        return _decode_database_secret(encoded)
+    return os.environ.get("OAP_LAB_DATABASE_URL", "").strip()
+
+
+def lab_database_source() -> str:
+    """Return only the redacted LAB database configuration class."""
+    if os.environ.get("OAP_LAB_DATABASE_URL_B64", "").strip():
+        return "lab_primary_b64"
+    if os.environ.get("OAP_LAB_DATABASE_URL", "").strip():
+        return "lab_primary"
+    return "lab_unconfigured"
+
+
 def database_source() -> str:
     """Return only the redacted configuration class, never a host or URL."""
 
@@ -334,6 +355,22 @@ def _driver():
     except ImportError as exc:
         raise RuntimeError("psycopg is required when DATABASE_URL is configured") from exc
     return psycopg
+
+
+@contextmanager
+def lab_connect(*, readonly: bool = False) -> Iterator[Any]:
+    """Open the dedicated OAP LAB primary store; never fall back silently."""
+    database_url = _lab_database_url()
+    if not database_url:
+        raise RuntimeError("OAP LAB database URL is not configured")
+    psycopg = _driver()
+    with psycopg.connect(
+        database_url, connect_timeout=5,
+        application_name="oap-lab", autocommit=False,
+    ) as connection:
+        if readonly:
+            connection.execute("SET TRANSACTION READ ONLY")
+        yield connection
 
 
 @contextmanager
