@@ -124,7 +124,7 @@ def test_music_review_handoff_binds_to_authenticated_owner_release(monkeypatch):
         "release_id": release_id,
     }
     with app.test_request_context("/", method="POST", json=payload):
-        response = product_core_views.tune_catalogue_review_handoff()
+        response = product_core_views.tune_catalogue_review_handoff.__wrapped__()
     body = response.get_json()
 
     assert response.status_code == 200
@@ -162,7 +162,7 @@ def test_music_review_handoff_rejects_wrong_owner_release(monkeypatch):
         "release_id": release_id,
     }
     with app.test_request_context("/", method="POST", json=payload):
-        response = product_core_views.tune_catalogue_review_handoff()
+        response = product_core_views.tune_catalogue_review_handoff.__wrapped__()
 
     assert response.status_code == 404
     assert response.get_json()["error"]["code"] == "not_found"
@@ -183,7 +183,7 @@ def test_music_review_handoff_fails_closed_on_csrf_before_store_read(monkeypatch
         forbidden_store,
     )
     with app.test_request_context("/", method="POST", json={"candidate": {}, "release_id": "x"}):
-        response = product_core_views.tune_catalogue_review_handoff()
+        response = product_core_views.tune_catalogue_review_handoff.__wrapped__()
 
     assert response.status_code == 403
     assert response.get_json()["error"]["code"] == "csrf_failed"
