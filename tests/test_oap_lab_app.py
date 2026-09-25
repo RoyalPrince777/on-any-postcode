@@ -1,4 +1,4 @@
-"""Private OAP LAB app: proof of access control and transient research-only behaviour."""
+"""Private OAP LAB app: governed persistence, access control and safe research behaviour."""
 import app as app_module
 from mission_control import web_security
 
@@ -40,7 +40,7 @@ def test_lab_is_private_review_only_and_not_cached(monkeypatch):
     assert result.status_code == 200
     assert result.headers["Cache-Control"] == "no-store"
     assert b"OAP LAB" in result.data
-    assert b"Ordinary workspace records are not proven immutable" in result.data
+    assert b"Governed notebook saving and reopening are active" in result.data
     assert b"21" in result.data
 
 
@@ -55,7 +55,7 @@ def test_lab_synthetic_arithmetic_never_claims_persistence(monkeypatch):
         session[web_security.CSRF_SESSION_KEY] = "a" * 48
     result = client.post("/oap-lab", data=_form())
     assert result.status_code == 200
-    assert b"SMI review finalised" in result.data
+    assert b"SMI notebook finalised" in result.data
     assert b"4.0" in result.data
     assert b"Not saved" in result.data
     assert b"Not scientific proof" in result.data
@@ -67,7 +67,7 @@ def test_lab_stop_blocks_experiment(monkeypatch):
         session[web_security.CSRF_SESSION_KEY] = "a" * 48
     result = client.post("/oap-lab", data=_form(stopped="yes"))
     assert b"STOP: notebook review not run" in result.data
-    assert b"SMI review finalised" not in result.data
+    assert b"SMI notebook finalised" not in result.data
 
 
 def test_lab_rejects_nonsynthetic_and_live_actions(monkeypatch):
@@ -77,7 +77,7 @@ def test_lab_rejects_nonsynthetic_and_live_actions(monkeypatch):
     for data in (_form(synthetic=""), _form(operation="external_io")):
         result = client.post("/oap-lab", data=data)
         assert result.status_code == 200
-        assert b"SMI review finalised" not in result.data
+        assert b"SMI notebook finalised" not in result.data
 
 
 def test_organiser_notebook_smi_finalise_is_not_durable(monkeypatch):
@@ -87,7 +87,7 @@ def test_organiser_notebook_smi_finalise_is_not_durable(monkeypatch):
     result = client.post("/oap-lab", data=_form(operation=""))
     assert result.status_code == 200
     assert b"Organiser" in result.data
-    assert b"SMI review finalised" in result.data
+    assert b"SMI notebook finalised" in result.data
     assert b"Not saved" in result.data
 
 
@@ -203,6 +203,9 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
     ))
     assert saved.status_code == 200
     assert b"Saved in My World" in saved.data
+    assert b"SMI notebook finalised" in saved.data
+    assert b"Saved with governed read-back" in saved.data
+    assert b"SMI notebook finalised Â· unsaved" not in saved.data
     assert len(records) == 1
     path = re.search(rb'/oap-lab[?]notebook_id=[a-f0-9-]+', saved.data)
     assert path is not None
