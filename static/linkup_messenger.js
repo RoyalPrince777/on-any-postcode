@@ -45,8 +45,11 @@
   }
 
   const first = buttons.find((button) => button.dataset.active === "true") || buttons[0];
-  if (first && !panels.some((panel) => panel.dataset.active === "true")) {
+  const hasActivePanel = panels.some((panel) => panel.dataset.active === "true");
+  if (first && !hasActivePanel) {
     openPanel(first.dataset.linkupThread);
     app.dataset.chatOpen = "false";
+  } else if (!first && panels.some((panel) => panel.dataset.linkupPanel === "new")) {
+    openPanel("new");
   }
 })();
