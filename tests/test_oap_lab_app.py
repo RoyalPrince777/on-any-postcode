@@ -205,7 +205,6 @@ def test_lab_save_reopen_through_existing_workspace(monkeypatch):
     assert b"Saved in My World" in saved.data
     assert b"SMI notebook finalised" in saved.data
     assert b"Saved with governed read-back" in saved.data
-    assert b"SMI notebook finalised Â· unsaved" not in saved.data
     assert len(records) == 1
     path = re.search(rb'/oap-lab[?]notebook_id=[a-f0-9-]+', saved.data)
     assert path is not None
