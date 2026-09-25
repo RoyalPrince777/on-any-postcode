@@ -2060,7 +2060,7 @@ def infrastructure_status():
 @app.route("/oap-lab", methods=["GET", "POST"])
 @web_security.login_required(founder_only=True)
 def oap_lab_workbench():
-    """Founder-only, transient LAB research workbench; no persistence or live claims."""
+    """Founder-only governed LAB workbench with explicit owner-scoped persistence."""
     from mission_control.oap_lab_research import (
         DOMAINS,
         MISSIONS,
@@ -2159,6 +2159,7 @@ def oap_lab_workbench():
                 values["notebook_id"] = saved["notebook_id"]
                 values["expected_last_hash"] = saved["digest"]
                 result["saved"] = saved
+                result["persisted"] = True
             if request.form.get("notebook_action") == "download":
                 from hashlib import sha256
 
