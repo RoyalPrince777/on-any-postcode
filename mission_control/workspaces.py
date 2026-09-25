@@ -318,14 +318,15 @@ def lab_immutability_status() -> dict[str, object]:
                    FROM pg_trigger t
                    JOIN pg_class c ON c.oid=t.tgrelid
                    JOIN pg_namespace n ON n.oid=c.relnamespace
+                   JOIN pg_proc p ON p.oid=t.tgfoid
                    WHERE n.nspname='public'
                      AND c.relname='oap_workspace_records'
+                     AND t.tgname='oap_lab_workspace_immutable'
+                     AND p.proname='oap_lab_workspace_immutable_guard'
                      AND NOT t.tgisinternal
                      AND t.tgenabled <> 'D'
-                     AND (
-                       pg_get_triggerdef(t.oid) ILIKE '%UPDATE%'
-                       OR pg_get_triggerdef(t.oid) ILIKE '%DELETE%'
-                     )
+                     AND pg_get_triggerdef(t.oid) ILIKE '%UPDATE%'
+                     AND pg_get_triggerdef(t.oid) ILIKE '%DELETE%'
                    LIMIT 1"""
             ).fetchone()
             result["protective_trigger_present"] = trigger is not None
