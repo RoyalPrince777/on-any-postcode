@@ -471,6 +471,94 @@ def sika_security_reauth_result():
         return jsonify({"error": str(exc), "recorded": False}), 503
 
 
+@bp.get("/api/sika/security/daily-activity")
+@web_security.login_required(api=True)
+def sika_security_daily_activity():
+    owner = _authenticated_sika_owner()
+    try:
+        return jsonify(sika_security_ledger.daily_payment_activity(owner.owner_id))
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "daily_executed_spend_sika": "0.00"}), 503
+
+
+@bp.post("/api/sika/security/step-up")
+@web_security.login_required(api=True)
+def sika_security_step_up_create():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_security_ledger.create_step_up_challenge(
+            owner.owner_id,
+            reason=str(body.get("reason") or "security_review"),
+            amount_sika=body.get("amount_sika", "0"),
+        )
+    except (ValueError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "created": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "created": False}), 503
+    return jsonify({**result, "created": True}), 201
+
+
+@bp.post("/api/sika/security/step-up/resolve")
+@web_security.login_required(api=True)
+def sika_security_step_up_resolve():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_security_ledger.resolve_step_up_challenge(
+            owner.owner_id,
+            challenge_id=body.get("challenge_id"),
+            approved=bool(body.get("approved")),
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "resolved": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "resolved": False}), 503
+    return jsonify({**result, "resolved": True})
+
+
+@bp.post("/api/sika/security/alert/ack")
+@web_security.login_required(api=True)
+def sika_security_alert_ack():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_security_ledger.acknowledge_alert(
+            owner.owner_id, body.get("security_event_id")
+        ))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "acknowledged": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "acknowledged": False}), 503
+
+
+@bp.post("/api/sika/security/alert/recover")
+@web_security.login_required(api=True)
+def sika_security_alert_recover():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_security_ledger.recover_alert(
+            owner.owner_id, body.get("security_event_id")
+        ))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 503
+
+
 @bp.post("/api/sika/security/ledger/event")
 @web_security.login_required(api=True)
 def sika_security_ledger_event():
