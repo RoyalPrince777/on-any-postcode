@@ -886,6 +886,20 @@ def smi_studio_orchestrate_resume(mission_id: str):
     return _no_store(make_response(jsonify(result)))
 
 
+@bp.get("/studio/orchestrate/<mission_id>/next")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_orchestrate_next(mission_id: str):
+    """Return the next dependency-eligible workspace without executing it."""
+
+    try:
+        result = studio_workspace_orchestrator.next_handoff(
+            _chat_identity(), mission_id
+        )
+    except (RuntimeError, ValueError) as exc:
+        return _error("orchestration_handoff_blocked", str(exc), 409)
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.post("/smi/android-live-evidence")
 @web_security.login_required(api=True, founder_only=True)
 def smi_android_live_evidence_receipt():
