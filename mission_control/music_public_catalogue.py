@@ -5,8 +5,6 @@ Metadata publication does not grant playback rights.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 from . import postgres_db
 
 MAX_PUBLIC_ITEMS = 100
