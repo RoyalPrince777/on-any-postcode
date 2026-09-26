@@ -97,4 +97,4 @@ jobs:
             await browser.close();
           })().catch(err => { console.error(err); process.exit(1); });
           EOF
-          node /tmp/music-browser.js
+          NODE_PATH="$PWD/node_modules" node /tmp/music-browser.js
