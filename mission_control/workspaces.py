@@ -539,6 +539,123 @@ def add_studio_orchestration_record_atomic(
         raise WorkspaceUnavailable("studio_orchestration_atomic_write_failed") from exc
     return record_id
 
+
+def list_studio_build_preview_records(
+    identity_id: object, preview_id: object, *, limit: int = 100,
+) -> list[dict[str, str]]:
+    """Read one owner's append-only Studio Build Preview history."""
+    identity = _identity(identity_id)
+    preview = str(uuid.UUID(str(preview_id)))
+    prefix = f"OAP-BUILD-PREVIEW:{preview}:"
+    bounded = min(100, max(1, int(limit)))
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT record_id,title,body,status,created_at,updated_at
+                   FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id='governance'
+                     AND title LIKE %s
+                   ORDER BY updated_at ASC LIMIT %s""",
+                (identity, prefix + "%", bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise WorkspaceUnavailable("studio_build_preview_read_failed") from exc
+    return [
+        {
+            "record_id": str(row[0]), "title": str(row[1]),
+            "body": str(row[2]), "status": str(row[3]),
+            "created_at": row[4].isoformat(), "updated_at": row[5].isoformat(),
+        }
+        for row in rows
+    ]
+
+
+def add_studio_build_preview_record_atomic(
+    identity_id: object,
+    *,
+    preview_id: str,
+    version: int,
+    digest: str,
+    title: str,
+    body: str,
+) -> str:
+    """Append one isolated Build Preview version and matching audit receipt."""
+    identity = _identity(identity_id)
+    preview = str(uuid.UUID(str(preview_id)))
+    if type(version) is not int or version < 1:
+        raise ValueError("invalid_build_preview_version")
+    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+        raise ValueError("invalid_build_preview_digest")
+    expected_title = f"OAP-BUILD-PREVIEW:{preview}:v{version}"
+    if title != expected_title:
+        raise ValueError("invalid_build_preview_record_title")
+    if not body or len(body.encode("utf-8")) > 250_000:
+        raise ValueError("invalid_build_preview_record_body")
+    metadata = {
+        "workspace_id": "governance",
+        "preview_id": preview,
+        "version": version,
+        "digest": digest,
+        "record_status": "draft",
+        "production_deploy_authorised": False,
+        "server_side_execution_authorised": False,
+    }
+    try:
+        with postgres_db.connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (preview,))
+            duplicate = connection.execute(
+                """SELECT 1 FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id='governance' AND title=%s
+                   LIMIT 1""",
+                (identity, title),
+            ).fetchone()
+            if duplicate:
+                raise ValueError("build_preview_version_already_exists")
+            row = connection.execute(
+                """INSERT INTO oap_workspace_records(
+                       identity_id,workspace_id,title,body,status
+                   ) VALUES (%s,'governance',%s,%s,'draft')
+                   RETURNING record_id""",
+                (identity, title, body),
+            ).fetchone()
+            record_id = str(row[0])
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (86420975,))
+            previous = connection.execute(
+                "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+            ).fetchone()
+            previous_hash = str(previous[0]) if previous else "GENESIS"
+            canonical = json.dumps(
+                {**metadata, "record_id": record_id},
+                sort_keys=True, separators=(",", ":"),
+            )
+            current_hash = hashlib.sha256(
+                (previous_hash + canonical).encode("utf-8")
+            ).hexdigest()
+            connection.execute(
+                """INSERT INTO audit_events(
+                       prev_hash,curr_hash,actor_id,actor_type,authority_level,
+                       action,target,reason,correlation_id,metadata
+                   ) VALUES (
+                       %s,%s,%s,'HUMAN_AUTHORITY',0,
+                       'OAP_STUDIO_BUILD_PREVIEW_VERSION',%s,
+                       'owner_scoped_browser_isolated_preview',%s,%s::jsonb
+                   )""",
+                (
+                    previous_hash,
+                    current_hash,
+                    identity,
+                    f"studio_build_preview:{preview}",
+                    preview,
+                    canonical,
+                ),
+            )
+            connection.commit()
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise WorkspaceUnavailable("studio_build_preview_atomic_write_failed") from exc
+    return record_id
+
 def lab_immutability_status() -> dict[str, object]:
     """Read-only proof that LAB workspace rows are DB-protected from mutation.
 
