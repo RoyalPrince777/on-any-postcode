@@ -12,8 +12,9 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 MAX_RESULTS = 12
 TIMEOUT_SECONDS = 5
@@ -32,6 +33,7 @@ ALLOWED_PLACE_FIELDS = (
     "type",
     "importance",
     "extratags",
+    "address",
 )
 _LAST_FETCH: dict[str, object] = {
     "fetched_at": None,
@@ -78,6 +80,76 @@ def _category_for(item: dict[str, object]) -> str:
     if "hotel" in kind or "guest" in kind or "hostel" in kind:
         return "stays_venues"
     return "oap_direct"
+
+
+_DAY_INDEX = {"Mo": 0, "Tu": 1, "We": 2, "Th": 3, "Fr": 4, "Sa": 5, "Su": 6}
+
+
+def _day_set(token: str) -> set[int] | None:
+    value = str(token or "").strip()
+    if value in _DAY_INDEX:
+        return {_DAY_INDEX[value]}
+    if "-" in value:
+        start, end = (part.strip() for part in value.split("-", 1))
+        if start not in _DAY_INDEX or end not in _DAY_INDEX:
+            return None
+        a, b = _DAY_INDEX[start], _DAY_INDEX[end]
+        return set(range(a, b + 1)) if a <= b else set(range(a, 7)) | set(range(0, b + 1))
+    return None
+
+
+def _clock(value: str) -> time | None:
+    try:
+        hour, minute = (int(part) for part in value.split(":", 1))
+        return time(hour=hour, minute=minute)
+    except (TypeError, ValueError):
+        return None
+
+
+def evaluate_open_now(opening_hours: object, *, country_code: object, now: datetime | None = None) -> dict[str, object]:
+    """Evaluate a small, explicit subset of OSM opening_hours; unsupported syntax stays unknown."""
+
+    schedule = " ".join(str(opening_hours or "").strip().split())
+    country = str(country_code or "").strip().casefold()
+    if not schedule:
+        return {"state": "unknown", "reason": "opening_hours_missing", "proven": False}
+    if country not in {"gb", "uk"}:
+        return {"state": "unknown", "reason": "timezone_not_proven", "proven": False}
+    local_now = (now or datetime.now(ZoneInfo("Europe/London"))).astimezone(ZoneInfo("Europe/London"))
+    if schedule == "24/7":
+        return {"state": "open", "reason": "24_7", "proven": True, "timezone": "Europe/London"}
+
+    weekday = local_now.weekday()
+    current = local_now.time().replace(second=0, microsecond=0)
+    matched_day = False
+    for clause in schedule.split(";"):
+        parts = clause.strip().split()
+        if len(parts) != 2:
+            continue
+        days = _day_set(parts[0])
+        if days is None or "-" not in parts[1]:
+            continue
+        start_text, end_text = parts[1].split("-", 1)
+        start, end = _clock(start_text), _clock(end_text)
+        if start is None or end is None or weekday not in days:
+            continue
+        matched_day = True
+        if start <= end:
+            is_open = start <= current < end
+        else:
+            is_open = current >= start or current < end
+        return {
+            "state": "open" if is_open else "closed",
+            "reason": "supported_osm_hours",
+            "proven": True,
+            "timezone": "Europe/London",
+        }
+    return {
+        "state": "closed" if matched_day else "unknown",
+        "reason": "supported_day_no_open_window" if matched_day else "unsupported_opening_hours_syntax",
+        "proven": bool(matched_day),
+        "timezone": "Europe/London" if matched_day else None,
+    }
 
 
 def _record_fetch(
@@ -175,13 +247,22 @@ def _sanitise_items(items: Iterable[dict[str, object]], fetched_at: str) -> list
         if not name:
             continue
         extratags = item.get("extratags") if isinstance(item.get("extratags"), dict) else {}
+        address = item.get("address") if isinstance(item.get("address"), dict) else {}
+        country_code = str(address.get("country_code") or "").strip().casefold()[:8]
         opening_hours = str(extratags.get("opening_hours") or "").strip()[:240]
         website = str(extratags.get("website") or extratags.get("contact:website") or "").strip()[:300]
         item.pop("extratags", None)
+        item.pop("address", None)
+        open_now = evaluate_open_now(opening_hours, country_code=country_code)
         item.update(
             name=name.split(",")[0][:120],
+            country_code=country_code or None,
             opening_hours=opening_hours or None,
             opening_hours_source_backed=bool(opening_hours),
+            open_now_state=open_now["state"],
+            open_now_proven=bool(open_now["proven"]),
+            open_now_reason=open_now["reason"],
+            open_now_timezone=open_now.get("timezone"),
             website=website or None,
             website_source_backed=bool(website),
             category=_category_for(item),
@@ -229,7 +310,7 @@ def fetch_places(query: object) -> dict[str, object]:
         {
             "q": query_value,
             "format": "jsonv2",
-            "addressdetails": "0",
+            "addressdetails": "1",
             "limit": str(MAX_RESULTS),
             "extratags": "1",
         }
