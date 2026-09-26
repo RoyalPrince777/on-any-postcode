@@ -219,7 +219,8 @@ def execute_generation(
     """
 
     tool = _tool(tool_id)
-    clean_prompt = str(prompt or "").strip()
+    user_prompt = str(prompt or "").strip()
+    clean_prompt = user_prompt
     source_data = str(source_image_data or "").strip()
     lock_enabled = bool(character_lock)
     continuity = (
@@ -234,10 +235,19 @@ def execute_generation(
         clean_prompt = (clean_prompt + continuity).strip()
 
     if tool["id"] == "imagine":
-        artifact = studio_media_backend.generate_image(clean_prompt)
+        if lock_enabled:
+            artifact = studio_media_backend.edit_image(
+                clean_prompt,
+                source_image_data=source_data,
+                input_fidelity="high",
+            )
+        else:
+            artifact = studio_media_backend.generate_image(clean_prompt)
     elif tool["id"] == "edit_image":
         if not source_data:
             raise ValueError("studio_source_image_data_required")
+        if not user_prompt:
+            raise ValueError("studio_prompt_required")
         artifact = studio_media_backend.edit_image(
             clean_prompt,
             source_image_data=source_data,
@@ -246,13 +256,13 @@ def execute_generation(
     elif tool["id"] == "refine_image":
         if not source_data:
             raise ValueError("studio_source_image_data_required")
-        refine_prompt = clean_prompt or (
+        refine_prompt = user_prompt or (
             "Refine this image for premium cinematic quality while preserving the same "
             "primary character identity, face, skin tone, body proportions, clothing, "
             "accessories, composition and scene. Improve detail, lighting, texture, "
             "clarity and visual coherence without redesigning the subject."
         )
-        if lock_enabled and continuity not in refine_prompt:
+        if lock_enabled:
             refine_prompt = (refine_prompt + continuity).strip()
         artifact = studio_media_backend.edit_image(
             refine_prompt,
