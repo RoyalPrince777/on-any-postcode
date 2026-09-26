@@ -195,6 +195,41 @@ def resume(owner_id: object, mission_id: object) -> dict[str, Any]:
     }
 
 
+
+def next_handoff(owner_id: object, mission_id: object) -> dict[str, Any]:
+    """Return the next eligible workspace without claiming that any step executed."""
+    state = resume(owner_id, mission_id)
+    steps = list(state.get("steps") or ())
+    completed = {
+        str(step.get("workspace"))
+        for step in steps
+        if str(step.get("state")) == "completed_with_proof"
+    }
+    for step in steps:
+        workspace_id = str(step.get("workspace") or "")
+        if str(step.get("state")) not in {"queued", "handoff_ready"}:
+            continue
+        dependencies = tuple(str(item) for item in (step.get("depends_on") or ()))
+        if all(dep in completed for dep in dependencies):
+            return {
+                "mission_id": str(state["mission_id"]),
+                "workspace": workspace_id,
+                "step": int(step.get("step") or 0),
+                "depends_on": dependencies,
+                "preflight": studio_intelligence.workspace_preflight(workspace_id),
+                "state": "handoff_ready",
+                "execution_authorised": False,
+                "human_authority_final": True,
+            }
+    return {
+        "mission_id": str(state["mission_id"]),
+        "workspace": None,
+        "step": None,
+        "state": "awaiting_proven_step_results",
+        "execution_authorised": False,
+        "human_authority_final": True,
+    }
+
 def status() -> dict[str, Any]:
     return {
         "component": "OAP Studio Workspace Orchestrator",
@@ -202,6 +237,7 @@ def status() -> dict[str, Any]:
         "multi_workspace_planning_ready": True,
         "owner_scoped_checkpoint_ready": True,
         "resumable_handoff_ready": True,
+        "next_handoff_preflight_ready": True,
         "checkpoint_every": 3,
         "max_steps": 21,
         "execution_authorised": False,
