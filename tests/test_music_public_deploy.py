@@ -78,3 +78,52 @@ def test_music_migration_applies_base_product_core_first(monkeypatch):
     assert calls[0][0] == "base"
     assert result["base_product_core_ready"] is True
     assert result["base_product_core_migration"] == "0006_music_market_post_office"
+
+
+def test_public_open_source_api_returns_truth_mode_directory():
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    app.register_blueprint(music_public_views.bp)
+    client = app.test_client()
+    response = client.get("/music/api/open-sources")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["canonical_catalogue"] == "OAP Music"
+    assert len(payload["entries"]) >= 6
+    labels = {row["label"] for row in payload["entries"]}
+    assert "Free Music Archive" in labels
+    assert "ccMixter" in labels
+    assert "Musopen" in labels
+    assert all(row["connected"] is False for row in payload["entries"])
+    assert all(row["licence_verified"] is False for row in payload["entries"])
+    assert all(row["bulk_import_allowed"] is False for row in payload["entries"])
+
+
+def test_public_music_status_does_not_fake_track_or_playback_readiness():
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    app.register_blueprint(music_public_views.bp)
+    response = app.test_client().get("/music/api/status")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["front_door_ready"] is True
+    assert payload["open_source_directory_ready"] is True
+    assert payload["open_source_count"] >= 6
+    assert payload["public_catalogue_track_count"] == 0
+    assert payload["public_playback_enabled"] is False
+    assert payload["public_radio_streaming_enabled"] is False
+    assert payload["rights_verified_by_software"] is False
+
+
+def test_music_page_controls_have_real_targets_and_no_fake_play_button():
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    app.register_blueprint(music_public_views.bp)
+    body = app.test_client().get("/music").get_data(as_text=True)
+    for target in ("catalogue", "genres", "civilization", "creators", "radio", "records"):
+        assert f'data-target="{target}"' in body
+        assert f'id="{target}"' in body
+    for anchor in ("#catalogue", "#civilization", "#radio", "#records", "#player"):
+        assert f'href="{anchor}"' in body
+    assert 'id="music-search"' in body
+    assert "source-card" in body
+    assert "Open source" in body
+    assert "<button disabled>▶ Play</button>" not in body
+    assert "▶ Play locked" in body
