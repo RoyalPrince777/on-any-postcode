@@ -386,7 +386,9 @@ def readiness_state() -> dict[str, object]:
     war_room_proof_runner_pass = bool(route_matrix_state.get("certified"))
     open_now_evaluator_ready = True
     connected_shards = int(federation_state.get("connected_shard_count") or 0)
-    wider_uk_routing_live = bool(connected_shards > 1)
+    wider_uk_routing_live = bool(
+        federation_state.get("uk_wide_owned_graph_proven") or connected_shards > 1
+    )
 
     remaining = []
     if not road_tiles_proven:
