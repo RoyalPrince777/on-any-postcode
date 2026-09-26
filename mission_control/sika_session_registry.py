@@ -9,7 +9,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from . import sika_bank_credential_store, sika_device_binding_store, sika_security_ledger
+from . import (
+    sika_bank_credential_store,
+    sika_device_binding_store,
+    sika_security_ledger,
+)
 
 SESSION_TTL_SECONDS = 15 * 60
 
