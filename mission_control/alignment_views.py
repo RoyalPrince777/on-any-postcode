@@ -9,6 +9,7 @@ from . import (
     coherent_automation,
     distribution_intelligence,
     master_upgrade_contract,
+    runtime_state_binding,
     smi_brain_evidence_protocol,
     smi_brain_evidence_runner,
     smi_brain_protocol,
@@ -292,6 +293,15 @@ def green_gate_status():
     """Return the current secret-safe SMI Green Gate proof state."""
 
     return _no_store(make_response(jsonify(smi_proof_gate.public_safe_status())))
+
+
+@bp.get("/war-room/state-binding")
+@bp.get("/smi/state-binding")
+@web_security.login_required(api=True, founder_only=True)
+def state_binding_status():
+    """Return read-only canonical runtime state binding proof."""
+
+    return _no_store(make_response(jsonify(runtime_state_binding.probe())))
 
 
 @bp.get("/war-room/coherent-automation")
