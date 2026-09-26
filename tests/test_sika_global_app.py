@@ -361,3 +361,22 @@ def test_surface_has_a6_readiness_control():
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="a6Btn"' in html
     assert 'id="a6Section"' in html
+
+
+def test_a6_evidence_pack_runs_real_fail_closed_policy_without_execution():
+    client = app.test_client()
+    response = client.get("/api/sika/a6-evidence-pack")
+    body = response.get_json()
+    assert response.status_code == 200
+    proof = body["software_fail_closed_precheck"]
+    assert proof["proof_class"] == "software_policy_execution"
+    assert proof["allowed"] is False
+    assert proof["execution_granted"] is False
+    assert body["production_state_mutated"] is False
+    assert body["payment_execution_enabled"] is False
+
+
+def test_surface_has_a6_fail_closed_proof_button():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="a6EvidenceBtn"' in html
