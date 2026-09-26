@@ -727,6 +727,7 @@ def sika_security_session_activate():
         return jsonify(sika_session_registry.activate(
             owner.owner_id,
             device_id=body.get("device_id"),
+            password=body.get("password"),
         )), 201
     except ValueError as exc:
         return jsonify({"error": str(exc), "activated": False}), 400
@@ -798,6 +799,7 @@ def sika_security_compromise_recover():
         return jsonify(sika_session_registry.recover(
             owner.owner_id,
             trusted_device_id=body.get("device_id"),
+            password=body.get("password"),
         ))
     except ValueError as exc:
         return jsonify({"error": str(exc), "recovered": False}), 400
