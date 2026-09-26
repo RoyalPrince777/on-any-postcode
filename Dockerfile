@@ -2,7 +2,7 @@ FROM ghcr.io/project-osrm/osrm-backend:v6.0.0
 
 USER root
 
-ARG OAP_ROUTING_PBF_URL=https://download.geofabrik.de/europe/united-kingdom/northern-ireland-latest.osm.pbf
+ARG OAP_ROUTING_PBF_URL=https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf
 
 RUN mkdir -p /data \
     && case "$OAP_ROUTING_PBF_URL" in https://*) ;; *) echo "OAP Routing: refusing non-HTTPS build source" >&2; exit 64 ;; esac \
