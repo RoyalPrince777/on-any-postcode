@@ -10,12 +10,15 @@ data belong in OAP Knowledge.
 """
 from __future__ import annotations
 
+import hashlib
+import json
+
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from . import postgres_db
+from . import postgres_db, smi_receipt_backend
 
 KNOWLEDGE_MIGRATION_VERSION = "0001_oap_knowledge_mind"
 KNOWLEDGE_OWNER = "My World"
@@ -248,6 +251,62 @@ class KnowledgeUnavailable(RuntimeError):
     """Raised when private OAP Knowledge storage cannot safely complete."""
 
 
+def _card_digest(
+    *,
+    title: object,
+    insight: object,
+    summary: object,
+    evidence_state: object,
+    visibility: object,
+) -> str:
+    payload = {
+        "title": str(title),
+        "insight": str(insight),
+        "summary": None if summary is None else str(summary),
+        "evidence_state": str(evidence_state),
+        "visibility": str(visibility),
+    }
+    raw = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _recovery_receipt(identity: str, card: Mapping[str, object]) -> dict[str, object]:
+    try:
+        proof = smi_receipt_backend.write_receipt(
+            "oap_knowledge_recovery_anchor",
+            {
+                "owner_identity_id": identity,
+                "card_id": str(card["card_id"]),
+                "digest": str(card["content_digest"]),
+                "visibility": str(card["visibility"]),
+                "evidence_state": str(card["evidence_state"]),
+            },
+            require_durable=True,
+        )
+    except Exception:  # noqa: BLE001 - primary Vault write must survive recovery outage.
+        return {
+            "ok": False,
+            "read_back_ok": False,
+            "durable": False,
+            "fallback_used": False,
+            "status": "independent_recovery_unavailable",
+        }
+    return {
+        "ok": bool(proof.get("ok")),
+        "read_back_ok": bool(proof.get("read_back_ok")),
+        "durable": bool(proof.get("durable")),
+        "fallback_used": bool(proof.get("fallback_used")),
+        "backend": proof.get("backend"),
+        "receipt_id": proof.get("receipt_id"),
+        "status": proof.get("status"),
+    }
+
+
 def _uuid(value: object, code: str) -> str:
     try:
         return str(UUID(str(value)))
@@ -284,6 +343,16 @@ def _row_card(row: object) -> dict[str, object]:
     values = list(row)
     created_at = values[6]
     updated_at = values[7]
+    stored_digest = str(values[8])
+    expected_digest = _card_digest(
+        title=values[1],
+        insight=values[2],
+        summary=values[3],
+        evidence_state=values[4],
+        visibility=values[5],
+    )
+    if stored_digest != expected_digest:
+        raise KnowledgeUnavailable("knowledge_card_integrity_failed")
     return {
         "card_id": str(values[0]),
         "title": str(values[1]),
@@ -293,6 +362,7 @@ def _row_card(row: object) -> dict[str, object]:
         "visibility": str(values[5]),
         "created_at": created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at),
         "updated_at": updated_at.isoformat() if hasattr(updated_at, "isoformat") else str(updated_at),
+        "content_digest": stored_digest,
     }
 
 
@@ -310,6 +380,13 @@ def create_card(
         summary=None if summary is None else str(summary),
     ).validated()
     try:
+        digest = _card_digest(
+            title=card.title,
+            insight=card.insight,
+            summary=card.summary,
+            evidence_state="RAW",
+            visibility="PRIVATE",
+        )
         with postgres_db.connect() as connection:
             row = connection.execute(
                 """INSERT INTO oap_knowledge_cards(
@@ -322,6 +399,12 @@ def create_card(
             if row is None:
                 raise KnowledgeUnavailable("knowledge_card_write_failed")
             connection.execute(
+                """INSERT INTO oap_knowledge_evidence(
+                       owner_identity_id,card_id,evidence_ref,provenance,digest)
+                   VALUES (%s,%s,'card-content','OAP Knowledge canonical digest',%s)""",
+                (identity, row[0], digest),
+            )
+            connection.execute(
                 """INSERT INTO oap_knowledge_history(
                        owner_identity_id,card_id,action,to_visibility)
                    VALUES (%s,%s,'CREATE','PRIVATE')""",
@@ -332,7 +415,9 @@ def create_card(
         raise
     except Exception as exc:
         raise KnowledgeUnavailable("knowledge_card_write_failed") from exc
-    return _row_card(row)
+    materialized = _row_card((*row, digest))
+    materialized["recovery"] = _recovery_receipt(identity, materialized)
+    return materialized
 
 
 def get_card(identity_id: object, card_id: object) -> dict[str, object] | None:
@@ -342,7 +427,12 @@ def get_card(identity_id: object, card_id: object) -> dict[str, object] | None:
         with postgres_db.connect(readonly=True) as connection:
             row = connection.execute(
                 """SELECT card_id,title,insight,summary,evidence_state,visibility,
-                          created_at,updated_at
+                          created_at,updated_at,
+                          (SELECT e.digest FROM oap_knowledge_evidence e
+                           WHERE e.card_id=oap_knowledge_cards.card_id
+                             AND e.owner_identity_id=oap_knowledge_cards.owner_identity_id
+                             AND e.evidence_ref='card-content'
+                           ORDER BY e.created_at DESC LIMIT 1)
                    FROM oap_knowledge_cards
                    WHERE owner_identity_id=%s AND card_id=%s AND deleted_at IS NULL""",
                 (identity, card),
@@ -366,7 +456,12 @@ def list_cards(
         with postgres_db.connect(readonly=True) as connection:
             rows = connection.execute(
                 """SELECT card_id,title,insight,summary,evidence_state,visibility,
-                          created_at,updated_at
+                          created_at,updated_at,
+                          (SELECT e.digest FROM oap_knowledge_evidence e
+                           WHERE e.card_id=oap_knowledge_cards.card_id
+                             AND e.owner_identity_id=oap_knowledge_cards.owner_identity_id
+                             AND e.evidence_ref='card-content'
+                           ORDER BY e.created_at DESC LIMIT 1)
                    FROM oap_knowledge_cards
                    WHERE owner_identity_id=%s AND deleted_at IS NULL
                      AND (%s='' OR title ILIKE %s OR insight ILIKE %s
@@ -395,6 +490,13 @@ def update_card(
         summary=None if summary is None else str(summary),
     ).validated()
     try:
+        digest = _card_digest(
+            title=validated.title,
+            insight=validated.insight,
+            summary=validated.summary,
+            evidence_state="RAW",
+            visibility="PRIVATE",
+        )
         with postgres_db.connect() as connection:
             row = connection.execute(
                 """UPDATE oap_knowledge_cards
@@ -412,6 +514,12 @@ def update_card(
             ).fetchone()
             if row is not None:
                 connection.execute(
+                    """INSERT INTO oap_knowledge_evidence(
+                           owner_identity_id,card_id,evidence_ref,provenance,digest)
+                       VALUES (%s,%s,'card-content','OAP Knowledge canonical digest',%s)""",
+                    (identity, card_id_value, digest),
+                )
+                connection.execute(
                     """INSERT INTO oap_knowledge_history(
                            owner_identity_id,card_id,action,from_visibility,to_visibility)
                        VALUES (%s,%s,'UPDATE','PRIVATE','PRIVATE')""",
@@ -422,7 +530,11 @@ def update_card(
         raise
     except Exception as exc:
         raise KnowledgeUnavailable("knowledge_card_update_failed") from exc
-    return None if row is None else _row_card(row)
+    if row is None:
+        return None
+    materialized = _row_card((*row, digest))
+    materialized["recovery"] = _recovery_receipt(identity, materialized)
+    return materialized
 
 
 def delete_card(identity_id: object, card_id: object) -> bool:
@@ -522,3 +634,76 @@ def add_card_to_collection(
     except Exception as exc:
         raise KnowledgeUnavailable("knowledge_collection_link_failed") from exc
     return True
+
+
+def attach_provenance(
+    identity_id: object,
+    card_id: object,
+    *,
+    evidence_ref: object,
+    provenance: object,
+    digest: object = None,
+) -> dict[str, object] | None:
+    identity = _uuid(identity_id, "invalid_identity")
+    card = _uuid(card_id, "invalid_card")
+    ref = str(evidence_ref or "").strip()
+    source = str(provenance or "").strip()
+    if not ref:
+        raise ValueError("evidence_ref_required")
+    if not source:
+        raise ValueError("provenance_required")
+    supplied_digest = None if digest is None else str(digest).strip()
+    if supplied_digest and (
+        len(supplied_digest) != 64
+        or any(ch not in "0123456789abcdef" for ch in supplied_digest.lower())
+    ):
+        raise ValueError("invalid_evidence_digest")
+    try:
+        with postgres_db.connect() as connection:
+            owned = connection.execute(
+                """SELECT 1 FROM oap_knowledge_cards
+                   WHERE owner_identity_id=%s AND card_id=%s AND deleted_at IS NULL""",
+                (identity, card),
+            ).fetchone()
+            if owned is None:
+                return None
+            row = connection.execute(
+                """INSERT INTO oap_knowledge_evidence(
+                       owner_identity_id,card_id,evidence_ref,provenance,digest)
+                   VALUES (%s,%s,%s,%s,%s)
+                   RETURNING evidence_id,created_at""",
+                (identity, card, ref, source, supplied_digest),
+            ).fetchone()
+            connection.execute(
+                """UPDATE oap_knowledge_cards
+                   SET evidence_state=CASE
+                       WHEN evidence_state='RAW' THEN 'SUPPORTED'
+                       ELSE evidence_state END,
+                       updated_at=CURRENT_TIMESTAMP
+                   WHERE owner_identity_id=%s AND card_id=%s""",
+                (identity, card),
+            )
+            connection.execute(
+                """INSERT INTO oap_knowledge_history(
+                       owner_identity_id,card_id,action,from_visibility,to_visibility)
+                   VALUES (%s,%s,'PROVENANCE_ATTACHED','PRIVATE','PRIVATE')""",
+                (identity, card),
+            )
+            connection.commit()
+    except (TypeError, ValueError):
+        raise
+    except Exception as exc:
+        raise KnowledgeUnavailable("knowledge_provenance_write_failed") from exc
+    if row is None:
+        raise KnowledgeUnavailable("knowledge_provenance_write_failed")
+    created_at = row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1])
+    return {
+        "evidence_id": str(row[0]),
+        "card_id": card,
+        "evidence_ref": ref,
+        "provenance": source,
+        "digest": supplied_digest,
+        "created_at": created_at,
+        "certified": False,
+        "public": False,
+    }
