@@ -82,6 +82,16 @@ def test_startup_probe_is_redacted(monkeypatch, capsys):
         },
     )
 
+    monkeypatch.setattr(
+        certification_views.postgres_db,
+        "database_identity_fingerprint",
+        lambda: {
+            "fingerprint": "0123456789abcdef0123456789abcdef",
+            "reachable": True,
+            "secret_exposed": False,
+        },
+    )
+
     certification_views._database_startup_probe()
     payload = json.loads(capsys.readouterr().out)
 
@@ -89,6 +99,8 @@ def test_startup_probe_is_redacted(monkeypatch, capsys):
         "backend": "postgresql",
         "checksum_mismatch": False,
         "configured": True,
+        "database_identity_fingerprint": "0123456789abcdef0123456789abcdef",
+        "database_identity_reachable": True,
         "event": "oap_database_startup_probe",
         "initialized": False,
         "level": "warning",
