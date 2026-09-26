@@ -220,6 +220,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <section class="card" id="bankTrialSection">
 <h2>Bank Trial</h2>
 <button id="bankTrialBtn">Check Open Banking trial</button>
+<button id="bankRedTeamBtn">Run Bank Red Team</button>
 <div class="result" id="bankTrialResult">—</div>
 <p class="notice">Sandbox/read-only evidence only. This does not create bank money, move customer funds or enable payment initiation.</p>
 </section>
@@ -371,6 +372,13 @@ document.getElementById('bankTrialBtn').onclick=async()=>{
  document.getElementById('bankTrialResult').textContent=
   'mode '+s.mode+' · read-only '+s.read_only_account_information+' · real bank '+s.real_bank_read_ready+
   ' · dummy GBP '+(t.account?.balance||'n/a')+' · SIKA ref '+(t.sika_view?.reference_sika||'n/a');
+};
+document.getElementById('bankRedTeamBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/open-banking/red-team');
+ const j=await r.json();
+ document.getElementById('bankTrialResult').textContent=r.ok
+  ? 'red team '+j.red_team_passed+' · real bank '+j.real_bank_read_ready+' · payment '+j.real_payment_ready+' · moved '+j.money_moved
+  : (j.error||'bank red team unavailable');
 };
 document.getElementById('a5Btn').onclick=async()=>{
  const r=await fetch('/api/sika/a5-preparation');
