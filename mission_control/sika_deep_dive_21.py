@@ -10,6 +10,7 @@ from typing import Any
 from . import (
     organism,
     sika_android_acceptance,
+    sika_android_evidence_store,
     sika_authenticated_owner_adapter,
     sika_bank_credential_store,
     sika_device_binding_store,
@@ -24,6 +25,7 @@ def status() -> dict[str, Any]:
     silicon = silicon_architecture.silicon_contract()
     os_state = sika_os_alignment.status()
     android = sika_android_acceptance.evaluate()
+    android_evidence = sika_android_evidence_store.readiness()
     bank = sika_open_banking.status()
     value = sika_closed_loop_value.model_status()
     owner_bridge = sika_authenticated_owner_adapter.readiness()
@@ -83,6 +85,8 @@ def status() -> dict[str, Any]:
         "real_bank_read_ready": bank["real_bank_read_ready"],
         "real_payment_ready": bank["real_payment_ready"],
         "physical_android_acceptance": android["real_android_pwa_acceptance"],
+        "android_evidence_route_software_ready": android_evidence["authenticated_evidence_route_software_ready"],
+        "real_device_evidence_required": android_evidence["real_device_evidence_required"],
         "bank_app_password_software_ready": os_state["bank_app_security"]["bank_app_password_software_ready"],
         "bank_app_password_durable_store_ready": durable_credential["canonical_store_reused"],
         "device_binding_software_ready": os_state["bank_app_security"]["device_binding_software_ready"],
