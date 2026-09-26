@@ -488,17 +488,63 @@ def sika_security_reauth_result():
     owner = _authenticated_sika_owner()
     body = request.get_json(silent=True) or {}
     try:
+        backoff = sika_security_ledger.reauth_backoff_state(owner.owner_id)
+        if backoff.get("locked"):
+            return jsonify({
+                **backoff,
+                "error": "reauth_backoff_active",
+                "verified": False,
+                "recorded": False,
+            }), 423
+
+        method = str(body.get("proof_method") or "bank_app_password").strip().lower()
+        verified = False
+        if method == "bank_app_password":
+            proof = sika_bank_credential_store.verify_authenticated_owner(
+                owner.owner_id, body.get("password")
+            )
+            verified = bool(proof.get("verified"))
+        elif method == "trusted_device_reauth":
+            sika_session_registry.require_active(
+                owner.owner_id, body.get("session_id")
+            )
+            verified = True
+        else:
+            return jsonify({
+                "error": "unsupported_reauth_proof_method",
+                "verified": False,
+                "recorded": False,
+            }), 400
+
         receipt = sika_security_ledger.record_reauth_result(
-            owner.owner_id, success=bool(body.get("success"))
+            owner.owner_id, success=verified
         )
         state = sika_security_ledger.reauth_lock_state(owner.owner_id)
         return jsonify({
             **state,
+            "verified": verified,
+            "proof_method": method,
             "security_receipt_id": receipt.get("event_id"),
             "recorded": True,
-        }), 201
-    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
-        return jsonify({"error": str(exc), "recorded": False}), 503
+            "caller_supplied_success_trusted": False,
+        }), (201 if verified else 401)
+    except (ValueError, PermissionError) as exc:
+        receipt = sika_security_ledger.record_reauth_result(
+            owner.owner_id, success=False
+        )
+        return jsonify({
+            "error": str(exc),
+            "verified": False,
+            "recorded": True,
+            "security_receipt_id": receipt.get("event_id"),
+            "caller_supplied_success_trusted": False,
+        }), 401
+    except (
+        sika_security_ledger.SikaSecurityLedgerUnavailable,
+        sika_bank_credential_store.SikaCredentialStoreUnavailable,
+        sika_session_registry.SikaSessionUnavailable,
+    ) as exc:
+        return jsonify({"error": str(exc), "verified": False, "recorded": False}), 503
 
 
 @bp.get("/api/sika/security/daily-activity")
@@ -608,15 +654,51 @@ def sika_security_step_up_proof():
     owner = _authenticated_sika_owner()
     body = request.get_json(silent=True) or {}
     try:
+        backoff = sika_security_ledger.reauth_backoff_state(owner.owner_id)
+        if backoff.get("locked"):
+            return jsonify({
+                **backoff,
+                "error": "reauth_backoff_active",
+                "proof_bound": False,
+            }), 423
+
+        method = str(body.get("proof_method") or "").strip().lower()
+        if method == "bank_app_password":
+            proof = sika_bank_credential_store.verify_authenticated_owner(
+                owner.owner_id, body.get("password")
+            )
+            if not proof.get("verified"):
+                sika_security_ledger.record_reauth_result(
+                    owner.owner_id, success=False
+                )
+                return jsonify({
+                    "error": "bank_app_credential_verification_required",
+                    "proof_bound": False,
+                }), 401
+        elif method == "trusted_device_reauth":
+            sika_session_registry.require_active(
+                owner.owner_id, body.get("session_id")
+            )
+        else:
+            return jsonify({
+                "error": "unsupported_step_up_proof_method",
+                "proof_bound": False,
+            }), 400
+
+        sika_security_ledger.record_reauth_result(owner.owner_id, success=True)
         return jsonify(sika_security_ledger.bind_step_up_proof(
             owner.owner_id,
             challenge_id=body.get("challenge_id"),
             payment_intent_id=body.get("payment_intent_id"),
-            proof_method=body.get("proof_method"),
+            proof_method=method,
         )), 201
-    except ValueError as exc:
+    except (ValueError, PermissionError) as exc:
         return jsonify({"error": str(exc), "proof_bound": False}), 400
-    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+    except (
+        sika_security_ledger.SikaSecurityLedgerUnavailable,
+        sika_bank_credential_store.SikaCredentialStoreUnavailable,
+        sika_session_registry.SikaSessionUnavailable,
+    ) as exc:
         return jsonify({"error": str(exc), "proof_bound": False}), 503
 
 
