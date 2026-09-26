@@ -44,6 +44,7 @@ from mission_control import (
     neon_auth,
     product_store,
     products,
+    reviews,
     public_store,
     public_studio_runtime,
     smi_chat_runtime,
@@ -1229,6 +1230,7 @@ def spot_capability_front_door(capability_slug):
             "location": None,
             "location_error": None,
             "market_products": [],
+            "market_reviews": {},
             "signal_posts": [],
             "room_messages": [],
             "sika": None,
@@ -1254,7 +1256,10 @@ def spot_capability_front_door(capability_slug):
         if capability_slug in {"market", "businesses"} and public_store.status()["configured"]:
             try:
                 context["market_products"] = product_store.list_products()
-            except product_store.ProductStoreUnavailable:
+                context["market_reviews"] = reviews.summaries(
+                    [item["product_id"] for item in context["market_products"]]
+                )
+            except (product_store.ProductStoreUnavailable, reviews.ReviewsUnavailable):
                 context["private_unavailable"] = True
         workspace_map = {
             "pulse": "signals",
@@ -1601,6 +1606,36 @@ def linkup_read(message_id):
     except (ValueError, product_store.ProductStoreUnavailable):
         return jsonify(error={"code": "message_unavailable"}), 503
     return redirect(url_for("linkup_front_door"))
+
+
+@app.post("/market/reviews")
+@web_security.login_required(api=True)
+def market_review_create():
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    user = web_security.current_authenticated_user()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(str(user["id"])):
+        return _rate_failure()
+    try:
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+        )
+        reviews.create_review(
+            str(user["id"]),
+            product_id=request.form.get("product_id"),
+            rating=request.form.get("rating"),
+            body=request.form.get("body"),
+        )
+    except ValueError as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except (
+        public_store.PublicStoreUnavailable,
+        reviews.ReviewsUnavailable,
+    ):
+        return jsonify(error={"code": "reviews_unavailable"}), 503
+    return redirect(url_for("spot_capability_front_door", capability_slug="businesses"))
 
 
 @app.post("/market/listings")
