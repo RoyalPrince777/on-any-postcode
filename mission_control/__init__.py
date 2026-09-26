@@ -59,6 +59,7 @@ def init_app(app: Flask) -> None:
     )
     from . import db as dbmod
     from .alignment_views import bp as alignment_bp
+    from .all_in_ai_views import bp as all_in_ai_bp
     from .bank_store_catalog_routes import bp as bank_store_catalog_bp
     from .certification_views import bp as certification_bp
     from .checkpoint_views import bp as checkpoint_bp
@@ -1126,6 +1127,7 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
+    app.register_blueprint(all_in_ai_bp, url_prefix="/mission")
     app.register_blueprint(music_public_bp)
     app.register_blueprint(on_any_place_bp)
     app.register_blueprint(membership_revenue_bp)
