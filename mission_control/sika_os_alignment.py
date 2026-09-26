@@ -12,6 +12,7 @@ from typing import Any
 
 from . import (
     sika_authenticated_owner_adapter,
+    sika_bank_credential_store,
     sika_device_binding_store,
     sovereign_digital_soc,
 )
@@ -25,7 +26,7 @@ def status() -> dict[str, Any]:
             "founder_auth_touched": False,
             "founder_password_linked": False,
             "bank_app_password_software_ready": True,
-            "bank_app_password_durable_store_ready": False,
+            "bank_app_password_durable_store_ready": sika_bank_credential_store.readiness()["canonical_store_reused"],
             "device_binding_software_ready": True,
             "durable_device_binding_store_ready": sika_device_binding_store.readiness()["canonical_store_reused"],
             "authenticated_owner_bridge_ready": sika_authenticated_owner_adapter.readiness()["adapter_present"],
