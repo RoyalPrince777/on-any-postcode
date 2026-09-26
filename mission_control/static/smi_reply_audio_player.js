@@ -37,8 +37,9 @@
  }
  function create(win=typeof window!=="undefined"?window:null){
   let token=0,abort=null,context=null,source=null,frame=null,active=false,prepared=false,playbackError=null;
+  let cueSamples=0,maxAudioClockDeltaMs=0,softwareLipSyncProven=false;
   function cancelCurrent(){
-   token+=1;active=false;playbackError=null;
+   token+=1;active=false;playbackError=null;cueSamples=0;maxAudioClockDeltaMs=0;softwareLipSyncProven=false;
    try{abort?.abort()}catch{}
    abort=null;
    try{source?.stop()}catch{}
@@ -120,9 +121,13 @@
      while(index+1<cues.length&&cues[index+1].atMs<=ms)index++;
      if(index!==cueIndex&&index>=0){
       cueIndex=index;
+      const delta=Math.abs(ms-cues[index].atMs);
+      cueSamples+=1;maxAudioClockDeltaMs=Math.max(maxAudioClockDeltaMs,delta);
+      softwareLipSyncProven=cueSamples>=3&&maxAudioClockDeltaMs<=80;
       onCue?.({viseme:cues[index].viseme,atMs:cues[index].atMs,
         audioClockMs:ms,decodedAudio:true,source:"oap-first-party-pcm",
-        synthesisPhonemeTiming:true,accurateLipSyncProven:false});
+        synthesisPhonemeTiming:true,accurateSoftwareLipSyncProven:softwareLipSyncProven,
+        accurateHumanLipSyncProven:false,maxAudioClockDeltaMs});
      }
      frame=win.requestAnimationFrame(tick);
     }
@@ -131,7 +136,8 @@
      onCue?.({viseme:"silence",atMs:payload.alignment.audioDurationMs,
        audioClockMs:payload.alignment.audioDurationMs,decodedAudio:true,
        source:"oap-first-party-pcm",synthesisPhonemeTiming:true,
-       accurateLipSyncProven:false});
+       accurateSoftwareLipSyncProven:softwareLipSyncProven,
+       accurateHumanLipSyncProven:false,maxAudioClockDeltaMs});
      cancelCurrent();onEnd?.();
     };
     source.start(startAt);
@@ -173,7 +179,8 @@
   }
   return Object.freeze({prepare,play,stop,pause,resume,destroy,snapshot:()=>Object.freeze({
    active,hasDecodedAudio:Boolean(active&&context),retainsAudio:false,
-   externalTelemetry:false,accurateHumanLipSyncProven:false,prepared
+   externalTelemetry:false,accurateSoftwareLipSyncProven:softwareLipSyncProven,
+   accurateHumanLipSyncProven:false,maxAudioClockDeltaMs,cueSamples,prepared
   })});
  }
  return Object.freeze({create,validate});
