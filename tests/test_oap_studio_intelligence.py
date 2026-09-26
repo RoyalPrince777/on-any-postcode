@@ -249,3 +249,46 @@ def test_completed_video_status_can_promote_with_receipt(monkeypatch):
     assert captured["receipt"]["payload"]["signal"] == "🟢"
     assert captured["receipt"]["payload"]["green_gate"] == "artifact_proven"
     assert result["execution_granted"] is False
+
+
+def test_studio_machine_scope_uses_real_dependency_state(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend,
+        "status",
+        lambda: {
+            "configured": True,
+            "provider": "openai",
+            "image_model": "gpt-image-2",
+            "video_model": "sora-2",
+        },
+    )
+    monkeypatch.setattr(
+        studio_intelligence.smi_founder_assets,
+        "schema_status",
+        lambda: {"schema_ready": True, "error": None},
+    )
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "backend_configuration_status",
+        lambda: {"durable_backend_configured": True},
+    )
+    state = studio_intelligence.status()
+    assert state["machine_dependencies_configured"] is True
+    assert state["machine_scope_complete"] is True
+    assert state["full_live_certificate"] is False
+    assert state["full_live_certificate_reason"] == "real_generated_artifact_receipt_required"
+
+
+def test_public_studio_has_no_fake_percentage_unlock_copy():
+    page = (ROOT / "templates" / "studio_public.html").read_text()
+    assert "unlock at 75%" not in page
+    assert "＋ Files" in page
+    assert "🎙 Voice" in page
+    assert 'href="/mission/ollama"' in page
+
+
+def test_studio_ui_sends_owner_context_for_generated_artifact_indexing():
+    final = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text()
+    assert "conversation_id:conversationId" in final
+    assert "studio_request_id:" in final
+    assert "Founder Library indexed" in final
