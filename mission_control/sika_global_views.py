@@ -350,6 +350,7 @@ def sika_security_payment_controls():
                 beneficiary_id=beneficiary_id or "unregistered-beneficiary",
                 amount_sika=body.get("amount_sika", "0"),
                 reference=body.get("reference", ""),
+                idempotency_key=body.get("idempotency_key", ""),
             )
             sika_security_ledger.record_authenticated_owner(
                 owner.owner_id,
@@ -722,6 +723,26 @@ def sika_security_payment_review_gate():
             "allowed_to_final_review": False,
             "payment_execution_authorised": False,
         }), 503
+
+
+@bp.post("/api/sika/security/payment-intent/cancel")
+@web_security.login_required(api=True)
+def sika_security_payment_intent_cancel():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_security_ledger.cancel_payment_intent(
+            owner.owner_id,
+            payment_intent_id=body.get("payment_intent_id"),
+            reason=body.get("reason", "owner_cancelled"),
+        ))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "cancelled": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "cancelled": False}), 503
 
 
 @bp.post("/api/sika/security/payment-review/confirm")
