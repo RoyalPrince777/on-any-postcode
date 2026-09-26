@@ -49,7 +49,9 @@ def test_recovery_and_civilization_routes_are_registered():
 def test_acceptance_routes_are_registered():
     app = Flask(__name__)
     app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
-    rules = {rule.rule: rule.methods for rule in app.url_map.iter_rules()}
-    assert rules[
-        "/mission/organs/tune/releases/<release_id>/acceptance"
-    ] == {"GET", "HEAD", "OPTIONS", "POST"}
+    path = "/mission/organs/tune/releases/<release_id>/acceptance"
+    methods = set()
+    for rule in app.url_map.iter_rules():
+        if rule.rule == path:
+            methods.update(rule.methods)
+    assert methods == {"GET", "HEAD", "OPTIONS", "POST"}
