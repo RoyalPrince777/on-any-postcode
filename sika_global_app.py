@@ -20,6 +20,7 @@ from mission_control import (
     sika_os_alignment,
     sika_payment_licence_gate,
     sika_closed_loop_value,
+    sika_deep_dive_21,
     sika_safety,
     sika_wallet_ledger,
 )
@@ -376,3 +377,8 @@ def sika_android_acceptance_status():
 @app.get("/api/sika/os-alignment")
 def sika_os_alignment_status():
     return jsonify(sika_os_alignment.status())
+
+
+@app.get("/api/sika/deep-dive-21")
+def sika_deep_dive_21_status():
+    return jsonify(sika_deep_dive_21.status())
