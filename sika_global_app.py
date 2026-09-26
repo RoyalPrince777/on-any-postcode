@@ -17,6 +17,7 @@ from mission_control import (
     sika_intelligence,
     sika_open_banking,
     sika_payment_licence_gate,
+    sika_closed_loop_value,
     sika_safety,
     sika_wallet_ledger,
 )
@@ -329,3 +330,37 @@ def sika_open_banking_trial():
 @app.get("/api/sika/open-banking/red-team")
 def sika_open_banking_red_team():
     return jsonify(sika_open_banking.red_team())
+
+
+@app.get("/api/sika/value-model")
+def sika_value_model():
+    return jsonify(sika_closed_loop_value.model_status())
+
+
+@app.post("/api/sika/value-trial")
+def sika_value_trial():
+    body = request.get_json(silent=True) or {}
+    receipt = sika_closed_loop_value.InboundReceipt(
+        receipt_id=str(body.get("receipt_id") or "trial-receipt"),
+        gbp_amount=str(body.get("gbp_amount") or "0"),
+        bank_reference=str(body.get("bank_reference") or "sandbox-bank-ref"),
+        settlement_verified=bool(body.get("settlement_verified", False)),
+        safeguarding_or_partner_evidence=bool(body.get("safeguarding_or_partner_evidence", False)),
+        regulatory_basis_verified=bool(body.get("regulatory_basis_verified", False)),
+    )
+    try:
+        return jsonify(sika_closed_loop_value.issue_from_gbp(receipt))
+    except sika_closed_loop_value.SikaValueError as exc:
+        return jsonify({"error": str(exc), "issuance_authorised": False}), 400
+
+
+@app.post("/api/sika/internal-transfer/preview")
+def sika_internal_transfer_preview():
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_closed_loop_value.internal_transfer(
+            body.get("amount_sika", "0"),
+            sender_balance_sika=body.get("sender_balance_sika", "0"),
+        ))
+    except sika_closed_loop_value.SikaValueError as exc:
+        return jsonify({"error": str(exc), "transfer_allowed": False}), 400
