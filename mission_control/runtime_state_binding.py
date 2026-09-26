@@ -9,9 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from oap.smi import state_ownership_registry
-
 from . import postgres_db
+from oap.smi import state_ownership_registry
 
 
 _TABLE_BINDINGS: dict[str, tuple[str, ...]] = {
@@ -123,7 +122,7 @@ def probe() -> dict[str, Any]:
                 }
                 if proven:
                     result["proven_count"] += 1
-    except Exception:
+    except (RuntimeError, OSError, postgres_db._driver().Error):
         result["error"] = "runtime_binding_probe_failed"
         return result
 
