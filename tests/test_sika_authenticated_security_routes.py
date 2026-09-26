@@ -420,9 +420,10 @@ def test_sika_session_activate_uses_authenticated_owner_and_bound_device(monkeyp
     )
     captured = {}
 
-    def fake_activate(owner_id, *, device_id):
+    def fake_activate(owner_id, *, device_id, password):
         captured["owner_id"] = owner_id
         captured["device_id"] = device_id
+        captured["password"] = password
         return {
             "session_id": "session-1",
             "device_id": device_id,
@@ -596,7 +597,11 @@ def test_session_activate_uses_authenticated_owner_not_request_owner(monkeypatch
 
     response = app.test_client().post(
         "/api/sika/security/session/activate",
-        json={"owner_id": ATTACKER_OWNER, "device_id": "device-a"},
+        json={
+            "owner_id": ATTACKER_OWNER,
+            "device_id": "device-a",
+            "password": "bank-app-password-123",
+        },
     )
     body = response.get_json()
     assert response.status_code == 201
@@ -706,9 +711,10 @@ def test_compromise_recovery_uses_authenticated_owner(monkeypatch):
     )
     captured = {}
 
-    def fake_recover(owner_id, *, trusted_device_id):
+    def fake_recover(owner_id, *, trusted_device_id, password):
         captured["owner_id"] = owner_id
         captured["device_id"] = trusted_device_id
+        captured["password"] = password
         return {
             "compromise_locked": False,
             "recovered": True,
@@ -725,7 +731,11 @@ def test_compromise_recovery_uses_authenticated_owner(monkeypatch):
 
     response = app.test_client().post(
         "/api/sika/security/compromise-recover",
-        json={"owner_id": ATTACKER_OWNER, "device_id": "device-a"},
+        json={
+            "owner_id": ATTACKER_OWNER,
+            "device_id": "device-a",
+            "password": "bank-app-password-123",
+        },
     )
     body = response.get_json()
     assert response.status_code == 200
@@ -733,3 +743,106 @@ def test_compromise_recovery_uses_authenticated_owner(monkeypatch):
     assert captured["owner_id"] != ATTACKER_OWNER
     assert body["recovered"] is True
     assert body["new_session_required"] is True
+
+
+def test_session_registry_activation_requires_bank_credential_and_bound_device(monkeypatch):
+    from mission_control import sika_session_registry
+
+    monkeypatch.setattr(
+        sika_session_registry.sika_device_binding_store,
+        "read",
+        lambda owner_id: {"bound": True, "device_id": "device-a"},
+    )
+    monkeypatch.setattr(
+        sika_session_registry.sika_bank_credential_store,
+        "verify_authenticated_owner",
+        lambda owner_id, password: {
+            "verified": password == "correct-bank-password",
+            "founder_auth_touched": False,
+        },
+    )
+    monkeypatch.setattr(
+        sika_session_registry,
+        "project",
+        lambda owner_id: {"compromise_locked": False},
+    )
+    monkeypatch.setattr(
+        sika_session_registry.sika_security_ledger,
+        "record_authenticated_owner",
+        lambda *args, **kwargs: {"event_id": "receipt-session"},
+    )
+
+    try:
+        sika_session_registry.activate(
+            AUTH_OWNER,
+            device_id="device-a",
+            password="wrong-password",
+        )
+    except ValueError as exc:
+        assert str(exc) == "bank_app_credential_verification_required"
+    else:
+        raise AssertionError("wrong bank-app password must fail closed")
+
+    try:
+        sika_session_registry.activate(
+            AUTH_OWNER,
+            device_id="device-b",
+            password="correct-bank-password",
+        )
+    except ValueError as exc:
+        assert str(exc) == "trusted_bound_device_required"
+    else:
+        raise AssertionError("unbound device must fail closed")
+
+    ok = sika_session_registry.activate(
+        AUTH_OWNER,
+        device_id="device-a",
+        password="correct-bank-password",
+    )
+    assert ok["credential_verified"] is True
+    assert ok["bound_device_verified"] is True
+    assert ok["money_execution_enabled"] is False
+
+
+def test_compromise_recovery_requires_bank_credential_and_bound_device(monkeypatch):
+    from mission_control import sika_session_registry
+
+    monkeypatch.setattr(
+        sika_session_registry.sika_device_binding_store,
+        "read",
+        lambda owner_id: {"bound": True, "device_id": "device-a"},
+    )
+    monkeypatch.setattr(
+        sika_session_registry.sika_bank_credential_store,
+        "verify_authenticated_owner",
+        lambda owner_id, password: {
+            "verified": password == "correct-bank-password",
+            "founder_auth_touched": False,
+        },
+    )
+    monkeypatch.setattr(
+        sika_session_registry.sika_security_ledger,
+        "record_authenticated_owner",
+        lambda *args, **kwargs: {"event_id": "receipt-recovery"},
+    )
+
+    try:
+        sika_session_registry.recover(
+            AUTH_OWNER,
+            trusted_device_id="device-a",
+            password="wrong-password",
+        )
+    except ValueError as exc:
+        assert str(exc) == "bank_app_credential_verification_required"
+    else:
+        raise AssertionError("wrong bank-app password must block recovery")
+
+    recovered = sika_session_registry.recover(
+        AUTH_OWNER,
+        trusted_device_id="device-a",
+        password="correct-bank-password",
+    )
+    assert recovered["recovered"] is True
+    assert recovered["credential_verified"] is True
+    assert recovered["bound_device_verified"] is True
+    assert recovered["new_session_required"] is True
