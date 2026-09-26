@@ -10,10 +10,31 @@ def test_identity_is_always_involved_and_founder_final():
     assert state["identity"]["founder_final"] is True
 
 
-def test_alien_intelligence_never_claims_literal_extraterrestrial_origin():
+def test_alien_intelligence_is_research_mode_not_identity_claim():
     state = all_in_ai.status()
-    assert state["identity"]["intelligence_mode"] == "Alien Intelligence"
+    assert state["identity"]["intelligence_mode"] == "Founder Intelligence"
+    assert state["identity"]["alien_intelligence_position"] == "research_mode"
     assert state["identity"]["literal_extraterrestrial_claim"] is False
+    assert (
+        state["intelligence_positioning"]["alien_intelligence"]["position"]
+        == "unconventional_research_mode"
+    )
+    assert (
+        state["intelligence_positioning"]["alien_intelligence"][
+            "claims_fact_without_evidence"
+        ]
+        is False
+    )
+
+
+def test_agi_tai_asi_positioning_never_claims_achievement():
+    positioning = all_in_ai.status()["intelligence_positioning"]
+    assert positioning["agi"]["position"] == "capability_direction"
+    assert positioning["agi"]["achieved_claim"] is False
+    assert positioning["tai"]["position"] == "transformative_mission_horizon"
+    assert positioning["tai"]["achieved_claim"] is False
+    assert positioning["asi"]["position"] == "research_only"
+    assert positioning["asi"]["achieved_claim"] is False
 
 
 def test_seven_missions_are_locked():
