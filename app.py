@@ -2280,5 +2280,57 @@ def oap_lab_workbench():
     return response
 
 
+@app.route("/api/smi-organiser/schedules/<external_id>", methods=["GET", "PUT"])
+@web_security.login_required(api=True, founder_only=True)
+def smi_organiser_schedule(external_id: str):
+    """Founder-only, owner-scoped schedule mirror; never executes a schedule."""
+    from mission_control import organiser_schedules
+
+    user = web_security.current_authenticated_user()
+    owner_id = str(user["id"])
+    try:
+        if request.method == "GET":
+            result = organiser_schedules.get(owner_id, external_id)
+        else:
+            if not web_security.csrf_valid(request):
+                return _csrf_failure()
+            body = request.get_json(silent=True)
+            if not isinstance(body, dict):
+                return jsonify(error={"code": "invalid_request"}), 400
+            if str(body.get("external_id", external_id)) != external_id:
+                return jsonify(error={"code": "schedule_id_mismatch"}), 400
+            public_store.ensure_authenticated_user(
+                owner_id, email=str(user["email"]),
+                display_name=str(user["name"]), store_email=False,
+            )
+            schedule = organiser_schedules.OrganiserSchedule(
+                external_id=external_id,
+                title=body.get("title"),
+                schedule=body.get("schedule"),
+                timing_mode=body.get("timing_mode"),
+                timezone=body.get("timezone", "Europe/London"),
+                enabled=body.get("enabled", True),
+                source=body.get("source", "chatgpt_automation"),
+            )
+            result = organiser_schedules.upsert(
+                owner_id,
+                schedule,
+                expected_last_hash=str(body.get("expected_last_hash", "")),
+                stopped=body.get("stopped", False),
+            )
+    except ValueError as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except PermissionError as exc:
+        return jsonify(error={"code": str(exc)}), 423
+    except organiser_schedules.ScheduleMirrorUnavailable as exc:
+        status = 404 if str(exc) == "schedule_not_found" else 409
+        return jsonify(error={"code": str(exc)}), status
+    except (workspaces.WorkspaceUnavailable, public_store.PublicStoreUnavailable):
+        return jsonify(error={"code": "organiser_schedule_store_unavailable"}), 503
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)
