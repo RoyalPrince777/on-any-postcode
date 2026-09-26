@@ -851,6 +851,34 @@ def smi_studio_generate():
             prompt=payload.get("prompt", ""),
             source_image_data=payload.get("source_image_data", ""),
         )
+        artifact = result.get("artifact") or {}
+        studio_asset = {
+            "indexed": False,
+            "asset_count": 0,
+            "reason": "no_proven_indexable_artifact",
+            "raw_content_retained": False,
+        }
+        conversation_id = str(payload.get("conversation_id") or "").strip()
+        studio_request_id = str(payload.get("studio_request_id") or "").strip()
+        if (
+            artifact.get("artifact_proven")
+            and artifact.get("kind") == "image"
+            and artifact.get("b64_json")
+            and conversation_id
+            and studio_request_id
+        ):
+            with postgres_db.connect() as connection:
+                studio_asset = smi_founder_assets.record_studio_image_artifact(
+                    connection,
+                    identity_id=_chat_identity(),
+                    conversation_id=conversation_id,
+                    request_id=studio_request_id,
+                    b64_json=artifact.get("b64_json"),
+                    mime_type=artifact.get("mime_type"),
+                )
+                connection.commit()
+        result["founder_asset"] = studio_asset
+        result["owner_scoped_asset_indexing"] = True
     except ValueError as exc:
         return _error("invalid_studio_request", str(exc), 400)
     except RuntimeError:
