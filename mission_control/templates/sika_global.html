@@ -43,6 +43,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile jump" data-target="flexSection"><b>Flex Pay</b><p class="muted">Schedule preview</p></button>
 <button class="tile jump" data-target="trustSection"><b>Trust</b><p class="muted">Explainable score</p></button>
 <button class="tile jump" data-target="securitySection"><b>Security</b><p class="muted">Security controls</p></button>
+<button class="tile intel" data-intel="alignment"><b>Alignment Intelligence</b><p class="muted">Cross-system alignment</p></button>
+<button class="tile intel" data-intel="bank"><b>Bank Intelligence</b><p class="muted">Bank anatomy & licence boundary</p></button>
 </section>
 <div class="result" id="topActionResult"></div>
 
@@ -151,6 +153,12 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Sensitive execution remains fail-closed until a real authorised rail is connected.</p>
 </section>
 
+<section class="card" id="intelligenceSection">
+<h2>Intelligence</h2>
+<div class="result" id="intelligenceResult">Choose Alignment Intelligence or Bank Intelligence.</div>
+<p class="notice">Read-only intelligence. It cannot move money or bypass regulated gates.</p>
+</section>
+
 <section class="card" id="marketSection">
 <h2>Market</h2>
 <button id="marketHandoff">Open Market handoff</button>
@@ -213,6 +221,17 @@ document.getElementById('freezeBtn').onclick=async()=>{
 };
 document.querySelectorAll('.jump,.navBtn').forEach(btn=>{
  btn.onclick=()=>document.getElementById(btn.dataset.target)?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.querySelectorAll('.intel').forEach(btn=>{
+ btn.onclick=async()=>{
+  const r=await fetch('/api/sika/intelligence/'+btn.dataset.intel);
+  const j=await r.json();
+  document.getElementById('intelligenceSection').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('intelligenceResult').textContent=
+   btn.dataset.intel==='alignment'
+    ? 'Alignment · one SIKA '+j.sika_focus.one_sika+' · human final '+j.sika_focus.human_authority_final
+    : 'Bank · operational '+j.operational_bank+' · payments '+j.payment_execution_enabled+' · licence '+j.licence_verified;
+ };
 });
 document.querySelectorAll('.regulated').forEach(btn=>{
  btn.onclick=async()=>{
