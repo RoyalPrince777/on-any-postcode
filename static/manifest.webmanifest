@@ -21,6 +21,7 @@
     {"name": "The Spot", "short_name": "Spot", "url": "/the-spot?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
     {"name": "The Link", "short_name": "Link", "url": "/the-link?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
     {"name": "Link Up", "short_name": "Link Up", "url": "/linkup?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "Movement", "short_name": "Move", "url": "/movement?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]}
+    {"name": "Movement", "short_name": "Move", "url": "/movement?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
+    {"name": "SIKA", "short_name": "SIKA", "url": "/sika?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]}
   ]
 }
