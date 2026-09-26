@@ -56,6 +56,13 @@ class _Connection:
                         "PRIVATE",
                         now,
                         now,
+                        knowledge_core._card_digest(
+                            title="Private card",
+                            insight="Owner scoped",
+                            summary=None,
+                            evidence_state="RAW",
+                            visibility="PRIVATE",
+                        ),
                     )
                 ]
             )
