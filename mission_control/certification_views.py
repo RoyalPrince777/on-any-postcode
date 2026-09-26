@@ -11,7 +11,7 @@ import threading
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import certification, hrm_readonly_probe, postgres_db, web_security
+from . import certification, hrm_readonly_probe, mail_preflight, postgres_db, web_security
 from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 from .hrm_durable_receipt import ReceiptBlocked, build_receipt, persist_and_read_back
 
@@ -64,6 +64,43 @@ def _database_startup_probe() -> None:
     _emit_startup_proof(proof, level="info" if ready else "error" if failed else "warning")
 
 
+def _mail_startup_probe() -> None:
+    """Emit only read-only Mail schema/recovery readiness for the selected DB."""
+
+    snapshot = mail_preflight.report()
+    proof = {
+        "event": "oap_mail_startup_probe",
+        "database_source": snapshot.get("database_source"),
+        "database_configured": bool(snapshot.get("database_configured")),
+        "database_reachable": bool(snapshot.get("database_reachable")),
+        "base_schema_ready": bool(snapshot.get("base_schema_ready")),
+        "mail_schema_ready": bool(snapshot.get("mail_schema_ready")),
+        "target_mapping_proven": bool(snapshot.get("target_mapping_proven")),
+        "recovery_point_verified": bool(snapshot.get("recovery_point_verified")),
+        "independent_release_evidence_verified": bool(
+            snapshot.get("independent_release_evidence_verified")
+        ),
+        "live_migration_authorized": bool(snapshot.get("live_migration_authorized")),
+        "release_ready": bool(snapshot.get("release_ready")),
+        "error": snapshot.get("error"),
+        "read_only": True,
+        "schema_changed": False,
+        "secret_exposed": False,
+    }
+    ready = (
+        proof["database_reachable"] is True
+        and proof["base_schema_ready"] is True
+        and proof["mail_schema_ready"] is True
+        and proof["target_mapping_proven"] is True
+        and proof["recovery_point_verified"] is True
+        and proof["independent_release_evidence_verified"] is True
+        and proof["live_migration_authorized"] is True
+        and proof["release_ready"] is True
+        and not proof["error"]
+    )
+    _emit_startup_proof(proof, level="info" if ready else "warning")
+
+
 def _hrm_candidate_startup_probe() -> None:
     """Emit only presence/reachability for an existing HRM Postgres alias."""
 
@@ -90,6 +127,7 @@ def _hrm_candidate_startup_probe() -> None:
 
 def _startup_probes() -> None:
     _database_startup_probe()
+    _mail_startup_probe()
     _hrm_candidate_startup_probe()
 
 
