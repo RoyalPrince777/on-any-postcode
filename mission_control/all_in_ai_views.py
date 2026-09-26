@@ -4,7 +4,13 @@ import logging
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import all_in_ai, all_in_ai_mission_store, all_in_ai_runtime, web_security
+from . import (
+    all_in_ai,
+    all_in_ai_action_bridge,
+    all_in_ai_mission_store,
+    all_in_ai_runtime,
+    web_security,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +266,62 @@ def all_in_ai_mission_recover(mission_id: str):
                 state="recovered_for_review",
                 execution_granted=False,
                 approval_granted=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
+@bp.post("/all-in-ai/mission/<mission_id>/action-handoff")
+@web_security.login_required(api=True, founder_only=True)
+def all_in_ai_action_handoff(mission_id: str):
+    """Evaluate a reviewed mission for governed action authorization only."""
+
+    csrf_error = _require_csrf()
+    if csrf_error is not None:
+        return csrf_error
+    identity = _founder_id()
+    if identity is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+
+    try:
+        result = all_in_ai_action_bridge.handoff_status(
+            identity,
+            mission_id,
+            reviewed_request_id=payload.get("reviewed_request_id"),
+            action_name=payload.get("action_name", "SYNC_INTERNAL_RECORD"),
+        )
+    except ValueError as exc:
+        return _error(str(exc), "Action handoff request failed validation.", 400)
+    except all_in_ai_mission_store.MissionStoreUnavailable:
+        return _error(
+            "mission_receipt_unavailable",
+            "Mission proof could not be independently verified.",
+            503,
+        )
+    except all_in_ai_action_bridge.ActionHandoffBlocked as exc:
+        code = str(exc)
+        status_code = 409 if code in {"mission_stopped", "reviewed_request_not_found"} else 503
+        return _error(
+            code,
+            "The governed action handoff remains blocked.",
+            status_code,
+        )
+
+    logger.info(
+        "oap_all_in_ai_action_handoff status=%s execution_authorized=%s "
+        "execution_performed=false human_authority_final=true",
+        str(result.get("status") or ""),
+        bool(result.get("execution_authorized")),
+    )
+    return _no_store(
+        make_response(
+            jsonify(
+                result=result,
+                execution_performed=False,
                 human_authority_final=True,
             )
         )
