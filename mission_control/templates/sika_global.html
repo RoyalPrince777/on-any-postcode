@@ -189,6 +189,12 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 
 <section class="card" id="securitySection">
 <h2>Security Centre</h2>
+<label>Device label<input id="bankDeviceId" value="sika-acceptance-device" maxlength="120"></label>
+<label>Create / unlock bank-app password<input id="bankPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password"></label>
+<button id="bankPasswordCreateBtn">Create bank-app password</button>
+<button id="bankPasswordUnlockBtn">Unlock bank app</button>
+<button id="bankPasswordLockBtn">Lock bank app</button>
+<div class="result" id="bankPasswordResult">Bank-app password is separate from Founder authentication.</div>
 <button id="freezeBtn">Freeze card & payments</button>
 <div class="result" id="freezeResult">No live card or payment rail exists.</div>
 <p class="notice">Sensitive execution remains fail-closed until a real authorised rail is connected.</p>
@@ -338,6 +344,18 @@ document.getElementById('trustBtn').onclick=async()=>{
   identity_confidence:document.getElementById('trustIdentity').value
  });
  document.getElementById('trustResult').textContent=r.ok ? j.score+' / '+j.scale+' · explainable preview' : j.error;
+};
+document.getElementById('bankPasswordCreateBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/security/password/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:bankDeviceId.value,password:bankPassword.value})});
+ const j=await r.json(); bankPasswordResult.textContent=j.created?'Bank-app password created · acceptance storage only':(j.error||j.reason||'Not created');
+};
+document.getElementById('bankPasswordUnlockBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/security/password/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:bankDeviceId.value,password:bankPassword.value})});
+ const j=await r.json(); bankPasswordResult.textContent=j.unlocked?'Bank app unlocked':'Locked · '+(j.error||j.reason||'password rejected');
+};
+document.getElementById('bankPasswordLockBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/security/password/lock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:bankDeviceId.value})});
+ const j=await r.json(); bankPasswordResult.textContent=j.locked?'Bank app locked':(j.error||'Lock failed');
 };
 document.getElementById('freezeBtn').onclick=async()=>{
  const [r,j]=await postJSON('/api/sika/security/freeze',{});
