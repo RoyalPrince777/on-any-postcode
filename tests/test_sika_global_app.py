@@ -322,3 +322,22 @@ def test_install_readout_uses_current_readiness_contract():
     assert "j.public_pwa_software_ready" in html
     assert "j.real_android_pwa_acceptance" in html
     assert "j.native_android_package_ready" in html
+
+
+def test_a5_preparation_pack_is_complete_but_non_executing():
+    client = app.test_client()
+    response = client.get("/api/sika/a5-preparation")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert all(body["preparation_actions"].values())
+    assert body["preparation_only"] is True
+    assert body["a6_execution_granted"] is False
+    assert body["a7_enabled"] is False
+    assert body["payment_execution_enabled"] is False
+
+
+def test_surface_has_a5_preparation_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="a5Btn"' in html
+    assert 'id="a5Section"' in html
