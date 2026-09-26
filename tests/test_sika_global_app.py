@@ -1008,3 +1008,121 @@ def test_sika_alert_projection_tracks_acknowledged_and_recovered():
         assert alert["recovered"] is True
     finally:
         sika_security_ledger.history = original_history
+
+
+def test_sika_step_up_proof_rejects_mismatched_payment_intent():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    sika_security_ledger.history = lambda owner_id, limit=100: [
+        {
+            "event_id": "link-1",
+            "event_type": "STEP_UP_PAYMENT_INTENT_LINKED",
+            "details": {
+                "challenge_id": "challenge-1",
+                "payment_intent_id": "intent-a",
+            },
+        }
+    ]
+    try:
+        try:
+            sika_security_ledger.bind_step_up_proof(
+                "11111111-1111-1111-1111-111111111111",
+                challenge_id="challenge-1",
+                payment_intent_id="intent-b",
+                proof_method="bank_app_password",
+            )
+        except ValueError as exc:
+            assert str(exc) == "step_up_not_linked_to_payment_intent"
+        else:
+            raise AssertionError("mismatched intent must fail closed")
+    finally:
+        sika_security_ledger.history = original_history
+
+
+def test_sika_final_payment_review_requires_link_proof_and_approved_resolution():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    base = [
+        {
+            "event_id": "link-1",
+            "event_type": "STEP_UP_PAYMENT_INTENT_LINKED",
+            "details": {
+                "challenge_id": "challenge-1",
+                "payment_intent_id": "intent-1",
+            },
+        },
+        {
+            "event_id": "resolved-1",
+            "event_type": "STEP_UP_RESOLVED",
+            "details": {
+                "challenge_id": "challenge-1",
+                "status": "approved_for_review",
+            },
+        },
+    ]
+    sika_security_ledger.history = lambda owner_id, limit=100: list(base)
+    try:
+        blocked = sika_security_ledger.final_payment_review_gate(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="challenge-1",
+            payment_intent_id="intent-1",
+        )
+        assert blocked["allowed_to_final_review"] is False
+        assert blocked["payment_execution_authorised"] is False
+
+        with_proof = [
+            {
+                "event_id": "proof-1",
+                "event_type": "STEP_UP_PROOF_BOUND",
+                "details": {
+                    "challenge_id": "challenge-1",
+                    "payment_intent_id": "intent-1",
+                },
+            },
+            *base,
+        ]
+        sika_security_ledger.history = lambda owner_id, limit=100: list(with_proof)
+        allowed = sika_security_ledger.final_payment_review_gate(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="challenge-1",
+            payment_intent_id="intent-1",
+        )
+        assert allowed["allowed_to_final_review"] is True
+        assert allowed["payment_execution_authorised"] is False
+        assert allowed["money_moved"] is False
+    finally:
+        sika_security_ledger.history = original_history
+
+
+def test_sika_alert_projection_tracks_dismissed_without_deleting_history():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    events = [
+        {
+            "event_id": "dismiss",
+            "event_type": "SECURITY_ALERT_DISMISSED",
+            "severity": "INFO",
+            "details": {"security_event_id": "risk-2", "dismissed": True},
+            "created_at": "2026-09-26T20:00:02+00:00",
+        },
+        {
+            "event_id": "risk-2",
+            "event_type": "FRAUD_PREFLIGHT",
+            "severity": "HIGH",
+            "details": {},
+            "created_at": "2026-09-26T20:00:01+00:00",
+        },
+    ]
+    sika_security_ledger.history = lambda owner_id, limit=100: list(events)
+    try:
+        state = sika_security_ledger.latest_state(
+            "11111111-1111-1111-1111-111111111111"
+        )
+        alert = next(x for x in state["alerts"] if x["event_id"] == "risk-2")
+        assert alert["dismissed"] is True
+        assert alert["event_type"] == "FRAUD_PREFLIGHT"
+    finally:
+        sika_security_ledger.history = original_history
