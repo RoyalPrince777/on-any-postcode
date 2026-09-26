@@ -17,7 +17,11 @@ from typing import Any
 
 from . import approval_service, postgres_db
 from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
-from .hrm_durable_receipt import build_receipt, persist_and_read_back
+from .hrm_durable_receipt import (
+    build_receipt,
+    persist_and_read_back,
+    persist_in_transaction,
+)
 
 
 class ActionBlocked(RuntimeError):
@@ -133,6 +137,7 @@ def record_action_outcome(
     action_performed: bool,
     evidence_proven: bool,
     checks: Mapping[str, Mapping[str, bool]],
+    connection: object | None = None,
 ) -> dict[str, object]:
     """Persist a durable HRM receipt only for a proven governed action outcome."""
 
@@ -179,7 +184,11 @@ def record_action_outcome(
         payload,
         idempotency_key=str(idempotency_key or "").strip(),
     )
-    result = persist_and_read_back(receipt)
+    result = (
+        persist_in_transaction(connection, receipt)
+        if connection is not None
+        else persist_and_read_back(receipt)
+    )
     return {
         **result,
         "stage": "HRM_RECEIPT",
