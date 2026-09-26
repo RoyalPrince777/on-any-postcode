@@ -117,15 +117,29 @@ def location_weather(place: object) -> dict[str, Any]:
     resolved = location_intelligence.lookup_with_weather(query)
     weather = dict(resolved.get("weather") or {})
     intelligence = dict(weather.get("intelligence") or {})
-    advisory = str(intelligence.get("advisory_level") or "green").strip().lower()
-    weather_pressure = _ADVISORY_PRESSURE.get(advisory, 35)
+    advisory = str(
+        intelligence.get("advisory_level") or "unavailable"
+    ).strip().lower()
     geography = _geography(resolved)
     observation_time = str(
         intelligence.get("observation_time") or weather.get("time") or ""
     ).strip()
+    if advisory not in _ADVISORY_PRESSURE or not observation_time:
+        raise location_intelligence.LocationUnavailable(
+            "weather_intelligence_unavailable"
+        )
+    weather_pressure = _ADVISORY_PRESSURE[advisory]
 
-    place_provider = str(resolved.get("provider") or "bounded_location_source")
-    weather_provider = str(weather.get("provider") or "bounded_weather_source")
+    place_provider = str(
+        resolved.get("provider_id")
+        or resolved.get("provider")
+        or "bounded_location_source"
+    )
+    weather_provider = str(
+        weather.get("provider_id")
+        or weather.get("provider")
+        or "bounded_weather_source"
+    )
     condition = str(intelligence.get("condition") or "Weather observation received")
 
     signals = (

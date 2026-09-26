@@ -1,3 +1,5 @@
+import pytest
+
 from mission_control import (
     ecosystem_live_sources,
     humanitarian_emergency_tracker,
@@ -219,3 +221,28 @@ def test_founder_full_proof_endpoint_requires_location_and_never_executes(client
     assert payload["full_ecosystem_green"] is False
     assert payload["execution_granted"] is False
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_location_weather_rejects_missing_advisory_or_timestamp(monkeypatch):
+    monkeypatch.setattr(
+        location_intelligence,
+        "lookup_with_weather",
+        lambda value: {
+            "query": value,
+            "provider": "UK postcode service",
+            "weather": {
+                "provider": "Live weather service",
+                "intelligence": {
+                    "condition": "Conditions unavailable",
+                    "advisory_level": "unavailable",
+                    "observation_time": "",
+                },
+            },
+        },
+    )
+
+    with pytest.raises(
+        location_intelligence.LocationUnavailable,
+        match="weather_intelligence_unavailable",
+    ):
+        ecosystem_live_sources.location_weather("Mitcham")
