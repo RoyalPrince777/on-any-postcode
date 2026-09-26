@@ -13,7 +13,6 @@ from typing import Any
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-
 MIN_PASSWORD_LENGTH = 12
 MAX_PASSWORD_LENGTH = 128
 MAX_FAILURES = 5
