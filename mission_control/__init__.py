@@ -65,6 +65,7 @@ def init_app(app: Flask) -> None:
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
+    from .knowledge_views import bp as oap_knowledge_bp
     from .link_call_routes import bp as link_call_bp
     from .link_incoming_routes import bp as link_incoming_bp
     from .link_message_routes import bp as link_message_bp
@@ -82,7 +83,6 @@ def init_app(app: Flask) -> None:
     from .movement_routes import bp as movement_bp
     from .oap_data_views import bp as oap_data_bp
     from .oap_library_views import bp as oap_library_bp
-    from .knowledge_views import bp as oap_knowledge_bp
     from .on_any_place_routes import bp as on_any_place_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
