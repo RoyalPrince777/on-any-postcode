@@ -8,6 +8,7 @@ No migration runs at import time.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import re
 from typing import Any
@@ -233,6 +234,74 @@ def record_chat_assets(
         "asset_count": len(asset_ids),
         "asset_ids": tuple(asset_ids),
         "raw_content_retained": False,
+    }
+
+
+
+def record_studio_image_artifact(
+    connection: object,
+    *,
+    identity_id: object,
+    conversation_id: object,
+    request_id: object,
+    b64_json: object,
+    mime_type: object = "image/png",
+) -> dict[str, Any]:
+    """Index one proven Studio image without retaining raw generated media."""
+    identity = _uuid(identity_id, "identity_id")
+    conversation = _uuid(conversation_id, "conversation_id")
+    request_value = _uuid(request_id, "request_id")
+    if not _table_available(connection):
+        return {
+            "indexed": False,
+            "asset_count": 0,
+            "reason": "founder_asset_schema_pending",
+            "raw_content_retained": False,
+        }
+    owner = connection.execute(
+        """SELECT 1 FROM smi_conversations
+           WHERE conversation_id=%s AND identity_id=%s""",
+        (conversation, identity),
+    ).fetchone()
+    if owner is None:
+        raise ValueError("studio_conversation_not_owned")
+    encoded = str(b64_json or "").strip()
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+    except (ValueError, TypeError) as exc:
+        raise ValueError("studio_image_artifact_invalid") from exc
+    if not raw or len(raw) > 20 * 1024 * 1024:
+        raise ValueError("studio_image_artifact_invalid")
+    mime = str(mime_type or "image/png").strip().lower()
+    if mime not in {"image/png", "image/jpeg", "image/webp"}:
+        raise ValueError("studio_image_artifact_type_unsupported")
+    suffix = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}[mime]
+    digest = hashlib.sha256(raw).hexdigest()
+    row = connection.execute(
+        """INSERT INTO smi_founder_assets
+           (identity_id,conversation_id,request_id,source,asset_kind,filename,
+            mime_type,content_sha256,frame_count,raw_content_retained)
+           VALUES (%s,%s,%s,'studio_generation','studio_image',%s,%s,%s,0,FALSE)
+           ON CONFLICT (identity_id,request_id,source,content_sha256)
+           DO UPDATE SET filename=EXCLUDED.filename
+           RETURNING asset_id""",
+        (
+            identity,
+            conversation,
+            request_value,
+            f"oap-studio-{request_value[:8]}.{suffix}",
+            mime,
+            digest,
+        ),
+    ).fetchone()
+    return {
+        "indexed": bool(row),
+        "asset_count": 1 if row else 0,
+        "asset_ids": (str(row[0]),) if row else (),
+        "sha256": digest,
+        "kind": "studio_image",
+        "raw_content_retained": False,
+        "owner_scoped": True,
     }
 
 
