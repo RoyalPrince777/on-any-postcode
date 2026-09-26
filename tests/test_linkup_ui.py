@@ -245,3 +245,10 @@ def test_linkup_emoji_and_conversation_settings_reuse_existing_owners():
     assert "linkup_safety.block_member" in page
     assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in page
     assert "My Card sharing enabled" not in page
+
+
+def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
+    script = Path("static/linkup_messenger.js").read_text(encoding="utf-8")
+
+    assert 'panels.some((panel) => panel.dataset.linkupPanel === "new")' in script
+    assert 'openPanel("new")' in script
