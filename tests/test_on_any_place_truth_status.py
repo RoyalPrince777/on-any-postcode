@@ -120,3 +120,63 @@ def test_public_status_exposes_truth_aligned_navigation_state(client, monkeypatc
     assert "UK-wide owned routing shard coverage" in data["remaining_before_green"]
     assert data["payment_capture"] is False
     assert data["dispatch"] is False
+
+
+def test_multiple_regional_shards_do_not_imply_uk_wide_proof(monkeypatch):
+    from mission_control import (
+        atlas_live_sources,
+        certification,
+        listing_media,
+        map_live_pattern,
+        maps_movement_direct_proof_runner,
+        product_store,
+        reviews,
+        routing,
+        routing_federation,
+        travel_marketplace,
+    )
+
+    monkeypatch.setattr(
+        routing,
+        "status",
+        lambda: {
+            "runtime_verified": True,
+            "oap_owned_endpoint": True,
+            "road_vector_tiles": True,
+            "geometry_exposed": True,
+        },
+    )
+    monkeypatch.setattr(map_live_pattern, "status", lambda: {"authority_verified_feed": True})
+    monkeypatch.setattr(
+        atlas_live_sources,
+        "status",
+        lambda: {"enabled": True, "last_fetch": {"opening_hours_count": 1, "freshness": "fresh"}},
+    )
+    monkeypatch.setattr(
+        routing_federation,
+        "status",
+        lambda: {
+            "connected_shard_count": 2,
+            "uk_wide_owned_graph_proven": False,
+        },
+    )
+    monkeypatch.setattr(listing_media, "status", lambda: {"schema_ready": True, "photo_count": 1})
+    monkeypatch.setattr(
+        travel_marketplace,
+        "public_offers",
+        lambda **kwargs: {"ready": True, "count": 1, "offers": [{"category": "event"}]},
+    )
+    monkeypatch.setattr(certification, "status", lambda: {"runtime_ready": True, "roles_ready": True})
+    monkeypatch.setattr(product_store, "status", lambda: {"ready": True})
+    monkeypatch.setattr(reviews, "status", lambda: {"ready": True})
+    monkeypatch.setattr(
+        maps_movement_direct_proof_runner,
+        "route_matrix_status",
+        lambda: {"certified": True},
+    )
+
+    state = local_map_intelligence.readiness_state()
+
+    assert state["connected_routing_shards"] == 2
+    assert state["wider_uk_routing_live"] is False
+    assert "UK-wide owned routing shard coverage" in state["remaining_before_green"]
