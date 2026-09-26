@@ -45,6 +45,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile jump" data-target="securitySection"><b>Security</b><p class="muted">Security controls</p></button>
 <button class="tile intel" data-intel="alignment"><b>Alignment Intelligence</b><p class="muted">Cross-system alignment</p></button>
 <button class="tile intel" data-intel="bank"><b>Bank Intelligence</b><p class="muted">Bank anatomy & licence boundary</p></button>
+<button class="tile jump" data-target="fraudSection"><b>Fraud Intelligence</b><p class="muted">Preflight risk check</p></button>
+<button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">Truth-only release gate</p></button>
 </section>
 <div class="result" id="topActionResult"></div>
 
@@ -153,6 +155,26 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Sensitive execution remains fail-closed until a real authorised rail is connected.</p>
 </section>
 
+<section class="card" id="fraudSection">
+<h2>Fraud Intelligence</h2>
+<label>Amount SIKA<input id="fraudAmount" inputmode="decimal" value="100"></label>
+<label>Recent attempts<input id="fraudAttempts" inputmode="numeric" value="1"></label>
+<label>Transactions in 10m<input id="fraudVelocity" inputmode="numeric" value="1"></label>
+<label><input id="fraudNewDevice" type="checkbox"> New device</label>
+<label><input id="fraudLocation" type="checkbox"> Unusual location</label>
+<label><input id="fraudRecipient" type="checkbox"> New recipient</label>
+<button id="fraudBtn">Run fraud preflight</button>
+<div class="result" id="fraudResult">—</div>
+<p class="notice">Software risk check only. It cannot approve money movement.</p>
+</section>
+
+<section class="card" id="installSection">
+<h2>Install Readiness</h2>
+<button id="installReadinessBtn">Check install readiness</button>
+<div class="result" id="installResult">—</div>
+<p class="notice">Private software acceptance can be ready before signed Android/public-install acceptance.</p>
+</section>
+
 <section class="card" id="intelligenceSection">
 <h2>Intelligence</h2>
 <div class="result" id="intelligenceResult">Choose Alignment Intelligence or Bank Intelligence.</div>
@@ -251,6 +273,24 @@ document.getElementById('treasurySave').onclick=async()=>{
   source:document.getElementById('treasurySource').value
  });
  document.getElementById('treasuryResult').textContent=r.ok ? j.rate.currency+' saved · '+j.rate.gbp_per_unit+' GBP/unit' : j.error;
+};
+document.getElementById('fraudBtn').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/fraud/preflight',{
+  amount_sika:document.getElementById('fraudAmount').value,
+  recent_attempts:document.getElementById('fraudAttempts').value,
+  transactions_10m:document.getElementById('fraudVelocity').value,
+  new_device:document.getElementById('fraudNewDevice').checked,
+  unusual_location:document.getElementById('fraudLocation').checked,
+  new_recipient:document.getElementById('fraudRecipient').checked
+ });
+ document.getElementById('fraudResult').textContent=r.ok ? 'risk '+j.risk_score+'/100 · '+j.decision+' · '+(j.reasons.join(', ')||'no flags') : j.error;
+};
+document.getElementById('installReadinessBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/install/readiness');
+ const j=await r.json();
+ document.getElementById('installResult').textContent=r.ok
+  ? 'private '+j.private_software_acceptance_ready+' · public install '+j.safe_public_install_ready+' · Android signed '+j.sika_specific_signed_android_package
+  : (j.error||'install readiness unavailable');
 };
 document.getElementById('marketHandoff').onclick=()=>{
  document.getElementById('marketResult').textContent='Market software handoff active · payment settlement remains licence-gated';
