@@ -404,6 +404,46 @@ def connect(*, readonly: bool = False) -> Iterator[Any]:
         yield connection
 
 
+def database_identity_fingerprint() -> dict[str, Any]:
+    """Return an opaque read-only fingerprint for the selected database target.
+
+    The fingerprint is generated inside PostgreSQL from coarse target identity
+    properties. No host, URL, username, password or database name leaves the
+    connection boundary.
+    """
+    result: dict[str, Any] = {
+        "source": database_source(),
+        "authority": database_authority(),
+        "fingerprint": None,
+        "reachable": False,
+        "secret_exposed": False,
+        "error": None,
+    }
+    if not configured():
+        result["error"] = "database_url_not_configured"
+        return result
+    try:
+        with connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT md5(
+                       current_database() || '|' ||
+                       COALESCE(inet_server_addr()::text, '') || '|' ||
+                       COALESCE(inet_server_port()::text, '') || '|' ||
+                       current_setting('server_version_num')
+                   )"""
+            ).fetchone()
+        value = str(row[0]) if row and row[0] is not None else ""
+        if len(value) != 32 or any(ch not in "0123456789abcdef" for ch in value.lower()):
+            result["error"] = "database_identity_unavailable"
+            return result
+        result["fingerprint"] = value.lower()
+        result["reachable"] = True
+        return result
+    except Exception:  # noqa: BLE001 - never surface driver/server details.
+        result["error"] = "database_identity_unavailable"
+        return result
+
+
 def postgres_status() -> dict[str, Any]:
     """Return a redacted, read-only readiness result."""
     result: dict[str, Any] = {
