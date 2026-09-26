@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ALL IN A.I. · Mission Keeper</title>
+  <style>
+    :root{color-scheme:dark;--bg:#060706;--panel:#0d110e;--line:#29332b;--gold:#d9bd68;--purple:#b979ff;--green:#42dd82;--red:#ff7777;--text:#f5f7f4;--muted:#9fa9a1}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:980px;margin:auto;padding:20px 14px 64px}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--purple);font-size:.76rem;text-transform:uppercase;letter-spacing:.13em;font-weight:900}h1{font-size:clamp(2.1rem,7vw,4.4rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.5}.back{border:1px solid var(--line);border-radius:999px;color:inherit;text-decoration:none;padding:9px 12px}.lock,.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.lock{border-color:#7a642d;background:#171408;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:14px 0}.ok{border-color:#2d8050}.form{display:grid;gap:11px;margin-top:20px}.form label{font-weight:800}.form textarea,.form input,.form select{width:100%;background:#080b09;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px;font:inherit}.form textarea{min-height:130px;resize:vertical}.actions{display:flex;gap:9px;flex-wrap:wrap}.btn{cursor:pointer;border:1px solid #386c49;background:#102417;color:var(--text);font:inherit;font-weight:850;border-radius:11px;padding:11px 14px}.btn:disabled{opacity:.5;cursor:not-allowed}.stop{border-color:#8a4040;background:#261010}.recover{border-color:#70519b;background:#1b1128}.read{border-color:#715f2d;background:#211b0c}.result{margin-top:14px;white-space:pre-wrap;border:1px solid var(--line);border-radius:13px;padding:13px;background:#080b09;min-height:76px}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.76rem;font-weight:850}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Founder Intelligence · Private</p>
+      <h1>👑 ALL IN A.I.</h1>
+      <p class="muted">Always Involved · Captain Agent · Mission Keeper</p>
+    </div>
+    <a class="back" href="/mission">← Mission Control</a>
+  </header>
+
+  <div class="lock">
+    <strong>🔒 Founder Final remains intact.</strong>
+    <p class="muted">This console can plan and durably receipt a mission, verify read-back, STOP it, and recover it to review. It cannot approve itself, spend, publish, deploy, or execute consequential actions.</p>
+  </div>
+
+  <section class="grid" aria-label="Mission Keeper status">
+    <article class="card ok"><span class="pill">🟢 ONE BRAIN</span><h3>SMI binding</h3><p class="muted">{{ 'Ready' if runtime.ready else 'Not ready' }} · {{ runtime.general_intelligence_capabilities }} General Intelligence capabilities.</p></article>
+    <article class="card ok"><span class="pill">🧠 HRM</span><h3>Durable receipts</h3><p class="muted">Governance workspace + HRM + canonical audit chain. No second database.</p></article>
+    <article class="card"><span class="pill">👽 RESEARCH MODE</span><h3>Alien Intelligence</h3><p class="muted">Unconventional research mode only. Evidence still controls truth claims.</p></article>
+    <article class="card"><span class="pill">🔒 HUMAN GATE</span><h3>Authority</h3><p class="muted">Execution and approval remain false until a separate governed human-authority path allows them.</p></article>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Mission intake</p>
+    <h2>Start a durable Founder mission</h2>
+    <form id="mission-form" class="form">
+      <label>Mission
+        <textarea id="mission-text" maxlength="4000" required placeholder="Describe the mission. The raw text is used for routing, then only its SHA-256 hash and privacy-reduced routing metadata are persisted."></textarea>
+      </label>
+      <label>Task type
+        <select id="task-type">
+          <option value="GENERAL">General</option>
+          <option value="STRATEGY">Strategy</option>
+          <option value="TECHNICAL">Technical</option>
+          <option value="RESEARCH">Research</option>
+          <option value="OPERATIONS">Operations</option>
+        </select>
+      </label>
+      <label>Research mode
+        <select id="research-mode">
+          <option value="standard">Standard</option>
+          <option value="alien_research">Alien Intelligence · unconventional research</option>
+        </select>
+      </label>
+      <label><input id="high-impact" type="checkbox" style="width:auto"> High-impact mission — require stronger review path</label>
+      <div class="actions">
+        <button class="btn" id="start" type="submit">🟣 Start Mission</button>
+        <button class="btn read" id="read" type="button" disabled>🔎 Verify Read-back</button>
+        <button class="btn stop" id="stop" type="button" disabled>🛑 STOP</button>
+        <button class="btn recover" id="recover" type="button" disabled>♻️ Recover for Review</button>
+      </div>
+    </form>
+    <div class="result" id="result" aria-live="polite">No mission started from this console yet.</div>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Truth Mode</p>
+    <h2>What counts as live proof</h2>
+    <p class="muted">A successful Start must return a receipt with <strong>read_back_verified</strong>, <strong>audit_verified</strong> and <strong>hrm_verified</strong>. STOP and Recover must append new verified versions. This screen never treats a UI click alone as proof.</p>
+  </section>
+</main>
+<script>
+const csrf={{ oap_csrf_token|tojson }};
+const startUrl={{ url_for('all_in_ai.all_in_ai_mission')|tojson }};
+const form=document.getElementById('mission-form');
+const result=document.getElementById('result');
+const startButton=document.getElementById('start');
+const readButton=document.getElementById('read');
+const stopButton=document.getElementById('stop');
+const recoverButton=document.getElementById('recover');
+let missionId=null;
+let latestDigest=null;
+let latestState=null;
+
+function updateControls(){
+  const active=Boolean(missionId&&latestDigest);
+  readButton.disabled=!active;
+  stopButton.disabled=!active||latestState==='stopped';
+  recoverButton.disabled=!active||latestState!=='stopped';
+}
+function showReceipt(label,receipt){
+  latestDigest=receipt?.digest||latestDigest;
+  latestState=receipt?.state||latestState;
+  updateControls();
+  const proof=[
+    'mission_id: '+(receipt?.mission_id||missionId||''),
+    'state: '+(receipt?.state||''),
+    'version: '+(receipt?.version||''),
+    'read_back_verified: '+Boolean(receipt?.read_back_verified),
+    'audit_verified: '+Boolean(receipt?.audit_verified),
+    'hrm_verified: '+Boolean(receipt?.hrm_verified),
+    'execution_granted: '+Boolean(receipt?.execution_granted),
+    'approval_granted: '+Boolean(receipt?.approval_granted),
+    'human_authority_final: '+Boolean(receipt?.human_authority_final),
+  ].join('\n');
+  result.textContent=label+'\n'+proof;
+}
+async function requestJson(url,options={}){
+  const r=await fetch(url,{
+    credentials:'same-origin',
+    ...options,
+    headers:{
+      'Accept':'application/json',
+      ...(options.body?{'Content-Type':'application/json'}:{}),
+      ...(options.method&&options.method!=='GET'?{'X-OAP-CSRF':csrf}:{}),
+      ...(options.headers||{}),
+    },
+  });
+  const body=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(body?.error?.message||body?.error?.code||('HTTP '+r.status));
+  return body;
+}
+form.addEventListener('submit',async(event)=>{
+  event.preventDefault();
+  startButton.disabled=true;
+  result.textContent='Routing through SMI and writing durable HRM + audit receipts…';
+  try{
+    const body=await requestJson(startUrl,{
+      method:'POST',
+      body:JSON.stringify({
+        mission:document.getElementById('mission-text').value,
+        task_type:document.getElementById('task-type').value,
+        research_mode:document.getElementById('research-mode').value,
+        high_impact:document.getElementById('high-impact').checked,
+      }),
+    });
+    missionId=body.mission_id;
+    showReceipt('🟢 Mission durably receipted.',body.receipt);
+    sessionStorage.setItem('oap_all_in_ai_mission_id',missionId);
+    sessionStorage.setItem('oap_all_in_ai_digest',latestDigest||'');
+  }catch(err){
+    result.textContent='🔴 '+err.message;
+  }finally{
+    startButton.disabled=false;
+  }
+});
+readButton.addEventListener('click',async()=>{
+  result.textContent='Verifying workspace + audit + HRM read-back…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId));
+    showReceipt('🟢 Independent read-back verified.',body.receipt);
+  }catch(err){result.textContent='🔴 '+err.message;}
+});
+stopButton.addEventListener('click',async()=>{
+  stopButton.disabled=true;result.textContent='Writing durable STOP checkpoint…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/stop',{
+      method:'POST',
+      body:JSON.stringify({expected_previous_hash:latestDigest}),
+    });
+    showReceipt('🛑 STOP durably recorded.',body.receipt);
+  }catch(err){result.textContent='🔴 '+err.message;}finally{updateControls();}
+});
+recoverButton.addEventListener('click',async()=>{
+  recoverButton.disabled=true;result.textContent='Recovering mission to reviewable state…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/recover',{
+      method:'POST',
+      body:JSON.stringify({expected_previous_hash:latestDigest}),
+    });
+    showReceipt('♻️ Mission recovered for review. No execution granted.',body.receipt);
+  }catch(err){result.textContent='🔴 '+err.message;}finally{updateControls();}
+});
+const storedMission=sessionStorage.getItem('oap_all_in_ai_mission_id');
+const storedDigest=sessionStorage.getItem('oap_all_in_ai_digest');
+if(storedMission&&storedDigest){missionId=storedMission;latestDigest=storedDigest;updateControls();result.textContent='Previous session mission available for verified read-back.';}
+</script>
+</body>
+</html>
