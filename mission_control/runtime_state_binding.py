@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from oap.smi import state_ownership_registry
+from oap.smi.state_ownership_registry import owners
 
 from . import postgres_db
 
@@ -90,7 +90,7 @@ def probe() -> dict[str, Any]:
     try:
         with postgres_db.connect(readonly=True) as connection:
             tables = _table_names(connection)
-            for owner in state_ownership_registry.owners():
+            for owner in owners():
                 domain = owner.domain_id
                 required_tables = _TABLE_BINDINGS.get(domain)
                 if required_tables is None:
@@ -128,6 +128,6 @@ def probe() -> dict[str, Any]:
         return result
 
     result["all_canonical_domains_proven"] = bool(
-        result["proven_count"] == len(state_ownership_registry.owners())
+        result["proven_count"] == len(owners())
     )
     return result
