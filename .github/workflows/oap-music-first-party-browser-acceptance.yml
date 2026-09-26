@@ -79,7 +79,10 @@ jobs:
             if (!(await page.getByText('▶ Play locked').isVisible())) {
               throw new Error('player_lock_missing');
             }
-            if (await page.locator('button:has-text("Play")').count() !== 0) {
+            const fakePlayButtons = await page.locator('button').evaluateAll(buttons =>
+              buttons.filter(button => ['Play', '▶ Play'].includes((button.textContent || '').trim())).length
+            );
+            if (fakePlayButtons !== 0) {
               throw new Error('fake_play_button_present');
             }
 
