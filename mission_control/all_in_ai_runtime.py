@@ -7,12 +7,14 @@ layers, then projects a Truth Mode / Red Team mission plan for Founder review.
 
 from __future__ import annotations
 
+import hashlib
+import uuid
 from typing import Any
 
 from oap.smi.agi_core import AGICore
 from oap.smi.command_intelligence import CommandIntelligence
 
-from . import all_in_ai
+from . import all_in_ai, all_in_ai_mission_store
 
 _MAX_MISSION_LENGTH = 4000
 _ALLOWED_RESEARCH_MODES = {"standard", "alien_research"}
@@ -146,7 +148,80 @@ def status() -> dict[str, Any]:
             command["total_general_intelligence_capabilities"]
         ),
         "research_modes": tuple(sorted(_ALLOWED_RESEARCH_MODES)),
+        "durable_mission_store": all_in_ai_mission_store.status(),
         "independent_execute": False,
         "independent_approval": False,
         "human_authority_final": True,
     }
+
+
+def start_mission(
+    identity_id: object,
+    mission: object,
+    *,
+    task_type: object = "GENERAL",
+    high_impact: bool = False,
+    research_mode: object = "standard",
+) -> dict[str, Any]:
+    """Plan and durably receipt one Founder mission without retaining raw text."""
+
+    clean_mission = _clean_mission(mission)
+    plan = plan_mission(
+        clean_mission,
+        task_type=task_type,
+        high_impact=high_impact,
+        research_mode=research_mode,
+    )
+    mission_id = str(uuid.uuid4())
+    mission_hash = hashlib.sha256(clean_mission.encode("utf-8")).hexdigest()
+    receipt = all_in_ai_mission_store.create(
+        identity_id,
+        mission_id=mission_id,
+        mission_hash=mission_hash,
+        plan=plan,
+    )
+    return {
+        "mission_id": mission_id,
+        "plan": plan,
+        "receipt": receipt,
+        "raw_mission_retained": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
+def read_mission(identity_id: object, mission_id: object) -> dict[str, Any]:
+    """Read the latest independently cross-checked mission receipt."""
+
+    return all_in_ai_mission_store.read(identity_id, mission_id)
+
+
+def stop_mission(
+    identity_id: object,
+    mission_id: object,
+    *,
+    expected_previous_hash: str,
+) -> dict[str, Any]:
+    """Persist STOP without granting or continuing execution."""
+
+    return all_in_ai_mission_store.stop(
+        identity_id,
+        mission_id,
+        expected_previous_hash=expected_previous_hash,
+    )
+
+
+def recover_mission(
+    identity_id: object,
+    mission_id: object,
+    *,
+    expected_previous_hash: str,
+) -> dict[str, Any]:
+    """Recover a STOPped mission to reviewable state only."""
+
+    return all_in_ai_mission_store.recover(
+        identity_id,
+        mission_id,
+        expected_previous_hash=expected_previous_hash,
+    )
