@@ -86,3 +86,14 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     assert receipt["successes"] == 2
     assert receipt["failures"] == 0
     assert receipt["bounded_capacity_proven"] is False
+
+
+def test_live_green_gate_warms_before_capacity_probe():
+    source = Path("scripts/routing_live_green_gate.py").read_text(encoding="utf-8")
+
+    assert "def wait_until_ready()" in source
+    assert '"event": "oap_routing_bounded_external_warmup"' in source
+    assert 'if not warmup.get("ready")' in source
+    assert "TOTAL_REQUESTS = 20" in source
+    assert "WORKERS = 4" in source
+    assert "P95_LIMIT_SECONDS = 6.0" in source
