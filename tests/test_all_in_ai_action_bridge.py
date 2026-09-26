@@ -141,3 +141,84 @@ def test_bridge_status_creates_no_execution_authority():
     assert state["execution_performed_by_bridge"] is False
     assert state["signed_human_approval_required"] is True
     assert state["human_authority_final"] is True
+
+
+
+def test_execute_internal_record_requires_authorized_handoff(monkeypatch):
+    monkeypatch.setattr(
+        all_in_ai_action_bridge,
+        "handoff_status",
+        lambda *_args, **_kwargs: {
+            "mission_id": MISSION,
+            "reviewed_request_id": REQUEST,
+            "status": "HUMAN_AUTHORITY_REQUIRED",
+            "reason": "human_authority_approval_required",
+            "execution_authorized": False,
+        },
+    )
+
+    try:
+        all_in_ai_action_bridge.execute_internal_record(
+            IDENTITY,
+            MISSION,
+            reviewed_request_id=REQUEST,
+            record_id="00000000-0000-0000-0000-000000000004",
+            expected_status="draft",
+            target_status="active",
+        )
+    except all_in_ai_action_bridge.ActionHandoffBlocked as exc:
+        assert str(exc) == "human_authority_approval_required"
+    else:
+        raise AssertionError("execution must remain blocked without approval")
+
+
+def test_execute_internal_record_uses_server_derived_authorization(monkeypatch):
+    authorization = {
+        "execution_authorized": True,
+        "execution_performed": False,
+        "human_authority_final": True,
+    }
+    monkeypatch.setattr(
+        all_in_ai_action_bridge,
+        "handoff_status",
+        lambda *_args, **_kwargs: {
+            "mission_id": MISSION,
+            "reviewed_request_id": REQUEST,
+            "status": "AUTHORIZED_NOT_EXECUTED",
+            "authorization": authorization,
+        },
+    )
+    observed = {}
+
+    def _execute(received, **kwargs):
+        observed["authorization"] = received
+        observed.update(kwargs)
+        return {
+            "outcome_receipt": {
+                "write_verified": True,
+                "read_back_verified": True,
+            },
+            "authority_transferred": False,
+        }
+
+    monkeypatch.setattr(
+        all_in_ai_action_bridge.internal_record_executor,
+        "execute",
+        _execute,
+    )
+
+    result = all_in_ai_action_bridge.execute_internal_record(
+        IDENTITY,
+        MISSION,
+        reviewed_request_id=REQUEST,
+        record_id="00000000-0000-0000-0000-000000000004",
+        expected_status="draft",
+        target_status="active",
+    )
+
+    assert observed["authorization"] is authorization
+    assert observed["identity_id"] == IDENTITY
+    assert result["execution_performed"] is True
+    assert result["outcome_receipt_verified"] is True
+    assert result["authority_transferred"] is False
+    assert result["human_authority_final"] is True
