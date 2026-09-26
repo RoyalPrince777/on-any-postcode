@@ -91,7 +91,9 @@ def readiness() -> dict[str, Any]:
         "durable_bind_available_after_server_auth_resolution": True,
         "durable_recovery_available_after_server_auth_resolution": True,
         "standalone_public_mutation_exposed": False,
+        "authenticated_host_route_software_ready": True,
+        "authenticated_host_route_live_proof": False,
         "founder_auth_touched": False,
         "production_ready": False,
-        "reason": "host_route_must_resolve_authenticated_owner_server_side",
+        "reason": "live_authenticated_host_route_and_exact_head_evidence_required",
     }
