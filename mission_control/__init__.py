@@ -67,6 +67,7 @@ def init_app(app: Flask) -> None:
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
+    from .all_in_ai_views import bp as all_in_ai_bp
     from .link_incoming_routes import bp as link_incoming_bp
     from .link_message_routes import bp as link_message_bp
     from .link_ping_routes import bp as link_ping_bp
@@ -1126,6 +1127,7 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
+    app.register_blueprint(all_in_ai_bp, url_prefix="/mission")
     app.register_blueprint(music_public_bp)
     app.register_blueprint(on_any_place_bp)
     app.register_blueprint(membership_revenue_bp)
