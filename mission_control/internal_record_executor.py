@@ -399,7 +399,7 @@ def rollback(
     """Reverse one prior bounded execution after fresh governance approval."""
 
     if not isinstance(rollback_token, Mapping):
-        raise ValueError("rollback_token_required")
+        raise TypeError("rollback_token_required")
     record_id = rollback_token.get("record_id")
     expected_status = rollback_token.get("expected_status")
     target_status = rollback_token.get("target_status")
