@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 
 from . import postgres_db
@@ -70,6 +72,177 @@ def list_records(
     ]
 
 
+
+def list_records_with_title_prefix(
+    identity_id: object, workspace_id: object, *, title_prefix: str,
+    limit: int = 100,
+) -> list[dict[str, str]]:
+    """Owner-scoped title-prefix read without the unrelated workspace top-100.
+
+    This is ordinary mutable workspace storage, not an immutable or
+    independently anchored research ledger. Never hide an over-limit history.
+    """
+    identity = _identity(identity_id)
+    workspace = get(workspace_id)
+    if workspace is None:
+        raise ValueError("invalid_workspace")
+    if not isinstance(title_prefix, str) or not title_prefix.startswith("OAP-LAB:"):
+        raise ValueError("invalid_lab_prefix")
+    bounded = min(100, max(1, int(limit)))
+    try:
+        with postgres_db.lab_connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT record_id,title,body,status,created_at,updated_at
+                   FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id=%s
+                     AND title LIKE %s
+                   ORDER BY updated_at DESC LIMIT %s""",
+                (identity, workspace["id"], title_prefix + "%", bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise WorkspaceUnavailable("workspace_read_failed") from exc
+    return [
+        {
+            "record_id": str(row[0]), "title": str(row[1]),
+            "body": str(row[2]), "status": str(row[3]),
+            "created_at": row[4].isoformat(),
+            "updated_at": row[5].isoformat(),
+        }
+        for row in rows
+    ]
+
+
+
+
+def list_lab_audit_receipts(
+    identity_id: object, notebook_id: object, *, limit: int = 100,
+) -> list[dict[str, object]]:
+    """Read canonical LAB save receipts for one owner/notebook from audit_events."""
+    identity = _identity(identity_id)
+    notebook = str(uuid.UUID(str(notebook_id)))
+    bounded = min(100, max(1, int(limit)))
+    try:
+        with postgres_db.lab_connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT event_seq,actor_id,target,metadata
+                   FROM audit_events
+                   WHERE actor_id=%s
+                     AND action='OAP_LAB_NOTEBOOK_SAVE'
+                     AND target=%s
+                   ORDER BY event_seq ASC LIMIT %s""",
+                (identity, f"oap_lab_notebook:{notebook}", bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise WorkspaceUnavailable("workspace_audit_read_failed") from exc
+    receipts = []
+    for row in rows:
+        metadata = row[3]
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except ValueError as exc:
+                raise WorkspaceUnavailable("workspace_audit_metadata_invalid") from exc
+        if not isinstance(metadata, dict):
+            raise WorkspaceUnavailable("workspace_audit_metadata_invalid")
+        receipts.append({
+            "event_seq": int(row[0]),
+            "actor_id": str(row[1]),
+            "target": str(row[2]),
+            "metadata": metadata,
+        })
+    return receipts
+
+
+def add_lab_record_atomic(
+    identity_id: object,
+    *,
+    title: object,
+    body: object,
+    notebook_id: object,
+    version: int,
+    digest: str,
+) -> str:
+    """Write one LAB draft and canonical audit event in one transaction.
+
+    Reuses existing oap_workspace_records and audit_events tables. This proves
+    transactional coupling in software; it does not make workspace rows
+    immutable or create an independent recovery store.
+    """
+    identity = _identity(identity_id)
+    notebook = str(uuid.UUID(str(notebook_id)))
+    title_value = str(title or "").strip()[:160]
+    body_value = str(body or "").strip()[:5000]
+    if not title_value or not body_value:
+        raise ValueError("workspace_title_and_body_required")
+    if type(version) is not int or version < 1:
+        raise ValueError("invalid_lab_version")
+    if (
+        not isinstance(digest, str) or len(digest) != 64
+        or any(char not in "0123456789abcdef" for char in digest)
+    ):
+        raise ValueError("invalid_lab_digest")
+    metadata = {
+        "workspace_id": "governance",
+        "notebook_id": notebook,
+        "version": version,
+        "digest": digest,
+        "record_status": "draft",
+        "publication_authorised": False,
+        "execution_authorised": False,
+    }
+    try:
+        with postgres_db.lab_connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680260,))
+            recent = connection.execute(
+                """SELECT COUNT(*) FROM oap_workspace_records
+                   WHERE identity_id=%s
+                     AND created_at >= CURRENT_TIMESTAMP - INTERVAL '1 minute'""",
+                (identity,),
+            ).fetchone()
+            if recent and int(recent[0]) >= 20:
+                raise ValueError("workspace_rate_limit")
+            row = connection.execute(
+                """INSERT INTO oap_workspace_records(
+                       identity_id,workspace_id,title,body,status
+                   ) VALUES (%s,'governance',%s,%s,'draft')
+                   RETURNING record_id""",
+                (identity, title_value, body_value),
+            ).fetchone()
+            record_id = str(row[0])
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+            previous = connection.execute(
+                "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+            ).fetchone()
+            previous_hash = str(previous[0]) if previous else "GENESIS"
+            canonical = json.dumps(
+                {**metadata, "record_id": record_id},
+                sort_keys=True, separators=(",", ":"),
+            )
+            current_hash = hashlib.sha256(
+                (previous_hash + canonical).encode("utf-8")
+            ).hexdigest()
+            connection.execute(
+                """INSERT INTO audit_events(
+                       prev_hash,curr_hash,actor_id,actor_type,authority_level,
+                       action,target,reason,correlation_id,metadata
+                   ) VALUES (
+                       %s,%s,%s,'HUMAN_AUTHORITY',0,
+                       'OAP_LAB_NOTEBOOK_SAVE',%s,
+                       'owner_scoped_research_draft_save',%s,%s::jsonb
+                   )""",
+                (
+                    previous_hash, current_hash, identity,
+                    f"oap_lab_notebook:{notebook}", notebook, canonical,
+                ),
+            )
+            connection.commit()
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise WorkspaceUnavailable("workspace_atomic_audit_write_failed") from exc
+    return record_id
+
+
 def add_record(
     identity_id: object,
     workspace_id: object,
@@ -111,6 +284,59 @@ def add_record(
     except Exception as exc:
         raise WorkspaceUnavailable("workspace_write_failed") from exc
     return str(row[0])
+
+
+
+def lab_immutability_status() -> dict[str, object]:
+    """Read-only proof that LAB workspace rows are DB-protected from mutation.
+
+    Software hashes/audit receipts are not enough. Green requires the active
+    database itself to deny UPDATE and DELETE for the application role or to
+    expose an enabled trigger that rejects those mutations for LAB rows.
+    """
+    result: dict[str, object] = {
+        "database_enforced": False,
+        "update_denied": False,
+        "delete_denied": False,
+        "protective_trigger_present": False,
+        "schema_changed": False,
+        "error": None,
+    }
+    try:
+        with postgres_db.lab_connect(readonly=True) as connection:
+            privileges = connection.execute(
+                """SELECT
+                       has_table_privilege(current_user,'oap_workspace_records','UPDATE'),
+                       has_table_privilege(current_user,'oap_workspace_records','DELETE')"""
+            ).fetchone()
+            update_allowed = bool(privileges and privileges[0])
+            delete_allowed = bool(privileges and privileges[1])
+            result["update_denied"] = not update_allowed
+            result["delete_denied"] = not delete_allowed
+            trigger = connection.execute(
+                """SELECT 1
+                   FROM pg_trigger t
+                   JOIN pg_class c ON c.oid=t.tgrelid
+                   JOIN pg_namespace n ON n.oid=c.relnamespace
+                   JOIN pg_proc p ON p.oid=t.tgfoid
+                   WHERE n.nspname='public'
+                     AND c.relname='oap_workspace_records'
+                     AND t.tgname='oap_lab_workspace_immutable'
+                     AND p.proname='oap_lab_workspace_immutable_guard'
+                     AND NOT t.tgisinternal
+                     AND t.tgenabled <> 'D'
+                     AND pg_get_triggerdef(t.oid) ILIKE '%UPDATE%'
+                     AND pg_get_triggerdef(t.oid) ILIKE '%DELETE%'
+                   LIMIT 1"""
+            ).fetchone()
+            result["protective_trigger_present"] = trigger is not None
+    except Exception:  # noqa: BLE001 - readiness probe exposes no DB details
+        result["error"] = "workspace_immutability_probe_failed"
+    result["database_enforced"] = bool(
+        (result["update_denied"] and result["delete_denied"])
+        or result["protective_trigger_present"]
+    )
+    return result
 
 
 def status() -> dict[str, object]:

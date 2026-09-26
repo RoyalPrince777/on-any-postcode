@@ -2057,5 +2057,228 @@ def infrastructure_status():
     )
 
 
+@app.get("/api/oap-lab/status")
+@web_security.login_required(api=True, founder_only=True)
+def oap_lab_status():
+    """Founder-only read-only LAB evidence surface; never changes release state."""
+    from mission_control import postgres_db, smi_receipt_backend
+
+    immutability = workspaces.lab_immutability_status()
+    recovery = smi_receipt_backend.backend_configuration_status()
+    independent_recovery_configured = bool(
+        recovery.get("durable_backend_configured")
+        and recovery.get("hrm_host_sha256")
+        and recovery.get("main_host_sha256")
+        and recovery["hrm_host_sha256"] != recovery["main_host_sha256"]
+    )
+    live_recovery_identity_proven = bool(
+        recovery.get("live_store_identity_proven")
+    )
+    database_immutability_proven = bool(
+        immutability.get("database_enforced")
+    )
+    release_proof_complete = bool(
+        database_immutability_proven
+        and independent_recovery_configured
+        and live_recovery_identity_proven
+    )
+    response = jsonify(
+        system="OAP LAB",
+        mode="founder_private_evidence",
+        revision=(
+            os.environ.get("RENDER_GIT_COMMIT")
+            or os.environ.get("OAP_ENV_REVISION")
+            or "unreported"
+        ),
+        database_authority={
+            "provider": "render" if postgres_db.lab_database_source().startswith("lab_primary") else "unconfigured",
+            "source": postgres_db.lab_database_source(),
+            "silent_fallback": False,
+        },
+        database={
+            "immutability_proven": database_immutability_proven,
+            "protective_trigger_present": bool(
+                immutability.get("protective_trigger_present")
+            ),
+            "update_denied_by_role": bool(immutability.get("update_denied")),
+            "delete_denied_by_role": bool(immutability.get("delete_denied")),
+            "probe_error": immutability.get("error"),
+        },
+        recovery={
+            "independent_backend_configured": independent_recovery_configured,
+            "live_store_identity_proven": live_recovery_identity_proven,
+            "fallback_durable": bool(recovery.get("fallback_is_durable")),
+            "separate_host_fingerprints_present": bool(
+                recovery.get("hrm_host_sha256")
+                and recovery.get("main_host_sha256")
+            ),
+        },
+        gates={
+            "stop_fail_closed": True,
+            "owner_scoped": True,
+            "automatic_publication": False,
+            "automatic_execution": False,
+            "release_proof_complete": release_proof_complete,
+            "founder_final_required": True,
+        },
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/oap-lab", methods=["GET", "POST"])
+@web_security.login_required(founder_only=True)
+def oap_lab_workbench():
+    """Founder-only governed LAB workbench with explicit owner-scoped persistence."""
+    from mission_control.oap_lab_research import (
+        DOMAINS,
+        MISSIONS,
+        Experiment,
+        Notebook,
+        run_isolated,
+    )
+
+    values = {
+        "mission": MISSIONS[0], "domain": DOMAINS[0],
+        "question": "", "hypothesis": "", "falsification": "",
+        "operation": "", "dataset": "", "synthetic": False,
+        "human_approved": False, "stopped": False,
+        "notebook_id": "", "expected_last_hash": "",
+    }
+    error = None
+    result = None
+    from mission_control import oap_lab_workspace
+
+    if request.method == "GET" and request.args.get("notebook_id"):
+        try:
+            owner = web_security.current_authenticated_user()
+            restored = oap_lab_workspace.reopen(
+                str(owner["id"]), request.args["notebook_id"],
+            )
+            values.update(restored["notebook"])
+            values["notebook_id"] = restored["notebook_id"]
+            values["expected_last_hash"] = restored["digest"]
+        except (ValueError, oap_lab_workspace.NotebookHistoryUnavailable,
+                workspaces.WorkspaceUnavailable):
+            return jsonify(error={"code": "notebook_unavailable"}), 404
+    if request.method == "POST":
+        if not web_security.csrf_valid(request):
+            return _csrf_failure()
+        values.update({
+            key: str(request.form.get(key, ""))[:limit].strip()
+            for key, limit in (
+                ("mission", 80), ("domain", 80), ("question", 1024),
+                ("hypothesis", 1024), ("falsification", 1024),
+                ("operation", 24), ("dataset", 4000),
+            )
+        })
+        for key in ("synthetic", "human_approved", "stopped"):
+            values[key] = request.form.get(key) == "yes"
+        values["notebook_id"] = str(request.form.get("notebook_id", ""))[:80]
+        values["expected_last_hash"] = str(request.form.get("expected_last_hash", ""))[:64]
+        try:
+            if values["stopped"]:
+                raise PermissionError("STOP: notebook review not run")
+            notebook = Notebook(
+                identifier=values["notebook_id"] or str(uuid.uuid4()),
+                mission=values["mission"],
+                domain=values["domain"],
+                question=values["question"],
+                hypothesis=values["hypothesis"],
+                falsification=values["falsification"],
+            )
+            result = {
+                "mission": notebook.mission,
+                "domain": notebook.domain,
+                "experiment": None,
+                "persisted": False,
+                "scientific_truth_established": False,
+                "release_ready": False,
+            }
+            if values["operation"]:
+                if values["operation"] not in ("mean", "sum", "minimum", "maximum"):
+                    raise ValueError("operation_not_allowlisted")
+                try:
+                    dataset = tuple(float(item.strip()) for item in values["dataset"].split(","))
+                except ValueError as exc:
+                    raise ValueError("synthetic_numeric_dataset_required") from exc
+                experiment = Experiment(
+                    identifier=str(uuid.uuid4()),
+                    notebook_id=notebook.identifier,
+                    operation=values["operation"],
+                    dataset=dataset,
+                    synthetic=values["synthetic"],
+                    human_approved=values["human_approved"],
+                )
+                result["experiment"] = run_isolated(
+                    experiment, notebook, stopped=values["stopped"],
+                )
+            if request.form.get("notebook_action") == "save":
+                owner = web_security.current_authenticated_user()
+                # Reuse the canonical workspace user registration, not a LAB identity.
+                public_store.ensure_authenticated_user(
+                    str(owner["id"]), email=str(owner["email"]),
+                    display_name=str(owner["name"]), store_email=False,
+                )
+                saved = oap_lab_workspace.save(
+                    str(owner["id"]), notebook,
+                    expected_last_hash=values["expected_last_hash"],
+                    stopped=values["stopped"],
+                )
+                values["notebook_id"] = saved["notebook_id"]
+                values["expected_last_hash"] = saved["digest"]
+                result["saved"] = saved
+                result["persisted"] = True
+            if request.form.get("notebook_action") == "download":
+                from hashlib import sha256
+
+                # A Founder-initiated, transient export; never an authenticated
+                # store receipt, independent recovery anchor or claim promotion.
+                payload = {
+                    "format": "oap_lab_review_only_notebook_v1",
+                    "notebook": {
+                        "identifier": notebook.identifier,
+                        "mission": notebook.mission,
+                        "domain": notebook.domain,
+                        "question": notebook.question,
+                        "hypothesis": notebook.hypothesis,
+                        "falsification": notebook.falsification,
+                        "state": notebook.state,
+                    },
+                    "experiment": result["experiment"],
+                    "persisted_by_oap": False,
+                    "independently_recoverable": False,
+                    "scientific_truth_established": False,
+                    "publication_authorised": False,
+                    "execution_authorised": False,
+                }
+                raw = json.dumps(
+                    payload, sort_keys=True, separators=(",", ":"), allow_nan=False,
+                ).encode("utf-8")
+                response = make_response(raw)
+                response.headers["Content-Type"] = "application/json"
+                response.headers["Content-Disposition"] = (
+                    'attachment; filename="oap-lab-notebook.json"'
+                )
+                response.headers["Cache-Control"] = "no-store"
+                response.headers["X-OAP-Notebook-SHA256"] = sha256(raw).hexdigest()
+                return response
+        except (ValueError, TypeError, PermissionError) as exc:
+            result = None
+            error = str(exc)
+        except (oap_lab_workspace.NotebookHistoryUnavailable,
+                workspaces.WorkspaceUnavailable,
+                public_store.PublicStoreUnavailable):
+            result = None
+            error = "notebook_store_unavailable"
+    response = make_response(render_template(
+        "oap_lab.html", missions=MISSIONS, domains=DOMAINS,
+        operations=("mean", "sum", "minimum", "maximum"),
+        values=values, error=error, result=result,
+    ))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)
