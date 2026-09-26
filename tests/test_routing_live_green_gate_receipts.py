@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from urllib import error
 
 import pytest
@@ -60,8 +61,10 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 
     with pytest.raises(SystemExit, match="live routing probe had failed requests"):
         gate.main()
-    lines = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
-    receipt = json.loads(lines[-1])
+    receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
+    assert receipts[0]["event"] == "oap_routing_bounded_external_warmup"
+    receipt = receipts[-1]
+    assert receipt["event"] == "oap_routing_bounded_external_probe"
     assert receipt["requests"] == 2
     assert receipt["successes"] == 1
     assert receipt["failures"] == 1
@@ -83,8 +86,21 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     )
     with pytest.raises(SystemExit, match="p95 exceeded 6.0s"):
         gate.main()
-    lines = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
-    receipt = json.loads(lines[-1])
+    receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
+    assert receipts[0]["event"] == "oap_routing_bounded_external_warmup"
+    receipt = receipts[-1]
+    assert receipt["event"] == "oap_routing_bounded_external_probe"
     assert receipt["successes"] == 2
     assert receipt["failures"] == 0
     assert receipt["bounded_capacity_proven"] is False
+
+
+def test_live_green_gate_warms_before_capacity_probe():
+    source = Path("scripts/routing_live_green_gate.py").read_text(encoding="utf-8")
+
+    assert "def wait_until_ready()" in source
+    assert '"event": "oap_routing_bounded_external_warmup"' in source
+    assert 'if not warmup.get("ready")' in source
+    assert "TOTAL_REQUESTS = 20" in source
+    assert "WORKERS = 4" in source
+    assert "P95_LIMIT_SECONDS = 6.0" in source
