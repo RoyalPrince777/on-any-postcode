@@ -8,9 +8,10 @@ from __future__ import annotations
 from decimal import Decimal
 from flask import Flask, jsonify, render_template, request
 
-from mission_control import sika_global, sika_wallet_ledger
+from mission_control import sika_finance_features, sika_global, sika_wallet_ledger
 
 app = Flask(__name__, template_folder="mission_control/templates")
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 
 
 @app.after_request
@@ -18,6 +19,8 @@ def security_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cache-Control", "no-store")
     response.headers.setdefault(
         "Content-Security-Policy",
@@ -141,4 +144,56 @@ def regulated_action_blocked():
         "reason": "regulated_execution_not_enabled",
         "money_moved": False,
         "human_approval_required": True,
+    }), 423
+
+
+@app.post("/api/sika/cashback/quote")
+def sika_cashback_quote():
+    body = request.get_json(silent=True) or {}
+    try:
+        quote = sika_finance_features.cashback_quote(
+            body.get("purchase_sika", "0"),
+            body.get("rate_percent", "0"),
+            funded_pool_available_sika=body.get("funded_pool_available_sika", "0"),
+        )
+    except (sika_finance_features.FinanceFeatureError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+    return jsonify(quote.as_dict())
+
+
+@app.post("/api/sika/deferred/preview")
+def sika_deferred_preview():
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_finance_features.deferred_payment_preview(
+            body.get("purchase_sika", "0"),
+            body.get("instalments", 3),
+            monthly_disposable_sika=body.get("monthly_disposable_sika"),
+        ))
+    except (sika_finance_features.FinanceFeatureError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+
+
+@app.post("/api/sika/trust/preview")
+def sika_trust_preview():
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_finance_features.trust_score_preview(
+            payment_reliability=body.get("payment_reliability", 0),
+            cashflow_resilience=body.get("cashflow_resilience", 0),
+            account_stability=body.get("account_stability", 0),
+            identity_confidence=body.get("identity_confidence", 0),
+        ))
+    except (sika_finance_features.FinanceFeatureError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+
+
+@app.post("/api/sika/security/freeze")
+def sika_security_freeze():
+    return jsonify({
+        "security_action": "freeze_preview",
+        "card_frozen": False,
+        "payments_frozen": False,
+        "reason": "no_live_card_or_payment_rail",
+        "executable": False,
     }), 423
