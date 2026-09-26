@@ -1,8 +1,12 @@
 """Founder-only ALL IN A.I. Command Center surface."""
 
-from flask import Blueprint, jsonify, make_response, request
+import logging
+
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import all_in_ai, all_in_ai_mission_store, all_in_ai_runtime, web_security
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("all_in_ai", __name__)
 
@@ -37,6 +41,23 @@ def _require_csrf():
         "csrf_failed",
         "The secure session expired. Refresh and try again.",
         403,
+    )
+
+
+@bp.get("/all-in-ai/app")
+@web_security.login_required(founder_only=True)
+def all_in_ai_app():
+    """Render the Founder-only Mission Keeper live console."""
+
+    return _no_store(
+        make_response(
+            render_template(
+                "all_in_ai.html",
+                identity=all_in_ai.status(),
+                runtime=all_in_ai_runtime.status(),
+                oap_csrf_token=web_security.csrf_token(),
+            )
+        )
     )
 
 
@@ -85,6 +106,13 @@ def all_in_ai_mission():
             503,
         )
 
+    logger.info(
+        "oap_all_in_ai_mission_started read_back_verified=%s audit_verified=%s "
+        "hrm_verified=%s execution_granted=false human_authority_final=true",
+        bool(result.get("receipt", {}).get("read_back_verified")),
+        bool(result.get("receipt", {}).get("audit_verified")),
+        bool(result.get("receipt", {}).get("hrm_verified")),
+    )
     return _no_store(make_response(jsonify(result), 201))
 
 
@@ -106,6 +134,14 @@ def all_in_ai_mission_read(mission_id: str):
             "The mission receipt could not be independently verified.",
             503,
         )
+    logger.info(
+        "oap_all_in_ai_mission_read_back state=%s read_back_verified=%s "
+        "audit_verified=%s hrm_verified=%s execution_granted=false",
+        str(receipt.get("state") or ""),
+        bool(receipt.get("read_back_verified")),
+        bool(receipt.get("audit_verified")),
+        bool(receipt.get("hrm_verified")),
+    )
     return _no_store(make_response(jsonify(receipt=receipt)))
 
 
@@ -147,6 +183,13 @@ def all_in_ai_mission_stop(mission_id: str):
                 409,
             )
         raise
+    logger.info(
+        "oap_all_in_ai_mission_stopped read_back_verified=%s audit_verified=%s "
+        "hrm_verified=%s execution_granted=false human_authority_final=true",
+        bool(receipt.get("read_back_verified")),
+        bool(receipt.get("audit_verified")),
+        bool(receipt.get("hrm_verified")),
+    )
     return _no_store(
         make_response(
             jsonify(
@@ -203,6 +246,13 @@ def all_in_ai_mission_recover(mission_id: str):
                 409,
             )
         raise
+    logger.info(
+        "oap_all_in_ai_mission_recovered read_back_verified=%s audit_verified=%s "
+        "hrm_verified=%s execution_granted=false human_authority_final=true",
+        bool(receipt.get("read_back_verified")),
+        bool(receipt.get("audit_verified")),
+        bool(receipt.get("hrm_verified")),
+    )
     return _no_store(
         make_response(
             jsonify(
