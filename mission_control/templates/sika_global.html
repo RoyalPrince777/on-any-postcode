@@ -31,7 +31,7 @@ input{width:100%;background:#0c0c0c;color:#fff;border:1px solid #3d3521;border-r
 .ok{color:#9ee6aa}.locked{color:#e5c966}.truth{color:#c9c9c9}
 .groupGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px}
 .primaryAction{border-color:#8d7630;background:#211b0c}
-nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px solid #292312;padding:12px;display:flex;justify-content:center;gap:28px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px solid #292312;padding:8px 10px 10px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;z-index:20}.tabBtn{background:transparent;border:0;padding:8px 4px;text-align:center;color:#aaa;border-radius:12px}.tabBtn b{display:block;font-size:17px}.tabBtn span{font-size:10px}.tabBtn.active{color:#e5c966;background:#17130a}.appPane{display:none}.appPane.active{display:block}.advancedBlock{margin-top:18px}
 </style>
 </head>
 <body>
@@ -49,10 +49,10 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
   <span class="value">≈ £{{ wallet.balance_reference }}</span>
 </div>
 <div class="quickActions" aria-label="Quick actions">
-  <button class="quickAction jump primaryAction" data-target="walletSection"><b>＋</b><span>Add</span></button>
+  <button class="quickAction tabLink primaryAction" data-pane-target="walletPane"><b>＋</b><span>Add</span></button>
   <button class="quickAction regulated" data-path="/api/sika/pay"><b>↑</b><span>Pay</span></button>
-  <button class="quickAction jump" data-target="exchangeSection"><b>⇄</b><span>Exchange</span></button>
-  <button class="quickAction jump" data-target="securitySection"><b>⌁</b><span>Security</span></button>
+  <button class="quickAction tabLink" data-pane-target="payPane"><b>⇄</b><span>Exchange</span></button>
+  <button class="quickAction tabLink" data-pane-target="morePane"><b>⌁</b><span>Security</span></button>
 </div>
 <div class="summaryRow">
   <div class="summaryBox"><span class="muted">Anchor</span><div class="value">1 SIKA = £1</div></div>
@@ -61,7 +61,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 </section>
 
 <section class="card" aria-label="Recent activity">
-<div class="homeSub"><h2 style="margin:0">Recent activity</h2><button class="navBtn jump" data-target="walletSection">See all</button></div>
+<div class="homeSub"><h2 style="margin:0">Recent activity</h2><button class="navBtn tabLink" data-pane-target="activityPane">See all</button></div>
 <div class="recentList">
 {% if wallet.history %}
   {% for item in wallet.history[:3] %}
@@ -95,7 +95,9 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile intel" data-intel="bank"><b>Bank Intelligence</b><p class="muted">Bank MBS boundary</p></button>
 </section>
 
-<div class="sectionTitle">System & Release</div>
+<div class="advancedBlock">
+<details>
+<summary class="sectionTitle" style="cursor:pointer">Advanced / Control Center</summary>
 <section class="groupGrid" aria-label="Release and regulated rails">
 <button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">PWA × device proof</p></button>
 <button class="tile jump" data-target="androidSection"><b>Android Acceptance</b><p class="muted">Physical install × update × recovery</p></button>
@@ -110,7 +112,20 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile regulated" data-path="/api/sika/pay"><b>Pay</b><p class="muted">Execution locked</p></button>
 </section>
 <div class="result" id="topActionResult"></div>
+</details>
+</div>
 
+<div class="appPane active" data-pane="homePane">
+<div class="sectionTitle">Money & Value</div>
+<section class="groupGrid" aria-label="Money and value shortcuts">
+<button class="tile tabLink primaryAction" data-pane-target="walletPane"><b>Wallet</b><p class="muted">Balance & ledger</p></button>
+<button class="tile tabLink primaryAction" data-pane-target="payPane"><b>Pay</b><p class="muted">Pay & exchange</p></button>
+<button class="tile tabLink" data-pane-target="activityPane"><b>Activity</b><p class="muted">Transactions & reconciliation</p></button>
+<button class="tile tabLink" data-pane-target="morePane"><b>More</b><p class="muted">Security, Market & controls</p></button>
+</section>
+</div>
+
+<div class="appPane" data-pane="walletPane">
 <section class="card" id="walletSection">
 <h2>Wallet</h2>
 <div class="muted">Reference balance · software only</div>
@@ -136,6 +151,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <div class="result" id="treasuryResult">—</div>
 </section>
 
+</div>
+<div class="appPane" data-pane="activityPane">
 <section class="card">
 <h2>Reconciliation</h2>
 <div class="value">{{ wallet.statement.total_debits_sika }} SIKA</div>
@@ -168,6 +185,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 {% endif %}
 </section>
 
+</div>
+<div class="appPane" data-pane="payPane">
 <section class="card" id="exchangeSection">
 <h2>Global currency quote</h2>
 <label>SIKA amount<input id="amount" inputmode="decimal" value="1"></label>
@@ -209,6 +228,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Explainable preview only. It does not approve or refuse credit.</p>
 </section>
 
+</div>
+<div class="appPane" data-pane="morePane">
 <section class="card" id="securitySection">
 <h2>Security Centre</h2>
 <label>Device label<input id="bankDeviceId" value="sika-acceptance-device" maxlength="120"></label>
@@ -342,12 +363,14 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <div class="status"><span class="dot"></span><b>Truth mode</b></div>
 <p>SIKA software, PWA install shell, intelligence, fraud and safety controls can operate now. Customer funds, bank accounts, card issuance, cash-out and payment execution remain licence-gated and fail closed.</p>
 </section>
+</div>
 </main>
-<nav>
-<button class="navBtn" data-target="top">Home</button>
-<button class="navBtn" data-target="walletSection">Wallet</button>
-<button class="navBtn" data-target="exchangeSection">Exchange</button>
-<button class="navBtn" data-target="securitySection">Security</button>
+<nav aria-label="SIKA primary navigation">
+<button class="tabBtn active" data-pane-target="homePane"><b>⌂</b><span>Home</span></button>
+<button class="tabBtn" data-pane-target="walletPane"><b>◫</b><span>Wallet</span></button>
+<button class="tabBtn" data-pane-target="payPane"><b>↑</b><span>Pay</span></button>
+<button class="tabBtn" data-pane-target="activityPane"><b>↕</b><span>Activity</span></button>
+<button class="tabBtn" data-pane-target="morePane"><b>•••</b><span>More</span></button>
 </nav>
 <script>
 async function postJSON(path,payload){
@@ -432,6 +455,14 @@ document.getElementById('freezeBtn').onclick=async()=>{
  const [r,j]=await postJSON('/api/sika/security/freeze',{});
  document.getElementById('freezeResult').textContent=(j.reason||j.security_action)+' · execution '+j.executable;
 };
+function showPane(name){
+ document.querySelectorAll('.appPane').forEach(p=>p.classList.toggle('active',p.dataset.pane===name));
+ document.querySelectorAll('.tabBtn').forEach(b=>b.classList.toggle('active',b.dataset.paneTarget===name));
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.tabBtn,.tabLink').forEach(btn=>{
+ btn.onclick=()=>showPane(btn.dataset.paneTarget);
+});
 document.querySelectorAll('.jump,.navBtn').forEach(btn=>{
  btn.onclick=()=>document.getElementById(btn.dataset.target)?.scrollIntoView({behavior:'smooth',block:'start'});
 });
