@@ -167,7 +167,21 @@ def init_app(app: Flask) -> None:
             flush=True,
         )
         if not recovery_ok:
-            raise RuntimeError("oap_lab_recovery_live_proof_failed")
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_lab_recovery_gate",
+                        "ready": False,
+                        "reason": "oap_lab_recovery_live_proof_failed",
+                        "public_app_startup_blocked": False,
+                        "lab_release_blocked": True,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
 
     if os.environ.get("OAP_ESIM_MIGRATION_ON_BOOT", "").strip() == "1":
         try:
