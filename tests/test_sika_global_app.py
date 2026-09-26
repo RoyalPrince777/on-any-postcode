@@ -89,3 +89,56 @@ def test_treasury_rate_requires_source_and_positive_value():
         "gbp_per_unit": "0.75",
         "source": "",
     }).status_code == 400
+
+
+def test_cashback_requires_funded_pool_for_funded_flag():
+    client = app.test_client()
+    response = client.post("/api/sika/cashback/quote", json={
+        "purchase_sika": "100",
+        "rate_percent": "5",
+        "funded_pool_available_sika": "4",
+    })
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["reward_sika"] == "5.00"
+    assert body["funded"] is False
+    assert body["executable"] is False
+
+
+def test_deferred_preview_builds_schedule_without_credit():
+    client = app.test_client()
+    response = client.post("/api/sika/deferred/preview", json={
+        "purchase_sika": "120",
+        "instalments": 3,
+        "monthly_disposable_sika": "60",
+    })
+    body = response.get_json()
+    assert response.status_code == 200
+    assert [x["amount_sika"] for x in body["schedule"]] == ["40.00", "40.00", "40.00"]
+    assert body["credit_agreement_created"] is False
+    assert body["affordability_signal"] == "within_input_limit"
+
+
+def test_trust_preview_is_explainable_and_not_credit_decision():
+    client = app.test_client()
+    response = client.post("/api/sika/trust/preview", json={
+        "payment_reliability": 80,
+        "cashflow_resilience": 70,
+        "account_stability": 90,
+        "identity_confidence": 100,
+    })
+    body = response.get_json()
+    assert response.status_code == 200
+    assert 0 <= body["score"] <= 1000
+    assert len(body["why"]) == 4
+    assert body["credit_decision"] is False
+
+
+def test_security_freeze_fails_closed_without_live_rails():
+    client = app.test_client()
+    response = client.post("/api/sika/security/freeze")
+    body = response.get_json()
+    assert response.status_code == 423
+    assert body["card_frozen"] is False
+    assert body["payments_frozen"] is False
+    assert body["executable"] is False
