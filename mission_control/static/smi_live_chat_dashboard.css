@@ -231,3 +231,50 @@ body[data-smi-presence="paused"] .smi-shell::after,body[data-smi-presence="stopp
   #pause-button,#stop-button{bottom:62px!important}
   .preview{bottom:62px!important}
 }
+
+
+/* SMI quiet-home closure: one primary intelligence surface.
+   Secondary proof/intelligence stays available through explicit tools only. */
+body:not(.smi-command-open):not(.smi-status-open) .smi-dashboard-layer,
+body:not(.smi-command-open):not(.smi-status-open) .smi-status-backdrop,
+body:not(.smi-command-open):not(.smi-status-open) .smi-command-centre{
+  display:none!important;
+}
+.chat-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  max-width:min(360px,62vw)!important;
+}
+.chat-head>div{display:flex!important;align-items:baseline!important;gap:8px!important}
+.chat-title{font-size:.86rem!important;letter-spacing:.09em!important;text-transform:uppercase}
+.chat-subtitle{font-size:.62rem!important;opacity:.72}
+#provider-state{
+  position:absolute!important;
+  right:10px!important;
+  width:8px!important;height:8px!important;
+  overflow:hidden!important;
+  color:transparent!important;
+  border-radius:50%!important;
+  background:#35d778!important;
+  box-shadow:0 0 9px #35d77888!important;
+}
+#provider-state:is([data-state="working"],[data-state="thinking"]){background:#e4bf7f!important;box-shadow:0 0 9px #e4bf7f88!important}
+.status-row{display:none!important}
+.history:not(.mobile-open){pointer-events:none!important}
+.history.mobile-open{pointer-events:auto!important}
+.attach-menu .attach-note{font-size:.62rem!important;opacity:.72}
+.attach-menu [data-oap-action="function-health"],
+.attach-menu [data-oap-action="green-gate"],
+.attach-menu [data-oap-action="improvement"],
+.attach-menu [data-oap-action="swot"],
+.attach-menu [data-oap-action="behaviour"],
+.attach-menu [data-oap-action="github-governed"]{
+  opacity:.82;
+}
+@media(max-width:760px){
+  .chat-head{max-width:58vw!important}
+  .chat-head .chat-subtitle:not(#provider-state){display:none!important}
+  .composer-box{box-shadow:0 0 18px rgba(25,153,255,.18)!important}
+}
