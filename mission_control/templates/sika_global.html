@@ -15,7 +15,7 @@
 :root{font-family:Inter,system-ui,sans-serif;color:#f7f7f7;background:#080808}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#050505,#17140a);min-height:100vh}
 .shell{max-width:480px;margin:auto;padding:24px 18px 90px}
-.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}.brandActions{display:flex;gap:8px;align-items:center}.iconBtn{width:38px;height:38px;border-radius:50%;padding:0;text-align:center;display:grid;place-items:center}.profileChip{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#211b0c;border:1px solid #8d7630;font-weight:800}.hiddenBalance{filter:blur(9px);user-select:none}.payReview{display:none}.payReview.active{display:block}
+.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}.brandActions{display:flex;gap:8px;align-items:center}.iconBtn{width:38px;height:38px;border-radius:50%;padding:0;text-align:center;display:grid;place-items:center}.profileChip{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#211b0c;border:1px solid #8d7630;font-weight:800}.hiddenBalance{filter:blur(9px);user-select:none}.payReview{display:none}.payReview.active{display:block}.bankCard{background:linear-gradient(135deg,#0e0e0e,#2a210d);border:1px solid #8d7630;border-radius:24px;padding:20px;min-height:180px;display:flex;flex-direction:column;justify-content:space-between}.cardNumber{letter-spacing:.2em;font-size:20px}.activityTools{display:grid;grid-template-columns:1fr 120px;gap:8px;margin-bottom:12px}.activityRow.hidden{display:none}.insightGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.progressTrack{height:9px;background:#272217;border-radius:999px;overflow:hidden}.progressFill{height:100%;background:#e5c966;width:0}
 .badge{border:1px solid #b99b3d;border-radius:999px;padding:6px 10px;color:#e5c966;font-size:12px}
 .card{background:rgba(255,255,255,.055);border:1px solid rgba(229,201,102,.24);border-radius:24px;padding:20px;margin-top:18px}
 .balance{font-size:46px;font-weight:800;margin:8px 0}.muted{color:#aaa}.homeBalance{font-size:50px;font-weight:850;letter-spacing:-.04em;margin:6px 0 0}.homeSub{display:flex;justify-content:space-between;gap:12px;align-items:end}.quickActions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.quickAction{text-align:center;padding:12px 6px;border-radius:16px}.quickAction b{display:block;font-size:18px;margin-bottom:5px}.quickAction span{font-size:11px;color:#c9c9c9}.summaryRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.summaryBox{background:#0e0d0a;border:1px solid #2f2a1d;border-radius:16px;padding:12px}.recentList{display:grid;gap:10px}.recentItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #242116}.recentItem:last-child{border-bottom:0}.recentItem .amount{font-weight:750}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
@@ -145,6 +145,22 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">This is not a deposit account or claim on customer funds.</p>
 </section>
 
+<section class="card" id="cardSection">
+<h2>SIKA Card</h2>
+<div class="bankCard">
+  <div class="homeSub"><b>SIKA</b><span class="badge">CARD</span></div>
+  <div>
+    <div class="cardNumber">•••• •••• •••• 2580</div>
+    <div class="homeSub"><span class="muted">OAP MEMBER</span><span class="muted">Virtual preview</span></div>
+  </div>
+</div>
+<div class="summaryRow">
+  <button id="cardFreezeBtn">Freeze</button>
+  <button id="cardStatusBtn">Card status</button>
+</div>
+<div class="result" id="cardResult">Card execution remains licence-gated.</div>
+</section>
+
 <section class="card" id="treasurySection">
 <h2>Treasury Rates</h2>
 {% if wallet.rates %}
@@ -186,9 +202,17 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 
 <section class="card">
 <h2>Transaction History</h2>
+<div class="activityTools">
+  <input id="activitySearch" placeholder="Search activity" aria-label="Search activity">
+  <select id="activityFilter" aria-label="Filter activity">
+    <option value="all">All</option>
+    <option value="credit">Credits</option>
+    <option value="debit">Debits</option>
+  </select>
+</div>
 {% if wallet.history %}
   {% for item in wallet.history %}
-  <div class="tile"><b>{{ item.kind }}</b><p>{{ item.amount_sika }} SIKA</p><p class="muted">{{ item.memo }}</p></div>
+  <div class="tile activityRow" data-activity-text="{{ (item.kind ~ ' ' ~ item.memo)|lower }}" data-activity-kind="{{ item.kind|lower }}"><b>{{ item.kind }}</b><p>{{ item.amount_sika }} SIKA</p><p class="muted">{{ item.memo }}</p></div>
   {% endfor %}
 {% else %}
   <p class="muted">No reference ledger entries yet.</p>
@@ -257,6 +281,21 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 
 </div>
 <div class="appPane" data-pane="morePane">
+<section class="card" id="insightsSection">
+<h2>Insights & Goals</h2>
+<div class="insightGrid">
+  <div class="summaryBox"><span class="muted">Credits</span><div class="value">{{ wallet.statement.total_credits_sika }} SIKA</div></div>
+  <div class="summaryBox"><span class="muted">Debits</span><div class="value">{{ wallet.statement.total_debits_sika }} SIKA</div></div>
+</div>
+<label>Goal name<input id="goalName" maxlength="80" placeholder="e.g. Emergency fund"></label>
+<label>Target SIKA<input id="goalTarget" inputmode="decimal" value="1000"></label>
+<label>Current SIKA<input id="goalCurrent" inputmode="decimal" value="0"></label>
+<button id="goalPreviewBtn">Preview goal</button>
+<div class="progressTrack"><div class="progressFill" id="goalProgress"></div></div>
+<div class="result" id="goalResult">Set a goal to preview progress.</div>
+<p class="notice">Planning only. No funds are moved or ring-fenced.</p>
+</section>
+
 <section class="card">
 <h2>Incoming</h2>
 <div class="result" id="incomingResult">No new SIKA alerts.</div>
@@ -409,6 +448,39 @@ async function postJSON(path,payload){
  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
  return [r,await r.json()];
 }
+document.getElementById('cardFreezeBtn').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/security/freeze',{});
+ document.getElementById('cardResult').textContent=(j.reason||j.security_action||j.error)+' · executable '+(j.executable??false);
+};
+document.getElementById('cardStatusBtn').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/card',{});
+ document.getElementById('cardResult').textContent=(j.reason||j.status||j.error)+' · money moved '+(j.money_moved??false);
+};
+function filterActivity(){
+ const q=(document.getElementById('activitySearch')?.value||'').toLowerCase();
+ const kind=document.getElementById('activityFilter')?.value||'all';
+ document.querySelectorAll('.activityRow').forEach(row=>{
+  const text=row.dataset.activityText||'';
+  const rk=row.dataset.activityKind||'';
+  const kindOk=kind==='all'||rk.includes(kind);
+  row.classList.toggle('hidden',!(text.includes(q)&&kindOk));
+ });
+}
+document.getElementById('activitySearch')?.addEventListener('input',filterActivity);
+document.getElementById('activityFilter')?.addEventListener('change',filterActivity);
+document.getElementById('goalPreviewBtn').onclick=()=>{
+ const name=document.getElementById('goalName').value.trim()||'Goal';
+ const target=Number(document.getElementById('goalTarget').value||0);
+ const current=Number(document.getElementById('goalCurrent').value||0);
+ if(target<=0 || current<0){
+  document.getElementById('goalResult').textContent='Enter a positive target and non-negative current amount';
+  return;
+ }
+ const pct=Math.min(100,Math.round((current/target)*100));
+ document.getElementById('goalProgress').style.width=pct+'%';
+ document.getElementById('goalResult').textContent=name+' · '+pct+'% · '+current.toFixed(2)+' / '+target.toFixed(2)+' SIKA';
+};
+
 let balanceHidden=false;
 document.getElementById('balancePrivacyBtn').onclick=()=>{
  balanceHidden=!balanceHidden;
