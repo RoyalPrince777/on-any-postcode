@@ -823,3 +823,75 @@ def test_sika_security_ledger_readiness_is_fail_closed():
     body = response.get_json()
     assert body["money_execution_enabled"] is False
     assert body["founder_auth_touched"] is False
+
+
+def test_sika_daily_activity_keeps_executed_spend_zero():
+    client = app.test_client()
+    response = client.get("/api/sika/security/session-policy")
+    assert response.status_code == 200
+    assert response.get_json()["money_execution_enabled"] is False
+
+
+def test_sika_step_up_model_never_authorises_payment_execution():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    events = [{
+        "event_id": "event-1",
+        "event_type": "STEP_UP_CREATED",
+        "details": {"challenge_id": "challenge-1"},
+    }]
+
+    def fake_history(owner_id, *, limit=50):
+        return list(events)
+
+    def fake_record(owner_id, *, event_type, severity, details=None):
+        item = {
+            "event_id": "event-2",
+            "event_type": event_type,
+            "severity": severity,
+            "details": details or {},
+        }
+        events.insert(0, item)
+        return item
+
+    original_record = sika_security_ledger.record_authenticated_owner
+    sika_security_ledger.history = fake_history
+    sika_security_ledger.record_authenticated_owner = fake_record
+    try:
+        result = sika_security_ledger.resolve_step_up_challenge(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="challenge-1",
+            approved=True,
+        )
+        assert result["status"] == "approved_for_review"
+        assert result["payment_execution_authorised"] is False
+        again = sika_security_ledger.resolve_step_up_challenge(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="challenge-1",
+            approved=True,
+        )
+        assert again["idempotent"] is True
+        assert again["money_moved"] is False
+    finally:
+        sika_security_ledger.history = original_history
+        sika_security_ledger.record_authenticated_owner = original_record
+
+
+def test_sika_alert_lifecycle_rejects_unknown_event():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    sika_security_ledger.history = lambda owner_id, limit=100: []
+    try:
+        try:
+            sika_security_ledger.acknowledge_alert(
+                "11111111-1111-1111-1111-111111111111",
+                "missing-event",
+            )
+        except ValueError as exc:
+            assert str(exc) == "security_event_not_found"
+        else:
+            raise AssertionError("unknown alert must fail closed")
+    finally:
+        sika_security_ledger.history = original_history
