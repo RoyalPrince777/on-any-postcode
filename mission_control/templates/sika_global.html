@@ -194,6 +194,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button id="bankPasswordCreateBtn">Create bank-app password</button>
 <button id="bankPasswordUnlockBtn">Unlock bank app</button>
 <button id="bankPasswordLockBtn">Lock bank app</button>
+<button id="bankCredentialStoreBtn">Check durable credential readiness</button>
 <div class="result" id="bankPasswordResult">Bank-app password is separate from Founder authentication.</div>
 <label>Owner UUID<input id="bankOwnerId" maxlength="36" placeholder="OAP owner UUID"></label>
 <button id="bankDeviceBindBtn">Bind owner to this device</button>
@@ -363,6 +364,12 @@ document.getElementById('bankPasswordUnlockBtn').onclick=async()=>{
 document.getElementById('bankPasswordLockBtn').onclick=async()=>{
  const r=await fetch('/api/sika/security/password/lock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:bankDeviceId.value})});
  const j=await r.json(); bankPasswordResult.textContent=j.locked?'Bank app locked':(j.error||'Lock failed');
+};
+document.getElementById('bankCredentialStoreBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/security/credential-store/readiness'); const j=await r.json();
+ bankPasswordResult.textContent='durable credential store '+j.canonical_store_reused+
+  ' · plaintext stored '+j.plaintext_password_stored+' · public write '+j.standalone_public_write_enabled+
+  ' · production '+j.production_ready;
 };
 document.getElementById('bankDeviceBindBtn').onclick=async()=>{
  const r=await fetch('/api/sika/device/bind',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({owner_id:bankOwnerId.value,device_id:bankDeviceId.value})});
