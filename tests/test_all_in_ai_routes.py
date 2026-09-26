@@ -14,6 +14,7 @@ def test_all_in_ai_route_registers_founder_command_surface():
     assert "/mission/all-in-ai/mission/<mission_id>" in rules
     assert "/mission/all-in-ai/mission/<mission_id>/stop" in rules
     assert "/mission/all-in-ai/mission/<mission_id>/recover" in rules
+    assert "/mission/all-in-ai/mission/<mission_id>/action-handoff" in rules
 
 
 def test_all_in_ai_route_is_not_public():
@@ -49,6 +50,13 @@ def test_all_in_ai_lifecycle_routes_are_not_public():
     assert client.post(
         f"/mission/all-in-ai/mission/{mission}/recover",
         json={"expected_previous_hash": "b" * 64},
+    ).status_code in {401, 403}
+    assert client.post(
+        f"/mission/all-in-ai/mission/{mission}/action-handoff",
+        json={
+            "reviewed_request_id": "00000000-0000-0000-0000-000000000003",
+            "action_name": "SYNC_INTERNAL_RECORD",
+        },
     ).status_code in {401, 403}
 
 
