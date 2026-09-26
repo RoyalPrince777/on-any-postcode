@@ -279,8 +279,21 @@ def weather(latitude: object, longitude: object) -> dict[str, Any]:
             )
         ][:3],
         "provider": "Live weather service",
+        "provider_id": "api.open-meteo.com",
+        "source_received_epoch": int(time.time()),
+        "source_ttl_seconds": CACHE_SECONDS,
     }
-    return _store(cache_key, weather_intelligence.enrich(observation))
+    enriched = weather_intelligence.enrich(observation)
+    earth = dict(enriched.get("earth_intelligence") or {})
+    if not bool(earth.get("live_environment_ready")):
+        # Transport success is not enough for Truth Mode. If OAP cannot
+        # interpret the observation into a usable advisory with a timestamp,
+        # revoke provider health so downstream systems cannot report Green.
+        _mark_provider_failure(
+            "api.open-meteo.com", "weather_intelligence_unavailable"
+        )
+        raise LocationUnavailable("weather_intelligence_unavailable")
+    return _store(cache_key, enriched)
 
 
 def lookup_with_weather(value: object) -> dict[str, Any]:
