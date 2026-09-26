@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import pytest
 from flask import Flask
 
 from mission_control import entertainment_catalogue, product_core_views, radio_core
@@ -111,8 +112,6 @@ def test_radio_store_rotation_requires_station_and_track_same_owner(monkeypatch)
 
     monkeypatch.setattr(radio_core.postgres_db, "connect", lambda **_kwargs: Connection())
     store = radio_core.RadioStore()
-    import pytest
-
     with pytest.raises(PermissionError, match="radio_station_or_track_not_owned"):
         store.add_rotation(
             owner_identity_id=owner,
