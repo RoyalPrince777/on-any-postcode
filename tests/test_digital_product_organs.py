@@ -51,7 +51,7 @@ def test_combined_organ_status_is_read_projection(monkeypatch):
     monkeypatch.setattr(
         product_core_services,
         "tune_dashboard",
-        lambda identity: {"organ": "OAP Tune Core", "identity": str(identity)},
+        lambda identity: {"organ": "OAP Music", "identity": str(identity)},
     )
     monkeypatch.setattr(
         product_core_services,
@@ -69,7 +69,7 @@ def test_combined_organ_status_is_read_projection(monkeypatch):
     )
 
     assert result["platform"]["ready"] is True
-    assert result["tune"]["organ"] == "OAP Tune Core"
+    assert result["tune"]["organ"] == "OAP Music"
     assert result["commerce"]["organ"] == "OAP Commerce Core"
     assert result["post"]["organ"] == "OAP Post Core"
     assert result["consequential_action"] is False

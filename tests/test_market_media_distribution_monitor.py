@@ -11,7 +11,7 @@ def test_market_media_distribution_reads_authenticated_first_party_state(monkeyp
         coherent_automation.product_core_services,
         "tune_dashboard",
         lambda identity: {
-            "organ": "OAP Tune Core",
+            "organ": "OAP Music",
             "releases": [{"release_id": "release-1"}],
             "playlists": [{"playlist_id": "playlist-1"}],
         },

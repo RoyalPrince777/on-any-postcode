@@ -8,8 +8,8 @@ def test_product_suite_covers_music_market_and_post_office():
 
     assert set(products) == {"music", "market", "post-office"}
     assert products["music"]["name"] == "OAP Music"
-    assert products["music"]["core"] == "OAP Tune Core"
-    assert "TuneCore + Spotify-style" in products["music"]["own_equivalent"]
+    assert products["music"]["core"] == "OAP Music"
+    assert "First-party artist" in products["music"]["own_equivalent"]
     assert products["market"]["name"] == "OAP Market"
     assert products["market"]["core"] == "OAP Commerce Core"
     assert "Shopify-style" in products["market"]["own_equivalent"]

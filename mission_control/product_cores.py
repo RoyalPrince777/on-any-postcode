@@ -43,9 +43,9 @@ PRODUCT_SUITE: tuple[dict[str, Any], ...] = (
     {
         "id": "music",
         "name": "OAP Music",
-        "core": "OAP Tune Core",
+        "core": "OAP Music",
         "purpose": "Artist catalogue, releases, playlists, rights, royalties and distribution workflow.",
-        "own_equivalent": "TuneCore + Spotify-style first-party music layer",
+        "own_equivalent": "First-party artist, release, playlist and music distribution functions",
         "external_lock": "External DSP delivery, licensed audio delivery and royalty payout require approved providers/rights.",
     },
     {

@@ -1,22 +1,39 @@
 """Authenticated first-party APIs for OAP Tune, Commerce and Post organs."""
 from __future__ import annotations
 
+import base64
+import binascii
+
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
     distribution_intelligence,
     entertainment_catalogue,
+    live_music_core,
+    music_acceptance,
+    music_civilization,
+    music_evidence,
+    music_recovery,
     open_cinema,
     open_cinema_evidence,
+    open_music_intake,
     product_core_services,
     product_cores,
     product_store,
     public_store,
+    radio_core,
+    records_core,
     web_security,
 )
 
 bp = Blueprint("product_core_organs", __name__)
 _store = product_cores.PostgresProductCoreStore()
+_music_evidence_store = music_evidence.MusicEvidenceStore()
+_radio_store = radio_core.RadioStore()
+_records_store = records_core.RecordsStore()
+_live_music_store = live_music_core.LiveMusicStore()
+_music_recovery_store = music_recovery.MusicRecoveryStore()
+_music_acceptance_store = music_acceptance.MusicAcceptanceStore()
 
 
 def _no_store(response):
@@ -76,7 +93,7 @@ def _media_projection(identity_id: str) -> dict[str, object]:
     tune = product_core_services.tune_dashboard(identity_id)
     return {
         "organ": "OAP Media",
-        "source_organ": tune.get("organ", "OAP Tune Core"),
+        "source_organ": tune.get("organ", "OAP Music"),
         "releases": tune.get("releases", []),
         "playlists": tune.get("playlists", []),
         "release_count": len(tune.get("releases", [])),
@@ -129,7 +146,7 @@ def _distribution_market_media_projection(identity_id: str) -> dict[str, object]
         "entertainment": entertainment_catalogue.project_catalogue(tune),
         "media": {
             "organ": "OAP Media",
-            "source_organ": tune.get("organ", "OAP Tune Core"),
+            "source_organ": tune.get("organ", "OAP Music"),
             "releases": tune.get("releases", []),
             "playlists": tune.get("playlists", []),
             "licensed_audio_delivery": False,
@@ -173,7 +190,7 @@ def tune_status():
     try:
         return _no_store(make_response(jsonify(product_core_services.tune_dashboard(_identity()))))
     except (ValueError, RuntimeError):
-        return _error("tune_unavailable", "OAP Tune Core is temporarily unavailable.", 503)
+        return _error("tune_unavailable", "OAP Music is temporarily unavailable.", 503)
 
 
 @bp.get("/media")
@@ -196,6 +213,289 @@ def entertainment_status():
         )))
     except (ValueError, RuntimeError):
         return _error("entertainment_unavailable", "OAP Entertainment is temporarily unavailable.", 503)
+
+
+@bp.post("/tune/catalogue-intelligence/preview")
+@web_security.login_required(api=True, founder_only=True)
+def tune_catalogue_intelligence_preview():
+    """Founder-only OAP Music metadata review; never imports audio or grants rights."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("candidates"), list):
+        return _error("invalid_request", "Candidate list required.", 400)
+    genres = payload.get("genres")
+    if genres is not None and (not isinstance(genres, list)
+                               or len(genres) > len(open_music_intake.GENRES)
+                               or len({g for g in genres if isinstance(g, str)}) != len(genres)
+                               or any(not isinstance(g, str) or g not in open_music_intake.GENRES
+                                      for g in genres)):
+        return _error("invalid_request", "Invalid genre filter.", 400)
+    if payload.get("licence_filter", "all") not in ("all", "preferred"):
+        return _error("invalid_request", "Invalid licence filter.", 400)
+    if payload.get("vocals", "All") not in ("All", "Vocals", "Instrumental"):
+        return _error("invalid_request", "Invalid vocals filter.", 400)
+    try:
+        _identity()  # The session, never claimant-supplied owner fields.
+        return _no_store(make_response(jsonify(
+            open_music_intake.private_catalogue_intelligence(
+                payload["candidates"], genres=payload.get("genres"),
+                licence_filter=payload.get("licence_filter", "all"),
+                mood=payload.get("mood", "All moods"),
+                vocals=payload.get("vocals", "All"),
+            )
+        )))
+    except (PermissionError, ValueError):
+        return _error("permission_denied", "Authenticated Founder required.", 403)
+
+
+@bp.post("/tune/catalogue-intelligence/review-handoff")
+@web_security.login_required(api=True, founder_only=True)
+def tune_catalogue_review_handoff():
+    """Session-owner-scoped, read-only plan for an existing OAP Music release."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("candidate"), dict):
+        return _error("invalid_request", "Candidate object required.", 400)
+    release_id = payload.get("release_id")
+    if not isinstance(release_id, str):
+        return _error("invalid_request", "Release ID required.", 400)
+    try:
+        owner = _identity()
+        # Read from the existing canonical, owner-scoped Tune Core projection.
+        tune = product_core_services.tune_dashboard(owner)
+        plan = open_music_intake.private_music_release_review_plan(
+            payload["candidate"], owner, release_id,
+        )
+        if plan["candidate_id"] is None or plan["submitted_release_id"] is None:
+            return _error("invalid_request", "Invalid candidate or release.", 400)
+        release = next(
+            (row for row in tune["releases"]
+             if row["release_id"] == plan["submitted_release_id"]), None
+        )
+        if release is None:
+            return _error("not_found", "Release unavailable for this owner.", 404)
+        plan["owner_authenticated"] = True
+        plan["owner_bound_to_music_release"] = True
+        plan["existing_release"] = {
+            "release_id": release["release_id"],
+            "title": release["title"],
+            "state": release["state"],
+            "rights_status": release["rights_status"],
+        }
+        # Existing release status is not proof of the candidate's rights.
+        return _no_store(make_response(jsonify(plan)))
+    except (PermissionError, ValueError):
+        return _error("permission_denied", "Authenticated Founder required.", 403)
+    except Exception:  # noqa: BLE001 - fail closed, redact storage details.
+        return _error("organ_unavailable", "OAP Music is temporarily unavailable.", 503)
+
+
+@bp.get("/tune/releases/<release_id>/evidence")
+@web_security.login_required(api=True, founder_only=True)
+def tune_release_evidence(release_id: str):
+    """Read owner-scoped immutable Music evidence and its private gate."""
+    try:
+        owner = _identity()
+        receipts = _music_evidence_store.read_receipts(
+            owner_identity_id=owner, release_id=release_id
+        )
+        return _no_store(make_response(jsonify({
+            "release_id": release_id,
+            "receipts": receipts,
+            "chain": music_evidence.verify_receipt_chain(receipts),
+            "distribution_gate": music_evidence.private_distribution_gate(
+                receipts,
+                recovery_readback_proven=any(
+                    row.get("evidence_kind") == "recovery_readback" for row in receipts
+                ),
+            ),
+            "external_distribution_enabled": False,
+            "playback_enabled": False,
+            "public_catalogue_enabled": False,
+            "human_authority_final": True,
+        })))
+    except PermissionError:
+        return _error("permission_denied", "Release unavailable for this owner.", 403)
+    except (ValueError, RuntimeError):
+        return _error("music_evidence_unavailable", "Music evidence is temporarily unavailable.", 503)
+
+
+@bp.post("/tune/releases/<release_id>/evidence")
+@web_security.login_required(api=True, founder_only=True)
+def append_tune_release_evidence(release_id: str):
+    """Persist actual evidence bytes; never treat their presence as rights verification."""
+    def action():
+        payload = _payload()
+        encoded = payload.get("evidence_base64")
+        if not isinstance(encoded, str) or len(encoded) > 11_500_000:
+            raise ValueError("invalid_evidence_base64")
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("invalid_evidence_base64") from exc
+        receipt = _music_evidence_store.append_receipt(
+            owner_identity_id=_identity(sync=True),
+            release_id=release_id,
+            evidence_kind=payload.get("evidence_kind"),
+            evidence_bytes=raw,
+            source_reference=payload.get("source_reference"),
+            authority_reference=payload.get("authority_reference"),
+            territory=payload.get("territory"),
+        )
+        return {
+            "receipt": receipt,
+            "rights_verified_by_software": False,
+            "external_distribution_enabled": False,
+            "playback_enabled": False,
+            "public_catalogue_enabled": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/tune/releases/<release_id>/civilization")
+@web_security.login_required(api=True, founder_only=True)
+def add_tune_civilization_link(release_id: str):
+    """Attach one evidence-backed cultural/geographic fact to an owned release."""
+    def action():
+        payload = _payload()
+        return _music_evidence_store.add_civilization_link(
+            owner_identity_id=_identity(sync=True),
+            release_id=release_id,
+            level=payload.get("level"),
+            value=payload.get("value"),
+            evidence_receipt_id=payload.get("evidence_receipt_id"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/tune/releases/<release_id>/recovery-manifests")
+@web_security.login_required(api=True, founder_only=True)
+def capture_tune_recovery_manifest(release_id: str):
+    """Capture server-derived owned Music/Records/Live metadata for read-back."""
+    def action():
+        owner = _identity(sync=True)
+        tune = product_core_services.tune_dashboard(owner)
+        release = next(
+            (row for row in tune.get("releases", [])
+             if row.get("release_id") == release_id),
+            None,
+        )
+        if release is None:
+            raise PermissionError("music_release_not_owned")
+        evidence_rows = _music_evidence_store.read_receipts(
+            owner_identity_id=owner,
+            release_id=release_id,
+        )
+        records = _records_store.dashboard(owner_identity_id=owner)
+        live = _live_music_store.dashboard(owner_identity_id=owner)
+        payload = {
+            "release": release,
+            "evidence_receipts": evidence_rows,
+            "records": {
+                "masters": [
+                    row for row in records.get("masters", [])
+                    if row.get("release_id") == release_id
+                ],
+                "credits": [
+                    row for row in records.get("credits", [])
+                    if row.get("release_id") == release_id
+                ],
+                "receipts": [
+                    row for row in records.get("receipts", [])
+                    if row.get("release_id") == release_id
+                ],
+            },
+            "live_sessions": [
+                row for row in live.get("sessions", [])
+                if row.get("release_id") == release_id
+            ],
+        }
+        return _music_recovery_store.capture(
+            owner_identity_id=owner,
+            release_id=release_id,
+            payload=payload,
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/tune/recovery-manifests/<manifest_id>")
+@web_security.login_required(api=True, founder_only=True)
+def read_tune_recovery_manifest(manifest_id: str):
+    try:
+        return _no_store(make_response(jsonify(
+            _music_recovery_store.read_and_verify(
+                owner_identity_id=_identity(),
+                manifest_id=manifest_id,
+            )
+        )))
+    except PermissionError:
+        return _error("permission_denied", "Recovery manifest unavailable.", 403)
+    except (TypeError, ValueError, RuntimeError):
+        return _error(
+            "music_recovery_unavailable",
+            "Music recovery manifest is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/tune/releases/<release_id>/acceptance")
+@web_security.login_required(api=True, founder_only=True)
+def tune_release_acceptance(release_id: str):
+    try:
+        receipts = _music_acceptance_store.read(
+            owner_identity_id=_identity(),
+            release_id=release_id,
+        )
+        return _no_store(make_response(jsonify({
+            "release_id": release_id,
+            "receipts": receipts,
+            "completion_gate": music_acceptance.software_completion_gate(receipts),
+        })))
+    except PermissionError:
+        return _error("permission_denied", "Acceptance receipts unavailable.", 403)
+    except (TypeError, ValueError, RuntimeError):
+        return _error(
+            "music_acceptance_unavailable",
+            "Music acceptance receipts are temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/tune/releases/<release_id>/acceptance")
+@web_security.login_required(api=True, founder_only=True)
+def append_tune_release_acceptance(release_id: str):
+    def action():
+        payload = _payload()
+        encoded = payload.get("evidence_base64")
+        if not isinstance(encoded, str) or len(encoded) > 11_500_000:
+            raise ValueError("invalid_evidence_base64")
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("invalid_evidence_base64") from exc
+        return _music_acceptance_store.append(
+            owner_identity_id=_identity(sync=True),
+            release_id=release_id,
+            acceptance_kind=payload.get("acceptance_kind"),
+            evidence_bytes=raw,
+            evidence_reference=payload.get("evidence_reference"),
+            human_approval_reference=payload.get("human_approval_reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/music-civilization")
+@web_security.login_required(api=True)
+def music_civilization_status():
+    """Single Music/Radio/Records/Live contract with no execution authority."""
+    return _no_store(make_response(jsonify(music_civilization.contracts())))
 
 
 @bp.post("/entertainment/open-cinema/preview")
@@ -227,6 +527,203 @@ def open_cinema_evidence_preview():
             payload.get("evidence"),
         )
     )))
+
+
+@bp.get("/radio")
+@web_security.login_required(api=True)
+def radio_status():
+    """Authenticated owner-scoped OAP Radio dashboard."""
+    try:
+        return _no_store(make_response(jsonify(
+            _radio_store.dashboard(owner_identity_id=_identity())
+        )))
+    except (ValueError, RuntimeError):
+        return _error("radio_unavailable", "OAP Radio is temporarily unavailable.", 503)
+
+
+@bp.post("/radio/stations")
+@web_security.login_required(api=True)
+def create_radio_station():
+    def action():
+        payload = _payload()
+        return _radio_store.create_station(
+            owner_identity_id=_identity(sync=True),
+            name=payload.get("name"),
+            slug=payload.get("slug"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/shows")
+@web_security.login_required(api=True)
+def create_radio_show(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.create_show(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            title=payload.get("title"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/schedule")
+@web_security.login_required(api=True)
+def schedule_radio_show(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.schedule_show(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            show_id=payload.get("show_id"),
+            starts_at=payload.get("starts_at"),
+            ends_at=payload.get("ends_at"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/rotation")
+@web_security.login_required(api=True)
+def add_radio_rotation(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.add_rotation(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            track_id=payload.get("track_id"),
+            position=payload.get("position"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/stop")
+@web_security.login_required(api=True)
+def stop_radio_station(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.stop_station(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            reason=payload.get("reason"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/records")
+@web_security.login_required(api=True)
+def records_status():
+    try:
+        return _no_store(make_response(jsonify(
+            _records_store.dashboard(owner_identity_id=_identity())
+        )))
+    except (ValueError, RuntimeError):
+        return _error("records_unavailable", "OAP Records is temporarily unavailable.", 503)
+
+
+@bp.post("/records/masters")
+@web_security.login_required(api=True)
+def create_records_master():
+    def action():
+        payload = _payload()
+        return _records_store.create_master(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            track_id=payload.get("track_id"),
+            version_label=payload.get("version_label"),
+            evidence_receipt_id=payload.get("evidence_receipt_id"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/records/credits")
+@web_security.login_required(api=True)
+def create_records_credit():
+    def action():
+        payload = _payload()
+        return _records_store.add_credit(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            role=payload.get("role"),
+            display_name=payload.get("display_name"),
+            evidence_receipt_id=payload.get("evidence_receipt_id"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/records/receipts")
+@web_security.login_required(api=True)
+def create_records_receipt():
+    def action():
+        payload = _payload()
+        return _records_store.append_receipt(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            receipt_kind=payload.get("receipt_kind"),
+            destination=payload.get("destination"),
+            reference=payload.get("reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/live-music")
+@web_security.login_required(api=True)
+def live_music_status():
+    try:
+        return _no_store(make_response(jsonify(
+            _live_music_store.dashboard(owner_identity_id=_identity())
+        )))
+    except (ValueError, RuntimeError):
+        return _error("live_music_unavailable", "OAP Live Music is temporarily unavailable.", 503)
+
+
+@bp.post("/live-music/sessions")
+@web_security.login_required(api=True)
+def create_live_music_session():
+    def action():
+        payload = _payload()
+        return _live_music_store.create_session(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            title=payload.get("title"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/live-music/sessions/<session_id>/stop")
+@web_security.login_required(api=True)
+def stop_live_music_session(session_id: str):
+    def action():
+        payload = _payload()
+        return _live_music_store.stop_session(
+            owner_identity_id=_identity(sync=True),
+            session_id=session_id,
+            reference=payload.get("reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/live-music/sessions/<session_id>/archive")
+@web_security.login_required(api=True)
+def archive_live_music_session(session_id: str):
+    def action():
+        payload = _payload()
+        return _live_music_store.archive_session(
+            owner_identity_id=_identity(sync=True),
+            session_id=session_id,
+            master_id=payload.get("master_id"),
+        )
+
+    return _handle_write(action)
 
 
 @bp.get("/distribution")

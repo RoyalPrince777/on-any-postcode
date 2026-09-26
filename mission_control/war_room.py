@@ -158,9 +158,9 @@ RESOLVED_BOUNDARIES = (
         "resolution": "Market is the product surface; Commerce Core owns its workflow.",
     },
     {
-        "components": "OAP Music / OAP Tune Core",
+        "components": "OAP Music / OAP Music",
         "status": "Resolved",
-        "resolution": "Music is the product surface; Tune Core owns its workflow.",
+        "resolution": "OAP Music is the product surface and owns its existing first-party workflow.",
     },
     {
         "components": "The Spot / The Link / Link Up",
@@ -643,7 +643,7 @@ def _organ_runtime_flags(
     if organ_id in {"tune_core", "commerce_core", "post_core"}:
         products_status = product_core_status.get("products") or ()
         matching_core = {
-            "tune_core": "OAP Tune Core",
+            "tune_core": "OAP Music",
             "commerce_core": "OAP Commerce Core",
             "post_core": "OAP Post Core",
         }[organ_id]

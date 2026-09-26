@@ -45,7 +45,7 @@ def tune_dashboard(identity_id: object, *, limit: int = 100) -> dict[str, Any]:
             (owner, effective_limit),
         ).fetchall()
     return {
-        "organ": "OAP Tune Core",
+        "organ": "OAP Music",
         "releases": [
             {
                 "release_id": str(row[0]),
