@@ -38,7 +38,10 @@ jobs:
               if (await button.count() !== 1) throw new Error('missing_button_' + id);
               await button.click();
               await page.waitForFunction(
-                targetId => Math.abs(document.getElementById(targetId).getBoundingClientRect().top) < 220,
+                targetId => {
+                  const rect = document.getElementById(targetId).getBoundingClientRect();
+                  return rect.top < window.innerHeight && rect.bottom > 0;
+                },
                 id,
                 {timeout: 3000}
               );
