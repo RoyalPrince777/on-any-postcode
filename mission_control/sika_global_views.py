@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, render_template, request
 
 from . import (
+    sika_android_evidence_store,
     sika_authenticated_owner_adapter,
     sika_bank_credential_store,
     sika_device_binding_store,
@@ -383,3 +384,44 @@ def sika_authenticated_device_recover():
     except sika_device_binding_store.SikaDeviceBindingUnavailable as exc:
         return jsonify({"error": str(exc), "recovered": False}), 503
     return jsonify(result), (200 if result.get("recovered") else 404)
+
+
+
+@bp.get("/api/sika/android/evidence/readiness")
+@web_security.login_required(api=True)
+def sika_android_evidence_readiness():
+    return jsonify(sika_android_evidence_store.readiness())
+
+
+@bp.get("/api/sika/android/evidence/latest")
+@web_security.login_required(api=True)
+def sika_android_evidence_latest():
+    owner = _authenticated_sika_owner()
+    try:
+        return jsonify(sika_android_evidence_store.latest(owner.owner_id))
+    except sika_android_evidence_store.SikaAndroidEvidenceUnavailable as exc:
+        return jsonify({"error": str(exc), "real_android_pwa_acceptance": False}), 503
+
+
+@bp.post("/api/sika/android/evidence")
+@web_security.login_required(api=True)
+def sika_android_evidence_record():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_android_evidence_store.record_authenticated_owner(
+            owner.owner_id,
+            body,
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "real_android_pwa_acceptance": False}), 400
+    except sika_android_evidence_store.SikaAndroidEvidenceUnavailable as exc:
+        return jsonify({"error": str(exc), "real_android_pwa_acceptance": False}), 503
+    return jsonify({
+        **result,
+        "authenticated_owner_source": owner.source,
+        "caller_supplied_owner_id_trusted": False,
+    }), 201
