@@ -10,7 +10,7 @@ def test_home_keeps_public_world_without_private_founder_entry(client):
     assert "OAP WORLD" in page
     assert "The Spot" in page
     assert "The Link" in page
-    assert "Map Intelligence" in page
+    assert "OAP Atlas" in page
     assert "Enter My World" in page
     assert 'href="/auth"' not in page
     assert 'href="/mission"' not in page
@@ -32,7 +32,7 @@ def test_public_main_menu_uses_locked_oap_world_reference_items(client):
 
     expected = (
         ("/", "Home"),
-        ("/on-any-place", "Map Intelligence"),
+        ("/on-any-place", "OAP Atlas"),
         ("/the-spot", "The Spot"),
         ("/the-link", "The Link"),
         ("/studio", "OAP Studio Intelligence"),
