@@ -222,3 +222,82 @@ def test_execute_internal_record_uses_server_derived_authorization(monkeypatch):
     assert result["outcome_receipt_verified"] is True
     assert result["authority_transferred"] is False
     assert result["human_authority_final"] is True
+
+
+
+def test_rollback_internal_record_requires_fresh_authorized_handoff(monkeypatch):
+    monkeypatch.setattr(
+        all_in_ai_action_bridge,
+        "handoff_status",
+        lambda *_args, **_kwargs: {
+            "mission_id": MISSION,
+            "reviewed_request_id": REQUEST,
+            "status": "HUMAN_AUTHORITY_REQUIRED",
+            "reason": "human_authority_approval_required",
+        },
+    )
+
+    try:
+        all_in_ai_action_bridge.rollback_internal_record(
+            IDENTITY,
+            MISSION,
+            reviewed_request_id=REQUEST,
+            rollback_token={
+                "record_id": "00000000-0000-0000-0000-000000000004",
+                "expected_status": "active",
+                "target_status": "draft",
+                "before_hash": "a" * 64,
+                "after_hash": "b" * 64,
+            },
+        )
+    except all_in_ai_action_bridge.ActionHandoffBlocked as exc:
+        assert str(exc) == "human_authority_approval_required"
+    else:
+        raise AssertionError("rollback must require fresh Human Authority approval")
+
+
+def test_rollback_internal_record_returns_verified_recovery(monkeypatch):
+    authorization = {
+        "execution_authorized": True,
+        "execution_performed": False,
+        "human_authority_final": True,
+    }
+    monkeypatch.setattr(
+        all_in_ai_action_bridge,
+        "handoff_status",
+        lambda *_args, **_kwargs: {
+            "mission_id": MISSION,
+            "reviewed_request_id": REQUEST,
+            "status": "AUTHORIZED_NOT_EXECUTED",
+            "authorization": authorization,
+        },
+    )
+    monkeypatch.setattr(
+        all_in_ai_action_bridge.internal_record_executor,
+        "rollback",
+        lambda *_args, **_kwargs: {
+            "rollback_verified": True,
+            "outcome_receipt": {
+                "write_verified": True,
+                "read_back_verified": True,
+            },
+        },
+    )
+
+    result = all_in_ai_action_bridge.rollback_internal_record(
+        IDENTITY,
+        MISSION,
+        reviewed_request_id=REQUEST,
+        rollback_token={
+            "record_id": "00000000-0000-0000-0000-000000000004",
+            "expected_status": "active",
+            "target_status": "draft",
+            "before_hash": "a" * 64,
+            "after_hash": "b" * 64,
+        },
+    )
+
+    assert result["rollback_verified"] is True
+    assert result["outcome_receipt_verified"] is True
+    assert result["authority_transferred"] is False
+    assert result["human_authority_final"] is True
