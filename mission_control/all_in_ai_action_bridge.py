@@ -9,6 +9,7 @@ receipt. No new approval, memory or execution system is created here.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from typing import Any
 
 from . import (
@@ -239,6 +240,49 @@ def execute_internal_record(
         "outcome_receipt_verified": bool(
             execution.get("outcome_receipt", {}).get("write_verified")
             and execution.get("outcome_receipt", {}).get("read_back_verified")
+        ),
+        "authority_transferred": False,
+        "human_authority_final": True,
+    }
+
+
+
+def rollback_internal_record(
+    identity_id: object,
+    mission_id: object,
+    *,
+    reviewed_request_id: object,
+    rollback_token: Mapping[str, object],
+) -> dict[str, Any]:
+    """Reverse one bounded internal action after a fresh governed handoff."""
+
+    handoff = handoff_status(
+        identity_id,
+        mission_id,
+        reviewed_request_id=reviewed_request_id,
+        action_name="SYNC_INTERNAL_RECORD",
+    )
+    if handoff.get("status") != "AUTHORIZED_NOT_EXECUTED":
+        raise ActionHandoffBlocked(str(handoff.get("reason") or "rollback_not_authorized"))
+    authorization = handoff.get("authorization")
+    if not isinstance(authorization, dict):
+        raise ActionHandoffBlocked("authorization_receipt_missing")
+
+    recovery = internal_record_executor.rollback(
+        authorization,
+        identity_id=identity_id,
+        rollback_token=rollback_token,
+    )
+    return {
+        "component": "ALL IN A.I. Governed Internal Recovery",
+        "mission_id": handoff["mission_id"],
+        "reviewed_request_id": handoff["reviewed_request_id"],
+        "handoff_status": handoff["status"],
+        "recovery": recovery,
+        "rollback_verified": bool(recovery.get("rollback_verified")),
+        "outcome_receipt_verified": bool(
+            recovery.get("outcome_receipt", {}).get("write_verified")
+            and recovery.get("outcome_receipt", {}).get("read_back_verified")
         ),
         "authority_transferred": False,
         "human_authority_final": True,
