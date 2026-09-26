@@ -38,6 +38,7 @@ from . import (
     smi_workbench,
     status,
     studio_intelligence,
+    studio_workspace_orchestrator,
     war_room,
     web_security,
 )
@@ -63,6 +64,7 @@ BUTTON_PROOF_TARGETS = {
     "studio-refine": "/mission/studio/generate",
     "studio-bring-alive": "/mission/studio/generate",
     "studio-scene-builder": "/mission/studio/generate",
+    "studio-orchestrate": "/mission/studio/orchestrate/plan",
     "studio-workspace-research": "/mission/studio/workspace/research",
     "studio-workspace-omni": "/mission/studio/workspace/omni",
     "studio-workspace-music": "/mission/studio/workspace/music",
@@ -837,6 +839,51 @@ def smi_studio_threat_posture():
     """Return fail-closed Studio threat controls without granting execution."""
 
     return _no_store(make_response(jsonify(studio_intelligence.threat_posture())))
+
+
+@bp.post("/studio/orchestrate/plan")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_orchestrate_plan():
+    """Build a bounded multi-workspace dependency plan; never execute it."""
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = studio_workspace_orchestrator.plan(payload.get("prompt"))
+    except ValueError as exc:
+        return _error("invalid_orchestration_request", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.post("/studio/orchestrate/checkpoint")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_orchestrate_checkpoint():
+    """Persist one owner-scoped orchestration checkpoint with audit read-back."""
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = studio_workspace_orchestrator.checkpoint(
+            _chat_identity(),
+            dict(payload.get("mission") or {}),
+            expected_last_hash=str(payload.get("expected_last_hash") or ""),
+            stopped=bool(payload.get("stopped")),
+        )
+    except PermissionError as exc:
+        return _error("orchestration_stopped", str(exc), 409)
+    except (RuntimeError, ValueError) as exc:
+        return _error("orchestration_checkpoint_blocked", str(exc), 409)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/studio/orchestrate/<mission_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_orchestrate_resume(mission_id: str):
+    """Resume the newest owner-scoped orchestration checkpoint."""
+
+    try:
+        result = studio_workspace_orchestrator.resume(_chat_identity(), mission_id)
+    except (RuntimeError, ValueError) as exc:
+        return _error("orchestration_resume_blocked", str(exc), 404)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.post("/smi/android-live-evidence")
