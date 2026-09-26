@@ -10,7 +10,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import sovereign_digital_soc
+from . import (
+    sika_authenticated_owner_adapter,
+    sika_device_binding_store,
+    sovereign_digital_soc,
+)
 
 
 def status() -> dict[str, Any]:
@@ -20,10 +24,13 @@ def status() -> dict[str, Any]:
             "scope": "SIKA bank app only",
             "founder_auth_touched": False,
             "founder_password_linked": False,
-            "bank_app_password_ready": False,
-            "bank_app_password_storage": "not implemented",
-            "device_binding_ready": False,
-            "note": "bank-app credential layer remains a separate missing capability",
+            "bank_app_password_software_ready": True,
+            "bank_app_password_durable_store_ready": False,
+            "device_binding_software_ready": True,
+            "durable_device_binding_store_ready": sika_device_binding_store.readiness()["canonical_store_reused"],
+            "authenticated_owner_bridge_ready": sika_authenticated_owner_adapter.readiness()["adapter_present"],
+            "production_session_route_ready": False,
+            "note": "software capability exists; production owner-session route and durable credential store remain missing",
         },
         "device": {
             "esim_slot_defined": True,
