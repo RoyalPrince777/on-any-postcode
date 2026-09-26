@@ -14,6 +14,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from flask import current_app
+
 from . import (
     approval_service,
     authority,
@@ -78,6 +80,10 @@ REFERENCE_ASSURANCES = {
 }
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_INTERNAL_SOFTWARE_ASSURANCES = frozenset(
+    {"a7_public_private_boundary", "a7_constitutional_review"}
+)
+_A7_PRIVATE_PREFIX = "/mission/smi-proof/a7"
 
 
 def _count_action_sql(action: str) -> str:
