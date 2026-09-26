@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_VERSION = "oap-os-public-v1.0";
+const CACHE_VERSION = "oap-os-public-v1.1";
 const PUBLIC_SHELL = Object.freeze([
   "/offline",
   "/manifest.webmanifest",
@@ -13,6 +13,8 @@ const PRIVATE_PREFIXES = Object.freeze([
   "/auth",
   "/enter-my-world",
   "/my-world",
+  "/sika",
+  "/api/sika",
   "/mission",
   "/infrastructure"
 ]);
