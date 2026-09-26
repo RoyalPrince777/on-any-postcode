@@ -335,11 +335,21 @@ def sika_security_payment_controls():
             "recipient_age_minutes": beneficiary_age,
             "suspicious_device": state["suspicious_device"],
         })
-        if (
+        payment_intent = None
+        step_up = None
+        elevated = (
             result.get("over_limit")
             or result.get("new_recipient_cooling_off")
             or result.get("suspicious_device")
-        ):
+            or result.get("step_up_required")
+        )
+        if elevated:
+            payment_intent = sika_security_ledger.create_payment_intent(
+                owner.owner_id,
+                beneficiary_id=beneficiary_id or "unregistered-beneficiary",
+                amount_sika=body.get("amount_sika", "0"),
+                reference=body.get("reference", ""),
+            )
             sika_security_ledger.record_authenticated_owner(
                 owner.owner_id,
                 event_type="PAYMENT_CONTROL_HOLD",
@@ -351,9 +361,26 @@ def sika_security_payment_controls():
                     ),
                     "suspicious_device": bool(result.get("suspicious_device")),
                     "beneficiary_id": beneficiary_id,
+                    "amount_sika": str(body.get("amount_sika") or "0"),
+                    "payment_intent_id": payment_intent["payment_intent_id"],
                 },
             )
-        return jsonify(result)
+            step_up = sika_security_ledger.create_step_up_for_payment_intent(
+                owner.owner_id,
+                payment_intent_id=payment_intent["payment_intent_id"],
+                reason="elevated_payment_security_review",
+                amount_sika=body.get("amount_sika", "0"),
+            )
+        return jsonify({
+            **result,
+            "payment_intent_id": (
+                payment_intent["payment_intent_id"] if payment_intent else None
+            ),
+            "step_up_challenge_id": (
+                step_up["challenge_id"] if step_up else None
+            ),
+            "payment_execution_authorised": False,
+        })
     except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
         return jsonify({"error": str(exc), "executable": False}), 400
     except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
