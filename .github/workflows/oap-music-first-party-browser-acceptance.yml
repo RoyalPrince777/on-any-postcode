@@ -1,0 +1,92 @@
+name: OAP Music first-party browser acceptance
+
+on:
+  push:
+    branches:
+      - proof/oap-music-first-party-browser-20260926
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install browser runtime
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright@1.55.0
+          npx playwright install --with-deps chromium >/dev/null
+
+      - name: Exercise production first-party Music
+        shell: bash
+        run: |
+          cat > /tmp/oap-music-first-party.js <<'EOF'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({headless:true});
+            const page = await browser.newPage({viewport:{width:390,height:844}});
+            const base = 'https://on-any-postcode.onrender.com';
+
+            const response = await page.goto(base + '/music', {waitUntil:'networkidle'});
+            if (!response || response.status() !== 200) throw new Error('music_not_200');
+
+            const controls = ['home','catalogue','artists','releases','playlists','library','radio','records'];
+            for (const id of controls) {
+              const button = page.locator('[data-target="' + id + '"]');
+              if (await button.count() !== 1) throw new Error('missing_control_' + id);
+              await button.click();
+              await page.waitForFunction(targetId => {
+                const rect = document.getElementById(targetId).getBoundingClientRect();
+                return rect.top < window.innerHeight && rect.bottom > 0;
+              }, id, {timeout:3000});
+            }
+
+            const search = page.locator('#music-search');
+            await search.fill('first party search proof');
+            await page.waitForTimeout(500);
+            const state = await page.locator('#catalogue-state').innerText();
+            if (!state.includes('OAP track') && !state.includes('temporarily unavailable')) {
+              throw new Error('search_state_missing_' + state);
+            }
+
+            const api = await page.request.get(base + '/music/api/catalogue?q=proof');
+            if (![200,503].includes(api.status())) throw new Error('catalogue_api_status_' + api.status());
+            const payload = await api.json();
+            if (payload.ownership !== 'first_party') throw new Error('not_first_party');
+            if (payload.external_catalogue_dependency !== false) throw new Error('external_catalogue_dependency');
+            if (payload.playback_enabled !== false) throw new Error('fake_playback');
+
+            const statusResponse = await page.request.get(base + '/music/api/status');
+            if (statusResponse.status() !== 200) throw new Error('status_not_200');
+            const status = await statusResponse.json();
+            const listener = status.listener_contract;
+            if (!listener || listener.ownership !== 'first_party') throw new Error('listener_not_first_party');
+            for (const key of [
+              'external_catalogue_dependency',
+              'external_identity_dependency',
+              'external_player_dependency',
+              'external_analytics_dependency'
+            ]) {
+              if (listener[key] !== false) throw new Error('dependency_not_locked_' + key);
+            }
+            if (listener.playback_enabled !== false) throw new Error('listener_fake_playback');
+
+            if (!(await page.getByText('▶ Play locked').isVisible())) {
+              throw new Error('player_lock_missing');
+            }
+            if (await page.locator('button:has-text("Play")').count() !== 0) {
+              throw new Error('fake_play_button_present');
+            }
+
+            const body = await page.locator('body').innerText();
+            if (!body.includes('They are not the OAP catalogue.')) {
+              throw new Error('external_source_boundary_missing');
+            }
+
+            console.log('OAP_MUSIC_FIRST_PARTY_BROWSER_ACCEPTANCE_PASS');
+            await browser.close();
+          })().catch(err => { console.error(err); process.exit(1); });
+          EOF
+          NODE_PATH="$PWD/node_modules" node /tmp/oap-music-first-party.js
