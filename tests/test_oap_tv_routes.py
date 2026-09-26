@@ -1,5 +1,7 @@
 from flask import Flask
+
 from mission_control import tv_views
+
 
 def test_tv_routes_register():
     app = Flask(__name__, template_folder="../mission_control/templates")
@@ -9,6 +11,7 @@ def test_tv_routes_register():
     assert "/tv" in rules
     assert "/tv/status" in rules
     assert "/mission/tv/command-center" in rules
+
 
 def test_public_tv_status_is_truth_mode_and_not_fake_green():
     app = Flask(__name__, template_folder="../mission_control/templates")
