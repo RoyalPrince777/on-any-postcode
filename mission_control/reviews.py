@@ -112,7 +112,7 @@ def list_reviews(product_id: object, *, limit: int = 50) -> list[dict[str, Any]]
                    LIMIT %s""",
                 (f"{PREFIX}{product}:%", bounded),
             ).fetchall()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ReviewsUnavailable("review_read_failed") from exc
 
     reviews: list[dict[str, Any]] = []
