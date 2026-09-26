@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - organism-canonical-78
+      - feature/sika-global-app-20260926
 
 permissions:
   contents: read
