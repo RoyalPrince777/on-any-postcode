@@ -327,8 +327,10 @@ def sika_security_payment_controls():
             if beneficiary_id
             else 0
         )
+        daily_activity = sika_security_ledger.daily_payment_activity(owner.owner_id)
         result = sika_safety.payment_controls({
             **body,
+            "daily_used_sika": daily_activity["daily_attempted_sika"],
             "daily_limit_sika": state["daily_limit_sika"],
             "recipient_age_minutes": beneficiary_age,
             "suspicious_device": state["suspicious_device"],
