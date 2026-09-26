@@ -31,6 +31,7 @@ ALLOWED_PLACE_FIELDS = (
     "class",
     "type",
     "importance",
+    "extratags",
 )
 _LAST_FETCH: dict[str, object] = {
     "fetched_at": None,
@@ -38,6 +39,8 @@ _LAST_FETCH: dict[str, object] = {
     "result_count": 0,
     "source_backed": False,
     "query_recorded": False,
+    "opening_hours_count": 0,
+    "website_count": 0,
 }
 
 
@@ -77,13 +80,22 @@ def _category_for(item: dict[str, object]) -> str:
     return "oap_direct"
 
 
-def _record_fetch(*, fetched_at: str | None, fetch_status: str, result_count: int) -> None:
+def _record_fetch(
+    *,
+    fetched_at: str | None,
+    fetch_status: str,
+    result_count: int,
+    opening_hours_count: int = 0,
+    website_count: int = 0,
+) -> None:
     _LAST_FETCH.update(
         fetched_at=fetched_at,
         fetch_status=fetch_status,
         result_count=max(0, int(result_count)),
         source_backed=bool(fetch_status == "success" and fetched_at and result_count > 0),
         query_recorded=bool(fetched_at),
+        opening_hours_count=max(0, int(opening_hours_count)),
+        website_count=max(0, int(website_count)),
     )
 
 
@@ -162,8 +174,16 @@ def _sanitise_items(items: Iterable[dict[str, object]], fetched_at: str) -> list
         name = str(item.get("display_name") or "").strip()
         if not name:
             continue
+        extratags = item.get("extratags") if isinstance(item.get("extratags"), dict) else {}
+        opening_hours = str(extratags.get("opening_hours") or "").strip()[:240]
+        website = str(extratags.get("website") or extratags.get("contact:website") or "").strip()[:300]
+        item.pop("extratags", None)
         item.update(
             name=name.split(",")[0][:120],
+            opening_hours=opening_hours or None,
+            opening_hours_source_backed=bool(opening_hours),
+            website=website or None,
+            website_source_backed=bool(website),
             category=_category_for(item),
             source="OpenStreetMap / Nominatim",
             source_tier="openstreetmap",
@@ -211,6 +231,7 @@ def fetch_places(query: object) -> dict[str, object]:
             "format": "jsonv2",
             "addressdetails": "0",
             "limit": str(MAX_RESULTS),
+            "extratags": "1",
         }
     )
     request = urllib.request.Request(
@@ -223,7 +244,13 @@ def fetch_places(query: object) -> dict[str, object]:
             payload = response.read(96_000).decode("utf-8", errors="replace")
         parsed = json.loads(payload)
         results = _sanitise_items(parsed if isinstance(parsed, list) else [], fetched_at)
-        _record_fetch(fetched_at=fetched_at, fetch_status="success", result_count=len(results))
+        _record_fetch(
+            fetched_at=fetched_at,
+            fetch_status="success",
+            result_count=len(results),
+            opening_hours_count=sum(1 for item in results if item.get("opening_hours_source_backed")),
+            website_count=sum(1 for item in results if item.get("website_source_backed")),
+        )
         return {
             **base,
             "query": query_value,
