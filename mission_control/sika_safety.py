@@ -79,9 +79,9 @@ def assess(payload: dict[str, Any] | None) -> dict[str, Any]:
 
     score = min(score, 100)
     scam_detected = any(scam_signals.values())
-    if score >= 75 or scam_signals["safe_account_claim"]:
+    if scam_signals["safe_account_claim"] or (scam_detected and score >= 75):
         decision = "block_software_only"
-    elif score >= 50 or scam_detected:
+    elif score >= 60 or scam_detected:
         decision = "review"
     elif score >= 30:
         decision = "step_up"
