@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -33,7 +33,7 @@ def test_review_list_parses_first_party_workspace_rows(monkeypatch):
                         uuid.UUID(record_id),
                         uuid.UUID(identity_id),
                         json.dumps({"product_id": product_id, "rating": 5, "body": "Excellent"}),
-                        datetime(2026, 9, 26, 16, 0),
+                        datetime(2026, 9, 26, 16, 0, tzinfo=timezone.utc),
                         "Tester",
                     )]
             return Result()
