@@ -12,6 +12,7 @@ from mission_control import (
     sika_finance_features,
     sika_global,
     sika_intelligence,
+    sika_safety,
     sika_wallet_ledger,
 )
 
@@ -212,3 +213,17 @@ def sika_alignment_intelligence():
 @app.get("/api/sika/intelligence/bank")
 def sika_bank_intelligence():
     return jsonify(sika_intelligence.bank_intelligence())
+
+
+@app.post("/api/sika/fraud/preflight")
+def sika_fraud_preflight():
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_safety.assess(body))
+    except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+
+
+@app.get("/api/sika/install/readiness")
+def sika_install_readiness():
+    return jsonify(sika_safety.install_readiness())
