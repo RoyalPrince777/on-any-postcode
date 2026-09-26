@@ -372,22 +372,60 @@ refreshOps();
         b.className="attach-option connector smi-studio-workspace";
         b.dataset.studioWorkspace=id;
         b.innerHTML='<span class="connector-copy"><span>'+icon+'</span><span>'+label+'</span></span><span class="connector-state">Open</span>';
-        b.onclick=()=>{
+        b.onclick=async()=>{
           window.OAP_SMI_STUDIO_WORKSPACE=id;
           studioMode=true;
           studioButton.classList.add("active");
-          const state=q("#studio-state");
+          const state=q("#studio-state"),chip=q(".connector-state",b);
           if(state)state.textContent=label;
+          if(chip)chip.textContent="Checking";
           if(thinkingLevel&&depth){thinkingLevel.value=depth;thinkingLevel.dispatchEvent(new Event("change",{bubbles:true}));}
-          if(typeof codeMode!=="undefined"&&useCode){codeMode=true;q("#code-button")?.classList.add("active");q("#code-button")?.setAttribute("aria-pressed","true");}
+          if(typeof codeMode!=="undefined"){
+            codeMode=Boolean(useCode);
+            q("#code-button")?.classList.toggle("active",codeMode);
+            q("#code-button")?.setAttribute("aria-pressed",String(codeMode));
+          }
           qa("[data-studio-workspace]",menu).forEach(x=>x.classList.toggle("active",x===b));
-          q("#status").textContent="OAP Studio · "+label+" workspace active";
+          q("#status").textContent="OAP Studio · "+label+" workspace checking…";
           if(!input.value.trim())input.placeholder=label==="Music"?"Create or develop original music, release and audio ideas…":label==="Motion"?"Create motion, scenes or video from text and images…":label==="Build"?"Build an app, site, dashboard or product surface…":label==="Data"?"Inspect, model or explain OAP Data…":"Ask SMI in "+label+" workspace…";
-          input.focus();menu?.classList.remove("show");plus?.setAttribute("aria-expanded","false");
+          try{
+            const target=String(cfg.studioWorkspaceUrl||"").replace("__WORKSPACE_ID__",encodeURIComponent(id));
+            if(!target)throw new Error("Workspace preflight unavailable");
+            const response=await fetch(target,{credentials:"same-origin",cache:"no-store"});
+            const payload=await response.json().catch(()=>({}));
+            if(!response.ok)throw new Error(payload?.error?.message||"Workspace preflight failed");
+            const proof=await recordButtonProof("studio-workspace-"+id,target,response.status);
+            const signal=payload.signal==="green"?"green":payload.signal==="red"?"red":"yellow";
+            addCard("OAP Studio · "+label,[payload.message||"Workspace ready",payload.action?"Action: "+payload.action:"",proof?.receipt_id?"Button Proof "+proof.receipt_id:"Button Proof pending"].filter(Boolean).join("\n"),signal);
+            if(chip){chip.textContent=proof?.receipt_id?"Proven":payload.state==="ready"?"Ready":"Locked";chip.classList.toggle("ready",Boolean(proof?.receipt_id));chip.classList.toggle("attention",payload.signal!=="green");}
+            q("#status").textContent="OAP Studio · "+label+" · "+String(payload.state||"ready");
+          }catch(error){
+            if(chip){chip.textContent="Blocked";chip.classList.add("attention");}
+            addCard("OAP Studio · "+label,error.message||"Workspace unavailable","red");
+            q("#status").textContent="OAP Studio · "+label+" blocked";
+          }finally{
+            input.focus();menu?.classList.remove("show");plus?.setAttribute("aria-expanded","false");
+          }
         };
         return b;
       });
-      studioButton.after(workspaceLabel,...workspaceButtons);
+      const threat=document.createElement("button");
+      threat.type="button";
+      threat.className="attach-option connector smi-studio-threat";
+      threat.dataset.studioThreat="1";
+      threat.innerHTML='<span class="connector-copy"><span>🛡️</span><span>Studio Threat Posture</span></span><span class="connector-state">Check</span>';
+      threat.onclick=async()=>{
+        const chip=q(".connector-state",threat);if(chip)chip.textContent="Checking";
+        try{
+          const response=await fetch(cfg.studioThreatPostureUrl,{credentials:"same-origin",cache:"no-store"});
+          const payload=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(payload?.error?.message||"Threat posture unavailable");
+          addCard("Studio Threat Posture",JSON.stringify(payload,null,2).slice(0,2600),"green");
+          if(chip)chip.textContent="Ready";
+        }catch(error){addCard("Studio Threat Posture",error.message||"Unavailable","red");if(chip)chip.textContent="Blocked";}
+        menu?.classList.remove("show");
+      };
+      studioButton.after(workspaceLabel,...workspaceButtons,threat);
     }
     if(studioButton&&!q('[data-studio-tool="imagine"]',menu)){
       const studioLabel=document.createElement("div");
