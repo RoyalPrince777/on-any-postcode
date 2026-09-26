@@ -1,0 +1,91 @@
+name: SMI Maps live recovery proof
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/smi-map-recovery-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live-map-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Prove fail-closed Maps recovery and read-back
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          base = "https://oap-smi.onrender.com"
+
+          def request(path, *, no_cache=False, timeout=30):
+              headers = {"User-Agent": "OAP-SMI-Maps-Recovery-Proof/1.0"}
+              if no_cache:
+                  headers["Cache-Control"] = "no-cache"
+                  headers["Pragma"] = "no-cache"
+              req = urllib.request.Request(base + path, headers=headers)
+              return urllib.request.urlopen(req, timeout=timeout)
+
+          # Baseline read-back from the actual live SMI origin.
+          with request("/on-any-place", no_cache=True) as response:
+              screen_before = response.read().decode("utf-8", "replace")
+              assert response.status == 200, response.status
+              assert "oap_map_navigation.js" in screen_before
+              assert "/map-intelligence/" in screen_before
+              assert response.headers.get("X-OAP-Precise-Location-Stored") == "false"
+              assert "no-store" in response.headers.get("Cache-Control", "").lower()
+
+          with request("/map-intelligence/status", no_cache=True) as response:
+              status_before = json.loads(response.read().decode("utf-8", "replace"))
+              assert response.status == 200, response.status
+              assert status_before.get("component") == "Map Intelligence"
+              assert status_before.get("first_party_road_renderer") is True
+              assert status_before.get("payment_capture") is False
+              assert status_before.get("dispatch") is False
+              assert "no-store" in response.headers.get("Cache-Control", "").lower()
+
+          # Exercise real fail-closed boundaries: malformed route and blocked child surface.
+          try:
+              request("/map-intelligence/route?from_lat=51.4&to=Mitcham")
+              raise AssertionError("malformed route unexpectedly succeeded")
+          except urllib.error.HTTPError as exc:
+              assert exc.code == 400, exc.code
+              error = json.loads(exc.read().decode("utf-8", "replace"))
+              assert error.get("error", {}).get("code") == "route_origin_coordinates_incomplete"
+
+          try:
+              request("/on-any-place/extra")
+              raise AssertionError("non-allowlisted child unexpectedly opened")
+          except urllib.error.HTTPError as exc:
+              assert exc.code == 404, exc.code
+
+          # Recovery read-back: fresh screen + healthy status + live place lookup after failures.
+          with request("/on-any-place?recovery_probe=1", no_cache=True) as response:
+              screen_after = response.read().decode("utf-8", "replace")
+              assert response.status == 200, response.status
+              assert "oap_map_navigation.js" in screen_after
+              assert "/map-intelligence/" in screen_after
+              assert response.headers.get("X-OAP-Precise-Location-Stored") == "false"
+              assert "no-store" in response.headers.get("Cache-Control", "").lower()
+
+          with request("/map-intelligence/status?recovery_probe=1", no_cache=True) as response:
+              status_after = json.loads(response.read().decode("utf-8", "replace"))
+              assert response.status == 200, response.status
+              assert status_after.get("component") == "Map Intelligence"
+              assert status_after.get("first_party_road_renderer") is True
+              assert status_after.get("payment_capture") is False
+              assert status_after.get("dispatch") is False
+
+          with request("/map-intelligence/places?q=" + urllib.parse.quote("Mitcham"), no_cache=True) as response:
+              places = json.loads(response.read().decode("utf-8", "replace"))
+              assert response.status == 200, response.status
+              assert isinstance(places, (dict, list)), type(places).__name__
+
+          print("SMI_MAP_RECOVERY_PROOF=PASS")
+          PY
