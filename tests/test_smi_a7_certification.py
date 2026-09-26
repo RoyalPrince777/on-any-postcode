@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -256,3 +257,87 @@ def test_a6_readiness_versioning_preserves_execution_lock():
     section = source.split("def complete_a6_readiness_protocol", 1)[1]
     assert '"execution_granted": False' in section
     assert '"production_state_mutated": False' in section
+
+
+
+def test_public_private_boundary_exercise_requires_founder_private_markers():
+    def protected_view():
+        return None
+
+    protected_view._oap_login_required = True
+    protected_view._oap_founder_only = True
+    rules = (
+        SimpleNamespace(
+            rule="/mission/smi-proof/a7",
+            endpoint="smi_proof_gate.a7_dashboard",
+        ),
+        SimpleNamespace(
+            rule="/mission/smi-proof/a7/status",
+            endpoint="smi_proof_gate.a7_status",
+        ),
+    )
+    proof = a7_certification._public_private_boundary_exercise(
+        route_views={
+            "smi_proof_gate.a7_dashboard": protected_view,
+            "smi_proof_gate.a7_status": protected_view,
+        },
+        route_rules=rules,
+    )
+
+    assert proof["passed"] is True
+    assert proof["route_count"] == 2
+    assert proof["all_routes_login_required"] is True
+    assert proof["all_routes_founder_only"] is True
+    assert proof["public_a7_route_exposed"] is False
+    assert proof["execution_authority_expanded"] is False
+
+
+def test_public_private_boundary_exercise_fails_closed_on_unprotected_a7_route():
+    def unprotected_view():
+        return None
+
+    proof = a7_certification._public_private_boundary_exercise(
+        route_views={"smi_proof_gate.a7_status": unprotected_view},
+        route_rules=(
+            SimpleNamespace(
+                rule="/mission/smi-proof/a7/status",
+                endpoint="smi_proof_gate.a7_status",
+            ),
+        ),
+    )
+
+    assert proof["passed"] is False
+    assert proof["all_routes_login_required"] is False
+    assert proof["all_routes_founder_only"] is False
+    assert proof["public_a7_route_exposed"] is None
+
+
+def test_constitutional_review_proves_locked_invariants(monkeypatch):
+    monkeypatch.setattr(a7_certification, "_capability_allowlist_ready", lambda: True)
+
+    proof = a7_certification._constitutional_review_exercise()
+
+    assert proof["passed"] is True
+    assert proof["checks"]["a7_hard_disabled"] is True
+    assert proof["checks"]["self_permission_change_forbidden"] is True
+    assert proof["checks"]["self_constitution_change_forbidden"] is True
+    assert proof["checks"]["external_audit_requires_external_attestor"] is True
+    assert proof["checks"]["legal_compliance_requires_external_attestor"] is True
+    assert proof["a7_enabled"] is False
+    assert proof["certification_granted"] is False
+    assert proof["execution_authority_expanded"] is False
+    assert proof["human_authority_final"] is True
+
+
+def test_internal_a7_assurances_cannot_be_manually_greenwashed():
+    for assurance in ("a7_public_private_boundary", "a7_constitutional_review"):
+        with pytest.raises(ValueError, match="internal_assurance_requires_live_proof"):
+            a7_certification.record_evidence_reference(
+                identity_id="00000000-0000-0000-0000-000000000001",
+                assurance=assurance,
+                evidence_ref="manual-claim",
+                evidence_hash="a" * 64,
+                issuer="Human Authority",
+                scope="A7 internal assurance",
+                attestor_type="HUMAN_AUTHORITY",
+            )

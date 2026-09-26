@@ -356,6 +356,90 @@ def a7_emergency_halt_proof():
     )
 
 
+@bp.post("/a7/public-private-boundary")
+@web_security.login_required(api=True, founder_only=True)
+def a7_public_private_boundary_proof():
+    """Inspect and audit the live A7 public/private route boundary."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    try:
+        proof = a7_certification.run_public_private_boundary_proof(str(user["id"]))
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record A7 boundary proof.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_proof_request", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "public_private_boundary_proof_unavailable",
+            "Public/private boundary proof could not be completed safely.",
+            503,
+        )
+    return _no_store(
+        make_response(
+            jsonify(
+                proof=proof,
+                a7=a7_certification.public_safe_status(),
+                execution_granted=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
+@bp.post("/a7/constitutional-review")
+@web_security.login_required(api=True, founder_only=True)
+def a7_constitutional_review_proof():
+    """Run and audit the locked A7 constitutional invariant review."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    try:
+        proof = a7_certification.run_constitutional_review_proof(str(user["id"]))
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record constitutional proof.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_proof_request", str(exc), 400)
+    except RuntimeError:
+        return _error(
+            "constitutional_review_proof_unavailable",
+            "Constitutional review could not be completed safely.",
+            503,
+        )
+    return _no_store(
+        make_response(
+            jsonify(
+                proof=proof,
+                a7=a7_certification.public_safe_status(),
+                execution_granted=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
 @bp.post("/a7/evidence")
 @web_security.login_required(api=True, founder_only=True)
 def a7_evidence_reference():
