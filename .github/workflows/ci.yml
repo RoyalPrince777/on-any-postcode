@@ -14,6 +14,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: oap_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d oap_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -85,6 +99,11 @@ jobs:
         run: |
           set -o pipefail
           python -m pytest -q 2>&1 | tee /tmp/oap-pytest.log
+      - name: Run real Distribution × Market PostgreSQL proof
+        env:
+          OAP_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
+          OAP_REAL_POSTGRES_PROOF: "1"
+        run: python -m pytest -q tests/test_distribution_market_postgres_integration.py
       - name: Run bounded external live routing Green Gate probe
         run: python scripts/routing_live_green_gate.py
       - name: Preserve regression report
