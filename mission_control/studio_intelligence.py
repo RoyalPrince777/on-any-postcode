@@ -81,6 +81,18 @@ GENERATION_TOOLS = (
     },
 )
 
+
+STUDIO_WORKSPACES = (
+    {"id":"build","name":"Build","icon":"🏗️","purpose":"Build apps, sites, dashboards and product surfaces through governed code proposals, tests, preview preparation and GitHub handoff.","thinking_level":"deep_dive","code_mode":True,"studio_mode":True,"capabilities":("agentic_code_review","artifact_workflows","workspace_isolation","long_horizon_delivery")},
+    {"id":"data","name":"Data","icon":"🗄️","purpose":"Inspect, model and explain owner-authorised OAP Data and database state through read-only first-party inspection unless Human Authority explicitly approves a governed write.","thinking_level":"think","code_mode":False,"studio_mode":True,"capabilities":("structured_output","long_context_synthesis","evidence_first")},
+    {"id":"code","name":"Code","icon":"⌘","purpose":"Plan, write, review, debug and test code with exact diffs, rollback awareness and evidence before completion claims.","thinking_level":"deep_dive","code_mode":True,"studio_mode":True,"capabilities":("agentic_code_review","gap_adversarial_review","workspace_isolation")},
+    {"id":"fast","name":"Fast","icon":"⚡","purpose":"Use the smallest sufficient path for rapid answers, transformations and bounded tool routing without lowering safety or truth standards.","thinking_level":"instant","code_mode":False,"studio_mode":True,"capabilities":("cost_aware_routing","context_tiering")},
+    {"id":"motion","name":"Motion","icon":"🎞️","purpose":"Create and reason about image-to-video, text-to-video, scene continuity, camera movement, timing and governed video artifacts.","thinking_level":"think","code_mode":False,"studio_mode":True,"capabilities":("multimodal_spatial_reasoning","realtime_audio_visual","artifact_workflows")},
+    {"id":"music","name":"Music","icon":"🎵","purpose":"Develop original music concepts, structure, arrangement, rights-safe release preparation and OAP Music handoff; audio synthesis remains separately evidence-gated.","thinking_level":"think","code_mode":False,"studio_mode":True,"capabilities":("multimodal_fusion","creation_communication","artifact_workflows")},
+    {"id":"omni","name":"Omni","icon":"◎","purpose":"Combine text, images, audio, video, files, camera and screen evidence in one governed multimodal workspace.","thinking_level":"auto","code_mode":False,"studio_mode":True,"capabilities":("multimodal_fusion","multimodal_spatial_reasoning","realtime_audio_visual")},
+    {"id":"research","name":"Research","icon":"🔎","purpose":"Run evidence-first deep research with source provenance, parallel retrieval, comparison and compact synthesis.","thinking_level":"deep_dive","code_mode":False,"studio_mode":True,"capabilities":("cited_live_research","parallel_retrieval","multi_expert_synthesis")},
+)
+
 STUDIO_21_STAGES = (
     "Intent", "Input", "Rights", "Safety", "Context", "Route", "Evidence",
     "Creative brief", "Style", "Composition", "Motion", "Audio", "Continuity",
@@ -92,6 +104,29 @@ ACTIVATION_PROMPT = (
     "OAP Studio Intelligence mode. Help me create, edit, package, check rights, "
     "prepare publishing, distribution, campaign and analysis for: "
 )
+
+
+
+def workspace(workspace_id: object = "auto") -> dict[str, Any]:
+    clean = str(workspace_id or "auto").strip().lower()
+    if clean in {"", "auto"}:
+        return {"id":"auto","name":"Auto","icon":"🧠","purpose":"Let SMI choose the smallest sufficient Studio workspace from the request.","thinking_level":"auto","code_mode":False,"studio_mode":True,"capabilities":()}
+    for item in STUDIO_WORKSPACES:
+        if item["id"] == clean:
+            return dict(item)
+    raise ValueError("unsupported_studio_workspace")
+
+
+def workspace_instruction(workspace_id: object = "auto") -> str:
+    item = workspace(workspace_id)
+    if item["id"] == "auto":
+        return " STUDIO WORKSPACE: Auto-select the smallest sufficient OAP-native workspace for this request."
+    caps = ", ".join(item.get("capabilities") or ())
+    return (
+        f" STUDIO WORKSPACE {item['name'].upper()}: {item['purpose']} "
+        f"Prefer these OAP capability-fabric paths when relevant: {caps or 'adaptive_reasoning'}. "
+        "Do not copy another provider's branding, UI identity, hidden prompts, proprietary architecture or model weights."
+    )
 
 
 def _tool(tool_id: str) -> dict[str, str]:
@@ -286,6 +321,11 @@ def status() -> dict[str, Any]:
         "powered_by": "SMI",
         "pipeline": list(PIPELINE),
         "generation_tools": [dict(tool) for tool in GENERATION_TOOLS],
+        "workspaces": [dict(item) for item in STUDIO_WORKSPACES],
+        "workspace_default": "auto",
+        "first_party_workspace_identity": True,
+        "copies_provider_branding": False,
+        "music_audio_generation_proven": False,
         "studio_21_stage_count": len(STUDIO_21_STAGES),
         "studio_21_stages": list(STUDIO_21_STAGES),
         "generation_backend": backend,
