@@ -223,7 +223,9 @@ def test_payment_controls_ignore_forged_owner_and_use_authenticated_owner(monkey
         lambda owner_id, beneficiary_id: 60,
     )
 
-    def fake_intent(owner_id, *, beneficiary_id, amount_sika, reference=""):
+    def fake_intent(
+        owner_id, *, beneficiary_id, amount_sika, reference="", idempotency_key=""
+    ):
         captured["owner_id"] = owner_id
         return {
             "payment_intent_id": "intent-1",
