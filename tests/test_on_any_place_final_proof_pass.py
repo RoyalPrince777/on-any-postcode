@@ -5,9 +5,14 @@ from mission_control import (
     atlas_live_sources,
     certification,
     hrm_durable_receipt,
+    listing_media,
     local_map_intelligence,
+    map_live_pattern,
     maps_movement_direct_proof_runner,
     product_store,
+    routing,
+    routing_federation,
+    travel_marketplace,
 )
 
 
@@ -69,8 +74,6 @@ def test_on_any_place_reuses_existing_market_and_war_room_proof(monkeypatch):
         "route_matrix_status",
         lambda: {"certified": True},
     )
-
-    from mission_control import atlas_live_sources, listing_media, map_live_pattern, routing, routing_federation, travel_marketplace
 
     monkeypatch.setattr(
         routing,
