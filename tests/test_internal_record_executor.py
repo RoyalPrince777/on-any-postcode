@@ -23,6 +23,15 @@ def _authorization(identity_id: str) -> dict[str, object]:
         "execution_performed": False,
         "authority_transferred": False,
         "human_authority_final": True,
+        "stages": (
+            "SIGNAL",
+            "AGENTS",
+            "JUDGEMENT",
+            "GUARDIAN",
+            "HUMAN_AUTHORITY",
+            "ACTION",
+            "HRM_RECEIPT",
+        ),
     }
 
 
@@ -103,6 +112,17 @@ def test_executor_changes_status_only_and_proves_readback(monkeypatch):
         "connect",
         lambda: connection,
     )
+    monkeypatch.setattr(
+        executor.governed_action_pipeline,
+        "record_action_outcome",
+        lambda authorization, **kwargs: {
+            "pipeline_complete": True,
+            "stage": "HRM_RECEIPT",
+            "write_verified": True,
+            "read_back_verified": True,
+            "authority_transferred": False,
+        },
+    )
 
     result = executor.execute(
         _authorization(identity),
@@ -125,6 +145,11 @@ def test_executor_changes_status_only_and_proves_readback(monkeypatch):
     assert result["financial_side_effect"] is False
     assert result["authority_transferred"] is False
     assert result["rollback_token"]["target_status"] == "draft"
+    assert result["outcome_receipt"]["pipeline_complete"] is True
+    assert all(
+        all(plane.values())
+        for plane in result["governance_checks"].values()
+    )
 
 
 def test_wrong_owner_fails_closed(monkeypatch):
