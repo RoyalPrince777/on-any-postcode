@@ -15,6 +15,7 @@ from mission_control import (
     sika_finance_features,
     sika_global,
     sika_intelligence,
+    sika_open_banking,
     sika_payment_licence_gate,
     sika_safety,
     sika_wallet_ledger,
@@ -313,3 +314,13 @@ def sika_a6_readiness_status():
 @app.get("/api/sika/a6-evidence-pack")
 def sika_a6_evidence_pack():
     return jsonify(sika_a6_readiness.evidence_pack())
+
+
+@app.get("/api/sika/open-banking/status")
+def sika_open_banking_status():
+    return jsonify(sika_open_banking.status())
+
+
+@app.get("/api/sika/open-banking/trial")
+def sika_open_banking_trial():
+    return jsonify(sika_open_banking.trial_snapshot())
