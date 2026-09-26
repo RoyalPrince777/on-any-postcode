@@ -252,3 +252,11 @@ def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
 
     assert 'panels.some((panel) => panel.dataset.linkupPanel === "new")' in script
     assert 'openPanel("new")' in script
+
+
+def test_linkup_private_entry_has_enter_my_world_link():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "Enter My World" in template
+    assert "url_for('auth_page', next='/linkup')" in template
+    assert "Find People and New Link workspace" in template
