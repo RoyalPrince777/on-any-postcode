@@ -685,7 +685,7 @@ def test_compromise_lock_uses_authenticated_owner_and_never_moves_money(monkeypa
         json={"owner_id": ATTACKER_OWNER, "reason": "suspected compromise"},
     )
     body = response.get_json()
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert captured["owner_id"] == AUTH_OWNER
     assert body["compromise_locked"] is True
     assert body["money_execution_enabled"] is False
