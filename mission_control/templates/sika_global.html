@@ -76,6 +76,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <div class="sectionTitle">Release & Regulated Rails</div>
 <section class="groupGrid" aria-label="Release and regulated rails">
 <button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">PWA × device proof</p></button>
+<button class="tile jump" data-target="androidSection"><b>Android Acceptance</b><p class="muted">Physical install × update × recovery</p></button>
 <button class="tile jump" data-target="licenceSection"><b>Payment Licence</b><p class="muted">Evidence gate</p></button>
 <button class="tile jump" data-target="bankTrialSection"><b>Bank Trial</b><p class="muted">Read-only Open Banking evidence</p></button>
 <button class="tile jump" data-target="valueSection"><b>GBP → SIKA</b><p class="muted">Verified cash-in · internal use</p></button>
@@ -209,6 +210,13 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button id="installReadinessBtn">Check install readiness</button>
 <div class="result" id="installResult">—</div>
 <p class="notice">PWA software readiness is separate from physical Android acceptance and any native signed package.</p>
+</section>
+
+<section class="card" id="androidSection">
+<h2>Android Acceptance</h2>
+<button id="androidAcceptanceBtn">Check physical Android gate</button>
+<div class="result" id="androidAcceptanceResult">—</div>
+<p class="notice">This gate cannot self-certify. It only turns Green after real device install, home-screen launch, update, recovery and private-cache isolation evidence are supplied.</p>
 </section>
 
 <section class="card" id="licenceSection">
@@ -369,6 +377,13 @@ document.getElementById('installReadinessBtn').onclick=async()=>{
  document.getElementById('installResult').textContent=r.ok
   ? 'software '+j.private_software_acceptance_ready+' · PWA '+j.public_pwa_software_ready+' · Android proof '+j.real_android_pwa_acceptance+' · native APK '+j.native_android_package_ready
   : (j.error||'install readiness unavailable');
+};
+document.getElementById('androidAcceptanceBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/android-acceptance');
+ const j=await r.json();
+ document.getElementById('androidAcceptanceResult').textContent=r.ok
+  ? 'PWA '+j.real_android_pwa_acceptance+' · public gate '+j.public_install_release_gate+' · APK '+j.signed_native_sika_apk
+  : (j.error||'Android acceptance unavailable');
 };
 document.getElementById('licenceBtn').onclick=async()=>{
  const r=await fetch('/api/sika/payment-licence');
