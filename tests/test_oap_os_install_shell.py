@@ -23,7 +23,7 @@ def test_oap_os_manifest_is_installable_and_public_only(client):
         "512x512",
     }
     shortcut_urls = {shortcut["url"].split("?", 1)[0] for shortcut in manifest["shortcuts"]}
-    assert shortcut_urls == {"/the-spot", "/the-link", "/linkup", "/movement"}
+    assert shortcut_urls == {"/the-spot", "/the-link", "/linkup", "/movement", "/sika"}
     assert not any(
         route in str(manifest)
         for route in ("/mission", "/my-world", "/auth", "/infrastructure")
@@ -73,6 +73,8 @@ def test_service_worker_is_root_scoped_and_never_runtime_caches_private_data(cli
         "/auth",
         "/enter-my-world",
         "/my-world",
+        "/sika",
+        "/api/sika",
         "/mission",
         "/infrastructure",
     ):
@@ -121,3 +123,18 @@ def test_os_boundary_and_war_room_rating_are_truthful():
         boundary["components"] == "OAP OS / OAP CORE / Living Kernel / Android-Linux"
         for boundary in projection["conflict_audit"]["resolved_boundaries"]
     )
+
+
+def test_sika_install_shortcut_is_present_but_never_offline_cached(client):
+    manifest = client.get("/manifest.webmanifest").get_json()
+    shortcut_urls = {shortcut["url"].split("?", 1)[0] for shortcut in manifest["shortcuts"]}
+    assert "/sika" in shortcut_urls
+
+    worker = client.get("/service-worker.js").get_data(as_text=True)
+    private_block = worker.split("const isPrivatePath", 1)[0]
+    assert '"/sika"' in private_block
+    assert '"/api/sika"' in private_block
+
+    public_shell = worker.split("const PRIVATE_PREFIXES", 1)[0]
+    assert '"/sika"' not in public_shell
+    assert '"/api/sika"' not in public_shell
