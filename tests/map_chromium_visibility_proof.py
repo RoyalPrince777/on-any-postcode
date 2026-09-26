@@ -54,6 +54,21 @@ with sync_playwright() as p:
                                                   "AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36")
                                       if mobile else None)
         page = context.new_page()
+        if mobile:
+            context.grant_permissions(["geolocation"], origin="https://oap-map.test")
+            context.set_geolocation({"latitude": 51.4036, "longitude": -0.1687})
+            page.add_init_script("""
+                window.__oapSpoken=[];
+                const nativeSpeak=window.speechSynthesis.speak.bind(window.speechSynthesis);
+                const nativeCancel=window.speechSynthesis.cancel.bind(window.speechSynthesis);
+                window.speechSynthesis.speak=function(u){
+                    window.__oapSpoken.push(String((u&&u.text)||''));
+                    try{return nativeSpeak(u)}catch(_){return undefined}
+                };
+                window.speechSynthesis.cancel=function(){
+                    try{return nativeCancel()}catch(_){return undefined}
+                };
+            """)
         errors = []
         page.on("pageerror", lambda error, sink=errors: sink.append(str(error)))
         page.route("https://oap-map.test/**", fixture)
@@ -91,7 +106,40 @@ with sync_playwright() as p:
             " || document.querySelector('#route-state').textContent.includes('temporarily unavailable')",
             timeout=10000,
         )
+        if mobile:
+            page.evaluate("""
+                () => window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:{route:{
+                    distance_m:4200,duration_s:720,
+                    geometry:{coordinates:[[-0.1687,51.4036],[-0.1500,51.4300],[-0.0877,51.5079]]},
+                    steps:[
+                        {type:'turn',modifier:'right',name:'Fixture Road',distance_m:1800},
+                        {type:'arrive',modifier:'',name:'',distance_m:2400}
+                    ]
+                }}}))
+            """)
+            assert page.locator("#trip-bar").is_visible()
+            page.locator("#voice-toggle").click()
+            assert page.locator("#voice-toggle").get_attribute("aria-pressed") == "true"
+            page.locator("#drive-toggle").click()
+            assert page.locator("body").get_attribute("data-map-mode") == "drive"
+            page.evaluate("""
+                () => {
+                    window.__oapGeoWatchCalls=0;
+                    const original=navigator.geolocation.watchPosition.bind(navigator.geolocation);
+                    navigator.geolocation.watchPosition=(ok,err,opts)=>{
+                        window.__oapGeoWatchCalls+=1;
+                        return original(ok,err,opts);
+                    };
+                }
+            """)
+            page.locator("#map-locate").click()
+            page.wait_for_function("() => window.__oapGeoWatchCalls === 1", timeout=5000)
+            assert page.evaluate("() => window.__oapGeoWatchCalls") == 1
         assert page.locator("#road-layer polyline").count() > 0, label
+        if mobile:
+            assert page.locator("#voice-toggle").inner_text() == "Voice on"
+            assert page.locator("#oap-os-map-runtime").get_attribute("data-oap-os-map-runtime") == "android-web"
+            assert page.evaluate("() => Array.isArray(window.__oapSpoken)") is True
         assert not errors, (label, errors)
         print(f"OAP_MAP_CHROMIUM_FIXTURE_PASS {label} roads={count} route_failure_retained=true")
         context.close()

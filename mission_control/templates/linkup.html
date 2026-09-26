@@ -41,7 +41,11 @@
   </header>
 
   {% if not auth_user %}
-    <main class="linkup-login"><h2>Link Up is private.</h2></main>
+    <main class="linkup-login">
+      <h2>Link Up is private.</h2>
+      <p>Enter My World to open your private Link Ups, Find People and New Link workspace.</p>
+      <a class="mc-primary" href="{{ url_for('auth_page', next='/linkup') }}">Enter My World</a>
+    </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
       <aside class="linkup-list" aria-label="Link Ups">

@@ -16,10 +16,13 @@ TOTAL_REQUESTS = 20
 WORKERS = 4
 TIMEOUT_SECONDS = 10
 P95_LIMIT_SECONDS = 6.0
+WARMUP_ATTEMPTS = 6
+WARMUP_TIMEOUT_SECONDS = 10
+WARMUP_SLEEP_SECONDS = 2.0
 
 
-def run_one(index: int) -> dict[str, object]:
-    from_lon, from_lat, to_lon, to_lat, route_id = ROUTES[index % len(ROUTES)]
+def _route_url(index: int) -> str:
+    from_lon, from_lat, to_lon, to_lat, _route_id = ROUTES[index % len(ROUTES)]
     coords = f"{from_lon},{from_lat};{to_lon},{to_lat}"
     query = parse.urlencode(
         {
@@ -29,7 +32,54 @@ def run_one(index: int) -> dict[str, object]:
             "geometries": "geojson",
         }
     )
-    url = f"{BASE}/route/v1/driving/{coords}?{query}"
+    return f"{BASE}/route/v1/driving/{coords}?{query}"
+
+
+def wait_until_ready() -> dict[str, object]:
+    started = time.perf_counter()
+    last_failure = "not_started"
+    for attempt in range(1, WARMUP_ATTEMPTS + 1):
+        req = request.Request(
+            _route_url(0),
+            headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate-Warmup/1.0"},
+        )
+        try:
+            with request.urlopen(req, timeout=WARMUP_TIMEOUT_SECONDS) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+                routes = payload.get("routes") if isinstance(payload, dict) else None
+                first = routes[0] if isinstance(routes, list) and routes else {}
+                geometry = first.get("geometry") if isinstance(first, dict) else {}
+                coordinates = geometry.get("coordinates") if isinstance(geometry, dict) else None
+                if (
+                    int(response.status) == 200
+                    and payload.get("code") == "Ok"
+                    and float(first.get("distance") or 0) > 0
+                    and float(first.get("duration") or 0) > 0
+                    and geometry.get("type") == "LineString"
+                    and isinstance(coordinates, list)
+                    and len(coordinates) >= 2
+                ):
+                    return {
+                        "ready": True,
+                        "attempts": attempt,
+                        "elapsed_s": time.perf_counter() - started,
+                    }
+                last_failure = "invalid_response"
+        except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
+            last_failure = "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error"
+        if attempt < WARMUP_ATTEMPTS:
+            time.sleep(WARMUP_SLEEP_SECONDS)
+    return {
+        "ready": False,
+        "attempts": WARMUP_ATTEMPTS,
+        "elapsed_s": time.perf_counter() - started,
+        "failure_type": last_failure,
+    }
+
+
+def run_one(index: int) -> dict[str, object]:
+    _from_lon, _from_lat, _to_lon, _to_lat, route_id = ROUTES[index % len(ROUTES)]
+    url = _route_url(index)
     req = request.Request(
         url,
         headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate/1.0"},
@@ -75,6 +125,25 @@ def run_one(index: int) -> dict[str, object]:
 
 
 def main() -> None:
+    warmup = wait_until_ready()
+    print(
+        json.dumps(
+            {
+                "event": "oap_routing_bounded_external_warmup",
+                "ready": bool(warmup.get("ready")),
+                "attempts": int(warmup.get("attempts") or 0),
+                "elapsed_ms": round(float(warmup.get("elapsed_s") or 0) * 1000, 1),
+                "failure_type": warmup.get("failure_type"),
+                "dispatch_performed": False,
+                "payment_performed": False,
+                "tracking_performed": False,
+            },
+            sort_keys=True,
+        )
+    )
+    if not warmup.get("ready"):
+        raise SystemExit("live routing warmup did not become ready")
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as pool:
         results = list(pool.map(run_one, range(TOTAL_REQUESTS)))
 

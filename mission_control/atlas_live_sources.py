@@ -119,12 +119,19 @@ def last_fetch_status() -> dict[str, object]:
 
 def status() -> dict[str, object]:
     enabled = _enabled()
+    source_health = last_fetch_status()
+    live_claim_allowed = bool(
+        enabled
+        and source_health.get("fetch_status") == "success"
+        and source_health.get("source_backed")
+        and source_health.get("freshness") == "fresh"
+    )
     return {
         "component": "OAP Atlas Live Source Adapter",
         "adapter": "OpenStreetMap / Nominatim",
         "enabled": enabled,
-        "state": "enabled" if enabled else "configured_locked",
-        "signal": "yellow" if enabled else "locked",
+        "state": "source_proven" if live_claim_allowed else ("enabled_unproven" if enabled else "configured_locked"),
+        "signal": "green" if live_claim_allowed else ("yellow" if enabled else "locked"),
         "generated_at": _now(),
         "public_safe": True,
         "private_state_exposed": False,
@@ -140,9 +147,9 @@ def status() -> dict[str, object]:
         "payment_capture_enabled": False,
         "dispatch_enabled": False,
         "confirmed_booking_enabled": False,
-        "live_claim_allowed": enabled,
+        "live_claim_allowed": live_claim_allowed,
         "enable_env": "OAP_ATLAS_OPEN_DATA_ENABLED=true",
-        "last_fetch": last_fetch_status(),
+        "last_fetch": source_health,
     }
 
 

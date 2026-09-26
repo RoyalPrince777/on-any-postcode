@@ -16,6 +16,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -43,6 +45,8 @@ jobs:
           node tests/smi_exact_character_rig_foundation_test.cjs
           node --check mission_control/static/smi_source_pixel_motion.js
           node tests/smi_source_pixel_motion_test.cjs
+          node --check mission_control/static/smi_reply_audio_player.js
+          node tests/smi_reply_audio_player_test.cjs
           node --check mission_control/smi_character_motion_candidate.js
           node tests/smi_character_motion_candidate_test.cjs
           node --check mission_control/smi_android_motion_evidence_gate.js
@@ -77,6 +81,23 @@ jobs:
             rtl/tb_oap_trust_attestation_core.sv
           vvp /tmp/oap-rtl-attestation | tee /tmp/oap-rtl-attestation.log
           grep -q "OAP_RTL_ATTESTATION_V0_PASS" /tmp/oap-rtl-attestation.log
+      - name: Prove PR against current main without merging
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! tree="$(git merge-tree --write-tree HEAD origin/main)"; then
+            echo "Combined-main merge conflicts:"
+            git merge-tree HEAD origin/main || true
+            exit 1
+          fi
+          combined="$(printf '%s\n' 'OAP ephemeral combined-main proof' | git -c user.name='OAP CI' -c user.email='ci@localhost' commit-tree "$tree" -p HEAD -p origin/main)"
+          git worktree add --detach /tmp/oap-combined-main "$combined"
+          cd /tmp/oap-combined-main
+          python -m compileall -q app.py mission_control oap
+          ruff check app.py mission_control oap tests
+          python -m pytest -q
+
       # The external routing service is a hard gate, but an outage must not
       # suppress unrelated recovery regression evidence.
       - name: Run governed regression suite

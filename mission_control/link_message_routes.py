@@ -133,6 +133,19 @@ def message_state():
         return _failure(exc)
 
 
+@bp.get("/linkup/messages/<message_id>/acceptance")
+@web_security.login_required(api=True)
+def acceptance_receipt(message_id: str):
+    identity, _user = _identity_user()
+    try:
+        receipt = product_store.message_acceptance_receipt(identity, message_id)
+        if receipt is None:
+            return _error("message_not_found", 404)
+        return _no_store(make_response(jsonify(receipt=receipt)))
+    except MESSAGE_ERRORS as exc:
+        return _failure(exc)
+
+
 @bp.post("/linkup/messages/<message_id>/seen")
 @web_security.login_required(api=True)
 def seen(message_id: str):

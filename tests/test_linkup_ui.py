@@ -102,7 +102,8 @@ def test_public_link_ui_is_concise_and_read_only(anonymous_client, tmp_path, mon
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert "Link Up is private." in page
-    assert "Enter My World" not in page
+    assert "Enter My World" in page
+    assert 'href="/enter-my-world?next=/linkup"' in page
     assert 'href="/auth"' not in page
     assert "Message your Links." not in page
     assert "World Rooms" not in page
@@ -245,3 +246,18 @@ def test_linkup_emoji_and_conversation_settings_reuse_existing_owners():
     assert "linkup_safety.block_member" in page
     assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in page
     assert "My Card sharing enabled" not in page
+
+
+def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
+    script = Path("static/linkup_messenger.js").read_text(encoding="utf-8")
+
+    assert 'panels.some((panel) => panel.dataset.linkupPanel === "new")' in script
+    assert 'openPanel("new")' in script
+
+
+def test_linkup_private_entry_has_enter_my_world_link():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "Enter My World" in template
+    assert "url_for('auth_page', next='/linkup')" in template
+    assert "Find People and New Link workspace" in template

@@ -83,7 +83,7 @@ def test_road_network_loads_without_successful_route():
 
 def test_route_failure_preserves_independent_road_layer():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    route_section = template.split("async function route(){", 1)[1].split(
+    route_section = template.split("async function route(", 1)[1].split(
         "form.addEventListener('submit'", 1
     )[0]
 

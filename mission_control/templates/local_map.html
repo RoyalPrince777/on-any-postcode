@@ -60,6 +60,7 @@
       <div><b id="eta-remain">—</b><span>ETA</span></div>
       <div><b id="route-distance-hud">—</b><span>Remaining</span></div>
       <button id="drive-toggle" type="button">Drive</button>
+      <button id="voice-toggle" type="button" aria-pressed="false">Voice off</button>
       <button id="details-toggle" type="button" aria-expanded="false">Details</button>
     </section>
 
@@ -167,11 +168,16 @@ async function loadPlaces(term){
    (d.results||[]).slice(0,6).forEach(item=>{const row=document.createElement('div');row.className='place';const strong=document.createElement('strong');strong.textContent=item.name||'Place';const small=document.createElement('small');small.textContent=item.category||'place';row.append(strong,small);places.appendChild(row)});
  }catch{places.textContent='Nearby places unavailable'}
 }
-async function route(){
- const a=from.value.trim(),b=to.value.trim();if(a.length<2||b.length<2)return;
- toast('Finding route…');
+async function route(options={}){
+ const a=from.value.trim(),b=to.value.trim();if((!options.originCoords&&a.length<2)||b.length<2)return;
+ toast(options.originCoords?'Recalculating route…':'Finding route…');
  try{
-   const r=await fetch('/map-intelligence/route?from='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+   const params=new URLSearchParams({to:b,profile:profile.value});
+   if(options.originCoords){
+    params.set('from_lat',String(options.originCoords.latitude));
+    params.set('from_lon',String(options.originCoords.longitude));
+   }else params.set('from',a);
+   const r=await fetch('/map-intelligence/route?'+params.toString(),{credentials:'same-origin',cache:'no-store'});
    const d=await r.json();
    if(!r.ok||!d.route){svg.hidden=true;toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');return}
    draw(d.route.geometry?.coordinates||[]);
@@ -185,6 +191,10 @@ async function route(){
  }catch{svg.hidden=true;toast('Route temporarily unavailable')}
 }
 form.addEventListener('submit',e=>{e.preventDefault();route()});
+window.addEventListener('oap-map-reroute-request',event=>{
+ const point=event.detail||{};
+ if(Number.isFinite(point.latitude)&&Number.isFinite(point.longitude))route({originCoords:point});
+});
 loadRoadNetwork(defaultBounds,profile.value);
 profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
 if(from.value.trim()&&to.value.trim())route();

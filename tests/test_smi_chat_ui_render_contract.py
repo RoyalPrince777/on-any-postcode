@@ -27,3 +27,27 @@ def test_smi_chat_wrapper_only_passes_server_generated_routes():
     assert "founder_tools.github_propose_branch" in text
     assert "founder_tools.github_action_approval" in text
     assert "founder_tools.github_execute_approved_action" in text
+
+
+def test_smi_live_dashboard_quiet_alignment_contract():
+    css = Path("mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
+    assert "Quiet alignment pass" in css
+    assert "#speaker-button{" in css
+    assert 'display:flex!important' in css
+    assert 'grid-template-columns:44px 44px 44px minmax(180px,1fr) 120px 52px!important' in css
+    assert '.thinking:not(.show){display:none!important}' in css
+    assert '.thinking[data-complete="true"]{display:none!important}' in css
+    assert '.smi-chat-ops{display:none!important}' in css
+    assert '@media(max-width:760px)' in css
+
+
+def test_smi_quiet_home_keeps_secondary_intelligence_contextual():
+    css = Path("mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
+    base = Path("mission_control/templates/ollama_chat_base.html").read_text(encoding="utf-8")
+    assert "SMI quiet-home closure" in css
+    assert "body:not(.smi-command-open):not(.smi-status-open) .smi-dashboard-layer" in css
+    assert ".status-row{display:none!important}" in css
+    assert ".history:not(.mobile-open){pointer-events:none!important}" in css
+    assert "<div class=\"chat-title\">SMI</div>" in base
+    assert "One Brain · One World" in base
+    assert "Message SMI" in base

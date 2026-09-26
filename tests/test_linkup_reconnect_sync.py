@@ -97,3 +97,28 @@ def test_permission_denials_cannot_be_retried_or_queued_after_reconnect():
     assert 'code === "link_blocked"' in script
     assert 'code === "accepted_link_required"' in script
     assert 'window.addEventListener("online"' in script
+
+
+def test_live_acceptance_receipt_is_owner_scoped_and_content_free():
+    store = Path("mission_control/product_store.py").read_text(encoding="utf-8")
+    routes = Path("mission_control/link_message_routes.py").read_text(encoding="utf-8")
+
+    assert "def message_acceptance_receipt(" in store
+    assert "WHERE id=%s AND sender_id=%s" in store
+    assert '"persisted": True' in store
+    assert '"landed": True' in store
+    assert '"seen": row[1] is not None' in store
+    assert '"content_included": False' in store
+    assert '"owner_scoped": True' in store
+    assert '"body"' not in store.split("def message_acceptance_receipt(", 1)[1].split("def peer_messages_since(", 1)[0]
+    assert '@bp.get("/linkup/messages/<message_id>/acceptance")' in routes
+    assert "@web_security.login_required(api=True)" in routes
+    assert "product_store.message_acceptance_receipt(identity, message_id)" in routes
+
+
+def test_acceptance_receipt_does_not_fake_reconnect_proof():
+    store = Path("mission_control/product_store.py").read_text(encoding="utf-8")
+
+    receipt = store.split("def message_acceptance_receipt(", 1)[1].split("def peer_messages_since(", 1)[0]
+    assert '"reconnect_readback_capable": row[3] is not None' in receipt
+    assert "reconnect_proven" not in receipt

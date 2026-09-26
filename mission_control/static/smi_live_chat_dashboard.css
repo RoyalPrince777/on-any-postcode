@@ -67,3 +67,214 @@ body[data-smi-presence="paused"] .smi-shell::after,body[data-smi-presence="stopp
  .status-row{bottom:72px}.status{font-size:.62rem}.thinking{top:58px;left:8px;width:min(230px,48vw)!important;max-height:34dvh}.thinking-head{padding:7px 8px;font-size:.68rem}.thinking-log{padding:0 8px 7px;font-size:.68rem;max-height:22dvh}.thinking-elapsed{font-size:.62rem}
 }
 @media(prefers-reduced-motion:reduce){.history{transition:none}.smi-shell::after{animation:none!important}}
+
+
+/* Quiet alignment pass: preserve every control while restoring one visual hierarchy.
+ * Character > conversation > composer > secondary tools. */
+.chatbox::before{opacity:.45}
+.chat-head{top:10px!important;min-width:0!important;padding:6px 14px!important}
+.chat-subtitle{display:none!important}
+
+.messages{
+  top:54px!important;
+  bottom:118px!important;
+  width:min(760px,90vw)!important;
+  padding:10px!important;
+}
+.msg{
+  max-width:min(78%,680px)!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.28)!important;
+}
+
+.thinking{
+  top:58px!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  width:min(620px,86vw)!important;
+  max-height:180px!important;
+}
+.thinking:not(.show){display:none!important}
+.thinking[data-complete="true"]{display:none!important}
+
+.composer{
+  width:min(980px,calc(100vw - 24px))!important;
+  bottom:max(10px,env(safe-area-inset-bottom))!important;
+}
+.composer-box{
+  grid-template-columns:44px 44px 44px minmax(180px,1fr) 120px 52px!important;
+  gap:6px!important;
+  min-height:58px!important;
+  padding:6px!important;
+  border-radius:30px!important;
+  box-shadow:0 8px 28px rgba(0,0,0,.34),0 0 18px rgba(25,153,255,.14)!important;
+}
+.attach-wrap{grid-column:1!important}
+.attach-wrap::after{display:none!important}
+#plus-button{grid-column:1!important;grid-row:1!important}
+#mic-button{grid-column:2!important;grid-row:1!important;margin:0!important}
+#mic-button::after{display:none!important}
+#speaker-button{
+  display:flex!important;
+  grid-column:3!important;
+  grid-row:1!important;
+  width:44px!important;
+  height:44px!important;
+  min-width:44px!important;
+  padding:0!important;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  white-space:nowrap;
+  border-radius:50%!important;
+  border:1px solid rgba(48,180,255,.6)!important;
+  background:rgba(4,15,35,.82)!important;
+  color:#eef8ff!important;
+  font-size:0!important;
+}
+#speaker-button::before{content:"🔊";font-size:1rem}
+#speaker-button[aria-pressed="false"]::before{content:"🔇"}
+
+.composer textarea{
+  grid-column:4!important;
+  min-height:44px!important;
+  max-height:88px!important;
+  padding:10px 14px!important;
+  border-color:rgba(154,103,255,.52)!important;
+  box-shadow:none!important;
+}
+#thinking-level{
+  grid-column:5!important;
+  width:120px!important;
+  min-height:44px!important;
+  padding:0 8px!important;
+}
+#send{
+  grid-column:6!important;
+  width:52px!important;
+  height:44px!important;
+  padding:0!important;
+}
+.send-label{display:none!important}
+
+.status-row{
+  bottom:76px!important;
+  width:min(720px,88vw)!important;
+  opacity:.82;
+}
+.status{font-size:.62rem!important}
+#pause-button,#stop-button{
+  right:12px!important;
+  bottom:76px!important;
+}
+.preview{bottom:76px!important}
+
+.mobile-chats-toggle{
+  top:10px!important;
+  left:10px!important;
+  width:38px;
+  height:38px;
+  padding:0!important;
+  display:grid!important;
+  place-items:center;
+}
+#live-character-toggle,body.smi-live-fullscreen #live-character-toggle{
+  top:10px!important;
+  right:10px!important;
+  min-height:38px;
+}
+
+/* Secondary intelligence remains accessible from drawers/tools, not permanently noisy. */
+.smi-chat-ops{display:none!important}
+.smi-dashboard-layer{box-shadow:-18px 0 50px rgba(0,0,0,.5)}
+
+@media(max-width:760px){
+  .chat-head{top:8px!important;max-width:38vw!important;padding:5px 8px!important}
+  .chat-title{font-size:.72rem!important;letter-spacing:.09em!important}
+  .messages{top:48px!important;bottom:106px!important;width:96vw!important;padding:6px!important}
+  .msg{max-width:94%!important}
+  .composer{width:calc(100vw - 10px)!important;bottom:max(5px,env(safe-area-inset-bottom))!important}
+  .composer-box{
+    grid-template-columns:38px 38px 38px minmax(0,1fr) 54px 44px!important;
+    gap:3px!important;
+    min-height:54px!important;
+    padding:4px!important;
+  }
+  #plus-button,#mic-button,#speaker-button{
+    width:38px!important;
+    height:40px!important;
+    min-width:38px!important;
+  }
+  .composer textarea{
+    grid-column:4!important;
+    min-height:40px!important;
+    padding:9px 8px!important;
+    font-size:.92rem!important;
+  }
+  #thinking-level{
+    grid-column:5!important;
+    width:54px!important;
+    min-height:40px!important;
+    padding:0 2px!important;
+    font-size:.58rem!important;
+  }
+  #send{
+    grid-column:6!important;
+    width:44px!important;
+    height:40px!important;
+  }
+  .thinking{
+    top:50px!important;
+    width:min(92vw,520px)!important;
+    max-height:28dvh!important;
+  }
+  .status-row{bottom:62px!important;width:86vw!important}
+  #pause-button,#stop-button{bottom:62px!important}
+  .preview{bottom:62px!important}
+}
+
+
+/* SMI quiet-home closure: one primary intelligence surface.
+   Secondary proof/intelligence stays available through explicit tools only. */
+body:not(.smi-command-open):not(.smi-status-open) .smi-dashboard-layer,
+body:not(.smi-command-open):not(.smi-status-open) .smi-status-backdrop,
+body:not(.smi-command-open):not(.smi-status-open) .smi-command-centre{
+  display:none!important;
+}
+.chat-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  max-width:min(360px,62vw)!important;
+}
+.chat-head>div{display:flex!important;align-items:baseline!important;gap:8px!important}
+.chat-title{font-size:.86rem!important;letter-spacing:.09em!important;text-transform:uppercase}
+.chat-subtitle{font-size:.62rem!important;opacity:.72}
+#provider-state{
+  position:absolute!important;
+  right:10px!important;
+  width:8px!important;height:8px!important;
+  overflow:hidden!important;
+  color:transparent!important;
+  border-radius:50%!important;
+  background:#35d778!important;
+  box-shadow:0 0 9px #35d77888!important;
+}
+#provider-state:is([data-state="working"],[data-state="thinking"]){background:#e4bf7f!important;box-shadow:0 0 9px #e4bf7f88!important}
+.status-row{display:none!important}
+.history:not(.mobile-open){pointer-events:none!important}
+.history.mobile-open{pointer-events:auto!important}
+.attach-menu .attach-note{font-size:.62rem!important;opacity:.72}
+.attach-menu [data-oap-action="function-health"],
+.attach-menu [data-oap-action="green-gate"],
+.attach-menu [data-oap-action="improvement"],
+.attach-menu [data-oap-action="swot"],
+.attach-menu [data-oap-action="behaviour"],
+.attach-menu [data-oap-action="github-governed"]{
+  opacity:.82;
+}
+@media(max-width:760px){
+  .chat-head{max-width:58vw!important}
+  .chat-head .chat-subtitle:not(#provider-state){display:none!important}
+  .composer-box{box-shadow:0 0 18px rgba(25,153,255,.18)!important}
+}
