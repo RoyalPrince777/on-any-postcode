@@ -1,9 +1,9 @@
-"""SIKA / OAP OS identity alignment.
+"""SIKA bank-app / OAP OS alignment.
 
-One spine:
-Managed Identity -> Password -> Device/eSIM slot -> OAP OS -> Digital SoC -> Organism.
+One bank-app spine:
+SIKA app access -> bank-app security -> Device/eSIM slot -> OAP OS -> Digital SoC -> Organism.
 
-This module reports architecture truth only. It does not provision a carrier eSIM,
+This module does not touch Founder authentication, provision a carrier eSIM,
 store passwords, claim physical silicon, or grant device authority.
 """
 from __future__ import annotations
@@ -16,19 +16,21 @@ from . import sovereign_digital_soc
 def status() -> dict[str, Any]:
     soc = sovereign_digital_soc.digital_soc_contract()
     return {
-        "identity": {
-            "owner": "Managed Neon Auth",
-            "password_stored_by_oap": False,
-            "sign_in_path": "/enter-my-world",
-            "founder_password_activation_path": "/activate-founder",
-            "create_password_scope": "founder_activation_only",
+        "bank_app_security": {
+            "scope": "SIKA bank app only",
+            "founder_auth_touched": False,
+            "founder_password_linked": False,
+            "bank_app_password_ready": False,
+            "bank_app_password_storage": "not implemented",
+            "device_binding_ready": False,
+            "note": "bank-app credential layer remains a separate missing capability",
         },
         "device": {
             "esim_slot_defined": True,
             "esim_profile_provisioned": False,
             "esim_is_authentication_factor": False,
             "carrier_profile_required": True,
-            "device_identity_separate_from_password": True,
+            "device_identity_separate_from_bank_app_password": True,
         },
         "operating_system": {
             "name": "OAP OS",
