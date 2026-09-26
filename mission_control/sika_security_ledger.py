@@ -289,3 +289,166 @@ def reauth_lock_state(owner_id: object) -> dict[str, object]:
         "money_moved": False,
         "founder_auth_touched": False,
     }
+
+
+def daily_payment_activity(owner_id: object) -> dict[str, object]:
+    from decimal import Decimal
+
+    events = history(owner_id, limit=100)
+    today = datetime.now(timezone.utc).date()
+    attempted = Decimal(0)
+    reviewed = 0
+    held = 0
+    for item in events:
+        raw = str(item.get("created_at") or "")
+        try:
+            created = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        if created.astimezone(timezone.utc).date() != today:
+            continue
+        kind = str(item.get("event_type") or "")
+        details = dict(item.get("details") or {})
+        amount = Decimal(str(details.get("amount_sika") or "0"))
+        if kind in {"PAYMENT_CONTROL_HOLD", "FRAUD_PREFLIGHT"}:
+            attempted += max(amount, Decimal(0))
+            reviewed += 1
+        if kind == "PAYMENT_CONTROL_HOLD":
+            held += 1
+    return {
+        "daily_attempted_sika": f"{attempted:.2f}",
+        "daily_review_events": reviewed,
+        "daily_hold_events": held,
+        "daily_executed_spend_sika": "0.00",
+        "money_execution_enabled": False,
+        "truth_mode": "attempted_not_executed_spend",
+    }
+
+
+def create_step_up_challenge(
+    owner_id: object,
+    *,
+    reason: str,
+    amount_sika: object = "0",
+) -> dict[str, object]:
+    challenge_id = str(uuid4())
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="STEP_UP_CREATED",
+        severity="WARNING",
+        details={
+            "challenge_id": challenge_id,
+            "reason": str(reason or "security_review")[:160],
+            "amount_sika": str(amount_sika),
+            "status": "pending",
+        },
+    )
+    return {
+        "challenge_id": challenge_id,
+        "status": "pending",
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def resolve_step_up_challenge(
+    owner_id: object,
+    *,
+    challenge_id: object,
+    approved: bool,
+) -> dict[str, object]:
+    challenge = str(challenge_id or "").strip()
+    if not challenge:
+        raise ValueError("challenge_id_required")
+    events = history(owner_id, limit=100)
+    created = next(
+        (
+            item for item in events
+            if item.get("event_type") == "STEP_UP_CREATED"
+            and dict(item.get("details") or {}).get("challenge_id") == challenge
+        ),
+        None,
+    )
+    if created is None:
+        raise ValueError("step_up_challenge_not_found")
+    already = next(
+        (
+            item for item in events
+            if item.get("event_type") == "STEP_UP_RESOLVED"
+            and dict(item.get("details") or {}).get("challenge_id") == challenge
+        ),
+        None,
+    )
+    if already is not None:
+        return {
+            "challenge_id": challenge,
+            "status": str(dict(already.get("details") or {}).get("status") or "resolved"),
+            "idempotent": True,
+            "money_moved": False,
+            "founder_auth_touched": False,
+        }
+    status = "approved_for_review" if approved else "rejected"
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="STEP_UP_RESOLVED",
+        severity="NOTICE" if approved else "WARNING",
+        details={
+            "challenge_id": challenge,
+            "status": status,
+            "payment_execution_authorised": False,
+        },
+    )
+    return {
+        "challenge_id": challenge,
+        "status": status,
+        "security_receipt_id": receipt.get("event_id"),
+        "idempotent": False,
+        "money_moved": False,
+        "payment_execution_authorised": False,
+        "founder_auth_touched": False,
+    }
+
+
+def acknowledge_alert(owner_id: object, event_id: object) -> dict[str, object]:
+    target = str(event_id or "").strip()
+    if not target:
+        raise ValueError("security_event_id_required")
+    events = history(owner_id, limit=100)
+    if not any(str(item.get("event_id") or "") == target for item in events):
+        raise ValueError("security_event_not_found")
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SECURITY_ALERT_ACK",
+        severity="INFO",
+        details={"security_event_id": target, "acknowledged": True},
+    )
+    return {
+        "security_event_id": target,
+        "acknowledged": True,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+    }
+
+
+def recover_alert(owner_id: object, event_id: object) -> dict[str, object]:
+    target = str(event_id or "").strip()
+    if not target:
+        raise ValueError("security_event_id_required")
+    events = history(owner_id, limit=100)
+    if not any(str(item.get("event_id") or "") == target for item in events):
+        raise ValueError("security_event_not_found")
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SECURITY_ALERT_RECOVERED",
+        severity="NOTICE",
+        details={"security_event_id": target, "recovered": True},
+    )
+    return {
+        "security_event_id": target,
+        "recovered": True,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+    }
