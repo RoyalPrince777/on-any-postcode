@@ -22,6 +22,7 @@ from mission_control import (
     sika_payment_licence_gate,
     sika_closed_loop_value,
     sika_deep_dive_21,
+    sika_device_binding,
     sika_safety,
     sika_wallet_ledger,
 )
@@ -426,3 +427,34 @@ def sika_bank_password_status():
         return jsonify(sika_bank_app_security.status(request.args.get("device_id")))
     except ValueError as exc:
         return jsonify({"error": str(exc), "production_ready": False}), 400
+
+
+@app.post("/api/sika/device/bind")
+def sika_device_bind():
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_device_binding.bind(body.get("owner_id"), body.get("device_id"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "bound": False}), 400
+    return jsonify(result), (201 if result["bound"] else 409)
+
+
+@app.get("/api/sika/device/status")
+def sika_device_binding_status():
+    try:
+        return jsonify(sika_device_binding.status(
+            request.args.get("owner_id"),
+            request.args.get("device_id"),
+        ))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "matched": False}), 400
+
+
+@app.post("/api/sika/device/unbind")
+def sika_device_unbind():
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_device_binding.unbind(body.get("owner_id"), body.get("device_id"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "unbound": False}), 400
+    return jsonify(result), (200 if result["unbound"] else 404)
