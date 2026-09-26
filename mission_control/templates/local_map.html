@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 {% include "_oap_install_head.html" %}
 <title>OAP Map Intelligence</title>
-<link rel="stylesheet" href="{{ url_for('mission_control.static', filename='oap_map_navigation.css') }}">
+<link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css') }}">
 </head>
 <body data-map-mode="explore">
 <main class="map-app">
@@ -201,7 +201,7 @@ if(from.value.trim()&&to.value.trim())route();
 loadPlaces(from.value.trim());
 })();
 </script>
-<script src="{{ url_for('mission_control.static', filename='oap_map_navigation.js') }}"></script>
-<script src="{{ url_for('mission_control.static', filename='oap_os_map_bridge.js') }}"></script>
+<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.js') }}"></script>
+<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_os_map_bridge.js') }}"></script>
 </body>
 </html>

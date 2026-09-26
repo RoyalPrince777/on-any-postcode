@@ -98,6 +98,21 @@ def validate_movement_intelligence() -> dict[str, Any]:
 
 def movement_intelligence_status() -> dict[str, Any]:
     validation = validate_movement_intelligence()
+    from . import map_live_pattern, routing
+
+    route_state = routing.status()
+    live_state = map_live_pattern.status()
+    software_navigation_ready = bool(
+        validation["passed"]
+        and route_state.get("runtime_verified")
+        and route_state.get("oap_owned_endpoint")
+        and route_state.get("geometry_exposed")
+    )
+    production_navigation_ready = bool(
+        software_navigation_ready
+        and route_state.get("production_ready")
+        and live_state.get("authority_verified_feed")
+    )
     return {
         "name": "OAP Movement Intelligence",
         "architecture_passed": validation["passed"],
@@ -108,6 +123,21 @@ def movement_intelligence_status() -> dict[str, Any]:
         "intelligence_loop": INTELLIGENCE_LOOP,
         "governance": dict(GOVERNANCE),
         "first_party_policy": dict(FIRST_PARTY_POLICY),
-        "production_navigation_ready": False,
-        "readiness_reason": "Owned map store, route engine, live observations and runtime verification must pass before production navigation is enabled.",
+        "software_navigation_ready": software_navigation_ready,
+        "route_geometry_proven": bool(
+            route_state.get("runtime_verified")
+            and route_state.get("oap_owned_endpoint")
+            and route_state.get("geometry_exposed")
+        ),
+        "live_disruption_authority_proven": bool(live_state.get("authority_verified_feed")),
+        "production_navigation_ready": production_navigation_ready,
+        "readiness_reason": (
+            "Machine navigation stack is proven; production approval and current authority-feed proof remain separate gates."
+            if software_navigation_ready and not production_navigation_ready
+            else (
+                "Owned routing, authority feed and production routing gates are proven."
+                if production_navigation_ready
+                else "Owned map store, route engine and runtime geometry must pass before navigation software can be marked ready."
+            )
+        ),
     }

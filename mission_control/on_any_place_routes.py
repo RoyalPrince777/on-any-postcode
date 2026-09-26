@@ -6,6 +6,7 @@ exposed here. Booking remains separate.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from urllib import parse as urlparse
 
 from flask import (
@@ -16,6 +17,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
 )
 
 from . import (
@@ -31,6 +33,13 @@ from . import (
 )
 
 bp = Blueprint("on_any_place", __name__)
+
+_PUBLIC_MAP_ASSETS = frozenset({
+    "oap_map_navigation.css",
+    "oap_map_navigation.js",
+    "oap_os_map_bridge.js",
+})
+_PUBLIC_MAP_ASSET_DIR = Path(__file__).resolve().parent / "static"
 
 _ROUTE_ANCHORS: dict[str, dict[str, object]] = {
     "mitcham": {
@@ -151,6 +160,18 @@ def _road_sequence(route: dict[str, object]) -> list[str]:
         if len(roads) >= 30:
             break
     return roads
+
+
+@bp.get("/map-intelligence/assets/<path:filename>")
+def map_intelligence_asset(filename: str):
+    """Serve only the public map runtime assets without exposing private Mission Control static files."""
+    safe_name = str(filename or "").strip()
+    if safe_name not in _PUBLIC_MAP_ASSETS:
+        return make_response("", 404)
+    response = make_response(send_from_directory(_PUBLIC_MAP_ASSET_DIR, safe_name))
+    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @bp.get("/map-intelligence/suggest")
