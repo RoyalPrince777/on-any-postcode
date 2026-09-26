@@ -94,7 +94,7 @@ def _day_set(token: str) -> set[int] | None:
         if start not in _DAY_INDEX or end not in _DAY_INDEX:
             return None
         a, b = _DAY_INDEX[start], _DAY_INDEX[end]
-        return set(range(a, b + 1)) if a <= b else set(range(a, 7)) | set(range(0, b + 1))
+        return set(range(a, b + 1)) if a <= b else set(range(a, 7)) | set(range(b + 1))
     return None
 
 
