@@ -158,7 +158,7 @@ def test_evidence_write_uses_authenticated_owner_and_stays_fail_closed(monkeypat
         "authority_reference": "reviewer",
     }
     with app.test_request_context("/", method="POST", json=payload):
-        response = product_core_views.append_tune_release_evidence.__wrapped__()
+        response = product_core_views.append_tune_release_evidence.__wrapped__(release_id)
     body = response.get_json()
     assert response.status_code == 201
     assert captured["owner_identity_id"] == "11111111-1111-1111-1111-111111111111"
