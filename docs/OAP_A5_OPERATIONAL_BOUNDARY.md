@@ -14,12 +14,12 @@ A5 is not allowed to become an independent ruler of OAP.
 
 A5-ready systems may run these governed, reversible, proof-bound functions:
 
-1. Read-only proof review across OAP World, SMI, Kernel, Guardian, HRM, Green Gate, OAP Atlas, Movement and OAP Direct.
+1. Read-only proof review across OAP World, SMI, Kernel, Guardian, HRM, Green Gate, On Any Place, Movement and OAP Direct.
 2. Signal aggregation across the 21 OAP core signals.
 3. Gap detection and prioritisation.
 4. Route Matrix scoring from captured evidence.
 5. Private Guard scoring from captured fail-closed evidence.
-6. OAP Atlas source-health scoring from source, timestamp and stale-data evidence.
+6. On Any Place source-health scoring from source, timestamp and stale-data evidence.
 7. Movement schema readiness review.
 8. Direct supplier/listing/inventory readiness review.
 9. Pictures and lifecycle readiness review.
