@@ -142,3 +142,35 @@ def test_security_freeze_fails_closed_without_live_rails():
     assert body["card_frozen"] is False
     assert body["payments_frozen"] is False
     assert body["executable"] is False
+
+
+def test_visible_control_targets_have_working_endpoints():
+    client = app.test_client()
+    assert client.get("/api/sika/wallet").status_code == 200
+    assert client.post("/api/sika/treasury/rates", json={
+        "currency": "USD",
+        "gbp_per_unit": "0.75",
+        "source": "ui-test",
+    }).status_code == 201
+    for path in ("/api/sika/card", "/api/sika/pay"):
+        response = client.post(path)
+        assert response.status_code == 423
+        assert response.get_json()["reason"] == "regulated_execution_not_enabled"
+
+
+def test_surface_contains_real_buttons_not_static_tiles():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    for control_id in (
+        "walletRefresh",
+        "treasurySave",
+        "quote",
+        "cashbackBtn",
+        "deferredBtn",
+        "trustBtn",
+        "freezeBtn",
+        "marketHandoff",
+    ):
+        assert f'id="{control_id}"' in html
+    assert 'class="tile jump"' in html
+    assert 'class="tile regulated"' in html
