@@ -814,3 +814,12 @@ def test_sika_payment_controls_enforce_cooling_off_limit_and_suspicious_device()
     assert body["payment_may_progress_to_review"] is False
     assert body["money_moved"] is False
     assert body["executable"] is False
+
+
+def test_sika_security_ledger_readiness_is_fail_closed():
+    client = app.test_client()
+    response = client.get("/api/sika/security/posture")
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["money_execution_enabled"] is False
+    assert body["founder_auth_touched"] is False
