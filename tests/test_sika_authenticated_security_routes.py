@@ -560,3 +560,133 @@ def test_sika_revoke_all_is_owner_scoped(monkeypatch):
     assert response.status_code == 200
     assert captured["owner_id"] == AUTH_OWNER
     assert captured["owner_id"] != ATTACKER_OWNER
+
+
+def test_session_register_uses_authenticated_owner_not_request_owner(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    captured = {}
+
+    def fake_register(owner_id, *, session_id, device_id):
+        captured["owner_id"] = owner_id
+        captured["session_id"] = session_id
+        captured["device_id"] = device_id
+        return {
+            "session_id": session_id,
+            "device_id": device_id,
+            "registered": True,
+            "money_moved": False,
+            "founder_auth_touched": False,
+        }
+
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "register_session",
+        fake_register,
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/session/register",
+        json={
+            "owner_id": ATTACKER_OWNER,
+            "session_id": "session-a",
+            "device_id": "device-a",
+        },
+    )
+    assert response.status_code == 201
+    assert captured["owner_id"] == AUTH_OWNER
+    assert captured["owner_id"] != ATTACKER_OWNER
+
+
+def test_missing_csrf_blocks_revoke_all_before_ledger(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: False,
+    )
+    called = {"ledger": False}
+
+    def should_not_run(*args, **kwargs):
+        called["ledger"] = True
+        raise AssertionError("revoke-all ledger must not run without CSRF")
+
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "revoke_all_sessions",
+        should_not_run,
+    )
+
+    response = app.test_client().post("/api/sika/security/session/revoke-all", json={})
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "csrf_failed"
+    assert called["ledger"] is False
+
+
+def test_unauthenticated_session_registry_fails_closed(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: None,
+    )
+    response = app.test_client().get("/api/sika/security/sessions")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_compromise_route_uses_authenticated_owner_and_never_moves_money(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    captured = {}
+
+    def fake_compromise(owner_id, *, session_id):
+        captured["owner_id"] = owner_id
+        return {
+            "session_id": session_id,
+            "compromised": True,
+            "revoked": True,
+            "compromise_locked": True,
+            "money_moved": False,
+            "founder_auth_touched": False,
+        }
+
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "mark_session_compromised",
+        fake_compromise,
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/session/compromise",
+        json={"owner_id": ATTACKER_OWNER, "session_id": "session-a"},
+    )
+    body = response.get_json()
+    assert response.status_code == 200
+    assert captured["owner_id"] == AUTH_OWNER
+    assert body["compromise_locked"] is True
+    assert body["money_moved"] is False
+    assert body["founder_auth_touched"] is False
