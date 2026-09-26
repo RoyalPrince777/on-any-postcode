@@ -117,6 +117,9 @@ def security_posture() -> dict[str, Any]:
         },
         "session": {
             "authenticated_owner_required": True,
+            "idle_timeout_seconds": 300,
+            "sensitive_action_reauth_seconds": 120,
+            "reauth_required_after_timeout": True,
             "csrf_required_for_mutations": True,
             "private_cache_disabled": True,
             "sensitive_autocomplete_disabled": True,
@@ -133,12 +136,57 @@ def security_posture() -> dict[str, Any]:
             "changed_payment_instruction_signal": True,
             "suspicious_link_qr_signal": True,
             "human_review_available": True,
+            "beneficiary_cooling_off": True,
+            "software_transfer_limits": True,
+            "suspicious_device_recovery": True,
             "regulated_execution_authorised": False,
         },
         "founder_auth_touched": False,
         "money_execution_enabled": False,
     }
 
+
+
+def payment_controls(payload: dict[str, Any] | None) -> dict[str, Any]:
+    body = payload or {}
+    amount = _bounded(body.get("amount_sika", "0"), "amount_sika")
+    daily_used = _bounded(body.get("daily_used_sika", "0"), "daily_used_sika")
+    daily_limit = _bounded(body.get("daily_limit_sika", "1000"), "daily_limit_sika")
+    recipient_age_minutes = int(
+        _bounded(body.get("recipient_age_minutes", "0"), "recipient_age_minutes")
+    )
+    suspicious_device = bool(body.get("suspicious_device"))
+
+    remaining = max(daily_limit - daily_used, Decimal(0))
+    over_limit = amount > remaining
+    new_recipient_cooling_off = recipient_age_minutes < 30
+    step_up_required = (
+        over_limit or new_recipient_cooling_off or suspicious_device or amount >= Decimal(500)
+    )
+    return {
+        "daily_limit_sika": f"{daily_limit:.2f}",
+        "daily_used_sika": f"{daily_used:.2f}",
+        "remaining_sika": f"{remaining:.2f}",
+        "over_limit": over_limit,
+        "new_recipient_cooling_off": new_recipient_cooling_off,
+        "cooling_off_minutes": 30,
+        "suspicious_device": suspicious_device,
+        "step_up_required": step_up_required,
+        "payment_may_progress_to_review": not over_limit and not suspicious_device,
+        "money_moved": False,
+        "executable": False,
+    }
+
+
+def session_policy() -> dict[str, Any]:
+    return {
+        "idle_timeout_seconds": 300,
+        "sensitive_action_reauth_seconds": 120,
+        "background_immediate_privacy_shield": True,
+        "reauth_required_after_timeout": True,
+        "founder_auth_touched": False,
+        "money_execution_enabled": False,
+    }
 
 def install_readiness() -> dict[str, Any]:
     return {
