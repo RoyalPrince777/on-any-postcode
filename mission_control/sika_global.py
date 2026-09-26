@@ -6,14 +6,14 @@ third-party rates. It keeps one canonical SIKA denomination anchored at
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
 import re
-from typing import Mapping
+from collections.abc import Mapping
+from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
 
 SIKA_CODE = "SIKA"
 ANCHOR_CODE = "GBP"
-SIKA_TO_GBP = Decimal("1")
+SIKA_TO_GBP = Decimal(1)
 _CODE = re.compile(r"^[A-Z]{3}$")
 
 
@@ -66,7 +66,7 @@ def quote_from_sika(
     code = normalize_currency(currency)
 
     if code == ANCHOR_CODE:
-        rate = Decimal("1")
+        rate = Decimal(1)
     else:
         try:
             rate = Decimal(str(gbp_per_unit[code]))
@@ -92,7 +92,9 @@ def status() -> dict[str, object]:
         "system": "SIKA Global",
         "canonical_unit": SIKA_CODE,
         "anchor": {"currency": ANCHOR_CODE, "target": "1 SIKA = 1 GBP"},
-        "global_currency_codes": "any_valid_three_letter_iso_style_code_with_authorised_rate",
+        "global_currency_codes": (
+            "any_valid_three_letter_iso_style_code_with_authorised_rate"
+        ),
         "first_party_core": True,
         "client_calls_external_bank": False,
         "client_calls_external_fx_provider": False,
