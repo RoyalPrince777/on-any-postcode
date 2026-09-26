@@ -113,6 +113,30 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="capability-anatomy-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Capability anatomy · truth-labelled</p>
+          <h2 id="capability-anatomy-title">Major capability placement</h2>
+        </div>
+        <span class="mc-lock-badge">One brain · owned organs</span>
+      </div>
+      <div class="mc-region-grid" role="list">
+        {% for capability in anatomy.capability_anatomy %}
+        <article class="mc-region-card" role="listitem">
+          <p class="mc-organ-type">{{ capability.status|upper }}</p>
+          <h3>{{ capability.name }}</h3>
+          <p><strong>Brain:</strong> {{ capability.brain_regions|join(', ') }}</p>
+          <p><strong>Body owner:</strong> {{ capability.body_owner }}</p>
+          <p><strong>Protection:</strong> {{ capability.protection_owner }}</p>
+          <p><strong>Memory:</strong> {{ capability.memory_owner }}</p>
+          <p><strong>Execution:</strong> {{ capability.execution_owner }}</p>
+          <small><strong>Remaining gap:</strong> {{ capability.missing }}</small>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
     <section class="mc-panel" aria-labelledby="governance-law-title">
       <div class="mc-section-heading">
         <div>
