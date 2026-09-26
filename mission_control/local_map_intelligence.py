@@ -328,12 +328,24 @@ def request_preview(start: object = None, end: object = None, *, purpose: object
 
 def readiness_state() -> dict[str, object]:
     """Reconcile the public On Any Place truth board with the active runtime stack."""
-    from . import atlas_live_sources, map_live_pattern, routing, routing_federation
+    from . import (
+        atlas_live_sources,
+        listing_media,
+        map_live_pattern,
+        routing,
+        routing_federation,
+        travel_marketplace,
+    )
 
     route_state = routing.status()
     live_state = map_live_pattern.status()
     place_state = atlas_live_sources.status()
     federation_state = routing_federation.status()
+    media_state = listing_media.status()
+    try:
+        event_state = travel_marketplace.public_offers(category="event", limit=1)
+    except Exception:  # noqa: BLE001
+        event_state = {"ready": False, "count": 0, "offers": []}
 
     road_tiles_proven = bool(
         route_state.get("runtime_verified")
@@ -348,6 +360,16 @@ def readiness_state() -> dict[str, object]:
     turn_by_turn_software_ready = bool(route_geometry_proven and FEATURE_UNLOCKS["turn_by_turn_navigation"])
     live_disruption_proven = bool(live_state.get("authority_verified_feed"))
     source_backed_places_ready = bool(place_state.get("enabled"))
+    opening_hours_source_proven = bool(
+        int((place_state.get("last_fetch") or {}).get("opening_hours_count") or 0) > 0
+        and (place_state.get("last_fetch") or {}).get("freshness") == "fresh"
+    )
+    event_inventory_source_proven = bool(
+        event_state.get("ready") and int(event_state.get("count") or 0) > 0
+    )
+    first_party_listing_photo_proven = bool(
+        media_state.get("schema_ready") and int(media_state.get("photo_count") or 0) > 0
+    )
     connected_shards = int(federation_state.get("connected_shard_count") or 0)
     wider_uk_routing_live = bool(connected_shards > 1)
 
@@ -364,11 +386,16 @@ def readiness_state() -> dict[str, object]:
         remaining.append("source-backed place lookup enablement")
     if not wider_uk_routing_live:
         remaining.append("UK-wide owned routing shard coverage")
+    if not event_inventory_source_proven:
+        remaining.append("source-backed event inventory proof")
+    if not opening_hours_source_proven:
+        remaining.append("opening-hours source proof")
+    if not first_party_listing_photo_proven:
+        remaining.append("first-party listing photo proof")
     remaining.extend(
         (
-            "events/open-now source proof",
             "business owner listing tools",
-            "reviews/photos/opening-hours source proof",
+            "first-party reviews proof",
             "combined War Room proof-runner pass",
         )
     )
@@ -387,6 +414,9 @@ def readiness_state() -> dict[str, object]:
         "off_route_reroute_ready": bool(turn_by_turn_software_ready and FEATURE_UNLOCKS["off_route_reroute"]),
         "live_disruption_authority_proven": live_disruption_proven,
         "source_backed_places_enabled": source_backed_places_ready,
+        "opening_hours_source_proven": opening_hours_source_proven,
+        "event_inventory_source_proven": event_inventory_source_proven,
+        "first_party_listing_photo_proven": first_party_listing_photo_proven,
         "connected_routing_shards": connected_shards,
         "wider_uk_routing_live": wider_uk_routing_live,
         "software_navigation_green": software_navigation_green,
