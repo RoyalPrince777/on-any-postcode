@@ -59,6 +59,26 @@ def _database_startup_probe() -> None:
     _emit_startup_proof(proof, level="info" if ready else "error" if failed else "warning")
 
 
+def _database_identity_startup_probe() -> None:
+    """Emit a one-way database identity for external mapping comparison."""
+
+    snapshot = postgres_db.database_identity_fingerprint()
+    proof = {
+        "event": "oap_database_identity_probe",
+        "source": snapshot.get("source"),
+        "authority": snapshot.get("authority"),
+        "fingerprint": snapshot.get("fingerprint"),
+        "algorithm": snapshot.get("algorithm"),
+        "components": snapshot.get("components"),
+        "error": snapshot.get("error"),
+        "read_only": True,
+        "comparison_required": True,
+        "secret_exposed": False,
+    }
+    ready = bool(proof["fingerprint"]) and not proof["error"]
+    _emit_startup_proof(proof, level="info" if ready else "error")
+
+
 def _hrm_candidate_startup_probe() -> None:
     """Emit only presence/reachability for an existing HRM Postgres alias."""
 
@@ -85,6 +105,7 @@ def _hrm_candidate_startup_probe() -> None:
 
 def _startup_probes() -> None:
     _database_startup_probe()
+    _database_identity_startup_probe()
     _hrm_candidate_startup_probe()
 
 

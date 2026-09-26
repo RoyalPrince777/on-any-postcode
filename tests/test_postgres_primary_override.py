@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
+from contextlib import contextmanager
 
 from mission_control import certification_views, postgres_db
 
@@ -155,3 +157,73 @@ def test_invalid_database_authority_fails_closed(monkeypatch):
     assert postgres_db.database_source() == "invalid_authority"
     assert postgres_db.database_authority() == "invalid"
     assert postgres_db.configured() is False
+
+
+
+def test_database_identity_fingerprint_is_read_only_and_secret_free(monkeypatch):
+    class Connection:
+        def execute(self, sql):
+            assert sql == "SELECT current_database(), current_user"
+            return self
+
+        def fetchone(self):
+            return ("oap_smi_hrm_fallback", "oap_smi_hrm_fallback_user")
+
+    calls = []
+
+    @contextmanager
+    def connect(*, readonly=False):
+        calls.append(readonly)
+        yield Connection()
+
+    monkeypatch.setattr(postgres_db, "connect", connect)
+    monkeypatch.setattr(postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(postgres_db, "database_source",
+                        lambda: "platform_database_url")
+    monkeypatch.setattr(postgres_db, "database_authority", lambda: "primary")
+
+    result = postgres_db.database_identity_fingerprint()
+    expected = hashlib.sha256(
+        b"oap_smi_hrm_fallback\x00oap_smi_hrm_fallback_user"
+    ).hexdigest()
+    assert calls == [True]
+    assert result["fingerprint"] == expected
+    assert result["algorithm"] == "sha256"
+    assert result["source"] == "platform_database_url"
+    assert result["authority"] == "primary"
+    assert result["read_only"] is True
+    assert result["secret_exposed"] is False
+    assert "oap_smi_hrm_fallback" not in json.dumps(result)
+
+
+def test_database_identity_probe_emits_only_comparable_fingerprint(
+    monkeypatch, capsys,
+):
+    fingerprint = "a" * 64
+    monkeypatch.setattr(
+        certification_views.postgres_db,
+        "database_identity_fingerprint",
+        lambda: {
+            "source": "platform_database_url",
+            "authority": "primary",
+            "fingerprint": fingerprint,
+            "algorithm": "sha256",
+            "components": ["current_database", "current_user"],
+            "error": None,
+        },
+    )
+
+    certification_views._database_identity_startup_probe()
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {
+        "algorithm": "sha256",
+        "authority": "primary",
+        "comparison_required": True,
+        "components": ["current_database", "current_user"],
+        "event": "oap_database_identity_probe",
+        "fingerprint": fingerprint,
+        "level": "info",
+        "read_only": True,
+        "secret_exposed": False,
+        "source": "platform_database_url",
+    }

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -402,6 +403,38 @@ def connect(*, readonly: bool = False) -> Iterator[Any]:
         if readonly:
             connection.execute("SET TRANSACTION READ ONLY")
         yield connection
+
+
+def database_identity_fingerprint() -> dict[str, Any]:
+    """Return a one-way identity for the selected database without secrets."""
+    result: dict[str, Any] = {
+        "source": database_source(),
+        "authority": database_authority(),
+        "configured": configured(),
+        "fingerprint": None,
+        "algorithm": "sha256",
+        "components": ["current_database", "current_user"],
+        "read_only": True,
+        "secret_exposed": False,
+        "error": None,
+    }
+    if not result["configured"] or result["authority"] not in {"primary", "fallback"}:
+        result["error"] = "database_selection_unavailable"
+        return result
+    try:
+        with connect(readonly=True) as connection:
+            row = connection.execute(
+                "SELECT current_database(), current_user"
+            ).fetchone()
+            if row is None or len(row) < 2:
+                result["error"] = "database_identity_unavailable"
+                return result
+            material = f"{row[0]}\0{row[1]}".encode()
+            result["fingerprint"] = hashlib.sha256(material).hexdigest()
+            return result
+    except Exception:  # noqa: BLE001 - never expose connection details.
+        result["error"] = "database_identity_unavailable"
+        return result
 
 
 def postgres_status() -> dict[str, Any]:
