@@ -226,6 +226,7 @@ def _allowed(path: str) -> bool:
         "/myworld",
         "/infrastructure",
         "/api/infrastructure",
+        "/map-intelligence",
     ):
         if clean == prefix or clean.startswith(prefix + "/"):
             return True
@@ -236,6 +237,7 @@ def _allowed(path: str) -> bool:
         "/auth/recover-founder",
         "/auth/repair-founder-password",
         "/enter-my-world",
+        "/on-any-place",
         "/assets/oap.css",
         "/static/oap/smi_live_chat_dashboard.jpg",
         "/healthz",
