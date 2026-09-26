@@ -72,6 +72,29 @@
   if(!context){canvas.remove();image.close?.();return null;}
   context.drawImage(image,0,0);
   const samples=Object.fromEntries(REGIONS.map(region=>[region.id,context.getImageData(region.x,region.y,region.w,region.h)]));
+  async function digestParts(parts){
+   const encoder=new win.TextEncoder();
+   let total=0;
+   const chunks=[];
+   for(const [label,data] of parts){
+    const prefix=encoder.encode(String(label)+":");
+    const bytes=data instanceof Uint8Array?data:new Uint8Array(data.buffer||data);
+    chunks.push(prefix,bytes);total+=prefix.length+bytes.length;
+   }
+   const merged=new Uint8Array(total);let offset=0;
+   for(const chunk of chunks){merged.set(chunk,offset);offset+=chunk.length;}
+   const hash=await win.crypto.subtle.digest("SHA-256",merged);
+   return Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,"0")).join("");
+  }
+  const evidenceLayerSha256=Object.freeze({
+   eyes:await digestParts([["eyes",samples["eyes"].data]]),
+   head:await digestParts([["head",samples["head"].data]]),
+   breathing:await digestParts([["chest",samples["chest"].data]]),
+   mouth_visemes:await digestParts([["mouth",samples["mouth"].data]]),
+   face:await digestParts([["head",samples["head"].data],["eyes",samples["eyes"].data],["mouth",samples["mouth"].data]]),
+   hands:await digestParts([["left-hand",samples["left-hand"].data],["right-hand",samples["right-hand"].data]]),
+   upper_body:await digestParts([["head",samples["head"].data],["chest",samples["chest"].data],["left-hand",samples["left-hand"].data],["right-hand",samples["right-hand"].data]])
+  });
   let epoch=0,frame=0,last=0,phase="ready",live=false,reduced=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),played=0,speechUntil=0,audioCues=0;
   let playbackEpoch=null,localAudio=false,localViseme="silence";
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
@@ -129,7 +152,7 @@
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
    accurateLipSyncProven:false,fullBodyRigProven:false,privacyNoTelemetry:true,
    snapshot:()=>Object.freeze({phase,live,frames:played,audioCues,localAudio,
-    localViseme,sourceSha256:actual,fullSceneSourcePixelMotion:played>0}),
+    localViseme,sourceSha256:actual,evidenceLayerSha256,fullSceneSourcePixelMotion:played>0}),
    stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);}});
  }
  return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,attach});
