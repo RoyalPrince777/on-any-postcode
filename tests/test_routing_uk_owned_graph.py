@@ -35,7 +35,13 @@ def test_uk_owned_graph_probe_requires_all_four_nations(monkeypatch):
     def fake_map_route(**kwargs):
         calls.append(kwargs)
         return {
-            "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [kwargs["pickup_longitude"], kwargs["pickup_latitude"]],
+                    [kwargs["destination_longitude"], kwargs["destination_latitude"]],
+                ],
+            },
             "distance_m": 1000,
         }
 
