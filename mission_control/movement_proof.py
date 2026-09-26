@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from math import asin, cos, radians, sin, sqrt
 
+from . import map_live_pattern, routing
+
 FRESH_SECONDS = 300
 
 KNOWN_POINTS = {
@@ -104,13 +106,24 @@ def last_route_status() -> dict[str, object]:
     """Return passive route evidence without storing origin, destination or coordinates."""
 
     snapshot = dict(_LAST_ROUTE_PROOF)
+    route_state = routing.status()
+    live_state = map_live_pattern.status()
+    route_geometry_proven = bool(
+        route_state.get("runtime_verified")
+        and route_state.get("oap_owned_endpoint")
+        and route_state.get("geometry_exposed")
+    )
+    live_traffic_proven = bool(live_state.get("authority_verified_feed"))
     snapshot.update(
         component="Movement Intelligence Route Evidence",
         source_timestamp=snapshot.get("generated_at"),
         freshness=_freshness(snapshot.get("generated_at")),
         freshness_window_seconds=FRESH_SECONDS,
-        route_geometry_proven=False,
-        live_traffic_proven=False,
+        route_geometry_proven=route_geometry_proven,
+        live_traffic_proven=live_traffic_proven,
+        routing_provider_ownership=str(route_state.get("provider_ownership") or "unconfigured"),
+        routing_runtime_verified=bool(route_state.get("runtime_verified")),
+        live_traffic_authority=str(live_state.get("authority_feed") or ""),
         dispatch_enabled=False,
         payment_capture_enabled=False,
         hidden_tracking=False,
@@ -228,5 +241,9 @@ def status() -> dict[str, object]:
         "payment_capture_enabled": False,
         "confirmed_booking_enabled": False,
         "hidden_tracking": False,
-        "next_gate": "Attach OSRM/local routing and durable HRM request receipts before operational dispatch can be considered.",
+        "next_gate": (
+            "Production routing approvals, durable HRM request receipts and regulated execution remain separate from proven route geometry."
+            if last_route_status()["route_geometry_proven"]
+            else "Restore OAP-owned routing runtime geometry, then keep dispatch/payment behind their separate governed gates."
+        ),
     }
