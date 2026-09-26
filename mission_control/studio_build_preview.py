@@ -33,14 +33,14 @@ def _digest(payload: dict[str, Any]) -> str:
 
 def _normalise_files(files: object) -> dict[str, str]:
     if not isinstance(files, dict):
-        raise ValueError("build_preview_files_required")
+        raise TypeError("build_preview_files_required")
     bundle: dict[str, str] = {}
     for name in _ALLOWED_FILES:
         value = files.get(name, "")
         if value is None:
             value = ""
         if not isinstance(value, str):
-            raise ValueError("build_preview_file_must_be_text")
+            raise TypeError("build_preview_file_must_be_text")
         if len(value.encode("utf-8")) > _MAX_FILE_BYTES:
             raise ValueError("build_preview_file_too_large")
         bundle[name] = value
