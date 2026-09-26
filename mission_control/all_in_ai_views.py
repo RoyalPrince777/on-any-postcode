@@ -133,6 +133,12 @@ def all_in_ai_mission_stop(mission_id: str):
         )
     except ValueError:
         return _error("invalid_mission_id", "Mission identifier is invalid.", 400)
+    except all_in_ai_mission_store.MissionStoreUnavailable:
+        return _error(
+            "mission_stop_unavailable",
+            "STOP could not be durably verified, so progression remains blocked.",
+            503,
+        )
     except RuntimeError as exc:
         if str(exc) == "stale_mission_version":
             return _error(
@@ -141,12 +147,6 @@ def all_in_ai_mission_stop(mission_id: str):
                 409,
             )
         raise
-    except all_in_ai_mission_store.MissionStoreUnavailable:
-        return _error(
-            "mission_stop_unavailable",
-            "STOP could not be durably verified, so progression remains blocked.",
-            503,
-        )
     return _no_store(
         make_response(
             jsonify(
@@ -183,6 +183,12 @@ def all_in_ai_mission_recover(mission_id: str):
         )
     except ValueError:
         return _error("invalid_mission_id", "Mission identifier is invalid.", 400)
+    except all_in_ai_mission_store.MissionStoreUnavailable:
+        return _error(
+            "mission_recovery_unavailable",
+            "Recovery could not be durably verified, so execution remains blocked.",
+            503,
+        )
     except RuntimeError as exc:
         if str(exc) == "mission_not_stopped":
             return _error(
@@ -197,12 +203,6 @@ def all_in_ai_mission_recover(mission_id: str):
                 409,
             )
         raise
-    except all_in_ai_mission_store.MissionStoreUnavailable:
-        return _error(
-            "mission_recovery_unavailable",
-            "Recovery could not be durably verified, so execution remains blocked.",
-            503,
-        )
     return _no_store(
         make_response(
             jsonify(
