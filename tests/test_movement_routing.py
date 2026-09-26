@@ -327,17 +327,12 @@ def test_route_http_error_records_only_redacted_status(monkeypatch):
 
 
 def test_routing_429_retries_then_succeeds(monkeypatch):
-    class Headers:
-        def get(self, name, default=None):
-            return default
-
-    class RateLimited(Exception):
-        pass
-
     calls = {"count": 0, "sleep": []}
 
     class Response:
-        headers = {"Content-Type": "application/json"}
+        def __init__(self):
+            self.headers = {"Content-Type": "application/json"}
+
         def __enter__(self):
             return self
         def __exit__(self, *args):
