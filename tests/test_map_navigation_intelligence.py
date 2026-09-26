@@ -164,3 +164,24 @@ def test_map_voice_does_not_open_microphone_or_store_precise_location():
     assert "SpeechRecognition" not in script
     assert "storesPreciseLocation:false" in script
     assert "individualPeopleTracking:false" in script
+
+
+def test_public_map_uses_allowlisted_public_navigation_assets(client):
+    page = client.get("/on-any-place")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert "/map-intelligence/assets/oap_map_navigation.css" in body
+    assert "/map-intelligence/assets/oap_map_navigation.js" in body
+    assert "/map-intelligence/assets/oap_os_map_bridge.js" in body
+    assert "/mission/static/oap_map_navigation.css" not in body
+
+    css = client.get("/map-intelligence/assets/oap_map_navigation.css")
+    js = client.get("/map-intelligence/assets/oap_map_navigation.js")
+    bridge = client.get("/map-intelligence/assets/oap_os_map_bridge.js")
+    assert css.status_code == 200
+    assert js.status_code == 200
+    assert bridge.status_code == 200
+    assert css.headers["X-Content-Type-Options"] == "nosniff"
+
+    assert client.get("/map-intelligence/assets/mission_control.css").status_code == 404
+    assert client.get("/map-intelligence/assets/../views.py").status_code == 404
