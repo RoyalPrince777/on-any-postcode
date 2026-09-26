@@ -277,6 +277,24 @@ def sika_security_posture():
     return jsonify(sika_safety.security_posture())
 
 
+@bp.get("/api/sika/security/session-policy")
+@web_security.login_required(api=True)
+def sika_security_session_policy():
+    return jsonify(sika_safety.session_policy())
+
+
+@bp.post("/api/sika/security/payment-controls")
+@web_security.login_required(api=True)
+def sika_security_payment_controls():
+    if not web_security.csrf_valid(request):
+        return jsonify({"error": "csrf_failed"}), 403
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_safety.payment_controls(body))
+    except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+
+
 
 @bp.post("/api/sika/security/credential/create")
 @web_security.login_required(api=True)
