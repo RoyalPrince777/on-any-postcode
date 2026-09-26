@@ -150,6 +150,13 @@ def login_required(*, api: bool = False, founder_only: bool = False):
             if requires_founder and not private_authority_allowed(user):
                 return _private_error("human_authority_required", "This private control surface is restricted.", 403)
             return view(*args, **kwargs)
+
+        # Machine-readable policy metadata lets A7 inspect the live route map
+        # without replaying credentials or trusting source-text assertions.
+        wrapped._oap_login_required = True  # type: ignore[attr-defined]
+        wrapped._oap_founder_only = bool(founder_only)  # type: ignore[attr-defined]
+        wrapped._oap_api = bool(api)  # type: ignore[attr-defined]
+        wrapped._oap_auth_policy = "login-required-v1"  # type: ignore[attr-defined]
         return wrapped
     return decorator
 
