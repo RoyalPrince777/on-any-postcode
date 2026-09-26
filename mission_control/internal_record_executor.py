@@ -147,6 +147,7 @@ def execute(
     record_id: object,
     expected_status: object,
     target_status: object,
+    expected_current_hash: object | None = None,
 ) -> dict[str, Any]:
     """Execute one reversible owner-scoped status transition and verify read-back."""
 
@@ -197,6 +198,24 @@ def execute(
             if current_status != expected:
                 raise ExecutionBlocked("stale_record_status")
 
+            current_hash_proof = _proof_hash(
+                {
+                    "workspace_id": workspace_id,
+                    "title": title,
+                    "body": body,
+                    "status": current_status,
+                }
+            )
+            if expected_current_hash is not None:
+                expected_hash = str(expected_current_hash or "").strip().casefold()
+                if (
+                    len(expected_hash) != 64
+                    or any(ch not in "0123456789abcdef" for ch in expected_hash)
+                ):
+                    raise ValueError("invalid_expected_current_hash")
+                if current_hash_proof != expected_hash:
+                    raise ExecutionBlocked("record_hash_mismatch")
+
             duplicate = connection.execute(
                 """SELECT metadata
                    FROM audit_events
@@ -236,14 +255,7 @@ def execute(
             if not content_unchanged or not status_verified:
                 raise ExecutionBlocked("record_verification_failed")
 
-            before_hash = _proof_hash(
-                {
-                    "workspace_id": workspace_id,
-                    "title": title,
-                    "body": body,
-                    "status": current_status,
-                }
-            )
+            before_hash = current_hash_proof
             after_hash = _proof_hash(
                 {
                     "workspace_id": str(after[0]),
@@ -369,7 +381,52 @@ def status() -> dict[str, object]:
         "external_side_effects_allowed": False,
         "financial_side_effects_allowed": False,
         "reversible": True,
+        "rollback_hash_guard": True,
+        "fresh_approval_required_for_rollback": True,
         "readback_required": True,
         "audit_required": True,
+        "human_authority_final": True,
+    }
+
+
+
+def rollback(
+    authorization: Mapping[str, object],
+    *,
+    identity_id: object,
+    rollback_token: Mapping[str, object],
+) -> dict[str, Any]:
+    """Reverse one prior bounded execution after fresh governance approval."""
+
+    if not isinstance(rollback_token, Mapping):
+        raise ValueError("rollback_token_required")
+    record_id = rollback_token.get("record_id")
+    expected_status = rollback_token.get("expected_status")
+    target_status = rollback_token.get("target_status")
+    expected_current_hash = rollback_token.get("after_hash")
+    expected_restored_hash = str(rollback_token.get("before_hash") or "").strip().casefold()
+    if (
+        len(expected_restored_hash) != 64
+        or any(ch not in "0123456789abcdef" for ch in expected_restored_hash)
+    ):
+        raise ValueError("invalid_rollback_before_hash")
+
+    result = execute(
+        authorization,
+        identity_id=identity_id,
+        record_id=record_id,
+        expected_status=expected_status,
+        target_status=target_status,
+        expected_current_hash=expected_current_hash,
+    )
+    if result["after_hash"] != expected_restored_hash:
+        raise ExecutionBlocked("rollback_restoration_hash_mismatch")
+
+    return {
+        **result,
+        "recovery_action": "ROLLBACK_INTERNAL_RECORD",
+        "rollback_verified": True,
+        "restored_hash": result["after_hash"],
+        "original_before_hash": expected_restored_hash,
         "human_authority_final": True,
     }
