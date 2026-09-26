@@ -174,3 +174,28 @@ def test_surface_contains_real_buttons_not_static_tiles():
         assert f'id="{control_id}"' in html
     assert 'class="tile jump"' in html
     assert 'class="tile regulated"' in html
+
+
+def test_alignment_and_bank_intelligence_are_read_only():
+    client = app.test_client()
+    alignment = client.get("/api/sika/intelligence/alignment")
+    bank = client.get("/api/sika/intelligence/bank")
+    assert alignment.status_code == 200
+    assert bank.status_code == 200
+    a = alignment.get_json()
+    b = bank.get_json()
+    assert a["read_only"] is True
+    assert a["executable"] is False
+    assert a["sika_focus"]["one_sika"] is True
+    assert b["read_only"] is True
+    assert b["executable"] is False
+    assert b["operational_bank"] is False
+    assert b["payment_execution_enabled"] is False
+
+
+def test_surface_has_alignment_and_bank_intelligence_buttons():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'data-intel="alignment"' in html
+    assert 'data-intel="bank"' in html
+    assert 'id="intelligenceSection"' in html
