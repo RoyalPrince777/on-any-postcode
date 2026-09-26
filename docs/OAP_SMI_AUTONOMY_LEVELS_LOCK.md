@@ -30,7 +30,7 @@ A-levels are not agents, not products, not separate brains and not separate syst
 - Find gaps
 - Prepare War Room command packs
 - Prepare Founder approval briefs
-- Review OAP Atlas source-health
+- Review On Any Place source-health
 - Review Movement schema readiness
 - Review OAP Direct supplier/listing/inventory readiness
 - Recommend KEEP / UPGRADE / MERGE / REMOVE

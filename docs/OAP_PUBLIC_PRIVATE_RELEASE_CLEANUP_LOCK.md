@@ -15,7 +15,7 @@ Public surfaces may show:
 - Link Up
 - Pulse
 - Signal
-- OAP Atlas
+- On Any Place
 - OAP Direct
 - Movement
 - Market
@@ -34,9 +34,9 @@ Public surfaces must not expose:
 - provider secrets
 - production database details
 
-## OAP Atlas live-ready rule
+## On Any Place live-ready rule
 
-OAP Atlas is the public place surface for continent-to-postcode navigation, attractions, weather signals, movement and OAP Direct request entry.
+On Any Place is the public place surface for continent-to-postcode navigation, attractions, weather signals, movement and OAP Direct request entry.
 
 Atlas may show live place and weather data only when the configured source returns data. It must not claim live map, live route, live traffic, confirmed booking or supplier confirmation without timestamped source evidence.
 

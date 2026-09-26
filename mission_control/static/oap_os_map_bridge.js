@@ -1,4 +1,4 @@
-/* OAP OS Generation 0: first-party OAP Atlas host adapter.
+/* OAP OS Generation 0: first-party On Any Place host adapter.
  * Browser/PWA on Android is NOT a native APK, replacement OS, or proof of
  * physical-device certification. Never acquires location or changes OS state.
  */
@@ -12,7 +12,7 @@
   const host = isAndroid ? "Android host" : "web host";
   indicator.dataset.oapOsMapRuntime = isAndroid ? "android-web" : "web";
   indicator.dataset.installMode = standalone ? "standalone" : "browser";
-  indicator.textContent = "OAP OS · OAP Atlas · " + host
+  indicator.textContent = "OAP OS · On Any Place · " + host
     + (standalone ? " · installed web shell" : " · browser");
   const roadState = document.querySelector("#road-source-state");
   if (!roadState) return;

@@ -1,13 +1,13 @@
 # OAP Alignment UI + A5-Ready Boundary Lock
 
 Status: LOCKED
-Scope: OAP World, SMI, Living Kernel, Guardian / Aegis, HRM, Green Gate, OAP Atlas, Movement Intelligence, OAP Direct
+Scope: OAP World, SMI, Living Kernel, Guardian / Aegis, HRM, Green Gate, On Any Place, Movement Intelligence, OAP Direct
 
 ## Clean UI Rule
 
 OAP screens must separate public product language from private intelligence language.
 
-- Public user surface: OAP World, The Spot, OAP Atlas, The Link, Pulse, Market, Direct.
+- Public user surface: OAP World, The Spot, On Any Place, The Link, Pulse, Market, Direct.
 - Private Founder surface: SMI, Living Kernel, Guardian / Aegis, HRM, Green Gate, War Room, Alignment Intelligence.
 - Compatibility routes may remain, but must stay quiet and must not dominate the UI.
 - Old checkpoint wording remains internal/compatibility only.
@@ -68,7 +68,7 @@ The homepage should act as a clean OAP World dashboard, not a noisy mixed test b
 It should show:
 
 - OAP World front door.
-- OAP Atlas hierarchy.
+- On Any Place hierarchy.
 - Core public systems.
 - Founder SMI entry.
 - Clean status cards.

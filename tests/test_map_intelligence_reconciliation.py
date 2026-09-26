@@ -8,7 +8,7 @@ def test_map_intelligence_is_single_public_front_door():
 
     assert slugs.count("maps-weather-travel") == 1
     assert "movement-delivery" not in slugs
-    assert names.count("OAP Atlas") == 1
+    assert names.count("On Any Place") == 1
 
 
 def test_legacy_movement_public_route_redirects_to_map_intelligence(client):

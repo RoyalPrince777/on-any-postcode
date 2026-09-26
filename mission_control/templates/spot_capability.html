@@ -72,14 +72,14 @@
     <section class="mc-panel" aria-labelledby="nature-title">
       <p class="mc-eyebrow">🌿 OAP Nature · Earth Is Our Turf</p>
       <h2 id="nature-title">Nature</h2>
-      <p>Weather, green spaces and wellbeing. Live weather opens in OAP Atlas; wider environmental signals stay source-bound.</p>
+      <p>Weather, green spaces and wellbeing. Live weather opens in On Any Place; wider environmental signals stay source-bound.</p>
       <div class="mc-status-grid">
-        <article class="mc-status-card"><strong>🌦️ Weather</strong><span>Live, source-bound observations in OAP Atlas.</span></article>
+        <article class="mc-status-card"><strong>🌦️ Weather</strong><span>Live, source-bound observations in On Any Place.</span></article>
         <article class="mc-status-card"><strong>🌳 Green Spaces</strong><span>Explore parks and nature.</span></article>
         <article class="mc-status-card"><strong>💚 Wellbeing</strong><span>Nature, movement and balance.</span></article>
       </div>
       <div class="atlas-action-row">
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open OAP Atlas →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open On Any Place →</a>
         <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}">Explore Nature →</a>
       </div>
     </section>
@@ -135,7 +135,7 @@
 
     {% if capability.slug == 'maps-weather-travel' %}
     <section class="mc-panel" aria-labelledby="atlas-screen-title">
-      <p class="mc-eyebrow">🌍 OAP Atlas · Earth Is Our Turf</p>
+      <p class="mc-eyebrow">🌍 On Any Place · Earth Is Our Turf</p>
       <h2 id="atlas-screen-title">Search. See the weather. Move.</h2>
       <form class="atlas-search" method="get" action="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">
         <label for="location-query">Postcode or place</label>

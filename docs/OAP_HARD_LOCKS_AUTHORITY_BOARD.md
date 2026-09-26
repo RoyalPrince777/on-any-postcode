@@ -2,7 +2,7 @@
 
 Status: LOCKED  
 Owner: Human Founder Authority  
-Applies to: OAP World, SMI, Living Kernel, Guardian/Aegis, HRM, Green Gate, OAP Atlas, Movement Intelligence, OAP Direct and all public/private surfaces.
+Applies to: OAP World, SMI, Living Kernel, Guardian/Aegis, HRM, Green Gate, On Any Place, Movement Intelligence, OAP Direct and all public/private surfaces.
 
 This board reinforces non-negotiable hard locks. These items are not product tasks, sales features, hidden capabilities or autonomy goals. They remain blocked unless a future lawful, reviewed, Founder-approved and proof-backed governance process explicitly creates a safe boundary.
 
