@@ -324,3 +324,8 @@ def sika_open_banking_status():
 @app.get("/api/sika/open-banking/trial")
 def sika_open_banking_trial():
     return jsonify(sika_open_banking.trial_snapshot())
+
+
+@app.get("/api/sika/open-banking/red-team")
+def sika_open_banking_red_team():
+    return jsonify(sika_open_banking.red_team())
