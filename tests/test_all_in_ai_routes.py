@@ -55,6 +55,12 @@ def test_all_in_ai_lifecycle_routes_are_not_public():
 def test_all_in_ai_app_route_is_not_public():
     app = Flask(__name__)
     app.secret_key = "test"
+
+    @app.get("/enter", endpoint="auth_page")
+    def auth_page():
+        return "login"
+
     app.register_blueprint(all_in_ai_views.bp, url_prefix="/mission")
     response = app.test_client().get("/mission/all-in-ai/app")
-    assert response.status_code in {302, 401, 403}
+    assert response.status_code == 302
+    assert "/enter" in response.headers["Location"]
