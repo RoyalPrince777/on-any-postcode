@@ -12,6 +12,7 @@ from flask import Flask, jsonify, make_response, render_template, request, send_
 from mission_control import (
     sika_a5_preparation,
     sika_a6_readiness,
+    sika_authenticated_owner_adapter,
     sika_android_acceptance,
     sika_bank_app_security,
     sika_finance_features,
@@ -464,3 +465,8 @@ def sika_device_unbind():
 @app.get("/api/sika/device/durable-readiness")
 def sika_device_durable_readiness():
     return jsonify(sika_device_binding_store.readiness())
+
+
+@app.get("/api/sika/owner-session/readiness")
+def sika_owner_session_readiness():
+    return jsonify(sika_authenticated_owner_adapter.readiness())
