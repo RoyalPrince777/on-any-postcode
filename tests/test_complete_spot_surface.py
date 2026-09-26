@@ -148,8 +148,8 @@ def test_creator_business_and_support_handoffs_preserve_boundaries(client):
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
     page = client.get("/the-spot").get_data(as_text=True)
 
-    assert "OAP Atlas · Booking · Movement" in page
-    assert "🌍 OAP Atlas" in page
+    assert "On Any Place · Booking · Movement" in page
+    assert "🌍 On Any Place" in page
     assert "📅 Booking" in page
     assert "🚶 Movement" in page
     assert 'href="/travel/direct"' in page
@@ -164,7 +164,7 @@ def test_booking_and_maps_public_front_doors_are_reachable(client):
 
     assert maps.status_code == 200
     assert booking.status_code == 200
-    assert "OAP Atlas" in maps.get_data(as_text=True)
+    assert "On Any Place" in maps.get_data(as_text=True)
     assert "OAP Direct" in booking.get_data(as_text=True)
 
 
@@ -291,10 +291,10 @@ def test_oap_atlas_ui_is_search_first_source_bound_and_noise_stripped(client, mo
         "/the-spot/maps-weather-travel?location=CR4%201AB"
     ).get_data(as_text=True)
 
-    assert "OAP Atlas" in empty
+    assert "On Any Place" in empty
     assert "Search. See the weather. Move." in empty
     assert "Search a place to load source-bound location and weather data." in empty
-    assert "OAP Atlas Screen" not in empty
+    assert "On Any Place Screen" not in empty
     assert "atlas-pin" not in empty
     assert "Open 21 Signals" not in empty
     assert "Map Intelligence" not in empty
