@@ -78,6 +78,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">PWA × device proof</p></button>
 <button class="tile jump" data-target="androidSection"><b>Android Acceptance</b><p class="muted">Physical install × update × recovery</p></button>
 <button class="tile jump" data-target="osAlignmentSection"><b>Bank App & OS</b><p class="muted">Bank security × eSIM × Silicon × Organism</p></button>
+<button class="tile jump" data-target="deepDive21Section"><b>Deep Dive 21</b><p class="muted">Mind × Body × Soul truth</p></button>
 <button class="tile jump" data-target="licenceSection"><b>Payment Licence</b><p class="muted">Evidence gate</p></button>
 <button class="tile jump" data-target="bankTrialSection"><b>Bank Trial</b><p class="muted">Read-only Open Banking evidence</p></button>
 <button class="tile jump" data-target="valueSection"><b>GBP → SIKA</b><p class="muted">Verified cash-in · internal use</p></button>
@@ -225,6 +226,13 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button id="osAlignmentBtn">Check bank-app alignment</button>
 <div class="result" id="osAlignmentResult">—</div>
 <p class="notice">SIKA bank-app security, device/eSIM, OAP OS, Digital SoC and Organism stay separate layers. Founder authentication is outside this bank-app boundary and is not linked or changed here.</p>
+</section>
+
+<section class="card" id="deepDive21Section">
+<h2>Deep Dive 21</h2>
+<button id="deepDive21Btn">Run 21-layer truth check</button>
+<div class="result" id="deepDive21Result">—</div>
+<p class="notice">Read-only organism check. It cannot grant payment, eSIM, Android or hardware authority.</p>
 </section>
 
 <section class="card" id="licenceSection">
@@ -401,6 +409,15 @@ document.getElementById('osAlignmentBtn').onclick=async()=>{
     ' · OS '+j.operating_system.generation+' · silicon '+j.digital_silicon.status+
     ' · brain '+j.organism.single_brain
   : (j.error||'OS alignment unavailable');
+};
+document.getElementById('deepDive21Btn').onclick=async()=>{
+ const r=await fetch('/api/sika/deep-dive-21');
+ const j=await r.json();
+ document.getElementById('deepDive21Result').textContent=r.ok
+  ? 'ready '+j.ready_count+'/21 · gaps '+j.gap_count+' · '+(j.gaps.join(', ')||'none')+
+    ' · bank '+j.real_bank_read_ready+' · payment '+j.real_payment_ready+
+    ' · Android '+j.physical_android_acceptance+' · bank password '+j.bank_app_password_ready
+  : (j.error||'Deep Dive 21 unavailable');
 };
 document.getElementById('licenceBtn').onclick=async()=>{
  const r=await fetch('/api/sika/payment-licence');
