@@ -491,3 +491,87 @@ def recover_alert(owner_id: object, event_id: object) -> dict[str, object]:
         "security_receipt_id": receipt.get("event_id"),
         "money_moved": False,
     }
+
+
+def create_payment_intent(
+    owner_id: object,
+    *,
+    beneficiary_id: object,
+    amount_sika: object,
+    reference: object = "",
+) -> dict[str, object]:
+    from decimal import Decimal
+
+    owner = _owner(owner_id)
+    beneficiary = str(beneficiary_id or "").strip()[:120]
+    if not beneficiary:
+        raise ValueError("beneficiary_id_required")
+    amount = Decimal(str(amount_sika))
+    if amount <= 0:
+        raise ValueError("positive_amount_required")
+    payment_intent_id = str(uuid4())
+    receipt = record_authenticated_owner(
+        owner,
+        event_type="PAYMENT_INTENT_CREATED",
+        severity="NOTICE",
+        details={
+            "payment_intent_id": payment_intent_id,
+            "beneficiary_id": beneficiary,
+            "amount_sika": f"{amount:.2f}",
+            "reference": str(reference or "").strip()[:160],
+            "status": "security_review_only",
+            "payment_execution_authorised": False,
+        },
+    )
+    return {
+        "payment_intent_id": payment_intent_id,
+        "beneficiary_id": beneficiary,
+        "amount_sika": f"{amount:.2f}",
+        "status": "security_review_only",
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "payment_execution_authorised": False,
+    }
+
+
+def create_step_up_for_payment_intent(
+    owner_id: object,
+    *,
+    payment_intent_id: object,
+    reason: str,
+    amount_sika: object,
+) -> dict[str, object]:
+    intent_id = str(payment_intent_id or "").strip()
+    if not intent_id:
+        raise ValueError("payment_intent_id_required")
+    events = history(owner_id, limit=100)
+    intent = next(
+        (
+            item for item in events
+            if item.get("event_type") == "PAYMENT_INTENT_CREATED"
+            and dict(item.get("details") or {}).get("payment_intent_id") == intent_id
+        ),
+        None,
+    )
+    if intent is None:
+        raise ValueError("payment_intent_not_found")
+    challenge = create_step_up_challenge(
+        owner_id,
+        reason=reason,
+        amount_sika=amount_sika,
+    )
+    record_authenticated_owner(
+        owner_id,
+        event_type="STEP_UP_PAYMENT_INTENT_LINKED",
+        severity="NOTICE",
+        details={
+            "challenge_id": challenge["challenge_id"],
+            "payment_intent_id": intent_id,
+            "payment_execution_authorised": False,
+        },
+    )
+    return {
+        **challenge,
+        "payment_intent_id": intent_id,
+        "payment_execution_authorised": False,
+    }
