@@ -4,6 +4,9 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, render_template, request
 
 from . import (
+    sika_authenticated_owner_adapter,
+    sika_bank_credential_store,
+    sika_device_binding_store,
     sika_finance_features,
     sika_global,
     sika_intelligence,
@@ -14,6 +17,32 @@ from . import (
 )
 
 bp = Blueprint("sika_global", __name__)
+
+_SIKA_SECURITY_LIMITER = web_security.SlidingWindowLimiter(
+    limit=10,
+    window_seconds=5 * 60,
+    duplicate_seconds=0.5,
+    fingerprint_request_body=True,
+)
+
+
+def _authenticated_sika_owner():
+    return sika_authenticated_owner_adapter.resolve(
+        web_security.authenticated_identity(),
+        source="oap_authenticated_session",
+    )
+
+
+def _csrf_or_403():
+    if web_security.csrf_valid(request):
+        return None
+    return jsonify({"error": "csrf_failed"}), 403
+
+
+def _security_rate_or_429(owner_id: str):
+    if _SIKA_SECURITY_LIMITER.allow(f"sika-bank-security:{owner_id}"):
+        return None
+    return jsonify({"error": "bank_app_security_rate_limited"}), 429
 
 
 @bp.after_request
@@ -232,3 +261,125 @@ def sika_fraud_preflight():
 @web_security.login_required(api=True)
 def sika_install_readiness():
     return jsonify(sika_safety.install_readiness())
+
+
+
+@bp.post("/api/sika/security/credential/create")
+@web_security.login_required(api=True)
+def sika_bank_credential_create():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    rate_error = _security_rate_or_429(owner.owner_id)
+    if rate_error:
+        return rate_error
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_bank_credential_store.create_authenticated_owner(
+            owner.owner_id,
+            body.get("password"),
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "created": False}), 400
+    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
+        return jsonify({"error": str(exc), "created": False}), 503
+    return jsonify({
+        **result,
+        "authenticated_owner_source": owner.source,
+        "caller_supplied_owner_id_trusted": False,
+    }), (201 if result.get("created") else 409)
+
+
+@bp.post("/api/sika/security/credential/verify")
+@web_security.login_required(api=True)
+def sika_bank_credential_verify():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    rate_error = _security_rate_or_429(owner.owner_id)
+    if rate_error:
+        return rate_error
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_bank_credential_store.verify_authenticated_owner(
+            owner.owner_id,
+            body.get("password"),
+        )
+    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
+        return jsonify({"error": str(exc), "verified": False}), 503
+    return jsonify({
+        **result,
+        "authenticated_owner_source": owner.source,
+        "caller_supplied_owner_id_trusted": False,
+    }), (200 if result.get("verified") else 401)
+
+
+@bp.post("/api/sika/security/credential/recover")
+@web_security.login_required(api=True)
+def sika_bank_credential_recover():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    rate_error = _security_rate_or_429(owner.owner_id)
+    if rate_error:
+        return rate_error
+    try:
+        result = sika_bank_credential_store.recover_authenticated_owner(owner.owner_id)
+    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 503
+    return jsonify({
+        **result,
+        "authenticated_owner_source": owner.source,
+        "caller_supplied_owner_id_trusted": False,
+    }), (200 if result.get("recovered") else 404)
+
+
+@bp.post("/api/sika/device/bind")
+@web_security.login_required(api=True)
+def sika_authenticated_device_bind():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_authenticated_owner_adapter.bind(owner, body.get("device_id"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "bound": False}), 400
+    except sika_device_binding_store.SikaDeviceBindingUnavailable as exc:
+        return jsonify({"error": str(exc), "bound": False}), 503
+    return jsonify(result), (201 if result.get("bound") else 409)
+
+
+@bp.get("/api/sika/device/status")
+@web_security.login_required(api=True)
+def sika_authenticated_device_status():
+    owner = _authenticated_sika_owner()
+    try:
+        result = sika_authenticated_owner_adapter.status(
+            owner,
+            request.args.get("device_id"),
+        )
+    except (ValueError, sika_device_binding_store.SikaDeviceBindingUnavailable) as exc:
+        return jsonify({"error": str(exc), "matched": False}), 503
+    return jsonify(result)
+
+
+@bp.post("/api/sika/device/recover")
+@web_security.login_required(api=True)
+def sika_authenticated_device_recover():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_authenticated_owner_adapter.recover(owner, body.get("device_id"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 400
+    except sika_device_binding_store.SikaDeviceBindingUnavailable as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 503
+    return jsonify(result), (200 if result.get("recovered") else 404)
