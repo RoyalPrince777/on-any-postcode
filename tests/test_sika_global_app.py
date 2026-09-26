@@ -419,3 +419,47 @@ def test_surface_has_bank_red_team_control():
     client = app.test_client()
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="bankRedTeamBtn"' in html
+
+
+def test_gbp_to_sika_issue_gate_requires_verified_regulated_receipt():
+    client = app.test_client()
+    blocked = client.post("/api/sika/value-trial", json={
+        "gbp_amount": "25",
+        "receipt_id": "r1",
+        "bank_reference": "bank-1",
+    }).get_json()
+    assert blocked["issuance_authorised"] is False
+    assert blocked["spendable_sika_created"] is False
+
+    ready = client.post("/api/sika/value-trial", json={
+        "gbp_amount": "25",
+        "receipt_id": "r2",
+        "bank_reference": "bank-2",
+        "settlement_verified": True,
+        "safeguarding_or_partner_evidence": True,
+        "regulatory_basis_verified": True,
+    }).get_json()
+    assert ready["issuance_authorised"] is True
+    assert ready["sika_to_issue"] == "25.00"
+    assert ready["external_payment_enabled"] is False
+
+
+def test_internal_sika_transfer_is_oap_only():
+    client = app.test_client()
+    body = client.post("/api/sika/internal-transfer/preview", json={
+        "amount_sika": "4",
+        "sender_balance_sika": "10",
+    }).get_json()
+    assert body["transfer_allowed"] is True
+    assert body["internal_oap_only"] is True
+    assert body["bank_transfer_created"] is False
+    assert body["external_payment_created"] is False
+    assert body["cash_out_created"] is False
+
+
+def test_surface_has_closed_loop_value_controls():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="valueTrialBtn"' in html
+    assert 'id="internalTransferBtn"' in html
+    assert 'id="valueSection"' in html
