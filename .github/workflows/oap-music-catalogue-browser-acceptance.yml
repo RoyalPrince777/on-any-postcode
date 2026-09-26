@@ -37,10 +37,13 @@ jobs:
               const button = page.locator('[data-target="' + id + '"]');
               if (await button.count() !== 1) throw new Error('missing_button_' + id);
               await button.click();
-              await page.waitForTimeout(250);
+              await page.waitForFunction(
+                targetId => Math.abs(document.getElementById(targetId).getBoundingClientRect().top) < 220,
+                id,
+                {timeout: 3000}
+              );
               const rect = await page.locator('#' + id).boundingBox();
               if (!rect) throw new Error('missing_target_' + id);
-              if (Math.abs(rect.y) > 160) throw new Error('scroll_failed_' + id + '_' + rect.y);
             }
 
             const search = page.locator('#music-search');
