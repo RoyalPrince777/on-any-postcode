@@ -172,7 +172,8 @@ def latest_state(owner_id: object) -> dict[str, object]:
     daily_limit_sika = "1000.00"
     suspicious_device = False
     beneficiaries: dict[str, dict[str, object]] = {}
-    alerts: list[dict[str, object]] = []
+    alert_status: dict[str, dict[str, bool]] = {}
+    alert_items: list[dict[str, object]] = []
     for item in reversed(events):
         kind = str(item.get("event_type") or "")
         details = dict(item.get("details") or {})
@@ -188,18 +189,37 @@ def latest_state(owner_id: object) -> dict[str, object]:
                     "registered_at": item.get("created_at"),
                     "cooling_off_minutes": 30,
                 }
+        elif kind in {"SECURITY_ALERT_ACK", "SECURITY_ALERT_RECOVERED"}:
+            target = str(details.get("security_event_id") or "")
+            if target:
+                state = alert_status.setdefault(
+                    target, {"acknowledged": False, "recovered": False}
+                )
+                if kind == "SECURITY_ALERT_ACK":
+                    state["acknowledged"] = True
+                else:
+                    state["recovered"] = True
         if str(item.get("severity") or "") in {"WARNING", "HIGH", "CRITICAL"}:
-            alerts.append({
+            alert_items.append({
                 "event_id": item.get("event_id"),
                 "event_type": kind,
                 "severity": item.get("severity"),
                 "created_at": item.get("created_at"),
             })
+
+    alerts: list[dict[str, object]] = []
+    for item in reversed(alert_items[-20:]):
+        state = alert_status.get(
+            str(item.get("event_id") or ""),
+            {"acknowledged": False, "recovered": False},
+        )
+        alerts.append({**item, **state})
+
     return {
         "daily_limit_sika": daily_limit_sika,
         "suspicious_device": suspicious_device,
         "beneficiaries": list(beneficiaries.values()),
-        "alerts": list(reversed(alerts[-20:])),
+        "alerts": alerts,
         "durable": True,
         "money_moved": False,
         "founder_auth_touched": False,
@@ -334,6 +354,8 @@ def create_step_up_challenge(
     amount_sika: object = "0",
 ) -> dict[str, object]:
     challenge_id = str(uuid4())
+    issued_at = datetime.now(timezone.utc)
+    expires_at = issued_at.timestamp() + 300
     receipt = record_authenticated_owner(
         owner_id,
         event_type="STEP_UP_CREATED",
@@ -343,11 +365,14 @@ def create_step_up_challenge(
             "reason": str(reason or "security_review")[:160],
             "amount_sika": str(amount_sika),
             "status": "pending",
+            "issued_at": issued_at.isoformat(),
+            "expires_at_epoch": expires_at,
         },
     )
     return {
         "challenge_id": challenge_id,
         "status": "pending",
+        "expires_in_seconds": 300,
         "security_receipt_id": receipt.get("event_id"),
         "money_moved": False,
         "founder_auth_touched": False,
@@ -387,25 +412,39 @@ def resolve_step_up_challenge(
             "challenge_id": challenge,
             "status": str(dict(already.get("details") or {}).get("status") or "resolved"),
             "idempotent": True,
+            "replay_blocked": True,
             "money_moved": False,
             "founder_auth_touched": False,
         }
-    status = "approved_for_review" if approved else "rejected"
+
+    created_details = dict(created.get("details") or {})
+    expires_at_epoch = float(created_details.get("expires_at_epoch") or 0)
+    expired = expires_at_epoch <= datetime.now(timezone.utc).timestamp()
+    status = (
+        "expired"
+        if expired
+        else "approved_for_review"
+        if approved
+        else "rejected"
+    )
     receipt = record_authenticated_owner(
         owner_id,
         event_type="STEP_UP_RESOLVED",
-        severity="NOTICE" if approved else "WARNING",
+        severity="WARNING" if expired or not approved else "NOTICE",
         details={
             "challenge_id": challenge,
             "status": status,
+            "expired": expired,
             "payment_execution_authorised": False,
         },
     )
     return {
         "challenge_id": challenge,
         "status": status,
+        "expired": expired,
         "security_receipt_id": receipt.get("event_id"),
         "idempotent": False,
+        "replay_blocked": False,
         "money_moved": False,
         "payment_execution_authorised": False,
         "founder_auth_touched": False,
