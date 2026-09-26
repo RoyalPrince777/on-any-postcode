@@ -57,6 +57,13 @@ def candidate(row: object) -> dict[str, object] | None:
         or not isinstance(licence, str) or licence not in LICENCE_CLAIMS
     ):
         return None
+    # Only open-use leads or claimed OAP originals enter this private preview.
+    # A caller's original-work label is NOT proof of ownership or embedded rights.
+    if source == "direct_creator":
+        if licence != "DIRECT_PERMISSION" or row.get("work_origin") != "oap_original":
+            return None
+    elif licence == "DIRECT_PERMISSION":
+        return None
     reference = (
         _reference_url(row.get("reference_url"), source)
         if SOURCES[source] else None
@@ -69,6 +76,9 @@ def candidate(row: object) -> dict[str, object] | None:
         "source": source,
         "source_reference": reference,
         "licence_claim": licence,
+        "collection": "oap_originals" if source == "direct_creator" else "open_licensed_and_public_domain",
+        "creator_ownership_verified": False,
+        "embedded_rights_verified": False,
         "rights_evidence_checked": False,
         "uk_cleared": False,
         "ghana_cleared": False,
@@ -79,6 +89,47 @@ def candidate(row: object) -> dict[str, object] | None:
         "stream_url": None,
         "download_url": None,
         "worldwide_rights": open_cinema_worldwide.matrix(row.get("territories")),
+    }
+
+
+def private_collection_intake() -> dict[str, object]:
+    """Founder-only scope: open-licence discovery and OAP's own originals.
+
+    Source listings never attest film licences. An OAP original cannot assume
+    ownership of embedded music, stock clips, performances or artwork.
+    No purchased commercial films or invented owner assets are included.
+    """
+    free_sources = (
+        "wikimedia_commons", "library_of_congress", "internet_archive",
+    )
+    return {
+        "collection": "OAP Open Cinema",
+        "scope": "founder_only_open_and_originals",
+        "existing_catalogue_preserved": True,
+        "eligible_collections": ["open_licensed_and_public_domain", "oap_originals"],
+        "purchased_commercial_films_in_scope": False,
+        "purchased_commercial_films": [],
+        "own_originals": [],
+        "original_titles_received": False,
+        "originals_require_embedded_rights_review": True,
+        "free_catalogue_discovery": [{
+            "source": source,
+            "title_clearance_state": "per_title_evidence_required",
+            "films_imported": 0,
+            "licences_acquired": False,
+            "public_catalogue_enabled": False,
+            "playback_enabled": False,
+        } for source in free_sources],
+        "permitted_open_claims_for_review": [
+            "PUBLIC_DOMAIN", "CC0", "CC_BY", "CC_BY_SA",
+        ],
+        "free_to_watch_alone_qualifies": False,
+        "rights_registry_connected": False,
+        "public_catalogue_enabled": False,
+        "playback_enabled": False,
+        "payments_enabled": False,
+        "media_import_performed": False,
+        "human_authority_final": True,
     }
 
 

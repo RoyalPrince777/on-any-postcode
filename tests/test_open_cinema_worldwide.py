@@ -78,6 +78,7 @@ def test_missing_territory_claim_is_not_worldwide_permission():
     lead = {
         "candidate_id": str(uuid4()), "title": "No rights",
         "source": "direct_creator", "licence_claim": "DIRECT_PERMISSION",
+        "work_origin": "oap_original",
     }
     item = open_cinema.candidate(lead)
     assert item["worldwide_rights"]["country_count"] == 0
