@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from mission_control import product_cores
@@ -148,3 +150,20 @@ def test_input_guards_reject_unsafe_or_ambiguous_product_core_values():
         product_cores._text("", name="release_title", maximum=180)
     with pytest.raises(ValueError, match="release_title_too_long"):
         product_cores._text("x" * 181, name="release_title", maximum=180)
+
+
+
+def test_order_intent_requires_active_certified_merchant_seller():
+    source = Path(product_cores.__file__).read_text(
+        encoding="utf-8"
+    )
+    section = source.split("def create_order_intent(", 1)[1].split(
+        "def create_post_office_request(", 1
+    )[0]
+
+    assert "JOIN oap_identities oi" in section
+    assert "oi.status='ACTIVE'" in section
+    assert "JOIN oap_identity_roles merchant" in section
+    assert "merchant.role_id='certified_merchant'" in section
+    assert '"payment_capture_performed": False' in section
+    assert '"fulfilment_handoff_performed": False' in section
