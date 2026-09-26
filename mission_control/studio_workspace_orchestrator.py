@@ -108,7 +108,7 @@ def _history(owner_id: object, mission_id: object) -> list[dict[str, Any]]:
         except (KeyError, TypeError, ValueError) as exc:
             raise RuntimeError("orchestration_history_unreadable") from exc
         if not isinstance(entry, dict):
-            raise RuntimeError("orchestration_history_invalid")
+            raise TypeError("orchestration_history_invalid")
         payload = {key: value for key, value in entry.items() if key != "digest"}
         if (
             entry.get("mission_id") != mission
