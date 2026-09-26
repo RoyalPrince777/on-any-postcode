@@ -106,7 +106,7 @@ def test_earth_replaces_flag_vote_and_chronicle_nature_keep_real_paths(client):
     assert "does not invent a second newsroom feed" in chronicle
 
     assert "OAP Nature" in nature
-    assert "Earth is our turf" in nature
+    assert "Earth Is Our Turf" in nature
     assert 'href="/the-spot/maps-weather-travel"' in nature
     assert "wider environmental signals stay source-bound" in nature
 
@@ -154,7 +154,7 @@ def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
     assert "🚶 Movement" in page
     assert 'href="/travel/direct"' in page
     assert "Quote, hold and reservation request through OAP Direct." in page
-    assert "supplier confirmation is required before a booking is called confirmed" in page.lower()
+    assert "supplier confirmation is required before a booking is confirmed" in page.lower()
     assert "Payment and automatic dispatch remain separate." in page
 
 
