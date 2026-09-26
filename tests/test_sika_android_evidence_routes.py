@@ -4,7 +4,6 @@ from flask import Flask
 
 from mission_control import sika_global_views
 
-
 AUTH_OWNER = "11111111-1111-4111-8111-111111111111"
 ATTACKER_OWNER = "22222222-2222-4222-8222-222222222222"
 
