@@ -186,6 +186,9 @@ def latest_state(owner_id: object) -> dict[str, object]:
             if beneficiary_id:
                 beneficiaries[beneficiary_id] = {
                     "beneficiary_id": beneficiary_id,
+                    "beneficiary_version": str(
+                        details.get("beneficiary_version") or item.get("event_id") or ""
+                    ),
                     "registered_at": item.get("created_at"),
                     "cooling_off_minutes": 30,
                 }
@@ -246,12 +249,23 @@ def register_beneficiary(owner_id: object, beneficiary_id: object) -> dict[str, 
     beneficiary = str(beneficiary_id or "").strip()[:120]
     if not beneficiary:
         raise ValueError("beneficiary_id_required")
-    return record_authenticated_owner(
+    beneficiary_version = str(uuid4())
+    receipt = record_authenticated_owner(
         owner_id,
         event_type="BENEFICIARY_REGISTERED",
         severity="NOTICE",
-        details={"beneficiary_id": beneficiary, "cooling_off_minutes": 30},
+        details={
+            "beneficiary_id": beneficiary,
+            "beneficiary_version": beneficiary_version,
+            "cooling_off_minutes": 30,
+        },
     )
+    return {
+        **receipt,
+        "beneficiary_id": beneficiary,
+        "beneficiary_version": beneficiary_version,
+        "money_moved": False,
+    }
 
 
 def set_device_risk(owner_id: object, suspicious_device: bool) -> dict[str, object]:
@@ -501,6 +515,7 @@ def create_payment_intent(
     beneficiary_id: object,
     amount_sika: object,
     reference: object = "",
+    idempotency_key: object = "",
 ) -> dict[str, object]:
     from decimal import Decimal
 
@@ -511,7 +526,46 @@ def create_payment_intent(
     amount = Decimal(str(amount_sika))
     if amount <= 0:
         raise ValueError("positive_amount_required")
+
+    idem = str(idempotency_key or "").strip()[:160]
+    events = history(owner, limit=100)
+    if idem:
+        existing = next(
+            (
+                item for item in events
+                if item.get("event_type") == "PAYMENT_INTENT_CREATED"
+                and dict(item.get("details") or {}).get("idempotency_key") == idem
+            ),
+            None,
+        )
+        if existing is not None:
+            details = dict(existing.get("details") or {})
+            return {
+                "payment_intent_id": details.get("payment_intent_id"),
+                "beneficiary_id": details.get("beneficiary_id"),
+                "beneficiary_version": details.get("beneficiary_version"),
+                "amount_sika": details.get("amount_sika"),
+                "status": details.get("status"),
+                "expires_at_epoch": details.get("expires_at_epoch"),
+                "idempotent": True,
+                "security_receipt_id": existing.get("event_id"),
+                "money_moved": False,
+                "payment_execution_authorised": False,
+            }
+
+    state = latest_state(owner)
+    beneficiary_record = next(
+        (
+            item for item in state["beneficiaries"]
+            if str(item.get("beneficiary_id") or "") == beneficiary
+        ),
+        None,
+    )
+    beneficiary_version = str(
+        (beneficiary_record or {}).get("beneficiary_version") or "unregistered"
+    )
     payment_intent_id = str(uuid4())
+    expires_at_epoch = datetime.now(timezone.utc).timestamp() + 600
     receipt = record_authenticated_owner(
         owner,
         event_type="PAYMENT_INTENT_CREATED",
@@ -519,8 +573,11 @@ def create_payment_intent(
         details={
             "payment_intent_id": payment_intent_id,
             "beneficiary_id": beneficiary,
+            "beneficiary_version": beneficiary_version,
             "amount_sika": f"{amount:.2f}",
             "reference": str(reference or "").strip()[:160],
+            "idempotency_key": idem,
+            "expires_at_epoch": expires_at_epoch,
             "status": "security_review_only",
             "payment_execution_authorised": False,
         },
@@ -528,8 +585,67 @@ def create_payment_intent(
     return {
         "payment_intent_id": payment_intent_id,
         "beneficiary_id": beneficiary,
+        "beneficiary_version": beneficiary_version,
         "amount_sika": f"{amount:.2f}",
         "status": "security_review_only",
+        "expires_at_epoch": expires_at_epoch,
+        "idempotent": False,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "payment_execution_authorised": False,
+    }
+
+
+def cancel_payment_intent(
+    owner_id: object,
+    *,
+    payment_intent_id: object,
+    reason: object = "owner_cancelled",
+) -> dict[str, object]:
+    intent_id = str(payment_intent_id or "").strip()
+    if not intent_id:
+        raise ValueError("payment_intent_id_required")
+    events = history(owner_id, limit=100)
+    created = next(
+        (
+            item for item in events
+            if item.get("event_type") == "PAYMENT_INTENT_CREATED"
+            and dict(item.get("details") or {}).get("payment_intent_id") == intent_id
+        ),
+        None,
+    )
+    if created is None:
+        raise ValueError("payment_intent_not_found")
+    already = next(
+        (
+            item for item in events
+            if item.get("event_type") == "PAYMENT_INTENT_CANCELLED"
+            and dict(item.get("details") or {}).get("payment_intent_id") == intent_id
+        ),
+        None,
+    )
+    if already is not None:
+        return {
+            "payment_intent_id": intent_id,
+            "cancelled": True,
+            "idempotent": True,
+            "money_moved": False,
+            "payment_execution_authorised": False,
+        }
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="PAYMENT_INTENT_CANCELLED",
+        severity="NOTICE",
+        details={
+            "payment_intent_id": intent_id,
+            "reason": str(reason or "owner_cancelled")[:160],
+            "payment_execution_authorised": False,
+        },
+    )
+    return {
+        "payment_intent_id": intent_id,
+        "cancelled": True,
+        "idempotent": False,
         "security_receipt_id": receipt.get("event_id"),
         "money_moved": False,
         "payment_execution_authorised": False,
@@ -636,6 +752,38 @@ def final_payment_review_gate(
     intent = str(payment_intent_id or "").strip()
     events = history(owner_id, limit=100)
 
+    intent_created = next(
+        (
+            item for item in events
+            if item.get("event_type") == "PAYMENT_INTENT_CREATED"
+            and dict(item.get("details") or {}).get("payment_intent_id") == intent
+        ),
+        None,
+    )
+    if intent_created is None:
+        raise ValueError("payment_intent_not_found")
+    intent_details = dict(intent_created.get("details") or {})
+    cancelled = any(
+        item.get("event_type") == "PAYMENT_INTENT_CANCELLED"
+        and dict(item.get("details") or {}).get("payment_intent_id") == intent
+        for item in events
+    )
+    expires_at_epoch = float(intent_details.get("expires_at_epoch") or 0)
+    expired = expires_at_epoch <= datetime.now(timezone.utc).timestamp()
+
+    beneficiary_id = str(intent_details.get("beneficiary_id") or "")
+    original_version = str(intent_details.get("beneficiary_version") or "")
+    state = latest_state(owner_id)
+    current = next(
+        (
+            item for item in state["beneficiaries"]
+            if str(item.get("beneficiary_id") or "") == beneficiary_id
+        ),
+        None,
+    )
+    current_version = str((current or {}).get("beneficiary_version") or "unregistered")
+    beneficiary_unchanged = current_version == original_version
+
     resolved = next(
         (
             item for item in events
@@ -663,13 +811,23 @@ def final_payment_review_gate(
         resolved
         and dict(resolved.get("details") or {}).get("status") == "approved_for_review"
     )
-    allowed_to_final_review = bool(linked and proof and approved_for_review)
+    allowed_to_final_review = bool(
+        linked
+        and proof
+        and approved_for_review
+        and not cancelled
+        and not expired
+        and beneficiary_unchanged
+    )
     return {
         "challenge_id": challenge,
         "payment_intent_id": intent,
         "linked": linked,
         "proof_bound": bool(proof),
         "approved_for_review": approved_for_review,
+        "intent_cancelled": cancelled,
+        "intent_expired": expired,
+        "beneficiary_unchanged": beneficiary_unchanged,
         "allowed_to_final_review": allowed_to_final_review,
         "payment_execution_authorised": False,
         "money_moved": False,
