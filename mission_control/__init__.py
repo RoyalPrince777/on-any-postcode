@@ -58,6 +58,7 @@ def init_app(app: Flask) -> None:
     )
     from . import db as dbmod
     from .alignment_views import bp as alignment_bp
+    from .bank_mind_control_routes import bp as bank_mind_control_bp
     from .bank_store_catalog_routes import bp as bank_store_catalog_bp
     from .certification_views import bp as certification_bp
     from .checkpoint_views import bp as checkpoint_bp
@@ -1106,6 +1107,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_message_bp)
     app.register_blueprint(mail_store_catalog_bp)
     app.register_blueprint(bank_store_catalog_bp)
+    app.register_blueprint(bank_mind_control_bp)
     app.register_blueprint(travel_supply_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
