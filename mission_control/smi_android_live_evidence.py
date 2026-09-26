@@ -29,7 +29,7 @@ EVIDENCE_LAYERS = (
 MAX_AUDIO_CLOCK_DELTA_MS = 80.0
 MAX_STOP_ACKNOWLEDGEMENT_MS = 50.0
 _HASH = re.compile(r"^[a-f0-9]{64}$")
-_UUIDISH = re.compile(r"^[a-f0-9-]{16,64}$", re.I)
+_UUIDISH = re.compile(r"^[a-f0-9-]{16,64}$", re.IGNORECASE)
 
 
 def _now() -> datetime:
