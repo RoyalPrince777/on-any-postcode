@@ -464,7 +464,7 @@ document.getElementById('deepDive21Btn').onclick=async()=>{
  document.getElementById('deepDive21Result').textContent=r.ok
   ? 'ready '+j.ready_count+'/21 · gaps '+j.gap_count+' · '+(j.gaps.join(', ')||'none')+
     ' · bank '+j.real_bank_read_ready+' · payment '+j.real_payment_ready+
-    ' · Android '+j.physical_android_acceptance+' · bank password '+j.bank_app_password_ready
+    ' · Android '+j.physical_android_acceptance+' · bank password software '+j.bank_app_password_software_ready+' · owner bridge '+j.authenticated_owner_bridge_ready
   : (j.error||'Deep Dive 21 unavailable');
 };
 document.getElementById('licenceBtn').onclick=async()=>{
