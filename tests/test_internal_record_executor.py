@@ -267,3 +267,74 @@ def test_executor_status_is_narrow_and_non_financial():
     assert state["financial_side_effects_allowed"] is False
     assert state["reversible"] is True
     assert state["human_authority_final"] is True
+
+
+
+def test_rollback_requires_exact_post_action_hash(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    authorization = _authorization(identity)
+    expected_after = executor._proof_hash(
+        {
+            "workspace_id": "governance",
+            "title": "Founder note",
+            "body": "Keep this exact content.",
+            "status": "active",
+        }
+    )
+    expected_before = executor._proof_hash(
+        {
+            "workspace_id": "governance",
+            "title": "Founder note",
+            "body": "Keep this exact content.",
+            "status": "draft",
+        }
+    )
+    observed = {}
+
+    def _execute(auth, **kwargs):
+        observed["authorization"] = auth
+        observed.update(kwargs)
+        return {
+            "after_hash": expected_before,
+            "outcome_receipt": {
+                "write_verified": True,
+                "read_back_verified": True,
+            },
+        }
+
+    monkeypatch.setattr(executor, "execute", _execute)
+
+    result = executor.rollback(
+        authorization,
+        identity_id=identity,
+        rollback_token={
+            "record_id": record,
+            "expected_status": "active",
+            "target_status": "draft",
+            "before_hash": expected_before,
+            "after_hash": expected_after,
+        },
+    )
+
+    assert observed["expected_current_hash"] == expected_after
+    assert observed["expected_status"] == "active"
+    assert observed["target_status"] == "draft"
+    assert result["rollback_verified"] is True
+    assert result["restored_hash"] == expected_before
+
+
+def test_rollback_rejects_bad_before_hash():
+    identity = str(uuid.uuid4())
+    with pytest.raises(ValueError, match="invalid_rollback_before_hash"):
+        executor.rollback(
+            _authorization(identity),
+            identity_id=identity,
+            rollback_token={
+                "record_id": str(uuid.uuid4()),
+                "expected_status": "active",
+                "target_status": "draft",
+                "before_hash": "bad",
+                "after_hash": "a" * 64,
+            },
+        )
