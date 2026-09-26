@@ -69,13 +69,13 @@ def test_probe_proves_only_observed_read_only_bindings(monkeypatch):
 
     assert status["read_only"] is True
     assert status["schema_changed"] is False
-    assert status["domains"]["identity"]["state"] == "PROVEN"
-    assert status["domains"]["arena_profile"]["state"] == "PROVEN"
-    assert status["domains"]["arena_competition"]["state"] == "PROVEN"
-    assert status["domains"]["organiser"]["state"] == "PROVEN"
-    assert status["domains"]["studio"]["state"] == "PROVEN"
+    assert status["domains"]["identity"]["state"] == "SCHEMA_PROVEN"
+    assert status["domains"]["arena_profile"]["state"] == "SCHEMA_PROVEN"
+    assert status["domains"]["arena_competition"]["state"] == "SCHEMA_PROVEN"
+    assert status["domains"]["organiser"]["state"] == "SCHEMA_PROVEN"
+    assert status["domains"]["studio"]["state"] == "SCHEMA_PROVEN"
     assert status["domains"]["value"]["state"] == "UNPROVEN"
-    assert status["all_canonical_domains_proven"] is False
+    assert status["all_canonical_domains_schema_proven"] is False
 
 
 def test_probe_fails_closed_when_database_unreachable(monkeypatch):
@@ -93,5 +93,5 @@ def test_probe_fails_closed_when_database_unreachable(monkeypatch):
     status = runtime_state_binding.probe()
 
     assert status["proven_count"] == 0
-    assert status["all_canonical_domains_proven"] is False
+    assert status["all_canonical_domains_schema_proven"] is False
     assert status["error"] == "canonical_database_unreachable"
