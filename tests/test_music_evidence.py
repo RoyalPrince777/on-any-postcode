@@ -171,6 +171,7 @@ def test_evidence_write_uses_authenticated_owner_and_stays_fail_closed(monkeypat
 
 def test_evidence_read_gate_requires_recovery_receipt(monkeypatch):
     from flask import Flask
+
     from mission_control import product_core_views
 
     app = Flask(__name__)
