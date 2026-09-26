@@ -849,3 +849,147 @@ def test_compromise_recovery_requires_bank_credential_and_bound_device(monkeypat
     assert recovered["credential_verified"] is True
     assert recovered["bound_device_verified"] is True
     assert recovered["new_session_required"] is True
+
+
+def test_reauth_result_does_not_trust_client_success_flag(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "reauth_backoff_state",
+        lambda owner_id: {
+            "locked": False,
+            "failed_attempts_since_success": 0,
+            "lock_seconds": 0,
+            "lock_remaining_seconds": 0,
+        },
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_bank_credential_store,
+        "verify_authenticated_owner",
+        lambda owner_id, password: {"verified": False},
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "record_reauth_result",
+        lambda owner_id, *, success: {"event_id": "reauth-receipt"},
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "reauth_lock_state",
+        lambda owner_id: {"locked": False, "failed_attempts": 1},
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/reauth-result",
+        json={
+            "success": True,
+            "proof_method": "bank_app_password",
+            "password": "wrong-password",
+        },
+    )
+    body = response.get_json()
+    assert response.status_code == 401
+    assert body["verified"] is False
+    assert body["caller_supplied_success_trusted"] is False
+
+
+def test_step_up_proof_label_without_verified_credential_fails(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "reauth_backoff_state",
+        lambda owner_id: {
+            "locked": False,
+            "failed_attempts_since_success": 0,
+            "lock_seconds": 0,
+            "lock_remaining_seconds": 0,
+        },
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_bank_credential_store,
+        "verify_authenticated_owner",
+        lambda owner_id, password: {"verified": False},
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "record_reauth_result",
+        lambda owner_id, *, success: {"event_id": "reauth-receipt"},
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/step-up/proof",
+        json={
+            "challenge_id": "challenge-1",
+            "payment_intent_id": "intent-1",
+            "proof_method": "bank_app_password",
+        },
+    )
+    body = response.get_json()
+    assert response.status_code == 401
+    assert body["proof_bound"] is False
+    assert body["error"] == "bank_app_credential_verification_required"
+
+
+def test_step_up_trusted_session_requires_active_server_session(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "reauth_backoff_state",
+        lambda owner_id: {
+            "locked": False,
+            "failed_attempts_since_success": 0,
+            "lock_seconds": 0,
+            "lock_remaining_seconds": 0,
+        },
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_session_registry,
+        "require_active",
+        lambda owner_id, session_id: (_ for _ in ()).throw(
+            PermissionError("sika_session_not_active")
+        ),
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/step-up/proof",
+        json={
+            "challenge_id": "challenge-1",
+            "payment_intent_id": "intent-1",
+            "proof_method": "trusted_device_reauth",
+            "session_id": "forged-session",
+        },
+    )
+    body = response.get_json()
+    assert response.status_code == 400
+    assert body["proof_bound"] is False
+    assert body["error"] == "sika_session_not_active"
