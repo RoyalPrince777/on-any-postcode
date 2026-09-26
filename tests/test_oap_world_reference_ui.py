@@ -10,7 +10,7 @@ def test_oap_world_reference_ui_contract():
         "OAP WORLD",
         "STRIP OF NOISE",
         "Search the world... any postcode...",
-        "Map Intelligence",
+        "OAP Atlas",
         "The Spot",
         "The Link",
         "Market",
