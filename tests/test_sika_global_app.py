@@ -228,9 +228,11 @@ def test_install_readiness_truth_boundary():
     body = response.get_json()
     assert response.status_code == 200
     assert body["private_software_acceptance_ready"] is True
+    assert body["public_pwa_software_ready"] is True
+    assert body["real_android_pwa_acceptance"] is False
     assert body["safe_public_install_ready"] is False
     assert body["sika_specific_signed_android_package"] is False
-    assert body["real_android_install_acceptance"] is False
+    assert body["real_native_android_install_acceptance"] is False
 
 
 def test_surface_has_fraud_and_install_buttons():
@@ -240,3 +242,29 @@ def test_surface_has_fraud_and_install_buttons():
     assert 'id="installReadinessBtn"' in html
     assert 'id="fraudSection"' in html
     assert 'id="installSection"' in html
+
+
+def test_standalone_sika_serves_install_shell_assets():
+    client = app.test_client()
+    manifest = client.get("/manifest.webmanifest")
+    worker = client.get("/service-worker.js")
+    controller = client.get("/assets/oap-os.js")
+    icon = client.get("/assets/oap-os-icon-192.png")
+    offline = client.get("/offline")
+
+    assert manifest.status_code == 200
+    assert manifest.content_type == "application/manifest+json"
+    assert worker.status_code == 200
+    assert worker.headers["Service-Worker-Allowed"] == "/"
+    assert controller.status_code == 200
+    assert icon.status_code == 200
+    assert icon.data.startswith(b"\x89PNG\r\n\x1a\n")
+    assert offline.status_code == 200
+
+
+def test_sika_page_exposes_install_controller():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'rel="manifest" href="/manifest.webmanifest"' in html
+    assert 'data-oap-install hidden' in html
+    assert 'src="/assets/oap-os.js"' in html
