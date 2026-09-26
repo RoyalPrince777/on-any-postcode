@@ -779,3 +779,38 @@ def test_sika_security_posture_does_not_fake_web_screenshot_block():
     assert body["fraud_and_scam"]["safe_account_signal"] is True
     assert body["money_execution_enabled"] is False
     assert body["founder_auth_touched"] is False
+
+
+def test_sika_session_policy_is_fail_closed_and_founder_untouched():
+    client = app.test_client()
+    response = client.get("/api/sika/security/session-policy")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["idle_timeout_seconds"] == 300
+    assert body["sensitive_action_reauth_seconds"] == 120
+    assert body["reauth_required_after_timeout"] is True
+    assert body["founder_auth_touched"] is False
+    assert body["money_execution_enabled"] is False
+
+
+def test_sika_payment_controls_enforce_cooling_off_limit_and_suspicious_device():
+    client = app.test_client()
+    response = client.post(
+        "/api/sika/security/payment-controls",
+        json={
+            "amount_sika": "200",
+            "daily_used_sika": "900",
+            "daily_limit_sika": "1000",
+            "recipient_age_minutes": 5,
+            "suspicious_device": True,
+        },
+    )
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["over_limit"] is True
+    assert body["new_recipient_cooling_off"] is True
+    assert body["suspicious_device"] is True
+    assert body["step_up_required"] is True
+    assert body["payment_may_progress_to_review"] is False
+    assert body["money_moved"] is False
+    assert body["executable"] is False
