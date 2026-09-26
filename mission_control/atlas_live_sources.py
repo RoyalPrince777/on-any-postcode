@@ -31,6 +31,7 @@ ALLOWED_PLACE_FIELDS = (
     "class",
     "type",
     "importance",
+    "extratags",
 )
 _LAST_FETCH: dict[str, object] = {
     "fetched_at": None,
