@@ -72,7 +72,7 @@ def create_review(identity_id: object, *, product_id: object, rating: object, bo
                 raise ValueError("review_already_exists")
     except ValueError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ReviewsUnavailable("review_precheck_failed") from exc
 
     payload = json.dumps(
