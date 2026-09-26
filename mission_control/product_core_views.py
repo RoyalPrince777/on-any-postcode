@@ -10,6 +10,7 @@ from . import (
     distribution_intelligence,
     entertainment_catalogue,
     live_music_core,
+    music_acceptance,
     music_civilization,
     music_evidence,
     music_recovery,
@@ -32,6 +33,7 @@ _radio_store = radio_core.RadioStore()
 _records_store = records_core.RecordsStore()
 _live_music_store = live_music_core.LiveMusicStore()
 _music_recovery_store = music_recovery.MusicRecoveryStore()
+_music_acceptance_store = music_acceptance.MusicAcceptanceStore()
 
 
 def _no_store(response):
@@ -440,6 +442,53 @@ def read_tune_recovery_manifest(manifest_id: str):
             "Music recovery manifest is temporarily unavailable.",
             503,
         )
+
+
+@bp.get("/tune/releases/<release_id>/acceptance")
+@web_security.login_required(api=True, founder_only=True)
+def tune_release_acceptance(release_id: str):
+    try:
+        receipts = _music_acceptance_store.read(
+            owner_identity_id=_identity(),
+            release_id=release_id,
+        )
+        return _no_store(make_response(jsonify({
+            "release_id": release_id,
+            "receipts": receipts,
+            "completion_gate": music_acceptance.software_completion_gate(receipts),
+        })))
+    except PermissionError:
+        return _error("permission_denied", "Acceptance receipts unavailable.", 403)
+    except (TypeError, ValueError, RuntimeError):
+        return _error(
+            "music_acceptance_unavailable",
+            "Music acceptance receipts are temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/tune/releases/<release_id>/acceptance")
+@web_security.login_required(api=True, founder_only=True)
+def append_tune_release_acceptance(release_id: str):
+    def action():
+        payload = _payload()
+        encoded = payload.get("evidence_base64")
+        if not isinstance(encoded, str) or len(encoded) > 11_500_000:
+            raise ValueError("invalid_evidence_base64")
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("invalid_evidence_base64") from exc
+        return _music_acceptance_store.append(
+            owner_identity_id=_identity(sync=True),
+            release_id=release_id,
+            acceptance_kind=payload.get("acceptance_kind"),
+            evidence_bytes=raw,
+            evidence_reference=payload.get("evidence_reference"),
+            human_approval_reference=payload.get("human_approval_reference"),
+        )
+
+    return _handle_write(action)
 
 
 @bp.get("/music-civilization")
