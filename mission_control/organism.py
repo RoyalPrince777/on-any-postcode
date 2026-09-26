@@ -205,6 +205,17 @@ ORGANISM_SYSTEMS: tuple[dict[str, Any], ...] = (
 
 
 
+
+CAPABILITY_ANATOMY: tuple[dict[str, Any], ...] = (
+    {"id":"continuity_intelligence","name":"Continuity Intelligence","brain_regions":("hippocampus","occipital_lobe","cerebellum"),"body_owner":"OAP Studio / Media","protection_owner":"Guardian + Rights","memory_owner":"HRM / Founder Library","execution_owner":"Studio renderer","status":"partial","missing":"Persistent cross-scene identity, wardrobe, object, camera, lighting and timing lineage across generated scenes.","consequential_execution":False},
+    {"id":"workspace_orchestrator","name":"Workspace Orchestrator","brain_regions":("thalamus","frontal_lobe","corpus_callosum"),"body_owner":"Living Kernel / Studio","protection_owner":"Guardian","memory_owner":"HRM","execution_owner":"Living Kernel after approval","status":"partial","missing":"Multi-workspace dependency graph and resumable handoff across Build, Data, Code, Motion, Music, Omni and Research.","consequential_execution":False},
+    {"id":"oap_data_builder","name":"OAP Data Builder","brain_regions":("parietal_lobe","frontal_lobe"),"body_owner":"OAP Data","protection_owner":"Skin + Guardian","memory_owner":"HRM audit receipts","execution_owner":"Builder / Living Kernel","status":"partial","missing":"Visual schema relationships, affected-row preview, rollback preview and governed migration execution.","consequential_execution":True},
+    {"id":"live_build_preview","name":"Live Build Preview Engine","brain_regions":("frontal_lobe","occipital_lobe","parietal_lobe","cerebellum"),"body_owner":"Builder / Infrastructure","protection_owner":"Guardian + Green Gate","memory_owner":"HRM build receipts","execution_owner":"Isolated preview runtime","status":"partial","missing":"Single prompt-to-files-to-build-to-live-preview-to-inspect-to-fix loop inside Studio Build.","consequential_execution":False},
+    {"id":"rights_provenance","name":"Rights & Provenance Engine","brain_regions":("prefrontal_cortex","hippocampus"),"body_owner":"Identity + OAP Data + Media/Music","protection_owner":"Guardian + Liver & Kidneys","memory_owner":"HRM provenance ledger","execution_owner":"Publish/distribution gates","status":"partial","missing":"One canonical asset-rights graph covering owner, source, licence, territory, expiry, derivatives and proof hash.","consequential_execution":True},
+    {"id":"realtime_presence","name":"Realtime Presence Intelligence","brain_regions":("temporal_lobe","occipital_lobe","parietal_lobe","brainstem"),"body_owner":"SP Signals + Link Up / Studio","protection_owner":"Skin + Guardian","memory_owner":"Ephemeral by default; HRM only when approved","execution_owner":"Realtime media runtime","status":"partial","missing":"Certified continuous interruptible audio/video participation with barge-in, turn-taking and bounded live visual understanding.","consequential_execution":False},
+    {"id":"generative_music","name":"Generative Music Engine","brain_regions":("temporal_lobe","frontal_lobe","cerebellum"),"body_owner":"OAP Music","protection_owner":"Rights & Provenance + Guardian","memory_owner":"OAP Music catalogue + HRM receipts","execution_owner":"Audio renderer","status":"missing","missing":"Proven prompt-to-audio generation, stems, mix, master and playable owner-scoped artifact pipeline.","consequential_execution":False},
+)
+
 PHYSIOLOGY_SYSTEMS: tuple[dict[str, Any], ...] = (
     {
         "id": "dna",
@@ -904,6 +915,7 @@ def get_public_anatomy() -> dict[str, Any]:
     return {
         "systems": ORGANISM_SYSTEMS,
         "body_organs": BODY_ORGANS,
+        "capability_anatomy": CAPABILITY_ANATOMY,
         "physiology_systems": PHYSIOLOGY_SYSTEMS,
         "physiology_flow": ORGANISM_PHYSIOLOGY_FLOW,
         "physiology_laws": PHYSIOLOGY_LAWS,
