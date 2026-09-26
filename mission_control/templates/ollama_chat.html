@@ -36,6 +36,7 @@ window.OAP_SMI_UI={
   studioVideoStatusUrl:{{ url_for('mission_control.smi_studio_video_status', video_id='__VIDEO_ID__')|tojson }},
   studioVideoContentUrl:{{ url_for('mission_control.smi_studio_video_content', video_id='__VIDEO_ID__')|tojson }},
   buttonProofUrl:{{ url_for('mission_control.smi_button_proof')|tojson }},
+  androidEvidenceUrl:{{ url_for('mission_control.smi_android_live_evidence_receipt')|tojson }},
   brainUrl:{{ url_for('mission_control.brain_dashboard')|tojson }},
   agentsUrl:{{ url_for('mission_control.agent_intelligence')|tojson }},
   infrastructureUrl:{{ url_for('mission_control.infrastructure_dashboard')|tojson }},
@@ -66,6 +67,7 @@ window.OAP_SMI_UI={
 <script>window.OAP_SMI_SOURCE_PIXEL_MOTION_READY=window.OAP_SMI_SOURCE_PIXEL_MOTION.attach().then(session=>{window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session;return session;}).catch(()=>null);</script>
 <script src="{{ url_for('mission_control.static', filename='smi_reply_audio_player.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_canonical_controller.js') }}"></script>
+<script src="{{ url_for('mission_control.static', filename='smi_android_live_evidence.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_sovereign_dashboard.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_interaction_layer.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_command_centre.js') }}"></script>
