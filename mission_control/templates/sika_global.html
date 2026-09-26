@@ -226,6 +226,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <section class="card" id="a6Section">
 <h2>A6 Readiness</h2>
 <button id="a6Btn">Check A6 proof gate</button>
+<button id="a6EvidenceBtn">Run fail-closed A6 proof</button>
 <div class="result" id="a6Result">—</div>
 <p class="notice">Readiness only. Every A6 operation still requires Human Authority, Guardian, Green Gate, rollback, HRM receipts and Matrix pre/post checks.</p>
 </section>
@@ -367,6 +368,13 @@ document.getElementById('a6Btn').onclick=async()=>{
  document.getElementById('a6Result').textContent=r.ok
   ? 'proven '+j.a6_readiness_proven+' · matrix '+j.matrix_ready+' · missing '+(j.missing_proofs.join(', ')||'none')+' · execution '+j.execution_granted
   : (j.error||'A6 readiness unavailable');
+};
+document.getElementById('a6EvidenceBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/a6-evidence-pack');
+ const j=await r.json();
+ document.getElementById('a6Result').textContent=r.ok
+  ? 'policy allowed '+j.software_fail_closed_precheck.allowed+' · execution '+j.software_fail_closed_precheck.execution_granted+' · missing '+(j.missing_proofs.join(', ')||'none')
+  : (j.error||'A6 evidence pack unavailable');
 };
 document.getElementById('marketHandoff').onclick=()=>{
  document.getElementById('marketResult').textContent='Market software handoff active · payment settlement remains licence-gated';
