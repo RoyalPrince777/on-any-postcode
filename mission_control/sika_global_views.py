@@ -13,6 +13,7 @@ from . import (
     sika_intelligence,
     sika_journal_store,
     sika_safety,
+    sika_security_ledger,
     sika_wallet_ledger,
     web_security,
 )
@@ -293,6 +294,44 @@ def sika_security_payment_controls():
         return jsonify(sika_safety.payment_controls(body))
     except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
         return jsonify({"error": str(exc), "executable": False}), 400
+
+
+@bp.get("/api/sika/security/ledger/readiness")
+@web_security.login_required(api=True)
+def sika_security_ledger_readiness():
+    return jsonify(sika_security_ledger.readiness())
+
+
+@bp.get("/api/sika/security/ledger/history")
+@web_security.login_required(api=True)
+def sika_security_ledger_history():
+    owner = _authenticated_sika_owner()
+    try:
+        return jsonify({"events": sika_security_ledger.history(owner.owner_id)})
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "events": []}), 503
+
+
+@bp.post("/api/sika/security/ledger/event")
+@web_security.login_required(api=True)
+def sika_security_ledger_event():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_security_ledger.record_authenticated_owner(
+            owner.owner_id,
+            event_type=str(body.get("event_type") or ""),
+            severity=str(body.get("severity") or "NOTICE"),
+            details=dict(body.get("details") or {}),
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 503
+    return jsonify({**result, "recorded": True}), 201
 
 
 
