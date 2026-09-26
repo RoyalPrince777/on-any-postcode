@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = ROOT / "mission_control" / "templates" / "ollama_chat.html"
 FINAL = ROOT / "mission_control" / "static" / "smi_chat_final.js"
+MEDIA_CONTROLS = ROOT / "mission_control" / "static" / "smi_media_controls.js"
 CHARACTER = ROOT / "mission_control" / "static" / "smi_live_character.css"
 VIEWS = ROOT / "mission_control" / "views.py"
 CORE = ROOT / "mission_control" / "smi_chat_runtime_core.py"
@@ -96,3 +97,33 @@ def test_character_has_merry_expressive_style_and_reduced_motion():
         "prefers-reduced-motion",
     ):
         assert marker in css
+
+
+def test_media_controls_route_to_canonical_studio_without_duplicate_engine():
+    wrapper = WRAPPER.read_text(encoding="utf-8")
+    controls = MEDIA_CONTROLS.read_text(encoding="utf-8")
+    final = FINAL.read_text(encoding="utf-8")
+    views = VIEWS.read_text(encoding="utf-8")
+    studio = STUDIO.read_text(encoding="utf-8")
+
+    assert "smi_media_controls.js" in wrapper
+    for marker in (
+        'id="create-mode-button"',
+        'id="edit-mode-button"',
+        'id="refine-mode-button"',
+        'id="animate-mode-button"',
+        'id="character-lock-button"',
+        'data.studioTool = toolId',
+        '"edit_image"',
+        '"refine_image"',
+        "Use as character reference",
+        "OAP_SMI_CHARACTER_LOCK",
+        "duplicateStudioEngine: false",
+    ):
+        assert marker in controls
+
+    assert 'character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK)' in final
+    assert 'character_lock=payload.get("character_lock", False)' in views
+    assert '"id": "edit_image"' in studio
+    assert '"id": "refine_image"' in studio
+    assert "studio_media_backend.edit_image" in studio
