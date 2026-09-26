@@ -538,3 +538,58 @@ def test_surface_has_deep_dive_21_control():
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="deepDive21Btn"' in html
     assert 'id="deepDive21Section"' in html
+
+
+def test_bank_app_password_is_separate_from_founder_auth_and_never_returned():
+    client = app.test_client()
+    device = "device-bank-security-test"
+    created = client.post("/api/sika/security/password/create", json={
+        "device_id": device,
+        "password": "strong-bank-app-passphrase",
+    })
+    assert created.status_code == 201
+    body = created.get_json()
+    assert body["created"] is True
+    assert body["password_hash_returned"] is False
+    assert body["founder_auth_touched"] is False
+    assert "password_hash" not in body
+
+    wrong = client.post("/api/sika/security/password/unlock", json={
+        "device_id": device,
+        "password": "wrong-password",
+    })
+    assert wrong.status_code == 401
+    assert wrong.get_json()["unlocked"] is False
+
+    unlocked = client.post("/api/sika/security/password/unlock", json={
+        "device_id": device,
+        "password": "strong-bank-app-passphrase",
+    })
+    assert unlocked.status_code == 200
+    assert unlocked.get_json()["unlocked"] is True
+    assert unlocked.get_json()["founder_auth_touched"] is False
+
+    locked = client.post("/api/sika/security/password/lock", json={"device_id": device})
+    assert locked.status_code == 200
+    assert locked.get_json()["locked"] is True
+
+
+def test_bank_app_password_status_is_truthful_about_acceptance_only_storage():
+    client = app.test_client()
+    response = client.get("/api/sika/security/password/status?device_id=status-device")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["storage"] == "process_local_acceptance_only"
+    assert body["owner_identity_bound"] is False
+    assert body["durable_credential_store"] is False
+    assert body["production_ready"] is False
+    assert body["founder_auth_touched"] is False
+
+
+def test_surface_has_bank_app_password_controls_and_no_founder_links():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    for control in ("bankDeviceId","bankPassword","bankPasswordCreateBtn","bankPasswordUnlockBtn","bankPasswordLockBtn"):
+        assert f'id="{control}"' in html
+    assert 'href="/activate-founder"' not in html
+    assert 'href="/enter-my-world"' not in html
