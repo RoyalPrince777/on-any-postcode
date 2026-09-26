@@ -59,7 +59,7 @@ def test_lab_immutability_green_with_enabled_protective_trigger(monkeypatch):
     )
     monkeypatch.setattr(
         workspaces.postgres_db,
-        "connect",
+        "lab_connect",
         lambda *, readonly=False: _Context(connection),
     )
     result = workspaces.lab_immutability_status()
@@ -73,7 +73,7 @@ def test_lab_immutability_fails_closed_when_rows_are_mutable(monkeypatch):
     )
     monkeypatch.setattr(
         workspaces.postgres_db,
-        "connect",
+        "lab_connect",
         lambda *, readonly=False: _Context(connection),
     )
     result = workspaces.lab_immutability_status()
