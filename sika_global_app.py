@@ -308,3 +308,8 @@ def sika_a5_preparation_status():
 @app.get("/api/sika/a6-readiness")
 def sika_a6_readiness_status():
     return jsonify(sika_a6_readiness.status())
+
+
+@app.get("/api/sika/a6-evidence-pack")
+def sika_a6_evidence_pack():
+    return jsonify(sika_a6_readiness.evidence_pack())
