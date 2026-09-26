@@ -335,6 +335,7 @@ def readiness_state() -> dict[str, object]:
         map_live_pattern,
         maps_movement_direct_proof_runner,
         product_store,
+        reviews,
         routing,
         routing_federation,
         travel_marketplace,
@@ -347,6 +348,7 @@ def readiness_state() -> dict[str, object]:
     media_state = listing_media.status()
     merchant_state = certification.status()
     market_state = product_store.status()
+    reviews_state = reviews.status()
     route_matrix_state = maps_movement_direct_proof_runner.route_matrix_status()
     try:
         event_state = travel_marketplace.public_offers(category="event", limit=1)
@@ -384,7 +386,9 @@ def readiness_state() -> dict[str, object]:
     war_room_proof_runner_pass = bool(route_matrix_state.get("certified"))
     open_now_evaluator_ready = True
     connected_shards = int(federation_state.get("connected_shard_count") or 0)
-    wider_uk_routing_live = bool(connected_shards > 1)
+    wider_uk_routing_live = bool(
+        federation_state.get("uk_wide_owned_graph_proven") or connected_shards > 1
+    )
 
     remaining = []
     if not road_tiles_proven:
@@ -409,7 +413,9 @@ def readiness_state() -> dict[str, object]:
         remaining.append("business owner listing tools")
     if not war_room_proof_runner_pass:
         remaining.append("combined War Room proof-runner pass")
-    remaining.append("first-party reviews proof")
+    first_party_reviews_ready = bool(reviews_state.get("ready"))
+    if not first_party_reviews_ready:
+        remaining.append("first-party reviews proof")
 
     software_navigation_green = bool(
         road_tiles_proven and route_geometry_proven and turn_by_turn_software_ready
@@ -431,6 +437,7 @@ def readiness_state() -> dict[str, object]:
         "open_now_evaluator_ready": open_now_evaluator_ready,
         "business_owner_listing_tools_ready": business_owner_listing_tools_ready,
         "war_room_proof_runner_pass": war_room_proof_runner_pass,
+        "first_party_reviews_ready": first_party_reviews_ready,
         "connected_routing_shards": connected_shards,
         "wider_uk_routing_live": wider_uk_routing_live,
         "software_navigation_green": software_navigation_green,

@@ -325,10 +325,65 @@ def road_tile(*, x: object, y: object, zoom: object, profile: object = "driving"
     return _request_bytes(url, expected_host=expected_host, max_bytes=MAX_TILE_BYTES)
 
 
+_UK_COVERAGE_STATE: dict[str, object] = {
+    "proven": False,
+    "routes_proven": (),
+}
+
+
+def _probe_owned_uk_graph() -> dict[str, object]:
+    """Probe representative routes in all four UK nations on the OAP-owned graph."""
+
+    probes = (
+        ("england", 53.4808, -2.2426, 52.4862, -1.8904),
+        ("scotland", 55.9533, -3.1883, 55.8642, -4.2518),
+        ("wales", 51.4816, -3.1791, 51.6214, -3.9436),
+        ("northern_ireland", 54.5973, -5.9301, 54.9966, -7.3086),
+    )
+    proven: list[str] = []
+    for nation, start_lat, start_lon, end_lat, end_lon in probes:
+        try:
+            result = map_route(
+                pickup_latitude=start_lat,
+                pickup_longitude=start_lon,
+                destination_latitude=end_lat,
+                destination_longitude=end_lon,
+                profile="driving",
+            )
+            if result.get("geometry") and float(result.get("distance_m") or 0) > 0:
+                proven.append(nation)
+        except (RoutingUnavailable, ValueError, KeyError, TypeError):
+            continue
+    state = {
+        "proven": len(proven) == len(probes),
+        "routes_proven": tuple(proven),
+        "required_nations": tuple(item[0] for item in probes),
+    }
+    _UK_COVERAGE_STATE.update(state)
+    print(
+        json.dumps(
+            {
+                "event": "oap_routing_uk_owned_graph_proof",
+                "uk_wide_owned_graph_proven": state["proven"],
+                "routes_proven": list(state["routes_proven"]),
+                "required_nations": list(state["required_nations"]),
+                "provider_ownership": provider_ownership(),
+                "dispatch_performed": False,
+                "payment_performed": False,
+                "tracking_performed": False,
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
+    return state
+
+
 def startup_probe() -> dict[str, Any]:
     if not _flag("OAP_ROUTING_STARTUP_PROBE") or not configured():
         return status()
     if provider_ownership() == "oap_owned":
+        _probe_owned_uk_graph()
         try:
             result = map_route(
                 pickup_latitude=51.4036,
@@ -392,4 +447,4 @@ def startup_probe() -> dict[str, Any]:
 
 def status() -> dict[str, Any]:
     success, error = _runtime_state(); approvals = production_approval_state(); ownership = provider_ownership()
-    return {"component":CORE_NAME,"engine_contract":ENGINE_CONTRACT,"configured":configured(),"runtime_verified":success is not None and error is None,"provider_tier":provider_tier(),"provider_ownership":ownership,"oap_owned_endpoint":ownership=="oap_owned","production_provider_approved":approvals["provider_approved"],"production_capacity_approved":approvals["capacity_approved"],"production_monitoring_approved":approvals["monitoring_approved"],"production_gate_approved":production_gate_approved(),"production_ready":production_ready(),"startup_probe_enabled":_flag("OAP_ROUTING_STARTUP_PROBE"),"last_success_epoch":int(success) if success is not None else None,"last_error":error,"timeout_seconds":ROUTE_TIMEOUT_SECONDS,"geometry_exposed":ownership=="oap_owned","road_vector_tiles":ownership=="oap_owned","road_vector_tile_min_zoom":12,"mutation_enabled":False,"dispatch_enabled":False}
+    return {"component":CORE_NAME,"engine_contract":ENGINE_CONTRACT,"configured":configured(),"runtime_verified":success is not None and error is None,"provider_tier":provider_tier(),"provider_ownership":ownership,"oap_owned_endpoint":ownership=="oap_owned","production_provider_approved":approvals["provider_approved"],"production_capacity_approved":approvals["capacity_approved"],"production_monitoring_approved":approvals["monitoring_approved"],"production_gate_approved":production_gate_approved(),"production_ready":production_ready(),"startup_probe_enabled":_flag("OAP_ROUTING_STARTUP_PROBE"),"last_success_epoch":int(success) if success is not None else None,"last_error":error,"timeout_seconds":ROUTE_TIMEOUT_SECONDS,"geometry_exposed":ownership=="oap_owned","road_vector_tiles":ownership=="oap_owned","road_vector_tile_min_zoom":12,"uk_wide_owned_graph_proven":bool(_UK_COVERAGE_STATE.get("proven")),"uk_routes_proven":tuple(_UK_COVERAGE_STATE.get("routes_proven") or ()),"mutation_enabled":False,"dispatch_enabled":False}

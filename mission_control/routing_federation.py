@@ -99,6 +99,19 @@ def select_shard(start: dict[str, object], end: dict[str, object]) -> RoutingSha
     for shard in shards():
         if shard.active and shard.contains(start.get("latitude"), start.get("longitude")) and shard.contains(end.get("latitude"), end.get("longitude")):
             return shard
+    if routing.status().get("uk_wide_owned_graph_proven"):
+        national = RoutingShard(
+            shard_id="united_kingdom_owned_graph",
+            label="United Kingdom",
+            min_lat=49.7,
+            max_lat=61.0,
+            min_lon=-8.8,
+            max_lon=2.0,
+            endpoint_env="OAP_OSRM_BASE_URL",
+            active=True,
+        )
+        if national.contains(start.get("latitude"), start.get("longitude")) and national.contains(end.get("latitude"), end.get("longitude")):
+            return national
     return None
 
 
@@ -141,11 +154,13 @@ def map_route(*, start: dict[str, object], end: dict[str, object], profile: obje
 def status() -> dict[str, object]:
     active = [item for item in shards() if item.active]
     connected = [item for item in active if item.endpoint()]
+    uk_graph_proven = bool(routing.status().get("uk_wide_owned_graph_proven"))
     return {
         "component": "OAP Routing Federation",
         "federated": True,
         "active_shard_count": len(active),
-        "connected_shard_count": len(connected),
+        "connected_shard_count": len(connected) + (1 if uk_graph_proven else 0),
+        "uk_wide_owned_graph_proven": uk_graph_proven,
         "active_shards": [{"id": item.shard_id, "label": item.label, "connected": bool(item.endpoint())} for item in active],
         "cross_shard_routing": False,
         "public_fallback_enabled": False,
