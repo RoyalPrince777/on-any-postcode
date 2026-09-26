@@ -341,3 +341,23 @@ def test_surface_has_a5_preparation_control():
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="a5Btn"' in html
     assert 'id="a5Section"' in html
+
+
+def test_a6_readiness_reuses_canonical_gate_and_never_self_grants_execution():
+    client = app.test_client()
+    response = client.get("/api/sika/a6-readiness")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["level"] == "A6"
+    assert body["execution_granted"] is False
+    assert body["payment_execution_enabled"] is False
+    assert body["a7_enabled"] is False
+    assert body["self_permission_change_allowed"] is False
+    assert body["human_authority_final"] is True
+
+
+def test_surface_has_a6_readiness_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="a6Btn"' in html
+    assert 'id="a6Section"' in html
