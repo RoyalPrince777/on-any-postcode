@@ -23,6 +23,7 @@ from mission_control import (
     sika_closed_loop_value,
     sika_deep_dive_21,
     sika_device_binding,
+    sika_device_binding_store,
     sika_safety,
     sika_wallet_ledger,
 )
@@ -458,3 +459,8 @@ def sika_device_unbind():
     except ValueError as exc:
         return jsonify({"error": str(exc), "unbound": False}), 400
     return jsonify(result), (200 if result["unbound"] else 404)
+
+
+@app.get("/api/sika/device/durable-readiness")
+def sika_device_durable_readiness():
+    return jsonify(sika_device_binding_store.readiness())
