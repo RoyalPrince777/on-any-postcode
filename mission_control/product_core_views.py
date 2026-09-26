@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from . import (
     distribution_intelligence,
     entertainment_catalogue,
+    live_music_core,
     music_evidence,
     open_cinema,
     open_cinema_evidence,
@@ -18,6 +19,7 @@ from . import (
     product_store,
     public_store,
     radio_core,
+    records_core,
     web_security,
 )
 
@@ -25,6 +27,8 @@ bp = Blueprint("product_core_organs", __name__)
 _store = product_cores.PostgresProductCoreStore()
 _music_evidence_store = music_evidence.MusicEvidenceStore()
 _radio_store = radio_core.RadioStore()
+_records_store = records_core.RecordsStore()
+_live_music_store = live_music_core.LiveMusicStore()
 
 
 def _no_store(response):
@@ -475,6 +479,118 @@ def stop_radio_station(station_id: str):
             owner_identity_id=_identity(sync=True),
             station_id=station_id,
             reason=payload.get("reason"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/records")
+@web_security.login_required(api=True)
+def records_status():
+    try:
+        return _no_store(make_response(jsonify(
+            _records_store.dashboard(owner_identity_id=_identity())
+        )))
+    except (ValueError, RuntimeError):
+        return _error("records_unavailable", "OAP Records is temporarily unavailable.", 503)
+
+
+@bp.post("/records/masters")
+@web_security.login_required(api=True)
+def create_records_master():
+    def action():
+        payload = _payload()
+        return _records_store.create_master(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            track_id=payload.get("track_id"),
+            version_label=payload.get("version_label"),
+            evidence_receipt_id=payload.get("evidence_receipt_id"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/records/credits")
+@web_security.login_required(api=True)
+def create_records_credit():
+    def action():
+        payload = _payload()
+        return _records_store.add_credit(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            role=payload.get("role"),
+            display_name=payload.get("display_name"),
+            evidence_receipt_id=payload.get("evidence_receipt_id"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/records/receipts")
+@web_security.login_required(api=True)
+def create_records_receipt():
+    def action():
+        payload = _payload()
+        return _records_store.append_receipt(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            receipt_kind=payload.get("receipt_kind"),
+            destination=payload.get("destination"),
+            reference=payload.get("reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/live-music")
+@web_security.login_required(api=True)
+def live_music_status():
+    try:
+        return _no_store(make_response(jsonify(
+            _live_music_store.dashboard(owner_identity_id=_identity())
+        )))
+    except (ValueError, RuntimeError):
+        return _error("live_music_unavailable", "OAP Live Music is temporarily unavailable.", 503)
+
+
+@bp.post("/live-music/sessions")
+@web_security.login_required(api=True)
+def create_live_music_session():
+    def action():
+        payload = _payload()
+        return _live_music_store.create_session(
+            owner_identity_id=_identity(sync=True),
+            release_id=payload.get("release_id"),
+            title=payload.get("title"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/live-music/sessions/<session_id>/stop")
+@web_security.login_required(api=True)
+def stop_live_music_session(session_id: str):
+    def action():
+        payload = _payload()
+        return _live_music_store.stop_session(
+            owner_identity_id=_identity(sync=True),
+            session_id=session_id,
+            reference=payload.get("reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/live-music/sessions/<session_id>/archive")
+@web_security.login_required(api=True)
+def archive_live_music_session(session_id: str):
+    def action():
+        payload = _payload()
+        return _live_music_store.archive_session(
+            owner_identity_id=_identity(sync=True),
+            session_id=session_id,
+            master_id=payload.get("master_id"),
         )
 
     return _handle_write(action)
