@@ -7,7 +7,7 @@ create credit agreements.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 
 class FinanceFeatureError(ValueError):
@@ -119,7 +119,7 @@ def trust_score_preview(
         + factors["account_stability"] * Decimal("0.20")
         + factors["identity_confidence"] * Decimal("0.15")
     )
-    score = int((weighted * Decimal(10)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    score = int((weighted * Decimal(10)).quantize(Decimal(1), rounding=ROUND_HALF_UP))
     return {
         "score": score,
         "scale": 1000,
