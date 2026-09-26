@@ -42,9 +42,9 @@ def test_apply_uses_only_lab_scoped_update_delete_guard(monkeypatch):
         {"database_enforced": False},
         {"database_enforced": True},
     ])
-    monkeypatch.setattr(migration.postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(migration.postgres_db, "_lab_database_url", lambda: "postgres://lab")
     monkeypatch.setattr(
-        migration.postgres_db, "connect",
+        migration.postgres_db, "lab_connect",
         lambda: _Context(connection),
     )
     monkeypatch.setattr(
@@ -74,9 +74,9 @@ def test_apply_failure_does_not_claim_verified(monkeypatch):
             return super().execute(sql, params)
 
     connection = BrokenConnection()
-    monkeypatch.setattr(migration.postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(migration.postgres_db, "_lab_database_url", lambda: "postgres://lab")
     monkeypatch.setattr(
-        migration.postgres_db, "connect",
+        migration.postgres_db, "lab_connect",
         lambda: _Context(connection),
     )
     monkeypatch.setattr(
@@ -93,9 +93,9 @@ def test_apply_failure_does_not_claim_verified(monkeypatch):
 
 def test_post_apply_probe_must_turn_green(monkeypatch):
     connection = _Connection()
-    monkeypatch.setattr(migration.postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(migration.postgres_db, "_lab_database_url", lambda: "postgres://lab")
     monkeypatch.setattr(
-        migration.postgres_db, "connect",
+        migration.postgres_db, "lab_connect",
         lambda: _Context(connection),
     )
     monkeypatch.setattr(
@@ -110,7 +110,7 @@ def test_post_apply_probe_must_turn_green(monkeypatch):
 
 
 def test_existing_database_protection_is_idempotent(monkeypatch):
-    monkeypatch.setattr(migration.postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(migration.postgres_db, "_lab_database_url", lambda: "postgres://lab")
     monkeypatch.setattr(
         migration.workspaces, "lab_immutability_status",
         lambda: {"database_enforced": True},
@@ -129,9 +129,9 @@ def test_rollback_is_narrow_and_requires_explicit_approval(monkeypatch):
         migration.rollback()
 
     connection = _Connection()
-    monkeypatch.setattr(migration.postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(migration.postgres_db, "_lab_database_url", lambda: "postgres://lab")
     monkeypatch.setattr(
-        migration.postgres_db, "connect",
+        migration.postgres_db, "lab_connect",
         lambda: _Context(connection),
     )
     monkeypatch.setattr(
