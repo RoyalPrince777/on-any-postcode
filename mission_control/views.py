@@ -61,6 +61,14 @@ BUTTON_PROOF_TARGETS = {
     "studio-imagine": "/mission/studio/generate",
     "studio-bring-alive": "/mission/studio/generate",
     "studio-scene-builder": "/mission/studio/generate",
+    "studio-workspace-research": "/mission/studio/workspace/research",
+    "studio-workspace-omni": "/mission/studio/workspace/omni",
+    "studio-workspace-music": "/mission/studio/workspace/music",
+    "studio-workspace-motion": "/mission/studio/workspace/motion",
+    "studio-workspace-fast": "/mission/studio/workspace/fast",
+    "studio-workspace-code": "/mission/studio/workspace/code",
+    "studio-workspace-data": "/mission/studio/workspace/data",
+    "studio-workspace-build": "/mission/studio/workspace/build",
 }
 
 
@@ -807,6 +815,26 @@ def smi_studio_status():
     """Return the canonical Founder-only OAP Studio Intelligence contract."""
 
     return _no_store(make_response(jsonify(studio_intelligence.status())))
+
+
+@bp.get("/studio/workspace/<workspace_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_workspace_preflight(workspace_id: str):
+    """Run one read-only Studio workspace preflight for a real button action."""
+
+    try:
+        result = studio_intelligence.workspace_preflight(workspace_id)
+    except ValueError as exc:
+        return _error("invalid_studio_workspace", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/studio/threat-posture")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_threat_posture():
+    """Return fail-closed Studio threat controls without granting execution."""
+
+    return _no_store(make_response(jsonify(studio_intelligence.threat_posture())))
 
 
 @bp.post("/smi/android-live-evidence")
