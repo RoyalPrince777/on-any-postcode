@@ -118,3 +118,40 @@ def test_invalid_weather_payload_missing_time_revokes_transport_success(monkeypa
         location_intelligence.weather(9.87655, 8.76544)
 
     assert location_intelligence.status()["weather_provider_verified"] is False
+
+
+def test_unknown_weather_code_revokes_live_weather_truth(monkeypatch):
+    monkeypatch.setattr(location_intelligence, "_CACHE", {})
+    monkeypatch.setattr(location_intelligence, "_PROVIDER_SUCCESS", {})
+    monkeypatch.setattr(location_intelligence, "_PROVIDER_ERROR", {})
+    monkeypatch.setattr(
+        location_intelligence,
+        "_json",
+        lambda *_: {
+            "current": {
+                "time": "2026-09-26T13:00",
+                "weather_code": 12345,
+                "temperature_2m": 18,
+                "apparent_temperature": 18,
+                "precipitation": 0,
+                "wind_speed_10m": 8,
+            },
+            "daily": {
+                "time": ["2026-09-26"],
+                "temperature_2m_max": [20],
+                "temperature_2m_min": [12],
+                "precipitation_probability_max": [10],
+            },
+        },
+    )
+
+    with pytest.raises(
+        location_intelligence.LocationUnavailable,
+        match="weather_intelligence_unavailable",
+    ):
+        location_intelligence.weather(51.4, -0.17)
+
+    health = location_intelligence.status()
+    assert health["weather_provider_verified"] is False
+    assert health["weather_intelligence_ready"] is False
+    assert health["errors"]["api.open-meteo.com"] == "weather_intelligence_unavailable"
