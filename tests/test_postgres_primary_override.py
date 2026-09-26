@@ -87,6 +87,11 @@ def test_startup_probe_is_redacted(monkeypatch, capsys):
         "database_identity_fingerprint",
         lambda: {
             "fingerprint": "0123456789abcdef0123456789abcdef",
+            "metadata_fingerprint": "fedcba9876543210fedcba9876543210",
+            "metadata_fingerprint_algorithm": "md5",
+            "metadata_fingerprint_components": [
+                "current_database", "current_user",
+            ],
             "reachable": True,
             "secret_exposed": False,
         },
@@ -100,6 +105,11 @@ def test_startup_probe_is_redacted(monkeypatch, capsys):
         "checksum_mismatch": False,
         "configured": True,
         "database_identity_fingerprint": "0123456789abcdef0123456789abcdef",
+        "database_metadata_fingerprint": "fedcba9876543210fedcba9876543210",
+        "database_metadata_fingerprint_algorithm": "md5",
+        "database_metadata_fingerprint_components": [
+            "current_database", "current_user",
+        ],
         "database_identity_reachable": True,
         "event": "oap_database_startup_probe",
         "initialized": False,
