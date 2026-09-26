@@ -41,6 +41,7 @@ def init_app(app: Flask) -> None:
         mail_preflight,
         movement_match_safety,
         movement_operations,
+        music_civilization_migration,
         oap_lab_immutability_migration,
         oap_library_learning,
         organism_runtime,
@@ -81,6 +82,7 @@ def init_app(app: Flask) -> None:
     from .matrix_founder_decision_views import bp as matrix_founder_decisions_bp
     from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
+    from .music_public_views import bp as music_public_bp
     from .oap_data_views import bp as oap_data_bp
     from .oap_library_views import bp as oap_library_bp
     from .on_any_place_routes import bp as on_any_place_bp
@@ -90,6 +92,39 @@ def init_app(app: Flask) -> None:
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
+
+    if os.environ.get("OAP_MUSIC_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        try:
+            music_schema = music_civilization_migration.apply(assume_yes=True)
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_music_schema_migration",
+                        "success": bool(music_schema.get("schema_ready")),
+                        "applied": music_schema.get("applied", []),
+                        "existing": music_schema.get("existing", []),
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_music_schema_migration",
+                        "success": False,
+                        "error": "music_schema_migration_failed",
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
 
     if os.environ.get("OAP_LAB_IMMUTABILITY_MIGRATION_ON_BOOT", "").strip() == "1":
         try:
@@ -1093,6 +1128,7 @@ def init_app(app: Flask) -> None:
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
     app.register_blueprint(oap_knowledge_bp)
+    app.register_blueprint(music_public_bp)
     app.register_blueprint(on_any_place_bp)
     app.register_blueprint(membership_revenue_bp)
     app.register_blueprint(movement_bp)
