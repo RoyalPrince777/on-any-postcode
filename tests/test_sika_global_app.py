@@ -268,3 +268,21 @@ def test_sika_page_exposes_install_controller():
     assert 'rel="manifest" href="/manifest.webmanifest"' in html
     assert 'data-oap-install hidden' in html
     assert 'src="/assets/oap-os.js"' in html
+
+
+def test_payment_licence_gate_stays_closed_without_verified_evidence():
+    client = app.test_client()
+    response = client.get("/api/sika/payment-licence")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["licence_evidence_complete"] is False
+    assert body["payment_adapter_may_enter_release_review"] is False
+    assert body["payment_execution_enabled"] is False
+    assert body["customer_funds_enabled"] is False
+
+
+def test_surface_has_payment_licence_gate_button():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="licenceBtn"' in html
+    assert 'id="licenceSection"' in html
