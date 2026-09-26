@@ -644,6 +644,7 @@ def chat(
         )
         brain["thinking_level"] = level
         brain["studio_mode"] = resolved_studio_mode
+        brain["resolved_depth"] = resolved_depth
         workspace = studio_intelligence.workspace(studio_workspace if resolved_studio_mode else "auto")
         brain["studio_workspace"] = workspace["id"]
         if workspace.get("code_mode"):
@@ -652,7 +653,6 @@ def chat(
             level = str(workspace["thinking_level"])
             brain["thinking_level"] = level
             brain["resolved_depth"] = {"instant": 3, "think": 7, "deep_dive": 21}.get(level, resolved_depth)
-        brain["resolved_depth"] = int(brain.get("resolved_depth") or resolved_depth)
         brain["requested_mode"] = requested_mode
         brain["auto_selected"] = requested_mode == "auto"
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
