@@ -199,3 +199,44 @@ def test_surface_has_alignment_and_bank_intelligence_buttons():
     assert 'data-intel="alignment"' in html
     assert 'data-intel="bank"' in html
     assert 'id="intelligenceSection"' in html
+
+
+def test_fraud_preflight_is_non_executing_and_escalates():
+    client = app.test_client()
+    low = client.post("/api/sika/fraud/preflight", json={
+        "amount_sika": "50",
+        "recent_attempts": 1,
+        "transactions_10m": 1,
+    }).get_json()
+    assert low["decision"] == "allow_software_only"
+    assert low["money_moved"] is False
+    high = client.post("/api/sika/fraud/preflight", json={
+        "amount_sika": "1500",
+        "recent_attempts": 6,
+        "transactions_10m": 7,
+        "new_device": True,
+        "unusual_location": True,
+    }).get_json()
+    assert high["decision"] == "review"
+    assert high["risk_score"] >= 60
+    assert high["regulated_execution_authorised"] is False
+
+
+def test_install_readiness_truth_boundary():
+    client = app.test_client()
+    response = client.get("/api/sika/install/readiness")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["private_software_acceptance_ready"] is True
+    assert body["safe_public_install_ready"] is False
+    assert body["sika_specific_signed_android_package"] is False
+    assert body["real_android_install_acceptance"] is False
+
+
+def test_surface_has_fraud_and_install_buttons():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="fraudBtn"' in html
+    assert 'id="installReadinessBtn"' in html
+    assert 'id="fraudSection"' in html
+    assert 'id="installSection"' in html
