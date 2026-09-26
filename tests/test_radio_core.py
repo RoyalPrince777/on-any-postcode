@@ -42,6 +42,7 @@ def test_station_projection_allowlists_metadata_without_stream_claim():
         "station_id": station_id,
         "name": "South London Radio",
         "state": "ACTIVE",
+        "stopped": True,
         "broadcast_live": False,
         "public_stream_url": None,
     }
