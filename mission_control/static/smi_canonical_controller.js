@@ -47,6 +47,7 @@ function oapProofSnapshot(){
   storesAudio:false,
   storesTranscript:false,
   runtimeState:oapRuntime?{state:oapRuntime.state,live:oapRuntime.live,stopped:oapRuntime.stopped,paused:oapRuntime.paused,listening:oapRuntime.listening,thinking:oapRuntime.thinking,speaking:oapRuntime.speaking,epoch:oapRuntime.epoch}:null,
+  localReplyAudio:oapLocalPlayer?.snapshot?.()||null,
  }));
 }
 
@@ -268,6 +269,7 @@ async function oapSubmit(options={}){
  if(oapRuntime?.speaking)oapApply('SPEAK_END');
  oapPlaybackState('cancelled',oapRuntime?.epoch);
  add(userLabel,'user');
+ window.dispatchEvent(new CustomEvent('oap-smi-submit-start',{detail:{fromLive,atMs:performance.now()}}));
  oapLocked=true;responseStopped=false;oapPaused=false;oapShowLiveReply('');oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');oapAbort=new AbortController();activeController=oapAbort;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
  try{
   const response=await fetch(streamUrl,{method:'POST',signal:oapAbort.signal,headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message:text,display_name:document.getElementById('display-name')?.value||'OAP Founder',conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode,thinking_level:selectedThinkingLevel,studio_mode:selectedStudioMode})});
@@ -313,7 +315,7 @@ oapForm.addEventListener('submit',event=>{event.preventDefault();event.stopImmed
 if(oapPlus)oapPlus.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapToggleAttach();},true);
 document.addEventListener('click',event=>{if(oapAttachMenu&&oapPlus&&!event.target.closest('.attach-wrap')&&!event.target.closest('#tools-mode-button'))oapCloseAttach();});
 if(oapPause)oapPause.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapTogglePause();},true);
-if(oapStop)oapStop.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapStopAll();},true);
+if(oapStop)oapStop.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();const before=performance.now(),rawAt=Number(event.timeStamp),pointerAtMs=Number.isFinite(rawAt)&&Math.abs(rawAt-before)<10000?rawAt:before;oapStopAll();const handledAtMs=performance.now(),motion=window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION?.snapshot?.()||null,audio=oapLocalPlayer?.snapshot?.()||null;window.dispatchEvent(new CustomEvent('oap-smi-human-stop',{detail:{pointerAtMs,handledAtMs,stopAcknowledgementMs:Math.max(0,handledAtMs-pointerAtMs),motionStopped:Boolean(motion&&!motion.live&&motion.phase==='stopped'),audioStopped:Boolean(audio&&!audio.active),epoch:oapRuntime?.epoch}}));},true);
 if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapSpeaker.classList.toggle('active',oapVoiceEnabled);oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';if(oapVoiceEnabled)oapLocalPlayer?.prepare?.();if(!oapVoiceEnabled){oapSpeechSeq+=1;oapLocalPlayer?.stop();if('speechSynthesis' in window)window.speechSynthesis.cancel();oapPlaybackState('cancelled',oapRuntime?.epoch);if(oapRuntime?.speaking)oapApply('SPEAK_END');if(oapRuntime?.live)oapScheduleListening(180);}oapSetStatus(oapVoiceEnabled?'Voice reply on':'Voice reply off');},true);
 if(oapMic){
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -377,6 +379,8 @@ document.addEventListener('visibilitychange',()=>{
  if('speechSynthesis' in window)window.speechSynthesis.cancel();
  if(oapRuntime?.speaking)oapApply('SPEAK_END');
  oapPlaybackState('cancelled',oapRuntime?.epoch);
+ const motion=window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION?.snapshot?.()||null,audio=oapLocalPlayer?.snapshot?.()||null;
+ window.dispatchEvent(new CustomEvent('oap-smi-background-stop',{detail:{audioStopped:Boolean(audio&&!audio.active),motionStopped:Boolean(motion&&!motion.localAudio&&!motion.live),epoch:oapRuntime?.epoch,atMs:performance.now()}}));
 });
 oapRenderCharacter();oapUpdateLiveToggle();
 oapAddCaptureOptions();
@@ -386,5 +390,5 @@ window.OAP_SMI_READ_ALOUD=text=>{
  oapSpeak(text,null,true);return true;
 };
 window.OAP_SMI_LIVE_PROOF={snapshot:oapProofSnapshot,privacy:{storesAudio:false,storesTranscript:false}};
-window.OAP_SMI_CANONICAL={version:'2.3',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,liveFullscreen:true,voiceFirstFullscreen:true,firstPartyPcmGesturePrepared:true,persistentThinkingProcess:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,runtimeProofLedger:true,resultStreamOnly:true};
+window.OAP_SMI_CANONICAL={version:'2.4',singleSubmitOwner:true,composerOwner:true,plusOwner:true,pauseOwner:true,timingOwner:true,thinkingModeOwner:true,studioModeOwner:true,micOwner:true,voiceOwner:true,stopOwner:true,cameraCapture:true,screenCapture:true,studioDuplicate:false,liveCharacter:true,liveFullscreen:true,voiceFirstFullscreen:true,firstPartyPcmGesturePrepared:true,persistentThinkingProcess:true,halfDuplexLiveVoice:true,stickyHumanStop:true,finalTranscriptAutoSendOnly:true,browserSpeechLocalityVerified:false,runtimeProofLedger:true,physicalAndroidEvidenceEvents:true,resultStreamOnly:true};
 })();
