@@ -34,7 +34,7 @@ def assess(payload: dict[str, Any] | None) -> dict[str, Any]:
 
     score = 0
     reasons: list[str] = []
-    if amount >= Decimal("1000"):
+    if amount >= Decimal(1000):
         score += 30
         reasons.append("high_amount")
     if attempts >= 5:
