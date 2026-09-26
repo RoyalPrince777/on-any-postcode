@@ -152,6 +152,11 @@ def test_smi_gateway_allowlist_is_founder_private_only():
     assert smi_gateway._allowed("infrastructure") is True
     assert smi_gateway._allowed("infrastructure/security") is True
     assert smi_gateway._allowed("api/infrastructure/status") is True
+    assert smi_gateway._allowed("on-any-place") is True
+    assert smi_gateway._allowed("map-intelligence") is True
+    assert smi_gateway._allowed("map-intelligence/route") is True
+    assert smi_gateway._allowed("map-intelligence/road-geometry/14/8182/5455") is True
+    assert smi_gateway._allowed("on-any-place/extra") is False
     assert smi_gateway._allowed("healthz") is True
     assert smi_gateway._allowed("assets/oap.css") is True
     assert smi_gateway._allowed("static/oap/smi_live_chat_dashboard.jpg") is True

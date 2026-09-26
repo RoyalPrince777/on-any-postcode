@@ -66,3 +66,31 @@ def test_local_mode_keeps_non_allowlisted_surface_closed(monkeypatch):
     response = client.get("/not-an-oap-private-route")
 
     assert response.status_code == 404
+
+
+def test_maps_surface_dispatches_locally_but_unrelated_paths_stay_closed(monkeypatch):
+    _configure(monkeypatch)
+    core = Flask("fake-core-map")
+
+    @core.get("/on-any-place")
+    def map_screen():
+        return "map-screen", 200
+
+    @core.get("/map-intelligence/route")
+    def map_route():
+        return "map-route", 200
+
+    monkeypatch.setattr(smi_gateway, "_core_wsgi_app", lambda: core.wsgi_app)
+    client = Client(smi_gateway.app, WerkzeugResponse)
+
+    screen = client.get("/on-any-place")
+    route = client.get("/map-intelligence/route")
+    blocked = client.get("/on-any-place/extra")
+
+    assert screen.status_code == 200
+    assert screen.get_data(as_text=True) == "map-screen"
+    assert screen.headers["X-OAP-Dispatch"] == "local-process"
+    assert route.status_code == 200
+    assert route.get_data(as_text=True) == "map-route"
+    assert route.headers["X-OAP-Dispatch"] == "local-process"
+    assert blocked.status_code == 404
