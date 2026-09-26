@@ -5,46 +5,149 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>OAP Music</title>
   <style>
-    :root{color-scheme:dark;background:#090909;color:#f5f5f5;font-family:system-ui,sans-serif}
-    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#080808,#151515)}
-    .wrap{max-width:780px;margin:auto;padding:24px}
-    h1{font-size:2rem;margin:12px 0 6px}.sub{color:#bbb;margin-bottom:22px}
-    .chips,.nav{display:flex;gap:10px;flex-wrap:wrap}.chip,.card,.nav a{border:1px solid #333;background:#151515;border-radius:16px;padding:12px 14px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0}
-    .card strong{display:block;margin-bottom:6px}.muted{color:#999;font-size:.9rem}
-    .player{margin-top:24px;padding:18px;border:1px solid #333;border-radius:20px;background:#111}
-    button{background:#242424;color:#aaa;border:1px solid #444;border-radius:999px;padding:10px 15px}
-    button:disabled{opacity:.65}.truth{margin-top:12px;color:#d6b35a;font-size:.92rem}
-    a{color:inherit;text-decoration:none}
+    :root{color-scheme:dark;background:#080808;color:#f6f6f6;font-family:system-ui,sans-serif}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#080808,#121212)}
+    .wrap{max-width:900px;margin:auto;padding:20px 18px 92px}.eyebrow,.muted{color:#a7a7a7}
+    h1{font-size:2.15rem;margin:8px 0 4px}.sub{color:#c1c1c1;margin:0 0 18px}
+    .search{width:100%;padding:14px 16px;border-radius:16px;border:1px solid #343434;background:#111;color:#fff;font-size:1rem}
+    .chips{display:flex;gap:9px;overflow:auto;padding:14px 0 4px}.chip{white-space:nowrap;border:1px solid #333;background:#171717;color:#fff;border-radius:999px;padding:10px 14px;cursor:pointer}
+    section{scroll-margin-top:18px;margin-top:28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+    .card{border:1px solid #303030;background:#141414;border-radius:18px;padding:16px}.card strong{display:block;margin-bottom:7px}
+    .source-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .action{display:inline-flex;align-items:center;justify-content:center;border:1px solid #444;border-radius:999px;padding:9px 12px;color:#fff;text-decoration:none;background:#202020}
+    .action:hover,.chip:hover{background:#2a2a2a}.locked{opacity:.62;cursor:not-allowed}
+    .truth{padding:12px 14px;border:1px solid #5f512c;background:#17140b;border-radius:14px;color:#e3c970}
+    .count{font-size:.9rem;color:#9d9d9d;margin:7px 0 12px}.hidden{display:none!important}
+    .player{padding:18px;border:1px solid #333;border-radius:20px;background:#101010}
+    .player-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .locked-control{border:1px solid #3d3d3d;background:#1d1d1d;color:#888;border-radius:999px;padding:10px 14px}
+    .bottom{position:fixed;left:0;right:0;bottom:0;background:rgba(9,9,9,.96);border-top:1px solid #292929;display:flex;justify-content:center;gap:6px;padding:9px;z-index:5}
+    .bottom a{color:#ddd;text-decoration:none;padding:9px 11px;border-radius:12px}.bottom a:focus,.bottom a:hover{background:#222}
   </style>
 </head>
 <body>
   <main class="wrap">
-    <div class="muted">ON ANY POSTCODE</div>
+    <div class="eyebrow">ON ANY POSTCODE</div>
     <h1>🎵 OAP Music</h1>
-    <div class="sub">Born Local. Built Global. Earth Is Our Turf.</div>
+    <p class="sub">Born Local. Built Global. Earth Is Our Turf.</p>
 
-    <div class="chips">
-      <div class="chip">Discover</div><div class="chip">Genres</div>
-      <div class="chip">Civilizations</div><div class="chip">Creators</div>
-      <div class="chip">📻 Radio</div><div class="chip">🏛 Records</div>
+    <label for="music-search" class="muted">Search the free/open source directory</label>
+    <input id="music-search" class="search" type="search" placeholder="Search FMA, ccMixter, Musopen, archives…" autocomplete="off">
+
+    <nav class="chips" aria-label="Music sections">
+      <button class="chip" type="button" data-target="catalogue">Free / Open Catalogue</button>
+      <button class="chip" type="button" data-target="genres">Genres</button>
+      <button class="chip" type="button" data-target="civilization">Civilizations</button>
+      <button class="chip" type="button" data-target="creators">Creators</button>
+      <button class="chip" type="button" data-target="radio">📻 Radio</button>
+      <button class="chip" type="button" data-target="records">🏛 Records</button>
+    </nav>
+
+    <div class="truth">
+      🔐 Source listings are discovery links only. OAP does not mark a track playable until recording, composition, asset, territory and approval evidence pass.
     </div>
 
-    <section class="grid">
-      <div class="card"><strong>🌍 Civilization</strong><span class="muted">Place · language · culture · genre · movement · era</span></div>
-      <div class="card"><strong>📻 OAP Radio</strong><span class="muted">Stations, shows, schedules and governed rotation</span></div>
-      <div class="card"><strong>🏛 OAP Records</strong><span class="muted">Masters, credits, provenance and archive receipts</span></div>
-      <div class="card"><strong>👤 My Music</strong><span class="muted">Creator releases, evidence and distribution tools require sign-in</span></div>
+    <section id="catalogue">
+      <h2>Free / Open Catalogue Sources</h2>
+      <p id="source-count" class="count">{{ sources|length }} sources available for rights-safe discovery.</p>
+      <div id="source-grid" class="grid">
+        {% for source in sources %}
+        <article class="card source-card" data-search="{{ (source.label ~ ' ' ~ source.source_kind)|lower }}">
+          <strong>{{ source.label }}</strong>
+          <div class="muted">{{ source.source_kind.replace('_', ' ')|title }}</div>
+          <div class="source-actions">
+            {% if source.discovery_url %}
+            <a class="action source-open" href="{{ source.discovery_url }}" target="_blank" rel="noopener noreferrer">Open source ↗</a>
+            {% else %}
+            <span class="action locked" aria-disabled="true">OAP submission route</span>
+            {% endif %}
+          </div>
+          <p class="muted">Connected: no · Licence verified: no · Bulk import: blocked</p>
+        </article>
+        {% endfor %}
+      </div>
+      <p id="no-results" class="muted hidden">No source matches that search.</p>
     </section>
 
-    <section class="player">
-      <strong>▶️ Universal Player</strong>
-      <p class="muted">No publicly cleared playable track is available yet.</p>
-      <button disabled>▶ Play</button>
-      <button disabled>⏮</button>
-      <button disabled>⏭</button>
-      <div class="truth">🔒 Playback stays locked until recording, composition, asset, territory and approval evidence pass.</div>
+    <section id="genres">
+      <h2>Genres</h2>
+      <div class="grid">
+        <div class="card"><strong>Afrobeats · Amapiano</strong><span class="muted">Discovery filters are supported in the private review engine.</span></div>
+        <div class="card"><strong>Hip-Hop · Rap · Drill · Grime</strong><span class="muted">No public track is implied by a genre label.</span></div>
+        <div class="card"><strong>R&B · Soul · Highlife</strong><span class="muted">Rights remain track-specific.</span></div>
+        <div class="card"><strong>Reggae · Roots · Dancehall</strong><span class="muted">Open-source discovery, not automatic clearance.</span></div>
+      </div>
+    </section>
+
+    <section id="civilization">
+      <h2>🌍 Civilizations</h2>
+      <div class="card">Place → Language → Culture → Genre → Movement → Era → Civilization. Evidence-backed links only.</div>
+    </section>
+
+    <section id="creators">
+      <h2>👤 Creators</h2>
+      <div class="card">Creator releases, rights evidence and distribution controls are owner-scoped behind Enter My World.</div>
+    </section>
+
+    <section id="radio">
+      <h2>📻 OAP Radio</h2>
+      <div class="card">Stations, shows, schedules and rotation software are deployed. Public radio streaming remains locked until authorised audio exists.</div>
+    </section>
+
+    <section id="records">
+      <h2>🏛 OAP Records</h2>
+      <div class="card">Masters, credits, provenance, archive and recovery receipts are part of the Music system. No archive receipt is treated as a rights grant.</div>
+    </section>
+
+    <section id="player">
+      <div class="player">
+        <strong>▶️ Universal Player</strong>
+        <p class="muted">No publicly cleared playable track is available yet.</p>
+        <div class="player-row" aria-label="Locked player controls">
+          <span class="locked-control">▶ Play locked</span>
+          <span class="locked-control">⏮ Previous locked</span>
+          <span class="locked-control">⏭ Next locked</span>
+          <span class="locked-control">🛑 STOP</span>
+        </div>
+        <div class="truth">Playback stays locked until the first track passes the evidence gate.</div>
+      </div>
     </section>
   </main>
+
+  <nav class="bottom" aria-label="Music navigation">
+    <a href="#catalogue">🎵 Catalogue</a>
+    <a href="#civilization">🌍 World</a>
+    <a href="#radio">📻 Radio</a>
+    <a href="#records">🏛 Records</a>
+    <a href="#player">▶️ Player</a>
+  </nav>
+
+  <script>
+    (() => {
+      const buttons = document.querySelectorAll('[data-target]');
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const target = document.getElementById(button.dataset.target);
+          if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+        });
+      });
+
+      const input = document.getElementById('music-search');
+      const cards = [...document.querySelectorAll('.source-card')];
+      const count = document.getElementById('source-count');
+      const empty = document.getElementById('no-results');
+      input.addEventListener('input', () => {
+        const query = input.value.trim().toLowerCase();
+        let visible = 0;
+        cards.forEach((card) => {
+          const show = !query || card.dataset.search.includes(query);
+          card.classList.toggle('hidden', !show);
+          if (show) visible += 1;
+        });
+        count.textContent = visible + (visible === 1 ? ' source matches.' : ' sources match.');
+        empty.classList.toggle('hidden', visible !== 0);
+      });
+    })();
+  </script>
 </body>
 </html>
