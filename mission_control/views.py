@@ -491,6 +491,7 @@ def smi_chat_message():
             code_mode=bool(payload.get("code_mode")),
             thinking_level=str(payload.get("thinking_level") or "auto"),
             studio_mode=bool(payload.get("studio_mode")),
+            studio_workspace=str(payload.get("studio_workspace") or "auto"),
         )
         return _no_store(make_response(jsonify(result)))
     except (TypeError, ValueError) as exc:

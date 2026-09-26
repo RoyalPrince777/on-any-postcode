@@ -63,6 +63,7 @@ if(!window.OAP_SMI_CONTROL_SURFACE_V2_PENDING)qa('[data-oap-action]').forEach(bu
 if(plus&&menu&&!menu.querySelector('[data-oap-connectors]')){const d=document.createElement('div');d.className='attach-divider';d.dataset.oapConnectors='1';menu.append(d);const l=document.createElement('div');l.className='attach-section-label';l.textContent='Connected tools';menu.append(l);[['render','◇','Render'],['github','◇','GitHub'],['neon','◇','Neon']].forEach(([id,icon,name])=>{const b=document.createElement('button');b.type='button';b.className='attach-option connector';b.innerHTML=`<span class="connector-copy"><span>${icon}</span><span>${name}</span></span><span class="connector-state">Inspect</span>`;b.onclick=()=>inspect(id,b);menu.append(b)});const improve=document.createElement('button');improve.type='button';improve.className='attach-option connector';improve.innerHTML='<span class="connector-copy"><span>🟠</span><span>Improvement Loop</span></span><span class="connector-state attention">Review</span>';improve.onclick=()=>{location.href=cfg.improvementUrl};menu.append(improve);const a=document.createElement('button');a.type='button';a.className='attach-option connector';a.innerHTML='<span class="connector-copy"><span>⚙️</span><span>Governed GitHub action</span></span><span class="connector-state attention">Approval</span>';a.onclick=githubAction;menu.append(a);const note=document.createElement('div');note.className='attach-note';note.textContent='Credentials never appear here. Consequential actions require Human Authority and a signed receipt.';menu.append(note)}
 const nativeFetch=window.fetch.bind(window);window.fetch=async function(req,init){const response=await nativeFetch(req,init);try{const url=typeof req==='string'?req:req?.url||'';if(url===cfg.streamUrl){response.clone().text().then(text=>{for(const block of text.split(/\n\n+/)){if(!block.includes('event: complete'))continue;const line=block.split('\n').find(x=>x.startsWith('data: '));if(line){try{window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:JSON.parse(line.slice(6)).result}))}catch{}}}})}}catch{}return response};
 window.OAP_SMI_MASTER={version:'1.3',masterTools:true,savedWork:true,founderLibrary:true,search:true,studio21:true,mapIntelligenceWorkspace:true,governedActions:true};
+window.OAP_SMI_STUDIO_WORKSPACES=['build','data','code','fast','motion','music','omni','research'];
 window.addEventListener('oap-smi-complete',e=>{const r=e.detail||{};const assistant=[...document.querySelectorAll('.msg.assistant')].reverse().find(x=>!x.dataset.requestId);if(assistant&&r.request_id&&r.conversation_id){assistant.dataset.requestId=r.request_id;assistant.dataset.conversationId=r.conversation_id;}const c=document.createElement('div');c.className='msg receipt-card';c.innerHTML='<strong>🧾 JOOG / HRM receipt</strong><span class="receipt-meta">Shown only after the governed response completed and returned its recorded result.</span>';const g=document.createElement('div');g.className='receipt-grid';[['Request',r.request_id],['Guardian',r.guardian],['Provider',`${r.provider||'—'} · ${r.model||'—'}`],['Output',r.output_state],['Memory',r.adaptive?.active?`${r.adaptive.hrm_lessons||0} HRM lessons used`:'—'],['Judgement',r.judgement?`${r.judgement.completed_sections}/${r.judgement.total_sections}`:'—'],['Authority',r.human_authority_final?'Human final':'attention'],['Execute',r.can_execute===false?'Locked':'attention']].forEach(([k,v])=>{const p=document.createElement('div');p.className='receipt-pill';const b=document.createElement('b');b.textContent=k;const s=document.createElement('span');s.textContent=String(v||'—');p.append(b,s);g.append(p)});c.append(g);messages.append(c);messages.scrollTop=messages.scrollHeight});
 const composer=q('#chat-form');if(composer){['dragenter','dragover'].forEach(n=>composer.addEventListener(n,e=>{e.preventDefault();composer.classList.add('drop-active')}));['dragleave','drop'].forEach(n=>composer.addEventListener(n,e=>{e.preventDefault();composer.classList.remove('drop-active')}));composer.addEventListener('drop',e=>{const f=e.dataTransfer?.files?.[0];if(!f)return;const target=f.type.startsWith('image/')?q('#image-input'):q('#media-input');if(!target)return;const dt=new DataTransfer();dt.items.add(f);target.files=dt.files;target.dispatchEvent(new Event('change',{bubbles:true}))})}
 })();
@@ -351,6 +352,43 @@ refreshOps();
     }
 
     const studioButton=q("#studio-button",menu);
+    if(studioButton&&!q('[data-studio-workspace="build"]',menu)){
+      const workspaceLabel=document.createElement("div");
+      workspaceLabel.className="attach-section-label smi-studio-workspaces-label";
+      workspaceLabel.textContent="Studio Workspaces";
+      const workspaceDefs=[
+        ["build","🏗️","Build","deep_dive",true],
+        ["data","🗄️","Data","think",false],
+        ["code","⌘","Code","deep_dive",true],
+        ["fast","⚡","Fast","instant",false],
+        ["motion","🎞️","Motion","think",false],
+        ["music","🎵","Music","think",false],
+        ["omni","◎","Omni","auto",false],
+        ["research","🔎","Research","deep_dive",false]
+      ];
+      const workspaceButtons=workspaceDefs.map(([id,icon,label,depth,useCode])=>{
+        const b=document.createElement("button");
+        b.type="button";
+        b.className="attach-option connector smi-studio-workspace";
+        b.dataset.studioWorkspace=id;
+        b.innerHTML='<span class="connector-copy"><span>'+icon+'</span><span>'+label+'</span></span><span class="connector-state">Open</span>';
+        b.onclick=()=>{
+          window.OAP_SMI_STUDIO_WORKSPACE=id;
+          studioMode=true;
+          studioButton.classList.add("active");
+          const state=q("#studio-state");
+          if(state)state.textContent=label;
+          if(thinkingLevel&&depth){thinkingLevel.value=depth;thinkingLevel.dispatchEvent(new Event("change",{bubbles:true}));}
+          if(typeof codeMode!=="undefined"&&useCode){codeMode=true;q("#code-button")?.classList.add("active");q("#code-button")?.setAttribute("aria-pressed","true");}
+          qa("[data-studio-workspace]",menu).forEach(x=>x.classList.toggle("active",x===b));
+          q("#status").textContent="OAP Studio · "+label+" workspace active";
+          if(!input.value.trim())input.placeholder=label==="Music"?"Create or develop original music, release and audio ideas…":label==="Motion"?"Create motion, scenes or video from text and images…":label==="Build"?"Build an app, site, dashboard or product surface…":label==="Data"?"Inspect, model or explain OAP Data…":"Ask SMI in "+label+" workspace…";
+          input.focus();menu?.classList.remove("show");plus?.setAttribute("aria-expanded","false");
+        };
+        return b;
+      });
+      studioButton.after(workspaceLabel,...workspaceButtons);
+    }
     if(studioButton&&!q('[data-studio-tool="imagine"]',menu)){
       const studioLabel=document.createElement("div");
       studioLabel.className="attach-section-label smi-studio-tools-label";

@@ -378,6 +378,7 @@ def chat(
     code_mode: bool = False,
     thinking_level: str = "auto",
     studio_mode: bool = False,
+    studio_workspace: str = "auto",
     on_event: Callable[[dict], None] | None = None,
     cancellation_token: _cancellation.CancellationToken | None = None,
 ) -> dict:
@@ -395,6 +396,7 @@ def chat(
         code_mode=code_mode,
         thinking_level=thinking_level,
         studio_mode=studio_mode,
+        studio_workspace=studio_workspace,
         on_event=_thinking_event_adapter(on_event),
         cancellation_token=cancellation_token,
     )
@@ -625,6 +627,7 @@ def chat_events(
     code_mode: bool = False,
     thinking_level: str = "auto",
     studio_mode: bool = False,
+    studio_workspace: str = "auto",
 ) -> Iterator[dict]:
     """Facade-safe SSE bridge that calls the public facade ``chat`` symbol.
 
@@ -651,6 +654,7 @@ def chat_events(
                 code_mode=code_mode,
                 thinking_level=thinking_level,
                 studio_mode=studio_mode,
+                studio_workspace=studio_workspace,
                 on_event=emit,
                 cancellation_token=cancellation_token,
             )
