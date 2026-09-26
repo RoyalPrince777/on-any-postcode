@@ -312,24 +312,39 @@ def _database_url() -> str:
 
 
 def _lab_database_url() -> str:
-    """Resolve the dedicated OAP LAB primary store.
+    """Resolve the explicitly selected OAP LAB primary store.
 
-    LAB never silently falls back to the general production database. This
-    keeps a provider switch explicit and prevents accidental dual writers.
+    No implicit fallback is allowed. platform_database_url is an explicit
+    Render-safe authority that reuses the already-bound DATABASE_URL secret
+    without copying or exposing it.
     """
-    encoded = os.environ.get("OAP_LAB_DATABASE_URL_B64", "").strip()
-    if encoded:
-        return _decode_database_secret(encoded)
-    return os.environ.get("OAP_LAB_DATABASE_URL", "").strip()
+    authority = os.environ.get("OAP_LAB_DATABASE_AUTHORITY", "").strip().lower()
+    if authority == "platform_database_url":
+        return os.environ.get("DATABASE_URL", "").strip()
+    if authority == "dedicated":
+        encoded = os.environ.get("OAP_LAB_DATABASE_URL_B64", "").strip()
+        if encoded:
+            return _decode_database_secret(encoded)
+        return os.environ.get("OAP_LAB_DATABASE_URL", "").strip()
+    return ""
 
 
 def lab_database_source() -> str:
     """Return only the redacted LAB database configuration class."""
-    if os.environ.get("OAP_LAB_DATABASE_URL_B64", "").strip():
-        return "lab_primary_b64"
-    if os.environ.get("OAP_LAB_DATABASE_URL", "").strip():
-        return "lab_primary"
-    return "lab_unconfigured"
+    authority = os.environ.get("OAP_LAB_DATABASE_AUTHORITY", "").strip().lower()
+    if authority == "platform_database_url":
+        return (
+            "platform_database_url"
+            if os.environ.get("DATABASE_URL", "").strip()
+            else "platform_database_unconfigured"
+        )
+    if authority == "dedicated":
+        if os.environ.get("OAP_LAB_DATABASE_URL_B64", "").strip():
+            return "lab_primary_b64"
+        if os.environ.get("OAP_LAB_DATABASE_URL", "").strip():
+            return "lab_primary"
+        return "lab_unconfigured"
+    return "lab_authority_unconfigured"
 
 
 def database_source() -> str:
