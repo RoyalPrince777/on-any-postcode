@@ -319,3 +319,88 @@ def test_unauthenticated_payment_controls_fail_closed(monkeypatch):
     )
     assert response.status_code == 401
     assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_payment_review_confirm_requires_gate_and_never_executes(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "final_payment_review_gate",
+        lambda owner_id, **kwargs: {
+            "challenge_id": "challenge-1",
+            "payment_intent_id": "intent-1",
+            "linked": True,
+            "proof_bound": False,
+            "approved_for_review": True,
+            "allowed_to_final_review": False,
+            "payment_execution_authorised": False,
+            "money_moved": False,
+        },
+    )
+    response = app.test_client().post(
+        "/api/sika/security/payment-review/confirm",
+        json={"challenge_id": "challenge-1", "payment_intent_id": "intent-1"},
+    )
+    body = response.get_json()
+    assert response.status_code == 423
+    assert body["confirmed_for_review"] is False
+    assert body["payment_execution_authorised"] is False
+
+
+def test_missing_csrf_blocks_step_up_proof_before_ledger(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: False,
+    )
+    called = {"ledger": False}
+
+    def should_not_run(*args, **kwargs):
+        called["ledger"] = True
+        raise AssertionError("proof binding must not run without CSRF")
+
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "bind_step_up_proof",
+        should_not_run,
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/step-up/proof",
+        json={
+            "challenge_id": "challenge-1",
+            "payment_intent_id": "intent-1",
+            "proof_method": "bank_app_password",
+        },
+    )
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "csrf_failed"
+    assert called["ledger"] is False
+
+
+def test_unauthenticated_reauth_backoff_fails_closed(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: None,
+    )
+    response = app.test_client().get("/api/sika/security/reauth-backoff")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
