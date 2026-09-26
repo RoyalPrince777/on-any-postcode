@@ -8,6 +8,7 @@ from . import (
     sika_global,
     sika_intelligence,
     sika_journal_store,
+    sika_safety,
     sika_wallet_ledger,
     web_security,
 )
@@ -213,3 +214,21 @@ def sika_alignment_intelligence():
 @web_security.login_required(api=True)
 def sika_bank_intelligence():
     return jsonify(sika_intelligence.bank_intelligence())
+
+
+@bp.post("/api/sika/fraud/preflight")
+@web_security.login_required(api=True)
+def sika_fraud_preflight():
+    if not web_security.csrf_valid(request):
+        return jsonify({"error": "csrf_failed"}), 403
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_safety.assess(body))
+    except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+
+
+@bp.get("/api/sika/install/readiness")
+@web_security.login_required(api=True)
+def sika_install_readiness():
+    return jsonify(sika_safety.install_readiness())
