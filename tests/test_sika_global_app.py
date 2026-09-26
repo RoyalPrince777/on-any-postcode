@@ -895,3 +895,116 @@ def test_sika_alert_lifecycle_rejects_unknown_event():
             raise AssertionError("unknown alert must fail closed")
     finally:
         sika_security_ledger.history = original_history
+
+
+def test_sika_step_up_expired_challenge_never_approves_execution():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    original_record = sika_security_ledger.record_authenticated_owner
+    events = [{
+        "event_id": "event-created",
+        "event_type": "STEP_UP_CREATED",
+        "details": {
+            "challenge_id": "expired-1",
+            "expires_at_epoch": 1,
+        },
+    }]
+
+    def fake_history(owner_id, *, limit=50):
+        return list(events)
+
+    def fake_record(owner_id, *, event_type, severity, details=None):
+        item = {
+            "event_id": "event-resolved",
+            "event_type": event_type,
+            "severity": severity,
+            "details": details or {},
+        }
+        events.insert(0, item)
+        return item
+
+    sika_security_ledger.history = fake_history
+    sika_security_ledger.record_authenticated_owner = fake_record
+    try:
+        result = sika_security_ledger.resolve_step_up_challenge(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="expired-1",
+            approved=True,
+        )
+        assert result["status"] == "expired"
+        assert result["expired"] is True
+        assert result["payment_execution_authorised"] is False
+        assert result["money_moved"] is False
+    finally:
+        sika_security_ledger.history = original_history
+        sika_security_ledger.record_authenticated_owner = original_record
+
+
+def test_sika_step_up_replay_is_blocked_idempotently():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    events = [
+        {
+            "event_id": "resolved",
+            "event_type": "STEP_UP_RESOLVED",
+            "details": {"challenge_id": "challenge-r", "status": "rejected"},
+        },
+        {
+            "event_id": "created",
+            "event_type": "STEP_UP_CREATED",
+            "details": {"challenge_id": "challenge-r", "expires_at_epoch": 9999999999},
+        },
+    ]
+    sika_security_ledger.history = lambda owner_id, limit=100: list(events)
+    try:
+        result = sika_security_ledger.resolve_step_up_challenge(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="challenge-r",
+            approved=True,
+        )
+        assert result["idempotent"] is True
+        assert result["replay_blocked"] is True
+        assert result["money_moved"] is False
+    finally:
+        sika_security_ledger.history = original_history
+
+
+def test_sika_alert_projection_tracks_acknowledged_and_recovered():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    events = [
+        {
+            "event_id": "ack",
+            "event_type": "SECURITY_ALERT_ACK",
+            "severity": "INFO",
+            "details": {"security_event_id": "risk-1", "acknowledged": True},
+            "created_at": "2026-09-26T20:00:03+00:00",
+        },
+        {
+            "event_id": "recover",
+            "event_type": "SECURITY_ALERT_RECOVERED",
+            "severity": "NOTICE",
+            "details": {"security_event_id": "risk-1", "recovered": True},
+            "created_at": "2026-09-26T20:00:02+00:00",
+        },
+        {
+            "event_id": "risk-1",
+            "event_type": "FRAUD_PREFLIGHT",
+            "severity": "HIGH",
+            "details": {},
+            "created_at": "2026-09-26T20:00:01+00:00",
+        },
+    ]
+    sika_security_ledger.history = lambda owner_id, limit=100: list(events)
+    try:
+        state = sika_security_ledger.latest_state(
+            "11111111-1111-1111-1111-111111111111"
+        )
+        alert = next(x for x in state["alerts"] if x["event_id"] == "risk-1")
+        assert alert["acknowledged"] is True
+        assert alert["recovered"] is True
+    finally:
+        sika_security_ledger.history = original_history
