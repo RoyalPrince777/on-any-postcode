@@ -12,6 +12,7 @@ from flask import Flask, jsonify, make_response, render_template, request, send_
 from mission_control import (
     sika_a5_preparation,
     sika_a6_readiness,
+    sika_android_acceptance,
     sika_finance_features,
     sika_global,
     sika_intelligence,
@@ -364,3 +365,8 @@ def sika_internal_transfer_preview():
         ))
     except sika_closed_loop_value.SikaValueError as exc:
         return jsonify({"error": str(exc), "transfer_allowed": False}), 400
+
+
+@app.get("/api/sika/android-acceptance")
+def sika_android_acceptance_status():
+    return jsonify(sika_android_acceptance.evaluate())
