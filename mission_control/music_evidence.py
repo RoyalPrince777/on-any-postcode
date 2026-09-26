@@ -83,7 +83,7 @@ def _text(value: object, name: str, *, optional: bool = False) -> str | None:
     if value is None and optional:
         return None
     if not isinstance(value, str):
-        raise ValueError(f"invalid_{name}")
+        raise TypeError(f"invalid_{name}")
     cleaned = " ".join(value.split())
     if not cleaned or len(cleaned) > MAX_TEXT:
         raise ValueError(f"invalid_{name}")
@@ -197,7 +197,7 @@ def verify_receipt_chain(receipts: object) -> dict[str, object]:
             source = _text(row.get("source_reference"), "source_reference", optional=True)
             authority = _text(row.get("authority_reference"), "authority_reference", optional=True)
             territory = _text(row.get("territory"), "territory", optional=True)
-        except ValueError:
+        except (TypeError, ValueError):
             verified = False
             break
         if prev != previous:
@@ -238,7 +238,7 @@ def civilization_projection(links: object) -> dict[str, object]:
         try:
             value = _text(row.get("value"), "value")
             receipt = _uuid(row.get("evidence_receipt_id"), "evidence_receipt_id")
-        except ValueError:
+        except (TypeError, ValueError):
             continue
         key = (level, value.casefold(), receipt)
         if key in seen:
