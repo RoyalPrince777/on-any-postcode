@@ -665,3 +665,24 @@ def test_surface_has_durable_device_binding_readiness_control():
     client = app.test_client()
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="bankDeviceDurableBtn"' in html
+
+
+def test_authenticated_owner_adapter_readiness_rejects_public_owner_trust():
+    client = app.test_client()
+    response = client.get("/api/sika/owner-session/readiness")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["adapter_present"] is True
+    assert body["required_identity_source"] == "oap_authenticated_session"
+    assert body["caller_supplied_owner_id_trusted"] is False
+    assert body["durable_bind_available_after_server_auth_resolution"] is True
+    assert body["durable_recovery_available_after_server_auth_resolution"] is True
+    assert body["standalone_public_mutation_exposed"] is False
+    assert body["founder_auth_touched"] is False
+    assert body["production_ready"] is False
+
+
+def test_surface_has_authenticated_owner_bridge_readiness_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="bankOwnerSessionBtn"' in html
