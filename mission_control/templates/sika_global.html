@@ -15,7 +15,7 @@
 :root{font-family:Inter,system-ui,sans-serif;color:#f7f7f7;background:#080808}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#050505,#17140a);min-height:100vh}
 .shell{max-width:480px;margin:auto;padding:24px 18px 90px}
-.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}.brandActions{display:flex;gap:8px;align-items:center}.iconBtn{width:38px;height:38px;border-radius:50%;padding:0;text-align:center;display:grid;place-items:center}.profileChip{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#211b0c;border:1px solid #8d7630;font-weight:800}.hiddenBalance{filter:blur(9px);user-select:none}.payReview{display:none}.payReview.active{display:block}.bankCard{background:linear-gradient(135deg,#0e0e0e,#2a210d);border:1px solid #8d7630;border-radius:24px;padding:20px;min-height:180px;display:flex;flex-direction:column;justify-content:space-between}.cardNumber{letter-spacing:.2em;font-size:20px}.activityTools{display:grid;grid-template-columns:1fr 120px;gap:8px;margin-bottom:12px}.activityRow.hidden{display:none}.insightGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.progressTrack{height:9px;background:#272217;border-radius:999px;overflow:hidden}.progressFill{height:100%;background:#e5c966;width:0}
+.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}.brandActions{display:flex;gap:8px;align-items:center}.iconBtn{width:38px;height:38px;border-radius:50%;padding:0;text-align:center;display:grid;place-items:center}.profileChip{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#211b0c;border:1px solid #8d7630;font-weight:800}.hiddenBalance{filter:blur(9px);user-select:none}.payReview{display:none}.payReview.active{display:block}.bankCard{background:linear-gradient(135deg,#0e0e0e,#2a210d);border:1px solid #8d7630;border-radius:24px;padding:20px;min-height:180px;display:flex;flex-direction:column;justify-content:space-between}.cardNumber{letter-spacing:.2em;font-size:20px}.activityTools{display:grid;grid-template-columns:1fr 120px;gap:8px;margin-bottom:12px}.activityRow.hidden{display:none}.insightGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.progressTrack{height:9px;background:#272217;border-radius:999px;overflow:hidden}.progressFill{height:100%;background:#e5c966;width:0}.privacyShield{position:fixed;inset:0;background:#050505;display:none;z-index:9999;align-items:center;justify-content:center;text-align:center;padding:24px}.privacyShield.active{display:flex}.scamGrid{display:grid;gap:8px;margin:12px 0}.scamCheck{display:flex;gap:10px;align-items:flex-start;background:#0d0c09;border:1px solid #2f2a1d;border-radius:14px;padding:10px}.securityList{display:grid;gap:8px}.securityItem{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #242116;padding:8px 0}@media print{body{display:none!important}}
 .badge{border:1px solid #b99b3d;border-radius:999px;padding:6px 10px;color:#e5c966;font-size:12px}
 .card{background:rgba(255,255,255,.055);border:1px solid rgba(229,201,102,.24);border-radius:24px;padding:20px;margin-top:18px}
 .balance{font-size:46px;font-weight:800;margin:8px 0}.muted{color:#aaa}.homeBalance{font-size:50px;font-weight:850;letter-spacing:-.04em;margin:6px 0 0}.homeSub{display:flex;justify-content:space-between;gap:12px;align-items:end}.quickActions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.quickAction{text-align:center;padding:12px 6px;border-radius:16px}.quickAction b{display:block;font-size:18px;margin-bottom:5px}.quickAction span{font-size:11px;color:#c9c9c9}.summaryRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.summaryBox{background:#0e0d0a;border:1px solid #2f2a1d;border-radius:16px;padding:12px}.recentList{display:grid;gap:10px}.recentItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #242116}.recentItem:last-child{border-bottom:0}.recentItem .amount{font-weight:750}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
@@ -35,6 +35,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 </style>
 </head>
 <body>
+<div class="privacyShield" id="privacyShield"><div><h2>SIKA protected</h2><p class="muted">Return to the app to reveal sensitive information.</p></div></div>
 <main class="shell" id="top">
 <div class="brand">
   <h1>SIKA</h1>
@@ -226,7 +227,16 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <label>Recipient<input id="payRecipient" maxlength="120" placeholder="Name, @handle or OAP ID"></label>
 <label>Amount SIKA<input id="payAmount" inputmode="decimal" value="1"></label>
 <label>Reference<input id="payReference" maxlength="140" placeholder="What is this for?"></label>
-<button id="payReviewBtn" class="primaryAction">Review payment</button>
+<div class="scamGrid" aria-label="Scam safety check">
+<label class="scamCheck"><input id="scamRemote" type="checkbox"> Someone asked me to install remote-access software, share my screen or let them control my device.</label>
+<label class="scamCheck"><input id="scamUrgent" type="checkbox"> I was told this payment is urgent, secret or must happen immediately.</label>
+<label class="scamCheck"><input id="scamImpersonation" type="checkbox"> The person claims to be my bank, police, government, OAP staff or another trusted organisation.</label>
+<label class="scamCheck"><input id="scamSafeAccount" type="checkbox"> I was told to move money to a “safe account”.</label>
+<label class="scamCheck"><input id="scamInvestment" type="checkbox"> This payment is for an investment, crypto, guaranteed return or recovery service.</label>
+<label class="scamCheck"><input id="scamChangedInstructions" type="checkbox"> Payment details changed unexpectedly from previous instructions.</label>
+<label class="scamCheck"><input id="scamLinkQr" type="checkbox"> I reached this payment from an unexpected link, QR code or message.</label>
+</div>
+<button id="payReviewBtn" class="primaryAction">Run safety check & review</button>
 <div class="payReview" id="payReviewCard">
   <p class="muted">Review</p>
   <div class="value" id="payReviewAmount">—</div>
@@ -301,6 +311,18 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <div class="result" id="incomingResult">No new SIKA alerts.</div>
 <p class="notice">Security, wallet and payment notices appear here.</p>
 </section>
+<section class="card">
+<h2>Cyber & Scam Protection</h2>
+<button id="securityPostureBtn">Check protection status</button>
+<div class="securityList" id="securityPostureResult">
+<div class="securityItem"><span>Screen privacy</span><b class="gold">Mitigated</b></div>
+<div class="securityItem"><span>Scam preflight</span><b class="ok">On</b></div>
+<div class="securityItem"><span>Private cache</span><b class="ok">Off</b></div>
+<div class="securityItem"><span>Payment execution</span><b class="locked">Locked</b></div>
+</div>
+<p class="notice">Web/PWA cannot guarantee an OS-level screenshot or screen-recording block. SIKA therefore hides sensitive content when backgrounded, blocks printing/copy/context-menu paths where the browser allows, disables display-capture permission, and requires a secure native surface for a true hard block.</p>
+</section>
+
 <section class="card" id="securitySection">
 <h2>Security Centre</h2>
 <label>Device label<input id="bankDeviceId" value="sika-acceptance-device" maxlength="120"></label>
@@ -448,6 +470,29 @@ async function postJSON(path,payload){
  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
  return [r,await r.json()];
 }
+const privacyShield=document.getElementById('privacyShield');
+function protectScreen(){ privacyShield.classList.add('active'); }
+function revealScreen(){ privacyShield.classList.remove('active'); }
+document.addEventListener('visibilitychange',()=>document.hidden?protectScreen():revealScreen());
+window.addEventListener('blur',protectScreen);
+window.addEventListener('focus',revealScreen);
+document.addEventListener('copy',event=>event.preventDefault());
+document.addEventListener('cut',event=>event.preventDefault());
+document.addEventListener('contextmenu',event=>event.preventDefault());
+document.addEventListener('dragstart',event=>event.preventDefault());
+document.getElementById('securityPostureBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/security/posture'); const j=await r.json();
+ const capture=j.screen_capture||{}, scam=j.fraud_and_scam||{}, session=j.session||{};
+ document.getElementById('securityPostureResult').innerHTML=
+  '<div class="securityItem"><span>OS screenshot hard block</span><b class="locked">'+capture.web_os_level_block_enforceable+'</b></div>'+
+  '<div class="securityItem"><span>Background privacy shield</span><b class="ok">'+capture.visibility_blur_enabled+'</b></div>'+
+  '<div class="securityItem"><span>Print/copy mitigation</span><b class="ok">'+(capture.print_block_enabled&&capture.copy_context_menu_block_enabled)+'</b></div>'+
+  '<div class="securityItem"><span>Display capture permission</span><b class="ok">'+capture.display_capture_permission_disabled+'</b></div>'+
+  '<div class="securityItem"><span>Scam intelligence</span><b class="ok">'+scam.safe_account_signal+'</b></div>'+
+  '<div class="securityItem"><span>Private cache disabled</span><b class="ok">'+session.private_cache_disabled+'</b></div>'+
+  '<div class="securityItem"><span>Money execution</span><b class="locked">'+j.money_execution_enabled+'</b></div>';
+};
+
 document.getElementById('cardFreezeBtn').onclick=async()=>{
  const [r,j]=await postJSON('/api/sika/security/freeze',{});
  document.getElementById('cardResult').textContent=(j.reason||j.security_action||j.error)+' · executable '+(j.executable??false);
@@ -493,7 +538,7 @@ document.getElementById('incomingBtn').onclick=()=>{
  showPane('morePane');
  document.getElementById('incomingResult')?.scrollIntoView({behavior:'smooth',block:'center'});
 };
-document.getElementById('payReviewBtn').onclick=()=>{
+document.getElementById('payReviewBtn').onclick=async()=>{
  const recipient=document.getElementById('payRecipient').value.trim();
  const amount=document.getElementById('payAmount').value.trim();
  const reference=document.getElementById('payReference').value.trim();
@@ -501,11 +546,35 @@ document.getElementById('payReviewBtn').onclick=()=>{
   document.getElementById('payResult').textContent='Recipient and positive amount required';
   return;
  }
+ const [r,j]=await postJSON('/api/sika/fraud/preflight',{
+  amount_sika:amount,
+  recent_attempts:0,
+  transactions_10m:0,
+  new_device:false,
+  unusual_location:false,
+  new_recipient:true,
+  remote_access_or_screen_share:document.getElementById('scamRemote').checked,
+  urgent_or_secret_payment:document.getElementById('scamUrgent').checked,
+  impersonation_claim:document.getElementById('scamImpersonation').checked,
+  safe_account_claim:document.getElementById('scamSafeAccount').checked,
+  investment_or_crypto_pitch:document.getElementById('scamInvestment').checked,
+  payment_instructions_changed:document.getElementById('scamChangedInstructions').checked,
+  suspicious_link_or_qr:document.getElementById('scamLinkQr').checked
+ });
+ if(!r.ok){
+  document.getElementById('payResult').textContent=j.error||'Safety check unavailable';
+  return;
+ }
+ if(j.decision==='review'||j.decision==='block_software_only'){
+  document.getElementById('payReviewCard').classList.remove('active');
+  document.getElementById('payResult').textContent='Payment stopped for scam review · '+(j.reasons.join(', ')||'risk signal');
+  return;
+ }
  document.getElementById('payReviewAmount').textContent=amount+' SIKA';
  document.getElementById('payReviewRecipient').textContent='To '+recipient;
  document.getElementById('payReviewReference').textContent=reference||'No reference';
  document.getElementById('payReviewCard').classList.add('active');
- document.getElementById('payResult').textContent='Review before confirmation';
+ document.getElementById('payResult').textContent='Safety check '+j.decision+' · review before confirmation';
 };
 document.getElementById('payCancelBtn').onclick=()=>{
  document.getElementById('payReviewCard').classList.remove('active');
