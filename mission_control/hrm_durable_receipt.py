@@ -177,7 +177,7 @@ def latest_receipt_status(signal_id: object) -> dict[str, Any]:
                 """SELECT receipt_id::text, checksum, payload
                    FROM oap_hrm_receipts
                    WHERE signal_id=%s
-                   ORDER BY created_at DESC
+                   ORDER BY COALESCE(payload->>'recorded_at','') DESC
                    LIMIT 1""",
                 (signal,),
             ).fetchone()
