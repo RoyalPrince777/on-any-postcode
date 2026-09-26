@@ -401,3 +401,21 @@ def test_surface_has_bank_trial_control():
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="bankTrialBtn"' in html
     assert 'id="bankTrialSection"' in html
+
+
+def test_open_banking_red_team_preserves_fail_closed_boundary():
+    client = app.test_client()
+    body = client.get("/api/sika/open-banking/red-team").get_json()
+    assert body["red_team_passed"] is True
+    assert body["checks"]["payment_initiation_never_enabled_here"] is True
+    assert body["checks"]["customer_funds_never_held_here"] is True
+    assert body["checks"]["sika_reference_not_bank_money"] is True
+    assert body["checks"]["execution_never_enabled_here"] is True
+    assert body["real_payment_ready"] is False
+    assert body["money_moved"] is False
+
+
+def test_surface_has_bank_red_team_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="bankRedTeamBtn"' in html
