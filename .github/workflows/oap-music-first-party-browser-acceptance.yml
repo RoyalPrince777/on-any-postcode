@@ -45,7 +45,10 @@ jobs:
 
             const search = page.locator('#music-search');
             await search.fill('first party search proof');
-            await page.waitForTimeout(500);
+            await page.waitForFunction(() => {
+              const text = document.getElementById('catalogue-state').textContent || '';
+              return text.includes('OAP track') || text.includes('temporarily unavailable');
+            }, null, {timeout:3000});
             const state = await page.locator('#catalogue-state').innerText();
             if (!state.includes('OAP track') && !state.includes('temporarily unavailable')) {
               throw new Error('search_state_missing_' + state);
