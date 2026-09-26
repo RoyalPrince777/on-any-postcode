@@ -12,7 +12,6 @@ from typing import Any
 from mission_control import postgres_db
 from oap.smi.state_ownership_registry import owners
 
-
 _TABLE_BINDINGS: dict[str, tuple[str, ...]] = {
     "identity": ("users",),
     "arena_competition": ("oap_arena_matches",),
