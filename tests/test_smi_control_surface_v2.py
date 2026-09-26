@@ -113,7 +113,7 @@ def test_media_controls_route_to_canonical_studio_without_duplicate_engine():
         'id="refine-mode-button"',
         'id="animate-mode-button"',
         'id="character-lock-button"',
-        'data.studioTool = toolId',
+        'button.dataset.studioTool = toolId',
         '"edit_image"',
         '"refine_image"',
         "Use as character reference",
