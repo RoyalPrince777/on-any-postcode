@@ -18,7 +18,7 @@
 .brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}
 .badge{border:1px solid #b99b3d;border-radius:999px;padding:6px 10px;color:#e5c966;font-size:12px}
 .card{background:rgba(255,255,255,.055);border:1px solid rgba(229,201,102,.24);border-radius:24px;padding:20px;margin-top:18px}
-.balance{font-size:46px;font-weight:800;margin:8px 0}.muted{color:#aaa}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
+.balance{font-size:46px;font-weight:800;margin:8px 0}.muted{color:#aaa}.homeBalance{font-size:50px;font-weight:850;letter-spacing:-.04em;margin:6px 0 0}.homeSub{display:flex;justify-content:space-between;gap:12px;align-items:end}.quickActions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.quickAction{text-align:center;padding:12px 6px;border-radius:16px}.quickAction b{display:block;font-size:18px;margin-bottom:5px}.quickAction span{font-size:11px;color:#c9c9c9}.summaryRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.summaryBox{background:#0e0d0a;border:1px solid #2f2a1d;border-radius:16px;padding:12px}.recentList{display:grid;gap:10px}.recentItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #242116}.recentItem:last-child{border-bottom:0}.recentItem .amount{font-weight:750}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
 button,.tile{border:1px solid #3d3521;background:#15130e;color:#fff;border-radius:18px;padding:16px;text-align:left}
 button{cursor:pointer}.tile{width:100%}.navBtn{background:transparent;border:0;padding:8px;color:#fff}.gold{color:#e5c966}.value{font-size:20px;font-weight:700}
 .notice{font-size:13px;line-height:1.45;color:#c9c9c9}.status{display:flex;gap:8px;align-items:center}.dot{width:8px;height:8px;border-radius:50%;background:#e5c966}
@@ -39,20 +39,42 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <div class="brand"><h1>SIKA</h1><span class="badge">GLOBAL</span></div>
 <button data-oap-install hidden>Install SIKA</button>
 <div class="notice" data-oap-install-status role="status">Checking install support</div>
-<p class="muted">One value system · global by design</p>
+<p class="muted">Your money. Your SIKA. One global wallet.</p>
 
-<section class="card">
-<div class="muted">Target anchor</div>
-<div class="balance">1 SIKA</div>
-<div class="value gold">= £1 GBP</div>
-<p class="notice">Canonical SIKA stays first-party. Local currency is a settlement/display layer, not a separate SIKA.</p>
+<section class="card" aria-label="Main balance">
+<div class="muted">Available balance</div>
+<div class="homeBalance">{{ wallet.balance_reference }} <span class="gold">SIKA</span></div>
+<div class="homeSub">
+  <span class="muted">Reference wallet</span>
+  <span class="value">≈ £{{ wallet.balance_reference }}</span>
+</div>
+<div class="quickActions" aria-label="Quick actions">
+  <button class="quickAction jump primaryAction" data-target="walletSection"><b>＋</b><span>Add</span></button>
+  <button class="quickAction regulated" data-path="/api/sika/pay"><b>↑</b><span>Pay</span></button>
+  <button class="quickAction jump" data-target="exchangeSection"><b>⇄</b><span>Exchange</span></button>
+  <button class="quickAction jump" data-target="securitySection"><b>⌁</b><span>Security</span></button>
+</div>
+<div class="summaryRow">
+  <div class="summaryBox"><span class="muted">Anchor</span><div class="value">1 SIKA = £1</div></div>
+  <div class="summaryBox"><span class="muted">Ledger</span><div class="value">{{ wallet.statement.entry_count }} entries</div></div>
+</div>
 </section>
 
-<div class="statusStrip" aria-label="SIKA truth status">
-<div class="statusPill"><b class="ok">Software</b><span class="truth">Live acceptance</span></div>
-<div class="statusPill"><b class="ok">PWA</b><span class="truth">Install shell ready</span></div>
-<div class="statusPill"><b class="locked">Payments</b><span class="truth">Licence-gated</span></div>
+<section class="card" aria-label="Recent activity">
+<div class="homeSub"><h2 style="margin:0">Recent activity</h2><button class="navBtn jump" data-target="walletSection">See all</button></div>
+<div class="recentList">
+{% if wallet.history %}
+  {% for item in wallet.history[:3] %}
+  <div class="recentItem">
+    <div><b>{{ item.kind }}</b><div class="muted">{{ item.memo }}</div></div>
+    <div class="amount">{{ item.amount_sika }} SIKA</div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="muted">No recent activity yet.</div>
+{% endif %}
 </div>
+</section>
 
 <div class="sectionTitle">Money & Value</div>
 <section class="groupGrid" aria-label="Money and value">
@@ -73,7 +95,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile intel" data-intel="bank"><b>Bank Intelligence</b><p class="muted">Bank MBS boundary</p></button>
 </section>
 
-<div class="sectionTitle">Release & Regulated Rails</div>
+<div class="sectionTitle">System & Release</div>
 <section class="groupGrid" aria-label="Release and regulated rails">
 <button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">PWA × device proof</p></button>
 <button class="tile jump" data-target="androidSection"><b>Android Acceptance</b><p class="muted">Physical install × update × recovery</p></button>
@@ -302,6 +324,18 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button id="marketHandoff">Open Market handoff</button>
 <div class="result" id="marketResult">OAP commerce handoff ready at software layer.</div>
 <p class="notice">Market browsing/handoff is unlocked. Regulated payment settlement remains separate.</p>
+</section>
+
+<div class="statusStrip" aria-label="SIKA truth status">
+<div class="statusPill"><b class="ok">Software</b><span class="truth">Acceptance ready</span></div>
+<div class="statusPill"><b class="ok">Wallet</b><span class="truth">Owner scoped</span></div>
+<div class="statusPill"><b class="locked">Payments</b><span class="truth">Licence-gated</span></div>
+</div>
+
+<section class="card">
+<div class="muted">SIKA anchor</div>
+<div class="value gold">1 SIKA = £1 GBP</div>
+<p class="notice">Canonical SIKA stays first-party. Local currency remains a settlement/display layer rather than a separate SIKA.</p>
 </section>
 
 <section class="card notice">
