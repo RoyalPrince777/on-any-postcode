@@ -1,6 +1,8 @@
 from uuid import uuid4
 
-from mission_control import entertainment_catalogue, radio_core
+from flask import Flask
+
+from mission_control import entertainment_catalogue, product_core_views, radio_core
 
 
 def test_radio_schema_is_first_party_owner_scoped_and_reuses_music_tracks():
@@ -59,3 +61,11 @@ def test_rotation_cannot_be_opened_by_caller_rights_flags():
     assert result["audio_fetch_performed"] is False
     assert result["broadcast_started"] is False
     assert result["human_authority_final"] is True
+
+
+def test_radio_route_is_authenticated_read_only_contract():
+    app = Flask(__name__)
+    app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
+    rules = [rule for rule in app.url_map.iter_rules() if rule.rule == "/mission/organs/radio"]
+    assert len(rules) == 1
+    assert rules[0].methods == {"GET", "HEAD", "OPTIONS"}
