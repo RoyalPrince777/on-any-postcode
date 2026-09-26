@@ -14,7 +14,7 @@ from typing import Any
 from oap.smi.agi_core import AGICore
 from oap.smi.command_intelligence import CommandIntelligence
 
-from . import all_in_ai, all_in_ai_mission_store
+from . import all_in_ai, all_in_ai_action_bridge, all_in_ai_mission_store
 
 _MAX_MISSION_LENGTH = 4000
 _ALLOWED_RESEARCH_MODES = {"standard", "alien_research"}
@@ -149,6 +149,7 @@ def status() -> dict[str, Any]:
         ),
         "research_modes": tuple(sorted(_ALLOWED_RESEARCH_MODES)),
         "durable_mission_store": all_in_ai_mission_store.status(),
+        "governed_action_handoff": all_in_ai_action_bridge.status(),
         "independent_execute": False,
         "independent_approval": False,
         "human_authority_final": True,
