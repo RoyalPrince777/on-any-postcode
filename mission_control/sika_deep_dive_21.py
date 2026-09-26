@@ -11,6 +11,7 @@ from . import (
     organism,
     sika_android_acceptance,
     sika_authenticated_owner_adapter,
+    sika_bank_credential_store,
     sika_device_binding_store,
     sika_closed_loop_value,
     sika_open_banking,
@@ -27,6 +28,7 @@ def status() -> dict[str, Any]:
     value = sika_closed_loop_value.model_status()
     owner_bridge = sika_authenticated_owner_adapter.readiness()
     durable_binding = sika_device_binding_store.readiness()
+    durable_credential = sika_bank_credential_store.readiness()
 
     mind = (
         ("OAP CORE", True),
@@ -82,7 +84,7 @@ def status() -> dict[str, Any]:
         "real_payment_ready": bank["real_payment_ready"],
         "physical_android_acceptance": android["real_android_pwa_acceptance"],
         "bank_app_password_software_ready": os_state["bank_app_security"]["bank_app_password_software_ready"],
-        "bank_app_password_durable_store_ready": os_state["bank_app_security"]["bank_app_password_durable_store_ready"],
+        "bank_app_password_durable_store_ready": durable_credential["canonical_store_reused"],
         "device_binding_software_ready": os_state["bank_app_security"]["device_binding_software_ready"],
         "durable_device_binding_store_ready": durable_binding["canonical_store_reused"],
         "authenticated_owner_bridge_ready": owner_bridge["adapter_present"],
