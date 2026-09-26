@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
-from typing import Any
 from uuid import UUID, uuid4
 
 from . import postgres_db, sika_android_acceptance
