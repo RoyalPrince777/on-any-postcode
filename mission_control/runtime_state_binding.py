@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import postgres_db
 from oap.smi import state_ownership_registry
+
+from . import postgres_db
 
 
 _TABLE_BINDINGS: dict[str, tuple[str, ...]] = {
