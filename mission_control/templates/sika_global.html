@@ -78,6 +78,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">PWA × device proof</p></button>
 <button class="tile jump" data-target="licenceSection"><b>Payment Licence</b><p class="muted">Evidence gate</p></button>
 <button class="tile jump" data-target="bankTrialSection"><b>Bank Trial</b><p class="muted">Read-only Open Banking evidence</p></button>
+<button class="tile jump" data-target="valueSection"><b>GBP → SIKA</b><p class="muted">Verified cash-in · internal use</p></button>
 <button class="tile jump" data-target="a5Section"><b>A5 Preparation</b><p class="muted">Proof × rollback × release</p></button>
 <button class="tile jump" data-target="a6Section"><b>A6 Readiness</b><p class="muted">Operation proof gate</p></button>
 <button class="tile regulated" data-path="/api/sika/card"><b>Card</b><p class="muted">Execution locked</p></button>
@@ -223,6 +224,18 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button id="bankRedTeamBtn">Run Bank Red Team</button>
 <div class="result" id="bankTrialResult">—</div>
 <p class="notice">Sandbox/read-only evidence only. This does not create bank money, move customer funds or enable payment initiation.</p>
+</section>
+
+<section class="card" id="valueSection">
+<h2>GBP → SIKA</h2>
+<label>GBP amount<input id="valueGbp" inputmode="decimal" value="10"></label>
+<button id="valueTrialBtn">Check issue gate</button>
+<div class="result" id="valueTrialResult">—</div>
+<label>Internal SIKA transfer<input id="internalAmount" inputmode="decimal" value="5"></label>
+<label>Sender SIKA balance<input id="internalBalance" inputmode="decimal" value="10"></label>
+<button id="internalTransferBtn">Preview internal transfer</button>
+<div class="result" id="internalTransferResult">—</div>
+<p class="notice">Only verified settled GBP may create spendable SIKA. SIKA is then scoped to OAP-internal use; external cash-out and payment initiation remain separate regulated functions.</p>
 </section>
 
 <section class="card" id="a5Section">
@@ -372,6 +385,28 @@ document.getElementById('bankTrialBtn').onclick=async()=>{
  document.getElementById('bankTrialResult').textContent=
   'mode '+s.mode+' · read-only '+s.read_only_account_information+' · real bank '+s.real_bank_read_ready+
   ' · dummy GBP '+(t.account?.balance||'n/a')+' · SIKA ref '+(t.sika_view?.reference_sika||'n/a');
+};
+document.getElementById('valueTrialBtn').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/value-trial',{
+  receipt_id:'ui-trial',
+  gbp_amount:document.getElementById('valueGbp').value,
+  bank_reference:'sandbox-bank-ref',
+  settlement_verified:false,
+  safeguarding_or_partner_evidence:false,
+  regulatory_basis_verified:false
+ });
+ document.getElementById('valueTrialResult').textContent=r.ok
+  ? 'GBP '+j.gbp_received+' · SIKA '+j.sika_to_issue+' · authorised '+j.issuance_authorised
+  : (j.error||'value trial unavailable');
+};
+document.getElementById('internalTransferBtn').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/internal-transfer/preview',{
+  amount_sika:document.getElementById('internalAmount').value,
+  sender_balance_sika:document.getElementById('internalBalance').value
+ });
+ document.getElementById('internalTransferResult').textContent=r.ok
+  ? 'internal '+j.internal_oap_only+' · allowed '+j.transfer_allowed+' · receiver '+j.receiver_credit_sika+' SIKA'
+  : (j.error||'transfer preview unavailable');
 };
 document.getElementById('bankRedTeamBtn').onclick=async()=>{
  const r=await fetch('/api/sika/open-banking/red-team');
