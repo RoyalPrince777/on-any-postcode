@@ -17,6 +17,7 @@ from mission_control import (
     sika_global,
     sika_intelligence,
     sika_open_banking,
+    sika_os_alignment,
     sika_payment_licence_gate,
     sika_closed_loop_value,
     sika_safety,
@@ -370,3 +371,8 @@ def sika_internal_transfer_preview():
 @app.get("/api/sika/android-acceptance")
 def sika_android_acceptance_status():
     return jsonify(sika_android_acceptance.evaluate())
+
+
+@app.get("/api/sika/os-alignment")
+def sika_os_alignment_status():
+    return jsonify(sika_os_alignment.status())
