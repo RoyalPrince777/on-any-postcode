@@ -167,3 +167,31 @@ def add_card_to_collection(collection_id: str, card_id: str):
     if not linked:
         return _error("not_found", "The card or collection was not found.", 404)
     return _no_store(make_response(jsonify(linked=True)))
+
+
+@bp.post("/my-world/vault/cards/<card_id>/provenance")
+@web_security.login_required(api=True)
+def attach_provenance(card_id: str):
+    csrf = _csrf_error()
+    if csrf is not None:
+        return csrf
+    try:
+        payload = _payload()
+        evidence = knowledge_core.attach_provenance(
+            _identity(),
+            card_id,
+            evidence_ref=payload.get("evidence_ref"),
+            provenance=payload.get("provenance"),
+            digest=payload.get("digest"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _error(
+            str(exc) or "invalid_request",
+            "Check the provenance evidence and try again.",
+            400,
+        )
+    except knowledge_core.KnowledgeUnavailable:
+        return _error("vault_unavailable", "The private Vault is temporarily unavailable.", 503)
+    if evidence is None:
+        return _error("card_not_found", "That knowledge card was not found.", 404)
+    return _no_store(make_response(jsonify(evidence=evidence), 201))
