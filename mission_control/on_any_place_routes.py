@@ -301,6 +301,7 @@ def map_intelligence_status():
     route_status = routing.status()
     federation_status = routing_federation.status()
     place_status = atlas_live_sources.status()
+    readiness = local_map_intelligence.readiness_state()
     return _no_store(make_response(jsonify({
         "component": "Map Intelligence",
         "routing_provider": route_status.get("provider_ownership"),
@@ -311,7 +312,12 @@ def map_intelligence_status():
         "road_tile_template": "/map-intelligence/road-tiles/{z}/{x}/{y}.mvt",
         "road_geometry_template": "/map-intelligence/road-geometry/{z}/{x}/{y}",
         "first_party_road_renderer": True,
-        "turn_by_turn": True,
+        "turn_by_turn": bool(readiness.get("turn_by_turn_software_ready")),
+        "voice_turn_guidance": bool(readiness.get("voice_turn_guidance_ready")),
+        "off_route_reroute": bool(readiness.get("off_route_reroute_ready")),
+        "software_navigation_green": bool(readiness.get("software_navigation_green")),
+        "live_disruption_authority_proven": bool(readiness.get("live_disruption_authority_proven")),
+        "remaining_before_green": readiness.get("remaining_before_green", ()),
         "autocomplete": True,
         "source_backed_places_enabled": bool(place_status.get("enabled")),
         "live_pattern": map_live_pattern.status(),

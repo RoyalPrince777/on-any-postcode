@@ -124,7 +124,13 @@ FEATURE_UNLOCKS = {
     "place_layer": True,
     "route_preview": True,
     "route_proof": True,
+    "road_vector_tiles": True,
+    "route_geometry": True,
+    "turn_by_turn_navigation": True,
+    "voice_turn_guidance": True,
+    "off_route_reroute": True,
     "traffic_style_signals": True,
+    "authority_disruption_adapter": True,
     "events_program_surface": True,
     "open_data_lookup_enabled": True,
     "movement_request_preview": True,
@@ -320,6 +326,76 @@ def request_preview(start: object = None, end: object = None, *, purpose: object
     }
 
 
+def readiness_state() -> dict[str, object]:
+    """Reconcile the public On Any Place truth board with the active runtime stack."""
+    from . import atlas_live_sources, map_live_pattern, routing, routing_federation
+
+    route_state = routing.status()
+    live_state = map_live_pattern.status()
+    place_state = atlas_live_sources.status()
+    federation_state = routing_federation.status()
+
+    road_tiles_proven = bool(
+        route_state.get("runtime_verified")
+        and route_state.get("oap_owned_endpoint")
+        and route_state.get("road_vector_tiles")
+    )
+    route_geometry_proven = bool(
+        route_state.get("runtime_verified")
+        and route_state.get("oap_owned_endpoint")
+        and route_state.get("geometry_exposed")
+    )
+    turn_by_turn_software_ready = bool(route_geometry_proven and FEATURE_UNLOCKS["turn_by_turn_navigation"])
+    live_disruption_proven = bool(live_state.get("authority_verified_feed"))
+    source_backed_places_ready = bool(place_state.get("enabled"))
+    connected_shards = int(federation_state.get("connected_shard_count") or 0)
+    wider_uk_routing_live = bool(connected_shards > 1)
+
+    remaining = []
+    if not road_tiles_proven:
+        remaining.append("first-party road vector tile runtime proof")
+    if not route_geometry_proven:
+        remaining.append("first-party route geometry runtime proof")
+    if not turn_by_turn_software_ready:
+        remaining.append("turn-by-turn navigation software proof")
+    if not live_disruption_proven:
+        remaining.append("current authority-backed disruption feed proof")
+    if not source_backed_places_ready:
+        remaining.append("source-backed place lookup enablement")
+    if not wider_uk_routing_live:
+        remaining.append("UK-wide owned routing shard coverage")
+    remaining.extend(
+        (
+            "events/open-now source proof",
+            "business owner listing tools",
+            "reviews/photos/opening-hours source proof",
+            "combined War Room proof-runner pass",
+        )
+    )
+
+    software_navigation_green = bool(
+        road_tiles_proven and route_geometry_proven and turn_by_turn_software_ready
+    )
+    london_live_pattern_green = bool(live_disruption_proven)
+    overall_green = bool(not remaining)
+
+    return {
+        "road_vector_tiles_proven": road_tiles_proven,
+        "route_geometry_proven": route_geometry_proven,
+        "turn_by_turn_software_ready": turn_by_turn_software_ready,
+        "voice_turn_guidance_ready": bool(turn_by_turn_software_ready and FEATURE_UNLOCKS["voice_turn_guidance"]),
+        "off_route_reroute_ready": bool(turn_by_turn_software_ready and FEATURE_UNLOCKS["off_route_reroute"]),
+        "live_disruption_authority_proven": live_disruption_proven,
+        "source_backed_places_enabled": source_backed_places_ready,
+        "connected_routing_shards": connected_shards,
+        "wider_uk_routing_live": wider_uk_routing_live,
+        "software_navigation_green": software_navigation_green,
+        "london_live_pattern_green": london_live_pattern_green,
+        "overall_green": overall_green,
+        "remaining_before_green": tuple(remaining),
+    }
+
+
 def local_map(query: object = None, *, category: object = None, start: object = None, end: object = None, profile: object = "driving") -> dict[str, object]:
     generated_at = _now()
     area_key = canonical(query or start or "Mitcham")
@@ -372,22 +448,14 @@ def local_map(query: object = None, *, category: object = None, start: object = 
             "live_claim_requires_timestamped_source": True,
             "public_private_boundary": "public_safe_fields_only",
         },
-        "missing_before_green": (
-            "real map tiles",
-            "route line geometry",
-            "turn-by-turn directions",
-            "live traffic/disruption source",
-            "UK-wide business ingestion with source proof",
-            "events/open-now proof",
-            "business owner listing tools",
-            "reviews/photos/opening-hours source proof",
-            "War Room proof runner pass",
-        ),
+        "readiness": readiness_state(),
+        "missing_before_green": readiness_state()["remaining_before_green"],
     }
 
 
 def status() -> dict[str, object]:
     sample = local_map("Mitcham")
+    readiness = readiness_state()
     return {
         "component": "Map Intelligence Status",
         "programs": PROGRAMS,
@@ -410,7 +478,21 @@ def status() -> dict[str, object]:
         "payment_capture_enabled": False,
         "automatic_dispatch_enabled": False,
         "hidden_tracking_enabled": False,
-        "live_traffic_claim": False,
-        "overall_green": False,
-        "reason_not_green": "Map Intelligence now has seeing layers plus Travel and Movement nested inside it, but real map tiles, full UK data, turn-by-turn, live traffic and event proof are not complete.",
+        "live_traffic_claim": bool(readiness["live_disruption_authority_proven"]),
+        "software_navigation_green": bool(readiness["software_navigation_green"]),
+        "road_vector_tiles_proven": bool(readiness["road_vector_tiles_proven"]),
+        "route_geometry_proven": bool(readiness["route_geometry_proven"]),
+        "turn_by_turn_software_ready": bool(readiness["turn_by_turn_software_ready"]),
+        "voice_turn_guidance_ready": bool(readiness["voice_turn_guidance_ready"]),
+        "off_route_reroute_ready": bool(readiness["off_route_reroute_ready"]),
+        "live_disruption_authority_proven": bool(readiness["live_disruption_authority_proven"]),
+        "connected_routing_shards": int(readiness["connected_routing_shards"]),
+        "wider_uk_routing_live": bool(readiness["wider_uk_routing_live"]),
+        "overall_green": bool(readiness["overall_green"]),
+        "remaining_before_green": readiness["remaining_before_green"],
+        "reason_not_green": (
+            "All On Any Place Green gates are proven."
+            if readiness["overall_green"]
+            else "Remaining proof: " + "; ".join(readiness["remaining_before_green"])
+        ),
     }
