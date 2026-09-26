@@ -642,3 +642,26 @@ def test_surface_has_owner_device_binding_controls():
     html = client.get("/sika").get_data(as_text=True)
     for control in ("bankOwnerId","bankDeviceBindBtn","bankDeviceStatusBtn","bankDeviceUnbindBtn"):
         assert f'id="{control}"' in html
+
+
+def test_durable_device_binding_reuses_canonical_store_but_public_write_stays_closed():
+    client = app.test_client()
+    response = client.get("/api/sika/device/durable-readiness")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["canonical_store_reused"] is True
+    assert body["workspace_id"] == "sika"
+    assert body["audit_chain_reused"] is True
+    assert body["owner_uuid_required"] is True
+    assert body["durable_bind_function_present"] is True
+    assert body["durable_recovery_function_present"] is True
+    assert body["standalone_public_write_enabled"] is False
+    assert body["authenticated_host_required"] is True
+    assert body["founder_auth_touched"] is False
+    assert body["production_ready"] is False
+
+
+def test_surface_has_durable_device_binding_readiness_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="bankDeviceDurableBtn"' in html
