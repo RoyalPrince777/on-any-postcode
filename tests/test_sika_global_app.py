@@ -489,3 +489,26 @@ def test_surface_has_android_acceptance_control():
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="androidAcceptanceBtn"' in html
     assert 'id="androidSection"' in html
+
+
+def test_identity_os_alignment_preserves_truth_boundaries():
+    client = app.test_client()
+    body = client.get("/api/sika/os-alignment").get_json()
+    assert body["aligned"] is True
+    assert body["identity"]["owner"] == "Managed Neon Auth"
+    assert body["identity"]["password_stored_by_oap"] is False
+    assert body["device"]["esim_profile_provisioned"] is False
+    assert body["operating_system"]["generation"] == "Gen0 PWA"
+    assert body["operating_system"]["native_android_os"] is False
+    assert body["digital_silicon"]["physical_chip_built"] is False
+    assert body["organism"]["single_brain"] == "SMI"
+    assert body["organism"]["human_authority_final"] is True
+
+
+def test_surface_has_identity_os_alignment_controls():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="osAlignmentBtn"' in html
+    assert 'id="osAlignmentSection"' in html
+    assert 'href="/enter-my-world"' in html
+    assert 'href="/activate-founder"' in html
