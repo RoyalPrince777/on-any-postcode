@@ -127,3 +127,46 @@ def test_music_page_controls_have_real_targets_and_no_fake_play_button():
     assert "Open source" in body
     assert "<button disabled>▶ Play</button>" not in body
     assert "▶ Play locked" in body
+
+
+def test_first_party_listener_contract_has_no_external_core_dependency():
+    contract = music_public_views.music_public_catalogue.listener_contract()
+    assert contract["ownership"] == "first_party"
+    assert contract["canonical_release_store"] == "oap_music_releases"
+    assert contract["canonical_track_store"] == "oap_music_tracks"
+    assert contract["canonical_playlist_store"] == "oap_music_playlists"
+    assert contract["external_catalogue_dependency"] is False
+    assert contract["external_identity_dependency"] is False
+    assert contract["external_player_dependency"] is False
+    assert contract["external_analytics_dependency"] is False
+    assert contract["playback_enabled"] is False
+
+
+def test_first_party_catalogue_api_fails_closed_when_store_unavailable(monkeypatch):
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    app.register_blueprint(music_public_views.bp)
+    monkeypatch.setattr(
+        music_public_views.music_public_catalogue,
+        "catalogue",
+        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+    response = app.test_client().get("/music/api/catalogue?q=test")
+    assert response.status_code == 503
+    payload = response.get_json()
+    assert payload["ownership"] == "first_party"
+    assert payload["items"] == []
+    assert payload["playback_enabled"] is False
+    assert payload["external_catalogue_dependency"] is False
+
+
+def test_music_page_is_first_party_listener_surface_not_external_catalogue():
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    app.register_blueprint(music_public_views.bp)
+    body = app.test_client().get("/music").get_data(as_text=True)
+    for target in ("home", "catalogue", "artists", "releases", "playlists", "library"):
+        assert f'data-target="{target}"' in body
+        assert f'id="{target}"' in body
+    assert "Search OAP Music" in body
+    assert "Search the free/open source directory" not in body
+    assert "They are not the OAP catalogue." in body
+    assert "/music/api/catalogue?q=" in body
