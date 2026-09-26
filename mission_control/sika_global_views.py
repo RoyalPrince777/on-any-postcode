@@ -259,11 +259,37 @@ def sika_bank_intelligence():
 def sika_fraud_preflight():
     if not web_security.csrf_valid(request):
         return jsonify({"error": "csrf_failed"}), 403
+    owner = _authenticated_sika_owner()
     body = request.get_json(silent=True) or {}
     try:
-        return jsonify(sika_safety.assess(body))
+        result = sika_safety.assess(body)
+        severity = (
+            "HIGH"
+            if result.get("decision") == "block_software_only"
+            else "WARNING"
+            if result.get("decision") == "review"
+            else "NOTICE"
+        )
+        receipt = sika_security_ledger.record_authenticated_owner(
+            owner.owner_id,
+            event_type="FRAUD_PREFLIGHT",
+            severity=severity,
+            details={
+                "decision": result.get("decision"),
+                "risk_score": result.get("risk_score"),
+                "reasons": list(result.get("reasons") or []),
+                "scam_detected": bool(result.get("scam_detected")),
+            },
+        )
+        return jsonify({
+            **result,
+            "security_receipt_id": receipt.get("event_id"),
+            "security_event_recorded": True,
+        })
     except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
         return jsonify({"error": str(exc), "executable": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "executable": False}), 503
 
 
 @bp.get("/api/sika/install/readiness")
@@ -289,11 +315,47 @@ def sika_security_session_policy():
 def sika_security_payment_controls():
     if not web_security.csrf_valid(request):
         return jsonify({"error": "csrf_failed"}), 403
+    owner = _authenticated_sika_owner()
     body = request.get_json(silent=True) or {}
     try:
-        return jsonify(sika_safety.payment_controls(body))
+        state = sika_security_ledger.latest_state(owner.owner_id)
+        beneficiary_id = str(body.get("beneficiary_id") or "").strip()
+        beneficiary_age = (
+            sika_security_ledger.beneficiary_age_minutes(
+                owner.owner_id, beneficiary_id
+            )
+            if beneficiary_id
+            else 0
+        )
+        result = sika_safety.payment_controls({
+            **body,
+            "daily_limit_sika": state["daily_limit_sika"],
+            "recipient_age_minutes": beneficiary_age,
+            "suspicious_device": state["suspicious_device"],
+        })
+        if (
+            result.get("over_limit")
+            or result.get("new_recipient_cooling_off")
+            or result.get("suspicious_device")
+        ):
+            sika_security_ledger.record_authenticated_owner(
+                owner.owner_id,
+                event_type="PAYMENT_CONTROL_HOLD",
+                severity="WARNING",
+                details={
+                    "over_limit": bool(result.get("over_limit")),
+                    "new_recipient_cooling_off": bool(
+                        result.get("new_recipient_cooling_off")
+                    ),
+                    "suspicious_device": bool(result.get("suspicious_device")),
+                    "beneficiary_id": beneficiary_id,
+                },
+            )
+        return jsonify(result)
     except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
         return jsonify({"error": str(exc), "executable": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "executable": False}), 503
 
 
 @bp.get("/api/sika/security/ledger/readiness")
@@ -375,6 +437,38 @@ def sika_security_device_risk():
     except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
         return jsonify({"error": str(exc), "recorded": False}), 503
     return jsonify({**result, "recorded": True}), 201
+
+
+@bp.get("/api/sika/security/reauth-lock")
+@web_security.login_required(api=True)
+def sika_security_reauth_lock():
+    owner = _authenticated_sika_owner()
+    try:
+        return jsonify(sika_security_ledger.reauth_lock_state(owner.owner_id))
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "locked": True}), 503
+
+
+@bp.post("/api/sika/security/reauth-result")
+@web_security.login_required(api=True)
+def sika_security_reauth_result():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        receipt = sika_security_ledger.record_reauth_result(
+            owner.owner_id, success=bool(body.get("success"))
+        )
+        state = sika_security_ledger.reauth_lock_state(owner.owner_id)
+        return jsonify({
+            **state,
+            "security_receipt_id": receipt.get("event_id"),
+            "recorded": True,
+        }), 201
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 503
 
 
 @bp.post("/api/sika/security/ledger/event")
