@@ -164,3 +164,77 @@ def readiness() -> dict[str, object]:
         "money_execution_enabled": False,
         "founder_auth_touched": False,
     }
+
+
+def latest_state(owner_id: object) -> dict[str, object]:
+    events = history(owner_id, limit=100)
+    daily_limit_sika = "1000.00"
+    suspicious_device = False
+    beneficiaries: dict[str, dict[str, object]] = {}
+    alerts: list[dict[str, object]] = []
+    for item in reversed(events):
+        kind = str(item.get("event_type") or "")
+        details = dict(item.get("details") or {})
+        if kind == "TRANSFER_LIMIT_SET":
+            daily_limit_sika = str(details.get("daily_limit_sika") or daily_limit_sika)
+        elif kind == "DEVICE_RISK_SET":
+            suspicious_device = bool(details.get("suspicious_device"))
+        elif kind == "BENEFICIARY_REGISTERED":
+            beneficiary_id = str(details.get("beneficiary_id") or "").strip()
+            if beneficiary_id:
+                beneficiaries[beneficiary_id] = {
+                    "beneficiary_id": beneficiary_id,
+                    "registered_at": item.get("created_at"),
+                    "cooling_off_minutes": 30,
+                }
+        if str(item.get("severity") or "") in {"WARNING", "HIGH", "CRITICAL"}:
+            alerts.append({
+                "event_id": item.get("event_id"),
+                "event_type": kind,
+                "severity": item.get("severity"),
+                "created_at": item.get("created_at"),
+            })
+    return {
+        "daily_limit_sika": daily_limit_sika,
+        "suspicious_device": suspicious_device,
+        "beneficiaries": list(beneficiaries.values()),
+        "alerts": list(reversed(alerts[-20:])),
+        "durable": True,
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def set_transfer_limit(owner_id: object, daily_limit_sika: object) -> dict[str, object]:
+    from decimal import Decimal
+
+    limit = Decimal(str(daily_limit_sika))
+    if limit <= 0:
+        raise ValueError("positive_daily_limit_required")
+    return record_authenticated_owner(
+        owner_id,
+        event_type="TRANSFER_LIMIT_SET",
+        severity="NOTICE",
+        details={"daily_limit_sika": f"{limit:.2f}"},
+    )
+
+
+def register_beneficiary(owner_id: object, beneficiary_id: object) -> dict[str, object]:
+    beneficiary = str(beneficiary_id or "").strip()[:120]
+    if not beneficiary:
+        raise ValueError("beneficiary_id_required")
+    return record_authenticated_owner(
+        owner_id,
+        event_type="BENEFICIARY_REGISTERED",
+        severity="NOTICE",
+        details={"beneficiary_id": beneficiary, "cooling_off_minutes": 30},
+    )
+
+
+def set_device_risk(owner_id: object, suspicious_device: bool) -> dict[str, object]:
+    return record_authenticated_owner(
+        owner_id,
+        event_type="DEVICE_RISK_SET",
+        severity="HIGH" if suspicious_device else "NOTICE",
+        details={"suspicious_device": bool(suspicious_device)},
+    )
