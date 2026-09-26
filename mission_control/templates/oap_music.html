@@ -31,11 +31,17 @@
     <h1>🎵 OAP Music</h1>
     <p class="sub">Born Local. Built Global. Earth Is Our Turf.</p>
 
-    <label for="music-search" class="muted">Search the free/open source directory</label>
-    <input id="music-search" class="search" type="search" placeholder="Search FMA, ccMixter, Musopen, archives…" autocomplete="off">
+    <label for="music-search" class="muted">Search OAP Music</label>
+    <input id="music-search" class="search" type="search" placeholder="Search OAP tracks and releases…" autocomplete="off">
+    <p id="catalogue-state" class="count">First-party catalogue search ready. No playable track is claimed.</p>
 
     <nav class="chips" aria-label="Music sections">
-      <button class="chip" type="button" data-target="catalogue">Free / Open Catalogue</button>
+      <button class="chip" type="button" data-target="home">Home</button>
+      <button class="chip" type="button" data-target="catalogue">Tracks</button>
+      <button class="chip" type="button" data-target="artists">Artists</button>
+      <button class="chip" type="button" data-target="releases">Releases</button>
+      <button class="chip" type="button" data-target="playlists">Playlists</button>
+      <button class="chip" type="button" data-target="library">Library</button>
       <button class="chip" type="button" data-target="genres">Genres</button>
       <button class="chip" type="button" data-target="civilization">Civilizations</button>
       <button class="chip" type="button" data-target="creators">Creators</button>
@@ -47,9 +53,43 @@
       🔐 Source listings are discovery links only. OAP does not mark a track playable until recording, composition, asset, territory and approval evidence pass.
     </div>
 
+    <section id="home">
+      <h2>Home</h2>
+      <div class="grid">
+        <div class="card"><strong>🎧 First-party listening platform</strong><span class="muted">OAP owns the catalogue, player contract, playlists and library data model.</span></div>
+        <div class="card"><strong>🔎 Search</strong><span class="muted">Searches canonical OAP releases and tracks only.</span></div>
+      </div>
+    </section>
+
     <section id="catalogue">
-      <h2>Free / Open Catalogue Sources</h2>
-      <p id="source-count" class="count">{{ sources|length }} sources available for rights-safe discovery.</p>
+      <h2>OAP Tracks</h2>
+      <div id="oap-results" class="grid"></div>
+      <p id="oap-empty" class="muted">No public OAP tracks are cleared for listing yet.</p>
+    </section>
+
+    <section id="artists">
+      <h2>Artists</h2>
+      <div class="card">Artist profiles are first-party OAP identities. Public artist cards appear when published releases exist.</div>
+    </section>
+
+    <section id="releases">
+      <h2>Releases</h2>
+      <div class="card">Singles, EPs and albums come from the canonical OAP Music release store.</div>
+    </section>
+
+    <section id="playlists">
+      <h2>Playlists</h2>
+      <div class="card">Playlists are stored first-party in OAP Music. Personal playlist actions require Enter My World.</div>
+    </section>
+
+    <section id="library">
+      <h2>Library</h2>
+      <div class="card">Your saved music and owner-scoped library remain behind OAP identity.</div>
+    </section>
+
+    <section id="open-sources">
+      <h2>Free / Open Discovery Sources</h2>
+      <p id="source-count" class="count">{{ sources|length }} external discovery references. They are not the OAP catalogue.</p>
       <div id="source-grid" class="grid">
         {% for source in sources %}
         <article class="card source-card" data-search="{{ (source.label ~ ' ' ~ source.source_kind)|lower }}">
@@ -115,7 +155,9 @@
   </main>
 
   <nav class="bottom" aria-label="Music navigation">
-    <a href="#catalogue">🎵 Catalogue</a>
+    <a href="#home">🏠 Home</a>
+    <a href="#catalogue">🎵 Tracks</a>
+    <a href="#library">❤️ Library</a>
     <a href="#civilization">🌍 World</a>
     <a href="#radio">📻 Radio</a>
     <a href="#records">🏛 Records</a>
@@ -133,20 +175,47 @@
       });
 
       const input = document.getElementById('music-search');
-      const cards = [...document.querySelectorAll('.source-card')];
-      const count = document.getElementById('source-count');
-      const empty = document.getElementById('no-results');
+      const results = document.getElementById('oap-results');
+      const emptyOap = document.getElementById('oap-empty');
+      const state = document.getElementById('catalogue-state');
+      let searchTimer = null;
+
+      async function searchOapMusic() {
+        const query = input.value.trim();
+        state.textContent = query ? 'Searching first-party OAP Music…' : 'Loading first-party OAP Music…';
+        try {
+          const response = await fetch('/music/api/catalogue?q=' + encodeURIComponent(query), {cache: 'no-store'});
+          if (!response.ok) throw new Error('catalogue unavailable');
+          const payload = await response.json();
+          results.replaceChildren();
+          (payload.items || []).forEach((item) => {
+            const card = document.createElement('article');
+            card.className = 'card';
+            const title = document.createElement('strong');
+            title.textContent = item.track_title;
+            const release = document.createElement('div');
+            release.className = 'muted';
+            release.textContent = item.release_title + ' · ' + item.release_type;
+            const lock = document.createElement('div');
+            lock.className = 'truth';
+            lock.textContent = '🔒 Playback locked until evidence gate passes.';
+            card.append(title, release, lock);
+            results.append(card);
+          });
+          emptyOap.classList.toggle('hidden', payload.item_count !== 0);
+          state.textContent = payload.item_count + (payload.item_count === 1 ? ' OAP track found.' : ' OAP tracks found.');
+        } catch (_error) {
+          results.replaceChildren();
+          emptyOap.classList.remove('hidden');
+          state.textContent = 'OAP Music catalogue is temporarily unavailable.';
+        }
+      }
+
       input.addEventListener('input', () => {
-        const query = input.value.trim().toLowerCase();
-        let visible = 0;
-        cards.forEach((card) => {
-          const show = !query || card.dataset.search.includes(query);
-          card.classList.toggle('hidden', !show);
-          if (show) visible += 1;
-        });
-        count.textContent = visible + (visible === 1 ? ' source matches.' : ' sources match.');
-        empty.classList.toggle('hidden', visible !== 0);
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(searchOapMusic, 180);
       });
+      searchOapMusic();
     })();
   </script>
 </body>
