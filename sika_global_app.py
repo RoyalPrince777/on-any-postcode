@@ -8,7 +8,12 @@ from __future__ import annotations
 from decimal import Decimal
 from flask import Flask, jsonify, render_template, request
 
-from mission_control import sika_finance_features, sika_global, sika_wallet_ledger
+from mission_control import (
+    sika_finance_features,
+    sika_global,
+    sika_intelligence,
+    sika_wallet_ledger,
+)
 
 app = Flask(__name__, template_folder="mission_control/templates")
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
@@ -197,3 +202,13 @@ def sika_security_freeze():
         "reason": "no_live_card_or_payment_rail",
         "executable": False,
     }), 423
+
+
+@app.get("/api/sika/intelligence/alignment")
+def sika_alignment_intelligence():
+    return jsonify(sika_intelligence.alignment_intelligence())
+
+
+@app.get("/api/sika/intelligence/bank")
+def sika_bank_intelligence():
+    return jsonify(sika_intelligence.bank_intelligence())
