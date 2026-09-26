@@ -7,15 +7,21 @@
   <title>OAP The Spot — {{ capability.name }}</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .atlas-map-screen{border:1px solid rgba(126,240,163,.45);border-radius:24px;overflow:hidden;background:linear-gradient(145deg,#07140d,#10281a);box-shadow:0 18px 55px #0007;margin:18px 0}.atlas-map-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid rgba(126,240,163,.25)}.atlas-map-head strong{font-size:1.08rem}.atlas-stage{position:relative;min-height:330px;background:radial-gradient(circle at 20% 30%,rgba(53,215,120,.28),transparent 18%),radial-gradient(circle at 70% 68%,rgba(215,183,89,.2),transparent 20%),linear-gradient(135deg,#06120b,#0c2415);overflow:hidden}.atlas-grid-line{position:absolute;inset:0;background-image:linear-gradient(rgba(126,240,163,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(126,240,163,.12) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(circle at center,#000 35%,transparent 86%)}.atlas-route{position:absolute;left:12%;right:13%;top:52%;height:4px;background:linear-gradient(90deg,#35d778,#d7b759,#35d778);border-radius:999px;box-shadow:0 0 20px #35d77855;transform:rotate(-7deg)}.atlas-pin{position:absolute;display:grid;gap:4px;min-width:110px;padding:9px 10px;border:1px solid rgba(126,240,163,.45);border-radius:14px;background:rgba(4,12,7,.82);box-shadow:0 12px 30px #0009}.atlas-pin b{color:#7ef0a3}.atlas-pin small{color:#b8d6c0}.atlas-pin--home{left:8%;top:18%}.atlas-pin--spot{left:42%;top:44%}.atlas-pin--direct{right:8%;top:22%}.atlas-pin--movement{right:17%;bottom:16%}.atlas-map-foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:14px}.atlas-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.atlas-action-row a{display:inline-flex}.atlas-warning{border-left:4px solid #d7b759;background:#211b0b;padding:11px 13px;border-radius:0 12px 12px 0;color:#e6dcb7}.atlas-mini{font-size:.86rem;color:#b8d6c0}
+    .atlas-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.atlas-action-row a{display:inline-flex}.atlas-warning{border-left:4px solid #d7b759;background:#211b0b;padding:11px 13px;border-radius:0 12px 12px 0;color:#e6dcb7}.atlas-mini{font-size:.86rem;color:#b8d6c0}
+    .atlas-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin:14px 0}.atlas-search label{grid-column:1/-1}.atlas-search input{min-width:0}.atlas-search button{white-space:nowrap}
+    .atlas-empty,.atlas-truth{margin-top:12px;padding:12px 14px;border:1px solid rgba(126,240,163,.2);border-radius:14px;background:rgba(7,20,13,.55);color:#b8d6c0}
+    .atlas-result{display:grid;gap:14px;margin-top:16px}.atlas-result-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.atlas-result-head h3{margin:0}.atlas-path{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:.9rem;color:#b8d6c0}.atlas-path span+span:before{content:"›";margin-right:7px;opacity:.55}
+    .atlas-live-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr);gap:12px}.atlas-live-card{padding:16px;border:1px solid rgba(126,240,163,.2);border-radius:18px;background:rgba(7,20,13,.72)}.atlas-live-card h3{margin:.2rem 0 .55rem}.atlas-weather-main{font-size:1.65rem;font-weight:800;line-height:1.1}.atlas-weather-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;color:#d9eadf}.atlas-advisory{text-transform:capitalize;font-weight:800}.atlas-source{margin-top:10px;font-size:.82rem;color:#9ebba7}
+    .atlas-forecast{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.atlas-forecast article{padding:10px;border-radius:14px;background:rgba(255,255,255,.035)}.atlas-forecast strong,.atlas-forecast span{display:block}.atlas-forecast span{margin-top:4px;color:#b8d6c0;font-size:.88rem}
+    @media(max-width:720px){.atlas-search{grid-template-columns:1fr}.atlas-search label{grid-column:auto}.atlas-search button{width:100%}.atlas-live-grid{grid-template-columns:1fr}.atlas-forecast{grid-template-columns:1fr}.atlas-result-head{display:grid}}
   </style>
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header">
     <div>
       <p class="mc-eyebrow">OAP World / The Spot</p>
-      <h1>{{ 'OAP Atlas' if capability.slug == 'maps-weather-travel' else capability.name }}</h1>
-      <p>{{ 'Map screen, attractions, weather signals, movement and OAP Direct requests from continent to postcode.' if capability.slug == 'maps-weather-travel' else capability.purpose }}</p>
+      <h1>{{ capability.name }}</h1>
+      <p>{{ capability.purpose }}</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">Back to The Spot</a>
@@ -64,19 +70,17 @@
 
     {% if capability.slug == 'nature' %}
     <section class="mc-panel" aria-labelledby="nature-title">
-      <p class="mc-eyebrow">🌿 OAP Nature · Earth is our turf</p>
-      <h2 id="nature-title">Weather. Environment. Green spaces. Wellbeing.</h2>
-      <p>Nature reuses OAP Atlas for real place and weather observations, while wider environmental alerts, wildlife and resource feeds remain evidence-bound instead of being faked.</p>
+      <p class="mc-eyebrow">🌿 OAP Nature · Earth Is Our Turf</p>
+      <h2 id="nature-title">Nature</h2>
+      <p>Weather, green spaces and wellbeing. Live weather opens in OAP Atlas; wider environmental signals stay source-bound.</p>
       <div class="mc-status-grid">
-        <article class="mc-status-card"><strong>🌦️ Weather</strong><span>Live when the bounded Atlas weather source returns safely.</span></article>
-        <article class="mc-status-card"><strong>🌱 Sustainability</strong><span>Local-first environmental awareness.</span></article>
-        <article class="mc-status-card"><strong>🦋 Wildlife</strong><span>Source-backed wildlife context as evidence becomes available.</span></article>
-        <article class="mc-status-card"><strong>🌳 Green Spaces</strong><span>Discover parks and nature through OAP Atlas.</span></article>
-        <article class="mc-status-card"><strong>💚 Wellbeing</strong><span>Nature, movement, balance and recovery.</span></article>
+        <article class="mc-status-card"><strong>🌦️ Weather</strong><span>Live, source-bound observations in OAP Atlas.</span></article>
+        <article class="mc-status-card"><strong>🌳 Green Spaces</strong><span>Explore parks and nature.</span></article>
+        <article class="mc-status-card"><strong>💚 Wellbeing</strong><span>Nature, movement and balance.</span></article>
       </div>
       <div class="atlas-action-row">
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open live Weather / Atlas →</a>
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}">Explore green spaces →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='maps-weather-travel') }}">Open OAP Atlas →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}">Explore Nature →</a>
       </div>
     </section>
     {% endif %}
@@ -131,48 +135,72 @@
 
     {% if capability.slug == 'maps-weather-travel' %}
     <section class="mc-panel" aria-labelledby="atlas-screen-title">
-      <p class="mc-eyebrow">OAP Atlas · map screen</p>
-      <h2 id="atlas-screen-title">Map, attractions, movement and Direct</h2>
-      <div class="atlas-map-screen" role="img" aria-label="OAP Atlas first-party map screen from Earth to The Spot">
-        <div class="atlas-map-head"><strong>🌍 OAP Atlas Screen</strong><span class="atlas-mini">Public-safe · first-party UI · source-bound data</span></div>
-        <div class="atlas-stage">
-          <div class="atlas-grid-line"></div><div class="atlas-route"></div>
-          <div class="atlas-pin atlas-pin--home"><b>🌍 Earth</b><small>One human world</small></div>
-          <div class="atlas-pin atlas-pin--spot"><b>📍 The Spot</b><small>Postcode front door</small></div>
-          <div class="atlas-pin atlas-pin--direct"><b>🧾 OAP Direct</b><small>Attractions / stays / venues</small></div>
-          <div class="atlas-pin atlas-pin--movement"><b>🚶 Movement</b><small>Routes / requests / consent</small></div>
-        </div>
-        <div class="atlas-map-foot">
-          <article class="mc-status-card"><strong>🗺️ Map</strong><span>Visible first-party Atlas screen.</span></article>
-          <article class="mc-status-card"><strong>🎡 Attractions</strong><span>Places, stays, venues and experiences feed into OAP Direct.</span></article>
-          <article class="mc-status-card"><strong>🚶 Movement</strong><span>Trip planning and route readiness remain consent-first.</span></article>
-          <article class="mc-status-card"><strong>🧾 Direct</strong><span>Request interest. Confirmed booking needs supplier receipt.</span></article>
-        </div>
-      </div>
-      <form method="get" action="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">
+      <p class="mc-eyebrow">🌍 OAP Atlas · Earth Is Our Turf</p>
+      <h2 id="atlas-screen-title">Search. See the weather. Move.</h2>
+      <form class="atlas-search" method="get" action="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">
         <label for="location-query">Postcode or place</label>
         <input id="location-query" name="location" maxlength="120" value="{{ request.args.get('location', '') }}" placeholder="Mitcham, London, Begoro…" required>
-        <button class="mc-primary" type="submit">Search OAP Atlas</button>
+        <button class="mc-primary" type="submit">Search</button>
       </form>
-      <div class="atlas-action-row">
-        <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">Open OAP Direct →</a>
-        <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Open Movement →</a>
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">Open 21 Signals →</a>
-      </div>
-      <p class="atlas-warning"><strong>Truth lock:</strong> live place/weather results may appear when source data returns safely. Payment, dispatch and confirmed booking stay locked until proof exists.</p>
-      {% if location_error %}<p role="alert">That place could not be resolved safely. Check the spelling and try again.</p>{% endif %}
-      {% if location %}
-      <div class="mc-status-grid" aria-label="Resolved location hierarchy">
-        <article class="mc-status-card"><strong>Continent</strong><span>{{ location.continent }}</span></article>
-        <article class="mc-status-card"><strong>Country</strong><span>{{ location.country }}</span></article>
-        <article class="mc-status-card"><strong>County / region</strong><span>{{ location.county or 'Not returned' }}</span></article>
-        <article class="mc-status-card"><strong>Borough / district</strong><span>{{ location.borough or 'Not returned' }}</span></article>
-        <article class="mc-status-card"><strong>Postcode</strong><span>{{ location.postcode or 'Not returned' }}</span></article>
-      </div>
-      <h3>Weather signal</h3>
-      <p>{{ location.weather.temperature }}°C · feels like {{ location.weather.feels_like }}°C · wind {{ location.weather.wind_speed }} km/h</p>
-      <div class="mc-agent-grid">{% for day in location.weather.days %}<article class="mc-agent-card"><strong>{{ day.date }}</strong><p>{{ day.minimum }}°C to {{ day.maximum }}°C · rain {{ day.rain_chance }}%</p></article>{% endfor %}</div>
+
+      {% if location_error %}
+      <p role="alert">That place could not be resolved safely. Check the spelling and try again.</p>
+      {% elif not location %}
+      <p class="atlas-empty">Search a place to load source-bound location and weather data.</p>
       {% endif %}
+
+      {% if location %}
+      {% set wi = location.weather.intelligence %}
+      <div class="atlas-result">
+        <div class="atlas-result-head">
+          <div>
+            <p class="mc-eyebrow">📍 {{ location.postcode or location.borough or location.country }}</p>
+            <h3>{{ location.borough or location.county or location.country }}</h3>
+          </div>
+          <div class="atlas-path" aria-label="Resolved place hierarchy">
+            {% if location.continent %}<span>{{ location.continent }}</span>{% endif %}
+            {% if location.country %}<span>{{ location.country }}</span>{% endif %}
+            {% if location.county %}<span>{{ location.county }}</span>{% endif %}
+            {% if location.borough %}<span>{{ location.borough }}</span>{% endif %}
+            {% if location.postcode %}<span>{{ location.postcode }}</span>{% endif %}
+          </div>
+        </div>
+
+        <div class="atlas-live-grid">
+          <article class="atlas-live-card" aria-labelledby="atlas-weather-title">
+            <p class="mc-eyebrow">Live Weather</p>
+            <h3 id="atlas-weather-title" class="atlas-weather-main">{{ wi.icon }} {{ wi.condition }}</h3>
+            <div class="atlas-weather-meta">
+              <span>{% if location.weather.temperature is not none %}{{ location.weather.temperature }}°C{% else %}Temperature unavailable{% endif %}</span>
+              <span>{% if location.weather.feels_like is not none %}Feels {{ location.weather.feels_like }}°C{% else %}Feels-like unavailable{% endif %}</span>
+              <span>{% if location.weather.wind_speed is not none %}Wind {{ location.weather.wind_speed }} km/h{% else %}Wind unavailable{% endif %}</span>
+              <span class="atlas-advisory">Advisory {{ wi.advisory_level }}</span>
+            </div>
+            <p class="atlas-source">Observed {{ wi.observation_time }} · source-bound · 5-minute freshness window</p>
+          </article>
+
+          <article class="atlas-live-card">
+            <p class="mc-eyebrow">Next</p>
+            <h3>Move or book</h3>
+            <p>Use the resolved place without sharing live location in the background.</p>
+            <div class="atlas-action-row">
+              <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Movement →</a>
+              <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_marketplace') }}">OAP Direct →</a>
+            </div>
+          </article>
+        </div>
+
+        {% if location.weather.days %}
+        <div class="atlas-forecast" aria-label="Three day weather outlook">
+          {% for day in location.weather.days %}
+          <article><strong>{{ day.date }}</strong><span>{{ day.minimum if day.minimum is not none else '—' }}°C to {{ day.maximum if day.maximum is not none else '—' }}°C · rain {{ day.rain_chance if day.rain_chance is not none else '—' }}%</span></article>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <p class="atlas-truth">Explicit search only · source-bound weather · no hidden tracking. Payment, dispatch and confirmed booking remain separate.</p>
     </section>
     {% endif %}
 

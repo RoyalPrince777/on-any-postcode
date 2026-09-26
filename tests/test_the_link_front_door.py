@@ -15,7 +15,7 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
         "Pulse",
         "Signal",
         "Opportunities",
-        "Maps",
+        "OAP Atlas",
         "OAP Direct",
         "Movement",
         "Travel",
