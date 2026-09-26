@@ -57,7 +57,7 @@ def apply(*, assume_yes: bool = False) -> dict[str, object]:
         raise LabImmutabilityMigrationBlocked(
             "explicit_human_approval_required"
         )
-    if not postgres_db.configured():
+    if not bool(postgres_db._lab_database_url()):
         raise LabImmutabilityMigrationBlocked("database_unconfigured")
 
     before = workspaces.lab_immutability_status()
@@ -70,7 +70,7 @@ def apply(*, assume_yes: bool = False) -> dict[str, object]:
         }
 
     try:
-        with postgres_db.connect() as connection:
+        with postgres_db.lab_connect() as connection:
             connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680261,))
             connection.execute(APPLY_SQL)
             connection.commit()
@@ -98,10 +98,10 @@ def rollback(*, assume_yes: bool = False) -> dict[str, object]:
         raise LabImmutabilityMigrationBlocked(
             "explicit_human_approval_required"
         )
-    if not postgres_db.configured():
+    if not bool(postgres_db._lab_database_url()):
         raise LabImmutabilityMigrationBlocked("database_unconfigured")
     try:
-        with postgres_db.connect() as connection:
+        with postgres_db.lab_connect() as connection:
             connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680261,))
             connection.execute(ROLLBACK_SQL)
             connection.commit()
