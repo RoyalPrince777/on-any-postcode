@@ -1126,3 +1126,139 @@ def test_sika_alert_projection_tracks_dismissed_without_deleting_history():
         assert alert["event_type"] == "FRAUD_PREFLIGHT"
     finally:
         sika_security_ledger.history = original_history
+
+
+def test_sika_payment_intent_cancellation_blocks_final_review():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    original_state = sika_security_ledger.latest_state
+    events = [
+        {
+            "event_id": "cancel-1",
+            "event_type": "PAYMENT_INTENT_CANCELLED",
+            "details": {"payment_intent_id": "intent-1"},
+        },
+        {
+            "event_id": "proof-1",
+            "event_type": "STEP_UP_PROOF_BOUND",
+            "details": {"challenge_id": "challenge-1", "payment_intent_id": "intent-1"},
+        },
+        {
+            "event_id": "resolved-1",
+            "event_type": "STEP_UP_RESOLVED",
+            "details": {"challenge_id": "challenge-1", "status": "approved_for_review"},
+        },
+        {
+            "event_id": "link-1",
+            "event_type": "STEP_UP_PAYMENT_INTENT_LINKED",
+            "details": {"challenge_id": "challenge-1", "payment_intent_id": "intent-1"},
+        },
+        {
+            "event_id": "intent-created",
+            "event_type": "PAYMENT_INTENT_CREATED",
+            "details": {
+                "payment_intent_id": "intent-1",
+                "beneficiary_id": "beneficiary-1",
+                "beneficiary_version": "v1",
+                "expires_at_epoch": 9999999999,
+            },
+        },
+    ]
+    sika_security_ledger.history = lambda owner_id, limit=100: list(events)
+    sika_security_ledger.latest_state = lambda owner_id: {
+        "beneficiaries": [{"beneficiary_id": "beneficiary-1", "beneficiary_version": "v1"}]
+    }
+    try:
+        gate = sika_security_ledger.final_payment_review_gate(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="challenge-1",
+            payment_intent_id="intent-1",
+        )
+        assert gate["intent_cancelled"] is True
+        assert gate["allowed_to_final_review"] is False
+        assert gate["payment_execution_authorised"] is False
+    finally:
+        sika_security_ledger.history = original_history
+        sika_security_ledger.latest_state = original_state
+
+
+def test_sika_beneficiary_version_change_invalidates_old_intent():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    original_state = sika_security_ledger.latest_state
+    events = [
+        {
+            "event_id": "proof-1",
+            "event_type": "STEP_UP_PROOF_BOUND",
+            "details": {"challenge_id": "challenge-1", "payment_intent_id": "intent-1"},
+        },
+        {
+            "event_id": "resolved-1",
+            "event_type": "STEP_UP_RESOLVED",
+            "details": {"challenge_id": "challenge-1", "status": "approved_for_review"},
+        },
+        {
+            "event_id": "link-1",
+            "event_type": "STEP_UP_PAYMENT_INTENT_LINKED",
+            "details": {"challenge_id": "challenge-1", "payment_intent_id": "intent-1"},
+        },
+        {
+            "event_id": "intent-created",
+            "event_type": "PAYMENT_INTENT_CREATED",
+            "details": {
+                "payment_intent_id": "intent-1",
+                "beneficiary_id": "beneficiary-1",
+                "beneficiary_version": "old-version",
+                "expires_at_epoch": 9999999999,
+            },
+        },
+    ]
+    sika_security_ledger.history = lambda owner_id, limit=100: list(events)
+    sika_security_ledger.latest_state = lambda owner_id: {
+        "beneficiaries": [{"beneficiary_id": "beneficiary-1", "beneficiary_version": "new-version"}]
+    }
+    try:
+        gate = sika_security_ledger.final_payment_review_gate(
+            "11111111-1111-1111-1111-111111111111",
+            challenge_id="challenge-1",
+            payment_intent_id="intent-1",
+        )
+        assert gate["beneficiary_unchanged"] is False
+        assert gate["allowed_to_final_review"] is False
+    finally:
+        sika_security_ledger.history = original_history
+        sika_security_ledger.latest_state = original_state
+
+
+def test_sika_payment_intent_idempotency_reuses_existing_intent():
+    from mission_control import sika_security_ledger
+
+    original_history = sika_security_ledger.history
+    existing = [{
+        "event_id": "intent-receipt",
+        "event_type": "PAYMENT_INTENT_CREATED",
+        "details": {
+            "payment_intent_id": "intent-1",
+            "beneficiary_id": "beneficiary-1",
+            "beneficiary_version": "v1",
+            "amount_sika": "50.00",
+            "status": "security_review_only",
+            "expires_at_epoch": 9999999999,
+            "idempotency_key": "idem-1",
+        },
+    }]
+    sika_security_ledger.history = lambda owner_id, limit=100: list(existing)
+    try:
+        result = sika_security_ledger.create_payment_intent(
+            "11111111-1111-1111-1111-111111111111",
+            beneficiary_id="beneficiary-1",
+            amount_sika="50",
+            idempotency_key="idem-1",
+        )
+        assert result["idempotent"] is True
+        assert result["payment_intent_id"] == "intent-1"
+        assert result["money_moved"] is False
+    finally:
+        sika_security_ledger.history = original_history
