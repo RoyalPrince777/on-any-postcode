@@ -645,8 +645,15 @@ def chat(
         brain["thinking_level"] = level
         brain["studio_mode"] = resolved_studio_mode
         brain["resolved_depth"] = resolved_depth
-        workspace = studio_intelligence.workspace(studio_workspace if resolved_studio_mode else "auto")
+        requested_workspace = str(studio_workspace or "auto").strip().lower()
+        if resolved_studio_mode and requested_workspace in {"", "auto"}:
+            workspace = studio_intelligence.select_workspace(clean)
+        else:
+            workspace = studio_intelligence.workspace(requested_workspace if resolved_studio_mode else "auto")
         brain["studio_workspace"] = workspace["id"]
+        brain["studio_workspace_auto_selected"] = bool(
+            resolved_studio_mode and requested_workspace in {"", "auto"} and workspace["id"] != "auto"
+        )
         if workspace.get("code_mode"):
             code_mode = True
         if str(workspace.get("thinking_level") or "auto") != "auto" and str(thinking_level or "auto") == "auto":

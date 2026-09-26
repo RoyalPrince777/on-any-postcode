@@ -12,7 +12,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import smi_founder_assets, smi_receipt_backend, studio_media_backend
+from oap.smi import capability_fabric
+
+from . import postgres_db, smi_founder_assets, smi_receipt_backend, studio_media_backend
 
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
@@ -105,6 +107,99 @@ ACTIVATION_PROMPT = (
     "prepare publishing, distribution, campaign and analysis for: "
 )
 
+
+
+
+_WORKSPACE_TERMS = (
+    ("build", ("build","app","website","dashboard","preview","deploy candidate")),
+    ("data", ("database","schema","table","query","sql","migration","data model")),
+    ("code", ("code","debug","bug","refactor","test","pull request","commit")),
+    ("motion", ("video","motion","animate","scene","camera","bring alive")),
+    ("music", ("music","song","beat","lyrics","mix","master","stems","album")),
+    ("research", ("research","sources","compare","evidence","deep dive","report")),
+    ("omni", ("screen","camera","image","audio","video","document","multimodal")),
+    ("fast", ("quick","fast","short","rewrite","summarise","summarize")),
+)
+
+
+def select_workspace(query: object) -> dict[str, Any]:
+    text = str(query or "").casefold()
+    scored: list[tuple[int, int, str]] = []
+    for index, (workspace_id, terms) in enumerate(_WORKSPACE_TERMS):
+        score = sum(term in text for term in terms)
+        if score:
+            scored.append((score, -index, workspace_id))
+    if not scored:
+        return workspace("auto")
+    scored.sort(reverse=True)
+    return workspace(scored[0][2])
+
+
+def workspace_preflight(workspace_id: object) -> dict[str, Any]:
+    item = workspace(workspace_id)
+    if item["id"] == "auto":
+        return {"workspace":item,"state":"ready","signal":"green","action":"auto_route","message":"SMI will select the smallest sufficient workspace from the request.","execution_granted":False,"human_authority_final":True}
+    backend = studio_media_backend.status()
+    asset_store = smi_founder_assets.schema_status()
+    receipt_state = smi_receipt_backend.backend_configuration_status()
+    db_state = postgres_db.postgres_status()
+    fabric = capability_fabric.status()
+    common = {
+        "workspace": item,
+        "execution_granted": False,
+        "publishing_granted": False,
+        "distribution_granted": False,
+        "payment_authority_granted": False,
+        "human_authority_final": True,
+        "stop_available": True,
+        "privacy_fail_closed": True,
+        "provider_neutral_capability_fabric": bool(fabric.get("provider_neutral")),
+        "durable_receipt_backend_configured": bool(receipt_state.get("durable_backend_configured")),
+        "owner_asset_store_ready": bool(asset_store.get("schema_ready")),
+    }
+    if item["id"]=="build":
+        return {**common,"state":"ready","signal":"green","action":"governed_build","message":"Build is ready for proposals, tests, exact diffs, rollback-aware GitHub handoff and preview preparation. Production mutation remains receipt-gated.","live_preview_loop":"candidate_preview_then_human_review"}
+    if item["id"]=="data":
+        ready=bool(db_state.get("initialized"))
+        return {**common,"state":"ready" if ready else "blocked","signal":"green" if ready else "red","action":"read_only_data_builder","message":"Data can inspect schema/state and prepare migration/query plans. Writes remain locked behind explicit Human Authority.","database_initialized":ready,"write_performed":False,"migration_preview_supported":True}
+    if item["id"]=="code":
+        return {**common,"state":"ready","signal":"green","action":"governed_code","message":"Code is ready for plan, edit, debug, test, review and rollback-aware proposal work. Deploy remains separately governed."}
+    if item["id"]=="fast":
+        return {**common,"state":"ready","signal":"green","action":"instant_route","message":"Fast uses the smallest sufficient reasoning path without bypassing Guardian, STOP, receipts or truth checks."}
+    if item["id"]=="motion":
+        ready=bool(backend.get("configured") and backend.get("scene_builder_ready") and backend.get("bring_alive_ready"))
+        return {**common,"state":"ready" if ready else "locked","signal":"green" if ready else "yellow","action":"motion_generation","message":"Motion uses the Studio image/video backend when configured; artifact proof remains required before Green.","generation_backend_configured":bool(backend.get("configured")),"artifact_proof_required":True}
+    if item["id"]=="music":
+        return {**common,"state":"ready","signal":"yellow","action":"music_creation_intelligence","message":"Music is ready for original concepts, lyrics, arrangement, release preparation and OAP Music handoff. Direct audio synthesis stays locked until independently proven.","audio_generation_proven":False,"rights_proof_required":True}
+    if item["id"]=="omni":
+        return {**common,"state":"ready","signal":"green","action":"multimodal_workspace","message":"Omni accepts governed text, image, audio, video, document, camera and screen context through existing SMI capture boundaries."}
+    if item["id"]=="research":
+        return {**common,"state":"ready","signal":"green","action":"evidence_research","message":"Research uses evidence-first, parallel retrieval and synthesis capabilities with provenance and Human Authority boundaries."}
+    raise ValueError("unsupported_studio_workspace")
+
+
+def threat_posture() -> dict[str, Any]:
+    backend=studio_media_backend.status()
+    assets=smi_founder_assets.schema_status()
+    receipts=smi_receipt_backend.backend_configuration_status()
+    return {
+        "component":"OAP Studio Threat Posture",
+        "feature_sprawl_control":"one_studio_eight_modes",
+        "provider_dependency_visible":True,
+        "media_backend_configured":bool(backend.get("configured")),
+        "provider_outage_fails_closed":True,
+        "rights_proof_required":True,
+        "raw_generated_media_retained_in_index":False,
+        "owner_scoped_asset_index_ready":bool(assets.get("schema_ready")),
+        "durable_receipts_configured":bool(receipts.get("durable_backend_configured")),
+        "silent_database_write_allowed":False,
+        "silent_publish_allowed":False,
+        "silent_distribution_allowed":False,
+        "silent_payment_allowed":False,
+        "mobile_contextual_workspace_required":True,
+        "external_named_agent_authority":False,
+        "human_authority_final":True,
+    }
 
 
 def workspace(workspace_id: object = "auto") -> dict[str, Any]:
@@ -314,6 +409,8 @@ def status() -> dict[str, Any]:
         and asset_store.get("schema_ready")
         and receipt_config.get("durable_backend_configured")
     )
+    generated_artifact_proven = bool(asset_store.get("studio_generated_asset_count", 0))
+    full_live_certificate = bool(machine_dependencies_configured and generated_artifact_proven)
     return {
         "id": STUDIO_ID,
         "name": STUDIO_NAME,
@@ -341,12 +438,15 @@ def status() -> dict[str, Any]:
         ),
         "machine_dependencies_configured": machine_dependencies_configured,
         "machine_scope_complete": machine_dependencies_configured,
-        "full_live_certificate": False,
+        "full_live_certificate": full_live_certificate,
         "full_live_certificate_reason": (
-            "real_generated_artifact_receipt_required"
-            if machine_dependencies_configured
-            else "machine_dependency_not_configured"
+            "proven_generated_artifact_indexed"
+            if full_live_certificate
+            else ("real_generated_artifact_receipt_required" if machine_dependencies_configured else "machine_dependency_not_configured")
         ),
+        "proven_generated_artifact_count": int(asset_store.get("studio_generated_asset_count", 0)),
+        "auto_workspace_routing": True,
+        "threat_posture": threat_posture(),
         "media": list(MEDIA),
         "capture_inputs": list(CAPTURE_INPUTS),
         "entry_points": list(ENTRY_POINTS),
