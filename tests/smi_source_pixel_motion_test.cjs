@@ -29,5 +29,9 @@ const source=fs.readFileSync("mission_control/static/smi_source_pixel_motion.js"
 const html=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
 assert.ok(source.includes("fullSceneSourcePixelMotion:played>0"));
 assert.ok(source.includes("audioCues+=1"));
+assert.ok(source.includes("fullBodyRigProven"));
+assert.ok(source.includes("accurateSoftwareLipSyncProven"));
+assert.ok(source.includes("rigLayerFrames"));
+assert.ok(source.includes("maxAudioClockDeltaMs"));
 assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session"));
 console.log("SMI_SOURCE_PIXEL_MOTION_PASS");

@@ -96,7 +96,8 @@
    upper_body:await digestParts([["head",samples["head"].data],["chest",samples["chest"].data],["left-hand",samples["left-hand"].data],["right-hand",samples["right-hand"].data]])
   });
   let epoch=0,frame=0,last=0,phase="ready",live=false,reduced=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),played=0,speechUntil=0,audioCues=0;
-  let playbackEpoch=null,localAudio=false,localViseme="silence";
+  let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
+  const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
   function draw(ms){
    context.drawImage(image,0,0);
@@ -111,6 +112,9 @@
     context.putImageData(patch,region.x,region.y);
    }
    played++;
+   rigLayerFrames.head+=1;rigLayerFrames.eyes+=1;rigLayerFrames.breathing+=1;
+   rigLayerFrames.face+=1;rigLayerFrames.hands+=1;rigLayerFrames.upper_body+=1;
+   if(phase==="speaking"&&localAudio&&localViseme!=="silence")rigLayerFrames.mouth_visemes+=1;
   }
   function tick(now){
    if(epoch<0)return;
@@ -139,6 +143,7 @@
       !Object.hasOwn(LOCAL_POSE,cue?.viseme))return;
    localViseme=cue.viseme;
    audioCues+=1;
+   if(Number.isFinite(cue.atMs))maxAudioClockDeltaMs=Math.max(maxAudioClockDeltaMs,Math.abs(cue.audioClockMs-cue.atMs));
    draw(win.performance.now());
   });
   win.addEventListener("oap-smi-speech-boundary",event=>{
@@ -149,10 +154,19 @@
   win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);image.close?.();});
   frame=win.requestAnimationFrame(tick);
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
+  function proofSnapshot(){
+   const layerKeys=["eyes","head","breathing","mouth_visemes","face","hands","upper_body"];
+   const allHashes=layerKeys.every(name=>/^[a-f0-9]{64}$/.test(String(evidenceLayerSha256[name]||"")));
+   const fullBodyRigProven=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
+   const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
+    sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
+    maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,fullBodyRigProven,
+    accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
+    physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
+  }
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
-   accurateLipSyncProven:false,fullBodyRigProven:false,privacyNoTelemetry:true,
-   snapshot:()=>Object.freeze({phase,live,frames:played,audioCues,localAudio,
-    localViseme,sourceSha256:actual,evidenceLayerSha256,fullSceneSourcePixelMotion:played>0}),
+   privacyNoTelemetry:true,snapshot:proofSnapshot,
    stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);}});
  }
  return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,attach});
