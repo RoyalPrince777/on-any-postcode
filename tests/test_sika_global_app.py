@@ -839,7 +839,7 @@ def test_sika_step_up_model_never_authorises_payment_execution():
     events = [{
         "event_id": "event-1",
         "event_type": "STEP_UP_CREATED",
-        "details": {"challenge_id": "challenge-1"},
+        "details": {"challenge_id": "challenge-1", "expires_at_epoch": 9999999999},
     }]
 
     def fake_history(owner_id, *, limit=50):
