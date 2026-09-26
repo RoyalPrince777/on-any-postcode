@@ -189,16 +189,18 @@ def latest_state(owner_id: object) -> dict[str, object]:
                     "registered_at": item.get("created_at"),
                     "cooling_off_minutes": 30,
                 }
-        elif kind in {"SECURITY_ALERT_ACK", "SECURITY_ALERT_RECOVERED"}:
+        elif kind in {"SECURITY_ALERT_ACK", "SECURITY_ALERT_RECOVERED", "SECURITY_ALERT_DISMISSED"}:
             target = str(details.get("security_event_id") or "")
             if target:
                 state = alert_status.setdefault(
-                    target, {"acknowledged": False, "recovered": False}
+                    target, {"acknowledged": False, "recovered": False, "dismissed": False}
                 )
                 if kind == "SECURITY_ALERT_ACK":
                     state["acknowledged"] = True
-                else:
+                elif kind == "SECURITY_ALERT_RECOVERED":
                     state["recovered"] = True
+                else:
+                    state["dismissed"] = True
         if str(item.get("severity") or "") in {"WARNING", "HIGH", "CRITICAL"}:
             alert_items.append({
                 "event_id": item.get("event_id"),
@@ -211,7 +213,7 @@ def latest_state(owner_id: object) -> dict[str, object]:
     for item in reversed(alert_items[-20:]):
         state = alert_status.get(
             str(item.get("event_id") or ""),
-            {"acknowledged": False, "recovered": False},
+            {"acknowledged": False, "recovered": False, "dismissed": False},
         )
         alerts.append({**item, **state})
 
@@ -574,4 +576,164 @@ def create_step_up_for_payment_intent(
         **challenge,
         "payment_intent_id": intent_id,
         "payment_execution_authorised": False,
+    }
+
+
+def bind_step_up_proof(
+    owner_id: object,
+    *,
+    challenge_id: object,
+    payment_intent_id: object,
+    proof_method: object,
+) -> dict[str, object]:
+    challenge = str(challenge_id or "").strip()
+    intent = str(payment_intent_id or "").strip()
+    method = str(proof_method or "").strip().lower()
+    if not challenge or not intent:
+        raise ValueError("challenge_and_payment_intent_required")
+    if method not in {"bank_app_password", "trusted_device_reauth"}:
+        raise ValueError("unsupported_step_up_proof_method")
+
+    events = history(owner_id, limit=100)
+    linked = any(
+        item.get("event_type") == "STEP_UP_PAYMENT_INTENT_LINKED"
+        and dict(item.get("details") or {}).get("challenge_id") == challenge
+        and dict(item.get("details") or {}).get("payment_intent_id") == intent
+        for item in events
+    )
+    if not linked:
+        raise ValueError("step_up_not_linked_to_payment_intent")
+
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="STEP_UP_PROOF_BOUND",
+        severity="NOTICE",
+        details={
+            "challenge_id": challenge,
+            "payment_intent_id": intent,
+            "proof_method": method,
+            "payment_execution_authorised": False,
+        },
+    )
+    return {
+        "challenge_id": challenge,
+        "payment_intent_id": intent,
+        "proof_method": method,
+        "proof_bound": True,
+        "security_receipt_id": receipt.get("event_id"),
+        "payment_execution_authorised": False,
+        "money_moved": False,
+    }
+
+
+def final_payment_review_gate(
+    owner_id: object,
+    *,
+    challenge_id: object,
+    payment_intent_id: object,
+) -> dict[str, object]:
+    challenge = str(challenge_id or "").strip()
+    intent = str(payment_intent_id or "").strip()
+    events = history(owner_id, limit=100)
+
+    resolved = next(
+        (
+            item for item in events
+            if item.get("event_type") == "STEP_UP_RESOLVED"
+            and dict(item.get("details") or {}).get("challenge_id") == challenge
+        ),
+        None,
+    )
+    proof = next(
+        (
+            item for item in events
+            if item.get("event_type") == "STEP_UP_PROOF_BOUND"
+            and dict(item.get("details") or {}).get("challenge_id") == challenge
+            and dict(item.get("details") or {}).get("payment_intent_id") == intent
+        ),
+        None,
+    )
+    linked = any(
+        item.get("event_type") == "STEP_UP_PAYMENT_INTENT_LINKED"
+        and dict(item.get("details") or {}).get("challenge_id") == challenge
+        and dict(item.get("details") or {}).get("payment_intent_id") == intent
+        for item in events
+    )
+    approved_for_review = bool(
+        resolved
+        and dict(resolved.get("details") or {}).get("status") == "approved_for_review"
+    )
+    allowed_to_final_review = bool(linked and proof and approved_for_review)
+    return {
+        "challenge_id": challenge,
+        "payment_intent_id": intent,
+        "linked": linked,
+        "proof_bound": bool(proof),
+        "approved_for_review": approved_for_review,
+        "allowed_to_final_review": allowed_to_final_review,
+        "payment_execution_authorised": False,
+        "money_moved": False,
+    }
+
+
+def reauth_backoff_state(owner_id: object) -> dict[str, object]:
+    events = history(owner_id, limit=50)
+    failures = 0
+    latest_failure_at = None
+    for item in events:
+        kind = str(item.get("event_type") or "")
+        if kind == "REAUTH_SUCCESS":
+            break
+        if kind == "REAUTH_FAILED":
+            failures += 1
+            if latest_failure_at is None:
+                latest_failure_at = str(item.get("created_at") or "")
+
+    lock_seconds = 0
+    if failures >= 7:
+        lock_seconds = 900
+    elif failures >= 5:
+        lock_seconds = 300
+    elif failures >= 3:
+        lock_seconds = 60
+
+    remaining = 0
+    if lock_seconds and latest_failure_at:
+        try:
+            created = datetime.fromisoformat(latest_failure_at.replace("Z", "+00:00"))
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            elapsed = (datetime.now(timezone.utc) - created.astimezone(timezone.utc)).total_seconds()
+            remaining = max(0, int(lock_seconds - elapsed))
+        except ValueError:
+            remaining = lock_seconds
+
+    return {
+        "failed_attempts_since_success": failures,
+        "lock_seconds": lock_seconds,
+        "lock_remaining_seconds": remaining,
+        "locked": remaining > 0,
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def dismiss_alert(owner_id: object, event_id: object) -> dict[str, object]:
+    target = str(event_id or "").strip()
+    if not target:
+        raise ValueError("security_event_id_required")
+    events = history(owner_id, limit=100)
+    if not any(str(item.get("event_id") or "") == target for item in events):
+        raise ValueError("security_event_not_found")
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SECURITY_ALERT_DISMISSED",
+        severity="INFO",
+        details={"security_event_id": target, "dismissed": True},
+    )
+    return {
+        "security_event_id": target,
+        "dismissed": True,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
     }
