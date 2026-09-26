@@ -108,7 +108,7 @@ def test_earth_replaces_flag_vote_and_chronicle_nature_keep_real_paths(client):
     assert "OAP Nature" in nature
     assert "Earth is our turf" in nature
     assert 'href="/the-spot/maps-weather-travel"' in nature
-    assert "wider environmental alerts" in nature
+    assert "wider environmental signals stay source-bound" in nature
 
 
 def test_activity_adventure_reuses_direct_booking_engine_without_fake_confirmation(client):
@@ -148,14 +148,14 @@ def test_creator_business_and_support_handoffs_preserve_boundaries(client):
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
     page = client.get("/the-spot").get_data(as_text=True)
 
-    assert "Booking · Maps · Movement" in page
-    assert "🗺️ Maps" in page
+    assert "OAP Atlas · Booking · Movement" in page
+    assert "🌍 OAP Atlas" in page
     assert "📅 Booking" in page
     assert "🚶 Movement" in page
     assert 'href="/travel/direct"' in page
-    assert "quote, hold and human-confirmed reservation request" in page
+    assert "Quote, hold and reservation request through OAP Direct." in page
     assert "supplier confirmation is required before a booking is called confirmed" in page.lower()
-    assert "Payment capture, automatic dispatch and fake-live route claims remain blocked" in page
+    assert "Payment and automatic dispatch remain separate." in page
 
 
 def test_booking_and_maps_public_front_doors_are_reachable(client):
@@ -164,7 +164,7 @@ def test_booking_and_maps_public_front_doors_are_reachable(client):
 
     assert maps.status_code == 200
     assert booking.status_code == 200
-    assert "Map Intelligence" in maps.get_data(as_text=True)
+    assert "OAP Atlas" in maps.get_data(as_text=True)
     assert "OAP Direct" in booking.get_data(as_text=True)
 
 
