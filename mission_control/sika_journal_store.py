@@ -187,3 +187,119 @@ def statement(owner_id: object) -> dict[str, object]:
         "money_claim": False,
         "executable": False,
     }
+
+
+def set_treasury_rate(
+    owner_id: object,
+    *,
+    currency: str,
+    gbp_per_unit: object,
+    source: str,
+) -> dict[str, object]:
+    from .sika_global import normalize_currency
+
+    owner = _owner(owner_id)
+    code = normalize_currency(currency)
+    rate = Decimal(str(gbp_per_unit))
+    if rate <= 0:
+        raise ValueError("treasury_rate_must_be_positive")
+    clean_source = str(source or "").strip()[:160]
+    if not clean_source:
+        raise ValueError("rate_source_required")
+    rate_id = str(uuid4())
+    payload = {
+        "rate_id": rate_id,
+        "owner_id": owner,
+        "currency": code,
+        "gbp_per_unit": str(rate),
+        "source": clean_source,
+        "monetary_execution": False,
+    }
+    item = {**payload, "digest": _hash(payload)}
+    body = json.dumps(item, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    try:
+        with postgres_db.connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (25082510,))
+            row = connection.execute(
+                """INSERT INTO oap_workspace_records(
+                       identity_id,workspace_id,title,body,status
+                   ) VALUES (%s,'sika',%s,%s,'active')
+                   RETURNING record_id""",
+                (owner, f"SIKA-RATE:{code}:{rate_id}", body),
+            ).fetchone()
+            record_id = str(row[0])
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (25082509,))
+            prior_audit = connection.execute(
+                "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+            ).fetchone()
+            prev_audit_hash = str(prior_audit[0]) if prior_audit else "GENESIS"
+            metadata = {
+                "workspace_id": "sika",
+                "rate_id": rate_id,
+                "record_id": record_id,
+                "currency": code,
+                "digest": item["digest"],
+                "execution_authorised": False,
+            }
+            canonical = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+            current_hash = sha256((prev_audit_hash + canonical).encode("utf-8")).hexdigest()
+            connection.execute(
+                """INSERT INTO audit_events(
+                       prev_hash,curr_hash,actor_id,actor_type,authority_level,
+                       action,target,reason,correlation_id,metadata
+                   ) VALUES (
+                       %s,%s,%s,'AUTHENTICATED_USER',NULL,
+                       'SIKA_TREASURY_RATE_SET',%s,
+                       'owner_scoped_first_party_rate_snapshot',%s,%s::jsonb
+                   )""",
+                (
+                    prev_audit_hash,
+                    current_hash,
+                    owner,
+                    f"sika_rate:{code}:{rate_id}",
+                    rate_id,
+                    canonical,
+                ),
+            )
+            connection.commit()
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise SikaJournalUnavailable("treasury_rate_write_failed") from exc
+    return {
+        **item,
+        "record_id": record_id,
+        "audit_recorded": True,
+        "execution_enabled": False,
+    }
+
+
+def latest_treasury_rates(owner_id: object) -> dict[str, dict[str, object]]:
+    owner = _owner(owner_id)
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT body,created_at
+                   FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id='sika'
+                     AND status='active' AND title LIKE 'SIKA-RATE:%%'
+                   ORDER BY created_at DESC, record_id DESC""",
+                (owner,),
+            ).fetchall()
+    except Exception as exc:
+        raise SikaJournalUnavailable("treasury_rate_read_failed") from exc
+    result: dict[str, dict[str, object]] = {}
+    for row in rows:
+        try:
+            item = json.loads(str(row[0]))
+        except ValueError as exc:
+            raise SikaJournalUnavailable("treasury_rate_unreadable") from exc
+        if not isinstance(item, dict) or item.get("owner_id") != owner:
+            raise SikaJournalUnavailable("treasury_rate_scope_mismatch")
+        digest = item.get("digest")
+        if digest != _hash({k: v for k, v in item.items() if k != "digest"}):
+            raise SikaJournalUnavailable("treasury_rate_tampered")
+        code = str(item.get("currency") or "")
+        if code and code not in result:
+            result[code] = item
+    return result
