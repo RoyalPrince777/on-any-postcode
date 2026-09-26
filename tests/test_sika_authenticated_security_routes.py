@@ -495,6 +495,7 @@ def test_sika_session_registry_rejects_untrusted_device(monkeypatch):
         sika_session_registry.activate(
             AUTH_OWNER,
             device_id="attacker-device",
+            password="bank-app-password-123",
         )
     except ValueError as exc:
         assert str(exc) == "trusted_bound_device_required"
@@ -578,9 +579,10 @@ def test_session_activate_uses_authenticated_owner_not_request_owner(monkeypatch
     )
     captured = {}
 
-    def fake_activate(owner_id, *, device_id):
+    def fake_activate(owner_id, *, device_id, password):
         captured["owner_id"] = owner_id
         captured["device_id"] = device_id
+        captured["password"] = password
         return {
             "session_id": "session-a",
             "device_id": device_id,
@@ -607,6 +609,7 @@ def test_session_activate_uses_authenticated_owner_not_request_owner(monkeypatch
     assert response.status_code == 201
     assert captured["owner_id"] == AUTH_OWNER
     assert captured["owner_id"] != ATTACKER_OWNER
+    assert captured["password"] == "bank-app-password-123"
     assert body["money_execution_enabled"] is False
 
 
