@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from uuid import uuid4
 
 import pytest
@@ -36,7 +38,6 @@ def test_receipt_hash_chain_detects_tamper_and_reordering():
 def test_receipts_hash_actual_bytes_and_reject_claimed_hash_injection():
     owner, release = _ids()
     result = _receipt(owner, release, "asset_provenance", payload=b"asset bytes")
-    import hashlib
     assert result["evidence_sha256"] == hashlib.sha256(b"asset bytes").hexdigest()
     with pytest.raises(ValueError, match="invalid_evidence_bytes"):
         evidence.build_receipt(
@@ -124,6 +125,7 @@ def test_caller_cannot_make_public_or_playable_with_flags():
 
 def test_music_evidence_routes_are_registered():
     from flask import Flask
+
     from mission_control import product_core_views
 
     app = Flask(__name__)
@@ -135,8 +137,8 @@ def test_music_evidence_routes_are_registered():
 
 def test_evidence_write_uses_authenticated_owner_and_stays_fail_closed(monkeypatch):
     from flask import Flask
+
     from mission_control import product_core_views
-    import base64
 
     app = Flask(__name__)
     release_id = str(uuid4())
