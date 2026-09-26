@@ -86,8 +86,8 @@ def init_app(app: Flask) -> None:
     from .oap_library_views import bp as oap_library_bp
     from .on_any_place_routes import bp as on_any_place_bp
     from .product_core_views import bp as product_core_bp
-    from .sika_global_views import bp as sika_global_bp
     from .provider_views import bp as provider_bp
+    from .sika_global_views import bp as sika_global_bp
     from .travel_supply_views import bp as travel_supply_bp
     from .views import bp
 
