@@ -1044,7 +1044,18 @@ def test_sika_final_payment_review_requires_link_proof_and_approved_resolution()
     from mission_control import sika_security_ledger
 
     original_history = sika_security_ledger.history
+    original_state = sika_security_ledger.latest_state
     base = [
+        {
+            "event_id": "intent-created",
+            "event_type": "PAYMENT_INTENT_CREATED",
+            "details": {
+                "payment_intent_id": "intent-1",
+                "beneficiary_id": "beneficiary-1",
+                "beneficiary_version": "v1",
+                "expires_at_epoch": 9999999999,
+            },
+        },
         {
             "event_id": "link-1",
             "event_type": "STEP_UP_PAYMENT_INTENT_LINKED",
@@ -1063,6 +1074,11 @@ def test_sika_final_payment_review_requires_link_proof_and_approved_resolution()
         },
     ]
     sika_security_ledger.history = lambda owner_id, limit=100: list(base)
+    sika_security_ledger.latest_state = lambda owner_id: {
+        "beneficiaries": [
+            {"beneficiary_id": "beneficiary-1", "beneficiary_version": "v1"}
+        ]
+    }
     try:
         blocked = sika_security_ledger.final_payment_review_gate(
             "11111111-1111-1111-1111-111111111111",
@@ -1094,6 +1110,7 @@ def test_sika_final_payment_review_requires_link_proof_and_approved_resolution()
         assert allowed["money_moved"] is False
     finally:
         sika_security_ledger.history = original_history
+        sika_security_ledger.latest_state = original_state
 
 
 def test_sika_alert_projection_tracks_dismissed_without_deleting_history():
