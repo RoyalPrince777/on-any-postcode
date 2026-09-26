@@ -593,3 +593,52 @@ def test_surface_has_bank_app_password_controls_and_no_founder_links():
         assert f'id="{control}"' in html
     assert 'href="/activate-founder"' not in html
     assert 'href="/enter-my-world"' not in html
+
+
+def test_owner_device_binding_is_canonical_uuid_scoped_and_founder_auth_isolated():
+    client = app.test_client()
+    owner = "11111111-1111-4111-8111-111111111111"
+    device = "sika-owner-device-test"
+
+    created = client.post("/api/sika/device/bind", json={
+        "owner_id": owner,
+        "device_id": device,
+    })
+    assert created.status_code == 201
+    body = created.get_json()
+    assert body["bound"] is True
+    assert body["founder_auth_touched"] is False
+    assert body["identity_authority_changed"] is False
+    assert body["esim_provisioned"] is False
+    assert body["production_ready"] is False
+
+    status = client.get(f"/api/sika/device/status?owner_id={owner}&device_id={device}")
+    assert status.status_code == 200
+    snapshot = status.get_json()
+    assert snapshot["matched"] is True
+    assert snapshot["durable"] is False
+    assert snapshot["hrm_recorded"] is False
+
+    removed = client.post("/api/sika/device/unbind", json={
+        "owner_id": owner,
+        "device_id": device,
+    })
+    assert removed.status_code == 200
+    assert removed.get_json()["unbound"] is True
+
+
+def test_owner_device_binding_rejects_noncanonical_owner():
+    client = app.test_client()
+    response = client.post("/api/sika/device/bind", json={
+        "owner_id": "local-founder",
+        "device_id": "device-a",
+    })
+    assert response.status_code == 400
+    assert response.get_json()["bound"] is False
+
+
+def test_surface_has_owner_device_binding_controls():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    for control in ("bankOwnerId","bankDeviceBindBtn","bankDeviceStatusBtn","bankDeviceUnbindBtn"):
+        assert f'id="{control}"' in html
