@@ -39,6 +39,16 @@ def sika_home():
             "balance_reference": f"{sika_wallet_ledger.balance_reference('local-founder'):.2f}",
             "history": sika_wallet_ledger.history("local-founder"),
             "rates": sika_wallet_ledger.list_rates(),
+            "statement": {
+                "entries": [],
+                "entry_count": 0,
+                "total_debits_sika": "0.00",
+                "total_credits_sika": "0.00",
+                "reconciled": True,
+                "difference_sika": "0.00",
+                "money_claim": False,
+                "executable": False,
+            },
         },
     )
 
