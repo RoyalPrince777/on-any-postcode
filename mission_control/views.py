@@ -59,6 +59,8 @@ BUTTON_PROOF_TARGETS = {
     "infrastructure": "/mission/infrastructure",
     "judgement": "/mission/judgement",
     "studio-imagine": "/mission/studio/generate",
+    "studio-edit": "/mission/studio/generate",
+    "studio-refine": "/mission/studio/generate",
     "studio-bring-alive": "/mission/studio/generate",
     "studio-scene-builder": "/mission/studio/generate",
     "studio-workspace-research": "/mission/studio/workspace/research",
@@ -880,6 +882,7 @@ def smi_studio_generate():
             payload.get("tool_id"),
             prompt=payload.get("prompt", ""),
             source_image_data=payload.get("source_image_data", ""),
+            character_lock=payload.get("character_lock", False),
         )
         artifact = result.get("artifact") or {}
         studio_asset = {

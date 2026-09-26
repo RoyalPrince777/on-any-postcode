@@ -70,11 +70,13 @@ def test_smi_plus_menu_launches_studio():
     assert "activation_prompt" in smi
 
 
-def test_studio_exposes_three_canonical_generation_tools_and_21_stages():
+def test_studio_exposes_canonical_generation_editing_tools_and_21_stages():
     snapshot = studio_intelligence.status()
 
     assert [tool["id"] for tool in snapshot["generation_tools"]] == [
         "imagine",
+        "edit_image",
+        "refine_image",
         "bring_alive",
         "scene_builder",
     ]
@@ -293,3 +295,82 @@ def test_studio_ui_sends_owner_context_for_generated_artifact_indexing():
     assert "conversation_id:conversationId" in final
     assert "studio_request_id:" in final
     assert "Founder Library indexed" in final
+
+
+def test_edit_and_refine_use_high_fidelity_source_reference(monkeypatch):
+    calls = []
+
+    def fake_edit(prompt, *, source_image_data, input_fidelity="high", size="auto"):
+        calls.append(
+            {
+                "prompt": prompt,
+                "source": source_image_data,
+                "input_fidelity": input_fidelity,
+            }
+        )
+        return {
+            "kind": "image",
+            "model": "gpt-image-2",
+            "mime_type": "image/png",
+            "b64_json": "ZmFrZQ==",
+            "artifact_proven": True,
+            "provider_is_authority": False,
+            "input_fidelity": input_fidelity,
+            "source_reference_used": True,
+        }
+
+    monkeypatch.setattr(studio_intelligence.studio_media_backend, "edit_image", fake_edit)
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: {"receipt_id": "edit-proof", "payload": payload},
+    )
+    source = "data:image/png;base64,ZmFrZQ=="
+
+    edited = studio_intelligence.execute_generation(
+        "edit_image",
+        prompt="Change the background to a jungle waterfall.",
+        source_image_data=source,
+        character_lock=True,
+    )
+    refined = studio_intelligence.execute_generation(
+        "refine_image",
+        source_image_data=source,
+        character_lock=True,
+    )
+
+    assert edited["output_generated"] is True
+    assert edited["character_lock"] is True
+    assert edited["source_reference_used"] is True
+    assert refined["output_generated"] is True
+    assert len(calls) == 2
+    assert all(call["input_fidelity"] == "high" for call in calls)
+    assert all(call["source"] == source for call in calls)
+    assert "same primary character identity" in calls[0]["prompt"]
+    assert "premium cinematic quality" in calls[1]["prompt"]
+
+
+def test_character_lock_fails_closed_without_reference(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.smi_receipt_backend,
+        "write_receipt",
+        lambda kind, payload: {"receipt_id": "unused"},
+    )
+    try:
+        studio_intelligence.execute_generation(
+            "imagine",
+            prompt="Create another scene.",
+            character_lock=True,
+        )
+    except ValueError as exc:
+        assert str(exc) == "studio_character_lock_requires_source_image"
+    else:
+        raise AssertionError("Character lock must fail closed without a source image.")
+
+
+def test_studio_media_backend_has_real_edit_endpoint_contract():
+    media = (ROOT / "mission_control" / "studio_media_backend.py").read_text()
+    assert '"/images/edits"' in media
+    assert '"images": [{"image_url": source}]' in media
+    assert '"input_fidelity": fidelity' in media
+    assert '"output_format": "png"' in media
