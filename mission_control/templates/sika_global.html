@@ -56,6 +56,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile intel" data-intel="bank"><b>Bank Intelligence</b><p class="muted">Bank anatomy & licence boundary</p></button>
 <button class="tile jump" data-target="fraudSection"><b>Fraud Intelligence</b><p class="muted">Preflight risk check</p></button>
 <button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">Truth-only release gate</p></button>
+<button class="tile jump" data-target="licenceSection"><b>Payment Licence</b><p class="muted">Regulatory evidence gate</p></button>
 </section>
 <div class="result" id="topActionResult"></div>
 
@@ -184,6 +185,13 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Private software acceptance can be ready before signed Android/public-install acceptance.</p>
 </section>
 
+<section class="card" id="licenceSection">
+<h2>Payment Licence</h2>
+<button id="licenceBtn">Check payment-licence gate</button>
+<div class="result" id="licenceResult">—</div>
+<p class="notice">This gate does not grant authorisation. It only reports whether independently verified evidence is complete enough for a separately reviewed payment adapter release.</p>
+</section>
+
 <section class="card" id="intelligenceSection">
 <h2>Intelligence</h2>
 <div class="result" id="intelligenceResult">Choose Alignment Intelligence or Bank Intelligence.</div>
@@ -300,6 +308,13 @@ document.getElementById('installReadinessBtn').onclick=async()=>{
  document.getElementById('installResult').textContent=r.ok
   ? 'private '+j.private_software_acceptance_ready+' · public install '+j.safe_public_install_ready+' · Android signed '+j.sika_specific_signed_android_package
   : (j.error||'install readiness unavailable');
+};
+document.getElementById('licenceBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/payment-licence');
+ const j=await r.json();
+ document.getElementById('licenceResult').textContent=r.ok
+  ? 'evidence complete '+j.licence_evidence_complete+' · release review '+j.payment_adapter_may_enter_release_review+' · execution '+j.payment_execution_enabled
+  : (j.error||'licence gate unavailable');
 };
 document.getElementById('marketHandoff').onclick=()=>{
  document.getElementById('marketResult').textContent='Market software handoff active · payment settlement remains licence-gated';
