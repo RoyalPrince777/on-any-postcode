@@ -1,6 +1,9 @@
 """Authenticated first-party APIs for OAP Tune, Commerce and Post organs."""
 from __future__ import annotations
 
+import base64
+import binascii
+
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
@@ -9,6 +12,7 @@ from . import (
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
+    music_evidence,
     product_core_services,
     product_cores,
     product_store,
@@ -18,6 +22,7 @@ from . import (
 
 bp = Blueprint("product_core_organs", __name__)
 _store = product_cores.PostgresProductCoreStore()
+_music_evidence_store = music_evidence.MusicEvidenceStore()
 
 
 def _no_store(response):
@@ -274,6 +279,87 @@ def tune_catalogue_review_handoff():
         return _error("permission_denied", "Authenticated Founder required.", 403)
     except Exception:  # noqa: BLE001 - fail closed, redact storage details.
         return _error("organ_unavailable", "OAP Music is temporarily unavailable.", 503)
+
+
+@bp.get("/tune/releases/<release_id>/evidence")
+@web_security.login_required(api=True, founder_only=True)
+def tune_release_evidence(release_id: str):
+    """Read owner-scoped immutable Music evidence and its private gate."""
+    try:
+        owner = _identity()
+        receipts = _music_evidence_store.read_receipts(
+            owner_identity_id=owner, release_id=release_id
+        )
+        return _no_store(make_response(jsonify({
+            "release_id": release_id,
+            "receipts": receipts,
+            "chain": music_evidence.verify_receipt_chain(receipts),
+            "distribution_gate": music_evidence.private_distribution_gate(
+                receipts,
+                recovery_readback_proven=any(
+                    row.get("evidence_kind") == "recovery_readback" for row in receipts
+                ),
+            ),
+            "external_distribution_enabled": False,
+            "playback_enabled": False,
+            "public_catalogue_enabled": False,
+            "human_authority_final": True,
+        })))
+    except PermissionError:
+        return _error("permission_denied", "Release unavailable for this owner.", 403)
+    except (ValueError, RuntimeError):
+        return _error("music_evidence_unavailable", "Music evidence is temporarily unavailable.", 503)
+
+
+@bp.post("/tune/releases/<release_id>/evidence")
+@web_security.login_required(api=True, founder_only=True)
+def append_tune_release_evidence(release_id: str):
+    """Persist actual evidence bytes; never treat their presence as rights verification."""
+    def action():
+        payload = _payload()
+        encoded = payload.get("evidence_base64")
+        if not isinstance(encoded, str) or len(encoded) > 11_500_000:
+            raise ValueError("invalid_evidence_base64")
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("invalid_evidence_base64") from exc
+        receipt = _music_evidence_store.append_receipt(
+            owner_identity_id=_identity(sync=True),
+            release_id=release_id,
+            evidence_kind=payload.get("evidence_kind"),
+            evidence_bytes=raw,
+            source_reference=payload.get("source_reference"),
+            authority_reference=payload.get("authority_reference"),
+            territory=payload.get("territory"),
+        )
+        return {
+            "receipt": receipt,
+            "rights_verified_by_software": False,
+            "external_distribution_enabled": False,
+            "playback_enabled": False,
+            "public_catalogue_enabled": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/tune/releases/<release_id>/civilization")
+@web_security.login_required(api=True, founder_only=True)
+def add_tune_civilization_link(release_id: str):
+    """Attach one evidence-backed cultural/geographic fact to an owned release."""
+    def action():
+        payload = _payload()
+        return _music_evidence_store.add_civilization_link(
+            owner_identity_id=_identity(sync=True),
+            release_id=release_id,
+            level=payload.get("level"),
+            value=payload.get("value"),
+            evidence_receipt_id=payload.get("evidence_receipt_id"),
+        )
+
+    return _handle_write(action)
 
 
 @bp.post("/entertainment/open-cinema/preview")
