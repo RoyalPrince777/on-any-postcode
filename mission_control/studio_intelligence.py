@@ -14,7 +14,13 @@ from typing import Any
 
 from oap.smi import capability_fabric
 
-from . import postgres_db, smi_founder_assets, smi_receipt_backend, studio_media_backend
+from . import (
+    postgres_db,
+    smi_founder_assets,
+    smi_receipt_backend,
+    studio_build_preview,
+    studio_media_backend,
+)
 
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
@@ -172,7 +178,29 @@ def workspace_preflight(workspace_id: object) -> dict[str, Any]:
         "owner_asset_store_ready": bool(asset_store.get("schema_ready")),
     }
     if item["id"]=="build":
-        return {**common,"state":"ready","signal":"green","action":"governed_build","message":"Build is ready for proposals, tests, exact diffs, rollback-aware GitHub handoff and preview preparation. Production mutation remains receipt-gated.","live_preview_loop":"candidate_preview_then_human_review"}
+        preview = studio_build_preview.status()
+        ready = bool(
+            preview.get("candidate_files_ready")
+            and preview.get("isolated_preview_ready")
+            and preview.get("inspect_ready")
+            and preview.get("revision_ready")
+            and preview.get("retest_ready")
+        )
+        return {
+            **common,
+            "state": "ready" if ready else "blocked",
+            "signal": "green" if ready else "red",
+            "action": "governed_build",
+            "message": (
+                "Build supports candidate files, browser-isolated live preview, inspect, "
+                "revise and retest, plus governed GitHub handoff. Production deploy remains "
+                "receipt-gated."
+            ),
+            "live_preview_loop": "candidate_files_to_preview_to_inspect_to_fix_to_retest",
+            "live_preview_runtime_ready": ready,
+            "production_deploy_authorised": False,
+            "server_side_generated_code_execution_authorised": False,
+        }
     if item["id"]=="data":
         ready=bool(db_state.get("initialized"))
         return {**common,"state":"ready" if ready else "blocked","signal":"green" if ready else "red","action":"read_only_data_builder","message":"Data can inspect schema/state and prepare migration/query plans. Writes remain locked behind explicit Human Authority.","database_initialized":ready,"write_performed":False,"migration_preview_supported":True}

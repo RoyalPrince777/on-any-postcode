@@ -409,6 +409,91 @@ refreshOps();
         };
         return b;
       });
+
+      const buildPreview=document.createElement("button");
+      buildPreview.type="button";
+      buildPreview.className="attach-option connector smi-build-preview";
+      buildPreview.dataset.proofAction="studio-build-preview";
+      buildPreview.innerHTML='<span class="connector-copy"><span>🖥️</span><span>Build Preview</span></span><span class="connector-state">Open</span>';
+      buildPreview.onclick=()=>{
+        studioMode=true;window.OAP_SMI_STUDIO_WORKSPACE="build";studioButton.classList.add("active");
+        menu?.classList.remove("show");plus?.setAttribute("aria-expanded","false");
+        const card=document.createElement("div");card.className="msg action-card smi-build-preview-card";
+        const starter=input.value.trim().startsWith("<")?input.value.trim():"<main><h1>OAP Build Preview</h1><p>Edit this candidate, then create an isolated preview.</p><button id=\"demo\">Test button</button></main>";
+        card.innerHTML='<strong>🏗️ OAP Studio · Build Preview</strong><span class="tool-meta">Candidate files only · browser isolated · no network · no production deploy.</span><label>index.html<textarea data-build-html></textarea></label><label>styles.css<textarea data-build-css>body{font-family:system-ui;margin:0;padding:24px;background:#07120c;color:#ecfff2}button{padding:10px 14px;border-radius:10px}</textarea></label><label>app.js<textarea data-build-js>document.querySelector("#demo")?.addEventListener("click",()=>alert("Preview function works"));</textarea></label><div class="action-row"><button type="button" class="action-btn primary" data-build-create>Create isolated preview</button></div><span class="tool-meta" data-build-state>Not created.</span>';
+        card.querySelector("[data-build-html]").value=starter;
+        messages.append(card);messages.scrollTop=messages.scrollHeight;
+        let current=null;
+        const headers=()=>({"Content-Type":"application/json","X-OAP-CSRF":window.csrfToken||cfg.csrfToken||""});
+        const files=()=>({
+          "index.html":card.querySelector("[data-build-html]").value,
+          "styles.css":card.querySelector("[data-build-css]").value,
+          "app.js":card.querySelector("[data-build-js]").value
+        });
+        const showPreview=(result)=>{
+          current=result;
+          let frame=card.querySelector("iframe[data-build-frame]");
+          if(!frame){
+            frame=document.createElement("iframe");
+            frame.dataset.buildFrame="1";
+            frame.className="smi-build-preview-frame";
+            frame.sandbox="allow-scripts";
+            frame.referrerPolicy="no-referrer";
+            frame.title="OAP Studio isolated build preview";
+            frame.style.cssText="width:100%;min-height:360px;border:1px solid var(--line);border-radius:12px;background:white;margin-top:10px";
+            card.append(frame);
+            const row=document.createElement("div");row.className="action-row";
+            const inspect=document.createElement("button");inspect.type="button";inspect.className="action-btn";inspect.textContent="Inspect";
+            const revise=document.createElement("button");revise.type="button";revise.className="action-btn primary";revise.textContent="Revise & Retest";
+            row.append(inspect,revise);card.append(row);
+            inspect.onclick=async()=>{
+              const url=String(cfg.studioBuildPreviewInspectUrl||"").replace("__PREVIEW_ID__",encodeURIComponent(current.preview_id));
+              const response=await fetch(url,{credentials:"same-origin",cache:"no-store"});
+              const data=await response.json().catch(()=>({}));
+              if(!response.ok){card.querySelector("[data-build-state]").textContent=data?.error?.message||"Inspect blocked";return;}
+              addCard("Build Preview · Inspect",[
+                "Version "+data.version,
+                "Title: "+(data.title||"(none)"),
+                "Buttons "+data.counts.buttons+" · Inputs "+data.counts.inputs+" · Links "+data.counts.links+" · Sections "+data.counts.sections,
+                "Digest "+data.digest,
+                "Network blocked · server execution blocked · deploy blocked"
+              ].join("\n"),"green");
+            };
+            revise.onclick=async()=>{
+              revise.disabled=true;
+              try{
+                const url=String(cfg.studioBuildPreviewReviseUrl||"").replace("__PREVIEW_ID__",encodeURIComponent(current.preview_id));
+                const response=await fetch(url,{method:"POST",credentials:"same-origin",headers:headers(),body:JSON.stringify({
+                  files:files(),prompt:input.value.trim(),expected_last_hash:current.digest,stopped:Boolean(window.OAP_SMI_STOPPED)
+                })});
+                const data=await response.json().catch(()=>({}));
+                if(!response.ok)throw new Error(data?.error?.message||"Revision blocked");
+                showPreview(data);
+                card.querySelector("[data-build-state]").textContent="Version "+data.version+" · revised, read-back verified · retest ready";
+              }catch(error){card.querySelector("[data-build-state]").textContent=error.message||"Revision blocked";}
+              finally{revise.disabled=false;}
+            };
+          }
+          const contentUrl=String(cfg.studioBuildPreviewContentUrl||"").replace("__PREVIEW_ID__",encodeURIComponent(result.preview_id));
+          frame.src=contentUrl+"?v="+encodeURIComponent(result.version);
+        };
+        card.querySelector("[data-build-create]").onclick=async event=>{
+          const button=event.currentTarget,state=card.querySelector("[data-build-state]");button.disabled=true;state.textContent="Creating…";
+          try{
+            const response=await fetch(cfg.studioBuildPreviewCreateUrl,{method:"POST",credentials:"same-origin",headers:headers(),body:JSON.stringify({
+              files:files(),prompt:input.value.trim(),stopped:Boolean(window.OAP_SMI_STOPPED)
+            })});
+            const data=await response.json().catch(()=>({}));
+            if(!response.ok)throw new Error(data?.error?.message||"Build preview blocked");
+            const proof=await recordButtonProof("studio-build-preview","/mission/studio/build-preview",response.status);
+            showPreview(data);
+            state.textContent="Version "+data.version+" · read-back "+(data.read_back_verified?"verified":"pending")+" · "+(proof?.receipt_id?"Button Proof "+proof.receipt_id:"proof pending");
+            button.textContent="Created ✓";
+          }catch(error){state.textContent=error.message||"Build preview blocked";button.disabled=false;}
+        };
+        q("#status").textContent="Build Preview ready · isolated candidate runtime";
+      };
+
       const threat=document.createElement("button");
       threat.type="button";
       threat.className="attach-option connector smi-studio-threat";
@@ -469,7 +554,7 @@ refreshOps();
           orchestrate.disabled=false;menu?.classList.remove("show");plus?.setAttribute("aria-expanded","false");
         }
       };
-      studioButton.after(workspaceLabel,...workspaceButtons,orchestrate,threat);
+      studioButton.after(workspaceLabel,...workspaceButtons,buildPreview,orchestrate,threat);
     }
     if(studioButton&&!q('[data-studio-tool="imagine"]',menu)){
       const studioLabel=document.createElement("div");

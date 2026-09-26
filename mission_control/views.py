@@ -37,6 +37,7 @@ from . import (
     smi_reply_voice_local,
     smi_workbench,
     status,
+    studio_build_preview,
     studio_intelligence,
     studio_workspace_orchestrator,
     war_room,
@@ -65,6 +66,7 @@ BUTTON_PROOF_TARGETS = {
     "studio-bring-alive": "/mission/studio/generate",
     "studio-scene-builder": "/mission/studio/generate",
     "studio-orchestrate": "/mission/studio/orchestrate/plan",
+    "studio-build-preview": "/mission/studio/build-preview",
     "studio-workspace-research": "/mission/studio/workspace/research",
     "studio-workspace-omni": "/mission/studio/workspace/omni",
     "studio-workspace-music": "/mission/studio/workspace/music",
@@ -839,6 +841,83 @@ def smi_studio_threat_posture():
     """Return fail-closed Studio threat controls without granting execution."""
 
     return _no_store(make_response(jsonify(studio_intelligence.threat_posture())))
+
+
+
+
+@bp.post("/studio/build-preview")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_build_preview_create():
+    """Create one browser-isolated, owner-scoped Build Preview version."""
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = studio_build_preview.create(
+            _chat_identity(),
+            files=payload.get("files"),
+            prompt=payload.get("prompt", ""),
+            stopped=bool(payload.get("stopped")),
+        )
+    except PermissionError as exc:
+        return _error("build_preview_stopped", str(exc), 409)
+    except (RuntimeError, ValueError, TypeError) as exc:
+        return _error("build_preview_blocked", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.post("/studio/build-preview/<preview_id>/revise")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_build_preview_revise(preview_id: str):
+    """Append a new Build Preview version after an explicit revision."""
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = studio_build_preview.revise(
+            _chat_identity(),
+            preview_id,
+            files=payload.get("files"),
+            prompt=payload.get("prompt", ""),
+            expected_last_hash=str(payload.get("expected_last_hash") or ""),
+            stopped=bool(payload.get("stopped")),
+        )
+    except PermissionError as exc:
+        return _error("build_preview_stopped", str(exc), 409)
+    except (RuntimeError, ValueError, TypeError) as exc:
+        return _error("build_preview_revision_blocked", str(exc), 409)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/studio/build-preview/<preview_id>/inspect")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_build_preview_inspect(preview_id: str):
+    """Inspect the latest stored preview bundle without executing server code."""
+
+    try:
+        result = studio_build_preview.inspect(_chat_identity(), preview_id)
+    except (RuntimeError, ValueError, TypeError) as exc:
+        return _error("build_preview_inspect_blocked", str(exc), 404)
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/studio/build-preview/<preview_id>/content")
+@web_security.login_required(founder_only=True)
+def smi_studio_build_preview_content(preview_id: str):
+    """Serve only a browser-isolated candidate document with network disabled."""
+
+    try:
+        document = studio_build_preview.render_document(_chat_identity(), preview_id)
+    except (RuntimeError, ValueError, TypeError) as exc:
+        return _error("build_preview_content_blocked", str(exc), 404)
+    response = make_response(document)
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; "
+        "script-src 'unsafe-inline'; font-src data:; connect-src 'none'; "
+        "form-action 'none'; frame-ancestors 'self'; base-uri 'none'"
+    )
+    return response
 
 
 @bp.post("/studio/orchestrate/plan")
