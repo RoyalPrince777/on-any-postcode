@@ -78,6 +78,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">PWA × device proof</p></button>
 <button class="tile jump" data-target="licenceSection"><b>Payment Licence</b><p class="muted">Evidence gate</p></button>
 <button class="tile jump" data-target="a5Section"><b>A5 Preparation</b><p class="muted">Proof × rollback × release</p></button>
+<button class="tile jump" data-target="a6Section"><b>A6 Readiness</b><p class="muted">Operation proof gate</p></button>
 <button class="tile regulated" data-path="/api/sika/card"><b>Card</b><p class="muted">Execution locked</p></button>
 <button class="tile regulated" data-path="/api/sika/pay"><b>Pay</b><p class="muted">Execution locked</p></button>
 </section>
@@ -222,6 +223,13 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Preparation only. This does not grant A6 execution or A7 autonomy.</p>
 </section>
 
+<section class="card" id="a6Section">
+<h2>A6 Readiness</h2>
+<button id="a6Btn">Check A6 proof gate</button>
+<div class="result" id="a6Result">—</div>
+<p class="notice">Readiness only. Every A6 operation still requires Human Authority, Guardian, Green Gate, rollback, HRM receipts and Matrix pre/post checks.</p>
+</section>
+
 <section class="card" id="intelligenceSection">
 <h2>Intelligence</h2>
 <div class="result" id="intelligenceResult">Choose Alignment Intelligence or Bank Intelligence.</div>
@@ -352,6 +360,13 @@ document.getElementById('a5Btn').onclick=async()=>{
  document.getElementById('a5Result').textContent=r.ok
   ? 'proof '+j.preparation_actions.PROOF_PACK+' · rollback '+j.preparation_actions.ROLLBACK_PLAN+' · deploy '+j.preparation_actions.DEPLOY_PLAN+' · A6 '+j.a6_execution_granted+' · A7 '+j.a7_enabled
   : (j.error||'A5 pack unavailable');
+};
+document.getElementById('a6Btn').onclick=async()=>{
+ const r=await fetch('/api/sika/a6-readiness');
+ const j=await r.json();
+ document.getElementById('a6Result').textContent=r.ok
+  ? 'proven '+j.a6_readiness_proven+' · matrix '+j.matrix_ready+' · missing '+(j.missing_proofs.join(', ')||'none')+' · execution '+j.execution_granted
+  : (j.error||'A6 readiness unavailable');
 };
 document.getElementById('marketHandoff').onclick=()=>{
  document.getElementById('marketResult').textContent='Market software handoff active · payment settlement remains licence-gated';
