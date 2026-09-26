@@ -463,3 +463,13 @@ def test_surface_has_closed_loop_value_controls():
     assert 'id="valueTrialBtn"' in html
     assert 'id="internalTransferBtn"' in html
     assert 'id="valueSection"' in html
+
+
+def test_closed_loop_model_never_labels_sika_as_external_bank_payment():
+    client = app.test_client()
+    body = client.get("/api/sika/value-model").get_json()
+    assert body["usage_scope"] == "OAP internal only"
+    assert body["external_transfer_supported"] is False
+    assert body["cash_out_supported"] is False
+    assert body["payment_initiation_supported"] is False
+    assert body["regulatory_gate_required"] is True
