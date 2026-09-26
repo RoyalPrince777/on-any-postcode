@@ -1,5 +1,6 @@
 from mission_control import tv_core
 
+
 def _asset(**overrides):
     data = {
         "asset_id": "asset-1",
@@ -19,11 +20,13 @@ def _asset(**overrides):
     data.update(overrides)
     return data
 
+
 def test_rights_gate_fails_closed_without_evidence():
     result = tv_core.rights_gate(_asset(evidence_reference=""))
     assert result["passed"] is False
     assert result["public_distribution_allowed"] is False
     assert "evidence_reference" in result["missing"]
+
 
 def test_distribution_gate_requires_rights_territory_entitlement_and_stop_clear():
     ok = tv_core.distribution_gate(
@@ -42,11 +45,13 @@ def test_distribution_gate_requires_rights_territory_entitlement_and_stop_clear(
     assert stopped["playback_authorised"] is False
     assert stopped["fail_closed"] is True
 
+
 def test_red_team_never_claims_green_with_missing_runtime_evidence():
     report = tv_core.red_team_report()
     assert report["green"] is False
     assert report["software_readiness_percent"] == 0
     assert set(report["blocked"]) == set(tv_core.RUNTIME_GATES)
+
 
 def test_status_does_not_claim_unproven_runtime_capabilities():
     state = tv_core.status()
