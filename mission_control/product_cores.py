@@ -639,7 +639,13 @@ class PostgresProductCoreStore:
             _active_identity(connection, buyer)
             product_row = connection.execute(
                 """SELECT p.seller_id,p.name,p.price_minor,p.currency
-                   FROM products p JOIN users u ON u.id=p.seller_id
+                   FROM products p
+                   JOIN users u ON u.id=p.seller_id
+                   JOIN oap_identities oi
+                     ON oi.identity_id=p.seller_id AND oi.status='ACTIVE'
+                   JOIN oap_identity_roles merchant
+                     ON merchant.identity_id=p.seller_id
+                    AND merchant.role_id='certified_merchant'
                    WHERE p.id=%s AND p.active=TRUE AND u.status='active'
                    FOR SHARE""",
                 (product,),
