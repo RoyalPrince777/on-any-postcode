@@ -71,6 +71,7 @@ def schema_status() -> dict[str, Any]:
         "schema_ready": False,
         "table_ready": False,
         "asset_count": 0,
+        "studio_generated_asset_count": 0,
         "raw_content_retained": False,
         "error": None,
     }
@@ -98,7 +99,11 @@ def schema_status() -> dict[str, Any]:
             count = connection.execute(
                 "SELECT COUNT(*) FROM smi_founder_assets"
             ).fetchone()
+            generated = connection.execute(
+                "SELECT COUNT(*) FROM smi_founder_assets WHERE source='studio_generation'"
+            ).fetchone()
             result["asset_count"] = int(count[0] if count else 0)
+            result["studio_generated_asset_count"] = int(generated[0] if generated else 0)
             result["schema_ready"] = True
             return result
     except Exception:  # noqa: BLE001 - readiness must fail closed.
