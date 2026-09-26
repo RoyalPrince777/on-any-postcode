@@ -46,7 +46,7 @@ assert.equal(Object.prototype.hasOwnProperty.call(api,"visemeFor"),false);
 const candidate=bridge(),initial=candidate.snapshot();
 assert.equal(initial.admitted,true);assert.equal(initial.alignmentContractAccepted,true);
 assert.equal(initial.attachedToLivePage,false);assert.equal(initial.storesText,false);assert.equal(initial.storesAudio,false);
-assert.equal(initial.accurateLipSyncProven,false);assert.equal(initial.physicalAndroidStopProven,false);
+assert.equal(initial.accurateSoftwareLipSyncProven,false);assert.equal(initial.accurateHumanLipSyncProven,false);assert.equal(initial.physicalAndroidStopProven,false);
 assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:1020}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"boundary",clockSource:"audio-context"}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"media-element"}),null);
@@ -56,6 +56,10 @@ for(const [audioClockMs,expected] of [[20,"closed"],[80,"wide"],[140,"round"],[2
   assert.equal(cue.viseme,expected);assert.ok(cue.audioClockDeltaMs<=api.MAX_AUDIO_CLOCK_DELTA_MS);
   assert.equal(cue.productionApproved,false);assert.equal(cue.humanFinalApproved,false);
 }
+assert.equal(candidate.snapshot().accurateSoftwareLipSyncProven,true);
+assert.ok(candidate.snapshot().sampleCount>=3);
+assert.ok(candidate.snapshot().maxObservedClockDeltaMs<=40);
+assert.equal(candidate.snapshot().accurateHumanLipSyncProven,false);
 assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:1402,eventType:"ended"}).viseme,"silence");
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:2000,eventType:"playing",clockSource:"audio-context"}).type,"playback-start");
 const stoppedEpoch=candidate.humanStop({pointerAtMs:2010,handledAtMs:2012}).epoch;
