@@ -74,7 +74,7 @@ def probe() -> dict[str, Any]:
         "domains": {},
         "proven_count": 0,
         "checked_count": 0,
-        "all_canonical_domains_proven": False,
+        "all_canonical_domains_schema_proven": False,
         "read_only": True,
         "schema_changed": False,
         "human_authority_final": True,
@@ -114,7 +114,7 @@ def probe() -> dict[str, Any]:
                 proven = not missing_tables and not missing_fks
                 result["domains"][domain] = {
                     "owner": owner.owner_component,
-                    "state": "PROVEN" if proven else "UNPROVEN",
+                    "state": "SCHEMA_PROVEN" if proven else "UNPROVEN",
                     "required_tables": required_tables,
                     "missing_tables": tuple(missing_tables),
                     "missing_foreign_keys": tuple(missing_fks),
@@ -125,7 +125,7 @@ def probe() -> dict[str, Any]:
         result["error"] = "runtime_binding_probe_failed"
         return result
 
-    result["all_canonical_domains_proven"] = bool(
+    result["all_canonical_domains_schema_proven"] = bool(
         result["proven_count"] == len(owners())
     )
     return result
