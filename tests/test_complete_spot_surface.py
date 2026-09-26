@@ -9,11 +9,11 @@ def test_complete_spot_capability_registry_has_no_duplicates():
     assert validation["passed"] is True
     assert validation["errors"] == []
     assert validation["checks"] == {
-        "capabilities": 25,
+        "capabilities": 26,
         "duplicate_ids": 0,
         "duplicate_names": 0,
     }
-    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 25
+    assert len(products.LOCKED_SPOT_CAPABILITY_IDS) == 26
     assert "flag-vote" not in products.LOCKED_SPOT_CAPABILITY_IDS
 
 
@@ -27,7 +27,7 @@ def test_every_spot_capability_has_a_working_read_only_route(client):
         assert escape(capability["name"]) in page
         # Pulse, Carnival and World Languages own richer canonical feature templates;
         # generic Spot capabilities render their exact public registry purpose.
-        if capability["slug"] not in {"pulse", "carnival", "languages"}:
+        if capability["slug"] not in {"pulse", "arena", "carnival", "languages"}:
             assert capability["purpose"] in page
         assert "Owner:" not in page
         assert "What remains locked" not in page

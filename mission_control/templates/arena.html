@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="oap-csrf-token" content="{{ oap_csrf_token }}">
+  {% include "_oap_install_head.html" %}
+  <title>OAP Arena</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <script src="{{ url_for('static', filename='arena_intelligence.js') }}" defer></script>
+  <style>
+    .arena-hero{background:radial-gradient(circle at 85% 5%,rgba(163,109,255,.22),transparent 32%),linear-gradient(135deg,rgba(15,20,34,.98),rgba(32,18,53,.98));overflow:hidden}.arena-title{font-size:clamp(2.5rem,8vw,5.8rem);line-height:.9;margin:.18em 0}.arena-gold{color:#f5c451}.arena-tagline{max-width:760px;font-size:1.08rem}.arena-route{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:18px 0 0}.arena-route span{border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.04)}.arena-route b{color:#a36dff}.arena-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.arena-layer{border:1px solid var(--mc-line);border-radius:16px;padding:15px;background:var(--mc-panel-soft)}.arena-layer h3{margin:.25rem 0 .5rem}.arena-console{border:1px solid rgba(163,109,255,.7);box-shadow:0 18px 50px rgba(0,0,0,.25)}.arena-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.arena-state{display:inline-flex;border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;font-weight:800}.arena-score{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:8px;margin:14px 0}.arena-score div{border:1px solid var(--mc-line);border-radius:12px;padding:11px;background:rgba(255,255,255,.03)}.arena-score strong{display:block;font-size:1.35rem}.arena-question{margin:18px 0}.arena-choices{display:grid;gap:9px}.arena-choice,.arena-control{border:1px solid var(--mc-line);border-radius:13px;padding:12px 14px;background:var(--mc-panel-soft);color:var(--mc-text);text-align:left;font:inherit;cursor:pointer}.arena-choice:hover,.arena-choice:focus-visible,.arena-control:hover,.arena-control:focus-visible{border-color:#a36dff;outline:none}.arena-control-primary{background:#6f3ec3;border-color:#a36dff;font-weight:800}.arena-control-stop{border-color:#d45b68;color:#ffb7bf}.arena-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.arena-feedback{border-left:3px solid #a36dff;padding:10px 12px;margin:14px 0;background:rgba(163,109,255,.08)}.arena-feedback[data-tone="correct"]{border-color:#43d17d}.arena-feedback[data-tone="wrong"]{border-color:#f5c451}.arena-error{color:#ffb7bf}.arena-truth{border-left:3px solid #f5c451;padding-left:12px}.arena-boundary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.arena-lock{border:1px solid var(--mc-line);border-radius:12px;padding:10px}.arena-lock strong{color:#f5c451}.arena-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;overflow-wrap:anywhere;color:var(--mc-muted)}[hidden]{display:none!important}@media(max-width:560px){.arena-score{grid-template-columns:1fr}.arena-controls button{flex:1 1 44%}}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header arena-hero">
+    <div>
+      <p class="mc-eyebrow">👑 OAP Live + Events · First-party Challenge Engine</p>
+      <h1 class="arena-title">OAP <span class="arena-gold">ARENA</span></h1>
+      <p class="arena-tagline">{{ hub.tagline }} — sports, music, gaming and creator competition can share one governed path without becoming one unfair scoring system.</p>
+      <div class="arena-route" aria-label="Arena progression">
+        {% for level in hub.progression %}<span>{{ level }}</span>{% if not loop.last %}<b aria-hidden="true">→</b>{% endif %}{% endfor %}
+      </div>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-panel arena-console" aria-labelledby="arena-console-title" data-arena-console>
+      <div class="arena-head">
+        <div>
+          <p class="mc-eyebrow">MIND × BODY × SOUL · executable slice</p>
+          <h2 id="arena-console-title">OAP Challenge Engine</h2>
+          <p>Seven server-validated questions. Non-ranked, session-scoped and payment-free.</p>
+        </div>
+        <span class="arena-state" data-arena-status>{{ hub.challenge.status }}</span>
+      </div>
+
+      {% if hub.recovery_required %}
+      <p class="arena-feedback arena-error" role="alert">The previous checkpoint failed validation. Play is locked until you start a recovered session.</p>
+      {% endif %}
+
+      <div class="arena-score" aria-label="Challenge progress">
+        <div><span>Score</span><strong data-arena-score>{{ hub.challenge.score }}</strong></div>
+        <div><span>Answered</span><strong data-arena-answered>{{ hub.challenge.answered }}/{{ hub.challenge.total }}</strong></div>
+        <div><span>Mode</span><strong>Unranked</strong></div>
+      </div>
+
+      <div class="arena-question" data-arena-question aria-live="polite"></div>
+      <div class="arena-feedback" data-arena-feedback role="status" aria-live="polite" hidden></div>
+      <p class="arena-error" data-arena-error role="alert" hidden></p>
+
+      <div class="arena-controls" aria-label="Arena challenge controls">
+        <button class="arena-control arena-control-primary" type="button" data-arena-action="start" data-endpoint="/arena/session/start">Start challenge</button>
+        <button class="arena-control" type="button" data-arena-action="pause" data-endpoint="/arena/session/pause">Pause</button>
+        <button class="arena-control" type="button" data-arena-action="resume" data-endpoint="/arena/session/resume">Resume</button>
+        <button class="arena-control arena-control-stop" type="button" data-arena-action="stop" data-endpoint="/arena/session/stop">STOP</button>
+        <button class="arena-control" type="button" data-arena-action="recover" data-endpoint="/arena/session/recover">New recovered session</button>
+      </div>
+      <p class="arena-receipt" data-arena-receipt>Receipts: {{ hub.challenge.receipt_count | default(0) }}{% if hub.challenge.latest_receipt_hash %} · {{ hub.challenge.latest_receipt_hash }}{% endif %}</p>
+      <noscript><p class="arena-error">JavaScript is required for the interactive challenge. Arena architecture and truth boundaries remain readable.</p></noscript>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="arena-intelligence-title">
+      <p class="mc-eyebrow">One brain · seven coordinated modes</p>
+      <h2 id="arena-intelligence-title">Arena Intelligence</h2>
+      <div class="arena-grid" role="list">
+        {% for layer in hub.intelligence_layers %}
+        <article class="arena-layer" role="listitem"><h3>{{ layer.name }}</h3><p>{{ layer.purpose }}</p></article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="arena-boundary-title">
+      <p class="mc-eyebrow">Proof before Green</p>
+      <h2 id="arena-boundary-title">Release boundary</h2>
+      <p class="arena-truth"><strong>Truth mode:</strong> {{ hub.truth }}</p>
+      <div class="arena-boundary" role="list">
+        {% for key, enabled in hub.boundary.items() %}
+        <div class="arena-lock" role="listitem"><strong>🔒 {{ key | replace('_', ' ') | title }}</strong><br>{{ 'Enabled' if enabled else 'Locked' }}</div>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <script id="arena-initial-state" type="application/json">{{ hub.challenge | tojson }}</script>
+</body>
+</html>

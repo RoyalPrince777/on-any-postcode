@@ -22,6 +22,7 @@ from flask import (
 from mission_control import (
     a7_certification,
     approval_service,
+    arena_intelligence,
     authority,
     carnival_intelligence,
     certification,
@@ -637,6 +638,64 @@ def _carnival_intelligence_response():
     return response
 
 
+def _arena_intelligence_response():
+    """Render the validated public Arena and its bounded Challenge Engine."""
+
+    validation = arena_intelligence.validate_catalog()
+    if not validation["passed"]:
+        response = jsonify(
+            error={
+                "code": "arena_intelligence_unavailable",
+                "message": "OAP Arena is temporarily unavailable.",
+            }
+        )
+        response.status_code = 503
+    else:
+        saved_state = session.get(arena_intelligence.SESSION_KEY)
+        recovery_required = False
+        if saved_state is not None:
+            state_validation = arena_intelligence.validate_session(saved_state)
+            if not state_validation["passed"]:
+                saved_state = None
+                recovery_required = True
+        hub = arena_intelligence.get_public_arena_hub(saved_state)
+        hub["recovery_required"] = recovery_required
+        response = make_response(render_template("arena.html", hub=hub))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def _arena_json(payload, status_code=200):
+    response = make_response(jsonify(payload), status_code)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def _arena_payload():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        raise TypeError("invalid_request")
+    return payload
+
+
+def _arena_write_allowed():
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    limiter_key = f"arena:{request.remote_addr or 'unknown'}"
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(limiter_key):
+        return _rate_failure()
+    return None
+
+
+def _arena_error(exc):
+    code = str(exc) or "arena_request_invalid"
+    session_error = code.startswith("arena_session_") or code in {
+        "arena_checkpoint_invalid",
+        "arena_receipt_chain_invalid",
+    }
+    return _arena_json({"error": {"code": code}}, 409 if session_error else 400)
+
+
 @app.get("/languages")
 @app.get("/world/languages")
 def world_languages():
@@ -651,6 +710,101 @@ def world_carnival():
     """Open the read-only OAP Culture/Event Carnival hub."""
 
     return _carnival_intelligence_response()
+
+
+@app.get("/arena")
+@app.get("/world/arena")
+def world_arena():
+    """Open the bounded first-party OAP Arena Challenge Engine."""
+
+    return _arena_intelligence_response()
+
+
+@app.post("/arena/session/start")
+def arena_session_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        _arena_payload()
+        state = arena_intelligence.new_session()
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[arena_intelligence.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(arena_intelligence.public_state(state), 201)
+
+
+@app.post("/arena/session/answer")
+def arena_session_answer():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state, result = arena_intelligence.answer(
+            session.get(arena_intelligence.SESSION_KEY),
+            question_id=payload.get("question_id"),
+            choice_id=payload.get("choice_id"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[arena_intelligence.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(result)
+
+
+def _arena_transition(action):
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state, result = arena_intelligence.transition(
+            session.get(arena_intelligence.SESSION_KEY),
+            action=action,
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[arena_intelligence.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(result)
+
+
+@app.post("/arena/session/pause")
+def arena_session_pause():
+    return _arena_transition("pause")
+
+
+@app.post("/arena/session/resume")
+def arena_session_resume():
+    return _arena_transition("resume")
+
+
+@app.post("/arena/session/stop")
+def arena_session_stop():
+    return _arena_transition("stop")
+
+
+@app.post("/arena/session/recover")
+def arena_session_recover():
+    """Replace a stopped or invalid session with a new bounded session."""
+
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        _arena_payload()
+        state = arena_intelligence.new_session()
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[arena_intelligence.SESSION_KEY] = state
+    session.modified = True
+    result = arena_intelligence.public_state(state)
+    result["recovered"] = True
+    return _arena_json(result, 201)
 
 
 @app.get("/world-cup")
@@ -1063,6 +1217,8 @@ def spot_capability_front_door(capability_slug):
         return _world_languages_response()
     elif capability_slug == "carnival":
         return _carnival_intelligence_response()
+    elif capability_slug == "arena":
+        return _arena_intelligence_response()
     else:
         user = None
         try:
