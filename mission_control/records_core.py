@@ -185,6 +185,15 @@ class RecordsStore:
             ).fetchone()
             if owned is None:
                 raise PermissionError("records_release_not_owned")
+            if receipt is not None:
+                evidence = connection.execute(
+                    """SELECT 1 FROM oap_music_evidence_receipts
+                       WHERE receipt_id=%s AND release_id=%s
+                         AND owner_identity_id=%s""",
+                    (receipt, release, owner),
+                ).fetchone()
+                if evidence is None:
+                    raise PermissionError("records_evidence_not_owned")
             row = connection.execute(
                 """INSERT INTO oap_records_credits(
                    owner_identity_id,release_id,role,display_name,evidence_receipt_id)
