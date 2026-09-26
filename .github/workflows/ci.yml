@@ -82,7 +82,11 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
-          tree="$(git merge-tree --write-tree HEAD origin/main)"
+          if ! tree="$(git merge-tree --write-tree HEAD origin/main)"; then
+            echo "Combined-main merge conflicts:"
+            git merge-tree HEAD origin/main || true
+            exit 1
+          fi
           combined="$(printf '%s\n' 'OAP ephemeral combined-main proof' | git -c user.name='OAP CI' -c user.email='ci@localhost' commit-tree "$tree" -p HEAD -p origin/main)"
           git worktree add --detach /tmp/oap-combined-main "$combined"
           cd /tmp/oap-combined-main
