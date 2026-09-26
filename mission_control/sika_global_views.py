@@ -14,6 +14,7 @@ from . import (
     sika_journal_store,
     sika_safety,
     sika_security_ledger,
+    sika_session_registry,
     sika_wallet_ledger,
     web_security,
 )
@@ -702,6 +703,106 @@ def sika_security_alert_dismiss():
         return jsonify({"error": str(exc), "dismissed": False}), 400
     except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
         return jsonify({"error": str(exc), "dismissed": False}), 503
+
+
+@bp.get("/api/sika/security/sessions")
+@web_security.login_required(api=True)
+def sika_security_sessions():
+    owner = _authenticated_sika_owner()
+    try:
+        return jsonify(sika_session_registry.project(owner.owner_id))
+    except sika_session_registry.SikaSessionUnavailable as exc:
+        return jsonify({"error": str(exc), "sessions": [], "compromise_locked": True}), 503
+
+
+@bp.post("/api/sika/security/session/activate")
+@web_security.login_required(api=True)
+def sika_security_session_activate():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_session_registry.activate(
+            owner.owner_id,
+            device_id=body.get("device_id"),
+        )), 201
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "activated": False}), 400
+    except sika_session_registry.SikaSessionUnavailable as exc:
+        return jsonify({"error": str(exc), "activated": False}), 503
+
+
+@bp.post("/api/sika/security/session/revoke")
+@web_security.login_required(api=True)
+def sika_security_session_revoke():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_session_registry.revoke(
+            owner.owner_id, body.get("session_id")
+        ))
+    except (ValueError, PermissionError) as exc:
+        return jsonify({"error": str(exc), "revoked": False}), 400
+    except sika_session_registry.SikaSessionUnavailable as exc:
+        return jsonify({"error": str(exc), "revoked": False}), 503
+
+
+@bp.post("/api/sika/security/session/revoke-all")
+@web_security.login_required(api=True)
+def sika_security_session_revoke_all():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_session_registry.revoke_all(
+            owner.owner_id,
+            reason=str(body.get("reason") or "owner_requested"),
+        ))
+    except sika_session_registry.SikaSessionUnavailable as exc:
+        return jsonify({"error": str(exc), "revoked_all": False}), 503
+
+
+@bp.post("/api/sika/security/compromise-lock")
+@web_security.login_required(api=True)
+def sika_security_compromise_lock():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_session_registry.compromise_lock(
+            owner.owner_id,
+            reason=str(body.get("reason") or "suspected_compromise"),
+        )), 201
+    except sika_session_registry.SikaSessionUnavailable as exc:
+        return jsonify({"error": str(exc), "compromise_locked": True}), 503
+
+
+@bp.post("/api/sika/security/compromise-recover")
+@web_security.login_required(api=True)
+def sika_security_compromise_recover():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_session_registry.recover(
+            owner.owner_id,
+            trusted_device_id=body.get("device_id"),
+        ))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 400
+    except sika_session_registry.SikaSessionUnavailable as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 503
 
 
 @bp.post("/api/sika/security/ledger/event")
