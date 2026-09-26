@@ -22,6 +22,7 @@ from . import (
     postgres_db,
     smi_cancellation,
     smi_founder_assets,
+    studio_intelligence,
 )
 
 MODEL = os.environ.get("OAP_AI_MODEL", "gpt-5-mini")
@@ -148,6 +149,7 @@ def _provider(
     }.get(thinking_level, " AUTO MODE: choose the bounded depth appropriate to the request.")
     system += thinking_instruction
     if studio_mode:
+        system += studio_intelligence.workspace_instruction((brain or {}).get("studio_workspace", "auto"))
         system += (
             " OAP STUDIO INTELLIGENCE MODE: act as the canonical Founder creation workspace for "
             "Create, Edit, Package, Rights, Publish preparation, Distribute preparation, Campaign "
@@ -532,6 +534,7 @@ def chat(
     code_mode: bool = False,
     thinking_level: str = "auto",
     studio_mode: bool = False,
+    studio_workspace: str = "auto",
     on_event: EventEmitter | None = None,
     cancellation_token: smi_cancellation.CancellationToken | None = None,
 ) -> dict:
@@ -641,7 +644,15 @@ def chat(
         )
         brain["thinking_level"] = level
         brain["studio_mode"] = resolved_studio_mode
-        brain["resolved_depth"] = resolved_depth
+        workspace = studio_intelligence.workspace(studio_workspace if resolved_studio_mode else "auto")
+        brain["studio_workspace"] = workspace["id"]
+        if workspace.get("code_mode"):
+            code_mode = True
+        if str(workspace.get("thinking_level") or "auto") != "auto" and str(thinking_level or "auto") == "auto":
+            level = str(workspace["thinking_level"])
+            brain["thinking_level"] = level
+            brain["resolved_depth"] = {"instant": 3, "think": 7, "deep_dive": 21}.get(level, resolved_depth)
+        brain["resolved_depth"] = int(brain.get("resolved_depth") or resolved_depth)
         brain["requested_mode"] = requested_mode
         brain["auto_selected"] = requested_mode == "auto"
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
@@ -848,6 +859,7 @@ def chat(
         "requested_mode": str(brain.get("requested_mode") or "auto"),
         "auto_selected": bool(brain.get("auto_selected")),
         "resolved_studio_mode": bool(brain.get("studio_mode")),
+        "studio_workspace": str(brain.get("studio_workspace") or "auto"),
         "authority": brain["authority"],
         "war_room": brain["war_room"],
         "can_execute": False,
