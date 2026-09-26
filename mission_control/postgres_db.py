@@ -415,6 +415,9 @@ def database_identity_fingerprint() -> dict[str, Any]:
         "source": database_source(),
         "authority": database_authority(),
         "fingerprint": None,
+        "metadata_fingerprint": None,
+        "metadata_fingerprint_algorithm": "md5",
+        "metadata_fingerprint_components": ["current_database", "current_user"],
         "reachable": False,
         "secret_exposed": False,
         "error": None,
@@ -425,18 +428,26 @@ def database_identity_fingerprint() -> dict[str, Any]:
     try:
         with connect(readonly=True) as connection:
             row = connection.execute(
-                """SELECT md5(
-                       current_database() || '|' ||
-                       COALESCE(inet_server_addr()::text, '') || '|' ||
-                       COALESCE(inet_server_port()::text, '') || '|' ||
-                       current_setting('server_version_num')
-                   )"""
+                """SELECT
+                       md5(
+                           current_database() || '|' ||
+                           COALESCE(inet_server_addr()::text, '') || '|' ||
+                           COALESCE(inet_server_port()::text, '') || '|' ||
+                           current_setting('server_version_num')
+                       ),
+                       md5(current_database() || '|' || current_user)"""
             ).fetchone()
         value = str(row[0]) if row and row[0] is not None else ""
-        if len(value) != 32 or any(ch not in "0123456789abcdef" for ch in value.lower()):
+        metadata_value = str(row[1]) if row and len(row) > 1 and row[1] is not None else ""
+        valid = lambda item: (
+            len(item) == 32
+            and all(ch in "0123456789abcdef" for ch in item.lower())
+        )
+        if not valid(value) or not valid(metadata_value):
             result["error"] = "database_identity_unavailable"
             return result
         result["fingerprint"] = value.lower()
+        result["metadata_fingerprint"] = metadata_value.lower()
         result["reachable"] = True
         return result
     except Exception:  # noqa: BLE001 - never surface driver/server details.

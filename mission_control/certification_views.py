@@ -38,6 +38,13 @@ def _database_startup_probe() -> None:
         "backend": snapshot.get("backend"),
         "source": snapshot.get("source"),
         "database_identity_fingerprint": identity.get("fingerprint"),
+        "database_metadata_fingerprint": identity.get("metadata_fingerprint"),
+        "database_metadata_fingerprint_algorithm": identity.get(
+            "metadata_fingerprint_algorithm"
+        ),
+        "database_metadata_fingerprint_components": identity.get(
+            "metadata_fingerprint_components"
+        ),
         "database_identity_reachable": bool(identity.get("reachable")),
         "configured": bool(snapshot.get("configured")),
         "reachable": bool(snapshot.get("reachable")),

@@ -7,11 +7,12 @@ from mission_control import postgres_db
 
 
 class _Result:
-    def __init__(self, value):
+    def __init__(self, value, metadata_value="fedcba9876543210fedcba9876543210"):
         self.value = value
+        self.metadata_value = metadata_value
 
     def fetchone(self):
-        return (self.value,)
+        return (self.value, self.metadata_value)
 
 
 class _Connection:
@@ -44,6 +45,9 @@ def test_database_identity_fingerprint_is_readonly_and_opaque(monkeypatch):
         "source": "platform_database_url",
         "authority": "primary",
         "fingerprint": "0123456789abcdef0123456789abcdef",
+        "metadata_fingerprint": "fedcba9876543210fedcba9876543210",
+        "metadata_fingerprint_algorithm": "md5",
+        "metadata_fingerprint_components": ["current_database", "current_user"],
         "reachable": True,
         "secret_exposed": False,
         "error": None,
@@ -54,6 +58,7 @@ def test_database_identity_fingerprint_is_readonly_and_opaque(monkeypatch):
     assert "md5(" in sql
     assert "current_database()" in sql
     assert "inet_server_addr()" in sql
+    assert "current_user" in sql
     assert "password" not in sql
     assert "database_url" not in sql
 
@@ -95,5 +100,31 @@ def test_database_identity_fingerprint_rejects_malformed_database_value(monkeypa
     result = postgres_db.database_identity_fingerprint()
 
     assert result["fingerprint"] is None
+    assert result["reachable"] is False
+    assert result["error"] == "database_identity_unavailable"
+
+
+
+def test_database_identity_fingerprint_rejects_malformed_metadata_value(monkeypatch):
+    connection = _Connection()
+    connection.execute = lambda _sql: _Result(
+        "0123456789abcdef0123456789abcdef", "not-a-fingerprint",
+    )
+
+    @contextmanager
+    def fake_connect(*, readonly=False):
+        assert readonly is True
+        yield connection
+
+    monkeypatch.setattr(postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(postgres_db, "database_source",
+                        lambda: "platform_database_url")
+    monkeypatch.setattr(postgres_db, "database_authority", lambda: "primary")
+    monkeypatch.setattr(postgres_db, "connect", fake_connect)
+
+    result = postgres_db.database_identity_fingerprint()
+
+    assert result["fingerprint"] is None
+    assert result["metadata_fingerprint"] is None
     assert result["reachable"] is False
     assert result["error"] == "database_identity_unavailable"
