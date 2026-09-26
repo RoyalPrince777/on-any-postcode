@@ -546,8 +546,13 @@ refreshOps();
         input.focus();
         return;
       }
-      if(toolId==="bring_alive"&&!sourceImage){
-        setStatus("Bring Alive needs an image first · attach or capture one.");
+      if(toolId==="edit_image"&&!prompt){
+        setStatus("Edit needs an instruction first.");
+        input.focus();
+        return;
+      }
+      if(["bring_alive","edit_image","refine_image"].includes(toolId)&&!sourceImage){
+        setStatus((toolId==="bring_alive"?"Animate":toolId==="edit_image"?"Edit":"Refine")+" needs a reference image first · attach, capture or reuse one.");
         return;
       }
       button.disabled=true;
@@ -565,6 +570,7 @@ refreshOps();
             tool_id:toolId,
             prompt:prompt||"Bring this image alive with natural cinematic motion.",
             source_image_data:sourceImage,
+            character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK),
             conversation_id:conversationId||"",
             studio_request_id:(globalThis.crypto?.randomUUID?.()||"")
           })
