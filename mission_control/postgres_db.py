@@ -429,7 +429,7 @@ def database_identity_fingerprint() -> dict[str, Any]:
             if row is None or len(row) < 2:
                 result["error"] = "database_identity_unavailable"
                 return result
-            material = f"{row[0]}\0{row[1]}".encode("utf-8")
+            material = f"{row[0]}\0{row[1]}".encode()
             result["fingerprint"] = hashlib.sha256(material).hexdigest()
             return result
     except Exception:  # noqa: BLE001 - never expose connection details.
