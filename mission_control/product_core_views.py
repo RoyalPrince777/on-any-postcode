@@ -15,8 +15,8 @@ from . import (
     open_music_intake,
     product_core_services,
     product_cores,
-    radio_core,
     product_store,
+    radio_core,
     public_store,
     web_security,
 )
@@ -24,6 +24,7 @@ from . import (
 bp = Blueprint("product_core_organs", __name__)
 _store = product_cores.PostgresProductCoreStore()
 _music_evidence_store = music_evidence.MusicEvidenceStore()
+_radio_store = radio_core.RadioStore()
 
 
 def _no_store(response):
@@ -397,8 +398,86 @@ def open_cinema_evidence_preview():
 @bp.get("/radio")
 @web_security.login_required(api=True)
 def radio_status():
-    """Authenticated read-only OAP Radio capability contract."""
-    return _no_store(make_response(jsonify(radio_core.radio_contract())))
+    """Authenticated owner-scoped OAP Radio dashboard."""
+    try:
+        return _no_store(make_response(jsonify(
+            _radio_store.dashboard(owner_identity_id=_identity())
+        )))
+    except (ValueError, RuntimeError):
+        return _error("radio_unavailable", "OAP Radio is temporarily unavailable.", 503)
+
+
+@bp.post("/radio/stations")
+@web_security.login_required(api=True)
+def create_radio_station():
+    def action():
+        payload = _payload()
+        return _radio_store.create_station(
+            owner_identity_id=_identity(sync=True),
+            name=payload.get("name"),
+            slug=payload.get("slug"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/shows")
+@web_security.login_required(api=True)
+def create_radio_show(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.create_show(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            title=payload.get("title"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/schedule")
+@web_security.login_required(api=True)
+def schedule_radio_show(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.schedule_show(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            show_id=payload.get("show_id"),
+            starts_at=payload.get("starts_at"),
+            ends_at=payload.get("ends_at"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/rotation")
+@web_security.login_required(api=True)
+def add_radio_rotation(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.add_rotation(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            track_id=payload.get("track_id"),
+            position=payload.get("position"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/radio/stations/<station_id>/stop")
+@web_security.login_required(api=True)
+def stop_radio_station(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.stop_station(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            reason=payload.get("reason"),
+        )
+
+    return _handle_write(action)
 
 
 @bp.get("/distribution")
