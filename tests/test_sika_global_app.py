@@ -380,3 +380,24 @@ def test_surface_has_a6_fail_closed_proof_button():
     client = app.test_client()
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="a6EvidenceBtn"' in html
+
+
+def test_open_banking_trial_is_read_only_and_non_monetary():
+    client = app.test_client()
+    status = client.get("/api/sika/open-banking/status").get_json()
+    trial = client.get("/api/sika/open-banking/trial").get_json()
+    assert status["read_only_account_information"] is True
+    assert status["payment_initiation_enabled"] is False
+    assert status["execution_enabled"] is False
+    assert status["sika_reference_balance_is_bank_money"] is False
+    assert trial["available"] is True
+    assert trial["account"]["balance_type"] == "dummy_data"
+    assert trial["sika_view"]["bank_money_claim"] is False
+    assert trial["money_moved"] is False
+
+
+def test_surface_has_bank_trial_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="bankTrialBtn"' in html
+    assert 'id="bankTrialSection"' in html
