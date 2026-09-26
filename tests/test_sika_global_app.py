@@ -696,7 +696,8 @@ def test_deep_dive_21_reports_new_bank_security_capabilities_without_fake_produc
     assert body["device_binding_software_ready"] is True
     assert body["durable_device_binding_store_ready"] is True
     assert body["authenticated_owner_bridge_ready"] is True
-    assert body["production_owner_session_route_ready"] is False
+    assert body["production_owner_session_route_software_ready"] is True
+    assert body["production_owner_session_route_live_proof"] is False
     assert body["physical_android_acceptance"] is False
     assert body["real_payment_ready"] is False
     assert body["execution_granted"] is False
@@ -734,3 +735,11 @@ def test_surface_has_durable_bank_credential_readiness_control():
     client = app.test_client()
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="bankCredentialStoreBtn"' in html
+
+
+def test_owner_session_readiness_separates_software_from_live_proof():
+    client = app.test_client()
+    body = client.get("/api/sika/owner-session/readiness").get_json()
+    assert body["authenticated_host_route_software_ready"] is True
+    assert body["authenticated_host_route_live_proof"] is False
+    assert body["production_ready"] is False
