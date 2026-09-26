@@ -63,7 +63,7 @@ PUBLIC_SPOT_CAPABILITIES: tuple[dict[str, str], ...] = (
     {"source_id": "creators", "slug": "creators", "name": "Creators", "purpose": "Find musicians, artists and talent."},
     {"source_id": "community-power", "slug": "community-progress", "name": "Empire Power", "purpose": "See participation and positive Empire action."},
     {"source_id": "support", "slug": "support", "name": "Empire Support", "purpose": "Find help, resources and protected support."},
-    {"source_id": "infrastructure", "slug": "maps-weather-travel", "name": "Map Intelligence", "purpose": "Plan, book and move with roads, routes, weather, travel, movement, OAP Direct and delivery in one place."},
+    {"source_id": "infrastructure", "slug": "maps-weather-travel", "name": "OAP Atlas", "purpose": "Search a place, see source-bound weather, then move or book through OAP."},
     {"source_id": "market", "slug": "market", "name": "Market", "purpose": "Explore products and Empire commerce."},
     {"source_id": "music", "slug": "music", "name": "OAP Music", "purpose": "Discover artists, songs, albums, playlists and creator campaigns inside OAP."},
     {"source_id": "player", "slug": "player", "name": "OAP Player", "purpose": "Use the OAP-owned listening experience where streams build attention, not the main money."},
