@@ -191,6 +191,9 @@ async function sha256(bytes){
  assert.ok(audioCode.includes('payload?.engineBuild!=="espeak-ng-1.51-bundled"'));
  assert.ok(audioCode.includes("if(!allowed()||!active)return false"));
  assert.ok(audioCode.includes("MAX_BYTES=32*1024*1024"));
+ assert.ok(audioCode.includes("accurateSoftwareLipSyncProven"));
+ assert.ok(audioCode.includes("maxAudioClockDeltaMs"));
+ assert.ok(audioCode.includes("accurateHumanLipSyncProven:false"));
  assert.ok(!audioCode.includes("localStorage"));
  assert.ok(!audioCode.includes("sendBeacon"));
  assert.ok(!audioCode.includes("WebSocket"));
