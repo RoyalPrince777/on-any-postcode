@@ -26,11 +26,34 @@ def test_database_startup_probe_marks_proven_success_info(monkeypatch, capsys):
         },
     )
 
+    monkeypatch.setattr(
+        certification_views.postgres_db,
+        "database_identity_fingerprint",
+        lambda: {
+            "fingerprint": "fedcba9876543210fedcba9876543210",
+            "metadata_fingerprint": "0123456789abcdef0123456789abcdef",
+            "metadata_fingerprint_algorithm": "md5",
+            "metadata_fingerprint_components": [
+                "current_database", "current_user",
+            ],
+            "reachable": True,
+            "secret_exposed": False,
+            "error": None,
+        },
+    )
+
     certification_views._database_startup_probe()
     payload = _last_json(capsys)
 
     assert payload["level"] == "info"
     assert payload["reachable"] is True
+    assert payload["database_identity_reachable"] is True
+    assert payload["database_identity_fingerprint"] == "fedcba9876543210fedcba9876543210"
+    assert payload["database_metadata_fingerprint"] == "0123456789abcdef0123456789abcdef"
+    assert payload["database_metadata_fingerprint_algorithm"] == "md5"
+    assert payload["database_metadata_fingerprint_components"] == [
+        "current_database", "current_user",
+    ]
     assert payload["initialized"] is True
     assert payload["pending_migrations"] == 0
     assert "error" not in payload
