@@ -19,7 +19,7 @@ This is above A5 preparation, but below A7 organism-scale autonomy.
 
 - Execute internal Route Matrix capture.
 - Execute Private Guard capture.
-- Execute OAP Atlas source-health capture.
+- Execute On Any Place source-health capture.
 - Create Direct request drafts.
 - Create supplier readiness checks.
 - Create inventory readiness checks.
