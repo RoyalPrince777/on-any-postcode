@@ -198,6 +198,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <label>Owner UUID<input id="bankOwnerId" maxlength="36" placeholder="OAP owner UUID"></label>
 <button id="bankDeviceBindBtn">Bind owner to this device</button>
 <button id="bankDeviceStatusBtn">Check device binding</button>
+<button id="bankDeviceDurableBtn">Check durable binding readiness</button>
 <button id="bankDeviceUnbindBtn">Unbind device</button>
 <div class="result" id="bankDeviceResult">Owner-device binding is acceptance-only until OAP Identity + HRM are connected.</div>
 <button id="freezeBtn">Freeze card & payments</button>
@@ -370,6 +371,11 @@ document.getElementById('bankDeviceStatusBtn').onclick=async()=>{
  const q=new URLSearchParams({owner_id:bankOwnerId.value,device_id:bankDeviceId.value});
  const r=await fetch('/api/sika/device/status?'+q.toString()); const j=await r.json();
  bankDeviceResult.textContent=j.matched?'Binding matched':'Not matched · '+(j.error||'no active binding');
+};
+document.getElementById('bankDeviceDurableBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/device/durable-readiness'); const j=await r.json();
+ bankDeviceResult.textContent='durable store '+j.canonical_store_reused+' · audit '+j.audit_chain_reused+
+  ' · public write '+j.standalone_public_write_enabled+' · auth host required '+j.authenticated_host_required;
 };
 document.getElementById('bankDeviceUnbindBtn').onclick=async()=>{
  const r=await fetch('/api/sika/device/unbind',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({owner_id:bankOwnerId.value,device_id:bankDeviceId.value})});
