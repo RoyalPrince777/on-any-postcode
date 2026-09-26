@@ -261,6 +261,7 @@ async function oapSubmit(options={}){
  if(oapLocked||oapSend.disabled)return;const text=oapInput.value.trim();const hasImage=typeof selectedImage!=='undefined'&&Boolean(selectedImage);const hasAttachment=typeof selectedAttachment!=='undefined'&&Boolean(selectedAttachment);if(!text&&!hasImage&&!hasAttachment)return;
  const selectedThinkingLevel=oapThinkingLevel?.value||'auto';
  const selectedStudioMode=(typeof studioMode!=='undefined')?Boolean(studioMode):Boolean(document.getElementById('studio-button')?.classList.contains('active'));
+ const selectedStudioWorkspace=String(window.OAP_SMI_STUDIO_WORKSPACE||'auto');
  const userLabel=(text||'Analyse attached media')+(hasImage?'\n📷 Image attached':'')+(hasAttachment?'\n📎 '+selectedAttachment.name:'')+(codeMode?'\n⌘ Code proposal mode':'');
  // An accepted new command supersedes prior reply audio; never leave stale
  // speech/cues running while the next governed response is being prepared.
@@ -272,7 +273,7 @@ async function oapSubmit(options={}){
  window.dispatchEvent(new CustomEvent('oap-smi-submit-start',{detail:{fromLive,atMs:performance.now()}}));
  oapLocked=true;responseStopped=false;oapPaused=false;oapShowLiveReply('');oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');oapAbort=new AbortController();activeController=oapAbort;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
  try{
-  const response=await fetch(streamUrl,{method:'POST',signal:oapAbort.signal,headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message:text,display_name:document.getElementById('display-name')?.value||'OAP Founder',conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode,thinking_level:selectedThinkingLevel,studio_mode:selectedStudioMode})});
+  const response=await fetch(streamUrl,{method:'POST',signal:oapAbort.signal,headers:{'Content-Type':'application/json','X-OAP-CSRF':csrfToken},credentials:'same-origin',body:JSON.stringify({message:text,display_name:document.getElementById('display-name')?.value||'OAP Founder',conversation_id:conversationId,image_data:selectedImage,attachment:selectedAttachment,code_mode:codeMode,thinking_level:selectedThinkingLevel,studio_mode:selectedStudioMode,studio_workspace:selectedStudioWorkspace})});
   if(!response.ok){let payload={};try{payload=await response.json()}catch{}throw new Error(payload?.error?.message||'Request failed');}
   if(!response.body)throw new Error('Streaming is not supported by this browser');
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
