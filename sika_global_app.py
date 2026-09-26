@@ -11,6 +11,7 @@ from flask import Flask, jsonify, make_response, render_template, request, send_
 
 from mission_control import (
     sika_a5_preparation,
+    sika_a6_readiness,
     sika_finance_features,
     sika_global,
     sika_intelligence,
@@ -302,3 +303,8 @@ def sika_payment_licence_status():
 @app.get("/api/sika/a5-preparation")
 def sika_a5_preparation_status():
     return jsonify(sika_a5_preparation.pack())
+
+
+@app.get("/api/sika/a6-readiness")
+def sika_a6_readiness_status():
+    return jsonify(sika_a6_readiness.status())
