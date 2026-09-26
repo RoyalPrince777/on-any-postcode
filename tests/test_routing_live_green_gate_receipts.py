@@ -61,7 +61,10 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 
     with pytest.raises(SystemExit, match="live routing probe had failed requests"):
         gate.main()
-    receipt = json.loads(capsys.readouterr().out)
+    receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
+    assert receipts[0]["event"] == "oap_routing_bounded_external_warmup"
+    receipt = receipts[-1]
+    assert receipt["event"] == "oap_routing_bounded_external_probe"
     assert receipt["requests"] == 2
     assert receipt["successes"] == 1
     assert receipt["failures"] == 1
@@ -83,7 +86,10 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     )
     with pytest.raises(SystemExit, match="p95 exceeded 6.0s"):
         gate.main()
-    receipt = json.loads(capsys.readouterr().out)
+    receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
+    assert receipts[0]["event"] == "oap_routing_bounded_external_warmup"
+    receipt = receipts[-1]
+    assert receipt["event"] == "oap_routing_bounded_external_probe"
     assert receipt["successes"] == 2
     assert receipt["failures"] == 0
     assert receipt["bounded_capacity_proven"] is False
