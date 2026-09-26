@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAP TV</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;background:#080808;color:#f5f5f5}
+    main{max-width:1100px;margin:auto;padding:24px}
+    .hero{padding:28px 0}.eyebrow{letter-spacing:.16em;text-transform:uppercase;opacity:.7}
+    nav{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+    a,.control{border:1px solid #3d3d3d;border-radius:999px;padding:10px 14px;color:inherit;text-decoration:none;background:#141414}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+    .card{border:1px solid #292929;border-radius:18px;padding:18px;background:#111}
+    .blocked{opacity:.58}.truth{font-weight:700}.meter{height:10px;background:#222;border-radius:9px;overflow:hidden}
+    .meter>span{display:block;height:100%;width:0;background:currentColor}
+    small{opacity:.72}
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div class="eyebrow">Born Local · Built Global · Earth Is Our Turf</div>
+    <h1>📺 OAP TV</h1>
+    <p>Live television, scheduled channels and governed distribution from postcode to global.</p>
+    <nav>
+      <a href="#live">Live Now</a><a href="#guide">TV Guide</a><a href="#channels">Channels</a>
+      <a href="#shows">Shows</a><a href="#local">Local</a><a href="#world">World</a>
+      <a href="#news">News</a><a href="#music">Music</a><a href="#my-tv">My TV</a>
+    </nav>
+  </section>
+
+  <section class="grid">
+    <article class="card blocked" id="live"><h2>🔴 Watch Live</h2><p>Blocked until runtime ingest, rights, entitlement and playback gates are evidenced.</p></article>
+    <article class="card" id="guide"><h2>🗓️ TV Guide</h2><p>Canonical schedule/EPG owner is reserved in the TV control plane.</p></article>
+    <article class="card" id="channels"><h2>📡 Channels</h2><p>One asset may serve multiple authorised channels without duplication.</p></article>
+    <article class="card" id="local"><h2>📍 Local → Global</h2><p>Postcode → Borough/District → County/Region → Country → Continent → Global.</p></article>
+    <article class="card" id="shows"><h2>🎬 Shows</h2><p>Catalogue, episodes, rights and archive share canonical references.</p></article>
+    <article class="card" id="music"><h2>🎵 Music TV</h2><p>Video and music rights remain separately enforced.</p></article>
+    <article class="card" id="news"><h2>📰 Signal / News</h2><p>Source and correction history remain auditable.</p></article>
+    <article class="card" id="my-tv"><h2>⭐ My TV</h2><p>Entitlement and saved-viewing controls remain evidence-gated.</p></article>
+  </section>
+
+  <section class="card" style="margin-top:18px">
+    <div class="eyebrow">Truth Mode · Red Team</div>
+    <h2>Road to 100</h2>
+    <p class="truth" id="readiness">{{ tv.red_team.software_readiness_percent }}% runtime gates evidenced</p>
+    <div class="meter"><span id="bar"></span></div>
+    <p><small>Green is fail-closed. A UI surface never counts as proof of live broadcast, external distribution, payments or device acceptance.</small></p>
+  </section>
+</main>
+<script>
+fetch('/tv/status',{credentials:'same-origin'})
+  .then(r=>r.ok?r.json():Promise.reject())
+  .then(s=>{
+    const p=s.red_team.software_readiness_percent||0;
+    document.getElementById('readiness').textContent=p+'% runtime gates evidenced';
+    document.getElementById('bar').style.width=p+'%';
+  }).catch(()=>{});
+</script>
+</body>
+</html>
