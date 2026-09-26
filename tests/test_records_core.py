@@ -91,3 +91,42 @@ def test_records_receipt_never_claims_external_delivery(monkeypatch):
         reference="archive-readback-1",
     )
     assert result["proves_external_distribution"] is False
+
+
+def test_records_credit_rejects_cross_owner_evidence(monkeypatch):
+    owner, release, receipt = str(uuid4()), str(uuid4()), str(uuid4())
+    selects = 0
+
+    class Result:
+        def __init__(self, row):
+            self.row = row
+        def fetchone(self):
+            return self.row
+
+    class Connection:
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def execute(self, sql, _params=()):
+            nonlocal selects
+            if "SELECT 1 FROM oap_music_releases" in sql:
+                selects += 1
+                return Result((1,))
+            if "SELECT 1 FROM oap_music_evidence_receipts" in sql:
+                selects += 1
+                return Result(None)
+            return Result((str(uuid4()),))
+        def commit(self):
+            raise AssertionError("must not commit with foreign evidence")
+
+    monkeypatch.setattr(records_core.postgres_db, "connect", lambda **_kwargs: Connection())
+    with pytest.raises(PermissionError, match="records_evidence_not_owned"):
+        records_core.RecordsStore().add_credit(
+            owner_identity_id=owner,
+            release_id=release,
+            role="writer",
+            display_name="Writer",
+            evidence_receipt_id=receipt,
+        )
+    assert selects == 2
