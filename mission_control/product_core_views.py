@@ -9,10 +9,10 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from . import (
     distribution_intelligence,
     entertainment_catalogue,
+    music_evidence,
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
-    music_evidence,
     product_core_services,
     product_cores,
     product_store,
