@@ -13,6 +13,7 @@ from mission_control import (
     sika_a5_preparation,
     sika_a6_readiness,
     sika_android_acceptance,
+    sika_bank_app_security,
     sika_finance_features,
     sika_global,
     sika_intelligence,
@@ -382,3 +383,46 @@ def sika_os_alignment_status():
 @app.get("/api/sika/deep-dive-21")
 def sika_deep_dive_21_status():
     return jsonify(sika_deep_dive_21.status())
+
+
+@app.post("/api/sika/security/password/create")
+def sika_bank_password_create():
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_bank_app_security.create_password(
+            body.get("device_id"),
+            body.get("password"),
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "created": False}), 400
+    return jsonify(result), (201 if result["created"] else 409)
+
+
+@app.post("/api/sika/security/password/unlock")
+def sika_bank_password_unlock():
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_bank_app_security.unlock(
+            body.get("device_id"),
+            body.get("password"),
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "unlocked": False}), 400
+    return jsonify(result), (200 if result["unlocked"] else 401)
+
+
+@app.post("/api/sika/security/password/lock")
+def sika_bank_password_lock():
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_bank_app_security.lock(body.get("device_id")))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "locked": False}), 400
+
+
+@app.get("/api/sika/security/password/status")
+def sika_bank_password_status():
+    try:
+        return jsonify(sika_bank_app_security.status(request.args.get("device_id")))
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "production_ready": False}), 400
