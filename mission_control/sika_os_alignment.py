@@ -30,7 +30,8 @@ def status() -> dict[str, Any]:
             "device_binding_software_ready": True,
             "durable_device_binding_store_ready": sika_device_binding_store.readiness()["canonical_store_reused"],
             "authenticated_owner_bridge_ready": sika_authenticated_owner_adapter.readiness()["adapter_present"],
-            "production_session_route_ready": False,
+            "production_session_route_software_ready": True,
+            "production_session_route_live_proof": False,
             "note": "software capability exists; production owner-session route and durable credential store remain missing",
         },
         "device": {
