@@ -526,7 +526,9 @@ refreshOps();
           body:JSON.stringify({
             tool_id:toolId,
             prompt:prompt||"Bring this image alive with natural cinematic motion.",
-            source_image_data:sourceImage
+            source_image_data:sourceImage,
+            conversation_id:conversationId||"",
+            studio_request_id:(globalThis.crypto?.randomUUID?.()||"")
           })
         });
         const result=await response.json();
@@ -547,7 +549,8 @@ refreshOps();
           image.src="data:"+(artifact.mime_type||"image/png")+";base64,"+artifact.b64_json;
           const meta=document.createElement("span");
           meta.className="tool-meta";
-          meta.textContent=(receipt?"Chronicle "+receipt:"Chronicle receipt pending")+(proof?.receipt_id?" · Button Proof "+proof.receipt_id:"");
+          const indexed=Boolean(result?.founder_asset?.indexed);
+          meta.textContent=(receipt?"Chronicle "+receipt:"Chronicle receipt pending")+(indexed?" · Founder Library indexed":" · Founder Library pending")+(proof?.receipt_id?" · Button Proof "+proof.receipt_id:"");
           card.append(heading,image,meta);
           messages.append(card);
           messages.scrollTop=messages.scrollHeight;
