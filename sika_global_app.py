@@ -5,8 +5,9 @@ Run locally with:
 """
 from __future__ import annotations
 
+import os
 from decimal import Decimal
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, make_response, render_template, request, send_from_directory
 
 from mission_control import (
     sika_finance_features,
@@ -17,6 +18,7 @@ from mission_control import (
 )
 
 app = Flask(__name__, template_folder="mission_control/templates")
+STATIC_ROOT = os.path.join(app.root_path, "static")
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 
 
@@ -34,6 +36,67 @@ def security_headers(response):
         "form-action 'self'; object-src 'none'; img-src 'self' data:; "
         "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'",
     )
+    return response
+
+
+@app.get("/manifest.webmanifest")
+def oap_os_manifest():
+    response = send_from_directory(
+        STATIC_ROOT,
+        "manifest.webmanifest",
+        mimetype="application/manifest+json",
+        max_age=3600,
+    )
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@app.get("/service-worker.js")
+def oap_os_service_worker():
+    response = send_from_directory(
+        STATIC_ROOT,
+        "oap-os-sw.js",
+        mimetype="application/javascript",
+        max_age=0,
+    )
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
+
+
+@app.get("/assets/oap-os.js")
+def oap_os_install_controller():
+    return send_from_directory(
+        STATIC_ROOT,
+        "oap-os.js",
+        mimetype="application/javascript",
+        max_age=3600,
+    )
+
+
+@app.get("/assets/oap-os-icon-<int:size>.png")
+def oap_os_icon(size):
+    if size not in {192, 512}:
+        response = make_response("", 404)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    return send_from_directory(
+        STATIC_ROOT,
+        f"oap-os-icon-{size}.png",
+        mimetype="image/png",
+        max_age=86400,
+    )
+
+
+@app.get("/offline")
+def oap_os_offline():
+    response = send_from_directory(
+        STATIC_ROOT,
+        "oap-os-offline.html",
+        mimetype="text/html",
+        max_age=3600,
+    )
+    response.headers["Cache-Control"] = "public, max-age=3600"
     return response
 
 
