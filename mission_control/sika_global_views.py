@@ -48,7 +48,14 @@ def _security_rate_or_429(owner_id: str):
 
 @bp.after_request
 def _no_store(response):
-    response.headers["Cache-Control"] = "no-store"
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), display-capture=(), "
+        "usb=(), payment=()"
+    )
     return response
 
 
@@ -264,6 +271,12 @@ def sika_install_readiness():
     return jsonify(sika_safety.install_readiness())
 
 
+@bp.get("/api/sika/security/posture")
+@web_security.login_required(api=True)
+def sika_security_posture():
+    return jsonify(sika_safety.security_posture())
+
+
 
 @bp.post("/api/sika/security/credential/create")
 @web_security.login_required(api=True)
@@ -308,6 +321,8 @@ def sika_bank_credential_verify():
             owner.owner_id,
             body.get("password"),
         )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "verified": False}), 400
     except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
         return jsonify({"error": str(exc), "verified": False}), 503
     return jsonify({
@@ -364,7 +379,9 @@ def sika_authenticated_device_status():
             owner,
             request.args.get("device_id"),
         )
-    except (ValueError, sika_device_binding_store.SikaDeviceBindingUnavailable) as exc:
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "matched": False}), 400
+    except sika_device_binding_store.SikaDeviceBindingUnavailable as exc:
         return jsonify({"error": str(exc), "matched": False}), 503
     return jsonify(result)
 
