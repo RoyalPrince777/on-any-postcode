@@ -42,6 +42,35 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 </section>
 
 <section class="card">
+<h2>Wallet</h2>
+<div class="muted">Reference balance · software only</div>
+<div class="balance">{{ wallet.balance_reference }} SIKA</div>
+<p class="notice">This is not a deposit account or claim on customer funds.</p>
+</section>
+
+<section class="card">
+<h2>Treasury Rates</h2>
+{% if wallet.rates %}
+  {% for rate in wallet.rates %}
+  <div class="tile"><b>{{ rate.currency }}</b><p class="muted">{{ rate.gbp_per_unit }} GBP per unit · {{ rate.source }}</p></div>
+  {% endfor %}
+{% else %}
+  <p class="muted">No governed treasury rates loaded yet.</p>
+{% endif %}
+</section>
+
+<section class="card">
+<h2>Transaction History</h2>
+{% if wallet.history %}
+  {% for item in wallet.history %}
+  <div class="tile"><b>{{ item.kind }}</b><p>{{ item.amount_sika }} SIKA</p><p class="muted">{{ item.memo }}</p></div>
+  {% endfor %}
+{% else %}
+  <p class="muted">No reference ledger entries yet.</p>
+{% endif %}
+</section>
+
+<section class="card">
 <h2>Global currency quote</h2>
 <label>SIKA amount<input id="amount" inputmode="decimal" value="1"></label>
 <label>Currency code<input id="currency" maxlength="3" value="GBP"></label>
