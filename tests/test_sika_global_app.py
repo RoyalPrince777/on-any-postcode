@@ -700,3 +700,37 @@ def test_deep_dive_21_reports_new_bank_security_capabilities_without_fake_produc
     assert body["physical_android_acceptance"] is False
     assert body["real_payment_ready"] is False
     assert body["execution_granted"] is False
+
+
+def test_durable_bank_credential_store_reuses_canonical_sika_store_without_public_write():
+    client = app.test_client()
+    response = client.get("/api/sika/security/credential-store/readiness")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["canonical_store_reused"] is True
+    assert body["workspace_id"] == "sika"
+    assert body["hash_algorithm"] == "scrypt"
+    assert body["plaintext_password_stored"] is False
+    assert body["password_hash_returned"] is False
+    assert body["durable_create_function_present"] is True
+    assert body["durable_verify_function_present"] is True
+    assert body["durable_recovery_function_present"] is True
+    assert body["standalone_public_write_enabled"] is False
+    assert body["authenticated_host_required"] is True
+    assert body["founder_auth_touched"] is False
+    assert body["production_ready"] is False
+
+
+def test_deep_dive_21_now_reports_durable_bank_credential_store_ready():
+    client = app.test_client()
+    body = client.get("/api/sika/deep-dive-21").get_json()
+    assert body["bank_app_password_software_ready"] is True
+    assert body["bank_app_password_durable_store_ready"] is True
+    assert body["production_owner_session_route_ready"] is False
+    assert body["real_payment_ready"] is False
+
+
+def test_surface_has_durable_bank_credential_readiness_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="bankCredentialStoreBtn"' in html
