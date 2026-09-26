@@ -15,6 +15,7 @@ from . import (
     open_music_intake,
     product_core_services,
     product_cores,
+    radio_core,
     product_store,
     public_store,
     web_security,
@@ -391,6 +392,13 @@ def open_cinema_evidence_preview():
             payload.get("evidence"),
         )
     )))
+
+
+@bp.get("/radio")
+@web_security.login_required(api=True)
+def radio_status():
+    """Authenticated read-only OAP Radio capability contract."""
+    return _no_store(make_response(jsonify(radio_core.radio_contract())))
 
 
 @bp.get("/distribution")
