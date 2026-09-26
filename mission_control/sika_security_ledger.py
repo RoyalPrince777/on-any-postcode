@@ -737,3 +737,231 @@ def dismiss_alert(owner_id: object, event_id: object) -> dict[str, object]:
         "security_receipt_id": receipt.get("event_id"),
         "money_moved": False,
     }
+
+
+def register_session(
+    owner_id: object,
+    *,
+    session_id: object,
+    device_id: object,
+) -> dict[str, object]:
+    session = str(session_id or "").strip()[:160]
+    device = str(device_id or "").strip()[:120]
+    if not session or not device:
+        raise ValueError("session_id_and_device_id_required")
+    existing = session_registry(owner_id)
+    if any(item["session_id"] == session and item["active"] for item in existing["sessions"]):
+        return {
+            "session_id": session,
+            "device_id": device,
+            "registered": False,
+            "idempotent": True,
+            "money_moved": False,
+            "founder_auth_touched": False,
+        }
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SESSION_REGISTERED",
+        severity="NOTICE",
+        details={
+            "session_id": session,
+            "device_id": device,
+            "trusted": False,
+            "active": True,
+        },
+    )
+    return {
+        "session_id": session,
+        "device_id": device,
+        "registered": True,
+        "idempotent": False,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def session_registry(owner_id: object) -> dict[str, object]:
+    events = history(owner_id, limit=100)
+    sessions: dict[str, dict[str, object]] = {}
+    compromise_locked = False
+    for item in reversed(events):
+        kind = str(item.get("event_type") or "")
+        details = dict(item.get("details") or {})
+        if kind == "SESSION_REGISTERED":
+            sid = str(details.get("session_id") or "")
+            if sid:
+                sessions[sid] = {
+                    "session_id": sid,
+                    "device_id": str(details.get("device_id") or ""),
+                    "active": True,
+                    "trusted": bool(details.get("trusted")),
+                    "compromised": False,
+                    "registered_at": item.get("created_at"),
+                }
+        elif kind == "SESSION_TRUST_SET":
+            sid = str(details.get("session_id") or "")
+            if sid in sessions:
+                sessions[sid]["trusted"] = bool(details.get("trusted"))
+        elif kind == "SESSION_REVOKED":
+            sid = str(details.get("session_id") or "")
+            if sid in sessions:
+                sessions[sid]["active"] = False
+        elif kind == "SESSION_REVOKE_ALL":
+            for session in sessions.values():
+                session["active"] = False
+        elif kind == "SESSION_COMPROMISED":
+            sid = str(details.get("session_id") or "")
+            if sid in sessions:
+                sessions[sid]["compromised"] = True
+                sessions[sid]["active"] = False
+            compromise_locked = True
+        elif kind == "COMPROMISE_LOCK_SET":
+            compromise_locked = bool(details.get("locked"))
+    return {
+        "sessions": list(sessions.values()),
+        "active_session_count": sum(1 for x in sessions.values() if x["active"]),
+        "trusted_session_count": sum(
+            1 for x in sessions.values() if x["active"] and x["trusted"]
+        ),
+        "compromise_locked": compromise_locked,
+        "durable": True,
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def set_session_trust(
+    owner_id: object,
+    *,
+    session_id: object,
+    trusted: bool,
+) -> dict[str, object]:
+    session = str(session_id or "").strip()
+    registry = session_registry(owner_id)
+    if not any(item["session_id"] == session for item in registry["sessions"]):
+        raise ValueError("session_not_found")
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SESSION_TRUST_SET",
+        severity="NOTICE",
+        details={"session_id": session, "trusted": bool(trusted)},
+    )
+    return {
+        "session_id": session,
+        "trusted": bool(trusted),
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def revoke_session(owner_id: object, *, session_id: object) -> dict[str, object]:
+    session = str(session_id or "").strip()
+    registry = session_registry(owner_id)
+    target = next((x for x in registry["sessions"] if x["session_id"] == session), None)
+    if target is None:
+        raise ValueError("session_not_found")
+    if not target["active"]:
+        return {
+            "session_id": session,
+            "revoked": True,
+            "idempotent": True,
+            "money_moved": False,
+            "founder_auth_touched": False,
+        }
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SESSION_REVOKED",
+        severity="WARNING",
+        details={"session_id": session, "device_id": target.get("device_id")},
+    )
+    return {
+        "session_id": session,
+        "revoked": True,
+        "idempotent": False,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def revoke_all_sessions(owner_id: object) -> dict[str, object]:
+    registry = session_registry(owner_id)
+    active = [x for x in registry["sessions"] if x["active"]]
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SESSION_REVOKE_ALL",
+        severity="HIGH",
+        details={"revoked_session_count": len(active)},
+    )
+    return {
+        "revoked_session_count": len(active),
+        "revoked_all": True,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def mark_session_compromised(
+    owner_id: object,
+    *,
+    session_id: object,
+) -> dict[str, object]:
+    session = str(session_id or "").strip()
+    registry = session_registry(owner_id)
+    target = next((x for x in registry["sessions"] if x["session_id"] == session), None)
+    if target is None:
+        raise ValueError("session_not_found")
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="SESSION_COMPROMISED",
+        severity="CRITICAL",
+        details={
+            "session_id": session,
+            "device_id": target.get("device_id"),
+            "compromise_lock": True,
+        },
+    )
+    record_authenticated_owner(
+        owner_id,
+        event_type="COMPROMISE_LOCK_SET",
+        severity="CRITICAL",
+        details={"locked": True, "reason": "session_compromise"},
+    )
+    return {
+        "session_id": session,
+        "compromised": True,
+        "revoked": True,
+        "compromise_locked": True,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
+
+
+def recover_compromise(owner_id: object) -> dict[str, object]:
+    registry = session_registry(owner_id)
+    if not registry["compromise_locked"]:
+        return {
+            "recovered": True,
+            "idempotent": True,
+            "compromise_locked": False,
+            "money_moved": False,
+            "founder_auth_touched": False,
+        }
+    receipt = record_authenticated_owner(
+        owner_id,
+        event_type="COMPROMISE_LOCK_SET",
+        severity="NOTICE",
+        details={"locked": False, "reason": "authenticated_recovery"},
+    )
+    return {
+        "recovered": True,
+        "idempotent": False,
+        "compromise_locked": False,
+        "security_receipt_id": receipt.get("event_id"),
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
