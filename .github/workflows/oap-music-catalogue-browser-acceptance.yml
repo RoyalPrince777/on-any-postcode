@@ -1,0 +1,100 @@
+name: OAP Music catalogue browser acceptance
+
+on:
+  push:
+    branches:
+      - proof/oap-music-catalogue-browser-20260926
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install browser test runtime
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright@1.55.0
+          npx playwright install --with-deps chromium >/dev/null
+
+      - name: Exercise production Music controls
+        shell: bash
+        run: |
+          cat > /tmp/music-browser.js <<'EOF'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({headless:true});
+            const page = await browser.newPage({viewport:{width:390,height:844}});
+            const base = 'https://on-any-postcode.onrender.com';
+
+            const response = await page.goto(base + '/music', {waitUntil:'networkidle'});
+            if (!response || response.status() !== 200) throw new Error('music_not_200');
+
+            const expectedButtons = ['catalogue','genres','civilization','creators','radio','records'];
+            for (const id of expectedButtons) {
+              const button = page.locator('[data-target="' + id + '"]');
+              if (await button.count() !== 1) throw new Error('missing_button_' + id);
+              await button.click();
+              await page.waitForTimeout(250);
+              const rect = await page.locator('#' + id).boundingBox();
+              if (!rect) throw new Error('missing_target_' + id);
+              if (Math.abs(rect.y) > 160) throw new Error('scroll_failed_' + id + '_' + rect.y);
+            }
+
+            const search = page.locator('#music-search');
+            await search.fill('Musopen');
+            await page.waitForTimeout(100);
+            const visibleSources = await page.locator('.source-card:not(.hidden)').count();
+            if (visibleSources !== 1) throw new Error('search_filter_failed_' + visibleSources);
+            const text = await page.locator('.source-card:not(.hidden)').innerText();
+            if (!text.includes('Musopen')) throw new Error('musopen_not_visible');
+
+            await search.fill('definitely-no-source');
+            await page.waitForTimeout(100);
+            if (!(await page.locator('#no-results').isVisible())) throw new Error('empty_state_failed');
+
+            await search.fill('');
+            const sourceLinks = page.locator('a.source-open');
+            if (await sourceLinks.count() < 5) throw new Error('source_links_missing');
+            for (let i = 0; i < await sourceLinks.count(); i++) {
+              const href = await sourceLinks.nth(i).getAttribute('href');
+              if (!href || !href.startsWith('https://')) throw new Error('invalid_source_href');
+            }
+
+            await page.locator('.bottom a[href="#player"]').click();
+            await page.waitForTimeout(100);
+            if (await page.evaluate(() => location.hash) !== '#player') throw new Error('bottom_nav_failed');
+
+            if (await page.locator('button:has-text("Play")').count() !== 0) {
+              throw new Error('fake_play_button_present');
+            }
+            if (!(await page.getByText('▶ Play locked').isVisible())) {
+              throw new Error('locked_player_state_missing');
+            }
+
+            const sourceApi = await page.request.get(base + '/music/api/open-sources');
+            if (sourceApi.status() !== 200) throw new Error('open_sources_api_failed');
+            const sourceJson = await sourceApi.json();
+            if (!Array.isArray(sourceJson.entries) || sourceJson.entries.length < 6) {
+              throw new Error('open_sources_empty');
+            }
+            if (sourceJson.entries.some(x => x.connected || x.licence_verified || x.bulk_import_allowed)) {
+              throw new Error('source_truth_boundary_failed');
+            }
+
+            const statusApi = await page.request.get(base + '/music/api/status');
+            if (statusApi.status() !== 200) throw new Error('status_api_failed');
+            const status = await statusApi.json();
+            if (status.public_catalogue_track_count !== 0 ||
+                status.public_playback_enabled !== false ||
+                status.rights_verified_by_software !== false) {
+              throw new Error('fake_green_status');
+            }
+
+            console.log('OAP_MUSIC_CATALOGUE_BROWSER_ACCEPTANCE_PASS');
+            await browser.close();
+          })().catch(err => { console.error(err); process.exit(1); });
+          EOF
+          node /tmp/music-browser.js
