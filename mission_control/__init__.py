@@ -88,6 +88,7 @@ def init_app(app: Flask) -> None:
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
     from .travel_supply_views import bp as travel_supply_bp
+    from .tv_views import bp as oap_tv_bp
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
@@ -1127,6 +1128,7 @@ def init_app(app: Flask) -> None:
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
     app.register_blueprint(music_public_bp)
+    app.register_blueprint(oap_tv_bp)
     app.register_blueprint(on_any_place_bp)
     app.register_blueprint(membership_revenue_bp)
     app.register_blueprint(movement_bp)
