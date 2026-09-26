@@ -641,6 +641,51 @@ def sika_security_payment_review_gate():
         }), 503
 
 
+@bp.post("/api/sika/security/payment-review/confirm")
+@web_security.login_required(api=True)
+def sika_security_payment_review_confirm():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        gate = sika_security_ledger.final_payment_review_gate(
+            owner.owner_id,
+            challenge_id=body.get("challenge_id"),
+            payment_intent_id=body.get("payment_intent_id"),
+        )
+        if not gate.get("allowed_to_final_review"):
+            return jsonify({
+                **gate,
+                "confirmed_for_review": False,
+                "payment_execution_authorised": False,
+            }), 423
+        receipt = sika_security_ledger.record_authenticated_owner(
+            owner.owner_id,
+            event_type="PAYMENT_FINAL_REVIEW_CONFIRMED",
+            severity="NOTICE",
+            details={
+                "challenge_id": str(body.get("challenge_id") or ""),
+                "payment_intent_id": str(body.get("payment_intent_id") or ""),
+                "payment_execution_authorised": False,
+            },
+        )
+        return jsonify({
+            **gate,
+            "confirmed_for_review": True,
+            "security_receipt_id": receipt.get("event_id"),
+            "payment_execution_authorised": False,
+            "money_moved": False,
+        })
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({
+            "error": str(exc),
+            "confirmed_for_review": False,
+            "payment_execution_authorised": False,
+        }), 503
+
+
 @bp.post("/api/sika/security/alert/dismiss")
 @web_security.login_required(api=True)
 def sika_security_alert_dismiss():
