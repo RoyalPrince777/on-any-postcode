@@ -16,6 +16,7 @@ def test_all_in_ai_route_registers_founder_command_surface():
     assert "/mission/all-in-ai/mission/<mission_id>/recover" in rules
     assert "/mission/all-in-ai/mission/<mission_id>/action-handoff" in rules
     assert "/mission/all-in-ai/mission/<mission_id>/execute-internal-record" in rules
+    assert "/mission/all-in-ai/mission/<mission_id>/rollback-internal-record" in rules
 
 
 def test_all_in_ai_route_is_not_public():
@@ -66,6 +67,19 @@ def test_all_in_ai_lifecycle_routes_are_not_public():
             "record_id": "00000000-0000-0000-0000-000000000004",
             "expected_status": "draft",
             "target_status": "active",
+        },
+    ).status_code in {401, 403}
+    assert client.post(
+        f"/mission/all-in-ai/mission/{mission}/rollback-internal-record",
+        json={
+            "reviewed_request_id": "00000000-0000-0000-0000-000000000005",
+            "rollback_token": {
+                "record_id": "00000000-0000-0000-0000-000000000004",
+                "expected_status": "active",
+                "target_status": "draft",
+                "before_hash": "a" * 64,
+                "after_hash": "b" * 64,
+            },
         },
     ).status_code in {401, 403}
 
