@@ -309,6 +309,11 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <section class="card">
 <h2>Incoming</h2>
 <div class="result" id="incomingResult">No new SIKA alerts.</div>
+<div class="securityList" id="securityAlerts">
+  <div class="securityItem"><span>Session protection</span><b class="ok">On</b></div>
+  <div class="securityItem"><span>Beneficiary cooling-off</span><b class="ok">On</b></div>
+  <div class="securityItem"><span>Transfer limit preview</span><b class="ok">On</b></div>
+</div>
 <p class="notice">Security, wallet and payment notices appear here.</p>
 </section>
 <section class="card">
@@ -325,6 +330,17 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 
 <section class="card" id="securitySection">
 <h2>Security Centre</h2>
+<div class="summaryRow">
+  <div class="summaryBox"><span class="muted">Idle timeout</span><div class="value">5 min</div></div>
+  <div class="summaryBox"><span class="muted">Sensitive reauth</span><div class="value">2 min</div></div>
+</div>
+<label>Daily software limit SIKA<input id="dailyLimit" inputmode="decimal" value="1000"></label>
+<label>Used today SIKA<input id="dailyUsed" inputmode="decimal" value="0"></label>
+<label>Beneficiary age minutes<input id="beneficiaryAge" inputmode="numeric" value="0"></label>
+<label class="scamCheck"><input id="suspiciousDevice" type="checkbox"> This device or session looks suspicious</label>
+<button id="paymentControlsBtn">Check payment controls</button>
+<button id="recoverSuspiciousDeviceBtn">Recover suspicious device</button>
+<div class="result" id="paymentControlsResult">Controls ready.</div>
 <label>Device label<input id="bankDeviceId" value="sika-acceptance-device" maxlength="120"></label>
 <label>Create / unlock bank-app password<input id="bankPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password"></label>
 <button id="bankPasswordCreateBtn">Create bank-app password</button>
@@ -493,6 +509,41 @@ document.getElementById('securityPostureBtn').onclick=async()=>{
   '<div class="securityItem"><span>Money execution</span><b class="locked">'+j.money_execution_enabled+'</b></div>';
 };
 
+let lastActivity=Date.now();
+const SESSION_IDLE_MS=300000;
+const REAUTH_WINDOW_MS=120000;
+function noteActivity(){ lastActivity=Date.now(); }
+['click','keydown','touchstart','pointerdown'].forEach(evt=>document.addEventListener(evt,noteActivity,{passive:true}));
+setInterval(()=>{
+ if(Date.now()-lastActivity>=SESSION_IDLE_MS){
+  protectScreen();
+  document.getElementById('incomingResult').textContent='Security alert · session timed out · reauthentication required';
+ }
+},15000);
+
+document.getElementById('paymentControlsBtn').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/security/payment-controls',{
+  amount_sika:document.getElementById('payAmount')?.value||'0',
+  daily_used_sika:document.getElementById('dailyUsed').value,
+  daily_limit_sika:document.getElementById('dailyLimit').value,
+  recipient_age_minutes:document.getElementById('beneficiaryAge').value,
+  suspicious_device:document.getElementById('suspiciousDevice').checked
+ });
+ document.getElementById('paymentControlsResult').textContent=r.ok
+  ? 'remaining '+j.remaining_sika+' SIKA · cooling-off '+j.new_recipient_cooling_off+' · step-up '+j.step_up_required+' · progress '+j.payment_may_progress_to_review
+  : (j.error||'control check unavailable');
+ if(r.ok && (j.over_limit||j.suspicious_device||j.new_recipient_cooling_off)){
+  document.getElementById('incomingResult').textContent='Security alert · payment controls require review before progression';
+ }
+};
+
+document.getElementById('recoverSuspiciousDeviceBtn').onclick=()=>{
+ document.getElementById('suspiciousDevice').checked=false;
+ protectScreen();
+ document.getElementById('incomingResult').textContent='Security alert · suspicious-device recovery started · reauthentication required';
+ document.getElementById('paymentControlsResult').textContent='Device marked for recovery. Sensitive actions remain blocked pending reauthentication.';
+};
+
 document.getElementById('cardFreezeBtn').onclick=async()=>{
  const [r,j]=await postJSON('/api/sika/security/freeze',{});
  document.getElementById('cardResult').textContent=(j.reason||j.security_action||j.error)+' · executable '+(j.executable??false);
@@ -544,6 +595,23 @@ document.getElementById('payReviewBtn').onclick=async()=>{
  const reference=document.getElementById('payReference').value.trim();
  if(!recipient || !amount || Number(amount)<=0){
   document.getElementById('payResult').textContent='Recipient and positive amount required';
+  return;
+ }
+ const [cr,cj]=await postJSON('/api/sika/security/payment-controls',{
+  amount_sika:amount,
+  daily_used_sika:document.getElementById('dailyUsed')?.value||'0',
+  daily_limit_sika:document.getElementById('dailyLimit')?.value||'1000',
+  recipient_age_minutes:document.getElementById('beneficiaryAge')?.value||'0',
+  suspicious_device:document.getElementById('suspiciousDevice')?.checked||false
+ });
+ if(!cr.ok){
+  document.getElementById('payResult').textContent=cj.error||'Payment controls unavailable';
+  return;
+ }
+ if(cj.over_limit||cj.suspicious_device||cj.new_recipient_cooling_off){
+  document.getElementById('payReviewCard').classList.remove('active');
+  document.getElementById('payResult').textContent='Payment held by security controls · step-up/review required';
+  document.getElementById('incomingResult').textContent='Security alert · payment held before review';
   return;
  }
  const [r,j]=await postJSON('/api/sika/fraud/preflight',{
