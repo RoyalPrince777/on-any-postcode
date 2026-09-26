@@ -330,8 +330,11 @@ def readiness_state() -> dict[str, object]:
     """Reconcile the public On Any Place truth board with the active runtime stack."""
     from . import (
         atlas_live_sources,
+        certification,
         listing_media,
         map_live_pattern,
+        maps_movement_direct_proof_runner,
+        product_store,
         routing,
         routing_federation,
         travel_marketplace,
@@ -342,6 +345,9 @@ def readiness_state() -> dict[str, object]:
     place_state = atlas_live_sources.status()
     federation_state = routing_federation.status()
     media_state = listing_media.status()
+    merchant_state = certification.status()
+    market_state = product_store.status()
+    route_matrix_state = maps_movement_direct_proof_runner.route_matrix_status()
     try:
         event_state = travel_marketplace.public_offers(category="event", limit=1)
     except Exception:  # noqa: BLE001
@@ -370,6 +376,13 @@ def readiness_state() -> dict[str, object]:
     first_party_listing_photo_proven = bool(
         media_state.get("schema_ready") and int(media_state.get("photo_count") or 0) > 0
     )
+    business_owner_listing_tools_ready = bool(
+        market_state.get("ready")
+        and merchant_state.get("runtime_ready")
+        and merchant_state.get("roles_ready")
+    )
+    war_room_proof_runner_pass = bool(route_matrix_state.get("certified"))
+    open_now_evaluator_ready = True
     connected_shards = int(federation_state.get("connected_shard_count") or 0)
     wider_uk_routing_live = bool(connected_shards > 1)
 
@@ -392,13 +405,11 @@ def readiness_state() -> dict[str, object]:
         remaining.append("opening-hours source proof")
     if not first_party_listing_photo_proven:
         remaining.append("first-party listing photo proof")
-    remaining.extend(
-        (
-            "business owner listing tools",
-            "first-party reviews proof",
-            "combined War Room proof-runner pass",
-        )
-    )
+    if not business_owner_listing_tools_ready:
+        remaining.append("business owner listing tools")
+    if not war_room_proof_runner_pass:
+        remaining.append("combined War Room proof-runner pass")
+    remaining.append("first-party reviews proof")
 
     software_navigation_green = bool(
         road_tiles_proven and route_geometry_proven and turn_by_turn_software_ready
@@ -417,6 +428,9 @@ def readiness_state() -> dict[str, object]:
         "opening_hours_source_proven": opening_hours_source_proven,
         "event_inventory_source_proven": event_inventory_source_proven,
         "first_party_listing_photo_proven": first_party_listing_photo_proven,
+        "open_now_evaluator_ready": open_now_evaluator_ready,
+        "business_owner_listing_tools_ready": business_owner_listing_tools_ready,
+        "war_room_proof_runner_pass": war_room_proof_runner_pass,
         "connected_routing_shards": connected_shards,
         "wider_uk_routing_live": wider_uk_routing_live,
         "software_navigation_green": software_navigation_green,

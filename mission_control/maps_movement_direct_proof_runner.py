@@ -325,9 +325,17 @@ def execute_route_matrix_capture(*, identity_id: object, base_url: object, opera
 
 
 def route_matrix_status() -> dict[str, object]:
-    """Return the read-only Route Matrix capture contract."""
+    """Return the Route Matrix contract plus independently read-back live capture evidence."""
     public = tuple(item for item in ROUTE_MATRIX_CONTRACT if item["surface"] == "public")
     private = tuple(item for item in ROUTE_MATRIX_CONTRACT if item["surface"] == "founder_private")
+    receipt = hrm_durable_receipt.latest_receipt_status("a6-route-matrix-capture")
+    certified = bool(
+        receipt.get("read_back_verified")
+        and receipt.get("capture_passed")
+        and receipt.get("public_probe_pass")
+        and receipt.get("private_fail_closed_pass")
+        and receipt.get("authority_transferred") is False
+    )
     return {
         "component": "Route Matrix",
         "mode": "read_only_capture_contract",
@@ -337,13 +345,20 @@ def route_matrix_status() -> dict[str, object]:
         "target_count": len(ROUTE_MATRIX_CONTRACT),
         "public_target_count": len(public),
         "private_target_count": len(private),
-        "live_capture_present": False,
-        "anonymous_capture_present": False,
-        "founder_capture_present": False,
-        "certified": False,
-        "signal": "yellow",
+        "live_capture_present": bool(receipt.get("found")),
+        "anonymous_capture_present": bool(receipt.get("private_fail_closed_pass")),
+        "founder_capture_present": bool(receipt.get("found")),
+        "receipt_read_back_verified": bool(receipt.get("read_back_verified")),
+        "receipt_id": receipt.get("receipt_id"),
+        "receipt_recorded_at": receipt.get("recorded_at"),
+        "certified": certified,
+        "signal": "green" if certified else "yellow",
         "no_fake_green": True,
-        "next_gate": "Capture live HTTP status results and attach them as evidence before certifying Route Matrix.",
+        "next_gate": (
+            "Route Matrix live capture is durably certified."
+            if certified
+            else "Capture live HTTP status results and attach a durable read-back receipt before certifying Route Matrix."
+        ),
     }
 
 

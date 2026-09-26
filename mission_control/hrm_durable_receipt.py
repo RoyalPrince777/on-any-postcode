@@ -154,6 +154,53 @@ def persist_and_read_back(receipt: DurableReceipt) -> dict[str, Any]:
     }
 
 
+
+def latest_receipt_status(signal_id: object) -> dict[str, Any]:
+    """Read back the latest durable receipt for one signal without exposing payload details."""
+
+    signal = str(signal_id or "").strip()
+    if not signal:
+        return {"found": False, "read_back_verified": False, "reason": "signal_id_required"}
+    database_url, _source = _database_config()
+    if not database_url:
+        return {"found": False, "read_back_verified": False, "reason": "hrm_database_unconfigured"}
+
+    import psycopg
+
+    try:
+        with psycopg.connect(
+            _ssl_url(database_url),
+            connect_timeout=5,
+            application_name="oap-hrm-receipt-status",
+        ) as connection:
+            row = connection.execute(
+                """SELECT receipt_id::text, checksum, payload
+                   FROM oap_hrm_receipts
+                   WHERE signal_id=%s
+                   ORDER BY COALESCE(payload->>'recorded_at','') DESC
+                   LIMIT 1""",
+                (signal,),
+            ).fetchone()
+    except Exception:  # noqa: BLE001
+        return {"found": False, "read_back_verified": False, "reason": "receipt_status_unavailable"}
+
+    if row is None or not isinstance(row[2], Mapping):
+        return {"found": False, "read_back_verified": False, "reason": "receipt_not_found"}
+    payload = row[2]
+    verified = bool(_checksum(_without_recorded_at(payload)) == str(row[1]))
+    return {
+        "found": True,
+        "receipt_id": str(row[0]),
+        "read_back_verified": verified,
+        "capture_passed": bool(payload.get("capture_passed")),
+        "public_probe_pass": bool(payload.get("public_probe_pass")),
+        "private_fail_closed_pass": bool(payload.get("private_fail_closed_pass")),
+        "recorded_at": payload.get("recorded_at"),
+        "authority_transferred": bool(payload.get("authority_transferred")),
+        "secret_exposed": False,
+    }
+
+
 def _without_recorded_at(payload: Mapping[str, Any]) -> dict[str, Any]:
     body = dict(payload)
     body.pop("recorded_at", None)
