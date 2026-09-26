@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from oap.smi.state_ownership_registry import owners
+
 from . import postgres_db
 
 
