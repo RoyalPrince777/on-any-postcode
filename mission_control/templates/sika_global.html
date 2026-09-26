@@ -24,6 +24,13 @@ button{cursor:pointer}.tile{width:100%}.navBtn{background:transparent;border:0;p
 .notice{font-size:13px;line-height:1.45;color:#c9c9c9}.status{display:flex;gap:8px;align-items:center}.dot{width:8px;height:8px;border-radius:50%;background:#e5c966}
 input{width:100%;background:#0c0c0c;color:#fff;border:1px solid #3d3521;border-radius:14px;padding:13px;margin-top:8px}
 .result{margin-top:10px;font-weight:700}
+.sectionTitle{margin:24px 2px 8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#e5c966}
+.statusStrip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.statusPill{border:1px solid #2f2a1d;border-radius:14px;padding:10px;background:#0d0c09;font-size:12px}
+.statusPill b{display:block;margin-bottom:4px}
+.ok{color:#9ee6aa}.locked{color:#e5c966}.truth{color:#c9c9c9}
+.groupGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px}
+.primaryAction{border-color:#8d7630;background:#211b0c}
 nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px solid #292312;padding:12px;display:flex;justify-content:center;gap:28px}
 </style>
 </head>
@@ -41,22 +48,37 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Canonical SIKA stays first-party. Local currency is a settlement/display layer, not a separate SIKA.</p>
 </section>
 
-<section class="grid" aria-label="SIKA functions">
-<button class="tile jump" data-target="walletSection"><b>Wallet</b><p class="muted">Open wallet</p></button>
-<button class="tile jump" data-target="exchangeSection"><b>Exchange</b><p class="muted">Get FX quote</p></button>
-<button class="tile regulated" data-path="/api/sika/card"><b>Card</b><p class="muted">Licence rail locked</p></button>
-<button class="tile regulated" data-path="/api/sika/pay"><b>Pay</b><p class="muted">Licence rail locked</p></button>
+<div class="statusStrip" aria-label="SIKA truth status">
+<div class="statusPill"><b class="ok">Software</b><span class="truth">Live acceptance</span></div>
+<div class="statusPill"><b class="ok">PWA</b><span class="truth">Install shell ready</span></div>
+<div class="statusPill"><b class="locked">Payments</b><span class="truth">Licence-gated</span></div>
+</div>
+
+<div class="sectionTitle">Money & Value</div>
+<section class="groupGrid" aria-label="Money and value">
+<button class="tile jump primaryAction" data-target="walletSection"><b>Wallet</b><p class="muted">Reference wallet</p></button>
+<button class="tile jump primaryAction" data-target="exchangeSection"><b>Exchange</b><p class="muted">First-party FX quote</p></button>
 <button class="tile jump" data-target="treasurySection"><b>Treasury</b><p class="muted">Rates & control</p></button>
 <button class="tile jump" data-target="marketSection"><b>Market</b><p class="muted">Commerce handoff</p></button>
 <button class="tile jump" data-target="cashbackSection"><b>Cashback</b><p class="muted">Funded rewards</p></button>
-<button class="tile jump" data-target="flexSection"><b>Flex Pay</b><p class="muted">Schedule preview</p></button>
-<button class="tile jump" data-target="trustSection"><b>Trust</b><p class="muted">Explainable score</p></button>
-<button class="tile jump" data-target="securitySection"><b>Security</b><p class="muted">Security controls</p></button>
-<button class="tile intel" data-intel="alignment"><b>Alignment Intelligence</b><p class="muted">Cross-system alignment</p></button>
-<button class="tile intel" data-intel="bank"><b>Bank Intelligence</b><p class="muted">Bank anatomy & licence boundary</p></button>
-<button class="tile jump" data-target="fraudSection"><b>Fraud Intelligence</b><p class="muted">Preflight risk check</p></button>
-<button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">Truth-only release gate</p></button>
-<button class="tile jump" data-target="licenceSection"><b>Payment Licence</b><p class="muted">Regulatory evidence gate</p></button>
+<button class="tile jump" data-target="flexSection"><b>Flex Pay</b><p class="muted">Non-credit preview</p></button>
+</section>
+
+<div class="sectionTitle">Protection & Intelligence</div>
+<section class="groupGrid" aria-label="Protection and intelligence">
+<button class="tile jump" data-target="securitySection"><b>Security</b><p class="muted">Fail-closed controls</p></button>
+<button class="tile jump" data-target="fraudSection"><b>Fraud Intelligence</b><p class="muted">Preflight risk</p></button>
+<button class="tile jump" data-target="trustSection"><b>SIKA Trust</b><p class="muted">Explainable preview</p></button>
+<button class="tile intel" data-intel="alignment"><b>Alignment Intelligence</b><p class="muted">Cross-system truth</p></button>
+<button class="tile intel" data-intel="bank"><b>Bank Intelligence</b><p class="muted">Bank MBS boundary</p></button>
+</section>
+
+<div class="sectionTitle">Release & Regulated Rails</div>
+<section class="groupGrid" aria-label="Release and regulated rails">
+<button class="tile jump" data-target="installSection"><b>Install Readiness</b><p class="muted">PWA × device proof</p></button>
+<button class="tile jump" data-target="licenceSection"><b>Payment Licence</b><p class="muted">Evidence gate</p></button>
+<button class="tile regulated" data-path="/api/sika/card"><b>Card</b><p class="muted">Execution locked</p></button>
+<button class="tile regulated" data-path="/api/sika/pay"><b>Pay</b><p class="muted">Execution locked</p></button>
 </section>
 <div class="result" id="topActionResult"></div>
 
@@ -182,7 +204,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <h2>Install Readiness</h2>
 <button id="installReadinessBtn">Check install readiness</button>
 <div class="result" id="installResult">—</div>
-<p class="notice">Private software acceptance can be ready before signed Android/public-install acceptance.</p>
+<p class="notice">PWA software readiness is separate from physical Android acceptance and any native signed package.</p>
 </section>
 
 <section class="card" id="licenceSection">
@@ -207,14 +229,14 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 
 <section class="card notice">
 <div class="status"><span class="dot"></span><b>Truth mode</b></div>
-<p>The app shell and quote engine can operate now. Bank accounts, card issuance, cash-out and payment execution remain disabled until the required regulated rails and approvals exist.</p>
+<p>SIKA software, PWA install shell, intelligence, fraud and safety controls can operate now. Customer funds, bank accounts, card issuance, cash-out and payment execution remain licence-gated and fail closed.</p>
 </section>
 </main>
 <nav>
 <button class="navBtn" data-target="top">Home</button>
 <button class="navBtn" data-target="walletSection">Wallet</button>
 <button class="navBtn" data-target="exchangeSection">Exchange</button>
-<button class="navBtn" data-target="marketSection">Market</button>
+<button class="navBtn" data-target="securitySection">Security</button>
 </nav>
 <script>
 async function postJSON(path,payload){
@@ -306,7 +328,7 @@ document.getElementById('installReadinessBtn').onclick=async()=>{
  const r=await fetch('/api/sika/install/readiness');
  const j=await r.json();
  document.getElementById('installResult').textContent=r.ok
-  ? 'private '+j.private_software_acceptance_ready+' · public install '+j.safe_public_install_ready+' · Android signed '+j.sika_specific_signed_android_package
+  ? 'software '+j.private_software_acceptance_ready+' · PWA '+j.public_pwa_software_ready+' · Android proof '+j.real_android_pwa_acceptance+' · native APK '+j.native_android_package_ready
   : (j.error||'install readiness unavailable');
 };
 document.getElementById('licenceBtn').onclick=async()=>{
