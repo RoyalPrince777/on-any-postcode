@@ -309,6 +309,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <section class="card">
 <h2>Incoming</h2>
 <div class="result" id="incomingResult">No new SIKA alerts.</div>
+<button id="loadSecurityHistoryBtn">Load security history</button>
+<div class="result" id="securityHistoryResult">History not loaded.</div>
 <div class="securityList" id="securityAlerts">
   <div class="securityItem"><span>Session protection</span><b class="ok">On</b></div>
   <div class="securityItem"><span>Beneficiary cooling-off</span><b class="ok">On</b></div>
@@ -542,6 +544,19 @@ document.getElementById('recoverSuspiciousDeviceBtn').onclick=()=>{
  protectScreen();
  document.getElementById('incomingResult').textContent='Security alert · suspicious-device recovery started · reauthentication required';
  document.getElementById('paymentControlsResult').textContent='Device marked for recovery. Sensitive actions remain blocked pending reauthentication.';
+};
+
+document.getElementById('loadSecurityHistoryBtn').onclick=async()=>{
+ const r=await fetch('/api/sika/security/state',{headers:{'Accept':'application/json'}});
+ const j=await r.json();
+ if(!r.ok){
+  document.getElementById('securityHistoryResult').textContent=j.error||'Security history unavailable';
+  return;
+ }
+ const alerts=Array.isArray(j.alerts)?j.alerts:[];
+ document.getElementById('securityHistoryResult').textContent=alerts.length
+  ? alerts.map(a=>a.event_type+' · '+a.severity+' · ack '+!!a.acknowledged+' · recovered '+!!a.recovered+' · dismissed '+!!a.dismissed).join(' | ')
+  : 'No durable security alerts.';
 };
 
 document.getElementById('cardFreezeBtn').onclick=async()=>{
