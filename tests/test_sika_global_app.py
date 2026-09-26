@@ -286,3 +286,39 @@ def test_surface_has_payment_licence_gate_button():
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="licenceBtn"' in html
     assert 'id="licenceSection"' in html
+
+
+def test_sika_app_hierarchy_is_aligned_without_removing_working_controls():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+
+    assert "Money & Value" in html
+    assert "Protection & Intelligence" in html
+    assert "Release & Regulated Rails" in html
+    assert 'aria-label="SIKA truth status"' in html
+
+    for control in (
+        "walletRefresh",
+        "quote",
+        "treasurySave",
+        "cashbackBtn",
+        "deferredBtn",
+        "trustBtn",
+        "freezeBtn",
+        "fraudBtn",
+        "installReadinessBtn",
+        "licenceBtn",
+        "marketHandoff",
+    ):
+        assert f'id="{control}"' in html
+
+    assert "PWA software readiness is separate from physical Android acceptance" in html
+    assert "Customer funds, bank accounts, card issuance, cash-out and payment execution remain licence-gated" in html
+
+
+def test_install_readout_uses_current_readiness_contract():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert "j.public_pwa_software_ready" in html
+    assert "j.real_android_pwa_acceptance" in html
+    assert "j.native_android_package_ready" in html
