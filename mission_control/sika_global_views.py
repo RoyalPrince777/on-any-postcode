@@ -312,6 +312,71 @@ def sika_security_ledger_history():
         return jsonify({"error": str(exc), "events": []}), 503
 
 
+@bp.get("/api/sika/security/state")
+@web_security.login_required(api=True)
+def sika_security_state():
+    owner = _authenticated_sika_owner()
+    try:
+        return jsonify(sika_security_ledger.latest_state(owner.owner_id))
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "durable": False}), 503
+
+
+@bp.post("/api/sika/security/limit")
+@web_security.login_required(api=True)
+def sika_security_limit():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_security_ledger.set_transfer_limit(
+            owner.owner_id, body.get("daily_limit_sika")
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 503
+    return jsonify({**result, "recorded": True}), 201
+
+
+@bp.post("/api/sika/security/beneficiary")
+@web_security.login_required(api=True)
+def sika_security_beneficiary():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_security_ledger.register_beneficiary(
+            owner.owner_id, body.get("beneficiary_id")
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 400
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 503
+    return jsonify({**result, "recorded": True}), 201
+
+
+@bp.post("/api/sika/security/device-risk")
+@web_security.login_required(api=True)
+def sika_security_device_risk():
+    csrf_error = _csrf_or_403()
+    if csrf_error:
+        return csrf_error
+    owner = _authenticated_sika_owner()
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_security_ledger.set_device_risk(
+            owner.owner_id, bool(body.get("suspicious_device"))
+        )
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        return jsonify({"error": str(exc), "recorded": False}), 503
+    return jsonify({**result, "recorded": True}), 201
+
+
 @bp.post("/api/sika/security/ledger/event")
 @web_security.login_required(api=True)
 def sika_security_ledger_event():
