@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 TEMPLATE = (
     Path(__file__).resolve().parents[1]
     / "mission_control"
