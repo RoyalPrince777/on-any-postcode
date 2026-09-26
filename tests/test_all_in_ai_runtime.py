@@ -60,3 +60,85 @@ def test_empty_mission_fails_closed(mission):
 def test_unknown_research_mode_fails_closed():
     with pytest.raises(ValueError, match="unsupported_research_mode"):
         all_in_ai_runtime.plan_mission("test", research_mode="magic")
+
+
+def test_start_mission_hashes_prompt_and_persists_without_raw_text(monkeypatch):
+    captured = {}
+
+    def fake_create(identity_id, *, mission_id, mission_hash, plan):
+        captured.update(
+            identity_id=identity_id,
+            mission_id=mission_id,
+            mission_hash=mission_hash,
+            plan=plan,
+        )
+        return {
+            "mission_id": mission_id,
+            "state": "planned",
+            "digest": "a" * 64,
+            "read_back_verified": True,
+            "audit_verified": True,
+            "hrm_verified": True,
+        }
+
+    monkeypatch.setattr(all_in_ai_runtime.all_in_ai_mission_store, "create", fake_create)
+    result = all_in_ai_runtime.start_mission(
+        "00000000-0000-0000-0000-000000000001",
+        "Secret Founder mission text",
+        task_type="STRATEGY",
+    )
+    assert result["raw_mission_retained"] is False
+    assert result["execution_granted"] is False
+    assert captured["identity_id"] == "00000000-0000-0000-0000-000000000001"
+    assert captured["mission_hash"] != "Secret Founder mission text"
+    assert len(captured["mission_hash"]) == 64
+    assert "Secret Founder mission text" not in repr(captured["plan"])
+
+
+def test_runtime_stop_and_recover_delegate_to_durable_store(monkeypatch):
+    calls = []
+
+    def fake_stop(identity_id, mission_id, *, expected_previous_hash):
+        calls.append(("stop", identity_id, mission_id, expected_previous_hash))
+        return {"state": "stopped", "execution_granted": False}
+
+    def fake_recover(identity_id, mission_id, *, expected_previous_hash):
+        calls.append(("recover", identity_id, mission_id, expected_previous_hash))
+        return {"state": "recovered", "execution_granted": False}
+
+    monkeypatch.setattr(all_in_ai_runtime.all_in_ai_mission_store, "stop", fake_stop)
+    monkeypatch.setattr(
+        all_in_ai_runtime.all_in_ai_mission_store,
+        "recover",
+        fake_recover,
+    )
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    stopped = all_in_ai_runtime.stop_mission(
+        identity,
+        mission,
+        expected_previous_hash="1" * 64,
+    )
+    recovered = all_in_ai_runtime.recover_mission(
+        identity,
+        mission,
+        expected_previous_hash="2" * 64,
+    )
+    assert stopped["state"] == "stopped"
+    assert recovered["state"] == "recovered"
+    assert calls == [
+        ("stop", identity, mission, "1" * 64),
+        ("recover", identity, mission, "2" * 64),
+    ]
+
+
+def test_runtime_status_exposes_durable_nonexecuting_store():
+    state = all_in_ai_runtime.status()
+    store = state["durable_mission_store"]
+    assert store["canonical_workspace_reused"] == "governance"
+    assert store["canonical_hrm_reused"] is True
+    assert store["canonical_audit_chain_reused"] is True
+    assert store["new_database_created"] is False
+    assert store["schema_migration_required"] is False
+    assert store["raw_mission_retained"] is False
+    assert store["execution_granted"] is False
