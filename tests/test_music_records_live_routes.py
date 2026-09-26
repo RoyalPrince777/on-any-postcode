@@ -29,3 +29,18 @@ def test_records_and_live_writes_use_shared_csrf_write_handler(monkeypatch):
         live_response = product_core_views.create_live_music_session.__wrapped__()
     assert records_response.status_code == 403
     assert live_response.status_code == 403
+
+
+def test_recovery_and_civilization_routes_are_registered():
+    app = Flask(__name__)
+    app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
+    rules = {rule.rule: rule.methods for rule in app.url_map.iter_rules()}
+    assert rules[
+        "/mission/organs/tune/releases/<release_id>/recovery-manifests"
+    ] == {"POST", "OPTIONS"}
+    assert rules[
+        "/mission/organs/tune/recovery-manifests/<manifest_id>"
+    ] == {"GET", "HEAD", "OPTIONS"}
+    assert rules[
+        "/mission/organs/music-civilization"
+    ] == {"GET", "HEAD", "OPTIONS"}
