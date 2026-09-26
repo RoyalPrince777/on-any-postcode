@@ -1,7 +1,7 @@
-"""Read-only proof runner for OAP Atlas + Movement + Direct.
+"""Read-only proof runner for On Any Place + Movement + Direct.
 
 This module is intentionally safe by default. It defines evidence targets and
-proof state before OAP Atlas, Movement or Direct can move from built/guarded to
+proof state before On Any Place, Movement or Direct can move from built/guarded to
 operationally certified.
 
 It does not dispatch people, charge money, confirm reservations, scrape
@@ -20,9 +20,9 @@ from .hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
 PROOF_RUNNER_VERSION = 5
 
-PUBLIC_PRODUCT_NAME = "OAP Atlas"
+PUBLIC_PRODUCT_NAME = "On Any Place"
 PRIVATE_INTELLIGENCE_NAME = "Map Intelligence"
-COMBINED_SURFACE_NAME = "OAP Atlas + Movement Intelligence + OAP Direct"
+COMBINED_SURFACE_NAME = "On Any Place + Movement Intelligence + OAP Direct"
 
 LOCATION_HIERARCHY: tuple[dict[str, str], ...] = (
     {"level": "earth", "name": "Earth", "signal": "green"},
@@ -406,7 +406,7 @@ def proof_lanes() -> tuple[dict[str, object], ...]:
             "live_map_source_health_result",
         ),
         notes=(
-            "OAP Atlas naming and hierarchy are locked.",
+            "On Any Place naming and hierarchy are locked.",
             "Live map source health remains yellow until timestamped source evidence is captured.",
         ),
     )
@@ -487,7 +487,7 @@ def proof_lanes() -> tuple[dict[str, object], ...]:
         ),
         _lane(
             "oap_atlas_source_health",
-            "OAP Atlas Source Health",
+            "On Any Place Source Health",
             "oap_atlas",
             safe_action="Read Atlas source status, timestamp and stale-data label only.",
             evidence=atlas_evidence,
@@ -570,7 +570,7 @@ def status() -> dict[str, Any]:
     summary = _summary(lanes)
     building = summary["building"]
     return {
-        "component": "OAP Atlas + Movement + Direct Proof Runner",
+        "component": "On Any Place + Movement + Direct Proof Runner",
         "version": PROOF_RUNNER_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "mode": "read_only_evidence_lanes",
