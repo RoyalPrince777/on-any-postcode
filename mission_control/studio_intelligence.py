@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import postgres_db, smi_founder_assets, smi_receipt_backend, studio_media_backend
 from oap.smi import capability_fabric
+
+from . import postgres_db, smi_founder_assets, smi_receipt_backend, studio_media_backend
 
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
