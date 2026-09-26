@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import smi_receipt_backend, studio_media_backend
+from . import smi_founder_assets, smi_receipt_backend, studio_media_backend
 
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
@@ -271,6 +271,14 @@ def generation_status(video_id: object) -> dict[str, Any]:
 def status() -> dict[str, Any]:
     """Return the secret-free Studio contract for the Founder workbench."""
 
+    backend = studio_media_backend.status()
+    asset_store = smi_founder_assets.schema_status()
+    receipt_config = smi_receipt_backend.backend_configuration_status()
+    machine_dependencies_configured = bool(
+        backend.get("configured")
+        and asset_store.get("schema_ready")
+        and receipt_config.get("durable_backend_configured")
+    )
     return {
         "id": STUDIO_ID,
         "name": STUDIO_NAME,
@@ -280,9 +288,25 @@ def status() -> dict[str, Any]:
         "generation_tools": [dict(tool) for tool in GENERATION_TOOLS],
         "studio_21_stage_count": len(STUDIO_21_STAGES),
         "studio_21_stages": list(STUDIO_21_STAGES),
-        "generation_backend": studio_media_backend.status(),
-        "generation_backend_proven": bool(studio_media_backend.status()["configured"]),
+        "generation_backend": backend,
+        "generation_backend_proven": bool(backend["configured"]),
+        "owner_asset_store": {
+            "schema_ready": bool(asset_store.get("schema_ready")),
+            "raw_content_retained": False,
+            "owner_scoped": True,
+            "error": asset_store.get("error"),
+        },
+        "durable_receipt_backend_configured": bool(
+            receipt_config.get("durable_backend_configured")
+        ),
+        "machine_dependencies_configured": machine_dependencies_configured,
+        "machine_scope_complete": machine_dependencies_configured,
         "full_live_certificate": False,
+        "full_live_certificate_reason": (
+            "real_generated_artifact_receipt_required"
+            if machine_dependencies_configured
+            else "machine_dependency_not_configured"
+        ),
         "media": list(MEDIA),
         "capture_inputs": list(CAPTURE_INPUTS),
         "entry_points": list(ENTRY_POINTS),
