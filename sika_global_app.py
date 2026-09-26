@@ -13,6 +13,7 @@ from mission_control import (
     sika_finance_features,
     sika_global,
     sika_intelligence,
+    sika_payment_licence_gate,
     sika_safety,
     sika_wallet_ledger,
 )
@@ -290,3 +291,8 @@ def sika_fraud_preflight():
 @app.get("/api/sika/install/readiness")
 def sika_install_readiness():
     return jsonify(sika_safety.install_readiness())
+
+
+@app.get("/api/sika/payment-licence")
+def sika_payment_licence_status():
+    return jsonify(sika_payment_licence_gate.status())
