@@ -314,6 +314,20 @@ def sika_security_posture():
     return jsonify(sika_safety.security_posture())
 
 
+@app.get("/api/sika/security/session-policy")
+def sika_security_session_policy():
+    return jsonify(sika_safety.session_policy())
+
+
+@app.post("/api/sika/security/payment-controls")
+def sika_security_payment_controls():
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(sika_safety.payment_controls(body))
+    except (sika_safety.FraudInputError, ValueError, ArithmeticError) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+
+
 @app.get("/api/sika/payment-licence")
 def sika_payment_licence_status():
     return jsonify(sika_payment_licence_gate.status())
