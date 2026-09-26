@@ -284,7 +284,8 @@ def test_public_studio_has_no_fake_percentage_unlock_copy():
     assert "unlock at 75%" not in page
     assert "＋ Files" in page
     assert "🎙 Voice" in page
-    assert 'href="/mission/ollama"' in page
+    assert "Files are available only in the signed-in private workspace" in page
+    assert "Voice is available only in the signed-in private workspace" in page
 
 
 def test_studio_ui_sends_owner_context_for_generated_artifact_indexing():
