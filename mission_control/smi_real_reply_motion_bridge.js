@@ -63,13 +63,15 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   const durationMs=inspection.accepted?alignment.audioDurationMs:0;
   const expectedClock=inspection.accepted?alignment.clockSource:null;
   const alignmentToleranceMs=inspection.accepted?alignment.maxAlignmentErrorMs:0;
-  let epoch=0,started=false,stopped=false,failedClosed=false,failReason=null,events=0;
+  let epoch=0,started=false,stopped=false,failedClosed=false,failReason=null,events=0,sampleCount=0,maxObservedClockDeltaMs=0;
   let startAudioClockMs=-1,startObservedAtMs=-1,lastAudioClockMs=-1,lastObservedAtMs=-1,lastStopAcknowledgementMs=null;
   const snapshot=()=>Object.freeze({version:"0.2-private-no-guess",admitted,
     alignmentContractAccepted:inspection.accepted,alignmentReasons:inspection.reasons,
     epoch,started,stopped,failedClosed,failReason,events,lastAudioClockMs,lastObservedAtMs,
-    lastStopAcknowledgementMs,storesText:false,storesAudio:false,attachedToLivePage:false,
-    accurateLipSyncProven:false,physicalAndroidStopProven:false,
+    lastStopAcknowledgementMs,sampleCount,maxObservedClockDeltaMs,
+    storesText:false,storesAudio:false,attachedToLivePage:false,
+    accurateSoftwareLipSyncProven:admitted&&!failedClosed&&sampleCount>=3&&maxObservedClockDeltaMs<=alignmentToleranceMs,
+    accurateHumanLipSyncProven:false,physicalAndroidStopProven:false,
     productionApproved:false,humanFinalApproved:false});
   function failClosed(reason){
     epoch+=1;started=false;stopped=true;failedClosed=true;failReason=reason;events+=1;
@@ -93,7 +95,8 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     const audioElapsed=audioClockMs-startAudioClockMs,observedElapsed=observedAtMs-startObservedAtMs;
     const audioClockDeltaMs=Math.abs(audioElapsed-observedElapsed);
     if(audioClockDeltaMs>alignmentToleranceMs)return failClosed("played_audio_clock_drift");
-    lastAudioClockMs=audioClockMs;lastObservedAtMs=observedAtMs;events+=1;
+    lastAudioClockMs=audioClockMs;lastObservedAtMs=observedAtMs;events+=1;sampleCount+=1;
+    maxObservedClockDeltaMs=Math.max(maxObservedClockDeltaMs,audioClockDeltaMs);
     const {active,index}=activeCue(Math.min(audioClockMs,durationMs));
     return Object.freeze({type:"played-audio-viseme",epoch,audioClockMs,audioClockDeltaMs,
       cueIndex:index,viseme:active.viseme,confidence:active.confidence,
@@ -117,7 +120,8 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
   function resetAfterHumanAction(approved){
     if(approved!==true||!stopped)return snapshot();
     epoch+=1;started=false;stopped=false;failedClosed=false;failReason=null;
-    startAudioClockMs=-1;startObservedAtMs=-1;lastAudioClockMs=-1;lastObservedAtMs=-1;events+=1;
+    startAudioClockMs=-1;startObservedAtMs=-1;lastAudioClockMs=-1;lastObservedAtMs=-1;
+    sampleCount=0;maxObservedClockDeltaMs=0;events+=1;
     return snapshot();
   }
   return Object.freeze({snapshot,playbackStart,playbackSample,playbackEnd,humanStop,resetAfterHumanAction});
