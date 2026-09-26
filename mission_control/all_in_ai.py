@@ -61,20 +61,6 @@ PROTOCOL = {
 }
 
 
-def status() -> dict[str, object]:
-    return {
-        "identity": IDENTITY,
-        "missions": MISSIONS,
-        "truth_ladder": TRUTH_LADDER,
-        "authority": AUTHORITY,
-        "protocol": PROTOCOL,
-        "intelligence_positioning": INTELLIGENCE_POSITIONING,
-        "deployed_identity_contract": True,
-        "autonomous_sovereign": False,
-        "human_authority_final": True,
-    }
-
-
 INTELLIGENCE_POSITIONING = {
     "agi": {
         "position": "capability_direction",
@@ -104,3 +90,17 @@ INTELLIGENCE_POSITIONING = {
         "claims_fact_without_evidence": False,
     },
 }
+
+
+def status() -> dict[str, object]:
+    return {
+        "identity": IDENTITY,
+        "missions": MISSIONS,
+        "truth_ladder": TRUTH_LADDER,
+        "authority": AUTHORITY,
+        "protocol": PROTOCOL,
+        "intelligence_positioning": INTELLIGENCE_POSITIONING,
+        "deployed_identity_contract": True,
+        "autonomous_sovereign": False,
+        "human_authority_final": True,
+    }
