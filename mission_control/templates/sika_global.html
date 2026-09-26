@@ -15,7 +15,7 @@
 :root{font-family:Inter,system-ui,sans-serif;color:#f7f7f7;background:#080808}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#050505,#17140a);min-height:100vh}
 .shell{max-width:480px;margin:auto;padding:24px 18px 90px}
-.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}
+.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}.brandActions{display:flex;gap:8px;align-items:center}.iconBtn{width:38px;height:38px;border-radius:50%;padding:0;text-align:center;display:grid;place-items:center}.profileChip{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#211b0c;border:1px solid #8d7630;font-weight:800}.hiddenBalance{filter:blur(9px);user-select:none}.payReview{display:none}.payReview.active{display:block}
 .badge{border:1px solid #b99b3d;border-radius:999px;padding:6px 10px;color:#e5c966;font-size:12px}
 .card{background:rgba(255,255,255,.055);border:1px solid rgba(229,201,102,.24);border-radius:24px;padding:20px;margin-top:18px}
 .balance{font-size:46px;font-weight:800;margin:8px 0}.muted{color:#aaa}.homeBalance{font-size:50px;font-weight:850;letter-spacing:-.04em;margin:6px 0 0}.homeSub{display:flex;justify-content:space-between;gap:12px;align-items:end}.quickActions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.quickAction{text-align:center;padding:12px 6px;border-radius:16px}.quickAction b{display:block;font-size:18px;margin-bottom:5px}.quickAction span{font-size:11px;color:#c9c9c9}.summaryRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.summaryBox{background:#0e0d0a;border:1px solid #2f2a1d;border-radius:16px;padding:12px}.recentList{display:grid;gap:10px}.recentItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #242116}.recentItem:last-child{border-bottom:0}.recentItem .amount{font-weight:750}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
@@ -36,17 +36,27 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 </head>
 <body>
 <main class="shell" id="top">
-<div class="brand"><h1>SIKA</h1><span class="badge">GLOBAL</span></div>
+<div class="brand">
+  <h1>SIKA</h1>
+  <div class="brandActions">
+    <button class="iconBtn" id="incomingBtn" aria-label="Incoming notifications">🔔</button>
+    <div class="profileChip" aria-label="Profile">O</div>
+    <span class="badge">GLOBAL</span>
+  </div>
+</div>
 <button data-oap-install hidden>Install SIKA</button>
 <div class="notice" data-oap-install-status role="status">Checking install support</div>
 <p class="muted">Your money. Your SIKA. One global wallet.</p>
 
 <section class="card" aria-label="Main balance">
 <div class="muted">Available balance</div>
-<div class="homeBalance">{{ wallet.balance_reference }} <span class="gold">SIKA</span></div>
+<div class="homeSub">
+  <div class="homeBalance" id="homeBalanceValue">{{ wallet.balance_reference }} <span class="gold">SIKA</span></div>
+  <button class="iconBtn" id="balancePrivacyBtn" aria-label="Hide balance">👁️</button>
+</div>
 <div class="homeSub">
   <span class="muted">Reference wallet</span>
-  <span class="value">≈ £{{ wallet.balance_reference }}</span>
+  <span class="value" id="homeGbpValue">≈ £{{ wallet.balance_reference }}</span>
 </div>
 <div class="quickActions" aria-label="Quick actions">
   <button class="quickAction tabLink primaryAction" data-pane-target="walletPane"><b>＋</b><span>Add</span></button>
@@ -187,6 +197,23 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 
 </div>
 <div class="appPane" data-pane="payPane">
+<section class="card" id="paySection">
+<h2>Pay with SIKA</h2>
+<label>Recipient<input id="payRecipient" maxlength="120" placeholder="Name, @handle or OAP ID"></label>
+<label>Amount SIKA<input id="payAmount" inputmode="decimal" value="1"></label>
+<label>Reference<input id="payReference" maxlength="140" placeholder="What is this for?"></label>
+<button id="payReviewBtn" class="primaryAction">Review payment</button>
+<div class="payReview" id="payReviewCard">
+  <p class="muted">Review</p>
+  <div class="value" id="payReviewAmount">—</div>
+  <p id="payReviewRecipient">—</p>
+  <p class="muted" id="payReviewReference">—</p>
+  <button id="payConfirmBtn" class="primaryAction">Confirm payment</button>
+  <button id="payCancelBtn">Cancel</button>
+</div>
+<div class="result" id="payResult">Payments remain licence-gated and fail closed.</div>
+</section>
+
 <section class="card" id="exchangeSection">
 <h2>Global currency quote</h2>
 <label>SIKA amount<input id="amount" inputmode="decimal" value="1"></label>
@@ -230,6 +257,11 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 
 </div>
 <div class="appPane" data-pane="morePane">
+<section class="card">
+<h2>Incoming</h2>
+<div class="result" id="incomingResult">No new SIKA alerts.</div>
+<p class="notice">Security, wallet and payment notices appear here.</p>
+</section>
 <section class="card" id="securitySection">
 <h2>Security Centre</h2>
 <label>Device label<input id="bankDeviceId" value="sika-acceptance-device" maxlength="120"></label>
@@ -377,6 +409,46 @@ async function postJSON(path,payload){
  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
  return [r,await r.json()];
 }
+let balanceHidden=false;
+document.getElementById('balancePrivacyBtn').onclick=()=>{
+ balanceHidden=!balanceHidden;
+ document.getElementById('homeBalanceValue').classList.toggle('hiddenBalance',balanceHidden);
+ document.getElementById('homeGbpValue').classList.toggle('hiddenBalance',balanceHidden);
+ document.getElementById('balancePrivacyBtn').textContent=balanceHidden?'🙈':'👁️';
+ document.getElementById('balancePrivacyBtn').setAttribute('aria-label',balanceHidden?'Show balance':'Hide balance');
+};
+document.getElementById('incomingBtn').onclick=()=>{
+ showPane('morePane');
+ document.getElementById('incomingResult')?.scrollIntoView({behavior:'smooth',block:'center'});
+};
+document.getElementById('payReviewBtn').onclick=()=>{
+ const recipient=document.getElementById('payRecipient').value.trim();
+ const amount=document.getElementById('payAmount').value.trim();
+ const reference=document.getElementById('payReference').value.trim();
+ if(!recipient || !amount || Number(amount)<=0){
+  document.getElementById('payResult').textContent='Recipient and positive amount required';
+  return;
+ }
+ document.getElementById('payReviewAmount').textContent=amount+' SIKA';
+ document.getElementById('payReviewRecipient').textContent='To '+recipient;
+ document.getElementById('payReviewReference').textContent=reference||'No reference';
+ document.getElementById('payReviewCard').classList.add('active');
+ document.getElementById('payResult').textContent='Review before confirmation';
+};
+document.getElementById('payCancelBtn').onclick=()=>{
+ document.getElementById('payReviewCard').classList.remove('active');
+ document.getElementById('payResult').textContent='Payment cancelled before execution';
+};
+document.getElementById('payConfirmBtn').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/pay',{
+  recipient:document.getElementById('payRecipient').value.trim(),
+  amount_sika:document.getElementById('payAmount').value.trim(),
+  reference:document.getElementById('payReference').value.trim()
+ });
+ document.getElementById('payResult').textContent=(j.reason||j.status||j.error||'Payment unavailable')+' · money moved '+(j.money_moved??false);
+ document.getElementById('payReviewCard').classList.remove('active');
+};
+
 document.getElementById('quote').onclick=async()=>{
  const currency=document.getElementById('currency').value.toUpperCase();
  const rate=document.getElementById('rate').value;
