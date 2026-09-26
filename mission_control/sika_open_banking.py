@@ -78,3 +78,26 @@ def trial_snapshot() -> dict[str, Any]:
         "execution_enabled": False,
         "lawful_evidence_class": "sandbox_dummy_data_only",
     }
+
+
+def red_team() -> dict[str, Any]:
+    """Adversarial checks for the Open Banking boundary."""
+    state = status()
+    checks = {
+        "missing_credentials_fail_closed": not state["connector_configured"] or not state["real_bank_read_ready"],
+        "missing_consent_blocks_real_read": not state["consent_reference_present"] or not state["real_bank_read_ready"],
+        "missing_regulatory_ref_blocks_real_read": not state["regulatory_reference_present"] or not state["real_bank_read_ready"],
+        "payment_initiation_never_enabled_here": state["payment_initiation_enabled"] is False,
+        "customer_funds_never_held_here": state["customer_funds_held"] is False,
+        "sika_reference_not_bank_money": state["sika_reference_balance_is_bank_money"] is False,
+        "execution_never_enabled_here": state["execution_enabled"] is False,
+    }
+    passed = all(checks.values())
+    return {
+        "red_team_passed": passed,
+        "checks": checks,
+        "real_bank_read_ready": state["real_bank_read_ready"],
+        "real_payment_ready": state["real_payment_ready"],
+        "money_moved": False,
+        "execution_enabled": False,
+    }
