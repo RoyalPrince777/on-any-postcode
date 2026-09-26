@@ -120,3 +120,76 @@ def test_caller_cannot_make_public_or_playable_with_flags():
     assert result["external_distribution_enabled"] is False
     assert result["playback_enabled"] is False
     assert result["public_catalogue_enabled"] is False
+
+
+def test_music_evidence_routes_are_registered():
+    from flask import Flask
+    from mission_control import product_core_views
+
+    app = Flask(__name__)
+    app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
+    rules = {rule.rule for rule in app.url_map.iter_rules()}
+    assert "/mission/organs/tune/releases/<release_id>/evidence" in rules
+    assert "/mission/organs/tune/releases/<release_id>/civilization" in rules
+
+
+def test_evidence_write_uses_authenticated_owner_and_stays_fail_closed(monkeypatch):
+    from flask import Flask
+    from mission_control import product_core_views
+    import base64
+
+    app = Flask(__name__)
+    release_id = str(uuid4())
+    captured = {}
+    monkeypatch.setattr(product_core_views, "_write_allowed", lambda: True)
+    monkeypatch.setattr(product_core_views, "_identity", lambda **kwargs: "11111111-1111-1111-1111-111111111111")
+
+    def append_receipt(**kwargs):
+        captured.update(kwargs)
+        return {"receipt_id": str(uuid4()), "receipt_hash": "a" * 64}
+
+    monkeypatch.setattr(product_core_views._music_evidence_store, "append_receipt", append_receipt)
+    payload = {
+        "evidence_kind": "recording_rights",
+        "evidence_base64": base64.b64encode(b"reviewed evidence").decode(),
+        "source_reference": "source",
+        "authority_reference": "reviewer",
+    }
+    with app.test_request_context("/", method="POST", json=payload):
+        response = product_core_views.append_tune_release_evidence.__wrapped__()
+    body = response.get_json()
+    assert response.status_code == 201
+    assert captured["owner_identity_id"] == "11111111-1111-1111-1111-111111111111"
+    assert captured["release_id"] == release_id
+    assert captured["evidence_bytes"] == b"reviewed evidence"
+    assert body["rights_verified_by_software"] is False
+    assert body["external_distribution_enabled"] is False
+    assert body["playback_enabled"] is False
+
+
+def test_evidence_read_gate_requires_recovery_receipt(monkeypatch):
+    from flask import Flask
+    from mission_control import product_core_views
+
+    app = Flask(__name__)
+    owner, release = _ids()
+    rows = []
+    previous = evidence.GENESIS_HASH
+    for kind in [
+        "source_page", "recording_rights", "composition_rights",
+        "asset_provenance", "territory_permission", "attribution", "human_approval",
+    ]:
+        row = _receipt(owner, release, kind, previous, kind.encode())
+        rows.append(row)
+        previous = row["receipt_hash"]
+
+    monkeypatch.setattr(product_core_views, "_identity", lambda **kwargs: owner)
+    monkeypatch.setattr(product_core_views._music_evidence_store, "read_receipts", lambda **kwargs: rows)
+    with app.test_request_context("/", method="GET"):
+        response = product_core_views.tune_release_evidence.__wrapped__(release)
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["chain"]["chain_verified"] is True
+    assert body["distribution_gate"]["private_handoff_ready"] is False
+    assert body["distribution_gate"]["recovery_readback_proven"] is False
+    assert body["public_catalogue_enabled"] is False
