@@ -15,6 +15,7 @@ from mission_control import (
     sika_authenticated_owner_adapter,
     sika_android_acceptance,
     sika_bank_app_security,
+    sika_bank_credential_store,
     sika_finance_features,
     sika_global,
     sika_intelligence,
@@ -470,3 +471,8 @@ def sika_device_durable_readiness():
 @app.get("/api/sika/owner-session/readiness")
 def sika_owner_session_readiness():
     return jsonify(sika_authenticated_owner_adapter.readiness())
+
+
+@app.get("/api/sika/security/credential-store/readiness")
+def sika_bank_credential_store_readiness():
+    return jsonify(sika_bank_credential_store.readiness())
