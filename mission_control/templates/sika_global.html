@@ -13,7 +13,7 @@
 .card{background:rgba(255,255,255,.055);border:1px solid rgba(229,201,102,.24);border-radius:24px;padding:20px;margin-top:18px}
 .balance{font-size:46px;font-weight:800;margin:8px 0}.muted{color:#aaa}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
 button,.tile{border:1px solid #3d3521;background:#15130e;color:#fff;border-radius:18px;padding:16px;text-align:left}
-button{cursor:pointer}.gold{color:#e5c966}.value{font-size:20px;font-weight:700}
+button{cursor:pointer}.tile{width:100%}.navBtn{background:transparent;border:0;padding:8px;color:#fff}.gold{color:#e5c966}.value{font-size:20px;font-weight:700}
 .notice{font-size:13px;line-height:1.45;color:#c9c9c9}.status{display:flex;gap:8px;align-items:center}.dot{width:8px;height:8px;border-radius:50%;background:#e5c966}
 input{width:100%;background:#0c0c0c;color:#fff;border:1px solid #3d3521;border-radius:14px;padding:13px;margin-top:8px}
 .result{margin-top:10px;font-weight:700}
@@ -21,7 +21,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 </style>
 </head>
 <body>
-<main class="shell">
+<main class="shell" id="top">
 <div class="brand"><h1>SIKA</h1><span class="badge">GLOBAL</span></div>
 <p class="muted">One value system · global by design</p>
 
@@ -32,27 +32,30 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Canonical SIKA stays first-party. Local currency is a settlement/display layer, not a separate SIKA.</p>
 </section>
 
-<section class="grid">
-<div class="tile"><b>Wallet</b><p class="muted">Canonical SIKA view</p></div>
-<div class="tile"><b>Exchange</b><p class="muted">Treasury-rate quotes</p></div>
-<div class="tile"><b>Card</b><p class="muted">Locked until authorised</p></div>
-<div class="tile"><b>Pay</b><p class="muted">Locked until authorised</p></div>
-<div class="tile"><b>Treasury</b><p class="muted">First-party control</p></div>
-<div class="tile"><b>Market</b><p class="muted">OAP commerce bridge</p></div>
-<div class="tile"><b>Cashback</b><p class="muted">Funded rewards only</p></div>
-<div class="tile"><b>Flex Pay</b><p class="muted">Preview only · no credit issued</p></div>
-<div class="tile"><b>Trust</b><p class="muted">Explainable score preview</p></div>
-<div class="tile"><b>Security</b><p class="muted">Sensitive actions stay locked</p></div>
+<section class="grid" aria-label="SIKA functions">
+<button class="tile jump" data-target="walletSection"><b>Wallet</b><p class="muted">Open wallet</p></button>
+<button class="tile jump" data-target="exchangeSection"><b>Exchange</b><p class="muted">Get FX quote</p></button>
+<button class="tile regulated" data-path="/api/sika/card"><b>Card</b><p class="muted">Licence rail locked</p></button>
+<button class="tile regulated" data-path="/api/sika/pay"><b>Pay</b><p class="muted">Licence rail locked</p></button>
+<button class="tile jump" data-target="treasurySection"><b>Treasury</b><p class="muted">Rates & control</p></button>
+<button class="tile jump" data-target="marketSection"><b>Market</b><p class="muted">Commerce handoff</p></button>
+<button class="tile jump" data-target="cashbackSection"><b>Cashback</b><p class="muted">Funded rewards</p></button>
+<button class="tile jump" data-target="flexSection"><b>Flex Pay</b><p class="muted">Schedule preview</p></button>
+<button class="tile jump" data-target="trustSection"><b>Trust</b><p class="muted">Explainable score</p></button>
+<button class="tile jump" data-target="securitySection"><b>Security</b><p class="muted">Security controls</p></button>
 </section>
+<div class="result" id="topActionResult"></div>
 
-<section class="card">
+<section class="card" id="walletSection">
 <h2>Wallet</h2>
 <div class="muted">Reference balance · software only</div>
 <div class="balance">{{ wallet.balance_reference }} SIKA</div>
+<button id="walletRefresh">Refresh wallet</button>
+<div class="result" id="walletResult">Ready</div>
 <p class="notice">This is not a deposit account or claim on customer funds.</p>
 </section>
 
-<section class="card">
+<section class="card" id="treasurySection">
 <h2>Treasury Rates</h2>
 {% if wallet.rates %}
   {% for rate in wallet.rates %}
@@ -61,6 +64,11 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 {% else %}
   <p class="muted">No governed treasury rates loaded yet.</p>
 {% endif %}
+<label>Currency<input id="treasuryCurrency" maxlength="3" value="USD"></label>
+<label>GBP per local unit<input id="treasuryRate" inputmode="decimal" value="0.75"></label>
+<label>Source<input id="treasurySource" value="founder-approved acceptance input"></label>
+<button id="treasurySave">Save Treasury rate</button>
+<div class="result" id="treasuryResult">—</div>
 </section>
 
 <section class="card">
@@ -95,7 +103,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 {% endif %}
 </section>
 
-<section class="card">
+<section class="card" id="exchangeSection">
 <h2>Global currency quote</h2>
 <label>SIKA amount<input id="amount" inputmode="decimal" value="1"></label>
 <label>Currency code<input id="currency" maxlength="3" value="GBP"></label>
@@ -105,7 +113,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">No external bank or FX provider is contacted by this screen. The rate field represents the future governed SIKA Treasury feed.</p>
 </section>
 
-<section class="card">
+<section class="card" id="cashbackSection">
 <h2>Cashback</h2>
 <label>Purchase SIKA<input id="cbPurchase" inputmode="decimal" value="100"></label>
 <label>Cashback %<input id="cbRate" inputmode="decimal" value="2"></label>
@@ -115,7 +123,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Reward is only eligible when a funded SIKA rewards pool covers it.</p>
 </section>
 
-<section class="card">
+<section class="card" id="flexSection">
 <h2>Flex Pay</h2>
 <label>Purchase SIKA<input id="dpPurchase" inputmode="decimal" value="120"></label>
 <label>Instalments<input id="dpCount" inputmode="numeric" value="3"></label>
@@ -125,7 +133,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">No credit agreement is created. UK third-party DPC/BNPL requires the appropriate regulatory permissions.</p>
 </section>
 
-<section class="card">
+<section class="card" id="trustSection">
 <h2>SIKA Trust</h2>
 <label>Payment reliability %<input id="trustPay" inputmode="decimal" value="85"></label>
 <label>Cash-flow resilience %<input id="trustCash" inputmode="decimal" value="70"></label>
@@ -136,11 +144,18 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p class="notice">Explainable preview only. It does not approve or refuse credit.</p>
 </section>
 
-<section class="card">
+<section class="card" id="securitySection">
 <h2>Security Centre</h2>
 <button id="freezeBtn">Freeze card & payments</button>
 <div class="result" id="freezeResult">No live card or payment rail exists.</div>
 <p class="notice">Sensitive execution remains fail-closed until a real authorised rail is connected.</p>
+</section>
+
+<section class="card" id="marketSection">
+<h2>Market</h2>
+<button id="marketHandoff">Open Market handoff</button>
+<div class="result" id="marketResult">OAP commerce handoff ready at software layer.</div>
+<p class="notice">Market browsing/handoff is unlocked. Regulated payment settlement remains separate.</p>
 </section>
 
 <section class="card notice">
@@ -148,7 +163,12 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <p>The app shell and quote engine can operate now. Bank accounts, card issuance, cash-out and payment execution remain disabled until the required regulated rails and approvals exist.</p>
 </section>
 </main>
-<nav><span>Home</span><span>Wallet</span><span>Exchange</span><span>Market</span></nav>
+<nav>
+<button class="navBtn" data-target="top">Home</button>
+<button class="navBtn" data-target="walletSection">Wallet</button>
+<button class="navBtn" data-target="exchangeSection">Exchange</button>
+<button class="navBtn" data-target="marketSection">Market</button>
+</nav>
 <script>
 async function postJSON(path,payload){
  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -190,6 +210,31 @@ document.getElementById('trustBtn').onclick=async()=>{
 document.getElementById('freezeBtn').onclick=async()=>{
  const [r,j]=await postJSON('/api/sika/security/freeze',{});
  document.getElementById('freezeResult').textContent=(j.reason||j.security_action)+' · execution '+j.executable;
+};
+document.querySelectorAll('.jump,.navBtn').forEach(btn=>{
+ btn.onclick=()=>document.getElementById(btn.dataset.target)?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.querySelectorAll('.regulated').forEach(btn=>{
+ btn.onclick=async()=>{
+  const [r,j]=await postJSON(btn.dataset.path,{});
+  document.getElementById('topActionResult').textContent=(j.reason||j.status)+' · money moved '+(j.money_moved??false);
+ };
+});
+document.getElementById('walletRefresh').onclick=async()=>{
+ const r=await fetch('/api/sika/wallet');
+ const j=await r.json();
+ document.getElementById('walletResult').textContent=r.ok ? j.balance_reference+' SIKA · '+j.history.length+' entries' : (j.error||'wallet unavailable');
+};
+document.getElementById('treasurySave').onclick=async()=>{
+ const [r,j]=await postJSON('/api/sika/treasury/rates',{
+  currency:document.getElementById('treasuryCurrency').value.toUpperCase(),
+  gbp_per_unit:document.getElementById('treasuryRate').value,
+  source:document.getElementById('treasurySource').value
+ });
+ document.getElementById('treasuryResult').textContent=r.ok ? j.rate.currency+' saved · '+j.rate.gbp_per_unit+' GBP/unit' : j.error;
+};
+document.getElementById('marketHandoff').onclick=()=>{
+ document.getElementById('marketResult').textContent='Market software handoff active · payment settlement remains licence-gated';
 };
 </script>
 </body>
