@@ -686,3 +686,17 @@ def test_surface_has_authenticated_owner_bridge_readiness_control():
     client = app.test_client()
     html = client.get("/sika").get_data(as_text=True)
     assert 'id="bankOwnerSessionBtn"' in html
+
+
+def test_deep_dive_21_reports_new_bank_security_capabilities_without_fake_production_green():
+    client = app.test_client()
+    body = client.get("/api/sika/deep-dive-21").get_json()
+    assert body["bank_app_password_software_ready"] is True
+    assert body["bank_app_password_durable_store_ready"] is False
+    assert body["device_binding_software_ready"] is True
+    assert body["durable_device_binding_store_ready"] is True
+    assert body["authenticated_owner_bridge_ready"] is True
+    assert body["production_owner_session_route_ready"] is False
+    assert body["physical_android_acceptance"] is False
+    assert body["real_payment_ready"] is False
+    assert body["execution_granted"] is False
