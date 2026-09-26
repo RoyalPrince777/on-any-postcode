@@ -404,3 +404,159 @@ def test_unauthenticated_reauth_backoff_fails_closed(monkeypatch):
     response = app.test_client().get("/api/sika/security/reauth-backoff")
     assert response.status_code == 401
     assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_sika_session_activate_uses_authenticated_owner_and_bound_device(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    captured = {}
+
+    def fake_activate(owner_id, *, device_id):
+        captured["owner_id"] = owner_id
+        captured["device_id"] = device_id
+        return {
+            "session_id": "session-1",
+            "device_id": device_id,
+            "status": "active",
+            "founder_auth_touched": False,
+            "money_execution_enabled": False,
+        }
+
+    monkeypatch.setattr(
+        sika_global_views.sika_session_registry,
+        "activate",
+        fake_activate,
+    )
+    response = app.test_client().post(
+        "/api/sika/security/session/activate",
+        json={"owner_id": ATTACKER_OWNER, "device_id": "trusted-device"},
+    )
+    assert response.status_code == 201
+    assert captured["owner_id"] == AUTH_OWNER
+    assert captured["owner_id"] != ATTACKER_OWNER
+    assert captured["device_id"] == "trusted-device"
+
+
+def test_sika_session_activate_missing_csrf_blocks_registry(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: False,
+    )
+    called = {"registry": False}
+
+    def should_not_run(*args, **kwargs):
+        called["registry"] = True
+        raise AssertionError("session registry must not run without CSRF")
+
+    monkeypatch.setattr(
+        sika_global_views.sika_session_registry,
+        "activate",
+        should_not_run,
+    )
+    response = app.test_client().post(
+        "/api/sika/security/session/activate",
+        json={"device_id": "trusted-device"},
+    )
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "csrf_failed"
+    assert called["registry"] is False
+
+
+def test_sika_session_registry_rejects_untrusted_device(monkeypatch):
+    from mission_control import sika_session_registry
+
+    monkeypatch.setattr(
+        sika_session_registry.sika_device_binding_store,
+        "read",
+        lambda owner_id: {
+            "owner_id": str(owner_id),
+            "bound": True,
+            "device_id": "trusted-device",
+        },
+    )
+    try:
+        sika_session_registry.activate(
+            AUTH_OWNER,
+            device_id="attacker-device",
+        )
+    except ValueError as exc:
+        assert str(exc) == "trusted_bound_device_required"
+    else:
+        raise AssertionError("untrusted device must fail closed")
+
+
+def test_sika_session_registry_compromise_lock_blocks_active_session(monkeypatch):
+    from mission_control import sika_session_registry
+
+    monkeypatch.setattr(
+        sika_session_registry,
+        "project",
+        lambda owner_id: {
+            "sessions": [{
+                "session_id": "session-1",
+                "device_id": "trusted-device",
+                "status": "active",
+            }],
+            "active_sessions": [],
+            "active_session_count": 0,
+            "compromise_locked": True,
+        },
+    )
+    try:
+        sika_session_registry.require_active(AUTH_OWNER, "session-1")
+    except PermissionError as exc:
+        assert str(exc) == "sika_compromise_lock_active"
+    else:
+        raise AssertionError("compromise lock must fail closed")
+
+
+def test_sika_revoke_all_is_owner_scoped(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    captured = {}
+
+    def fake_revoke_all(owner_id, *, reason):
+        captured["owner_id"] = owner_id
+        return {
+            "revoked_all": True,
+            "active_session_count_before": 2,
+            "founder_auth_touched": False,
+        }
+
+    monkeypatch.setattr(
+        sika_global_views.sika_session_registry,
+        "revoke_all",
+        fake_revoke_all,
+    )
+    response = app.test_client().post(
+        "/api/sika/security/session/revoke-all",
+        json={"owner_id": ATTACKER_OWNER, "reason": "compromise"},
+    )
+    assert response.status_code == 200
+    assert captured["owner_id"] == AUTH_OWNER
+    assert captured["owner_id"] != ATTACKER_OWNER
