@@ -45,7 +45,7 @@ def test_lab_immutability_green_when_app_role_cannot_update_or_delete(monkeypatc
         assert readonly is True
         return _Context(connection)
 
-    monkeypatch.setattr(workspaces.postgres_db, "connect", connect)
+    monkeypatch.setattr(workspaces.postgres_db, "lab_connect", connect)
     result = workspaces.lab_immutability_status()
     assert result["database_enforced"] is True
     assert result["update_denied"] is True
@@ -84,7 +84,7 @@ def test_lab_immutability_probe_failure_never_claims_green(monkeypatch):
     def connect(*, readonly=False):
         raise RuntimeError("offline")
 
-    monkeypatch.setattr(workspaces.postgres_db, "connect", connect)
+    monkeypatch.setattr(workspaces.postgres_db, "lab_connect", connect)
     result = workspaces.lab_immutability_status()
     assert result["database_enforced"] is False
     assert result["error"] == "workspace_immutability_probe_failed"
