@@ -33,6 +33,8 @@ def status() -> dict[str, Any]:
         "image_model": IMAGE_MODEL,
         "video_model": VIDEO_MODEL,
         "imagine_ready": configured,
+        "edit_image_ready": configured,
+        "refine_image_ready": configured,
         "scene_builder_ready": configured,
         "bring_alive_ready": configured,
         "provider_is_authority": False,
@@ -118,6 +120,56 @@ def generate_image(prompt: str, *, size: str = "1024x1024") -> dict[str, Any]:
         "b64_json": b64,
         "artifact_proven": True,
         "provider_is_authority": False,
+    }
+
+
+def edit_image(
+    prompt: str,
+    *,
+    source_image_data: str,
+    input_fidelity: str = "high",
+    size: str = "auto",
+) -> dict[str, Any]:
+    """Edit one source image through the canonical GPT Image edit endpoint.
+
+    The source is validated locally first, then sent as a data URL. High input
+    fidelity is the default because Studio's character-continuity workflow must
+    preserve identity and distinctive visual details wherever the provider can.
+    """
+
+    clean = str(prompt or "").strip()[:32000]
+    if not clean:
+        raise ValueError("studio_prompt_required")
+    source = str(source_image_data or "").strip()
+    _decode_image_data_url(source)
+    fidelity = str(input_fidelity or "high").strip().lower()
+    if fidelity not in {"high", "low"}:
+        raise ValueError("studio_input_fidelity_invalid")
+    payload = _json_call(
+        "/images/edits",
+        {
+            "model": IMAGE_MODEL,
+            "images": [{"image_url": source}],
+            "prompt": clean,
+            "input_fidelity": fidelity,
+            "size": str(size or "auto"),
+            "output_format": "png",
+        },
+    )
+    data = payload.get("data") or []
+    first = data[0] if data and isinstance(data[0], dict) else {}
+    b64 = str(first.get("b64_json") or "")
+    if not b64:
+        raise RuntimeError("studio_generation_artifact_missing")
+    return {
+        "kind": "image",
+        "model": IMAGE_MODEL,
+        "mime_type": "image/png",
+        "b64_json": b64,
+        "artifact_proven": True,
+        "provider_is_authority": False,
+        "input_fidelity": fidelity,
+        "source_reference_used": True,
     }
 
 
