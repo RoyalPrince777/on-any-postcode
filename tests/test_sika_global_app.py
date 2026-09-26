@@ -514,3 +514,27 @@ def test_surface_has_bank_app_os_alignment_controls_without_founder_auth_links()
     assert 'href="/enter-my-world"' not in html
     assert 'href="/activate-founder"' not in html
     assert "Founder authentication is outside this bank-app boundary" in html
+
+
+def test_deep_dive_21_reuses_canonical_oap_boundaries():
+    client = app.test_client()
+    body = client.get("/api/sika/deep-dive-21").get_json()
+    assert body["depth"] == 21
+    assert len(body["mind"]) == 7
+    assert len(body["body"]) == 7
+    assert len(body["soul"]) == 7
+    assert body["single_brain"] == "SMI"
+    assert body["human_authority_final"] is True
+    assert body["silicon_gate_count"] == 21
+    assert body["sika_role"] == "financial/value organ inside OAP"
+    assert body["founder_auth_touched"] is False
+    assert body["execution_granted"] is False
+    assert body["consequential_blocks"]["money_transfer_blocked"] is True
+    assert body["consequential_blocks"]["esim_activation_blocked"] is True
+
+
+def test_surface_has_deep_dive_21_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="deepDive21Btn"' in html
+    assert 'id="deepDive21Section"' in html
