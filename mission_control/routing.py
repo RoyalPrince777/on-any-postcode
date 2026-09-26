@@ -22,6 +22,8 @@ ENGINE_CONTRACT = "OSRM-compatible"
 MAX_RESPONSE_BYTES = 512 * 1024
 MAX_TILE_BYTES = 2 * 1024 * 1024
 ROUTE_TIMEOUT_SECONDS = 6
+ROUTE_RATE_LIMIT_RETRIES = 2
+ROUTE_RATE_LIMIT_BACKOFF_SECONDS = 0.75
 ALLOWED_PROFILES = frozenset({"driving", "cycling", "walking"})
 VERIFICATION_ONLY_HOSTS = frozenset({"router.project-osrm.org"})
 _RUNTIME_LOCK = threading.Lock()
@@ -154,19 +156,34 @@ def _request_json(url: str, *, expected_host: str) -> dict[str, Any]:
     if parsed.scheme != "https" or parsed.hostname != expected_host:
         raise RoutingUnavailable("routing_endpoint_rejected")
     request = urlrequest.Request(url, headers={"Accept":"application/json","User-Agent":"ON-ANY-POSTCODE-Movement/1.0"})
-    try:
-        with urlrequest.urlopen(request, timeout=ROUTE_TIMEOUT_SECONDS) as response:
-            final = urlparse.urlparse(response.geturl())
-            if final.scheme != "https" or final.hostname != expected_host:
-                _mark_error("routing_redirect_rejected"); raise RoutingUnavailable("routing_redirect_rejected")
-            body = response.read(MAX_RESPONSE_BYTES + 1)
-    except RoutingUnavailable:
-        raise
-    except urlerror.HTTPError as exc:
-        _mark_error(f"routing_http_{int(exc.code)}")
-        raise RoutingUnavailable("routing_provider_unavailable") from exc
-    except (OSError, TimeoutError) as exc:
-        _mark_error(type(exc).__name__); raise RoutingUnavailable("routing_provider_unavailable") from exc
+    body = b""
+    for attempt in range(ROUTE_RATE_LIMIT_RETRIES + 1):
+        try:
+            with urlrequest.urlopen(request, timeout=ROUTE_TIMEOUT_SECONDS) as response:
+                final = urlparse.urlparse(response.geturl())
+                if final.scheme != "https" or final.hostname != expected_host:
+                    _mark_error("routing_redirect_rejected")
+                    raise RoutingUnavailable("routing_redirect_rejected")
+                body = response.read(MAX_RESPONSE_BYTES + 1)
+            break
+        except RoutingUnavailable:
+            raise
+        except urlerror.HTTPError as exc:
+            code = int(exc.code)
+            if code == 429 and attempt < ROUTE_RATE_LIMIT_RETRIES:
+                retry_after = str(exc.headers.get("Retry-After") or "").strip()
+                try:
+                    wait_seconds = float(retry_after)
+                except ValueError:
+                    wait_seconds = ROUTE_RATE_LIMIT_BACKOFF_SECONDS * (attempt + 1)
+                wait_seconds = min(max(wait_seconds, ROUTE_RATE_LIMIT_BACKOFF_SECONDS), 3.0)
+                time.sleep(wait_seconds)
+                continue
+            _mark_error(f"routing_http_{code}")
+            raise RoutingUnavailable("routing_provider_unavailable") from exc
+        except (OSError, TimeoutError) as exc:
+            _mark_error(type(exc).__name__)
+            raise RoutingUnavailable("routing_provider_unavailable") from exc
     if len(body) > MAX_RESPONSE_BYTES:
         _mark_error("routing_response_too_large"); raise RoutingUnavailable("routing_response_too_large")
     try:
