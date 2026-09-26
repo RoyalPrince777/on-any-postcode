@@ -6,6 +6,7 @@ policy/events only; it cannot move money or alter Founder authentication.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from hashlib import sha256
 from typing import Any
 from uuid import UUID, uuid4
@@ -238,3 +239,53 @@ def set_device_risk(owner_id: object, suspicious_device: bool) -> dict[str, obje
         severity="HIGH" if suspicious_device else "NOTICE",
         details={"suspicious_device": bool(suspicious_device)},
     )
+
+
+def beneficiary_age_minutes(owner_id: object, beneficiary_id: object) -> int:
+    beneficiary = str(beneficiary_id or "").strip()[:120]
+    if not beneficiary:
+        raise ValueError("beneficiary_id_required")
+    state = latest_state(owner_id)
+    for item in state["beneficiaries"]:
+        if str(item.get("beneficiary_id")) != beneficiary:
+            continue
+        raw = str(item.get("registered_at") or "")
+        try:
+            created = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise SikaSecurityLedgerUnavailable(
+                "beneficiary_registration_time_unreadable"
+            ) from exc
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - created.astimezone(timezone.utc)
+        return max(0, int(age.total_seconds() // 60))
+    return 0
+
+
+def record_reauth_result(owner_id: object, *, success: bool) -> dict[str, object]:
+    return record_authenticated_owner(
+        owner_id,
+        event_type="REAUTH_SUCCESS" if success else "REAUTH_FAILED",
+        severity="NOTICE" if success else "WARNING",
+        details={"success": bool(success)},
+    )
+
+
+def reauth_lock_state(owner_id: object) -> dict[str, object]:
+    events = history(owner_id, limit=20)
+    failures = 0
+    for item in events:
+        kind = str(item.get("event_type") or "")
+        if kind == "REAUTH_SUCCESS":
+            break
+        if kind == "REAUTH_FAILED":
+            failures += 1
+    locked = failures >= 5
+    return {
+        "failed_attempts_since_success": failures,
+        "locked": locked,
+        "threshold": 5,
+        "money_moved": False,
+        "founder_auth_touched": False,
+    }
