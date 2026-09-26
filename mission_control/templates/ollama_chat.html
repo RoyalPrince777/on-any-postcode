@@ -32,6 +32,8 @@ window.OAP_SMI_UI={
   hrmUrl:{{ url_for('alignment.smi_brain_receipts')|tojson }},
   improvementUrl:{{ url_for('mission_control.smi_recursive_improvement_dashboard')|tojson }},
   studioStatusUrl:{{ url_for('mission_control.smi_studio_status')|tojson }},
+  studioWorkspaceUrl:{{ url_for('mission_control.smi_studio_workspace_preflight', workspace_id='__WORKSPACE_ID__')|tojson }},
+  studioThreatPostureUrl:{{ url_for('mission_control.smi_studio_threat_posture')|tojson }},
   studioGenerateUrl:{{ url_for('mission_control.smi_studio_generate')|tojson }},
   studioVideoStatusUrl:{{ url_for('mission_control.smi_studio_video_status', video_id='__VIDEO_ID__')|tojson }},
   studioVideoContentUrl:{{ url_for('mission_control.smi_studio_video_content', video_id='__VIDEO_ID__')|tojson }},
