@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIKA Global</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:#f7f7f7;background:#080808}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#050505,#17140a);min-height:100vh}
+.shell{max-width:480px;margin:auto;padding:24px 18px 90px}
+.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{letter-spacing:.12em;margin:0}
+.badge{border:1px solid #b99b3d;border-radius:999px;padding:6px 10px;color:#e5c966;font-size:12px}
+.card{background:rgba(255,255,255,.055);border:1px solid rgba(229,201,102,.24);border-radius:24px;padding:20px;margin-top:18px}
+.balance{font-size:46px;font-weight:800;margin:8px 0}.muted{color:#aaa}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
+button,.tile{border:1px solid #3d3521;background:#15130e;color:#fff;border-radius:18px;padding:16px;text-align:left}
+button{cursor:pointer}.gold{color:#e5c966}.value{font-size:20px;font-weight:700}
+.notice{font-size:13px;line-height:1.45;color:#c9c9c9}.status{display:flex;gap:8px;align-items:center}.dot{width:8px;height:8px;border-radius:50%;background:#e5c966}
+input{width:100%;background:#0c0c0c;color:#fff;border:1px solid #3d3521;border-radius:14px;padding:13px;margin-top:8px}
+.result{margin-top:10px;font-weight:700}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px solid #292312;padding:12px;display:flex;justify-content:center;gap:28px}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="brand"><h1>SIKA</h1><span class="badge">GLOBAL</span></div>
+<p class="muted">One value system · global by design</p>
+
+<section class="card">
+<div class="muted">Target anchor</div>
+<div class="balance">1 SIKA</div>
+<div class="value gold">= £1 GBP</div>
+<p class="notice">Canonical SIKA stays first-party. Local currency is a settlement/display layer, not a separate SIKA.</p>
+</section>
+
+<section class="grid">
+<div class="tile"><b>Wallet</b><p class="muted">Canonical SIKA view</p></div>
+<div class="tile"><b>Exchange</b><p class="muted">Treasury-rate quotes</p></div>
+<div class="tile"><b>Card</b><p class="muted">Locked until authorised</p></div>
+<div class="tile"><b>Pay</b><p class="muted">Locked until authorised</p></div>
+<div class="tile"><b>Treasury</b><p class="muted">First-party control</p></div>
+<div class="tile"><b>Market</b><p class="muted">OAP commerce bridge</p></div>
+</section>
+
+<section class="card">
+<h2>Global currency quote</h2>
+<label>SIKA amount<input id="amount" inputmode="decimal" value="1"></label>
+<label>Currency code<input id="currency" maxlength="3" value="GBP"></label>
+<label>GBP value of one local unit<input id="rate" inputmode="decimal" value="1"></label>
+<button id="quote">Get first-party quote</button>
+<div class="result" id="result">£1.00</div>
+<p class="notice">No external bank or FX provider is contacted by this screen. The rate field represents the future governed SIKA Treasury feed.</p>
+</section>
+
+<section class="card notice">
+<div class="status"><span class="dot"></span><b>Truth mode</b></div>
+<p>The app shell and quote engine can operate now. Bank accounts, card issuance, cash-out and payment execution remain disabled until the required regulated rails and approvals exist.</p>
+</section>
+</main>
+<nav><span>Home</span><span>Wallet</span><span>Exchange</span><span>Market</span></nav>
+<script>
+document.getElementById('quote').onclick=async()=>{
+ const currency=document.getElementById('currency').value.toUpperCase();
+ const rate=document.getElementById('rate').value;
+ const payload={amount_sika:document.getElementById('amount').value,currency,gbp_per_unit:{}};
+ if(currency!=='GBP') payload.gbp_per_unit[currency]=rate;
+ const r=await fetch('/api/sika/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+ const j=await r.json();
+ document.getElementById('result').textContent=r.ok ? j.local_amount+' '+j.currency : j.error;
+};
+</script>
+</body>
+</html>
