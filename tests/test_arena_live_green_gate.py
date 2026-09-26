@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from io import BytesIO
-
 import scripts.arena_live_green_gate as gate
 
 
