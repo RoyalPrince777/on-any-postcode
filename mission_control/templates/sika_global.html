@@ -60,6 +60,27 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 </section>
 
 <section class="card">
+<h2>Reconciliation</h2>
+<div class="value">{{ wallet.statement.total_debits_sika }} SIKA</div>
+<p class="muted">Debits</p>
+<div class="value">{{ wallet.statement.total_credits_sika }} SIKA</div>
+<p class="muted">Credits</p>
+<p class="notice">Balanced: {{ 'YES' if wallet.statement.reconciled else 'NO / UNAVAILABLE' }} · Difference {{ wallet.statement.difference_sika }} SIKA</p>
+<p class="notice">Reference journal only — no customer money moved.</p>
+</section>
+
+<section class="card">
+<h2>Durable Journal</h2>
+{% if wallet.statement.entries %}
+  {% for item in wallet.statement.entries %}
+  <div class="tile"><b>{{ item.debit_account }} ↔ {{ item.credit_account }}</b><p>{{ item.debit_sika }} SIKA</p><p class="muted">{{ item.memo }}</p></div>
+  {% endfor %}
+{% else %}
+  <p class="muted">No durable reference journal entries yet.</p>
+{% endif %}
+</section>
+
+<section class="card">
 <h2>Transaction History</h2>
 {% if wallet.history %}
   {% for item in wallet.history %}
