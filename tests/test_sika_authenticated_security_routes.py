@@ -176,3 +176,146 @@ def test_unauthenticated_sika_security_route_fails_closed(monkeypatch):
     )
     assert response.status_code == 401
     assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_payment_controls_ignore_forged_owner_and_use_authenticated_owner(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    captured = {}
+
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "latest_state",
+        lambda owner_id: {
+            "daily_limit_sika": "1000.00",
+            "suspicious_device": False,
+            "beneficiaries": [],
+            "alerts": [],
+            "durable": True,
+            "money_moved": False,
+            "founder_auth_touched": False,
+        },
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "daily_payment_activity",
+        lambda owner_id: {
+            "daily_attempted_sika": "0.00",
+            "daily_review_events": 0,
+            "daily_hold_events": 0,
+            "daily_executed_spend_sika": "0.00",
+            "money_execution_enabled": False,
+            "truth_mode": "attempted_not_executed_spend",
+        },
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "beneficiary_age_minutes",
+        lambda owner_id, beneficiary_id: 60,
+    )
+
+    def fake_intent(owner_id, *, beneficiary_id, amount_sika, reference=""):
+        captured["owner_id"] = owner_id
+        return {
+            "payment_intent_id": "intent-1",
+            "beneficiary_id": beneficiary_id,
+            "amount_sika": str(amount_sika),
+            "status": "security_review_only",
+            "security_receipt_id": "receipt-1",
+            "money_moved": False,
+            "payment_execution_authorised": False,
+        }
+
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "create_payment_intent",
+        fake_intent,
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "record_authenticated_owner",
+        lambda *args, **kwargs: {"event_id": "receipt-2"},
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "create_step_up_for_payment_intent",
+        lambda owner_id, **kwargs: {
+            "challenge_id": "challenge-1",
+            "status": "pending",
+            "payment_intent_id": "intent-1",
+            "payment_execution_authorised": False,
+            "money_moved": False,
+        },
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/payment-controls",
+        json={
+            "owner_id": ATTACKER_OWNER,
+            "beneficiary_id": "beneficiary-1",
+            "amount_sika": "600",
+            "reference": "test",
+        },
+    )
+    body = response.get_json()
+    assert response.status_code == 200
+    assert captured["owner_id"] == AUTH_OWNER
+    assert captured["owner_id"] != ATTACKER_OWNER
+    assert body["payment_execution_authorised"] is False
+
+
+def test_missing_csrf_blocks_payment_controls_before_security_ledger(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: False,
+    )
+    called = {"ledger": False}
+
+    def should_not_run(*args, **kwargs):
+        called["ledger"] = True
+        raise AssertionError("security ledger must not run without CSRF")
+
+    monkeypatch.setattr(
+        sika_global_views.sika_security_ledger,
+        "latest_state",
+        should_not_run,
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/payment-controls",
+        json={"beneficiary_id": "beneficiary-1", "amount_sika": "50"},
+    )
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "csrf_failed"
+    assert called["ledger"] is False
+
+
+def test_unauthenticated_payment_controls_fail_closed(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: None,
+    )
+    response = app.test_client().post(
+        "/api/sika/security/payment-controls",
+        json={"beneficiary_id": "beneficiary-1", "amount_sika": "50"},
+    )
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
