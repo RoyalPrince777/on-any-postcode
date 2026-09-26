@@ -425,7 +425,51 @@ refreshOps();
         }catch(error){addCard("Studio Threat Posture",error.message||"Unavailable","red");if(chip)chip.textContent="Blocked";}
         menu?.classList.remove("show");
       };
-      studioButton.after(workspaceLabel,...workspaceButtons,threat);
+      const orchestrate=document.createElement("button");
+      orchestrate.type="button";
+      orchestrate.className="attach-option connector smi-studio-orchestrate";
+      orchestrate.dataset.proofAction="studio-orchestrate";
+      orchestrate.innerHTML='<span class="connector-copy"><span>🧩</span><span>Orchestrate</span></span><span class="connector-state">Plan</span>';
+      orchestrate.onclick=async()=>{
+        const prompt=input.value.trim();
+        if(!prompt){setStatus("Add a mission brief first.");input.focus();return;}
+        const chip=q(".connector-state",orchestrate);orchestrate.disabled=true;if(chip)chip.textContent="Planning";
+        try{
+          const headers={"Content-Type":"application/json","X-OAP-CSRF":window.csrfToken||cfg.csrfToken||""};
+          const planned=await fetch(cfg.studioOrchestratePlanUrl,{
+            method:"POST",credentials:"same-origin",headers,
+            body:JSON.stringify({prompt})
+          });
+          const mission=await planned.json().catch(()=>({}));
+          if(!planned.ok)throw new Error(mission?.error?.message||"Orchestration plan unavailable");
+          const saved=await fetch(cfg.studioOrchestrateCheckpointUrl,{
+            method:"POST",credentials:"same-origin",headers,
+            body:JSON.stringify({mission,expected_last_hash:"",stopped:Boolean(window.OAP_SMI_STOPPED)})
+          });
+          const checkpoint=await saved.json().catch(()=>({}));
+          if(!saved.ok)throw new Error(checkpoint?.error?.message||"Orchestration checkpoint unavailable");
+          const proof=await recordButtonProof("studio-orchestrate","/mission/studio/orchestrate/plan",planned.status);
+          window.OAP_SMI_ORCHESTRATION={mission,checkpoint};
+          const steps=(mission.steps||[]).map(step=>step.step+". "+step.name+(step.depends_on?.length?" ← "+step.depends_on.join(", "):"")).join("\n");
+          addCard("OAP Studio · Orchestrator",[
+            "Mission "+mission.mission_id,
+            steps||"No workspace steps",
+            "Checkpoint v"+checkpoint.version+" · resumable",
+            checkpoint.read_back_verified?"Read-back verified":"Read-back pending",
+            proof?.receipt_id?"Button Proof "+proof.receipt_id:"Button Proof pending",
+            "Execution remains locked · Human Authority final"
+          ].join("\n"),checkpoint.read_back_verified?"green":"yellow");
+          if(chip){chip.textContent=checkpoint.read_back_verified?"Proven":"Saved";chip.classList.toggle("ready",Boolean(checkpoint.read_back_verified));}
+          setStatus("Studio orchestration planned and checkpointed · no execution granted");
+        }catch(error){
+          addCard("OAP Studio · Orchestrator",error.message||"Orchestration unavailable","red");
+          if(chip){chip.textContent="Blocked";chip.classList.add("attention");}
+          setStatus(error.message||"Orchestration unavailable");
+        }finally{
+          orchestrate.disabled=false;menu?.classList.remove("show");plus?.setAttribute("aria-expanded","false");
+        }
+      };
+      studioButton.after(workspaceLabel,...workspaceButtons,orchestrate,threat);
     }
     if(studioButton&&!q('[data-studio-tool="imagine"]',menu)){
       const studioLabel=document.createElement("div");
