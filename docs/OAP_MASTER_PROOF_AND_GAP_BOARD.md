@@ -1,7 +1,7 @@
 # OAP Master Proof and Gap Board
 
 Status: ACTIVE
-Scope: OAP World, SMI, Living Kernel, Guardian, HRM, Green Gate, OAP Atlas, Movement Intelligence, OAP Direct
+Scope: OAP World, SMI, Living Kernel, Guardian, HRM, Green Gate, On Any Place, Movement Intelligence, OAP Direct
 Mode: proof capture and gap closure without fake green
 
 ## Rule
@@ -43,16 +43,16 @@ Fresh deploy-window error, critical, alert and emergency logs must remain zero b
 | Guardian / Aegis | guarded | hard blocks for A5, payment, dispatch, hidden tracking, private media leak | anonymous fail-closed capture across every private route | Private Guard capture |
 | HRM | building | receipt requirement declared | durable receipt store proof, sample movement receipt, sample Direct receipt, Green Gate reads receipts | HRM receipt probe |
 | Green Gate | building | proof runner wired, evidence fields live, no-fake-green rule | live aggregation result with real route/schema/source/supply evidence | Green Gate aggregation probe |
-| OAP Atlas | partial | public name, private Map Intelligence name, continent-to-postcode hierarchy | live source name, timestamp, stale-data proof, map source health | Atlas source-health probe |
+| On Any Place | partial | public name, private Map Intelligence name, continent-to-postcode hierarchy | live source name, timestamp, stale-data proof, map source health | Atlas source-health probe |
 | Movement Intelligence | partial | movement routes declared, consent required, dispatch locked | schema proof, request/match/consent/tracking/Link Up store readiness | Movement schema probe |
 | OAP Direct | partial | Direct naming, OAP Pass boundary, payment capture locked | certified supplier, active listing, terms, timestamped inventory | Direct supply proof |
 | Pictures + Lifecycle | partial | picture rules, payment lock, confirmation lock | rights-confirmed photo, safe quote/hold, reservation request, supplier confirmation receipt | Lifecycle proof |
 
-## OAP Atlas dashboard requirement
+## On Any Place dashboard requirement
 
-Public name: OAP Atlas
+Public name: On Any Place
 Private brain name: Map Intelligence
-Combined surface: OAP Atlas + Movement Intelligence + OAP Direct
+Combined surface: On Any Place + Movement Intelligence + OAP Direct
 
 Required hierarchy:
 
@@ -66,8 +66,8 @@ Earth
                     └── The Spot
 ```
 
-OAP Atlas can show the hierarchy as green when declared in code.
-OAP Atlas live-map claims stay yellow until the source name, timestamp, stale-data state and source-health result are captured.
+On Any Place can show the hierarchy as green when declared in code.
+On Any Place live-map claims stay yellow until the source name, timestamp, stale-data state and source-health result are captured.
 
 ## Quiet compatibility
 
@@ -76,7 +76,7 @@ They must not become noisy public language.
 
 Preferred public language:
 
-- OAP Atlas
+- On Any Place
 - Movement Intelligence
 - OAP Direct
 - OAP Pass
@@ -111,7 +111,7 @@ The following remain locked or blocked regardless of dashboard progress:
 
 1. Route Matrix capture
 2. Private Guard capture
-3. OAP Atlas source-health capture
+3. On Any Place source-health capture
 4. Movement schema proof
 5. Direct supplier/listing/inventory proof
 6. Pictures + lifecycle proof
