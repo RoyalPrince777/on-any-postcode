@@ -1,6 +1,6 @@
 from html import escape
 
-from mission_control import products
+from mission_control import location_intelligence, products
 
 
 def test_complete_spot_capability_registry_has_no_duplicates():
@@ -254,3 +254,57 @@ def test_oap_media_stack_rejects_stream_money_dependency():
     assert by_id["distribution"]["owner"] == "OAP Music / Media"
     assert "release engine" in by_id["distribution"]["purpose"]
     assert "External Spotify" in by_id["distribution"]["blocked_by"]
+
+
+def test_oap_atlas_ui_is_search_first_source_bound_and_noise_stripped(client, monkeypatch):
+    monkeypatch.setattr(
+        location_intelligence,
+        "lookup_with_weather",
+        lambda value: {
+            "query": value,
+            "postcode": "CR4 1AB",
+            "borough": "Merton",
+            "county": "Greater London",
+            "country": "United Kingdom",
+            "continent": "Europe",
+            "weather": {
+                "temperature": 17.0,
+                "feels_like": 16.0,
+                "wind_speed": 12.0,
+                "days": [
+                    {"date": "2026-09-26", "minimum": 12, "maximum": 19, "rain_chance": 20},
+                    {"date": "2026-09-27", "minimum": 11, "maximum": 18, "rain_chance": 35},
+                    {"date": "2026-09-28", "minimum": 10, "maximum": 17, "rain_chance": 50},
+                ],
+                "intelligence": {
+                    "icon": "🌤️",
+                    "condition": "Mainly clear",
+                    "advisory_level": "green",
+                    "observation_time": "2026-09-26T13:00",
+                },
+            },
+        },
+    )
+
+    empty = client.get("/the-spot/maps-weather-travel").get_data(as_text=True)
+    live = client.get(
+        "/the-spot/maps-weather-travel?location=CR4%201AB"
+    ).get_data(as_text=True)
+
+    assert "OAP Atlas" in empty
+    assert "Search. See the weather. Move." in empty
+    assert "Search a place to load source-bound location and weather data." in empty
+    assert "OAP Atlas Screen" not in empty
+    assert "atlas-pin" not in empty
+    assert "Open 21 Signals" not in empty
+    assert "Map Intelligence" not in empty
+
+    assert "Mainly clear" in live
+    assert "Advisory green" in live
+    assert "17.0°C" in live
+    assert "Wind 12.0 km/h" in live
+    assert "Observed 2026-09-26T13:00" in live
+    assert "Merton" in live
+    assert "CR4 1AB" in live
+    assert "Explicit search only" in live
+    assert "no hidden tracking" in live
