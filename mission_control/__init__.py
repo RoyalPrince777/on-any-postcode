@@ -59,6 +59,7 @@ def init_app(app: Flask) -> None:
     )
     from . import db as dbmod
     from .alignment_views import bp as alignment_bp
+    from .all_in_ai_views import bp as all_in_ai_bp
     from .bank_store_catalog_routes import bp as bank_store_catalog_bp
     from .certification_views import bp as certification_bp
     from .checkpoint_views import bp as checkpoint_bp
@@ -67,7 +68,6 @@ def init_app(app: Flask) -> None:
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
-    from .all_in_ai_views import bp as all_in_ai_bp
     from .link_incoming_routes import bp as link_incoming_bp
     from .link_message_routes import bp as link_message_bp
     from .link_ping_routes import bp as link_ping_bp
