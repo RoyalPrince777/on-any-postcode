@@ -1,0 +1,32 @@
+name: OAP Music live acceptance
+
+on:
+  push:
+    branches:
+      - proof/oap-music-live-acceptance-20260926
+
+permissions:
+  contents: read
+
+jobs:
+  live-music:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe production OAP Music
+        shell: bash
+        run: |
+          set -euo pipefail
+          music_url="https://on-any-postcode.onrender.com/music"
+          health_url="https://on-any-postcode.onrender.com/healthz"
+
+          code="$(curl --retry 5 --retry-all-errors --retry-delay 3             --connect-timeout 15 --max-time 30 -sS             -o /tmp/oap-music.html -w '%{http_code}' "$music_url")"
+          test "$code" = "200"
+          grep -q "OAP Music" /tmp/oap-music.html
+          grep -q "No publicly cleared playable track is available yet." /tmp/oap-music.html
+          grep -q "Playback stays locked" /tmp/oap-music.html
+
+          health_code="$(curl --retry 5 --retry-all-errors --retry-delay 3             --connect-timeout 15 --max-time 30 -sS             -o /tmp/oap-health.txt -w '%{http_code}' "$health_url")"
+          test "$health_code" = "200"
+
+          echo "OAP_MUSIC_LIVE_ACCEPTANCE_PASS"
