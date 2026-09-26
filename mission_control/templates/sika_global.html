@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SIKA Global</title>
+<meta name="theme-color" content="#050807">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SIKA">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" sizes="192x192" href="/assets/oap-os-icon-192.png">
+<link rel="apple-touch-icon" href="/assets/oap-os-icon-192.png">
 <style>
 :root{font-family:Inter,system-ui,sans-serif;color:#f7f7f7;background:#080808}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#050505,#17140a);min-height:100vh}
@@ -23,6 +30,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0a;border-top:1px sol
 <body>
 <main class="shell" id="top">
 <div class="brand"><h1>SIKA</h1><span class="badge">GLOBAL</span></div>
+<button data-oap-install hidden>Install SIKA</button>
+<div class="notice" data-oap-install-status role="status">Checking install support</div>
 <p class="muted">One value system · global by design</p>
 
 <section class="card">
@@ -296,5 +305,6 @@ document.getElementById('marketHandoff').onclick=()=>{
  document.getElementById('marketResult').textContent='Market software handoff active · payment settlement remains licence-gated';
 };
 </script>
+<script src="/assets/oap-os.js"></script>
 </body>
 </html>
