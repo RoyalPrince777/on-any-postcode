@@ -181,7 +181,7 @@ def latest_receipt_status(signal_id: object) -> dict[str, Any]:
                    LIMIT 1""",
                 (signal,),
             ).fetchone()
-    except Exception:
+    except Exception:  # noqa: BLE001
         return {"found": False, "read_back_verified": False, "reason": "receipt_status_unavailable"}
 
     if row is None or not isinstance(row[2], Mapping):
