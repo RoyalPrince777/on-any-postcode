@@ -66,6 +66,20 @@ GENERATION_TOOLS = (
         "purpose": "Create a new visual from a written idea.",
     },
     {
+        "id": "edit_image",
+        "name": "Edit",
+        "input": "image",
+        "output": "image",
+        "purpose": "Change an attached or approved reference image while preserving requested identity and details.",
+    },
+    {
+        "id": "refine_image",
+        "name": "Refine",
+        "input": "image",
+        "output": "image",
+        "purpose": "Improve an attached image with high-fidelity preservation of identity, composition and distinctive details.",
+    },
+    {
         "id": "bring_alive",
         "name": "Bring Alive",
         "input": "image",
@@ -196,6 +210,7 @@ def execute_generation(
     *,
     prompt: object = "",
     source_image_data: object = "",
+    character_lock: object = False,
 ) -> dict[str, Any]:
     """Execute one supported provider-backed Studio generation request.
 
@@ -205,10 +220,46 @@ def execute_generation(
 
     tool = _tool(tool_id)
     clean_prompt = str(prompt or "").strip()
+    source_data = str(source_image_data or "").strip()
+    lock_enabled = bool(character_lock)
+    continuity = (
+        " Preserve the exact same primary character identity from the source reference: "
+        "face, skin tone, apparent age, body proportions, hair/beard, signature clothing, "
+        "accessories and distinctive visual markers. Do not substitute a different person. "
+        "Only change elements explicitly requested."
+    )
+    if lock_enabled and not source_data:
+        raise ValueError("studio_character_lock_requires_source_image")
+    if lock_enabled:
+        clean_prompt = (clean_prompt + continuity).strip()
+
     if tool["id"] == "imagine":
         artifact = studio_media_backend.generate_image(clean_prompt)
+    elif tool["id"] == "edit_image":
+        if not source_data:
+            raise ValueError("studio_source_image_data_required")
+        artifact = studio_media_backend.edit_image(
+            clean_prompt,
+            source_image_data=source_data,
+            input_fidelity="high",
+        )
+    elif tool["id"] == "refine_image":
+        if not source_data:
+            raise ValueError("studio_source_image_data_required")
+        refine_prompt = clean_prompt or (
+            "Refine this image for premium cinematic quality while preserving the same "
+            "primary character identity, face, skin tone, body proportions, clothing, "
+            "accessories, composition and scene. Improve detail, lighting, texture, "
+            "clarity and visual coherence without redesigning the subject."
+        )
+        if lock_enabled and continuity not in refine_prompt:
+            refine_prompt = (refine_prompt + continuity).strip()
+        artifact = studio_media_backend.edit_image(
+            refine_prompt,
+            source_image_data=source_data,
+            input_fidelity="high",
+        )
     elif tool["id"] in {"scene_builder", "bring_alive"}:
-        source_data = str(source_image_data or "").strip()
         if tool["id"] == "bring_alive" and not source_data:
             raise ValueError("studio_source_image_data_required")
         artifact = studio_media_backend.create_video(
@@ -236,6 +287,8 @@ def execute_generation(
                 "model": str(artifact.get("model") or ""),
                 "artifact_proven": artifact_proven,
                 "video_job_id_present": bool(artifact.get("id")),
+                "character_lock": lock_enabled,
+                "source_reference_used": bool(source_data),
                 "execution_authority_expanded": False,
             },
         },
@@ -247,6 +300,8 @@ def execute_generation(
         "state": "generated" if artifact_proven else "provider_job_started",
         "output_generated": artifact_proven,
         "artifact": artifact,
+        "character_lock": lock_enabled,
+        "source_reference_used": bool(source_data),
         "chronicle_receipt": receipt,
         "execution_granted": False,
         "publishing_granted": False,
