@@ -24,7 +24,7 @@ def test_oap_world_reference_ui_contract():
         "PLACES",
         "POSSIBILITIES",
         "WITHOUT LIMITS",
-        "Live Location",
+        "Choose Place",
         "Quick Actions",
         "EXPLORE THE WORLD",
         "Connect People. Power Places. Create Possibilities.",
