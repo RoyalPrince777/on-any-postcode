@@ -10,6 +10,7 @@ from . import (
     music_evidence,
     music_recovery,
     postgres_db,
+    product_cores,
     radio_core,
     records_core,
 )
@@ -32,6 +33,9 @@ def _checksum(statements: tuple[str, ...]) -> str:
 def apply(*, assume_yes: bool = False) -> dict[str, object]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required")
+    base_result = product_cores.init_product_core_schema(assume_yes=True)
+    if not base_result.get("schema_ready"):
+        raise RuntimeError("Base Product Core migration 0006 not ready")
     applied: list[str] = []
     existing: list[str] = []
     with postgres_db.connect() as connection:
@@ -56,6 +60,8 @@ def apply(*, assume_yes: bool = False) -> dict[str, object]:
             applied.append(version)
         connection.commit()
     return {
+        "base_product_core_ready": True,
+        "base_product_core_migration": product_cores.PRODUCT_CORE_MIGRATION_VERSION,
         "applied": applied,
         "existing": existing,
         "versions": [version for version, _ in _MIGRATIONS],
