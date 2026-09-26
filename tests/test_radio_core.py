@@ -69,3 +69,111 @@ def test_radio_route_is_authenticated_read_only_contract():
     rules = [rule for rule in app.url_map.iter_rules() if rule.rule == "/mission/organs/radio"]
     assert len(rules) == 1
     assert rules[0].methods == {"GET", "HEAD", "OPTIONS"}
+
+
+def test_radio_schema_has_stop_state_and_activity_history_without_airplay_claim():
+    sql = "\n".join(radio_core.SCHEMA_STATEMENTS)
+    assert "oap_radio_station_control" in sql
+    assert "stopped BOOLEAN NOT NULL DEFAULT TRUE" in sql
+    assert "oap_radio_activity_events" in sql
+    assert "ROTATION_QUEUED" in sql
+    assert "STOPPED" in sql
+
+
+def test_radio_store_rotation_requires_station_and_track_same_owner(monkeypatch):
+    owner = str(uuid4())
+    station = str(uuid4())
+    track = str(uuid4())
+    calls = []
+
+    class Result:
+        def __init__(self, row):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params=()):
+            calls.append((sql, params))
+            if "FROM oap_radio_stations s" in sql:
+                return Result(None)
+            return Result((str(uuid4()),))
+
+        def commit(self):
+            raise AssertionError("must not commit when ownership proof fails")
+
+    monkeypatch.setattr(radio_core.postgres_db, "connect", lambda **_kwargs: Connection())
+    store = radio_core.RadioStore()
+    import pytest
+
+    with pytest.raises(PermissionError, match="radio_station_or_track_not_owned"):
+        store.add_rotation(
+            owner_identity_id=owner,
+            station_id=station,
+            track_id=track,
+            position=1,
+        )
+    assert any("oap_music_releases" in sql for sql, _ in calls)
+
+
+def test_radio_stop_is_fail_closed_and_cannot_claim_live(monkeypatch):
+    owner = str(uuid4())
+    station = str(uuid4())
+    inserts = []
+
+    class Result:
+        def __init__(self, row):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params=()):
+            inserts.append((sql, params))
+            if "UPDATE oap_radio_station_control" in sql:
+                return Result((station,))
+            return Result(None)
+
+        def commit(self):
+            return None
+
+    monkeypatch.setattr(radio_core.postgres_db, "connect", lambda **_kwargs: Connection())
+    result = radio_core.RadioStore().stop_station(
+        owner_identity_id=owner,
+        station_id=station,
+        reason="Founder STOP",
+    )
+    assert result["stopped"] is True
+    assert result["broadcast_enabled"] is False
+    assert result["player_handoff_allowed"] is False
+    assert any("'STOPPED'" in sql for sql, _ in inserts)
+
+
+def test_radio_routes_cover_body_controls():
+    app = Flask(__name__)
+    app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
+    expected = {
+        "/mission/organs/radio": {"GET", "HEAD", "OPTIONS"},
+        "/mission/organs/radio/stations": {"POST", "OPTIONS"},
+        "/mission/organs/radio/stations/<station_id>/shows": {"POST", "OPTIONS"},
+        "/mission/organs/radio/stations/<station_id>/schedule": {"POST", "OPTIONS"},
+        "/mission/organs/radio/stations/<station_id>/rotation": {"POST", "OPTIONS"},
+        "/mission/organs/radio/stations/<station_id>/stop": {"POST", "OPTIONS"},
+    }
+    rules = {rule.rule: rule.methods for rule in app.url_map.iter_rules()}
+    for path, methods in expected.items():
+        assert rules[path] == methods
