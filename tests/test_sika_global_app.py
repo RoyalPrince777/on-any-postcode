@@ -744,3 +744,38 @@ def test_owner_session_readiness_separates_software_from_live_proof():
     assert body["authenticated_host_route_software_ready"] is True
     assert body["authenticated_host_route_live_proof"] is False
     assert body["production_ready"] is False
+
+
+def test_sika_scam_preflight_flags_safe_account_and_remote_access():
+    client = app.test_client()
+    response = client.post(
+        "/api/sika/fraud/preflight",
+        json={
+            "amount_sika": "250",
+            "new_recipient": True,
+            "safe_account_claim": True,
+            "remote_access_or_screen_share": True,
+        },
+    )
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["scam_detected"] is True
+    assert body["decision"] == "block_software_only"
+    assert "safe_account_claim" in body["reasons"]
+    assert "remote_access_or_screen_share" in body["reasons"]
+    assert body["money_moved"] is False
+    assert body["regulated_execution_authorised"] is False
+
+
+def test_sika_security_posture_does_not_fake_web_screenshot_block():
+    client = app.test_client()
+    response = client.get("/api/sika/security/posture")
+    body = response.get_json()
+    assert response.status_code == 200
+    assert body["screen_capture"]["web_os_level_block_enforceable"] is False
+    assert body["screen_capture"]["browser_capture_claim_allowed"] is False
+    assert body["screen_capture"]["visibility_blur_enabled"] is True
+    assert body["screen_capture"]["display_capture_permission_disabled"] is True
+    assert body["fraud_and_scam"]["safe_account_signal"] is True
+    assert body["money_execution_enabled"] is False
+    assert body["founder_auth_touched"] is False
