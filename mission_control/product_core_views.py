@@ -10,7 +10,9 @@ from . import (
     distribution_intelligence,
     entertainment_catalogue,
     live_music_core,
+    music_civilization,
     music_evidence,
+    music_recovery,
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
@@ -29,6 +31,7 @@ _music_evidence_store = music_evidence.MusicEvidenceStore()
 _radio_store = radio_core.RadioStore()
 _records_store = records_core.RecordsStore()
 _live_music_store = live_music_core.LiveMusicStore()
+_music_recovery_store = music_recovery.MusicRecoveryStore()
 
 
 def _no_store(response):
@@ -366,6 +369,84 @@ def add_tune_civilization_link(release_id: str):
         )
 
     return _handle_write(action)
+
+
+@bp.post("/tune/releases/<release_id>/recovery-manifests")
+@web_security.login_required(api=True, founder_only=True)
+def capture_tune_recovery_manifest(release_id: str):
+    """Capture server-derived owned Music/Records/Live metadata for read-back."""
+    def action():
+        owner = _identity(sync=True)
+        tune = product_core_services.tune_dashboard(owner)
+        release = next(
+            (row for row in tune.get("releases", [])
+             if row.get("release_id") == release_id),
+            None,
+        )
+        if release is None:
+            raise PermissionError("music_release_not_owned")
+        evidence_rows = _music_evidence_store.read_receipts(
+            owner_identity_id=owner,
+            release_id=release_id,
+        )
+        records = _records_store.dashboard(owner_identity_id=owner)
+        live = _live_music_store.dashboard(owner_identity_id=owner)
+        payload = {
+            "release": release,
+            "evidence_receipts": evidence_rows,
+            "records": {
+                "masters": [
+                    row for row in records.get("masters", [])
+                    if row.get("release_id") == release_id
+                ],
+                "credits": [
+                    row for row in records.get("credits", [])
+                    if row.get("release_id") == release_id
+                ],
+                "receipts": [
+                    row for row in records.get("receipts", [])
+                    if row.get("release_id") == release_id
+                ],
+            },
+            "live_sessions": [
+                row for row in live.get("sessions", [])
+                if row.get("release_id") == release_id
+            ],
+        }
+        return _music_recovery_store.capture(
+            owner_identity_id=owner,
+            release_id=release_id,
+            payload=payload,
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/tune/recovery-manifests/<manifest_id>")
+@web_security.login_required(api=True, founder_only=True)
+def read_tune_recovery_manifest(manifest_id: str):
+    try:
+        return _no_store(make_response(jsonify(
+            _music_recovery_store.read_and_verify(
+                owner_identity_id=_identity(),
+                manifest_id=manifest_id,
+            )
+        )))
+    except PermissionError:
+        return _error("permission_denied", "Recovery manifest unavailable.", 403)
+    except (TypeError, ValueError, RuntimeError):
+        return _error(
+            "music_recovery_unavailable",
+            "Music recovery manifest is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/music-civilization")
+@web_security.login_required(api=True)
+def music_civilization_status():
+    """Single Music/Radio/Records/Live contract with no execution authority."""
+    return _no_store(make_response(jsonify(music_civilization.contracts())))
 
 
 @bp.post("/entertainment/open-cinema/preview")
