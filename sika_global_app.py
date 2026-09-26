@@ -41,8 +41,12 @@ def security_headers(response):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-    response.headers.setdefault("Cache-Control", "no-store")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), display-capture=(), usb=(), payment=()",
+    )
+    response.headers.setdefault("Cache-Control", "no-store, max-age=0")
+    response.headers.setdefault("Pragma", "no-cache")
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; "
@@ -303,6 +307,11 @@ def sika_fraud_preflight():
 @app.get("/api/sika/install/readiness")
 def sika_install_readiness():
     return jsonify(sika_safety.install_readiness())
+
+
+@app.get("/api/sika/security/posture")
+def sika_security_posture():
+    return jsonify(sika_safety.security_posture())
 
 
 @app.get("/api/sika/payment-licence")
