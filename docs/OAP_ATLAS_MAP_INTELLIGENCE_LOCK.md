@@ -1,4 +1,4 @@
-# OAP Atlas + Map Intelligence Lock
+# On Any Place + Map Intelligence Lock
 
 Status: LIVE LOCK TARGET
 Owner: Human Authority / Founder
@@ -7,9 +7,9 @@ Date: 2026-09-05
 
 ## Naming
 
-Public product name: OAP Atlas
+Public product name: On Any Place
 Private intelligence name: Map Intelligence
-Combined surface: OAP Atlas + Movement Intelligence + OAP Direct
+Combined surface: On Any Place + Movement Intelligence + OAP Direct
 Legacy public wording: Maps / Weather / Travel may remain as quiet compatibility only.
 Legacy route: /the-spot/maps-weather-travel may remain so old links do not break.
 
@@ -19,7 +19,7 @@ Do not expose internal proof-runner lane language to normal users.
 
 ## Meaning
 
-OAP Atlas is the public spatial dashboard for ON ANY POSTCODE.
+On Any Place is the public spatial dashboard for ON ANY POSTCODE.
 It shows the world through OAP's own hierarchy:
 
 ```text
@@ -53,7 +53,7 @@ The public dashboard must feel like OAP, not a generic map page:
 
 ## Live map truth rule
 
-OAP Atlas may say "live" only for the page/service being live.
+On Any Place may say "live" only for the page/service being live.
 It must not claim live routes, live traffic, live weather or live place data unless the relevant source, timestamp and proof are present.
 
 Green requires:
@@ -71,7 +71,7 @@ Green requires:
 ## Current truth board
 
 ```text
-OAP Atlas naming:              GREEN / locked
+On Any Place naming:              GREEN / locked
 Public route compatibility:    GREEN / keep old route quietly
 Continent-to-postcode model:   GREEN / present in app foundation
 OAP style dashboard rules:     GREEN / locked
@@ -88,7 +88,7 @@ Fake live-map claim:           BLOCKED
 SMI Command
 └── War Room
     └── Map Intelligence
-        ├── OAP Atlas status
+        ├── On Any Place status
         ├── source health
         ├── hierarchy proof
         ├── route evidence
@@ -101,7 +101,7 @@ SMI Command
 
 ## Final lock
 
-Public users see OAP Atlas.
+Public users see On Any Place.
 The War Room sees Map Intelligence.
 Old Maps / Weather / Travel language remains quiet compatibility only.
 No fake green.
