@@ -95,3 +95,76 @@ def test_failed_probe_keeps_error_truth(monkeypatch, capsys):
     assert payload["level"] == "error"
     assert payload["error"] == "database_unavailable"
     assert payload["reachable"] is False
+
+
+def test_mail_startup_probe_preserves_recovery_hold(monkeypatch, capsys):
+    monkeypatch.setattr(
+        certification_views.mail_preflight,
+        "report",
+        lambda: {
+            "database_source": "platform_database_url",
+            "database_configured": True,
+            "database_reachable": True,
+            "base_schema_ready": True,
+            "mail_schema_ready": True,
+            "target_mapping_proven": False,
+            "recovery_point_verified": False,
+            "independent_release_evidence_verified": False,
+            "live_migration_authorized": False,
+            "release_ready": False,
+            "error": "independent_recovery_evidence_missing",
+        },
+    )
+
+    certification_views._mail_startup_probe()
+    payload = _last_json(capsys)
+
+    assert payload == {
+        "base_schema_ready": True,
+        "database_configured": True,
+        "database_reachable": True,
+        "database_source": "platform_database_url",
+        "error": "independent_recovery_evidence_missing",
+        "event": "oap_mail_startup_probe",
+        "independent_release_evidence_verified": False,
+        "level": "warning",
+        "live_migration_authorized": False,
+        "mail_schema_ready": True,
+        "read_only": True,
+        "recovery_point_verified": False,
+        "release_ready": False,
+        "schema_changed": False,
+        "secret_exposed": False,
+        "target_mapping_proven": False,
+    }
+
+
+def test_mail_startup_probe_never_calls_green_from_schema_alone(monkeypatch, capsys):
+    monkeypatch.setattr(
+        certification_views.mail_preflight,
+        "report",
+        lambda: {
+            "database_source": "platform_database_url",
+            "database_configured": True,
+            "database_reachable": True,
+            "base_schema_ready": True,
+            "mail_schema_ready": True,
+            "target_mapping_proven": True,
+            "recovery_point_verified": False,
+            "independent_release_evidence_verified": False,
+            "live_migration_authorized": False,
+            "release_ready": False,
+            "error": None,
+        },
+    )
+
+    certification_views._mail_startup_probe()
+    payload = _last_json(capsys)
+
+    assert payload["level"] == "warning"
+    assert payload["mail_schema_ready"] is True
+    assert payload["target_mapping_proven"] is True
+    assert payload["recovery_point_verified"] is False
+    assert payload["release_ready"] is False
+    assert payload["schema_changed"] is False
+    assert payload["secret_exposed"] is False
