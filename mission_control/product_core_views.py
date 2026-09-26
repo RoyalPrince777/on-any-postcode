@@ -16,8 +16,8 @@ from . import (
     product_core_services,
     product_cores,
     product_store,
-    radio_core,
     public_store,
+    radio_core,
     web_security,
 )
 
