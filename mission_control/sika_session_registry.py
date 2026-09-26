@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from . import sika_device_binding_store, sika_security_ledger
+from . import sika_bank_credential_store, sika_device_binding_store, sika_security_ledger
 
 SESSION_TTL_SECONDS = 15 * 60
 
@@ -108,7 +108,12 @@ def project(owner_id: object) -> dict[str, object]:
     }
 
 
-def activate(owner_id: object, *, device_id: object) -> dict[str, object]:
+def activate(
+    owner_id: object,
+    *,
+    device_id: object,
+    password: object,
+) -> dict[str, object]:
     device = str(device_id or "").strip()
     if not device:
         raise ValueError("device_id_required")
@@ -118,6 +123,14 @@ def activate(owner_id: object, *, device_id: object) -> dict[str, object]:
         raise SikaSessionUnavailable("device_binding_unavailable") from exc
     if not binding.get("bound") or str(binding.get("device_id") or "") != device:
         raise ValueError("trusted_bound_device_required")
+    try:
+        proof = sika_bank_credential_store.verify_authenticated_owner(
+            owner_id, password
+        )
+    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
+        raise SikaSessionUnavailable("bank_app_credential_unavailable") from exc
+    if not proof.get("verified"):
+        raise ValueError("bank_app_credential_verification_required")
 
     state = project(owner_id)
     if state.get("compromise_locked"):
@@ -134,6 +147,8 @@ def activate(owner_id: object, *, device_id: object) -> dict[str, object]:
             "device_id": device,
             "expires_at": expires.isoformat(),
             "scope": "SIKA_BANK_APP",
+            "credential_verified": True,
+            "bound_device_verified": True,
         },
     )
     return {
@@ -141,6 +156,8 @@ def activate(owner_id: object, *, device_id: object) -> dict[str, object]:
         "device_id": device,
         "expires_at": expires.isoformat(),
         "status": "active",
+        "credential_verified": True,
+        "bound_device_verified": True,
         "security_receipt_id": receipt.get("event_id"),
         "founder_auth_touched": False,
         "money_execution_enabled": False,
@@ -218,7 +235,12 @@ def compromise_lock(owner_id: object, *, reason: str) -> dict[str, object]:
     }
 
 
-def recover(owner_id: object, *, trusted_device_id: object) -> dict[str, object]:
+def recover(
+    owner_id: object,
+    *,
+    trusted_device_id: object,
+    password: object,
+) -> dict[str, object]:
     device = str(trusted_device_id or "").strip()
     if not device:
         raise ValueError("trusted_device_id_required")
@@ -228,16 +250,30 @@ def recover(owner_id: object, *, trusted_device_id: object) -> dict[str, object]
         raise SikaSessionUnavailable("device_binding_unavailable") from exc
     if not binding.get("bound") or str(binding.get("device_id") or "") != device:
         raise ValueError("trusted_bound_device_required")
+    try:
+        proof = sika_bank_credential_store.verify_authenticated_owner(
+            owner_id, password
+        )
+    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
+        raise SikaSessionUnavailable("bank_app_credential_unavailable") from exc
+    if not proof.get("verified"):
+        raise ValueError("bank_app_credential_verification_required")
     receipt = sika_security_ledger.record_authenticated_owner(
         owner_id,
         event_type="SIKA_COMPROMISE_RECOVERED",
         severity="NOTICE",
-        details={"trusted_device_id": device},
+        details={
+            "trusted_device_id": device,
+            "credential_verified": True,
+            "bound_device_verified": True,
+        },
     )
     return {
         "compromise_locked": False,
         "recovered": True,
         "trusted_device_id": device,
+        "credential_verified": True,
+        "bound_device_verified": True,
         "security_receipt_id": receipt.get("event_id"),
         "new_session_required": True,
         "founder_auth_touched": False,
