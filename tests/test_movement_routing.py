@@ -324,3 +324,66 @@ def test_route_http_error_records_only_redacted_status(monkeypatch):
         )
 
     assert routing._runtime_state()[1] == "routing_http_404"
+
+
+def test_routing_429_retries_then_succeeds(monkeypatch):
+    calls = {"count": 0, "sleep": []}
+
+    class Response:
+        def __init__(self):
+            self.headers = {"Content-Type": "application/json"}
+
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def geturl(self):
+            return "https://route.oap.example/route/v1/driving/test"
+        def read(self, _limit):
+            return b'{"code":"Ok","routes":[]}'
+
+    def fake_urlopen(_request, timeout):
+        calls["count"] += 1
+        if calls["count"] < 3:
+            raise routing.urlerror.HTTPError(
+                "https://route.oap.example/route/v1/driving/test",
+                429,
+                "rate limited",
+                {"Retry-After": "0"},
+                None,
+            )
+        return Response()
+
+    monkeypatch.setattr(routing.urlrequest, "urlopen", fake_urlopen)
+    monkeypatch.setattr(routing.time, "sleep", lambda value: calls["sleep"].append(value))
+    payload = routing._request_json(
+        "https://route.oap.example/route/v1/driving/test",
+        expected_host="route.oap.example",
+    )
+    assert payload["code"] == "Ok"
+    assert calls["count"] == 3
+    assert len(calls["sleep"]) == 2
+
+
+def test_routing_429_still_fails_closed_after_bounded_retries(monkeypatch):
+    calls = {"count": 0}
+
+    def fake_urlopen(_request, timeout):
+        calls["count"] += 1
+        raise routing.urlerror.HTTPError(
+            "https://route.oap.example/route/v1/driving/test",
+            429,
+            "rate limited",
+            {},
+            None,
+        )
+
+    monkeypatch.setattr(routing.urlrequest, "urlopen", fake_urlopen)
+    monkeypatch.setattr(routing.time, "sleep", lambda _value: None)
+    with pytest.raises(routing.RoutingUnavailable):
+        routing._request_json(
+            "https://route.oap.example/route/v1/driving/test",
+            expected_host="route.oap.example",
+        )
+    assert calls["count"] == routing.ROUTE_RATE_LIMIT_RETRIES + 1
+    assert routing.status()["last_error"] == "routing_http_429"
