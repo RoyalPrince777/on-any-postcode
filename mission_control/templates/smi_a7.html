@@ -64,10 +64,18 @@
   </section>
 
   <section class="section" aria-labelledby="halt-title">
-    <p class="eyebrow">Emergency boundary</p><h2 id="halt-title">Emergency Halt Proof</h2>
-    <p class="muted">Runs a bounded in-memory halt → deny-new-work → safe-state exercise. Production product state is not changed, and only Human Authority may resume.</p>
-    <button class="halt" id="halt-proof" type="button">🛑 Run Emergency Halt Proof</button>
-    <div class="result" id="halt-result" aria-live="polite">No proof run from this screen yet.</div>
+    <p class="eyebrow">Internal A7 assurance</p><h2 id="halt-title">A7 Internal Proof Chain</h2>
+    <p class="muted">These checks are computed from the running OAP system. They cannot be replaced by a manually typed evidence receipt.</p>
+    <div class="actions">
+      <button class="halt" id="halt-proof" type="button">🛑 Run Emergency Halt Proof</button>
+      <button id="boundary-proof" type="button">🔐 Run Public / Private Boundary Proof</button>
+      <button id="constitution-proof" type="button">👑 Run Constitutional Review</button>
+      <button id="internal-a7-proof-chain" type="button">🟣 Run Internal A7 Proof Chain</button>
+    </div>
+    <div class="result" id="halt-result" aria-live="polite">No emergency-halt proof run from this screen yet.</div>
+    <div class="result" id="boundary-result" aria-live="polite">No public/private boundary proof run from this screen yet.</div>
+    <div class="result" id="constitution-result" aria-live="polite">No constitutional review run from this screen yet.</div>
+    <div class="result" id="internal-a7-result" aria-live="polite">Internal A7 proof chain not run from this screen yet.</div>
   </section>
 
   <section class="section" aria-labelledby="evidence-title">
@@ -82,8 +90,6 @@
           <option value="a6_consequential_receipt_chain">A6 consequential receipt chain</option>
           <option value="a7_external_audit">A7 external audit</option>
           <option value="a7_legal_compliance">A7 legal / compliance</option>
-          <option value="a7_public_private_boundary">A7 public / private boundary</option>
-          <option value="a7_constitutional_review">A7 constitutional review</option>
         </select>
       </label>
       <label>Evidence reference<input name="evidence_ref" maxlength="500" placeholder="Report ID, controlled file reference or review reference" required></label>
@@ -176,6 +182,50 @@ haltButton.addEventListener('click',async()=>{
     haltResult.textContent='🟢 Emergency halt proof recorded. Human-only resume preserved.';
     setTimeout(()=>location.reload(),500);
   }catch(err){haltResult.textContent='🟡 '+err.message;}finally{haltButton.disabled=false;}
+});
+const boundaryButton=document.getElementById('boundary-proof');
+const boundaryResult=document.getElementById('boundary-result');
+boundaryButton.addEventListener('click',async()=>{
+  boundaryButton.disabled=true;boundaryResult.textContent='Inspecting live A7 private-route boundary…';
+  try{
+    const r=await fetch({{ url_for('smi_proof_gate.a7_public_private_boundary_proof')|tojson }},{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+    const body=await r.json();
+    if(!r.ok) throw new Error(body?.error?.message||'Boundary proof failed');
+    boundaryResult.textContent='🟢 Public/private boundary proof recorded. Live A7 routes are login-required and Founder-only.';
+    setTimeout(()=>location.reload(),500);
+  }catch(err){boundaryResult.textContent='🟡 '+err.message;}finally{boundaryButton.disabled=false;}
+});
+const constitutionButton=document.getElementById('constitution-proof');
+const constitutionResult=document.getElementById('constitution-result');
+constitutionButton.addEventListener('click',async()=>{
+  constitutionButton.disabled=true;constitutionResult.textContent='Checking locked A7 constitutional invariants…';
+  try{
+    const r=await fetch({{ url_for('smi_proof_gate.a7_constitutional_review_proof')|tojson }},{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+    const body=await r.json();
+    if(!r.ok) throw new Error(body?.error?.message||'Constitutional review failed');
+    constitutionResult.textContent='🟢 Constitutional review recorded. A7 stays disabled; authority and forbidden-domain locks remain intact.';
+    setTimeout(()=>location.reload(),500);
+  }catch(err){constitutionResult.textContent='🟡 '+err.message;}finally{constitutionButton.disabled=false;}
+});
+const internalA7Button=document.getElementById('internal-a7-proof-chain');
+const internalA7Result=document.getElementById('internal-a7-result');
+internalA7Button.addEventListener('click',async()=>{
+  internalA7Button.disabled=true;
+  const steps=[
+    ['Emergency Halt', {{ url_for('smi_proof_gate.a7_emergency_halt_proof')|tojson }}],
+    ['Public / Private Boundary', {{ url_for('smi_proof_gate.a7_public_private_boundary_proof')|tojson }}],
+    ['Constitutional Review', {{ url_for('smi_proof_gate.a7_constitutional_review_proof')|tojson }}],
+  ];
+  try{
+    for(const [name,url] of steps){
+      internalA7Result.textContent='Running '+name+'…';
+      const r=await fetch(url,{method:'POST',headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}});
+      const body=await r.json();
+      if(!r.ok) throw new Error(name+': '+(body?.error?.message||'proof failed'));
+    }
+    internalA7Result.textContent='🟢 Internal A7 proof chain recorded. External audit and legal/compliance remain separate evidence gates.';
+    setTimeout(()=>location.reload(),700);
+  }catch(err){internalA7Result.textContent='🟡 '+err.message;}finally{internalA7Button.disabled=false;}
 });
 const form=document.getElementById('evidence-form');
 const evidenceResult=document.getElementById('evidence-result');
