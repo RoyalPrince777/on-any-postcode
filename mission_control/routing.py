@@ -8,6 +8,7 @@ OSRM-compatible endpoints; this never dispatches, charges, or silently tracks an
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 import os
 import threading
@@ -331,6 +332,42 @@ _UK_COVERAGE_STATE: dict[str, object] = {
 }
 
 
+def _endpoint_near_requested(
+    geometry: object,
+    *,
+    start_lat: float,
+    start_lon: float,
+    end_lat: float,
+    end_lon: float,
+    max_snap_km: float = 15.0,
+) -> bool:
+    if not isinstance(geometry, dict):
+        return False
+    coords = geometry.get("coordinates")
+    if not isinstance(coords, list) or len(coords) < 2:
+        return False
+
+    def distance_km(a_lat: float, a_lon: float, b_lat: float, b_lon: float) -> float:
+        radius_km = 6371.0088
+        p1 = math.radians(a_lat)
+        p2 = math.radians(b_lat)
+        dp = math.radians(b_lat - a_lat)
+        dl = math.radians(b_lon - a_lon)
+        h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+        return radius_km * 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h))
+
+    try:
+        first_lon, first_lat = float(coords[0][0]), float(coords[0][1])
+        last_lon, last_lat = float(coords[-1][0]), float(coords[-1][1])
+    except (TypeError, ValueError, IndexError):
+        return False
+
+    return (
+        distance_km(start_lat, start_lon, first_lat, first_lon) <= max_snap_km
+        and distance_km(end_lat, end_lon, last_lat, last_lon) <= max_snap_km
+    )
+
+
 def _probe_owned_uk_graph() -> dict[str, object]:
     """Probe representative routes in all four UK nations on the OAP-owned graph."""
 
@@ -350,7 +387,16 @@ def _probe_owned_uk_graph() -> dict[str, object]:
                 destination_longitude=end_lon,
                 profile="driving",
             )
-            if result.get("geometry") and float(result.get("distance_m") or 0) > 0:
+            if (
+                float(result.get("distance_m") or 0) > 0
+                and _endpoint_near_requested(
+                    result.get("geometry"),
+                    start_lat=start_lat,
+                    start_lon=start_lon,
+                    end_lat=end_lat,
+                    end_lon=end_lon,
+                )
+            ):
                 proven.append(nation)
         except (RoutingUnavailable, ValueError, KeyError, TypeError):
             continue
