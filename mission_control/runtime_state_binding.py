@@ -9,9 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from mission_control import postgres_db
 from oap.smi.state_ownership_registry import owners
-
-from . import postgres_db
 
 
 _TABLE_BINDINGS: dict[str, tuple[str, ...]] = {
