@@ -294,7 +294,7 @@ def test_sika_app_hierarchy_is_aligned_without_removing_working_controls():
 
     assert "Money & Value" in html
     assert "Protection & Intelligence" in html
-    assert "Release & Regulated Rails" in html
+    assert "System & Release" in html
     assert 'aria-label="SIKA truth status"' in html
 
     for control in (
