@@ -1,8 +1,7 @@
-from pathlib import Path
-
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from urllib import error
 
 import pytest
