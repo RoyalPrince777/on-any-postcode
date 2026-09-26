@@ -1,4 +1,9 @@
-from mission_control import map_live_pattern, movement_intelligence, movement_proof, routing
+from mission_control import (
+    map_live_pattern,
+    movement_intelligence,
+    movement_proof,
+    routing,
+)
 
 
 def _route_ready():
