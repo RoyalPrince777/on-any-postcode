@@ -29,6 +29,7 @@ from . import (
     postgres_db,
     products,
     public_store,
+    smi_android_live_evidence,
     smi_chat_runtime,
     smi_founder_assets,
     smi_receipt_backend,
@@ -804,6 +805,30 @@ def smi_studio_status():
     """Return the canonical Founder-only OAP Studio Intelligence contract."""
 
     return _no_store(make_response(jsonify(studio_intelligence.status())))
+
+
+@bp.post("/smi/android-live-evidence")
+@web_security.login_required(api=True, founder_only=True)
+def smi_android_live_evidence_receipt():
+    """Validate real physical Android observations and write one durable HRM receipt."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    result = smi_android_live_evidence.record_physical_android_receipt(
+        payload,
+        identity_id=_chat_identity(),
+    )
+    status_code = 200 if result.get("accepted") else 409
+    if result.get("reasons") == ["durable_hrm_receipt_unconfirmed"]:
+        status_code = 503
+    return _no_store(make_response(jsonify(result), status_code))
 
 
 @bp.post("/studio/generate")
