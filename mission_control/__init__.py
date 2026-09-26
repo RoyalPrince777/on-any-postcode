@@ -41,6 +41,7 @@ def init_app(app: Flask) -> None:
         mail_preflight,
         movement_match_safety,
         movement_operations,
+        oap_lab_immutability_migration,
         oap_library_learning,
         organism_runtime,
         postgres_db,
@@ -49,6 +50,7 @@ def init_app(app: Flask) -> None:
         smi_auto,
         smi_founder_assets,
         smi_proof_gate,
+        smi_receipt_backend,
         spot_step2_booking_proof,
         spot_step3_creator_safety_proof,
         surface_security,
@@ -87,6 +89,85 @@ def init_app(app: Flask) -> None:
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
+
+    if os.environ.get("OAP_LAB_IMMUTABILITY_MIGRATION_ON_BOOT", "").strip() == "1":
+        try:
+            lab_immutability = oap_lab_immutability_migration.apply(
+                assume_yes=True
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_lab_immutability_migration",
+                        "success": bool(lab_immutability.get("verified")),
+                        "applied": bool(lab_immutability.get("applied")),
+                        "already_enforced": bool(
+                            lab_immutability.get("already_enforced")
+                        ),
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_lab_immutability_migration",
+                        "success": False,
+                        "error": "lab_immutability_migration_failed",
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LAB_RECOVERY_PROOF_ON_BOOT", "").strip() == "1":
+        recovery_payload = {
+            "owner_id": "__oap_lab_acceptance__",
+            "notebook_id": "__boot_recovery_proof__",
+            "version": 1,
+            "digest": "oap-lab-live-recovery-proof-v1",
+            "acceptance_probe": True,
+        }
+        recovery_proof = smi_receipt_backend.write_lab_recovery_anchor(
+            recovery_payload
+        )
+        recovery_ok = bool(
+            recovery_proof.get("ok")
+            and recovery_proof.get("read_back_ok")
+            and recovery_proof.get("durable")
+            and recovery_proof.get("backend") == "independent_hrm_postgres"
+            and not recovery_proof.get("fallback_used")
+        )
+        print(
+            json.dumps(
+                {
+                    "event": "oap_lab_recovery_live_proof",
+                    "success": recovery_ok,
+                    "read_back_ok": bool(
+                        recovery_proof.get("read_back_ok")
+                    ),
+                    "durable": bool(recovery_proof.get("durable")),
+                    "fallback_used": bool(
+                        recovery_proof.get("fallback_used")
+                    ),
+                    "backend": recovery_proof.get("backend"),
+                    "separate_host_required": True,
+                    "secret_exposed": False,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+        if not recovery_ok:
+            raise RuntimeError("oap_lab_recovery_live_proof_failed")
 
     if os.environ.get("OAP_ESIM_MIGRATION_ON_BOOT", "").strip() == "1":
         try:

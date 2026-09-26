@@ -40,6 +40,10 @@ services:
           property: connectionString
       - key: OAP_LAB_DATABASE_AUTHORITY
         value: "platform_database_url"
+      - key: OAP_LAB_IMMUTABILITY_MIGRATION_ON_BOOT
+        value: "1"
+      - key: OAP_LAB_RECOVERY_PROOF_ON_BOOT
+        value: "1"
       - key: OAP_LIBRARY_LEARNING_MIGRATION_ON_BOOT
         value: "1"
 
