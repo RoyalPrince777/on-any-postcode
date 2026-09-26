@@ -73,3 +73,59 @@ def sika_journal_reference():
     except sika_journal_store.SikaJournalUnavailable as exc:
         return jsonify({"error": str(exc)}), 503
     return jsonify(result), 201
+
+
+@bp.get("/api/sika/treasury/rates")
+@web_security.login_required(api=True)
+def sika_rates():
+    owner = web_security.authenticated_identity()
+    try:
+        return jsonify({
+            "rates": sika_journal_store.latest_treasury_rates(owner),
+            "execution_enabled": False,
+        })
+    except sika_journal_store.SikaJournalUnavailable as exc:
+        return jsonify({"error": str(exc)}), 503
+
+
+@bp.post("/api/sika/treasury/rates")
+@web_security.login_required(api=True)
+def sika_rate_set():
+    if not web_security.csrf_valid(request):
+        return jsonify({"error": "csrf_failed"}), 403
+    body = request.get_json(silent=True) or {}
+    try:
+        result = sika_journal_store.set_treasury_rate(
+            web_security.authenticated_identity(),
+            currency=str(body.get("currency") or ""),
+            gbp_per_unit=body.get("gbp_per_unit", ""),
+            source=str(body.get("source") or ""),
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except sika_journal_store.SikaJournalUnavailable as exc:
+        return jsonify({"error": str(exc)}), 503
+    return jsonify(result), 201
+
+
+@bp.post("/api/sika/quote")
+@web_security.login_required(api=True)
+def sika_quote():
+    body = request.get_json(silent=True) or {}
+    owner = web_security.authenticated_identity()
+    currency = str(body.get("currency") or "GBP")
+    try:
+        rates = sika_journal_store.latest_treasury_rates(owner)
+        rate_map = {
+            code: str(item["gbp_per_unit"])
+            for code, item in rates.items()
+        }
+        quote = sika_global.quote_from_sika(
+            body.get("amount_sika", "0"),
+            currency,
+            gbp_per_unit=rate_map,
+            rate_source="durable_first_party_treasury",
+        )
+    except (sika_global.CurrencyError, ArithmeticError, sika_journal_store.SikaJournalUnavailable) as exc:
+        return jsonify({"error": str(exc), "executable": False}), 400
+    return jsonify(quote.as_dict())
