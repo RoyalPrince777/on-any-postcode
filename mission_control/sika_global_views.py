@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, render_template, request
 from . import (
     sika_finance_features,
     sika_global,
+    sika_intelligence,
     sika_journal_store,
     sika_wallet_ledger,
     web_security,
@@ -200,3 +201,15 @@ def sika_security_freeze():
         "executable": False,
         "step_up_required_when_rails_exist": True,
     }), 423
+
+
+@bp.get("/api/sika/intelligence/alignment")
+@web_security.login_required(api=True)
+def sika_alignment_intelligence():
+    return jsonify(sika_intelligence.alignment_intelligence())
+
+
+@bp.get("/api/sika/intelligence/bank")
+@web_security.login_required(api=True)
+def sika_bank_intelligence():
+    return jsonify(sika_intelligence.bank_intelligence())
