@@ -672,6 +672,196 @@ def run_emergency_halt_proof(identity_id: object) -> dict[str, object]:
     return {**proof, "audit_recorded": True, "correlation_id": correlation_id}
 
 
+def _public_private_boundary_exercise(
+    *,
+    route_views: object | None = None,
+    route_rules: object | None = None,
+) -> dict[str, object]:
+    """Inspect the live A7 route map and prove every A7 route is Founder-private."""
+
+    if route_views is None or route_rules is None:
+        app = current_app._get_current_object()
+        route_views = app.view_functions
+        route_rules = tuple(app.url_map.iter_rules())
+
+    views = route_views if isinstance(route_views, dict) else {}
+    try:
+        rules = tuple(route_rules)  # type: ignore[arg-type]
+    except TypeError:
+        rules = ()
+
+    a7_rules = tuple(
+        rule
+        for rule in rules
+        if str(getattr(rule, "rule", "")).startswith(_A7_PRIVATE_PREFIX)
+    )
+    route_checks: list[dict[str, object]] = []
+    for rule in a7_rules:
+        endpoint = str(getattr(rule, "endpoint", ""))
+        view = views.get(endpoint)
+        login_required = bool(getattr(view, "_oap_login_required", False))
+        founder_only = bool(getattr(view, "_oap_founder_only", False))
+        route_checks.append(
+            {
+                "endpoint": endpoint,
+                "rule": str(getattr(rule, "rule", "")),
+                "login_required": login_required,
+                "founder_only": founder_only,
+                "passed": bool(login_required and founder_only),
+            }
+        )
+
+    passed = bool(a7_rules and all(item["passed"] for item in route_checks))
+    return {
+        "passed": passed,
+        "private_prefix": _A7_PRIVATE_PREFIX,
+        "route_count": len(a7_rules),
+        "all_routes_login_required": bool(
+            a7_rules and all(item["login_required"] for item in route_checks)
+        ),
+        "all_routes_founder_only": bool(
+            a7_rules and all(item["founder_only"] for item in route_checks)
+        ),
+        "route_checks": route_checks,
+        "public_a7_route_exposed": False if passed else None,
+        "production_state_mutated": False,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
+    }
+
+
+def _constitutional_review_exercise() -> dict[str, object]:
+    """Prove the locked A7 constitutional invariants without enabling A7."""
+
+    bounded_decisions = tuple(
+        autonomy_levels.evaluate_runtime_job(action)
+        for action in sorted(autonomy_levels.A3_PILOT_ACTIONS)
+    )
+    checks = {
+        "a7_hard_disabled": autonomy_levels.A7_ENABLED is False,
+        "strict_capability_allowlist": _capability_allowlist_ready(),
+        "forbidden_domains_present": bool(autonomy_levels.FORBIDDEN_DOMAINS),
+        "self_permission_change_forbidden": (
+            "self_permission_change" in autonomy_levels.FORBIDDEN_DOMAINS
+        ),
+        "self_constitution_change_forbidden": (
+            "self_constitution_change" in autonomy_levels.FORBIDDEN_DOMAINS
+        ),
+        "unreviewed_code_deploy_forbidden": (
+            "unreviewed_code_deploy" in autonomy_levels.FORBIDDEN_DOMAINS
+        ),
+        "external_audit_requires_external_attestor": bool(
+            REFERENCE_ASSURANCES["a7_external_audit"]["external_required"]
+        ),
+        "legal_compliance_requires_external_attestor": bool(
+            REFERENCE_ASSURANCES["a7_legal_compliance"]["external_required"]
+        ),
+        "bounded_runtime_human_authority_final": bool(bounded_decisions)
+        and all(bool(item.get("human_authority_final")) for item in bounded_decisions),
+        "bounded_runtime_blocks_consequential_action": bool(bounded_decisions)
+        and all(
+            item.get("consequential_action_allowed") is False
+            for item in bounded_decisions
+        ),
+    }
+    passed = all(checks.values())
+    return {
+        "passed": passed,
+        "checks": checks,
+        "requirement_count": len(autonomy_levels.A7_REQUIREMENTS),
+        "a7_enabled": False,
+        "certification_granted": False,
+        "authority_moves_with_level": False,
+        "production_state_mutated": False,
+        "execution_authority_expanded": False,
+        "human_authority_final": True,
+    }
+
+
+def _record_internal_a7_proof(
+    *,
+    identity_value: str,
+    action: str,
+    target: str,
+    reason: str,
+    proof: dict[str, object],
+) -> dict[str, object]:
+    """Persist one independently computed internal A7 proof under Human Authority."""
+
+    proof_hash = hashlib.sha256(
+        json.dumps(proof, sort_keys=True, separators=(",", ":"), default=str).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    with postgres_db.connect() as connection:
+        authority_record = authority.require_human_authority(connection, identity_value)
+        if int(authority_record["authority_level"]) != 0:
+            raise authority.HumanAuthorityRequired("human_authority_level_required")
+        correlation_id = str(uuid.uuid4())
+        approval_service._write_audit(
+            connection,
+            actor_id=identity_value,
+            action=action,
+            target=target,
+            reason=reason,
+            correlation_id=correlation_id,
+            metadata={
+                "passed": True,
+                "proof_hash": proof_hash,
+                "software_computed": True,
+                "production_state_mutated": False,
+                "execution_authority_expanded": False,
+                "authority_level": 0,
+                "human_authority_final": True,
+            },
+        )
+        connection.commit()
+    return {
+        **proof,
+        "audit_recorded": True,
+        "proof_hash": proof_hash,
+        "correlation_id": correlation_id,
+    }
+
+
+def run_public_private_boundary_proof(identity_id: object) -> dict[str, object]:
+    """Prove the live A7 route family is login-required and Founder-only."""
+
+    try:
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_human_authority_identity") from exc
+    proof = _public_private_boundary_exercise()
+    if not proof["passed"]:
+        raise RuntimeError("public_private_boundary_proof_failed")
+    return _record_internal_a7_proof(
+        identity_value=identity_value,
+        action=A7_PUBLIC_PRIVATE_ACTION,
+        target="SMI_A7_PUBLIC_PRIVATE_BOUNDARY",
+        reason="Live A7 route map proved login-required and Founder-only.",
+        proof=proof,
+    )
+
+
+def run_constitutional_review_proof(identity_id: object) -> dict[str, object]:
+    """Prove the locked A7 constitution while keeping execution authority unchanged."""
+
+    try:
+        identity_value = str(uuid.UUID(str(identity_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_human_authority_identity") from exc
+    proof = _constitutional_review_exercise()
+    if not proof["passed"]:
+        raise RuntimeError("constitutional_review_proof_failed")
+    return _record_internal_a7_proof(
+        identity_value=identity_value,
+        action=A7_CONSTITUTIONAL_REVIEW_ACTION,
+        target="SMI_A7_CONSTITUTIONAL_REVIEW",
+        reason="A7 constitutional invariants passed without enabling A7.",
+        proof=proof,
+    )
+
+
 def record_evidence_reference(
     *,
     identity_id: object,
@@ -692,6 +882,8 @@ def record_evidence_reference(
     definition = REFERENCE_ASSURANCES.get(assurance_key)
     if definition is None:
         raise ValueError("unsupported_a7_assurance")
+    if assurance_key in _INTERNAL_SOFTWARE_ASSURANCES:
+        raise ValueError("internal_assurance_requires_live_proof")
     ref_value = str(evidence_ref or "").strip()[:500]
     hash_value = str(evidence_hash or "").strip().lower()
     issuer_value = str(issuer or "").strip()[:200]
