@@ -543,6 +543,7 @@ def smi_chat_stream():
             code_mode=bool(payload.get("code_mode")),
             thinking_level=str(payload.get("thinking_level") or "auto"),
             studio_mode=bool(payload.get("studio_mode")),
+            studio_workspace=str(payload.get("studio_workspace") or "auto"),
         )
         try:
             for item in events:
