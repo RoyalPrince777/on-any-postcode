@@ -2091,7 +2091,7 @@ def oap_lab_status():
             or "unreported"
         ),
         database_authority={
-            "provider": "render" if postgres_db.lab_database_source().startswith("lab_primary") else "unconfigured",
+            "provider": "render" if postgres_db.lab_database_source() in {"platform_database_url", "lab_primary", "lab_primary_b64"} else "unconfigured",
             "source": postgres_db.lab_database_source(),
             "silent_fallback": False,
         },
