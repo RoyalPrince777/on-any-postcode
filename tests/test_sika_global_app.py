@@ -473,3 +473,19 @@ def test_closed_loop_model_never_labels_sika_as_external_bank_payment():
     assert body["cash_out_supported"] is False
     assert body["payment_initiation_supported"] is False
     assert body["regulatory_gate_required"] is True
+
+
+def test_android_acceptance_gate_stays_closed_without_physical_evidence():
+    client = app.test_client()
+    body = client.get("/api/sika/android-acceptance").get_json()
+    assert body["real_android_pwa_acceptance"] is False
+    assert body["public_install_release_gate"] is False
+    assert body["signed_native_sika_apk"] is False
+    assert body["native_update_recovery_acceptance"] is False
+
+
+def test_surface_has_android_acceptance_control():
+    client = app.test_client()
+    html = client.get("/sika").get_data(as_text=True)
+    assert 'id="androidAcceptanceBtn"' in html
+    assert 'id="androidSection"' in html
