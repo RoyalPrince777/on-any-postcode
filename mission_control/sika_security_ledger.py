@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timezone
 from hashlib import sha256
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from . import postgres_db
 
@@ -564,7 +564,11 @@ def create_payment_intent(
     beneficiary_version = str(
         (beneficiary_record or {}).get("beneficiary_version") or "unregistered"
     )
-    payment_intent_id = str(uuid4())
+    payment_intent_id = (
+        str(uuid5(NAMESPACE_URL, f"sika:{owner}:{idem}"))
+        if idem
+        else str(uuid4())
+    )
     expires_at_epoch = datetime.now(timezone.utc).timestamp() + 600
     receipt = record_authenticated_owner(
         owner,
