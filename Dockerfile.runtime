@@ -6,6 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OAP_RUNTIME_TARGET=app:app \
     PORT=10000
 
+LABEL org.opencontainers.image.source="https://github.com/RoyalPrince777/on-any-postcode"
+LABEL org.opencontainers.image.title="ON ANY POSTCODE Runtime"
+
 WORKDIR /app
 
 COPY requirements.txt .
