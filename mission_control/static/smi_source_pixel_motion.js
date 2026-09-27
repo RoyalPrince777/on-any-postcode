@@ -66,7 +66,7 @@
   if(image.width!==WIDTH||image.height!==HEIGHT){image.close?.();return null;}
   const canvas=doc.createElement("canvas");canvas.id="smi-source-pixel-motion";
   canvas.width=WIDTH;canvas.height=HEIGHT;canvas.setAttribute("aria-hidden","true");
-  canvas.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;pointer-events:none;z-index:-1";
+  canvas.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;pointer-events:none;z-index:0";
   shell.prepend(canvas);
   const context=canvas.getContext("2d",{willReadFrequently:true});
   if(!context){canvas.remove();image.close?.();return null;}
