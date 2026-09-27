@@ -1,0 +1,58 @@
+name: Promote OAP SMI immutable image
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type PROMOTE to apply the exact existing-service SMI image promotion"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    if: ${{ inputs.confirmation == 'PROMOTE' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify exact SMI motion-fix release
+        run: |
+          python - <<'PY'
+          import json
+          m=json.load(open("deploy/render-image-release.json"))
+          assert m["release_commit"]=="2577d2f6eb42bd8c8c962ee1856c5de2e0cd7964"
+          assert m["services"]["smi"]["render_service_id"]=="srv-da6tp615efls73ct81q0"
+          assert m["services"]["smi"]["runtime_target"]=="smi_gateway:app"
+          assert m["image"]["immutable_ref"].endswith(
+              "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+          )
+          print("smi-motion-fix-release-contract-ok")
+          PY
+
+      - name: Promote exact existing SMI image
+        env:
+          OAP_RENDER_API_KEY: ${{ secrets.OAP_RENDER_API_KEY }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: python scripts/promote_render_smi_image.py --apply
+
+      - name: Verify SMI health
+        run: |
+          python - <<'PY'
+          import time, urllib.request
+          url="https://oap-smi.onrender.com/healthz"
+          for _ in range(18):
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as r:
+                      if 200 <= r.status < 300:
+                          print("oap-smi-image-promotion-health-pass")
+                          break
+              except Exception:
+                  pass
+              time.sleep(10)
+          else:
+              raise SystemExit("smi_health_not_ready")
+          PY
