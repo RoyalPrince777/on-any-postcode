@@ -1005,3 +1005,45 @@ def test_step_up_trusted_session_requires_active_server_session(monkeypatch):
     assert response.status_code == 400
     assert body["proof_bound"] is False
     assert body["error"] == "sika_session_not_active"
+
+
+def test_credential_recovery_revokes_sessions_first(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "current_authenticated_user",
+        lambda: _auth_user(),
+    )
+    monkeypatch.setattr(
+        sika_global_views.web_security,
+        "csrf_valid",
+        lambda request: True,
+    )
+    order = []
+
+    monkeypatch.setattr(
+        sika_global_views.sika_session_registry,
+        "revoke_all",
+        lambda owner_id, reason: (
+            order.append("revoke")
+            or {"revoked_all": True, "active_session_count_before": 1}
+        ),
+    )
+    monkeypatch.setattr(
+        sika_global_views.sika_bank_credential_store,
+        "recover_authenticated_owner",
+        lambda owner_id: (
+            order.append("recover")
+            or {"recovered": True, "owner_id": owner_id, "founder_auth_touched": False}
+        ),
+    )
+
+    response = app.test_client().post(
+        "/api/sika/security/credential/recover",
+        json={},
+    )
+    body = response.get_json()
+    assert response.status_code == 200
+    assert order == ["revoke", "recover"]
+    assert body["sessions_revoked"] is True
+    assert body["new_session_required"] is True
