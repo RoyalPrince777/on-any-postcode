@@ -1,7 +1,7 @@
-"""Public OAP Music front door and truth-mode open catalogue."""
+"""Public OAP Music first-party listener front door."""
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import entertainment_catalogue, music_public_catalogue, open_music_intake
+from . import entertainment_catalogue, music_public_catalogue
 
 bp = Blueprint("oap_music_public", __name__)
 
@@ -33,18 +33,8 @@ def music_manifest():
                 "prefer_related_applications": False,
                 "categories": ["music", "entertainment"],
                 "icons": [
-                    {
-                        "src": "/assets/oap-os-icon-192.png",
-                        "sizes": "192x192",
-                        "type": "image/png",
-                        "purpose": "any maskable",
-                    },
-                    {
-                        "src": "/assets/oap-os-icon-512.png",
-                        "sizes": "512x512",
-                        "type": "image/png",
-                        "purpose": "any maskable",
-                    },
+                    {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+                    {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
                 ],
                 "shortcuts": [
                     {"name": "Player", "short_name": "Player", "url": "/music#player"},
@@ -62,24 +52,15 @@ def music_manifest():
 
 @bp.get("/music")
 def music_home():
-    sources = open_music_intake.source_directory()
     return _no_store(
         make_response(
             render_template(
                 "oap_music.html",
                 player=entertainment_catalogue.universal_player_contract(),
-                sources=sources["entries"],
                 listener=music_public_catalogue.listener_contract(),
             )
         )
     )
-
-
-@bp.get("/music/api/open-sources")
-def music_open_sources():
-    """Public discovery directory only; no licence or playback claim."""
-    return _no_store(make_response(jsonify(open_music_intake.source_directory())))
-
 
 
 @bp.get("/music/api/catalogue")
@@ -118,7 +99,6 @@ def music_catalogue():
 @bp.get("/music/api/status")
 def music_public_status():
     """Public truth-mode contract for the deployed Music front door."""
-    sources = open_music_intake.source_directory()
     return _no_store(
         make_response(
             jsonify(
@@ -130,8 +110,8 @@ def music_public_status():
                     "install_mode": "PWA",
                     "signed_android_package_verified": False,
                     "device_install_verified": False,
-                    "open_source_directory_ready": True,
-                    "open_source_count": len(sources["entries"]),
+                    "first_party_catalogue_ready": True,
+                    "first_party_discovery_ready": True,
                     "listener_contract": music_public_catalogue.listener_contract(),
                     "public_catalogue_track_count": 0,
                     "public_playback_enabled": False,
