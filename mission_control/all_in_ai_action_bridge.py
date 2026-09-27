@@ -9,9 +9,15 @@ receipt. No new approval, memory or execution system is created here.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from typing import Any
 
-from . import all_in_ai_mission_store, governed_action_pipeline, postgres_db
+from . import (
+    all_in_ai_mission_store,
+    governed_action_pipeline,
+    internal_record_executor,
+    postgres_db,
+)
 
 
 class ActionHandoffBlocked(RuntimeError):
@@ -187,6 +193,97 @@ def status() -> dict[str, Any]:
         "signed_human_approval_required": True,
         "execution_authority_created": False,
         "execution_performed_by_bridge": False,
+        "bounded_executor": internal_record_executor.status(),
+        "authority_transferred": False,
+        "human_authority_final": True,
+    }
+
+
+def execute_internal_record(
+    identity_id: object,
+    mission_id: object,
+    *,
+    reviewed_request_id: object,
+    record_id: object,
+    expected_status: object,
+    target_status: object,
+) -> dict[str, Any]:
+    """Execute the one bounded registered internal action after fresh governance."""
+
+    handoff = handoff_status(
+        identity_id,
+        mission_id,
+        reviewed_request_id=reviewed_request_id,
+        action_name="SYNC_INTERNAL_RECORD",
+    )
+    if handoff.get("status") != "AUTHORIZED_NOT_EXECUTED":
+        raise ActionHandoffBlocked(str(handoff.get("reason") or "action_not_authorized"))
+    authorization = handoff.get("authorization")
+    if not isinstance(authorization, dict):
+        raise ActionHandoffBlocked("authorization_receipt_missing")
+
+    execution = internal_record_executor.execute(
+        authorization,
+        identity_id=identity_id,
+        record_id=record_id,
+        expected_status=expected_status,
+        target_status=target_status,
+    )
+    return {
+        "component": "ALL IN A.I. Governed Internal Execution",
+        "mission_id": handoff["mission_id"],
+        "reviewed_request_id": handoff["reviewed_request_id"],
+        "handoff_status": handoff["status"],
+        "execution": execution,
+        "execution_authorized": True,
+        "execution_performed": True,
+        "outcome_receipt_verified": bool(
+            execution.get("outcome_receipt", {}).get("write_verified")
+            and execution.get("outcome_receipt", {}).get("read_back_verified")
+        ),
+        "authority_transferred": False,
+        "human_authority_final": True,
+    }
+
+
+
+def rollback_internal_record(
+    identity_id: object,
+    mission_id: object,
+    *,
+    reviewed_request_id: object,
+    rollback_token: Mapping[str, object],
+) -> dict[str, Any]:
+    """Reverse one bounded internal action after a fresh governed handoff."""
+
+    handoff = handoff_status(
+        identity_id,
+        mission_id,
+        reviewed_request_id=reviewed_request_id,
+        action_name="SYNC_INTERNAL_RECORD",
+    )
+    if handoff.get("status") != "AUTHORIZED_NOT_EXECUTED":
+        raise ActionHandoffBlocked(str(handoff.get("reason") or "rollback_not_authorized"))
+    authorization = handoff.get("authorization")
+    if not isinstance(authorization, dict):
+        raise ActionHandoffBlocked("authorization_receipt_missing")
+
+    recovery = internal_record_executor.rollback(
+        authorization,
+        identity_id=identity_id,
+        rollback_token=rollback_token,
+    )
+    return {
+        "component": "ALL IN A.I. Governed Internal Recovery",
+        "mission_id": handoff["mission_id"],
+        "reviewed_request_id": handoff["reviewed_request_id"],
+        "handoff_status": handoff["status"],
+        "recovery": recovery,
+        "rollback_verified": bool(recovery.get("rollback_verified")),
+        "outcome_receipt_verified": bool(
+            recovery.get("outcome_receipt", {}).get("write_verified")
+            and recovery.get("outcome_receipt", {}).get("read_back_verified")
+        ),
         "authority_transferred": False,
         "human_authority_final": True,
     }

@@ -90,55 +90,52 @@ def build_receipt(
     return DurableReceipt(receipt_id=receipt_id, checksum=checksum, payload=body)
 
 
-def persist_and_read_back(receipt: DurableReceipt) -> dict[str, Any]:
-    if os.environ.get("OAP_HRM_DURABLE_WRITES_ENABLED", "").strip().lower() not in {
+def _writes_enabled() -> bool:
+    return os.environ.get("OAP_HRM_DURABLE_WRITES_ENABLED", "").strip().lower() in {
         "1",
         "true",
         "yes",
-    }:
-        raise ReceiptBlocked("durable_writes_disabled")
-    database_url, _source = _database_config()
-    if not database_url:
-        raise ReceiptBlocked("hrm_database_unconfigured")
+    }
 
-    import psycopg
+
+def persist_in_transaction(
+    connection: Any,
+    receipt: DurableReceipt,
+) -> dict[str, Any]:
+    """Write and verify one durable receipt using the caller's open transaction."""
+
+    if not _writes_enabled():
+        raise ReceiptBlocked("durable_writes_disabled")
+
     from psycopg.types.json import Jsonb
 
     try:
-        with (
-            psycopg.connect(
-                _ssl_url(database_url),
-                connect_timeout=5,
-                application_name="oap-hrm-durable-receipt",
-            ) as connection,
-            connection.transaction(),
-        ):
+        row = connection.execute(
+            "SELECT receipt_id::text, checksum, payload FROM oap_hrm_receipts WHERE receipt_id = %s",
+            (receipt.receipt_id,),
+        ).fetchone()
+        if row is None:
+            connection.execute(
+                """INSERT INTO oap_hrm_receipts(receipt_id, signal_id, checksum, payload)
+                   VALUES (%s, %s, %s, %s)
+                   ON CONFLICT (receipt_id) DO NOTHING""",
+                (
+                    receipt.receipt_id,
+                    receipt.payload["signal_id"],
+                    receipt.checksum,
+                    Jsonb(receipt.payload),
+                ),
+            )
             row = connection.execute(
                 "SELECT receipt_id::text, checksum, payload FROM oap_hrm_receipts WHERE receipt_id = %s",
                 (receipt.receipt_id,),
             ).fetchone()
-            if row is None:
-                connection.execute(
-                    """INSERT INTO oap_hrm_receipts(receipt_id, signal_id, checksum, payload)
-                       VALUES (%s, %s, %s, %s)
-                       ON CONFLICT (receipt_id) DO NOTHING""",
-                    (
-                        receipt.receipt_id,
-                        receipt.payload["signal_id"],
-                        receipt.checksum,
-                        Jsonb(receipt.payload),
-                    ),
-                )
-                row = connection.execute(
-                    "SELECT receipt_id::text, checksum, payload FROM oap_hrm_receipts WHERE receipt_id = %s",
-                    (receipt.receipt_id,),
-                ).fetchone()
-            if (
-                row is None
-                or row[1] != receipt.checksum
-                or _checksum(_without_recorded_at(row[2])) != receipt.checksum
-            ):
-                raise ReceiptBlocked("receipt_readback_verification_failed")
+        if (
+            row is None
+            or row[1] != receipt.checksum
+            or _checksum(_without_recorded_at(row[2])) != receipt.checksum
+        ):
+            raise ReceiptBlocked("receipt_readback_verification_failed")
     except ReceiptBlocked:
         raise
     except Exception as exc:
@@ -152,6 +149,31 @@ def persist_and_read_back(receipt: DurableReceipt) -> dict[str, Any]:
         "authority_transferred": False,
         "secret_exposed": False,
     }
+
+
+def persist_and_read_back(receipt: DurableReceipt) -> dict[str, Any]:
+    if not _writes_enabled():
+        raise ReceiptBlocked("durable_writes_disabled")
+    database_url, _source = _database_config()
+    if not database_url:
+        raise ReceiptBlocked("hrm_database_unconfigured")
+
+    import psycopg
+
+    try:
+        with (
+            psycopg.connect(
+                _ssl_url(database_url),
+                connect_timeout=5,
+                application_name="oap-hrm-durable-receipt",
+            ) as connection,
+            connection.transaction(),
+        ):
+            return persist_in_transaction(connection, receipt)
+    except ReceiptBlocked:
+        raise
+    except Exception as exc:
+        raise ReceiptBlocked("receipt_database_unavailable_or_schema_missing") from exc
 
 
 

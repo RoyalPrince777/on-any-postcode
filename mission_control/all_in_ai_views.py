@@ -326,3 +326,125 @@ def all_in_ai_action_handoff(mission_id: str):
             )
         )
     )
+
+
+@bp.post("/all-in-ai/mission/<mission_id>/execute-internal-record")
+@web_security.login_required(api=True, founder_only=True)
+def all_in_ai_execute_internal_record(mission_id: str):
+    """Execute one bounded owner-scoped internal record status transition."""
+
+    csrf_error = _require_csrf()
+    if csrf_error is not None:
+        return csrf_error
+    identity = _founder_id()
+    if identity is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+
+    try:
+        result = all_in_ai_action_bridge.execute_internal_record(
+            identity,
+            mission_id,
+            reviewed_request_id=payload.get("reviewed_request_id"),
+            record_id=payload.get("record_id"),
+            expected_status=payload.get("expected_status"),
+            target_status=payload.get("target_status"),
+        )
+    except ValueError as exc:
+        return _error(str(exc), "Internal action request failed validation.", 400)
+    except all_in_ai_mission_store.MissionStoreUnavailable:
+        return _error(
+            "mission_receipt_unavailable",
+            "Mission proof could not be independently verified.",
+            503,
+        )
+    except all_in_ai_action_bridge.ActionHandoffBlocked as exc:
+        return _error(
+            str(exc),
+            "The governed internal action remains blocked.",
+            409,
+        )
+    except all_in_ai_action_bridge.internal_record_executor.ExecutionBlocked as exc:
+        return _error(
+            str(exc),
+            "The bounded internal executor failed closed.",
+            409,
+        )
+
+    logger.info(
+        "oap_all_in_ai_internal_record_executed outcome_receipt_verified=%s "
+        "authority_transferred=false human_authority_final=true",
+        bool(result.get("outcome_receipt_verified")),
+    )
+    return _no_store(
+        make_response(
+            jsonify(
+                result=result,
+                execution_performed=True,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
+@bp.post("/all-in-ai/mission/<mission_id>/rollback-internal-record")
+@web_security.login_required(api=True, founder_only=True)
+def all_in_ai_rollback_internal_record(mission_id: str):
+    """Reverse one bounded internal record action after fresh Founder governance."""
+
+    csrf_error = _require_csrf()
+    if csrf_error is not None:
+        return csrf_error
+    identity = _founder_id()
+    if identity is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+
+    try:
+        result = all_in_ai_action_bridge.rollback_internal_record(
+            identity,
+            mission_id,
+            reviewed_request_id=payload.get("reviewed_request_id"),
+            rollback_token=payload.get("rollback_token"),
+        )
+    except ValueError as exc:
+        return _error(str(exc), "Rollback request failed validation.", 400)
+    except all_in_ai_mission_store.MissionStoreUnavailable:
+        return _error(
+            "mission_receipt_unavailable",
+            "Mission proof could not be independently verified.",
+            503,
+        )
+    except all_in_ai_action_bridge.ActionHandoffBlocked as exc:
+        return _error(
+            str(exc),
+            "The governed rollback remains blocked.",
+            409,
+        )
+    except all_in_ai_action_bridge.internal_record_executor.ExecutionBlocked as exc:
+        return _error(
+            str(exc),
+            "The bounded rollback executor failed closed.",
+            409,
+        )
+
+    logger.info(
+        "oap_all_in_ai_internal_record_rollback rollback_verified=%s "
+        "outcome_receipt_verified=%s authority_transferred=false "
+        "human_authority_final=true",
+        bool(result.get("rollback_verified")),
+        bool(result.get("outcome_receipt_verified")),
+    )
+    return _no_store(
+        make_response(
+            jsonify(
+                result=result,
+                rollback_verified=bool(result.get("rollback_verified")),
+                human_authority_final=True,
+            )
+        )
+    )
