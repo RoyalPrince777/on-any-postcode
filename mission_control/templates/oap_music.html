@@ -50,7 +50,7 @@
     </nav>
 
     <div class="truth">
-      🔐 Source listings are discovery links only. OAP does not mark a track playable until recording, composition, asset, territory and approval evidence pass.
+      🔐 OAP Music is a first-party catalogue. Tracks become playable only after recording, composition, asset, territory and approval evidence pass.
     </div>
 
     <section id="home">
@@ -87,26 +87,13 @@
       <div class="card">Your saved music and owner-scoped library remain behind OAP identity.</div>
     </section>
 
-    <section id="open-sources">
-      <h2>Free / Open Discovery Sources</h2>
-      <p id="source-count" class="count">{{ sources|length }} external discovery references. They are not the OAP catalogue.</p>
-      <div id="source-grid" class="grid">
-        {% for source in sources %}
-        <article class="card source-card" data-search="{{ (source.label ~ ' ' ~ source.source_kind)|lower }}">
-          <strong>{{ source.label }}</strong>
-          <div class="muted">{{ source.source_kind.replace('_', ' ')|title }}</div>
-          <div class="source-actions">
-            {% if source.discovery_url %}
-            <a class="action source-open" href="{{ source.discovery_url }}" target="_blank" rel="noopener noreferrer">Open source ↗</a>
-            {% else %}
-            <span class="action locked" aria-disabled="true">OAP submission route</span>
-            {% endif %}
-          </div>
-          <p class="muted">Connected: no · Licence verified: no · Bulk import: blocked</p>
-        </article>
-        {% endfor %}
+    <section id="first-party-discovery">
+      <h2>First-Party Discovery</h2>
+      <div class="grid">
+        <div class="card"><strong>🎵 OAP Catalogue</strong><span class="muted">Canonical OAP releases and tracks only.</span></div>
+        <div class="card"><strong>👤 OAP Creators</strong><span class="muted">Creator identities, releases and rights evidence remain inside OAP.</span></div>
+        <div class="card"><strong>🌍 OAP Civilization</strong><span class="muted">Place, culture, genre, movement and era links are evidence-backed OAP records.</span></div>
       </div>
-      <p id="no-results" class="muted hidden">No source matches that search.</p>
     </section>
 
     <section id="genres">
@@ -115,7 +102,7 @@
         <div class="card"><strong>Afrobeats · Amapiano</strong><span class="muted">Discovery filters are supported in the private review engine.</span></div>
         <div class="card"><strong>Hip-Hop · Rap · Drill · Grime</strong><span class="muted">No public track is implied by a genre label.</span></div>
         <div class="card"><strong>R&B · Soul · Highlife</strong><span class="muted">Rights remain track-specific.</span></div>
-        <div class="card"><strong>Reggae · Roots · Dancehall</strong><span class="muted">Open-source discovery, not automatic clearance.</span></div>
+        <div class="card"><strong>Reggae · Roots · Dancehall</strong><span class="muted">First-party catalogue discovery; rights remain track-specific.</span></div>
       </div>
     </section>
 
