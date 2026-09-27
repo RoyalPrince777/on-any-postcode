@@ -46,24 +46,28 @@ responses.
 5. Run `ruff check app.py mission_control oap tests`.
 6. Run `python -m pytest -q`.
 7. Push the exact reviewed source to `main` and require green GitHub CI.
-8. Merge-add the Auth and exact Founder authority values on Render without
+8. Require the `OAP runtime image` workflow to publish the exact reviewed
+   commit to GHCR. Production Core promotion uses the immutable image digest
+   recorded in `deploy/render-image-release.json`; do not rebuild Core on
+   Render when the image already exists.
+9. Merge-add the Auth and exact Founder authority values on Render without
    changing existing secret values. Never store the Founder password in an
    environment variable, source, logs or deployment notes. The browser must
    request only the Founder password; it must not request or display the
    server-side Auth selector.
-9. Temporarily merge-add a 32+ character `OAP_FOUNDER_ACTIVATION_TOKEN`, then
+10. Temporarily merge-add a 32+ character `OAP_FOUNDER_ACTIVATION_TOKEN`, then
    trigger one manual Render deployment of the reviewed commit.
-10. After that deployment is live, open `/activate-founder` on the main OAP
+11. After that deployment is live, open `/activate-founder` on the main OAP
     origin and create the Founder password. The route supplies the configured
     Founder email server-side and refuses to run once any managed Auth user
     exists.
-11. Bind the resulting exact user UUID to `OAP_HUMAN_AUTHORITY_ID`, remove the
+12. Bind the resulting exact user UUID to `OAP_HUMAN_AUTHORITY_ID`, remove the
     activation token, and disable new email/password signup in Neon Auth. Wait
     for the resulting Render configuration deployment to become live.
-12. Verify every public read route remains anonymous, private anonymous requests
+13. Verify every public read route remains anonymous, private anonymous requests
     return redirect/401, and a controlled non-Founder session receives 403 from
     My World, SMI, Mission Control, infrastructure and private assets.
-13. Verify `/livez` reports `alive`, `/healthz` reports `healthy`, the SMI gateway
+14. Verify `/livez` reports `alive`, `/healthz` reports `healthy`, the SMI gateway
     returns the same healthy upstream state, and Render logs contain no new errors
     or `5xx` responses.
 
@@ -92,3 +96,17 @@ OAP private login accepts only the password. Public browsing must not be tied to
 registration. Before business or creator monetisation opens, implement a
 separate verified onboarding and entitlement flow and test recovery with
 controlled accounts. Do not turn the private login into public self-signup.
+
+
+## Image-first Core deployment
+
+The production Core service `on-any-postcode` is declared as a Render
+`runtime: image` target in `render.yaml`. The image must be pinned by digest,
+not by a mutable tag. The current release manifest records the exact GHCR digest
+and existing Render service ID. This keeps the public service identity stable
+while decoupling Core releases from Render build-pipeline minutes.
+
+Do not replace Render-managed secrets during image promotion. Do not create a
+second Core service merely to bypass a build quota. A release is not Green until
+the existing Core service reports the promoted image live, `/healthz` passes,
+and the relevant public browser acceptance passes.
