@@ -18,13 +18,12 @@ from uuid import UUID
 
 from . import postgres_db
 
-PRODUCT_CORE_MIGRATION_VERSION = "0007_music_assets"
+PRODUCT_CORE_MIGRATION_VERSION = "0006_music_market_post_office"
 LEGACY_MARKET_TABLES = frozenset({"oap_market_items", "oap_market_orders"})
 PRODUCT_CORE_TABLES = frozenset(
     {
         "oap_music_releases",
         "oap_music_tracks",
-        "oap_music_assets",
         "oap_music_playlists",
         "oap_music_playlist_items",
         "oap_music_distribution_intents",
@@ -129,24 +128,6 @@ PRODUCT_CORE_SCHEMA_STATEMENTS = (
         explicit BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(release_id, position))""",
-    """CREATE TABLE IF NOT EXISTS oap_music_assets (
-        asset_id UUID PRIMARY KEY,
-        owner_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-        release_id UUID NOT NULL REFERENCES oap_music_releases(release_id)
-            ON DELETE CASCADE,
-        track_id UUID NOT NULL UNIQUE REFERENCES oap_music_tracks(track_id)
-            ON DELETE CASCADE,
-        original_name TEXT NOT NULL,
-        mime_type TEXT NOT NULL,
-        byte_size INTEGER NOT NULL CHECK (byte_size > 0 AND byte_size <= 6291456),
-        sha256 CHAR(64) NOT NULL,
-        media BYTEA NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )""",
-    """CREATE INDEX IF NOT EXISTS ix_music_asset_owner_created
-        ON oap_music_assets(owner_identity_id, created_at DESC)""",
-    """CREATE INDEX IF NOT EXISTS ix_music_asset_release
-        ON oap_music_assets(release_id, created_at)""",
     """CREATE TABLE IF NOT EXISTS oap_music_playlists (
         playlist_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         owner_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
