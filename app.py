@@ -458,6 +458,18 @@ def oap_os_install_controller():
     )
 
 
+@app.get("/assets/oap-music-install.js")
+def oap_music_install_controller():
+    """Serve the bounded OAP Music browser installation controller."""
+
+    return send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "oap-music-install.js",
+        mimetype="application/javascript",
+        max_age=3600,
+    )
+
+
 @app.get("/assets/oap-os-icon-<int:size>.png")
 def oap_os_icon(size):
     """Serve only the two reviewed install-icon sizes."""
