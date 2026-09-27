@@ -2,6 +2,9 @@
 :root{--smi-blue:#21b8ff;--smi-violet:#9e6cff;--smi-night:#020817}
 html,body.mc-workspace-body{width:100%;height:100%;margin:0;background:var(--smi-night);overflow:hidden}
 .smi-shell{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;background:var(--smi-night)!important;isolation:isolate}
+#smi-source-pixel-motion{z-index:0!important}
+.smi-shell>.workspace-grid{z-index:3!important}
+.smi-shell::after{z-index:2!important}
 .smi-shell::before{content:"";position:absolute;inset:0;z-index:-2;background:#020817 url('/static/oap/smi_live_chat_dashboard.jpg') center center/cover no-repeat}
 .smi-shell::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(1,7,18,.04) 0 65%,rgba(1,5,14,.28) 80%,rgba(1,4,12,.7) 100%)}
 .smi-shell>.navs,.smi-shell>.smi-hero,.smi-command-toggle,.smi-chat-return,.smi-status-backdrop,.smi-dashboard-layer{display:none!important}
