@@ -64,8 +64,8 @@ def test_android_proof_stays_contextual_not_home_screen_noise():
 
 
 def test_source_pixel_motion_canvas_is_visible_beneath_smi_controls():
-    motion = (ROOT / "mission_control/static/smi_source_pixel_motion.js").read_text()
-    css = (ROOT / "mission_control/static/smi_live_chat_dashboard.css").read_text()
+    motion = MOTION.read_text(encoding="utf-8")
+    css = Path("mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
     assert "z-index:0" in motion
     assert "#smi-source-pixel-motion{z-index:0!important}" in css
     assert ".smi-shell>.workspace-grid{z-index:3!important}" in css
