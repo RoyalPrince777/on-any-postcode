@@ -45,7 +45,8 @@ def test_music_upload_player_and_radio_routes_are_registered():
 
 
 def test_music_creator_surface_exposes_real_governed_controls():
-    template = open("mission_control/templates/oap_music.html", encoding="utf-8").read()
+    with open("mission_control/templates/oap_music.html", encoding="utf-8") as handle:
+        template = handle.read()
     for control_id in (
         "release-form",
         "upload-form",
