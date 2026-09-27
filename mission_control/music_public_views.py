@@ -125,6 +125,11 @@ def music_public_status():
                 {
                     "organ": "OAP Music",
                     "front_door_ready": True,
+                    "install_app_contract_ready": True,
+                    "install_manifest_url": "/music/manifest.webmanifest",
+                    "install_mode": "PWA",
+                    "signed_android_package_verified": False,
+                    "device_install_verified": False,
                     "open_source_directory_ready": True,
                     "open_source_count": len(sources["entries"]),
                     "listener_contract": music_public_catalogue.listener_contract(),
