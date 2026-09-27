@@ -11,6 +11,7 @@ from . import (
     entertainment_catalogue,
     live_music_core,
     music_acceptance,
+    music_assets,
     music_civilization,
     music_evidence,
     music_recovery,
@@ -34,6 +35,7 @@ _records_store = records_core.RecordsStore()
 _live_music_store = live_music_core.LiveMusicStore()
 _music_recovery_store = music_recovery.MusicRecoveryStore()
 _music_acceptance_store = music_acceptance.MusicAcceptanceStore()
+_music_asset_store = music_assets.MusicAssetStore()
 
 
 def _no_store(response):
@@ -808,6 +810,121 @@ def add_track(release_id: str):
         )
 
     return _handle_write(action)
+
+
+@bp.post("/tune/releases/<release_id>/upload")
+@web_security.login_required(api=True)
+def upload_track_audio(release_id: str):
+    """Store one owned audio file and bind it to a canonical OAP Music track."""
+
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    upload = request.files.get("audio")
+    if upload is None or not upload.filename:
+        return _error("invalid_request", "Choose an audio file to upload.", 400)
+    try:
+        media = upload.read(music_assets.MAX_AUDIO_BYTES + 1)
+        owner = _identity(sync=True)
+        asset = _music_asset_store.create(
+            owner_identity_id=owner,
+            release_id=release_id,
+            original_name=upload.filename,
+            mime_type=upload.mimetype,
+            media=media,
+        )
+        try:
+            track = _store.add_track(
+                owner_identity_id=owner,
+                release_id=release_id,
+                title=request.form.get("title") or upload.filename.rsplit(".", 1)[0],
+                position=request.form.get("position"),
+                media_ref=f"oap-music-asset:{asset['asset_id']}",
+                duration_ms=request.form.get("duration_ms"),
+                explicit=str(request.form.get("explicit", "")).lower()
+                in {"1", "true", "yes", "on"},
+            )
+            _music_asset_store.bind_track(
+                owner_identity_id=owner,
+                asset_id=asset["asset_id"],
+                track_id=track["track_id"],
+            )
+        except Exception:
+            _music_asset_store.delete(
+                owner_identity_id=owner,
+                asset_id=asset["asset_id"],
+            )
+            raise
+        response = make_response(
+            jsonify(
+                asset=asset,
+                track=track,
+                player_url=f"/mission/organs/tune/assets/{asset['asset_id']}/audio",
+                radio_queue_ready=True,
+                public_broadcast_enabled=False,
+                external_distribution_enabled=False,
+                rights_verified_by_software=False,
+                human_authority_final=True,
+            ),
+            201,
+        )
+        return _no_store(response)
+    except PermissionError as exc:
+        return _error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_request", str(exc), 400)
+    except (
+        music_assets.MusicAssetUnavailable,
+        public_store.PublicStoreUnavailable,
+        product_store.ProductStoreUnavailable,
+        RuntimeError,
+    ):
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+    except Exception:
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+
+
+@bp.get("/tune/assets")
+@web_security.login_required(api=True)
+def list_track_audio_assets():
+    try:
+        return _no_store(
+            make_response(
+                jsonify(
+                    assets=_music_asset_store.list_assets(
+                        owner_identity_id=_identity()
+                    ),
+                    playback_scope="OWNER_PRIVATE",
+                )
+            )
+        )
+    except (ValueError, music_assets.MusicAssetUnavailable):
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+
+
+@bp.get("/tune/assets/<asset_id>/audio")
+@web_security.login_required(api=True)
+def play_track_audio_asset(asset_id: str):
+    try:
+        item = _music_asset_store.read(
+            owner_identity_id=_identity(),
+            asset_id=asset_id,
+        )
+        if item is None:
+            return _error("not_found", "Audio asset unavailable.", 404)
+        media, mime_type, digest, original_name = item
+        response = make_response(media)
+        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Length"] = str(len(media))
+        response.headers["ETag"] = f'"{digest}"'
+        response.headers["Content-Disposition"] = (
+            f'inline; filename="{original_name.replace(chr(34), "")}"'
+        )
+        response.headers["Accept-Ranges"] = "none"
+        return _no_store(response)
+    except (TypeError, ValueError):
+        return _error("invalid_request", "Invalid audio asset.", 400)
+    except music_assets.MusicAssetUnavailable:
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
 
 
 @bp.post("/tune/releases/<release_id>/review")
