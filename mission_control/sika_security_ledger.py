@@ -153,6 +153,53 @@ def record_authenticated_owner(
     return {**reread[0], "audit_recorded": True}
 
 
+
+def _verify_audit_rows(rows: list[tuple[object, object, object, object]]) -> dict[str, object]:
+    expected_prev = "GENESIS"
+    verified = 0
+    for event_seq, prev_hash, curr_hash, metadata in rows:
+        prev = str(prev_hash or "")
+        curr = str(curr_hash or "")
+        if prev != expected_prev:
+            raise SikaSecurityLedgerUnavailable("audit_chain_prev_hash_mismatch")
+        if isinstance(metadata, str):
+            try:
+                metadata_value = json.loads(metadata)
+            except ValueError as exc:
+                raise SikaSecurityLedgerUnavailable("audit_chain_metadata_unreadable") from exc
+        else:
+            metadata_value = metadata
+        if not isinstance(metadata_value, dict):
+            raise SikaSecurityLedgerUnavailable("audit_chain_metadata_invalid")
+        canonical = json.dumps(metadata_value, sort_keys=True, separators=(",", ":"))
+        expected_curr = sha256((prev + canonical).encode()).hexdigest()
+        if curr != expected_curr:
+            raise SikaSecurityLedgerUnavailable("audit_chain_curr_hash_mismatch")
+        expected_prev = curr
+        verified += 1
+    return {
+        "valid": True,
+        "events_verified": verified,
+        "last_hash": expected_prev,
+        "money_execution_enabled": False,
+        "founder_auth_touched": False,
+    }
+
+
+def audit_integrity() -> dict[str, object]:
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT event_seq,prev_hash,curr_hash,metadata
+                   FROM audit_events
+                   ORDER BY event_seq ASC"""
+            ).fetchall()
+    except Exception as exc:
+        raise SikaSecurityLedgerUnavailable("audit_chain_read_failed") from exc
+    return _verify_audit_rows(rows)
+
+
+
 def readiness() -> dict[str, object]:
     return {
         "canonical_store_reused": True,
