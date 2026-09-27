@@ -112,6 +112,31 @@ def project(owner_id: object) -> dict[str, object]:
     }
 
 
+def _require_reauth_window_open(owner_id: object) -> None:
+    try:
+        backoff = sika_security_ledger.reauth_backoff_state(owner_id)
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        raise SikaSessionUnavailable("reauth_backoff_unavailable") from exc
+    if backoff.get("locked"):
+        raise ValueError("bank_app_reauth_backoff_active")
+
+
+def _verify_bank_app_credential(owner_id: object, password: object) -> None:
+    _require_reauth_window_open(owner_id)
+    try:
+        proof = sika_bank_credential_store.verify_authenticated_owner(
+            owner_id, password
+        )
+    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
+        raise SikaSessionUnavailable("bank_app_credential_unavailable") from exc
+    verified = bool(proof.get("verified"))
+    try:
+        sika_security_ledger.record_reauth_result(owner_id, success=verified)
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        raise SikaSessionUnavailable("reauth_result_persistence_failed") from exc
+    if not verified:
+        raise ValueError("bank_app_credential_verification_required")
+
 def activate(
     owner_id: object,
     *,
@@ -127,14 +152,7 @@ def activate(
         raise SikaSessionUnavailable("device_binding_unavailable") from exc
     if not binding.get("bound") or str(binding.get("device_id") or "") != device:
         raise ValueError("trusted_bound_device_required")
-    try:
-        proof = sika_bank_credential_store.verify_authenticated_owner(
-            owner_id, password
-        )
-    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
-        raise SikaSessionUnavailable("bank_app_credential_unavailable") from exc
-    if not proof.get("verified"):
-        raise ValueError("bank_app_credential_verification_required")
+    _verify_bank_app_credential(owner_id, password)
 
     state = project(owner_id)
     if state.get("compromise_locked"):
@@ -254,14 +272,7 @@ def recover(
         raise SikaSessionUnavailable("device_binding_unavailable") from exc
     if not binding.get("bound") or str(binding.get("device_id") or "") != device:
         raise ValueError("trusted_bound_device_required")
-    try:
-        proof = sika_bank_credential_store.verify_authenticated_owner(
-            owner_id, password
-        )
-    except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
-        raise SikaSessionUnavailable("bank_app_credential_unavailable") from exc
-    if not proof.get("verified"):
-        raise ValueError("bank_app_credential_verification_required")
+    _verify_bank_app_credential(owner_id, password)
     receipt = sika_security_ledger.record_authenticated_owner(
         owner_id,
         event_type="SIKA_COMPROMISE_RECOVERED",
