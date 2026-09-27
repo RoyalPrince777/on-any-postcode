@@ -23,6 +23,9 @@
     .linkup-stars{margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
     .linkup-stars-head{display:flex;justify-content:space-between;gap:.75rem;align-items:center}.linkup-stars-head strong{font-size:.95rem}.linkup-stars-score{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .linkup-stars-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.6rem}.linkup-star{display:flex;gap:.4rem;align-items:center;font-size:.78rem;color:rgba(255,255,255,.72)}.linkup-star[data-passed="true"]{color:#fff}.linkup-certifications{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.2rem}.linkup-certified{font-size:.7rem;padding:.2rem .42rem;border:1px solid rgba(255,215,0,.35);border-radius:999px}.linkup-card-state{opacity:.82}
+    .linkup-public-action{display:block;margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24;color:#fff;text-decoration:none}
+    .linkup-public-action strong,.linkup-public-action small{display:block}.linkup-public-action small{margin-top:.2rem;color:rgba(255,255,255,.68)}
+    .linkup-public-welcome{display:grid;align-content:center;justify-items:center;gap:.8rem;min-height:50vh;padding:2rem;text-align:center}.linkup-public-welcome p{max-width:34rem;color:rgba(255,255,255,.72)}
   </style>
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
@@ -41,10 +44,47 @@
   </header>
 
   {% if not auth_user %}
-    <main class="linkup-login">
-      <h2>Link Up is private.</h2>
-      <p>Enter My World to open your private Link Ups, Find People and New Link workspace.</p>
-      <a class="mc-primary" href="{{ url_for('auth_page', next='/linkup') }}">Enter My World</a>
+    <main class="linkup-shell" aria-label="Link Up app">
+      <aside class="linkup-list" aria-label="Link Up features">
+        <div class="linkup-list-head">
+          <input class="linkup-search" type="search" placeholder="Search Link Ups" aria-label="Search Link Ups" disabled>
+          <a class="linkup-new-btn" href="{{ url_for('auth_page', next='/linkup') }}" aria-label="Start a New Link">+</a>
+        </div>
+        <div class="linkup-master-nav">
+          <a href="{{ url_for('auth_page', next='/linkup') }}">Circle</a>
+          <a href="{{ url_for('the_link_front_door') }}">The Link</a>
+        </div>
+        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+          <strong>🔗 Link Ups</strong>
+          <small>Open your private conversations.</small>
+        </a>
+        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+          <strong>👥 Find People</strong>
+          <small>Connect through protected Link Requests.</small>
+        </a>
+        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+          <strong>📞 Call &amp; Face Up</strong>
+          <small>Voice and video inside your private Links.</small>
+        </a>
+        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+          <strong>📍 Around Now</strong>
+          <small>Private, permission-controlled presence.</small>
+        </a>
+      </aside>
+      <section class="linkup-stage" aria-label="Link Up preview">
+        <article class="linkup-chat-panel" data-active="true">
+          <header class="linkup-chat-head">
+            <span class="linkup-avatar">🔗</span>
+            <span class="linkup-chat-name"><strong>Link Up</strong><small>Private conversation inside The Link</small></span>
+          </header>
+          <div class="linkup-public-welcome">
+            <span class="linkup-avatar">🌍</span>
+            <h2>See the app. Enter only when you want to connect.</h2>
+            <p>Link Up is open to explore. Your People, My Card, messages, Voice, Face Up and location stay private until you enter My World.</p>
+            <a class="mc-primary" href="{{ url_for('auth_page', next='/linkup') }}">Enter My World</a>
+          </div>
+        </article>
+      </section>
     </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
