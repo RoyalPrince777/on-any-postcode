@@ -12,6 +12,28 @@ import uuid
 
 from . import postgres_db
 
+MUSIC_ASSET_MIGRATION_VERSION = "0013_oap_music_assets"
+SCHEMA_STATEMENTS = (
+    """CREATE TABLE IF NOT EXISTS oap_music_assets (
+        asset_id UUID PRIMARY KEY,
+        owner_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        release_id UUID NOT NULL REFERENCES oap_music_releases(release_id)
+            ON DELETE CASCADE,
+        track_id UUID NOT NULL UNIQUE REFERENCES oap_music_tracks(track_id)
+            ON DELETE CASCADE,
+        original_name TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        byte_size INTEGER NOT NULL CHECK (byte_size > 0 AND byte_size <= 6291456),
+        sha256 CHAR(64) NOT NULL,
+        media BYTEA NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE INDEX IF NOT EXISTS ix_music_asset_owner_created
+       ON oap_music_assets(owner_identity_id, created_at DESC)""",
+    """CREATE INDEX IF NOT EXISTS ix_music_asset_release
+       ON oap_music_assets(release_id, created_at)""",
+)
+
 MAX_AUDIO_BYTES = 6 * 1024 * 1024
 MAX_OWNER_STORAGE_BYTES = 250 * 1024 * 1024
 ALLOWED_MIME_TYPES = (
