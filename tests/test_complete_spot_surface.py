@@ -253,7 +253,7 @@ def test_oap_tv_media_aliases_resolve_to_one_public_front_door(client):
         assert response.headers["Location"].endswith("/the-spot/tv-media")
 
         page = client.get(path, follow_redirects=True).get_data(as_text=True)
-        assert "OAP TV & Media" in page
+        assert escape("OAP TV & Media") in page
         assert "Watch. Discover. Create. Keep the rights clear." in page
         assert "OAP TV" in page
         assert "OAP Media" in page
@@ -270,7 +270,7 @@ def test_home_media_link_no_longer_targets_a_404(client):
     assert 'href="/media"' in home
     response = client.get("/media", follow_redirects=True)
     assert response.status_code == 200
-    assert "OAP TV & Media" in response.get_data(as_text=True)
+    assert escape("OAP TV & Media") in response.get_data(as_text=True)
 
 
 def test_oap_media_stack_rejects_stream_money_dependency():
