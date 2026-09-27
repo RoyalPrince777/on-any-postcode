@@ -88,11 +88,16 @@ def test_music_use_requires_explicit_authority_and_human_receipts():
 def test_music_owner_channel_and_territory_fail_closed():
     asset = _asset()
     receipts = _receipts(asset["owner_identity_id"], str(uuid4()))
-    common = dict(
-        asset=asset, receipts=receipts, permitted_uses=["stream"], territories=["GB"],
-        authority_verified=True, authority_receipt_hash="c" * 64,
-        human_approved=True, human_approval_receipt_hash="d" * 64,
-    )
+    common = {
+        "asset": asset,
+        "receipts": receipts,
+        "permitted_uses": ["stream"],
+        "territories": ["GB"],
+        "authority_verified": True,
+        "authority_receipt_hash": "c" * 64,
+        "human_approved": True,
+        "human_approval_receipt_hash": "d" * 64,
+    }
     owner_block = rights_music_adapter.evaluate_music_use(
         request=_request(asset, requester_identity_id=str(uuid4())), **common
     )
