@@ -42,12 +42,16 @@ def test_studio_generation_proof_does_not_unlock_publication():
 
 def test_studio_publish_requires_explicit_receipts_and_stable_grant():
     record = _record()
-    kwargs = dict(
-        record=record, request=_request(record),
-        evidence_hashes=["b" * 64], territories=["GB"],
-        authority_verified=True, authority_receipt_hash="c" * 64,
-        human_approved=True, human_approval_receipt_hash="d" * 64,
-    )
+    kwargs = {
+        "record": record,
+        "request": _request(record),
+        "evidence_hashes": ["b" * 64],
+        "territories": ["GB"],
+        "authority_verified": True,
+        "authority_receipt_hash": "c" * 64,
+        "human_approved": True,
+        "human_approval_receipt_hash": "d" * 64,
+    }
     a = rights_studio_adapter.evaluate_studio_publish(**kwargs)
     b = rights_studio_adapter.evaluate_studio_publish(**kwargs)
     assert a["decision"] == "ALLOW"
@@ -57,11 +61,15 @@ def test_studio_publish_requires_explicit_receipts_and_stable_grant():
 
 def test_studio_owner_channel_territory_and_missing_evidence_fail_closed():
     record = _record()
-    common = dict(
-        record=record, evidence_hashes=["b" * 64], territories=["GB"],
-        authority_verified=True, authority_receipt_hash="c" * 64,
-        human_approved=True, human_approval_receipt_hash="d" * 64,
-    )
+    common = {
+        "record": record,
+        "evidence_hashes": ["b" * 64],
+        "territories": ["GB"],
+        "authority_verified": True,
+        "authority_receipt_hash": "c" * 64,
+        "human_approved": True,
+        "human_approval_receipt_hash": "d" * 64,
+    }
     wrong_owner = rights_studio_adapter.evaluate_studio_publish(
         request=_request(record, requester_identity_id=str(uuid4())), **common
     )
