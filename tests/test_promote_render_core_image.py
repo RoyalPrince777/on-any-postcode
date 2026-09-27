@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from scripts import promote_render_core_image as promotion
