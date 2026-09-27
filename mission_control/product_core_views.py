@@ -825,35 +825,18 @@ def upload_track_audio(release_id: str):
     try:
         media = upload.read(music_assets.MAX_AUDIO_BYTES + 1)
         owner = _identity(sync=True)
-        asset = _music_asset_store.create(
+        asset, track = _music_asset_store.create_track_asset(
             owner_identity_id=owner,
             release_id=release_id,
+            title=request.form.get("title") or upload.filename.rsplit(".", 1)[0],
+            position=request.form.get("position"),
             original_name=upload.filename,
             mime_type=upload.mimetype,
             media=media,
+            duration_ms=request.form.get("duration_ms"),
+            explicit=str(request.form.get("explicit", "")).lower()
+            in {"1", "true", "yes", "on"},
         )
-        try:
-            track = _store.add_track(
-                owner_identity_id=owner,
-                release_id=release_id,
-                title=request.form.get("title") or upload.filename.rsplit(".", 1)[0],
-                position=request.form.get("position"),
-                media_ref=f"oap-music-asset:{asset['asset_id']}",
-                duration_ms=request.form.get("duration_ms"),
-                explicit=str(request.form.get("explicit", "")).lower()
-                in {"1", "true", "yes", "on"},
-            )
-            _music_asset_store.bind_track(
-                owner_identity_id=owner,
-                asset_id=asset["asset_id"],
-                track_id=track["track_id"],
-            )
-        except Exception:
-            _music_asset_store.delete(
-                owner_identity_id=owner,
-                asset_id=asset["asset_id"],
-            )
-            raise
         response = make_response(
             jsonify(
                 asset=asset,
