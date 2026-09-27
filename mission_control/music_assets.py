@@ -192,7 +192,7 @@ class MusicAssetStore:
                 connection.commit()
         except (PermissionError, ValueError):
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise MusicAssetUnavailable("music_asset_store_failed") from exc
 
         asset_result = {
@@ -229,7 +229,7 @@ class MusicAssetStore:
                        LIMIT 1""",
                     (asset, owner),
                 ).fetchone()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise MusicAssetUnavailable("music_asset_read_failed") from exc
         if row is None:
             return None
@@ -251,7 +251,7 @@ class MusicAssetStore:
                        ORDER BY created_at DESC LIMIT 200""",
                     (owner,),
                 ).fetchall()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise MusicAssetUnavailable("music_asset_list_failed") from exc
         return [
             {
