@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    OAP_RUNTIME_TARGET=app:app \
+    PORT=10000
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN python -m pip install --upgrade pip \
+    && python -m pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 10000
+
+CMD ["sh", "-c", "exec gunicorn \"${OAP_RUNTIME_TARGET:-app:app}\" --bind 0.0.0.0:${PORT:-10000}"]
