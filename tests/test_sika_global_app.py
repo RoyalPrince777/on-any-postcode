@@ -1349,3 +1349,56 @@ def test_sika_failed_bank_reauth_is_durably_recorded(monkeypatch):
     else:
         raise AssertionError("failed credential verification must fail closed")
     assert recorded["success"] is False
+
+
+def test_sika_idempotent_payment_intent_id_is_race_stable(monkeypatch):
+    from mission_control import sika_security_ledger
+
+    monkeypatch.setattr(
+        sika_security_ledger,
+        "history",
+        lambda owner_id, limit=100: [],
+    )
+    monkeypatch.setattr(
+        sika_security_ledger,
+        "latest_state",
+        lambda owner_id: {"beneficiaries": []},
+    )
+    monkeypatch.setattr(
+        sika_security_ledger,
+        "record_authenticated_owner",
+        lambda *args, **kwargs: {"event_id": "receipt"},
+    )
+
+    first = sika_security_ledger.create_payment_intent(
+        "11111111-1111-1111-1111-111111111111",
+        beneficiary_id="beneficiary-1",
+        amount_sika="10",
+        idempotency_key="same-key",
+    )
+    second = sika_security_ledger.create_payment_intent(
+        "11111111-1111-1111-1111-111111111111",
+        beneficiary_id="beneficiary-1",
+        amount_sika="10",
+        idempotency_key="same-key",
+    )
+    assert first["payment_intent_id"] == second["payment_intent_id"]
+
+
+def test_sika_audit_integrity_rejects_tampered_hash():
+    from mission_control import sika_security_ledger
+
+    rows = [
+        (
+            1,
+            "GENESIS",
+            "invalid-hash",
+            {"workspace_id": "sika", "event_type": "TEST"},
+        )
+    ]
+    try:
+        sika_security_ledger._verify_audit_rows(rows)
+    except sika_security_ledger.SikaSecurityLedgerUnavailable as exc:
+        assert str(exc) == "audit_chain_curr_hash_mismatch"
+    else:
+        raise AssertionError("tampered audit chain must fail closed")
