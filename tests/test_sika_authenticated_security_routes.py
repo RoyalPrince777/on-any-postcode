@@ -754,6 +754,11 @@ def test_session_registry_activation_requires_bank_credential_and_bound_device(m
     from mission_control import sika_session_registry
 
     monkeypatch.setattr(
+        sika_global_views.sika_session_registry.sika_security_ledger,
+        "reauth_backoff_state",
+        lambda owner_id: {"locked": False, "lock_remaining_seconds": 0},
+    )
+    monkeypatch.setattr(
         sika_session_registry.sika_device_binding_store,
         "read",
         lambda owner_id: {"bound": True, "device_id": "device-a"},
@@ -812,6 +817,11 @@ def test_session_registry_activation_requires_bank_credential_and_bound_device(m
 def test_compromise_recovery_requires_bank_credential_and_bound_device(monkeypatch):
     from mission_control import sika_session_registry
 
+    monkeypatch.setattr(
+        sika_global_views.sika_session_registry.sika_security_ledger,
+        "reauth_backoff_state",
+        lambda owner_id: {"locked": False, "lock_remaining_seconds": 0},
+    )
     monkeypatch.setattr(
         sika_session_registry.sika_device_binding_store,
         "read",
