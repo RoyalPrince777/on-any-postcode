@@ -211,7 +211,7 @@
         });
       });
 
-      const csrf = {{ oap_csrf_token|tojson }};
+      const csrf = {{ oap_csrf_token|default('', true)|tojson }};
       const releaseForm = document.getElementById('release-form');
       const uploadForm = document.getElementById('upload-form');
       const stationForm = document.getElementById('station-form');
