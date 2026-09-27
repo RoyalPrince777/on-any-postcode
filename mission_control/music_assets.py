@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from typing import Any
-
 from . import postgres_db
 
 MAX_AUDIO_BYTES = 6 * 1024 * 1024
@@ -241,7 +239,6 @@ class MusicAssetStore:
 
     def list_assets(self, *, owner_identity_id: object) -> list[dict[str, object]]:
         owner = _uuid(owner_identity_id, "invalid_owner_identity")
-        self.ensure_schema()
         try:
             with postgres_db.connect(readonly=True) as connection:
                 rows = connection.execute(
