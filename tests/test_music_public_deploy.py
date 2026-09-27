@@ -29,6 +29,7 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0010_oap_live_music",
         "0011_oap_music_recovery_manifest",
         "0012_oap_music_acceptance_receipts",
+        "0013_oap_music_assets",
     ]
 
 
@@ -166,3 +167,39 @@ def test_music_page_is_first_party_listener_surface_not_external_catalogue():
     assert "Search the free/open source directory" not in body
     assert "OAP Music is a first-party catalogue." in body
     assert "/music/api/catalogue?q=" in body
+
+
+def test_music_has_dedicated_install_manifest_and_identity(client):
+    response = client.get("/music/manifest.webmanifest")
+    manifest = response.get_json()
+    assert response.status_code == 200
+    assert response.content_type == "application/manifest+json"
+    assert manifest["name"] == "OAP Music"
+    assert manifest["id"] == "/music"
+    assert manifest["start_url"].startswith("/music")
+    assert manifest["scope"] == "/music"
+    assert manifest["display"] == "standalone"
+    assert manifest["prefer_related_applications"] is False
+    assert {item["url"] for item in manifest["shortcuts"]} == {
+        "/music#player", "/music#radio", "/music#creators",
+    }
+
+
+def test_music_page_exposes_real_install_contract(client):
+    body = client.get("/music").get_data(as_text=True)
+    assert 'rel="manifest" href="/music/manifest.webmanifest"' in body
+    assert "data-oap-music-install hidden" in body
+    assert 'src="/assets/oap-music-install.js"' in body
+    assert 'data-oap-music-install-status role="status"' in body
+    assert "First-party installable web app" in body
+
+
+def test_music_install_controller_uses_existing_safe_root_worker(client):
+    response = client.get("/assets/oap-music-install.js")
+    source = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert response.content_type.startswith("application/javascript")
+    assert 'navigator.serviceWorker.register("/service-worker.js", { scope: "/" })' in source
+    assert "beforeinstallprompt" in source
+    assert "appinstalled" in source
+    assert "OAP Music is ready to install." in source

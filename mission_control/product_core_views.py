@@ -11,6 +11,7 @@ from . import (
     entertainment_catalogue,
     live_music_core,
     music_acceptance,
+    music_assets,
     music_civilization,
     music_evidence,
     music_recovery,
@@ -34,6 +35,7 @@ _records_store = records_core.RecordsStore()
 _live_music_store = live_music_core.LiveMusicStore()
 _music_recovery_store = music_recovery.MusicRecoveryStore()
 _music_acceptance_store = music_acceptance.MusicAcceptanceStore()
+_music_asset_store = music_assets.MusicAssetStore()
 
 
 def _no_store(response):
@@ -808,6 +810,148 @@ def add_track(release_id: str):
         )
 
     return _handle_write(action)
+
+
+@bp.post("/tune/releases/<release_id>/upload")
+@web_security.login_required(api=True)
+def upload_track_audio(release_id: str):
+    """Store one owned audio file and bind it to a canonical OAP Music track."""
+
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    upload = request.files.get("audio")
+    if upload is None or not upload.filename:
+        return _error("invalid_request", "Choose an audio file to upload.", 400)
+    try:
+        media = upload.read(music_assets.MAX_AUDIO_BYTES + 1)
+        owner = _identity(sync=True)
+        asset, track = _music_asset_store.create_track_asset(
+            owner_identity_id=owner,
+            release_id=release_id,
+            title=request.form.get("title") or upload.filename.rsplit(".", 1)[0],
+            position=request.form.get("position"),
+            original_name=upload.filename,
+            mime_type=upload.mimetype,
+            media=media,
+            duration_ms=request.form.get("duration_ms"),
+            explicit=str(request.form.get("explicit", "")).lower()
+            in {"1", "true", "yes", "on"},
+        )
+        response = make_response(
+            jsonify(
+                asset=asset,
+                track=track,
+                player_url=f"/mission/organs/tune/assets/{asset['asset_id']}/audio",
+                radio_queue_ready=True,
+                public_broadcast_enabled=False,
+                external_distribution_enabled=False,
+                rights_verified_by_software=False,
+                human_authority_final=True,
+            ),
+            201,
+        )
+        return _no_store(response)
+    except PermissionError as exc:
+        return _error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_request", str(exc), 400)
+    except (
+        music_assets.MusicAssetUnavailable,
+        public_store.PublicStoreUnavailable,
+        product_store.ProductStoreUnavailable,
+        RuntimeError,
+    ):
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+    except (OSError, EOFError):
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+
+
+@bp.get("/tune/assets")
+@web_security.login_required(api=True)
+def list_track_audio_assets():
+    try:
+        return _no_store(
+            make_response(
+                jsonify(
+                    assets=_music_asset_store.list_assets(
+                        owner_identity_id=_identity()
+                    ),
+                    playback_scope="OWNER_PRIVATE",
+                )
+            )
+        )
+    except (ValueError, music_assets.MusicAssetUnavailable):
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+
+
+@bp.get("/tune/assets/<asset_id>/audio")
+@web_security.login_required(api=True)
+def play_track_audio_asset(asset_id: str):
+    try:
+        item = _music_asset_store.read(
+            owner_identity_id=_identity(),
+            asset_id=asset_id,
+        )
+        if item is None:
+            return _error("not_found", "Audio asset unavailable.", 404)
+        media, mime_type, digest, original_name = item
+        total = len(media)
+        status = 200
+        body = media
+        content_range = None
+        requested_range = request.headers.get("Range", "").strip()
+        if requested_range:
+            if not requested_range.startswith("bytes=") or "," in requested_range:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            spec = requested_range[6:]
+            start_text, separator, end_text = spec.partition("-")
+            if not separator:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            try:
+                if start_text:
+                    range_start = int(start_text)
+                    range_end = int(end_text) if end_text else total - 1
+                else:
+                    suffix = int(end_text)
+                    if suffix <= 0:
+                        raise ValueError("invalid_range")
+                    range_start = max(total - suffix, 0)
+                    range_end = total - 1
+            except ValueError:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            if range_start < 0 or range_start >= total or range_end < range_start:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            range_end = min(range_end, total - 1)
+            body = media[range_start : range_end + 1]
+            status = 206
+            content_range = f"bytes {range_start}-{range_end}/{total}"
+
+        response = make_response(body, status)
+        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Length"] = str(len(body))
+        response.headers["ETag"] = f'"{digest}"'
+        safe_name = (
+            original_name.replace(chr(34), "")
+            .replace(chr(13), "")
+            .replace(chr(10), "")
+        )
+        response.headers["Content-Disposition"] = f'inline; filename="{safe_name}"'
+        response.headers["Accept-Ranges"] = "bytes"
+        if content_range is not None:
+            response.headers["Content-Range"] = content_range
+        return _no_store(response)
+    except (TypeError, ValueError):
+        return _error("invalid_request", "Invalid audio asset.", 400)
+    except music_assets.MusicAssetUnavailable:
+        return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
 
 
 @bp.post("/tune/releases/<release_id>/review")

@@ -12,6 +12,44 @@ def _no_store(response):
     return response
 
 
+@bp.get("/music/manifest.webmanifest")
+def music_manifest():
+    """Dedicated first-party install identity for the public OAP Music app."""
+
+    response = make_response(
+        jsonify(
+            {
+                "name": "OAP Music",
+                "short_name": "OAP Music",
+                "description": "First-party OAP Music player, creator and radio surface.",
+                "id": "/music",
+                "start_url": "/music?source=oap-music-app",
+                "scope": "/music",
+                "display": "standalone",
+                "display_override": ["standalone", "minimal-ui"],
+                "orientation": "any",
+                "background_color": "#080808",
+                "theme_color": "#080808",
+                "prefer_related_applications": False,
+                "categories": ["music", "entertainment"],
+                "icons": [
+                    {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+                    {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+                ],
+                "shortcuts": [
+                    {"name": "Player", "short_name": "Player", "url": "/music#player"},
+                    {"name": "Radio", "short_name": "Radio", "url": "/music#radio"},
+                    {"name": "Creator Studio", "short_name": "Create", "url": "/music#creators"},
+                ],
+            }
+        )
+    )
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @bp.get("/music")
 def music_home():
     return _no_store(
@@ -67,6 +105,11 @@ def music_public_status():
                 {
                     "organ": "OAP Music",
                     "front_door_ready": True,
+                    "install_app_contract_ready": True,
+                    "install_manifest_url": "/music/manifest.webmanifest",
+                    "install_mode": "PWA",
+                    "signed_android_package_verified": False,
+                    "device_install_verified": False,
                     "first_party_catalogue_ready": True,
                     "first_party_discovery_ready": True,
                     "listener_contract": music_public_catalogue.listener_contract(),
