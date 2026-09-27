@@ -102,16 +102,22 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert 'aria-label="Link Up app"' in page
-    assert "Link Up is public. Create your free My Card to connect." in page
-    assert "🔗 Link Ups" in page
-    assert "👥 Find People" in page
-    assert "Call &amp; Face Up" in page
-    assert "📍 Around Now" in page
+    assert "PUBLIC · CONNECT · CREATE" in page
+    assert "Create My Card" in page
+    assert "Messages" in page
+    assert "Discovery" in page
+    assert "Certified" in page
+    assert "Safety" in page
+    assert "Private" in page
+    assert "Public" in page
+    assert "Opportunities" in page
+    assert "Spotlight" in page
+    assert "Identity" in page
+    assert "Nearby People" in page
+    assert "Community Signals" in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
-    assert "Create My Card — Free" in page
     assert 'href="/auth"' not in page
-    assert "Your My Card opens private Link Requests, messages, Voice and Face Up" in page
     assert "Message your Links." not in page
     assert "World Rooms" not in page
     assert 'method="post"' not in page.lower()
@@ -266,5 +272,8 @@ def test_linkup_public_shell_uses_free_my_card_actions():
 
     assert "Enter My World" not in template
     assert "url_for('my_card_create_page')" in template
-    assert "Create My Card — Free" in template
-    assert "Link Up is public. Create your free My Card to connect." in template
+    assert "Create My Card" in template
+    assert "PUBLIC · CONNECT · CREATE" in template
+    assert "linkup-royal-home" in template
+    assert "linkup-royal-tools" in template
+    assert "linkup-royal-bottom" in template
