@@ -1,6 +1,6 @@
 from flask import Flask
 
-from mission_control import music_assets, product_core_views
+from mission_control import music_assets, product_core_views, product_cores
 
 
 def test_music_asset_audio_validation_accepts_supported_magic_and_rejects_mismatch():
@@ -19,11 +19,12 @@ def test_music_asset_audio_validation_accepts_supported_magic_and_rejects_mismat
 def test_music_asset_contract_is_first_party_bounded():
     assert music_assets.MAX_AUDIO_BYTES == 6 * 1024 * 1024
     assert music_assets.MAX_OWNER_STORAGE_BYTES == 250 * 1024 * 1024
-    joined = "\n".join(music_assets.SCHEMA_SQL)
-    assert "oap_music_assets" in joined
+    joined = "\n".join(product_cores.PRODUCT_CORE_SCHEMA_STATEMENTS)
+    assert product_cores.PRODUCT_CORE_MIGRATION_VERSION == "0007_music_assets"
+    assert "oap_music_assets" in product_cores.PRODUCT_CORE_TABLES
     assert "owner_identity_id UUID NOT NULL" in joined
     assert "media BYTEA NOT NULL" in joined
-    assert "track_id UUID UNIQUE" in joined
+    assert "track_id UUID NOT NULL UNIQUE" in joined
 
 
 def test_music_upload_player_and_radio_routes_are_registered():
