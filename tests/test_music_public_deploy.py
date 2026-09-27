@@ -81,22 +81,17 @@ def test_music_migration_applies_base_product_core_first(monkeypatch):
     assert result["base_product_core_migration"] == "0006_music_market_post_office"
 
 
-def test_public_open_source_api_returns_truth_mode_directory():
+def test_public_music_status_is_first_party_only():
     app = Flask(__name__, template_folder="../mission_control/templates")
     app.register_blueprint(music_public_views.bp)
     client = app.test_client()
-    response = client.get("/music/api/open-sources")
+    response = client.get("/music/api/status")
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["canonical_catalogue"] == "OAP Music"
-    assert len(payload["entries"]) >= 6
-    labels = {row["label"] for row in payload["entries"]}
-    assert "Free Music Archive" in labels
-    assert "ccMixter" in labels
-    assert "Musopen" in labels
-    assert all(row["connected"] is False for row in payload["entries"])
-    assert all(row["licence_verified"] is False for row in payload["entries"])
-    assert all(row["bulk_import_allowed"] is False for row in payload["entries"])
+    assert payload["first_party_catalogue_ready"] is True
+    assert payload["first_party_discovery_ready"] is True
+    assert "open_source_directory_ready" not in payload
+    assert "open_source_count" not in payload
 
 
 def test_public_music_status_does_not_fake_track_or_playback_readiness():
@@ -106,8 +101,8 @@ def test_public_music_status_does_not_fake_track_or_playback_readiness():
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["front_door_ready"] is True
-    assert payload["open_source_directory_ready"] is True
-    assert payload["open_source_count"] >= 6
+    assert payload["first_party_catalogue_ready"] is True
+    assert payload["first_party_discovery_ready"] is True
     assert payload["public_catalogue_track_count"] == 0
     assert payload["public_playback_enabled"] is False
     assert payload["public_radio_streaming_enabled"] is False
@@ -124,8 +119,9 @@ def test_music_page_controls_have_real_targets_and_no_fake_play_button():
     for anchor in ("#catalogue", "#civilization", "#radio", "#records", "#player"):
         assert f'href="{anchor}"' in body
     assert 'id="music-search"' in body
-    assert "source-card" in body
-    assert "Open source" in body
+    assert "First-Party Discovery" in body
+    assert "Free / Open Discovery Sources" not in body
+    assert "Open source" not in body
     assert "<button disabled>▶ Play</button>" not in body
     assert "▶ Play locked" in body
 
@@ -169,14 +165,13 @@ def test_music_page_is_first_party_listener_surface_not_external_catalogue():
         assert f'id="{target}"' in body
     assert "Search OAP Music" in body
     assert "Search the free/open source directory" not in body
-    assert "They are not the OAP catalogue." in body
+    assert "OAP Music is a first-party catalogue." in body
     assert "/music/api/catalogue?q=" in body
 
 
 def test_music_has_dedicated_install_manifest_and_identity(client):
     response = client.get("/music/manifest.webmanifest")
     manifest = response.get_json()
-
     assert response.status_code == 200
     assert response.content_type == "application/manifest+json"
     assert manifest["name"] == "OAP Music"
@@ -186,17 +181,12 @@ def test_music_has_dedicated_install_manifest_and_identity(client):
     assert manifest["display"] == "standalone"
     assert manifest["prefer_related_applications"] is False
     assert {item["url"] for item in manifest["shortcuts"]} == {
-        "/music#player",
-        "/music#radio",
-        "/music#creators",
+        "/music#player", "/music#radio", "/music#creators",
     }
 
 
 def test_music_page_exposes_real_install_contract(client):
-    response = client.get("/music")
-    body = response.get_data(as_text=True)
-
-    assert response.status_code == 200
+    body = client.get("/music").get_data(as_text=True)
     assert 'rel="manifest" href="/music/manifest.webmanifest"' in body
     assert "data-oap-music-install hidden" in body
     assert 'src="/assets/oap-music-install.js"' in body
@@ -207,7 +197,6 @@ def test_music_page_exposes_real_install_contract(client):
 def test_music_install_controller_uses_existing_safe_root_worker(client):
     response = client.get("/assets/oap-music-install.js")
     source = response.get_data(as_text=True)
-
     assert response.status_code == 200
     assert response.content_type.startswith("application/javascript")
     assert 'navigator.serviceWorker.register("/service-worker.js", { scope: "/" })' in source
