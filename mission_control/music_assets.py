@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+
 from . import postgres_db
 
 MAX_AUDIO_BYTES = 6 * 1024 * 1024
