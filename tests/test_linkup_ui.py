@@ -93,7 +93,7 @@ def test_duplicate_link_view_is_rejected():
     assert validation["checks"]["naming_conflicts"] == 1
 
 
-def test_public_link_ui_is_concise_and_read_only(anonymous_client, tmp_path, monkeypatch):
+def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, tmp_path, monkeypatch):
     database_path = tmp_path / "the-link.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
     response = anonymous_client.get("/linkup")
@@ -101,13 +101,18 @@ def test_public_link_ui_is_concise_and_read_only(anonymous_client, tmp_path, mon
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert "Link Up is private." in page
+    assert 'aria-label="Link Up app"' in page
+    assert "See the app. Enter only when you want to connect." in page
+    assert "🔗 Link Ups" in page
+    assert "👥 Find People" in page
+    assert "Call &amp; Face Up" in page
+    assert "📍 Around Now" in page
     assert "Enter My World" in page
     assert 'href="/enter-my-world?next=/linkup"' in page
     assert 'href="/auth"' not in page
+    assert "Your People, My Card, messages, Voice, Face Up and location stay private" in page
     assert "Message your Links." not in page
     assert "World Rooms" not in page
-    assert "Circle" not in page
     assert 'method="post"' not in page.lower()
     assert anonymous_client.post("/linkup").status_code == 405
     assert not database_path.exists()
@@ -255,9 +260,10 @@ def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
     assert 'openPanel("new")' in script
 
 
-def test_linkup_private_entry_has_enter_my_world_link():
+def test_linkup_public_shell_has_protected_enter_my_world_actions():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert "Enter My World" in template
     assert "url_for('auth_page', next='/linkup')" in template
-    assert "Find People and New Link workspace" in template
+    assert "See the app. Enter only when you want to connect." in template
+    assert "Link Up is open to explore." in template
