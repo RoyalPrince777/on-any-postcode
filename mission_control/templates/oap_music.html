@@ -4,6 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>OAP Music</title>
+  <meta name="theme-color" content="#080808">
+  <meta name="application-name" content="OAP Music">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="OAP Music">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/music/manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="/assets/oap-os-icon-192.png">
+  <link rel="apple-touch-icon" href="/assets/oap-os-icon-192.png">
   <style>
     :root{color-scheme:dark;background:#080808;color:#f6f6f6;font-family:system-ui,sans-serif}
     *{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#080808,#121212)}
@@ -35,6 +43,14 @@
     <div class="eyebrow">ON ANY POSTCODE</div>
     <h1>🎵 OAP Music</h1>
     <p class="sub">Born Local. Built Global. Earth Is Our Turf.</p>
+    <div class="card">
+      <strong>📲 Install OAP Music</strong>
+      <p class="muted">First-party installable web app. Creator actions remain protected behind Enter My World.</p>
+      <div class="source-actions">
+        <button class="action" type="button" data-oap-music-install hidden>Install OAP Music</button>
+      </div>
+      <p class="result" data-oap-music-install-status role="status">Checking install support…</p>
+    </div>
 
     <label for="music-search" class="muted">Search OAP Music</label>
     <input id="music-search" class="search" type="search" placeholder="Search OAP tracks and releases…" autocomplete="off">
@@ -230,6 +246,7 @@
     <a href="#player">▶️ Player</a>
   </nav>
 
+  <script defer src="/assets/oap-music-install.js"></script>
   <script>
     (() => {
       const buttons = document.querySelectorAll('[data-target]');
