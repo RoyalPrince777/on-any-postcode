@@ -250,6 +250,24 @@ def sign_in(email: str, password: str) -> AuthResult:
     )
 
 
+def sign_up(name: str, email: str, password: str) -> AuthResult:
+    """Create a public OAP member identity without exposing Founder signup."""
+
+    normalized_email = str(email or "").strip().casefold()
+    if founder_email_allowed(normalized_email):
+        raise ValueError("reserved_identity")
+    return _request(
+        "/sign-up/email",
+        method="POST",
+        payload={
+            "name": str(name or "").strip(),
+            "email": normalized_email,
+            "password": password,
+        },
+        origin=_required_public_origin(),
+    )
+
+
 def sign_up_founder(password: str, name: str) -> AuthResult:
     """Create only the server-configured private Founder identity in Managed Auth."""
 

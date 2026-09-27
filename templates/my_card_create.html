@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create My Card · Link Up</title>
+  <style>
+    :root{color-scheme:dark;--bg:#06120b;--panel:#10281a;--line:#2d7044;--green:#61df91;--text:#f5fff7;--muted:#b8c9bd}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#123b23,var(--bg) 45%);color:var(--text);font-family:Arial,sans-serif}
+    header,main{width:min(720px,calc(100% - 32px));margin:auto}header{padding:28px 0 12px}header a{color:#a9eabe}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.09em;text-transform:uppercase;font-size:.78rem}
+    .card{margin:14px 0 40px;padding:clamp(20px,5vw,34px);border:1px solid var(--line);border-radius:22px;background:rgba(16,40,26,.96);box-shadow:0 20px 60px #0007}h1{margin:.2rem 0 .6rem;font-size:clamp(2rem,7vw,3.6rem)}p{line-height:1.5;color:var(--muted)}
+    label{display:block;margin-top:15px;font-weight:800}input{width:100%;margin-top:7px;padding:13px;border:1px solid #397451;border-radius:10px;background:#f7fff9;color:#06120b;font:inherit}.check{display:flex;align-items:flex-start;gap:10px;font-weight:600}.check input{width:auto;margin-top:3px;accent-color:#27c267}
+    button{width:100%;margin-top:20px;padding:14px;border:1px solid #8cf0ad;border-radius:11px;background:#27c267;color:#021;font:inherit;font-weight:900;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.error{margin:14px 0;padding:13px;border:1px solid #ff7582;border-radius:10px;background:#461b21}.small{font-size:.9rem}.signin{text-align:center}.signin a{color:#a9eabe}
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Link Up · Public and free</p>
+    <a href="{{ url_for('linkup_front_door') }}">← Back to Link Up</a>
+  </header>
+  <main>
+    <section class="card" aria-labelledby="create-card-title">
+      <h1 id="create-card-title">Create My Card</h1>
+      <p>Your My Card is your OAP identity for private Link Requests, messages, Voice and Face Up. Creating it is free.</p>
+      {% if create_error %}<div class="error" role="alert">{{ create_error }}</div>{% endif %}
+      {% if not auth_configured %}<div class="error" role="alert">My Card creation is temporarily unavailable.</div>{% endif %}
+      <form method="post" action="{{ url_for('my_card_create') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="card-name">Name shown on My Card</label>
+        <input id="card-name" name="name" autocomplete="name" maxlength="120" required>
+        <label for="card-email">Email</label>
+        <input id="card-email" name="email" type="email" autocomplete="email" maxlength="320" required>
+        <label for="card-password">Password</label>
+        <input id="card-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <label for="card-password-confirmation">Confirm password</label>
+        <input id="card-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <label class="check" for="accept-private-actions">
+          <input id="accept-private-actions" name="accept_private_actions" type="checkbox" value="yes" required>
+          <span>I understand that private Link Up actions use my My Card identity.</span>
+        </label>
+        <button type="submit" {% if not auth_configured %}disabled{% endif %}>Create My Card — Free</button>
+      </form>
+      <p class="signin small">Already have a My Card? <a href="{{ url_for('auth_page', next='/linkup') }}">Sign in</a></p>
+    </section>
+  </main>
+</body>
+</html>

@@ -102,15 +102,16 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert 'aria-label="Link Up app"' in page
-    assert "See the app. Enter only when you want to connect." in page
+    assert "Link Up is public. Create your free My Card to connect." in page
     assert "🔗 Link Ups" in page
     assert "👥 Find People" in page
     assert "Call &amp; Face Up" in page
     assert "📍 Around Now" in page
-    assert "Enter My World" in page
-    assert 'href="/enter-my-world?next=/linkup"' in page
+    assert "Enter My World" not in page
+    assert 'href="/my-card/create"' in page
+    assert "Create My Card — Free" in page
     assert 'href="/auth"' not in page
-    assert "Your People, My Card, messages, Voice, Face Up and location stay private" in page
+    assert "Your My Card opens private Link Requests, messages, Voice and Face Up" in page
     assert "Message your Links." not in page
     assert "World Rooms" not in page
     assert 'method="post"' not in page.lower()
@@ -260,10 +261,10 @@ def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
     assert 'openPanel("new")' in script
 
 
-def test_linkup_public_shell_has_protected_enter_my_world_actions():
+def test_linkup_public_shell_uses_free_my_card_actions():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
-    assert "Enter My World" in template
-    assert "url_for('auth_page', next='/linkup')" in template
-    assert "See the app. Enter only when you want to connect." in template
-    assert "Link Up is open to explore." in template
+    assert "Enter My World" not in template
+    assert "url_for('my_card_create_page')" in template
+    assert "Create My Card — Free" in template
+    assert "Link Up is public. Create your free My Card to connect." in template

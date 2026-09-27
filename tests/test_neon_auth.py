@@ -167,6 +167,33 @@ def test_founder_signup_uses_only_the_server_side_selector(monkeypatch):
     }
 
 
+def test_public_signup_normalizes_member_identity_and_keeps_founder_reserved(monkeypatch):
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://on-any-postcode.onrender.com")
+    observed = {}
+
+    def fake_request(path, *, method, payload=None, cookie_header=None, origin=None):
+        observed.update(path=path, method=method, payload=payload, origin=origin)
+        return neon_auth.AuthResult(status_code=200, payload={"user": {}})
+
+    monkeypatch.setattr(neon_auth, "_request", fake_request)
+    result = neon_auth.sign_up("  New Member  ", " MEMBER@Example.Test ", "private passphrase")
+
+    assert result.status_code == 200
+    assert observed == {
+        "path": "/sign-up/email",
+        "method": "POST",
+        "payload": {
+            "name": "New Member",
+            "email": "member@example.test",
+            "password": "private passphrase",
+        },
+        "origin": "https://on-any-postcode.onrender.com",
+    }
+    with pytest.raises(ValueError, match="reserved_identity"):
+        neon_auth.sign_up("Founder", "founder@example.test", "private passphrase")
+
+
 def test_founder_signup_fails_closed_without_server_selector(monkeypatch):
     monkeypatch.delenv("OAP_HUMAN_AUTHORITY_EMAIL", raising=False)
 

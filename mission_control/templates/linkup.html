@@ -48,25 +48,25 @@
       <aside class="linkup-list" aria-label="Link Up features">
         <div class="linkup-list-head">
           <input class="linkup-search" type="search" placeholder="Search Link Ups" aria-label="Search Link Ups" disabled>
-          <a class="linkup-new-btn" href="{{ url_for('auth_page', next='/linkup') }}" aria-label="Start a New Link">+</a>
+          <a class="linkup-new-btn" href="{{ url_for('my_card_create_page') }}" aria-label="Create My Card">+</a>
         </div>
         <div class="linkup-master-nav">
-          <a href="{{ url_for('auth_page', next='/linkup') }}">Circle</a>
+          <a href="{{ url_for('my_card_create_page') }}">Circle</a>
           <a href="{{ url_for('the_link_front_door') }}">The Link</a>
         </div>
-        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+        <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}">
           <strong>🔗 Link Ups</strong>
           <small>Open your private conversations.</small>
         </a>
-        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+        <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}">
           <strong>👥 Find People</strong>
           <small>Connect through protected Link Requests.</small>
         </a>
-        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+        <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}">
           <strong>📞 Call &amp; Face Up</strong>
           <small>Voice and video inside your private Links.</small>
         </a>
-        <a class="linkup-public-action" href="{{ url_for('auth_page', next='/linkup') }}">
+        <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}">
           <strong>📍 Around Now</strong>
           <small>Private, permission-controlled presence.</small>
         </a>
@@ -79,9 +79,10 @@
           </header>
           <div class="linkup-public-welcome">
             <span class="linkup-avatar">🌍</span>
-            <h2>See the app. Enter only when you want to connect.</h2>
-            <p>Link Up is open to explore. Your People, My Card, messages, Voice, Face Up and location stay private until you enter My World.</p>
-            <a class="mc-primary" href="{{ url_for('auth_page', next='/linkup') }}">Enter My World</a>
+            <h2>Link Up is public. Create your free My Card to connect.</h2>
+            <p>Explore Link Up without an account. Your My Card opens private Link Requests, messages, Voice and Face Up while your location stays permission-controlled.</p>
+            <a class="mc-primary" href="{{ url_for('my_card_create_page') }}">Create My Card — Free</a>
+            <a href="{{ url_for('auth_page', next='/linkup') }}">Already have a My Card? Sign in</a>
           </div>
         </article>
       </section>
