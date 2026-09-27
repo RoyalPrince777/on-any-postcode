@@ -1,0 +1,72 @@
+name: OAP runtime image
+
+on:
+  pull_request:
+    paths:
+      - "Dockerfile.runtime"
+      - "requirements.txt"
+      - "app.py"
+      - "smi_gateway.py"
+      - "mission_control/**"
+      - "oap/**"
+      - ".github/workflows/runtime-image.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile.runtime"
+      - "requirements.txt"
+      - "app.py"
+      - "smi_gateway.py"
+      - "mission_control/**"
+      - "oap/**"
+      - ".github/workflows/runtime-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/royalprince777/on-any-postcode-runtime
+
+jobs:
+  runtime-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build runtime image for PR proof
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.runtime
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and publish exact runtime image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.runtime
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
