@@ -80,7 +80,7 @@ class UseRequest:
     derivative: bool = False
 
     @classmethod
-    def from_mapping(cls, value: object) -> "UseRequest":
+    def from_mapping(cls, value: object) -> UseRequest:
         if not isinstance(value, Mapping):
             raise TypeError("invalid_use_request")
         use = value.get("use")
