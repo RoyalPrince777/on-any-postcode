@@ -1,0 +1,64 @@
+name: Promote OAP Core immutable image
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type PROMOTE to apply the exact existing-service image promotion"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    if: ${{ inputs.confirmation == 'PROMOTE' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout exact main
+        uses: actions/checkout@v5
+
+      - name: Verify immutable release contract
+        run: |
+          python - <<'PY'
+          import json
+          manifest=json.load(open("deploy/render-image-release.json"))
+          assert manifest["services"]["core"]["render_service_id"] == "srv-d8gfsv0jo6nc73egdlf0"
+          assert manifest["image"]["immutable_ref"] == (
+              "ghcr.io/royalprince777/on-any-postcode-runtime@"
+              "sha256:fc6cedcabba587a2cff3090f6ff680b223ce09313257a8d1f445f683142d9c7b"
+          )
+          print("immutable-release-contract-ok")
+          PY
+
+      - name: Promote exact existing Core service image
+        env:
+          OAP_RENDER_API_KEY: ${{ secrets.OAP_RENDER_API_KEY }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: python scripts/promote_render_core_image.py --apply
+
+      - name: Verify public health and first-party Music wording
+        run: |
+          python - <<'PY'
+          import time, urllib.request
+          base="https://on-any-postcode.onrender.com"
+          for attempt in range(18):
+              try:
+                  with urllib.request.urlopen(base+"/healthz", timeout=20) as r:
+                      if 200 <= r.status < 300:
+                          break
+              except Exception:
+                  pass
+              time.sleep(10)
+          else:
+              raise SystemExit("healthz_not_ready")
+          with urllib.request.urlopen(base+"/music", timeout=20) as r:
+              body=r.read().decode("utf-8","replace")
+          assert "First-Party Discovery" in body
+          assert "OAP Music is a first-party catalogue." in body
+          assert "Free / Open Discovery Sources" not in body
+          assert "Open source" not in body
+          print("oap-core-image-promotion-acceptance-pass")
+          PY
