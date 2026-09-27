@@ -848,6 +848,49 @@ def _operations_ratings(snapshot: Mapping[str, Mapping[str, Any]]) -> list[dict[
             ),
         ),
         _rating(
+            item_id="oap_music_install_app",
+            name="OAP Music Install App",
+            category="Infrastructure and runtime",
+            summary=(
+                "Dedicated first-party installable OAP Music web app with Player, "
+                "Radio and Creator entry points."
+            ),
+            stages=_stages(
+                True,
+                _paths_present(
+                    (
+                        "mission_control/music_public_views.py",
+                        "mission_control/templates/oap_music.html",
+                        "static/oap-music-install.js",
+                    )
+                ),
+                _paths_present(
+                    (
+                        "tests/test_music_public_deploy.py",
+                        "tests/test_music_assets.py",
+                    )
+                ),
+                False,
+                False,
+                (
+                    "Dedicated OAP Music install identity approved",
+                    "Manifest, install controller and safe service-worker handoff implemented",
+                    "Install contract, Music controls and private-boundary regressions present",
+                    "Real supported-device installation and authenticated creator flow observed",
+                    "Signed package or certified production-device release approved",
+                ),
+            ),
+            next_gate=(
+                "Deploy the verified Music head, apply governed schema 0013, install on "
+                "Android and prove upload, playback seeking, Radio queue and STOP on-device."
+            ),
+            impact=5,
+            truth_boundary=(
+                "Browser-installable PWA is not a signed Android APK; public broadcast, "
+                "external DSP delivery and device acceptance remain separately gated."
+            ),
+        ),
+        _rating(
             item_id="route_core",
             name="OAP Route Core",
             category="Infrastructure and runtime",
