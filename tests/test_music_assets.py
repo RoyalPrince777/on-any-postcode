@@ -36,5 +36,27 @@ def test_music_upload_player_and_radio_routes_are_registered():
     assert rules["/mission/organs/tune/releases/<release_id>/upload"] >= {"POST"}
     assert rules["/mission/organs/tune/assets"] >= {"GET"}
     assert rules["/mission/organs/tune/assets/<asset_id>/audio"] >= {"GET"}
+    assert rules["/mission/organs/tune/releases/<release_id>/review"] >= {"POST"}
     assert rules["/mission/organs/radio/stations"] >= {"POST"}
+    assert rules["/mission/organs/radio/stations/<station_id>/shows"] >= {"POST"}
+    assert rules["/mission/organs/radio/stations/<station_id>/schedule"] >= {"POST"}
     assert rules["/mission/organs/radio/stations/<station_id>/rotation"] >= {"POST"}
+    assert rules["/mission/organs/radio/stations/<station_id>/stop"] >= {"POST"}
+
+
+def test_music_creator_surface_exposes_real_governed_controls():
+    template = open("mission_control/templates/oap_music.html", encoding="utf-8").read()
+    for control_id in (
+        "release-form",
+        "upload-form",
+        "review-form",
+        "station-form",
+        "rotation-form",
+        "show-form",
+        "schedule-form",
+        "stop-form",
+    ):
+        assert f'id="{control_id}"' in template
+    assert "/tune/releases/" in template
+    assert "/radio/stations/" in template
+    assert "broadcast not auto-started" in template
