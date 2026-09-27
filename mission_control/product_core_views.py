@@ -895,14 +895,58 @@ def play_track_audio_asset(asset_id: str):
         if item is None:
             return _error("not_found", "Audio asset unavailable.", 404)
         media, mime_type, digest, original_name = item
-        response = make_response(media)
+        total = len(media)
+        status = 200
+        body = media
+        content_range = None
+        requested_range = request.headers.get("Range", "").strip()
+        if requested_range:
+            if not requested_range.startswith("bytes=") or "," in requested_range:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            spec = requested_range[6:]
+            start_text, separator, end_text = spec.partition("-")
+            if not separator:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            try:
+                if start_text:
+                    range_start = int(start_text)
+                    range_end = int(end_text) if end_text else total - 1
+                else:
+                    suffix = int(end_text)
+                    if suffix <= 0:
+                        raise ValueError("invalid_range")
+                    range_start = max(total - suffix, 0)
+                    range_end = total - 1
+            except ValueError:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            if range_start < 0 or range_start >= total or range_end < range_start:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            range_end = min(range_end, total - 1)
+            body = media[range_start : range_end + 1]
+            status = 206
+            content_range = f"bytes {range_start}-{range_end}/{total}"
+
+        response = make_response(body, status)
         response.headers["Content-Type"] = mime_type
-        response.headers["Content-Length"] = str(len(media))
+        response.headers["Content-Length"] = str(len(body))
         response.headers["ETag"] = f'"{digest}"'
-        response.headers["Content-Disposition"] = (
-            f'inline; filename="{original_name.replace(chr(34), "")}"'
+        safe_name = (
+            original_name.replace(chr(34), "")
+            .replace(chr(13), "")
+            .replace(chr(10), "")
         )
-        response.headers["Accept-Ranges"] = "none"
+        response.headers["Content-Disposition"] = f'inline; filename="{safe_name}"'
+        response.headers["Accept-Ranges"] = "bytes"
+        if content_range is not None:
+            response.headers["Content-Range"] = content_range
         return _no_store(response)
     except (TypeError, ValueError):
         return _error("invalid_request", "Invalid audio asset.", 400)
