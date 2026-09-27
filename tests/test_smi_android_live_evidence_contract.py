@@ -61,3 +61,13 @@ def test_android_proof_stays_contextual_not_home_screen_noise():
     assert 'document.getElementById("attach-menu")' in collector
     assert 'id="android-proof-button"' not in TEMPLATE.read_text(encoding="utf-8")
     assert "Android Proof" in collector
+
+
+def test_source_pixel_motion_canvas_is_visible_beneath_smi_controls():
+    motion = MOTION.read_text(encoding="utf-8")
+    css = Path("mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
+    assert "z-index:0" in motion
+    assert "#smi-source-pixel-motion{z-index:0!important}" in css
+    assert ".smi-shell>.workspace-grid{z-index:3!important}" in css
+    assert ".smi-shell::after{z-index:2!important}" in css
+    assert "z-index:-1" not in motion
