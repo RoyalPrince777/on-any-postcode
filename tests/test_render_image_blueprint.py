@@ -16,7 +16,7 @@ def test_core_render_blueprint_uses_immutable_first_party_runtime_image():
     assert "runtime: image" in block
     assert (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:fc6cedcabba587a2cff3090f6ff680b223ce09313257a8d1f445f683142d9c7b"
+        "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
     ) in block
     assert 'value: "app:app"' in block
     assert "buildCommand:" not in block
@@ -33,14 +33,14 @@ def test_core_image_blueprint_preserves_database_and_health_contract():
     assert "property: connectionString" in block
 
 
-def test_image_release_manifest_matches_first_party_music_release():
+def test_image_release_manifest_matches_current_shared_runtime_release():
     import json
 
     manifest = json.loads(
         (ROOT / "deploy" / "render-image-release.json").read_text()
     )
     assert manifest["release_commit"] == (
-        "351ae499187f14c92af750bad2f9a05afa8b4c4a"
+        "2577d2f6eb42bd8c8c962ee1856c5de2e0cd7964"
     )
     assert manifest["image"]["immutable_ref"] == (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
@@ -52,3 +52,25 @@ def test_image_release_manifest_matches_first_party_music_release():
     assert manifest["services"]["core"]["public_url"] == (
         "https://on-any-postcode.onrender.com"
     )
+
+
+def _smi_block() -> str:
+    content = (ROOT / "render.yaml").read_text()
+    start = content.index("  - type: web\n    name: oap-smi\n")
+    tail = content[start + 1 :]
+    next_service = tail.find("\n  - type:")
+    return content[start:] if next_service < 0 else content[start : start + 1 + next_service]
+
+
+def test_smi_render_blueprint_uses_exact_motion_fix_image():
+    block = _smi_block()
+    assert "runtime: image" in block
+    assert (
+        "ghcr.io/royalprince777/on-any-postcode-runtime@"
+        "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+    ) in block
+    assert 'value: "smi_gateway:app"' in block
+    assert "buildCommand:" not in block
+    assert "startCommand:" not in block
+    assert "repo:" not in block
+    assert "branch:" not in block
