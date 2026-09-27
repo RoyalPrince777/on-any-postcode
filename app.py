@@ -1002,6 +1002,110 @@ def library_auth_page():
     return _auth_page_for(_safe_library_next(request.args.get("next")))
 
 
+def _my_card_create_response(
+    *, status_code: int = 200, error: str | None = None
+):
+    response = make_response(
+        render_template(
+            "my_card_create.html",
+            auth_configured=neon_auth.status()["valid"],
+            create_error=error,
+        ),
+        status_code,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.get("/my-card/create")
+def my_card_create_page():
+    """Open free public member creation without exposing private Link Up data."""
+
+    try:
+        if web_security.current_authenticated_user() is not None:
+            return redirect(url_for("linkup_front_door"))
+    except neon_auth.AuthUnavailable:
+        pass
+    return _my_card_create_response()
+
+
+@app.post("/my-card/create")
+def my_card_create():
+    """Create a first-party My Card identity through the managed auth boundary."""
+
+    if not web_security.csrf_valid(request):
+        return _my_card_create_response(
+            status_code=403,
+            error="The secure session expired. Refresh and try again.",
+        )
+    rate_key = _auth_rate_key("my-card-create")
+    if not web_security.AUTH_BURST_LIMITER.allow(rate_key):
+        return _my_card_create_response(
+            status_code=429,
+            error="Too many attempts. Wait five minutes and try again.",
+        )
+
+    name = _form_text("name", "", 120)
+    email = _form_text("email", "", 320).casefold()
+    password = _form_secret("password", 129)
+    confirmation = _form_secret("password_confirmation", 129)
+    accepted = request.form.get("accept_private_actions") == "yes"
+    if len(name) < 2:
+        return _my_card_create_response(
+            status_code=400, error="Enter the name to show on your My Card."
+        )
+    if not email or "@" not in email or email.startswith("@") or email.endswith("@"):
+        return _my_card_create_response(
+            status_code=400, error="Enter a valid email address."
+        )
+    if password != confirmation:
+        return _my_card_create_response(
+            status_code=400, error="The two password entries do not match."
+        )
+    if len(password) < 12 or len(password) > 128 or not password.strip():
+        return _my_card_create_response(
+            status_code=400,
+            error="Choose a password between 12 and 128 characters.",
+        )
+    if not accepted:
+        return _my_card_create_response(
+            status_code=400,
+            error="Confirm that private Link Up actions use your My Card identity.",
+        )
+
+    try:
+        result = neon_auth.sign_up(name, email, password)
+    except ValueError:
+        return _my_card_create_response(
+            status_code=403, error="That identity cannot be created here."
+        )
+    except neon_auth.AuthUnavailable:
+        return _my_card_create_response(
+            status_code=503,
+            error="My Card creation is temporarily unavailable.",
+        )
+    if neon_auth.temporarily_unavailable(result):
+        return _my_card_create_response(
+            status_code=503,
+            error="My Card creation is temporarily unavailable.",
+        )
+    if not neon_auth.successful(result):
+        return _my_card_create_response(
+            status_code=400,
+            error="My Card could not be created. Check the details or sign in if the email is already registered.",
+        )
+
+    web_security.AUTH_BURST_LIMITER.reset_key(rate_key)
+    response = redirect(url_for("linkup_front_door"))
+    if not _apply_auth_cookies(response, result.set_cookie_headers):
+        return _auth_page_response(
+            status_code=200,
+            notice="My Card was created. Sign in securely to open it.",
+            next_path="/linkup",
+        )
+    return response
+
+
 @app.get("/activate-founder")
 def founder_activation_page():
     activation_state = founder_activation.state()

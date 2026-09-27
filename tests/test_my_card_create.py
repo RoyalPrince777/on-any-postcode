@@ -1,0 +1,91 @@
+from __future__ import annotations
+
+from mission_control import neon_auth, web_security
+
+
+def test_public_my_card_page_is_free_and_not_enter_my_world(anonymous_client):
+    response = anonymous_client.get("/my-card/create")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert "Create My Card — Free" in page
+    assert "Creating it is free." in page
+    assert "Enter My World" not in page
+    assert 'action="/my-card/create"' in page
+    assert 'name="csrf_token"' in page
+
+
+def test_public_my_card_creation_sets_first_party_session_and_opens_linkup(
+    anonymous_client, monkeypatch
+):
+    token = "my-card-create-csrf-token-value-123456789"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+    observed = {}
+
+    def fake_sign_up(name, email, password):
+        observed["values"] = (name, email, password)
+        return neon_auth.AuthResult(
+            status_code=200,
+            payload={"user": {"id": "22222222-2222-4222-8222-222222222222"}},
+            set_cookie_headers=(
+                "better-auth.session_token=new-member; Secure; HttpOnly",
+            ),
+        )
+
+    monkeypatch.setattr(neon_auth, "sign_up", fake_sign_up)
+    response = anonymous_client.post(
+        "/my-card/create",
+        data={
+            "csrf_token": token,
+            "name": "New Member",
+            "email": "NEW@EXAMPLE.TEST",
+            "password": "a-private-password",
+            "password_confirmation": "a-private-password",
+            "accept_private_actions": "yes",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/linkup")
+    assert observed["values"] == (
+        "New Member",
+        "new@example.test",
+        "a-private-password",
+    )
+    auth_cookie = next(
+        value
+        for value in response.headers.getlist("Set-Cookie")
+        if value.startswith("better-auth.session_token=")
+    )
+    assert "Path=/; Secure; HttpOnly; SameSite=Lax" in auth_cookie
+
+
+def test_public_my_card_creation_rejects_missing_consent_without_auth_call(
+    anonymous_client, monkeypatch
+):
+    token = "my-card-consent-csrf-token-value-123456789"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_up",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("auth must not be called")
+        ),
+    )
+    response = anonymous_client.post(
+        "/my-card/create",
+        data={
+            "csrf_token": token,
+            "name": "New Member",
+            "email": "new@example.test",
+            "password": "a-private-password",
+            "password_confirmation": "a-private-password",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Confirm that private Link Up actions use your My Card identity." in response.get_data(as_text=True)
