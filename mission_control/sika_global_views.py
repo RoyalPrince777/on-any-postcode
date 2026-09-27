@@ -998,11 +998,19 @@ def sika_bank_credential_recover():
     if rate_error:
         return rate_error
     try:
+        session_receipt = sika_session_registry.revoke_all(
+            owner.owner_id,
+            reason="bank_app_credential_recovery",
+        )
         result = sika_bank_credential_store.recover_authenticated_owner(owner.owner_id)
+    except sika_session_registry.SikaSessionUnavailable as exc:
+        return jsonify({"error": str(exc), "recovered": False}), 503
     except sika_bank_credential_store.SikaCredentialStoreUnavailable as exc:
         return jsonify({"error": str(exc), "recovered": False}), 503
     return jsonify({
         **result,
+        "sessions_revoked": bool(session_receipt.get("revoked_all")),
+        "new_session_required": True,
         "authenticated_owner_source": owner.source,
         "caller_supplied_owner_id_trusted": False,
     }), (200 if result.get("recovered") else 404)
