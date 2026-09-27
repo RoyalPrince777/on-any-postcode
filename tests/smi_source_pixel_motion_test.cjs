@@ -35,3 +35,12 @@ assert.ok(source.includes("rigLayerFrames"));
 assert.ok(source.includes("maxAudioClockDeltaMs"));
 assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session"));
 console.log("SMI_SOURCE_PIXEL_MOTION_PASS");
+
+const controller=fs.readFileSync("mission_control/static/smi_canonical_controller.js","utf8");
+const liveBlock=controller.slice(controller.indexOf("function oapSetLive("),controller.indexOf("function oapRequestListening("));
+assert.ok(!liveBlock.includes("if(!oapRecognition){"),"visual Live SMI must not be blocked by missing speech recognition");
+assert.ok(liveBlock.includes("if(oapRecognition){"),"microphone auto-listening remains conditional");
+assert.ok(liveBlock.includes("visual motion active"),"Live status should confirm visual movement");
+assert.ok(source.includes("explicitLiveMotion"),"explicit Live session must be represented in renderer state");
+assert.ok(source.includes("reducedMotionPreference"),"renderer must report reduced-motion preference truthfully");
+assert.ok(source.includes("!reducedPreference||explicitLiveMotion"),"explicit Live session may enable motion for that session");

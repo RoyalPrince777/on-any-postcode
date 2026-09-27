@@ -110,14 +110,17 @@ function oapUpdateLiveToggle(){
 function oapSetLive(enabled){
  if(!oapRuntime||!oapStateApi){oapSetStatus('Live SMI state engine unavailable');return false;}
  if(enabled){
-  if(!oapRecognition){oapSetStatus('Live SMI unavailable · browser speech recognition is not supported');oapUpdateLiveToggle();return false;}
   if(oapRuntime.stopped)oapApply('RESUME_FROM_STOP');
   oapApply('LIVE_ON');
   oapVoiceEnabled=true;
   if(oapSpeaker){oapSpeaker.classList.add('active');oapSpeaker.setAttribute('aria-pressed','true');oapSpeaker.textContent='🔊 Voice reply';}
-  oapSetStatus('Live SMI full screen · voice-first · final recognised speech turns auto-send · browser speech-service locality not verified');
+  if(oapRecognition){
+   oapSetStatus('Live SMI full screen · visual motion active · voice-first · final recognised speech turns auto-send · browser speech-service locality not verified');
+   oapScheduleListening(180);
+  }else{
+   oapSetStatus('Live SMI full screen · visual motion active · microphone recognition unavailable on this browser');
+  }
   oapUpdateLiveToggle();
-  oapScheduleListening(180);
   return true;
  }
  oapClearLiveRestart();

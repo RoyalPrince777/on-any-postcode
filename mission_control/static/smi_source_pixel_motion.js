@@ -95,13 +95,14 @@
    hands:await digestParts([["left-hand",samples["left-hand"].data],["right-hand",samples["right-hand"].data]]),
    upper_body:await digestParts([["head",samples["head"].data],["chest",samples["chest"].data],["left-hand",samples["left-hand"].data],["right-hand",samples["right-hand"].data]])
   });
-  let epoch=0,frame=0,last=0,phase="ready",live=false,reduced=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),played=0,speechUntil=0,audioCues=0;
+  let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0;
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
   function draw(ms){
    context.drawImage(image,0,0);
-   if(!live||reduced||phase==="paused"||phase==="stopped")return;
+   const motionAllowed=!reducedPreference||explicitLiveMotion;
+   if(!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
    const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
    const poses=motionFor(phase,ms,pulse);
    for(const region of REGIONS){
@@ -119,14 +120,16 @@
   function tick(now){
    if(epoch<0)return;
    frame=win.requestAnimationFrame(tick);
-   if(now-last<30||!live||reduced||phase==="paused"||phase==="stopped")return;
+   const motionAllowed=!reducedPreference||explicitLiveMotion;
+   if(now-last<30||!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
    last=now;draw(now);
   }
   function onState(event){
    const state=String(event?.detail?.state||"ready");
    phase=STATES.has(state)?state:"stopped";
    playbackEpoch=event?.detail?.epoch;
-   live=(event?.detail?.live===true||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
+   explicitLiveMotion=event?.detail?.live===true&&!event?.detail?.stopped;
+   live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
    if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
   }
   win.addEventListener("oap-smi-character-state",onState);
@@ -136,7 +139,7 @@
   });
   win.addEventListener("oap-smi-audio-cue",event=>{
    const cue=event?.detail;
-   if(!localAudio||phase!=="speaking"||!live||reduced||
+   if(!localAudio||phase!=="speaking"||!live||(!explicitLiveMotion&&reducedPreference)||
       cue?.source!=="oap-first-party-pcm"||cue?.decodedAudio!==true||
       cue?.synthesisPhonemeTiming!==true||cue?.epoch!==playbackEpoch||
       !Number.isFinite(cue?.audioClockMs)||cue.audioClockMs<0||
@@ -161,6 +164,7 @@
    const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
+    reducedMotionPreference:reducedPreference,explicitLiveMotion,
     maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,fullBodyRigProven,
     accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
