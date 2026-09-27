@@ -879,7 +879,7 @@ def upload_track_audio(release_id: str):
         RuntimeError,
     ):
         return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
-    except Exception:
+    except (OSError, EOFError):
         return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
 
 
