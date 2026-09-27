@@ -1187,6 +1187,20 @@ def auth_sign_out():
         )
     return response
 
+@app.get("/tv")
+@app.get("/oap-tv")
+@app.get("/media")
+@app.get("/oap-media")
+@app.get("/tv-media")
+def oap_tv_media_front_door():
+    """Keep all public TV/Media entry points aligned to one canonical OAP surface."""
+
+    return redirect(
+        url_for("spot_capability_front_door", capability_slug="tv-media"),
+        code=302,
+    )
+
+
 @app.get("/the-spot")
 def the_spot_front_door():
     """Render the public postcode-community product without internal details."""
