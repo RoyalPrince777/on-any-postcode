@@ -244,6 +244,35 @@ def test_sensitive_spot_functions_are_not_misrepresented_as_live():
     assert all("Fully operational" not in item["status"] for item in by_id.values())
 
 
+def test_oap_tv_media_aliases_resolve_to_one_public_front_door(client):
+    aliases = ("/tv", "/oap-tv", "/media", "/oap-media", "/tv-media")
+
+    for path in aliases:
+        response = client.get(path)
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/the-spot/tv-media")
+
+        page = client.get(path, follow_redirects=True).get_data(as_text=True)
+        assert "OAP TV & Media" in page
+        assert "Watch. Discover. Create. Keep the rights clear." in page
+        assert "OAP TV" in page
+        assert "OAP Media" in page
+        assert "OAP Live" in page
+        assert "OAP Records" in page
+        assert "Studio Intelligence" in page
+        assert "Proof before play" in page
+        assert "does not claim live channels" in page
+
+
+def test_home_media_link_no_longer_targets_a_404(client):
+    home = client.get("/").get_data(as_text=True)
+
+    assert 'href="/media"' in home
+    response = client.get("/media", follow_redirects=True)
+    assert response.status_code == 200
+    assert "OAP TV & Media" in response.get_data(as_text=True)
+
+
 def test_oap_media_stack_rejects_stream_money_dependency():
     by_id = {item["id"]: item for item in products.SPOT_CAPABILITIES}
 
