@@ -150,6 +150,12 @@
           <button type="submit">Upload to OAP Music</button>
           <div class="result" id="upload-result"></div>
         </form>
+        <form id="review-form" class="card control-form">
+          <strong>🛡️ Send release for rights review</strong>
+          <select name="release_id" id="review-release-select" required><option value="">Choose release</option></select>
+          <button type="submit">Submit for review</button>
+          <div class="result" id="review-result"></div>
+        </form>
       </div>
     </section>
 
@@ -170,6 +176,29 @@
           <input name="position" type="number" min="1" value="1" required>
           <button type="submit">Add to rotation</button>
           <div class="result" id="rotation-result"></div>
+        </form>
+        <form id="show-form" class="card control-form">
+          <strong>🎙️ Create radio show</strong>
+          <select name="station_id" id="show-station-select" required><option value="">Choose station</option></select>
+          <input name="title" maxlength="180" placeholder="Show title" required>
+          <button type="submit">Create show</button>
+          <div class="result" id="show-result"></div>
+        </form>
+        <form id="schedule-form" class="card control-form">
+          <strong>🗓️ Schedule show</strong>
+          <select name="station_id" id="schedule-station-select" required><option value="">Choose station</option></select>
+          <select name="show_id" id="show-select" required><option value="">Choose show</option></select>
+          <input name="starts_at" type="datetime-local" required>
+          <input name="ends_at" type="datetime-local" required>
+          <button type="submit">Save schedule</button>
+          <div class="result" id="schedule-result"></div>
+        </form>
+        <form id="stop-form" class="card control-form">
+          <strong>🛑 STOP station</strong>
+          <select name="station_id" id="stop-station-select" required><option value="">Choose station</option></select>
+          <input name="reason" maxlength="180" placeholder="Reason (optional)">
+          <button type="submit">STOP</button>
+          <div class="result" id="stop-result"></div>
         </form>
       </div>
       <div class="truth">Radio rotation is a real owner-scoped queue. Public broadcast remains OFF until the rights/evidence and broadcast gates pass.</div>
@@ -214,10 +243,19 @@
       const csrf = {{ oap_csrf_token|default('', true)|tojson }};
       const releaseForm = document.getElementById('release-form');
       const uploadForm = document.getElementById('upload-form');
+      const reviewForm = document.getElementById('review-form');
       const stationForm = document.getElementById('station-form');
       const rotationForm = document.getElementById('rotation-form');
+      const showForm = document.getElementById('show-form');
+      const scheduleForm = document.getElementById('schedule-form');
+      const stopForm = document.getElementById('stop-form');
       const releaseSelect = document.getElementById('release-select');
+      const reviewReleaseSelect = document.getElementById('review-release-select');
       const stationSelect = document.getElementById('station-select');
+      const showStationSelect = document.getElementById('show-station-select');
+      const scheduleStationSelect = document.getElementById('schedule-station-select');
+      const stopStationSelect = document.getElementById('stop-station-select');
+      const showSelect = document.getElementById('show-select');
       const trackSelect = document.getElementById('track-select');
       const privateAssets = document.getElementById('private-assets');
       const playerState = document.getElementById('player-state');
@@ -248,9 +286,23 @@
             apiJson('/mission/organs/radio')
           ]);
           releaseSelect.replaceChildren(new Option('Choose release',''));
-          (music.releases || []).forEach(row => addOption(releaseSelect, row.release_id, row.title + ' · ' + row.state));
-          stationSelect.replaceChildren(new Option('Choose station',''));
-          (radio.stations || []).forEach(row => addOption(stationSelect, row.station_id, row.name + ' · ' + row.state));
+          reviewReleaseSelect.replaceChildren(new Option('Choose release',''));
+          (music.releases || []).forEach(row => {
+            const label = row.title + ' · ' + row.state;
+            addOption(releaseSelect, row.release_id, label);
+            addOption(reviewReleaseSelect, row.release_id, label);
+          });
+          [stationSelect, showStationSelect, scheduleStationSelect, stopStationSelect].forEach(select => {
+            select.replaceChildren(new Option('Choose station',''));
+          });
+          (radio.stations || []).forEach(row => {
+            const label = row.name + ' · ' + row.state + (row.stopped ? ' · STOPPED' : '');
+            [stationSelect, showStationSelect, scheduleStationSelect, stopStationSelect].forEach(select => {
+              addOption(select, row.station_id, label);
+            });
+          });
+          showSelect.replaceChildren(new Option('Choose show',''));
+          (radio.shows || []).forEach(row => addOption(showSelect, row.show_id, row.title));
           trackSelect.replaceChildren(new Option('Choose uploaded track',''));
           privateAssets.replaceChildren();
           const assets = assetsPayload.assets || [];
@@ -324,9 +376,55 @@
         } catch (error) { message('rotation-result',error.message); }
       });
 
+      reviewForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const releaseId = new FormData(reviewForm).get('release_id');
+        try {
+          message('review-result','Submitting to governed review…');
+          const row = await apiJson('/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/review','POST',{});
+          message('review-result','Review state: ' + row.state + ' · rights: ' + row.rights_status);
+          await refreshCreatorControls();
+        } catch (error) { message('review-result',error.message); }
+      });
+
+      showForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(showForm).entries());
+        const stationId = data.station_id; delete data.station_id;
+        try {
+          const row = await apiJson('/mission/organs/radio/stations/' + encodeURIComponent(stationId) + '/shows','POST',data);
+          message('show-result','Show created: ' + row.title);
+          showForm.reset(); await refreshCreatorControls();
+        } catch (error) { message('show-result',error.message); }
+      });
+
+      scheduleForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(scheduleForm).entries());
+        const stationId = data.station_id; delete data.station_id;
+        data.starts_at = new Date(data.starts_at).toISOString();
+        data.ends_at = new Date(data.ends_at).toISOString();
+        try {
+          const row = await apiJson('/mission/organs/radio/stations/' + encodeURIComponent(stationId) + '/schedule','POST',data);
+          message('schedule-result','Scheduled · ' + row.starts_at + ' → ' + row.ends_at + ' · broadcast not auto-started');
+          scheduleForm.reset(); await refreshCreatorControls();
+        } catch (error) { message('schedule-result',error.message); }
+      });
+
+      stopForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(stopForm).entries());
+        const stationId = data.station_id; delete data.station_id;
+        try {
+          const row = await apiJson('/mission/organs/radio/stations/' + encodeURIComponent(stationId) + '/stop','POST',data);
+          message('stop-result',row.stopped ? 'STOP active · player handoff blocked' : 'STOP state unchanged');
+          await refreshCreatorControls();
+        } catch (error) { message('stop-result',error.message); }
+      });
+
       refreshCreatorControls();
 
-            const input = document.getElementById('music-search');
+      const input = document.getElementById('music-search');
       const results = document.getElementById('oap-results');
       const emptyOap = document.getElementById('oap-empty');
       const state = document.getElementById('catalogue-state');
