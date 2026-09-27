@@ -1279,3 +1279,73 @@ def test_sika_payment_intent_idempotency_reuses_existing_intent():
         assert result["money_moved"] is False
     finally:
         sika_security_ledger.history = original_history
+
+
+def test_sika_session_activation_does_not_call_credential_store_during_backoff(monkeypatch):
+    from mission_control import sika_session_registry
+
+    monkeypatch.setattr(
+        sika_session_registry.sika_security_ledger,
+        "reauth_backoff_state",
+        lambda owner_id: {"locked": True, "lock_remaining_seconds": 60},
+    )
+    called = {"credential": False}
+
+    def should_not_run(*args, **kwargs):
+        called["credential"] = True
+        raise AssertionError("credential verification must not run during backoff")
+
+    monkeypatch.setattr(
+        sika_session_registry.sika_bank_credential_store,
+        "verify_authenticated_owner",
+        should_not_run,
+    )
+
+    try:
+        sika_session_registry._verify_bank_app_credential(
+            "11111111-1111-1111-1111-111111111111",
+            "strong-bank-app-passphrase",
+        )
+    except ValueError as exc:
+        assert str(exc) == "bank_app_reauth_backoff_active"
+    else:
+        raise AssertionError("active backoff must block verification")
+    assert called["credential"] is False
+
+
+def test_sika_failed_bank_reauth_is_durably_recorded(monkeypatch):
+    from mission_control import sika_session_registry
+
+    monkeypatch.setattr(
+        sika_session_registry.sika_security_ledger,
+        "reauth_backoff_state",
+        lambda owner_id: {"locked": False},
+    )
+    monkeypatch.setattr(
+        sika_session_registry.sika_bank_credential_store,
+        "verify_authenticated_owner",
+        lambda owner_id, password: {"verified": False},
+    )
+    recorded = {}
+
+    def fake_record(owner_id, *, success):
+        recorded["owner_id"] = owner_id
+        recorded["success"] = success
+        return {"event_id": "reauth-failed"}
+
+    monkeypatch.setattr(
+        sika_session_registry.sika_security_ledger,
+        "record_reauth_result",
+        fake_record,
+    )
+
+    try:
+        sika_session_registry._verify_bank_app_credential(
+            "11111111-1111-1111-1111-111111111111",
+            "wrong-bank-app-passphrase",
+        )
+    except ValueError as exc:
+        assert str(exc) == "bank_app_credential_verification_required"
+    else:
+        raise AssertionError("failed credential verification must fail closed")
+    assert recorded["success"] is False
