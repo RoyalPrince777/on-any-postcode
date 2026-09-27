@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "release_commit": "351ae499187f14c92af750bad2f9a05afa8b4c4a",
+  "release_commit": "2577d2f6eb42bd8c8c962ee1856c5de2e0cd7964",
   "image": {
     "repository": "ghcr.io/royalprince777/on-any-postcode-runtime",
-    "digest": "sha256:fc6cedcabba587a2cff3090f6ff680b223ce09313257a8d1f445f683142d9c7b",
-    "immutable_ref": "ghcr.io/royalprince777/on-any-postcode-runtime@sha256:fc6cedcabba587a2cff3090f6ff680b223ce09313257a8d1f445f683142d9c7b",
+    "digest": "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622",
+    "immutable_ref": "ghcr.io/royalprince777/on-any-postcode-runtime@sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622",
     "platform": "linux/amd64"
   },
   "services": {
@@ -22,11 +22,11 @@
     }
   },
   "invariants": [
-    "Core production target is the exact immutable image digest",
-    "No Render source build is required for Core image promotion",
-    "No billing or spend-limit change is required for image pull deployment",
+    "Core and SMI promotion targets are the exact immutable runtime image digest",
+    "SMI runtime target is smi_gateway:app",
+    "No Render source build is required for image promotion",
     "Existing runtime secrets remain Render-managed",
-    "Existing Core service ID and public URL are preserved by Blueprint adoption",
+    "Existing Core and SMI service IDs and public URLs are preserved",
     "Rollback keeps the previous Render deployment available",
     "Founder approval remains required for governed actions"
   ]

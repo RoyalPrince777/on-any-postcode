@@ -111,4 +111,5 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
     assert "name: oap-organism-runtime" not in content
     assert "name: oap-smi" in content
     assert "plan: free" in content
-    assert "startCommand: gunicorn smi_gateway:app" in content
+    assert "runtime: image" in content
+    assert 'value: "smi_gateway:app"' in content

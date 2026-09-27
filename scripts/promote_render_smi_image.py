@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Promote the exact OAP Core immutable image to the existing Render service.
-
-Fail-closed:
-- exact service ID only
-- exact immutable image only
-- dry-run by default
-- never reads/replaces env vars
-- never creates a new service
-- never performs a Git/source build
-"""
+"""Promote the exact OAP SMI immutable image to the existing Render service."""
 
 from __future__ import annotations
 
@@ -20,14 +11,15 @@ import urllib.error
 import urllib.request
 
 API_BASE = "https://api.render.com/v1"
-SERVICE_ID = "srv-d8gfsv0jo6nc73egdlf0"
-SERVICE_NAME = "on-any-postcode"
+SERVICE_ID = "srv-da6tp615efls73ct81q0"
+SERVICE_NAME = "oap-smi"
 IMAGE = (
     "ghcr.io/royalprince777/on-any-postcode-runtime@"
     "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
 )
-PUBLIC_URL = "https://on-any-postcode.onrender.com"
+PUBLIC_URL = "https://oap-smi.onrender.com"
 HEALTH_PATH = "/healthz"
+RUNTIME_TARGET = "smi_gateway:app"
 
 
 def _token() -> str:
@@ -49,7 +41,7 @@ def _request(method: str, path: str, payload: dict | None = None) -> dict:
             "Accept": "application/json",
             "Authorization": "Bearer " + token,
             "Content-Type": "application/json",
-            "User-Agent": "OAP-Core-Image-Promotion/1.0",
+            "User-Agent": "OAP-SMI-Image-Promotion/1.0",
         },
         method=method,
     )
@@ -90,6 +82,7 @@ def plan() -> dict[str, object]:
         "service_name": SERVICE_NAME,
         "public_url": PUBLIC_URL,
         "health_path": HEALTH_PATH,
+        "runtime_target": RUNTIME_TARGET,
         "image": IMAGE,
         "update_payload": {"image": {"name": IMAGE}, "autoDeploy": "no"},
         "deploy_payload": {"imageUrl": IMAGE},
@@ -104,10 +97,8 @@ def promote(*, apply: bool = False) -> dict[str, object]:
     action = plan()
     if not apply:
         return {"applied": False, "dry_run": True, "plan": action}
-
     current = _request("GET", f"/services/{SERVICE_ID}")
     _assert_service(current)
-
     updated = _request(
         "PATCH",
         f"/services/{SERVICE_ID}",
@@ -117,7 +108,6 @@ def promote(*, apply: bool = False) -> dict[str, object]:
     image_path = updated.get("imagePath")
     if image_path not in (None, IMAGE):
         raise RuntimeError("Render returned an unexpected image path")
-
     deploy = _request(
         "POST",
         f"/services/{SERVICE_ID}/deploys",
@@ -126,7 +116,6 @@ def promote(*, apply: bool = False) -> dict[str, object]:
     deploy_id = deploy.get("id")
     if not isinstance(deploy_id, str) or not deploy_id.startswith("dep-"):
         raise RuntimeError("Render deploy receipt missing")
-
     return {
         "applied": True,
         "dry_run": False,
@@ -141,11 +130,7 @@ def promote(*, apply: bool = False) -> dict[str, object]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--apply",
-        action="store_true",
-        help="Perform the exact existing-service image promotion.",
-    )
+    parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     try:
         result = promote(apply=args.apply)

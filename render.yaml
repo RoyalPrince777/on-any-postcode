@@ -1,16 +1,16 @@
 services:
   - type: web
     name: oap-smi
-    runtime: python
+    runtime: image
     plan: free
     region: oregon
-    repo: https://github.com/RoyalPrince777/on-any-postcode
-    branch: main
     autoDeployTrigger: "off"
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn smi_gateway:app
+    image:
+      url: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622
     healthCheckPath: /healthz
     envVars:
+      - key: OAP_RUNTIME_TARGET
+        value: "smi_gateway:app"
       - key: OAP_PUBLIC_ORIGIN
         value: "https://on-any-postcode.onrender.com"
       - key: OAP_SURFACE_ROLE
@@ -29,7 +29,7 @@ services:
     region: oregon
     autoDeployTrigger: "off"
     image:
-      url: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:fc6cedcabba587a2cff3090f6ff680b223ce09313257a8d1f445f683142d9c7b
+      url: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622
     healthCheckPath: /healthz
     envVars:
       - key: OAP_RUNTIME_TARGET
