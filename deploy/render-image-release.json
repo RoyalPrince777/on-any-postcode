@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "release_commit": "6491a48adfc4e6970d00140b5e28b2dd126d1277",
+  "image": {
+    "repository": "ghcr.io/royalprince777/on-any-postcode-runtime",
+    "digest": "sha256:3bacf3f1af20c077ea2a3da88662e16a379f31b9a71d95570030e07ba191100c",
+    "immutable_ref": "ghcr.io/royalprince777/on-any-postcode-runtime@sha256:3bacf3f1af20c077ea2a3da88662e16a379f31b9a71d95570030e07ba191100c",
+    "platform": "linux/amd64"
+  },
+  "services": {
+    "core": {
+      "render_service_id": "srv-d8gfsv0jo6nc73egdlf0",
+      "public_url": "https://on-any-postcode.onrender.com",
+      "health_path": "/healthz",
+      "runtime_target": "app:app"
+    },
+    "smi": {
+      "render_service_id": "srv-da6tp615efls73ct81q0",
+      "public_url": "https://oap-smi.onrender.com",
+      "health_path": "/healthz",
+      "runtime_target": "smi_gateway:app"
+    }
+  },
+  "invariants": [
+    "Core and SMI use the same immutable image digest",
+    "No Render build pipeline is required",
+    "No billing or spend-limit change",
+    "Existing runtime secrets remain Render-managed",
+    "Rollback keeps the previous Render deployment available",
+    "Founder approval remains required for governed actions"
+  ]
+}
