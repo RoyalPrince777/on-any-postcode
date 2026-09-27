@@ -204,6 +204,47 @@
     </section>
     {% endif %}
 
+    {% if capability.slug == 'tv-media' %}
+    <section class="mc-panel" aria-labelledby="oap-tv-media-title">
+      <p class="mc-eyebrow">📺 OAP TV · OAP Media · OAP Live · OAP Records</p>
+      <h2 id="oap-tv-media-title">Watch. Discover. Create. Keep the rights clear.</h2>
+      <p>One first-party entertainment front door for live channels, on-demand media, music, public events and the OAP archive. OAP Studio Intelligence supports discovery, organisation and creator workflows without becoming publishing authority.</p>
+
+      <div class="mc-status-grid" aria-label="OAP TV and Media surfaces">
+        <article class="mc-status-card"><strong>📡 OAP TV</strong><span>Live and scheduled broadcast surface. A channel is only shown as live when a real authorised source is connected.</span></article>
+        <article class="mc-status-card"><strong>🎬 OAP Media</strong><span>On-demand video and culture. Only owned, licensed or rights-cleared media belongs here.</span></article>
+        <article class="mc-status-card"><strong>🎵 OAP Music</strong><span>First-party artist, song, album, playlist and radio paths with rights evidence required for playback.</span></article>
+        <article class="mc-status-card"><strong>🎟️ OAP Live</strong><span>Public event and broadcast discovery. Confirmed streams remain entitlement and rights gated.</span></article>
+        <article class="mc-status-card"><strong>🗃️ OAP Records</strong><span>Archive and cultural record layer. Public access stays separate from private source assets.</span></article>
+        <article class="mc-status-card"><strong>🧠 Studio Intelligence</strong><span>Helps organise, classify and route media work. Human Authority and rights evidence stay final.</span></article>
+      </div>
+
+      <div class="atlas-action-row" aria-label="OAP TV and Media navigation">
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='music') }}">Open OAP Music →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='player') }}">Open OAP Player →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}">Open OAP Radio →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='creators') }}">Creator Path →</a>
+      </div>
+
+      <div class="atlas-live-grid" style="margin-top:14px">
+        <article class="atlas-live-card">
+          <p class="mc-eyebrow">Rights Intelligence</p>
+          <h3>Proof before play</h3>
+          <p>Territory, device, channel, ownership, licence and entitlement evidence must be present before OAP claims a stream is available.</p>
+          <span class="state">Fail closed</span>
+        </article>
+        <article class="atlas-live-card">
+          <p class="mc-eyebrow">Experience Intelligence</p>
+          <h3>One entertainment system</h3>
+          <p>TV, Media, Music, Live and Records remain separate surfaces inside one OAP entertainment family instead of duplicating catalogues or intelligence engines.</p>
+          <span class="state">First-party orchestration</span>
+        </article>
+      </div>
+
+      <p class="atlas-warning"><strong>Truth lock:</strong> this route is the real public OAP TV / Media front door. It does not claim live channels, licensed playback, creator publishing, payments or territorial entitlement until those runtime proofs exist.</p>
+    </section>
+    {% endif %}
+
     {% if capability.slug in ('music', 'player', 'radio', 'distribution') %}
     <section class="mc-panel" aria-labelledby="media-suite-title"><p class="mc-eyebrow">OAP Music / Media · Creator-first · Rights-safe</p><h2 id="media-suite-title">{{ capability.name }}</h2><p>OAP Music is the destination. OAP Player is the listening experience. OAP Radio is the voice. OAP Distribution is the release engine.</p></section>
     {% endif %}
