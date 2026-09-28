@@ -91,7 +91,7 @@ jobs:
               raise SystemExit("unexpected_service_boundary")
 
           updated = req("PATCH", f"/services/{service_id}", {
-              "image": {"name": image},
+              "image": {"url": image},
               "autoDeploy": "no",
           })
           if updated.get("id") != service_id or updated.get("name") != service_name:
