@@ -10,6 +10,7 @@ on:
       - "smi_gateway.py"
       - "mission_control/**"
       - "oap/**"
+      - "templates/global_affairs.html"
       - ".github/workflows/runtime-image.yml"
   push:
     branches: [main]
@@ -20,6 +21,7 @@ on:
       - "smi_gateway.py"
       - "mission_control/**"
       - "oap/**"
+      - "templates/global_affairs.html"
       - ".github/workflows/runtime-image.yml"
   workflow_dispatch:
 
