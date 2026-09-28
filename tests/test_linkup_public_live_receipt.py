@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_linkup_live_receipt_matches_the_immutable_release_contract():
+def test_linkup_live_receipt_remains_the_last_proven_live_runtime():
     receipt = json.loads(
         (ROOT / "deploy" / "linkup-public-live-receipt.json").read_text()
     )
@@ -12,8 +12,12 @@ def test_linkup_live_receipt_matches_the_immutable_release_contract():
         (ROOT / "deploy" / "render-core-release.json").read_text()
     )
 
-    assert receipt["git"]["commit"] == release["release_commit"]
-    assert receipt["image"]["resolved_digest"] == release["image"]["digest"]
+    assert receipt["git"]["commit"] == (
+        "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8"
+    )
+    assert receipt["image"]["resolved_digest"] == (
+        "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6"
+    )
     assert receipt["render"]["service_id"] == (
         release["service"]["render_service_id"]
     )
@@ -25,3 +29,9 @@ def test_linkup_live_receipt_matches_the_immutable_release_contract():
     assert receipt["boundaries"]["render_source_build_used"] is False
     assert receipt["boundaries"]["smi_redeployed"] is False
     assert receipt["boundaries"]["smi_green_claimed"] is False
+
+    assert release["evidence_state"] == "candidate_not_live_proven"
+    assert release["live_proof"]["receipt"] == (
+        "deploy/linkup-public-live-receipt.json"
+    )
+    assert release["release_commit"] != receipt["git"]["commit"]
