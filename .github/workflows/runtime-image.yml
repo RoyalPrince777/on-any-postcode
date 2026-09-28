@@ -140,6 +140,8 @@ jobs:
               except urllib.error.HTTPError as exc:
                   detail=exc.read(4096).decode("utf-8","replace")
                   raise SystemExit(f"render_http_{exc.code}:{detail}")
+              if not raw:
+                  return {}
               data=json.loads(raw.decode())
               if not isinstance(data,dict):
                   raise SystemExit("invalid_render_response")
@@ -250,6 +252,8 @@ jobs:
               except urllib.error.HTTPError as exc:
                   detail=exc.read(4096).decode("utf-8","replace")
                   raise SystemExit(f"render_http_{exc.code}:{detail}")
+              if not raw:
+                  return {}
               data=json.loads(raw.decode())
               if not isinstance(data,dict):
                   raise SystemExit("invalid_render_response")
