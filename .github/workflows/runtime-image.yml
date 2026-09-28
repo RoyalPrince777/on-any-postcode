@@ -95,6 +95,7 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       IMAGE_NAME: ghcr.io/royalprince777/on-any-postcode-runtime
       IMAGE_DIGEST: ${{ needs.runtime-image.outputs.digest }}
+      IMAGE_TAG: ${{ github.sha }}
       SERVICE_ID: srv-d8gfsv0jo6nc73egdlf0
       SERVICE_NAME: on-any-postcode
       PUBLIC_URL: https://on-any-postcode.onrender.com
@@ -116,7 +117,10 @@ jobs:
           digest=os.environ["IMAGE_DIGEST"].strip()
           if not digest.startswith("sha256:"):
               raise SystemExit("runtime_image_digest_missing")
-          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          tag=os.environ["IMAGE_TAG"].strip()
+          if not tag:
+              raise SystemExit("runtime_image_tag_missing")
+          image=f'{os.environ["IMAGE_NAME"]}:{tag}'
           service_id=os.environ["SERVICE_ID"]
           api="https://api.render.com/v1"
 
@@ -188,6 +192,7 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       IMAGE_NAME: ghcr.io/royalprince777/on-any-postcode-runtime
       IMAGE_DIGEST: ${{ needs.runtime-image.outputs.digest }}
+      IMAGE_TAG: ${{ github.sha }}
       SERVICE_ID: srv-da6tp615efls73ct81q0
       SERVICE_NAME: oap-smi
       PUBLIC_URL: https://oap-smi.onrender.com
@@ -209,7 +214,10 @@ jobs:
           digest=os.environ["IMAGE_DIGEST"].strip()
           if not digest.startswith("sha256:"):
               raise SystemExit("runtime_image_digest_missing")
-          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          tag=os.environ["IMAGE_TAG"].strip()
+          if not tag:
+              raise SystemExit("runtime_image_tag_missing")
+          image=f'{os.environ["IMAGE_NAME"]}:{tag}'
           service_id=os.environ["SERVICE_ID"]
           api="https://api.render.com/v1"
 
