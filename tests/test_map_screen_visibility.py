@@ -107,3 +107,15 @@ def test_oap_os_generation_zero_map_binding_is_truthful_and_consent_safe():
     assert "geolocation." not in bridge
     assert "serviceWorker.register" not in bridge
     assert "Android/Linux host kernel" in documentation
+
+
+def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+
+    assert "const ROAD_TILE_TIMEOUT_MS=4000;" in template
+    assert "const controller=new AbortController();" in template
+    assert "signal:controller.signal" in template
+    assert "finally{clearTimeout(timeout)}" in template
+    assert "tiles.map(([x,y])=>fetchRoadTile(z,x,y,mode))" in template
+    assert "tiles.map(async([x,y])=>{const r=await fetch(" not in template
+    assert "Road network unavailable — route guidance may still work." in template
