@@ -23,7 +23,7 @@ from mission_control import workspaces
 
 _LIMIT = 100
 _PREFIX = "OAP-GLOBAL-AFFAIRS:"
-_RECORD_TYPES = frozenset({"evidence", "authority"})
+_RECORD_TYPES = frozenset({"evidence", "authority", "mission", "credential"})
 _EVIDENCE_STATES = frozenset({
     "DRAFT", "UNVERIFIED", "UNDER_REVIEW", "VERIFIED", "RECOGNISED",
     "ACCREDITED", "EXPIRED", "REVOKED", "DISPUTED", "BLOCKED",
@@ -150,6 +150,59 @@ class AuthorityGrant:
             _record_id(self.evidence_record_id)
         if self.government_authority:
             raise ValueError("oap_cannot_self_grant_government_authority")
+
+
+@dataclass(frozen=True, slots=True)
+class MissionRecord:
+    title: str
+    purpose: str
+    status: str = "DRAFT"
+    evidence_record_id: str = ""
+    authority_record_id: str = ""
+    outcome: str = ""
+    archived: bool = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.title, str) or not self.title.strip() or len(self.title) > 160:
+            raise ValueError("mission_title_required")
+        if not isinstance(self.purpose, str) or not self.purpose.strip() or len(self.purpose) > 1000:
+            raise ValueError("mission_purpose_required")
+        if self.status not in {"DRAFT", "REVIEW", "APPROVED", "ACTIVE", "COMPLETE", "BLOCKED"}:
+            raise ValueError("invalid_mission_status")
+        if self.evidence_record_id:
+            _record_id(self.evidence_record_id)
+        if self.authority_record_id:
+            _record_id(self.authority_record_id)
+
+
+@dataclass(frozen=True, slots=True)
+class CredentialRecord:
+    holder_ref: str
+    role_label: str
+    authority_record_id: str
+    status: str = "ACTIVE"
+    expires_on: str = ""
+    public_claim: str = "OAP internal representative credential"
+    government_credential: bool = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.holder_ref, str) or not self.holder_ref.strip():
+            raise ValueError("credential_holder_required")
+        if not isinstance(self.role_label, str) or not self.role_label.strip() or len(self.role_label) > 120:
+            raise ValueError("credential_role_required")
+        _record_id(self.authority_record_id)
+        if self.status not in {"ACTIVE", "EXPIRED", "REVOKED", "BLOCKED"}:
+            raise ValueError("invalid_credential_status")
+        if self.expires_on:
+            try:
+                date.fromisoformat(self.expires_on)
+            except ValueError as exc:
+                raise ValueError("invalid_credential_expiry") from exc
+        if self.government_credential:
+            raise ValueError("oap_cannot_issue_government_credential")
+        lowered = self.role_label.casefold()
+        if any(term in lowered for term in ("diplomat", "ambassador", "consul", "embassy")):
+            raise ValueError("credential_role_must_not_imply_external_diplomatic_status")
 
 
 def _history(owner_id: str, record_type: str, record_id: str) -> list[dict[str, Any]]:
@@ -338,3 +391,107 @@ def assess_authority(
     if grant.decision == "ALLOW" and not grant.founder_approved:
         return {"decision": "REVIEW", "reason": "founder_approval_required", "record": value}
     return {"decision": grant.decision, "reason": "authority_matrix", "record": value}
+
+
+
+def save_mission(
+    owner_id: object,
+    record_id: object,
+    mission: MissionRecord,
+    *,
+    expected_last_hash: str = "",
+    stopped: bool = False,
+) -> dict[str, Any]:
+    if not isinstance(mission, MissionRecord):
+        raise TypeError("typed_global_affairs_mission_required")
+    if mission.status in {"APPROVED", "ACTIVE", "COMPLETE"}:
+        if not mission.evidence_record_id or not mission.authority_record_id:
+            raise ValueError("mission_requires_evidence_and_authority")
+        evidence = get(owner_id, record_type="evidence", record_id=mission.evidence_record_id)
+        authority = assess_authority(owner_id, mission.authority_record_id)
+        if evidence["data"].get("status") in {"DRAFT", "UNVERIFIED", "BLOCKED", "REVOKED", "EXPIRED"}:
+            raise ValueError("mission_evidence_not_usable")
+        if authority["decision"] != "ALLOW":
+            raise ValueError("mission_authority_not_allowed")
+    return _append(
+        owner_id,
+        record_type="mission",
+        record_id=record_id,
+        data=asdict(mission),
+        expected_last_hash=expected_last_hash,
+        stopped=stopped,
+    )
+
+
+def save_credential(
+    owner_id: object,
+    record_id: object,
+    credential: CredentialRecord,
+    *,
+    expected_last_hash: str = "",
+    stopped: bool = False,
+) -> dict[str, Any]:
+    if not isinstance(credential, CredentialRecord):
+        raise TypeError("typed_global_affairs_credential_required")
+    authority = assess_authority(owner_id, credential.authority_record_id)
+    if credential.status == "ACTIVE" and authority["decision"] != "ALLOW":
+        raise ValueError("credential_requires_active_authority")
+    return _append(
+        owner_id,
+        record_type="credential",
+        record_id=record_id,
+        data=asdict(credential),
+        expected_last_hash=expected_last_hash,
+        stopped=stopped,
+    )
+
+
+def verify_credential(
+    owner_id: object,
+    record_id: object,
+    *,
+    on_date: date | None = None,
+) -> dict[str, Any]:
+    value = get(owner_id, record_type="credential", record_id=record_id)
+    credential = CredentialRecord(**value["data"])
+    today = on_date or datetime.now(UTC).date()
+    if credential.status in {"REVOKED", "BLOCKED"}:
+        return {"valid": False, "reason": f"credential_{credential.status.casefold()}", "credential": value}
+    if credential.expires_on and date.fromisoformat(credential.expires_on) < today:
+        return {"valid": False, "reason": "credential_expired", "credential": value}
+    authority = assess_authority(owner_id, credential.authority_record_id, on_date=today)
+    if authority["decision"] != "ALLOW":
+        return {"valid": False, "reason": f"authority_{authority['reason']}", "credential": value}
+    return {
+        "valid": True,
+        "reason": "internal_oap_credential_valid",
+        "holder_ref": credential.holder_ref,
+        "role_label": credential.role_label,
+        "public_claim": credential.public_claim,
+        "external_legal_status_conferred": False,
+    }
+
+
+def recovery_readback(
+    owner_id: object,
+    *,
+    authority_record_id: object,
+    credential_record_id: object | None = None,
+    on_date: date | None = None,
+) -> dict[str, Any]:
+    """Fail-closed recovery read-back; never resurrects revoked/expired authority."""
+    authority = assess_authority(owner_id, authority_record_id, on_date=on_date)
+    result: dict[str, Any] = {
+        "authority_decision": authority["decision"],
+        "authority_reason": authority["reason"],
+        "revoked_or_expired_preserved": authority["decision"] == "BLOCK"
+        and authority["reason"] in {"authority_revoked", "authority_expired"},
+        "external_legal_status_conferred": False,
+    }
+    if credential_record_id is not None:
+        credential = verify_credential(owner_id, credential_record_id, on_date=on_date)
+        result["credential_valid"] = credential["valid"]
+        result["credential_reason"] = credential["reason"]
+        if result["revoked_or_expired_preserved"] and credential["valid"]:
+            raise GlobalAffairsUnavailable("recovery_resurrected_blocked_authority")
+    return result
