@@ -84,7 +84,7 @@ def plan() -> dict[str, object]:
         "health_path": HEALTH_PATH,
         "runtime_target": RUNTIME_TARGET,
         "image": IMAGE,
-        "update_payload": {"image": {"name": IMAGE}, "autoDeploy": "no"},
+        "update_payload": {"image": {"url": IMAGE}, "autoDeploy": "no"},
         "deploy_payload": {"imageUrl": IMAGE},
         "creates_new_service": False,
         "replaces_environment": False,
@@ -102,7 +102,7 @@ def promote(*, apply: bool = False) -> dict[str, object]:
     updated = _request(
         "PATCH",
         f"/services/{SERVICE_ID}",
-        {"image": {"name": IMAGE}, "autoDeploy": "no"},
+        {"image": {"url": IMAGE}, "autoDeploy": "no"},
     )
     _assert_service(updated)
     image_path = updated.get("imagePath")

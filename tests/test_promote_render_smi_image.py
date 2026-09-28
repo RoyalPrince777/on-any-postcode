@@ -62,7 +62,7 @@ def test_smi_apply_updates_existing_service_then_deploys(monkeypatch):
         (
             "PATCH",
             f"/services/{promotion.SERVICE_ID}",
-            {"image": {"name": promotion.IMAGE}, "autoDeploy": "no"},
+            {"image": {"url": promotion.IMAGE}, "autoDeploy": "no"},
         ),
         (
             "POST",
