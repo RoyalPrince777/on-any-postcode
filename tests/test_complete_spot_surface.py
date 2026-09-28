@@ -264,11 +264,13 @@ def test_oap_tv_media_aliases_resolve_to_one_public_front_door(client):
         assert "does not claim live channels" in page
 
 
-def test_home_media_link_no_longer_targets_a_404(client):
+def test_home_media_link_targets_canonical_tv_media_route(client):
     home = client.get("/").get_data(as_text=True)
 
-    assert 'href="/media"' in home
-    response = client.get("/media", follow_redirects=True)
+    assert 'href="/the-spot/tv-media"' in home
+    assert 'href="/media"' not in home
+
+    response = client.get("/the-spot/tv-media")
     assert response.status_code == 200
     assert escape("OAP TV & Media") in response.get_data(as_text=True)
 
