@@ -214,7 +214,8 @@ def register(app: Flask) -> None:
                 response.headers["Cache-Control"] = "no-store"
                 return response
             return None
-        if public_surface_enforced():
+        supplied_gateway = bool(request.headers.get(_GATEWAY_HEADER, ""))
+        if public_surface_enforced() and not supplied_gateway:
             handoff = _private_handoff(clean)
             if handoff is not None:
                 return handoff
