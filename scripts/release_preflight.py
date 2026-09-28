@@ -16,11 +16,15 @@ CORE_MANIFEST = ROOT / "deploy" / "render-core-release.json"
 SMI_REQUEST = ROOT / "deploy" / "requests" / "smi-image-promote.json"
 
 
-def _has_render_credential() -> bool:
+def _has_render_api_credential() -> bool:
     return bool(
         (os.environ.get("OAP_RENDER_API_KEY") or "").strip()
         or (os.environ.get("RENDER_API_KEY") or "").strip()
     )
+
+
+def _has_render_deploy_hook() -> bool:
+    return bool((os.environ.get("RENDER_DEPLOY_HOOK_URL") or "").strip())
 
 
 def _read_json(path: Path) -> dict:
@@ -43,8 +47,10 @@ def status() -> dict[str, object]:
     if not smi_digest.startswith("sha256:"):
         errors.append("smi_immutable_image_missing")
 
-    credential = _has_render_credential()
-    image_promotion_ready = not errors and credential
+    api_credential = _has_render_api_credential()
+    deploy_hook = _has_render_deploy_hook()
+    provider_authority = api_credential or deploy_hook
+    image_promotion_ready = not errors and provider_authority
 
     return {
         "component": "OAP Release Control Plane",
@@ -52,7 +58,9 @@ def status() -> dict[str, object]:
         "read_only_preflight": True,
         "core_release_contract_valid": "core_immutable_image_missing" not in errors,
         "smi_release_contract_valid": "smi_immutable_image_missing" not in errors,
-        "render_credential_available": credential,
+        "render_api_credential_available": api_credential,
+        "render_deploy_hook_available": deploy_hook,
+        "provider_authority_available": provider_authority,
         "image_promotion_ready": image_promotion_ready,
         "source_build_fallback": "capacity-dependent",
         "recommended_path": (
@@ -62,7 +70,7 @@ def status() -> dict[str, object]:
         ),
         "blockers": (
             errors
-            + ([] if credential else ["render_image_update_authority_missing"])
+            + ([] if provider_authority else ["render_image_update_authority_missing"])
         ),
         "rules": {
             "same_service_only": True,
