@@ -149,3 +149,30 @@ def test_credential_verify_and_recovery_are_founder_scoped(monkeypatch):
     )
     assert recovery.status_code == 200
     assert recovery.get_json()["revoked_or_expired_preserved"] is True
+
+
+
+def test_a7_command_center_exposes_working_control_contract(monkeypatch):
+    client = _client(monkeypatch)
+    response = client.get("/global-affairs")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    for action in (
+        "new-mission", "add-evidence", "authority", "founder-approve",
+        "issue-credential", "verify-credential", "revoke", "expire",
+        "recovery", "archive", "stop", "load", "save", "complete-mission",
+    ):
+        assert f'data-action="{action}"' in page
+    assert "/api/global-affairs/" in page
+    assert "expected_last_hash" in page
+    assert "X-OAP-CSRF" in page
+    assert "credentials:\"same-origin\"" in page
+
+
+def test_a7_command_center_has_no_self_issued_diplomatic_shortcuts(monkeypatch):
+    client = _client(monkeypatch)
+    page = client.get("/global-affairs").get_data(as_text=True).casefold()
+    assert 'data-action="diplomat"' not in page
+    assert 'data-action="immunity"' not in page
+    assert 'data-action="accredit"' not in page
+    assert "no button on this page can create government authority" in page
