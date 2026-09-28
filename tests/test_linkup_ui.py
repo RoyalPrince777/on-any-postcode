@@ -282,6 +282,18 @@ def test_linkup_public_shell_has_no_dead_or_duplicate_primary_controls():
     assert "The Spot</span>" in template
 
 
+def test_linkup_private_runtime_readiness_is_visible_and_compact():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    stylesheet = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+
+    assert 'class="linkup-runtime-strip"' in template
+    for label in ("Call", "Voice", "Share", "Presence"):
+        assert f'data-label="{label}"' in template
+    assert ".linkup-runtime-strip{" in stylesheet
+    assert '.linkup-runtime::before{content:attr(data-label) " · "' in stylesheet
+    assert "position:absolute;width:1px;height:1px" not in stylesheet
+
+
 def test_linkup_public_shell_uses_free_my_card_actions():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
