@@ -9,6 +9,12 @@ on:
       - "build.gradle.kts"
       - "android/oapworld/**"
       - ".github/workflows/oap-android-apk.yml"
+  pull_request:
+    paths:
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - "android/oapworld/**"
+      - ".github/workflows/oap-android-apk.yml"
   workflow_dispatch:
 
 permissions:
