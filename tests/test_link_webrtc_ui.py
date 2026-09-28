@@ -80,3 +80,57 @@ def test_webrtc_controls_render_locked_and_recipient_scoped():
     assert "data-oap-incoming-calls" in template
     assert "data-oap-call-stage" in template
     assert "data-oap-hangup" in template
+
+
+def test_link_call_media_acceptance_contract_is_complete():
+    source = (ROOT / "static" / "linkup_realtime.js").read_text(encoding="utf-8")
+    template = (
+        ROOT / "mission_control" / "templates" / "linkup.html"
+    ).read_text(encoding="utf-8")
+
+    # Browser capability and explicit capture.
+    assert 'typeof window.RTCPeerConnection === "function"' in source
+    assert "navigator.mediaDevices?.getUserMedia" in source
+    assert "audio: true" in source
+    assert 'video: mode === "face_up"' in source
+
+    # Local preview and remote playback paths.
+    assert "localVideo.srcObject = localStream;" in source
+    assert "remoteVideo.srcObject = stream;" in source
+    assert "remoteAudio.srcObject = stream;" in source
+    assert "<video data-oap-remote-video autoplay playsinline hidden></video>" in template
+    assert "<video data-oap-local-video autoplay muted playsinline hidden></video>" in template
+    assert "<audio data-oap-remote-audio autoplay hidden></audio>" in template
+
+    # Every local track is explicitly stopped during teardown and constructor failure.
+    assert "state.localStream.getTracks().forEach((track) => track.stop());" in source
+    assert "localStream.getTracks().forEach((track) => track.stop());" in source
+    assert 'window.addEventListener("pagehide"' in source
+    assert "stopLocalMedia();" in source
+    assert "state.pc.close();" in source
+
+    # Call media is not recorded or persisted by this WebRTC controller.
+    assert "MediaRecorder" not in source
+    assert "calls.records_media === false" in source
+
+    # Public naming is Link Call while the internal compatibility mode stays face_up.
+    for stale in (
+        "Face Up is ringing",
+        "Starting Face Up",
+        "Answering Face Up",
+        "Incoming Face Up",
+        "Call and Face Up",
+    ):
+        assert stale not in source
+    assert "Link Call connected." in source
+    assert "Starting Link Call" in source
+    assert "Incoming Link Call" in source
+
+
+def test_link_call_permissions_policy_is_scoped_to_linkup():
+    security = (
+        ROOT / "mission_control" / "surface_security.py"
+    ).read_text(encoding="utf-8")
+    assert '_LINK_DEVICE_PATHS = frozenset({"/linkup"})' in security
+    assert '"camera=(self), microphone=(self), geolocation=(self), payment=()"' in security
+    assert 'response.headers["Permissions-Policy"] = _LINK_PERMISSIONS_POLICY' in security
