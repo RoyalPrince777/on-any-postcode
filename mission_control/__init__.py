@@ -85,6 +85,7 @@ def init_app(app: Flask) -> None:
     from .music_public_views import bp as music_public_bp
     from .oap_data_views import bp as oap_data_bp
     from .oap_library_views import bp as oap_library_bp
+    from .oap_store import bp as oap_store_bp
     from .on_any_place_routes import bp as on_any_place_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
@@ -1144,6 +1145,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_message_bp)
     app.register_blueprint(mail_store_catalog_bp)
     app.register_blueprint(bank_store_catalog_bp)
+    app.register_blueprint(oap_store_bp)
     app.register_blueprint(travel_supply_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
