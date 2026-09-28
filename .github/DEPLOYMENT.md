@@ -127,3 +127,12 @@ Release order is fixed:
 3. otherwise hold production unchanged.
 
 Creating a duplicate service to bypass quota, redeploying a known old image as progress, or claiming Green without live read-back is prohibited.
+
+
+### Render CLI image fallback
+
+If the deploy-hook and API-key promotion paths are unavailable but an authenticated Render CLI session exists, deploy the exact immutable image to the existing Core service with:
+
+`render deploys create srv-d8gfsv0jo6nc73egdlf0 --image <immutable-image-ref> --wait --confirm -o json`
+
+This path does not require a Render source build and must preserve the existing service ID. Authentication is still provider-controlled; do not store CLI tokens in the repository.

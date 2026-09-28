@@ -22,7 +22,9 @@
     "fail_closed": true
   },
   "fallback_order": [
-    "immutable_image_promotion",
+    "immutable_image_promotion_via_deploy_hook",
+    "immutable_image_promotion_via_render_api",
+    "immutable_image_promotion_via_render_cli_authenticated_session",
     "existing_service_source_deploy_only_when_build_capacity_exists",
     "hold_no_mutation"
   ],
@@ -40,5 +42,12 @@
     "route-specific acceptance",
     "rollback or recovery path"
   ],
-  "human_authority_final": true
+  "human_authority_final": true,
+  "render_cli": {
+    "supported": true,
+    "command_template": "render deploys create srv-d8gfsv0jo6nc73egdlf0 --image <immutable-image-ref> --wait --confirm -o json",
+    "authentication_required": true,
+    "source_build_required": false,
+    "preserves_existing_service": true
+  }
 }
