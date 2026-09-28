@@ -1,0 +1,43 @@
+name: OAP Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - "android/oapworld/**"
+      - ".github/workflows/oap-android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Build install-test APK
+        run: gradle :android:oapworld:assembleDebug --no-daemon
+
+      - name: Hash APK
+        run: sha256sum android/oapworld/build/outputs/apk/debug/oapworld-debug.apk | tee oapworld-debug.apk.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oap-world-debug-apk
+          path: |
+            android/oapworld/build/outputs/apk/debug/oapworld-debug.apk
+            oapworld-debug.apk.sha256
+          if-no-files-found: error
