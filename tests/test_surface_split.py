@@ -54,9 +54,19 @@ def test_public_origin_hands_off_safe_aliases_and_hides_other_private_paths(monk
     assert my_world_handoff.status_code == 302
     assert my_world_handoff.headers["Location"] == "https://oap-smi.onrender.com/my-world"
 
+    auth_handoff = client.get("/enter-my-world?next=/global-affairs")
+    assert auth_handoff.status_code == 302
+    assert auth_handoff.headers["Location"] == (
+        "https://oap-smi.onrender.com/enter-my-world?next=/global-affairs"
+    )
+
+    auth_alias_handoff = client.get("/auth?next=/mission/ollama")
+    assert auth_alias_handoff.status_code == 302
+    assert auth_alias_handoff.headers["Location"] == (
+        "https://oap-smi.onrender.com/auth?next=/mission/ollama"
+    )
+
     for path in (
-        "/auth",
-        "/enter-my-world",
         "/the-spot/my-world",
         "/infrastructure",
         "/api/infrastructure/status",
@@ -91,11 +101,15 @@ def test_public_surface_still_fails_closed_if_gateway_secret_is_missing(monkeypa
 
     client = app.test_client()
     assert client.get("/mission").status_code == 302
-    assert client.get("/auth").status_code == 404
+    auth_handoff = client.get("/auth?next=/mission/ollama")
+    assert auth_handoff.status_code == 302
+    assert auth_handoff.headers["Location"] == (
+        "https://oap-smi.onrender.com/auth?next=/mission/ollama"
+    )
     assert client.get("/the-spot/my-world").status_code == 404
     forged = client.get("/mission", headers={"X-OAP-SMI-Gateway": "x" * 48})
-    assert forged.status_code == 302
-    assert forged.headers["Location"].endswith("/mission/ollama")
+    assert forged.status_code == 404
+    assert forged.headers["Cache-Control"] == "no-store"
 
 
 def test_trusted_gateway_repairs_stale_private_aliases(monkeypatch):
@@ -133,11 +147,18 @@ def test_public_aliases_handoff_to_correct_private_gateway_paths(monkeypatch):
         "/mission/isac": "/mission/isac-spatial/",
         "/my-world": "/my-world",
         "/myworld": "/my-world",
+        "/auth": "/auth",
+        "/enter-my-world": "/enter-my-world",
     }
     for source, target in expected.items():
         response = client.get(source)
         assert response.status_code == 302
         assert response.headers["Location"] == f"https://private.example.test{target}"
+
+    auth_with_next = client.get("/enter-my-world?next=/global-affairs")
+    assert auth_with_next.headers["Location"] == (
+        "https://private.example.test/enter-my-world?next=/global-affairs"
+    )
 
 
 def test_smi_gateway_allowlist_is_founder_private_only():
