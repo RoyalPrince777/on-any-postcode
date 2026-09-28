@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template
 
+from . import oap_store_registry
+
 bp = Blueprint("oap_store", __name__, template_folder="templates")
 
 OAP_WORLD = {
@@ -35,6 +37,10 @@ def catalogue() -> tuple[dict[str, object], ...]:
     return (dict(OAP_WORLD),)
 
 
+def native_distribution_status() -> dict[str, object]:
+    return oap_store_registry.native_install_status()
+
+
 @bp.get("/store")
 def store_home():
     response = make_response(render_template("oap_store.html", apps=catalogue()))
@@ -45,6 +51,13 @@ def store_home():
 @bp.get("/oap-store/apps")
 def store_catalogue():
     response = make_response(jsonify(apps=catalogue()), 200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/oap-store/native/status")
+def native_store_status():
+    response = make_response(jsonify(native_distribution_status()), 200)
     response.headers["Cache-Control"] = "no-store"
     return response
 
