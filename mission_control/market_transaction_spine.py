@@ -201,9 +201,7 @@ def consequential_action_allowed(*, stop_state: str, recovery_state: str) -> boo
         return False
     if stop_state in {"REQUESTED", "STOPPED", "RECOVERY_REQUIRED"}:
         return False
-    if recovery_state in {"REQUIRED", "IN_PROGRESS", "FAILED"}:
-        return False
-    return True
+    return recovery_state not in {"REQUIRED", "IN_PROGRESS", "FAILED"}
 
 
 class MarketTransactionStore:
