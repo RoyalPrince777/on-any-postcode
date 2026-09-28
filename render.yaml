@@ -46,26 +46,3 @@ services:
         value: "1"
       - key: OAP_LIBRARY_LEARNING_MIGRATION_ON_BOOT
         value: "1"
-
-  - type: web
-    name: oap-routing
-    runtime: docker
-    plan: starter
-    region: oregon
-    repo: https://github.com/RoyalPrince777/on-any-postcode
-    branch: main
-    autoDeployTrigger: "off"
-    dockerfilePath: ./routing/Dockerfile
-    dockerContext: .
-    # OSRM has no dedicated /health endpoint; a lightweight nearest request
-    # verifies that the HTTP engine and loaded graph are both answering.
-    healthCheckPath: /nearest/v1/driving/-0.1276,51.5072?number=1
-    envVars:
-      - key: OAP_ROUTING_DATA_DIR
-        value: /data
-      - key: OAP_ROUTING_PBF_URL
-        value: https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf
-    disk:
-      name: oap-routing-data
-      mountPath: /data
-      sizeGB: 5
