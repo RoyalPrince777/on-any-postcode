@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "release_commit": "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8",
+  "image": {
+    "repository": "ghcr.io/royalprince777/on-any-postcode-runtime",
+    "digest": "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6",
+    "immutable_ref": "ghcr.io/royalprince777/on-any-postcode-runtime@sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6",
+    "platform": "linux/amd64"
+  },
+  "service": {
+    "render_service_id": "srv-d8gfsv0jo6nc73egdlf0",
+    "public_url": "https://on-any-postcode.onrender.com",
+    "health_path": "/healthz",
+    "runtime_target": "app:app"
+  },
+  "invariants": [
+    "Core promotion targets this exact immutable runtime image digest",
+    "No Render source build is required for Core image promotion",
+    "Existing runtime secrets remain Render-managed",
+    "Existing Core service ID and public URL are preserved",
+    "Public Link Up remains anonymous",
+    "My Card creation remains free and separate from Founder access"
+  ]
+}

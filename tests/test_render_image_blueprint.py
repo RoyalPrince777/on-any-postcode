@@ -16,7 +16,7 @@ def test_core_render_blueprint_uses_immutable_first_party_runtime_image():
     assert "runtime: image" in block
     assert (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+        "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6"
     ) in block
     assert 'value: "app:app"' in block
     assert "buildCommand:" not in block
@@ -33,23 +33,23 @@ def test_core_image_blueprint_preserves_database_and_health_contract():
     assert "property: connectionString" in block
 
 
-def test_image_release_manifest_matches_current_shared_runtime_release():
+def test_core_image_release_manifest_matches_live_linkup_runtime():
     import json
 
     manifest = json.loads(
-        (ROOT / "deploy" / "render-image-release.json").read_text()
+        (ROOT / "deploy" / "render-core-release.json").read_text()
     )
     assert manifest["release_commit"] == (
-        "2577d2f6eb42bd8c8c962ee1856c5de2e0cd7964"
+        "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8"
     )
     assert manifest["image"]["immutable_ref"] == (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+        "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6"
     )
-    assert manifest["services"]["core"]["render_service_id"] == (
+    assert manifest["service"]["render_service_id"] == (
         "srv-d8gfsv0jo6nc73egdlf0"
     )
-    assert manifest["services"]["core"]["public_url"] == (
+    assert manifest["service"]["public_url"] == (
         "https://on-any-postcode.onrender.com"
     )
 
