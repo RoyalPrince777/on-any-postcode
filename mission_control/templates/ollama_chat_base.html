@@ -11,7 +11,28 @@
     @media(max-width:820px){.navs{min-height:44px}.workspace-grid{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}.history{display:none}.chatbox{height:100%;min-height:0}.messages{padding:12px}.msg{max-width:94%}.name-input{display:none}.status-row{display:block}.status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.composer{padding:8px}.composer textarea{min-height:44px}.tool-btn{padding:6px 8px}.composer-left{gap:5px}.composer-right{gap:5px}.icon-btn{width:40px;height:40px}}
   </style>
 </head>
-<body class="mc-workspace-body">
+<style id="smi-first-paint-guard">
+  /* First-paint SMI contract: never paint the legacy dashboard before final CSS/JS arrives. */
+  body.smi-noise-strip .navs,
+  body.smi-noise-strip .smi-hero,
+  body.smi-noise-strip .qualities,
+  body.smi-noise-strip .lights,
+  body.smi-noise-strip .status-row,
+  body.smi-noise-strip .smi-dashboard-layer,
+  body.smi-noise-strip .smi-command-centre,
+  body.smi-noise-strip .smi-status-backdrop{display:none!important}
+  body.smi-noise-strip .workspace-grid{grid-template-columns:1fr!important;gap:0!important}
+  body.smi-noise-strip .history{
+    position:fixed!important;inset:0 auto 0 0!important;width:min(360px,88vw)!important;
+    transform:translateX(-105%)!important;pointer-events:none!important;z-index:160!important
+  }
+  body.smi-noise-strip .chatbox{width:100%!important;height:100dvh!important;min-height:0!important}
+  body.smi-noise-strip .chat-head{min-height:44px!important}
+  body.smi-noise-strip .composer{position:fixed!important;left:50%!important;bottom:8px!important;transform:translateX(-50%)!important;width:min(920px,calc(100vw - 16px))!important}
+  body.smi-noise-strip.smi-booting .smi-character-stage,
+  body.smi-noise-strip.smi-booting .smi-character-copy{display:none!important}
+</style>
+<body class="mc-workspace-body smi-noise-strip smi-booting">
 <main class="smi-shell">
   <nav class="navs"><a href="{{ url_for('mission_control.brain_dashboard') }}">Brain</a><a href="{{ url_for('mission_control.agent_intelligence') }}">Agents</a><a href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a><a href="/">OAP Front Door</a></nav>
   <section class="smi-hero">
