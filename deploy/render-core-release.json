@@ -20,5 +20,10 @@
     "Existing Core service ID and public URL are preserved",
     "Public Link Up remains anonymous",
     "My Card creation remains free and separate from Founder access"
-  ]
+  ],
+  "evidence_state": "candidate_not_live_proven",
+  "live_proof": {
+    "receipt": "deploy/linkup-public-live-receipt.json",
+    "rule": "candidate release metadata must not overwrite the last proven live receipt until deployment and route acceptance are captured"
+  }
 }
