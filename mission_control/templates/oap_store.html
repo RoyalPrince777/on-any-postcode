@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  {% include "_oap_install_head.html" %}
+  <title>OAP Store · ON ANY POSTCODE</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    body{margin:0;background:#050403;color:#fff8e8;font-family:system-ui,sans-serif}
+    main{max-width:900px;margin:auto;padding:32px 20px 80px}
+    .eyebrow{color:#d5a33f;font-weight:800;letter-spacing:.08em}
+    .card{border:1px solid #6b4c18;background:#0b0905;border-radius:18px;padding:22px;margin-top:18px}
+    .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}
+    button{background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer}
+    .muted{color:#b8aa89}.truth{margin-top:12px;font-size:.9rem;color:#cfc3a6}
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">👑 ON ANY POSTCODE · OAP STORE</p>
+  <h1>Install OAP</h1>
+  <p class="muted">First-party apps only. Install becomes available only where the release evidence supports it.</p>
+  {% for app in apps %}
+  <section class="card">
+    <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
+    <h2>{{ app.name }}</h2>
+    <p>{{ app.description }}</p>
+    <p><strong>Publisher:</strong> {{ app.publisher }}</p>
+    <p data-oap-install-platform class="muted">Detecting platform…</p>
+    <button type="button" data-oap-install hidden>Install {{ app.name }}</button>
+    <p data-oap-install-status class="muted">Checking secure install support…</p>
+    <p class="truth">PWA install is real browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
+  </section>
+  {% endfor %}
+</main>
+<script defer src="/assets/oap-os.js"></script>
+</body>
+</html>
