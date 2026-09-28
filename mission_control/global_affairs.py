@@ -30,6 +30,13 @@ _EVIDENCE_STATES = frozenset({
 })
 _EVIDENCE_CLASSES = frozenset({"A", "B", "C", "D", "E"})
 _DECISIONS = frozenset({"ALLOW", "REVIEW", "BLOCK"})
+_EXTERNAL_ONLY_PERMISSIONS = frozenset({
+    "claim_diplomatic_status",
+    "claim_diplomatic_immunity",
+    "act_as_diplomat",
+    "issue_diplomatic_credential",
+    "operate_embassy_or_consulate",
+})
 
 
 class GlobalAffairsUnavailable(RuntimeError):
@@ -98,6 +105,8 @@ class EvidenceRecord:
                     raise ValueError("invalid_evidence_date") from exc
         if self.externally_recognised and self.evidence_class not in {"A", "B", "C"}:
             raise ValueError("recognition_requires_stronger_evidence")
+        if self.status == "RECOGNISED" and not self.externally_recognised:
+            raise ValueError("recognised_status_requires_external_recognition")
         if self.status == "ACCREDITED":
             if not self.externally_recognised or self.evidence_class not in {"A", "B"}:
                 raise ValueError("accreditation_requires_external_primary_evidence")
@@ -130,6 +139,8 @@ class AuthorityGrant:
                 raise ValueError(error)
         if self.decision not in _DECISIONS:
             raise ValueError("invalid_authority_decision")
+        if self.permission.strip().casefold() in _EXTERNAL_ONLY_PERMISSIONS:
+            raise ValueError("external_diplomatic_authority_cannot_be_self_granted")
         if self.expires_on:
             try:
                 date.fromisoformat(self.expires_on)
@@ -150,6 +161,8 @@ def _history(owner_id: str, record_type: str, record_id: str) -> list[dict[str, 
     )
     if len(rows) >= _LIMIT or len(receipts) >= _LIMIT:
         raise GlobalAffairsUnavailable("global_affairs_history_limit_reached")
+    if len(rows) != len(receipts):
+        raise GlobalAffairsUnavailable("global_affairs_record_receipt_count_mismatch")
     receipt_by_version: dict[int, dict[str, Any]] = {}
     for receipt in receipts:
         metadata = receipt.get("metadata")
