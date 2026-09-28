@@ -24,7 +24,7 @@ SERVICE_ID = "srv-d8gfsv0jo6nc73egdlf0"
 SERVICE_NAME = "on-any-postcode"
 IMAGE = (
     "ghcr.io/royalprince777/on-any-postcode-runtime@"
-    "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+    "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6"
 )
 PUBLIC_URL = "https://on-any-postcode.onrender.com"
 HEALTH_PATH = "/healthz"

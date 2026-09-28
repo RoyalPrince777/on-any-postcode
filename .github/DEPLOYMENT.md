@@ -48,7 +48,7 @@ responses.
 7. Push the exact reviewed source to `main` and require green GitHub CI.
 8. Require the `OAP runtime image` workflow to publish the exact reviewed
    commit to GHCR. Production Core promotion uses the immutable image digest
-   recorded in `deploy/render-image-release.json`; do not rebuild Core on
+   recorded in `deploy/render-core-release.json`; do not rebuild Core on
    Render when the image already exists.
 9. Merge-add the Auth and exact Founder authority values on Render without
    changing existing secret values. Never store the Founder password in an
@@ -102,9 +102,11 @@ controlled accounts. Do not turn the private login into public self-signup.
 
 The production Core service `on-any-postcode` is declared as a Render
 `runtime: image` target in `render.yaml`. The image must be pinned by digest,
-not by a mutable tag. The current release manifest records the exact GHCR digest
-and existing Render service ID. This keeps the public service identity stable
-while decoupling Core releases from Render build-pipeline minutes.
+not by a mutable tag. `deploy/render-core-release.json` records the exact Core
+GHCR digest and existing Render service ID. The separate shared-image manifest
+remains the SMI baseline until that service is independently promoted and
+verified. This keeps the public service identity stable while decoupling Core
+releases from Render build-pipeline minutes.
 
 Do not replace Render-managed secrets during image promotion. Do not create a
 second Core service merely to bypass a build quota. A release is not Green until
