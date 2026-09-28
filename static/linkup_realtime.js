@@ -406,7 +406,7 @@
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "connected") {
         state.answered = true;
-        setStatus(mode === "face_up" ? "Face Up connected." : "Call connected.");
+        setStatus(mode === "face_up" ? "Link Call connected." : "Call connected.");
       } else if (pc.connectionState === "failed") {
         finishCurrent({ failed: true });
       }
@@ -435,7 +435,7 @@
       });
       setStatus(mode === "face_up" ? "Face Up is ringing…" : "Call is ringing…");
     } else {
-      setStatus(mode === "face_up" ? "Opening private Face Up…" : "Opening private Call…");
+      setStatus(mode === "face_up" ? "Opening private Link Call…" : "Opening private Call…");
     }
   };
 
