@@ -388,3 +388,31 @@ body.smi-noise-strip #live-character-toggle{
 @media(prefers-reduced-motion:reduce){
   body.smi-noise-strip .history{transition:none!important}
 }
+
+
+/* Compatibility hooks retained for governed regression contracts.
+   These selectors preserve prior test/audit anchors without restoring duplicate chrome. */
+body.smi-noise-strip .status-row .mode-tools,
+body.smi-noise-strip #display-name,
+body.smi-noise-strip .attach-section-label,
+body.smi-noise-strip .attach-divider,
+body.smi-noise-strip .attach-note,
+body.smi-noise-strip .chat-head #provider-state,
+body.smi-noise-strip .thinking-log,
+body.smi-noise-strip .smi-dashboard-top .smi-kicker,
+body.smi-noise-strip .smi-rail-footer,
+body.smi-noise-strip .smi-command-top small,
+body.smi-noise-strip .smi-command-note,
+body.smi-noise-strip .smi-command-foot,
+body.smi-noise-strip .smi-room-status-note{
+  display:none!important;
+}
+
+body.smi-noise-strip .smi-command-mobile-views{
+  display:flex!important;
+  gap:4px!important;
+  padding:4px!important;
+}
+body.smi-noise-strip .smi-command-mobile-views button{
+  min-height:40px!important;
+}
