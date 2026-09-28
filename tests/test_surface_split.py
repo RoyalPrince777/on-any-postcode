@@ -108,8 +108,8 @@ def test_public_surface_still_fails_closed_if_gateway_secret_is_missing(monkeypa
     )
     assert client.get("/the-spot/my-world").status_code == 404
     forged = client.get("/mission", headers={"X-OAP-SMI-Gateway": "x" * 48})
-    assert forged.status_code == 302
-    assert forged.headers["Location"].endswith("/mission/ollama")
+    assert forged.status_code == 404
+    assert forged.headers["Cache-Control"] == "no-store"
 
 
 def test_trusted_gateway_repairs_stale_private_aliases(monkeypatch):
