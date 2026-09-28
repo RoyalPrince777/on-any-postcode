@@ -112,3 +112,18 @@ Do not replace Render-managed secrets during image promotion. Do not create a
 second Core service merely to bypass a build quota. A release is not Green until
 the existing Core service reports the promoted image live, `/healthz` passes,
 and the relevant public browser acceptance passes.
+
+
+## OAP Release Control Plane
+
+Before any production mutation, run `python scripts/release_preflight.py`. The preflight is read-only and fail-closed. It validates the immutable Core and SMI release contracts and checks whether Render image-update authority is actually present.
+
+The machine-readable policy is `deploy/oap-release-control-plane.json`.
+
+Release order is fixed:
+
+1. immutable-image promotion to the existing service;
+2. existing-service source deploy only when build capacity is available;
+3. otherwise hold production unchanged.
+
+Creating a duplicate service to bypass quota, redeploying a known old image as progress, or claiming Green without live read-back is prohibited.
