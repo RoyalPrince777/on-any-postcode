@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import live_signals
+from . import live_signals, rights_core
 
 DISTRIBUTION_ID = "oap-distribution-intelligence"
 DISTRIBUTION_NAME = "OAP Distribution Intelligence"
@@ -134,26 +134,17 @@ def review_release_with_rights_decision(
     external_adapter = bool(data.get("external_adapter_proven"))
     receipt = bool(data.get("receipt_destination"))
 
-    evidence = decision.get("evidence_hashes")
-    authority_receipts = decision.get("authority_receipt_hashes")
-    approval_receipts = decision.get("human_approval_receipt_hashes")
-    rights_allow = bool(
-        decision.get("decision") == "ALLOW"
-        and isinstance(evidence, list)
-        and bool(evidence)
-        and isinstance(authority_receipts, list)
-        and bool(authority_receipts)
-        and isinstance(approval_receipts, list)
-        and bool(approval_receipts)
-        and decision.get("public_distribution_authorized") is False
-    )
+    proof = rights_core.decision_proof(decision)
+    rights_allow = bool(proof["canonical_allow"])
 
     gates = {
         "release_draft": bool(title),
         "rights_core_allow": rights_allow,
-        "rights_evidence_receipts": bool(evidence),
-        "rights_authority_receipt": bool(authority_receipts),
-        "rights_human_approval_receipt": bool(approval_receipts),
+        "rights_evidence_receipts": bool(proof["evidence_ready"]),
+        "rights_authority_receipt": bool(proof["authority_receipt_ready"]),
+        "rights_human_approval_receipt": bool(
+            proof["human_approval_receipt_ready"]
+        ),
         "campaign_page": campaign_ready,
         "external_route_proof": external_adapter,
         "receipt_destination": receipt,
@@ -166,7 +157,7 @@ def review_release_with_rights_decision(
         "canonical_world_id": CANONICAL_WORLD_ID,
         "canonical_world_name": CANONICAL_WORLD_NAME,
         "capability_kind": CAPABILITY_KIND,
-        "rights_decision_hash": decision.get("decision_hash"),
+        "rights_decision_hash": proof["decision_hash"],
         "rights_core_checked": True,
         "legacy_rights_boolean_used": False,
         "gates": gates,
