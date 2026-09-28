@@ -1,13 +1,12 @@
 """Negative and truth-boundary coverage for OAP Global Affairs."""
 import json
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 
-from mission_control import global_affairs
-from mission_control import workspaces
+from mission_control import global_affairs, workspaces
 
 
 @pytest.fixture
@@ -53,31 +52,31 @@ def store(monkeypatch):
 
 
 def _evidence(**overrides):
-    values = dict(
-        subject_ref="person:founder",
-        claim_type="relationship",
-        claim_text="OAP representative met the named counterparty.",
-        status="VERIFIED",
-        evidence_class="C",
-        issuer="Counterparty",
-        evidence_ref="letter-001",
-        evidence_hash="a" * 64,
-        externally_recognised=False,
-        diplomatic_status_claimed=False,
-    )
+    values = {
+        "subject_ref": "person:founder",
+        "claim_type": "relationship",
+        "claim_text": "OAP representative met the named counterparty.",
+        "status": "VERIFIED",
+        "evidence_class": "C",
+        "issuer": "Counterparty",
+        "evidence_ref": "letter-001",
+        "evidence_hash": "a" * 64,
+        "externally_recognised": False,
+        "diplomatic_status_claimed": False,
+    }
     values.update(overrides)
     return global_affairs.EvidenceRecord(**values)
 
 
 def _grant(**overrides):
-    values = dict(
-        representative_ref="person:founder",
-        permission="lead_meeting",
-        decision="ALLOW",
-        scope="Discuss cooperation; no binding agreement authority.",
-        jurisdiction="GB",
-        founder_approved=True,
-    )
+    values = {
+        "representative_ref": "person:founder",
+        "permission": "lead_meeting",
+        "decision": "ALLOW",
+        "scope": "Discuss cooperation; no binding agreement authority.",
+        "jurisdiction": "GB",
+        "founder_approved": True,
+    }
     values.update(overrides)
     return global_affairs.AuthorityGrant(**values)
 
@@ -85,7 +84,7 @@ def _grant(**overrides):
 def test_owner_scope_append_only_and_readback(store):
     owner, other = str(uuid4()), str(uuid4())
     rid = str(uuid4())
-    saved = global_affairs.save_evidence(owner, rid, _evidence())
+    global_affairs.save_evidence(owner, rid, _evidence())
     assert saved["audit_readback_verified"] is True
     assert saved["external_legal_status_conferred"] is False
     with pytest.raises(global_affairs.GlobalAffairsUnavailable, match="not_found"):
@@ -155,7 +154,7 @@ def test_revocation_and_expiry_block_authority(store):
     assert revoked["reason"] == "authority_revoked"
 
     expired_id = str(uuid4())
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    yesterday = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
     global_affairs.save_authority(owner, expired_id, _grant(expires_on=yesterday))
     expired = global_affairs.assess_authority(owner, expired_id)
     assert expired["decision"] == "BLOCK"
