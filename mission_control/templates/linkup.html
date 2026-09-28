@@ -215,10 +215,12 @@
           <audio data-oap-remote-audio autoplay hidden></audio>
           <button class="mc-secondary" type="button" data-oap-hangup>End</button>
         </div>
-        <p class="linkup-runtime" data-oap-voice-status role="status">Voice</p>
-        <p class="linkup-runtime" data-oap-call-status role="status">Call</p>
-        <p class="linkup-runtime" data-oap-presence-status role="status">Around Now</p>
-        <p class="linkup-runtime" data-oap-share-status role="status">Share</p>
+        <div class="linkup-runtime-strip" aria-label="Link Up runtime readiness">
+          <p class="linkup-runtime" data-oap-call-status role="status"><strong>Call</strong><span>Checking…</span></p>
+          <p class="linkup-runtime" data-oap-voice-status role="status"><strong>Voice</strong><span>Checking…</span></p>
+          <p class="linkup-runtime" data-oap-share-status role="status"><strong>Share</strong><span>Checking…</span></p>
+          <p class="linkup-runtime" data-oap-presence-status role="status"><strong>Presence</strong><span>Checking…</span></p>
+        </div>
 
         {% if dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
