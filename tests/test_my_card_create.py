@@ -14,10 +14,11 @@ def test_public_my_card_page_is_free_and_not_enter_my_world(anonymous_client):
     assert "No email or sign-in is needed." in page
     assert "Continue without My Card" in page
     assert 'href="/linkup"' in page
-    assert "Email — only for My Card" in page
-    assert "Required only if you choose to create a My Card." in page
+    assert "Email — optional" in page
+    assert "Optional. Leave this blank" in page
     assert 'name="email" type="email" autocomplete="email" maxlength="320"' in page
-    assert 'aria-describedby="card-email-note" required' in page
+    assert 'aria-describedby="card-email-note"' in page
+    assert 'aria-describedby="card-email-note" required' not in page
     assert "Enter My World" not in page
     assert 'action="/my-card/create"' in page
     assert 'name="csrf_token"' in page
@@ -96,3 +97,43 @@ def test_public_my_card_creation_rejects_missing_consent_without_auth_call(
 
     assert response.status_code == 400
     assert "Confirm that private Link Up actions use your My Card identity." in response.get_data(as_text=True)
+
+
+def test_public_my_card_creation_allows_blank_email(
+    anonymous_client, monkeypatch
+):
+    token = "my-card-optional-email-csrf-token-value-123456789"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+    observed = {}
+
+    def fake_sign_up(name, email, password):
+        observed["values"] = (name, email, password)
+        return neon_auth.AuthResult(
+            status_code=200,
+            payload={"user": {"id": "33333333-3333-4333-8333-333333333333"}},
+            set_cookie_headers=(
+                "better-auth.session_token=email-optional; Secure; HttpOnly",
+            ),
+        )
+
+    monkeypatch.setattr(neon_auth, "sign_up", fake_sign_up)
+    response = anonymous_client.post(
+        "/my-card/create",
+        data={
+            "csrf_token": token,
+            "name": "No Email Member",
+            "email": "",
+            "password": "a-private-password",
+            "password_confirmation": "a-private-password",
+            "accept_private_actions": "yes",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/linkup")
+    assert observed["values"] == (
+        "No Email Member",
+        "",
+        "a-private-password",
+    )
