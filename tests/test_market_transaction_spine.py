@@ -214,3 +214,18 @@ def test_migration_is_checksum_gated_and_not_auto_applied():
     assert spine.MARKET_TRANSACTION_MIGRATION_CHECKSUM in sql
     assert len(spine.MARKET_TRANSACTION_MIGRATION_CHECKSUM) == 64
     assert "oap_schema_migrations" in sql
+
+
+def test_platform_status_keeps_live_and_external_claims_locked():
+    status = spine.platform_status()
+
+    assert status["component"] == "OAP Market Transaction Spine"
+    assert status["correlation_authored"] is True
+    assert status["payment_capture_performed"] is False
+    assert status["money_transfer_performed"] is False
+    assert status["external_fulfilment_performed"] is False
+    assert status["carrier_handoff_performed"] is False
+    assert status["automatic_dispatch_performed"] is False
+    assert status["live_database_migration_proven"] is False
+    assert status["live_runtime_readback_proven"] is False
+    assert status["human_authority_final"] is True
