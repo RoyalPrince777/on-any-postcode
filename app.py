@@ -2653,5 +2653,124 @@ def smi_organiser_schedule(external_id: str):
     return response
 
 
+@app.route("/global-affairs", methods=["GET"])
+@web_security.login_required(founder_only=True)
+def global_affairs_console():
+    """Founder-only software console for bounded Global Affairs truth records."""
+    response = make_response(render_template("global_affairs.html"))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/api/global-affairs/<record_type>/<record_id>", methods=["GET", "PUT"])
+@web_security.login_required(api=True, founder_only=True)
+def global_affairs_record(record_type: str, record_id: str):
+    from mission_control import global_affairs
+
+    user = web_security.current_authenticated_user()
+    owner_id = str(user["id"])
+    try:
+        if request.method == "GET":
+            result = global_affairs.get(
+                owner_id, record_type=record_type, record_id=record_id,
+            )
+        else:
+            if not web_security.csrf_valid(request):
+                return _csrf_failure()
+            body = request.get_json(silent=True)
+            if not isinstance(body, dict):
+                return jsonify(error={"code": "invalid_request"}), 400
+            expected = str(body.get("expected_last_hash", ""))
+            stopped = body.get("stopped", False)
+            payload = body.get("data")
+            if not isinstance(payload, dict):
+                return jsonify(error={"code": "typed_data_required"}), 400
+            if record_type == "evidence":
+                value = global_affairs.EvidenceRecord(**payload)
+                result = global_affairs.save_evidence(
+                    owner_id, record_id, value,
+                    expected_last_hash=expected, stopped=stopped,
+                )
+            elif record_type == "authority":
+                value = global_affairs.AuthorityGrant(**payload)
+                result = global_affairs.save_authority(
+                    owner_id, record_id, value,
+                    expected_last_hash=expected, stopped=stopped,
+                )
+            elif record_type == "mission":
+                value = global_affairs.MissionRecord(**payload)
+                result = global_affairs.save_mission(
+                    owner_id, record_id, value,
+                    expected_last_hash=expected, stopped=stopped,
+                )
+            elif record_type == "credential":
+                value = global_affairs.CredentialRecord(**payload)
+                result = global_affairs.save_credential(
+                    owner_id, record_id, value,
+                    expected_last_hash=expected, stopped=stopped,
+                )
+            else:
+                return jsonify(error={"code": "invalid_global_affairs_record_type"}), 400
+    except (ValueError, TypeError) as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except PermissionError as exc:
+        return jsonify(error={"code": str(exc)}), 423
+    except global_affairs.GlobalAffairsUnavailable as exc:
+        status = 404 if str(exc) == "global_affairs_record_not_found" else 409
+        return jsonify(error={"code": str(exc)}), status
+    except workspaces.WorkspaceUnavailable:
+        return jsonify(error={"code": "global_affairs_store_unavailable"}), 503
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/api/global-affairs/credential/<record_id>/verify", methods=["GET"])
+@web_security.login_required(api=True, founder_only=True)
+def global_affairs_credential_verify(record_id: str):
+    from mission_control import global_affairs
+
+    user = web_security.current_authenticated_user()
+    try:
+        result = global_affairs.verify_credential(str(user["id"]), record_id)
+    except (ValueError, TypeError) as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except global_affairs.GlobalAffairsUnavailable as exc:
+        return jsonify(error={"code": str(exc)}), 409
+    except workspaces.WorkspaceUnavailable:
+        return jsonify(error={"code": "global_affairs_store_unavailable"}), 503
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/api/global-affairs/recovery/<authority_record_id>", methods=["POST"])
+@web_security.login_required(api=True, founder_only=True)
+def global_affairs_recovery(authority_record_id: str):
+    from mission_control import global_affairs
+
+    if not web_security.csrf_valid(request):
+        return _csrf_failure()
+    user = web_security.current_authenticated_user()
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify(error={"code": "invalid_request"}), 400
+    try:
+        result = global_affairs.recovery_readback(
+            str(user["id"]),
+            authority_record_id=authority_record_id,
+            credential_record_id=body.get("credential_record_id"),
+        )
+    except (ValueError, TypeError) as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except global_affairs.GlobalAffairsUnavailable as exc:
+        return jsonify(error={"code": str(exc)}), 409
+    except workspaces.WorkspaceUnavailable:
+        return jsonify(error={"code": "global_affairs_store_unavailable"}), 503
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)
