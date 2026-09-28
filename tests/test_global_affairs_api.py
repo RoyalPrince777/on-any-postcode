@@ -1,8 +1,6 @@
 """Founder-only API/UI contract for OAP Global Affairs."""
 import app as app_module
-
 from mission_control import global_affairs, web_security
-
 
 OWNER = "11111111-1111-4111-8111-111111111111"
 RID = "22222222-2222-4222-8222-222222222222"
