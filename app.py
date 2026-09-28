@@ -1054,9 +1054,9 @@ def my_card_create():
         return _my_card_create_response(
             status_code=400, error="Enter the name to show on your My Card."
         )
-    if not email or "@" not in email or email.startswith("@") or email.endswith("@"):
+    if email and ("@" not in email or email.startswith("@") or email.endswith("@")):
         return _my_card_create_response(
-            status_code=400, error="Enter a valid email address."
+            status_code=400, error="Enter a valid email address or leave it blank."
         )
     if password != confirmation:
         return _my_card_create_response(

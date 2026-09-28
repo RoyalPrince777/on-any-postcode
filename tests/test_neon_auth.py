@@ -330,3 +330,13 @@ def test_authenticated_non_founder_cannot_enter_mission_control(
 
 def test_founder_selector_accepts_verified_test_identity(client):
     assert client.get("/mission").status_code == 200
+
+
+def test_member_auth_email_generates_private_alias_when_blank():
+    value = neon_auth._member_auth_email("")
+    assert value.startswith("member-")
+    assert value.endswith("@members.oap.invalid")
+
+
+def test_member_auth_email_preserves_supplied_email():
+    assert neon_auth._member_auth_email(" Person@Example.Test ") == "person@example.test"
