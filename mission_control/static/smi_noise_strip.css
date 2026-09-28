@@ -506,3 +506,45 @@ body.smi-noise-strip #attach-menu .attach-note{
 @media(max-width:620px){
   body.smi-noise-strip .smi-tool-group{grid-template-columns:1fr!important}
 }
+
+
+/* SMI UX quiet pass: simple front, deep tools behind Plus. */
+body.smi-noise-strip #attach-menu .connector-state:not(.attention){
+  display:none!important;
+}
+body.smi-noise-strip #attach-menu .connector-state.attention{
+  font-size:.58rem!important;
+  opacity:.72!important;
+}
+body.smi-noise-strip #attach-menu .attach-note{
+  display:none!important;
+}
+body.smi-noise-strip .smi-tool-group{
+  border-bottom:0!important;
+  padding:5px 0 7px!important;
+}
+body.smi-noise-strip .smi-tool-group + .smi-tool-group{
+  margin-top:2px!important;
+}
+body.smi-noise-strip .smi-tool-group .attach-option{
+  border-color:transparent!important;
+  background:rgba(255,255,255,.025)!important;
+  box-shadow:none!important;
+}
+body.smi-noise-strip .smi-tool-group .attach-option:hover,
+body.smi-noise-strip .smi-tool-group .attach-option:focus{
+  border-color:rgba(57,175,255,.22)!important;
+  background:rgba(57,175,255,.07)!important;
+}
+body.smi-noise-strip .smi-tool-group>h3{
+  opacity:.76!important;
+}
+body.smi-noise-strip .chat-head{
+  box-shadow:none!important;
+}
+body.smi-noise-strip .composer-box{
+  box-shadow:0 6px 18px rgba(0,0,0,.24)!important;
+}
+body.smi-noise-strip .msg{
+  box-shadow:none!important;
+}
