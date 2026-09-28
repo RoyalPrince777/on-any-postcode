@@ -1,0 +1,144 @@
+{
+  "schema_version": 2,
+  "name": "OAP Truth Ledger",
+  "mode": "truth",
+  "derivation": {
+    "status_is_computed": true,
+    "append_only_evidence": true,
+    "green_requires_all": [
+      "exact_head_ci",
+      "deploy_receipt",
+      "health_readback",
+      "route_acceptance",
+      "rollback_or_recovery"
+    ]
+  },
+  "features": [
+    {
+      "feature_id": "release-control-plane",
+      "scope": "repository release-control policy and fail-closed preflight",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "image_digest": null,
+      "runtime_service": null,
+      "route": null,
+      "required_gates": [
+        "exact_head_ci",
+        "real_preflight_with_deployment_authority",
+        "deploy_receipt",
+        "health_readback",
+        "route_acceptance",
+        "rollback_or_recovery"
+      ],
+      "founder_decision": "approved_for_evidence_burn_down_not_green"
+    },
+    {
+      "feature_id": "linkup-public-runtime",
+      "scope": "public Link Up on the existing on-any-postcode Render service",
+      "commit_sha": "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8",
+      "image_digest": "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6",
+      "runtime_service": "srv-d8gfsv0jo6nc73egdlf0",
+      "route": "/linkup",
+      "required_gates": [
+        "exact_head_ci",
+        "deploy_receipt",
+        "health_readback",
+        "route_acceptance",
+        "rollback_or_recovery"
+      ],
+      "founder_decision": "runtime_identity_proven_fresh_http_acceptance_still_required"
+    }
+  ],
+  "evidence_events": [
+    {
+      "evidence_id": "ev-release-control-authored-policy-v1",
+      "feature_id": "release-control-plane",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "type": "authored_code",
+      "result": "present",
+      "location": "deploy/oap-release-control-plane.json",
+      "producer": "repository",
+      "authority": "authored",
+      "created_at": "2026-09-28T13:57:34Z",
+      "supersedes": null,
+      "expires_when": "code_config_runtime_or_evidence_changes"
+    },
+    {
+      "evidence_id": "ev-release-control-authored-preflight-v1",
+      "feature_id": "release-control-plane",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "type": "authored_code",
+      "result": "present",
+      "location": "scripts/release_preflight.py",
+      "producer": "repository",
+      "authority": "authored",
+      "created_at": "2026-09-28T13:57:34Z",
+      "supersedes": null,
+      "expires_when": "code_config_runtime_or_evidence_changes"
+    },
+    {
+      "evidence_id": "ev-release-control-authored-test-v1",
+      "feature_id": "release-control-plane",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "type": "authored_test",
+      "result": "present",
+      "location": "tests/test_release_preflight.py",
+      "producer": "repository",
+      "authority": "authored",
+      "created_at": "2026-09-28T13:57:34Z",
+      "supersedes": null,
+      "expires_when": "code_config_runtime_or_evidence_changes"
+    },
+    {
+      "evidence_id": "ev-linkup-render-deploy-20260928-1404",
+      "feature_id": "linkup-public-runtime",
+      "commit_sha": "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8",
+      "type": "deploy_receipt",
+      "result": "proven",
+      "location": "render:dep-dat77i21k6is73aa9m50",
+      "producer": "render",
+      "authority": "provider",
+      "created_at": "2026-09-28T14:04:42Z",
+      "supersedes": "render:dep-dasslprbc2fs73a6ieug",
+      "expires_when": "service_image_or_deploy_changes"
+    },
+    {
+      "evidence_id": "ev-linkup-render-recovery-20260928",
+      "feature_id": "linkup-public-runtime",
+      "commit_sha": "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8",
+      "type": "rollback_or_recovery",
+      "result": "proven",
+      "location": "render:dep-dat77bo473hc73f1dj7g->dep-dat77i21k6is73aa9m50",
+      "producer": "render",
+      "authority": "provider",
+      "created_at": "2026-09-28T14:04:42Z",
+      "supersedes": null,
+      "expires_when": "recovery_path_or_service_changes"
+    },
+    {
+      "evidence_id": "ev-linkup-health-historical-receipt-v1",
+      "feature_id": "linkup-public-runtime",
+      "commit_sha": "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8",
+      "type": "health_readback",
+      "result": "historical_pass",
+      "location": "deploy/linkup-public-live-receipt.json",
+      "producer": "repository_receipt",
+      "authority": "historical",
+      "created_at": "2026-09-28T02:13:44Z",
+      "supersedes": null,
+      "expires_when": "fresh_http_acceptance_required"
+    },
+    {
+      "evidence_id": "ev-linkup-route-historical-receipt-v1",
+      "feature_id": "linkup-public-runtime",
+      "commit_sha": "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8",
+      "type": "route_acceptance",
+      "result": "historical_pass",
+      "location": "deploy/linkup-public-live-receipt.json",
+      "producer": "repository_receipt",
+      "authority": "historical",
+      "created_at": "2026-09-28T02:13:44Z",
+      "supersedes": null,
+      "expires_when": "fresh_http_acceptance_required"
+    }
+  ]
+}

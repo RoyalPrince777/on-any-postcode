@@ -105,17 +105,19 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
     assert "Optional for private features. Public Link Up needs no email or sign-in." in page
-    assert "Link Message" in page
     assert "Discovery" in page
-    assert "Certified" in page
-    assert "Safety" in page
-    assert "Private" in page
-    assert "Public" in page
-    assert "Opportunities" in page
-    assert "Spotlight" in page
-    assert "Identity" in page
-    assert "Nearby People" in page
-    assert "Community Signals" in page
+    assert "My Card" in page
+    assert "The Spot" in page
+    assert "Find people & opportunities" in page
+    assert "Open The Link" in page
+    assert "Create My Card" in page
+    assert "Link Message" not in page
+    assert "Certified" not in page
+    assert "Spotlight" not in page
+    assert "Nearby People" not in page
+    assert "Community Signals" not in page
+    assert 'id="linkup-public-search"' not in page
+    assert " disabled" not in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
@@ -266,6 +268,30 @@ def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
 
     assert 'panels.some((panel) => panel.dataset.linkupPanel === "new")' in script
     assert 'openPanel("new")' in script
+
+
+def test_linkup_public_shell_has_no_dead_or_duplicate_primary_controls():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert 'id="linkup-public-search"' not in template
+    assert 'class="linkup-royal-discovery"' in template
+    assert template.count("linkup-royal-card") == 2
+    assert "Link Message</span>" not in template
+    assert ">Profile</span>" not in template
+    assert "The Link</span>" in template
+    assert "The Spot</span>" in template
+
+
+def test_linkup_private_runtime_readiness_is_visible_and_compact():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    stylesheet = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+
+    assert 'class="linkup-runtime-strip"' in template
+    for label in ("Call", "Voice", "Share", "Presence"):
+        assert f'data-label="{label}"' in template
+    assert ".linkup-runtime-strip{" in stylesheet
+    assert '.linkup-runtime::before{content:attr(data-label) " · "' in stylesheet
+    assert "position:absolute;width:1px;height:1px" not in stylesheet
 
 
 def test_linkup_public_shell_uses_free_my_card_actions():
