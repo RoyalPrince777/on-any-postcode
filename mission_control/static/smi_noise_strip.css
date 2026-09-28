@@ -1,0 +1,223 @@
+/* SMI noise-strip shell: visual cleanup only. Keeps existing routes/actions intact. */
+body.smi-noise-strip .status-row .mode-tools,
+body.smi-noise-strip #display-name,
+body.smi-noise-strip .attach-section-label,
+body.smi-noise-strip .attach-divider,
+body.smi-noise-strip .attach-note,
+body.smi-noise-strip .chat-head #provider-state {
+  display:none!important;
+}
+
+body.smi-noise-strip .chat-head {
+  min-height:52px;
+  gap:10px;
+  align-items:center;
+}
+
+body.smi-noise-strip .chat-title {
+  line-height:1.05;
+}
+
+body.smi-noise-strip .chat-subtitle {
+  opacity:.72;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+body.smi-noise-strip .thinking {
+  min-height:0;
+  margin:0;
+  padding:0 12px;
+  border:0;
+  background:transparent;
+}
+
+body.smi-noise-strip .thinking:not(.show):not(.active) {
+  display:none!important;
+}
+
+body.smi-noise-strip .thinking-log {
+  display:none!important;
+}
+
+body.smi-noise-strip .thinking-head {
+  min-height:28px;
+  padding:3px 0;
+  gap:7px;
+  font-size:12px;
+}
+
+body.smi-noise-strip .composer {
+  padding-top:6px;
+}
+
+body.smi-noise-strip .composer-box {
+  border-radius:18px;
+  overflow:visible;
+}
+
+body.smi-noise-strip .composer-bar {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+}
+
+body.smi-noise-strip .composer-left,
+body.smi-noise-strip .composer-right {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+
+body.smi-noise-strip .composer-left {
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+
+body.smi-noise-strip .composer-left::-webkit-scrollbar {
+  display:none;
+}
+
+body.smi-noise-strip #plus-button,
+body.smi-noise-strip #mic-button,
+body.smi-noise-strip #pause-button,
+body.smi-noise-strip #stop-button,
+body.smi-noise-strip #speaker-button,
+body.smi-noise-strip #send {
+  min-width:40px;
+  height:40px;
+  min-height:40px;
+  border-radius:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+
+body.smi-noise-strip #speaker-button {
+  width:40px;
+  padding:0;
+  font-size:0;
+}
+
+body.smi-noise-strip #speaker-button::before {
+  content:"🔊";
+  font-size:18px;
+}
+
+body.smi-noise-strip #send {
+  padding:0 13px;
+  gap:6px;
+}
+
+body.smi-noise-strip .status-row {
+  min-height:22px;
+  padding-top:4px;
+}
+
+body.smi-noise-strip #status {
+  width:100%;
+  text-align:center;
+  font-size:11px;
+  opacity:.68;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+body.smi-noise-strip #attach-menu {
+  width:min(92vw,420px);
+  max-height:min(62vh,520px);
+  overflow:auto;
+  padding:8px;
+  gap:6px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+body.smi-noise-strip #attach-menu.show {
+  display:grid!important;
+}
+
+body.smi-noise-strip #attach-menu .attach-option {
+  min-height:46px;
+  padding:8px 10px;
+  border-radius:12px;
+  margin:0;
+}
+
+body.smi-noise-strip #attach-menu .connector-copy {
+  min-width:0;
+  gap:7px;
+}
+
+body.smi-noise-strip #attach-menu .connector-copy span:last-child {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+body.smi-noise-strip #attach-menu .connector-state {
+  font-size:10px;
+  opacity:.66;
+}
+
+body.smi-noise-strip #studio-creation-strip {
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:5px;
+  margin:6px 0 0;
+}
+
+body.smi-noise-strip #studio-creation-strip .smi-interaction-tab {
+  min-width:0;
+  min-height:38px;
+  padding:6px 4px;
+  border-radius:11px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+body.smi-noise-strip .chat-head-actions {
+  gap:6px;
+}
+
+body.smi-noise-strip .truth-strip {
+  max-width:165px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+@media (max-width:640px) {
+  body.smi-noise-strip .chat-head .chat-subtitle {
+    display:none!important;
+  }
+  body.smi-noise-strip .truth-strip {
+    display:none!important;
+  }
+  body.smi-noise-strip .corner-action {
+    min-width:38px;
+    padding:0 8px;
+  }
+  body.smi-noise-strip #attach-menu {
+    width:calc(100vw - 24px);
+    grid-template-columns:1fr 1fr;
+  }
+  body.smi-noise-strip #studio-creation-strip {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  body.smi-noise-strip #studio-creation-strip .smi-character-lock {
+    grid-column:span 2;
+  }
+  body.smi-noise-strip .send-label {
+    display:none;
+  }
+  body.smi-noise-strip #send {
+    width:40px;
+    padding:0;
+  }
+}
