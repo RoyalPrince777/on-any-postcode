@@ -232,7 +232,7 @@ jobs:
           tag=os.environ["IMAGE_TAG"].strip()
           if not tag:
               raise SystemExit("runtime_image_tag_missing")
-          image=f'{os.environ["IMAGE_NAME"]}:{tag}'
+          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
           service_id=os.environ["SERVICE_ID"]
           api="https://api.render.com/v1"
 
@@ -266,9 +266,27 @@ jobs:
           if details.get("url")!=os.environ["PUBLIC_URL"] or details.get("healthCheckPath")!=os.environ["HEALTH_PATH"]:
               raise SystemExit("unexpected_service_boundary")
 
-          updated=req("PATCH",f"/services/{service_id}",{"repo":None,"branch":None,"image":{"name":image},"autoDeploy":"no"})
+          image_payload={
+              "ownerId": current.get("ownerId"),
+              "imagePath": image,
+          }
+          registry=current.get("registryCredential") or {}
+          registry_id=registry.get("id") if isinstance(registry,dict) else None
+          if registry_id:
+              image_payload["registryCredentialId"]=registry_id
+          if not image_payload["ownerId"]:
+              raise SystemExit("service_owner_missing")
+
+          updated=req("PATCH",f"/services/{service_id}",{
+              "repo":None,
+              "branch":None,
+              "image":image_payload,
+              "autoDeploy":"no",
+          })
           if updated.get("id")!=service_id or updated.get("name")!=os.environ["SERVICE_NAME"]:
               raise SystemExit("service_update_identity_mismatch")
+          if updated.get("imagePath") != image:
+              raise SystemExit("service_image_readback_mismatch")
 
           deploy=req("POST",f"/services/{service_id}/deploys",{"imageUrl":image})
           deploy_id=deploy.get("id")
