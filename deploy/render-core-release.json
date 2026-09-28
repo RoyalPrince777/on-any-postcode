@@ -20,5 +20,9 @@
     "Existing Core service ID and public URL are preserved",
     "Public Link Up remains anonymous",
     "My Card creation remains free and separate from Founder access"
-  ]
+  ],
+  "promotion_attempt": {
+    "id": "core-b097-hook-20260928-1406",
+    "reason": "Retry exact immutable Core promotion through deploy-hook fallback; no source build."
+  }
 }
