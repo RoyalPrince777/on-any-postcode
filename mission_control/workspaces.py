@@ -744,7 +744,7 @@ def list_global_affairs_records(
     identity = _identity(identity_id)
     rid = str(uuid.UUID(str(record_id)))
     kind = str(record_type or "").strip().casefold()
-    if kind not in {"evidence", "authority"}:
+    if kind not in {"evidence", "authority", "mission", "credential"}:
         raise ValueError("invalid_global_affairs_record_type")
     prefix = f"OAP-GLOBAL-AFFAIRS:{kind}:{rid}:"
     bounded = min(100, max(1, int(limit)))
@@ -776,7 +776,7 @@ def list_global_affairs_audit_receipts(
     identity = _identity(identity_id)
     rid = str(uuid.UUID(str(record_id)))
     kind = str(record_type or "").strip().casefold()
-    if kind not in {"evidence", "authority"}:
+    if kind not in {"evidence", "authority", "mission", "credential"}:
         raise ValueError("invalid_global_affairs_record_type")
     bounded = min(100, max(1, int(limit)))
     try:
@@ -823,7 +823,7 @@ def add_global_affairs_record_atomic(
     identity = _identity(identity_id)
     rid = str(uuid.UUID(str(record_id)))
     kind = str(record_type or "").strip().casefold()
-    if kind not in {"evidence", "authority"}:
+    if kind not in {"evidence", "authority", "mission", "credential"}:
         raise ValueError("invalid_global_affairs_record_type")
     if type(version) is not int or version < 1:
         raise ValueError("invalid_global_affairs_version")
