@@ -19,14 +19,12 @@ linear-gradient(180deg,#090604 0%,#160d06 42%,#070504 100%);color:#fff7df}
 .linkup-royal-brand h2 span{color:#d966ff;text-shadow:0 3px 0 #4d145e,0 0 18px rgba(197,47,255,.7)}
 .linkup-royal-brand>strong{display:inline-block;margin-top:8px;padding:2px 10px;border:2px solid #ffc94f;border-radius:999px;background:#111;color:#ffd867}
 .linkup-royal-brand p{margin:8px 0 18px;font-weight:900;letter-spacing:.24em;font-size:.72rem;color:#f3ca76}
-.linkup-royal-search{position:relative;z-index:2;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;background:linear-gradient(180deg,#171411,#090807);border:1px solid #ffc13b;border-radius:22px;padding:7px 10px;box-shadow:0 0 0 2px rgba(255,156,27,.13),0 0 18px rgba(255,166,20,.18)}
-.linkup-royal-search input{width:100%;border:0;background:transparent;color:#f8e6bd;padding:10px 4px;outline:none}
-.linkup-royal-search input::placeholder{color:#cbbf9f}
-.linkup-royal-search>a{color:#ffd45e;text-decoration:none;font-size:1.25rem}
+.linkup-royal-discovery{position:relative;z-index:2;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;min-height:56px;background:linear-gradient(180deg,#171411,#090807);border:1px solid #ffc13b;border-radius:18px;padding:10px 14px;box-shadow:0 0 0 2px rgba(255,156,27,.13),0 0 18px rgba(255,166,20,.18);color:#fff7df;text-decoration:none;text-align:left}
+.linkup-royal-discovery>span:first-child{font-size:1.3rem;color:#ffd45e}.linkup-royal-discovery strong,.linkup-royal-discovery small{display:block}.linkup-royal-discovery small{margin-top:2px;color:#cbbf9f}.linkup-royal-discovery b{font-size:1.55rem;color:#ffd45e}
 .linkup-create-card{position:relative;z-index:2;margin-top:12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;text-align:left;padding:13px 16px;border-radius:22px;text-decoration:none;color:#fff7dc;border:1px solid #ffd35b;background:radial-gradient(circle at 50% 0,#6d15b6,#270448 58%,#15051e);box-shadow:inset 0 0 22px rgba(232,95,255,.28),0 0 18px rgba(167,36,255,.22)}
 .linkup-create-card>span:first-child{font-size:1.65rem;color:#ffd363}.linkup-create-card strong{display:block;font-size:1.18rem}.linkup-create-card small{display:block;color:#eacb79;margin-top:3px}.linkup-create-card b{font-size:2rem;color:#ffd35b}
-.linkup-royal-tools{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px 8px;padding:16px 4px;border-bottom:1px solid rgba(255,196,69,.55)}
-.linkup-royal-tools a{text-decoration:none;color:#fff5dc;text-align:center;min-width:0}.linkup-royal-tools strong,.linkup-royal-tools small{display:block}.linkup-royal-tools strong{font-size:.78rem;margin-top:6px}.linkup-royal-tools small{font-size:.66rem;color:#ddc58e;margin-top:2px}
+.linkup-royal-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 4px;border-bottom:1px solid rgba(255,196,69,.42)}
+.linkup-royal-tools a{text-decoration:none;color:#fff5dc;text-align:center;min-width:0;padding:6px;border-radius:14px}.linkup-royal-tools strong,.linkup-royal-tools small{display:block}.linkup-royal-tools strong{font-size:.78rem;margin-top:6px}.linkup-royal-tools small{font-size:.66rem;color:#ddc58e;margin-top:2px}
 .royal-symbol{width:58px;height:58px;margin:auto;border-radius:50%;display:grid;place-items:center;font-size:1.7rem;border:2px solid #ffcf55;box-shadow:inset 0 0 12px rgba(255,255,255,.24),0 0 12px rgba(255,167,20,.3);background:radial-gradient(circle at 40% 30%,#8a2cd8,#3c0b67 68%,#16051e)}
 .royal-world{background:radial-gradient(circle at 40% 30%,#13477e,#071c36 70%)}.royal-green{background:radial-gradient(circle at 40% 30%,#1f8d42,#073214 70%)}.royal-gold{background:radial-gradient(circle at 40% 30%,#ffb322,#7b3b00 70%)}.royal-shield{background:radial-gradient(circle at 40% 30%,#252525,#050505 70%)}.royal-rocket,.royal-star,.royal-scroll{background:radial-gradient(circle at 40% 30%,#a821d8,#3a075c 70%)}
 .linkup-royal-stream{display:grid;gap:10px;padding:14px 0}
@@ -42,3 +40,8 @@ linear-gradient(180deg,#090604 0%,#160d06 42%,#070504 100%);color:#fff7df}
 .linkup-avatar{background:radial-gradient(circle at 35% 25%,#902fd0,#2b0a42 70%);border:1px solid #d9a638;color:#ffe073}
 .linkup-message{background:#21160f;border:1px solid rgba(255,191,59,.13)}.linkup-message.outgoing{background:#32134a;border-color:rgba(208,75,255,.2)}
 @media(max-width:620px){.linkup-royal-home{padding-left:10px;padding-right:10px}.linkup-royal-tools{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 8px}.linkup-royal-brand h2{font-size:3rem}.linkup-royal-card{grid-template-columns:72px 1fr auto}.royal-card-art{height:66px}.royal-symbol{width:54px;height:54px}}
+
+.linkup-royal-home a:focus-visible,.linkup-topbar a:focus-visible,.linkup-royal-bottom a:focus-visible{outline:2px solid #ffe15d;outline-offset:3px}
+.linkup-royal-home a:hover{filter:brightness(1.06)}
+.linkup-royal-tools a,.linkup-royal-card,.linkup-create-card,.linkup-royal-discovery,.linkup-royal-bottom a{touch-action:manipulation}
+@media(max-width:620px){.linkup-royal-tools{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 6px}.linkup-royal-discovery{min-height:54px}.linkup-royal-stream{gap:8px}.linkup-royal-card{min-height:90px}}
