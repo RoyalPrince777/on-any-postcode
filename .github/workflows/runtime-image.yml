@@ -107,6 +107,17 @@ jobs:
       PUBLIC_URL: https://on-any-postcode.onrender.com
       HEALTH_PATH: /healthz
     steps:
+      - name: Require current main release candidate
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          current="$(git ls-remote "https://github.com/${REPOSITORY}.git" refs/heads/main | awk '{print $1}')"
+          test -n "$current" || { echo "current-main-readback-missing"; exit 1; }
+          test "$current" = "$RELEASE_SHA" || { echo "release-superseded current=$current candidate=$RELEASE_SHA"; exit 1; }
+          echo "release-current candidate=$RELEASE_SHA"
+
       - name: Report Core promotion unavailable
         if: env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
         run: echo "core-promotion-skipped-render-api-key-not-configured"
@@ -256,6 +267,17 @@ jobs:
       PUBLIC_URL: https://oap-smi.onrender.com
       HEALTH_PATH: /healthz
     steps:
+      - name: Require current main release candidate
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          current="$(git ls-remote "https://github.com/${REPOSITORY}.git" refs/heads/main | awk '{print $1}')"
+          test -n "$current" || { echo "current-main-readback-missing"; exit 1; }
+          test "$current" = "$RELEASE_SHA" || { echo "release-superseded current=$current candidate=$RELEASE_SHA"; exit 1; }
+          echo "release-current candidate=$RELEASE_SHA"
+
       - name: Report SMI promotion unavailable
         if: env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
         run: echo "smi-promotion-skipped-render-api-key-not-configured"
