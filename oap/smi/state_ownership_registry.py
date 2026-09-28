@@ -15,7 +15,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-REVISION = "2026-09-26-v1"
+REVISION = "2026-09-28-global-affairs-v1"
 _BINDING_STATES = {"contract_only", "runtime_proven"}
 
 
@@ -50,6 +50,8 @@ _OWNERS: tuple[StateOwner, ...] = (
     StateOwner("commerce", "market", "merchant/order", "market_store", consequential=True),
     StateOwner("value", "sika", "SIKA ledger entry", "sika_canonical_ledger", consequential=True),
     StateOwner("organiser", "organiser", "schedule/notebook", "owner_scoped_workspace_store"),
+    StateOwner("global_affairs_evidence", "global_affairs", "evidence/accreditation claim", "owner_scoped_workspace_store", consequential=True),
+    StateOwner("global_affairs_authority", "global_affairs", "scoped representative authority", "owner_scoped_workspace_store", consequential=True),
     StateOwner("studio", "oap_studio", "build/workspace candidate", "owner_scoped_workspace_store"),
     StateOwner("intelligence_policy", "smi", "policy/capability state", "smi_control_state", consequential=True),
     StateOwner("audit_evidence", "oap_data", "evidence/audit receipt", "oap_data_evidence_store", consequential=True),

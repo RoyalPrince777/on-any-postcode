@@ -734,3 +734,166 @@ def status() -> dict[str, object]:
         result["error"] = "workspace_store_unavailable"
     result["ready"] = bool(result["schema_ready"] and result["workspaces"] == 12)
     return result
+
+
+
+def list_global_affairs_records(
+    identity_id: object, *, record_type: str, record_id: object, limit: int = 100,
+) -> list[dict[str, str]]:
+    """Read one owner's append-only Global Affairs record history."""
+    identity = _identity(identity_id)
+    rid = str(uuid.UUID(str(record_id)))
+    kind = str(record_type or "").strip().casefold()
+    if kind not in {"evidence", "authority", "mission", "credential"}:
+        raise ValueError("invalid_global_affairs_record_type")
+    prefix = f"OAP-GLOBAL-AFFAIRS:{kind}:{rid}:"
+    bounded = min(100, max(1, int(limit)))
+    try:
+        with postgres_db.lab_connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT record_id,title,body,status,created_at,updated_at
+                   FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id='governance'
+                     AND title LIKE %s
+                   ORDER BY updated_at DESC LIMIT %s""",
+                (identity, prefix + "%", bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise WorkspaceUnavailable("global_affairs_read_failed") from exc
+    return [
+        {
+            "record_id": str(row[0]), "title": str(row[1]),
+            "body": str(row[2]), "status": str(row[3]),
+            "created_at": row[4].isoformat(), "updated_at": row[5].isoformat(),
+        }
+        for row in rows
+    ]
+
+
+def list_global_affairs_audit_receipts(
+    identity_id: object, *, record_type: str, record_id: object, limit: int = 100,
+) -> list[dict[str, object]]:
+    identity = _identity(identity_id)
+    rid = str(uuid.UUID(str(record_id)))
+    kind = str(record_type or "").strip().casefold()
+    if kind not in {"evidence", "authority", "mission", "credential"}:
+        raise ValueError("invalid_global_affairs_record_type")
+    bounded = min(100, max(1, int(limit)))
+    try:
+        with postgres_db.lab_connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT event_seq,actor_id,target,metadata
+                   FROM audit_events
+                   WHERE actor_id=%s
+                     AND action='OAP_GLOBAL_AFFAIRS_VERSION'
+                     AND target=%s
+                   ORDER BY event_seq ASC LIMIT %s""",
+                (identity, f"global_affairs:{kind}:{rid}", bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise WorkspaceUnavailable("global_affairs_audit_read_failed") from exc
+    receipts = []
+    for row in rows:
+        metadata = row[3]
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except ValueError as exc:
+                raise WorkspaceUnavailable("global_affairs_audit_invalid") from exc
+        if not isinstance(metadata, dict):
+            raise WorkspaceUnavailable("global_affairs_audit_invalid")
+        receipts.append({
+            "event_seq": int(row[0]), "actor_id": str(row[1]),
+            "target": str(row[2]), "metadata": metadata,
+        })
+    return receipts
+
+
+def add_global_affairs_record_atomic(
+    identity_id: object,
+    *,
+    record_type: str,
+    record_id: object,
+    version: int,
+    digest: str,
+    title: str,
+    body: str,
+) -> str:
+    """Append a Global Affairs version plus canonical audit receipt atomically."""
+    identity = _identity(identity_id)
+    rid = str(uuid.UUID(str(record_id)))
+    kind = str(record_type or "").strip().casefold()
+    if kind not in {"evidence", "authority", "mission", "credential"}:
+        raise ValueError("invalid_global_affairs_record_type")
+    if type(version) is not int or version < 1:
+        raise ValueError("invalid_global_affairs_version")
+    if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+        raise ValueError("invalid_global_affairs_digest")
+    expected_title = f"OAP-GLOBAL-AFFAIRS:{kind}:{rid}:v{version}"
+    if title != expected_title:
+        raise ValueError("invalid_global_affairs_record_title")
+    if not body or len(body.encode("utf-8")) > 20_000:
+        raise ValueError("invalid_global_affairs_record_body")
+    metadata = {
+        "workspace_id": "governance",
+        "global_affairs_record_type": kind,
+        "global_affairs_record_id": rid,
+        "version": version,
+        "digest": digest,
+        "record_status": "draft",
+        "external_legal_status_conferred": False,
+    }
+    try:
+        with postgres_db.lab_connect() as connection:
+            connection.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                (f"global_affairs:{kind}:{rid}",),
+            )
+            duplicate = connection.execute(
+                """SELECT 1 FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id='governance' AND title=%s
+                   LIMIT 1""",
+                (identity, title),
+            ).fetchone()
+            if duplicate:
+                raise ValueError("global_affairs_version_already_exists")
+            row = connection.execute(
+                """INSERT INTO oap_workspace_records(
+                       identity_id,workspace_id,title,body,status
+                   ) VALUES (%s,'governance',%s,%s,'draft')
+                   RETURNING record_id""",
+                (identity, title, body),
+            ).fetchone()
+            workspace_record_id = str(row[0])
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+            previous = connection.execute(
+                "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+            ).fetchone()
+            previous_hash = str(previous[0]) if previous else "GENESIS"
+            canonical = json.dumps(
+                {**metadata, "record_id": workspace_record_id},
+                sort_keys=True, separators=(",", ":"),
+            )
+            current_hash = hashlib.sha256(
+                (previous_hash + canonical).encode("utf-8")
+            ).hexdigest()
+            connection.execute(
+                """INSERT INTO audit_events(
+                       prev_hash,curr_hash,actor_id,actor_type,authority_level,
+                       action,target,reason,correlation_id,metadata
+                   ) VALUES (
+                       %s,%s,%s,'HUMAN_AUTHORITY',0,
+                       'OAP_GLOBAL_AFFAIRS_VERSION',%s,
+                       'owner_scoped_global_affairs_truth_record',%s,%s::jsonb
+                   )""",
+                (
+                    previous_hash, current_hash, identity,
+                    f"global_affairs:{kind}:{rid}", rid, canonical,
+                ),
+            )
+            connection.commit()
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise WorkspaceUnavailable("global_affairs_atomic_write_failed") from exc
+    return workspace_record_id
