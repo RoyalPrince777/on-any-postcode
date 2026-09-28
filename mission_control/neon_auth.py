@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import hmac
 import json
-import uuid
 import os
 import re
+import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from http import HTTPStatus
