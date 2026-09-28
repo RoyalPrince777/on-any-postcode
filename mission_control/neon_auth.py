@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import uuid
 import os
 import re
 from collections.abc import Mapping, Sequence
@@ -250,10 +251,19 @@ def sign_in(email: str, password: str) -> AuthResult:
     )
 
 
+def _member_auth_email(email: str) -> str:
+    """Return a user-supplied email or a private non-routable auth alias."""
+
+    normalized = str(email or "").strip().casefold()
+    if normalized:
+        return normalized
+    return f"member-{uuid.uuid4().hex}@members.oap.invalid"
+
+
 def sign_up(name: str, email: str, password: str) -> AuthResult:
     """Create a public OAP member identity without exposing Founder signup."""
 
-    normalized_email = str(email or "").strip().casefold()
+    normalized_email = _member_auth_email(email)
     if founder_email_allowed(normalized_email):
         raise ValueError("reserved_identity")
     return _request(
