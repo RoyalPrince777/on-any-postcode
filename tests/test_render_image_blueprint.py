@@ -16,7 +16,7 @@ def test_core_render_blueprint_uses_immutable_first_party_runtime_image():
     assert "runtime: image" in block
     assert (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6"
+        "sha256:22fb2967afe92eba48dfbdd261160ccf4f2a93cae5d7d11c8d807d0c4a02fb69"
     ) in block
     assert 'value: "app:app"' in block
     assert "buildCommand:" not in block
@@ -41,11 +41,11 @@ def test_core_image_release_manifest_is_candidate_not_live_proof():
     )
     assert manifest["evidence_state"] == "candidate_not_live_proven"
     assert manifest["release_commit"] == (
-        "b097a4b1269eeb3006b956732d3e21bb17e858ef"
+        "48807b3a58b6e04122369a076cde30878160960d"
     )
     assert manifest["image"]["immutable_ref"] == (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:ef1726a45694dda38155a233bba3a3ba2a09d28dc231ad4b21187ca2e7e0ba06"
+        "sha256:22fb2967afe92eba48dfbdd261160ccf4f2a93cae5d7d11c8d807d0c4a02fb69"
     )
     assert manifest["service"]["render_service_id"] == (
         "srv-d8gfsv0jo6nc73egdlf0"
