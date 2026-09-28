@@ -1,4 +1,5 @@
 name: OAP runtime image
+# credential-bridge-recheck: 2026-09-28
 
 on:
   pull_request:
