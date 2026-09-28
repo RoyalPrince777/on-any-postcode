@@ -1,6 +1,10 @@
 name: Promote OAP SMI immutable image
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "deploy/requests/smi-image-promote.json"
   workflow_dispatch:
     inputs:
       confirmation:
@@ -13,11 +17,25 @@ permissions:
 
 jobs:
   promote:
-    if: ${{ inputs.confirmation == 'PROMOTE' }}
+    if: ${{ github.event_name == 'push' || inputs.confirmation == 'PROMOTE' }}
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v5
+
+      - name: Verify Git release request
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open("deploy/requests/smi-image-promote.json"))
+          assert r["action"]=="PROMOTE"
+          assert r["service_id"]=="srv-da6tp615efls73ct81q0"
+          assert r["image_digest"]=="sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+          assert r["runtime_target"]=="smi_gateway:app"
+          assert r["human_authority_final"] is True
+          print("git-release-request-ok")
+          PY
 
       - name: Verify exact SMI motion-fix release
         run: |
