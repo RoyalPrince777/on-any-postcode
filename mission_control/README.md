@@ -27,6 +27,7 @@ Current read-only surface:
   reviewed official South London links without learner tracking or provider calls.
 - `brain.py`: coarse SMI implementation and activation readiness. It reports
   code versus runtime connection honestly and never constructs or runs SMI.
+- `civilization.py`: canonical read-only Living Digital Civilization registry covering OAP Kernel, Living Kernel, Civilization Kernel, SMI, Civilization Intelligence, cross-domain coordination, first-party authority, replaceable suppliers and the 25/50/75/100 proof protocol. Architecture definition never implies live operational Green.
 - `organism.py`: canonical Digital Organism registry and duplicate-boundary
   validation. It locks SMI as the single brain, Living Kernel as the heart,
   the seven Intelligence worlds, seven existing families, agent Soul–Mind–Body, and Human Authority as
@@ -39,7 +40,7 @@ Current read-only surface:
 - `views.py`: GET-only `/mission`, `/mission/agents`,
   `/mission/brain`, `/mission/brain/status`, `/mission/war-room`,
   `/mission/war-room/status`, `/mission/infrastructure`,
-  `/mission/linkup`, `/mission/organism`, and `/mission/status` routes. No
+  `/mission/linkup`, `/mission/organism`, `/mission/civilization`, and `/mission/status` routes. No
   Mission Control POST or execution routes are registered; `/mission/chat` and
   `/mission/brain/run` are intentionally absent.
 - `templates/` and `static/`: server-rendered, auto-escaped workspace and

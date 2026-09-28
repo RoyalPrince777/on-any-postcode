@@ -22,6 +22,7 @@ from . import (
     approval_service,
     authority,
     brain,
+    civilization,
     infrastructure,
     judgement,
     ollama_chat,
@@ -1215,3 +1216,12 @@ def mission_status():
         )
 
     return _no_store(make_response(jsonify(status.get_public_gateway_status())))
+
+
+@bp.get("/civilization")
+@web_security.login_required()
+def civilization_system_status():
+    """Return the canonical, read-only Living Digital Civilization status."""
+    return _no_store(
+        make_response(jsonify(civilization.get_civilization_status()), 200)
+    )
