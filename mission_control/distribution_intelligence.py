@@ -115,3 +115,72 @@ def review_release(payload: object) -> dict[str, Any]:
         "payment_authority_granted": False,
         "human_authority_final": True,
     }
+
+
+def review_release_with_rights_decision(
+    payload: object, rights_decision: object
+) -> dict[str, Any]:
+    """Review one release using a canonical Rights Core decision receipt.
+
+    This is the upgrade path from the legacy boolean `rights_proof` field.
+    The function never executes distribution. It requires an ALLOW decision
+    carrying evidence, authority and human-approval receipt hashes before the
+    rights gate can count as proven.
+    """
+    data = payload if isinstance(payload, dict) else {}
+    decision = rights_decision if isinstance(rights_decision, dict) else {}
+    title = " ".join(str(data.get("title") or "").split())[:240]
+    campaign_ready = bool(data.get("campaign_ready"))
+    external_adapter = bool(data.get("external_adapter_proven"))
+    receipt = bool(data.get("receipt_destination"))
+
+    evidence = decision.get("evidence_hashes")
+    authority_receipts = decision.get("authority_receipt_hashes")
+    approval_receipts = decision.get("human_approval_receipt_hashes")
+    rights_allow = bool(
+        decision.get("decision") == "ALLOW"
+        and isinstance(evidence, list)
+        and bool(evidence)
+        and isinstance(authority_receipts, list)
+        and bool(authority_receipts)
+        and isinstance(approval_receipts, list)
+        and bool(approval_receipts)
+        and decision.get("public_distribution_authorized") is False
+    )
+
+    gates = {
+        "release_draft": bool(title),
+        "rights_core_allow": rights_allow,
+        "rights_evidence_receipts": bool(evidence),
+        "rights_authority_receipt": bool(authority_receipts),
+        "rights_human_approval_receipt": bool(approval_receipts),
+        "campaign_page": campaign_ready,
+        "external_route_proof": external_adapter,
+        "receipt_destination": receipt,
+        "public_claim_guard": True,
+    }
+    owned_ready = bool(title and rights_allow and campaign_ready and receipt)
+    external_ready = bool(owned_ready and external_adapter)
+    return {
+        "title": title,
+        "canonical_world_id": CANONICAL_WORLD_ID,
+        "canonical_world_name": CANONICAL_WORLD_NAME,
+        "capability_kind": CAPABILITY_KIND,
+        "rights_decision_hash": decision.get("decision_hash"),
+        "rights_core_checked": True,
+        "legacy_rights_boolean_used": False,
+        "gates": gates,
+        "owned_oap_distribution_ready": owned_ready,
+        "external_distribution_ready": external_ready,
+        "state": "complete" if external_ready else ("working" if owned_ready else "warning"),
+        "light": "✅" if external_ready else ("⏳" if owned_ready else "🟡"),
+        "next": (
+            "authenticated external adapter may execute only after a governed Human Authority action"
+            if external_ready
+            else "close missing canonical rights or route proof; do not claim delivery"
+        ),
+        "execution_performed": False,
+        "publishing_authority_granted": False,
+        "payment_authority_granted": False,
+        "human_authority_final": True,
+    }
