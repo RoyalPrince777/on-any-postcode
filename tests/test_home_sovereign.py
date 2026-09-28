@@ -37,7 +37,7 @@ def test_public_main_menu_uses_locked_oap_world_reference_items(client):
         ("/the-link", "The Link"),
         ("/studio", "OAP Studio Intelligence"),
         ("/the-spot/market", "Market"),
-        ("/media", "Media"),
+        ("/the-spot/tv-media", "Media"),
         ("/store", "OAP Store"),
         ("/sika", "SIKA"),
         ("/hrm", "HRM"),

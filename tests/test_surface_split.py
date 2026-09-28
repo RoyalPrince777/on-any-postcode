@@ -243,17 +243,14 @@ def test_smi_gateway_root_returns_founder_to_personal_smi():
     assert response.headers["Location"].endswith("/auth?next=/mission/ollama")
 
 
-def test_render_blueprint_keeps_smi_free_and_contains_no_paid_worker():
+def test_render_blueprint_keeps_public_and_smi_image_services_free():
     content = Path("render.yaml").read_text()
     assert "name: oap-smi" in content
-    assert "runtime: image" in content
+    assert "name: on-any-postcode" in content
+    assert content.count("runtime: image") == 2
     assert 'value: "smi_gateway:app"' in content
+    assert 'value: "app:app"' in content
+    assert content.count("plan: free") == 2
+    assert "plan: starter" not in content
     assert "type: worker" not in content
-
-    smi_block = content.split("name: oap-smi", 1)[1].split("  - type:", 1)[0]
-    assert "plan: free" in smi_block
-    assert "plan: starter" not in smi_block
-
-    routing_block = content.split("name: oap-routing", 1)[1]
-    assert "runtime: docker" in routing_block
-    assert "plan: starter" in routing_block
+    assert "name: oap-routing" not in content
