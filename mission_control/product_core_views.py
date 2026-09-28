@@ -10,6 +10,7 @@ from . import (
     distribution_intelligence,
     entertainment_catalogue,
     live_music_core,
+    market_execution_authority,
     market_transaction_spine,
     music_acceptance,
     music_assets,
@@ -1162,6 +1163,46 @@ def stop_market_transaction(transaction_id: str):
     return _handle_write(
         lambda: market_transaction_spine.STORE.stop(
             transaction_id=transaction_id,
+            actor_identity_id=_identity(sync=True),
+        )
+    )
+
+
+@bp.get("/market/execution-status")
+@web_security.login_required(api=True)
+def market_execution_status():
+    try:
+        return _no_store(make_response(jsonify({
+            capability: market_execution_authority.STORE.status(capability=capability)
+            for capability in sorted(market_execution_authority.CAPABILITIES)
+        })))
+    except (ValueError, RuntimeError):
+        return _error("market_execution_gate_unavailable", "Market execution gate is temporarily unavailable.", 503)
+
+
+@bp.post("/market/execution-authorities")
+@web_security.login_required(api=True, founder_only=True)
+def record_market_execution_authority():
+    def action():
+        payload = _payload()
+        return market_execution_authority.STORE.record_authority(
+            capability=payload.get("capability"),
+            provider_name=payload.get("provider_name"),
+            provider_reference=payload.get("provider_reference"),
+            evidence_sha256=payload.get("evidence_sha256"),
+            human_approval_reference=payload.get("human_approval_reference"),
+            state=payload.get("state", "APPROVED"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/orders/<order_id>/prepare-execution")
+@web_security.login_required(api=True)
+def prepare_market_order_execution(order_id: str):
+    return _handle_write(
+        lambda: market_execution_authority.STORE.prepare_commerce_order(
+            order_id=order_id,
             actor_identity_id=_identity(sync=True),
         )
     )
