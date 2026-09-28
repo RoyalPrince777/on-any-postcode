@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "name": "OAP Truth Ledger",
+  "mode": "truth",
+  "status_meanings": {
+    "GREEN": "required evidence is present for the declared scope",
+    "PURPLE": "implemented or partially evidenced; one or more required proof gates remain",
+    "RED": "blocked, failed, contradicted, or required capability absent",
+    "UNKNOWN": "insufficient fresh evidence"
+  },
+  "records": [
+    {
+      "feature_id": "release-control-plane",
+      "scope": "repository release-control policy and fail-closed preflight",
+      "status": "PURPLE",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "image_digest": null,
+      "runtime_service": null,
+      "route": null,
+      "evidence": [
+        {
+          "type": "authored_code",
+          "location": "deploy/oap-release-control-plane.json",
+          "result": "present"
+        },
+        {
+          "type": "authored_code",
+          "location": "scripts/release_preflight.py",
+          "result": "present"
+        },
+        {
+          "type": "authored_test",
+          "location": "tests/test_release_preflight.py",
+          "result": "present"
+        }
+      ],
+      "missing_gates": [
+        "exact_head_ci",
+        "real_preflight_with_deployment_authority",
+        "deploy_receipt",
+        "health_readback",
+        "route_acceptance",
+        "rollback_or_recovery_execution"
+      ],
+      "verified_at": "2026-09-28T13:57:34Z",
+      "expires_when": "code_config_runtime_or_evidence_changes",
+      "founder_decision": "approved_for_evidence_burn_down_not_green"
+    }
+  ]
+}
