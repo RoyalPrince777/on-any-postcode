@@ -167,3 +167,33 @@ def test_allow_without_founder_approval_downgrades_to_review(store):
     result = global_affairs.assess_authority(owner, rid)
     assert result["decision"] == "REVIEW"
     assert result["reason"] == "founder_approval_required"
+
+
+
+def test_recognised_status_requires_external_recognition():
+    with pytest.raises(ValueError, match="recognised_status_requires"):
+        _evidence(
+            status="RECOGNISED",
+            evidence_class="C",
+            externally_recognised=False,
+        )
+
+
+@pytest.mark.parametrize("permission", [
+    "claim_diplomatic_status",
+    "claim_diplomatic_immunity",
+    "act_as_diplomat",
+    "issue_diplomatic_credential",
+    "operate_embassy_or_consulate",
+])
+def test_external_diplomatic_permissions_cannot_be_self_granted(permission):
+    with pytest.raises(ValueError, match="external_diplomatic_authority"):
+        _grant(permission=permission)
+
+
+def test_missing_record_with_remaining_receipt_fails_closed(store):
+    owner, rid = str(uuid4()), str(uuid4())
+    global_affairs.save_evidence(owner, rid, _evidence())
+    store[0][(owner, "evidence", rid)].clear()
+    with pytest.raises(global_affairs.GlobalAffairsUnavailable, match="count_mismatch"):
+        global_affairs.get(owner, record_type="evidence", record_id=rid)
