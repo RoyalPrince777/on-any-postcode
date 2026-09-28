@@ -1,50 +1,76 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "name": "OAP Truth Ledger",
   "mode": "truth",
-  "status_meanings": {
-    "GREEN": "required evidence is present for the declared scope",
-    "PURPLE": "implemented or partially evidenced; one or more required proof gates remain",
-    "RED": "blocked, failed, contradicted, or required capability absent",
-    "UNKNOWN": "insufficient fresh evidence"
+  "derivation": {
+    "status_is_computed": true,
+    "append_only_evidence": true,
+    "green_requires_all": [
+      "exact_head_ci",
+      "deploy_receipt",
+      "health_readback",
+      "route_acceptance",
+      "rollback_or_recovery"
+    ]
   },
-  "records": [
+  "features": [
     {
       "feature_id": "release-control-plane",
       "scope": "repository release-control policy and fail-closed preflight",
-      "status": "PURPLE",
       "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
       "image_digest": null,
       "runtime_service": null,
       "route": null,
-      "evidence": [
-        {
-          "type": "authored_code",
-          "location": "deploy/oap-release-control-plane.json",
-          "result": "present"
-        },
-        {
-          "type": "authored_code",
-          "location": "scripts/release_preflight.py",
-          "result": "present"
-        },
-        {
-          "type": "authored_test",
-          "location": "tests/test_release_preflight.py",
-          "result": "present"
-        }
-      ],
-      "missing_gates": [
+      "required_gates": [
         "exact_head_ci",
         "real_preflight_with_deployment_authority",
         "deploy_receipt",
         "health_readback",
         "route_acceptance",
-        "rollback_or_recovery_execution"
+        "rollback_or_recovery"
       ],
-      "verified_at": "2026-09-28T13:57:34Z",
-      "expires_when": "code_config_runtime_or_evidence_changes",
       "founder_decision": "approved_for_evidence_burn_down_not_green"
+    }
+  ],
+  "evidence_events": [
+    {
+      "evidence_id": "ev-release-control-authored-policy-v1",
+      "feature_id": "release-control-plane",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "type": "authored_code",
+      "result": "present",
+      "location": "deploy/oap-release-control-plane.json",
+      "producer": "repository",
+      "authority": "authored",
+      "created_at": "2026-09-28T13:57:34Z",
+      "supersedes": null,
+      "expires_when": "code_config_runtime_or_evidence_changes"
+    },
+    {
+      "evidence_id": "ev-release-control-authored-preflight-v1",
+      "feature_id": "release-control-plane",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "type": "authored_code",
+      "result": "present",
+      "location": "scripts/release_preflight.py",
+      "producer": "repository",
+      "authority": "authored",
+      "created_at": "2026-09-28T13:57:34Z",
+      "supersedes": null,
+      "expires_when": "code_config_runtime_or_evidence_changes"
+    },
+    {
+      "evidence_id": "ev-release-control-authored-test-v1",
+      "feature_id": "release-control-plane",
+      "commit_sha": "c185fe5f25daff351a0855566ecc8354dc813b07",
+      "type": "authored_test",
+      "result": "present",
+      "location": "tests/test_release_preflight.py",
+      "producer": "repository",
+      "authority": "authored",
+      "created_at": "2026-09-28T13:57:34Z",
+      "supersedes": null,
+      "expires_when": "code_config_runtime_or_evidence_changes"
     }
   ]
 }
