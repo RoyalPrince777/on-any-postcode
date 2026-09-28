@@ -124,7 +124,7 @@ def get_public_link_dashboard() -> dict[str, Any]:
         "law": "The Link → Link Up",
         "features": [
             {"name": "🔗 Link Ups", "purpose": "Your private one-to-one Links."},
-            {"name": "📞 Call & Face Up", "purpose": "Voice, Call and Face Up from a Link Up."},
+            {"name": "📞 Call & Link Call", "purpose": "Voice, Call and Link Call from a Link Up."},
         ],
     }
 
