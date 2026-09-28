@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from uuid import UUID
 
+from . import rights_core
+
 RELEASE_TYPES = frozenset({"single", "ep", "album"})
 RELEASE_STATES = frozenset(
     {"DRAFT", "REVIEW_REQUIRED", "APPROVED", "PUBLISHED", "ARCHIVED"}
@@ -85,19 +87,8 @@ def rights_gate(
     decision = rights_decision if isinstance(rights_decision, Mapping) else {}
     publication_state = row.get("publication_state")
     rights_state = row.get("rights_review_state")
-    evidence = decision.get("evidence_hashes")
-    authority = decision.get("authority_receipt_hashes")
-    approval = decision.get("human_approval_receipt_hashes")
-    canonical_allow = bool(
-        decision.get("decision") == "ALLOW"
-        and isinstance(evidence, list)
-        and bool(evidence)
-        and isinstance(authority, list)
-        and bool(authority)
-        and isinstance(approval, list)
-        and bool(approval)
-        and decision.get("public_distribution_authorized") is False
-    )
+    proof = rights_core.decision_proof(decision)
+    canonical_allow = bool(proof["canonical_allow"])
 
     blockers = []
     if publication_state != "PUBLISHED":
@@ -117,8 +108,8 @@ def rights_gate(
     return {
         "allowed": allowed,
         "blockers": blockers,
-        "independent_proof_checked": bool(decision),
-        "rights_decision_hash": decision.get("decision_hash"),
+        "independent_proof_checked": bool(proof["decision_present"]),
+        "rights_decision_hash": proof["decision_hash"],
         "content_published": publication_state == "PUBLISHED",
         "playback_authorised": allowed,
         "media_delivery_performed": False,
