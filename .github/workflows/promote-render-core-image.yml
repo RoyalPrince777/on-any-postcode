@@ -40,7 +40,7 @@ jobs:
           assert manifest["service"]["render_service_id"] == "srv-d8gfsv0jo6nc73egdlf0"
           assert manifest["image"]["immutable_ref"] == (
               "ghcr.io/royalprince777/on-any-postcode-runtime@"
-              "sha256:ef1726a45694dda38155a233bba3a3ba2a09d28dc231ad4b21187ca2e7e0ba06"
+              "sha256:22fb2967afe92eba48dfbdd261160ccf4f2a93cae5d7d11c8d807d0c4a02fb69"
           )
           print("immutable-release-contract-ok")
           PY
