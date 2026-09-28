@@ -185,3 +185,29 @@ def test_status_exposes_software_gates_but_not_distribution_completion():
     assert state["revocation_receipt_bound"] is True
     assert state["rights_verified_by_software"] is False
     assert state["distribution_integration_complete"] is False
+
+
+def test_decision_proof_centralizes_product_gate_truth_without_execution():
+    proof = rights_core.decision_proof({
+        "decision": "ALLOW",
+        "decision_hash": "e" * 64,
+        "evidence_hashes": ["a" * 64],
+        "authority_receipt_hashes": ["b" * 64],
+        "human_approval_receipt_hashes": ["c" * 64],
+        "public_distribution_authorized": False,
+    })
+    assert proof["canonical_allow"] is True
+    assert proof["evidence_ready"] is True
+    assert proof["authority_receipt_ready"] is True
+    assert proof["human_approval_receipt_ready"] is True
+    assert proof["decision_hash"] == "e" * 64
+    assert proof["public_action_enabled"] is False
+
+    blocked = rights_core.decision_proof({
+        "decision": "ALLOW",
+        "evidence_hashes": ["a" * 64],
+        "authority_receipt_hashes": [],
+        "human_approval_receipt_hashes": ["c" * 64],
+        "public_distribution_authorized": False,
+    })
+    assert blocked["canonical_allow"] is False

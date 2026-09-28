@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from uuid import UUID
 
+from . import rights_core
+
 RELEASE_TYPES = frozenset({"single", "ep", "album"})
 RELEASE_STATES = frozenset(
     {"DRAFT", "REVIEW_REQUIRED", "APPROVED", "PUBLISHED", "ARCHIVED"}
@@ -67,32 +69,50 @@ def _release(row: object) -> dict[str, object] | None:
     }
 
 
-def rights_gate(record: object) -> dict[str, object]:
-    """A schema state or caller-supplied boolean is NOT independent rights proof.
+def rights_gate(
+    record: object,
+    rights_decision: object = None,
+    *,
+    media_integrity_proven: bool = False,
+    entitlement_proven: bool = False,
+) -> dict[str, object]:
+    """Evaluate catalogue eligibility against a canonical Rights Core receipt.
 
-    No verified rights-record resolver is connected to this read contract.
-    Deliberately fail closed until the existing rights authority can supply
-    independently checked, owner/asset/territory-bound evidence and receipts.
+    With no structured decision this preserves the historical fail-closed
+    behaviour. A caller-supplied boolean is never enough. Even a canonical
+    ALLOW decision only clears the rights gate; this module still does not
+    deliver media or manufacture a stream URL.
     """
     row = record if isinstance(record, Mapping) else {}
+    decision = rights_decision if isinstance(rights_decision, Mapping) else {}
     publication_state = row.get("publication_state")
     rights_state = row.get("rights_review_state")
+    proof = rights_core.decision_proof(decision)
+    canonical_allow = bool(proof["canonical_allow"])
+
     blockers = []
     if publication_state != "PUBLISHED":
         blockers.append("publication_not_proven")
     if rights_state != "VERIFIED":
         blockers.append("rights_review_not_verified")
-    blockers.extend((
-        "independent_rights_evidence_not_connected",
-        "media_asset_integrity_not_connected",
-        "viewer_entitlement_not_connected",
-    ))
+    if not canonical_allow:
+        blockers.append("canonical_rights_allow_not_proven")
+        if not decision:
+            blockers.append("independent_rights_evidence_not_connected")
+    if not media_integrity_proven:
+        blockers.append("media_asset_integrity_not_connected")
+    if not entitlement_proven:
+        blockers.append("viewer_entitlement_not_connected")
+
+    allowed = not blockers
     return {
-        "allowed": False,
+        "allowed": allowed,
         "blockers": blockers,
-        "independent_proof_checked": False,
-        "content_published": False,
-        "playback_authorised": False,
+        "independent_proof_checked": bool(proof["decision_present"]),
+        "rights_decision_hash": proof["decision_hash"],
+        "content_published": publication_state == "PUBLISHED",
+        "playback_authorised": allowed,
+        "media_delivery_performed": False,
         "founder_final_required": True,
     }
 
@@ -108,9 +128,21 @@ def _owner_music_content_id(value: object) -> str | None:
         return None
 
 
-def universal_player_contract(record: object = None) -> dict[str, object]:
+def universal_player_contract(
+    record: object = None,
+    rights_decision: object = None,
+    *,
+    media_integrity_proven: bool = False,
+    entitlement_proven: bool = False,
+) -> dict[str, object]:
     """One future player contract reused by Music, TV, Media, Live and Records."""
     item = record if isinstance(record, Mapping) else {}
+    rights = rights_gate(
+        item,
+        rights_decision,
+        media_integrity_proven=media_integrity_proven,
+        entitlement_proven=entitlement_proven,
+    )
     return {
         "owner": PLAYER_OWNER,
         "mode": "contract_only",
@@ -119,7 +151,8 @@ def universal_player_contract(record: object = None) -> dict[str, object]:
         "controls_planned": (
             "play_pause", "seek", "captions", "quality", "resume", "stop",
         ),
-        "rights": rights_gate(item),
+        "rights": rights,
+        "rights_eligible": bool(rights["allowed"]),
         "playback_enabled": False,
         "stream_url": None,
         "download_url": None,
