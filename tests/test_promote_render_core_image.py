@@ -13,7 +13,7 @@ def test_plan_is_exact_existing_service_and_immutable_image():
     assert plan["replaces_environment"] is False
     assert plan["source_build_required"] is False
     assert plan["update_payload"] == {
-        "image": {"name": promotion.IMAGE},
+        "image": {"url": promotion.IMAGE},
         "autoDeploy": "no",
     }
     assert plan["deploy_payload"] == {"imageUrl": promotion.IMAGE}
@@ -66,7 +66,7 @@ def test_apply_updates_existing_service_then_deploys_exact_image(monkeypatch):
         (
             "PATCH",
             f"/services/{promotion.SERVICE_ID}",
-            {"image": {"name": promotion.IMAGE}, "autoDeploy": "no"},
+            {"image": {"url": promotion.IMAGE}, "autoDeploy": "no"},
         ),
         (
             "POST",
