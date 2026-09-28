@@ -1,5 +1,5 @@
 name: OAP runtime image
-# credential-bridge-recheck: 2026-09-28 saved-production-secret
+# credential-bridge-recheck: 2026-09-28 secret-confirmed-rerun
 
 on:
   pull_request:
