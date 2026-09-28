@@ -21,8 +21,9 @@
     "Public Link Up remains anonymous",
     "My Card creation remains free and separate from Founder access"
   ],
-  "promotion_attempt": {
-    "id": "core-b097-hook-20260928-1406",
-    "reason": "Retry exact immutable Core promotion through deploy-hook fallback; no source build."
+  "evidence_state": "candidate_not_live_proven",
+  "live_proof": {
+    "receipt": "deploy/linkup-public-live-receipt.json",
+    "rule": "candidate release metadata must not overwrite the last proven live receipt until deployment and route acceptance are captured"
   }
 }
