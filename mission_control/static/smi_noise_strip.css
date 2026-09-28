@@ -423,3 +423,45 @@ body.smi-noise-strip #studio-creation-strip{
   grid-template-columns:repeat(5,minmax(0,1fr));
   gap:5px;
 }
+
+
+/* Live SMI truth-mode closure:
+   keep verified motion visible; suppress dashboard/copy noise; preserve human controls. */
+body.smi-noise-strip.smi-live-fullscreen #smi-source-pixel-motion{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  z-index:1!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .smi-character{
+  display:grid!important;
+  position:relative!important;
+  z-index:2!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .smi-character-stage{
+  display:grid!important;
+  place-items:center!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .smi-character-copy{
+  display:none!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .smi-dashboard-layer,
+body.smi-noise-strip.smi-live-fullscreen .smi-command-centre,
+body.smi-noise-strip.smi-live-fullscreen .smi-status-backdrop,
+body.smi-noise-strip.smi-live-fullscreen .smi-chat-ops,
+body.smi-noise-strip.smi-live-fullscreen .status-row{
+  display:none!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .thinking:not(.show):not(.active){
+  display:none!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .thinking[data-complete="true"],
+body.smi-noise-strip.smi-live-fullscreen .thinking-log{
+  display:none!important;
+}
+body.smi-noise-strip.smi-live-fullscreen #live-character-toggle{
+  display:block!important;
+}
