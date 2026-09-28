@@ -254,14 +254,17 @@ def test_oap_tv_media_aliases_resolve_to_one_public_front_door(client):
 
         page = client.get(path, follow_redirects=True).get_data(as_text=True)
         assert escape("OAP TV & Media") in page
-        assert "Watch. Discover. Create. Keep the rights clear." in page
+        assert "Watch. Listen. Discover." in page
         assert "OAP TV" in page
         assert "OAP Media" in page
+        assert "OAP Music" in page
         assert "OAP Live" in page
         assert "OAP Records" in page
-        assert "Studio Intelligence" in page
-        assert "Proof before play" in page
-        assert "does not claim live channels" in page
+        assert "Studio" in page
+        assert "Rights-cleared content only" in page
+        assert "Proof before play" not in page
+        assert "Experience Intelligence" not in page
+        assert "does not claim live channels" not in page
 
 
 def test_home_media_link_targets_canonical_tv_media_route(client):
