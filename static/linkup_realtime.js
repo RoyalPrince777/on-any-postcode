@@ -416,7 +416,7 @@
       stage.hidden = false;
     }
     if (stageLabel) {
-      stageLabel.textContent = mode === "face_up" ? "Private Face Up" : "Private Call";
+      stageLabel.textContent = mode === "face_up" ? "Private Link Call" : "Private Call";
     }
     if (mode === "face_up" && localVideo) {
       localVideo.srcObject = localStream;
