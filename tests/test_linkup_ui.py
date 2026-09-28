@@ -104,6 +104,7 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert 'aria-label="Link Up app"' in page
     assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
+    assert "Optional for private features. Public Link Up needs no email or sign-in." in page
     assert "Link Message" in page
     assert "Discovery" in page
     assert "Certified" in page
