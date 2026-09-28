@@ -72,6 +72,6 @@ def test_noise_strip_preserves_upgrade_only_control_contract():
     js = JS.read_text(encoding="utf-8")
 
     assert "upgradeOnly:true" in js
-    assert "form.requestSubmit()" in js
-    assert "event.key==='Enter'&&!event.shiftKey&&!event.isComposing" in js
+    assert "addEventListener('keydown'" not in js
+    assert "canonical controller" in js
     assert "Control check failed" in js
