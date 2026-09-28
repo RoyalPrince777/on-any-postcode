@@ -36,6 +36,8 @@ _PUBLIC_PRIVATE_HANDOFFS = {
     "/mission/isac-spatial": "/mission/isac-spatial/",
     "/my-world": "/my-world",
     "/myworld": "/my-world",
+    "/auth": "/auth",
+    "/enter-my-world": "/enter-my-world",
 }
 _GATEWAY_COMPAT_REDIRECTS = {
     "/mission/smi": "/mission/ollama",
@@ -158,7 +160,11 @@ def _private_handoff(path: str):
     target = _PUBLIC_PRIVATE_HANDOFFS.get(clean)
     if target is None or request.method not in {"GET", "HEAD"}:
         return None
-    response = redirect(f"{_private_gateway_origin()}{target}", code=302)
+    query = request.query_string.decode("ascii", "ignore")
+    destination = f"{_private_gateway_origin()}{target}"
+    if query:
+        destination = f"{destination}?{query}"
+    response = redirect(destination, code=302)
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-OAP-Private-Handoff"] = "smi-gateway"
     return response
