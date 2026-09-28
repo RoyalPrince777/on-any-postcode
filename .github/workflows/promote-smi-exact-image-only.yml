@@ -1,0 +1,125 @@
+name: Promote SMI exact image only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/promote-smi-exact-image-only.yml"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/royalprince777/on-any-postcode-runtime
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.publish.outputs.digest }}
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish exact SMI runtime image
+        id: publish
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.runtime
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  promote-smi:
+    needs: build-image
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      OAP_RENDER_API_KEY: ${{ secrets.OAP_RENDER_API_KEY }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      IMAGE_DIGEST: ${{ needs.build-image.outputs.digest }}
+      SERVICE_ID: srv-da6tp615efls73ct81q0
+      SERVICE_NAME: oap-smi
+      PUBLIC_URL: https://oap-smi.onrender.com
+      HEALTH_PATH: /healthz
+    steps:
+      - name: Promote immutable image to existing SMI service
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.error, urllib.request
+
+          token=(os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          if not token:
+              raise SystemExit("render_api_key_missing")
+          digest=os.environ["IMAGE_DIGEST"].strip()
+          if not digest.startswith("sha256:"):
+              raise SystemExit("runtime_image_digest_missing")
+          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          service_id=os.environ["SERVICE_ID"]
+          api="https://api.render.com/v1"
+
+          def req(method,path,payload=None):
+              body=None if payload is None else json.dumps(payload).encode()
+              request=urllib.request.Request(
+                  api+path,data=body,method=method,
+                  headers={
+                      "Accept":"application/json",
+                      "Authorization":"Bearer "+token,
+                      "Content-Type":"application/json",
+                      "User-Agent":"OAP-SMI-Exact-Image-Only/1.0",
+                  })
+              try:
+                  with urllib.request.urlopen(request,timeout=30) as response:
+                      raw=response.read(512000)
+              except urllib.error.HTTPError as exc:
+                  detail=exc.read(4096).decode("utf-8","replace")
+                  raise SystemExit(f"render_http_{exc.code}:{detail}")
+              data=json.loads(raw.decode())
+              if not isinstance(data,dict):
+                  raise SystemExit("invalid_render_response")
+              return data
+
+          current=req("GET",f"/services/{service_id}")
+          details=current.get("serviceDetails") or {}
+          if current.get("id")!=service_id or current.get("name")!=os.environ["SERVICE_NAME"]:
+              raise SystemExit("unexpected_service_identity")
+          if details.get("url")!=os.environ["PUBLIC_URL"] or details.get("healthCheckPath")!=os.environ["HEALTH_PATH"]:
+              raise SystemExit("unexpected_service_boundary")
+
+          updated=req("PATCH",f"/services/{service_id}",{"image":{"name":image},"autoDeploy":"no"})
+          if updated.get("id")!=service_id or updated.get("name")!=os.environ["SERVICE_NAME"]:
+              raise SystemExit("service_update_identity_mismatch")
+
+          deploy=req("POST",f"/services/{service_id}/deploys",{"imageUrl":image})
+          deploy_id=deploy.get("id")
+          if not isinstance(deploy_id,str) or not deploy_id.startswith("dep-"):
+              raise SystemExit("deploy_receipt_missing")
+          print(json.dumps({"service_id":service_id,"image":image,"deploy_id":deploy_id},sort_keys=True))
+
+          health=os.environ["PUBLIC_URL"]+os.environ["HEALTH_PATH"]
+          for _ in range(24):
+              try:
+                  with urllib.request.urlopen(health,timeout=20) as response:
+                      if 200 <= response.status < 300:
+                          print("smi-image-health-pass")
+                          break
+              except Exception:
+                  pass
+              time.sleep(10)
+          else:
+              raise SystemExit("smi_image_health_not_ready")
+          PY
