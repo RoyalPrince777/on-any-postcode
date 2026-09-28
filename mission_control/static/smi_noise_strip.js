@@ -2,6 +2,7 @@
 'use strict';
 const ready=()=>{
   document.body.classList.add('smi-noise-strip');
+  document.body.classList.remove('smi-booting');
 
   const status=document.getElementById('status');
   const plus=document.getElementById('plus-button');
