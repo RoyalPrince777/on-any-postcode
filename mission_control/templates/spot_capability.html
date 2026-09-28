@@ -14,6 +14,9 @@
     .atlas-live-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr);gap:12px}.atlas-live-card{padding:16px;border:1px solid rgba(126,240,163,.2);border-radius:18px;background:rgba(7,20,13,.72)}.atlas-live-card h3{margin:.2rem 0 .55rem}.atlas-weather-main{font-size:1.65rem;font-weight:800;line-height:1.1}.atlas-weather-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;color:#d9eadf}.atlas-advisory{text-transform:capitalize;font-weight:800}.atlas-source{margin-top:10px;font-size:.82rem;color:#9ebba7}
     .atlas-forecast{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.atlas-forecast article{padding:10px;border-radius:14px;background:rgba(255,255,255,.035)}.atlas-forecast strong,.atlas-forecast span{display:block}.atlas-forecast span{margin-top:4px;color:#b8d6c0;font-size:.88rem}
     @media(max-width:720px){.atlas-search{grid-template-columns:1fr}.atlas-search label{grid-column:auto}.atlas-search button{width:100%}.atlas-live-grid{grid-template-columns:1fr}.atlas-forecast{grid-template-columns:1fr}.atlas-result-head{display:grid}}
+    .media-shell{display:grid;gap:18px}.media-hero{display:grid;gap:8px;max-width:760px}.media-hero h2{margin:0}.media-hero p{margin:0;color:#c8d7cc}.media-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.media-tab{display:grid;gap:6px;padding:14px;border:1px solid rgba(126,240,163,.18);border-radius:16px;background:rgba(7,20,13,.6);text-decoration:none;color:inherit}.media-tab strong{font-size:.98rem}.media-tab span{font-size:.84rem;color:#a9c0b0}.media-primary-actions{display:flex;gap:8px;flex-wrap:wrap}.media-intelligence{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:12px 14px;border:1px solid rgba(215,183,89,.24);border-radius:14px;background:rgba(33,27,11,.6)}.media-intelligence p{margin:0;color:#d8cfad;font-size:.9rem}.media-truth{font-size:.82rem;color:#9fb3a5;margin:0}
+    @media(max-width:820px){.media-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.media-intelligence{align-items:flex-start;flex-direction:column}}
+    @media(max-width:520px){.media-tabs{grid-template-columns:1fr}.media-primary-actions a{width:100%;justify-content:center}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -205,43 +208,33 @@
     {% endif %}
 
     {% if capability.slug == 'tv-media' %}
-    <section class="mc-panel" aria-labelledby="oap-tv-media-title">
-      <p class="mc-eyebrow">📺 OAP TV · OAP Media · OAP Live · OAP Records</p>
-      <h2 id="oap-tv-media-title">Watch. Discover. Create. Keep the rights clear.</h2>
-      <p>One first-party entertainment front door for live channels, on-demand media, music, public events and the OAP archive. OAP Studio Intelligence supports discovery, organisation and creator workflows without becoming publishing authority.</p>
-
-      <div class="mc-status-grid" aria-label="OAP TV and Media surfaces">
-        <article class="mc-status-card"><strong>📡 OAP TV</strong><span>Live and scheduled broadcast surface. A channel is only shown as live when a real authorised source is connected.</span></article>
-        <article class="mc-status-card"><strong>🎬 OAP Media</strong><span>On-demand video and culture. Only owned, licensed or rights-cleared media belongs here.</span></article>
-        <article class="mc-status-card"><strong>🎵 OAP Music</strong><span>First-party artist, song, album, playlist and radio paths with rights evidence required for playback.</span></article>
-        <article class="mc-status-card"><strong>🎟️ OAP Live</strong><span>Public event and broadcast discovery. Confirmed streams remain entitlement and rights gated.</span></article>
-        <article class="mc-status-card"><strong>🗃️ OAP Records</strong><span>Archive and cultural record layer. Public access stays separate from private source assets.</span></article>
-        <article class="mc-status-card"><strong>🧠 Studio Intelligence</strong><span>Helps organise, classify and route media work. Human Authority and rights evidence stay final.</span></article>
+    <section class="mc-panel media-shell" aria-labelledby="oap-tv-media-title">
+      <div class="media-hero">
+        <p class="mc-eyebrow">📺 OAP Entertainment</p>
+        <h2 id="oap-tv-media-title">Watch. Listen. Discover.</h2>
+        <p>One clean front door for OAP TV, Media, Music, Live and Records.</p>
       </div>
 
-      <div class="atlas-action-row" aria-label="OAP TV and Media navigation">
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='music') }}">Open OAP Music →</a>
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='player') }}">Open OAP Player →</a>
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}">Open OAP Radio →</a>
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='creators') }}">Creator Path →</a>
+      <nav class="media-tabs" aria-label="OAP entertainment">
+        <a class="media-tab" href="{{ request.path }}"><strong>📡 OAP TV</strong><span>Live & scheduled</span></a>
+        <a class="media-tab" href="{{ request.path }}"><strong>🎬 OAP Media</strong><span>On-demand</span></a>
+        <a class="media-tab" href="{{ url_for('spot_capability_front_door', capability_slug='music') }}"><strong>🎵 OAP Music</strong><span>Music & radio</span></a>
+        <a class="media-tab" href="{{ request.path }}"><strong>🎟️ OAP Live</strong><span>Events & broadcasts</span></a>
+        <a class="media-tab" href="{{ request.path }}"><strong>🗃️ OAP Records</strong><span>Archive</span></a>
+      </nav>
+
+      <div class="media-primary-actions">
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='player') }}">▶ Open Player</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}">📻 Open Radio</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='creators') }}">＋ Creator Path</a>
       </div>
 
-      <div class="atlas-live-grid" style="margin-top:14px">
-        <article class="atlas-live-card">
-          <p class="mc-eyebrow">Rights Intelligence</p>
-          <h3>Proof before play</h3>
-          <p>Territory, device, channel, ownership, licence and entitlement evidence must be present before OAP claims a stream is available.</p>
-          <span class="state">Fail closed</span>
-        </article>
-        <article class="atlas-live-card">
-          <p class="mc-eyebrow">Experience Intelligence</p>
-          <h3>One entertainment system</h3>
-          <p>TV, Media, Music, Live and Records remain separate surfaces inside one OAP entertainment family instead of duplicating catalogues or intelligence engines.</p>
-          <span class="state">First-party orchestration</span>
-        </article>
+      <div class="media-intelligence">
+        <p><strong>🧠 Studio Intelligence</strong> · discovery, organisation and rights-aware routing in one layer.</p>
+        <span class="state">Proof before play</span>
       </div>
 
-      <p class="atlas-warning"><strong>Truth lock:</strong> this route is the real public OAP TV / Media front door. It does not claim live channels, licensed playback, creator publishing, payments or territorial entitlement until those runtime proofs exist.</p>
+      <p class="media-truth">Only owned, licensed or rights-cleared media can be presented as available. Live, publishing, payment and territorial entitlement stay fail-closed until proven.</p>
     </section>
     {% endif %}
 
