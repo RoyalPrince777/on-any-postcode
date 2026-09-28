@@ -19,6 +19,7 @@ from mission_control import (
     a6_matrix_execution,
     a7_certification,
     authority,
+    civilization,
     maps_movement_direct_proof_runner,
     postgres_db,
     smi_proof_gate,
@@ -814,6 +815,20 @@ _complete_a6_readiness_if_requested(trigger="boot")
 # The boot trigger is therefore an explicit, opt-in equivalent for the same
 # one-shot, read-only A6 capture. The shared operation-id set prevents duplicates.
 _maybe_start_a6_route_matrix_operation(trigger="boot")
+
+
+@app.get("/mission/civilization")
+def civilization_status():
+    """Expose the read-only civilization architecture from the SMI runtime."""
+    response = make_response(
+        json.dumps(civilization.get_civilization_status(), separators=(",", ":")) + "\n",
+        200,
+    )
+    response.mimetype = "application/json"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-OAP-Surface"] = "sovereign-megaverse-intelligence"
+    response.headers["X-OAP-Civilization-Source"] = "local-smi-runtime"
+    return response
 
 
 @app.get("/healthz")
