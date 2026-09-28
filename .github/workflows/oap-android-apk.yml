@@ -1,4 +1,5 @@
 name: OAP Android APK
+# retrigger: 2026-09-28 native-install-proof
 
 on:
   push:
