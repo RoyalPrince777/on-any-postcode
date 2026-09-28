@@ -208,33 +208,28 @@
     {% endif %}
 
     {% if capability.slug == 'tv-media' %}
-    <section class="mc-panel media-shell" aria-labelledby="oap-tv-media-title">
-      <div class="media-hero">
-        <p class="mc-eyebrow">📺 OAP Entertainment</p>
-        <h2 id="oap-tv-media-title">Watch. Listen. Discover.</h2>
-        <p>One clean front door for OAP TV, Media, Music, Live and Records.</p>
+    <section class="mc-panel" aria-labelledby="oap-tv-media-title">
+      <p class="mc-eyebrow">📺 OAP ENTERTAINMENT</p>
+      <h2 id="oap-tv-media-title">Watch. Listen. Discover.</h2>
+      <p>TV, Media, Music, Live and Records in one first-party OAP entertainment home.</p>
+
+      <div class="mc-status-grid" aria-label="OAP entertainment">
+        <article class="mc-status-card"><strong>📡 OAP TV</strong><span>Live & scheduled</span></article>
+        <article class="mc-status-card"><strong>🎬 OAP Media</strong><span>Video & culture</span></article>
+        <article class="mc-status-card"><strong>🎵 OAP Music</strong><span>Artists & audio</span></article>
+        <article class="mc-status-card"><strong>🎟️ OAP Live</strong><span>Events & broadcasts</span></article>
+        <article class="mc-status-card"><strong>🗃️ OAP Records</strong><span>Archive & legacy</span></article>
+        <article class="mc-status-card"><strong>🧠 Studio</strong><span>Create & organise</span></article>
       </div>
 
-      <nav class="media-tabs" aria-label="OAP entertainment">
-        <a class="media-tab" href="{{ request.path }}"><strong>📡 OAP TV</strong><span>Live & scheduled</span></a>
-        <a class="media-tab" href="{{ request.path }}"><strong>🎬 OAP Media</strong><span>On-demand</span></a>
-        <a class="media-tab" href="{{ url_for('spot_capability_front_door', capability_slug='music') }}"><strong>🎵 OAP Music</strong><span>Music & radio</span></a>
-        <a class="media-tab" href="{{ request.path }}"><strong>🎟️ OAP Live</strong><span>Events & broadcasts</span></a>
-        <a class="media-tab" href="{{ request.path }}"><strong>🗃️ OAP Records</strong><span>Archive</span></a>
-      </nav>
-
-      <div class="media-primary-actions">
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='player') }}">▶ Open Player</a>
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}">📻 Open Radio</a>
-        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='creators') }}">＋ Creator Path</a>
+      <div class="atlas-action-row" aria-label="OAP entertainment navigation">
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='music') }}">Music →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='player') }}">Player →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}">Radio →</a>
+        <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='creators') }}">Create →</a>
       </div>
 
-      <div class="media-intelligence">
-        <p><strong>🧠 Studio Intelligence</strong> · discovery, organisation and rights-aware routing in one layer.</p>
-        <span class="state">Proof before play</span>
-      </div>
-
-      <p class="media-truth">Only owned, licensed or rights-cleared media can be presented as available. Live, publishing, payment and territorial entitlement stay fail-closed until proven.</p>
+      <p class="atlas-truth">Rights-cleared content only · availability is shown only when proven.</p>
     </section>
     {% endif %}
 
