@@ -148,10 +148,9 @@ jobs:
           if details.get("url")!=os.environ["PUBLIC_URL"] or details.get("healthCheckPath")!=os.environ["HEALTH_PATH"]:
               raise SystemExit("unexpected_service_boundary")
 
-          updated=req("PATCH",f"/services/{service_id}",{"image":{"url":image},"autoDeploy":"no"})
-          if updated.get("id")!=service_id or updated.get("name")!=os.environ["SERVICE_NAME"]:
-              raise SystemExit("service_update_identity_mismatch")
-
+          # Render's deploy API accepts an exact image override for image-backed
+          # services when host/repository/image name match the configured source.
+          # Avoid mutating the service source pointer before the deploy.
           deploy=req("POST",f"/services/{service_id}/deploys",{"imageUrl":image})
           deploy_id=deploy.get("id")
           if not isinstance(deploy_id,str) or not deploy_id.startswith("dep-"):
