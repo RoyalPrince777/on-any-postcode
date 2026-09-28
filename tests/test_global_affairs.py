@@ -197,3 +197,94 @@ def test_missing_record_with_remaining_receipt_fails_closed(store):
     store[0][(owner, "evidence", rid)].clear()
     with pytest.raises(global_affairs.GlobalAffairsUnavailable, match="count_mismatch"):
         global_affairs.get(owner, record_type="evidence", record_id=rid)
+
+
+
+def test_mission_requires_usable_evidence_and_allowed_authority(store):
+    owner = str(uuid4())
+    evidence_id, authority_id, mission_id = str(uuid4()), str(uuid4()), str(uuid4())
+    global_affairs.save_evidence(owner, evidence_id, _evidence())
+    global_affairs.save_authority(owner, authority_id, _grant())
+    mission = global_affairs.MissionRecord(
+        title="Cultural relations meeting",
+        purpose="Discuss a bounded cultural cooperation opportunity.",
+        status="APPROVED",
+        evidence_record_id=evidence_id,
+        authority_record_id=authority_id,
+    )
+    saved = global_affairs.save_mission(owner, mission_id, mission)
+    assert saved["data"]["status"] == "APPROVED"
+
+
+def test_mission_blocks_without_allowed_authority(store):
+    owner = str(uuid4())
+    evidence_id, authority_id = str(uuid4()), str(uuid4())
+    global_affairs.save_evidence(owner, evidence_id, _evidence())
+    global_affairs.save_authority(owner, authority_id, _grant(revoked=True))
+    mission = global_affairs.MissionRecord(
+        title="Blocked delegation",
+        purpose="Must not proceed under revoked authority.",
+        status="APPROVED",
+        evidence_record_id=evidence_id,
+        authority_record_id=authority_id,
+    )
+    with pytest.raises(ValueError, match="mission_authority_not_allowed"):
+        global_affairs.save_mission(owner, str(uuid4()), mission)
+
+
+def test_internal_credential_verification_and_revocation_recovery(store):
+    owner = str(uuid4())
+    authority_id, credential_id = str(uuid4()), str(uuid4())
+    authority = global_affairs.save_authority(owner, authority_id, _grant())
+    credential = global_affairs.CredentialRecord(
+        holder_ref="person:founder",
+        role_label="Cultural Representative",
+        authority_record_id=authority_id,
+    )
+    global_affairs.save_credential(owner, credential_id, credential)
+    verified = global_affairs.verify_credential(owner, credential_id)
+    assert verified["valid"] is True
+    assert verified["external_legal_status_conferred"] is False
+
+    global_affairs.save_authority(
+        owner,
+        authority_id,
+        _grant(revoked=True),
+        expected_last_hash=authority["digest"],
+    )
+    recovered = global_affairs.recovery_readback(
+        owner,
+        authority_record_id=authority_id,
+        credential_record_id=credential_id,
+    )
+    assert recovered["authority_decision"] == "BLOCK"
+    assert recovered["revoked_or_expired_preserved"] is True
+    assert recovered["credential_valid"] is False
+
+
+@pytest.mark.parametrize("role_label", [
+    "Diplomat",
+    "Ambassador",
+    "Consul",
+    "Embassy Representative",
+])
+def test_internal_credential_cannot_imply_external_diplomatic_status(role_label):
+    with pytest.raises(ValueError, match="must_not_imply_external"):
+        global_affairs.CredentialRecord(
+            holder_ref="person:founder",
+            role_label=role_label,
+            authority_record_id=str(uuid4()),
+        )
+
+
+def test_credential_cannot_be_active_on_revoked_authority(store):
+    owner = str(uuid4())
+    authority_id = str(uuid4())
+    global_affairs.save_authority(owner, authority_id, _grant(revoked=True))
+    credential = global_affairs.CredentialRecord(
+        holder_ref="person:founder",
+        role_label="Protocol Representative",
+        authority_record_id=authority_id,
+    )
+    with pytest.raises(ValueError, match="credential_requires_active_authority"):
+        global_affairs.save_credential(owner, str(uuid4()), credential)
