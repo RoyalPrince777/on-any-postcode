@@ -548,3 +548,77 @@ body.smi-noise-strip .composer-box{
 body.smi-noise-strip .msg{
   box-shadow:none!important;
 }
+
+
+/* Screenshot-driven quiet shell: remove duplicate navigation layers from home. */
+body.smi-noise-strip .smi-presence-actions,
+body.smi-noise-strip .chat-head-actions,
+body.smi-noise-strip .truth-strip,
+body.smi-noise-strip .corner-action{
+  display:none!important;
+}
+body.smi-noise-strip .chat-head{
+  display:none!important;
+}
+body.smi-noise-strip .mobile-chats-toggle{
+  position:fixed!important;
+  top:10px!important;
+  left:10px!important;
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  text-indent:-9999px!important;
+  background:rgba(2,9,23,.58)!important;
+  border:1px solid rgba(57,175,255,.22)!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(10px)!important;
+}
+body.smi-noise-strip .mobile-chats-toggle::before{
+  content:"☰";
+  text-indent:0!important;
+  display:grid!important;
+  place-items:center!important;
+  position:absolute!important;
+  inset:0!important;
+  font-size:1rem!important;
+}
+body.smi-noise-strip #live-character-toggle,
+body.smi-noise-strip.smi-live-fullscreen #live-character-toggle{
+  top:10px!important;
+  right:10px!important;
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important;
+  min-height:38px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  font-size:0!important;
+  background:rgba(2,9,23,.58)!important;
+  border:1px solid rgba(57,175,255,.22)!important;
+  box-shadow:none!important;
+}
+body.smi-noise-strip #live-character-toggle::before{
+  content:"◉";
+  font-size:1rem!important;
+}
+body.smi-noise-strip #live-character-toggle.active::before{
+  content:"✕";
+}
+body.smi-noise-strip .messages{
+  top:8px!important;
+}
+body.smi-noise-strip .composer-box{
+  border-color:rgba(57,175,255,.18)!important;
+  background:rgba(2,8,22,.78)!important;
+  box-shadow:0 4px 14px rgba(0,0,0,.22)!important;
+}
+body.smi-noise-strip #plus-button,
+body.smi-noise-strip #mic-button,
+body.smi-noise-strip #speaker-button,
+body.smi-noise-strip #send{
+  box-shadow:none!important;
+}
