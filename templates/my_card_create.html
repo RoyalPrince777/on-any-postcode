@@ -33,9 +33,9 @@
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="card-name">Name shown on My Card</label>
         <input id="card-name" name="name" autocomplete="name" maxlength="120" required>
-        <label for="card-email">Email — only for My Card</label>
-        <input id="card-email" name="email" type="email" autocomplete="email" maxlength="320" aria-describedby="card-email-note" required>
-        <small class="field-note" id="card-email-note">Required only if you choose to create a My Card. It is not needed to browse OAP World or public Link Up.</small>
+        <label for="card-email">Email — optional</label>
+        <input id="card-email" name="email" type="email" autocomplete="email" maxlength="320" aria-describedby="card-email-note">
+        <small class="field-note" id="card-email-note">Optional. Leave this blank and OAP will use a private non-routable sign-in alias instead of requiring your email.</small>
         <label for="card-password">Password</label>
         <input id="card-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
         <label for="card-password-confirmation">Confirm password</label>
