@@ -21,7 +21,7 @@ LINK_UP_LANGUAGE_LAW: tuple[str, ...] = (
     "Local character without global confusion.",
 )
 
-LINK_UP_NAMING_REVISION = "2026-09-28-link-message-room-link-call"
+LINK_UP_NAMING_REVISION = "2026-09-28-link-message-room-link-call-r2"
 
 LINK_UP_PUBLIC_VOCABULARY: dict[str, str] = {
     "product": "Link Up",
