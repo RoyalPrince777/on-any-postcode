@@ -21,7 +21,7 @@
   <main>
     <section class="card" aria-labelledby="create-card-title">
       <h1 id="create-card-title">Create My Card</h1>
-      <p>Your My Card is your OAP identity for private Link Requests, messages, Voice and Face Up. Creating it is free.</p>
+      <p>Your My Card is your OAP identity for private Link Requests, Link Messages, Voice and Link Call. Creating it is free.</p>
       {% if create_error %}<div class="error" role="alert">{{ create_error }}</div>{% endif %}
       {% if not auth_configured %}<div class="error" role="alert">My Card creation is temporarily unavailable.</div>{% endif %}
       <form method="post" action="{{ url_for('my_card_create') }}">
