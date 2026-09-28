@@ -26,8 +26,14 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
+  checks: read
   contents: read
   packages: write
+
+concurrency:
+  group: oap-production-runtime-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   IMAGE_NAME: ghcr.io/royalprince777/on-any-postcode-runtime
@@ -104,6 +110,41 @@ jobs:
       - name: Report Core promotion unavailable
         if: env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
         run: echo "core-promotion-skipped-render-api-key-not-configured"
+
+      - name: Require governed checks for exact release SHA
+        if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+          repo=os.environ["REPOSITORY"]
+          sha=os.environ["RELEASE_SHA"]
+          token=os.environ["GH_TOKEN"]
+          url=f"https://api.github.com/repos/{repo}/commits/{sha}/check-runs"
+          headers={
+              "Accept":"application/vnd.github+json",
+              "Authorization":"Bearer "+token,
+              "X-GitHub-Api-Version":"2022-11-28",
+              "User-Agent":"OAP-Release-Governed-Gate/1.0",
+          }
+          for _ in range(90):
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as r:
+                  data=json.load(r)
+              checks=data.get("check_runs") or []
+              governed=[x for x in checks if x.get("name")=="test"]
+              if any(x.get("status")=="completed" and x.get("conclusion")=="success" for x in governed):
+                  print(json.dumps({"event":"governed_release_gate","sha":sha,"success":True},sort_keys=True))
+                  break
+              if any(x.get("status")=="completed" and x.get("conclusion") not in (None,"success","neutral","skipped") for x in governed):
+                  raise SystemExit("governed_checks_failed_for_exact_sha")
+              time.sleep(10)
+          else:
+              raise SystemExit("governed_checks_not_green_for_exact_sha")
+          PY
 
       - name: Promote exact published image to existing Core service
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
@@ -201,7 +242,7 @@ jobs:
 
   promote-smi:
     if: github.event_name == 'push'
-    needs: runtime-image
+    needs: [runtime-image, promote-core]
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -317,3 +358,104 @@ jobs:
           else:
               raise SystemExit("smi_image_health_not_ready")
           PY
+
+  certify-production-release:
+    if: github.event_name == 'push'
+    needs: [runtime-image, promote-core, promote-smi]
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      OAP_RENDER_API_KEY: ${{ secrets.OAP_RENDER_API_KEY }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      IMAGE_NAME: ghcr.io/royalprince777/on-any-postcode-runtime
+      IMAGE_DIGEST: ${{ needs.runtime-image.outputs.digest }}
+      RELEASE_SHA: ${{ github.sha }}
+      CORE_SERVICE_ID: srv-d8gfsv0jo6nc73egdlf0
+      SMI_SERVICE_ID: srv-da6tp615efls73ct81q0
+    steps:
+      - name: Checkout exact certified commit
+        uses: actions/checkout@v5
+
+      - name: Verify exact production image binding
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+          token=(os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          if not token:
+              raise SystemExit("render_api_key_missing")
+          digest=os.environ["IMAGE_DIGEST"].strip()
+          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          api="https://api.render.com/v1"
+          headers={"Accept":"application/json","Authorization":"Bearer "+token,"User-Agent":"OAP-Production-Certificate/1.0"}
+          for service_id in (os.environ["CORE_SERVICE_ID"],os.environ["SMI_SERVICE_ID"]):
+              for _ in range(36):
+                  req=urllib.request.Request(api+f"/services/{service_id}",headers=headers)
+                  with urllib.request.urlopen(req,timeout=30) as r:
+                      service=json.load(r)
+                  if service.get("imagePath")==image and (service.get("serviceDetails") or {}).get("runtime")=="image":
+                      break
+                  time.sleep(5)
+              else:
+                  raise SystemExit(f"production_image_binding_failed:{service_id}")
+          print(json.dumps({"event":"production_image_binding","image":image,"sha":os.environ["RELEASE_SHA"],"success":True},sort_keys=True))
+          PY
+
+      - name: Verify live Core and SMI acceptance
+        run: |
+          python - <<'PY'
+          import json, time, urllib.request, urllib.error
+          probes=[
+              ("core_health","https://on-any-postcode.onrender.com/healthz",{200}),
+              ("smi_health","https://oap-smi.onrender.com/healthz",{200}),
+              ("smi_auth","https://oap-smi.onrender.com/auth",{200}),
+              ("smi_chat_status","https://oap-smi.onrender.com/mission/chat/status",{200}),
+              ("smi_green_gate","https://oap-smi.onrender.com/mission/smi/green-gate",{200}),
+              ("smi_war_room","https://oap-smi.onrender.com/mission/war-room/status",{200}),
+          ]
+          receipt={}
+          for name,url,allowed in probes:
+              last=None
+              for _ in range(24):
+                  try:
+                      req=urllib.request.Request(url,headers={"User-Agent":"OAP-Production-Certificate/1.0"})
+                      with urllib.request.urlopen(req,timeout=20) as r:
+                          status=r.status
+                      last=status
+                      if status in allowed:
+                          receipt[name]=status
+                          break
+                  except urllib.error.HTTPError as e:
+                      last=e.code
+                  except Exception as e:
+                      last=type(e).__name__
+                  time.sleep(5)
+              else:
+                  raise SystemExit(f"live_acceptance_failed:{name}:{last}")
+          print(json.dumps({"event":"production_live_acceptance","probes":receipt,"success":True},sort_keys=True))
+          PY
+
+      - name: Verify SMI interaction state machine
+        run: |
+          node --check mission_control/static/smi_live_character_state.js
+          node --check mission_control/static/smi_canonical_controller.js
+          node --check mission_control/static/smi_chat_final.js
+          node --check mission_control/static/smi_interaction_layer.js
+          node --check mission_control/static/smi_media_controls.js
+          node tests/smi_live_character_state_test.cjs
+          node tests/smi_live_character_exhaustive_test.cjs
+          node tests/smi_exact_character_rig_foundation_test.cjs
+          node tests/smi_source_pixel_motion_test.cjs
+          node tests/smi_reply_audio_player_test.cjs
+          node tests/smi_real_reply_motion_bridge_test.cjs
+
+      - name: Issue exact release certificate
+        run: |
+          printf '{"release_sha":"%s","image_digest":"%s","core_service":"%s","smi_service":"%s","green":true}\n'             "$RELEASE_SHA" "$IMAGE_DIGEST" "$CORE_SERVICE_ID" "$SMI_SERVICE_ID" | tee /tmp/oap-production-release-certificate.json
+
+      - name: Preserve release certificate
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-certificate-${{ github.sha }}
+          path: /tmp/oap-production-release-certificate.json
+          if-no-files-found: error
+          retention-days: 30
