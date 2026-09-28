@@ -448,6 +448,9 @@ jobs:
                           break
                   except urllib.error.HTTPError as e:
                       last=e.code
+                      if e.code in allowed:
+                          receipt[name]=e.code
+                          break
                   except Exception as e:
                       last=type(e).__name__
                   time.sleep(5)
