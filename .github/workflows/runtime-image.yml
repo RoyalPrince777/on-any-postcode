@@ -408,9 +408,9 @@ jobs:
               ("core_health","https://on-any-postcode.onrender.com/healthz",{200}),
               ("smi_health","https://oap-smi.onrender.com/healthz",{200}),
               ("smi_auth","https://oap-smi.onrender.com/auth",{200}),
-              ("smi_chat_status","https://oap-smi.onrender.com/mission/chat/status",{200}),
-              ("smi_green_gate","https://oap-smi.onrender.com/mission/smi/green-gate",{200}),
-              ("smi_war_room","https://oap-smi.onrender.com/mission/war-room/status",{200}),
+              ("smi_chat_status_private","https://oap-smi.onrender.com/mission/chat/status",{401}),
+              ("smi_green_gate_private","https://oap-smi.onrender.com/mission/smi/green-gate",{401}),
+              ("smi_war_room_private","https://oap-smi.onrender.com/mission/war-room/status",{401}),
           ]
           receipt={}
           for name,url,allowed in probes:
