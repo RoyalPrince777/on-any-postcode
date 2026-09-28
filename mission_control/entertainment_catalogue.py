@@ -106,6 +106,8 @@ def rights_gate(
         blockers.append("rights_review_not_verified")
     if not canonical_allow:
         blockers.append("canonical_rights_allow_not_proven")
+        if not decision:
+            blockers.append("independent_rights_evidence_not_connected")
     if not media_integrity_proven:
         blockers.append("media_asset_integrity_not_connected")
     if not entitlement_proven:
