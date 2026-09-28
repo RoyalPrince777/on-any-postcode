@@ -33,24 +33,28 @@ def test_core_image_blueprint_preserves_database_and_health_contract():
     assert "property: connectionString" in block
 
 
-def test_core_image_release_manifest_matches_live_linkup_runtime():
+def test_core_image_release_manifest_is_candidate_not_live_proof():
     import json
 
     manifest = json.loads(
         (ROOT / "deploy" / "render-core-release.json").read_text()
     )
+    assert manifest["evidence_state"] == "candidate_not_live_proven"
     assert manifest["release_commit"] == (
-        "9bf7aba26beda0ea2f1ea6d192a7585d0b7cd6d8"
+        "b097a4b1269eeb3006b956732d3e21bb17e858ef"
     )
     assert manifest["image"]["immutable_ref"] == (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6"
+        "sha256:ef1726a45694dda38155a233bba3a3ba2a09d28dc231ad4b21187ca2e7e0ba06"
     )
     assert manifest["service"]["render_service_id"] == (
         "srv-d8gfsv0jo6nc73egdlf0"
     )
     assert manifest["service"]["public_url"] == (
         "https://on-any-postcode.onrender.com"
+    )
+    assert manifest["live_proof"]["receipt"] == (
+        "deploy/linkup-public-live-receipt.json"
     )
 
 
