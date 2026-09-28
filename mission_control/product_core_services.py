@@ -205,6 +205,77 @@ def commerce_dashboard(identity_id: object, *, limit: int = 100) -> dict[str, An
     }
 
 
+
+def commerce_order_detail(identity_id: object, order_id: object) -> dict[str, Any]:
+    identity = _uuid(identity_id, "identity_id")
+    order = _uuid(order_id, "order_id")
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT order_id,buyer_identity_id,seller_identity_id,state,currency,
+                      subtotal_minor,created_at
+               FROM oap_commerce_orders
+               WHERE order_id=%s
+                 AND (buyer_identity_id=%s OR seller_identity_id=%s)""",
+            (order, identity, identity),
+        ).fetchone()
+        if row is None:
+            raise PermissionError("order_not_owned")
+        items = connection.execute(
+            """SELECT order_item_id,product_id,quantity,unit_price_minor,product_name
+               FROM oap_commerce_order_items
+               WHERE order_id=%s ORDER BY order_item_id""",
+            (order,),
+        ).fetchall()
+        payment = connection.execute(
+            """SELECT intent_id,state,amount_minor,currency,created_at
+               FROM oap_commerce_payment_intents
+               WHERE order_id=%s ORDER BY created_at DESC LIMIT 1""",
+            (order,),
+        ).fetchone()
+        fulfilment = connection.execute(
+            """SELECT fulfilment_id,state,created_at,updated_at
+               FROM oap_commerce_fulfilment_intents
+               WHERE order_id=%s ORDER BY created_at DESC LIMIT 1""",
+            (order,),
+        ).fetchone()
+    return {
+        "order_id": str(row[0]),
+        "role": "buyer" if str(row[1]) == identity else "seller",
+        "state": str(row[3]),
+        "currency": str(row[4]),
+        "subtotal_minor": int(row[5]),
+        "created_at": row[6].isoformat(),
+        "items": [
+            {
+                "order_item_id": str(item[0]),
+                "product_id": str(item[1]),
+                "quantity": int(item[2]),
+                "unit_price_minor": int(item[3]),
+                "product_name": str(item[4]),
+            }
+            for item in items
+        ],
+        "payment_intent": None if payment is None else {
+            "intent_id": str(payment[0]),
+            "state": str(payment[1]),
+            "amount_minor": int(payment[2]),
+            "currency": str(payment[3]),
+            "created_at": payment[4].isoformat(),
+            "capture_performed": False,
+        },
+        "fulfilment_intent": None if fulfilment is None else {
+            "fulfilment_id": str(fulfilment[0]),
+            "state": str(fulfilment[1]),
+            "created_at": fulfilment[2].isoformat(),
+            "updated_at": fulfilment[3].isoformat(),
+            "external_handoff_performed": False,
+        },
+        "payment_capture_performed": False,
+        "money_transfer_performed": False,
+        "external_fulfilment_performed": False,
+        "human_authority_final": True,
+    }
+
 def post_dashboard(identity_id: object, *, limit: int = 100) -> dict[str, Any]:
     identity = _uuid(identity_id, "identity_id")
     effective_limit = min(100, max(1, int(limit)))
