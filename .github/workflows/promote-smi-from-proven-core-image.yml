@@ -1,0 +1,123 @@
+name: Promote SMI from proven Core image
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/promote-smi-from-proven-core-image.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/promote-smi-from-proven-core-image.yml"
+
+permissions:
+  contents: read
+
+env:
+  SERVICE_ID: srv-da6tp615efls73ct81q0
+  SERVICE_NAME: oap-smi
+  PUBLIC_URL: https://oap-smi.onrender.com
+  HEALTH_PATH: /healthz
+  IMAGE: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate bounded promotion contract
+        run: |
+          python - <<'PY'
+          import os
+          assert os.environ["SERVICE_ID"] == "srv-da6tp615efls73ct81q0"
+          assert os.environ["SERVICE_NAME"] == "oap-smi"
+          assert os.environ["PUBLIC_URL"] == "https://oap-smi.onrender.com"
+          assert os.environ["HEALTH_PATH"] == "/healthz"
+          assert os.environ["IMAGE"].endswith("sha256:706fc5700049b0be2a7d7df2e755e5fe160c61c33dbc2d454d772fd6ddd519b6")
+          print("bounded-smi-image-contract-ok")
+          PY
+
+  promote:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      OAP_RENDER_API_KEY: ${{ secrets.OAP_RENDER_API_KEY }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+    steps:
+      - name: Promote proven immutable image to existing SMI service
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error
+
+          api = "https://api.render.com/v1"
+          service_id = os.environ["SERVICE_ID"]
+          service_name = os.environ["SERVICE_NAME"]
+          public_url = os.environ["PUBLIC_URL"]
+          health_path = os.environ["HEALTH_PATH"]
+          image = os.environ["IMAGE"]
+          token = (os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          if not token:
+              raise SystemExit("render_api_key_missing")
+
+          def req(method, path, payload=None):
+              body = None if payload is None else json.dumps(payload).encode()
+              r = urllib.request.Request(
+                  api + path,
+                  data=body,
+                  method=method,
+                  headers={
+                      "Accept": "application/json",
+                      "Authorization": "Bearer " + token,
+                      "Content-Type": "application/json",
+                      "User-Agent": "OAP-SMI-Proven-Image-Promotion/1.0",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(r, timeout=30) as resp:
+                      raw = resp.read(512000)
+              except urllib.error.HTTPError as exc:
+                  detail = exc.read(4096).decode("utf-8", "replace")
+                  raise SystemExit(f"render_http_{exc.code}:{detail}")
+              data = json.loads(raw.decode())
+              if not isinstance(data, dict):
+                  raise SystemExit("invalid_render_response")
+              return data
+
+          current = req("GET", f"/services/{service_id}")
+          if current.get("id") != service_id or current.get("name") != service_name:
+              raise SystemExit("unexpected_service_identity")
+          details = current.get("serviceDetails") or {}
+          if details.get("url") != public_url or details.get("healthCheckPath") != health_path:
+              raise SystemExit("unexpected_service_boundary")
+
+          updated = req("PATCH", f"/services/{service_id}", {
+              "image": {"name": image},
+              "autoDeploy": "no",
+          })
+          if updated.get("id") != service_id or updated.get("name") != service_name:
+              raise SystemExit("service_update_identity_mismatch")
+
+          deploy = req("POST", f"/services/{service_id}/deploys", {"imageUrl": image})
+          deploy_id = deploy.get("id")
+          if not isinstance(deploy_id, str) or not deploy_id.startswith("dep-"):
+              raise SystemExit("deploy_receipt_missing")
+          print(json.dumps({"service_id": service_id, "image": image, "deploy_id": deploy_id}, sort_keys=True))
+          PY
+
+      - name: Verify SMI health after image promotion
+        run: |
+          python - <<'PY'
+          import time, urllib.request
+          url = "https://oap-smi.onrender.com/healthz"
+          for _ in range(24):
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as r:
+                      if 200 <= r.status < 300:
+                          print("smi-image-health-pass")
+                          break
+              except Exception:
+                  pass
+              time.sleep(10)
+          else:
+              raise SystemExit("smi_image_health_not_ready")
+          PY
