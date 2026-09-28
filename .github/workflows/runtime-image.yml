@@ -262,7 +262,7 @@ jobs:
           if details.get("url")!=os.environ["PUBLIC_URL"] or details.get("healthCheckPath")!=os.environ["HEALTH_PATH"]:
               raise SystemExit("unexpected_service_boundary")
 
-          updated=req("PATCH",f"/services/{service_id}",{"image":{"url":image},"autoDeploy":"no"})
+          updated=req("PATCH",f"/services/{service_id}",{"repo":None,"branch":None,"image":{"name":image},"autoDeploy":"no"})
           if updated.get("id")!=service_id or updated.get("name")!=os.environ["SERVICE_NAME"]:
               raise SystemExit("service_update_identity_mismatch")
 
