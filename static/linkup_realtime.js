@@ -433,7 +433,7 @@
         type: pc.localDescription.type,
         sdp: pc.localDescription.sdp,
       });
-      setStatus(mode === "face_up" ? "Face Up is ringing…" : "Call is ringing…");
+      setStatus(mode === "face_up" ? "Link Call is ringing…" : "Call is ringing…");
     } else {
       setStatus(mode === "face_up" ? "Opening private Link Call…" : "Opening private Call…");
     }
@@ -454,7 +454,7 @@
     if (incomingNode) {
       incomingNode.hidden = true;
     }
-    setStatus(mode === "face_up" ? "Starting Face Up…" : "Starting Call…");
+    setStatus(mode === "face_up" ? "Starting Link Call…" : "Starting Call…");
     let sessionId = null;
     try {
       const created = await api("/linkup/calls", {
@@ -513,7 +513,7 @@
     if (incomingNode) {
       incomingNode.hidden = true;
     }
-    setStatus(session.mode === "face_up" ? "Answering Face Up…" : "Answering Call…");
+    setStatus(session.mode === "face_up" ? "Answering Link Call…" : "Answering Call…");
     try {
       await api(`/linkup/calls/${encodeURIComponent(session.session_id)}/answer`, {
         method: "POST",
@@ -552,7 +552,7 @@
     incoming.forEach((session) => {
       const card = document.createElement("div");
       const label = document.createElement("p");
-      label.textContent = session.mode === "face_up" ? "Incoming Face Up" : "Incoming Call";
+      label.textContent = session.mode === "face_up" ? "Incoming Link Call" : "Incoming Call";
       const answer = document.createElement("button");
       answer.type = "button";
       answer.className = "mc-primary";
@@ -597,7 +597,7 @@
     if (!csrfToken || !browserReady()) {
       state.ready = false;
       refreshControls();
-      setStatus("This browser cannot open Certified Call or Face Up sessions.");
+      setStatus("This browser cannot open Certified Call or Link Call sessions.");
       return;
     }
     try {
@@ -619,10 +619,10 @@
     }
     refreshControls();
     if (state.ready) {
-      setStatus("Call and Face Up runtime gates are Certified and ready.");
+      setStatus("Call and Link Call runtime gates are Certified and ready.");
       scheduleIncomingPoll(250);
     } else {
-      setStatus("Call and Face Up stay locked until every first-party runtime gate is ready.");
+      setStatus("Call and Link Call stay locked until every first-party runtime gate is ready.");
     }
   };
 
