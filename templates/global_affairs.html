@@ -4,42 +4,136 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>OAP Global Affairs · Organiser</title>
+<title>SMI Command Center · Global Affairs</title>
 <style>
-body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#0c0c0c;color:#f5f5f5}
-main{max-width:980px;margin:auto;padding:24px}
-.card{border:1px solid #444;border-radius:16px;padding:18px;margin:14px 0;background:#151515}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-.badge{display:inline-block;border:1px solid #666;border-radius:999px;padding:5px 9px;margin:3px}
-small,p{color:#cfcfcf} code{word-break:break-all}
+:root{color-scheme:dark}body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#0b0b0c;color:#f6f6f6}
+main{max-width:1100px;margin:auto;padding:20px}.top{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{border:1px solid #555;border-radius:12px;padding:10px 13px;background:#18181b;color:#fff;font-weight:700;cursor:pointer}
+button:hover{background:#222226}button.danger{border-color:#8b1e1e}button.active{outline:2px solid #fff}
+.card{border:1px solid #333;border-radius:16px;padding:16px;margin:14px 0;background:#121214}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+input,textarea,select{width:100%;box-sizing:border-box;margin-top:5px;padding:9px;border:1px solid #444;border-radius:10px;background:#0c0c0e;color:#fff}
+label{display:block;margin:9px 0;color:#ddd}.muted{color:#aaa}.status{white-space:pre-wrap;background:#09090b;padding:12px;border-radius:12px;min-height:72px}
+.badge{display:inline-block;border:1px solid #555;border-radius:999px;padding:5px 9px;margin:3px}.row{display:flex;gap:10px;flex-wrap:wrap}
 </style>
 </head>
 <body><main>
-<h1>👑 OAP Global Affairs · Organiser</h1>
-<p>Founder-only control surface. Organiser = what we are doing. Registry = what is proven. Authority Matrix = what OAP may authorise internally.</p>
+<h1>👑 SMI Command Center · Global Affairs</h1>
+<p class="muted">Organiser = what we are doing · Registry = what is proven · Authority Matrix = what OAP may authorise internally.</p>
+
+<div class="top" id="command-strip">
+<button data-action="new-mission">＋ Mission</button>
+<button data-action="add-evidence">📎 Evidence</button>
+<button data-action="authority">🛡 Authority</button>
+<button data-action="founder-approve">👑 Founder Approve</button>
+<button data-action="issue-credential">🪪 Credential</button>
+<button data-action="verify-credential">🔍 Verify</button>
+<button data-action="revoke">🚫 Revoke</button>
+<button data-action="expire">⏳ Expire</button>
+<button data-action="recovery">♻ Recovery</button>
+<button data-action="archive">📦 Archive</button>
+<button data-action="stop" class="danger">🛑 STOP</button>
+<a href="/oap-lab"><button type="button">↩ Organiser</button></a>
+</div>
+
 <section class="card">
-<h2>Truth boundaries</h2>
+<h2>Record workspace</h2>
 <div class="grid">
-<div><strong>Evidence Registry</strong><p>Proof, recognition, accreditation, expiry and revocation.</p></div>
-<div><strong>Authority Matrix</strong><p>ALLOW / REVIEW / BLOCK with bounded scope.</p></div>
-<div><strong>Missions</strong><p>Evidence + allowed authority required before approved/active work.</p></div>
-<div><strong>Credentials</strong><p>Internal OAP credentials only; government/diplomatic status cannot be self-issued.</p></div>
+<div>
+<label>Record type<select id="record-type"><option>mission</option><option>evidence</option><option>authority</option><option>credential</option></select></label>
+<label>Record ID<input id="record-id" placeholder="UUID"></label>
+<label>Expected last hash<input id="expected-hash" maxlength="64" placeholder="blank for first version"></label>
+</div>
+<div>
+<label>JSON data<textarea id="record-data" rows="10" spellcheck="false">{}</textarea></label>
+</div>
+</div>
+<div class="row">
+<button data-action="load">Load</button>
+<button data-action="save">💾 Save Draft</button>
+<button data-action="complete-mission">✅ Complete Mission</button>
 </div>
 </section>
+
 <section class="card">
-<h2>Software gates</h2>
-<span class="badge">Owner scoped</span>
-<span class="badge">STOP</span>
-<span class="badge">Hash chained</span>
-<span class="badge">Audit receipt</span>
-<span class="badge">Revocation aware</span>
-<span class="badge">Recovery fail-closed</span>
-<p><small>No physical/live-device proof is represented by this page. No internal OAP record confers external diplomatic status or immunity.</small></p>
+<h2>Truth status</h2>
+<div id="truth-status">
+<span class="badge">Owner scoped</span><span class="badge">CSRF guarded</span><span class="badge">Hash chained</span>
+<span class="badge">Audit receipt</span><span class="badge">Revocation aware</span><span class="badge">Recovery fail-closed</span>
+</div>
+<div class="status" id="status" aria-live="polite">Done: command surface loaded
+Next: choose an action
+Recovery: available
+Blocker: none reported by UI</div>
 </section>
+
 <section class="card">
-<h2>Canonical API</h2>
-<p><code>/api/global-affairs/{evidence|authority|mission|credential}/{record_id}</code></p>
-<p><code>/api/global-affairs/credential/{record_id}/verify</code></p>
-<p><code>/api/global-affairs/recovery/{authority_record_id}</code></p>
+<h2>Permanent boundaries</h2>
+<p class="muted">No button on this page can create government authority, diplomatic status, diplomatic immunity, embassy status, or consular status. Consequential decisions remain server-authoritative and fail closed.</p>
 </section>
+
+<script>
+const csrf={{ oap_csrf_token|tojson }};
+let stopped=false;
+const $=id=>document.getElementById(id);
+const status=(done,next="None",recovery="Available",blocker="None")=>{
+  $("status").textContent=`Done: ${done}\nNext: ${next}\nRecovery: ${recovery}\nBlocker: ${blocker}`;
+};
+const rid=()=>crypto.randomUUID();
+const current=()=>({type:$("record-type").value,id:$("record-id").value.trim()});
+const parseData=()=>{try{return JSON.parse($("record-data").value)}catch(e){throw new Error("JSON data is invalid")}};
+
+async function call(url,options={}){
+  const headers={"Content-Type":"application/json",...(options.headers||{})};
+  if((options.method||"GET")!=="GET") headers["X-OAP-CSRF"]=csrf;
+  const res=await fetch(url,{...options,headers,credentials:"same-origin"});
+  const body=await res.json().catch(()=>({error:{code:"invalid_response"}}));
+  if(!res.ok) throw new Error(body?.error?.code||`HTTP ${res.status}`);
+  return body;
+}
+async function save(type,id,data,expected=""){
+  return call(`/api/global-affairs/${type}/${id}`,{
+    method:"PUT",body:JSON.stringify({data,expected_last_hash:expected,stopped})
+  });
+}
+async function load(type,id){
+  const body=await call(`/api/global-affairs/${type}/${id}`);
+  $("record-type").value=type;$("record-id").value=id;$("expected-hash").value=body.digest||"";
+  $("record-data").value=JSON.stringify(body.data,null,2);return body;
+}
+function seed(type,data){
+  $("record-type").value=type;$("record-id").value=rid();$("expected-hash").value="";
+  $("record-data").value=JSON.stringify(data,null,2);stopped=false;document.querySelector('[data-action="stop"]').classList.remove("active");
+}
+const seeds={
+  mission:()=>({title:"",purpose:"",status:"DRAFT",evidence_record_id:"",authority_record_id:"",outcome:"",archived:false}),
+  evidence:()=>({subject_ref:"",claim_type:"",claim_text:"",status:"DRAFT",evidence_class:"E",issuer:"",jurisdiction:"",evidence_ref:"",evidence_hash:"",effective_date:"",expiry_date:"",verification_method:"",externally_recognised:false,diplomatic_status_claimed:false}),
+  authority:()=>({representative_ref:"",permission:"lead_meeting",decision:"REVIEW",scope:"",jurisdiction:"",expires_on:"",evidence_record_id:"",founder_approved:false,revoked:false,government_authority:false}),
+  credential:()=>({holder_ref:"",role_label:"Cultural Representative",authority_record_id:"",status:"ACTIVE",expires_on:"",public_claim:"OAP internal representative credential",government_credential:false})
+};
+async function mutateLoaded(mutator,label){
+  const r=current();if(!r.id) throw new Error("record_id_required");
+  const loaded=await load(r.type,r.id);const data={...loaded.data};mutator(data);
+  const saved=await save(r.type,r.id,data,loaded.digest);$("expected-hash").value=saved.digest||"";
+  $("record-data").value=JSON.stringify(saved.data,null,2);status(label,"Review resulting audit receipt");
+}
+document.addEventListener("click",async e=>{
+  const action=e.target?.dataset?.action;if(!action)return;
+  try{
+    if(action==="stop"){stopped=true;e.target.classList.add("active");status("STOP engaged","No mutation until a new seeded action or reload","Fail-closed","STOP");return}
+    if(action==="new-mission"){seed("mission",seeds.mission());status("New mission draft prepared","Fill data then Save Draft");return}
+    if(action==="add-evidence"){seed("evidence",seeds.evidence());status("New evidence record prepared","Fill exact claim/evidence then Save Draft");return}
+    if(action==="authority"){seed("authority",seeds.authority());status("Authority REVIEW record prepared","Set bounded scope; server decides validity");return}
+    if(action==="issue-credential"){seed("credential",seeds.credential());status("Internal credential prepared","Link valid authority then Save Draft");return}
+    if(action==="load"){const r=current();await load(r.type,r.id);status("Record loaded","Review before mutation");return}
+    if(action==="save"){const r=current();const body=await save(r.type,r.id,parseData(),$("expected-hash").value.trim());$("expected-hash").value=body.digest||"";status("Draft/version saved","Review audit receipt");return}
+    if(action==="founder-approve"){await mutateLoaded(d=>{if(current().type!=="authority")throw new Error("authority_record_required");d.founder_approved=true},"Founder approval recorded");return}
+    if(action==="revoke"){await mutateLoaded(d=>{if(current().type==="authority")d.revoked=true;else if(current().type==="credential")d.status="REVOKED";else throw new Error("authority_or_credential_required")},"Revocation appended");return}
+    if(action==="expire"){await mutateLoaded(d=>{if(current().type==="evidence")d.status="EXPIRED";else if(current().type==="credential")d.status="EXPIRED";else if(current().type==="authority")d.expires_on=new Date(Date.now()-86400000).toISOString().slice(0,10);else throw new Error("expirable_record_required")},"Expiry appended");return}
+    if(action==="archive"){await mutateLoaded(d=>{if(current().type!=="mission")throw new Error("mission_record_required");d.archived=true},"Mission archived");return}
+    if(action==="complete-mission"){await mutateLoaded(d=>{if(current().type!=="mission")throw new Error("mission_record_required");d.status="COMPLETE"},"Mission completed");return}
+    if(action==="verify-credential"){const r=current();if(r.type!=="credential"||!r.id)throw new Error("credential_record_required");const body=await call(`/api/global-affairs/credential/${r.id}/verify`);status(`Credential valid: ${body.valid}`,"Inspect authority/evidence",body.reason||"Available");return}
+    if(action==="recovery"){const auth=prompt("Authority record UUID");if(!auth)return;const cred=prompt("Credential record UUID (optional)")||null;const body=await call(`/api/global-affairs/recovery/${auth}`,{method:"POST",body:JSON.stringify({credential_record_id:cred})});status(`Recovery check: ${body.authority_decision}`,"Review preserved state",body.revoked_or_expired_preserved?"Revocation/expiry preserved":"No blocked state to preserve");return}
+  }catch(err){status("Action blocked","Correct the record/input","Available",String(err.message||err))}
+});
+</script>
 </main></body></html>
