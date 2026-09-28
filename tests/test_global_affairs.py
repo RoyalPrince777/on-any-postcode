@@ -84,7 +84,7 @@ def _grant(**overrides):
 def test_owner_scope_append_only_and_readback(store):
     owner, other = str(uuid4()), str(uuid4())
     rid = str(uuid4())
-    global_affairs.save_evidence(owner, rid, _evidence())
+    saved = global_affairs.save_evidence(owner, rid, _evidence())
     assert saved["audit_readback_verified"] is True
     assert saved["external_legal_status_conferred"] is False
     with pytest.raises(global_affairs.GlobalAffairsUnavailable, match="not_found"):
@@ -101,7 +101,7 @@ def test_owner_scope_append_only_and_readback(store):
 
 def test_stop_stale_hash_and_tamper_fail_closed(store):
     owner, rid = str(uuid4()), str(uuid4())
-    saved = global_affairs.save_evidence(owner, rid, _evidence())
+    global_affairs.save_evidence(owner, rid, _evidence())
     with pytest.raises(PermissionError, match="STOP"):
         global_affairs.save_evidence(owner, str(uuid4()), _evidence(), stopped=True)
     with pytest.raises(global_affairs.GlobalAffairsUnavailable, match="stale"):
