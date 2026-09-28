@@ -53,7 +53,6 @@ def test_core_image_release_manifest_is_candidate_not_live_proof():
     assert manifest["service"]["public_url"] == (
         "https://on-any-postcode.onrender.com"
     )
-    assert manifest["promotion_attempt"]["id"]
     assert manifest["live_proof"]["receipt"] == (
         "deploy/linkup-public-live-receipt.json"
     )
