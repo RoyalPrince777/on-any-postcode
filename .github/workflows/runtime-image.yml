@@ -35,6 +35,9 @@ env:
 jobs:
   runtime-image:
     runs-on: ubuntu-latest
+    concurrency:
+      group: runtime-image-${{ github.event_name }}-${{ github.ref }}
+      cancel-in-progress: true
     outputs:
       digest: ${{ steps.publish.outputs.digest }}
     steps:
@@ -101,12 +104,29 @@ jobs:
       PUBLIC_URL: https://on-any-postcode.onrender.com
       HEALTH_PATH: /healthz
     steps:
+      - name: Require current main release candidate
+        id: current_main
+        run: |
+          set -euo pipefail
+          current="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git refs/heads/main | awk '{print $1}')"
+          if [ -z "$current" ]; then
+            echo "current-main-readback-missing"
+            exit 1
+          fi
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "release-superseded current=$current candidate=$GITHUB_SHA"
+          else
+            echo "current=true" >> "$GITHUB_OUTPUT"
+            echo "release-current candidate=$GITHUB_SHA"
+          fi
+
       - name: Report Core promotion unavailable
-        if: env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
+        if: steps.current_main.outputs.current == 'true' && env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
         run: echo "core-promotion-skipped-render-api-key-not-configured"
 
       - name: Promote exact published image to existing Core service
-        if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        if: steps.current_main.outputs.current == 'true' && (env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != '')
         run: |
           python - <<'PY'
           import json, os, urllib.request, urllib.error
@@ -181,7 +201,7 @@ jobs:
           PY
 
       - name: Verify Core health
-        if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        if: steps.current_main.outputs.current == 'true' && (env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != '')
         run: |
           python - <<'PY'
           import time, urllib.request
@@ -215,12 +235,29 @@ jobs:
       PUBLIC_URL: https://oap-smi.onrender.com
       HEALTH_PATH: /healthz
     steps:
+      - name: Require current main release candidate
+        id: current_main
+        run: |
+          set -euo pipefail
+          current="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git refs/heads/main | awk '{print $1}')"
+          if [ -z "$current" ]; then
+            echo "current-main-readback-missing"
+            exit 1
+          fi
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "release-superseded current=$current candidate=$GITHUB_SHA"
+          else
+            echo "current=true" >> "$GITHUB_OUTPUT"
+            echo "release-current candidate=$GITHUB_SHA"
+          fi
+
       - name: Report SMI promotion unavailable
-        if: env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
+        if: steps.current_main.outputs.current == 'true' && env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
         run: echo "smi-promotion-skipped-render-api-key-not-configured"
 
       - name: Promote exact published image to existing SMI service
-        if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        if: steps.current_main.outputs.current == 'true' && (env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != '')
         run: |
           python - <<'PY'
           import json, os, urllib.request, urllib.error
@@ -300,7 +337,7 @@ jobs:
           PY
 
       - name: Verify SMI health
-        if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        if: steps.current_main.outputs.current == 'true' && (env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != '')
         run: |
           python - <<'PY'
           import time, urllib.request
