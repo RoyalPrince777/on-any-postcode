@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "name": "OAP Release Control Plane",
+  "mode": "upgrade-only",
+  "canonical_paths": {
+    "core": {
+      "service_id": "srv-d8gfsv0jo6nc73egdlf0",
+      "service_name": "on-any-postcode",
+      "strategy": "immutable_image_promotion",
+      "release_contract": "deploy/render-core-release.json"
+    },
+    "smi": {
+      "service_id": "srv-da6tp615efls73ct81q0",
+      "service_name": "oap-smi",
+      "strategy": "immutable_image_promotion_preferred",
+      "release_request": "deploy/requests/smi-image-promote.json"
+    }
+  },
+  "preflight": {
+    "script": "scripts/release_preflight.py",
+    "must_run_before_mutation": true,
+    "fail_closed": true
+  },
+  "fallback_order": [
+    "immutable_image_promotion",
+    "existing_service_source_deploy_only_when_build_capacity_exists",
+    "hold_no_mutation"
+  ],
+  "forbidden_shortcuts": [
+    "create_duplicate_service_to_bypass_quota",
+    "redeploy_known_old_image_as_progress",
+    "claim_green_without_live_readback",
+    "replace_environment_map_for_single-key_change"
+  ],
+  "green_requires": [
+    "exact reviewed release artifact",
+    "existing service identity preserved",
+    "deploy receipt",
+    "health readback",
+    "route-specific acceptance",
+    "rollback or recovery path"
+  ],
+  "human_authority_final": true
+}
