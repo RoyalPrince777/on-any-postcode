@@ -1,5 +1,6 @@
 """Founder-only API/UI contract for OAP Global Affairs."""
 import app as app_module
+
 from mission_control import global_affairs, web_security
 
 
