@@ -216,10 +216,10 @@
           <button class="mc-secondary" type="button" data-oap-hangup>End</button>
         </div>
         <div class="linkup-runtime-strip" aria-label="Link Up runtime readiness">
-          <p class="linkup-runtime" data-oap-call-status role="status"><strong>Call</strong><span>Checking…</span></p>
-          <p class="linkup-runtime" data-oap-voice-status role="status"><strong>Voice</strong><span>Checking…</span></p>
-          <p class="linkup-runtime" data-oap-share-status role="status"><strong>Share</strong><span>Checking…</span></p>
-          <p class="linkup-runtime" data-oap-presence-status role="status"><strong>Presence</strong><span>Checking…</span></p>
+          <p class="linkup-runtime" data-label="Call" data-oap-call-status role="status">Checking…</p>
+          <p class="linkup-runtime" data-label="Voice" data-oap-voice-status role="status">Checking…</p>
+          <p class="linkup-runtime" data-label="Share" data-oap-share-status role="status">Checking…</p>
+          <p class="linkup-runtime" data-label="Presence" data-oap-presence-status role="status">Checking…</p>
         </div>
 
         {% if dashboard and dashboard.threads %}
