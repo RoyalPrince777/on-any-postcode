@@ -10,7 +10,14 @@ def test_public_my_card_page_is_free_and_not_enter_my_world(anonymous_client):
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert "Create My Card — Free" in page
-    assert "Creating it is free." in page
+    assert "OAP World and public Link Up are open without an account, email or sign-in." in page
+    assert "No email or sign-in is needed." in page
+    assert "Continue without My Card" in page
+    assert 'href="/linkup"' in page
+    assert "Email — only for My Card" in page
+    assert "Required only if you choose to create a My Card." in page
+    assert 'name="email" type="email" autocomplete="email" maxlength="320"' in page
+    assert 'aria-describedby="card-email-note" required' in page
     assert "Enter My World" not in page
     assert 'action="/my-card/create"' in page
     assert 'name="csrf_token"' in page

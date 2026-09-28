@@ -10,7 +10,7 @@
     header,main{width:min(720px,calc(100% - 32px));margin:auto}header{padding:28px 0 12px}header a{color:#a9eabe}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.09em;text-transform:uppercase;font-size:.78rem}
     .card{margin:14px 0 40px;padding:clamp(20px,5vw,34px);border:1px solid var(--line);border-radius:22px;background:rgba(16,40,26,.96);box-shadow:0 20px 60px #0007}h1{margin:.2rem 0 .6rem;font-size:clamp(2rem,7vw,3.6rem)}p{line-height:1.5;color:var(--muted)}
     label{display:block;margin-top:15px;font-weight:800}input{width:100%;margin-top:7px;padding:13px;border:1px solid #397451;border-radius:10px;background:#f7fff9;color:#06120b;font:inherit}.check{display:flex;align-items:flex-start;gap:10px;font-weight:600}.check input{width:auto;margin-top:3px;accent-color:#27c267}
-    button{width:100%;margin-top:20px;padding:14px;border:1px solid #8cf0ad;border-radius:11px;background:#27c267;color:#021;font:inherit;font-weight:900;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.error{margin:14px 0;padding:13px;border:1px solid #ff7582;border-radius:10px;background:#461b21}.small{font-size:.9rem}.signin{text-align:center}.signin a{color:#a9eabe}
+    button{width:100%;margin-top:20px;padding:14px;border:1px solid #8cf0ad;border-radius:11px;background:#27c267;color:#021;font:inherit;font-weight:900;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.error{margin:14px 0;padding:13px;border:1px solid #ff7582;border-radius:10px;background:#461b21}.small{font-size:.9rem}.field-note{display:block;margin-top:6px;color:var(--muted);line-height:1.4}.public-choice{margin:18px 0;padding:16px;border:1px solid #397451;border-radius:14px;background:#0b1d12}.public-choice strong,.public-choice span{display:block}.public-choice span{margin-top:5px;color:var(--muted);line-height:1.45}.public-choice a{display:block;margin-top:12px;padding:12px;border:1px solid #8cf0ad;border-radius:10px;color:#d8ffe4;text-align:center;text-decoration:none;font-weight:900}.signin{text-align:center}.signin a{color:#a9eabe}
   </style>
 </head>
 <body>
@@ -21,15 +21,21 @@
   <main>
     <section class="card" aria-labelledby="create-card-title">
       <h1 id="create-card-title">Create My Card</h1>
-      <p>Your My Card is your OAP identity for private Link Requests, Link Messages, Voice and Link Call. Creating it is free.</p>
+      <p>OAP World and public Link Up are open without an account, email or sign-in. My Card is optional and free for private Link Requests, Link Messages, Voice and Link Call.</p>
+      <div class="public-choice">
+        <strong>Just browsing OAP World?</strong>
+        <span>No email or sign-in is needed.</span>
+        <a href="{{ url_for('linkup_front_door') }}">Continue without My Card</a>
+      </div>
       {% if create_error %}<div class="error" role="alert">{{ create_error }}</div>{% endif %}
       {% if not auth_configured %}<div class="error" role="alert">My Card creation is temporarily unavailable.</div>{% endif %}
       <form method="post" action="{{ url_for('my_card_create') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="card-name">Name shown on My Card</label>
         <input id="card-name" name="name" autocomplete="name" maxlength="120" required>
-        <label for="card-email">Email</label>
-        <input id="card-email" name="email" type="email" autocomplete="email" maxlength="320" required>
+        <label for="card-email">Email — only for My Card</label>
+        <input id="card-email" name="email" type="email" autocomplete="email" maxlength="320" aria-describedby="card-email-note" required>
+        <small class="field-note" id="card-email-note">Required only if you choose to create a My Card. It is not needed to browse OAP World or public Link Up.</small>
         <label for="card-password">Password</label>
         <input id="card-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
         <label for="card-password-confirmation">Confirm password</label>
