@@ -474,6 +474,38 @@ def _decision(
     return payload
 
 
+def decision_proof(decision: object) -> dict[str, Any]:
+    """Normalize the proof carried by one Rights Core decision.
+
+    Product adapters should use this instead of re-implementing ALLOW/evidence/
+    authority/approval checks. The helper validates only the decision contract;
+    it never grants publication, playback or external execution authority.
+    """
+    row = decision if isinstance(decision, Mapping) else {}
+    evidence = row.get("evidence_hashes")
+    authority = row.get("authority_receipt_hashes")
+    approval = row.get("human_approval_receipt_hashes")
+    evidence_ready = isinstance(evidence, list) and bool(evidence)
+    authority_ready = isinstance(authority, list) and bool(authority)
+    approval_ready = isinstance(approval, list) and bool(approval)
+    canonical_allow = bool(
+        row.get("decision") == "ALLOW"
+        and evidence_ready
+        and authority_ready
+        and approval_ready
+        and row.get("public_distribution_authorized") is False
+    )
+    return {
+        "canonical_allow": canonical_allow,
+        "evidence_ready": evidence_ready,
+        "authority_receipt_ready": authority_ready,
+        "human_approval_receipt_ready": approval_ready,
+        "decision_hash": row.get("decision_hash"),
+        "decision_present": bool(row),
+        "public_action_enabled": False,
+    }
+
+
 def status() -> dict[str, Any]:
     return {
         "component": "OAP Rights & Provenance Core",
