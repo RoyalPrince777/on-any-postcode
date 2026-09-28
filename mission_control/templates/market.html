@@ -25,6 +25,13 @@
     .market-sell{display:grid;gap:12px}
     .market-sell form{display:grid;gap:10px;max-width:720px}
     .market-empty{padding:24px;border:1px dashed var(--mc-line);border-radius:18px;text-align:center;color:var(--mc-muted)}
+    .market-basket-list,.market-order-list,.market-timeline{display:grid;gap:10px}
+    .market-basket-line,.market-order-row,.market-timeline-row{display:grid;gap:8px;padding:12px;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft)}
+    .market-basket-line{grid-template-columns:minmax(0,1fr) auto auto;align-items:center}
+    .market-qty{width:72px}
+    .market-status{font-weight:800}
+    .market-danger{border-color:rgba(255,100,100,.45)}
+    .market-hidden{display:none!important}
     @media(max-width:720px){
       .market-toolbar{grid-template-columns:1fr}
       .market-toolbar .mc-secondary-link,.market-toolbar .mc-primary{width:100%;justify-content:center}
@@ -89,6 +96,15 @@
             <p class="market-meta">{% if rs.get('count') %}⭐ {{ rs.get('average') }}/5 · {{ rs.get('count') }} review{{ '' if rs.get('count') == 1 else 's' }}{% else %}No reviews yet{% endif %}</p>
             <div class="market-actions">
               <a class="mc-secondary-link" href="{{ request.path }}?product={{ product.product_id }}">View item</a>
+              {% if auth_user %}
+              <button class="mc-primary market-add" type="button"
+                      data-product-id="{{ product.product_id }}"
+                      data-name="{{ product.name|e }}"
+                      data-price="{{ product.price }}"
+                      data-currency="{{ product.currency }}">Add to Basket</button>
+              {% else %}
+              <a class="mc-primary" href="{{ url_for('auth_page', next=request.path) }}">Enter My World to buy</a>
+              {% endif %}
             </div>
             {% if request.args.get('product') == product.product_id %}
               {% if rs.get('reviews') %}
@@ -123,6 +139,40 @@
       <div class="market-empty">No active local listings yet.</div>
       {% endif %}
     </section>
+
+    <section id="basket" class="mc-panel" aria-labelledby="market-basket-title">
+      <p class="mc-eyebrow">Basket</p>
+      <h2 id="market-basket-title">Your Basket</h2>
+      {% if auth_user %}
+      <p class="market-meta">Basket lines are pre-order state. Confirming creates one canonical Commerce order and Market transaction per line. No payment is captured.</p>
+      <div id="market-basket-list" class="market-basket-list"></div>
+      <div class="market-actions">
+        <button id="market-checkout" class="mc-primary" type="button">Review & Confirm Orders</button>
+        <button id="market-clear-basket" class="mc-secondary-link" type="button">Clear Basket</button>
+      </div>
+      <p id="market-checkout-status" class="market-meta" role="status" aria-live="polite"></p>
+      {% else %}
+      <p class="market-notice">Browsing is public. Enter My World only when you want to create an order.</p>
+      {% endif %}
+    </section>
+
+    {% if auth_user %}
+    <section id="orders" class="mc-panel" aria-labelledby="market-orders-title">
+      <p class="mc-eyebrow">Orders · server truth</p>
+      <h2 id="market-orders-title">My Orders</h2>
+      <button id="market-refresh-orders" class="mc-secondary-link" type="button">Refresh Orders</button>
+      <div id="market-order-list" class="market-order-list"></div>
+      <div id="market-order-detail" class="market-hidden">
+        <h3>Order & Transaction Timeline</h3>
+        <div id="market-order-summary"></div>
+        <div id="market-timeline" class="market-timeline"></div>
+        <div class="market-actions">
+          <button id="market-stop-transaction" class="mc-secondary-link market-danger" type="button">STOP Transaction</button>
+        </div>
+        <p id="market-recovery" class="market-meta"></p>
+      </div>
+    </section>
+    {% endif %}
 
     <section id="sell" class="mc-panel market-sell" aria-labelledby="market-sell-title">
       <p class="mc-eyebrow">Seller</p>
@@ -159,5 +209,193 @@
       </div>
     </section>
   </main>
+  <script>
+  (() => {
+    const authenticated = {{ 'true' if auth_user else 'false' }};
+    if (!authenticated) return;
+    const csrf = {{ oap_csrf_token|tojson }};
+    const keyName = 'oap-market-basket-v1';
+    const basketList = document.getElementById('market-basket-list');
+    const status = document.getElementById('market-checkout-status');
+    const ordersList = document.getElementById('market-order-list');
+    const detail = document.getElementById('market-order-detail');
+    const summary = document.getElementById('market-order-summary');
+    const timeline = document.getElementById('market-timeline');
+    const recovery = document.getElementById('market-recovery');
+    const stopButton = document.getElementById('market-stop-transaction');
+    let activeTransactionId = null;
+
+    const loadBasket = () => {
+      try {
+        const value = JSON.parse(sessionStorage.getItem(keyName) || '[]');
+        return Array.isArray(value) ? value.slice(0, 20) : [];
+      } catch (_) { return []; }
+    };
+    const saveBasket = basket => sessionStorage.setItem(keyName, JSON.stringify(basket.slice(0, 20)));
+    const money = (currency, value) => currency + ' ' + value;
+
+    function renderBasket() {
+      const basket = loadBasket();
+      basketList.innerHTML = '';
+      if (!basket.length) {
+        basketList.innerHTML = '<div class="market-empty">Basket is empty.</div>';
+        return;
+      }
+      basket.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'market-basket-line';
+        row.innerHTML = '<div><strong></strong><div class="market-meta"></div></div><input class="market-qty" type="number" min="1" max="99"><button class="mc-secondary-link" type="button">Remove</button>';
+        row.querySelector('strong').textContent = item.name;
+        row.querySelector('.market-meta').textContent = money(item.currency, item.price);
+        const qty = row.querySelector('input');
+        qty.value = item.quantity;
+        qty.addEventListener('change', () => {
+          const next = loadBasket();
+          next[index].quantity = Math.min(99, Math.max(1, Number(qty.value) || 1));
+          saveBasket(next); renderBasket();
+        });
+        row.querySelector('button').addEventListener('click', () => {
+          const next = loadBasket(); next.splice(index, 1); saveBasket(next); renderBasket();
+        });
+        basketList.appendChild(row);
+      });
+    }
+
+    document.querySelectorAll('.market-add').forEach(button => {
+      button.addEventListener('click', () => {
+        const basket = loadBasket();
+        const found = basket.find(item => item.product_id === button.dataset.productId);
+        if (found) found.quantity = Math.min(99, found.quantity + 1);
+        else basket.push({
+          product_id: button.dataset.productId,
+          name: button.dataset.name,
+          price: button.dataset.price,
+          currency: button.dataset.currency,
+          quantity: 1
+        });
+        saveBasket(basket); renderBasket();
+        document.getElementById('basket').scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+
+    document.getElementById('market-clear-basket')?.addEventListener('click', () => {
+      saveBasket([]); renderBasket(); status.textContent = 'Basket cleared.';
+    });
+
+    async function jsonFetch(url, options = {}) {
+      const headers = Object.assign({'Accept':'application/json'}, options.headers || {});
+      if (options.method && options.method !== 'GET') {
+        headers['Content-Type'] = 'application/json';
+        headers['X-OAP-CSRF'] = csrf;
+      }
+      const response = await fetch(url, Object.assign({}, options, {headers}));
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error?.message || payload?.error?.code || 'Request failed');
+      return payload;
+    }
+
+    document.getElementById('market-checkout')?.addEventListener('click', async () => {
+      const basket = loadBasket();
+      if (!basket.length) { status.textContent = 'Basket is empty.'; return; }
+      status.textContent = 'Creating governed order intents…';
+      const created = [];
+      try {
+        for (const item of basket) {
+          const key = 'market-' + item.product_id + '-' + Date.now() + '-' + created.length;
+          const result = await jsonFetch('/mission/organs/market/orders', {
+            method:'POST',
+            body:JSON.stringify({
+              product_id:item.product_id,
+              quantity:item.quantity,
+              idempotency_key:key
+            })
+          });
+          created.push(result);
+        }
+        saveBasket([]); renderBasket();
+        status.textContent = created.length + ' governed order' + (created.length === 1 ? '' : 's') + ' created. Payment capture remains locked.';
+        await refreshOrders();
+      } catch (error) {
+        status.textContent = 'Checkout stopped safely: ' + error.message;
+      }
+    });
+
+    async function refreshOrders() {
+      ordersList.innerHTML = '<div class="market-empty">Loading server truth…</div>';
+      try {
+        const data = await jsonFetch('/mission/organs/market/orders');
+        const txByOrder = new Map((data.transactions || []).map(tx => [tx.order_id, tx]));
+        ordersList.innerHTML = '';
+        if (!(data.orders || []).length) {
+          ordersList.innerHTML = '<div class="market-empty">No governed orders yet.</div>'; return;
+        }
+        data.orders.forEach(order => {
+          const tx = txByOrder.get(order.order_id);
+          const row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'market-order-row';
+          row.innerHTML = '<strong></strong><span class="market-status"></span><span class="market-meta"></span>';
+          row.querySelector('strong').textContent = 'Order ' + order.order_id.slice(0, 8);
+          row.querySelector('.market-status').textContent = tx ? tx.state : order.state;
+          row.querySelector('.market-meta').textContent = order.currency + ' ' + (order.subtotal_minor / 100).toFixed(2);
+          row.addEventListener('click', () => showOrder(order.order_id, tx?.transaction_id));
+          ordersList.appendChild(row);
+        });
+      } catch (error) {
+        ordersList.innerHTML = '<div class="market-empty">Orders unavailable: ' + error.message + '</div>';
+      }
+    }
+
+    async function showOrder(orderId, transactionId) {
+      try {
+        const order = await jsonFetch('/mission/organs/market/orders/' + encodeURIComponent(orderId));
+        summary.textContent = 'Order ' + order.order_id.slice(0,8) + ' · ' + order.state + ' · ' + order.currency + ' ' + (order.subtotal_minor / 100).toFixed(2);
+        timeline.innerHTML = '';
+        activeTransactionId = transactionId || null;
+        if (!transactionId) {
+          timeline.innerHTML = '<div class="market-empty">Transaction correlation is not available for this order.</div>';
+          recovery.textContent = 'No correlated recovery state available.';
+          stopButton.disabled = true;
+          detail.classList.remove('market-hidden');
+          return;
+        }
+        const tx = await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(transactionId));
+        (tx.events || []).forEach(event => {
+          const row = document.createElement('div');
+          row.className = 'market-timeline-row';
+          row.textContent = event.event_type + ' · ' + (event.to_state || event.from_state || 'recorded');
+          timeline.appendChild(row);
+        });
+        if (!(tx.events || []).length) timeline.innerHTML = '<div class="market-empty">No transaction events recorded yet.</div>';
+        const r = tx.recovery || {};
+        recovery.textContent = 'State: ' + r.state + ' · Recovery: ' + r.recovery_state + ' · Last good stage: ' + r.last_good_stage + ' · Next safe action: ' + r.next_safe_action;
+        stopButton.disabled = tx.transaction.stop_state === 'STOPPED';
+        detail.classList.remove('market-hidden');
+      } catch (error) {
+        summary.textContent = 'Order detail unavailable: ' + error.message;
+        detail.classList.remove('market-hidden');
+      }
+    }
+
+    stopButton?.addEventListener('click', async () => {
+      if (!activeTransactionId) return;
+      try {
+        await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(activeTransactionId) + '/stop', {
+          method:'POST', body:'{}'
+        });
+        await refreshOrders();
+        const tx = await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(activeTransactionId));
+        recovery.textContent = 'STOP active · consequential progression blocked · last good stage: ' + tx.recovery.last_good_stage;
+        stopButton.disabled = true;
+      } catch (error) {
+        recovery.textContent = 'STOP failed safely: ' + error.message;
+      }
+    });
+
+    document.getElementById('market-refresh-orders')?.addEventListener('click', refreshOrders);
+    renderBasket();
+    refreshOrders();
+  })();
+  </script>
 </body>
 </html>

@@ -319,6 +319,85 @@ class MarketTransactionStore:
             connection.commit()
         return _row(row)
 
+    def list_for_identity(
+        self, *, identity_id: object, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        identity = _uuid(identity_id, "identity_id")
+        effective_limit = min(100, max(1, int(limit)))
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT transaction_id,order_id,state,stop_state,recovery_state,
+                          last_good_stage,created_at,updated_at
+                   FROM oap_market_transactions
+                   WHERE buyer_identity_id=%s OR seller_identity_id=%s
+                   ORDER BY created_at DESC LIMIT %s""",
+                (identity, identity, effective_limit),
+            ).fetchall()
+        return [_row(row) for row in rows]
+
+    def events_for_identity(
+        self, *, transaction_id: object, identity_id: object
+    ) -> list[dict[str, Any]]:
+        transaction = _uuid(transaction_id, "transaction_id")
+        identity = _uuid(identity_id, "identity_id")
+        with postgres_db.connect(readonly=True) as connection:
+            owned = connection.execute(
+                """SELECT 1 FROM oap_market_transactions
+                   WHERE transaction_id=%s
+                     AND (buyer_identity_id=%s OR seller_identity_id=%s)""",
+                (transaction, identity, identity),
+            ).fetchone()
+            if owned is None:
+                raise PermissionError("transaction_not_owned")
+            rows = connection.execute(
+                """SELECT event_id,event_type,from_state,to_state,evidence,created_at
+                   FROM oap_market_transaction_events
+                   WHERE transaction_id=%s
+                   ORDER BY created_at ASC,event_id ASC""",
+                (transaction,),
+            ).fetchall()
+        return [
+            {
+                "event_id": str(row[0]),
+                "event_type": str(row[1]),
+                "from_state": str(row[2]) if row[2] else None,
+                "to_state": str(row[3]) if row[3] else None,
+                "evidence": dict(row[4] or {}),
+                "created_at": row[5].isoformat(),
+            }
+            for row in rows
+        ]
+
+    def recovery_view(
+        self, *, transaction_id: object, identity_id: object
+    ) -> dict[str, Any]:
+        transaction = self.read_for_identity(
+            transaction_id=transaction_id,
+            identity_id=identity_id,
+        )
+        stop_state = transaction["stop_state"]
+        recovery_state = transaction["recovery_state"]
+        return {
+            "transaction_id": transaction["transaction_id"],
+            "state": transaction["state"],
+            "stop_state": stop_state,
+            "recovery_state": recovery_state,
+            "last_good_stage": transaction["last_good_stage"],
+            "consequential_action_allowed": consequential_action_allowed(
+                stop_state=stop_state,
+                recovery_state=recovery_state,
+            ),
+            "next_safe_action": (
+                "review_evidence"
+                if recovery_state in {"REQUIRED", "IN_PROGRESS", "FAILED"}
+                else "human_review_required"
+                if stop_state in {"REQUESTED", "STOPPED", "RECOVERY_REQUIRED"}
+                else "none_required"
+            ),
+            "automatic_recovery_performed": False,
+            "human_authority_final": True,
+        }
+
     @staticmethod
     def _event(
         connection: Any,

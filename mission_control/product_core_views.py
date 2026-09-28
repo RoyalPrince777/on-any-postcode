@@ -10,6 +10,7 @@ from . import (
     distribution_intelligence,
     entertainment_catalogue,
     live_music_core,
+    market_transaction_spine,
     music_acceptance,
     music_assets,
     music_civilization,
@@ -1060,6 +1061,110 @@ def create_order():
         )
 
     return _handle_write(action)
+
+
+@bp.get("/market/orders")
+@web_security.login_required(api=True)
+def market_orders():
+    try:
+        identity = _identity()
+        return _no_store(make_response(jsonify({
+            "orders": product_core_services.commerce_dashboard(identity).get("orders", []),
+            "transactions": market_transaction_spine.STORE.list_for_identity(
+                identity_id=identity
+            ),
+            "payment_capture_performed": False,
+            "external_fulfilment_performed": False,
+            "human_authority_final": True,
+        })))
+    except (ValueError, RuntimeError):
+        return _error("market_unavailable", "OAP Market is temporarily unavailable.", 503)
+
+
+@bp.post("/market/orders")
+@web_security.login_required(api=True)
+def create_market_order():
+    def action():
+        payload = _payload()
+        identity = _identity(sync=True)
+        key = str(payload.get("idempotency_key") or "")
+        order = _store.create_order_intent(
+            buyer_identity_id=identity,
+            product_id=payload.get("product_id"),
+            quantity=payload.get("quantity", 1),
+            idempotency_key=key,
+        )
+        transaction = market_transaction_spine.STORE.create_from_order(
+            buyer_identity_id=identity,
+            order_id=order["order_id"],
+            idempotency_key=f"market:{key}",
+        )
+        return {
+            "order": order,
+            "transaction": transaction,
+            "payment_capture_performed": False,
+            "money_transfer_performed": False,
+            "external_fulfilment_performed": False,
+            "automatic_dispatch_performed": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.get("/market/orders/<order_id>")
+@web_security.login_required(api=True)
+def market_order_detail(order_id: str):
+    try:
+        return _no_store(make_response(jsonify(
+            product_core_services.commerce_order_detail(_identity(), order_id)
+        )))
+    except PermissionError:
+        return _error("permission_denied", "Order unavailable for this identity.", 403)
+    except (ValueError, RuntimeError):
+        return _error("market_unavailable", "OAP Market is temporarily unavailable.", 503)
+
+
+@bp.get("/market/transactions/<transaction_id>")
+@web_security.login_required(api=True)
+def market_transaction_detail(transaction_id: str):
+    try:
+        identity = _identity()
+        transaction = market_transaction_spine.STORE.read_for_identity(
+            transaction_id=transaction_id,
+            identity_id=identity,
+        )
+        events = market_transaction_spine.STORE.events_for_identity(
+            transaction_id=transaction_id,
+            identity_id=identity,
+        )
+        recovery = market_transaction_spine.STORE.recovery_view(
+            transaction_id=transaction_id,
+            identity_id=identity,
+        )
+        return _no_store(make_response(jsonify({
+            "transaction": transaction,
+            "events": events,
+            "recovery": recovery,
+            "payment_capture_performed": False,
+            "external_fulfilment_performed": False,
+            "carrier_handoff_performed": False,
+        })))
+    except PermissionError:
+        return _error("permission_denied", "Transaction unavailable for this identity.", 403)
+    except (ValueError, RuntimeError):
+        return _error("market_unavailable", "OAP Market is temporarily unavailable.", 503)
+
+
+@bp.post("/market/transactions/<transaction_id>/stop")
+@web_security.login_required(api=True)
+def stop_market_transaction(transaction_id: str):
+    return _handle_write(
+        lambda: market_transaction_spine.STORE.stop(
+            transaction_id=transaction_id,
+            actor_identity_id=_identity(sync=True),
+        )
+    )
 
 
 @bp.get("/post")
