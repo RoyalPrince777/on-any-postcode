@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from hashlib import sha256
 from typing import Any
 from uuid import UUID
@@ -85,12 +85,11 @@ class EvidenceRecord:
             raise ValueError("invalid_evidence_status")
         if self.evidence_class not in _EVIDENCE_CLASSES:
             raise ValueError("invalid_evidence_class")
-        if self.evidence_hash:
-            if (
-                len(self.evidence_hash) != 64
-                or any(ch not in "0123456789abcdef" for ch in self.evidence_hash)
-            ):
-                raise ValueError("invalid_evidence_hash")
+        if self.evidence_hash and (
+            len(self.evidence_hash) != 64
+            or any(ch not in "0123456789abcdef" for ch in self.evidence_hash)
+        ):
+            raise ValueError("invalid_evidence_hash")
         for raw in (self.effective_date, self.expiry_date):
             if raw:
                 try:
@@ -318,7 +317,7 @@ def assess_authority(
 ) -> dict[str, Any]:
     value = get(owner_id, record_type="authority", record_id=record_id)
     grant = AuthorityGrant(**value["data"])
-    today = on_date or date.today()
+    today = on_date or datetime.now(UTC).date()
     if grant.revoked:
         return {"decision": "BLOCK", "reason": "authority_revoked", "record": value}
     if grant.expires_on and date.fromisoformat(grant.expires_on) < today:
