@@ -374,4 +374,20 @@ def migration_sql() -> str:
     return ";\n\n".join(statements) + ";\n"
 
 
+def platform_status() -> dict[str, object]:
+    """Report transaction-spine truth boundaries without claiming live DB proof."""
+    return {
+        "component": "OAP Market Transaction Spine",
+        "correlation_authored": True,
+        "payment_capture_performed": False,
+        "money_transfer_performed": False,
+        "external_fulfilment_performed": False,
+        "carrier_handoff_performed": False,
+        "automatic_dispatch_performed": False,
+        "live_database_migration_proven": False,
+        "live_runtime_readback_proven": False,
+        "human_authority_final": True,
+    }
+
+
 STORE = MarketTransactionStore()
