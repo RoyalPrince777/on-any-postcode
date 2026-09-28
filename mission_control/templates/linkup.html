@@ -68,7 +68,7 @@
       </section>
 
       <nav class="linkup-royal-tools" aria-label="Link Up features">
-        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-purple">💬</span><strong>Messages</strong><small>Chat &amp; Connect</small></a>
+        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-purple">💬</span><strong>Link Message</strong><small>Chat &amp; Connect</small></a>
         <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-world">🌍</span><strong>Discovery</strong><small>Find People</small></a>
         <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Trusted Members</small></a>
         <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-gold">!</span><strong>Safety</strong><small>Stay Safe</small></a>
@@ -101,7 +101,7 @@
         <a aria-current="page" href="{{ url_for('linkup_front_door') }}">⌂<span>Home</span></a>
         <a href="{{ url_for('the_link_front_door') }}">♟<span>People</span></a>
         <a class="linkup-oap-home" href="{{ url_for('home') }}">♛<span>OAP</span></a>
-        <a href="{{ url_for('my_card_create_page') }}">💬<span>Messages</span></a>
+        <a href="{{ url_for('my_card_create_page') }}">💬<span>Link Message</span></a>
         <a href="{{ url_for('my_card_create_page') }}">●<span>Profile</span></a>
       </nav>
     </main>
@@ -113,7 +113,7 @@
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
         <div class="linkup-master-nav">
-          <a href="{{ url_for('link_message_state.link_circles.circle_page') }}">Circle</a>
+          <a href="{{ url_for('link_message_state.link_circles.circle_page') }}">Room</a>
           <a href="{{ url_for('the_link_front_door') }}">The Link</a>
         </div>
         {% if seven_star_gate %}
@@ -241,7 +241,7 @@
               <span class="linkup-chat-name"><strong>{{ thread.display_name }}</strong><small>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</small>{% if thread.borough or thread.country %}<small>{{ thread.borough }}{% if thread.borough and thread.country %} · {% endif %}{{ thread.country }}</small>{% endif %}<small class="linkup-card-state">🔗 {{ 'Purpose Link' if thread.link_kind == 'purpose' else 'Linked' }}{% if thread.purpose_text %} · {{ thread.purpose_text }}{% endif %}</small>{% if thread.certifications %}<span class="linkup-certifications">{% for badge in thread.certifications %}<span class="linkup-certified">✓ {{ badge }}</span>{% endfor %}</span>{% endif %}</span>
               <span class="linkup-chat-actions">
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
-                <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
+                <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Link Call">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
                 <details class="linkup-conversation-settings" aria-label="Conversation settings">
                   <summary>⚙ Settings</summary>
                   <form method="post" action="{{ url_for('linkup_safety.block_member', member_id=thread.other_identity_id) }}">
@@ -309,7 +309,7 @@
             <span class="linkup-chat-name"><strong>New Link</strong><small>Choose an OAP member</small></span>
             <span class="linkup-chat-actions">
               <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-source="#linkup-recipient" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
-              <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-source="#linkup-recipient" aria-label="Face Up">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
+              <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-source="#linkup-recipient" aria-label="Link Call">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
             </span>
           </header>
           <div class="linkup-new-panel">
