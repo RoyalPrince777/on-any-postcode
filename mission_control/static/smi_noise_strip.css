@@ -416,3 +416,10 @@ body.smi-noise-strip .smi-command-mobile-views{
 body.smi-noise-strip .smi-command-mobile-views button{
   min-height:40px!important;
 }
+
+
+/* Studio compatibility anchor: preserve governed UI contract without forcing visibility. */
+body.smi-noise-strip #studio-creation-strip{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:5px;
+}
