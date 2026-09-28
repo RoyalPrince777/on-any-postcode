@@ -189,14 +189,13 @@ jobs:
       SERVICE_NAME: oap-smi
       PUBLIC_URL: https://oap-smi.onrender.com
       HEALTH_PATH: /healthz
-      SMI_IMAGE_PROMOTION_ENABLED: ${{ vars.OAP_SMI_IMAGE_PROMOTION_ENABLED }}
     steps:
       - name: Report SMI promotion unavailable
-        if: env.SMI_IMAGE_PROMOTION_ENABLED != 'true' || (env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == '')
-        run: echo "smi-promotion-skipped-runtime-or-render-key-not-configured"
+        if: env.OAP_RENDER_API_KEY == '' && env.RENDER_API_KEY == ''
+        run: echo "smi-promotion-skipped-render-api-key-not-configured"
 
       - name: Promote exact published image to existing SMI service
-        if: env.SMI_IMAGE_PROMOTION_ENABLED == 'true' && (env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != '')
+        if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
         run: |
           python - <<'PY'
           import json, os, urllib.request, urllib.error
@@ -251,7 +250,7 @@ jobs:
           PY
 
       - name: Verify SMI health
-        if: env.SMI_IMAGE_PROMOTION_ENABLED == 'true' && (env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != '')
+        if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
         run: |
           python - <<'PY'
           import time, urllib.request
