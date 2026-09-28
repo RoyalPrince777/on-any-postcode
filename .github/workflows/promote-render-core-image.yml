@@ -24,6 +24,13 @@ jobs:
       - name: Checkout exact main
         uses: actions/checkout@v5
 
+      - name: Run release preflight
+        env:
+          OAP_RENDER_API_KEY: ${{ secrets.OAP_RENDER_API_KEY }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          python scripts/release_preflight.py
+
       - name: Verify immutable release contract
         run: |
           python - <<'PY'
