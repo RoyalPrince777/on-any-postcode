@@ -11,6 +11,18 @@ const ready=()=>{
   const stop=document.getElementById('stop-button');
   const send=document.getElementById('send');
   const speaker=document.getElementById('speaker-button');
+  const liveToggle=document.getElementById('live-character-toggle');
+
+  // Live SMI is a primary control. Keep it outside any reparented character/dashboard
+  // container so later Command Center layout changes cannot hide it.
+  if(liveToggle){
+    document.body.appendChild(liveToggle);
+    liveToggle.style.setProperty('display','grid','important');
+    liveToggle.style.setProperty('visibility','visible','important');
+    liveToggle.style.setProperty('opacity','1','important');
+    liveToggle.style.setProperty('pointer-events','auto','important');
+    liveToggle.style.setProperty('z-index','1200','important');
+  }
   const input=document.getElementById('message');
   const form=document.getElementById('chat-form');
   const savedWork=document.getElementById('saved-work-button');
