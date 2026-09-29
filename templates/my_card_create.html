@@ -21,30 +21,31 @@
   <main>
     <section class="card" aria-labelledby="create-card-title">
       <h1 id="create-card-title">Create My Card</h1>
-      <p>OAP World and public Link Up are open without an account, email or sign-in. My Card is optional and free for private Link Requests, Link Messages, Voice and Link Call.</p>
+      <p>OAP World and public Link Up are open without an account, email or sign-in. My Card is optional and free. You can create a basic My Card without a password, then add secure sign-in later before using private Link Up features.</p>
       <div class="public-choice">
         <strong>Just browsing OAP World?</strong>
         <span>No email or sign-in is needed.</span>
         <a href="{{ url_for('linkup_front_door') }}">Continue without My Card</a>
       </div>
       {% if create_error %}<div class="error" role="alert">{{ create_error }}</div>{% endif %}
-      {% if not auth_configured %}<div class="error" role="alert">My Card creation is temporarily unavailable.</div>{% endif %}
+      {% if not auth_configured %}<div class="public-choice"><strong>Secure sign-in is temporarily unavailable.</strong><span>You can still create a basic My Card without email or password. Private Link Up actions stay locked until secure sign-in is available.</span></div>{% endif %}
       <form method="post" action="{{ url_for('my_card_create') }}">
         <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
         <label for="card-name">Name shown on My Card</label>
         <input id="card-name" name="name" autocomplete="name" maxlength="120" required>
         <label for="card-email">Email — optional</label>
         <input id="card-email" name="email" type="email" autocomplete="email" maxlength="320" aria-describedby="card-email-note">
-        <small class="field-note" id="card-email-note">Optional. Leave this blank and OAP will use a private non-routable sign-in alias instead of requiring your email.</small>
-        <label for="card-password">Password</label>
-        <input id="card-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
-        <label for="card-password-confirmation">Confirm password</label>
-        <input id="card-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <small class="field-note" id="card-email-note">Optional. If you leave password blank, leave email blank too. Email is attached only when you create a secure sign-in.</small>
+        <label for="card-password">Password — optional</label>
+        <input id="card-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="card-password-note">
+        <small class="field-note" id="card-password-note">Leave blank for a basic My Card. Add a password only if you want secure private Link Up access now.</small>
+        <label for="card-password-confirmation">Confirm password — only if set</label>
+        <input id="card-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128">
         <label class="check" for="accept-private-actions">
           <input id="accept-private-actions" name="accept_private_actions" type="checkbox" value="yes" required>
-          <span>I understand that private Link Up actions use my My Card identity.</span>
+          <span>I understand that private Link Up actions stay locked until my My Card has secure sign-in.</span>
         </label>
-        <button type="submit" {% if not auth_configured %}disabled{% endif %}>Create My Card — Free</button>
+        <button type="submit">Create My Card — Free</button>
       </form>
       <p class="signin small">Already have a My Card? <a href="{{ url_for('auth_page', next='/linkup') }}">Sign in</a></p>
     </section>
