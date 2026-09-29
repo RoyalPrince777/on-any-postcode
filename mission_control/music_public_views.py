@@ -45,7 +45,7 @@ def music_manifest():
                     {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
                 ],
                 "shortcuts": [
-                    {"name": "Player", "short_name": "Player", "url": "/music#player"},
+                    {"name": "Music", "short_name": "Music", "url": "/music"},
                     {"name": "Radio", "short_name": "Radio", "url": "/radio"},
                     {"name": "Creator Studio", "short_name": "Create", "url": "/music/studio"},
                 ],
