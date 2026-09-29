@@ -5,13 +5,14 @@ import hashlib
 import os
 
 from . import (
+    ),
     live_music_core,
     music_acceptance,
     music_accounting,
     music_assets,
     music_content_links,
-    music_entitlements,
     music_engagement,
+    music_entitlements,
     music_evidence,
     music_purchases,
     music_recovery,
@@ -20,8 +21,7 @@ from . import (
     product_cores,
     radio_core,
     records_core,
-)
-_MIGRATIONS = (
+)_MIGRATIONS = (
     (music_evidence.MUSIC_EVIDENCE_MIGRATION_VERSION, music_evidence.SCHEMA_STATEMENTS),
     (radio_core.RADIO_MIGRATION_VERSION, radio_core.SCHEMA_STATEMENTS),
     (records_core.RECORDS_MIGRATION_VERSION, records_core.SCHEMA_STATEMENTS),
