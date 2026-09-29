@@ -58,3 +58,14 @@ def test_failed_request_restores_composer_for_retry():
     assert "Your request is preserved for retry." in canonical
     assert "Inference unavailable · request preserved · retry when backend is ready" in canonical
     assert "oapInput.focus()" in canonical
+
+
+def test_live_fullscreen_keeps_minimum_text_fallback_controls_visible():
+    css = NOISE_CSS.read_text(encoding="utf-8")
+    assert "Canonical Live SMI input law" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen .composer textarea" in css
+    assert "display:block!important" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen #send" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen #mic-button" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen #plus-button" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen #thinking-level" in css
