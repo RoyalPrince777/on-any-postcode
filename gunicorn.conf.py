@@ -167,7 +167,7 @@ def on_starting(server):
                 "bridge_enabled": os.environ.get("OAP_HOME_NODE_BRIDGE_ENABLED", "1").strip().lower()
                 not in {"0", "false", "no", "off"},
                 "bridge_configured": bool(
-                    os.environ.get("OAP_HOME_NODE_BRIDGE_TOKEN", "").strip()
+                    os.environ.get("OAP_HOME_NODE_BRIDGE_SECRET", "").strip()
                 ),
                 "compatibility_fallback_enabled": os.environ.get(
                     "OAP_INFERENCE_COMPATIBILITY_FALLBACK", "1"
