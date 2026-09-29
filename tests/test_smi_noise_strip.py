@@ -30,3 +30,31 @@ def test_smi_noise_strip_is_visual_not_route_removal():
     assert "studioBuildPreviewCreateUrl" in template
     assert "warRoomUrl" in template
     assert "greenGateUrl" in template
+
+
+def test_live_control_is_forced_visible_outside_dashboard_layout():
+    js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text()
+    assert "document.getElementById('live-character-toggle')" in js
+    assert "document.body.appendChild(liveToggle)" in js
+    assert "liveToggle.style.setProperty('display','grid','important')" in js
+    assert "liveToggle.style.setProperty('visibility','visible','important')" in js
+    assert "liveToggle.style.setProperty('opacity','1','important')" in js
+    assert "liveToggle.style.setProperty('pointer-events','auto','important')" in js
+    assert "liveToggle.style.setProperty('z-index','1200','important')" in js
+
+
+def test_legacy_dashboard_chrome_is_suppressed_before_first_paint():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
+    assert 'id="smi-first-paint-guard"' in base
+    assert '<body class="mc-workspace-body smi-noise-strip smi-booting">' in base
+    assert '<nav class="navs" hidden inert aria-hidden="true">' in base
+    assert '<section class="smi-hero" hidden inert aria-hidden="true">' in base
+    assert '<header class="chat-head" hidden aria-hidden="true">' in base
+
+
+def test_failed_request_restores_composer_for_retry():
+    canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text()
+    assert "if(!oapInput.value.trim()&&text)oapInput.value=text" in canonical
+    assert "Your request is preserved for retry." in canonical
+    assert "Inference unavailable · request preserved · retry when backend is ready" in canonical
+    assert "oapInput.focus()" in canonical
