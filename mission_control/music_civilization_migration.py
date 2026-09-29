@@ -9,6 +9,7 @@ from . import (
     music_acceptance,
     music_assets,
     music_entitlements,
+    music_purchases,
     music_evidence,
     music_recovery,
     music_rights_store,
@@ -29,6 +30,7 @@ _MIGRATIONS = (
     (music_rights_store.MUSIC_RIGHTS_MIGRATION_VERSION, music_rights_store.SCHEMA_STATEMENTS),
     (music_entitlements.MUSIC_ENTITLEMENT_MIGRATION_VERSION, music_entitlements.SCHEMA_STATEMENTS),
     (radio_core.RADIO_ALWAYS_ON_MIGRATION_VERSION, radio_core.RADIO_ALWAYS_ON_SCHEMA_STATEMENTS),
+    (music_purchases.MUSIC_PURCHASE_MIGRATION_VERSION, music_purchases.SCHEMA_STATEMENTS),
 )
 _LOCK_KEY = 25800012
 
