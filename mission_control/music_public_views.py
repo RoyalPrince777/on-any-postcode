@@ -1,9 +1,16 @@
 """Public OAP Music first-party listener front door."""
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import entertainment_catalogue, music_public_catalogue
+from . import (
+    entertainment_catalogue,
+    music_assets,
+    music_entitlements,
+    music_public_catalogue,
+)
 
 bp = Blueprint("oap_music_public", __name__)
+_music_asset_store = music_assets.MusicAssetStore()
+_music_entitlement_store = music_entitlements.MusicEntitlementStore()
 
 
 def _no_store(response):
@@ -89,6 +96,141 @@ def music_catalogue():
                         "playback_enabled": False,
                         "external_catalogue_dependency": False,
                         "temporarily_unavailable": True,
+                    }
+                ),
+                503,
+            )
+        )
+
+
+@bp.get("/music/api/assets/<asset_id>/stream")
+def public_music_stream(asset_id: str):
+    """Deliver one globally-cleared first-party asset after live fail-closed gates."""
+    try:
+        gate = _music_entitlement_store.public_gate(
+            asset_id=asset_id,
+            territory="*",
+            channel="OAP Music",
+        )
+        if gate.get("allowed") is not True:
+            return _no_store(
+                make_response(
+                    jsonify(
+                        error={
+                            "code": "public_playback_locked",
+                            "message": "This track is not cleared for public playback.",
+                        }
+                    ),
+                    403,
+                )
+            )
+        item = _music_asset_store.read_public_candidate(asset_id=asset_id)
+        if item is None:
+            return _no_store(
+                make_response(
+                    jsonify(
+                        error={
+                            "code": "not_found",
+                            "message": "Audio asset unavailable.",
+                        }
+                    ),
+                    404,
+                )
+            )
+        owner_identity_id, media, mime_type, digest, original_name = item
+        if owner_identity_id != gate.get("owner_identity_id"):
+            return _no_store(
+                make_response(
+                    jsonify(
+                        error={
+                            "code": "public_playback_locked",
+                            "message": "This track is not cleared for public playback.",
+                        }
+                    ),
+                    403,
+                )
+            )
+
+        total = len(media)
+        status = 200
+        body = media
+        content_range = None
+        requested_range = request.headers.get("Range", "").strip()
+        if requested_range:
+            if not requested_range.startswith("bytes=") or "," in requested_range:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            spec = requested_range[6:]
+            start_text, separator, end_text = spec.partition("-")
+            if not separator:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            try:
+                if start_text:
+                    range_start = int(start_text)
+                    range_end = int(end_text) if end_text else total - 1
+                else:
+                    suffix = int(end_text)
+                    if suffix <= 0:
+                        raise ValueError("invalid_range")
+                    range_start = max(total - suffix, 0)
+                    range_end = total - 1
+            except ValueError:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            if range_start < 0 or range_start >= total or range_end < range_start:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            range_end = min(range_end, total - 1)
+            body = media[range_start : range_end + 1]
+            status = 206
+            content_range = f"bytes {range_start}-{range_end}/{total}"
+
+        response = make_response(body, status)
+        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Length"] = str(len(body))
+        response.headers["ETag"] = f'"{digest}"'
+        response.headers["Accept-Ranges"] = "bytes"
+        safe_name = (
+            original_name.replace(chr(34), "")
+            .replace(chr(13), "")
+            .replace(chr(10), "")
+        )
+        response.headers["Content-Disposition"] = f'inline; filename="{safe_name}"'
+        response.headers["X-OAP-Rights-Decision"] = str(gate.get("rights_decision_hash"))
+        response.headers["X-OAP-Entitlement"] = str(gate.get("entitlement_id"))
+        if content_range is not None:
+            response.headers["Content-Range"] = content_range
+        return _no_store(response)
+    except (TypeError, ValueError):
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "invalid_request", "message": "Invalid audio asset."}),
+                400,
+            )
+        )
+    except music_assets.MusicAssetStopped:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "music_asset_stopped", "message": "This track is stopped."}),
+                410,
+            )
+        )
+    except (
+        music_assets.MusicAssetUnavailable,
+        music_entitlements.MusicEntitlementUnavailable,
+        RuntimeError,
+    ):
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "music_unavailable",
+                        "message": "OAP Music is temporarily unavailable.",
                     }
                 ),
                 503,
