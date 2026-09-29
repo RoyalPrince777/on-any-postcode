@@ -27,10 +27,13 @@ from mission_control import (
     carnival_intelligence,
     certification,
     connect4,
+    chess,
+    dot,
     founder_activation,
     founder_recovery,
     iq_arena,
     judgement,
+    ludo,
     languages,
     link_call_audit,
     link_presence,
@@ -822,6 +825,162 @@ def arena_session_recover():
     result = arena_intelligence.public_state(state)
     result["recovered"] = True
     return _arena_json(result, 201)
+
+
+@app.get("/arena/ludo")
+def ludo_page():
+    response = make_response(render_template("ludo.html", csrf_token=web_security.csrf_token()))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/ludo/start")
+def ludo_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = ludo.new_game(payload.get("players"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[ludo.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(ludo.public_state(state), 201)
+
+
+@app.post("/arena/ludo/move")
+def ludo_move():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = ludo.move(session.get(ludo.SESSION_KEY), steps=payload.get("steps"), request_id=payload.get("request_id"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[ludo.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(ludo.public_state(state))
+
+
+@app.post("/arena/ludo/stop")
+def ludo_stop():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = ludo.stop(session.get(ludo.SESSION_KEY), request_id=payload.get("request_id"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[ludo.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(ludo.public_state(state))
+
+
+@app.get("/arena/chess")
+def chess_page():
+    response = make_response(render_template("chess.html", csrf_token=web_security.csrf_token()))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/chess/start")
+def chess_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        _arena_payload()
+        state = chess.new_game()
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[chess.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(chess.public_state(state), 201)
+
+
+@app.post("/arena/chess/move")
+def chess_move():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = chess.move(session.get(chess.SESSION_KEY), source=payload.get("source"), target=payload.get("target"), request_id=payload.get("request_id"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[chess.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(chess.public_state(state))
+
+
+@app.post("/arena/chess/stop")
+def chess_stop():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = chess.stop(session.get(chess.SESSION_KEY), request_id=payload.get("request_id"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[chess.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(chess.public_state(state))
+
+
+@app.get("/arena/dot")
+def dot_page():
+    response = make_response(render_template("dot.html", csrf_token=web_security.csrf_token()))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/dot/start")
+def dot_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        _arena_payload()
+        state = dot.new_game()
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[dot.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(dot.public_state(state), 201)
+
+
+@app.post("/arena/dot/draw")
+def dot_draw():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = dot.draw(session.get(dot.SESSION_KEY), a=payload.get("a"), b=payload.get("b"), request_id=payload.get("request_id"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[dot.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(dot.public_state(state))
+
+
+@app.post("/arena/dot/stop")
+def dot_stop():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = dot.stop(session.get(dot.SESSION_KEY), request_id=payload.get("request_id"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[dot.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(dot.public_state(state))
 
 
 @app.get("/arena/connect4")
