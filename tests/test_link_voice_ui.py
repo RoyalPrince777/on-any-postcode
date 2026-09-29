@@ -12,7 +12,9 @@ SCRIPT = ROOT / "static" / "linkup_voice.js"
 def test_linkup_surface_exposes_voice_without_unlocking_generic_share():
     template = TEMPLATE.read_text(encoding="utf-8")
 
-    assert "linkup_voice.js" in template
+    optional = (ROOT / "static" / "linkup_optional.js").read_text(encoding="utf-8")
+    assert "linkup_optional.js" in template
+    assert "/static/linkup_voice.js" in optional
     assert "data-oap-voice-control" in template
     assert "data-oap-voice-stop" in template
     assert "data-oap-voice-list" in template
