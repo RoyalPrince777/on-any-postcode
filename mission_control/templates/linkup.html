@@ -24,16 +24,22 @@
     .linkup-card-state{opacity:.82}
     .linkup-public-action{display:block;margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24;color:#fff;text-decoration:none}
     .linkup-public-action strong,.linkup-public-action small{display:block}.linkup-public-action small{margin-top:.2rem;color:rgba(255,255,255,.68)}
-    .linkup-public-welcome{display:grid;align-content:center;justify-items:center;gap:.8rem;min-height:50vh;padding:2rem;text-align:center}.linkup-public-welcome p{max-width:34rem;color:rgba(255,255,255,.72)}
+    .linkup-install-network{display:flex;gap:.5rem;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:.55rem .65rem;padding:.6rem .75rem;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#101a21;font-size:.82rem}.linkup-install-network button{min-height:36px;border:0;border-radius:10px;padding:.45rem .75rem;font-weight:800}.linkup-install-network [data-online="true"]{font-weight:800}.linkup-install-network [data-online="false"]{font-weight:800}.linkup-public-welcome{display:grid;align-content:center;justify-items:center;gap:.8rem;min-height:50vh;padding:2rem;text-align:center}.linkup-public-welcome p{max-width:34rem;color:rgba(255,255,255,.72)}
   </style>
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messages.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_incoming.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messenger.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_optional.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='linkup_network.js') }}" defer></script>
 </head>
 <body>
-<div class="linkup-app" data-linkup-app data-chat-open="false">
+<div class="linkup-app" data-linkup-app data-chat-open="false" data-network="online">
+  <section class="linkup-install-network" aria-label="Link Up app status">
+    <span data-oap-linkup-network-status role="status" aria-live="polite">Checking connection…</span>
+    <button type="button" data-oap-install hidden>Install Link Up</button>
+    <span data-oap-install-status role="status">Checking install support…</span>
+  </section>
   <header class="linkup-topbar">
     <a href="{{ url_for('the_link_front_door') }}" aria-label="Back to The Link">‹</a>
     <h1>{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</h1>
