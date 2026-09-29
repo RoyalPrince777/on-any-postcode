@@ -44,6 +44,22 @@ class _Connection:
 
 def test_artist_progress_is_evidence_backed(monkeypatch):
     monkeypatch.setattr(artist_progress.postgres_db, "connect", lambda **kwargs: _Connection())
+    monkeypatch.setattr(
+        artist_progress.music_engagement,
+        "artist_audience",
+        lambda identity_id: {
+            "qualified_listens": 42,
+            "listening_now": 3,
+            "unique_qualified_listeners": 17,
+            "music_qualified_views": 31,
+            "tv_qualified_views": 19,
+            "combined_reach": 24,
+            "places": [
+                {"country": "Ghana", "region": "Eastern", "borough": "Begoro", "unique_listeners": 5}
+            ],
+            "top_tracks": [],
+        },
+    )
     progress = artist_progress.artist_progress("11111111-1111-4111-8111-111111111111")
     assert progress["release_count"] == 1
     assert progress["track_count"] == 8
@@ -52,7 +68,9 @@ def test_artist_progress_is_evidence_backed(monkeypatch):
     assert progress["accounting"]["gross_active_minor"] == 1500
     assert progress["accounting"]["gross_reconciled_minor"] == 900
     assert progress["accounting"]["money_transfer_performed"] is False
-    assert progress["qualified_listens"] is None
+    assert progress["qualified_listens"] == 42
+    assert progress["listening_now"] == 3
+    assert progress["combined_reach"] == 24
     assert progress["rank_position"] is None
     assert progress["radio_spins"] is None
 
@@ -104,11 +122,20 @@ def test_artist_progress_route_is_private_and_separate(monkeypatch):
                 "money_transfer_performed": False,
                 "sika_execution_performed": False,
             },
-            "qualified_listens": None,
+            "qualified_listens": 42,
+            "listening_now": 3,
+            "unique_qualified_listeners": 17,
+            "music_qualified_views": 31,
+            "tv_qualified_views": 19,
+            "combined_reach": 24,
+            "places": [
+                {"country": "Ghana", "region": "Eastern", "borough": "Begoro", "unique_listeners": 5}
+            ],
+            "top_tracks": [],
             "rank_position": None,
             "radio_spins": None,
             "audience_growth": None,
-            "unavailable_metrics_reason": "measurement_core_not_yet_proven",
+            "unavailable_metrics_reason": "rank_radio_growth_measurement_not_yet_proven",
             "human_authority_final": True,
         },
     )
