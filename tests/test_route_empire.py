@@ -1,5 +1,6 @@
 from mission_control import route_empire
 
+
 def _game():
     return route_empire.new_game(location="Mitcham", players=["Alpha", "Bravo"])
 
