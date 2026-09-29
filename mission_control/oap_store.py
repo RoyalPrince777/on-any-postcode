@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template
 
-from . import oap_store_registry
+from . import oap_store_registry, products
 
 bp = Blueprint("oap_store", __name__, template_folder="templates")
 
@@ -25,6 +25,8 @@ OAP_WORLD = {
     "manifest_url": "/manifest.webmanifest",
     "service_worker_url": "/service-worker.js",
     "start_url": "/",
+    "open_url": "/",
+    "category": "World",
     "install_url": "/?source=oap-store&install=1",
     "offline_url": "/offline",
     "native_apk": False,
@@ -46,6 +48,8 @@ LINK_UP = {
     "manifest_url": "/linkup/manifest.webmanifest",
     "service_worker_url": "/service-worker.js",
     "start_url": "/linkup?source=oap-store",
+    "open_url": "/linkup",
+    "category": "Communication",
     "install_url": "/linkup?source=oap-store&install=1",
     "offline_url": "/offline",
     "native_apk": False,
@@ -55,8 +59,126 @@ LINK_UP = {
 }
 
 
+OAP_MUSIC = {
+    "app_id": "oap.music",
+    "name": "OAP Music",
+    "publisher": "ON ANY POSTCODE LTD",
+    "distribution": "OAP Store",
+    "first_party": True,
+    "description": "First-party music, Player, Radio and creator discovery.",
+    "release_state": "install_ready",
+    "install_enabled": True,
+    "install_mode": "PWA",
+    "manifest_url": "/music/manifest.webmanifest",
+    "service_worker_url": "/service-worker.js",
+    "start_url": "/music",
+    "open_url": "/music",
+    "category": "Media",
+    "install_url": "/music",
+    "offline_url": "/offline",
+    "native_apk": False,
+    "native_package_available": False,
+    "physical_device_certified": False,
+    "human_authority_final": True,
+}
+
+
+def _catalogue_placeholder(*, app_id: str, name: str, open_url: str, description: str, category: str) -> dict[str, object]:
+    return {
+        "app_id": app_id,
+        "name": name,
+        "publisher": "ON ANY POSTCODE LTD",
+        "distribution": "OAP Store",
+        "first_party": True,
+        "description": description,
+        "release_state": "open_ready",
+        "install_enabled": False,
+        "install_mode": "Web",
+        "manifest_url": None,
+        "service_worker_url": "/service-worker.js",
+        "start_url": open_url,
+        "open_url": open_url,
+        "category": category,
+        "install_url": None,
+        "offline_url": "/offline",
+        "native_apk": False,
+        "native_package_available": False,
+        "physical_device_certified": False,
+        "human_authority_final": True,
+    }
+
+
+PUBLIC_STORE_APPS = (
+    _catalogue_placeholder(app_id="oap.spot", name="The Spot", open_url="/the-spot", description="Public community activity, Pulse, Signal and Empire life.", category="Social"),
+    _catalogue_placeholder(app_id="oap.link", name="The Link", open_url="/the-link", description="People, opportunities and the bridge into private Link Up.", category="Communication"),
+    _catalogue_placeholder(app_id="oap.arena", name="OAP Arena", open_url="/arena", description="First-party games, challenges and Global Arena progression.", category="Games"),
+    _catalogue_placeholder(app_id="oap.library", name="OAP Library", open_url="/library", description="One World. One Library. Unlimited Learning.", category="Learning"),
+    _catalogue_placeholder(app_id="oap.place", name="On Any Place", open_url="/on-any-place", description="Maps, place search, routes, weather and movement intelligence.", category="Places"),
+    _catalogue_placeholder(app_id="oap.movement", name="Movement", open_url="/movement", description="Travel, movement, route context and delivery awareness.", category="Movement"),
+    _catalogue_placeholder(app_id="oap.booking", name="OAP Direct", open_url="/booking", description="First-party supplier and booking journey.", category="Travel"),
+)
+
+_PUBLIC_SPOT_CATEGORIES = {
+    "pulse": "Social",
+    "signal": "Social",
+    "news": "News",
+    "nature": "Nature",
+    "postcode-rooms": "World",
+    "events": "Events",
+    "arena": "Games",
+    "carnival-intelligence": "Events",
+    "discovery": "Places",
+    "businesses": "Business",
+    "creators": "Creators",
+    "community-power": "Community",
+    "support": "Support",
+    "infrastructure": "Places",
+    "market": "Market",
+    "music": "Media",
+    "player": "Media",
+    "radio": "Media",
+    "distribution": "Creators",
+    "sika": "Value",
+    "safety": "Safety",
+    "identity": "Identity",
+    "tv-media": "Media",
+    "membership": "Membership",
+    "languages": "Learning",
+}
+
+
+def _spot_store_apps() -> tuple[dict[str, object], ...]:
+    skip = {"arena", "music"}
+    result = []
+    for item in products.PUBLIC_SPOT_CAPABILITIES:
+        source_id = str(item["source_id"])
+        if source_id in skip:
+            continue
+        slug = str(item["slug"])
+        result.append(
+            _catalogue_placeholder(
+                app_id=f"oap.{source_id}",
+                name=str(item["name"]),
+                open_url=f"/the-spot/{slug}",
+                description=str(item["purpose"]),
+                category=_PUBLIC_SPOT_CATEGORIES.get(source_id, "OAP"),
+            )
+        )
+    return tuple(result)
+
+
 def catalogue() -> tuple[dict[str, object], ...]:
-    return (dict(OAP_WORLD), dict(LINK_UP))
+    items = (
+        dict(OAP_WORLD),
+        dict(LINK_UP),
+        dict(OAP_MUSIC),
+        *PUBLIC_STORE_APPS,
+        *_spot_store_apps(),
+    )
+    unique: dict[str, dict[str, object]] = {}
+    for item in items:
+        unique.setdefault(str(item["app_id"]), item)
+    return tuple(unique.values())
 
 
 def native_distribution_status() -> dict[str, object]:
@@ -132,5 +254,17 @@ def link_up_manifest():
 @bp.get("/oap-store/apps/oap.linkup")
 def link_up_store_entry():
     response = make_response(jsonify(dict(LINK_UP)), 200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/oap-store/apps/<app_id>")
+def generic_store_entry(app_id: str):
+    for item in catalogue():
+        if item["app_id"] == app_id:
+            response = make_response(jsonify(dict(item)), 200)
+            response.headers["Cache-Control"] = "no-store"
+            return response
+    response = make_response(jsonify(error="app_not_found"), 404)
     response.headers["Cache-Control"] = "no-store"
     return response
