@@ -5,6 +5,7 @@
   const status = document.querySelector("[data-oap-install-status]");
   const platformLabel = document.querySelector("[data-oap-install-platform]");
   let deferredInstall = null;
+  const productName = location.pathname === "/linkup" || location.pathname.startsWith("/linkup/") ? "Link Up" : "OAP OS";
 
   const ua = navigator.userAgent || "";
   const platform = navigator.userAgentData?.platform || navigator.platform || "";
@@ -48,7 +49,7 @@
 
   if (installed) {
     if (installButton) installButton.hidden = true;
-    setStatus(`OAP OS is installed on ${platformName}.`);
+    setStatus(`${productName} is installed on ${platformName}.`);
   } else if (!("serviceWorker" in navigator)) {
     if (installButton) installButton.hidden = false;
     setStatus(`Secure app installation is not available in this browser. ${fallbackInstruction()}`);
@@ -56,8 +57,8 @@
     if (installButton) installButton.hidden = false;
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("/service-worker.js", {scope: "/"})
-        .then(() => setStatus(`OAP OS is ready on ${platformName}. ${fallbackInstruction()}`))
-        .catch(() => setStatus("OAP OS installation is temporarily unavailable."));
+        .then(() => setStatus(`${productName} is ready on ${platformName}. ${fallbackInstruction()}`))
+        .catch(() => setStatus(`${productName} installation is temporarily unavailable.`));
     });
   }
 
@@ -65,7 +66,7 @@
     event.preventDefault();
     deferredInstall = event;
     if (installButton) installButton.hidden = false;
-    setStatus(`OAP OS is ready to install on ${platformName}.`);
+    setStatus(`${productName} is ready to install on ${platformName}.`);
   });
 
   if (installButton) {
@@ -80,8 +81,8 @@
         const choice = await deferredInstall.userChoice;
         setStatus(
           choice.outcome === "accepted"
-            ? `OAP OS installation accepted on ${platformName}.`
-            : "OAP OS was not installed; no device setting was changed."
+            ? `${productName} installation accepted on ${platformName}.`
+            : `${productName} was not installed; no device setting was changed.`
         );
       } finally {
         deferredInstall = null;
@@ -93,6 +94,6 @@
   window.addEventListener("appinstalled", () => {
     deferredInstall = null;
     if (installButton) installButton.hidden = true;
-    setStatus(`OAP OS is installed on ${platformName}.`);
+    setStatus(`${productName} is installed on ${platformName}.`);
   });
 })();
