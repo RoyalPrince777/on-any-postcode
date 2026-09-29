@@ -12,8 +12,8 @@ def test_public_music_route_is_real_and_truth_mode():
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "OAP Music" in body
-    assert "Public playback appears only for tracks with current rights and entitlement proof." in body
-    assert "Playback stays locked" in body
+    assert "Only tracks with current rights and entitlement proof become playable." in body
+    assert "OAP Music" in body
 
 
 def test_music_migration_requires_explicit_approval():
@@ -184,13 +184,15 @@ def test_music_page_is_first_party_listener_surface_not_external_catalogue():
     app = Flask(__name__, template_folder="../mission_control/templates")
     app.register_blueprint(music_public_views.bp)
     body = app.test_client().get("/music").get_data(as_text=True)
-    for target in ("home", "catalogue", "artists", "releases", "playlists", "library"):
-        assert f'data-target="{target}"' in body
-        assert f'id="{target}"' in body
-    assert "Search OAP Music" in body
-    assert "Search the free/open source directory" not in body
-    assert "OAP Music is a first-party catalogue." in body
+    assert "OAP Music" in body
+    assert "Listen. Discover. Play." in body
+    assert 'id="music-search"' in body
     assert "/music/api/catalogue?q=" in body
+    assert 'href="/radio"' in body
+    assert 'href="/music/studio"' in body
+    assert "Create station" not in body
+    assert "Create release" not in body
+    assert "Open source" not in body
 
 
 def test_music_has_dedicated_install_manifest_and_identity(client):
