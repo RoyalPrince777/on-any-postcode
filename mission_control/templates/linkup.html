@@ -70,53 +70,6 @@
       </a>
     </main>
   {% else %}
-        <a class="linkup-create-card" href="{{ url_for('my_card_create_page') }}">
-          <span aria-hidden="true">▤＋</span>
-          <span><strong>Create My Card</strong><small>Optional for private features. Public Link Up needs no email, password or sign-in.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-        {% endif %}
-      </section>
-
-      <nav class="linkup-royal-tools" aria-label="Link Up features">
-        <a href="{{ url_for('linkup_front_door') }}"><span class="royal-symbol royal-purple">💬</span><strong>Link Message</strong><small>Private chat home</small></a>
-        <a href="{{ url_for('home') }}"><span class="royal-symbol royal-world">🌍</span><strong>Discovery</strong><small>Discover people in OAP World</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Identity &amp; trust</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-gold">!</span><strong>Safety</strong><small>Public safety hub</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-shield">🔒</span><strong>Private</strong><small>My Card &amp; settings</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-purple">🔓</span><strong>Public</strong><small>Open public spaces</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; collaboration</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Public highlights</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-scroll">📜</span><strong>Identity</strong><small>Open My Card</small></a>
-      </nav>
-
-      <section class="linkup-royal-stream" aria-label="Link Up discovery">
-        <a class="linkup-royal-card" href="{{ url_for('home') }}">
-          <span class="royal-card-art royal-nearby" aria-hidden="true">📍</span>
-          <span><strong>Nearby People</strong><small>Discover people through OAP World, then Link Up privately.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-        <a class="linkup-royal-card" href="{{ url_for('the_link_front_door') }}">
-          <span class="royal-card-art royal-opportunity" aria-hidden="true">♛</span>
-          <span><strong>Opportunities</strong><small>Discover collaborations, projects, services and events.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-        <a class="linkup-royal-card" href="{{ url_for('the_spot_front_door') }}">
-          <span class="royal-card-art royal-signal" aria-hidden="true">🌐</span>
-          <span><strong>Community Signals</strong><small>See what is happening across The Spot.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-      </section>
-
-      <nav class="linkup-royal-bottom" aria-label="Link Up navigation">
-        <a aria-current="page" href="{{ url_for('linkup_front_door') }}">⌂<span>Home</span></a>
-        <a href="{{ url_for('home') }}">♟<span>People</span></a>
-        <a class="linkup-oap-home" href="{{ url_for('home') }}">♛<span>OAP</span></a>
-        <a href="{{ url_for('linkup_front_door') }}">💬<span>Link Message</span></a>
-        <a href="{{ url_for('my_card_page') }}">●<span>Profile</span></a>
-      </nav>
-    </main>
-  {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
       <aside class="linkup-list" id="linkup-conversations" aria-label="Link Ups">
         <div class="linkup-list-head">
