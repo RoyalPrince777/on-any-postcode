@@ -23,6 +23,7 @@ from mission_control import (
     a7_certification,
     approval_service,
     arena_intelligence,
+    route_empire,
     authority,
     carnival_intelligence,
     certification,
@@ -819,6 +820,68 @@ def arena_session_recover():
     result = arena_intelligence.public_state(state)
     result["recovered"] = True
     return _arena_json(result, 201)
+
+
+@app.get("/arena/route-empire")
+def route_empire_page():
+    """Open the bounded first-party Route Empire v1 browser surface."""
+
+    response = make_response(
+        render_template(
+            "route_empire.html",
+            csrf_token=web_security.csrf_token(),
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/route-empire/start")
+def route_empire_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = route_empire.new_game(
+            location=payload.get("location"),
+            players=payload.get("players"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[route_empire.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(route_empire.public_state(state), 201)
+
+
+@app.get("/arena/route-empire/state")
+def route_empire_state():
+    state = session.get(route_empire.SESSION_KEY)
+    try:
+        return _arena_json(route_empire.public_state(state))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+
+
+@app.post("/arena/route-empire/action")
+def route_empire_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = route_empire.action(
+            session.get(route_empire.SESSION_KEY),
+            action=payload.get("action"),
+            request_id=payload.get("request_id"),
+            node_id=payload.get("node_id"),
+            target_node_id=payload.get("target_node_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[route_empire.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(route_empire.public_state(state))
 
 
 @app.get("/world-cup")
