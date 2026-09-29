@@ -189,7 +189,7 @@ def main():
                            input.value === p &&
                            document.body.innerText.includes('Your request is preserved for retry.');
                 }""",
-                prompt,
+                arg=prompt,
             )
 
             assert page.locator("#message").input_value() == prompt
