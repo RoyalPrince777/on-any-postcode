@@ -1101,9 +1101,17 @@ def create_market_order():
             order_id=order["order_id"],
             idempotency_key=f"market:{key}",
         )
+        settlement = sika_market_settlement.STORE.create_for_order(
+            order_id=order["order_id"],
+            actor_identity_id=identity,
+            idempotency_key=f"sika:{key}",
+            customer_approval_reference=payload.get("customer_approval_reference"),
+        )
         return {
             "order": order,
             "transaction": transaction,
+            "sika_settlement": settlement,
+            "payment_route": "SIKA",
             "payment_capture_performed": False,
             "money_transfer_performed": False,
             "external_fulfilment_performed": False,
