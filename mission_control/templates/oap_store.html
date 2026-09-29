@@ -28,22 +28,26 @@
     <span class="category">{{ app.category }}</span><br>
     {% if app.install_enabled %}
       <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
-    {% else %}
+    {% elif app.open_url %}
       <span class="badge open">OPEN READY · INSTALL NOT YET PROVEN</span>
+    {% else %}
+      <span class="badge open">PLANNED · SURFACE NOT YET PROVEN</span>
     {% endif %}
     <h2>{{ app.name }}</h2>
     <p>{{ app.description }}</p>
     <p><strong>Publisher:</strong> {{ app.publisher }}</p>
     <div class="actions">
-      <a class="open-link" href="{{ app.open_url }}">Open {{ app.name }}</a>
+      {% if app.open_url %}<a class="open-link" href="{{ app.open_url }}">Open {{ app.name }}</a>{% endif %}
       {% if app.install_enabled and app.install_url %}
         <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
       {% endif %}
     </div>
     {% if app.install_enabled %}
       <p class="truth">PWA install is a browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
-    {% else %}
+    {% elif app.open_url %}
       <p class="truth">This app is listed in OAP Store, but standalone installation stays locked until its own manifest/runtime proof passes.</p>
+    {% else %}
+      <p class="truth">Architecture approved. No public Open or Install claim until a real route, runtime behaviour and regression proof exist.</p>
     {% endif %}
   </section>
   {% endfor %}
