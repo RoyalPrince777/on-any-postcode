@@ -145,6 +145,40 @@ class MusicPurchaseStore:
             "ownership_created": str(row[6]) == "SETTLED",
         }
 
+    def owned_items(self, *, buyer_identity_id: object) -> dict[str, object]:
+        buyer = _uuid(buyer_identity_id, "buyer_identity_id")
+        try:
+            with postgres_db.connect(readonly=True) as connection:
+                rows = connection.execute(
+                    """SELECT ownership_id,purchase_id,item_type,item_id,edition_type,created_at
+                       FROM oap_music_owned_items
+                       WHERE buyer_identity_id=%s AND active=TRUE
+                       ORDER BY created_at DESC""",
+                    (buyer,),
+                ).fetchall()
+        except Exception as exc:
+            raise RuntimeError("music_ownership_store_unavailable") from exc
+        items = [
+            {
+                "ownership_id": str(row[0]),
+                "purchase_id": str(row[1]),
+                "item_type": str(row[2]),
+                "item_id": str(row[3]),
+                "edition_type": str(row[4]),
+                "owned_at": row[5].isoformat(),
+            }
+            for row in rows
+        ]
+        return {
+            "library": "My Music",
+            "buyer_identity_id": buyer,
+            "items": items,
+            "item_count": len(items),
+            "ownership_source": "settled_purchase",
+            "payment_capture_performed": False,
+            "sika_execution_performed": False,
+        }
+
     def record_settlement(
         self,
         *,
