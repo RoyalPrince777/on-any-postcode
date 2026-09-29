@@ -45,6 +45,14 @@ class _Connection:
 def test_artist_progress_is_evidence_backed(monkeypatch):
     monkeypatch.setattr(artist_progress.postgres_db, "connect", lambda **kwargs: _Connection())
     monkeypatch.setattr(
+        artist_progress.music_rank,
+        "track_rank",
+        lambda identity_id, limit=25: {
+            "items": [{"position": 1, "track_id": "22222222-2222-4222-8222-222222222222"}],
+            "item_count": 1,
+        },
+    )
+    monkeypatch.setattr(
         artist_progress.music_engagement,
         "artist_audience",
         lambda identity_id: {
@@ -53,6 +61,7 @@ def test_artist_progress_is_evidence_backed(monkeypatch):
             "unique_qualified_listeners": 17,
             "music_qualified_views": 31,
             "tv_qualified_views": 19,
+            "radio_qualified_plays": 7,
             "combined_reach": 24,
             "places": [
                 {"country": "Ghana", "region": "Eastern", "borough": "Begoro", "unique_listeners": 5}
@@ -71,7 +80,8 @@ def test_artist_progress_is_evidence_backed(monkeypatch):
     assert progress["qualified_listens"] == 42
     assert progress["listening_now"] == 3
     assert progress["combined_reach"] == 24
-    assert progress["rank_position"] is None
+    assert progress["radio_spins"] == 7
+    assert progress["rank_position"] == 1
     assert progress["radio_spins"] is None
 
 
@@ -127,15 +137,16 @@ def test_artist_progress_route_is_private_and_separate(monkeypatch):
             "unique_qualified_listeners": 17,
             "music_qualified_views": 31,
             "tv_qualified_views": 19,
+            "radio_spins": 7,
             "combined_reach": 24,
             "places": [
                 {"country": "Ghana", "region": "Eastern", "borough": "Begoro", "unique_listeners": 5}
             ],
             "top_tracks": [],
-            "rank_position": None,
-            "radio_spins": None,
+            "rank": {"items": [{"position": 1}], "item_count": 1},
+            "rank_position": 1,
             "audience_growth": None,
-            "unavailable_metrics_reason": "rank_radio_growth_measurement_not_yet_proven",
+            "unavailable_metrics_reason": "audience_growth_measurement_not_yet_proven",
             "human_authority_final": True,
         },
     )
