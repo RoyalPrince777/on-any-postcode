@@ -66,6 +66,7 @@
  const quickActions=[
   ["＋ Master Tools","master-tools"],
   ["⚔️ War Room","war-room"],
+  ["🕶 Matrix Routes","matrix-routes"],
   ["🧠 HRM","hrm"],
   ["🗺️ Maps Controls","oap-maps-controls"],
   ["🖥️ Screen Intelligence","screen-intelligence"],
@@ -247,7 +248,7 @@
   ["🗺️","Movement · Routes","Spatial intelligence","/movement"],
   ["🧬","DNA · OAP Constitution","21 laws · approved authority",null],
   ["🔗","Nervous System · NEXUS","Signals · governed routing",null],
-  ["🌐","Matrix · World State","Routes · events · dependencies",null],
+  ["🌐","Matrix · World State","Routes · events · dependencies","/mission/war-room/routes"],
   ["💪","Muscles · Execution","Actions only when permitted",null],
   ["🩸","Blood · Signals","Pulse · governed events",null],
   ["🦴","Skeleton · Infrastructure","Render · storage · routing",null],
@@ -270,7 +271,7 @@
  // The approved command-room picture keeps intelligence, signals and gate evidence
  // in the scene itself; Status drawer remains a secondary detailed view.
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
- dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>FOUR CHECKPOINTS · NO FAKE GREEN</h3><div class="smi-room-gates"><article data-room-gate="rollback"><strong>25% · Recovery</strong><small>Proof pending</small></article><article data-room-gate="runtime_guard"><strong>50% · Runtime Guard</strong><small>Proof pending</small></article><article data-room-gate="isolation"><strong>75% · Aegis</strong><small>Proof pending</small></article><article data-room-gate="founder"><strong>100% · Founder Final</strong><small>Founder decision required</small></article></div><p class="smi-room-status-note">Live evidence, not sample population figures. Contract validity does not prove all systems operational.</p>';
+ dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>DIRECT EVIDENCE GATES · NO FAKE GREEN</h3><div class="smi-room-gates"><article data-room-gate="recovery"><strong>Recovery</strong><small>Proof pending</small></article><article data-room-gate="runtime_guard"><strong>Runtime Guard</strong><small>Proof pending</small></article><article data-room-gate="aegis"><strong>Aegis</strong><small>Proof pending</small></article><article data-room-gate="founder"><strong>Founder Final</strong><small>Founder decision required</small></article></div><p class="smi-room-status-note">3 / 7 / 21 controls review depth only. Live evidence, not cosmetic percentages. Contract validity does not prove all systems operational.</p>';
  evidence.append(dashboard);
  const roomStats=new Map([...dashboard.querySelectorAll("[data-room-stat]")].map(el=>[el.dataset.roomStat,el]));
  const roomGates=new Map([...dashboard.querySelectorAll("[data-room-gate]")].map(el=>[el.dataset.roomGate,el]));
@@ -401,6 +402,11 @@
   if(action==="oap-maps-controls"){
    mapsControls.hidden=!mapsControls.hidden;
    trigger.setAttribute("aria-expanded",String(!mapsControls.hidden));
+   return;
+  }
+  if(action==="matrix-routes"){
+   setOpen(false);
+   window.location.assign("/mission/war-room/routes");
    return;
   }
   if(action==="screen-intelligence"){
