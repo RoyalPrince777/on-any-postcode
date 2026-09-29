@@ -127,3 +127,32 @@ def test_generic_store_entry_returns_catalogue_record(client):
 
     missing = client.get("/oap-store/apps/oap.not-real")
     assert missing.status_code == 404
+
+
+def test_planned_infrastructure_apps_are_listed_without_fake_routes():
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    for app_id in ("oap.mail", "oap.search", "oap.vpn", "oap.cyber-security"):
+        assert app_id in apps
+        assert apps[app_id]["release_state"] == "planned"
+        assert apps[app_id]["open_url"] is None
+        assert apps[app_id]["install_url"] is None
+        assert apps[app_id]["install_enabled"] is False
+
+    cyber = apps["oap.cyber-security"]
+    assert cyber["internal_intelligence"] == (
+        "Neo", "Trinity", "Morpheus", "Oracle",
+        "Architect", "Keymaker", "Seraph", "Agent Smith",
+    )
+
+
+def test_store_renders_planned_apps_without_open_or_install_claim(client):
+    body = client.get("/store").get_data(as_text=True)
+    assert "OAP Mail" in body
+    assert "OAP Search" in body
+    assert "OAP VPN" in body
+    assert "OAP Cyber Security" in body
+    assert "PLANNED · SURFACE NOT YET PROVEN" in body
+    assert 'href="/mail"' not in body
+    assert 'href="/search"' not in body
+    assert 'href="/vpn"' not in body
+    assert 'href="/cyber-security"' not in body
