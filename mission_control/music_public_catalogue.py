@@ -16,6 +16,33 @@ def _safe_query(value: object) -> str:
     return " ".join(value.strip().split())[:120]
 
 
+
+def _project_item(row: object) -> dict[str, object]:
+    asset_id = row[8] if len(row) > 8 else None
+    stopped = row[9] if len(row) > 9 else True
+    entitlement_id = row[10] if len(row) > 10 else None
+    playable = bool(
+        asset_id is not None and stopped is False and entitlement_id is not None
+    )
+    return {
+        "release_id": str(row[0]),
+        "release_title": str(row[1]),
+        "release_type": str(row[2]),
+        "track_id": str(row[3]),
+        "track_title": str(row[4]),
+        "track_position": int(row[5]),
+        "duration_ms": int(row[6]) if row[6] is not None else None,
+        "explicit": bool(row[7]),
+        "source": "OAP Music first-party",
+        "asset_id": str(asset_id) if asset_id is not None else None,
+        "playback_enabled": playable,
+        "stream_url": (
+            f"/music/api/assets/{asset_id}/stream" if playable else None
+        ),
+        "playback_gate_revalidated_on_request": True,
+    }
+
+
 def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
     q = _safe_query(query)
     effective_limit = min(MAX_PUBLIC_ITEMS, max(1, int(limit)))
@@ -57,30 +84,7 @@ def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
     with postgres_db.connect(readonly=True) as connection:
         rows = connection.execute(sql, tuple(params)).fetchall()
 
-    items = [
-        {
-            "release_id": str(row[0]),
-            "release_title": str(row[1]),
-            "release_type": str(row[2]),
-            "track_id": str(row[3]),
-            "track_title": str(row[4]),
-            "track_position": int(row[5]),
-            "duration_ms": int(row[6]) if row[6] is not None else None,
-            "explicit": bool(row[7]),
-            "source": "OAP Music first-party",
-            "asset_id": str(row[8]) if row[8] is not None else None,
-            "playback_enabled": bool(
-                row[8] is not None and row[9] is False and row[10] is not None
-            ),
-            "stream_url": (
-                f"/music/api/assets/{row[8]}/stream"
-                if row[8] is not None and row[9] is False and row[10] is not None
-                else None
-            ),
-            "playback_gate_revalidated_on_request": True,
-        }
-        for row in rows
-    ]
+    items = [_project_item(row) for row in rows]
     return {
         "catalogue": "OAP Music",
         "ownership": "first_party",
