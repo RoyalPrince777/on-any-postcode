@@ -82,6 +82,20 @@ def radio_home():
     return _no_store(make_response(render_template("oap_radio.html")))
 
 
+@bp.get("/music/api/song-price")
+def music_song_price():
+    amount = request.args.get("amount_minor", "100")
+    try:
+        return _no_store(make_response(jsonify(music_entitlements.song_price_intent(amount))))
+    except (TypeError, ValueError) as exc:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "invalid_song_amount", "message": str(exc)}),
+                400,
+            )
+        )
+
+
 @bp.get("/music/api/catalogue")
 def music_catalogue():
     """Search canonical first-party OAP Music metadata only."""
