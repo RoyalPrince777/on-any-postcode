@@ -556,6 +556,46 @@ class PostgresProductCoreStore:
             "external_distribution_performed": False,
         }
 
+    def founder_approve_release(
+        self, *, release_id: object
+    ) -> dict[str, Any]:
+        release = _uuid(release_id, "release_id")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_music_releases
+                   SET state='APPROVED',updated_at=CURRENT_TIMESTAMP
+                   WHERE release_id=%s
+                     AND state='REVIEW_REQUIRED'
+                     AND rights_status='VERIFIED'
+                   RETURNING release_id,owner_identity_id,title,release_type,
+                             state,rights_status,updated_at""",
+                (release,),
+            ).fetchone()
+            if row is None:
+                current = connection.execute(
+                    """SELECT state,rights_status FROM oap_music_releases
+                       WHERE release_id=%s""",
+                    (release,),
+                ).fetchone()
+                if current is None:
+                    raise ValueError("release_not_found")
+                if str(current[1]) != "VERIFIED":
+                    raise PermissionError("verified_rights_required")
+                raise ValueError("release_not_approvable")
+            connection.commit()
+        return {
+            "release_id": str(row[0]),
+            "owner_identity_id": str(row[1]),
+            "title": str(row[2]),
+            "release_type": str(row[3]),
+            "state": str(row[4]),
+            "rights_status": str(row[5]),
+            "updated_at": row[6].isoformat(),
+            "founder_approval_recorded": True,
+            "published": False,
+            "external_distribution_performed": False,
+        }
+
     def create_playlist(
         self,
         *,
