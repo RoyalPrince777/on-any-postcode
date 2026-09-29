@@ -12,7 +12,7 @@
     main{max-width:900px;margin:auto;padding:32px 20px 80px}
     .eyebrow{color:#d5a33f;font-weight:800;letter-spacing:.08em}
     .card{border:1px solid #6b4c18;background:#0b0905;border-radius:18px;padding:22px;margin-top:18px}
-    .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}
+    .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}.badge.open{border-color:#d5a33f;color:#d5a33f}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{margin-top:0}.category{color:#b8aa89;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.open-link{display:inline-block;border:1px solid #6b4c18;color:#fff8e8;border-radius:12px;padding:11px 16px;font-weight:800;text-decoration:none}
     button,.install-link{display:inline-block;background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer;text-decoration:none}
     .muted{color:#b8aa89}.truth{margin-top:12px;font-size:.9rem;color:#cfc3a6}
   </style>
@@ -22,17 +22,32 @@
   <p class="eyebrow">👑 ON ANY POSTCODE · OAP STORE</p>
   <h1>Install OAP</h1>
   <p class="muted">First-party apps only. Install becomes available only where the release evidence supports it.</p>
+  <div class="grid">
   {% for app in apps %}
-  <section class="card">
-    <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
+  <section class="card" data-oap-store-app="{{ app.app_id }}">
+    <span class="category">{{ app.category }}</span><br>
+    {% if app.install_enabled %}
+      <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
+    {% else %}
+      <span class="badge open">OPEN READY · INSTALL NOT YET PROVEN</span>
+    {% endif %}
     <h2>{{ app.name }}</h2>
     <p>{{ app.description }}</p>
     <p><strong>Publisher:</strong> {{ app.publisher }}</p>
-    <p class="muted">Standalone {{ app.install_mode }} · opens its own installer surface.</p>
-    <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
-    <p class="truth">PWA install is real browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
+    <div class="actions">
+      <a class="open-link" href="{{ app.open_url }}">Open {{ app.name }}</a>
+      {% if app.install_enabled and app.install_url %}
+        <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
+      {% endif %}
+    </div>
+    {% if app.install_enabled %}
+      <p class="truth">PWA install is a browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
+    {% else %}
+      <p class="truth">This app is listed in OAP Store, but standalone installation stays locked until its own manifest/runtime proof passes.</p>
+    {% endif %}
   </section>
   {% endfor %}
+  </div>
 </main>
 </body>
 </html>
