@@ -2,18 +2,18 @@
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    ),
     artist_progress,
     entertainment_catalogue,
     music_assets,
     music_content_links,
-    music_entitlements,
     music_engagement,
+    music_entitlements,
     music_public_catalogue,
     music_purchases,
     public_store,
     web_security,
 )
-
 bp = Blueprint("oap_music_public", __name__)
 _music_asset_store = music_assets.MusicAssetStore()
 _music_entitlement_store = music_entitlements.MusicEntitlementStore()
