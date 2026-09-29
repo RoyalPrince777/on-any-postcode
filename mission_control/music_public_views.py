@@ -6,12 +6,36 @@ from . import (
     music_assets,
     music_entitlements,
     music_public_catalogue,
+    music_purchases,
+    public_store,
     web_security,
 )
 
 bp = Blueprint("oap_music_public", __name__)
 _music_asset_store = music_assets.MusicAssetStore()
 _music_entitlement_store = music_entitlements.MusicEntitlementStore()
+_music_purchase_store = music_purchases.MusicPurchaseStore()
+
+
+def _identity(*, sync: bool = False) -> str:
+    identity_id = web_security.authenticated_identity()
+    if sync:
+        user = web_security.current_authenticated_user()
+        if user is None:
+            raise PermissionError("authentication_required")
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+            email_verified=bool(user.get("email_verified")),
+        )
+    return identity_id
+
+
+def _api_error(code: str, message: str, status_code: int):
+    return _no_store(
+        make_response(jsonify(error={"code": code, "message": message}), status_code)
+    )
 
 
 def _no_store(response):
@@ -94,6 +118,47 @@ def music_song_price():
                 400,
             )
         )
+
+
+@bp.post("/music/api/purchases")
+@web_security.login_required(api=True)
+def music_create_purchase_intent():
+    if not web_security.csrf_valid(request):
+        return _api_error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = _music_purchase_store.create_intent(
+            buyer_identity_id=_identity(sync=True),
+            item_type=payload.get("item_type"),
+            item_id=payload.get("item_id"),
+            edition_type=payload.get("edition_type"),
+            amount_minor=payload.get("amount_minor"),
+            idempotency_key=payload.get("idempotency_key"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:  # noqa: BLE001 - redact storage/provider details.
+        return _api_error("music_purchase_unavailable", "Music purchasing is temporarily unavailable.", 503)
+
+
+@bp.get("/music/api/my-music")
+@web_security.login_required(api=True)
+def music_my_music():
+    try:
+        return _no_store(
+            make_response(
+                jsonify(_music_purchase_store.owned_items(buyer_identity_id=_identity()))
+            )
+        )
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except Exception:  # noqa: BLE001 - fail closed and redact store details.
+        return _api_error("my_music_unavailable", "My Music is temporarily unavailable.", 503)
 
 
 @bp.get("/music/api/catalogue")
