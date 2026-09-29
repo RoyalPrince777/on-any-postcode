@@ -29,6 +29,7 @@ class _Connection:
         self.handler = handler
         self.calls = []
         self.committed = False
+        self.rolled_back = False
 
     def execute(self, query, params=None):
         normalized = " ".join(str(query).split())
@@ -37,6 +38,9 @@ class _Connection:
 
     def commit(self):
         self.committed = True
+
+    def rollback(self):
+        self.rolled_back = True
 
 
 class _Context:
@@ -80,7 +84,9 @@ def test_learning_schema_has_governed_public_service_activation():
         "name: on-any-postcode", 1
     )[0]
     assert "OAP_LIBRARY_LEARNING_MIGRATION_ON_BOOT" in public_service
+    assert "OAP_LIBRARY_LEARNING_PROOF_ON_BOOT" in public_service
     assert "OAP_LIBRARY_LEARNING_MIGRATION_ON_BOOT" not in private_gateway
+    assert "OAP_LIBRARY_LEARNING_PROOF_ON_BOOT" not in private_gateway
 
 
 def test_learning_record_is_catalogue_bound_and_requires_member_rights():
@@ -119,6 +125,90 @@ def test_learning_record_is_catalogue_bound_and_requires_member_rights():
             reflection="x" * 601,
             rights_attested=True,
         )
+
+
+def test_live_persistence_probe_writes_reads_deletes_and_rolls_back(monkeypatch):
+    record_id = str(uuid.uuid4())
+    prepared = oap_library_learning.prepare_record(
+        food_id="carrot",
+        area_id="eyes",
+        reflection="Synthetic OAP Library persistence proof. Rolled back.",
+        rights_attested=True,
+    )
+
+    status_connection = _Connection(
+        lambda query, _params: (
+            _Result(row=(1,))
+            if "information_schema.tables" in query
+            else (_ for _ in ()).throw(AssertionError(query))
+        )
+    )
+
+    def transaction_handler(query, params):
+        if query.startswith("INSERT INTO users"):
+            return _Result()
+        if query.startswith("INSERT INTO oap_library_learning_records"):
+            nonlocal record_id
+            record_id = str(params[0])
+            return _Result(row=(record_id,))
+        if query.startswith("SELECT book_id"):
+            return _Result(
+                row=(
+                    prepared["book_id"],
+                    prepared["food_id"],
+                    prepared["area_id"],
+                    prepared["fact"],
+                    prepared["reflection"],
+                    json.dumps(prepared["sources"]),
+                    prepared["rights_basis"],
+                    prepared["visibility"],
+                    prepared["content_hash"],
+                )
+            )
+        if query.startswith("DELETE FROM oap_library_learning_records"):
+            return _Result(row=(record_id,))
+        if query.startswith("DELETE FROM users"):
+            return _Result(row=(str(params[0]),))
+        raise AssertionError(query)
+
+    transaction_connection = _Connection(transaction_handler)
+    residual_connection = _Connection(
+        lambda query, _params: (
+            _Result(row=(0,))
+            if query.startswith("SELECT (SELECT COUNT(*)")
+            else (_ for _ in ()).throw(AssertionError(query))
+        )
+    )
+    connections = iter(
+        [status_connection, transaction_connection, residual_connection]
+    )
+    monkeypatch.setattr(
+        oap_library_learning.postgres_db,
+        "connect",
+        lambda *args, **kwargs: _Context(next(connections)),
+    )
+    monkeypatch.setattr(
+        oap_library_learning.postgres_db,
+        "configured",
+        lambda: True,
+    )
+
+    result = oap_library_learning.live_persistence_probe()
+
+    assert result["passed"] is True
+    assert result["checks"] == {
+        "configured": True,
+        "schema_ready": True,
+        "write": True,
+        "read_back": True,
+        "integrity": True,
+        "delete": True,
+        "rollback": True,
+    }
+    assert transaction_connection.rolled_back is True
+    assert result["uses_member_data"] is False
+    assert result["production_rows_persisted"] is False
+    assert result["secret_exposed"] is False
 
 
 def test_create_learning_record_writes_private_integrity_snapshot(monkeypatch):
