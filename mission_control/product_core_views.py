@@ -603,6 +603,20 @@ def add_radio_rotation(station_id: str):
     return _handle_write(action)
 
 
+@bp.post("/radio/stations/<station_id>/always-on")
+@web_security.login_required(api=True)
+def radio_always_on(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.set_always_on(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            enabled=bool(payload.get("enabled", True)),
+            auto_add_approved=bool(payload.get("auto_add_approved", True)),
+        )
+    return _handle_write(action)
+
+
 @bp.post("/radio/stations/<station_id>/stop")
 @web_security.login_required(api=True)
 def stop_radio_station(station_id: str):
@@ -965,6 +979,14 @@ def stop_track_audio_asset(asset_id: str):
             owner_identity_id=_identity(sync=True),
             asset_id=asset_id,
         )
+    )
+
+
+@bp.post("/tune/releases/<release_id>/approve")
+@web_security.login_required(api=True, founder_only=True)
+def founder_approve_release(release_id: str):
+    return _handle_write(
+        lambda: _store.founder_approve_release(release_id=release_id)
     )
 
 
