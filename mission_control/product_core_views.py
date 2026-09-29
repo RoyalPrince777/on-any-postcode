@@ -11,6 +11,7 @@ from . import (
     entertainment_catalogue,
     live_music_core,
     market_execution_authority,
+    sika_market_settlement,
     market_transaction_spine,
     music_acceptance,
     music_assets,
@@ -1206,6 +1207,37 @@ def prepare_market_order_execution(order_id: str):
             actor_identity_id=_identity(sync=True),
         )
     )
+
+
+@bp.post("/market/orders/<order_id>/sika-settlement")
+@web_security.login_required(api=True)
+def create_market_sika_settlement(order_id: str):
+    def action():
+        payload = _payload()
+        return sika_market_settlement.STORE.create_for_order(
+            order_id=order_id,
+            actor_identity_id=_identity(sync=True),
+            idempotency_key=payload.get("idempotency_key"),
+            customer_approval_reference=payload.get("customer_approval_reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/market/sika-settlements/<settlement_id>")
+@web_security.login_required(api=True)
+def market_sika_settlement_detail(settlement_id: str):
+    try:
+        return _no_store(make_response(jsonify(
+            sika_market_settlement.STORE.read_for_identity(
+                settlement_id=settlement_id,
+                identity_id=_identity(),
+            )
+        )))
+    except PermissionError:
+        return _error("permission_denied", "SIKA settlement unavailable for this identity.", 403)
+    except (ValueError, RuntimeError):
+        return _error("sika_settlement_unavailable", "SIKA settlement is temporarily unavailable.", 503)
 
 
 @bp.get("/post")
