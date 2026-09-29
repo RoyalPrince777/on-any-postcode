@@ -42,7 +42,7 @@ def test_link_up_language_law_keeps_messenger_terms_simple():
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["new_conversation"] == "New Link"
     assert "group" not in linkup.LINK_UP_PUBLIC_VOCABULARY
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Link Call"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Incoming"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Tap In"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["in_transit"] == "Landing…"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
@@ -94,33 +94,35 @@ def test_duplicate_link_view_is_rejected():
     assert validation["checks"]["naming_conflicts"] == 1
 
 
-def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, tmp_path, monkeypatch):
+
+def test_public_link_ui_shows_private_chat_front_door_without_public_discovery_noise(anonymous_client, tmp_path, monkeypatch):
     database_path = tmp_path / "the-link.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
     response = anonymous_client.get("/linkup")
     page = response.get_data(as_text=True)
+
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
-    assert 'aria-label="Link Up app"' in page
-    assert "PUBLIC · CONNECT · CREATE" in page
+    assert 'aria-label="Link Up private chat"' in page
+    assert "Private chat for your Links." in page
     assert "Create My Card" in page
-    assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
-    assert "Link Message" in page
-    assert "Discovery" in page
-    assert "Certified" in page
-    assert "Safety" in page
-    assert "Private" in page
-    assert "Public" in page
-    assert "Opportunities" in page
-    assert "Spotlight" in page
-    assert "Identity" in page
-    assert "Nearby People" in page
-    assert "Community Signals" in page
+    assert "The Link" in page
+
+    for public_noise in (
+        "Search Link Up",
+        "Discovery",
+        "Nearby People",
+        "Community Signals",
+        "Spotlight",
+        "Open public spaces",
+        "Work &amp; collaboration",
+        "PUBLIC · CONNECT · CREATE",
+    ):
+        assert public_noise not in page
+
     assert "Enter My World" not in page
-    assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
-    assert "Message your Links." not in page
     assert "World Rooms" not in page
     assert 'method="post"' not in page.lower()
     assert anonymous_client.post("/linkup").status_code == 405
@@ -267,28 +269,42 @@ def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
     assert 'openPanel("new")' in script
 
 
-def test_linkup_public_shell_uses_free_my_card_actions():
+
+def test_linkup_public_shell_stays_private_and_keeps_my_card_entry():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert "Enter My World" not in template
     assert "url_for('my_card_create_page')" in template
     assert "Create My Card" in template
-    assert "PUBLIC · CONNECT · CREATE" in template
-    assert "linkup-royal-home" in template
-    assert "linkup-royal-tools" in template
-    assert "linkup-royal-bottom" in template
+    assert 'aria-label="Link Up private chat"' in template
+    assert "linkup-royal-tools" not in template
+    assert "linkup-royal-stream" not in template
+    assert "linkup-royal-bottom" not in template
+    assert "linkup-public-search" not in template
 
 
 
-def test_public_linkup_routes_each_surface_to_canonical_owner():
+def test_linkup_private_menu_is_low_noise_and_oap_native():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
-    assert '<strong>Discovery</strong><small>Discover people in OAP World</small>' in template
-    assert '<strong>Opportunities</strong><small>Work &amp; collaboration</small>' in template
-    assert '<strong>Community Signals</strong><small>See what is happening across The Spot.</small>' in template
-    assert '<a href="{{ url_for(\'linkup_front_door\') }}">💬<span>Link Message</span></a>' in template
-    assert '<a href="{{ url_for(\'home\') }}">♟<span>People</span></a>' in template
-    assert '<a href="{{ url_for(\'my_card_page\') }}">●<span>Profile</span></a>' in template
+    assert 'aria-label="Link Up private menu"' in template
+    for label in ("Link Ups", "Ring", "Now", "Tap In", "More"):
+        assert f">{label}</a>" in template
+
+    assert 'id="linkup-conversations"' in template
+    assert 'id="linkup-ring"' in template
+    assert 'id="linkup-now"' in template
+    assert 'id="linkup-tap-in"' in template
+    assert 'id="linkup-more"' in template
+
+    for public_noise in (
+        "<strong>Discovery</strong>",
+        "<strong>Nearby People</strong>",
+        "<strong>Community Signals</strong>",
+        "<strong>Spotlight</strong>",
+        "<strong>Opportunities</strong>",
+    ):
+        assert public_noise not in template
 
 
 def test_empty_linkup_chat_has_real_next_actions():
@@ -309,3 +325,10 @@ def test_linkup_has_no_room_navigation_or_typing_language():
     assert "Typing…" not in script
     assert "/linkup/activity/typing" not in script
     assert "Landing → Landed → Lit" in script
+
+def test_my_emojis_are_private_chat_composer_language():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert 'aria-label="My Emojis"' in template
+    assert 'title="My Emojis"' in template
+    assert "My Emojis stay inside the private chat" in template
