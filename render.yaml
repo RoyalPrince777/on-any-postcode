@@ -46,3 +46,5 @@ services:
         value: "1"
       - key: OAP_LIBRARY_LEARNING_MIGRATION_ON_BOOT
         value: "1"
+      - key: OAP_LIBRARY_LEARNING_PROOF_ON_BOOT
+        value: "1"
