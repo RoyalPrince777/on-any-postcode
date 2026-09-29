@@ -80,3 +80,27 @@ def test_creator_reconciliation_records_reference_without_money_movement(monkeyp
     assert result["reconciliation_reference_recorded"] is True
     assert result["money_transfer_performed"] is False
     assert result["sika_execution_performed"] is False
+
+
+def test_settlement_creates_ownership_and_creator_allocation_atomically(monkeypatch):
+    connection = _Connection([
+        ("11111111-1111-4111-8111-111111111111", "RELEASE", "22222222-2222-4222-8222-222222222222", "album"),
+        None,
+        ("44444444-4444-4444-8444-444444444444",),
+        (500, "GBP"),
+        None,
+    ])
+    monkeypatch.setattr(music_purchases.postgres_db, "connect", lambda **kwargs: connection)
+    result = music_purchases.MusicPurchaseStore().record_settlement(
+        purchase_id="33333333-3333-4333-8333-333333333333",
+        settlement_reference="settlement-proof-001",
+    )
+    assert result["state"] == "SETTLED"
+    assert result["ownership_created"] is True
+    assert result["payment_capture_performed_by_this_module"] is False
+    assert result["sika_execution_performed"] is False
+    sql = "\n".join(call[0] for call in connection.calls)
+    assert "INSERT INTO oap_music_owned_items" in sql
+    assert "INSERT INTO oap_music_creator_allocations" in sql
+    assert "PENDING_RECONCILIATION" in sql
+    assert connection.committed is True
