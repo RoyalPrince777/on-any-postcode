@@ -18,7 +18,7 @@ def test_linkup_live_delta_store_is_guarded_by_accepted_link():
     assert "ORDER BY created_at ASC" in source
 
 
-def test_linkup_client_pulls_new_links_and_supports_seen():
+def test_linkup_client_pulls_new_links_and_supports_lit_receipts():
     script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
 
     assert "new URLSearchParams({ peer_id: peerId })" in script
@@ -34,7 +34,8 @@ def test_linkup_surface_focuses_on_link_not_ping():
 
     assert "Type a Link…" in page
     assert "Landed" in page
-    assert "Seen" in page
+    assert "Lit" in page
+    assert "Seen" not in page
     assert "data-oap-ping-control" not in page
     assert "data-oap-ping-mute" not in page
     assert "linkup_ping.js" not in page

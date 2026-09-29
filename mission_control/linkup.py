@@ -21,7 +21,7 @@ LINK_UP_LANGUAGE_LAW: tuple[str, ...] = (
     "Local character without global confusion.",
 )
 
-LINK_UP_NAMING_REVISION = "2026-09-28-link-message-room-link-call-r2"
+LINK_UP_NAMING_REVISION = "2026-09-29-link-message-link-call-landing-landed-lit-r3"
 
 LINK_UP_PUBLIC_VOCABULARY: dict[str, str] = {
     "product": "Link Up",
@@ -33,10 +33,10 @@ LINK_UP_PUBLIC_VOCABULARY: dict[str, str] = {
     "presence": "Around Now",
     "available": "I'm Free",
     "delivered": "Landed",
-    "read": "Seen",
+    "read": "Lit",
+    "in_transit": "Landing…",
     "voice_note": "Voice",
     "message": "Link Message",
-    "room": "Room",
     "ptt": "PTT",
     "audio_call": "Call",
     "video_call": "Link Call",
@@ -134,7 +134,7 @@ def get_public_link_dashboard() -> dict[str, Any]:
 LINK_UP_SEVEN_STAR_GATE: tuple[dict[str, str], ...] = (
     {"id": "identity", "name": "Identity", "proof": "Authenticated My Card identity is available."},
     {"id": "relationship", "name": "Relationship", "proof": "Protected Link relationship runtime is ready."},
-    {"id": "messaging", "name": "Messaging", "proof": "Message persistence and Landed / Seen state are ready."},
+    {"id": "messaging", "name": "Messaging", "proof": "Message persistence and Landing / Landed / Lit state are ready."},
     {"id": "safety", "name": "Safety", "proof": "Block / report protection is ready."},
     {"id": "privacy", "name": "Privacy", "proof": "Private-by-default presence and scoped visibility are ready."},
     {"id": "resilience", "name": "Resilience", "proof": "Voice, signalling and recovery dependencies are ready."},

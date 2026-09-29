@@ -26,7 +26,7 @@ def test_public_my_card_page_is_free_and_not_enter_my_world(anonymous_client):
     assert 'name="csrf_token"' in page
 
 
-def test_public_my_card_creation_sets_first_party_session_and_opens_linkup(
+def test_public_my_card_creation_sets_first_party_session_and_opens_my_card(
     anonymous_client, monkeypatch
 ):
     token = "my-card-create-csrf-token-value-123456789"
@@ -58,7 +58,7 @@ def test_public_my_card_creation_sets_first_party_session_and_opens_linkup(
     )
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/linkup")
+    assert response.headers["Location"].endswith("/my-card")
     assert observed["values"] == (
         "New Member",
         "new@example.test",
@@ -133,7 +133,7 @@ def test_public_my_card_creation_allows_blank_email(
     )
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/linkup")
+    assert response.headers["Location"].endswith("/my-card")
     assert observed["values"] == (
         "No Email Member",
         "",
@@ -169,7 +169,7 @@ def test_public_my_card_creation_allows_blank_password_without_auth_call(
     )
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/linkup")
+    assert response.headers["Location"].endswith("/my-card")
 
     page = anonymous_client.get("/linkup").get_data(as_text=True)
     assert "Basic Card Member" in page
@@ -205,3 +205,68 @@ def test_passwordless_basic_card_does_not_accept_email_without_secure_sign_in(
 
     assert response.status_code == 400
     assert "either set a password or leave email blank" in response.get_data(as_text=True)
+
+
+
+def test_basic_my_card_hub_shows_profile_contacts_settings_and_emojis(anonymous_client, monkeypatch):
+    token = "my-card-hub-csrf-token-value-123456789"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_up",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("managed auth must not be called")
+        ),
+    )
+    response = anonymous_client.post(
+        "/my-card/create",
+        data={
+            "csrf_token": token,
+            "name": "Hub Member",
+            "email": "",
+            "password": "",
+            "password_confirmation": "",
+            "accept_private_actions": "yes",
+        },
+    )
+    assert response.headers["Location"].endswith("/my-card")
+
+    page = anonymous_client.get("/my-card").get_data(as_text=True)
+    assert "Hub Member" in page
+    assert "Contacts" in page
+    assert "Settings · Theme · My Emojis" in page
+    assert "DP avatar" in page
+    assert "DP photo upload is not enabled yet." in page
+    assert "Discover People" in page
+    assert "Link Up" in page
+
+
+def test_my_card_preferences_save_theme_avatar_and_my_emojis(anonymous_client):
+    token = "my-card-prefs-csrf-token-value-123456789"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+        current_session["oap_public_my_card"] = {
+            "identity_id": "44444444-4444-4444-8444-444444444444",
+            "card_id": "OAP-44444444",
+            "display_name": "Prefs Member",
+            "credentialed": False,
+        }
+
+    response = anonymous_client.post(
+        "/my-card/preferences",
+        data={
+            "csrf_token": token,
+            "theme": "midnight",
+            "avatar": "🐆",
+            "emoji": ["👑", "🐆", "✨"],
+        },
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/my-card")
+
+    page = anonymous_client.get("/my-card").get_data(as_text=True)
+    assert 'data-my-card-theme="midnight"' in page
+    assert "🐆" in page
+    assert 'value="✨" checked' in page

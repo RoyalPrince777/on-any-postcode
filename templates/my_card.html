@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-my-card-theme="{{ theme }}">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Card · OAP</title>
+<style>
+:root{color-scheme:dark;--bg:#07110c;--panel:#112119;--line:#355542;--accent:#d4af37;--text:#f8fff9;--muted:#b7c4bc}
+html[data-my-card-theme="earth"]{--bg:#10140b;--panel:#202815;--line:#65753a;--accent:#8bc34a}
+html[data-my-card-theme="midnight"]{--bg:#080b16;--panel:#12192b;--line:#33436e;--accent:#8ea8ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,var(--panel),var(--bg) 42%);color:var(--text);font-family:Arial,sans-serif}
+header,main{width:min(860px,calc(100% - 28px));margin:auto}header{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:20px 0}
+a{color:inherit}.card{border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 94%,#000);border-radius:20px;padding:18px;margin:0 0 14px}
+.hero{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}.dp{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;font-size:2.5rem;background:#0006;border:2px solid var(--accent)}
+.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.action{display:block;padding:13px;border:1px solid var(--line);border-radius:14px;text-decoration:none;background:#0003}
+label{display:block;margin:12px 0 5px;font-weight:800}select{width:100%;padding:10px;border-radius:10px}.emoji-grid{display:flex;flex-wrap:wrap;gap:8px}.emoji-grid label{margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
+button{margin-top:14px;padding:12px 16px;border:0;border-radius:12px;background:var(--accent);font-weight:900}
+</style></head><body>
+<header><a href="{{ url_for('home') }}">← OAP World</a><strong>My Card</strong><a href="{{ url_for('linkup_front_door') }}">Link Up →</a></header>
+<main>
+<section class="card hero"><div class="dp">{{ avatar }}</div><div><h1>{{ my_card.display_name }}</h1><p>{{ my_card.card_id }}{% if my_card.username %} · @{{ my_card.username }}{% endif %}</p><p class="muted">{{ "Secure My Card" if auth_user else "Basic My Card · private actions locked until secure sign-in" }}</p><p class="muted">DP photo upload is not enabled yet. This avatar is your current first-party My Card DP.</p></div></section>
+<section class="grid">
+<a class="action" href="{{ url_for('home') }}"><strong>🌍 Discover People</strong><br><span class="muted">Find people in OAP World.</span></a>
+<a class="action" href="{{ url_for('the_link_front_door') }}"><strong>🔗 The Link</strong><br><span class="muted">People and opportunities before private chat.</span></a>
+<a class="action" href="{{ url_for('linkup_front_door') }}"><strong>💬 Link Up</strong><br><span class="muted">Open private messages and calls.</span></a>
+</section>
+<section class="card"><h2>Contacts</h2>{% if auth_user and contacts %}<ul>{% for contact in contacts %}<li><strong>{{ contact.display_name }}</strong> · {{ contact.card_id }}</li>{% endfor %}</ul>{% elif auth_user %}<p class="muted">No accepted Links yet. Discover someone, send a Link Request, then accepted Links appear here.</p>{% else %}<p class="muted">Contacts are private. Add secure sign-in before accepted Links can appear here.</p>{% endif %}</section>
+<section class="card"><h2>Settings · Theme · My Emojis</h2><form method="post" action="{{ url_for('my_card_preferences') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+<label for="theme">Theme</label><select id="theme" name="theme"><option value="royal" {% if theme=="royal" %}selected{% endif %}>Royal</option><option value="earth" {% if theme=="earth" %}selected{% endif %}>Earth</option><option value="midnight" {% if theme=="midnight" %}selected{% endif %}>Midnight</option></select>
+<label>DP avatar</label><div class="emoji-grid">{% for option in ['👑','🌍','💜','🔥','🐆','🐺','🦁'] %}<label><input type="radio" name="avatar" value="{{ option }}" {% if avatar==option %}checked{% endif %}> {{ option }}</label>{% endfor %}</div>
+<label>My Emojis · choose up to 7</label><div class="emoji-grid">{% for option in ['👑','💜','🌍','🔥','🤝','💯','🎉','🙏','🐆','🐺','🦁','✨'] %}<label><input type="checkbox" name="emoji" value="{{ option }}" {% if option in my_emojis %}checked{% endif %}> {{ option }}</label>{% endfor %}</div>
+<button type="submit">Save My Card Settings</button></form></section>
+</main></body></html>
