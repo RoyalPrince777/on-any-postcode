@@ -60,11 +60,22 @@
           <input id="linkup-public-search" type="search" placeholder="Search people, interests, or opportunities…" disabled>
           <a href="{{ url_for('the_link_front_door') }}" aria-label="Open discovery filters">☷</a>
         </div>
+        {% if my_card and not auth_user %}
+        <div class="linkup-create-card" aria-label="Basic My Card active">
+          <span aria-hidden="true">▤✓</span>
+          <span>
+            <strong>{{ my_card.display_name }}</strong>
+            <small>{{ my_card.card_id }} · Basic My Card active. No password required. Private Link Up stays locked until secure sign-in is added.</small>
+          </span>
+          <b aria-hidden="true">🔒</b>
+        </div>
+        {% else %}
         <a class="linkup-create-card" href="{{ url_for('my_card_create_page') }}">
           <span aria-hidden="true">▤＋</span>
-          <span><strong>Create My Card</strong><small>Optional for private features. Public Link Up needs no email or sign-in.</small></span>
+          <span><strong>Create My Card</strong><small>Optional for private features. Public Link Up needs no email, password or sign-in.</small></span>
           <b aria-hidden="true">›</b>
         </a>
+        {% endif %}
       </section>
 
       <nav class="linkup-royal-tools" aria-label="Link Up features">
