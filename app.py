@@ -1024,11 +1024,11 @@ def my_card_create_page():
 
     try:
         if web_security.current_authenticated_user() is not None:
-            return redirect(url_for("linkup_front_door"))
+            return redirect(url_for("my_card_page"))
     except neon_auth.AuthUnavailable:
         pass
     if isinstance(session.get(PUBLIC_MY_CARD_SESSION_KEY), dict):
-        return redirect(url_for("linkup_front_door"))
+        return redirect(url_for("my_card_page"))
     return _my_card_create_response()
 
 
@@ -1094,7 +1094,7 @@ def my_card_create():
             "credentialed": False,
         }
         session.permanent = True
-        return redirect(url_for("linkup_front_door"))
+        return redirect(url_for("my_card_page"))
 
     try:
         result = neon_auth.sign_up(name, email, password)
@@ -1120,7 +1120,7 @@ def my_card_create():
 
     web_security.AUTH_BURST_LIMITER.reset_key(rate_key)
     session.pop(PUBLIC_MY_CARD_SESSION_KEY, None)
-    response = redirect(url_for("linkup_front_door"))
+    response = redirect(url_for("my_card_page"))
     if not _apply_auth_cookies(response, result.set_cookie_headers):
         return _auth_page_response(
             status_code=200,
@@ -1128,6 +1128,146 @@ def my_card_create():
             next_path="/linkup",
         )
     return response
+
+
+@app.get("/my-card")
+def my_card_page():
+    """Open the user's first-party My Card hub."""
+
+    user = None
+    try:
+        user = web_security.current_authenticated_user()
+    except neon_auth.AuthUnavailable:
+        user = None
+
+    my_card = None
+    contacts = []
+    if user:
+        identity_id = str(user["id"])
+        my_card = {
+            "identity_id": identity_id,
+            "card_id": product_store.member_card_id(identity_id),
+            "display_name": str(user["name"]),
+            "username": "",
+            "postcode": "",
+            "borough": "",
+            "country": "",
+            "credentialed": True,
+        }
+        if public_store.status()["configured"]:
+            try:
+                public_store.ensure_authenticated_user(
+                    identity_id,
+                    email=str(user["email"]),
+                    display_name=str(user["name"]),
+                )
+                dashboard = product_store.linkup_dashboard(identity_id) or {}
+                if dashboard.get("my_card"):
+                    my_card.update(dashboard["my_card"])
+                people = {
+                    str(person.get("identity_id")): person
+                    for person in dashboard.get("directory", [])
+                }
+                if link_relationships.status().get("ready"):
+                    for relation in link_relationships.list_for_identity(identity_id):
+                        if relation.get("status") != "accepted":
+                            continue
+                        peer_id = (
+                            str(relation["recipient_id"])
+                            if str(relation["requester_id"]) == identity_id
+                            else str(relation["requester_id"])
+                        )
+                        peer = people.get(peer_id, {})
+                        contacts.append(
+                            {
+                                "identity_id": peer_id,
+                                "display_name": peer.get("display_name") or "OAP Contact",
+                                "card_id": peer.get("card_id") or product_store.member_card_id(peer_id),
+                            }
+                        )
+            except (
+                public_store.PublicStoreUnavailable,
+                product_store.ProductStoreUnavailable,
+                link_relationships.LinkRelationshipsUnavailable,
+            ):
+                contacts = []
+    else:
+        public_card = session.get(PUBLIC_MY_CARD_SESSION_KEY)
+        if isinstance(public_card, dict):
+            my_card = {
+                "identity_id": str(public_card.get("identity_id") or ""),
+                "card_id": str(public_card.get("card_id") or ""),
+                "display_name": str(public_card.get("display_name") or "OAP Member"),
+                "username": "",
+                "postcode": "",
+                "borough": "",
+                "country": "",
+                "credentialed": False,
+            }
+
+    if not my_card:
+        return redirect(url_for("my_card_create_page"))
+
+    preferences = session.get("oap_my_card_preferences")
+    if not isinstance(preferences, dict):
+        preferences = {}
+    theme = str(preferences.get("theme") or "royal")
+    avatar = str(preferences.get("avatar") or "👑")
+    emojis = preferences.get("emojis")
+    if not isinstance(emojis, list):
+        emojis = ["👑", "💜", "🌍"]
+
+    response = make_response(
+        render_template(
+            "my_card.html",
+            my_card=my_card,
+            contacts=contacts,
+            auth_user=bool(user),
+            theme=theme,
+            avatar=avatar,
+            my_emojis=emojis,
+            oap_csrf_token=web_security.csrf_token(),
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/my-card/preferences")
+def my_card_preferences():
+    """Save bounded My Card presentation preferences in the current OAP session."""
+
+    if not web_security.csrf_valid(request):
+        return make_response("The secure session expired.", 403)
+    if not isinstance(session.get(PUBLIC_MY_CARD_SESSION_KEY), dict):
+        try:
+            if web_security.current_authenticated_user() is None:
+                return redirect(url_for("my_card_create_page"))
+        except neon_auth.AuthUnavailable:
+            return redirect(url_for("my_card_create_page"))
+
+    theme = _form_text("theme", "royal", 32)
+    if theme not in {"royal", "earth", "midnight"}:
+        theme = "royal"
+    avatar = _form_text("avatar", "👑", 8)
+    if avatar not in {"👑", "🌍", "💜", "🔥", "🐆", "🐺", "🦁"}:
+        avatar = "👑"
+    allowed_emojis = {"👑", "💜", "🌍", "🔥", "🤝", "💯", "🎉", "🙏", "🐆", "🐺", "🦁", "✨"}
+    selected = [
+        emoji
+        for emoji in request.form.getlist("emoji")
+        if emoji in allowed_emojis
+    ][:7]
+    if not selected:
+        selected = ["👑", "💜", "🌍"]
+
+    session["oap_my_card_preferences"] = {
+        "theme": theme,
+        "avatar": avatar,
+        "emojis": selected,
+    }
+    session.permanent = True
+    return redirect(url_for("my_card_page"))
 
 
 @app.get("/activate-founder")

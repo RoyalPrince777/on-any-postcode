@@ -44,8 +44,9 @@ def test_link_up_language_law_keeps_messenger_terms_simple():
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Link Call"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Incoming"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["in_transit"] == "Landing…"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["read"] == "Seen"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["read"] == "Lit"
 
 
 def test_protected_link_runtime_matches_existing_communications_store():
@@ -235,13 +236,11 @@ def test_linkup_seven_star_gate_reaches_green_only_at_seven_of_seven():
     assert status["human_authority_final"] is True
 
 
-def test_linkup_template_shows_runtime_seven_star_gate():
+def test_linkup_template_hides_internal_seven_star_gate_from_users():
     page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
-    assert "7-Star Gate" in page
-    assert "seven_star_gate.star_count" in page
-    assert "seven_star_gate.percent" in page
-    assert "star.proof" in page
+    assert "7-Star Gate" not in page
+    assert "linkup-stars-grid" not in page
 
 
 def test_linkup_emoji_and_conversation_settings_reuse_existing_owners():
@@ -278,3 +277,35 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "linkup-royal-home" in template
     assert "linkup-royal-tools" in template
     assert "linkup-royal-bottom" in template
+
+
+
+def test_public_linkup_routes_each_surface_to_canonical_owner():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert '<strong>Discovery</strong><small>Discover people in OAP World</small>' in template
+    assert '<strong>Opportunities</strong><small>Work &amp; collaboration</small>' in template
+    assert '<strong>Community Signals</strong><small>See what is happening across The Spot.</small>' in template
+    assert '<a href="{{ url_for(\'linkup_front_door\') }}">💬<span>Link Message</span></a>' in template
+    assert '<a href="{{ url_for(\'home\') }}">♟<span>People</span></a>' in template
+    assert '<a href="{{ url_for(\'my_card_page\') }}">●<span>Profile</span></a>' in template
+
+
+def test_empty_linkup_chat_has_real_next_actions():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "No Link Ups yet." in template
+    assert "Discover people in OAP World" in template
+    assert "Open The Link" in template
+    assert "Open My Card" in template
+
+
+def test_linkup_has_no_room_navigation_or_typing_language():
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
+
+    assert "link_circles.circle_page" not in page
+    assert ">Room</a>" not in page
+    assert "Typing…" not in script
+    assert "/linkup/activity/typing" not in script
+    assert "Landing → Landed → Lit" in script

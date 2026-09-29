@@ -21,20 +21,16 @@
     .linkup-card{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center;margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
     .linkup-card-copy{display:grid;gap:.12rem;min-width:0}.linkup-card-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.linkup-card-copy small{color:rgba(255,255,255,.68);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .linkup-card-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;letter-spacing:.03em}
-    .linkup-stars{margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
-    .linkup-stars-head{display:flex;justify-content:space-between;gap:.75rem;align-items:center}.linkup-stars-head strong{font-size:.95rem}.linkup-stars-score{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-    .linkup-stars-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.6rem}.linkup-star{display:flex;gap:.4rem;align-items:center;font-size:.78rem;color:rgba(255,255,255,.72)}.linkup-star[data-passed="true"]{color:#fff}.linkup-certifications{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.2rem}.linkup-certified{font-size:.7rem;padding:.2rem .42rem;border:1px solid rgba(255,215,0,.35);border-radius:999px}.linkup-card-state{opacity:.82}
+    .linkup-card-state{opacity:.82}
     .linkup-public-action{display:block;margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24;color:#fff;text-decoration:none}
     .linkup-public-action strong,.linkup-public-action small{display:block}.linkup-public-action small{margin-top:.2rem;color:rgba(255,255,255,.68)}
     .linkup-public-welcome{display:grid;align-content:center;justify-items:center;gap:.8rem;min-height:50vh;padding:2rem;text-align:center}.linkup-public-welcome p{max-width:34rem;color:rgba(255,255,255,.72)}
   </style>
   <script src="{{ url_for('static', filename='linkup_realtime.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='linkup_presence.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='linkup_share.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messages.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_incoming.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_messenger.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='linkup_optional.js') }}" defer></script>
 </head>
 <body>
 <div class="linkup-app" data-linkup-app data-chat-open="false">
@@ -79,21 +75,21 @@
       </section>
 
       <nav class="linkup-royal-tools" aria-label="Link Up features">
-        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-purple">💬</span><strong>Link Message</strong><small>Chat &amp; Connect</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-world">🌍</span><strong>Discovery</strong><small>Find People</small></a>
-        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Trusted Members</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-gold">!</span><strong>Safety</strong><small>Stay Safe</small></a>
-        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-shield">🔒</span><strong>Private</strong><small>Your Space</small></a>
-        <a href="{{ url_for('linkup_front_door') }}"><span class="royal-symbol royal-purple">🔓</span><strong>Public</strong><small>Open to All</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; Collab</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Featured</small></a>
-        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-scroll">📜</span><strong>Identity</strong><small>Build Trust</small></a>
+        <a href="{{ url_for('linkup_front_door') }}"><span class="royal-symbol royal-purple">💬</span><strong>Link Message</strong><small>Private chat home</small></a>
+        <a href="{{ url_for('home') }}"><span class="royal-symbol royal-world">🌍</span><strong>Discovery</strong><small>Discover people in OAP World</small></a>
+        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Identity &amp; trust</small></a>
+        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-gold">!</span><strong>Safety</strong><small>Public safety hub</small></a>
+        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-shield">🔒</span><strong>Private</strong><small>My Card &amp; settings</small></a>
+        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-purple">🔓</span><strong>Public</strong><small>Open public spaces</small></a>
+        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; collaboration</small></a>
+        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Public highlights</small></a>
+        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-scroll">📜</span><strong>Identity</strong><small>Open My Card</small></a>
       </nav>
 
       <section class="linkup-royal-stream" aria-label="Link Up discovery">
-        <a class="linkup-royal-card" href="{{ url_for('my_card_create_page') }}">
+        <a class="linkup-royal-card" href="{{ url_for('home') }}">
           <span class="royal-card-art royal-nearby" aria-hidden="true">📍</span>
-          <span><strong>Nearby People</strong><small>Permission-controlled connections around you.</small></span>
+          <span><strong>Nearby People</strong><small>Discover people through OAP World, then Link Up privately.</small></span>
           <b aria-hidden="true">›</b>
         </a>
         <a class="linkup-royal-card" href="{{ url_for('the_link_front_door') }}">
@@ -101,19 +97,19 @@
           <span><strong>Opportunities</strong><small>Discover collaborations, projects, services and events.</small></span>
           <b aria-hidden="true">›</b>
         </a>
-        <a class="linkup-royal-card" href="{{ url_for('the_link_front_door') }}">
+        <a class="linkup-royal-card" href="{{ url_for('the_spot_front_door') }}">
           <span class="royal-card-art royal-signal" aria-hidden="true">🌐</span>
-          <span><strong>Community Signals</strong><small>See what is happening across the OAP community.</small></span>
+          <span><strong>Community Signals</strong><small>See what is happening across The Spot.</small></span>
           <b aria-hidden="true">›</b>
         </a>
       </section>
 
       <nav class="linkup-royal-bottom" aria-label="Link Up navigation">
         <a aria-current="page" href="{{ url_for('linkup_front_door') }}">⌂<span>Home</span></a>
-        <a href="{{ url_for('the_link_front_door') }}">♟<span>People</span></a>
+        <a href="{{ url_for('home') }}">♟<span>People</span></a>
         <a class="linkup-oap-home" href="{{ url_for('home') }}">♛<span>OAP</span></a>
-        <a href="{{ url_for('my_card_create_page') }}">💬<span>Link Message</span></a>
-        <a href="{{ url_for('my_card_create_page') }}">●<span>Profile</span></a>
+        <a href="{{ url_for('linkup_front_door') }}">💬<span>Link Message</span></a>
+        <a href="{{ url_for('my_card_page') }}">●<span>Profile</span></a>
       </nav>
     </main>
   {% else %}
@@ -124,25 +120,8 @@
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
         <div class="linkup-master-nav">
-          <a href="{{ url_for('link_message_state.link_circles.circle_page') }}">Room</a>
           <a href="{{ url_for('the_link_front_door') }}">The Link</a>
         </div>
-        {% if seven_star_gate %}
-        <section class="linkup-stars" aria-label="Link Up seven-star readiness">
-          <div class="linkup-stars-head">
-            <strong>⭐ 7-Star Gate</strong>
-            <span class="linkup-stars-score">{{ seven_star_gate.star_count }}/{{ seven_star_gate.star_total }} · {{ seven_star_gate.percent }}%</span>
-          </div>
-          <div class="linkup-stars-grid">
-            {% for star in seven_star_gate.stars %}
-            <span class="linkup-star" data-passed="{{ 'true' if star.passed else 'false' }}" title="{{ star.proof }}">
-              <span>{{ '★' if star.passed else '☆' }}</span>
-              <span>{{ star.name }}</span>
-            </span>
-            {% endfor %}
-          </div>
-        </section>
-        {% endif %}
 
         {% if my_card %}
         <section class="linkup-card" aria-label="My Card">
@@ -224,7 +203,10 @@
           </button>
           {% endfor %}
         {% else %}
-          <p class="linkup-empty">No Link Ups yet. Tap + to start a New Link.</p>
+          <div class="linkup-empty">
+            <p>No Link Ups yet.</p>
+            <p><a href="{{ url_for('home') }}">Discover people in OAP World</a> · <a href="{{ url_for('the_link_front_door') }}">Open The Link</a> · <a href="{{ url_for('my_card_page') }}">Open My Card</a></p>
+          </div>
         {% endif %}
       </aside>
 
@@ -270,8 +252,8 @@
                 <p>{{ message.body }}</p>
                 <div class="linkup-meta">
                   <span>{{ message.created_at }}</span>
-                  {% if message.direction == 'sent' %}<span data-oap-message-state data-message-id="{{ message.message_id }}" data-state="{{ 'seen' if message.read else 'landed' }}">{{ 'Seen' if message.read else 'Landed' }}</span>
-                  {% elif not message.read %}<form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><button class="linkup-icon-btn" type="submit">Seen</button></form>{% endif %}
+                  {% if message.direction == 'sent' %}<span data-oap-message-state data-message-id="{{ message.message_id }}" data-state="{{ 'seen' if message.read else 'landed' }}">{{ 'Lit' if message.read else 'Landed' }}</span>
+                  {% elif not message.read %}<form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><button class="linkup-icon-btn" type="submit">Lit</button></form>{% endif %}
                 </div>
                 {% if message.other_identity_id %}
                 <details><summary>⋯</summary>

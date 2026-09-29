@@ -13,9 +13,6 @@
     activityReady: false,
     syncReady: false,
     activeForm: null,
-    lastTypingSentAt: 0,
-    typingStopTimer: null,
-    typingRefreshTimer: null,
     pollTimer: null,
     cursors: new Map(),
     pendingRetries: new Map(),
@@ -48,9 +45,6 @@
 
   const localStatusFor = (form) =>
     ensureStatusNode(form, "data-oap-composer-status", "oap-runtime-note");
-
-  const typingStatusFor = (form) =>
-    ensureStatusNode(form, "data-oap-typing-state", "mc-eyebrow");
 
   const apiJson = async (path, options = {}) => {
     const method = options.method || "GET";
@@ -129,13 +123,13 @@
         stateNode.dataset.oapMessageState = "";
         stateNode.dataset.messageId = message.message_id;
         stateNode.dataset.state = message.state || "landed";
-        stateNode.textContent = message.state === "seen" ? "Seen" : "Landed";
+        stateNode.textContent = message.state === "seen" ? "Lit" : "Landed";
         meta.appendChild(stateNode);
       } else {
         const seenButton = document.createElement("button");
         seenButton.type = "button";
         seenButton.className = "linkup-icon-btn";
-        seenButton.textContent = "Seen";
+        seenButton.textContent = "Lit";
         seenButton.addEventListener("click", async () => {
           try {
             const result = await apiJson(
@@ -143,7 +137,7 @@
               { method: "POST", body: "{}" },
             );
             if (result.state === "seen") {
-              seenButton.replaceWith(document.createTextNode("Seen"));
+              seenButton.replaceWith(document.createTextNode("Lit"));
             }
           } catch (_error) {
             seenButton.textContent = "Try again";
@@ -166,7 +160,7 @@
         continue;
       }
       node.dataset.state = message.state;
-      node.textContent = message.state === "seen" ? "Seen" : "Landed";
+      node.textContent = message.state === "seen" ? "Lit" : "Landed";
     }
   };
 
@@ -185,7 +179,7 @@
       updateRenderedStates(messages);
       const local = localStatusFor(form);
       if (messages.length && !local.querySelector("button")) {
-        local.textContent = `Latest Link: ${messages[0].state === "seen" ? "Seen" : "Landed"}`;
+        local.textContent = `Latest Link: ${messages[0].state === "seen" ? "Lit" : "Landed"}`;
       }
     } catch (_error) {
       // Existing persisted receipts remain valid if polling is unavailable.
@@ -212,15 +206,6 @@
     } catch (_error) {
       // Conversation remains usable if live delta sync temporarily degrades.
     }
-    if (!state.activityReady) {
-      return;
-    }
-    try {
-      const activity = await apiJson(`/linkup/activity/typing?peer_id=${encodeURIComponent(peerId)}`);
-      typingStatusFor(form).textContent = activity.typing ? "Typing…" : "";
-    } catch (_error) {
-      typingStatusFor(form).textContent = "";
-    }
   };
 
   const startPolling = (form) => {
@@ -230,72 +215,6 @@
     }
     pollPeer();
     state.pollTimer = window.setInterval(pollPeer, 2500);
-  };
-
-  const typingUpdate = async (form, active) => {
-    if (!state.activityReady) {
-      return;
-    }
-    const peerId = recipientFor(form);
-    if (!peerId) {
-      return;
-    }
-    try {
-      await apiJson("/linkup/activity/typing", {
-        method: "POST",
-        body: JSON.stringify({ peer_id: peerId, active }),
-      });
-      if (active) {
-        state.lastTypingSentAt = Date.now();
-      }
-    } catch (_error) {
-      // Typing is convenience-only and must never block a Link.
-    }
-  };
-
-  const clearTypingTimers = () => {
-    if (state.typingStopTimer) {
-      window.clearTimeout(state.typingStopTimer);
-      state.typingStopTimer = null;
-    }
-    if (state.typingRefreshTimer) {
-      window.clearInterval(state.typingRefreshTimer);
-      state.typingRefreshTimer = null;
-    }
-  };
-
-  const startTyping = (form) => {
-    if (!state.activityReady) {
-      return;
-    }
-    const textarea = bodyFor(form);
-    if (!textarea || !textarea.value.trim() || !recipientFor(form)) {
-      return;
-    }
-    startPolling(form);
-    const now = Date.now();
-    if (now - state.lastTypingSentAt > 2000) {
-      typingUpdate(form, true);
-    }
-    if (!state.typingRefreshTimer) {
-      state.typingRefreshTimer = window.setInterval(() => {
-        if (state.activeForm === form && textarea.value.trim()) {
-          typingUpdate(form, true);
-        }
-      }, 4000);
-    }
-    if (state.typingStopTimer) {
-      window.clearTimeout(state.typingStopTimer);
-    }
-    state.typingStopTimer = window.setTimeout(() => {
-      typingUpdate(form, false);
-      clearTypingTimers();
-    }, 2200);
-  };
-
-  const stopTyping = (form) => {
-    clearTypingTimers();
-    typingUpdate(form, false);
   };
 
   const ensureLocalReceipt = (form, payload, messageId) => {
@@ -368,8 +287,7 @@
     if (submit) {
       submit.disabled = true;
     }
-    localStatus.textContent = "Sending…";
-    stopTyping(form);
+    localStatus.textContent = "Landing…";
     try {
       const result = await apiJson("/linkup/messages", {
         method: "POST",
@@ -421,7 +339,6 @@
   forms.forEach((form) => {
     const textarea = bodyFor(form);
     localStatusFor(form);
-    typingStatusFor(form);
     form.addEventListener("submit", (event) => {
       if (!state.ready) {
         return;
@@ -430,11 +347,8 @@
       sendLink(form);
     });
     textarea?.addEventListener("focus", () => startPolling(form));
-    textarea?.addEventListener("input", () => startTyping(form));
-    textarea?.addEventListener("blur", () => stopTyping(form));
     const recipient = form.querySelector('[name="recipient_id"]');
     recipient?.addEventListener("change", () => {
-      stopTyping(form);
       startPolling(form);
     });
   });
@@ -448,9 +362,6 @@
   });
 
   window.addEventListener("pagehide", () => {
-    if (state.activeForm) {
-      stopTyping(state.activeForm);
-    }
     if (state.pollTimer) {
       window.clearInterval(state.pollTimer);
     }
@@ -464,9 +375,7 @@
         status.idempotent_send === true && status.stable_cursor === true;
       if (state.ready) {
         forms.forEach((form) => {
-          localStatusFor(form).textContent = state.activityReady
-            ? "Link → Landed → Seen · private typing ready"
-            : "Link → Landed → Seen";
+          localStatusFor(form).textContent = "Landing → Landed → Lit";
         });
       }
     })

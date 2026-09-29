@@ -8,7 +8,7 @@ def test_unified_incoming_projection_is_first_party():
     assert '"external_notification_provider_required": False' in source
     assert "link_request" in source
     assert "missed_call" in source
-    assert "circle_invite" in source
+    assert "circle_invite" not in source
 
 
 def test_unified_incoming_requires_existing_sources():
@@ -19,8 +19,6 @@ def test_unified_incoming_requires_existing_sources():
         "link_relationships",
         "link_voice_notes",
         "link_call_sessions",
-        "link_circle_invites",
-        "link_circles",
     ):
         assert f'"{table}"' in source
 
@@ -53,5 +51,7 @@ def test_unified_incoming_client_polls_and_opens_links():
 
     assert "/linkup/incoming/status" in script
     assert "/linkup/incoming" in script
-    assert "window.setInterval(poll, 5000)" in script
+    assert "document.hidden" in script
+    assert "visibilitychange" in script
+    assert "window.setInterval(poll, 5000)" not in script
     assert 'event.event_type === "link"' in script

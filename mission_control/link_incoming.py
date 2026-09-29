@@ -15,8 +15,6 @@ REQUIRED_TABLES = {
     "link_relationships",
     "link_voice_notes",
     "link_call_sessions",
-    "link_circle_invites",
-    "link_circles",
 }
 
 class LinkIncomingUnavailable(RuntimeError):
@@ -125,27 +123,11 @@ def list_incoming(identity_id: object, *, limit: int = 80) -> list[dict[str, obj
                     AND c.outcome IN ('cancelled','declined','failed')
                     AND COALESCE(c.ended_at,c.started_at)>=CURRENT_TIMESTAMP - INTERVAL '7 days'
 
-                  UNION ALL
-
-                  SELECT
-                    'circle_invite'::text,
-                    i.id::text,
-                    i.inviter_id::text,
-                    COALESCE(u.display_name,u.username)::text,
-                    'Circle Invite'::text,
-                    c.name::text,
-                    i.created_at
-                  FROM link_circle_invites i
-                  JOIN link_circles c ON c.id=i.circle_id
-                  JOIN users u ON u.id=i.inviter_id
-                  WHERE i.invitee_id=%s
-                    AND i.status='pending'
-                    AND c.status='active'
                 ) incoming
                 ORDER BY created_at DESC
                 LIMIT %s
                 """,
-                (identity, identity, identity, identity, identity, bounded),
+                (identity, identity, identity, identity, bounded),
             ).fetchall()
     except Exception as exc:
         raise LinkIncomingUnavailable("incoming_read_failed") from exc

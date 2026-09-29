@@ -16,6 +16,7 @@
       panel.dataset.active = panel.dataset.linkupPanel === id ? "true" : "false";
     });
     app.dataset.chatOpen = "true";
+    window.dispatchEvent(new CustomEvent("oap:linkup-engaged", { detail: { panel: id } }));
     const activePanel = panels.find((panel) => panel.dataset.linkupPanel === id);
     activePanel?.querySelector("textarea")?.focus({ preventScroll: true });
   };

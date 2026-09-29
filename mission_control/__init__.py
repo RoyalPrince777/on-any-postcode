@@ -467,6 +467,26 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    if os.environ.get("OAP_LIBRARY_LEARNING_PROOF_ON_BOOT", "").strip() == "1":
+        proof = oap_library_learning.live_persistence_probe()
+        print(
+            json.dumps(
+                {
+                    "event": "oap_library_learning_live_proof",
+                    "success": bool(proof.get("passed")),
+                    "checks": proof.get("checks"),
+                    "proof_kind": proof.get("proof_kind"),
+                    "uses_member_data": False,
+                    "production_rows_persisted": False,
+                    "secret_exposed": False,
+                    "error": proof.get("error"),
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+
     if os.environ.get("OAP_LINK_PING_MIGRATION_ON_BOOT", "").strip() == "1":
         try:
             ping_status = link_ping.init_schema(assume_yes=True)
