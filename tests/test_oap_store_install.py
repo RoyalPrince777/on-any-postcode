@@ -108,7 +108,11 @@ def test_only_apps_with_dedicated_install_proof_expose_install_buttons():
         if app_id not in installable:
             assert app["manifest_url"] is None
             assert app["install_url"] is None
-            assert app["release_state"] == "open_ready"
+            assert app["release_state"] in {"open_ready", "planned"}
+            if app["release_state"] == "planned":
+                assert app["open_url"] is None
+            else:
+                assert app["open_url"]
 
 
 def test_public_store_does_not_expose_founder_private_command_surfaces(client):
@@ -170,7 +174,7 @@ def test_oap_search_is_open_ready_and_public_catalogue_only(client):
     body = page.get_data(as_text=True)
     assert "OAP Search" in body
     assert "OAP Music" in body
-    assert "OAP Player" in body
+    assert "OAP TV &amp; Media" in body
     assert "private Link Up messages" in body
     assert "/mission" not in body
     assert "/infrastructure" not in body
