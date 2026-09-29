@@ -9,6 +9,7 @@ from . import (
     music_acceptance,
     music_assets,
     music_evidence,
+    music_entitlements,
     music_recovery,
     music_rights_store,
     postgres_db,
@@ -26,6 +27,7 @@ _MIGRATIONS = (
     (music_acceptance.ACCEPTANCE_MIGRATION_VERSION, music_acceptance.SCHEMA_STATEMENTS),
     (music_assets.MUSIC_ASSET_MIGRATION_VERSION, music_assets.SCHEMA_STATEMENTS),
     (music_rights_store.MUSIC_RIGHTS_MIGRATION_VERSION, music_rights_store.SCHEMA_STATEMENTS),
+    (music_entitlements.MUSIC_ENTITLEMENT_MIGRATION_VERSION, music_entitlements.SCHEMA_STATEMENTS),
 )
 _LOCK_KEY = 25800012
 
