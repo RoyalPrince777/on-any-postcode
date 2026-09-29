@@ -154,6 +154,32 @@ def on_starting(server):
             separators=(",", ":"),
         )
     )
+    server.log.info(
+        json.dumps(
+            {
+                "event": "oap_smi_inference_readiness",
+                "local_enabled": os.environ.get("OAP_INFERENCE_LOCAL_ENABLED", "1").strip().lower()
+                not in {"0", "false", "no", "off"},
+                "local_url_configured": bool(os.environ.get("OAP_INFERENCE_LOCAL_URL", "").strip()),
+                "local_model_configured": bool(
+                    os.environ.get("OAP_INFERENCE_LOCAL_MODEL", "oap-core:latest").strip()
+                ),
+                "bridge_enabled": os.environ.get("OAP_HOME_NODE_BRIDGE_ENABLED", "1").strip().lower()
+                not in {"0", "false", "no", "off"},
+                "bridge_configured": bool(
+                    os.environ.get("OAP_HOME_NODE_BRIDGE_TOKEN", "").strip()
+                ),
+                "compatibility_fallback_enabled": os.environ.get(
+                    "OAP_INFERENCE_COMPATIBILITY_FALLBACK", "1"
+                ).strip().lower() not in {"0", "false", "no", "off"},
+                "compatibility_fallback_configured": bool(
+                    os.environ.get("OPENAI_API_KEY", "").strip()
+                ),
+                "secret_exposed": False,
+            },
+            separators=(",", ":"),
+        )
+    )
     _emit_database_certification(server)
     _emit_database_connection_diagnostic(server)
     _restore_configured_authority_once(server)
