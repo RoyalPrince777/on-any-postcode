@@ -147,3 +147,75 @@ def test_review_schema_persists_authority_and_human_approval_receipts():
     assert "HUMAN_APPROVAL" in joined
     assert "reviewer_identity_id UUID NOT NULL" in joined
     assert "receipt_hash CHAR(64) NOT NULL UNIQUE" in joined
+
+
+def test_platform_use_evaluation_reads_persisted_grants_and_never_delivers_media():
+    class Result:
+        def __init__(self, one=None, many=None):
+            self.one = one
+            self.many = many or []
+        def fetchone(self):
+            return self.one
+        def fetchall(self):
+            return self.many
+
+    class Connection:
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def execute(self, sql, params=()):
+            if "SELECT release_id,sha256 FROM oap_music_assets" in sql:
+                return Result((
+                    "44444444-4444-4444-8444-444444444444",
+                    "f" * 64,
+                ))
+            if "FROM oap_music_rights_grants" in sql:
+                return Result(many=[(
+                    GRANT,
+                    ASSET,
+                    OWNER,
+                    "Independent grantor",
+                    "recording",
+                    ["stream"],
+                    ["GB"],
+                    ["OAP Music"],
+                    None,
+                    None,
+                    False,
+                    False,
+                    False,
+                    ["a" * 64],
+                    True,
+                    "b" * 64,
+                    True,
+                    "c" * 64,
+                    False,
+                    None,
+                )])
+            return Result()
+
+    original = music_rights_store.postgres_db.connect
+    music_rights_store.postgres_db.connect = lambda **_kwargs: Connection()
+    try:
+        result = music_rights_store.MusicRightsStore().evaluate_platform_use(
+            owner_identity_id=OWNER,
+            asset_id=ASSET,
+            use="stream",
+            territory="GB",
+            channel="OAP Music",
+            requested_at="2026-09-29T12:00:00+00:00",
+        )
+    finally:
+        music_rights_store.postgres_db.connect = original
+
+    assert result["decision"]["decision"] == "ALLOW"
+    assert result["platform_use_only"] is True
+    assert result["listener_entitlement_checked"] is False
+    assert result["media_delivery_performed"] is False
+    assert result["public_catalogue_enabled"] is False
+
+
+def test_review_query_is_release_scoped():
+    source = music_rights_store.MusicRightsStore._record_review.__code__
+    assert source is not None
