@@ -217,6 +217,42 @@ class MusicPurchaseStore:
                    ON CONFLICT (purchase_id) DO NOTHING""",
                 (ownership_id,str(row[0]),purchase,str(row[1]),str(row[2]),str(row[3])),
             )
+            if str(row[1]) == "TRACK":
+                beneficiary = connection.execute(
+                    """SELECT r.owner_identity_id
+                       FROM oap_music_tracks t
+                       JOIN oap_music_releases r ON r.release_id=t.release_id
+                       WHERE t.track_id=%s""",
+                    (str(row[2]),),
+                ).fetchone()
+            else:
+                beneficiary = connection.execute(
+                    """SELECT owner_identity_id FROM oap_music_releases
+                       WHERE release_id=%s""",
+                    (str(row[2]),),
+                ).fetchone()
+            if beneficiary is None:
+                raise ValueError("music_purchase_item_not_found")
+            amount = connection.execute(
+                """SELECT amount_minor,currency FROM oap_music_purchase_intents
+                   WHERE purchase_id=%s""",
+                (purchase,),
+            ).fetchone()
+            connection.execute(
+                """INSERT INTO oap_music_creator_allocations(
+                   allocation_id,purchase_id,beneficiary_identity_id,gross_amount_minor,
+                   currency,state,settlement_reference)
+                   VALUES (%s,%s,%s,%s,%s,'PENDING_RECONCILIATION',%s)
+                   ON CONFLICT (purchase_id) DO NOTHING""",
+                (
+                    str(uuid4()),
+                    purchase,
+                    str(beneficiary[0]),
+                    int(amount[0]),
+                    str(amount[1]),
+                    reference,
+                ),
+            )
             connection.commit()
         return {
             "purchase_id": purchase,
@@ -224,6 +260,94 @@ class MusicPurchaseStore:
             "ownership_created": True,
             "settlement_reference_recorded": True,
             "payment_capture_performed_by_this_module": False,
+            "sika_execution_performed": False,
+            "human_authority_final": True,
+        }
+
+
+    def record_refund(
+        self,
+        *,
+        purchase_id: object,
+        refund_reference: object,
+    ) -> dict[str, object]:
+        purchase = _uuid(purchase_id, "purchase_id")
+        reference = str(refund_reference or "").strip()
+        if not reference or len(reference) > 240:
+            raise ValueError("invalid_refund_reference")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_music_purchase_intents
+                   SET state='REFUNDED',refund_reference=%s,
+                       refunded_at=COALESCE(refunded_at,CURRENT_TIMESTAMP)
+                   WHERE purchase_id=%s AND state='SETTLED'
+                   RETURNING buyer_identity_id,item_type,item_id""",
+                (reference,purchase),
+            ).fetchone()
+            if row is None:
+                current = connection.execute(
+                    "SELECT state FROM oap_music_purchase_intents WHERE purchase_id=%s",
+                    (purchase,),
+                ).fetchone()
+                if current is None:
+                    raise ValueError("purchase_not_found")
+                if str(current[0]) != "REFUNDED":
+                    raise ValueError("purchase_not_refundable")
+            connection.execute(
+                """UPDATE oap_music_owned_items
+                   SET active=FALSE,revoked_at=COALESCE(revoked_at,CURRENT_TIMESTAMP)
+                   WHERE purchase_id=%s AND active=TRUE""",
+                (purchase,),
+            )
+            connection.execute(
+                """UPDATE oap_music_creator_allocations
+                   SET state='REVERSED',reversed_at=COALESCE(reversed_at,CURRENT_TIMESTAMP)
+                   WHERE purchase_id=%s AND state IN ('PENDING_RECONCILIATION','RECONCILED')""",
+                (purchase,),
+            )
+            connection.commit()
+        return {
+            "purchase_id": purchase,
+            "state": "REFUNDED",
+            "ownership_active": False,
+            "creator_allocation_state": "REVERSED",
+            "refund_reference_recorded": True,
+            "refund_execution_performed_by_this_module": False,
+            "money_transfer_performed": False,
+            "sika_execution_performed": False,
+            "human_authority_final": True,
+        }
+
+    def creator_reconciliation(
+        self,
+        *,
+        purchase_id: object,
+        reconciliation_reference: object,
+    ) -> dict[str, object]:
+        purchase = _uuid(purchase_id, "purchase_id")
+        reference = str(reconciliation_reference or "").strip()
+        if not reference or len(reference) > 240:
+            raise ValueError("invalid_reconciliation_reference")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_music_creator_allocations
+                   SET state='RECONCILED',reconciliation_reference=%s,
+                       reconciled_at=COALESCE(reconciled_at,CURRENT_TIMESTAMP)
+                   WHERE purchase_id=%s AND state='PENDING_RECONCILIATION'
+                   RETURNING beneficiary_identity_id,gross_amount_minor,currency""",
+                (reference,purchase),
+            ).fetchone()
+            if row is None:
+                raise ValueError("allocation_not_reconcilable")
+            connection.commit()
+        return {
+            "purchase_id": purchase,
+            "beneficiary_identity_id": str(row[0]),
+            "gross_amount_minor": int(row[1]),
+            "currency": str(row[2]),
+            "state": "RECONCILED",
+            "reconciliation_reference_recorded": True,
+            "money_transfer_performed": False,
             "sika_execution_performed": False,
             "human_authority_final": True,
         }
