@@ -219,7 +219,7 @@ def music_save_track_content(track_id: str):
         return _api_error("permission_denied", str(exc), 403)
     except (TypeError, ValueError) as exc:
         return _api_error("invalid_request", str(exc), 400)
-    except Exception:
+    except Exception:  # noqa: BLE001 - redact storage details.
         return _api_error("music_content_unavailable", "Track content is temporarily unavailable.", 503)
 
 
@@ -243,7 +243,7 @@ def music_add_video_link(track_id: str):
         return _api_error("permission_denied", str(exc), 403)
     except (TypeError, ValueError) as exc:
         return _api_error("invalid_request", str(exc), 400)
-    except Exception:
+    except Exception:  # noqa: BLE001 - redact storage details.
         return _api_error("music_video_link_unavailable", "Video linking is temporarily unavailable.", 503)
 
 
