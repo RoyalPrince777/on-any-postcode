@@ -288,10 +288,11 @@ def test_browser_controller_is_same_origin_retryable_and_syntax_valid():
 
     assert 'apiJson("/linkup/messages/status")' in messages_js
     assert 'apiJson("/linkup/messages"' in messages_js
-    assert 'apiJson("/linkup/activity/typing"' in messages_js
+    assert '/linkup/activity/typing' not in messages_js
     assert 'retry.textContent = "Retry"' in messages_js
     assert 'receipt.textContent = "Landed"' in messages_js
-    assert '"Seen" : "Landed"' in messages_js
+    assert '"Lit" : "Landed"' in messages_js
+    assert '"Landing…"' in messages_js
     assert 'credentials: "same-origin"' in messages_js
     assert "https://" not in messages_js
     assert "http://" not in messages_js
