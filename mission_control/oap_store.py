@@ -25,6 +25,7 @@ OAP_WORLD = {
     "manifest_url": "/manifest.webmanifest",
     "service_worker_url": "/service-worker.js",
     "start_url": "/",
+    "install_url": "/?source=oap-store&install=1",
     "offline_url": "/offline",
     "native_apk": False,
     "native_package_available": False,
