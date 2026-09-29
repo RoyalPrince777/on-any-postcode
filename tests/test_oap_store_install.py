@@ -38,7 +38,10 @@ def test_store_routes_expose_installable_pwa_without_native_claim(client):
     assert "Install OAP World" in body
     assert "Install Link Up" in body
     assert "data-oap-install" not in body
-    assert "opens its own installer surface" in body
+    assert "Open OAP Arena" in body
+    assert "Open OAP Library" in body
+    assert "Open OAP Music" in body
+    assert "OPEN READY · INSTALL NOT YET PROVEN" in body
     assert "signed native Android APK" in body
 
     entry = client.get("/oap-store/apps/oap.world")
@@ -73,7 +76,54 @@ def test_link_up_store_entry_and_manifest_are_dedicated(client):
 
 def test_store_catalogue_keeps_app_install_identities_separate():
     apps = {app["app_id"]: app for app in oap_store.catalogue()}
-    assert set(apps) == {"oap.world", "oap.linkup"}
+    assert {"oap.world", "oap.linkup", "oap.music", "oap.arena", "oap.library"} <= set(apps)
+    assert len(apps) == len(oap_store.catalogue())
     assert apps["oap.world"]["manifest_url"] == "/manifest.webmanifest"
     assert apps["oap.linkup"]["manifest_url"] == "/linkup/manifest.webmanifest"
+    assert apps["oap.music"]["manifest_url"] == "/music/manifest.webmanifest"
     assert apps["oap.world"]["start_url"] != apps["oap.linkup"]["start_url"]
+    assert apps["oap.linkup"]["start_url"] != apps["oap.music"]["start_url"]
+
+
+def test_store_lists_every_public_spot_app_without_faking_installability():
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    for capability in oap_store.products.PUBLIC_SPOT_CAPABILITIES:
+        app_id = f'oap.{capability["source_id"]}'
+        if capability["source_id"] == "music":
+            assert "oap.music" in apps
+            continue
+        if capability["source_id"] == "arena":
+            assert "oap.arena" in apps
+            continue
+        assert app_id in apps
+        assert apps[app_id]["first_party"] is True
+        assert apps[app_id]["open_url"].startswith("/")
+
+
+def test_only_apps_with_dedicated_install_proof_expose_install_buttons():
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    installable = {app_id for app_id, app in apps.items() if app["install_enabled"]}
+    assert installable == {"oap.world", "oap.linkup", "oap.music"}
+    for app_id, app in apps.items():
+        if app_id not in installable:
+            assert app["manifest_url"] is None
+            assert app["install_url"] is None
+            assert app["release_state"] == "open_ready"
+
+
+def test_public_store_does_not_expose_founder_private_command_surfaces(client):
+    body = client.get("/store").get_data(as_text=True)
+    for private_route in ("/mission", "/infrastructure", "/my-world", "/global-affairs"):
+        assert f'href="{private_route}"' not in body
+
+
+def test_generic_store_entry_returns_catalogue_record(client):
+    response = client.get("/oap-store/apps/oap.arena")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["app_id"] == "oap.arena"
+    assert payload["open_url"] == "/arena"
+    assert payload["install_enabled"] is False
+
+    missing = client.get("/oap-store/apps/oap.not-real")
+    assert missing.status_code == 404
