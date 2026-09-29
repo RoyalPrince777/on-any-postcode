@@ -951,8 +951,21 @@ def play_track_audio_asset(asset_id: str):
         return _no_store(response)
     except (TypeError, ValueError):
         return _error("invalid_request", "Invalid audio asset.", 400)
+    except music_assets.MusicAssetStopped:
+        return _error("music_asset_stopped", "This audio asset has been stopped.", 410)
     except music_assets.MusicAssetUnavailable:
         return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+
+
+@bp.post("/tune/assets/<asset_id>/stop")
+@web_security.login_required(api=True)
+def stop_track_audio_asset(asset_id: str):
+    return _handle_write(
+        lambda: _music_asset_store.stop(
+            owner_identity_id=_identity(sync=True),
+            asset_id=asset_id,
+        )
+    )
 
 
 @bp.post("/tune/releases/<release_id>/review")
