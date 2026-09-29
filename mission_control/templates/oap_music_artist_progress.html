@@ -4,6 +4,12 @@
 <body><main class="shell">
 <header class="top"><div><div class="muted">OAP MUSIC</div><h1>📈 Artist Progress</h1><div class="muted">Your real release, rights and value progress.</div></div><div><a class="pill" href="/music/studio">Studio</a> <a class="pill" href="/music">Music</a></div></header>
 <section class="grid">
+<div class="card"><div class="muted">Listening Now</div><div class="metric">{{ progress.listening_now|default(0,true) }}</div><div class="state">Active within the last 90 seconds</div></div>
+<div class="card"><div class="muted">Qualified Listens</div><div class="metric">{{ progress.qualified_listens|default(0,true) }}</div></div>
+<div class="card"><div class="muted">Unique Listeners</div><div class="metric">{{ progress.unique_qualified_listeners|default(0,true) }}</div></div>
+<div class="card"><div class="muted">Combined Reach</div><div class="metric">{{ progress.combined_reach|default(0,true) }}</div><div class="state">Deduplicated across Music + TV</div></div>
+<div class="card"><div class="muted">Music Views</div><div class="metric">{{ progress.music_qualified_views|default(0,true) }}</div></div>
+<div class="card"><div class="muted">TV Views</div><div class="metric">{{ progress.tv_qualified_views|default(0,true) }}</div></div>
 <div class="card"><div class="muted">Releases</div><div class="metric">{{ progress.release_count }}</div></div>
 <div class="card"><div class="muted">Tracks</div><div class="metric">{{ progress.track_count }}</div></div>
 <div class="card"><div class="muted">Active creator value</div><div class="metric">£{{ '%.2f'|format(progress.accounting.gross_active_minor / 100) }}</div><div class="state">Accounting evidence only · no payout claim</div></div>
@@ -21,5 +27,10 @@
 <div class="card"><div class="muted">Reconciled</div><div class="metric">{{ progress.accounting.reconciled_count }}</div></div>
 <div class="card"><div class="muted">Reversed</div><div class="metric">{{ progress.accounting.reversed_count }}</div></div>
 </section>
-<section class="card" style="margin-top:18px"><strong>Coming when proven</strong><div class="state">Qualified listens · Rank position · Radio spins · Audience growth</div><div class="muted" style="margin-top:8px">These remain unavailable until their measurement cores are proven. No simulated numbers.</div></section>
+<section class="card" style="margin-top:18px"><strong>Where people listen</strong><div class="list">
+{% for place in progress.places|default([],true) %}
+<div class="row"><strong>{{ place.country }}</strong><div class="state">{{ place.region }} · {{ place.borough }} · {{ place.unique_listeners }} unique listener{% if place.unique_listeners != 1 %}s{% endif %}</div></div>
+{% else %}<div class="muted">No qualified location data yet.</div>{% endfor %}
+</div></section>
+<section class="card" style="margin-top:18px"><strong>Coming when proven</strong><div class="state">Rank position · Radio spins · Audience growth</div><div class="muted" style="margin-top:8px">These remain unavailable until their measurement cores are proven. No simulated numbers.</div></section>
 </main></body></html>
