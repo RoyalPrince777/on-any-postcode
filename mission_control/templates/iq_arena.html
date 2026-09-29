@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="oap-csrf-token" content="{{ csrf_token }}">
+  <title>IQ Arena · OAP Arena</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <script src="{{ url_for('static', filename='iq_arena.js') }}" defer></script>
+  <style>
+    .iq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+    .iq-card{border:1px solid var(--mc-line);border-radius:14px;padding:12px;background:var(--mc-panel-soft)}
+    .iq-choice{display:block;width:100%;margin:7px 0;padding:10px;border:1px solid var(--mc-line);border-radius:10px;background:var(--mc-panel-soft);color:var(--mc-text)}
+  </style>
+</head>
+<body>
+<main class="mc-shell" data-iq-root>
+  <section class="card">
+    <p><a href="/arena">← OAP Arena</a></p>
+    <h1>🧠 IQ Arena</h1>
+    <p><strong>Think. Solve. Adapt.</strong></p>
+    <p>Seven-domain first-party skills challenge: Logic, Patterns, Memory, Spatial, Numbers, Language and Strategy.</p>
+    <p><strong>Truth boundary:</strong> this is not a clinical or standardized IQ test. It reports only an in-game skill profile.</p>
+    <button type="button" data-start>Start IQ Arena</button>
+    <button type="button" data-stop>STOP</button>
+    <p data-error role="alert"></p>
+  </section>
+  <section class="card" data-play hidden>
+    <p>Status: <strong data-status></strong> · Score <strong data-score></strong>/<strong data-total></strong></p>
+    <div data-question></div>
+    <h2>Skill Profile</h2>
+    <div class="iq-grid" data-profile></div>
+  </section>
+</main>
+</body>
+</html>
