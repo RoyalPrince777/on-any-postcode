@@ -100,7 +100,7 @@ def save_track_content(
     normalized = []
     for item in credit_rows:
         if not isinstance(item, dict):
-            raise ValueError("invalid_credit")
+            raise TypeError("invalid_credit")
         name = " ".join(str(item.get("name") or "").split())
         role = " ".join(str(item.get("role") or "").split())
         if not name or not role or len(name) > 180 or len(role) > 120:
