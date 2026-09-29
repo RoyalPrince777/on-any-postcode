@@ -131,7 +131,7 @@ def test_generic_store_entry_returns_catalogue_record(client):
 
 def test_planned_infrastructure_apps_are_listed_without_fake_routes():
     apps = {app["app_id"]: app for app in oap_store.catalogue()}
-    for app_id in ("oap.mail", "oap.search", "oap.vpn", "oap.cyber-security"):
+    for app_id in ("oap.mail", "oap.vpn", "oap.cyber-security"):
         assert app_id in apps
         assert apps[app_id]["release_state"] == "planned"
         assert apps[app_id]["open_url"] is None
@@ -149,10 +149,36 @@ def test_store_renders_planned_apps_without_open_or_install_claim(client):
     body = client.get("/store").get_data(as_text=True)
     assert "OAP Mail" in body
     assert "OAP Search" in body
+    assert 'href="/search"' in body
     assert "OAP VPN" in body
     assert "OAP Cyber Security" in body
     assert "PLANNED · SURFACE NOT YET PROVEN" in body
     assert 'href="/mail"' not in body
-    assert 'href="/search"' not in body
     assert 'href="/vpn"' not in body
     assert 'href="/cyber-security"' not in body
+
+
+def test_oap_search_is_open_ready_and_public_catalogue_only(client):
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    search = apps["oap.search"]
+    assert search["release_state"] == "open_ready"
+    assert search["open_url"] == "/search"
+    assert search["install_enabled"] is False
+
+    page = client.get("/search?q=music")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert "OAP Search" in body
+    assert "OAP Music" in body
+    assert "OAP Player" in body
+    assert "private Link Up messages" in body
+    assert "/mission" not in body
+    assert "/infrastructure" not in body
+
+
+def test_oap_search_does_not_return_planned_apps_without_open_routes(client):
+    page = client.get("/search?q=vpn")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert "No public OAP app matched." in body
+    assert "Open OAP VPN" not in body
