@@ -12,8 +12,9 @@
 .hero{padding:22px;border:1px solid #292929;border-radius:24px;background:#111}.search{width:100%;margin-top:16px;padding:15px;border-radius:16px;border:1px solid #333;background:#090909;color:#fff;font-size:1rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:16px}.card{border:1px solid #2d2d2d;background:#121212;border-radius:18px;padding:16px}
 .card audio{width:100%;margin-top:12px}.pay-row{display:flex;gap:8px;align-items:center;margin-top:12px}.pay-row input{width:92px;padding:9px;border-radius:10px;border:1px solid #333;background:#090909;color:#fff}.pay-row button{padding:9px 12px;border-radius:999px;border:1px solid #444;background:#f2f2f2;color:#111;font-weight:700}.status{margin-top:10px;color:#aaa}.lock{margin-top:12px;padding:10px;border-radius:12px;background:#17140b;color:#e3c970}
-.bottom{position:fixed;bottom:0;left:0;right:0;background:#0a0a0af2;border-top:1px solid #262626;display:flex;justify-content:center;gap:8px;padding:10px}
-.bottom a{color:#ddd;text-decoration:none;padding:9px 12px;border-radius:12px}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#0a0a0af2;border-top:1px solid #262626;display:flex;justify-content:center;gap:4px;padding:8px 10px;backdrop-filter:blur(16px);z-index:20}
+.bottom a{color:#aaa;text-decoration:none;padding:9px 12px;border-radius:12px;font-size:.92rem}.bottom a.active{color:#fff;background:#1b1b1b}.section-title{margin:24px 0 8px;font-size:1.05rem}.track-title{font-size:1.06rem}.track-meta{font-size:.9rem;margin-top:4px}
+@media(max-width:640px){.shell{padding:16px 14px 88px}.top{align-items:flex-start;flex-direction:column}.brand h1{font-size:1.8rem}.actions{width:100%}.actions .pill{flex:1;text-align:center}.hero{padding:18px;border-radius:20px}.grid{grid-template-columns:1fr}.pay-row{align-items:stretch;flex-wrap:wrap}.pay-row input{width:82px}.pay-row .muted{width:100%}.bottom a{flex:1;text-align:center;padding:9px 4px;font-size:.82rem}}
 </style></head>
 <body><main class="shell">
 <header class="top"><div class="brand"><div class="muted">ON ANY POSTCODE</div><h1>🎵 OAP Music</h1><div class="muted">Listen. Discover. Play.</div></div>
@@ -21,9 +22,9 @@
 <section class="hero"><strong>First-party OAP catalogue</strong><div class="muted">Only tracks with current rights and entitlement proof become playable.</div>
 <input id="music-search" class="search" type="search" placeholder="Search tracks, releases…" autocomplete="off">
 <div id="catalogue-state" class="status">Loading OAP Music…</div></section>
-<section><div id="oap-results" class="grid"></div><div id="oap-empty" class="status">No public tracks are available yet.</div><div class="status" data-oap-music-install-status role="status">First-party installable web app</div></section>
+<section><h2 class="section-title">Listen now</h2><div id="oap-results" class="grid"></div><div id="oap-empty" class="status">No public tracks are available yet.</div><div class="status" data-oap-music-install-status role="status">First-party installable web app</div></section>
 </main>
-<nav class="bottom"><a href="/music">🎵 Music</a><a href="/radio">📻 Radio</a><a href="/music/studio">⬆ Studio</a></nav>
+<nav class="bottom" aria-label="OAP Music"><a class="active" href="/music">🎵 Music</a><a href="/radio">📻 Radio</a><a href="/music/artist-progress">📈 Progress</a><a href="/music/studio">⬆ Studio</a></nav>
 <script>
 (() => {
  const input=document.getElementById('music-search'),results=document.getElementById('oap-results'),empty=document.getElementById('oap-empty'),state=document.getElementById('catalogue-state');
@@ -47,8 +48,8 @@
    const p=await r.json(); results.replaceChildren();
    (p.items||[]).forEach(item=>{
     const card=document.createElement('article'); card.className='card';
-    const title=document.createElement('strong'); title.textContent=item.track_title;
-    const meta=document.createElement('div'); meta.className='muted'; meta.textContent=item.release_title+' · '+item.release_type;
+    const title=document.createElement('strong'); title.className='track-title'; title.textContent=item.track_title;
+    const meta=document.createElement('div'); meta.className='muted track-meta'; meta.textContent=item.release_title+' · '+item.release_type;
     card.append(title,meta);
     const pay=document.createElement('div');pay.className='pay-row';
     const amount=document.createElement('input');amount.type='number';amount.min='1';amount.step='0.01';amount.value='1.00';amount.setAttribute('aria-label','Song amount in pounds');
