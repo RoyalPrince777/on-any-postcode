@@ -144,7 +144,7 @@
       <p class="mc-eyebrow">Basket</p>
       <h2 id="market-basket-title">Your Basket</h2>
       {% if auth_user %}
-      <p class="market-meta">Basket lines are pre-order state. Confirming creates one canonical Commerce order and Market transaction per line. No payment is captured.</p>
+      <p class="market-meta">Basket lines are pre-order state. Confirming creates one canonical Commerce order and Market transaction per line. No payment is captured directly by Market. Market routes payment through SIKA settlement.</p>
       <div id="market-basket-list" class="market-basket-list"></div>
       <div class="market-actions">
         <button id="market-checkout" class="mc-primary" type="button">Review & Confirm Orders</button>
@@ -205,7 +205,7 @@
         <span class="market-chip">Order · governed</span>
         <span class="market-chip">Movement · evidence-gated</span>
         <span class="market-chip">Parcel · evidence-gated</span>
-        <span class="market-chip">Payment capture · locked</span>
+        <span class="market-chip">Payment route · SIKA → approved bank</span>
       </div>
     </section>
   </main>
@@ -313,7 +313,7 @@
           created.push(result);
         }
         saveBasket([]); renderBasket();
-        status.textContent = created.length + ' governed order' + (created.length === 1 ? '' : 's') + ' created. Payment capture remains locked.';
+        status.textContent = created.length + ' governed order' + (created.length === 1 ? '' : 's') + ' created. Payment execution is routed through SIKA. Bank/provider execution remains evidence-gated.';
         await refreshOrders();
       } catch (error) {
         status.textContent = 'Checkout stopped safely: ' + error.message;
