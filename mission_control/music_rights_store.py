@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 
 from . import postgres_db, rights_core
 
-MUSIC_RIGHTS_MIGRATION_VERSION = "0015_oap_music_rights_grants"
+MUSIC_RIGHTS_MIGRATION_VERSION = "0014_oap_music_rights_grants"
 
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_music_rights_grants (
