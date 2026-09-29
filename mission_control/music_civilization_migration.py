@@ -5,7 +5,6 @@ import hashlib
 import os
 
 from . import (
-    ),
     live_music_core,
     music_acceptance,
     music_accounting,
