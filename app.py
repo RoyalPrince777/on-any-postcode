@@ -28,6 +28,7 @@ from mission_control import (
     certification,
     founder_activation,
     founder_recovery,
+    iq_arena,
     judgement,
     languages,
     link_call_audit,
@@ -820,6 +821,73 @@ def arena_session_recover():
     result = arena_intelligence.public_state(state)
     result["recovered"] = True
     return _arena_json(result, 201)
+
+
+@app.get("/arena/iq")
+def iq_arena_page():
+    """Open the bounded first-party IQ Arena skill challenge."""
+
+    response = make_response(
+        render_template(
+            "iq_arena.html",
+            csrf_token=web_security.csrf_token(),
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/iq/start")
+def iq_arena_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        _arena_payload()
+        state = iq_arena.new_session()
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[iq_arena.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(iq_arena.public_state(state), 201)
+
+
+@app.post("/arena/iq/answer")
+def iq_arena_answer():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = iq_arena.answer(
+            session.get(iq_arena.SESSION_KEY),
+            question_id=payload.get("question_id"),
+            choice_id=payload.get("choice_id"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[iq_arena.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(iq_arena.public_state(state))
+
+
+@app.post("/arena/iq/stop")
+def iq_arena_stop():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = iq_arena.stop(
+            session.get(iq_arena.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[iq_arena.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(iq_arena.public_state(state))
 
 
 @app.get("/arena/route-empire")
