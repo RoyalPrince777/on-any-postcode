@@ -205,9 +205,12 @@ def main():
             page.wait_for_function(
                 """p => {
                     const input = document.querySelector('#message');
+                    const liveCaption = document.querySelector('#smi-live-reply-caption');
                     return input &&
                            input.value === p &&
-                           document.body.innerText.includes('Your request is preserved for retry.');
+                           liveCaption &&
+                           !liveCaption.hidden &&
+                           liveCaption.innerText.includes('your request is preserved for retry.');
                 }""",
                 arg=prompt,
             )
