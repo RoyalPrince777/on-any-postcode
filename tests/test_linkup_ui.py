@@ -235,13 +235,14 @@ def test_linkup_seven_star_gate_reaches_green_only_at_seven_of_seven():
     assert status["human_authority_final"] is True
 
 
-def test_linkup_template_shows_runtime_seven_star_gate():
+def test_linkup_template_keeps_runtime_seven_star_gate_off_user_surface():
     page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
-    assert "7-Star Gate" in page
-    assert "seven_star_gate.star_count" in page
-    assert "seven_star_gate.percent" in page
-    assert "star.proof" in page
+    assert "7-Star Gate" not in page
+    assert "seven_star_gate.star_count" not in page
+    assert "seven_star_gate.percent" not in page
+    assert "star.proof" not in page
+    assert len(linkup.LINK_UP_SEVEN_STAR_GATE) == 7
 
 
 def test_linkup_emoji_and_conversation_settings_reuse_existing_owners():

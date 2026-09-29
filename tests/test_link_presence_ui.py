@@ -32,7 +32,9 @@ def test_linkup_surface_exposes_oap_presence_controls_without_external_provider(
     template = TEMPLATE.read_text(encoding="utf-8")
     script = SCRIPT.read_text(encoding="utf-8")
 
-    assert "linkup_presence.js" in template
+    optional = (ROOT / "static" / "linkup_optional.js").read_text(encoding="utf-8")
+    assert "linkup_optional.js" in template
+    assert "/static/linkup_presence.js" in optional
     assert "data-oap-around-control" in template
     assert "data-oap-share-spot-control" in template
     assert "data-oap-live-spot-control" in template
