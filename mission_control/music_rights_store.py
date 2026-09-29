@@ -356,7 +356,7 @@ class MusicRightsStore:
         try:
             with postgres_db.connect() as connection:
                 grant = connection.execute(
-                    """SELECT asset_id FROM oap_music_rights_grants
+                    """SELECT asset_id,release_id FROM oap_music_rights_grants
                        WHERE grant_id=%s AND owner_identity_id=%s
                        FOR UPDATE""",
                     (gid, owner),
@@ -364,10 +364,11 @@ class MusicRightsStore:
                 if grant is None:
                     raise PermissionError("music_grant_not_owned")
                 asset = str(grant[0])
+                release = str(grant[1])
                 known_rows = connection.execute(
                     """SELECT evidence_sha256 FROM oap_music_evidence_receipts
-                       WHERE owner_identity_id=%s""",
-                    (owner,),
+                       WHERE owner_identity_id=%s AND release_id=%s""",
+                    (owner, release),
                 ).fetchall()
                 known = {str(row[0]) for row in known_rows}
                 if not set(evidence).issubset(known):
@@ -455,6 +456,81 @@ class MusicRightsStore:
         except Exception as exc:
             raise MusicRightsUnavailable("music_rights_read_failed") from exc
         return [_row_to_grant(row) for row in rows]
+
+    def evaluate_platform_use(
+        self,
+        *,
+        owner_identity_id: object,
+        asset_id: object,
+        use: object,
+        territory: object,
+        channel: object = "OAP Music",
+        requested_at: object = None,
+    ) -> dict[str, object]:
+        """Evaluate persisted rights for an OAP platform use; never deliver media."""
+        owner = _uuid(owner_identity_id, "owner_identity_id")
+        asset = _uuid(asset_id, "asset_id")
+        when = (
+            datetime.now(timezone.utc).isoformat()
+            if requested_at in (None, "")
+            else _instant(requested_at, "requested_at", optional=False)
+        )
+        try:
+            with postgres_db.connect(readonly=True) as connection:
+                row = connection.execute(
+                    """SELECT release_id,sha256 FROM oap_music_assets
+                       WHERE asset_id=%s AND owner_identity_id=%s""",
+                    (asset, owner),
+                ).fetchone()
+                if row is None:
+                    raise PermissionError("music_asset_not_owned")
+                grants = connection.execute(
+                    """SELECT grant_id,asset_id,owner_identity_id,grantor_reference,
+                              right_type,permitted_uses,territories,permitted_channels,
+                              valid_from,valid_until,derivatives_allowed,
+                              commercial_use_allowed,attribution_required,evidence_hashes,
+                              authority_verified,authority_receipt_hash,human_approved,
+                              human_approval_receipt_hash,revoked,revocation_receipt_hash
+                       FROM oap_music_rights_grants
+                       WHERE owner_identity_id=%s AND asset_id=%s
+                       ORDER BY created_at,grant_id""",
+                    (owner, asset),
+                ).fetchall()
+        except PermissionError:
+            raise
+        except Exception as exc:
+            raise MusicRightsUnavailable("music_rights_evaluation_failed") from exc
+        decision = rights_core.evaluate_use(
+            asset={
+                "asset_id": asset,
+                "owner_identity_id": owner,
+                "kind": "audio",
+                "content_sha256": str(row[1]),
+                "parent_asset_id": None,
+                "source_reference": f"oap:music:{row[0]}",
+            },
+            grants=[_row_to_grant(item) for item in grants],
+            request={
+                "asset_id": asset,
+                "requester_identity_id": owner,
+                "use": use,
+                "territory": territory,
+                "channel": channel,
+                "requested_at": when,
+                "derivative": False,
+            },
+        )
+        return {
+            "release_id": str(row[0]),
+            "asset_id": asset,
+            "decision": decision,
+            "platform_use_only": True,
+            "listener_entitlement_checked": False,
+            "media_integrity_bound_to_asset_sha256": True,
+            "media_delivery_performed": False,
+            "public_catalogue_enabled": False,
+            "human_authority_final": True,
+        }
 
     def revoke(
         self,
