@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_VERSION = "oap-os-public-v1.0";
+const CACHE_VERSION = "oap-os-public-v1.1";
 const PUBLIC_SHELL = Object.freeze([
   "/offline",
   "/manifest.webmanifest",
