@@ -278,3 +278,24 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "linkup-royal-home" in template
     assert "linkup-royal-tools" in template
     assert "linkup-royal-bottom" in template
+
+
+
+def test_public_linkup_routes_each_surface_to_canonical_owner():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert '<strong>Discovery</strong><small>Discover people in OAP World</small>' in template
+    assert '<strong>Opportunities</strong><small>Work &amp; collaboration</small>' in template
+    assert '<strong>Community Signals</strong><small>See what is happening across The Spot.</small>' in template
+    assert '<a href="{{ url_for(\'linkup_front_door\') }}">💬<span>Link Message</span></a>' in template
+    assert '<a href="{{ url_for(\'home\') }}">♟<span>People</span></a>' in template
+    assert '<a href="{{ url_for(\'my_card_page\') }}">●<span>Profile</span></a>' in template
+
+
+def test_empty_linkup_chat_has_real_next_actions():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "No Link Ups yet." in template
+    assert "Discover people in OAP World" in template
+    assert "Open The Link" in template
+    assert "Open My Card" in template
