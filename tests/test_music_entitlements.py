@@ -109,7 +109,22 @@ def test_public_gate_allows_only_active_time_valid_entitlement(monkeypatch):
         "connect",
         lambda **_kwargs: Connection(),
     )
-    result = music_entitlements.MusicEntitlementStore().public_gate(
+    store = music_entitlements.MusicEntitlementStore()
+    monkeypatch.setattr(
+        store._rights,
+        "evaluate_platform_use",
+        lambda **_kwargs: {
+            "decision": {
+                "decision": "ALLOW",
+                "decision_hash": "e" * 64,
+                "evidence_hashes": ["a" * 64],
+                "authority_receipt_hashes": ["b" * 64],
+                "human_approval_receipt_hashes": ["c" * 64],
+                "public_distribution_authorized": False,
+            }
+        },
+    )
+    result = store.public_gate(
         asset_id=ASSET,
         territory="GB",
         requested_at="2026-09-29T13:00:00+00:00",
