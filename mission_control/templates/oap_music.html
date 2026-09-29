@@ -17,11 +17,11 @@
 </style></head>
 <body><main class="shell">
 <header class="top"><div class="brand"><div class="muted">ON ANY POSTCODE</div><h1>🎵 OAP Music</h1><div class="muted">Listen. Discover. Play.</div></div>
-<div class="actions"><a class="pill" href="/radio">📻 Radio</a><a class="pill" href="/music/studio">⬆ Studio</a></div></header>
+<div class="actions"><button class="pill" type="button" data-oap-music-install hidden>＋ Install</button><a class="pill" href="/radio">📻 Radio</a><a class="pill" href="/music/studio">⬆ Studio</a></div></header>
 <section class="hero"><strong>First-party OAP catalogue</strong><div class="muted">Only tracks with current rights and entitlement proof become playable.</div>
 <input id="music-search" class="search" type="search" placeholder="Search tracks, releases…" autocomplete="off">
 <div id="catalogue-state" class="status">Loading OAP Music…</div></section>
-<section><div id="oap-results" class="grid"></div><div id="oap-empty" class="status">No public tracks are available yet.</div></section>
+<section><div id="oap-results" class="grid"></div><div id="oap-empty" class="status">No public tracks are available yet.</div><div class="status" data-oap-music-install-status role="status">First-party installable web app</div></section>
 </main>
 <nav class="bottom"><a href="/music">🎵 Music</a><a href="/radio">📻 Radio</a><a href="/music/studio">⬆ Studio</a></nav>
 <script>
@@ -57,4 +57,4 @@
  }
  input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,180)}); load();
 })();
-</script></body></html>
+</script><script src="/assets/oap-music-install.js" defer></script></body></html>
