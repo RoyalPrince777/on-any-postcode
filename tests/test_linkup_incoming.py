@@ -53,5 +53,7 @@ def test_unified_incoming_client_polls_and_opens_links():
 
     assert "/linkup/incoming/status" in script
     assert "/linkup/incoming" in script
-    assert "window.setInterval(poll, 5000)" in script
+    assert "window.setTimeout(poll, delay)" in script
+    assert "document.hidden" in script
+    assert 'visibilitychange' in script
     assert 'event.event_type === "link"' in script
