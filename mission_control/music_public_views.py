@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    artist_progress,
     entertainment_catalogue,
     music_assets,
     music_entitlements,
@@ -99,6 +100,42 @@ def music_home():
 @web_security.login_required()
 def music_studio():
     return _no_store(make_response(render_template("oap_music_studio.html")))
+
+
+@bp.get("/music/artist-progress")
+@web_security.login_required()
+def music_artist_progress():
+    try:
+        progress = artist_progress.artist_progress(_identity())
+    except Exception:  # noqa: BLE001 - owner progress fails closed.
+        progress = {
+            "surface": "Artist Progress",
+            "release_count": 0,
+            "track_count": 0,
+            "release_states": {},
+            "rights_states": {},
+            "releases": [],
+            "accounting": {
+                "currency": "GBP",
+                "pending_reconciliation_count": 0,
+                "reconciled_count": 0,
+                "reversed_count": 0,
+                "gross_active_minor": 0,
+                "gross_reconciled_minor": 0,
+                "gross_reversed_minor": 0,
+                "money_transfer_performed": False,
+                "sika_execution_performed": False,
+            },
+            "qualified_listens": None,
+            "rank_position": None,
+            "radio_spins": None,
+            "audience_growth": None,
+            "unavailable_metrics_reason": "artist_progress_temporarily_unavailable",
+            "human_authority_final": True,
+        }
+    return _no_store(
+        make_response(render_template("oap_music_artist_progress.html", progress=progress))
+    )
 
 
 @bp.get("/radio")
