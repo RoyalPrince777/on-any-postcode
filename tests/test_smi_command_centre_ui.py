@@ -126,15 +126,17 @@ class CommandCentreUITest(unittest.TestCase):
         styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
         for token in ('smi-room-status','smi-room-status-grid','smi-room-gates',
                       'data-room-stat="signals"','data-room-stat="alignment"',
-                      'data-room-gate="rollback"','data-room-gate="runtime_guard"',
-                      'data-room-gate="isolation"','data-room-gate="founder"'):
+                      'data-room-gate="mind"','data-room-gate="body"',
+                      'data-room-gate="soul"'):
             self.assertIn(token, source)
         self.assertIn('signals?.ready===true&&signals?.signals_valid===true', source)
         self.assertIn('Number(signals?.signal_count)===21', source)
         self.assertIn('checks.rollback_recovery===true', source)
         self.assertIn('checks.runtime_guard===true', source)
         self.assertIn('checks.isolation_recovery===true', source)
-        self.assertIn('setRoom(roomGates.get("founder"),false', source)
+        self.assertIn('setRoom(roomGates.get("mind"),mindProven', source)
+        self.assertIn('setRoom(roomGates.get("body"),bodyProven', source)
+        self.assertIn('setRoom(roomGates.get("soul"),soulProven', source)
         self.assertIn('credentials:"same-origin"', source)
         self.assertIn('if(signal.aborted)return', source)
         self.assertIn('.smi-room-status-grid', styles)
