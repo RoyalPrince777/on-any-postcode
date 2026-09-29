@@ -96,3 +96,31 @@ def test_smi_auto_without_message_preserves_existing_low_noise_contract():
     observed = smi_auto.observe("GET", "/the-spot")
     assert observed["semantic_lenses"] == ()
     assert observed["lenses"] == smi_auto.BASE_LENSES
+
+
+def test_smi_intelligence_selects_minimum_sufficient_a1_to_a7_level():
+    base = smi_auto.observe("GET", "/the-spot")
+    semantic = smi_auto.observe(
+        "GET",
+        "/mission/ollama",
+        message="Why is this navigation confusing on mobile?",
+    )
+    consequential = smi_auto.observe(
+        "POST",
+        "/mission/release",
+        message="Verify release readiness, dependencies, rollback and recovery before approval.",
+    )
+
+    assert base["smi_intelligence"]["level"] == "A1"
+    assert semantic["smi_intelligence"]["level"] in {"A3", "A4"}
+    assert consequential["smi_intelligence"]["level"] in {"A6", "A7"}
+    assert base["smi_intelligence"]["stop"] is True
+    assert consequential["execution_granted"] is False
+    assert consequential["approval_granted"] is False
+
+
+def test_smi_intelligence_does_not_escalate_depth_without_need():
+    observed = smi_auto.observe("GET", "/the-spot", message="Hello")
+    assert observed["smi_intelligence"]["level"] == "A1"
+    assert observed["semantic_lenses"] == ()
+    assert observed["smi_intelligence"]["stop_reason"].startswith("minimum sufficient intelligence")
