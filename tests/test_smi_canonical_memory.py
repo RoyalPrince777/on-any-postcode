@@ -75,11 +75,11 @@ def test_live_provider_memory_includes_canonical_truth_and_recent_hrm():
 def test_founder_working_protocol_is_locked_in_canonical_memory():
     items = canonical_memory_items("GENERAL", limit=21)
     joined = " ".join(item.summary for item in items)
-    assert "25%=Step 1 Rollback/Recovery" in joined
-    assert "50%=Step 2 Runtime Guard" in joined
-    assert "75%=Step 3 Aegis Isolation/Recovery" in joined
-    assert "100%=Step 4 Green Gate + Founder Final" in joined
+    assert "direct evidence-driven execution" in joined
+    assert "Remove unnecessary stages" in joined
+    assert "simulations where real verification is available" in joined
+    assert "cosmetic percentage inflation" in joined
+    assert "3/7/21 controls analytical depth only" in joined
+    assert "do not restart stages or invent percentages" in joined
     assert "🟣 means active/in-progress" in joined
-    assert "Review depth 3/7/21 is separate" in joined
-    assert "DONE / LOCKED / NEXT" in joined
     assert "no Green" in joined
