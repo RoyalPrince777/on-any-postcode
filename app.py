@@ -94,6 +94,7 @@ CARNIVAL_CONTENT_SECURITY_POLICY = (
     "script-src 'self'; frame-src https://www.openstreetmap.org"
 )
 FOUNDER_ACTIVATED_SESSION_KEY = "oap_founder_activation_completed"
+PUBLIC_MY_CARD_SESSION_KEY = "oap_public_my_card"
 
 
 def _form_text(name, default, max_length):
@@ -1026,6 +1027,8 @@ def my_card_create_page():
             return redirect(url_for("linkup_front_door"))
     except neon_auth.AuthUnavailable:
         pass
+    if isinstance(session.get(PUBLIC_MY_CARD_SESSION_KEY), dict):
+        return redirect(url_for("linkup_front_door"))
     return _my_card_create_response()
 
 
@@ -1062,16 +1065,36 @@ def my_card_create():
         return _my_card_create_response(
             status_code=400, error="The two password entries do not match."
         )
-    if len(password) < 12 or len(password) > 128 or not password.strip():
+    if password and (len(password) < 12 or len(password) > 128 or not password.strip()):
         return _my_card_create_response(
             status_code=400,
-            error="Choose a password between 12 and 128 characters.",
+            error="If you set a password, use between 12 and 128 characters.",
         )
     if not accepted:
         return _my_card_create_response(
             status_code=400,
-            error="Confirm that private Link Up actions use your My Card identity.",
+            error="Confirm the My Card privacy and private-action boundary.",
         )
+
+    if not password:
+        if email:
+            return _my_card_create_response(
+                status_code=400,
+                error="To keep email private, either set a password or leave email blank.",
+            )
+        identity_id = str(uuid.uuid4())
+        session[PUBLIC_MY_CARD_SESSION_KEY] = {
+            "identity_id": identity_id,
+            "card_id": product_store.member_card_id(identity_id),
+            "display_name": name,
+            "username": "",
+            "postcode": "",
+            "borough": "",
+            "country": "",
+            "credentialed": False,
+        }
+        session.permanent = True
+        return redirect(url_for("linkup_front_door"))
 
     try:
         result = neon_auth.sign_up(name, email, password)
@@ -1096,6 +1119,7 @@ def my_card_create():
         )
 
     web_security.AUTH_BURST_LIMITER.reset_key(rate_key)
+    session.pop(PUBLIC_MY_CARD_SESSION_KEY, None)
     response = redirect(url_for("linkup_front_door"))
     if not _apply_auth_cookies(response, result.set_cookie_headers):
         return _auth_page_response(
@@ -1485,6 +1509,20 @@ def linkup_front_door():
         user = web_security.current_authenticated_user()
     except neon_auth.AuthUnavailable:
         user = None
+
+    if not user:
+        public_card = session.get(PUBLIC_MY_CARD_SESSION_KEY)
+        if isinstance(public_card, dict):
+            my_card = {
+                "identity_id": str(public_card.get("identity_id") or ""),
+                "card_id": str(public_card.get("card_id") or ""),
+                "display_name": str(public_card.get("display_name") or "OAP Member"),
+                "username": "",
+                "postcode": "",
+                "borough": "",
+                "country": "",
+                "credentialed": False,
+            }
 
     if user:
         identity_id = str(user["id"])
