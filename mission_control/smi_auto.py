@@ -14,6 +14,23 @@ AUTO_LIGHT = "purple"
 BASE_LENSES = ("truth", "evidence", "alignment")
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
+SEMANTIC_RULES = (
+    (("confusing", "usability", "navigation", "button", "layout", "mobile", "desktop"), ("ux", "behaviour")),
+    (("slow", "latency", "performance", "speed", "bottleneck"), ("performance", "architecture")),
+    (("failure", "broken", "rollback", "recover", "recovery", "fallback"), ("resilience", "risk")),
+    (("privacy", "consent", "retention", "sensitive"), ("privacy", "data")),
+    (("database", "schema", "record", "ledger", "data", "provenance", "duplicate"), ("data", "architecture")),
+    (("architecture", "ownership", "boundary", "interface", "route", "api"), ("architecture", "dependency")),
+    (("ready", "readiness", "release", "green", "proof", "verify", "evidence"), ("readiness", "gap")),
+    (("priority", "next", "roadmap", "sequence", "dependency"), ("priority", "dependency")),
+    (("opportunity", "improve", "upgrade", "value", "growth"), ("opportunity", "impact")),
+    (("competitor", "competitive", "compare", "alternative"), ("competitive", "decision")),
+    (("trend", "latest", "change"), ("trend", "impact")),
+    (("swot",), ("swot",)),
+    (("behaviour", "behavior", "repetition"), ("behaviour",)),
+    (("scenario", "what if", "what-if"), ("scenario", "risk")),
+)
+
 SEMANTIC_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
     (("confusing", "hard to use", "usability", "navigation", "button", "layout", "mobile", "desktop"), ("ux", "behaviour")),
     (("slow", "latency", "performance", "speed", "bottleneck", "load"), ("performance", "architecture")),
