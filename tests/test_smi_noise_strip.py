@@ -75,3 +75,26 @@ def test_live_fullscreen_surfaces_recovery_message():
     canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text()
     assert "if(oapRuntime?.live)oapShowLiveReply('Inference unavailable · your request is preserved for retry.')" in canonical
     assert "Your request is preserved for retry." in canonical
+
+
+def test_canonical_ui_ownership_is_not_split_across_surface_styles():
+    noise = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    live = (ROOT / "mission_control" / "static" / "smi_live_character.css").read_text(encoding="utf-8")
+    assert "Canonical UI ownership: Live fullscreen layout." in noise
+    assert "body.smi-noise-strip.smi-live-fullscreen .workspace-grid" in noise
+    assert "body.smi-live-fullscreen .workspace-grid" not in live
+    assert "body.smi-live-fullscreen .composer" not in live
+    assert "body.smi-live-fullscreen .thinking" not in live
+
+def test_noise_strip_does_not_restyle_dedicated_dashboard_or_command_surfaces():
+    noise = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert "smi-command-layout{" not in noise
+    assert "smi-dashboard-shell{" not in noise
+    assert "smi-summary-card{" not in noise
+
+def test_first_paint_guard_only_prevents_flash_not_persistent_layout():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    guard = base.split('id="smi-first-paint-guard"', 1)[1].split("</style>", 1)[0]
+    assert "smi-booting" in guard
+    assert ".composer{position:fixed" not in guard
+    assert ".workspace-grid{grid-template-columns" not in guard
