@@ -66,6 +66,28 @@ def _instant(value: object, name: str, *, optional: bool = True) -> str | None:
     return parsed.astimezone(timezone.utc).isoformat()
 
 
+MINIMUM_SONG_PRICE_MINOR = 100
+SONG_CURRENCY = "GBP"
+
+
+def song_price_intent(amount_minor: object = MINIMUM_SONG_PRICE_MINOR) -> dict[str, object]:
+    try:
+        amount = int(amount_minor)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_song_amount") from exc
+    if amount < MINIMUM_SONG_PRICE_MINOR:
+        raise ValueError("minimum_song_price_is_1_gbp")
+    return {
+        "currency": SONG_CURRENCY,
+        "minimum_amount_minor": MINIMUM_SONG_PRICE_MINOR,
+        "amount_minor": amount,
+        "pay_more_allowed": True,
+        "payment_capture_performed": False,
+        "sika_execution_performed": False,
+        "human_authority_final": True,
+    }
+
+
 class MusicEntitlementStore:
     def __init__(self) -> None:
         self._rights = music_rights_store.MusicRightsStore()
