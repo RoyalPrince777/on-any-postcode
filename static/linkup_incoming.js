@@ -4,7 +4,7 @@
   const host = document.querySelector("[data-oap-incoming-unified]");
   if (!host) return;
 
-  const state = { ready: false, timer: null };
+  const state = { ready: false, timer: null, visibleDelayMs: 5000 };
 
   const apiJson = async (path) => {
     const response = await fetch(path, {
@@ -68,12 +68,22 @@
     });
   };
 
+  const schedule = (delay = state.visibleDelayMs) => {
+    if (state.timer) window.clearTimeout(state.timer);
+    state.timer = null;
+    if (!state.ready || document.hidden) return;
+    state.timer = window.setTimeout(poll, delay);
+  };
+
   const poll = async () => {
+    if (!state.ready || document.hidden) return;
     try {
       const result = await apiJson("/linkup/incoming");
       render(result.events || []);
     } catch (_error) {
       host.hidden = true;
+    } finally {
+      schedule();
     }
   };
 
@@ -85,14 +95,23 @@
         return;
       }
       poll();
-      state.timer = window.setInterval(poll, 5000);
     })
     .catch(() => {
       state.ready = false;
       host.hidden = true;
     });
 
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (state.timer) window.clearTimeout(state.timer);
+      state.timer = null;
+      return;
+    }
+    if (state.ready) poll();
+  });
+
   window.addEventListener("pagehide", () => {
-    if (state.timer) window.clearInterval(state.timer);
+    if (state.timer) window.clearTimeout(state.timer);
+    state.timer = null;
   });
 })();
