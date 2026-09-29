@@ -15,7 +15,9 @@ def test_public_my_card_page_is_free_and_not_enter_my_world(anonymous_client):
     assert "Continue without My Card" in page
     assert 'href="/linkup"' in page
     assert "Email — optional" in page
-    assert "Optional. Leave this blank" in page
+    assert "Password — optional" in page
+    assert "Leave blank for a basic My Card." in page
+    assert "If you leave password blank, leave email blank too." in page
     assert 'name="email" type="email" autocomplete="email" maxlength="320"' in page
     assert 'aria-describedby="card-email-note"' in page
     assert 'aria-describedby="card-email-note" required' not in page
@@ -96,7 +98,7 @@ def test_public_my_card_creation_rejects_missing_consent_without_auth_call(
     )
 
     assert response.status_code == 400
-    assert "Confirm that private Link Up actions use your My Card identity." in response.get_data(as_text=True)
+    assert "Confirm the My Card privacy and private-action boundary." in response.get_data(as_text=True)
 
 
 def test_public_my_card_creation_allows_blank_email(
@@ -137,3 +139,69 @@ def test_public_my_card_creation_allows_blank_email(
         "",
         "a-private-password",
     )
+
+
+
+def test_public_my_card_creation_allows_blank_password_without_auth_call(
+    anonymous_client, monkeypatch
+):
+    token = "my-card-password-optional-csrf-token-value-123456789"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_up",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("managed auth must not be called for a basic card")
+        ),
+    )
+    response = anonymous_client.post(
+        "/my-card/create",
+        data={
+            "csrf_token": token,
+            "name": "Basic Card Member",
+            "email": "",
+            "password": "",
+            "password_confirmation": "",
+            "accept_private_actions": "yes",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/linkup")
+
+    page = anonymous_client.get("/linkup").get_data(as_text=True)
+    assert "Basic Card Member" in page
+    assert "Basic My Card active. No password required." in page
+    assert "Private Link Up stays locked until secure sign-in is added." in page
+
+
+def test_passwordless_basic_card_does_not_accept_email_without_secure_sign_in(
+    anonymous_client, monkeypatch
+):
+    token = "my-card-passwordless-email-csrf-token-value-123456789"
+    with anonymous_client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+
+    monkeypatch.setattr(
+        neon_auth,
+        "sign_up",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("managed auth must not be called")
+        ),
+    )
+    response = anonymous_client.post(
+        "/my-card/create",
+        data={
+            "csrf_token": token,
+            "name": "Basic Card Member",
+            "email": "private@example.test",
+            "password": "",
+            "password_confirmation": "",
+            "accept_private_actions": "yes",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "either set a password or leave email blank" in response.get_data(as_text=True)

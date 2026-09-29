@@ -97,7 +97,8 @@ jobs:
           cd /tmp/oap-combined-main
           python -m compileall -q app.py mission_control oap
           ruff check app.py mission_control oap tests
-          python -m pytest -q
+          set -o pipefail
+          python -m pytest -q 2>&1 | tee /tmp/oap-pytest.log
 
       # The external routing service is a hard gate, but an outage must not
       # suppress unrelated recovery regression evidence.
