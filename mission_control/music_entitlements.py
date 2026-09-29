@@ -205,13 +205,30 @@ class MusicEntitlementStore:
                 "asset_id": asset,
                 "media_delivery_performed": False,
             }
+        current = self._rights.evaluate_platform_use(
+            owner_identity_id=str(row[1]),
+            asset_id=asset,
+            use="stream",
+            territory=territory_value,
+            channel=channel_value,
+            requested_at=when.isoformat(),
+        )
+        current_proof = rights_core.decision_proof(current["decision"])
+        if not current_proof["canonical_allow"]:
+            return {
+                "allowed": False,
+                "reason": "current_rights_not_allowed",
+                "asset_id": asset,
+                "media_delivery_performed": False,
+            }
         return {
             "allowed": True,
             "reason": "public_free_entitlement",
             "entitlement_id": str(row[0]),
             "owner_identity_id": str(row[1]),
             "asset_id": asset,
-            "rights_decision_hash": str(row[4]),
+            "rights_decision_hash": current["decision"]["decision_hash"],
+            "entitlement_created_from_rights_decision_hash": str(row[4]),
             "territory": territory_value,
             "channel": channel_value,
             "media_delivery_performed": False,
