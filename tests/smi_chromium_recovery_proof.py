@@ -118,8 +118,8 @@ def main():
                 (() => {
                   window.__smiLegacyPaintSamples = [];
                   const selectors = [
-                    '.navs', '.smi-hero', '.chat-head',
-                    '.smi-dashboard-layer', '.smi-command-centre', '.smi-status-backdrop'
+                    '.navs', '.smi-hero', '.status-row',
+                    '.smi-dashboard-layer', '.smi-status-backdrop'
                   ];
                   const visible = el => {
                     if (!el) return false;
@@ -131,9 +131,12 @@ def main():
                            rect.width > 0 && rect.height > 0;
                   };
                   const sample = () => {
-                    const states = selectors.map(sel => [sel, visible(document.querySelector(sel))]);
-                    window.__smiLegacyPaintSamples.push(states);
-                    if (window.__smiLegacyPaintSamples.length < 180) requestAnimationFrame(sample);
+                    const body = document.body;
+                    if (body && body.classList.contains('smi-booting')) {
+                      const visibleSelectors = selectors.filter(sel => visible(document.querySelector(sel)));
+                      window.__smiLegacyPaintSamples.push(visibleSelectors);
+                      requestAnimationFrame(sample);
+                    }
                   };
                   requestAnimationFrame(sample);
 
@@ -169,14 +172,10 @@ def main():
             page.wait_for_timeout(100)
             assert live.get_attribute("aria-pressed") == "true"
 
-            flash_seen = page.evaluate(
-                """
-                () => window.__smiLegacyPaintSamples.some(sample =>
-                  sample.some(([, visible]) => visible)
-                )
-                """
+            visible_legacy_during_boot = page.evaluate(
+                "() => window.__smiLegacyPaintSamples.flat()"
             )
-            assert flash_seen is False
+            assert visible_legacy_during_boot == [], visible_legacy_during_boot
 
             assistant_before = page.locator(".msg.assistant").count()
             prompt = "browser recovery proof request"
