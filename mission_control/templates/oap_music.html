@@ -28,6 +28,17 @@
 (() => {
  const input=document.getElementById('music-search'),results=document.getElementById('oap-results'),empty=document.getElementById('oap-empty'),state=document.getElementById('catalogue-state');
  let timer=null;
+ async function engagement(track,event,audio){
+  const seconds=Math.max(0,Math.floor(audio?.currentTime||0));
+  const duration=Number.isFinite(audio?.duration)?Math.max(1,Math.floor(audio.duration)):null;
+  try{await fetch('/music/api/engagement',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({track_id:track,surface:'OAP_MUSIC',event_type:event,playback_seconds:seconds,duration_seconds:duration})})}catch(e){}
+ }
+ function instrument(audio,track){
+  let started=false,lastBeat=0;
+  audio.addEventListener('play',()=>{if(!started){started=true;engagement(track,'START',audio)}});
+  audio.addEventListener('timeupdate',()=>{const now=Math.floor(audio.currentTime||0);if(now>=10&&now-lastBeat>=15){lastBeat=now;engagement(track,'HEARTBEAT',audio)}});
+  audio.addEventListener('ended',()=>engagement(track,'COMPLETE',audio));
+ }
  async function load(){
   const q=input.value.trim(); state.textContent=q?'Searching OAP Music…':'Loading OAP Music…';
   try{
@@ -46,7 +57,7 @@
     button.addEventListener('click',async()=>{const minor=Math.round(Number(amount.value||0)*100);try{const r=await fetch('/music/api/song-price?amount_minor='+encodeURIComponent(minor),{cache:'no-store'});const p=await r.json();if(!r.ok)throw new Error(p.error?.message||'Invalid amount');payState.textContent='£'+(p.amount_minor/100).toFixed(2)+' selected · payment capture not live yet';}catch(e){payState.textContent=e.message;}});
     pay.append(amount,button,payState);card.append(pay);
     if(item.playback_enabled&&item.stream_url){
-      const audio=document.createElement('audio'); audio.controls=true; audio.preload='metadata'; audio.src=item.stream_url; card.append(audio);
+      const audio=document.createElement('audio'); audio.controls=true; audio.preload='metadata'; audio.src=item.stream_url; instrument(audio,item.track_id); card.append(audio);
     } else {
       const lock=document.createElement('div'); lock.className='lock'; lock.textContent='🔒 Awaiting current rights + entitlement'; card.append(lock);
     }
