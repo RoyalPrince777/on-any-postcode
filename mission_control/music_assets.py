@@ -267,6 +267,36 @@ class MusicAssetStore:
             raise MusicAssetUnavailable("music_asset_integrity_failed")
         return data, str(row[1]), digest, str(row[3])
 
+    def read_public_candidate(
+        self, *, asset_id: object
+    ) -> tuple[str, bytes, str, str, str] | None:
+        """Read one unstopped asset after an external public-entitlement gate.
+
+        This method performs integrity and STOP checks only. It grants no rights
+        or entitlement by itself; callers must gate before delivery.
+        """
+        asset = _uuid(asset_id, "invalid_asset_id")
+        try:
+            with postgres_db.connect(readonly=True) as connection:
+                row = connection.execute(
+                    """SELECT owner_identity_id,media,mime_type,sha256,original_name,stopped
+                       FROM oap_music_assets
+                       WHERE asset_id=%s
+                       LIMIT 1""",
+                    (asset,),
+                ).fetchone()
+        except Exception as exc:
+            raise MusicAssetUnavailable("music_asset_read_failed") from exc
+        if row is None:
+            return None
+        if bool(row[5]):
+            raise MusicAssetStopped("music_asset_stopped")
+        data = bytes(row[1])
+        digest = hashlib.sha256(data).hexdigest()
+        if digest != str(row[3]):
+            raise MusicAssetUnavailable("music_asset_integrity_failed")
+        return str(row[0]), data, str(row[2]), digest, str(row[4])
+
     def list_assets(self, *, owner_identity_id: object) -> list[dict[str, object]]:
         owner = _uuid(owner_identity_id, "invalid_owner_identity")
         try:
