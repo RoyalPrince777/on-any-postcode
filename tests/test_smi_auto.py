@@ -64,3 +64,63 @@ def test_public_status_declares_same_non_authority_contract():
 def test_app_registers_smi_auto_response_hook():
     names = {func.__name__ for func in app_module.app.after_request_funcs[None]}
     assert "_oap_smi_auto_response" in names
+
+
+def test_smi_auto_adds_only_mission_relevant_semantic_lenses():
+    observed = smi_auto.observe(
+        "GET",
+        "/mission/ollama",
+        message="Why is Link Up confusing users on mobile?",
+    )
+    assert observed["selector"] == "surface+action+mission"
+    assert set(observed["semantic_lenses"]) == {"ux", "behaviour"}
+    assert "competitive" not in observed["lenses"]
+    assert "trend" not in observed["lenses"]
+
+
+def test_smi_auto_combines_surface_action_and_mission_without_all_intelligence():
+    observed = smi_auto.observe(
+        "POST",
+        "/mission/release",
+        message="Check whether this release is ready and how rollback works if it fails.",
+    )
+    assert {"readiness", "gap", "resilience", "risk"}.issubset(set(observed["semantic_lenses"]))
+    assert observed["write_action"] is True
+    assert observed["war_room_escalation"] is True
+    assert len(observed["lenses"]) < 26
+    assert observed["execution_granted"] is False
+    assert observed["approval_granted"] is False
+
+
+def test_smi_auto_without_message_preserves_existing_low_noise_contract():
+    observed = smi_auto.observe("GET", "/the-spot")
+    assert observed["semantic_lenses"] == ()
+    assert observed["lenses"] == smi_auto.BASE_LENSES
+
+
+def test_smi_intelligence_selects_minimum_sufficient_a1_to_a7_level():
+    base = smi_auto.observe("GET", "/the-spot")
+    semantic = smi_auto.observe(
+        "GET",
+        "/mission/ollama",
+        message="Why is this navigation confusing on mobile?",
+    )
+    consequential = smi_auto.observe(
+        "POST",
+        "/mission/release",
+        message="Verify release readiness, dependencies, rollback and recovery before approval.",
+    )
+
+    assert base["smi_intelligence"]["level"] == "A1"
+    assert semantic["smi_intelligence"]["level"] in {"A3", "A4"}
+    assert consequential["smi_intelligence"]["level"] in {"A6", "A7"}
+    assert base["smi_intelligence"]["stop"] is True
+    assert consequential["execution_granted"] is False
+    assert consequential["approval_granted"] is False
+
+
+def test_smi_intelligence_does_not_escalate_depth_without_need():
+    observed = smi_auto.observe("GET", "/the-spot", message="Hello")
+    assert observed["smi_intelligence"]["level"] == "A1"
+    assert observed["semantic_lenses"] == ()
+    assert observed["smi_intelligence"]["stop_reason"].startswith("minimum sufficient intelligence")
