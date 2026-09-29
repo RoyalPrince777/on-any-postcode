@@ -32,6 +32,7 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0013_oap_music_assets",
         "0014_oap_music_rights_grants",
         "0015_oap_music_entitlements",
+        "0016_oap_radio_always_on",
     ]
 
 
@@ -111,21 +112,42 @@ def test_public_music_status_does_not_fake_track_or_playback_readiness():
     assert payload["rights_verified_by_software"] is False
 
 
-def test_music_page_controls_have_real_targets_and_no_fake_play_button():
+def test_music_page_is_listener_only_and_links_separate_apps():
     app = Flask(__name__, template_folder="../mission_control/templates")
     app.register_blueprint(music_public_views.bp)
     body = app.test_client().get("/music").get_data(as_text=True)
-    for target in ("catalogue", "genres", "civilization", "creators", "radio", "records"):
-        assert f'data-target="{target}"' in body
-        assert f'id="{target}"' in body
-    for anchor in ("#catalogue", "#civilization", "#radio", "#records", "#player"):
-        assert f'href="{anchor}"' in body
     assert 'id="music-search"' in body
-    assert "First-Party Discovery" in body
-    assert "Free / Open Discovery Sources" not in body
-    assert "Open source" not in body
-    assert "<button disabled>▶ Play</button>" not in body
-    assert "▶ Play locked" in body
+    assert 'href="/radio"' in body
+    assert 'href="/music/studio"' in body
+    assert "Create release" not in body
+    assert "Upload song" not in body
+    assert "STOP station" not in body
+    assert "Always On" not in body
+    assert "/music/api/catalogue?q=" in body
+
+
+def test_music_studio_and_radio_are_separate_real_routes(monkeypatch):
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    app.secret_key = "test"
+    app.register_blueprint(music_public_views.bp)
+    monkeypatch.setattr(
+        music_public_views.web_security,
+        "authenticated_identity",
+        lambda: "11111111-1111-4111-8111-111111111111",
+    )
+    monkeypatch.setattr(
+        music_public_views.web_security,
+        "current_authenticated_user",
+        lambda: {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "email": "test@example.com",
+            "name": "Test",
+            "email_verified": True,
+        },
+    )
+    radio = app.test_client().get("/radio")
+    assert radio.status_code == 200
+    assert "Keep Radio Always On" in radio.get_data(as_text=True)
 
 
 def test_first_party_listener_contract_has_no_external_core_dependency():
@@ -183,7 +205,7 @@ def test_music_has_dedicated_install_manifest_and_identity(client):
     assert manifest["display"] == "standalone"
     assert manifest["prefer_related_applications"] is False
     assert {item["url"] for item in manifest["shortcuts"]} == {
-        "/music#player", "/music#radio", "/music#creators",
+        "/music#player", "/radio", "/music/studio",
     }
 
 
