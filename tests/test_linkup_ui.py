@@ -278,3 +278,24 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "linkup-royal-home" in template
     assert "linkup-royal-tools" in template
     assert "linkup-royal-bottom" in template
+
+
+
+def test_public_linkup_routes_each_surface_to_canonical_owner():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert '<strong>Discovery</strong><small>Discover people in OAP World</small>' in template
+    assert '<a href="{{ url_for(\'home\') }}"><span class="royal-symbol royal-world">' in template
+    assert '<strong>Opportunities</strong><small>Work &amp; collaboration</small>' in template
+    assert '<a href="{{ url_for(\'the_link_front_door\') }}"><span class="royal-symbol royal-rocket">' in template
+    assert '<strong>Community Signals</strong><small>See what is happening across The Spot.</small>' in template
+    assert '<a class="linkup-royal-card" href="{{ url_for(\'the_spot_front_door\') }}">' in template
+    assert '<a href="{{ url_for(\'linkup_front_door\') }}">💬<span>Link Message</span></a>' in template
+    assert '<a href="{{ url_for(\'home\') }}">♟<span>People</span></a>' in template
+
+
+def test_public_linkup_no_longer_routes_people_or_link_message_to_my_card():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert 'href="{{ url_for(\'my_card_create_page\') }}">💬<span>Link Message</span>' not in template
+    assert '<strong>Nearby People</strong><small>Discover people through OAP World, then Link Up privately.</small>' in template
