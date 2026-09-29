@@ -1,3 +1,5 @@
+import inspect
+
 from mission_control import music_rights_store
 
 OWNER = "11111111-1111-4111-8111-111111111111"
@@ -217,5 +219,6 @@ def test_platform_use_evaluation_reads_persisted_grants_and_never_delivers_media
 
 
 def test_review_query_is_release_scoped():
-    source = music_rights_store.MusicRightsStore._record_review.__code__
-    assert source is not None
+    source = inspect.getsource(music_rights_store.MusicRightsStore._record_review)
+    assert "SELECT asset_id,release_id FROM oap_music_rights_grants" in source
+    assert "WHERE owner_identity_id=%s AND release_id=%s" in source
