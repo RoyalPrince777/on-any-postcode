@@ -25,6 +25,7 @@ DESTINATIONS = (
 PLAYER_OWNER = "OAP Player"
 SOURCE_ORGAN = "OAP Music"
 MAX_ITEMS = 100
+CONTENT_NAMESPACES = frozenset({"tune", "media", "tv", "live", "records"})
 
 
 def _release(row: object) -> dict[str, object] | None:
@@ -118,12 +119,15 @@ def rights_gate(
 
 
 
-def _owner_music_content_id(value: object) -> str | None:
-    """Recognise one legacy music content ID, never caller-injected URLs/IDs."""
-    if not isinstance(value, str) or not value.startswith("oap:tune:"):
+def canonical_content_id(value: object) -> str | None:
+    """Recognise only typed first-party OAP content IDs; never caller URLs."""
+    if not isinstance(value, str):
+        return None
+    parts = value.split(":")
+    if len(parts) != 3 or parts[0] != "oap" or parts[1] not in CONTENT_NAMESPACES:
         return None
     try:
-        return f"oap:tune:{UUID(value[len('oap:tune:'):])}"
+        return f"oap:{parts[1]}:{UUID(parts[2])}"
     except (TypeError, ValueError, AttributeError):
         return None
 
@@ -146,7 +150,7 @@ def universal_player_contract(
     return {
         "owner": PLAYER_OWNER,
         "mode": "contract_only",
-        "content_id": _owner_music_content_id(item.get("content_id")),
+        "content_id": canonical_content_id(item.get("content_id")),
         "destinations": DESTINATIONS,
         "controls_planned": (
             "play_pause", "seek", "captions", "quality", "resume", "stop",
