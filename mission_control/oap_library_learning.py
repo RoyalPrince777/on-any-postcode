@@ -215,6 +215,151 @@ def status() -> dict[str, object]:
     return result
 
 
+def live_persistence_probe() -> dict[str, object]:
+    """Exercise private learning persistence without retaining synthetic rows."""
+
+    checks = {
+        "configured": postgres_db.configured(),
+        "schema_ready": False,
+        "write": False,
+        "read_back": False,
+        "integrity": False,
+        "delete": False,
+        "rollback": False,
+    }
+    result: dict[str, object] = {
+        "passed": False,
+        "checks": checks,
+        "proof_kind": "synthetic_transaction_rollback",
+        "uses_member_data": False,
+        "production_rows_persisted": False,
+        "secret_exposed": False,
+        "error": None,
+    }
+    if not checks["configured"]:
+        result["error"] = "database_url_not_configured"
+        return result
+
+    learning_status = status()
+    checks["schema_ready"] = bool(learning_status.get("schema_ready"))
+    if not checks["schema_ready"]:
+        result["error"] = "learning_schema_not_ready"
+        return result
+
+    identity = str(uuid.uuid4())
+    record_id = str(uuid.uuid4())
+    record = prepare_record(
+        food_id="carrot",
+        area_id="eyes",
+        reflection="Synthetic OAP Library persistence proof. Rolled back.",
+        rights_attested=True,
+    )
+    sources_json = json.dumps(
+        record["sources"], ensure_ascii=False, separators=(",", ":")
+    )
+
+    try:
+        with postgres_db.connect() as connection:
+            try:
+                connection.execute(
+                    """INSERT INTO users(id,username,display_name,status)
+                       VALUES (%s,%s,'OAP Library rollback proof','active')""",
+                    (identity, f"oap-library-proof-{identity.replace('-', '')}"),
+                )
+                written = connection.execute(
+                    """INSERT INTO oap_library_learning_records(
+                           record_id,identity_id,book_id,food_id,area_id,
+                           fact_snapshot,reflection,sources_json,rights_basis,
+                           rights_attested,visibility,content_hash)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,TRUE,%s,%s)
+                       RETURNING record_id""",
+                    (
+                        record_id,
+                        identity,
+                        record["book_id"],
+                        record["food_id"],
+                        record["area_id"],
+                        record["fact"],
+                        record["reflection"],
+                        sources_json,
+                        record["rights_basis"],
+                        record["visibility"],
+                        record["content_hash"],
+                    ),
+                ).fetchone()
+                checks["write"] = bool(written and str(written[0]) == record_id)
+
+                row = connection.execute(
+                    """SELECT book_id,food_id,area_id,fact_snapshot,reflection,
+                              sources_json,rights_basis,visibility,content_hash
+                       FROM oap_library_learning_records
+                       WHERE record_id=%s AND identity_id=%s""",
+                    (record_id, identity),
+                ).fetchone()
+                checks["read_back"] = bool(
+                    row
+                    and str(row[0]) == record["book_id"]
+                    and str(row[1]) == record["food_id"]
+                    and str(row[2]) == record["area_id"]
+                    and str(row[3]) == record["fact"]
+                    and str(row[4]) == record["reflection"]
+                    and str(row[6]) == record["rights_basis"]
+                    and str(row[7]) == record["visibility"]
+                )
+                if row:
+                    observed = {
+                        "book_id": str(row[0]),
+                        "food_id": str(row[1]),
+                        "area_id": str(row[2]),
+                        "fact": str(row[3]),
+                        "reflection": str(row[4]),
+                        "sources": _source_list(row[5]),
+                        "rights_basis": str(row[6]),
+                        "visibility": str(row[7]),
+                    }
+                    observed_hash = hashlib.sha256(
+                        _canonical_payload(observed)
+                    ).hexdigest()
+                    checks["integrity"] = bool(
+                        observed_hash == str(row[8]) == record["content_hash"]
+                    )
+
+                deleted_record = connection.execute(
+                    """DELETE FROM oap_library_learning_records
+                       WHERE record_id=%s AND identity_id=%s RETURNING record_id""",
+                    (record_id, identity),
+                ).fetchone()
+                deleted_user = connection.execute(
+                    "DELETE FROM users WHERE id=%s RETURNING id",
+                    (identity,),
+                ).fetchone()
+                checks["delete"] = bool(
+                    deleted_record
+                    and str(deleted_record[0]) == record_id
+                    and deleted_user
+                    and str(deleted_user[0]) == identity
+                )
+            finally:
+                connection.rollback()
+
+        with postgres_db.connect(readonly=True) as connection:
+            residual = connection.execute(
+                """SELECT
+                       (SELECT COUNT(*) FROM users WHERE id=%s) +
+                       (SELECT COUNT(*) FROM oap_library_learning_records
+                        WHERE record_id=%s OR identity_id=%s)""",
+                (identity, record_id, identity),
+            ).fetchone()
+        checks["rollback"] = bool(residual and int(residual[0]) == 0)
+        result["passed"] = all(checks.values())
+        if not result["passed"]:
+            result["error"] = "learning_persistence_check_failed"
+        return result
+    except Exception:  # noqa: BLE001 - proof output must stay redacted.
+        result["error"] = "learning_persistence_probe_failed"
+        return result
+
+
 def create_record(
     identity_id: object,
     *,
