@@ -10,6 +10,8 @@ publishing, distribution, payment, or SIKA by itself.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -52,6 +54,21 @@ SCHEMA_STATEMENTS = (
        ON oap_music_rights_grants(owner_identity_id,asset_id,created_at,grant_id)""",
     """CREATE INDEX IF NOT EXISTS ix_music_rights_release_created
        ON oap_music_rights_grants(owner_identity_id,release_id,created_at,grant_id)""",
+    """CREATE TABLE IF NOT EXISTS oap_music_rights_review_receipts (
+        receipt_id UUID PRIMARY KEY,
+        grant_id UUID NOT NULL REFERENCES oap_music_rights_grants(grant_id) ON DELETE CASCADE,
+        asset_id UUID NOT NULL REFERENCES oap_music_assets(asset_id) ON DELETE CASCADE,
+        owner_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        reviewer_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        review_kind TEXT NOT NULL CHECK (review_kind IN ('AUTHORITY','HUMAN_APPROVAL')),
+        evidence_hashes TEXT[] NOT NULL,
+        decision TEXT NOT NULL CHECK (decision IN ('APPROVE','REJECT')),
+        receipt_hash CHAR(64) NOT NULL UNIQUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CHECK (cardinality(evidence_hashes) > 0)
+    )""",
+    """CREATE INDEX IF NOT EXISTS ix_music_rights_review_grant_created
+       ON oap_music_rights_review_receipts(grant_id,created_at,receipt_id)""",
 )
 
 
@@ -148,6 +165,43 @@ def _row_to_grant(row: object) -> dict[str, object]:
     }
 
 
+
+def _review_receipt_payload(
+    *,
+    receipt_id: str,
+    grant_id: str,
+    asset_id: str,
+    owner_identity_id: str,
+    reviewer_identity_id: str,
+    review_kind: str,
+    evidence_hashes: list[str],
+    decision: str,
+) -> dict[str, object]:
+    return {
+        "receipt_id": receipt_id,
+        "grant_id": grant_id,
+        "asset_id": asset_id,
+        "owner_identity_id": owner_identity_id,
+        "reviewer_identity_id": reviewer_identity_id,
+        "review_kind": review_kind,
+        "evidence_hashes": sorted(evidence_hashes),
+        "decision": decision,
+        "authority_transferred": False,
+        "playback_authorized": False,
+        "public_catalogue_enabled": False,
+        "human_authority_final": True,
+    }
+
+
+def _review_receipt_hash(payload: dict[str, object]) -> str:
+    canonical = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 class MusicRightsStore:
     def create_review_grant(
         self,
@@ -234,6 +288,149 @@ class MusicRightsStore:
             "review_state": "REVIEW_REQUIRED",
             "playback_authorized": False,
             "public_catalogue_enabled": False,
+        }
+
+    def record_authority_review(
+        self,
+        *,
+        owner_identity_id: object,
+        grant_id: object,
+        reviewer_identity_id: object,
+        evidence_hashes: object,
+        approved: bool,
+    ) -> dict[str, object]:
+        return self._record_review(
+            owner_identity_id=owner_identity_id,
+            grant_id=grant_id,
+            reviewer_identity_id=reviewer_identity_id,
+            evidence_hashes=evidence_hashes,
+            review_kind="AUTHORITY",
+            approved=approved,
+        )
+
+    def record_human_approval(
+        self,
+        *,
+        owner_identity_id: object,
+        grant_id: object,
+        reviewer_identity_id: object,
+        evidence_hashes: object,
+        approved: bool,
+    ) -> dict[str, object]:
+        return self._record_review(
+            owner_identity_id=owner_identity_id,
+            grant_id=grant_id,
+            reviewer_identity_id=reviewer_identity_id,
+            evidence_hashes=evidence_hashes,
+            review_kind="HUMAN_APPROVAL",
+            approved=approved,
+        )
+
+    def _record_review(
+        self,
+        *,
+        owner_identity_id: object,
+        grant_id: object,
+        reviewer_identity_id: object,
+        evidence_hashes: object,
+        review_kind: str,
+        approved: bool,
+    ) -> dict[str, object]:
+        owner = _uuid(owner_identity_id, "owner_identity_id")
+        gid = _uuid(grant_id, "grant_id")
+        reviewer = _uuid(reviewer_identity_id, "reviewer_identity_id")
+        if reviewer == owner:
+            raise PermissionError("independent_reviewer_required")
+        if not isinstance(evidence_hashes, (list, tuple, set, frozenset)):
+            raise TypeError("invalid_review_evidence_hashes")
+        evidence = sorted({
+            rights_core._sha256(value, "review_evidence_hash")
+            for value in evidence_hashes
+        })
+        if not evidence:
+            raise ValueError("missing_review_evidence")
+        if review_kind not in {"AUTHORITY", "HUMAN_APPROVAL"}:
+            raise ValueError("invalid_review_kind")
+        decision = "APPROVE" if approved else "REJECT"
+        receipt_id = str(uuid4())
+        try:
+            with postgres_db.connect() as connection:
+                grant = connection.execute(
+                    """SELECT asset_id FROM oap_music_rights_grants
+                       WHERE grant_id=%s AND owner_identity_id=%s
+                       FOR UPDATE""",
+                    (gid, owner),
+                ).fetchone()
+                if grant is None:
+                    raise PermissionError("music_grant_not_owned")
+                asset = str(grant[0])
+                known_rows = connection.execute(
+                    """SELECT evidence_sha256 FROM oap_music_evidence_receipts
+                       WHERE owner_identity_id=%s""",
+                    (owner,),
+                ).fetchall()
+                known = {str(row[0]) for row in known_rows}
+                if not set(evidence).issubset(known):
+                    raise PermissionError("review_evidence_not_owned")
+                payload = _review_receipt_payload(
+                    receipt_id=receipt_id,
+                    grant_id=gid,
+                    asset_id=asset,
+                    owner_identity_id=owner,
+                    reviewer_identity_id=reviewer,
+                    review_kind=review_kind,
+                    evidence_hashes=evidence,
+                    decision=decision,
+                )
+                receipt_hash = _review_receipt_hash(payload)
+                connection.execute(
+                    """INSERT INTO oap_music_rights_review_receipts(
+                       receipt_id,grant_id,asset_id,owner_identity_id,
+                       reviewer_identity_id,review_kind,evidence_hashes,
+                       decision,receipt_hash)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (
+                        receipt_id, gid, asset, owner, reviewer, review_kind,
+                        evidence, decision, receipt_hash,
+                    ),
+                )
+                if review_kind == "AUTHORITY":
+                    connection.execute(
+                        """UPDATE oap_music_rights_grants
+                           SET authority_verified=%s,
+                               authority_receipt_hash=%s
+                           WHERE grant_id=%s AND owner_identity_id=%s""",
+                        (
+                            bool(approved),
+                            receipt_hash if approved else None,
+                            gid,
+                            owner,
+                        ),
+                    )
+                else:
+                    connection.execute(
+                        """UPDATE oap_music_rights_grants
+                           SET human_approved=%s,
+                               human_approval_receipt_hash=%s
+                           WHERE grant_id=%s AND owner_identity_id=%s""",
+                        (
+                            bool(approved),
+                            receipt_hash if approved else None,
+                            gid,
+                            owner,
+                        ),
+                    )
+                connection.commit()
+        except (PermissionError, TypeError, ValueError):
+            raise
+        except Exception as exc:
+            raise MusicRightsUnavailable("music_rights_review_failed") from exc
+        return {
+            **payload,
+            "receipt_hash": receipt_hash,
+            "rights_verified_by_software": False,
+            "legal_validity_verified": False,
+            "media_delivery_performed": False,
         }
 
     def list_for_asset(
