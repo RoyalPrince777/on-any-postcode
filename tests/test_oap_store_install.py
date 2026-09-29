@@ -175,7 +175,7 @@ def test_oap_search_is_open_ready_and_public_catalogue_only(client):
     assert "OAP Search" in body
     assert "OAP Music" in body
     assert "OAP TV &amp; Media" in body
-    assert "private Link Up messages" in body
+    assert "Private Link Up messages" in body
     assert "/mission" not in body
     assert "/infrastructure" not in body
 
