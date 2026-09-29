@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from . import postgres_db
+from . import music_engagement, postgres_db
 
 
 def _uuid(value: object, name: str) -> str:
@@ -73,6 +73,7 @@ def artist_progress(identity_id: object) -> dict[str, object]:
     gross_reconciled = int(accounting[4] or 0) if accounting else 0
     gross_reversed = int(accounting[5] or 0) if accounting else 0
 
+    audience = music_engagement.artist_audience(owner)
     return {
         "surface": "Artist Progress",
         "owner_identity_id": owner,
@@ -92,10 +93,17 @@ def artist_progress(identity_id: object) -> dict[str, object]:
             "money_transfer_performed": False,
             "sika_execution_performed": False,
         },
-        "qualified_listens": None,
+        "qualified_listens": audience["qualified_listens"],
+        "listening_now": audience["listening_now"],
+        "unique_qualified_listeners": audience["unique_qualified_listeners"],
+        "music_qualified_views": audience["music_qualified_views"],
+        "tv_qualified_views": audience["tv_qualified_views"],
+        "combined_reach": audience["combined_reach"],
+        "places": audience["places"],
+        "top_tracks": audience["top_tracks"],
         "rank_position": None,
         "radio_spins": None,
         "audience_growth": None,
-        "unavailable_metrics_reason": "measurement_core_not_yet_proven",
+        "unavailable_metrics_reason": "rank_radio_growth_measurement_not_yet_proven",
         "human_authority_final": True,
     }
