@@ -43,7 +43,7 @@
  const statusActions=document.createElement("div");
  statusActions.className="smi-command-status-actions";
  const statusButton=document.createElement("button");statusButton.type="button";
- statusButton.textContent="📊 SMI Status";statusButton.setAttribute("aria-label","Open live SMI status and percentages");
+ statusButton.textContent="📊 SMI Status";statusButton.setAttribute("aria-label","Open live SMI evidence status");
  const signalsButton=document.createElement("button");signalsButton.type="button";
  signalsButton.textContent="◌ 21 Signals";signalsButton.setAttribute("aria-label","Open canonical 21 Signals status");
  statusActions.append(statusButton,signalsButton);
@@ -331,9 +331,9 @@
   setRoom(roomStats.get("alignment"),gate?.green===true,
    gate?(gate.green===true?"Backend checks satisfied · Founder final":"Proof required · "+(Array.isArray(gate.missing)?gate.missing.length:"?")+" gaps"):"Unavailable · NOT PROVEN");
   const checks=gate?.checks||{};
-  setRoom(roomGates.get("rollback"),checks.rollback_recovery===true,checks.rollback_recovery===true?"Backend proof recorded":"Not proven");
-  setRoom(roomGates.get("runtime_guard"),checks.runtime_guard===true,checks.runtime_guard===true?"Backend proof recorded":"Not proven");
-  setRoom(roomGates.get("isolation"),checks.isolation_recovery===true,checks.isolation_recovery===true?"Backend proof recorded":"Not proven");
+  setRoom(roomGates.get("recovery"),checks.rollback_recovery===true,checks.rollback_recovery===true?"Backend recovery proof recorded":"Not proven");
+  setRoom(roomGates.get("runtime_guard"),checks.runtime_guard===true,checks.runtime_guard===true?"Backend runtime proof recorded":"Not proven");
+  setRoom(roomGates.get("aegis"),checks.isolation_recovery===true,checks.isolation_recovery===true?"Backend Aegis/recovery proof recorded":"Not proven");
   setRoom(roomGates.get("founder"),false,gate?.green===true?"Founder final decision pending":"Locked · all prior proof required");
  }
  function setOpen(open){
