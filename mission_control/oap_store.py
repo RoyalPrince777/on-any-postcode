@@ -108,6 +108,62 @@ def _catalogue_placeholder(*, app_id: str, name: str, open_url: str, description
     }
 
 
+
+def _planned_app(*, app_id: str, name: str, description: str, category: str, internal_intelligence: tuple[str, ...] = ()) -> dict[str, object]:
+    return {
+        "app_id": app_id,
+        "name": name,
+        "publisher": "ON ANY POSTCODE LTD",
+        "distribution": "OAP Store",
+        "first_party": True,
+        "description": description,
+        "release_state": "planned",
+        "install_enabled": False,
+        "install_mode": "Planned",
+        "manifest_url": None,
+        "service_worker_url": None,
+        "start_url": None,
+        "open_url": None,
+        "category": category,
+        "install_url": None,
+        "offline_url": None,
+        "native_apk": False,
+        "native_package_available": False,
+        "physical_device_certified": False,
+        "human_authority_final": True,
+        "internal_intelligence": internal_intelligence,
+    }
+
+
+PLANNED_STORE_APPS = (
+    _planned_app(
+        app_id="oap.mail",
+        name="OAP Mail",
+        description="First-party OAP mail and account communications. Current active public route is not yet proven.",
+        category="Communication",
+    ),
+    _planned_app(
+        app_id="oap.search",
+        name="OAP Search",
+        description="First-party search across OAP World, apps, people, places, Market, Library and media. Current active public route is not yet proven.",
+        category="Discovery",
+    ),
+    _planned_app(
+        app_id="oap.vpn",
+        name="OAP VPN",
+        description="First-party privacy network layer. No VPN tunnel, DNS leak protection or device certification is claimed until runtime proof exists.",
+        category="Privacy",
+    ),
+    _planned_app(
+        app_id="oap.cyber-security",
+        name="OAP Cyber Security",
+        description="First-party security operations, threat detection, access control, incident response, recovery and audit.",
+        category="Security",
+        internal_intelligence=("Neo", "Trinity", "Morpheus", "Oracle", "Architect", "Keymaker", "Seraph", "Agent Smith"),
+    ),
+)
+
+
 PUBLIC_STORE_APPS = (
     _catalogue_placeholder(app_id="oap.spot", name="The Spot", open_url="/the-spot", description="Public community activity, Pulse, Signal and Empire life.", category="Social"),
     _catalogue_placeholder(app_id="oap.link", name="The Link", open_url="/the-link", description="People, opportunities and the bridge into private Link Up.", category="Communication"),
@@ -173,6 +229,7 @@ def catalogue() -> tuple[dict[str, object], ...]:
         dict(LINK_UP),
         dict(OAP_MUSIC),
         *PUBLIC_STORE_APPS,
+        *PLANNED_STORE_APPS,
         *_spot_store_apps(),
     )
     unique: dict[str, dict[str, object]] = {}
