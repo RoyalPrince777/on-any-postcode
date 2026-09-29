@@ -242,7 +242,7 @@
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
                 <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Link Call">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
                 <details class="linkup-conversation-settings" aria-label="Conversation settings">
-                  <summary>⚙ Settings</summary>
+                  <summary>⚙ My Controls</summary>
                   <form method="post" action="{{ url_for('linkup_safety.block_member', member_id=thread.other_identity_id) }}">
                     <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
                     <button class="mc-secondary" type="submit">Block this member</button>
