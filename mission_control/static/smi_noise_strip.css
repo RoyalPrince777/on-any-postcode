@@ -628,3 +628,5 @@ body.smi-noise-strip #send{
 body.smi-noise-strip .mobile-chats-toggle{
   display:none!important;
 }
+
+/* SMI release marker: direct-evidence protocol + first-paint + retry recovery. */
