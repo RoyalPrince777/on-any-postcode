@@ -67,7 +67,7 @@ def _safe_runtime_error_code(exc: RuntimeError) -> str:
     raw = str(exc).strip()
     if raw in _SAFE_RUNTIME_ERROR_CODES:
         return raw
-    if re.fullmatch(r"provider_http_\\d{3}", raw):
+    if re.fullmatch(r"provider_http_\d{3}", raw):
         return "provider_http_error"
     return "provider_runtime_error"
 
