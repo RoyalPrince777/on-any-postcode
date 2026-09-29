@@ -32,9 +32,30 @@ OAP_WORLD = {
     "human_authority_final": True,
 }
 
+LINK_UP = {
+    "app_id": "oap.linkup",
+    "name": "Link Up",
+    "publisher": "ON ANY POSTCODE LTD",
+    "distribution": "OAP Store",
+    "first_party": True,
+    "description": "Private OAP communication with Link Message, Link Call, Voice, Incoming, presence and sharing controls.",
+    "release_state": "install_ready",
+    "install_enabled": True,
+    "install_mode": "PWA",
+    "manifest_url": "/linkup/manifest.webmanifest",
+    "service_worker_url": "/service-worker.js",
+    "start_url": "/linkup?source=oap-store",
+    "install_url": "/linkup?source=oap-store&install=1",
+    "offline_url": "/offline",
+    "native_apk": False,
+    "native_package_available": False,
+    "physical_device_certified": False,
+    "human_authority_final": True,
+}
+
 
 def catalogue() -> tuple[dict[str, object], ...]:
-    return (dict(OAP_WORLD),)
+    return (dict(OAP_WORLD), dict(LINK_UP))
 
 
 def native_distribution_status() -> dict[str, object]:
@@ -65,5 +86,50 @@ def native_store_status():
 @bp.get("/oap-store/apps/oap.world")
 def oap_world_store_entry():
     response = make_response(jsonify(dict(OAP_WORLD)), 200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/linkup/manifest.webmanifest")
+def link_up_manifest():
+    payload = {
+        "name": "Link Up · ON ANY POSTCODE",
+        "short_name": "Link Up",
+        "description": "Private first-party communication inside ON ANY POSTCODE.",
+        "id": "/linkup",
+        "start_url": "/linkup?source=oap-store",
+        "scope": "/linkup",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "any",
+        "background_color": "#050807",
+        "theme_color": "#050807",
+        "prefer_related_applications": False,
+        "launch_handler": {"client_mode": "navigate-existing"},
+        "categories": ["social", "communication"],
+        "icons": [
+            {
+                "src": "/assets/oap-os-icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+            {
+                "src": "/assets/oap-os-icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+        ],
+    }
+    response = make_response(jsonify(payload), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@bp.get("/oap-store/apps/oap.linkup")
+def link_up_store_entry():
+    response = make_response(jsonify(dict(LINK_UP)), 200)
     response.headers["Cache-Control"] = "no-store"
     return response
