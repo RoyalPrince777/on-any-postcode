@@ -130,6 +130,7 @@ def test_public_gate_allows_only_active_time_valid_entitlement(monkeypatch):
         requested_at="2026-09-29T13:00:00+00:00",
     )
     assert result["allowed"] is True
-    assert result["rights_decision_hash"] == "d" * 64
+    assert result["rights_decision_hash"] == "e" * 64
+    assert result["entitlement_created_from_rights_decision_hash"] == "d" * 64
     assert result["media_delivery_performed"] is False
     assert result["payment_capture_performed"] is False
