@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  {% include "_oap_install_head.html" %}
+  <title>OAP Search · ON ANY POSTCODE</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    body{margin:0;background:#050807;color:#f4fff6;font-family:system-ui,sans-serif}
+    main{max-width:920px;margin:auto;padding:28px 18px 80px}
+    .eyebrow{color:#7ef0a3;font-weight:900;letter-spacing:.1em}
+    form{display:flex;gap:8px;margin:18px 0}
+    input{flex:1;min-width:0;border:1px solid #245f38;background:#0b1710;color:#fff;border-radius:12px;padding:13px}
+    button,.open{border:0;border-radius:12px;padding:12px 16px;background:#27c267;color:#021;font-weight:900;text-decoration:none}
+    .grid{display:grid;gap:12px}.card{border:1px solid #244832;background:#09140d;border-radius:16px;padding:16px}
+    .meta{color:#9fb5a8;font-size:.86rem}.quiet{color:#9fb5a8}
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">🔎 OAP SEARCH · FIRST-PARTY</p>
+  <h1>Search OAP</h1>
+  <p class="quiet">Searches the current public OAP app catalogue only. Private Link Up messages, private identity data and Founder surfaces are not indexed here.</p>
+  <form method="get" action="/search">
+    <input type="search" name="q" value="{{ query }}" maxlength="120" placeholder="Search apps, Market, Library, places, music…" aria-label="Search OAP">
+    <button type="submit">Search</button>
+  </form>
+  {% if query %}
+    <p class="meta">{{ results|length }} result{{ '' if results|length == 1 else 's' }} for “{{ query }}”</p>
+    <div class="grid">
+      {% for app in results %}
+      <article class="card">
+        <span class="meta">{{ app.category }}</span>
+        <h2>{{ app.name }}</h2>
+        <p>{{ app.description }}</p>
+        <a class="open" href="{{ app.open_url }}">Open {{ app.name }}</a>
+      </article>
+      {% else %}
+      <article class="card"><strong>No public OAP app matched.</strong><p class="quiet">Try a shorter or broader term.</p></article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</main>
+</body>
+</html>

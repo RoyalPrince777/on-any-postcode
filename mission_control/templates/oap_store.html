@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  {% set oap_install_script = false %}
   {% include "_oap_install_head.html" %}
   <title>OAP Store · ON ANY POSTCODE</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
@@ -11,8 +12,8 @@
     main{max-width:900px;margin:auto;padding:32px 20px 80px}
     .eyebrow{color:#d5a33f;font-weight:800;letter-spacing:.08em}
     .card{border:1px solid #6b4c18;background:#0b0905;border-radius:18px;padding:22px;margin-top:18px}
-    .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}
-    button{background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer}
+    .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}.badge.open{border-color:#d5a33f;color:#d5a33f}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{margin-top:0}.category{color:#b8aa89;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.open-link{display:inline-block;border:1px solid #6b4c18;color:#fff8e8;border-radius:12px;padding:11px 16px;font-weight:800;text-decoration:none}
+    button,.install-link{display:inline-block;background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer;text-decoration:none}
     .muted{color:#b8aa89}.truth{margin-top:12px;font-size:.9rem;color:#cfc3a6}
   </style>
 </head>
@@ -21,19 +22,36 @@
   <p class="eyebrow">👑 ON ANY POSTCODE · OAP STORE</p>
   <h1>Install OAP</h1>
   <p class="muted">First-party apps only. Install becomes available only where the release evidence supports it.</p>
+  <div class="grid">
   {% for app in apps %}
-  <section class="card">
-    <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
+  <section class="card" data-oap-store-app="{{ app.app_id }}">
+    <span class="category">{{ app.category }}</span><br>
+    {% if app.install_enabled %}
+      <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
+    {% elif app.open_url %}
+      <span class="badge open">OPEN READY · INSTALL NOT YET PROVEN</span>
+    {% else %}
+      <span class="badge open">PLANNED · SURFACE NOT YET PROVEN</span>
+    {% endif %}
     <h2>{{ app.name }}</h2>
     <p>{{ app.description }}</p>
     <p><strong>Publisher:</strong> {{ app.publisher }}</p>
-    <p data-oap-install-platform class="muted">Detecting platform…</p>
-    <button type="button" data-oap-install hidden>Install {{ app.name }}</button>
-    <p data-oap-install-status class="muted">Checking secure install support…</p>
-    <p class="truth">PWA install is real browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
+    <div class="actions">
+      {% if app.open_url %}<a class="open-link" href="{{ app.open_url }}">Open {{ app.name }}</a>{% endif %}
+      {% if app.install_enabled and app.install_url %}
+        <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
+      {% endif %}
+    </div>
+    {% if app.install_enabled %}
+      <p class="truth">PWA install is a browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
+    {% elif app.open_url %}
+      <p class="truth">This app is listed in OAP Store, but standalone installation stays locked until its own manifest/runtime proof passes.</p>
+    {% else %}
+      <p class="truth">Architecture approved. No public Open or Install claim until a real route, runtime behaviour and regression proof exist.</p>
+    {% endif %}
   </section>
   {% endfor %}
+  </div>
 </main>
-<script defer src="/assets/oap-os.js"></script>
 </body>
 </html>
