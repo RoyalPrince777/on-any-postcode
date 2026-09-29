@@ -5,6 +5,7 @@ from . import (
     artist_progress,
     entertainment_catalogue,
     music_assets,
+    music_content_links,
     music_entitlements,
     music_public_catalogue,
     music_purchases,
@@ -196,6 +197,54 @@ def music_my_music():
         return _api_error("permission_denied", str(exc), 403)
     except Exception:  # noqa: BLE001 - fail closed and redact store details.
         return _api_error("my_music_unavailable", "My Music is temporarily unavailable.", 503)
+
+
+@bp.post("/music/api/tracks/<track_id>/content")
+@web_security.login_required(api=True)
+def music_save_track_content(track_id: str):
+    if not web_security.csrf_valid(request):
+        return _api_error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = music_content_links.save_track_content(
+            owner_identity_id=_identity(),
+            track_id=track_id,
+            lyrics=payload.get("lyrics"),
+            credits=payload.get("credits"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:
+        return _api_error("music_content_unavailable", "Track content is temporarily unavailable.", 503)
+
+
+@bp.post("/music/api/tracks/<track_id>/videos")
+@web_security.login_required(api=True)
+def music_add_video_link(track_id: str):
+    if not web_security.csrf_valid(request):
+        return _api_error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = music_content_links.add_video_link(
+            owner_identity_id=_identity(),
+            track_id=track_id,
+            video_kind=payload.get("video_kind"),
+            oap_tv_path=payload.get("oap_tv_path", "/tv-media"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:
+        return _api_error("music_video_link_unavailable", "Video linking is temporarily unavailable.", 503)
 
 
 @bp.get("/music/api/catalogue")
