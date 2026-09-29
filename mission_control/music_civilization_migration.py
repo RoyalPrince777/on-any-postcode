@@ -6,6 +6,7 @@ import os
 
 from . import (
     live_music_core,
+    media_assets,
     music_acceptance,
     music_assets,
     music_evidence,
@@ -24,6 +25,7 @@ _MIGRATIONS = (
     (music_recovery.RECOVERY_MIGRATION_VERSION, music_recovery.SCHEMA_STATEMENTS),
     (music_acceptance.ACCEPTANCE_MIGRATION_VERSION, music_acceptance.SCHEMA_STATEMENTS),
     (music_assets.MUSIC_ASSET_MIGRATION_VERSION, music_assets.SCHEMA_STATEMENTS),
+    (media_assets.MEDIA_ASSET_MIGRATION_VERSION, media_assets.SCHEMA_STATEMENTS),
 )
 _LOCK_KEY = 25800012
 
