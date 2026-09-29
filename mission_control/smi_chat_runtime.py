@@ -9,6 +9,7 @@ safe work-stage summaries only; private chain-of-thought is never exposed.
 from __future__ import annotations
 
 import json
+import logging
 import queue
 import re
 import threading
@@ -38,6 +39,8 @@ urlrequest = _core.urlrequest
 _provider = _core._provider
 _COMPATIBILITY_ENGINE = _core._provider
 _CORE_COHERENCE_REVIEW = _core.coherence_review
+
+_LOG = logging.getLogger(__name__)
 
 _health_probe_condition = threading.Condition()
 _health_probe_running = False
@@ -693,6 +696,11 @@ def chat_events(
                     ),
                 })
             elif isinstance(exc, RuntimeError):
+                safe_code = str(exc).strip()[:120] or type(exc).__name__
+                _LOG.warning(
+                    "smi_provider_runtime_error code=%s",
+                    safe_code,
+                )
                 emit({
                     "type": "error",
                     "code": "provider_unavailable",
