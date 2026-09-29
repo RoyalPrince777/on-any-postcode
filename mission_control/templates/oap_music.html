@@ -11,7 +11,7 @@
 .actions{display:flex;gap:8px;flex-wrap:wrap}.pill{border:1px solid #333;background:#151515;color:#fff;border-radius:999px;padding:10px 14px;text-decoration:none}
 .hero{padding:22px;border:1px solid #292929;border-radius:24px;background:#111}.search{width:100%;margin-top:16px;padding:15px;border-radius:16px;border:1px solid #333;background:#090909;color:#fff;font-size:1rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:16px}.card{border:1px solid #2d2d2d;background:#121212;border-radius:18px;padding:16px}
-.card audio{width:100%;margin-top:12px}.status{margin-top:10px;color:#aaa}.lock{margin-top:12px;padding:10px;border-radius:12px;background:#17140b;color:#e3c970}
+.card audio{width:100%;margin-top:12px}.pay-row{display:flex;gap:8px;align-items:center;margin-top:12px}.pay-row input{width:92px;padding:9px;border-radius:10px;border:1px solid #333;background:#090909;color:#fff}.pay-row button{padding:9px 12px;border-radius:999px;border:1px solid #444;background:#f2f2f2;color:#111;font-weight:700}.status{margin-top:10px;color:#aaa}.lock{margin-top:12px;padding:10px;border-radius:12px;background:#17140b;color:#e3c970}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:#0a0a0af2;border-top:1px solid #262626;display:flex;justify-content:center;gap:8px;padding:10px}
 .bottom a{color:#ddd;text-decoration:none;padding:9px 12px;border-radius:12px}
 </style></head>
@@ -39,6 +39,12 @@
     const title=document.createElement('strong'); title.textContent=item.track_title;
     const meta=document.createElement('div'); meta.className='muted'; meta.textContent=item.release_title+' · '+item.release_type;
     card.append(title,meta);
+    const pay=document.createElement('div');pay.className='pay-row';
+    const amount=document.createElement('input');amount.type='number';amount.min='1';amount.step='0.01';amount.value='1.00';amount.setAttribute('aria-label','Song amount in pounds');
+    const button=document.createElement('button');button.type='button';button.textContent='Pay £1+';
+    const payState=document.createElement('span');payState.className='muted';
+    button.addEventListener('click',async()=>{const minor=Math.round(Number(amount.value||0)*100);try{const r=await fetch('/music/api/song-price?amount_minor='+encodeURIComponent(minor),{cache:'no-store'});const p=await r.json();if(!r.ok)throw new Error(p.error?.message||'Invalid amount');payState.textContent='£'+(p.amount_minor/100).toFixed(2)+' selected · payment capture not live yet';}catch(e){payState.textContent=e.message;}});
+    pay.append(amount,button,payState);card.append(pay);
     if(item.playback_enabled&&item.stream_url){
       const audio=document.createElement('audio'); audio.controls=true; audio.preload='metadata'; audio.src=item.stream_url; card.append(audio);
     } else {
