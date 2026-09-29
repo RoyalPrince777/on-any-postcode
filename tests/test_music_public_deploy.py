@@ -12,7 +12,7 @@ def test_public_music_route_is_real_and_truth_mode():
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "OAP Music" in body
-    assert "No publicly cleared playable track is available yet." in body
+    assert "Public playback appears only for tracks with current rights and entitlement proof." in body
     assert "Playback stays locked" in body
 
 
