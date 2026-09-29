@@ -310,7 +310,14 @@ async function oapSubmit(options={}){
   conversationId=completeResult.conversation_id;if(!assistantBody)assistantBody=add(completeResult.response,'assistant');else renderMessage(assistantBody,completeResult.response);
   const workedFor=oapEndWork();add(`🧠 ${selectedThinkingLevel.replace('_',' ').toUpperCase()} · Worked for ${workedFor.toFixed(1)}s · ${completeResult.task_type||'governed task'} · Signal ${completeResult.signal_level||'recorded'}`,'system');
   window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:completeResult}));oapShowLiveReply(completeResult.response);oapSpeak(completeResult.response,completeResult);clearAttachments();oapSetStatus(completeResult.code_proposal?.active?'Code proposal ready · Human review required':'Ready · governed result recorded');await loadConversations();
- }catch(error){if(error?.name!=='AbortError'&&!responseStopped){add(error?.message||'Request not completed safely','system');oapSetStatus('Request not completed safely');}}
+ }catch(error){if(error?.name!=='AbortError'&&!responseStopped){
+  const recoveryMessage=error?.message||'Inference did not complete safely.';
+  if(!oapInput.value.trim()&&text)oapInput.value=text;
+  oapInput.dispatchEvent(new Event('input',{bubbles:true}));
+  add(recoveryMessage+' · Your request is preserved for retry.','system');
+  oapSetStatus('Inference unavailable · request preserved · retry when backend is ready');
+  oapInput.focus();
+ }}
  finally{if(oapWorkStarted)oapEndWork();try{hideThinking()}catch{}try{setRunning(false)}catch{}oapRelease();oapSyncHumanControls();try{loadHealth()}catch{}}
 }
 

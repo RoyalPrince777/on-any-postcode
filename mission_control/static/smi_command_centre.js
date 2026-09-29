@@ -43,7 +43,7 @@
  const statusActions=document.createElement("div");
  statusActions.className="smi-command-status-actions";
  const statusButton=document.createElement("button");statusButton.type="button";
- statusButton.textContent="📊 SMI Status";statusButton.setAttribute("aria-label","Open live SMI status and percentages");
+ statusButton.textContent="📊 SMI Status";statusButton.setAttribute("aria-label","Open live SMI evidence status");
  const signalsButton=document.createElement("button");signalsButton.type="button";
  signalsButton.textContent="◌ 21 Signals";signalsButton.setAttribute("aria-label","Open canonical 21 Signals status");
  statusActions.append(statusButton,signalsButton);
@@ -66,6 +66,7 @@
  const quickActions=[
   ["＋ Master Tools","master-tools"],
   ["⚔️ War Room","war-room"],
+  ["🕶 Matrix Routes","matrix-routes"],
   ["🧠 HRM","hrm"],
   ["🗺️ Maps Controls","oap-maps-controls"],
   ["🖥️ Screen Intelligence","screen-intelligence"],
@@ -247,7 +248,7 @@
   ["🗺️","Movement · Routes","Spatial intelligence","/movement"],
   ["🧬","DNA · OAP Constitution","21 laws · approved authority",null],
   ["🔗","Nervous System · NEXUS","Signals · governed routing",null],
-  ["🌐","Matrix · World State","Routes · events · dependencies",null],
+  ["🌐","Matrix · World State","Routes · events · dependencies","/mission/war-room/routes"],
   ["💪","Muscles · Execution","Actions only when permitted",null],
   ["🩸","Blood · Signals","Pulse · governed events",null],
   ["🦴","Skeleton · Infrastructure","Render · storage · routing",null],
@@ -270,7 +271,7 @@
  // The approved command-room picture keeps intelligence, signals and gate evidence
  // in the scene itself; Status drawer remains a secondary detailed view.
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
- dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>FOUR CHECKPOINTS · NO FAKE GREEN</h3><div class="smi-room-gates"><article data-room-gate="rollback"><strong>25% · Recovery</strong><small>Proof pending</small></article><article data-room-gate="runtime_guard"><strong>50% · Runtime Guard</strong><small>Proof pending</small></article><article data-room-gate="isolation"><strong>75% · Aegis</strong><small>Proof pending</small></article><article data-room-gate="founder"><strong>100% · Founder Final</strong><small>Founder decision required</small></article></div><p class="smi-room-status-note">Live evidence, not sample population figures. Contract validity does not prove all systems operational.</p>';
+ dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>MIND × BODY × SOUL · DIRECT EVIDENCE</h3><div class="smi-room-gates"><article data-room-gate="mind"><strong>🧠 MIND</strong><small>Reasoning · alignment · evidence coherence</small></article><article data-room-gate="body"><strong>⚙️ BODY</strong><small>Runtime · functions · routes · execution health</small></article><article data-room-gate="soul"><strong>💛 SOUL</strong><small>Guardian · Aegis · recovery · trust boundaries</small></article></div><p class="smi-room-status-note">MBS is the operating model, not a percentage ladder. 3 / 7 / 21 controls review depth only. Founder Final remains separate Human Authority after evidence gates.</p>';
  evidence.append(dashboard);
  const roomStats=new Map([...dashboard.querySelectorAll("[data-room-stat]")].map(el=>[el.dataset.roomStat,el]));
  const roomGates=new Map([...dashboard.querySelectorAll("[data-room-gate]")].map(el=>[el.dataset.roomGate,el]));
@@ -330,10 +331,12 @@
   setRoom(roomStats.get("alignment"),gate?.green===true,
    gate?(gate.green===true?"Backend checks satisfied · Founder final":"Proof required · "+(Array.isArray(gate.missing)?gate.missing.length:"?")+" gaps"):"Unavailable · NOT PROVEN");
   const checks=gate?.checks||{};
-  setRoom(roomGates.get("rollback"),checks.rollback_recovery===true,checks.rollback_recovery===true?"Backend proof recorded":"Not proven");
-  setRoom(roomGates.get("runtime_guard"),checks.runtime_guard===true,checks.runtime_guard===true?"Backend proof recorded":"Not proven");
-  setRoom(roomGates.get("isolation"),checks.isolation_recovery===true,checks.isolation_recovery===true?"Backend proof recorded":"Not proven");
-  setRoom(roomGates.get("founder"),false,gate?.green===true?"Founder final decision pending":"Locked · all prior proof required");
+  const mindProven=signalProven&&gate?.green===true;
+  const bodyProven=health?.ready===true&&functionsProven&&checks.runtime_guard===true;
+  const soulProven=checks.rollback_recovery===true&&checks.isolation_recovery===true;
+  setRoom(roomGates.get("mind"),mindProven,mindProven?"Evidence coherent":"Reasoning/alignment proof incomplete");
+  setRoom(roomGates.get("body"),bodyProven,bodyProven?"Runtime and function proof recorded":"Runtime/function proof incomplete");
+  setRoom(roomGates.get("soul"),soulProven,soulProven?"Guardian/Aegis recovery proof recorded":"Safety/recovery proof incomplete");
  }
  function setOpen(open){
   if(open===active)return;
@@ -401,6 +404,11 @@
   if(action==="oap-maps-controls"){
    mapsControls.hidden=!mapsControls.hidden;
    trigger.setAttribute("aria-expanded",String(!mapsControls.hidden));
+   return;
+  }
+  if(action==="matrix-routes"){
+   setOpen(false);
+   window.location.assign("/mission/war-room/routes");
    return;
   }
   if(action==="screen-intelligence"){

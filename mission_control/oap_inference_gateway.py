@@ -8,6 +8,7 @@ Provider brands are not part of Personal SMI identity or authority.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -60,6 +61,7 @@ PUBLIC_SMI_SYSTEM = (
 
 _PROBE_TTL_SECONDS = 30.0
 _probe_cache: tuple[float, dict[str, Any]] | None = None
+_LOG = logging.getLogger(__name__)
 
 
 def _enrich_brain(message: str, brain: dict | None) -> dict[str, Any]:
@@ -509,7 +511,30 @@ def status(*, probe: bool = False) -> dict[str, Any]:
         "home_node_bridge": bridge,
         "capability_fabric": capability_fabric_status(),
         "compatibility_fallback_enabled": FALLBACK_ENABLED,
+        "compatibility_fallback_configured": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
         "first_party_inference_ready": first_party_ready,
         "sovereign_inference_ready": bool(first_party_ready and not FALLBACK_ENABLED),
         "human_authority_final": True,
     }
+
+
+def log_startup_readiness() -> dict[str, Any]:
+    """Emit secret-safe inference readiness once at process startup."""
+    snapshot = status(probe=False)
+    bridge = snapshot.get("home_node_bridge") or {}
+    _LOG.info(
+        "smi_inference_readiness local_enabled=%s local_configured=%s "
+        "bridge_configured=%s worker_recently_seen=%s "
+        "fallback_enabled=%s fallback_configured=%s first_party_ready=%s",
+        snapshot.get("local_enabled"),
+        snapshot.get("local_url_configured") and snapshot.get("local_model_configured"),
+        bridge.get("configured"),
+        bridge.get("worker_recently_seen"),
+        snapshot.get("compatibility_fallback_enabled"),
+        snapshot.get("compatibility_fallback_configured"),
+        snapshot.get("first_party_inference_ready"),
+    )
+    return snapshot
+
+
+_STARTUP_READINESS = log_startup_readiness()

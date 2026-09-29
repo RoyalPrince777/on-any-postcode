@@ -704,7 +704,8 @@ def chat_events(
                 emit({
                     "type": "error",
                     "code": "provider_unavailable",
-                    "message": "SMI is temporarily unavailable. No completion was recorded.",
+                    "diagnostic_code": safe_code,
+                    "message": "Inference backend unavailable. No completion was recorded.",
                 })
             else:
                 emit({
