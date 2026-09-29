@@ -6,6 +6,7 @@ from . import (
     music_assets,
     music_entitlements,
     music_public_catalogue,
+    web_security,
 )
 
 bp = Blueprint("oap_music_public", __name__)
@@ -45,8 +46,8 @@ def music_manifest():
                 ],
                 "shortcuts": [
                     {"name": "Player", "short_name": "Player", "url": "/music#player"},
-                    {"name": "Radio", "short_name": "Radio", "url": "/music#radio"},
-                    {"name": "Creator Studio", "short_name": "Create", "url": "/music#creators"},
+                    {"name": "Radio", "short_name": "Radio", "url": "/radio"},
+                    {"name": "Creator Studio", "short_name": "Create", "url": "/music/studio"},
                 ],
             }
         )
@@ -68,6 +69,17 @@ def music_home():
             )
         )
     )
+
+
+@bp.get("/music/studio")
+@web_security.login_required()
+def music_studio():
+    return _no_store(make_response(render_template("oap_music_studio.html")))
+
+
+@bp.get("/radio")
+def radio_home():
+    return _no_store(make_response(render_template("oap_radio.html")))
 
 
 @bp.get("/music/api/catalogue")
