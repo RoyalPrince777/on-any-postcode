@@ -6,7 +6,7 @@ installability.
 """
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import oap_store_registry, products
 
@@ -143,12 +143,6 @@ PLANNED_STORE_APPS = (
         category="Communication",
     ),
     _planned_app(
-        app_id="oap.search",
-        name="OAP Search",
-        description="First-party search across OAP World, apps, people, places, Market, Library and media. Current active public route is not yet proven.",
-        category="Discovery",
-    ),
-    _planned_app(
         app_id="oap.vpn",
         name="OAP VPN",
         description="First-party privacy network layer. No VPN tunnel, DNS leak protection or device certification is claimed until runtime proof exists.",
@@ -165,6 +159,7 @@ PLANNED_STORE_APPS = (
 
 
 PUBLIC_STORE_APPS = (
+    _catalogue_placeholder(app_id="oap.search", name="OAP Search", open_url="/search", description="First-party search across OAP public apps, places, Market, Library and media catalogue entries.", category="Discovery"),
     _catalogue_placeholder(app_id="oap.spot", name="The Spot", open_url="/the-spot", description="Public community activity, Pulse, Signal and Empire life.", category="Social"),
     _catalogue_placeholder(app_id="oap.link", name="The Link", open_url="/the-link", description="People, opportunities and the bridge into private Link Up.", category="Communication"),
     _catalogue_placeholder(app_id="oap.arena", name="OAP Arena", open_url="/arena", description="First-party games, challenges and Global Arena progression.", category="Games"),
@@ -324,4 +319,39 @@ def generic_store_entry(app_id: str):
             return response
     response = make_response(jsonify(error="app_not_found"), 404)
     response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+
+def _search_public_apps(query: str) -> tuple[dict[str, object], ...]:
+    needle = " ".join(str(query or "").casefold().split())
+    if not needle:
+        return ()
+    ranked = []
+    for app in catalogue():
+        if not app.get("open_url"):
+            continue
+        haystack = " ".join(
+            str(app.get(field) or "")
+            for field in ("name", "description", "category", "app_id")
+        ).casefold()
+        if needle not in haystack:
+            continue
+        name = str(app.get("name") or "").casefold()
+        score = 0 if name == needle else 1 if name.startswith(needle) else 2
+        ranked.append((score, str(app.get("name") or ""), dict(app)))
+    ranked.sort(key=lambda item: (item[0], item[1].casefold()))
+    return tuple(item[2] for item in ranked)
+
+
+@bp.get("/search")
+def oap_search():
+    query = str(request.args.get("q") or "").strip()[:120]
+    results = _search_public_apps(query)
+    response = make_response(
+        render_template("oap_search.html", query=query, results=results),
+        200,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noarchive"
     return response
