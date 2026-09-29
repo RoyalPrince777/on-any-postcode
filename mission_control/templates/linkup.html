@@ -124,7 +124,6 @@
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
         <div class="linkup-master-nav">
-          <a href="{{ url_for('link_message_state.link_circles.circle_page') }}">Room</a>
           <a href="{{ url_for('the_link_front_door') }}">The Link</a>
         </div>
         {% if seven_star_gate %}
@@ -273,8 +272,8 @@
                 <p>{{ message.body }}</p>
                 <div class="linkup-meta">
                   <span>{{ message.created_at }}</span>
-                  {% if message.direction == 'sent' %}<span data-oap-message-state data-message-id="{{ message.message_id }}" data-state="{{ 'seen' if message.read else 'landed' }}">{{ 'Seen' if message.read else 'Landed' }}</span>
-                  {% elif not message.read %}<form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><button class="linkup-icon-btn" type="submit">Seen</button></form>{% endif %}
+                  {% if message.direction == 'sent' %}<span data-oap-message-state data-message-id="{{ message.message_id }}" data-state="{{ 'seen' if message.read else 'landed' }}">{{ 'Lit' if message.read else 'Landed' }}</span>
+                  {% elif not message.read %}<form method="post" action="{{ url_for('linkup_read', message_id=message.message_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><button class="linkup-icon-btn" type="submit">Lit</button></form>{% endif %}
                 </div>
                 {% if message.other_identity_id %}
                 <details><summary>⋯</summary>
