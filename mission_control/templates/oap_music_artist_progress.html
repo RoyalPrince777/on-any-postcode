@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OAP Music · Artist Progress</title>
+<style>:root{color-scheme:dark;font-family:system-ui;background:#080808;color:#fff}*{box-sizing:border-box}body{margin:0}.shell{max-width:980px;margin:auto;padding:22px 18px 90px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.muted{color:#aaa}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:18px}.card{border:1px solid #303030;background:#121212;border-radius:18px;padding:16px}.metric{font-size:1.7rem;font-weight:800;margin-top:6px}.pill{border:1px solid #333;border-radius:999px;padding:9px 13px;color:#fff;text-decoration:none}.list{display:grid;gap:10px;margin-top:14px}.row{border:1px solid #2b2b2b;border-radius:14px;padding:13px}.state{font-size:.88rem;color:#bbb;margin-top:4px}</style></head>
+<body><main class="shell">
+<header class="top"><div><div class="muted">OAP MUSIC</div><h1>📈 Artist Progress</h1><div class="muted">Your real release, rights and value progress.</div></div><div><a class="pill" href="/music/studio">Studio</a> <a class="pill" href="/music">Music</a></div></header>
+<section class="grid">
+<div class="card"><div class="muted">Releases</div><div class="metric">{{ progress.release_count }}</div></div>
+<div class="card"><div class="muted">Tracks</div><div class="metric">{{ progress.track_count }}</div></div>
+<div class="card"><div class="muted">Active creator value</div><div class="metric">£{{ '%.2f'|format(progress.accounting.gross_active_minor / 100) }}</div><div class="state">Accounting evidence only · no payout claim</div></div>
+<div class="card"><div class="muted">Reconciled value</div><div class="metric">£{{ '%.2f'|format(progress.accounting.gross_reconciled_minor / 100) }}</div></div>
+</section>
+<section class="card" style="margin-top:18px"><strong>Release progress</strong><div class="list">
+{% for release in progress.releases %}
+<div class="row"><strong>{{ release.title }}</strong><div class="state">{{ release.release_type|upper }} · {{ release.state }} · Rights {{ release.rights_status }} · {{ release.track_count }} track{% if release.track_count != 1 %}s{% endif %}</div></div>
+{% else %}
+<div class="muted">No releases yet. Create your first release in Studio.</div>
+{% endfor %}
+</div></section>
+<section class="grid">
+<div class="card"><div class="muted">Pending reconciliation</div><div class="metric">{{ progress.accounting.pending_reconciliation_count }}</div></div>
+<div class="card"><div class="muted">Reconciled</div><div class="metric">{{ progress.accounting.reconciled_count }}</div></div>
+<div class="card"><div class="muted">Reversed</div><div class="metric">{{ progress.accounting.reversed_count }}</div></div>
+</section>
+<section class="card" style="margin-top:18px"><strong>Coming when proven</strong><div class="state">Qualified listens · Rank position · Radio spins · Audience growth</div><div class="muted" style="margin-top:8px">These remain unavailable until their measurement cores are proven. No simulated numbers.</div></section>
+</main></body></html>
