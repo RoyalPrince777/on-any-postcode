@@ -622,3 +622,9 @@ body.smi-noise-strip #speaker-button,
 body.smi-noise-strip #send{
   box-shadow:none!important;
 }
+
+
+/* Saved Work belongs behind Plus > Memory; no floating home chrome. */
+body.smi-noise-strip .mobile-chats-toggle{
+  display:none!important;
+}
