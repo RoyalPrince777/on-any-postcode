@@ -49,31 +49,27 @@
   </header>
 
   {% if not auth_user %}
-    <main class="linkup-royal-home" aria-label="Link Up app">
-      <section class="linkup-royal-hero" aria-label="Link Up public home">
-        <div class="linkup-orbit" aria-hidden="true"></div>
-        <div class="linkup-royal-brand">
-          <span class="linkup-crown" aria-hidden="true">♛</span>
-          <h2>LINK <span>UP</span></h2>
-          <strong>OAP</strong>
-          <p>PUBLIC · CONNECT · CREATE</p>
-        </div>
-        <div class="linkup-royal-search">
-          <span aria-hidden="true">⌕</span>
-          <label class="sr-only" for="linkup-public-search">Search Link Up</label>
-          <input id="linkup-public-search" type="search" placeholder="Search people, interests, or opportunities…" disabled>
-          <a href="{{ url_for('the_link_front_door') }}" aria-label="Open discovery filters">☷</a>
-        </div>
-        {% if my_card and not auth_user %}
-        <div class="linkup-create-card" aria-label="Basic My Card active">
-          <span aria-hidden="true">▤✓</span>
-          <span>
-            <strong>{{ my_card.display_name }}</strong>
-            <small>{{ my_card.card_id }} · Basic My Card active. No password required. Private Link Up stays locked until secure sign-in is added.</small>
-          </span>
-          <b aria-hidden="true">🔒</b>
-        </div>
-        {% else %}
+    <main class="linkup-public-welcome" aria-label="Link Up private chat">
+      <span class="linkup-crown" aria-hidden="true">♛</span>
+      <h2>LINK <span>UP</span></h2>
+      <p>Private chat for your Links. Create or open My Card to continue into your private communication space.</p>
+      {% if my_card and not auth_user %}
+      <a class="linkup-public-action" href="{{ url_for('my_card_page') }}">
+        <strong>Open My Card</strong>
+        <small>{{ my_card.display_name }} · {{ my_card.card_id }}</small>
+      </a>
+      {% else %}
+      <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}">
+        <strong>Create My Card</strong>
+        <small>My Card is optional for public OAP browsing and required before private Link Up features can be secured.</small>
+      </a>
+      {% endif %}
+      <a class="linkup-public-action" href="{{ url_for('the_link_front_door') }}">
+        <strong>The Link</strong>
+        <small>Connect first, then come back here to communicate privately.</small>
+      </a>
+    </main>
+  {% else %}
         <a class="linkup-create-card" href="{{ url_for('my_card_create_page') }}">
           <span aria-hidden="true">▤＋</span>
           <span><strong>Create My Card</strong><small>Optional for private features. Public Link Up needs no email, password or sign-in.</small></span>
@@ -122,14 +118,18 @@
     </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
-      <aside class="linkup-list" aria-label="Link Ups">
+      <aside class="linkup-list" id="linkup-conversations" aria-label="Link Ups">
         <div class="linkup-list-head">
           <input class="linkup-search" type="search" placeholder="Search Link Ups" aria-label="Search Link Ups" data-linkup-search>
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
-        <div class="linkup-master-nav">
-          <a href="{{ url_for('the_link_front_door') }}">The Link</a>
-        </div>
+        <nav class="linkup-master-nav" aria-label="Link Up private menu">
+          <a href="#linkup-conversations">Link Ups</a>
+          <a href="#linkup-ring">Ring</a>
+          <a href="#linkup-now">Now</a>
+          <a href="#linkup-tap-in">Tap In</a>
+          <a href="#linkup-more">More</a>
+        </nav>
 
         {% if my_card %}
         <section class="linkup-card" aria-label="My Card">
@@ -149,7 +149,7 @@
           </span>
         </section>
         {% endif %}
-        <form class="linkup-now" data-oap-now-form>
+        <form class="linkup-now" id="linkup-now" data-oap-now-form>
           <label for="oap-now">💬 Now · What you on?</label>
           <input id="oap-now" maxlength="120" placeholder="Share a short status" data-oap-now-input>
           <label class="linkup-free"><input type="checkbox" data-oap-im-free> 🟢 I’m Free</label>
@@ -219,8 +219,12 @@
       </aside>
 
       <section class="linkup-chat" aria-label="Open chat">
-        <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
-        <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
+        <section id="linkup-tap-in" aria-label="Tap In">
+          <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
+        </section>
+        <section id="linkup-ring" aria-label="Ring">
+          <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
+        </section>
         <div class="linkup-call-stage" data-oap-call-stage hidden>
           <p data-oap-call-stage-label>Call</p>
           <video data-oap-remote-video autoplay playsinline hidden></video>
@@ -232,6 +236,11 @@
         <p class="linkup-runtime" data-oap-call-status role="status">Call</p>
         <p class="linkup-runtime" data-oap-presence-status role="status">Around Now</p>
         <p class="linkup-runtime" data-oap-share-status role="status">Share</p>
+        <details class="linkup-conversation-settings" id="linkup-more">
+          <summary>More</summary>
+          <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
+          <p><a href="{{ url_for('my_card_page') }}">My Card</a></p>
+        </details>
 
         {% if dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
@@ -280,8 +289,8 @@
                   <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
                   <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
                   <details data-oap-emoji-picker>
-                    <summary aria-label="Choose emoji" title="Emoji">😀</summary>
-                    <div role="group" aria-label="Insert emoji">
+                    <summary aria-label="My Emojis" title="My Emojis">😀</summary>
+                    <div role="group" aria-label="My Emojis">
                       {% for emoji in ['😀', '😂', '❤️', '👍', '🙏', '🔥', '👑', '💜', '🎉', '🤝', '🌍', '💯'] %}
                       <button type="button" data-oap-emoji="{{ emoji }}" aria-label="Insert {{ emoji }}">{{ emoji }}</button>
                       {% endfor %}
