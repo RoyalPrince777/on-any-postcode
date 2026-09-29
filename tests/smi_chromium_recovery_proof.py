@@ -169,8 +169,28 @@ def main():
             assert live.evaluate("el => getComputedStyle(el).pointerEvents") != "none"
 
             live.click()
-            page.wait_for_timeout(100)
+            page.wait_for_timeout(250)
             assert live.get_attribute("aria-pressed") == "true"
+
+            page.wait_for_function(
+                "() => Boolean(window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION?.snapshot?.())"
+            )
+            motion_before = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot()"
+            )
+            canvas = page.locator("#smi-source-pixel-motion")
+            canvas.wait_for(state="visible")
+            page.wait_for_timeout(350)
+            motion_after = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot()"
+            )
+            assert motion_after["live"] is True
+            assert motion_after["frames"] > motion_before["frames"]
+            assert motion_after["fullSceneSourcePixelMotion"] is True
+            assert motion_after["rigLayerFrames"]["head"] > 0
+            assert motion_after["rigLayerFrames"]["eyes"] > 0
+            assert motion_after["rigLayerFrames"]["breathing"] > 0
+            assert motion_after["rigLayerFrames"]["hands"] > 0
 
             visible_legacy_during_boot = page.evaluate(
                 "() => window.__smiLegacyPaintSamples.flat()"
@@ -198,6 +218,20 @@ def main():
             assert page.locator("#pause-button").is_enabled()
             assert page.locator("#stop-button").is_enabled()
 
+            page.locator("#stop-button").click()
+            page.wait_for_timeout(120)
+            stopped_snapshot = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot()"
+            )
+            assert stopped_snapshot["phase"] == "stopped"
+            assert stopped_snapshot["live"] is False
+            frozen_frames = stopped_snapshot["frames"]
+            page.wait_for_timeout(220)
+            stopped_after = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot()"
+            )
+            assert stopped_after["frames"] == frozen_frames
+
             assistant_after = page.locator(".msg.assistant").count()
             assert assistant_after == assistant_before
 
@@ -209,6 +243,8 @@ def main():
             print("LIVE_VISIBLE_CLICKABLE=PASS")
             print("NO_LEGACY_FLASH_SAMPLES=PASS")
             print("FAILED_REQUEST_RECOVERY=PASS")
+            print("SOURCE_PIXEL_MOTION=PASS")
+            print("STOP_FREEZES_MOTION=PASS")
 
             context.close()
             browser.close()
