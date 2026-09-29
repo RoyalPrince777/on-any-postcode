@@ -1,6 +1,6 @@
-from mission_control import product_cores, radio_core
-
 import pytest
+
+from mission_control import product_cores, radio_core
 
 
 RELEASE = "11111111-1111-4111-8111-111111111111"
