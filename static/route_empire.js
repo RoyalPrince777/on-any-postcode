@@ -3,7 +3,7 @@
   const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
   const q=s=>root.querySelector(s); let state=null;
   const req=()=>crypto.randomUUID().replaceAll("-","").slice(0,16);
-  const post=async(url,body)=>{const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":csrf},body:JSON.stringify(body)});const d=await r.json();if(!r.ok) throw new Error(d?.error?.code||"request_failed");return d};
+  const post=async(url,body)=>{const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(body)});const d=await r.json();if(!r.ok) throw new Error(d?.error?.code||"request_failed");return d};
   const render=()=>{
     if(!state)return; q("[data-setup]").hidden=true;q("[data-game]").hidden=false;
     q("[data-board-title]").textContent="🌍 "+state.location_label+" · Route Empire";
