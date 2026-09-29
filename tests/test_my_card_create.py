@@ -98,7 +98,7 @@ def test_public_my_card_creation_rejects_missing_consent_without_auth_call(
     )
 
     assert response.status_code == 400
-    assert "Confirm that private Link Up actions use your My Card identity." in response.get_data(as_text=True)
+    assert "Confirm the My Card privacy and private-action boundary." in response.get_data(as_text=True)
 
 
 def test_public_my_card_creation_allows_blank_email(
