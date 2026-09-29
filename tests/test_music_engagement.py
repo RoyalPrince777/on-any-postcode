@@ -23,6 +23,7 @@ def test_engagement_schema_is_cross_surface_and_privacy_bounded():
     assert music_engagement.MUSIC_ENGAGEMENT_MIGRATION_VERSION == "0020_oap_music_engagement"
     assert "OAP_MUSIC" in schema
     assert "OAP_TV" in schema
+    assert "OAP_RADIO" in schema
     assert "listener_key CHAR(64)" in schema
     assert "content_group_id" in schema
     assert "qualified BOOLEAN" in schema
