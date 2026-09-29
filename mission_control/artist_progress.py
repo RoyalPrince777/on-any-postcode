@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from . import music_engagement, postgres_db
+from . import music_engagement, music_rank, postgres_db
 
 
 def _uuid(value: object, name: str) -> str:
@@ -74,6 +74,7 @@ def artist_progress(identity_id: object) -> dict[str, object]:
     gross_reversed = int(accounting[5] or 0) if accounting else 0
 
     audience = music_engagement.artist_audience(owner)
+    ranking = music_rank.track_rank(owner, limit=25)
     return {
         "surface": "Artist Progress",
         "owner_identity_id": owner,
@@ -98,12 +99,13 @@ def artist_progress(identity_id: object) -> dict[str, object]:
         "unique_qualified_listeners": audience["unique_qualified_listeners"],
         "music_qualified_views": audience["music_qualified_views"],
         "tv_qualified_views": audience["tv_qualified_views"],
+        "radio_spins": audience["radio_qualified_plays"],
         "combined_reach": audience["combined_reach"],
         "places": audience["places"],
         "top_tracks": audience["top_tracks"],
-        "rank_position": None,
-        "radio_spins": None,
+        "rank": ranking,
+        "rank_position": ranking["items"][0]["position"] if ranking["items"] else None,
         "audience_growth": None,
-        "unavailable_metrics_reason": "rank_radio_growth_measurement_not_yet_proven",
+        "unavailable_metrics_reason": "audience_growth_measurement_not_yet_proven",
         "human_authority_final": True,
     }
