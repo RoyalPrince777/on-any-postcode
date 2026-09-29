@@ -26,6 +26,7 @@ from mission_control import (
     authority,
     carnival_intelligence,
     certification,
+    connect4,
     founder_activation,
     founder_recovery,
     iq_arena,
@@ -821,6 +822,67 @@ def arena_session_recover():
     result = arena_intelligence.public_state(state)
     result["recovered"] = True
     return _arena_json(result, 201)
+
+
+@app.get("/arena/connect4")
+def connect4_page():
+    response = make_response(
+        render_template("connect4.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/connect4/start")
+def connect4_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = connect4.new_game(payload.get("player_one"), payload.get("player_two"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[connect4.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(connect4.public_state(state), 201)
+
+
+@app.post("/arena/connect4/drop")
+def connect4_drop():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = connect4.drop(
+            session.get(connect4.SESSION_KEY),
+            column=payload.get("column"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[connect4.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(connect4.public_state(state))
+
+
+@app.post("/arena/connect4/stop")
+def connect4_stop():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = connect4.stop(
+            session.get(connect4.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[connect4.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(connect4.public_state(state))
 
 
 @app.get("/arena/iq")
