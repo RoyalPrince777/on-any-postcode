@@ -315,6 +315,7 @@ async function oapSubmit(options={}){
   if(!oapInput.value.trim()&&text)oapInput.value=text;
   oapInput.dispatchEvent(new Event('input',{bubbles:true}));
   add(recoveryMessage+' · Your request is preserved for retry.','system');
+  if(oapRuntime?.live)oapShowLiveReply('Inference unavailable · your request is preserved for retry.');
   oapSetStatus('Inference unavailable · request preserved · retry when backend is ready');
   oapInput.focus();
  }}

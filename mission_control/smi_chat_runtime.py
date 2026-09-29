@@ -42,6 +42,36 @@ _CORE_COHERENCE_REVIEW = _core.coherence_review
 
 _LOG = logging.getLogger(__name__)
 
+_SAFE_RUNTIME_ERROR_CODES = frozenset({
+    "local_inference_disabled",
+    "local_inference_unavailable",
+    "local_inference_empty",
+    "home_node_bridge_disabled",
+    "home_node_bridge_not_configured",
+    "home_node_worker_unavailable",
+    "home_node_bridge_busy",
+    "home_node_bridge_timeout",
+    "home_node_bridge_empty",
+    "home_node_job_expired",
+    "provider_key_missing",
+    "provider_key_missing_for_media",
+    "provider_stream_failed",
+    "provider_unavailable",
+    "first_party_inference_required",
+})
+
+
+def _safe_runtime_error_code(exc: RuntimeError) -> str:
+    """Return only an approved machine code; never echo arbitrary exception text."""
+
+    raw = str(exc).strip()
+    if raw in _SAFE_RUNTIME_ERROR_CODES:
+        return raw
+    if re.fullmatch(r"provider_http_\d{3}", raw):
+        return "provider_http_error"
+    return "provider_runtime_error"
+
+
 _health_probe_condition = threading.Condition()
 _health_probe_running = False
 _health_probe_generation = 0
@@ -696,7 +726,7 @@ def chat_events(
                     ),
                 })
             elif isinstance(exc, RuntimeError):
-                safe_code = str(exc).strip()[:120] or type(exc).__name__
+                safe_code = _safe_runtime_error_code(exc)
                 _LOG.warning(
                     "smi_provider_runtime_error code=%s",
                     safe_code,

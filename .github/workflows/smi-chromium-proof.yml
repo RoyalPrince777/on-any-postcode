@@ -1,0 +1,31 @@
+name: SMI Chromium recovery proof
+
+on:
+  pull_request:
+    paths:
+      - "mission_control/templates/ollama_chat*.html"
+      - "mission_control/static/smi_*.js"
+      - "mission_control/static/smi_*.css"
+      - "mission_control/smi_chat_runtime.py"
+      - "tests/smi_chromium_recovery_proof.py"
+      - ".github/workflows/smi-chromium-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smi-browser-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install application and actual Chromium test browser
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+      - name: Prove authenticated SMI Live no-flash and failure recovery
+        run: python tests/smi_chromium_recovery_proof.py
