@@ -50,6 +50,10 @@ class MusicAssetUnavailable(RuntimeError):
     pass
 
 
+class MusicAssetStopped(MusicAssetUnavailable):
+    pass
+
+
 def _uuid(value: object, code: str) -> str:
     try:
         return str(uuid.UUID(str(value)))
@@ -245,7 +249,7 @@ class MusicAssetStore:
         try:
             with postgres_db.connect(readonly=True) as connection:
                 row = connection.execute(
-                    """SELECT media,mime_type,sha256,original_name
+                    """SELECT media,mime_type,sha256,original_name,stopped
                        FROM oap_music_assets
                        WHERE asset_id=%s AND owner_identity_id=%s
                        LIMIT 1""",
@@ -255,6 +259,8 @@ class MusicAssetStore:
             raise MusicAssetUnavailable("music_asset_read_failed") from exc
         if row is None:
             return None
+        if bool(row[4]):
+            raise MusicAssetStopped("music_asset_stopped")
         data = bytes(row[0])
         digest = hashlib.sha256(data).hexdigest()
         if digest != str(row[2]):
@@ -267,7 +273,7 @@ class MusicAssetStore:
             with postgres_db.connect(readonly=True) as connection:
                 rows = connection.execute(
                     """SELECT asset_id,release_id,track_id,original_name,mime_type,
-                              byte_size,sha256,created_at
+                              byte_size,sha256,created_at,stopped,stopped_at
                        FROM oap_music_assets
                        WHERE owner_identity_id=%s
                        ORDER BY created_at DESC LIMIT 200""",
@@ -286,6 +292,38 @@ class MusicAssetStore:
                 "sha256": str(row[6]),
                 "created_at": row[7].isoformat(),
                 "playback_scope": "OWNER_PRIVATE",
+                "stopped": bool(row[8]),
+                "stopped_at": row[9].isoformat() if row[9] else None,
             }
             for row in rows
         ]
+
+    def stop(
+        self, *, owner_identity_id: object, asset_id: object
+    ) -> dict[str, object]:
+        owner = _uuid(owner_identity_id, "invalid_owner_identity")
+        asset = _uuid(asset_id, "invalid_asset_id")
+        try:
+            with postgres_db.connect() as connection:
+                row = connection.execute(
+                    """UPDATE oap_music_assets
+                       SET stopped=TRUE,stopped_at=COALESCE(stopped_at,CURRENT_TIMESTAMP)
+                       WHERE asset_id=%s AND owner_identity_id=%s
+                       RETURNING release_id,track_id,stopped_at""",
+                    (asset, owner),
+                ).fetchone()
+                connection.commit()
+        except Exception as exc:
+            raise MusicAssetUnavailable("music_asset_stop_failed") from exc
+        if row is None:
+            raise PermissionError("music_asset_not_owned")
+        return {
+            "asset_id": asset,
+            "release_id": str(row[0]),
+            "track_id": str(row[1]),
+            "stopped": True,
+            "stopped_at": row[2].isoformat(),
+            "audio_delivery_enabled": False,
+            "public_playback_enabled": False,
+            "human_authority_final": True,
+        }
