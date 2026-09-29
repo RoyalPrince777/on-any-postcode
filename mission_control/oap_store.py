@@ -41,7 +41,7 @@ LINK_UP = {
     "publisher": "ON ANY POSTCODE LTD",
     "distribution": "OAP Store",
     "first_party": True,
-    "description": "Private OAP communication with Link Message, Link Call, Voice, Incoming, presence and sharing controls.",
+    "description": "Private OAP communication with Link Message, Link Call, Voice, Tap In, presence and sharing controls.",
     "release_state": "install_ready",
     "install_enabled": True,
     "install_mode": "PWA",
