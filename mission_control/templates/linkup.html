@@ -7,6 +7,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% set oap_app_name = "Link Up" %}
+  {% set oap_manifest_url = "/linkup/manifest.webmanifest" %}
   {% include "_oap_install_head.html" %}
   <title>Link Up</title>
   {% if auth_user %}<meta name="oap-csrf-token" content="{{ oap_csrf_token }}">{% endif %}
