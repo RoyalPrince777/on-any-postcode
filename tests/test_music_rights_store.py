@@ -103,3 +103,47 @@ def test_review_grant_has_no_playback_or_public_catalogue_authority():
     assert result["human_approved"] is False
     assert result["playback_authorized"] is False
     assert result["public_catalogue_enabled"] is False
+
+
+def test_review_receipt_hash_is_deterministic_and_never_authorizes_playback():
+    payload = music_rights_store._review_receipt_payload(
+        receipt_id="55555555-5555-4555-8555-555555555555",
+        grant_id=GRANT,
+        asset_id=ASSET,
+        owner_identity_id=OWNER,
+        reviewer_identity_id="66666666-6666-4666-8666-666666666666",
+        review_kind="AUTHORITY",
+        evidence_hashes=["a" * 64],
+        decision="APPROVE",
+    )
+    first = music_rights_store._review_receipt_hash(payload)
+    second = music_rights_store._review_receipt_hash(dict(payload))
+    assert first == second
+    assert len(first) == 64
+    assert payload["playback_authorized"] is False
+    assert payload["public_catalogue_enabled"] is False
+
+
+def test_owner_cannot_act_as_independent_rights_reviewer():
+    store = music_rights_store.MusicRightsStore()
+    try:
+        store.record_authority_review(
+            owner_identity_id=OWNER,
+            grant_id=GRANT,
+            reviewer_identity_id=OWNER,
+            evidence_hashes=["a" * 64],
+            approved=True,
+        )
+    except PermissionError as exc:
+        assert str(exc) == "independent_reviewer_required"
+    else:
+        raise AssertionError("owner self-review must fail closed")
+
+
+def test_review_schema_persists_authority_and_human_approval_receipts():
+    joined = "\n".join(music_rights_store.SCHEMA_STATEMENTS)
+    assert "oap_music_rights_review_receipts" in joined
+    assert "AUTHORITY" in joined
+    assert "HUMAN_APPROVAL" in joined
+    assert "reviewer_identity_id UUID NOT NULL" in joined
+    assert "receipt_hash CHAR(64) NOT NULL UNIQUE" in joined
