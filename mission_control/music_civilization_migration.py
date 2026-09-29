@@ -10,6 +10,7 @@ from . import (
     music_assets,
     music_evidence,
     music_recovery,
+    music_rights_store,
     postgres_db,
     product_cores,
     radio_core,
@@ -24,6 +25,7 @@ _MIGRATIONS = (
     (music_recovery.RECOVERY_MIGRATION_VERSION, music_recovery.SCHEMA_STATEMENTS),
     (music_acceptance.ACCEPTANCE_MIGRATION_VERSION, music_acceptance.SCHEMA_STATEMENTS),
     (music_assets.MUSIC_ASSET_MIGRATION_VERSION, music_assets.SCHEMA_STATEMENTS),
+    (music_rights_store.MUSIC_RIGHTS_MIGRATION_VERSION, music_rights_store.SCHEMA_STATEMENTS),
 )
 _LOCK_KEY = 25800012
 
