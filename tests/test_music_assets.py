@@ -45,19 +45,18 @@ def test_music_upload_player_and_radio_routes_are_registered():
 
 
 def test_music_creator_surface_exposes_real_governed_controls():
-    with open("mission_control/templates/oap_music.html", encoding="utf-8") as handle:
-        template = handle.read()
-    for control_id in (
-        "release-form",
-        "upload-form",
-        "review-form",
-        "station-form",
-        "rotation-form",
-        "show-form",
-        "schedule-form",
-        "stop-form",
-    ):
-        assert f'id="{control_id}"' in template
-    assert "/tune/releases/" in template
-    assert "/radio/stations/" in template
-    assert "broadcast not auto-started" in template
+    with open("mission_control/templates/oap_music_studio.html", encoding="utf-8") as handle:
+        studio = handle.read()
+    with open("mission_control/templates/oap_radio.html", encoding="utf-8") as handle:
+        radio = handle.read()
+
+    for control_id in ("release-form", "upload-form", "review-form", "approve-form"):
+        assert f'id="{control_id}"' in studio
+    assert "/tune/releases/" in studio
+
+    assert 'id="station-form"' in radio
+    assert 'id="always-form"' in radio
+    assert 'id="stop-button"' in radio
+    assert "/radio/stations/" in radio
+    assert "Always On" in radio
+    assert "STOP" in radio
