@@ -2,7 +2,6 @@ from flask import Flask
 
 from mission_control import music_assets, music_public_views
 
-
 ASSET = "22222222-2222-4222-8222-222222222222"
 OWNER = "11111111-1111-4111-8111-111111111111"
 
