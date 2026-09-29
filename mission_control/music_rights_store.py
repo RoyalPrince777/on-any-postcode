@@ -20,6 +20,10 @@ from . import postgres_db, rights_core
 MUSIC_RIGHTS_MIGRATION_VERSION = "0014_oap_music_rights_grants"
 
 SCHEMA_STATEMENTS = (
+    """ALTER TABLE oap_music_assets
+       ADD COLUMN IF NOT EXISTS stopped BOOLEAN NOT NULL DEFAULT FALSE""",
+    """ALTER TABLE oap_music_assets
+       ADD COLUMN IF NOT EXISTS stopped_at TIMESTAMPTZ""",
     """CREATE TABLE IF NOT EXISTS oap_music_rights_grants (
         grant_id UUID PRIMARY KEY,
         owner_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
