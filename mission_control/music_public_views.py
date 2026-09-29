@@ -7,6 +7,7 @@ from . import (
     music_assets,
     music_content_links,
     music_entitlements,
+    music_engagement,
     music_public_catalogue,
     music_purchases,
     public_store,
@@ -245,6 +246,32 @@ def music_add_video_link(track_id: str):
         return _api_error("invalid_request", str(exc), 400)
     except Exception:  # noqa: BLE001 - redact storage details.
         return _api_error("music_video_link_unavailable", "Video linking is temporarily unavailable.", 503)
+
+
+@bp.post("/music/api/engagement")
+def music_record_engagement():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = music_engagement.record_event(
+            track_id=payload.get("track_id"),
+            session_identity=web_security.ensure_session_identity(),
+            surface=payload.get("surface", "OAP_MUSIC"),
+            event_type=payload.get("event_type"),
+            playback_seconds=payload.get("playback_seconds", 0),
+            duration_seconds=payload.get("duration_seconds"),
+            postcode=payload.get("postcode"),
+            borough=payload.get("borough"),
+            region=payload.get("region"),
+            country=payload.get("country"),
+            continent=payload.get("continent"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:  # noqa: BLE001 - redact storage details.
+        return _api_error("engagement_unavailable", "Engagement measurement is temporarily unavailable.", 503)
 
 
 @bp.get("/music/api/catalogue")
