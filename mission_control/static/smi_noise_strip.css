@@ -634,3 +634,70 @@ body.smi-noise-strip .mobile-chats-toggle{
 /* SMI A7 release marker: startup inference readiness logger. */
 
 /* SMI MBS release marker: exact-head Matrix + Mind Body Soul + inference probe. */
+
+
+/* Canonical Live SMI input law: Live remains voice-first, never voice-only.
+   Preserve the minimum fallback controls after legacy fullscreen CSS runs:
+   Tools · Voice · text input · Send. Secondary composer noise stays hidden. */
+body.smi-noise-strip.smi-live-fullscreen .composer{
+  left:50%!important;
+  right:auto!important;
+  bottom:max(6px,env(safe-area-inset-bottom))!important;
+  transform:translateX(-50%)!important;
+  width:min(760px,calc(100vw - 12px))!important;
+  padding:0!important;
+  z-index:11120!important;
+  background:transparent!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .composer-box{
+  display:grid!important;
+  grid-template-columns:42px 42px minmax(0,1fr) 46px!important;
+  gap:5px!important;
+  align-items:center!important;
+  width:100%!important;
+  max-width:none!important;
+  min-height:54px!important;
+  padding:5px!important;
+  border:1px solid var(--smi-ui-line)!important;
+  border-radius:28px!important;
+  background:rgba(2,8,22,.94)!important;
+  box-shadow:0 8px 26px rgba(0,0,0,.34)!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .composer textarea{
+  display:block!important;
+  grid-column:3!important;
+  grid-row:1!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:42px!important;
+  max-height:86px!important;
+  padding:10px 12px!important;
+  border:0!important;
+  border-radius:22px!important;
+  background:rgba(8,13,39,.72)!important;
+}
+body.smi-noise-strip.smi-live-fullscreen #send{
+  display:grid!important;
+  grid-column:4!important;
+  grid-row:1!important;
+  width:46px!important;
+  height:42px!important;
+  min-width:46px!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .attach-wrap,
+body.smi-noise-strip.smi-live-fullscreen #plus-button{
+  display:grid!important;
+  grid-column:1!important;
+  grid-row:1!important;
+}
+body.smi-noise-strip.smi-live-fullscreen #mic-button{
+  display:grid!important;
+  grid-column:2!important;
+  grid-row:1!important;
+}
+body.smi-noise-strip.smi-live-fullscreen #code-button,
+body.smi-noise-strip.smi-live-fullscreen #thinking-level,
+body.smi-noise-strip.smi-live-fullscreen #speaker-button,
+body.smi-noise-strip.smi-live-fullscreen .preview{
+  display:none!important;
+}
