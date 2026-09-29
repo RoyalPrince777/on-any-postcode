@@ -207,7 +207,7 @@ def test_music_has_dedicated_install_manifest_and_identity(client):
     assert manifest["display"] == "standalone"
     assert manifest["prefer_related_applications"] is False
     assert {item["url"] for item in manifest["shortcuts"]} == {
-        "/music#player", "/radio", "/music/studio",
+        "/music", "/radio", "/music/studio",
     }
 
 
