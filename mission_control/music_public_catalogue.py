@@ -32,9 +32,24 @@ def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
 
     sql = f"""
         SELECT r.release_id,r.title,r.release_type,
-               t.track_id,t.title,t.position,t.duration_ms,t.explicit
+               t.track_id,t.title,t.position,t.duration_ms,t.explicit,
+               a.asset_id,a.stopped,pe.entitlement_id
         FROM oap_music_releases r
         JOIN oap_music_tracks t ON t.release_id=r.release_id
+        LEFT JOIN oap_music_assets a ON a.track_id=t.track_id
+        LEFT JOIN LATERAL (
+            SELECT e.entitlement_id
+            FROM oap_music_entitlements e
+            WHERE e.asset_id=a.asset_id
+              AND e.access_scope='PUBLIC_FREE'
+              AND e.territory='*'
+              AND e.channel='OAP Music'
+              AND e.active=TRUE
+              AND (e.valid_from IS NULL OR e.valid_from <= CURRENT_TIMESTAMP)
+              AND (e.valid_until IS NULL OR e.valid_until > CURRENT_TIMESTAMP)
+            ORDER BY e.created_at DESC
+            LIMIT 1
+        ) pe ON TRUE
         WHERE {' AND '.join(where)}
         ORDER BY r.created_at DESC,t.position ASC
         LIMIT %s
@@ -53,8 +68,16 @@ def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
             "duration_ms": int(row[6]) if row[6] is not None else None,
             "explicit": bool(row[7]),
             "source": "OAP Music first-party",
-            "playback_enabled": False,
-            "stream_url": None,
+            "asset_id": str(row[8]) if row[8] is not None else None,
+            "playback_enabled": bool(
+                row[8] is not None and row[9] is False and row[10] is not None
+            ),
+            "stream_url": (
+                f"/music/api/assets/{row[8]}/stream"
+                if row[8] is not None and row[9] is False and row[10] is not None
+                else None
+            ),
+            "playback_gate_revalidated_on_request": True,
         }
         for row in rows
     ]
@@ -65,7 +88,8 @@ def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
         "items": items,
         "item_count": len(items),
         "public_metadata_only": True,
-        "playback_enabled": False,
+        "playback_enabled": any(item["playback_enabled"] for item in items),
+        "playable_item_count": sum(1 for item in items if item["playback_enabled"]),
         "external_catalogue_dependency": False,
         "external_player_dependency": False,
         "human_authority_final": True,
