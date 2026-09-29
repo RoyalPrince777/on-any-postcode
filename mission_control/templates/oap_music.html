@@ -215,7 +215,7 @@
     <section id="player">
       <div class="player">
         <strong>▶️ OAP Player</strong>
-        <p class="muted">Your uploaded audio can play here privately after Enter My World. No publicly cleared playable track is available yet.</p>
+        <p class="muted">Your uploaded audio can play here privately after Enter My World. Public playback appears only for tracks with current rights and entitlement proof.</p>
         <div id="private-assets" class="grid"></div>
         <div id="player-state" class="result">Checking private player…</div>
         <div class="truth">▶ Play locked publicly. Playback stays locked until the evidence gate passes. Private owner playback is not a public rights clearance, radio airplay receipt or external distribution claim.</div>
@@ -450,10 +450,19 @@
             const release = document.createElement('div');
             release.className = 'muted';
             release.textContent = item.release_title + ' · ' + item.release_type;
-            const lock = document.createElement('div');
-            lock.className = 'truth';
-            lock.textContent = '🔒 Playback locked until evidence gate passes.';
-            card.append(title, release, lock);
+            if (item.playback_enabled && item.stream_url) {
+              const audio = document.createElement('audio');
+              audio.controls = true;
+              audio.preload = 'metadata';
+              audio.src = item.stream_url;
+              audio.setAttribute('aria-label', 'Play ' + item.track_title);
+              card.append(title, release, audio);
+            } else {
+              const lock = document.createElement('div');
+              lock.className = 'truth';
+              lock.textContent = '🔒 Playback locked until current rights and entitlement gates pass.';
+              card.append(title, release, lock);
+            }
             results.append(card);
           });
           emptyOap.classList.toggle('hidden', payload.item_count !== 0);
