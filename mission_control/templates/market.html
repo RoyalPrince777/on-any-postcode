@@ -307,7 +307,8 @@
             body:JSON.stringify({
               product_id:item.product_id,
               quantity:item.quantity,
-              idempotency_key:key
+              idempotency_key:key,
+              customer_approval_reference:'market-checkout:' + key
             })
           });
           created.push(result);
