@@ -69,3 +69,9 @@ def test_live_fullscreen_keeps_minimum_text_fallback_controls_visible():
     assert "body.smi-noise-strip.smi-live-fullscreen #mic-button" in css
     assert "body.smi-noise-strip.smi-live-fullscreen #plus-button" in css
     assert "body.smi-noise-strip.smi-live-fullscreen #thinking-level" in css
+
+
+def test_live_fullscreen_surfaces_recovery_message():
+    canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text()
+    assert "if(oapRuntime?.live)oapShowLiveReply('Inference unavailable · your request is preserved for retry.')" in canonical
+    assert "Your request is preserved for retry." in canonical
