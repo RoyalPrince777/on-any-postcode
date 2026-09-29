@@ -13,6 +13,18 @@ const ready=()=>{
   const speaker=document.getElementById('speaker-button');
   const input=document.getElementById('message');
   const form=document.getElementById('chat-form');
+  const savedWork=document.getElementById('saved-work-button');
+  const history=document.querySelector('.history');
+  const historyBackdrop=document.querySelector('.history-backdrop');
+
+  if(savedWork){
+    savedWork.addEventListener('click',()=>{
+      history?.classList.add('mobile-open');
+      historyBackdrop?.classList.add('mobile-open');
+      document.getElementById('attach-menu')?.classList.remove('show');
+      plus?.setAttribute('aria-expanded','false');
+    });
+  }
 
   if(plus){plus.title='Tools';plus.setAttribute('aria-label','Open tools and attachments');}
   if(mic){mic.title='Voice input';}
