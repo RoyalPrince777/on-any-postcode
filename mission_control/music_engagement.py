@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 from . import postgres_db
 
 MUSIC_ENGAGEMENT_MIGRATION_VERSION = "0020_oap_music_engagement"
-SURFACES = frozenset({"OAP_MUSIC", "OAP_TV"})
+SURFACES = frozenset({"OAP_MUSIC", "OAP_TV", "OAP_RADIO"})
 EVENT_TYPES = frozenset({"START", "HEARTBEAT", "COMPLETE"})
 MIN_QUALIFIED_SECONDS = 30
 ACTIVE_WINDOW_SECONDS = 90
@@ -24,7 +24,7 @@ SCHEMA_STATEMENTS = (
         content_group_id UUID NOT NULL REFERENCES oap_music_content_groups(content_group_id)
             ON DELETE CASCADE,
         track_id UUID NOT NULL REFERENCES oap_music_tracks(track_id) ON DELETE CASCADE,
-        surface TEXT NOT NULL CHECK (surface IN ('OAP_MUSIC','OAP_TV')),
+        surface TEXT NOT NULL CHECK (surface IN ('OAP_MUSIC','OAP_TV','OAP_RADIO')),
         listener_key CHAR(64) NOT NULL,
         event_type TEXT NOT NULL CHECK (event_type IN ('START','HEARTBEAT','COMPLETE')),
         playback_seconds INTEGER NOT NULL DEFAULT 0 CHECK (playback_seconds >= 0),
@@ -167,6 +167,7 @@ def artist_audience(identity_id: object) -> dict[str, object]:
                  ),
                  COUNT(*) FILTER (WHERE e.surface='OAP_MUSIC' AND e.qualified=TRUE),
                  COUNT(*) FILTER (WHERE e.surface='OAP_TV' AND e.qualified=TRUE),
+                 COUNT(*) FILTER (WHERE e.surface='OAP_RADIO' AND e.qualified=TRUE),
                  COUNT(DISTINCT (e.content_group_id,e.listener_key)) FILTER (WHERE e.qualified=TRUE)
                FROM oap_music_engagement_events e
                JOIN oap_music_content_groups g ON g.content_group_id=e.content_group_id
@@ -197,7 +198,7 @@ def artist_audience(identity_id: object) -> dict[str, object]:
                LIMIT 25""",
             (owner,),
         ).fetchall()
-    row = totals or (0,0,0,0,0,0,0)
+    row = totals or (0,0,0,0,0,0,0,0)
     return {
         "measured_at": now.isoformat(),
         "raw_starts": int(row[0] or 0),
@@ -206,7 +207,8 @@ def artist_audience(identity_id: object) -> dict[str, object]:
         "listening_now": int(row[3] or 0),
         "music_qualified_views": int(row[4] or 0),
         "tv_qualified_views": int(row[5] or 0),
-        "combined_reach": int(row[6] or 0),
+        "radio_qualified_plays": int(row[6] or 0),
+        "combined_reach": int(row[7] or 0),
         "cross_surface_deduplication": "content_group_plus_listener",
         "places": [
             {
