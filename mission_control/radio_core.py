@@ -13,6 +13,13 @@ from uuid import UUID
 from . import entertainment_catalogue, postgres_db
 
 RADIO_MIGRATION_VERSION = "0008_oap_radio_core"
+RADIO_ALWAYS_ON_MIGRATION_VERSION = "0016_oap_radio_always_on"
+RADIO_ALWAYS_ON_SCHEMA_STATEMENTS = (
+    """ALTER TABLE oap_radio_station_control
+       ADD COLUMN IF NOT EXISTS always_on BOOLEAN NOT NULL DEFAULT FALSE""",
+    """ALTER TABLE oap_radio_station_control
+       ADD COLUMN IF NOT EXISTS auto_add_approved BOOLEAN NOT NULL DEFAULT TRUE""",
+)
 STATION_STATES = frozenset({"DRAFT", "REVIEW_REQUIRED", "ACTIVE", "ARCHIVED"})
 SHOW_STATES = frozenset({"DRAFT", "SCHEDULED", "ACTIVE", "ARCHIVED"})
 MAX_TEXT = 180
@@ -318,6 +325,49 @@ class RadioStore:
             "broadcast_started": False,
         }
 
+    def set_always_on(
+        self,
+        *,
+        owner_identity_id: object,
+        station_id: object,
+        enabled: bool,
+        auto_add_approved: bool = True,
+    ) -> dict[str, object]:
+        owner = _uuid(owner_identity_id, "owner_identity_id")
+        station = _uuid(station_id, "station_id")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_radio_station_control
+                   SET always_on=%s,
+                       auto_add_approved=%s,
+                       stopped=CASE WHEN %s THEN FALSE ELSE stopped END,
+                       stop_reason=CASE WHEN %s THEN NULL ELSE stop_reason END,
+                       updated_at=CURRENT_TIMESTAMP
+                   WHERE station_id=%s AND owner_identity_id=%s
+                   RETURNING station_id,always_on,auto_add_approved,stopped""",
+                (
+                    bool(enabled),
+                    bool(auto_add_approved),
+                    bool(enabled),
+                    bool(enabled),
+                    station,
+                    owner,
+                ),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("radio_station_not_owned")
+            connection.commit()
+        return {
+            "station_id": str(row[0]),
+            "always_on": bool(row[1]),
+            "auto_add_approved": bool(row[2]),
+            "stopped": bool(row[3]),
+            "operating_mode": "ALWAYS_ON" if bool(row[1]) else "MANUAL",
+            "background_daemon_claimed": False,
+            "public_broadcast_claimed": False,
+            "human_authority_final": True,
+        }
+
     def stop_station(
         self, *, owner_identity_id: object, station_id: object, reason: object = None
     ) -> dict[str, object]:
@@ -352,7 +402,8 @@ class RadioStore:
         owner = _uuid(owner_identity_id, "owner_identity_id")
         with postgres_db.connect(readonly=True) as connection:
             stations = connection.execute(
-                """SELECT s.station_id,s.name,s.slug,s.state,c.stopped
+                """SELECT s.station_id,s.name,s.slug,s.state,c.stopped,
+                          c.always_on,c.auto_add_approved
                    FROM oap_radio_stations s
                    JOIN oap_radio_station_control c ON c.station_id=s.station_id
                    WHERE s.owner_identity_id=%s
@@ -393,6 +444,8 @@ class RadioStore:
                 {
                     "station_id": str(r[0]), "name": str(r[1]), "slug": str(r[2]),
                     "state": str(r[3]), "stopped": bool(r[4]),
+                    "always_on": bool(r[5]),
+                    "auto_add_approved": bool(r[6]),
                     "broadcast_live": False,
                 }
                 for r in stations
