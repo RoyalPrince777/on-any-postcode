@@ -10,6 +10,8 @@
 <div class="card"><div class="muted">Combined Reach</div><div class="metric">{{ progress.combined_reach|default(0,true) }}</div><div class="state">Deduplicated across Music + TV</div></div>
 <div class="card"><div class="muted">Music Views</div><div class="metric">{{ progress.music_qualified_views|default(0,true) }}</div></div>
 <div class="card"><div class="muted">TV Views</div><div class="metric">{{ progress.tv_qualified_views|default(0,true) }}</div></div>
+<div class="card"><div class="muted">Radio Plays</div><div class="metric">{{ progress.radio_spins|default(0,true) }}</div><div class="state">Qualified listener playback via OAP Radio</div></div>
+<div class="card"><div class="muted">Rank</div><div class="metric">{% if progress.rank_position %}#{{ progress.rank_position }}{% else %}—{% endif %}</div><div class="state">Track lane · evidence-backed</div></div>
 <div class="card"><div class="muted">Releases</div><div class="metric">{{ progress.release_count }}</div></div>
 <div class="card"><div class="muted">Tracks</div><div class="metric">{{ progress.track_count }}</div></div>
 <div class="card"><div class="muted">Active creator value</div><div class="metric">£{{ '%.2f'|format(progress.accounting.gross_active_minor / 100) }}</div><div class="state">Accounting evidence only · no payout claim</div></div>
@@ -32,5 +34,5 @@
 <div class="row"><strong>{{ place.country }}</strong><div class="state">{{ place.region }} · {{ place.borough }} · {{ place.unique_listeners }} unique listener{% if place.unique_listeners != 1 %}s{% endif %}</div></div>
 {% else %}<div class="muted">No qualified location data yet.</div>{% endfor %}
 </div></section>
-<section class="card" style="margin-top:18px"><strong>Coming when proven</strong><div class="state">Rank position · Radio spins · Audience growth</div><div class="muted" style="margin-top:8px">These remain unavailable until their measurement cores are proven. No simulated numbers.</div></section>
+<section class="card" style="margin-top:18px"><strong>Coming when proven</strong><div class="state">Audience growth</div><div class="muted" style="margin-top:8px">These remain unavailable until their measurement cores are proven. No simulated numbers.</div></section>
 </main></body></html>
