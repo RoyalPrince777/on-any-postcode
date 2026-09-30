@@ -6,6 +6,16 @@
  const head=document.querySelector(".chat-head");
  const character=document.getElementById("smi-character");
  const messages=document.getElementById("messages");
+ const openWarRoom=()=>{
+  const target=String(cfg.warRoomUrl||"").trim();
+  if(!target){
+   const feedback=document.getElementById("status");
+   if(feedback)feedback.textContent="War Room route unavailable.";
+   return false;
+  }
+  window.location.assign(target);
+  return true;
+ };
  if(!chatbox||!head||!character||!messages||document.getElementById("smi-command-centre"))return;
  const marker=document.createComment("original SMI character position");
  character.parentNode.insertBefore(marker,character);
@@ -21,8 +31,8 @@
     document.getElementById("message")?.focus();return;
    }
    if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
-   if(target==="war-room")document.querySelector('#attach-menu [data-oap-action="war-room"]')?.click();
-   else document.getElementById(target)?.click();
+   if(target==="war-room"){openWarRoom();return;}
+   document.getElementById(target)?.click();
   });
   presenceActions.append(button);
  }
@@ -404,6 +414,11 @@
   if(action==="oap-maps-controls"){
    mapsControls.hidden=!mapsControls.hidden;
    trigger.setAttribute("aria-expanded",String(!mapsControls.hidden));
+   return;
+  }
+  if(action==="war-room"){
+   setOpen(false);
+   openWarRoom();
    return;
   }
   if(action==="matrix-routes"){

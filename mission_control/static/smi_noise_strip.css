@@ -789,3 +789,37 @@ body.smi-noise-strip.smi-live-fullscreen #send{
   border-radius:999px!important;
 }
 body.smi-noise-strip.smi-live-fullscreen .send-label{display:inline!important}
+
+
+/* Final SMI clarity lock: readable words are real markup, never emoji-only pseudo UI. */
+body.smi-noise-strip .control-label{
+  display:inline!important;
+  font-size:.72rem!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+body.smi-noise-strip #plus-button::after,
+body.smi-noise-strip #mic-button::after,
+body.smi-noise-strip #pause-button::after,
+body.smi-noise-strip #stop-button::after{content:none!important}
+body.smi-noise-strip #plus-button,
+body.smi-noise-strip #mic-button,
+body.smi-noise-strip #pause-button,
+body.smi-noise-strip #stop-button,
+body.smi-noise-strip #send{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+}
+@media(max-width:760px){
+  body.smi-noise-strip .control-label{display:inline!important;font-size:.66rem!important}
+  body.smi-noise-strip #plus-button,
+  body.smi-noise-strip #mic-button,
+  body.smi-noise-strip #speaker-button,
+  body.smi-noise-strip #send{
+    width:auto!important;
+    min-width:58px!important;
+  }
+  body.smi-noise-strip #thinking-level{min-width:76px!important}
+}
