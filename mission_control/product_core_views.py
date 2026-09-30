@@ -572,6 +572,29 @@ def create_radio_show(station_id: str):
     return _handle_write(action)
 
 
+@bp.post("/radio/stations/<station_id>/approve")
+@web_security.login_required(api=True, founder_only=True)
+def approve_radio_station(station_id: str):
+    return _handle_write(
+        lambda: _radio_store.approve_station(
+            founder_identity_id=_identity(sync=True),
+            station_id=station_id,
+        )
+    )
+
+
+@bp.post("/radio/stations/<station_id>/shows/<show_id>/approve")
+@web_security.login_required(api=True, founder_only=True)
+def approve_radio_show(station_id: str, show_id: str):
+    return _handle_write(
+        lambda: _radio_store.approve_show(
+            founder_identity_id=_identity(sync=True),
+            station_id=station_id,
+            show_id=show_id,
+        )
+    )
+
+
 @bp.post("/radio/stations/<station_id>/schedule")
 @web_security.login_required(api=True, founder_only=True)
 def schedule_radio_show(station_id: str):
