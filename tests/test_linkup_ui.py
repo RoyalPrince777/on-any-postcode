@@ -322,3 +322,12 @@ def test_my_emojis_are_private_chat_composer_language():
     assert 'aria-label="My Emojis"' in template
     assert 'title="My Emojis"' in template
     assert "My Emojis stay inside the private chat" in template
+
+
+def test_linkup_more_exposes_leave_my_world_through_existing_sign_out_route():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert 'id="linkup-more"' in template
+    assert "Leave My World" in template
+    assert "url_for('auth_sign_out')" in template
+    assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in template
