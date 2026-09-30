@@ -82,12 +82,16 @@ def test_artist_progress_is_evidence_backed(monkeypatch):
     assert progress["combined_reach"] == 24
     assert progress["radio_spins"] == 7
     assert progress["rank_position"] == 1
-    assert progress["radio_spins"] is None
 
 
 def test_artist_progress_route_is_private_and_separate(monkeypatch):
     app = Flask(__name__, template_folder="../mission_control/templates")
     app.secret_key = "test"
+
+    @app.get("/enter")
+    def auth_page():
+        return "Enter My World"
+
     app.register_blueprint(music_public_views.bp)
     client = app.test_client()
 
