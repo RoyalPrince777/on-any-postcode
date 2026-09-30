@@ -73,14 +73,14 @@ def _require_ready() -> None:
         raise LinkPttFloorUnavailable("ptt_floor_unavailable")
 
 
-def _active_pair(connection, identity: str, session: str) -> str:
+def _active_pair(connection, identity: str, session: str, *, lock: bool = True) -> str:
     # Lock the owning call first: a finished or expired session cannot obtain a floor.
     row = connection.execute(
         """SELECT initiator_id,recipient_id FROM link_call_sessions
            WHERE session_id=%s AND state='active'
              AND expires_at>CURRENT_TIMESTAMP
              AND (initiator_id=%s OR recipient_id=%s)
-           FOR UPDATE""",
+           """ + (" FOR UPDATE" if lock else ""),
         (session, identity, identity),
     ).fetchone()
     if row is None:
@@ -140,7 +140,7 @@ def read(identity_id: object, session_id: object) -> dict:
     _require_ready()
     try:
         with postgres_db.connect(readonly=True) as connection:
-            _active_pair(connection, identity, session)
+            _active_pair(connection, identity, session, lock=False)
             row = connection.execute(
                 """SELECT holder_id FROM link_ptt_floor
                    WHERE session_id=%s AND lease_until>CURRENT_TIMESTAMP""",
