@@ -56,6 +56,7 @@ async function refresh(){
  snapshot=await post("/arena/rooms/state",{
   room_id:membership.room_id,reconnect_token:membership.reconnect_token,
  });
+ membership.seat=snapshot.your_seat;
  render();
 }
 async function action(action,column){
