@@ -49,3 +49,23 @@ def test_arena_shared_css_preserves_small_screen_and_keyboard_access(client):
     assert ":focus-visible" in css
     assert "prefers-reduced-motion" in css
     assert ".arena-chess-board" in css
+
+
+def test_connect4_prevents_overlapping_agent_turns_and_exposes_bounded_recovery(client):
+    html = client.get("/arena/connect4").get_data(as_text=True)
+    assert "data-retry-agent hidden" in html
+    script = client.get("/static/connect4.js").get_data(as_text=True)
+    assert "let state=null,agentMode=false,busy=false" in script
+    assert "if(busy)return" in script
+    assert 'q("[data-mode]").disabled=busy||state?.status==="active"' in script
+    assert 'q("[data-agent]").disabled=busy||state?.status==="active"' in script
+    assert "q(\"[data-retry-agent]\").hidden=false" in script
+    assert "runAgent().catch(error).finally" in script
+
+
+def test_chess_board_selection_guards_turn_and_restores_keyboard_focus(client):
+    script = client.get("/static/chess.js").get_data(as_text=True)
+    assert "Select one of your own pieces to begin." in script
+    assert 'const ownColour=state.turn==="White"?"w":"b";' in script
+    assert 'q(\'[data-square="\'+id+\'"]\')?.focus()' in script
+    assert 'q("[data-target]").value="";' in script
