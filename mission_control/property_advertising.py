@@ -12,6 +12,8 @@ from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID
 
+from . import property_identity_gates
+
 CATEGORIES = frozenset({"house", "flat", "land", "commercial", "development", "luxury", "rental"})
 CURRENCIES = frozenset({"GBP", "GHS"})
 STATES = frozenset({"DRAFT", "APPROVED", "ACTIVE", "WITHDRAWN"})
@@ -54,13 +56,16 @@ def _money(value: object) -> str:
 # No permissive fallback: absence, exceptions and non-True answers deny publication.
 AuthorityCheck = Callable[[dict[str, Any], str], bool]
 CertifiedCheck = Callable[[str], bool]
+ReviewerCheck = Callable[[str, str], bool]
 
 
 def _verified(record: dict[str, Any], evidence_ref: str, *,
               authority_check: AuthorityCheck | None,
               certified_check: CertifiedCheck | None) -> None:
-    if authority_check is None or certified_check is None:
+    if authority_check is None:
         raise PermissionError("property_verifiers_required")
+    if certified_check is None:
+        certified_check = property_identity_gates.certified_merchant
     try:
         if certified_check(record["publisher_id"]) is not True:
             raise PermissionError("property_certified_required")
@@ -110,12 +115,20 @@ def property_draft(payload: dict[str, Any], *, publisher_id: object) -> dict[str
 
 def approve(record: dict[str, Any], *, evidence_ref: object, approved_by: object,
             authority_check: AuthorityCheck | None = None,
-            certified_check: CertifiedCheck | None = None) -> dict[str, Any]:
+            certified_check: CertifiedCheck | None = None,
+            reviewer_check: ReviewerCheck | None = None) -> dict[str, Any]:
     if record.get("state") != "DRAFT":
         raise ValueError("property_not_draft")
     reviewer = _uuid(approved_by, "approved_by")
     if reviewer == record.get("publisher_id"):
         raise PermissionError("property_independent_reviewer_required")
+    check_reviewer = reviewer_check or property_identity_gates.independent_human_reviewer
+    try:
+        valid_reviewer = check_reviewer(reviewer, record["publisher_id"]) is True
+    except Exception:  # noqa: BLE001 - trusted reviewer provider unavailable.
+        valid_reviewer = False
+    if not valid_reviewer:
+        raise PermissionError("property_human_reviewer_required")
     evidence = _required(evidence_ref, "authority_evidence_ref", 180)
     _verified(record, evidence, authority_check=authority_check,
               certified_check=certified_check)
