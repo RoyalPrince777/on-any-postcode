@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from . import earth_intelligence, ecosystem_intelligence
+from mission_control import earth_intelligence, ecosystem_intelligence
 
 PLANETARY_LEVELS = (
     "postcode",
