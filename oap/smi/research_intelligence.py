@@ -116,7 +116,8 @@ def assess_financial_observation(
     """Fail closed on provenance, freshness, permission and quote integrity.
 
     Caller must supply a timezone-aware now and an independently provisioned
-    source registry. Untrusted observation permission flags grant no authority.
+    source registry with source-bound verified observation receipts. Untrusted
+    observation permission and claim flags grant no authority.
     Passing observations remain research-only, never trade signals.
     """
     if now.tzinfo is None or now.utcoffset() is None:
@@ -149,8 +150,26 @@ def assess_financial_observation(
             or observation.get("instrument") not in instruments
         ):
             reasons.append("instrument_not_authorised")
-    if observation.get("claim_supported") is not True:
-        reasons.append("claim_not_verified")
+    # A source's general research approval does not verify a submitted quote.
+    # A separately provisioned, source-scoped receipt must match its content.
+    receipt_id = observation.get("evidence_id")
+    if not isinstance(receipt_id, str) or not receipt_id.strip():
+        reasons.append("missing_evidence_id")
+    else:
+        receipts = (
+            source_record.get("verified_observations")
+            if isinstance(source_record, Mapping) else None
+        )
+        receipt = receipts.get(receipt_id) if isinstance(receipts, Mapping) else None
+        if not isinstance(receipt, Mapping) or receipt.get("verified") is not True:
+            reasons.append("independent_evidence_not_verified")
+        elif (
+            receipt.get("instrument") != observation.get("instrument")
+            or receipt.get("value") != str(observation.get("value"))
+            or receipt.get("published_at") != observation.get("published_at")
+            or receipt.get("observed_at") != observation.get("observed_at")
+        ):
+            reasons.append("independent_evidence_mismatch")
     if observation.get("observed_or_inferred") != "observed":
         reasons.append("not_a_direct_observation")
     if not str(observation.get("instrument") or "").strip():
