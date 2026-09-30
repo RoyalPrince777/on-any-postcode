@@ -107,16 +107,21 @@ let missionId=null;
 let latestDigest=null;
 let latestState=null;
 let proofVerified=false;
+let missionEpoch=0;
+let missionMutationPending=false;
 
 function updateControls(){
-  readButton.disabled=!missionId;
-  const writable=Boolean(missionId&&proofVerified&&latestDigest);
+  startButton.disabled=missionMutationPending;
+  restoreButton.disabled=missionMutationPending;
+  readButton.disabled=missionMutationPending||!missionId;
+  const writable=Boolean(!missionMutationPending&&missionId&&proofVerified&&latestDigest);
   stopButton.disabled=!writable||latestState==='stopped';
   recoverButton.disabled=!writable||latestState!=='stopped';
-  inferenceButton.disabled=!proofVerified||!missionId||latestState==='stopped';
-  handoffButton.disabled=!proofVerified||!missionId||latestState==='stopped';
+  inferenceButton.disabled=missionMutationPending||!proofVerified||!missionId||latestState==='stopped';
+  handoffButton.disabled=missionMutationPending||!proofVerified||!missionId||latestState==='stopped';
 }
 function clearLocalProof(){
+  missionEpoch+=1;
   proofVerified=false;latestDigest=null;latestState=null;
   inferenceResult.textContent='Mission evidence unavailable. Reverify before inspection.';
   handoffResult.textContent='Mission proof cleared. Governed action must be reviewed again.';
@@ -145,6 +150,7 @@ function showReceipt(label,receipt){
   // A new checkpoint invalidates any earlier request-level gate presentation.
   inferenceResult.textContent='Checkpoint updated. Inspect inference again if needed.';
   handoffResult.textContent='Checkpoint updated. Review governance again if needed.';
+  missionEpoch+=1;
   latestDigest=receipt.digest;
   latestState=receipt.state;
   proofVerified=true;
@@ -165,11 +171,14 @@ function showReceipt(label,receipt){
   return true;
 }
 async function loadVerifiedMission(candidateId,expected=null){
+  const startedEpoch=missionEpoch;
   if(typeof candidateId!=='string'||!/^[0-9a-f-]{36}$/.test(candidateId)){
     clearLocalProof();throw new Error('Invalid mission identifier.');
   }
   const body=await requestJson(startUrl+'/'+encodeURIComponent(candidateId));
   const receipt=body.receipt;
+  // Do not restore an old request over a newer START, STOP or recovery.
+  if(missionEpoch!==startedEpoch)return false;
   // Latest selection may race a concurrent STOP or recovery. Reject mismatches.
   if(expected&&(
     expected.found!==true||expected.mission_id!==candidateId||
@@ -203,7 +212,8 @@ async function requestJson(url,options={}){
 }
 form.addEventListener('submit',async(event)=>{
   event.preventDefault();
-  startButton.disabled=true;
+  if(missionMutationPending)return;
+  missionMutationPending=true;updateControls();
   result.textContent='Routing through SMI and writing durable HRM + audit receipts…';
   try{
     const body=await requestJson(startUrl,{
@@ -219,7 +229,7 @@ form.addEventListener('submit',async(event)=>{
     showReceipt('🟢 Mission durably receipted.',body.receipt);
   }catch(err){
     clearLocalProof();result.textContent='🔴 '+err.message;
-  }finally{startButton.disabled=false;}
+  }finally{missionMutationPending=false;updateControls();}
 });
 inferenceButton.addEventListener('click',async()=>{
   if(!proofVerified||!missionId||latestState==='stopped')return;
@@ -229,12 +239,16 @@ inferenceButton.addEventListener('click',async()=>{
     return;
   }
   const inspectedMission=missionId;
+  const inspectedDigest=latestDigest;
+  const inspectedEpoch=missionEpoch;
   inferenceButton.disabled=true;
   inferenceResult.textContent='Checking current Founder-owned Mission and HRM inference receipt…';
   try{
     const evidence=await requestJson(startUrl+'/'+encodeURIComponent(inspectedMission)+
       '/inference/'+encodeURIComponent(requestId));
-    if(!proofVerified||missionId!==inspectedMission||latestState==='stopped'||
+    if(!proofVerified||missionEpoch!==inspectedEpoch||
+       missionId!==inspectedMission||latestDigest!==inspectedDigest||
+       latestState==='stopped'||
        evidence?.mission_id!==inspectedMission||evidence?.request_id!==requestId||
        evidence?.mission_checkpoint_verified!==true||
        evidence?.mission_text_hash_matched!==true||
@@ -262,7 +276,8 @@ inferenceButton.addEventListener('click',async()=>{
       '👑 Human Authority final.',
     ].join('\\n');
   }catch(err){
-    inferenceResult.textContent='🔴 Evidence not verified: '+err.message;
+    if(missionEpoch===inspectedEpoch)
+      inferenceResult.textContent='🔴 Evidence not verified: '+err.message;
   }finally{updateControls();}
 });
 handoffButton.addEventListener('click',async()=>{
@@ -274,6 +289,7 @@ handoffButton.addEventListener('click',async()=>{
   }
   const reviewedMission=missionId;
   const reviewedDigest=latestDigest;
+  const reviewedEpoch=missionEpoch;
   handoffButton.disabled=true;
   handoffResult.textContent='Evaluating existing Guardian, Judgement and Founder approval evidence…';
   try{
@@ -282,7 +298,8 @@ handoffButton.addEventListener('click',async()=>{
       body:JSON.stringify({reviewed_request_id:requestId,action_name:'SYNC_INTERNAL_RECORD'}),
     });
     const gate=body?.result;
-    if(!proofVerified||missionId!==reviewedMission||latestDigest!==reviewedDigest||
+    if(!proofVerified||missionEpoch!==reviewedEpoch||
+       missionId!==reviewedMission||latestDigest!==reviewedDigest||
        latestState==='stopped'||gate?.mission_id!==reviewedMission||
        gate?.reviewed_request_id!==requestId||
        gate?.action_name!=='SYNC_INTERNAL_RECORD'||
@@ -315,48 +332,57 @@ handoffButton.addEventListener('click',async()=>{
       handoffResult.textContent='🔴 Unrecognised or incomplete action-gate response. No Green.';
     }
   }catch(err){
-    handoffResult.textContent='🔴 Governed handoff not verified: '+err.message;
+    if(missionEpoch===reviewedEpoch)
+      handoffResult.textContent='🔴 Governed handoff not verified: '+err.message;
   }finally{updateControls();}
 });
 restoreButton.addEventListener('click',async()=>{
+  if(missionMutationPending)return;
+  const restoreEpoch=missionEpoch;
   restoreButton.disabled=true;
   result.textContent='Selecting owner-scoped latest Mission and verifying HRM + audit…';
   try{
     const latest=await requestJson(latestUrl);
+    if(missionEpoch!==restoreEpoch)return;
     if(latest.found!==true){
       clearLocalProof();result.textContent='No verified Mission found for this Founder.';
       return;
     }
     await loadVerifiedMission(latest.mission_id,latest);
-  }catch(err){clearLocalProof();result.textContent='🔴 '+err.message;}
-  finally{restoreButton.disabled=false;}
+  }catch(err){
+    if(missionEpoch===restoreEpoch){clearLocalProof();result.textContent='🔴 '+err.message;}
+  }finally{updateControls();}
 });
 readButton.addEventListener('click',async()=>{
+  if(missionMutationPending)return;
+  const readEpoch=missionEpoch;
   result.textContent='Independently verifying Mission checkpoint…';
   try{await loadVerifiedMission(missionId);}
-  catch(err){clearLocalProof();result.textContent='🔴 '+err.message;}
+  catch(err){
+    if(missionEpoch===readEpoch){clearLocalProof();result.textContent='🔴 '+err.message;}
+  }
 });
 stopButton.addEventListener('click',async()=>{
-  if(!proofVerified||!latestDigest)return;
-  stopButton.disabled=true;result.textContent='Writing durable STOP checkpoint…';
+  if(missionMutationPending||!proofVerified||!latestDigest)return;
+  missionMutationPending=true;updateControls();result.textContent='Writing durable STOP checkpoint…';
   try{
     const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/stop',{
       method:'POST',body:JSON.stringify({expected_previous_hash:latestDigest}),
     });
     showReceipt('🛑 STOP durably recorded.',body.receipt);
   }catch(err){clearLocalProof();result.textContent='🔴 '+err.message;}
-  finally{updateControls();}
+  finally{missionMutationPending=false;updateControls();}
 });
 recoverButton.addEventListener('click',async()=>{
-  if(!proofVerified||!latestDigest)return;
-  recoverButton.disabled=true;result.textContent='Recovering mission to reviewable state…';
+  if(missionMutationPending||!proofVerified||!latestDigest)return;
+  missionMutationPending=true;updateControls();result.textContent='Recovering mission to reviewable state…';
   try{
     const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/recover',{
       method:'POST',body:JSON.stringify({expected_previous_hash:latestDigest}),
     });
     showReceipt('♻️ Mission recovered for review. No execution granted.',body.receipt);
   }catch(err){clearLocalProof();result.textContent='🔴 '+err.message;}
-  finally{updateControls();}
+  finally{missionMutationPending=false;updateControls();}
 });
 const storedMission=sessionStorage.getItem(sessionPrefix+'mission_id');
 // Never trust sessionStorage digest for STOP/recovery: re-read server authority.
