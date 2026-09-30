@@ -8,7 +8,7 @@
     if(!state)return; q("[data-setup]").hidden=true;q("[data-game]").hidden=false;
     q("[data-board-title]").textContent="🌍 "+state.location_label+" · Route Empire";
     q("[data-turn]").textContent=state.current_player_name;q("[data-round]").textContent=state.round;
-    q("[data-status]").textContent=state.status==="completed"?"Winner: "+state.winner_id:state.status;
+    q("[data-status]").textContent=state.status==="completed"?"Winner: "+state.winner_id:state.status;root.querySelectorAll("[data-end-turn],[data-stop]").forEach(b=>b.disabled=state.status!=="active");
     q("[data-players-view]").innerHTML=state.players.map(p=>`<div class="re-node"><strong>${p.name}</strong><br>Points ${p.points} · Influence ${p.influence}</div>`).join("");
     q("[data-nodes]").innerHTML=state.nodes.map(n=>`<div class="re-node"><strong>${n.label}</strong><br>Owner: ${n.owner_id||"Open"} · Level ${n.level}<div class="re-actions"><button data-act="claim" data-node="${n.id}">Claim</button><button data-act="develop" data-node="${n.id}">Develop</button></div></div>`).join("");
   };
