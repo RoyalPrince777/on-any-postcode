@@ -42,7 +42,7 @@ def test_link_up_language_law_keeps_messenger_terms_simple():
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["new_conversation"] == "New Link"
     assert "group" not in linkup.LINK_UP_PUBLIC_VOCABULARY
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Link Call"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Incoming"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Tap In"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["in_transit"] == "Landing…"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
@@ -240,7 +240,7 @@ def test_linkup_emoji_and_conversation_settings_reuse_existing_owners():
     script = Path("static/linkup_realtime.js").read_text(encoding="utf-8")
     assert "data-oap-emoji-picker" in page
     assert "data-oap-emoji=" in page
-    assert 'aria-label="Choose emoji"' in page
+    assert 'aria-label="My Emojis"' in page
     assert "data-oap-emoji" in script
     assert "textarea.setRangeText(emoji, start, end," in script
     assert "next.length > textarea.maxLength" in script
@@ -272,14 +272,18 @@ def test_linkup_public_shell_uses_free_my_card_actions():
 
 
 
-def test_linkup_master_menu_is_only_chat_calls_now_and_tap_in():
+def test_linkup_master_menu_is_only_linkups_ring_now_tap_in_and_more():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
-    assert 'aria-label="Link Up menu"' in template
-    assert '>💬 Chats</a>' in template
-    assert '>📞 Calls</a>' in template
+    assert 'aria-label="Link Up private menu"' in template
+    assert '>💬 Link Ups</a>' in template
+    assert '>📞 Ring</a>' in template
     assert '>🟢 Now</a>' in template
     assert '>🔗 Tap In</a>' in template
+    assert '>⋯ More</a>' in template
+    assert 'id="linkup-ring"' in template
+    assert 'id="linkup-tap-in"' in template
+    assert 'id="linkup-more"' in template
     for removed in (
         "linkup-royal-tools",
         "linkup-royal-bottom",
@@ -310,3 +314,11 @@ def test_linkup_has_no_room_navigation_or_typing_language():
     assert "Typing…" not in script
     assert "/linkup/activity/typing" not in script
     assert "Landing → Landed → Lit" in script
+
+
+def test_my_emojis_are_private_chat_composer_language():
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert 'aria-label="My Emojis"' in template
+    assert 'title="My Emojis"' in template
+    assert "My Emojis stay inside the private chat" in template

@@ -87,11 +87,12 @@
           <input class="linkup-search" type="search" placeholder="Search Link Ups" aria-label="Search Link Ups" data-linkup-search>
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
-        <nav class="linkup-master-nav" aria-label="Link Up menu">
-          <a href="#linkup-chats">💬 Chats</a>
-          <a href="#linkup-calls">📞 Calls</a>
+        <nav class="linkup-master-nav" aria-label="Link Up private menu">
+          <a href="#linkup-chats">💬 Link Ups</a>
+          <a href="#linkup-ring">📞 Ring</a>
           <a href="#linkup-now">🟢 Now</a>
           <a href="#linkup-tap-in">🔗 Tap In</a>
+          <a href="#linkup-more">⋯ More</a>
         </nav>
 
         {% if my_card %}
@@ -181,8 +182,10 @@
         {% endif %}
       </aside>
 
-      <section class="linkup-chat" id="linkup-calls" aria-label="Open chat">
-        <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
+      <section class="linkup-chat" id="linkup-ring" aria-label="Open chat">
+        <section aria-label="Tap In activity">
+          <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
+        </section>
         <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
         <div class="linkup-call-stage" data-oap-call-stage hidden>
           <p data-oap-call-stage-label>Call</p>
@@ -195,6 +198,11 @@
         <p class="linkup-runtime" data-oap-call-status role="status">Call</p>
         <p class="linkup-runtime" data-oap-presence-status role="status">Around Now</p>
         <p class="linkup-runtime" data-oap-share-status role="status">Share</p>
+        <details class="linkup-conversation-settings" id="linkup-more">
+          <summary>More</summary>
+          <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
+          <p><a href="{{ url_for('my_card_page') }}">My Card</a></p>
+        </details>
 
         {% if dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
@@ -243,8 +251,8 @@
                   <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
                   <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
                   <details data-oap-emoji-picker>
-                    <summary aria-label="Choose emoji" title="Emoji">😀</summary>
-                    <div role="group" aria-label="Insert emoji">
+                    <summary aria-label="My Emojis" title="My Emojis">😀</summary>
+                    <div role="group" aria-label="My Emojis">
                       {% for emoji in ['😀', '😂', '❤️', '👍', '🙏', '🔥', '👑', '💜', '🎉', '🤝', '🌍', '💯'] %}
                       <button type="button" data-oap-emoji="{{ emoji }}" aria-label="Insert {{ emoji }}">{{ emoji }}</button>
                       {% endfor %}
