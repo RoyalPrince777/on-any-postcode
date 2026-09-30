@@ -65,6 +65,7 @@ def test_founder_memory_channel_can_retrieve_research_intelligence_decision():
 # CC21: these observations are entirely local test fixtures, not market feeds.
 
 NOW = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
+TRUSTED_SOURCES = {"approved research source": {"research_use_permitted": True, "verified": True, "source_class": "reputable_secondary", "instruments": ("SAMPLE",)}}
 
 
 def _financial_observation():
@@ -83,7 +84,7 @@ def _financial_observation():
 
 
 def test_cc21_valid_observation_remains_research_only():
-    decision = assess_financial_observation(_financial_observation(), now=NOW)
+    decision = assess_financial_observation(_financial_observation(), now=NOW, trusted_sources=TRUSTED_SOURCES)
     assert decision["usable_for_research"] is True
     assert decision["reasons"] == ()
     assert decision["read_only"] is True
@@ -97,7 +98,6 @@ def test_cc21_valid_observation_remains_research_only():
     ("source", "", "missing_source"),
     ("source_class", "made_up", "invalid_source_class"),
     ("source_class", "community_or_social_signal", "social_signal_not_a_verified_quote"),
-    ("research_use_permitted", False, "research_permission_not_proven"),
     ("claim_supported", False, "claim_not_verified"),
     ("observed_or_inferred", "inferred", "not_a_direct_observation"),
     ("instrument", "", "missing_instrument"),
@@ -115,7 +115,7 @@ def test_cc21_unproved_or_stale_observations_fail_closed(field, value, reason):
     if reason == "stale_observation":
         # Maintain chronological validity while making the quote stale.
         observation["published_at"] = "2026-09-30T11:29:00Z"
-    decision = assess_financial_observation(observation, now=NOW)
+    decision = assess_financial_observation(observation, now=NOW, trusted_sources=TRUSTED_SOURCES)
     assert decision["usable_for_research"] is False
     assert reason in decision["reasons"]
     assert decision["execution_allowed"] is False
@@ -129,7 +129,7 @@ def test_cc21_unproved_or_stale_observations_fail_closed(field, value, reason):
 def test_cc21_quote_cannot_launder_trading_or_performance_claims(field):
     observation = _financial_observation()
     observation[field] = "some value"
-    decision = assess_financial_observation(observation, now=NOW)
+    decision = assess_financial_observation(observation, now=NOW, trusted_sources=TRUSTED_SOURCES)
     assert decision["usable_for_research"] is False
     assert "execution_or_performance_claim_in_quote" in decision["reasons"]
 
@@ -143,3 +143,25 @@ def test_cc21_never_changes_canonical_sika_ownership():
     from oap.smi.state_ownership_registry import owner_for
     assert owner_for("value").owner_component == "sika"
     assert owner_for("audit_evidence").owner_component == "oap_data"
+
+
+def test_cc21_missing_trusted_registry_fails_closed():
+    result = assess_financial_observation(_financial_observation(), now=NOW)
+    assert result["usable_for_research"] is False
+    assert "untrusted_source" in result["reasons"]
+
+
+def test_cc21_source_registry_controls_permission_and_coverage():
+    observation = _financial_observation()
+    for change, expected in (
+        ({"research_use_permitted": False}, "research_permission_not_proven"),
+        ({"verified": False}, "source_not_verified"),
+        ({"source_class": "first_party_or_official"}, "source_class_mismatch"),
+        ({"instruments": ("OTHER",)}, "instrument_not_authorised"),
+    ):
+        record = {**TRUSTED_SOURCES["approved research source"], **change}
+        result = assess_financial_observation(
+            observation, now=NOW, trusted_sources={"approved research source": record},
+        )
+        assert result["usable_for_research"] is False
+        assert expected in result["reasons"]
