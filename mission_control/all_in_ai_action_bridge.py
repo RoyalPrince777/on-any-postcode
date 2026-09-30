@@ -210,6 +210,48 @@ def status() -> dict[str, Any]:
     }
 
 
+
+def _verified_executor_outcome(
+    outcome: object, authorization: Mapping[str, object], *, recovery: bool = False,
+) -> bool:
+    """Project only literal, request-bound verified executor evidence.
+
+    An incomplete response must not become Mission Green. A returned executor
+    error is handled by its caller; uncertain post-commit outcomes require
+    manual reconciliation, NEVER a blind automatic retry.
+    """
+    if not isinstance(outcome, Mapping):
+        return False
+    try:
+        request_id = _uuid(authorization.get("request_id"), "request_id")
+        approval_id = _uuid(
+            authorization.get("approval_receipt_id"), "approval_receipt_id",
+        )
+    except ValueError:
+        return False
+    receipt = outcome.get("outcome_receipt")
+    if not isinstance(receipt, Mapping):
+        return False
+    return all((
+        outcome.get("request_id") == request_id,
+        outcome.get("approval_receipt_id") == approval_id,
+        outcome.get("action_performed") is True,
+        outcome.get("evidence_proven") is True,
+        outcome.get("status_readback_verified") is True,
+        outcome.get("content_unchanged") is True,
+        outcome.get("audit_recorded") is True,
+        outcome.get("authority_transferred") is False,
+        outcome.get("external_side_effect") is False,
+        outcome.get("financial_side_effect") is False,
+        outcome.get("human_authority_final") is True,
+        receipt.get("write_verified") is True,
+        receipt.get("read_back_verified") is True,
+        receipt.get("pipeline_complete") is True,
+        receipt.get("human_authority_final") is True,
+        not recovery or outcome.get("rollback_verified") is True,
+    ))
+
+
 def execute_internal_record(
     identity_id: object,
     mission_id: object,
@@ -240,6 +282,7 @@ def execute_internal_record(
         expected_status=expected_status,
         target_status=target_status,
     )
+    outcome_verified = _verified_executor_outcome(execution, authorization)
     return {
         "component": "ALL IN A.I. Governed Internal Execution",
         "mission_id": handoff["mission_id"],
@@ -247,11 +290,12 @@ def execute_internal_record(
         "handoff_status": handoff["status"],
         "execution": execution,
         "execution_authorized": True,
-        "execution_performed": True,
-        "outcome_receipt_verified": bool(
-            execution.get("outcome_receipt", {}).get("write_verified")
-            and execution.get("outcome_receipt", {}).get("read_back_verified")
+        "execution_performed": execution.get("action_performed") is True,
+        "outcome_receipt_verified": outcome_verified,
+        "execution_evidence_state": (
+            "VERIFIED" if outcome_verified else "RECONCILIATION_REQUIRED"
         ),
+        "automatic_retry_allowed": False,
         "authority_transferred": False,
         "human_authority_final": True,
     }
@@ -284,17 +328,23 @@ def rollback_internal_record(
         identity_id=identity_id,
         rollback_token=rollback_token,
     )
+    outcome_verified = _verified_executor_outcome(
+        recovery, authorization, recovery=True,
+    )
     return {
         "component": "ALL IN A.I. Governed Internal Recovery",
         "mission_id": handoff["mission_id"],
         "reviewed_request_id": handoff["reviewed_request_id"],
         "handoff_status": handoff["status"],
         "recovery": recovery,
-        "rollback_verified": bool(recovery.get("rollback_verified")),
-        "outcome_receipt_verified": bool(
-            recovery.get("outcome_receipt", {}).get("write_verified")
-            and recovery.get("outcome_receipt", {}).get("read_back_verified")
+        "rollback_verified": (
+            outcome_verified and recovery.get("rollback_verified") is True
         ),
+        "outcome_receipt_verified": outcome_verified,
+        "execution_evidence_state": (
+            "VERIFIED" if outcome_verified else "RECONCILIATION_REQUIRED"
+        ),
+        "automatic_retry_allowed": False,
         "authority_transferred": False,
         "human_authority_final": True,
     }
