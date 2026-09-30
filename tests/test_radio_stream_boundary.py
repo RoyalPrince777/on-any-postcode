@@ -5,7 +5,6 @@ from flask import Flask
 
 from mission_control import music_public_views
 
-
 STATION, TRACK, ASSET, OWNER = (str(uuid4()) for _ in range(4))
 PATH = f"/radio/api/stations/{STATION}/tracks/{TRACK}/assets/{ASSET}/stream"
 
