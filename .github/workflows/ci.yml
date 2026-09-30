@@ -18,16 +18,16 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
-          POSTGRES_DB: oap_radio_ci
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: oap_ci
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d oap_radio_ci"
-          --health-interval 5s
+          --health-cmd "pg_isready -U postgres -d oap_ci"
+          --health-interval 10s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
         with:
@@ -68,6 +68,20 @@ jobs:
           node tests/smi_android_motion_evidence_gate_test.cjs
           node --check mission_control/smi_real_reply_motion_bridge.js
           node tests/smi_real_reply_motion_bridge_test.cjs
+      - name: Validate first-party Arena browser controllers
+        run: |
+          for script in \
+            static/arena_intelligence.js \
+            static/route_empire.js \
+            static/iq_arena.js \
+            static/ludo.js \
+            static/chess.js \
+            static/dot.js \
+            static/connect4.js \
+            static/arena_connect4_room.js \
+            static/arena_dot_room.js; do
+            node --check "$script"
+          done
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
@@ -109,6 +123,10 @@ jobs:
           combined="$(printf '%s\n' 'OAP ephemeral combined-main proof' | git -c user.name='OAP CI' -c user.email='ci@localhost' commit-tree "$tree" -p HEAD -p origin/main)"
           git worktree add --detach /tmp/oap-combined-main "$combined"
           cd /tmp/oap-combined-main
+          for script in static/arena_intelligence.js static/route_empire.js \
+            static/iq_arena.js static/ludo.js static/chess.js static/dot.js \
+            static/connect4.js static/arena_connect4_room.js \
+            static/arena_dot_room.js; do node --check "$script"; done
           python -m compileall -q app.py mission_control oap
           ruff check app.py mission_control oap tests
           set -o pipefail
@@ -116,7 +134,7 @@ jobs:
 
       - name: Prove Founder Radio gates against isolated PostgreSQL
         env:
-          OAP_RADIO_TEST_POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_radio_ci
+          OAP_RADIO_TEST_POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
         run: python -m pytest -q tests/test_radio_postgres_integration.py
 
       # The external routing service is a hard gate, but an outage must not
@@ -125,6 +143,11 @@ jobs:
         run: |
           set -o pipefail
           python -m pytest -q 2>&1 | tee /tmp/oap-pytest.log
+      - name: Run real Distribution × Market PostgreSQL proof
+        env:
+          OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
+          OAP_REAL_POSTGRES_PROOF: "1"
+        run: python -m pytest -q tests/test_distribution_market_postgres_integration.py
       - name: Run bounded external live routing Green Gate probe
         run: python scripts/routing_live_green_gate.py
       - name: Run bounded external live weather Green Gate probe
