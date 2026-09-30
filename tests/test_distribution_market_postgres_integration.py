@@ -357,6 +357,9 @@ def test_real_postgres_property_grant_scope_expiry_revocation_and_reviewer():
         Path(__file__).resolve().parents[1]
         / "migrations" / "0009_oap_property_advertising_authority.sql"
     ).read_text(encoding="utf-8")
+    # Remove comment-only lines before splitting SQL; comments may contain semicolons.
+    ddl = "\n".join(line for line in ddl.splitlines()
+                    if not line.lstrip().startswith("--"))
     publisher, advertiser, reviewer, evidence_id = (str(uuid4()) for _ in range(4))
     with postgres_db.connect() as connection:
         for statement in ddl.split(";"):
