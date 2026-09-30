@@ -555,6 +555,26 @@ def radio_status():
         return _error("radio_unavailable", "OAP Radio is temporarily unavailable.", 503)
 
 
+@bp.get("/radio/stations/<station_id>/delivery-receipts")
+@web_security.login_required(api=True, founder_only=True)
+def radio_delivery_receipts(station_id: str):
+    """Founder-only evidence: server response prepared, never confirmed airplay."""
+    try:
+        receipts = _radio_store.delivery_receipts(
+            owner_identity_id=_identity(), station_id=station_id
+        )
+        return _no_store(make_response(jsonify({
+            "station_id": station_id,
+            "receipts": receipts,
+            "receipt_type": "RESPONSE_PREPARED",
+            "confirms_airplay": False,
+        })))
+    except ValueError:
+        return _error("invalid_station_id", "Invalid Radio station.", 400)
+    except RuntimeError:
+        return _error("radio_unavailable", "OAP Radio is temporarily unavailable.", 503)
+
+
 @bp.post("/radio/stations")
 @web_security.login_required(api=True, founder_only=True)
 def create_radio_station():
