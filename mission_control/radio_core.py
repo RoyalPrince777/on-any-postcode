@@ -626,7 +626,9 @@ class RadioStore:
         """Serialize response preparation with STOP and persist an honest receipt.
 
         This is NOT confirmation of socket delivery, listening, or broadcast.
-        STOP and this gate both write-lock the same station-control row.
+        STOP and this gate both write-lock the same station-control row. The
+        selected independently approved rights grant is share-locked through
+        receipt commit, serializing grant revocation against admission.
         """
         station = _uuid(station_id, "station_id")
         track = _uuid(track_id, "track_id")
@@ -664,6 +666,9 @@ class RadioStore:
                    JOIN oap_music_entitlements e
                      ON e.asset_id=a.asset_id
                     AND e.owner_identity_id=s.owner_identity_id
+                   JOIN oap_music_rights_grants g
+                     ON g.asset_id=a.asset_id
+                    AND g.owner_identity_id=s.owner_identity_id
                    WHERE c.station_id=%s AND c.owner_identity_id=%s
                      AND r.track_id=%s AND a.asset_id=%s AND e.entitlement_id=%s
                      AND s.state='ACTIVE' AND s.founder_approved=TRUE
@@ -674,7 +679,20 @@ class RadioStore:
                      AND e.territory IN ('*')
                      AND (e.valid_from IS NULL OR e.valid_from<=CURRENT_TIMESTAMP)
                      AND (e.valid_until IS NULL OR e.valid_until>CURRENT_TIMESTAMP)
-                   FOR UPDATE OF c""",
+                     AND g.revoked=FALSE
+                     AND g.authority_verified=TRUE
+                     AND g.authority_receipt_hash IS NOT NULL
+                     AND g.human_approved=TRUE
+                     AND g.human_approval_receipt_hash IS NOT NULL
+                     AND cardinality(g.evidence_hashes)>0
+                     AND g.right_type IN ('recording','composition','performance','stream')
+                     AND 'stream'=ANY(g.permitted_uses)
+                     AND '*'=ANY(g.territories)
+                     AND ('OAP Radio'=ANY(g.permitted_channels)
+                          OR '*'=ANY(g.permitted_channels))
+                     AND (g.valid_from IS NULL OR g.valid_from<=CURRENT_TIMESTAMP)
+                     AND (g.valid_until IS NULL OR g.valid_until>CURRENT_TIMESTAMP)
+                   LIMIT 1 FOR UPDATE OF c FOR SHARE OF g""",
                 (station, owner, track, asset, entitlement),
             ).fetchone()
             if gate is None:
