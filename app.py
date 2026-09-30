@@ -22,6 +22,7 @@ from flask import (
 from mission_control import (
     a7_certification,
     approval_service,
+    arena_agents,
     arena_intelligence,
     arena_rooms,
     authority,
@@ -739,6 +740,46 @@ def world_arena():
     """Open the bounded first-party OAP Arena Challenge Engine."""
 
     return _arena_intelligence_response()
+
+
+@app.get("/arena/agents")
+def arena_agents_catalogue():
+    return _arena_json(arena_agents.catalogue())
+
+
+@app.post("/arena/connect4/agent-move")
+def connect4_agent_move():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = session.get(connect4.SESSION_KEY)
+        view = connect4.public_state(state)
+        if view.get("status") != "active":
+            raise ValueError("connect4_agent_game_not_active")
+        agent = arena_agents.choose_agent("connect4", payload.get("agent_key"))
+        if view.get("current_player_id") != "p2":
+            raise ValueError("connect4_agent_not_turn")
+        column = arena_agents.connect4_column(
+            view.get("board"),
+            agent_piece=2,
+            human_piece=1,
+            difficulty=payload.get("difficulty", "standard"),
+        )
+        state = connect4.drop(
+            state,
+            column=column,
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[connect4.SESSION_KEY] = state
+    session.modified = True
+    result = connect4.public_state(state)
+    result["agent"] = agent
+    result["agent_column"] = column
+    return _arena_json(result)
 
 
 @app.post("/arena/rooms/create")
