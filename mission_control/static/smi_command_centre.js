@@ -340,6 +340,13 @@
  });
  unified.append(unifiedTitle,unifiedGrid);
  dashboard.before(unified);
+ // Preserve the original deep proof grid without making the home system a second wall.
+ const evidenceDetail=document.createElement("details");
+ evidenceDetail.className="smi-system-detail";
+ const evidenceSummary=document.createElement("summary");
+ evidenceSummary.textContent="Detailed MIND × BODY × SOUL evidence";
+ dashboard.before(evidenceDetail);
+ evidenceDetail.append(evidenceSummary,dashboard);
  const setUnified=(key,proven,message)=>{
   const node=unifiedNodes.get(key);
   if(!node)return;
