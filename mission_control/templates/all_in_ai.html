@@ -66,6 +66,17 @@
     <div class="result" id="result" aria-live="polite">No mission started from this console yet.</div>
   </section>
 
+  <section class="section" aria-label="Mission inference evidence">
+    <p class="eyebrow">Captain · Read-only evidence</p>
+    <h2>Inspect SMI inference receipt</h2>
+    <p class="muted">Enter the request ID from an existing governed SMI response. A matching Mission input hash and HRM receipt prove correlation only—not mission execution, independent model identity or Founder approval.</p>
+    <div class="actions">
+      <input id="inference-request-id" aria-label="Existing SMI request ID" maxlength="36" autocomplete="off" placeholder="SMI request UUID" style="flex:1;min-width:200px;background:#080b09;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px;font:inherit">
+      <button class="btn read" id="inference-inspect" type="button" disabled>🔎 Inspect Evidence</button>
+    </div>
+    <div class="result" id="inference-result" aria-live="polite">Restore or verify the Mission before inspecting its inference evidence.</div>
+  </section>
+
   <section class="section">
     <p class="eyebrow">Truth Mode</p>
     <h2>What counts as live proof</h2>
@@ -83,6 +94,9 @@ const restoreButton=document.getElementById('restore');
 const readButton=document.getElementById('read');
 const stopButton=document.getElementById('stop');
 const recoverButton=document.getElementById('recover');
+const inferenceIdInput=document.getElementById('inference-request-id');
+const inferenceButton=document.getElementById('inference-inspect');
+const inferenceResult=document.getElementById('inference-result');
 const sessionPrefix='oap_all_in_ai_';
 let missionId=null;
 let latestDigest=null;
@@ -94,9 +108,11 @@ function updateControls(){
   const writable=Boolean(missionId&&proofVerified&&latestDigest);
   stopButton.disabled=!writable||latestState==='stopped';
   recoverButton.disabled=!writable||latestState!=='stopped';
+  inferenceButton.disabled=!proofVerified||!missionId||latestState==='stopped';
 }
 function clearLocalProof(){
   proofVerified=false;latestDigest=null;latestState=null;
+  inferenceResult.textContent='Mission evidence unavailable. Reverify before inspection.';
   updateControls();
 }
 function persistCheckpoint(){
@@ -194,6 +210,50 @@ form.addEventListener('submit',async(event)=>{
   }catch(err){
     clearLocalProof();result.textContent='🔴 '+err.message;
   }finally{startButton.disabled=false;}
+});
+inferenceButton.addEventListener('click',async()=>{
+  if(!proofVerified||!missionId||latestState==='stopped')return;
+  const requestId=inferenceIdInput.value.trim().toLowerCase();
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)){
+    inferenceResult.textContent='🔴 Enter a valid existing SMI request UUID.';
+    return;
+  }
+  const inspectedMission=missionId;
+  inferenceButton.disabled=true;
+  inferenceResult.textContent='Checking current Founder-owned Mission and HRM inference receipt…';
+  try{
+    const evidence=await requestJson(startUrl+'/'+encodeURIComponent(inspectedMission)+
+      '/inference/'+encodeURIComponent(requestId));
+    if(!proofVerified||missionId!==inspectedMission||latestState==='stopped'||
+       evidence?.mission_id!==inspectedMission||evidence?.request_id!==requestId||
+       evidence?.mission_checkpoint_verified!==true||
+       evidence?.mission_text_hash_matched!==true||
+       evidence?.governed_response_recorded!==true||
+       evidence?.inference_route_attested!==false||
+       evidence?.first_party_inference_proven!==false||
+       evidence?.mission_execution_proven!==false||
+       evidence?.execution_granted!==false||
+       evidence?.approval_granted!==false||
+       evidence?.human_authority_final!==true){
+      inferenceResult.textContent='🔴 Incomplete or outdated inference evidence. No Green claimed.';
+      return;
+    }
+    const route=['local_direct','home_node_bridge','compatibility_fallback']
+      .includes(evidence.inference_gateway_route_observed)
+      ?evidence.inference_gateway_route_observed:'unknown / not recorded';
+    inferenceResult.textContent=[
+      '🟢 Governed SMI receipt correlated with this Mission input.',
+      'Output: '+String(evidence.output_state||'unknown'),
+      'Observed gateway route: '+route,
+      'Independent worker attestation: NOT PROVEN',
+      'First-party inference identity: NOT PROVEN',
+      'Mission execution: NOT PROVEN',
+      'Execution granted: false · Approval granted: false',
+      '👑 Human Authority final.',
+    ].join('\\n');
+  }catch(err){
+    inferenceResult.textContent='🔴 Evidence not verified: '+err.message;
+  }finally{updateControls();}
 });
 restoreButton.addEventListener('click',async()=>{
   restoreButton.disabled=true;
