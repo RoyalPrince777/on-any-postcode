@@ -55,7 +55,12 @@ def evaluate_seven_star_gate(evidence: dict[str, dict[str, Any]] | None = None) 
             and record.get("fresh") is True
             and has_source
         )
-        failed = record.get("passed") is False and record.get("verified") is True and has_source
+        failed = (
+            record.get("passed") is False
+            and record.get("verified") is True
+            and record.get("fresh") is True
+            and has_source
+        )
         checks.append({
             "name": name,
             "signal": "green" if proven else "red" if failed else "purple" if record else "unknown",
