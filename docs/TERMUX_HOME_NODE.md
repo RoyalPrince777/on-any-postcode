@@ -5,7 +5,7 @@ The Termux Home Node is the zero-hosting-cost continuous runtime for two bounded
 - `mission_control.organism_worker` for heartbeat, health and governed organism cycles.
 - `scripts/oap_home_node_inference_worker.py` for outbound-only SMI inference through local Ollama.
 
-The inference worker opens no inbound port. It polls the private OAP bridge over HTTPS, runs the job locally, and returns only the bounded result. Human Authority remains final and consequential execution stays disabled.
+The inference worker opens no inbound port. It polls the private OAP bridge over HTTPS, runs the job locally, and returns only the bounded result. Human Authority remains final and consequential execution disabled.
 
 ## What stays locked
 
