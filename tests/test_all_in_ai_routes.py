@@ -138,7 +138,7 @@ def test_captain_checkpoint_digest_is_never_trusted_from_browser_session():
     assert "persistCheckpoint();" in template
     assert "showReceipt('🛑 STOP durably recorded.',body.receipt)" in template
     assert "showReceipt('♻️ Mission recovered for review. No execution granted.',body.receipt)" in template
-    assert "if(!proofVerified||!latestDigest)return;" in template
+    assert "if(missionMutationPending||!proofVerified||!latestDigest)return;" in template
     assert "sessionStorage.getItem(sessionPrefix+'digest')" not in template
     assert "Never trust sessionStorage digest for STOP/recovery" in template
 
@@ -223,3 +223,80 @@ def test_captain_checkpoint_change_invalidates_previous_handoff_display():
     ).read_text(encoding="utf-8")
     assert "handoffResult.textContent='Checkpoint updated. Review governance again if needed.'" in template
     assert "handoffResult.textContent='Mission proof cleared. Governed action must be reviewed again.'" in template
+
+
+
+def test_red_team_request_epoch_blocks_stale_mission_results_and_parallel_mutation():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1]
+        / "mission_control" / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert "let missionEpoch=0;" in template
+    assert "let missionMutationPending=false;" in template
+    assert "missionEpoch+=1;" in template
+    assert "if(missionEpoch!==startedEpoch)return false;" in template
+    assert "if(missionEpoch!==restoreEpoch)return;" in template
+    assert "if(missionEpoch===readEpoch)" in template
+    assert "missionEpoch!==inspectedEpoch" in template
+    assert "latestDigest!==inspectedDigest" in template
+    assert "missionEpoch!==reviewedEpoch" in template
+    assert "latestDigest!==reviewedDigest" in template
+    assert "if(missionMutationPending||!proofVerified||!latestDigest)return;" in template
+    assert "missionMutationPending=true;updateControls();" in template
+    assert "finally{missionMutationPending=false;updateControls();}" in template
+    assert "startButton.disabled=missionMutationPending;" in template
+    assert "restoreButton.disabled=missionMutationPending;" in template
+    assert "readButton.disabled=missionMutationPending||!missionId;" in template
+    assert "inferenceButton.disabled=missionMutationPending||" in template
+    assert "handoffButton.disabled=missionMutationPending||" in template
+
+
+def test_red_team_action_review_does_not_expose_internal_authorization(monkeypatch):
+    from flask import Flask
+
+    from mission_control import all_in_ai_views
+
+    app = Flask(__name__)
+    app.secret_key = "test"
+    mission_id = "00000000-0000-0000-0000-000000000002"
+    request_id = "00000000-0000-0000-0000-000000000003"
+    monkeypatch.setattr(all_in_ai_views, "_require_csrf", lambda: None)
+    monkeypatch.setattr(all_in_ai_views, "_founder_id", lambda: "founder-id")
+    monkeypatch.setattr(
+        all_in_ai_views.all_in_ai_action_bridge,
+        "handoff_status",
+        lambda *_a, **_k: {
+            "mission_id": mission_id,
+            "reviewed_request_id": request_id,
+            "status": "AUTHORIZED_NOT_EXECUTED",
+            "action_name": "SYNC_INTERNAL_RECORD",
+            "execution_authorized": True,
+            "execution_performed": False,
+            "human_authority_final": True,
+            "authority_transferred": False,
+            "authorization": {
+                "approval_receipt_id": "internal-only", "signal_id": "secret",
+            },
+            "review": {"content_hash": "internal-review"},
+            "action_policy": {"external": False},
+        },
+    )
+    with app.test_request_context(
+        f"/all-in-ai/mission/{mission_id}/action-handoff",
+        method="POST",
+        json={"reviewed_request_id": request_id},
+    ):
+        # Exercise the real route body, bypassing only the login decorator.
+        response = all_in_ai_views.all_in_ai_action_handoff.__wrapped__(mission_id)
+        payload = response.get_json()
+        assert response.status_code == 200
+        assert payload["execution_performed"] is False
+        assert payload["human_authority_final"] is True
+        assert payload["result"]["status"] == "AUTHORIZED_NOT_EXECUTED"
+        assert payload["result"]["execution_authorized"] is True
+        for private_field in ("authorization", "review", "action_policy"):
+            assert private_field not in payload["result"]
+        assert "internal-only" not in response.get_data(as_text=True)
+        assert "internal-review" not in response.get_data(as_text=True)
