@@ -505,6 +505,42 @@ class RadioStore:
             "player_handoff_allowed": False,
         }
 
+    def public_station_candidates(self) -> list[dict[str, object]]:
+        """List only approved, unstopped station candidates, not playable grants.
+
+        Music's current Radio-channel rights and entitlement must be checked
+        separately before exposing a media link. Never publish owner identity.
+        """
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT s.station_id,s.name,r.track_id,a.asset_id
+                   FROM oap_radio_stations s
+                   JOIN oap_radio_station_control c
+                     ON c.station_id=s.station_id
+                    AND c.owner_identity_id=s.owner_identity_id
+                   JOIN LATERAL (
+                     SELECT track_id
+                     FROM oap_radio_rotation
+                     WHERE station_id=s.station_id
+                       AND owner_identity_id=s.owner_identity_id
+                     ORDER BY position ASC LIMIT 1
+                   ) r ON TRUE
+                   JOIN oap_music_assets a ON a.track_id=r.track_id
+                    AND a.owner_identity_id=s.owner_identity_id
+                   WHERE s.state='ACTIVE' AND s.founder_approved=TRUE
+                     AND c.stopped=FALSE AND c.always_on=TRUE
+                     AND a.stopped=FALSE
+                   ORDER BY s.name,s.station_id LIMIT 25"""
+            ).fetchall()
+        return [
+            {
+                "station_id": str(row[0]), "station_name": str(row[1]),
+                "track_id": str(row[2]), "asset_id": str(row[3]),
+                "delivery_authorized": False, "airplay_confirmed": False,
+            }
+            for row in rows
+        ]
+
     def playout_candidate(
         self, *, station_id: object
     ) -> dict[str, object] | None:
