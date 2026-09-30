@@ -489,6 +489,10 @@ def inference_receipt_evidence(
             or rationale.get("code_proposal") is not False
             or row[1] not in {"RECOMMENDATION_READY", "REVIEW_REQUIRED"}):
         raise MissionStoreUnavailable("mission_inference_proof_incomplete")
+    observed_route = rationale.get("inference_route")
+    if observed_route not in {"local_direct", "home_node_bridge", "compatibility_fallback"}:
+        observed_route = None
+    # A route observed inside this application is not a signed worker attestation.
     return {
         "mission_id": mission,
         "request_id": request_value,
@@ -496,6 +500,8 @@ def inference_receipt_evidence(
         "mission_text_hash_matched": True,
         "governed_response_recorded": True,
         "output_state": row[1],
+        "inference_gateway_route_observed": observed_route,
+        "inference_route_attested": False,
         "first_party_inference_proven": False,
         "mission_execution_proven": False,
         "execution_granted": False,
