@@ -35,7 +35,8 @@ source "$ENV_FILE"
 set +a
 cd "$REPO_DIR"
 
-printf 'bridge_secret_configured=%s\n' "$([[ ${#OAP_HOME_NODE_BRIDGE_SECRET:-0} -ge 32 ]] && echo true || echo false)"
+bridge_secret="${OAP_HOME_NODE_BRIDGE_SECRET:-}"
+printf 'bridge_secret_configured=%s\n' "$([[ ${#bridge_secret} -ge 32 ]] && echo true || echo false)"
 "$VENV_DIR/bin/python" - <<'PY'
 import json
 from mission_control.organism_runtime import runtime_status
