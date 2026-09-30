@@ -69,3 +69,36 @@ def test_chess_board_selection_guards_turn_and_restores_keyboard_focus(client):
     assert 'const ownColour=state.turn==="White"?"w":"b";' in script
     assert 'q(\'[data-square="\'+id+\'"]\')?.focus()' in script
     assert 'q("[data-target]").value="";' in script
+
+
+@pytest.mark.parametrize("game,path", [
+    ("Connect 4", "/static/connect4.js"),
+    ("IQ Arena", "/static/iq_arena.js"),
+    ("Ludo", "/static/ludo.js"),
+    ("Chess", "/static/chess.js"),
+    ("Dot", "/static/dot.js"),
+    ("Route Empire", "/static/route_empire.js"),
+])
+def test_active_game_lifecycle_prevents_silent_restart(client, game, path):
+    response = client.get(path)
+    assert response.status_code == 200, game
+    script = response.get_data(as_text=True)
+    assert 'state?.status==="active"' in script, game
+    assert "busy" in script, game
+    assert 'q("[data-start]").disabled' in script, game
+
+
+def test_iq_choices_use_dom_nodes_and_single_request_guard(client):
+    script = client.get("/static/iq_arena.js").get_data(as_text=True)
+    assert "node.replaceChildren()" in script
+    assert "button.textContent=choice.label" in script
+    assert "if(busy||" in script
+    assert 'button.disabled=busy||state.status!=="active"' in script
+
+
+def test_route_empire_serializes_mutations_and_escapes_both_node_ids(client):
+    script = client.get("/static/route_empire.js").get_data(as_text=True)
+    assert "let state=null,busy=false" in script
+    assert 'data-act="claim" data-node="${escapeText(n.id)}"' in script
+    assert 'data-act="develop" data-node="${escapeText(n.id)}"' in script
+    assert 'b.disabled=busy||state.status!=="active"' in script
