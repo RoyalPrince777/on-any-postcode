@@ -6,7 +6,6 @@ from flask import Flask, render_template
 
 from mission_control import music_public_views, radio_core
 
-
 STATION, TRACK, ASSET = (str(uuid4()) for _ in range(3))
 
 
