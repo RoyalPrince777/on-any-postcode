@@ -149,7 +149,7 @@ def assess_financial_observation(
         raw = observation.get(field)
         try:
             if not isinstance(raw, str):
-                raise ValueError("timestamp must be a string")
+                raise TypeError("timestamp must be a string")
             parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
             if parsed.tzinfo is None or parsed.utcoffset() is None:
                 raise ValueError("timestamp requires timezone")
