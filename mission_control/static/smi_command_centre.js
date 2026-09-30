@@ -99,6 +99,10 @@
   ["🔗 Link Up","/linkup"],
   ["🗺️ OAP World / Place","/on-any-place"]
  ];
+ const publicHeading=document.createElement("strong");
+ publicHeading.className="smi-world-menu-heading";
+ publicHeading.textContent="PUBLIC OAP · PREVIEW";
+ worldPanel.append(publicHeading);
  const worldNotice=document.createElement("small");
  worldNotice.textContent="Public OAP · first-party front door · Founder controls stay private.";
  if(publicOrigin){
@@ -106,12 +110,36 @@
    const link=document.createElement("a");
    link.textContent=label;link.href=publicOrigin+path;
    link.rel="noopener noreferrer";
+   link.referrerPolicy="no-referrer";
    worldPanel.append(link);
   });
  }else{
   worldNotice.textContent="Public OAP origin unavailable · no unverified navigation.";
  }
  worldPanel.append(worldNotice);
+ // Founder review uses the existing SMI-origin, authenticated owners.
+ // These are read-only navigation links, never public privileges or publish buttons.
+ const controlHeading=document.createElement("strong");
+ controlHeading.className="smi-world-menu-heading";
+ controlHeading.textContent="PRIVATE SMI · WORLD GOVERNANCE";
+ worldPanel.append(controlHeading);
+ const worldFounderRoutes=[
+  ["🌍 Civilization registry",cfg.civilizationStatusUrl],
+  ["🌱 Ecosystem Intelligence",cfg.ecosystemDashboardUrl],
+  ["🩺 World Function Health",cfg.functionHealthUrl],
+  ["🟢 Green Gate evidence",cfg.greenGateUrl]
+ ];
+ worldFounderRoutes.forEach(([label,path])=>{
+  const target=String(path||"").trim();
+  if(!target.startsWith("/")||target.startsWith("//"))return;
+  const link=document.createElement("a");
+  link.textContent=label;link.href=target;
+  link.className="smi-world-founder-link";
+  worldPanel.append(link);
+ });
+ const governanceNotice=document.createElement("small");
+ governanceNotice.textContent="Review only · no publication, payment, permission change or automatic Green. Founder Final remains separate.";
+ worldPanel.append(governanceNotice);
  document.body.append(worldPanel);
  const closeWorld=()=>{
   worldPanel.hidden=true;
