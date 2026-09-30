@@ -168,6 +168,7 @@ def test_radio_routes_cover_body_controls():
     app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
     expected = {
         "/mission/organs/radio": {"GET", "HEAD", "OPTIONS"},
+        "/mission/organs/radio/stations/<station_id>/delivery-receipts": {"GET", "HEAD", "OPTIONS"},
         "/mission/organs/radio/stations": {"POST", "OPTIONS"},
         "/mission/organs/radio/stations/<station_id>/shows": {"POST", "OPTIONS"},
         "/mission/organs/radio/stations/<station_id>/schedule": {"POST", "OPTIONS"},
@@ -177,3 +178,41 @@ def test_radio_routes_cover_body_controls():
     rules = {rule.rule: rule.methods for rule in app.url_map.iter_rules()}
     for path, methods in expected.items():
         assert rules[path] == methods
+
+
+def test_radio_always_on_checks_founder_approval_on_station_table(monkeypatch):
+    owner = str(uuid4())
+    station = str(uuid4())
+    statements = []
+
+    class Result:
+        def fetchone(self):
+            return None
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params=()):
+            statements.append((sql, params))
+            return Result()
+
+        def commit(self):
+            raise AssertionError("must not commit without an approved ACTIVE station")
+
+    monkeypatch.setattr(radio_core.postgres_db, "connect", lambda **_kwargs: Connection())
+    with pytest.raises(PermissionError, match="radio_station_not_owned"):
+        radio_core.RadioStore().set_always_on(
+            owner_identity_id=owner, station_id=station, enabled=True
+        )
+    assert len(statements) == 1
+    sql, params = statements[0]
+    assert "EXISTS (" in sql
+    assert "FROM oap_radio_stations s" in sql
+    assert "s.founder_approved=TRUE" in sql
+    assert "s.state='ACTIVE'" in sql
+    assert "s.station_id=oap_radio_station_control.station_id" in sql
+    assert params[-2:] == (station, owner)

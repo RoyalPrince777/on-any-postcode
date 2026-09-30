@@ -12,8 +12,8 @@ def test_public_music_route_is_real_and_truth_mode():
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "OAP Music" in body
-    assert "No publicly cleared playable track is available yet." in body
-    assert "Playback stays locked" in body
+    assert "Only tracks with current rights and entitlement proof become playable." in body
+    assert "OAP Music" in body
 
 
 def test_music_migration_requires_explicit_approval():
@@ -30,6 +30,16 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0011_oap_music_recovery_manifest",
         "0012_oap_music_acceptance_receipts",
         "0013_oap_music_assets",
+        "0014_oap_music_rights_grants",
+        "0015_oap_music_entitlements",
+        "0016_oap_radio_always_on",
+        "0021_oap_radio_founder_approval",
+        "0023_oap_radio_delivery_admission",
+        "0017_oap_music_purchases",
+        "0018_oap_music_accounting",
+        "0019_oap_music_content_links",
+        "0020_oap_music_engagement",
+        "0022_oap_music_playback_sessions",
     ]
 
 
@@ -109,21 +119,45 @@ def test_public_music_status_does_not_fake_track_or_playback_readiness():
     assert payload["rights_verified_by_software"] is False
 
 
-def test_music_page_controls_have_real_targets_and_no_fake_play_button():
+def test_music_page_is_listener_only_and_links_separate_apps():
     app = Flask(__name__, template_folder="../mission_control/templates")
     app.register_blueprint(music_public_views.bp)
     body = app.test_client().get("/music").get_data(as_text=True)
-    for target in ("catalogue", "genres", "civilization", "creators", "radio", "records"):
-        assert f'data-target="{target}"' in body
-        assert f'id="{target}"' in body
-    for anchor in ("#catalogue", "#civilization", "#radio", "#records", "#player"):
-        assert f'href="{anchor}"' in body
     assert 'id="music-search"' in body
-    assert "First-Party Discovery" in body
-    assert "Free / Open Discovery Sources" not in body
-    assert "Open source" not in body
-    assert "<button disabled>▶ Play</button>" not in body
-    assert "▶ Play locked" in body
+    assert 'href="/radio"' in body
+    assert 'href="/music/studio"' in body
+    assert "Create release" not in body
+    assert "Upload song" not in body
+    assert "STOP station" not in body
+    assert "Always On" not in body
+    assert "/music/api/catalogue?q=" in body
+
+
+def test_music_studio_and_radio_are_separate_real_routes(monkeypatch):
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    app.secret_key = "test"
+    app.register_blueprint(music_public_views.bp)
+    monkeypatch.setattr(
+        music_public_views.web_security,
+        "authenticated_identity",
+        lambda: "11111111-1111-4111-8111-111111111111",
+    )
+    monkeypatch.setattr(
+        music_public_views.web_security,
+        "current_authenticated_user",
+        lambda: {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "email": "test@example.com",
+            "name": "Test",
+            "email_verified": True,
+        },
+    )
+    client = app.test_client()
+    radio = client.get("/radio")
+    assert radio.status_code == 200
+    public_body = radio.get_data(as_text=True)
+    assert "Keep Radio Always On" not in public_body
+    assert "Create Founder station" not in public_body
 
 
 def test_first_party_listener_contract_has_no_external_core_dependency():
@@ -160,13 +194,15 @@ def test_music_page_is_first_party_listener_surface_not_external_catalogue():
     app = Flask(__name__, template_folder="../mission_control/templates")
     app.register_blueprint(music_public_views.bp)
     body = app.test_client().get("/music").get_data(as_text=True)
-    for target in ("home", "catalogue", "artists", "releases", "playlists", "library"):
-        assert f'data-target="{target}"' in body
-        assert f'id="{target}"' in body
-    assert "Search OAP Music" in body
-    assert "Search the free/open source directory" not in body
-    assert "OAP Music is a first-party catalogue." in body
+    assert "OAP Music" in body
+    assert "Listen. Discover. Play." in body
+    assert 'id="music-search"' in body
     assert "/music/api/catalogue?q=" in body
+    assert 'href="/radio"' in body
+    assert 'href="/music/studio"' in body
+    assert "Create station" not in body
+    assert "Create release" not in body
+    assert "Open source" not in body
 
 
 def test_music_has_dedicated_install_manifest_and_identity(client):
@@ -181,7 +217,7 @@ def test_music_has_dedicated_install_manifest_and_identity(client):
     assert manifest["display"] == "standalone"
     assert manifest["prefer_related_applications"] is False
     assert {item["url"] for item in manifest["shortcuts"]} == {
-        "/music#player", "/music#radio", "/music#creators",
+        "/music", "/radio", "/music/studio",
     }
 
 
@@ -203,3 +239,90 @@ def test_music_install_controller_uses_existing_safe_root_worker(client):
     assert "beforeinstallprompt" in source
     assert "appinstalled" in source
     assert "OAP Music is ready to install." in source
+
+
+def test_music_migration_inspection_is_read_only_and_reports_drift(monkeypatch):
+    checksums = {
+        version: music_civilization_migration._checksum(statements)
+        for version, statements in music_civilization_migration._MIGRATIONS
+    }
+    base = music_civilization_migration.product_cores.PRODUCT_CORE_MIGRATION_VERSION
+    first, second = list(checksums)[:2]
+    stored = [(base, "base-checksum"), (first, checksums[first]), (second, "drift")]
+    statements_seen = []
+
+    class Result:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def fetchone(self):
+            return self.rows[0] if self.rows else None
+
+        def fetchall(self):
+            return self.rows
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params=()):
+            assert sql.startswith("SELECT ")
+            statements_seen.append((sql, params))
+            if "to_regclass" in sql:
+                return Result([("oap_schema_migrations",)])
+            return Result(stored)
+
+        def commit(self):
+            raise AssertionError("inspection must not commit")
+
+    def connect(*, readonly=False):
+        assert readonly is True
+        return Connection()
+
+    monkeypatch.setattr(music_civilization_migration.postgres_db, "connect", connect)
+    result = music_civilization_migration.inspect()
+    assert result["base_product_core_present"] is True
+    assert result["existing"] == [first]
+    assert result["checksum_mismatches"] == [second]
+    assert result["pending"] == list(checksums)[2:]
+    assert result["schema_inventory_ready"] is False
+    assert result["base_checksum_not_evaluated"] is True
+    assert result["migration_performed"] is False
+    assert result["human_approval_granted"] is False
+    assert len(statements_seen) == 2
+
+
+def test_music_migration_inspection_fails_closed_without_registry(monkeypatch):
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params=()):
+            assert sql == "SELECT to_regclass('oap_schema_migrations')"
+            return self
+
+        def fetchone(self):
+            return (None,)
+
+        def commit(self):
+            raise AssertionError("read-only inspection must not commit")
+
+    def connect(*, readonly=False):
+        assert readonly is True
+        return Connection()
+
+    monkeypatch.setattr(music_civilization_migration.postgres_db, "connect", connect)
+    result = music_civilization_migration.inspect()
+    assert result["registry_present"] is False
+    assert result["base_product_core_present"] is False
+    assert result["existing"] == []
+    assert result["checksum_mismatches"] == []
+    assert result["schema_inventory_ready"] is False
+    assert result["migration_performed"] is False
+    assert result["human_approval_granted"] is False

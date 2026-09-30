@@ -25,6 +25,7 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    music_civilization_migration,
     ollama_chat,
     organism,
     postgres_db,
@@ -732,6 +733,33 @@ def smi_workbench_status():
     """Return secret-safe tool and capability readiness to the Founder UI."""
 
     return _no_store(make_response(jsonify(smi_workbench.get_workbench_status())))
+
+
+@bp.get("/workbench/music/release-evidence")
+@web_security.login_required(api=True, founder_only=True)
+def smi_music_release_evidence():
+    """Founder-only read of recorded Music schema versions; no migration authority."""
+    try:
+        inventory = music_civilization_migration.inspect()
+    except Exception:  # noqa: BLE001 - do not disclose private database details.
+        return _no_store(make_response(jsonify({
+            "organ": "OAP Music",
+            "evidence_type": "recorded_migration_inventory",
+            "inspection_available": False,
+            "schema_inventory_ready": False,
+            "production_certified": False,
+            "migration_performed": False,
+            "human_approval_granted": False,
+            "reason": "music_migration_inventory_unavailable",
+        }), 503))
+    return _no_store(make_response(jsonify({
+        "organ": "OAP Music",
+        "evidence_type": "recorded_migration_inventory",
+        "inspection_available": True,
+        "production_certified": False,
+        "live_browser_proven": False,
+        **inventory,
+    })))
 
 
 @bp.get("/founder-library")

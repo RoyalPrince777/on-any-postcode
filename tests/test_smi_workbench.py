@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from mission_control import smi_workbench
+from mission_control import music_civilization_migration, smi_workbench, web_security
 
 
 def test_workbench_projection_never_exposes_secret_values(monkeypatch):
@@ -88,3 +88,83 @@ def test_personal_smi_has_quiet_tools_workbench():
     assert "inspect_url" in page
     assert "Inspect" in page
     assert "Reading governed provider state" in page
+
+
+def test_music_release_evidence_link_is_private_and_inert(monkeypatch):
+    def unexpected_inventory():
+        raise AssertionError("Workbench status must not inspect the database")
+
+    monkeypatch.setattr(
+        music_civilization_migration, "inspect", unexpected_inventory
+    )
+    payload = smi_workbench.get_workbench_status()
+    music = payload["release_evidence"]["music"]
+    assert music["inspect_url"] == "/mission/workbench/music/release-evidence"
+    assert music["founder_only"] is True
+    assert music["read_only"] is True
+    assert music["inspected_in_this_request"] is False
+    assert music["production_certified"] is False
+    assert music["migration_performed"] is False
+
+
+def test_music_release_evidence_requires_authentication(anonymous_client):
+    response = anonymous_client.get("/mission/workbench/music/release-evidence")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_music_release_evidence_denies_non_founder(client, monkeypatch):
+    monkeypatch.setattr(
+        web_security, "private_authority_allowed", lambda user: False
+    )
+    response = client.get("/mission/workbench/music/release-evidence")
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "human_authority_required"
+
+
+def test_music_release_evidence_fails_closed_without_store(client, monkeypatch):
+    monkeypatch.setattr(
+        web_security, "private_authority_allowed", lambda user: True
+    )
+    monkeypatch.setattr(
+        music_civilization_migration,
+        "inspect",
+        lambda: (_ for _ in ()).throw(RuntimeError("postgresql://private-secret")),
+    )
+    response = client.get("/mission/workbench/music/release-evidence")
+    assert response.status_code == 503
+    payload = response.get_json()
+    assert payload["inspection_available"] is False
+    assert payload["schema_inventory_ready"] is False
+    assert payload["production_certified"] is False
+    assert payload["migration_performed"] is False
+    assert "private-secret" not in response.get_data(as_text=True)
+
+
+def test_music_release_evidence_founder_receives_read_only_inventory(client, monkeypatch):
+    monkeypatch.setattr(
+        web_security, "private_authority_allowed", lambda user: True
+    )
+    monkeypatch.setattr(
+        music_civilization_migration,
+        "inspect",
+        lambda: {
+            "registry_present": True,
+            "base_product_core_present": True,
+            "existing": ["0007_oap_music_evidence_chain"],
+            "pending": ["0008_oap_radio_core"],
+            "checksum_mismatches": [],
+            "schema_inventory_ready": False,
+            "migration_performed": False,
+            "human_approval_granted": False,
+        },
+    )
+    response = client.get("/mission/workbench/music/release-evidence")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    payload = response.get_json()
+    assert payload["inspection_available"] is True
+    assert payload["pending"] == ["0008_oap_radio_core"]
+    assert payload["production_certified"] is False
+    assert payload["live_browser_proven"] is False
+    assert payload["migration_performed"] is False

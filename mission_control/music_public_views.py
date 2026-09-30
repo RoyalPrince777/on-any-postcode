@@ -1,9 +1,46 @@
 """Public OAP Music first-party listener front door."""
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import entertainment_catalogue, music_public_catalogue
+from . import (
+    artist_progress,
+    entertainment_catalogue,
+    music_assets,
+    music_content_links,
+    music_engagement,
+    music_entitlements,
+    music_public_catalogue,
+    music_purchases,
+    public_store,
+    radio_core,
+    web_security,
+)
 
 bp = Blueprint("oap_music_public", __name__)
+_music_asset_store = music_assets.MusicAssetStore()
+_music_entitlement_store = music_entitlements.MusicEntitlementStore()
+_music_purchase_store = music_purchases.MusicPurchaseStore()
+_radio_store = radio_core.RadioStore()
+
+
+def _identity(*, sync: bool = False) -> str:
+    identity_id = web_security.authenticated_identity()
+    if sync:
+        user = web_security.current_authenticated_user()
+        if user is None:
+            raise PermissionError("authentication_required")
+        public_store.ensure_authenticated_user(
+            str(user["id"]),
+            email=str(user["email"]),
+            display_name=str(user["name"]),
+            email_verified=bool(user.get("email_verified")),
+        )
+    return identity_id
+
+
+def _api_error(code: str, message: str, status_code: int):
+    return _no_store(
+        make_response(jsonify(error={"code": code, "message": message}), status_code)
+    )
 
 
 def _no_store(response):
@@ -37,9 +74,9 @@ def music_manifest():
                     {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
                 ],
                 "shortcuts": [
-                    {"name": "Player", "short_name": "Player", "url": "/music#player"},
-                    {"name": "Radio", "short_name": "Radio", "url": "/music#radio"},
-                    {"name": "Creator Studio", "short_name": "Create", "url": "/music#creators"},
+                    {"name": "Music", "short_name": "Music", "url": "/music"},
+                    {"name": "Radio", "short_name": "Radio", "url": "/radio"},
+                    {"name": "Creator Studio", "short_name": "Create", "url": "/music/studio"},
                 ],
             }
         )
@@ -61,6 +98,234 @@ def music_home():
             )
         )
     )
+
+
+@bp.get("/music/studio")
+@web_security.login_required()
+def music_studio():
+    return _no_store(make_response(render_template("oap_music_studio.html")))
+
+
+@bp.get("/music/artist-progress")
+@web_security.login_required()
+def music_artist_progress():
+    try:
+        progress = artist_progress.artist_progress(_identity())
+    except Exception:  # noqa: BLE001 - owner progress fails closed.
+        progress = {
+            "surface": "Artist Progress",
+            "release_count": 0,
+            "track_count": 0,
+            "release_states": {},
+            "rights_states": {},
+            "releases": [],
+            "accounting": {
+                "currency": "GBP",
+                "pending_reconciliation_count": 0,
+                "reconciled_count": 0,
+                "reversed_count": 0,
+                "gross_active_minor": 0,
+                "gross_reconciled_minor": 0,
+                "gross_reversed_minor": 0,
+                "money_transfer_performed": False,
+                "sika_execution_performed": False,
+            },
+            "qualified_listens": None,
+            "rank_position": None,
+            "radio_spins": None,
+            "audience_growth": None,
+            "unavailable_metrics_reason": "artist_progress_temporarily_unavailable",
+            "human_authority_final": True,
+        }
+    return _no_store(
+        make_response(render_template("oap_music_artist_progress.html", progress=progress))
+    )
+
+
+@bp.get("/music/control")
+@web_security.login_required(api=False, founder_only=True)
+def founder_music_control():
+    return _no_store(make_response(render_template("oap_music_founder_control.html")))
+
+
+@bp.get("/radio")
+def radio_home():
+    return _no_store(
+        make_response(render_template("oap_radio.html", founder_control=False))
+    )
+
+
+@bp.get("/radio/api/stations")
+def public_radio_stations():
+    """Public station choices only after fresh Radio-specific Music clearance."""
+    try:
+        candidates = _radio_store.public_station_candidates()
+        stations = []
+        for item in candidates:
+            gate = _music_entitlement_store.public_gate(
+                asset_id=item["asset_id"], territory="*", channel="OAP Radio"
+            )
+            if gate.get("allowed") is not True:
+                continue
+            # Discovery is advisory; actual byte route independently rechecks
+            # station STOP, rights, asset integrity and admission.
+            stations.append({
+                "station_id": item["station_id"],
+                "station_name": item["station_name"],
+                "track_id": item["track_id"],
+                "asset_id": item["asset_id"],
+                "stream_url": (
+                    "/radio/api/stations/" + item["station_id"]
+                    + "/tracks/" + item["track_id"]
+                    + "/assets/" + item["asset_id"] + "/stream"
+                ),
+                "broadcast_live": False,
+                "airplay_confirmed": False,
+            })
+        return _no_store(make_response(jsonify({
+            "stations": stations, "continuous_broadcast_confirmed": False,
+        })))
+    except (RuntimeError, ValueError, music_entitlements.MusicEntitlementUnavailable):
+        return _api_error("radio_unavailable", "Radio discovery is unavailable.", 503)
+
+
+@bp.get("/radio/control")
+@web_security.login_required(api=False, founder_only=True)
+def radio_control():
+    return _no_store(
+        make_response(render_template("oap_radio.html", founder_control=True))
+    )
+
+
+@bp.get("/music/api/song-price")
+def music_song_price():
+    amount = request.args.get("amount_minor", "100")
+    try:
+        return _no_store(make_response(jsonify(music_entitlements.song_price_intent(amount))))
+    except (TypeError, ValueError) as exc:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "invalid_song_amount", "message": str(exc)}),
+                400,
+            )
+        )
+
+
+@bp.post("/music/api/purchases")
+@web_security.login_required(api=True)
+def music_create_purchase_intent():
+    if not web_security.csrf_valid(request):
+        return _api_error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = _music_purchase_store.create_intent(
+            buyer_identity_id=_identity(sync=True),
+            item_type=payload.get("item_type"),
+            item_id=payload.get("item_id"),
+            edition_type=payload.get("edition_type"),
+            amount_minor=payload.get("amount_minor"),
+            idempotency_key=payload.get("idempotency_key"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:  # noqa: BLE001 - redact storage/provider details.
+        return _api_error("music_purchase_unavailable", "Music purchasing is temporarily unavailable.", 503)
+
+
+@bp.get("/music/api/my-music")
+@web_security.login_required(api=True)
+def music_my_music():
+    try:
+        return _no_store(
+            make_response(
+                jsonify(_music_purchase_store.owned_items(buyer_identity_id=_identity()))
+            )
+        )
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except Exception:  # noqa: BLE001 - fail closed and redact store details.
+        return _api_error("my_music_unavailable", "My Music is temporarily unavailable.", 503)
+
+
+@bp.post("/music/api/tracks/<track_id>/content")
+@web_security.login_required(api=True)
+def music_save_track_content(track_id: str):
+    if not web_security.csrf_valid(request):
+        return _api_error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = music_content_links.save_track_content(
+            owner_identity_id=_identity(),
+            track_id=track_id,
+            lyrics=payload.get("lyrics"),
+            credits=payload.get("credits"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:  # noqa: BLE001 - redact storage details.
+        return _api_error("music_content_unavailable", "Track content is temporarily unavailable.", 503)
+
+
+@bp.post("/music/api/tracks/<track_id>/videos")
+@web_security.login_required(api=True)
+def music_add_video_link(track_id: str):
+    if not web_security.csrf_valid(request):
+        return _api_error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = music_content_links.add_video_link(
+            owner_identity_id=_identity(),
+            track_id=track_id,
+            video_kind=payload.get("video_kind"),
+            oap_tv_path=payload.get("oap_tv_path", "/tv-media"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _api_error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:  # noqa: BLE001 - redact storage details.
+        return _api_error("music_video_link_unavailable", "Video linking is temporarily unavailable.", 503)
+
+
+@bp.post("/music/api/engagement")
+def music_record_engagement():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _api_error("invalid_request", "json_object_required", 400)
+    try:
+        result = music_engagement.record_event(
+            track_id=payload.get("track_id"),
+            session_identity=web_security.ensure_session_identity(),
+            surface=payload.get("surface", "OAP_MUSIC"),
+            event_type=payload.get("event_type"),
+            playback_session_id=payload.get("playback_session_id"),
+            event_sequence=payload.get("event_sequence"),
+            playback_seconds=payload.get("playback_seconds", 0),
+            duration_seconds=payload.get("duration_seconds"),
+            postcode=payload.get("postcode"),
+            borough=payload.get("borough"),
+            region=payload.get("region"),
+            country=payload.get("country"),
+            continent=payload.get("continent"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except (TypeError, ValueError) as exc:
+        return _api_error("invalid_request", str(exc), 400)
+    except Exception:  # noqa: BLE001 - redact storage details.
+        return _api_error("engagement_unavailable", "Engagement measurement is temporarily unavailable.", 503)
 
 
 @bp.get("/music/api/catalogue")
@@ -89,6 +354,189 @@ def music_catalogue():
                         "playback_enabled": False,
                         "external_catalogue_dependency": False,
                         "temporarily_unavailable": True,
+                    }
+                ),
+                503,
+            )
+        )
+
+
+@bp.get("/music/api/assets/<asset_id>/stream")
+def public_music_stream(asset_id: str):
+    """Deliver a Music asset using the shared rights-bound byte delivery path."""
+    return _public_asset_response(asset_id, channel="OAP Music")
+
+
+@bp.get("/radio/api/stations/<station_id>/tracks/<track_id>/assets/<asset_id>/stream")
+def radio_station_stream(station_id: str, track_id: str, asset_id: str):
+    """Bounded station-specific audio; never a confirmed broadcast/airplay."""
+    return _public_asset_response(
+        asset_id, channel="OAP Radio",
+        radio_binding=(station_id, track_id),
+    )
+
+
+def _public_asset_response(
+    asset_id: str, *, channel: str, radio_binding: tuple[str, str] | None = None
+):
+    """Reuse Music asset/range handling; Radio additionally checks STOP."""
+    try:
+        if radio_binding is not None and not _radio_store.delivery_preflight(
+            station_id=radio_binding[0], track_id=radio_binding[1], asset_id=asset_id
+        ):
+            return _api_error("radio_playout_locked", "Station or track is unavailable.", 403)
+        gate = _music_entitlement_store.public_gate(
+            asset_id=asset_id,
+            territory="*",
+            channel=channel,
+        )
+        if gate.get("allowed") is not True:
+            return _no_store(
+                make_response(
+                    jsonify(
+                        error={
+                            "code": "public_playback_locked",
+                            "message": "This track is not cleared for public playback.",
+                        }
+                    ),
+                    403,
+                )
+            )
+        item = _music_asset_store.read_public_candidate(asset_id=asset_id)
+        if item is None:
+            return _no_store(
+                make_response(
+                    jsonify(
+                        error={
+                            "code": "not_found",
+                            "message": "Audio asset unavailable.",
+                        }
+                    ),
+                    404,
+                )
+            )
+        owner_identity_id, media, mime_type, digest, original_name = item
+        if owner_identity_id != gate.get("owner_identity_id"):
+            return _no_store(
+                make_response(
+                    jsonify(
+                        error={
+                            "code": "public_playback_locked",
+                            "message": "This track is not cleared for public playback.",
+                        }
+                    ),
+                    403,
+                )
+            )
+
+        total = len(media)
+        status = 200
+        body = media
+        content_range = None
+        requested_range = request.headers.get("Range", "").strip()
+        if requested_range:
+            if not requested_range.startswith("bytes=") or "," in requested_range:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            spec = requested_range[6:]
+            start_text, separator, end_text = spec.partition("-")
+            if not separator:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            try:
+                if start_text:
+                    range_start = int(start_text)
+                    range_end = int(end_text) if end_text else total - 1
+                else:
+                    suffix = int(end_text)
+                    if suffix <= 0:
+                        raise ValueError("invalid_range")
+                    range_start = max(total - suffix, 0)
+                    range_end = total - 1
+            except ValueError:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            if range_start < 0 or range_start >= total or range_end < range_start:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            range_end = min(range_end, total - 1)
+            body = media[range_start : range_end + 1]
+            status = 206
+            content_range = f"bytes {range_start}-{range_end}/{total}"
+
+        response = make_response(body, status)
+        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Length"] = str(len(body))
+        response.headers["ETag"] = f'"{digest}"'
+        response.headers["Accept-Ranges"] = "bytes"
+        safe_name = (
+            original_name.replace(chr(34), "")
+            .replace(chr(13), "")
+            .replace(chr(10), "")
+        )
+        response.headers["Content-Disposition"] = f'inline; filename="{safe_name}"'
+        response.headers["X-OAP-Rights-Decision"] = str(gate.get("rights_decision_hash"))
+        response.headers["X-OAP-Entitlement"] = str(gate.get("entitlement_id"))
+        if content_range is not None:
+            response.headers["Content-Range"] = content_range
+        if radio_binding is not None:
+            # Recheck after rights evaluation and media read; selection is never
+            # permission to ignore a subsequently persisted station STOP.
+            if not _radio_store.delivery_preflight(
+                station_id=radio_binding[0], track_id=radio_binding[1], asset_id=asset_id
+            ):
+                return _api_error(
+                    "radio_playout_locked", "Station or track is unavailable.", 403
+                )
+            receipt = _radio_store.admit_delivery(
+                station_id=radio_binding[0],
+                track_id=radio_binding[1],
+                asset_id=asset_id,
+                owner_identity_id=owner_identity_id,
+                entitlement_id=gate.get("entitlement_id"),
+                rights_decision_hash=gate.get("rights_decision_hash"),
+                media_sha256=digest,
+                prepared_bytes=len(body),
+                response_status=status,
+            )
+            if receipt is None:
+                return _api_error(
+                    "radio_playout_locked", "Station or track is unavailable.", 403
+                )
+            response.headers["X-OAP-Radio-Station"] = radio_binding[0]
+            response.headers["X-OAP-Delivery-Admission"] = receipt
+            response.headers["X-OAP-Receipt-Type"] = "RESPONSE_PREPARED"
+            response.headers["X-OAP-Airplay-Confirmed"] = "false"
+        return _no_store(response)
+    except (TypeError, ValueError):
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "invalid_request", "message": "Invalid audio asset."}),
+                400,
+            )
+        )
+    except music_assets.MusicAssetStopped:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "music_asset_stopped", "message": "This track is stopped."}),
+                410,
+            )
+        )
+    except (
+        music_assets.MusicAssetUnavailable,
+        music_entitlements.MusicEntitlementUnavailable,
+        RuntimeError,
+    ):
+        return _no_store(
+            make_response(
+                jsonify(
+                    error={
+                        "code": "music_unavailable",
+                        "message": "OAP Music is temporarily unavailable.",
                     }
                 ),
                 503,

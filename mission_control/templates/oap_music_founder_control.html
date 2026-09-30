@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OAP Music · Founder Review</title>
+<style>:root{color-scheme:dark;font-family:system-ui;background:#080808;color:#fff}*{box-sizing:border-box}body{margin:0}.shell{max-width:900px;margin:auto;padding:22px 16px 72px}.muted{color:#bbb}.card{background:#141414;border:1px solid #343434;border-radius:16px;padding:17px;margin:13px 0}.row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px}button,.pill{border:1px solid #515151;border-radius:10px;background:#f4f4f4;color:#111;padding:10px 15px;font:inherit;font-weight:700;cursor:pointer}.pill{background:#151515;color:#fff;text-decoration:none}button:disabled{opacity:.55;cursor:not-allowed}.status{min-height:22px;color:#ddd}</style></head>
+<body><main class="shell"><header class="row"><div><div class="muted">ON ANY POSTCODE · FOUNDER FINAL</div><h1>👑 Music Approval</h1></div><a class="pill" href="/music">← Music</a></header>
+<p class="muted">Review submitted releases. Rights must be VERIFIED before approval. Approving never publishes, broadcasts, distributes or captures payment.</p>
+<div id="review-status" role="status" class="status">Reading review queue…</div><section id="review-items" aria-label="Music releases requiring Founder review"></section>
+<a class="pill" href="/radio/control">📻 Radio station and show approval</a>
+</main><script>
+(()=>{
+ const csrf={{ oap_csrf_token|default('',true)|tojson }};
+ const box=document.getElementById('review-items'),status=document.getElementById('review-status');
+ const api=async(path,method='GET')=>{
+  const r=await fetch(path,{method,credentials:'same-origin',cache:'no-store',
+   headers:{Accept:'application/json',...(method==='POST'?{'X-OAP-CSRF':csrf,'Content-Type':'application/json'}:{})},
+   ...(method==='POST'?{body:'{}'}:{})});
+  const p=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(p.error?.message||p.error?.code||'Review unavailable');
+  return p;
+ };
+ async function load(){
+  try{
+   const data=await api('/mission/organs/tune/review-queue');
+   const items=data.review_required||[];
+   box.replaceChildren();status.textContent=items.length+' submission(s) awaiting Founder review.';
+   for(const item of items){
+    const card=document.createElement('article');card.className='card';
+    const heading=document.createElement('h2');heading.textContent=item.title;
+    const detail=document.createElement('p');detail.className='muted';
+    detail.textContent=item.release_type+' · '+item.track_count+' track(s) · rights: '+item.rights_status+' · '+item.state;
+    const action=document.createElement('button');action.type='button';action.textContent=item.approvable?'✓ Approve Release':'Await verified rights';
+    action.disabled=!item.approvable;
+    const receipt=document.createElement('div');receipt.className='status';receipt.setAttribute('role','status');
+    action.addEventListener('click',async()=>{
+     action.disabled=true;
+     try{
+      const result=await api('/mission/organs/tune/releases/'+encodeURIComponent(item.release_id)+'/approve','POST');
+      receipt.textContent=result.founder_approval_recorded?'Founder approved · not published or broadcast':'No approval recorded';
+      if(result.founder_approval_recorded)await load();
+     }catch(e){receipt.textContent=e.message;action.disabled=!item.approvable}
+    });
+    card.append(heading,detail,action,receipt);box.append(card);
+   }
+  }catch(e){box.replaceChildren();status.textContent='Music review unavailable. No approval recorded. '+e.message}
+ }
+ load();
+})();
+</script></body></html>

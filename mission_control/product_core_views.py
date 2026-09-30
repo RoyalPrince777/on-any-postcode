@@ -544,7 +544,7 @@ def open_cinema_evidence_preview():
 
 
 @bp.get("/radio")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def radio_status():
     """Authenticated owner-scoped OAP Radio dashboard."""
     try:
@@ -555,8 +555,28 @@ def radio_status():
         return _error("radio_unavailable", "OAP Radio is temporarily unavailable.", 503)
 
 
+@bp.get("/radio/stations/<station_id>/delivery-receipts")
+@web_security.login_required(api=True, founder_only=True)
+def radio_delivery_receipts(station_id: str):
+    """Founder-only evidence: server response prepared, never confirmed airplay."""
+    try:
+        receipts = _radio_store.delivery_receipts(
+            owner_identity_id=_identity(), station_id=station_id
+        )
+        return _no_store(make_response(jsonify({
+            "station_id": station_id,
+            "receipts": receipts,
+            "receipt_type": "RESPONSE_PREPARED",
+            "confirms_airplay": False,
+        })))
+    except ValueError:
+        return _error("invalid_station_id", "Invalid Radio station.", 400)
+    except RuntimeError:
+        return _error("radio_unavailable", "OAP Radio is temporarily unavailable.", 503)
+
+
 @bp.post("/radio/stations")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def create_radio_station():
     def action():
         payload = _payload()
@@ -570,7 +590,7 @@ def create_radio_station():
 
 
 @bp.post("/radio/stations/<station_id>/shows")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def create_radio_show(station_id: str):
     def action():
         payload = _payload()
@@ -583,8 +603,31 @@ def create_radio_show(station_id: str):
     return _handle_write(action)
 
 
+@bp.post("/radio/stations/<station_id>/approve")
+@web_security.login_required(api=True, founder_only=True)
+def approve_radio_station(station_id: str):
+    return _handle_write(
+        lambda: _radio_store.approve_station(
+            founder_identity_id=_identity(sync=True),
+            station_id=station_id,
+        )
+    )
+
+
+@bp.post("/radio/stations/<station_id>/shows/<show_id>/approve")
+@web_security.login_required(api=True, founder_only=True)
+def approve_radio_show(station_id: str, show_id: str):
+    return _handle_write(
+        lambda: _radio_store.approve_show(
+            founder_identity_id=_identity(sync=True),
+            station_id=station_id,
+            show_id=show_id,
+        )
+    )
+
+
 @bp.post("/radio/stations/<station_id>/schedule")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def schedule_radio_show(station_id: str):
     def action():
         payload = _payload()
@@ -600,7 +643,7 @@ def schedule_radio_show(station_id: str):
 
 
 @bp.post("/radio/stations/<station_id>/rotation")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def add_radio_rotation(station_id: str):
     def action():
         payload = _payload()
@@ -614,8 +657,22 @@ def add_radio_rotation(station_id: str):
     return _handle_write(action)
 
 
+@bp.post("/radio/stations/<station_id>/always-on")
+@web_security.login_required(api=True, founder_only=True)
+def radio_always_on(station_id: str):
+    def action():
+        payload = _payload()
+        return _radio_store.set_always_on(
+            owner_identity_id=_identity(sync=True),
+            station_id=station_id,
+            enabled=bool(payload.get("enabled", True)),
+            auto_add_approved=bool(payload.get("auto_add_approved", True)),
+        )
+    return _handle_write(action)
+
+
 @bp.post("/radio/stations/<station_id>/stop")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def stop_radio_station(station_id: str):
     def action():
         payload = _payload()
@@ -962,8 +1019,40 @@ def play_track_audio_asset(asset_id: str):
         return _no_store(response)
     except (TypeError, ValueError):
         return _error("invalid_request", "Invalid audio asset.", 400)
+    except music_assets.MusicAssetStopped:
+        return _error("music_asset_stopped", "This audio asset has been stopped.", 410)
     except music_assets.MusicAssetUnavailable:
         return _error("organ_unavailable", "OAP Music audio storage is temporarily unavailable.", 503)
+
+
+@bp.post("/tune/assets/<asset_id>/stop")
+@web_security.login_required(api=True)
+def stop_track_audio_asset(asset_id: str):
+    return _handle_write(
+        lambda: _music_asset_store.stop(
+            owner_identity_id=_identity(sync=True),
+            asset_id=asset_id,
+        )
+    )
+
+
+@bp.get("/tune/review-queue")
+@web_security.login_required(api=True, founder_only=True)
+def founder_tune_review_queue():
+    try:
+        return _no_store(make_response(jsonify(
+            product_core_services.founder_music_review_queue()
+        )))
+    except (ValueError, RuntimeError):
+        return _error("review_queue_unavailable", "Music review is temporarily unavailable.", 503)
+
+
+@bp.post("/tune/releases/<release_id>/approve")
+@web_security.login_required(api=True, founder_only=True)
+def founder_approve_release(release_id: str):
+    return _handle_write(
+        lambda: _store.founder_approve_release(release_id=release_id)
+    )
 
 
 @bp.post("/tune/releases/<release_id>/review")

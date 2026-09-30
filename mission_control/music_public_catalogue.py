@@ -16,6 +16,33 @@ def _safe_query(value: object) -> str:
     return " ".join(value.strip().split())[:120]
 
 
+
+def _project_item(row: object) -> dict[str, object]:
+    asset_id = row[8] if len(row) > 8 else None
+    stopped = row[9] if len(row) > 9 else True
+    entitlement_id = row[10] if len(row) > 10 else None
+    playable = bool(
+        asset_id is not None and stopped is False and entitlement_id is not None
+    )
+    return {
+        "release_id": str(row[0]),
+        "release_title": str(row[1]),
+        "release_type": str(row[2]),
+        "track_id": str(row[3]),
+        "track_title": str(row[4]),
+        "track_position": int(row[5]),
+        "duration_ms": int(row[6]) if row[6] is not None else None,
+        "explicit": bool(row[7]),
+        "source": "OAP Music first-party",
+        "asset_id": str(asset_id) if asset_id is not None else None,
+        "playback_enabled": playable,
+        "stream_url": (
+            f"/music/api/assets/{asset_id}/stream" if playable else None
+        ),
+        "playback_gate_revalidated_on_request": True,
+    }
+
+
 def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
     q = _safe_query(query)
     effective_limit = min(MAX_PUBLIC_ITEMS, max(1, int(limit)))
@@ -32,9 +59,24 @@ def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
 
     sql = f"""
         SELECT r.release_id,r.title,r.release_type,
-               t.track_id,t.title,t.position,t.duration_ms,t.explicit
+               t.track_id,t.title,t.position,t.duration_ms,t.explicit,
+               a.asset_id,a.stopped,pe.entitlement_id
         FROM oap_music_releases r
         JOIN oap_music_tracks t ON t.release_id=r.release_id
+        LEFT JOIN oap_music_assets a ON a.track_id=t.track_id
+        LEFT JOIN LATERAL (
+            SELECT e.entitlement_id
+            FROM oap_music_entitlements e
+            WHERE e.asset_id=a.asset_id
+              AND e.access_scope='PUBLIC_FREE'
+              AND e.territory='*'
+              AND e.channel='OAP Music'
+              AND e.active=TRUE
+              AND (e.valid_from IS NULL OR e.valid_from <= CURRENT_TIMESTAMP)
+              AND (e.valid_until IS NULL OR e.valid_until > CURRENT_TIMESTAMP)
+            ORDER BY e.created_at DESC
+            LIMIT 1
+        ) pe ON TRUE
         WHERE {' AND '.join(where)}
         ORDER BY r.created_at DESC,t.position ASC
         LIMIT %s
@@ -42,22 +84,7 @@ def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
     with postgres_db.connect(readonly=True) as connection:
         rows = connection.execute(sql, tuple(params)).fetchall()
 
-    items = [
-        {
-            "release_id": str(row[0]),
-            "release_title": str(row[1]),
-            "release_type": str(row[2]),
-            "track_id": str(row[3]),
-            "track_title": str(row[4]),
-            "track_position": int(row[5]),
-            "duration_ms": int(row[6]) if row[6] is not None else None,
-            "explicit": bool(row[7]),
-            "source": "OAP Music first-party",
-            "playback_enabled": False,
-            "stream_url": None,
-        }
-        for row in rows
-    ]
+    items = [_project_item(row) for row in rows]
     return {
         "catalogue": "OAP Music",
         "ownership": "first_party",
@@ -65,7 +92,8 @@ def catalogue(*, query: object = "", limit: int = 50) -> dict[str, object]:
         "items": items,
         "item_count": len(items),
         "public_metadata_only": True,
-        "playback_enabled": False,
+        "playback_enabled": any(item["playback_enabled"] for item in items),
+        "playable_item_count": sum(1 for item in items if item["playback_enabled"]),
         "external_catalogue_dependency": False,
         "external_player_dependency": False,
         "human_authority_final": True,

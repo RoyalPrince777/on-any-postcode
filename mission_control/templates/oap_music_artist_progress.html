@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OAP Music · Artist Progress</title>
+<style>:root{color-scheme:dark;font-family:system-ui;background:#080808;color:#fff}*{box-sizing:border-box}body{margin:0;background:#080808}.shell{max-width:980px;margin:auto;padding:22px 18px 96px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.muted{color:#aaa}.kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}.card{border:1px solid #303030;background:#121212;border-radius:20px;padding:16px}.primary{background:#151515;border-color:#3a3a3a}.metric{font-size:1.9rem;font-weight:850;margin-top:6px}.pill{border:1px solid #333;border-radius:999px;padding:9px 13px;color:#fff;text-decoration:none}.list{display:grid;gap:10px;margin-top:14px}.row{border:1px solid #2b2b2b;border-radius:14px;padding:13px}.state{font-size:.88rem;color:#bbb;margin-top:4px}.section-title{margin:24px 0 8px}.bottom{position:fixed;bottom:0;left:0;right:0;background:#0a0a0af2;border-top:1px solid #262626;display:flex;justify-content:center;gap:4px;padding:8px 10px;backdrop-filter:blur(16px);z-index:20}.bottom a{color:#aaa;text-decoration:none;padding:9px 12px;border-radius:12px;font-size:.92rem}.bottom a.active{color:#fff;background:#1b1b1b}
+@media(max-width:760px){.shell{padding:16px 14px 88px}.top{align-items:flex-start;flex-direction:column}.kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}.bottom a{flex:1;text-align:center;padding:9px 4px;font-size:.82rem}}@media(max-width:420px){.kpi{grid-template-columns:1fr 1fr}.metric{font-size:1.55rem}}</style></head>
+<body><main class="shell">
+<header class="top"><div><div class="muted">OAP MUSIC</div><h1>📈 Artist Progress</h1><div class="muted">Your real release, rights and value progress.</div></div><div><a class="pill" href="/music/studio">Studio</a> <a class="pill" href="/music">Music</a></div></header>
+<section class="kpi">
+<div class="card primary"><div class="muted">Listening Now</div><div class="metric">{{ progress.listening_now|default(0,true) }}</div><div class="state">Active within the last 90 seconds</div></div>
+<div class="card primary"><div class="muted">Qualified Listens</div><div class="metric">{{ progress.qualified_listens|default(0,true) }}</div></div>
+<div class="card primary"><div class="muted">Unique Listeners</div><div class="metric">{{ progress.unique_qualified_listeners|default(0,true) }}</div></div>
+<div class="card primary"><div class="muted">Combined Reach</div><div class="metric">{{ progress.combined_reach|default(0,true) }}</div><div class="state">Deduplicated across Music + TV</div></div>
+<div class="card"><div class="muted">Music Views</div><div class="metric">{{ progress.music_qualified_views|default(0,true) }}</div></div>
+<div class="card"><div class="muted">TV Views</div><div class="metric">{{ progress.tv_qualified_views|default(0,true) }}</div></div>
+<div class="card"><div class="muted">Radio Plays</div><div class="metric">{{ progress.radio_spins|default(0,true) }}</div><div class="state">Qualified listener playback via OAP Radio</div></div>
+<div class="card"><div class="muted">Rank</div><div class="metric">{% if progress.rank_position %}#{{ progress.rank_position }}{% else %}—{% endif %}</div><div class="state">Track lane · evidence-backed</div></div>
+<div class="card"><div class="muted">Releases</div><div class="metric">{{ progress.release_count }}</div></div>
+<div class="card"><div class="muted">Tracks</div><div class="metric">{{ progress.track_count }}</div></div>
+<div class="card"><div class="muted">Active creator value</div><div class="metric">£{{ '%.2f'|format(progress.accounting.gross_active_minor / 100) }}</div><div class="state">Accounting evidence only · no payout claim</div></div>
+<div class="card"><div class="muted">Reconciled value</div><div class="metric">£{{ '%.2f'|format(progress.accounting.gross_reconciled_minor / 100) }}</div></div>
+</section>
+<h2 class="section-title">Release progress</h2><section class="card"><strong>Your catalogue</strong><div class="list">
+{% for release in progress.releases %}
+<div class="row"><strong>{{ release.title }}</strong><div class="state">{{ release.release_type|upper }} · {{ release.state }} · Rights {{ release.rights_status }} · {{ release.track_count }} track{% if release.track_count != 1 %}s{% endif %}</div></div>
+{% else %}
+<div class="muted">No releases yet. Create your first release in Studio.</div>
+{% endfor %}
+</div></section>
+<section class="grid">
+<div class="card"><div class="muted">Pending reconciliation</div><div class="metric">{{ progress.accounting.pending_reconciliation_count }}</div></div>
+<div class="card"><div class="muted">Reconciled</div><div class="metric">{{ progress.accounting.reconciled_count }}</div></div>
+<div class="card"><div class="muted">Reversed</div><div class="metric">{{ progress.accounting.reversed_count }}</div></div>
+</section>
+<h2 class="section-title">Audience</h2><section class="card"><strong>Where people listen</strong><div class="list">
+{% for place in progress.places|default([],true) %}
+<div class="row"><strong>{{ place.country }}</strong><div class="state">{{ place.region }} · {{ place.borough }} · {{ place.unique_listeners }} unique listener{% if place.unique_listeners != 1 %}s{% endif %}</div></div>
+{% else %}<div class="muted">No qualified location data yet.</div>{% endfor %}
+</div></section>
+<section class="card" style="margin-top:18px"><strong>Coming when proven</strong><div class="state">Audience growth</div><div class="muted" style="margin-top:8px">These remain unavailable until their measurement cores are proven. No simulated numbers.</div></section>
+</main><nav class="bottom" aria-label="OAP Music creator"><a href="/music">🎵 Music</a><a href="/radio">📻 Radio</a><a class="active" href="/music/artist-progress">📈 Progress</a><a href="/music/studio">⬆ Studio</a></nav></body></html>
