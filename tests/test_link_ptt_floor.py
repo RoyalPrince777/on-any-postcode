@@ -155,3 +155,11 @@ def test_ptt_status_does_not_claim_server_media_enforcement(client, monkeypatch)
     result = client.get("/linkup/ptt/status")
     assert result.status_code == 200
     assert result.get_json()["server_controls_media"] is False
+
+
+def test_invalid_floor_actions_fail_before_db_access(monkeypatch):
+    identity, session = str(uuid.uuid4()), str(uuid.uuid4())
+    monkeypatch.setattr(link_ptt_floor, "_require_ready", lambda: pytest.fail("invalid actions must be rejected before readiness"))
+    for value in (None, [], {}, 1, "unmute", "ACQUIRE"):
+        with pytest.raises(ValueError, match="invalid_ptt_action"):
+            link_ptt_floor.floor(identity, session, action=value)
