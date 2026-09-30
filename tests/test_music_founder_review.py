@@ -3,7 +3,11 @@ import inspect
 
 from flask import Flask, render_template
 
-from mission_control import music_content_links, music_public_views, product_core_services
+from mission_control import (
+    music_content_links,
+    music_public_views,
+    product_core_services,
+)
 
 
 def test_creator_studio_has_submission_not_founder_approval():
