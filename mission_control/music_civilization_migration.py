@@ -38,6 +38,7 @@ _MIGRATIONS = (
     (music_accounting.MUSIC_ACCOUNTING_MIGRATION_VERSION, music_accounting.SCHEMA_STATEMENTS),
     (music_content_links.MUSIC_CONTENT_LINK_MIGRATION_VERSION, music_content_links.SCHEMA_STATEMENTS),
     (music_engagement.MUSIC_ENGAGEMENT_MIGRATION_VERSION, music_engagement.SCHEMA_STATEMENTS),
+    (music_engagement.PLAYBACK_SESSION_MIGRATION_VERSION, music_engagement.PLAYBACK_SESSION_SCHEMA_STATEMENTS),
 )
 _LOCK_KEY = 25800012
 
