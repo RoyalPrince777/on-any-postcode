@@ -26,3 +26,36 @@ CREATE INDEX IF NOT EXISTS ix_property_authority_publisher_property
     ON oap_property_advertising_authority
        (publisher_id, advertiser_id, property_ref, country, status);
 -- No grant-issuing endpoint or automatic ACTIVE transition is installed here.
+
+-- Preserve the scope and reviewed documentary reference after creation.
+-- REVOKED is terminal: any future authorization requires a newly reviewed grant.
+CREATE OR REPLACE FUNCTION oap_property_authority_guard_update()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF (OLD.publisher_id, OLD.advertiser_id, OLD.property_ref, OLD.country,
+        OLD.grantor_reference, OLD.evidence_sha256, OLD.activity, OLD.reviewed_by,
+        OLD.reviewed_at, OLD.valid_from, OLD.created_at)
+       IS DISTINCT FROM
+       (NEW.publisher_id, NEW.advertiser_id, NEW.property_ref, NEW.country,
+        NEW.grantor_reference, NEW.evidence_sha256, NEW.activity, NEW.reviewed_by,
+        NEW.reviewed_at, NEW.valid_from, NEW.created_at) THEN
+        RAISE EXCEPTION 'property_grant_evidence_immutable';
+    END IF;
+    IF OLD.status = 'REVOKED' THEN
+        RAISE EXCEPTION 'property_grant_revocation_terminal';
+    END IF;
+    IF NEW.status = 'REVOKED' AND
+       (NEW.revoked_at IS NULL OR NEW.revoked_at < OLD.created_at) THEN
+        RAISE EXCEPTION 'property_grant_revocation_timestamp_required';
+    END IF;
+    IF NEW.valid_until > OLD.valid_until THEN
+        RAISE EXCEPTION 'property_grant_extension_requires_new_evidence';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_oap_property_authority_guard_update
+ON oap_property_advertising_authority;
+CREATE TRIGGER trg_oap_property_authority_guard_update
+BEFORE UPDATE ON oap_property_advertising_authority
+FOR EACH ROW EXECUTE FUNCTION oap_property_authority_guard_update();
