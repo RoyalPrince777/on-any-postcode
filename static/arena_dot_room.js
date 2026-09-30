@@ -2,7 +2,7 @@
 "use strict";const root=document.querySelector("[data-dot-room]");if(!root)return;
 const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
-let me=null,state=null,busy=false;
+let me=null,state=null,busy=false,entryBusy=false,needsRefresh=false,refreshInFlight=null;
 const rid=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
 const error=e=>q("[data-error]").textContent=e?.message||String(e);
 const clear=()=>q("[data-error]").textContent="";
@@ -41,18 +41,37 @@ function render(){
   button.dataset.a=a;button.dataset.b=b;
   button.textContent=a+" → "+b+(taken?" ✓":"");
   button.setAttribute("aria-label","Draw edge "+a+" to "+b);
-  button.disabled=busy||taken||!myTurn;q("[data-edges]").append(button);
+  button.disabled=busy||needsRefresh||taken||!myTurn;q("[data-edges]").append(button);
  }
- q("[data-stop]").disabled=busy||state.status!=="ACTIVE";
+ q("[data-stop]").disabled=busy||needsRefresh||state.status!=="ACTIVE";
 }
 async function refresh(){
  if(!me)return;
- state=await post("/arena/rooms/state",{room_id:me.room_id,reconnect_token:me.reconnect_token});
- if(state.game_key!=="dot")throw new Error("arena_room_game_invalid");
- me.seat=state.your_seat;render();
+ if(refreshInFlight)return refreshInFlight;
+ const current=me;
+ refreshInFlight=(async()=>{
+  const next=await post("/arena/rooms/state",{
+   room_id:current.room_id,reconnect_token:current.reconnect_token,
+  });
+  if(me!==current)return;
+  if(next.game_key!=="dot")throw new Error("arena_room_game_invalid");
+  state=next;me.seat=next.your_seat;needsRefresh=false;render();
+ })();
+ try{await refreshInFlight;}finally{refreshInFlight=null;}
+}
+function lockEntry(locked){
+ entryBusy=locked;
+ for(const key of ["[data-create]","[data-join]","[data-reconnect]"])
+  q(key).disabled=locked;
+}
+async function enter(task){
+ if(entryBusy||busy)return;
+ lockEntry(true);clear();
+ try{await task();}catch(e){error(e);}
+ finally{lockEntry(false);}
 }
 async function act(action,a=null,b=null){
- if(busy||!state||!me)return;
+ if(busy||needsRefresh||!state||!me)return;
  busy=true;render();clear();
  try{
   const data=await post("/arena/rooms/dot/action",{...me,expected_revision:state.revision,request_id:rid(),action,a,b});
@@ -60,18 +79,42 @@ async function act(action,a=null,b=null){
  }catch(e){error(e);if(e.message==="arena_room_revision_conflict"){try{await refresh();note("Board refreshed after other player's move.");}catch(err){error(err);}}}
  finally{busy=false;render();}
 }
-q("[data-create]").onclick=async()=>{
- clear();try{const data=await post("/arena/rooms/create",{game_key:"dot",host_name:q("[data-host]").value.trim(),capacity:2});showIdentity(data);await refresh();note("Share only the room code.");}catch(e){error(e);}
+q("[data-create]").onclick=()=>enter(async()=>{
+ const data=await post("/arena/rooms/create",{
+  game_key:"dot",host_name:q("[data-host]").value.trim(),capacity:2,
+ });
+ showIdentity(data);note("Room created. Share only the room code; save your private token.");
+ await refresh();
+});
+q("[data-join]").onclick=()=>enter(async()=>{
+ const data=await post("/arena/rooms/join",{
+  room_code:q("[data-code-input]").value.trim().toUpperCase(),
+  display_name:q("[data-guest]").value.trim(),
+ });
+ showIdentity(data);note("Room joined. Save your private reconnect token.");
+ await refresh();
+});
+q("[data-reconnect]").onclick=()=>enter(async()=>{
+ const room_id=q("[data-reconnect-id]").value.trim();
+ const reconnect_token=q("[data-reconnect-token]").value.trim();
+ if(!room_id||!reconnect_token)throw new Error("Room ID and private token are required.");
+ const previous=me;
+ me={room_id,reconnect_token,seat:0};
+ try{
+  await refresh();
+  if(!state.players.some(p=>p.seat===me.seat))throw new Error("arena_room_seat_invalid");
+  q("[data-entry]").hidden=true;q("[data-match]").hidden=false;
+  q("[data-id]").textContent=me.room_id;q("[data-token]").textContent=me.reconnect_token;
+  note("Reconnected.");
+ }catch(e){me=previous;state=null;throw e;}
+});
+q("[data-refresh]").onclick=async()=>{
+ if(busy||entryBusy)return;
+ clear();q("[data-refresh]").disabled=true;
+ try{await refresh();note("Latest server board loaded.");}
+ catch(e){needsRefresh=true;error(e);note("Could not confirm the board. Retry Refresh before moving.");}
+ finally{q("[data-refresh]").disabled=false;render();}
 };
-q("[data-join]").onclick=async()=>{
- clear();try{const data=await post("/arena/rooms/join",{room_code:q("[data-code-input]").value.trim().toUpperCase(),display_name:q("[data-guest]").value.trim()});showIdentity(data);await refresh();note("Room joined.");}catch(e){error(e);}
-};
-q("[data-reconnect]").onclick=async()=>{
- clear();me={room_id:q("[data-reconnect-id]").value.trim(),reconnect_token:q("[data-reconnect-token]").value.trim(),seat:0};
- try{await refresh();q("[data-entry]").hidden=true;q("[data-match]").hidden=false;q("[data-id]").textContent=me.room_id;q("[data-token]").textContent=me.reconnect_token;note("Reconnected.");}
- catch(e){me=null;state=null;error(e);}
-};
-q("[data-refresh]").onclick=async()=>{clear();try{await refresh();note("Latest board loaded.");}catch(e){error(e);}};
 q("[data-edges]").onclick=e=>{const btn=e.target.closest("[data-a]");if(btn&&!btn.disabled)act("draw",btn.dataset.a,btn.dataset.b);};
 q("[data-stop]").onclick=()=>act("stop");
 })();
