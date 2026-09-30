@@ -268,3 +268,78 @@ def test_real_postgres_arena_connect4_multiplayer_create_join_turn_recovery():
             expected_revision=3, request_id="arena-real-poststop-0001",
             action="drop", column=5,
         )
+
+
+
+def test_real_postgres_arena_dot_two_player_scores_replay_and_stop():
+    """Exercise the actual Dot scoring engine and room SQL on ephemeral CI DB."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0008_oap_arena_multiplayer_rooms.sql"
+    ).read_text(encoding="utf-8")
+    with postgres_db.connect() as connection:
+        for statement in migration.split(";"):
+            if statement.strip():
+                connection.execute(statement)
+        connection.commit()
+
+    host = arena_rooms.create_room(game_key="dot", host_name="Dot Alpha", capacity=2)
+    guest = arena_rooms.join_room(room_code=host["room_code"], display_name="Dot Bravo")
+    assert guest["seat"] == 2
+    assert arena_rooms.room_state(
+        room_id=host["room_id"], reconnect_token=host["reconnect_token"]
+    )["your_seat"] == 1
+
+    moves = [
+        (host["reconnect_token"], "0,0", "1,0"),
+        (guest["reconnect_token"], "0,0", "0,1"),
+        (host["reconnect_token"], "1,0", "1,1"),
+        (guest["reconnect_token"], "0,1", "1,1"),
+    ]
+    for index, (token, a, b) in enumerate(moves):
+        result = arena_rooms.dot_action(
+            room_id=host["room_id"], reconnect_token=token,
+            expected_revision=index, request_id=f"dot-real-move-{index:04d}",
+            action="draw", a=a, b=b,
+        )
+        assert result["revision"] == index + 1
+    assert result["game_state"]["boxes"] == {"0,0": "p2"}
+    assert result["game_state"]["players"][1]["score"] == 1
+    assert result["game_state"]["turn_player_id"] == "p2"
+
+    replay = arena_rooms.dot_action(
+        room_id=host["room_id"], reconnect_token=guest["reconnect_token"],
+        expected_revision=3, request_id="dot-real-move-0003",
+        action="draw", a="0,1", b="1,1",
+    )
+    assert replay["duplicate"] is True
+    assert replay["revision"] == 4
+    with pytest.raises(ValueError, match="arena_room_idempotency_conflict"):
+        arena_rooms.dot_action(
+            room_id=host["room_id"], reconnect_token=guest["reconnect_token"],
+            expected_revision=3, request_id="dot-real-move-0003",
+            action="draw", a="0,0", b="0,1",
+        )
+    with pytest.raises(ValueError, match="arena_room_not_your_turn"):
+        arena_rooms.dot_action(
+            room_id=host["room_id"], reconnect_token=host["reconnect_token"],
+            expected_revision=4, request_id="dot-real-wrong-turn-0001",
+            action="draw", a="1,1", b="2,1",
+        )
+    recovered = arena_rooms.room_state(
+        room_id=host["room_id"], reconnect_token=guest["reconnect_token"]
+    )
+    assert recovered["game_state"]["players"][1]["score"] == 1
+    assert recovered["your_seat"] == 2
+    assert len(recovered["game_state"]["edges"]) == 4
+    assert "checkpoint" not in recovered["game_state"]
+
+    stopped = arena_rooms.dot_action(
+        room_id=host["room_id"], reconnect_token=host["reconnect_token"],
+        expected_revision=4, request_id="dot-real-stop-0001", action="stop",
+    )
+    assert stopped["status"] == "STOPPED"
+    assert arena_rooms.room_state(
+        room_id=host["room_id"], reconnect_token=guest["reconnect_token"]
+    )["status"] == "STOPPED"
