@@ -19,6 +19,7 @@ def certified_check(publisher_id):
 
 
 GATES = {'authority_check': authority_check, 'certified_check': certified_check}
+REVIEW_GATES = {**GATES, 'reviewer_check': lambda reviewer, publisher: reviewer == REVIEWER and reviewer != publisher}
 
 
 def payload():
@@ -50,7 +51,7 @@ def test_draft_is_never_public():
 
 def test_approval_and_public_projection_hide_private_evidence():
     draft = ads.property_draft(payload(), publisher_id=OWNER)
-    approved = ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER, **GATES)
+    approved = ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER, **REVIEW_GATES)
     assert ads.public_record(approved) is None
     active = ads.publish(approved, actor_id=OWNER, channel="OAP Market", **GATES)
     public = ads.public_record(active, **GATES)
@@ -63,7 +64,7 @@ def test_approval_and_public_projection_hide_private_evidence():
 def test_edit_revokes_approval_and_withdrawal_hides_listing():
     approved = ads.approve(
         ads.property_draft(payload(), publisher_id=OWNER),
-        evidence_ref="contract-ref", approved_by=REVIEWER, **GATES,
+        evidence_ref="contract-ref", approved_by=REVIEWER, **REVIEW_GATES,
     )
     active = ads.publish(approved, actor_id=OWNER, channel="OAP Market", **GATES)
     edited = ads.edit(active, {"price": "245000"}, actor_id=OWNER)
@@ -102,19 +103,20 @@ def test_invalid_property_data_blocked(change):
 def test_no_verifier_and_self_approval_fail_closed():
     draft = ads.property_draft(payload(), publisher_id=OWNER)
     with pytest.raises(PermissionError, match="independent_reviewer"):
-        ads.approve(draft, evidence_ref="contract-ref", approved_by=OWNER, **GATES)
+        ads.approve(draft, evidence_ref="contract-ref", approved_by=OWNER, **REVIEW_GATES)
     with pytest.raises(PermissionError, match="verifiers_required"):
         ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER)
     with pytest.raises(PermissionError, match="authority_required"):
-        ads.approve(draft, evidence_ref="wrong-ref", approved_by=REVIEWER, **GATES)
+        ads.approve(draft, evidence_ref="wrong-ref", approved_by=REVIEWER, **REVIEW_GATES)
     with pytest.raises(PermissionError, match="certified_required"):
         ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER,
-                    authority_check=authority_check, certified_check=lambda _: False)
+                    authority_check=authority_check, certified_check=lambda _: False,
+                    reviewer_check=REVIEW_GATES['reviewer_check'])
 
 
 def test_revocation_between_approval_publication_and_read():
     draft = ads.property_draft(payload(), publisher_id=OWNER)
-    approved = ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER, **GATES)
+    approved = ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER, **REVIEW_GATES)
     with pytest.raises(PermissionError, match="authority_required"):
         ads.publish(approved, actor_id=OWNER, channel="OAP Market",
                     authority_check=lambda *_: False, certified_check=certified_check)
@@ -133,7 +135,20 @@ def test_checker_exception_and_forged_receipt_fail_closed():
         raise RuntimeError("offline")
     with pytest.raises(PermissionError, match="verification_unavailable"):
         ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER,
-                    authority_check=unavailable, certified_check=certified_check)
+                    authority_check=unavailable, certified_check=certified_check,
+                    reviewer_check=REVIEW_GATES['reviewer_check'])
     forged = {**draft, "state": "ACTIVE", "authority_evidence_ref": "contract-ref",
               "approval_receipt": {"approved_by": OWNER}, "published_receipt": {"at": "now"}}
     assert ads.public_record(forged, **GATES) is None
+
+
+def test_reviewer_gate_denies_missing_status_and_exceptions():
+    draft = ads.property_draft(payload(), publisher_id=OWNER)
+    with pytest.raises(PermissionError, match="human_reviewer_required"):
+        ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER,
+                    reviewer_check=lambda *_: False, **GATES)
+    def unavailable(*_):
+        raise RuntimeError("authority database down")
+    with pytest.raises(PermissionError, match="human_reviewer_required"):
+        ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER,
+                    reviewer_check=unavailable, **GATES)
