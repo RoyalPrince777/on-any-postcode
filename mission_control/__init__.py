@@ -69,11 +69,11 @@ def init_app(app: Flask) -> None:
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
-    from .link_ptt_routes import bp as link_ptt_bp
     from .link_incoming_routes import bp as link_incoming_bp
     from .link_message_routes import bp as link_message_bp
     from .link_ping_routes import bp as link_ping_bp
     from .link_presence_routes import bp as link_presence_bp
+    from .link_ptt_routes import bp as link_ptt_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
     from .link_turn_routes import bp as link_turn_bp
