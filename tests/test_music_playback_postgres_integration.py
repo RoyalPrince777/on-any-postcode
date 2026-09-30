@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
