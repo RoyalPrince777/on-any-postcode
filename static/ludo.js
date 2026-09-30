@@ -15,13 +15,15 @@ function render(){
   const track=document.createElement("progress");track.max=state.board_end;track.value=player.piece;track.setAttribute("aria-label",player.name+" distance");
   row.append(title,track);view.append(row);}
  const active=state.status==="active";
+ q("[data-start]").disabled=busy||active;
+ q("[data-players]").disabled=busy||active;
  root.querySelectorAll("[data-step]").forEach(btn=>btn.disabled=busy||!active);
  q("[data-stop]").disabled=busy||!active;
  q("[data-feedback]").textContent=state.status==="completed"?
   "Winner: "+(state.players.find(p=>p.id===state.winner_id)?.name||"—"):
   state.status==="stopped"?"Match stopped.":"Choose a move from 1 to 6. This is manual movement, not a random dice roll.";
 }
-async function action(path,payload){if(busy)return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
+async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
 q("[data-start]").onclick=()=>action("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-step]");if(btn&&!btn.disabled)action("/arena/ludo/move",{steps:Number(btn.dataset.step),request_id:requestId()});});
 q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
