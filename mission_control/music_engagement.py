@@ -113,8 +113,6 @@ def qualifies(*, event_type: object, playback_seconds: object, duration_seconds:
         played = max(0, int(playback_seconds or 0))
     except (TypeError, ValueError) as exc:
         raise ValueError("invalid_playback_seconds") from exc
-    if event == "COMPLETE":
-        return True
     if played >= MIN_QUALIFIED_SECONDS:
         return True
     if duration_seconds not in (None, ""):
@@ -226,7 +224,7 @@ def record_event(
             canonical_duration = session_row[7]
             qualified_once = bool(session_row[8]) or qualifies(
                 event_type=event_value,
-                playback_seconds=observed_seconds,
+                playback_seconds=min(observed_seconds, elapsed),
                 duration_seconds=canonical_duration,
             )
             connection.execute(
