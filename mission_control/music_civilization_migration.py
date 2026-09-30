@@ -48,6 +48,64 @@ def _checksum(statements: tuple[str, ...]) -> str:
     return hashlib.sha256("\n".join(statements).encode()).hexdigest()
 
 
+
+def inspect() -> dict[str, object]:
+    """Read-only Music migration inventory; never grants migration approval.
+
+    Missing migration registry fails closed. Checksum drift must be reconciled
+    before any separately approved application or release.
+    """
+    versions = [
+        product_cores.PRODUCT_CORE_MIGRATION_VERSION,
+        *(version for version, _ in _MIGRATIONS),
+    ]
+    with postgres_db.connect(readonly=True) as connection:
+        registry = connection.execute(
+            "SELECT to_regclass('oap_schema_migrations')"
+        ).fetchone()
+        if registry is None or registry[0] is None:
+            return {
+                "registry_present": False,
+                "base_product_core_present": False,
+                "existing": [],
+                "pending": versions,
+                "checksum_mismatches": [],
+                "schema_inventory_ready": False,
+                "migration_performed": False,
+                "human_approval_granted": False,
+            }
+        rows = connection.execute(
+            "SELECT version,checksum FROM oap_schema_migrations WHERE version=ANY(%s)",
+            (versions,),
+        ).fetchall()
+    known = {str(version): str(checksum) for version, checksum in rows}
+    existing: list[str] = []
+    pending: list[str] = []
+    mismatches: list[str] = []
+    for version, statements in _MIGRATIONS:
+        stored = known.get(version)
+        if stored is None:
+            pending.append(version)
+        elif stored != _checksum(statements):
+            mismatches.append(version)
+        else:
+            existing.append(version)
+    base_present = product_cores.PRODUCT_CORE_MIGRATION_VERSION in known
+    if not base_present:
+        pending.insert(0, product_cores.PRODUCT_CORE_MIGRATION_VERSION)
+    return {
+        "registry_present": True,
+        "base_product_core_present": base_present,
+        "existing": existing,
+        "pending": pending,
+        "checksum_mismatches": mismatches,
+        "schema_inventory_ready": base_present and not pending and not mismatches,
+        "base_checksum_not_evaluated": True,
+        "migration_performed": False,
+        "human_approval_granted": False,
+    }
+
+
 def apply(*, assume_yes: bool = False) -> dict[str, object]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required")
