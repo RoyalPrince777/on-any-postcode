@@ -320,8 +320,11 @@
     const sessionId = state.current;
     silencePtt();
     try {
-      await pttFloor(sessionId, "stop");
-      setStatus("Private PTT floor stopped.");
+      const stopped = await pttFloor(sessionId, "stop");
+      if (!stopped.stopped) throw new Error("ptt_stop_not_confirmed");
+      if (pttHoldButton) pttHoldButton.disabled = true;
+      if (pttStopButton) pttStopButton.disabled = true;
+      setStatus("Private PTT floor stopped for this call.");
     } catch (_error) {
       setStatus("PTT STOP could not be confirmed. Local microphone muted.");
     }
