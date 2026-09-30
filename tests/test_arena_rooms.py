@@ -95,6 +95,7 @@ def test_status_keeps_boundaries_explicit():
         "reconnect_tokens": True,
         "revision_conflict_guard": True,
         "connect4_server_actions": True,
+        "dot_server_actions": True,
         "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
