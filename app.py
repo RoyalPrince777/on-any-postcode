@@ -864,6 +864,37 @@ def arena_connect4_room_page():
     return response
 
 
+@app.get("/arena/dot/room")
+def arena_dot_room_page():
+    response = make_response(
+        render_template("arena_dot_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.post("/arena/rooms/dot/action")
+def arena_room_dot_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.dot_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            a=payload.get("a"),
+            b=payload.get("b"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
 @app.post("/arena/rooms/connect4/action")
 def arena_room_connect4_action():
     denied = _arena_write_allowed()
