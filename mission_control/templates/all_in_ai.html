@@ -255,7 +255,7 @@ async function requestJson(url,options={}){
 }
 form.addEventListener('submit',async(event)=>{
   event.preventDefault();
-  if(missionMutationPending)return;
+  if(missionMutationPending||actionPending)return;
   missionMutationPending=true;updateControls();
   result.textContent='Routing through SMI and writing durable HRM + audit receipts…';
   try{
@@ -275,7 +275,7 @@ form.addEventListener('submit',async(event)=>{
   }finally{missionMutationPending=false;updateControls();}
 });
 inferenceButton.addEventListener('click',async()=>{
-  if(!proofVerified||!missionId||latestState==='stopped')return;
+  if(actionPending||missionMutationPending||!proofVerified||!missionId||latestState==='stopped')return;
   const requestId=inferenceIdInput.value.trim().toLowerCase();
   if(!validUuid(requestId)){
     inferenceResult.textContent='🔴 Enter a valid existing SMI request UUID.';
@@ -324,7 +324,7 @@ inferenceButton.addEventListener('click',async()=>{
   }finally{updateControls();}
 });
 handoffButton.addEventListener('click',async()=>{
-  if(!proofVerified||!missionId||latestState==='stopped')return;
+  if(actionPending||missionMutationPending||!proofVerified||!missionId||latestState==='stopped')return;
   const requestId=inferenceIdInput.value.trim().toLowerCase();
   if(!validUuid(requestId)){
     handoffResult.textContent='🔴 Enter an existing reviewed SMI request UUID.';
@@ -366,7 +366,7 @@ handoffButton.addEventListener('click',async()=>{
         'Existing Guardian, Judgement and signed Human Authority gates passed.',
         'Registered action: SYNC_INTERNAL_RECORD (bounded and reversible).',
         'Execution performed: false · Authority transferred: false.',
-        'This screen does not execute, publish, spend or deploy.',
+        'Review does not execute; the separate bounded Founder control requires fresh server-side governance.',
         '👑 Founder Final retained.',
       ].join('\\n');
     }else if(['BLOCKED','HUMAN_AUTHORITY_REQUIRED'].includes(gate.status)&&
@@ -485,7 +485,7 @@ rollbackButton.addEventListener('click',async()=>{
   }finally{actionPending=false;updateControls();}
 });
 restoreButton.addEventListener('click',async()=>{
-  if(missionMutationPending)return;
+  if(missionMutationPending||actionPending)return;
   const restoreEpoch=missionEpoch;
   restoreButton.disabled=true;
   result.textContent='Selecting owner-scoped latest Mission and verifying HRM + audit…';
@@ -502,7 +502,7 @@ restoreButton.addEventListener('click',async()=>{
   }finally{updateControls();}
 });
 readButton.addEventListener('click',async()=>{
-  if(missionMutationPending)return;
+  if(missionMutationPending||actionPending)return;
   const readEpoch=missionEpoch;
   result.textContent='Independently verifying Mission checkpoint…';
   try{await loadVerifiedMission(missionId);}
@@ -511,7 +511,7 @@ readButton.addEventListener('click',async()=>{
   }
 });
 stopButton.addEventListener('click',async()=>{
-  if(missionMutationPending||!proofVerified||!latestDigest)return;
+  if(missionMutationPending||actionPending||!proofVerified||!latestDigest)return;
   missionMutationPending=true;updateControls();result.textContent='Writing durable STOP checkpoint…';
   try{
     const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/stop',{
@@ -522,7 +522,7 @@ stopButton.addEventListener('click',async()=>{
   finally{missionMutationPending=false;updateControls();}
 });
 recoverButton.addEventListener('click',async()=>{
-  if(missionMutationPending||!proofVerified||!latestDigest)return;
+  if(missionMutationPending||actionPending||!proofVerified||!latestDigest)return;
   missionMutationPending=true;updateControls();result.textContent='Recovering mission to reviewable state…';
   try{
     const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/recover',{
