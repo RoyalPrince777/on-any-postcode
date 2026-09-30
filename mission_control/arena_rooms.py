@@ -14,7 +14,7 @@ from typing import Any
 
 from . import connect4, dot, postgres_db
 
-SUPPORTED_GAMES = frozenset({"iq", "route-empire", "connect4", "ludo", "chess", "dot"})
+SUPPORTED_GAMES = frozenset({"connect4", "dot"})  # Only games with authoritative shared-room adapters.
 ROOM_CODE_PATTERN = re.compile(r"^[A-Z2-9]{6}$")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -77,8 +77,8 @@ def create_room(*, game_key: object, host_name: object, capacity: object = 2) ->
     game = _game(game_key)
     name = _name(host_name)
     seats = _capacity(capacity)
-    if game in {"connect4", "dot"} and seats != 2:
-        raise ValueError("arena_room_connect4_requires_two_seats")
+    if seats != 2:
+        raise ValueError("arena_room_requires_two_seats")
     room_id = str(uuid.uuid4())
     player_id = str(uuid.uuid4())
     token = _token()
@@ -429,6 +429,7 @@ def update_game_state(*, room_id: object, reconnect_token: object, expected_revi
 def status() -> dict[str, bool]:
     return {
         "durable_rooms": True,
+        "playable_room_games_only": True,
         "invite_codes": True,
         "reconnect_tokens": True,
         "revision_conflict_guard": True,
