@@ -10,9 +10,8 @@ TERMUX_REQUIREMENTS = (ROOT / "requirements-termux-home-node.txt").read_text()
 MISSION_INIT = (ROOT / "mission_control" / "__init__.py").read_text()
 
 
-def test_termux_runner_uses_existing_bounded_workers_without_self_updating():
-    assert "mission_control.organism_worker" in RUNNER
-    assert "oap_home_node_inference_worker.py" in RUNNER
+def test_termux_runner_delegates_to_canonical_home_node_supervisor_without_self_updating():
+    assert "oap_home_node_supervisor.py" in RUNNER
     assert "termux-wake-lock" in RUNNER
     assert "git pull" not in RUNNER
     assert "git fetch" not in RUNNER
@@ -64,12 +63,8 @@ def test_mission_control_package_keeps_web_imports_out_of_worker_import_path():
     assert MISSION_INIT.index("def init_app") < MISSION_INIT.index("from .views import bp")
 
 
-def test_termux_status_uses_authoritative_runtime_readiness():
-    assert "runtime_status" in STATUS
-    assert "home_node_process=" in STATUS
-    assert "organism_worker=" in STATUS
-    assert "inference_worker=" in STATUS
-    assert "bridge_secret_configured=" in STATUS
+def test_termux_status_uses_canonical_cross_platform_readiness():
+    assert "oap_home_node_status.py" in STATUS
     assert '"worker_fresh": true' in DOC
     assert '"ready": true' in DOC
 

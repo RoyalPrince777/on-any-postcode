@@ -1,5 +1,7 @@
 # OAP Termux Home Node
 
+For the device-agnostic Home Node contract covering Android phone/tablet, Linux, macOS and Windows, see `docs/HOME_NODE.md`.
+
 The Termux Home Node is the zero-hosting-cost continuous runtime for two bounded first-party workers:
 
 - `mission_control.organism_worker` for heartbeat, health and governed organism cycles.
