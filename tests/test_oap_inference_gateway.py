@@ -110,3 +110,28 @@ def test_gateway_enriches_all_provider_paths_with_oap_capabilities():
     assert enriched["external_provider_authority"] is False
     assert enriched["human_authority_final"] is True
     assert oap_inference_gateway.status()["capability_fabric"]["ready"] is True
+
+
+def test_gateway_records_observed_success_path_and_clears_stale_evidence(monkeypatch):
+    import pytest
+    gateway = oap_inference_gateway
+    monkeypatch.setattr(gateway, "_call_local", lambda *_args, **_kw: "local")
+    assert gateway.generate(lambda *_args, **_kw: "fallback", "hello") == "local"
+    assert gateway.observed_inference_route() == "local_direct"
+
+    def unavailable(*_args, **_kwargs):
+        raise RuntimeError("not_available")
+
+    monkeypatch.setattr(gateway, "_call_local", unavailable)
+    monkeypatch.setattr(gateway, "_call_bridge", lambda *_args, **_kw: "bridge")
+    assert gateway.generate(lambda *_args, **_kw: "fallback", "hello") == "bridge"
+    assert gateway.observed_inference_route() == "home_node_bridge"
+
+    monkeypatch.setattr(gateway, "_call_bridge", unavailable)
+    monkeypatch.setattr(gateway, "FALLBACK_ENABLED", True)
+    assert gateway.generate(lambda *_args, **_kw: "compat", "hello") == "compat"
+    assert gateway.observed_inference_route() == "compatibility_fallback"
+
+    with pytest.raises(RuntimeError, match="not_available"):
+        gateway.generate(unavailable, "hello")
+    assert gateway.observed_inference_route() is None
