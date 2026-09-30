@@ -155,6 +155,40 @@ def radio_home():
     )
 
 
+@bp.get("/radio/api/stations")
+def public_radio_stations():
+    """Public station choices only after fresh Radio-specific Music clearance."""
+    try:
+        candidates = _radio_store.public_station_candidates()
+        stations = []
+        for item in candidates:
+            gate = _music_entitlement_store.public_gate(
+                asset_id=item["asset_id"], territory="*", channel="OAP Radio"
+            )
+            if gate.get("allowed") is not True:
+                continue
+            # Discovery is advisory; actual byte route independently rechecks
+            # station STOP, rights, asset integrity and admission.
+            stations.append({
+                "station_id": item["station_id"],
+                "station_name": item["station_name"],
+                "track_id": item["track_id"],
+                "asset_id": item["asset_id"],
+                "stream_url": (
+                    "/radio/api/stations/" + item["station_id"]
+                    + "/tracks/" + item["track_id"]
+                    + "/assets/" + item["asset_id"] + "/stream"
+                ),
+                "broadcast_live": False,
+                "airplay_confirmed": False,
+            })
+        return _no_store(make_response(jsonify({
+            "stations": stations, "continuous_broadcast_confirmed": False,
+        })))
+    except (RuntimeError, ValueError, music_entitlements.MusicEntitlementUnavailable):
+        return _api_error("radio_unavailable", "Radio discovery is unavailable.", 503)
+
+
 @bp.get("/radio/control")
 @web_security.login_required(api=False, founder_only=True)
 def radio_control():
