@@ -33,6 +33,7 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0014_oap_music_rights_grants",
         "0015_oap_music_entitlements",
         "0016_oap_radio_always_on",
+        "0021_oap_radio_founder_approval",
         "0017_oap_music_purchases",
         "0018_oap_music_accounting",
         "0019_oap_music_content_links",
@@ -149,9 +150,12 @@ def test_music_studio_and_radio_are_separate_real_routes(monkeypatch):
             "email_verified": True,
         },
     )
-    radio = app.test_client().get("/radio")
+    client = app.test_client()
+    radio = client.get("/radio")
     assert radio.status_code == 200
-    assert "Keep Radio Always On" in radio.get_data(as_text=True)
+    public_body = radio.get_data(as_text=True)
+    assert "Keep Radio Always On" not in public_body
+    assert "Create Founder station" not in public_body
 
 
 def test_first_party_listener_contract_has_no_external_core_dependency():
