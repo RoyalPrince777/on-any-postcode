@@ -9,6 +9,7 @@ for(let x=0;x<3;x++)for(let y=0;y<3;y++){if(x<2)edges.push([x+","+y,(x+1)+","+y]
 function render(){
  if(!state)return;q("[data-game]").hidden=false;
  const active=state.status==="active";
+ q("[data-start]").disabled=busy||active;
  q("[data-turn]").textContent=active?state.turn_player:"—";
  q("[data-status]").textContent=state.status;q("[data-stop]").disabled=busy||!active;q("[data-draw]").disabled=busy||!active;
  const drawn=state.edges||[],container=q("[data-edges]");container.replaceChildren();
@@ -20,7 +21,7 @@ function render(){
  q("[data-state]").textContent="Completed boxes: "+Object.keys(state.boxes||{}).length+"/4"+
   (state.status==="completed"?" · Game finished":state.status==="stopped"?" · Match stopped":"");
 }
-async function act(url,payload){if(busy)return;busy=true;q("[data-error]").textContent="";try{state=await post(url,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
+async function act(url,payload){if(busy||(url==="/arena/dot/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(url,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
 q("[data-start]").onclick=()=>act("/arena/dot/start",{});
 q("[data-draw]").onclick=()=>act("/arena/dot/draw",{a:q("[data-a]").value.trim(),b:q("[data-b]").value.trim(),request_id:requestId()});
 q("[data-edges]").onclick=e=>{const btn=e.target.closest("[data-a]");if(!btn||btn.disabled)return;
