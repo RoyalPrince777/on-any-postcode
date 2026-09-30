@@ -58,3 +58,15 @@ def test_ptt_controller_javascript_syntax():
     if node is None:
         return
     subprocess.run([node, "--check", str(SCRIPT)], check=True, capture_output=True, text=True)
+
+
+def test_ptt_event_listeners_are_not_registered_during_refresh():
+    script = SCRIPT.read_text(encoding="utf-8")
+    refresh = script.split("const refreshControls = () => {", maxsplit=1)[1].split("const stopTracks =", maxsplit=1)[0]
+    assert "addEventListener" not in refresh
+    assert "const beginPtt" not in refresh
+    assert script.count('control.addEventListener("pointerdown"') == 1
+    assert script.index("const startRecording = async") < script.index("const beginPtt =")
+    assert script.index("const beginPtt =") < script.index('control.addEventListener("pointerdown"')
+    assert 'window.addEventListener("blur", () => endPtt(true))' in script
+    assert 'document.addEventListener("visibilitychange"' in script
