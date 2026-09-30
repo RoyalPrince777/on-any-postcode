@@ -6,23 +6,15 @@ ENV_FILE="${OAP_HOME_ENV:-$HOME/.config/oap/home-node.env}"
 STATE_DIR="${OAP_HOME_STATE:-$HOME/.local/state/oap-home-node}"
 VENV_DIR="${OAP_HOME_VENV:-$REPO_DIR/.venv}"
 LOCK_DIR="$STATE_DIR/lock"
-LOG_FILE="$STATE_DIR/worker.log"
+ORGANISM_LOG="$STATE_DIR/organism-worker.log"
+INFERENCE_LOG="$STATE_DIR/inference-worker.log"
 
 mkdir -p "$STATE_DIR"
 umask 077
 
-if [[ ! -d "$REPO_DIR/.git" ]]; then
-  echo "OAP Home Node refused: repository missing at $REPO_DIR" >&2
-  exit 2
-fi
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "OAP Home Node refused: private environment file missing at $ENV_FILE" >&2
-  exit 2
-fi
-if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-  echo "OAP Home Node refused: Python environment missing at $VENV_DIR" >&2
-  exit 2
-fi
+[[ -d "$REPO_DIR/.git" ]] || { echo "OAP Home Node refused: repository missing at $REPO_DIR" >&2; exit 2; }
+[[ -f "$ENV_FILE" ]] || { echo "OAP Home Node refused: private environment file missing at $ENV_FILE" >&2; exit 2; }
+[[ -x "$VENV_DIR/bin/python" ]] || { echo "OAP Home Node refused: Python environment missing at $VENV_DIR" >&2; exit 2; }
 
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   existing_pid="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
@@ -45,49 +37,64 @@ if [[ -z "${OAP_NEON_DATABASE_URL:-${DATABASE_URL:-}}" && -z "${OAP_DB_SECRET_B6
   rm -rf "$LOCK_DIR"
   exit 2
 fi
+bridge_secret="${OAP_HOME_NODE_BRIDGE_SECRET:-}"
+if (( ${#bridge_secret} < 32 )); then
+  echo "OAP Home Node refused: OAP_HOME_NODE_BRIDGE_SECRET is not configured" >&2
+  rm -rf "$LOCK_DIR"
+  exit 2
+fi
 
 cd "$REPO_DIR"
 export OAP_WORKER_ID="${OAP_WORKER_ID:-termux-$(hostname 2>/dev/null || echo android)}"
 export OAP_ENV_REVISION="$(git rev-parse --short=12 HEAD 2>/dev/null || printf '%s' 'termux-unknown')"
+export OAP_HOME_NODE_BRIDGE_URL="${OAP_HOME_NODE_BRIDGE_URL:-https://oap-smi.onrender.com/mission}"
 
 termux-wake-lock >/dev/null 2>&1 || true
 
-child_pid=""
+organism_pid=""
+inference_pid=""
+
+start_organism() {
+  printf '%s starting organism worker revision=%s\n' "$(date -u +%FT%TZ)" "$OAP_ENV_REVISION" >> "$ORGANISM_LOG"
+  "$VENV_DIR/bin/python" -m mission_control.organism_worker >> "$ORGANISM_LOG" 2>&1 &
+  organism_pid="$!"
+  printf '%s\n' "$organism_pid" > "$LOCK_DIR/organism.pid"
+}
+
+start_inference() {
+  printf '%s starting inference worker revision=%s\n' "$(date -u +%FT%TZ)" "$OAP_ENV_REVISION" >> "$INFERENCE_LOG"
+  "$VENV_DIR/bin/python" "$REPO_DIR/scripts/oap_home_node_inference_worker.py" >> "$INFERENCE_LOG" 2>&1 &
+  inference_pid="$!"
+  printf '%s\n' "$inference_pid" > "$LOCK_DIR/inference.pid"
+}
+
 cleanup() {
   trap - EXIT INT TERM
-  if [[ -n "$child_pid" ]] && kill -0 "$child_pid" 2>/dev/null; then
-    kill -TERM "$child_pid" 2>/dev/null || true
-    wait "$child_pid" 2>/dev/null || true
-  fi
+  for pid in "$organism_pid" "$inference_pid"; do
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill -TERM "$pid" 2>/dev/null || true
+    fi
+  done
+  [[ -z "$organism_pid" ]] || wait "$organism_pid" 2>/dev/null || true
+  [[ -z "$inference_pid" ]] || wait "$inference_pid" 2>/dev/null || true
   rm -rf "$LOCK_DIR"
   termux-wake-unlock >/dev/null 2>&1 || true
 }
 trap cleanup EXIT INT TERM
 
-backoff=15
+start_organism
+start_inference
+
 while true; do
-  started_at="$(date +%s)"
-  printf '%s %s\n' "$(date -u +%FT%TZ)" "starting bounded organism worker revision=$OAP_ENV_REVISION" >> "$LOG_FILE"
-  "$VENV_DIR/bin/python" -m mission_control.organism_worker >> "$LOG_FILE" 2>&1 &
-  child_pid="$!"
-
-  set +e
-  wait "$child_pid"
-  exit_code="$?"
-  set -e
-  child_pid=""
-
-  stopped_at="$(date +%s)"
-  runtime_seconds="$((stopped_at - started_at))"
-  printf '%s worker exited code=%s runtime_seconds=%s\n' "$(date -u +%FT%TZ)" "$exit_code" "$runtime_seconds" >> "$LOG_FILE"
-
-  if (( runtime_seconds >= 120 )); then
-    backoff=15
-  else
-    backoff="$((backoff * 2))"
-    if (( backoff > 300 )); then
-      backoff=300
-    fi
+  if ! kill -0 "$organism_pid" 2>/dev/null; then
+    wait "$organism_pid" 2>/dev/null || true
+    sleep 5
+    start_organism
   fi
-  sleep "$backoff"
+  if ! kill -0 "$inference_pid" 2>/dev/null; then
+    wait "$inference_pid" 2>/dev/null || true
+    sleep 5
+    start_inference
+  fi
+  sleep 3
 done

@@ -1,8 +1,11 @@
 # OAP Termux Home Node
 
-The Termux Home Node is the zero-hosting-cost continuous runtime for the bounded OAP Digital Organism worker.
+The Termux Home Node is the zero-hosting-cost continuous runtime for two bounded first-party workers:
 
-It runs the existing `mission_control.organism_worker`, which schedules and executes only the allowlisted runtime heartbeat and health-probe jobs. Those jobs run OAP CORE autonomy, SMI autonomy, and whole-organism autonomy cycles while keeping Human Authority final and consequential execution disabled.
+- `mission_control.organism_worker` for heartbeat, health and governed organism cycles.
+- `scripts/oap_home_node_inference_worker.py` for outbound-only SMI inference through local Ollama.
+
+The inference worker opens no inbound port. It polls the private OAP bridge over HTTPS, runs the job locally, and returns only the bounded result. Human Authority remains final and consequential execution disabled.
 
 ## What stays locked
 
@@ -16,7 +19,11 @@ The node deliberately does **not** auto-pull GitHub changes. Updating the runnin
 - Termux:Boot installed from the same signing/source family and opened once.
 - Reliable power and network connection.
 - Android battery usage for Termux and Termux:Boot set to Unrestricted where the device exposes that setting.
-- Production Neon PostgreSQL connection URL. It is entered interactively in Termux and stored only in `$HOME/.config/oap/home-node.env` with mode `600`; it must never be committed to GitHub.
+- Production Neon PostgreSQL connection URL.
+- The same Home Node bridge secret configured on the SMI service.
+- Local Ollama running with the configured OAP model.
+
+The database URL and bridge secret are entered interactively in Termux and stored only in `$HOME/.config/oap/home-node.env` with mode `600`; they must never be committed to GitHub.
 
 Termux:Boot executes scripts placed in `~/.termux/boot/`. Its official documentation recommends `termux-wake-lock` for workloads that should continue while the device sleeps.
 
@@ -32,7 +39,7 @@ cd ~/on-any-postcode
 bash scripts/termux_home_node_setup.sh
 ```
 
-The setup script installs Python/Git dependencies, creates the virtual environment, securely prompts for the production database URL, creates the boot entry, and does not start any consequential action.
+The setup script installs dependencies, creates the virtual environment, securely prompts for the production database URL and Home Node bridge secret, creates the boot entry, and does not start any consequential action.
 
 Then start the node immediately:
 
@@ -50,10 +57,14 @@ In another Termux session:
 ~/on-any-postcode/scripts/termux_home_node_status.sh
 ```
 
-A genuinely green runtime requires both:
+A genuinely green runtime requires all of:
 
 - `home_node_process=running`
+- `organism_worker=running`
+- `inference_worker=running`
+- `bridge_secret_configured=true`
 - runtime JSON containing `"worker_fresh": true` and `"ready": true`
+- production SMI reporting `worker_recently_seen=true` and `first_party_inference_ready=true`
 
 The authoritative runtime heartbeat is persisted in Neon, not inferred from the local process alone.
 
