@@ -883,3 +883,59 @@ body.smi-noise-strip.smi-live-fullscreen .composer-box{
 }
 body.smi-noise-strip.smi-live-fullscreen .composer textarea{grid-column:3!important}
 body.smi-noise-strip.smi-live-fullscreen #send{grid-column:4!important}
+
+
+/* Home intelligence rail: restore system context without restoring dashboard noise. */
+body.smi-noise-strip .smi-home-intelligence{
+  position:fixed!important;
+  top:10px!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  z-index:105!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  padding:4px!important;
+  border:1px solid rgba(57,175,255,.16)!important;
+  border-radius:999px!important;
+  background:rgba(2,8,22,.58)!important;
+  backdrop-filter:blur(12px)!important;
+}
+body.smi-noise-strip .smi-home-intelligence button{
+  min-height:34px!important;
+  padding:0 10px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:transparent!important;
+  color:rgba(236,248,255,.88)!important;
+  font:inherit!important;
+  font-size:.70rem!important;
+  white-space:nowrap!important;
+  cursor:pointer!important;
+}
+body.smi-noise-strip .smi-home-intelligence button:hover,
+body.smi-noise-strip .smi-home-intelligence button:focus{
+  background:rgba(57,175,255,.10)!important;
+  outline:1px solid rgba(57,175,255,.25)!important;
+}
+body.smi-noise-strip.smi-command-open .smi-home-intelligence,
+body.smi-noise-strip.smi-status-open .smi-home-intelligence,
+body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence{
+  display:none!important;
+}
+body.smi-noise-strip .messages{top:58px!important}
+@media(max-width:760px){
+  body.smi-noise-strip .smi-home-intelligence{
+    top:8px!important;
+    max-width:calc(100vw - 20px)!important;
+    overflow-x:auto!important;
+    scrollbar-width:none!important;
+  }
+  body.smi-noise-strip .smi-home-intelligence::-webkit-scrollbar{display:none!important}
+  body.smi-noise-strip .smi-home-intelligence button{
+    min-height:32px!important;
+    padding:0 8px!important;
+    font-size:.64rem!important;
+  }
+  body.smi-noise-strip .messages{top:52px!important}
+}
