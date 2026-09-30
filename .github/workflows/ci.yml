@@ -68,6 +68,20 @@ jobs:
           node tests/smi_android_motion_evidence_gate_test.cjs
           node --check mission_control/smi_real_reply_motion_bridge.js
           node tests/smi_real_reply_motion_bridge_test.cjs
+      - name: Validate first-party Arena browser controllers
+        run: |
+          for script in \
+            static/arena_intelligence.js \
+            static/route_empire.js \
+            static/iq_arena.js \
+            static/ludo.js \
+            static/chess.js \
+            static/dot.js \
+            static/connect4.js \
+            static/arena_connect4_room.js \
+            static/arena_dot_room.js; do
+            node --check "$script"
+          done
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
@@ -109,6 +123,10 @@ jobs:
           combined="$(printf '%s\n' 'OAP ephemeral combined-main proof' | git -c user.name='OAP CI' -c user.email='ci@localhost' commit-tree "$tree" -p HEAD -p origin/main)"
           git worktree add --detach /tmp/oap-combined-main "$combined"
           cd /tmp/oap-combined-main
+          for script in static/arena_intelligence.js static/route_empire.js \
+            static/iq_arena.js static/ludo.js static/chess.js static/dot.js \
+            static/connect4.js static/arena_connect4_room.js \
+            static/arena_dot_room.js; do node --check "$script"; done
           python -m compileall -q app.py mission_control oap
           ruff check app.py mission_control oap tests
           set -o pipefail

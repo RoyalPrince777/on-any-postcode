@@ -1,1 +1,62 @@
-(()=>{const r=document.querySelector("[data-chess-root]");if(!r)return;const q=s=>r.querySelector(s),csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";let s=null;const req=()=>crypto.randomUUID().replaceAll("-","").slice(0,16);const post=async(u,b)=>{const x=await fetch(u,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(b)});const d=await x.json();if(!x.ok)throw new Error(d?.error?.code||"request_failed");return d};const draw=()=>{q("[data-game]").hidden=false;q("[data-turn]").textContent=s.turn;q("[data-board]").textContent=JSON.stringify(s.board,null,2)};q("[data-start]").onclick=async()=>{try{s=await post("/arena/chess/start",{});draw()}catch(e){q("[data-error]").textContent=e.message}};q("[data-move]").onclick=async()=>{try{s=await post("/arena/chess/move",{source:q("[data-source]").value,target:q("[data-target]").value,request_id:req()});draw()}catch(e){q("[data-error]").textContent=e.message}};q("[data-stop]").onclick=async()=>{try{s=await post("/arena/chess/stop",{request_id:req()});draw()}catch(e){q("[data-error]").textContent=e.message}}})();
+(()=>{
+"use strict";const root=document.querySelector("[data-chess-root]");if(!root)return;
+const q=s=>root.querySelector(s),csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
+let state=null,busy=false,selected=null;
+const requestId=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
+const glyph={wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"};
+const error=e=>q("[data-error]").textContent=e?.message||String(e);
+async function post(path,payload){const r=await fetch(path,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw new Error(data?.error?.code||"arena_request_failed");return data;}
+function render(){
+ if(!state)return;q("[data-game]").hidden=false;
+ const active=state.status==="active";
+ q("[data-start]").disabled=busy||active;
+ q("[data-turn]").textContent=active?state.turn:"—";q("[data-status]").textContent=state.status;
+ q("[data-stop]").disabled=!active||busy;q("[data-move]").disabled=!active||busy;
+ const board=q("[data-board]");board.replaceChildren();
+ for(let rank=8;rank>=1;rank--)for(const file of "abcdefgh"){
+  const id=file+rank,piece=state.board[id];const square=document.createElement("button");
+  square.type="button";square.className="arena-chess-square "+(((file.charCodeAt(0)-97+rank)%2)?"arena-chess-dark":"arena-chess-light");
+  square.dataset.square=id;square.disabled=!active||busy;
+  square.textContent=glyph[piece]||"";
+  square.setAttribute("aria-label",id+" "+(piece?(piece[0]==="w"?"White ":"Black ")+({K:"king",Q:"queen",R:"rook",B:"bishop",N:"knight",P:"pawn"}[piece[1]]):"empty"));
+  square.setAttribute("aria-pressed",String(selected===id));board.append(square);
+ }
+ q("[data-feedback]").textContent=state.status==="completed"?"Winner: "+state.winner:state.status==="stopped"?"Match stopped.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
+}
+async function act(path,payload){if(busy||(path==="/arena/chess/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;
+ if(path==="/arena/chess/start"||path==="/arena/chess/move"){
+  q("[data-source]").value="";q("[data-target]").value="";
+ }
+ render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
+function move(){
+ const source=q("[data-source]").value.trim().toLowerCase(),target=q("[data-target]").value.trim().toLowerCase();
+ if(!/^[a-h][1-8]$/.test(source)||!/^[a-h][1-8]$/.test(target)){error(new Error("Use squares a1–h8 (for example e2 → e4)."));return;}
+ act("/arena/chess/move",{source,target,request_id:requestId()});
+}
+q("[data-start]").onclick=()=>act("/arena/chess/start",{});
+q("[data-move]").onclick=move;
+q("[data-stop]").onclick=()=>act("/arena/chess/stop",{request_id:requestId()});
+q("[data-board]").onclick=e=>{
+ const btn=e.target.closest("[data-square]");if(!btn||btn.disabled)return;
+ const id=btn.dataset.square;
+ const piece=state.board[id];
+ const ownColour=state.turn==="White"?"w":"b";
+ if(!selected){
+  if(!piece||piece[0]!==ownColour){
+   q("[data-feedback]").textContent="Select one of your own pieces to begin.";
+   return;
+  }
+  selected=id;q("[data-source]").value=id;q("[data-target]").value="";
+  render();q('[data-square="'+id+'"]')?.focus();return;
+ }
+ if(selected===id){
+  selected=null;q("[data-source]").value="";q("[data-target]").value="";
+  render();q('[data-square="'+id+'"]')?.focus();return;
+ }
+ if(piece&&piece[0]===ownColour){
+  selected=id;q("[data-source]").value=id;q("[data-target]").value="";
+  render();q('[data-square="'+id+'"]')?.focus();return;
+ }
+ q("[data-target]").value=id;move();
+};
+})();

@@ -1,0 +1,50 @@
+/* One coherent first-party Arena game interface. Retains existing route/data hooks. */
+:root{--arena-action:#f5c451;--arena-accent:#a36dff}
+body:has(.arena-game){overflow-x:hidden}
+.arena-game{width:min(100% - 24px,920px);max-width:920px;margin:0 auto;padding:clamp(12px,3vw,26px) 0 36px;display:grid;gap:14px;box-sizing:border-box}
+.arena-game *{box-sizing:border-box;min-width:0}
+.arena-game .card{width:100%;margin:0;padding:clamp(15px,3vw,24px);min-width:0}
+.arena-game .arena-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.arena-game .arena-nav a{display:inline-flex;align-items:center;min-height:44px;text-decoration:underline;text-underline-offset:3px}
+.arena-game .arena-header h1{margin:.3em 0}
+.arena-game .arena-hint{color:var(--mc-muted);font-size:.92rem;line-height:1.5}
+.arena-game .arena-row{display:flex;align-items:end;flex-wrap:wrap;gap:12px}
+.arena-game .arena-field{display:grid;gap:6px;flex:1 1 190px}
+.arena-game label{display:grid;gap:6px}
+.arena-game input,.arena-game select{display:block;max-width:100%;width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--mc-line);border-radius:10px;background:var(--mc-panel-soft);color:var(--mc-text);font:inherit}
+.arena-game button{min-height:44px;min-width:44px;max-width:100%;border-radius:10px;padding:8px 13px;cursor:pointer}
+.arena-game button:disabled{opacity:.5;cursor:not-allowed}
+.arena-game button:focus-visible,.arena-game input:focus-visible,.arena-game select:focus-visible,.arena-game a:focus-visible{outline:3px solid var(--arena-action);outline-offset:3px}
+.arena-game .arena-primary{background:var(--arena-accent);color:#fff;border:1px solid var(--arena-accent);font-weight:750}
+.arena-game .arena-stop{border:1px solid #d45b68;color:#ffb7bf;background:transparent}
+.arena-game .arena-stop:disabled{opacity:.4}
+.arena-game .arena-error{color:#ffb7bf;overflow-wrap:anywhere}
+.arena-game .arena-error:empty,.arena-game .arena-feedback:empty{display:none}
+.arena-game .arena-feedback{border-left:3px solid var(--arena-accent);padding:8px 12px;background:rgba(163,109,255,.08);overflow-wrap:anywhere}
+.arena-game .arena-metrics{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.arena-game .arena-metrics>span{border:1px solid var(--mc-line);padding:7px 10px;border-radius:10px}
+.arena-game .arena-game-content{overflow-x:auto;max-width:100%}
+.arena-game .arena-actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
+.arena-game .arena-actions>*{flex:0 1 auto}
+.arena-game [hidden]{display:none!important}
+.arena-game .c4-board,.arena-game .c4-controls{grid-template-columns:repeat(7,minmax(0,1fr));width:min(100%,430px);max-width:100%;gap:clamp(3px,1vw,6px)}
+.arena-game .c4-cell{width:100%;height:auto;aspect-ratio:1}
+.arena-game .c4-controls button{min-width:0;padding:5px 0}
+.arena-game .room-board,.arena-game .room-columns{width:min(100%,430px);max-width:100%;grid-template-columns:repeat(7,minmax(0,1fr));gap:clamp(3px,1vw,5px)}
+.arena-game .room-columns button{min-width:0;padding:4px 0}
+.arena-game .room-cell{min-width:0}
+.arena-game .re-grid,.arena-game .iq-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
+.arena-game .re-actions button,.arena-game .iq-choice{min-height:44px}
+.arena-game .arena-board-text{overflow:auto;white-space:pre;max-width:100%;font:inherit;line-height:1.6}
+@media(max-width:430px){.arena-game{width:calc(100% - 16px)}.arena-game .card{padding:14px}.arena-game .arena-actions button{flex:1 1 44%}}
+@media(prefers-reduced-motion:reduce){.arena-game *, .arena-game *::before,.arena-game *::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Accessible Chess grid, Ludo track and Dot edge controls */
+.arena-game .arena-chess-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:min(100%,480px);max-width:100%;aspect-ratio:1;border:2px solid var(--mc-line);margin:12px 0}
+.arena-game .arena-chess-square{min-width:0;min-height:0;width:100%;height:100%;border:0;border-radius:0;padding:0;font-size:clamp(18px,5vw,40px);line-height:1;color:#141526;display:grid;place-items:center}
+.arena-game .arena-chess-light{background:#ecdfc0}.arena-game .arena-chess-dark{background:#aa91c6}
+.arena-game .arena-chess-square[aria-pressed="true"]{outline:4px solid #f5c451;outline-offset:-4px;z-index:1}
+.arena-game .arena-race-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,2fr);align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--mc-line)}
+.arena-game .arena-race-row progress{width:100%;accent-color:var(--arena-accent);height:15px}
+.arena-game [data-edges]{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:8px;margin:10px 0}
+.arena-game [data-edges] button{width:100%;background:var(--mc-panel-soft);color:var(--mc-text);border:1px solid var(--mc-line)}

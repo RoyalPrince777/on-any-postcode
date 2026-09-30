@@ -1,1 +1,30 @@
-(()=>{const r=document.querySelector("[data-ludo-root]");if(!r)return;const q=s=>r.querySelector(s),csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";let s=null;const req=()=>crypto.randomUUID().replaceAll("-","").slice(0,16);const post=async(u,b)=>{const x=await fetch(u,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(b)});const d=await x.json();if(!x.ok)throw new Error(d?.error?.code||"request_failed");return d};const draw=()=>{q("[data-game]").hidden=false;q("[data-turn]").textContent=s.current_player_name;q("[data-players-view]").innerHTML=s.players.map(p=>`<p><strong>${p.name}</strong> · ${p.piece}/${s.board_end}</p>`).join("")};q("[data-start]").onclick=async()=>{try{s=await post("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});draw()}catch(e){q("[data-error]").textContent=e.message}};r.addEventListener("click",async e=>{const b=e.target.closest("[data-step]");if(!b)return;try{s=await post("/arena/ludo/move",{steps:Number(b.dataset.step),request_id:req()});draw()}catch(err){q("[data-error]").textContent=err.message}});q("[data-stop]").onclick=async()=>{try{s=await post("/arena/ludo/stop",{request_id:req()});draw()}catch(e){q("[data-error]").textContent=e.message}}})();
+(()=>{
+"use strict";
+const root=document.querySelector("[data-ludo-root]");if(!root)return;
+const q=s=>root.querySelector(s);const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
+let state=null,busy=false;const requestId=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
+const error=e=>q("[data-error]").textContent=e?.message||String(e);
+async function post(url,payload){const r=await fetch(url,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(payload)});const result=await r.json();if(!r.ok)throw new Error(result?.error?.code||"arena_request_failed");return result;}
+function render(){
+ if(!state)return;
+ q("[data-game]").hidden=false;q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
+ q("[data-status]").textContent=state.status==="completed"?"Finished":state.status;
+ const view=q("[data-players-view]");view.replaceChildren();
+ for(const player of state.players){const row=document.createElement("div");row.className="arena-race-row";
+  const title=document.createElement("strong");title.textContent=player.name+" · "+player.piece+"/"+state.board_end;
+  const track=document.createElement("progress");track.max=state.board_end;track.value=player.piece;track.setAttribute("aria-label",player.name+" distance");
+  row.append(title,track);view.append(row);}
+ const active=state.status==="active";
+ q("[data-start]").disabled=busy||active;
+ q("[data-players]").disabled=busy||active;
+ root.querySelectorAll("[data-step]").forEach(btn=>btn.disabled=busy||!active);
+ q("[data-stop]").disabled=busy||!active;
+ q("[data-feedback]").textContent=state.status==="completed"?
+  "Winner: "+(state.players.find(p=>p.id===state.winner_id)?.name||"—"):
+  state.status==="stopped"?"Match stopped.":"Choose a move from 1 to 6. This is manual movement, not a random dice roll.";
+}
+async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
+q("[data-start]").onclick=()=>action("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
+root.addEventListener("click",e=>{const btn=e.target.closest("[data-step]");if(btn&&!btn.disabled)action("/arena/ludo/move",{steps:Number(btn.dataset.step),request_id:requestId()});});
+q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
+})();
