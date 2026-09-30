@@ -6,7 +6,7 @@ import uuid
 
 import pytest
 
-from mission_control import arena_rooms
+from mission_control import arena_rooms, connect4
 
 
 class _Result:
@@ -58,9 +58,10 @@ def test_room_state_returns_players_and_no_chat_or_payments(monkeypatch):
     room_id = str(uuid.uuid4())
     p1 = str(uuid.uuid4())
     p2 = str(uuid.uuid4())
+    initial = connect4.new_game("Alpha", "Bravo")
     connection = _Connection([
         _Result(one=(1,)),
-        _Result(one=("ABC234", "connect4", "ACTIVE", 2, 3, json.dumps({"turn": "p1"}))),
+        _Result(one=("ABC234", "connect4", "ACTIVE", 2, 3, json.dumps(initial))),
         _Result(many=[(p1, "Alpha", 1), (p2, "Bravo", 2)]),
     ])
     _patch_connection(monkeypatch, connection)
@@ -68,7 +69,8 @@ def test_room_state_returns_players_and_no_chat_or_payments(monkeypatch):
     result = arena_rooms.room_state(room_id=room_id, reconnect_token="t" * 40)
 
     assert result["revision"] == 3
-    assert result["game_state"] == {"turn": "p1"}
+    assert result["game_state"]["current_player_id"] == "p1"
+    assert "checkpoint" not in result["game_state"]
     assert [p["seat"] for p in result["players"]] == [1, 2]
     assert result["chat"] is False
     assert result["payments"] is False
@@ -147,8 +149,6 @@ def test_connect4_room_replay_conflict_fails_closed(monkeypatch):
 
 def test_connect4_room_rejects_wrong_seat_and_stale_revision(monkeypatch):
     room_id = str(uuid.uuid4())
-    from mission_control import connect4
-
     first = connect4.new_game("Alpha", "Bravo")
     connection = _Connection([
         _Result(one=("connect4", "ACTIVE", 2, 0, first)),
