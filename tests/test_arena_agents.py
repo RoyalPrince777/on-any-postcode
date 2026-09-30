@@ -5,6 +5,11 @@ def test_catalogue_has_locked_first_party_agents_and_fair_play():
     data = arena_agents.catalogue()
     assert set(data["agents"]) == {"panther", "owl", "eagle", "falcon", "elephant", "bee", "gorilla"}
     assert data["defaults"]["connect4"] == "panther"
+    assert data["agents"]["panther"]["name"] == "Bagheera"
+    assert data["agents"]["panther"]["animal"] == "Panther"
+    assert data["agents"]["elephant"]["name"] == "Hathi"
+    assert data["agents"]["elephant"]["family"] == ["Hathi", "Hathi Jr"]
+    assert "Control" in data["agents"]["elephant"]["role"]
     assert data["defaults"]["chess"] == "owl"
     assert data["fair_play"]["hidden_information_access"] is False
     assert data["fair_play"]["payments"] is False
