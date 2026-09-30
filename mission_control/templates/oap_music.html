@@ -29,16 +29,24 @@
 (() => {
  const input=document.getElementById('music-search'),results=document.getElementById('oap-results'),empty=document.getElementById('oap-empty'),state=document.getElementById('catalogue-state');
  let timer=null;
- async function engagement(track,event,audio){
-  const seconds=Math.max(0,Math.floor(audio?.currentTime||0));
-  const duration=Number.isFinite(audio?.duration)?Math.max(1,Math.floor(audio.duration)):null;
-  try{await fetch('/music/api/engagement',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({track_id:track,surface:'OAP_MUSIC',event_type:event,playback_seconds:seconds,duration_seconds:duration})})}catch(e){}
- }
  function instrument(audio,track){
-  let started=false,lastBeat=0;
-  audio.addEventListener('play',()=>{if(!started){started=true;engagement(track,'START',audio)}});
-  audio.addEventListener('timeupdate',()=>{const now=Math.floor(audio.currentTime||0);if(now>=10&&now-lastBeat>=15){lastBeat=now;engagement(track,'HEARTBEAT',audio)}});
-  audio.addEventListener('ended',()=>engagement(track,'COMPLETE',audio));
+  let sessionId=null,sequence=1,chain=Promise.resolve(),started=false,lastBeat=0;
+  function send(event){
+   const seconds=Math.max(0,Math.floor(audio.currentTime||0));
+   const duration=Number.isFinite(audio.duration)?Math.max(1,Math.floor(audio.duration)):null;
+   chain=chain.then(async()=>{
+    if(event!=='START'&&!sessionId)return;
+    const body={track_id:track,surface:'OAP_MUSIC',event_type:event,playback_seconds:seconds,duration_seconds:duration};
+    if(event!=='START'){body.playback_session_id=sessionId;body.event_sequence=++sequence}
+    const r=await fetch('/music/api/engagement',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error('engagement_unavailable');
+    const result=await r.json();
+    if(event==='START'){sessionId=result.playback_session_id;sequence=result.event_sequence}
+   }).catch(()=>{sessionId=null});
+  }
+  audio.addEventListener('play',()=>{if(!started){started=true;send('START')}});
+  audio.addEventListener('timeupdate',()=>{const now=Math.floor(audio.currentTime||0);if(now>=10&&now-lastBeat>=15){lastBeat=now;send('HEARTBEAT')}});
+  audio.addEventListener('ended',()=>send('COMPLETE'));
  }
  async function load(){
   const q=input.value.trim(); state.textContent=q?'Searching OAP Music…':'Loading OAP Music…';
