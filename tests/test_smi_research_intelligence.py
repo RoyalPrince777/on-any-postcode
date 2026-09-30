@@ -58,7 +58,7 @@ def test_founder_memory_channel_can_retrieve_research_intelligence_decision():
 
 
 # CC21: these observations are entirely local test fixtures, not market feeds.
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 import pytest
 
