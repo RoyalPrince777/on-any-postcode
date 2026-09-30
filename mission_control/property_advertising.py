@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from . import property_identity_gates
+from . import property_authority, property_identity_gates
 
 CATEGORIES = frozenset({"house", "flat", "land", "commercial", "development", "luxury", "rental"})
 CURRENCIES = frozenset({"GBP", "GHS"})
@@ -63,7 +63,7 @@ def _verified(record: dict[str, Any], evidence_ref: str, *,
               authority_check: AuthorityCheck | None,
               certified_check: CertifiedCheck | None) -> None:
     if authority_check is None:
-        raise PermissionError("property_verifiers_required")
+        authority_check = property_authority.verified_advertising_authority
     if certified_check is None:
         certified_check = property_identity_gates.certified_merchant
     try:
