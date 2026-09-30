@@ -87,16 +87,18 @@ def create_room(*, game_key: object, host_name: object, capacity: object = 2) ->
             for _ in range(8):
                 code = _room_code()
                 try:
-                    connection.execute(
+                    inserted = connection.execute(
                         """INSERT INTO oap_arena_rooms
                            (room_id,room_code,game_key,status,capacity,revision,game_state)
-                           VALUES (%s,%s,%s,'WAITING',%s,0,'{}'::jsonb)""",
+                           VALUES (%s,%s,%s,'WAITING',%s,0,'{}'::jsonb)
+                           ON CONFLICT (room_code) DO NOTHING
+                           RETURNING room_code""",
                         (room_id, code, game, seats),
-                    )
-                    break
-                except Exception as exc:
-                    if "unique" not in str(exc).lower():
-                        raise
+                    ).fetchone()
+                    if inserted is not None:
+                        break
+                except Exception:
+                    raise
             else:
                 raise ArenaRoomUnavailable("arena_room_code_exhausted")
 
@@ -237,67 +239,13 @@ def room_state(*, room_id: object, reconnect_token: object) -> dict[str, Any]:
     }
 
 
-def update_game_state(
-    *,
-    room_id: object,
-    reconnect_token: object,
-    expected_revision: object,
-    game_state: object,
-    request_id: object,
-) -> dict[str, Any]:
-    room = _room_id(room_id)
-    token_hash = _token_hash(reconnect_token)
-    req = _request_id(request_id)
-    if not isinstance(expected_revision, int) or expected_revision < 0:
-        raise ValueError("arena_room_revision_invalid")
-    if not isinstance(game_state, dict):
-        raise ValueError("arena_room_game_state_invalid")
+def update_game_state(*, room_id: object, reconnect_token: object, expected_revision: object,
+                      game_state: object, request_id: object) -> dict[str, Any]:
+    """Fail closed: multiplayer moves require a server-authoritative game adapter.
 
-    payload = json.dumps(game_state, separators=(",", ":"), sort_keys=True)
-    if len(payload.encode("utf-8")) > 65536:
-        raise ValueError("arena_room_game_state_too_large")
-
-    try:
-        with postgres_db.connect() as connection:
-            authorized = connection.execute(
-                """SELECT 1 FROM oap_arena_room_players
-                   WHERE room_id=%s AND reconnect_token_hash=%s
-                   LIMIT 1""",
-                (room, token_hash),
-            ).fetchone()
-            if authorized is None:
-                raise ValueError("arena_room_access_denied")
-            replay = connection.execute(
-                """SELECT revision FROM oap_arena_room_updates
-                   WHERE room_id=%s AND request_id=%s LIMIT 1""",
-                (room, req),
-            ).fetchone()
-            if replay is not None:
-                connection.commit()
-                return {"room_id": room, "revision": int(replay[0]), "duplicate": True}
-
-            updated = connection.execute(
-                """UPDATE oap_arena_rooms
-                   SET game_state=%s::jsonb,revision=revision+1,updated_at=CURRENT_TIMESTAMP
-                   WHERE room_id=%s AND revision=%s
-                   RETURNING revision""",
-                (payload, room, expected_revision),
-            ).fetchone()
-            if updated is None:
-                raise ValueError("arena_room_revision_conflict")
-            revision = int(updated[0])
-            connection.execute(
-                """INSERT INTO oap_arena_room_updates(room_id,request_id,revision)
-                   VALUES (%s,%s,%s)""",
-                (room, req, revision),
-            )
-            connection.commit()
-    except ValueError:
-        raise
-    except Exception as exc:
-        raise ArenaRoomUnavailable("arena_room_update_failed") from exc
-
-    return {"room_id": room, "revision": revision, "duplicate": False}
+    Accepting client-supplied board JSON would allow forged results and turn skipping.
+    """
+    raise ValueError("arena_room_server_game_adapter_required")
 
 
 def status() -> dict[str, bool]:
@@ -305,7 +253,8 @@ def status() -> dict[str, bool]:
         "durable_rooms": True,
         "invite_codes": True,
         "reconnect_tokens": True,
-        "revision_conflict_guard": True,
+        "revision_conflict_guard": False,
+        "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
         "explicit_migration_required": True,
