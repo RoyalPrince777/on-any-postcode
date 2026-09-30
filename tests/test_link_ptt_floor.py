@@ -35,7 +35,11 @@ class Connection:
             return Result(self.previous)
         if sql.startswith("INSERT INTO link_ptt_floor"):
             assert "ON CONFLICT(session_id)" in sql
-            assert params[2] == link_ptt_floor.LEASE_SECONDS
+            if "stopped) VALUES" in sql:
+                assert params == (params[0],)
+                assert "stopped=TRUE" in sql
+            else:
+                assert params[2] == link_ptt_floor.LEASE_SECONDS
             return Result()
         if sql.startswith("DELETE FROM link_ptt_floor"):
             return Result()
@@ -91,7 +95,7 @@ def test_floor_denies_ringing_and_unrelated_sessions_before_lease_query(monkeypa
 
 def test_floor_grants_one_holder_and_renews_own_lease(monkeypatch):
     first, second, session = (str(uuid.uuid4()) for _ in range(3))
-    for previous in (None, (first, True), (second, False)):
+    for previous in (None, (first, True, False), (second, False, False)):
         db = Connection(first, second, previous=previous)
         setup(monkeypatch, db)
         result = link_ptt_floor.floor(first, session, action="acquire")
@@ -104,7 +108,7 @@ def test_floor_grants_one_holder_and_renews_own_lease(monkeypatch):
 
 def test_floor_refuses_second_speaker_and_nonholder_release(monkeypatch):
     first, second, session = (str(uuid.uuid4()) for _ in range(3))
-    db = Connection(first, second, previous=(second, True))
+    db = Connection(first, second, previous=(second, True, False))
     setup(monkeypatch, db)
     with pytest.raises(ValueError, match="ptt_floor_busy"):
         link_ptt_floor.floor(first, session, action="acquire")
@@ -120,7 +124,7 @@ def test_either_participant_can_server_stop_a_live_floor(monkeypatch):
     result = link_ptt_floor.floor(first, session, action="stop")
     assert result == {"granted": False, "holder_id": None, "stopped": True}
     assert db.committed
-    assert any(sql.startswith("DELETE FROM link_ptt_floor") for sql, _ in db.queries)
+    assert any("stopped=TRUE" in sql for sql, _ in db.queries)
 
 
 def test_current_relationship_guard_blocks_floor_mutations(monkeypatch):
@@ -162,3 +166,22 @@ def test_invalid_floor_actions_fail_before_db_access(monkeypatch):
     for value in (None, [], {}, 1, "unmute", "ACQUIRE"):
         with pytest.raises(ValueError, match="invalid_ptt_action"):
             link_ptt_floor.floor(identity, session, action=value)
+
+
+def test_stop_tombstone_rejects_late_renewal(monkeypatch):
+    first, second, session = (str(uuid.uuid4()) for _ in range(3))
+    db = Connection(first, second, previous=(None, False, True))
+    setup(monkeypatch, db)
+    with pytest.raises(ValueError, match="ptt_floor_stopped"):
+        link_ptt_floor.floor(first, session, action="acquire")
+    result = link_ptt_floor.floor(second, session, action="release")
+    assert result["stopped"] is True
+    assert not any(sql.startswith("DELETE FROM") for sql, _ in db.queries)
+
+
+def test_floor_is_ptt_mode_only():
+    source = (link_ptt_floor.__file__)
+    from pathlib import Path
+    code = Path(source).read_text(encoding="utf-8")
+    assert "mode='ptt' AND state='active'" in code
+    assert "stopped BOOLEAN NOT NULL DEFAULT FALSE" in code
