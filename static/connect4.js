@@ -16,6 +16,9 @@ async function post(url,payload){
 function render(){
  const start=q("[data-start]");
  start.disabled=busy;
+ q("[data-mode]").disabled=busy||state?.status==="active";
+ q("[data-agent]").disabled=busy||state?.status==="active";
+ q("[data-difficulty]").disabled=busy;
  if(!state)return;
  q("[data-game]").hidden=false;
  q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
@@ -45,6 +48,7 @@ async function runAgent(){
  const response=await post("/arena/connect4/agent-move",{agent_key:key,difficulty,request_id:req()});
  state=response;
  q("[data-agent-status]").textContent=response.agent.name+" · "+response.agent.fit_stars+"/7 stars · "+difficulty;
+ q("[data-retry-agent]").hidden=true;
  render();
 }
 async function action(path,payload,followAgent=false){
@@ -55,8 +59,10 @@ async function action(path,payload,followAgent=false){
   if(followAgent)await runAgent();
  }catch(e){
   error(e);
-  if(agentMode&&state?.status==="active"&&state.current_player_id==="p2")
-   q("[data-agent-status]").textContent="Agent action could not finish. Do not submit a second human turn.";
+  if(agentMode&&state?.status==="active"&&state.current_player_id==="p2"){
+   q("[data-agent-status]").textContent="Agent action could not finish. Resume its turn to continue.";
+   q("[data-retry-agent]").hidden=false;
+  }
  }finally{busy=false;render();}
 }
 q("[data-mode]").onchange=()=>{
@@ -75,6 +81,11 @@ q("[data-controls]").onclick=e=>{
  const button=e.target.closest("[data-col]");
  if(!button||button.disabled||busy||state?.status!=="active")return;
  action("/arena/connect4/drop",{column:Number(button.dataset.col),request_id:req()},true);
+};
+q("[data-retry-agent]").onclick=()=>{
+ if(busy||!agentMode||state?.status!=="active"||state.current_player_id!=="p2")return;
+ busy=true;q("[data-error]").textContent="";render();
+ runAgent().catch(error).finally(()=>{busy=false;render();});
 };
 q("[data-stop]").onclick=()=>{
  if(busy||state?.status!=="active")return;
