@@ -1,0 +1,40 @@
+"""Seven-star evidence presentation must fail closed and preserve Founder Final."""
+from mission_control.smi_deep_dive_protocol import SEVEN_STAR_GATE, evaluate_seven_star_gate
+
+
+def test_missing_evidence_is_unknown_not_green():
+    result = evaluate_seven_star_gate()
+    assert result["proven"] == 0
+    assert result["technical_check_percent"] == 0
+    assert len(result["checks"]) == 7
+    assert all(check["signal"] == "unknown" for check in result["checks"])
+    assert result["production_green"] is False
+    assert result["founder_final"] is False
+
+
+def test_proven_requires_explicit_true_and_source():
+    result = evaluate_seven_star_gate({
+        "Truth": {"passed": True, "source": "CI exact-head/123"},
+        "Function": {"passed": True, "source": "   "},
+        "Security": {"passed": False, "source": "security-check/123"},
+        "Stability": {"passed": "true", "source": "stability-check/123"},
+        "Integration": {"passed": True},
+    })
+    assert result["proven"] == 1
+    assert result["technical_check_percent"] == 14
+    assert [item["signal"] for item in result["checks"]] == [
+        "green", "purple", "red", "purple", "purple", "unknown", "unknown"
+    ]
+
+
+def test_all_seven_technical_checks_do_not_self_approve_release():
+    result = evaluate_seven_star_gate({
+        name: {"passed": True, "source": "verified-run/" + name}
+        for name in SEVEN_STAR_GATE
+    })
+    assert result["proven"] == 7
+    assert result["technical_check_percent"] == 100
+    assert result["technical_gate_passed"] is True
+    assert result["production_green"] is False
+    assert result["founder_final"] is False
+    assert result["physical_acceptance_included"] is False
