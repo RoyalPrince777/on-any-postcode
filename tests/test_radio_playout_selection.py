@@ -99,3 +99,58 @@ def test_delivery_preflight_requires_exact_station_track_asset_and_stop(monkeypa
         assert gate in sql
     selected[0] = (1,)
     assert store.delivery_preflight(station_id=station, track_id=track, asset_id=asset) is True
+
+
+def test_delivery_admission_serializes_stop_and_persists_prepared_receipt(monkeypatch):
+    station, track, asset, owner, entitlement = (str(uuid4()) for _ in range(5))
+    statements = []
+    commits = []
+    selected = [(station,)]
+
+    class Connection:
+        def execute(self, sql, params):
+            statements.append((sql, params))
+            return self
+
+        def fetchone(self):
+            return selected[0]
+
+        def commit(self):
+            commits.append(True)
+
+    @contextmanager
+    def connect(*, readonly=False):
+        assert readonly is False
+        yield Connection()
+
+    monkeypatch.setattr(radio_core.postgres_db, "connect", connect)
+    store = radio_core.RadioStore()
+    args = {
+        "station_id": station,
+        "track_id": track,
+        "asset_id": asset,
+        "owner_identity_id": owner,
+        "entitlement_id": entitlement,
+        "rights_decision_hash": "a" * 64,
+        "media_sha256": "b" * 64,
+        "prepared_bytes": 4,
+        "response_status": 206,
+    }
+    receipt = store.admit_delivery(**args)
+    assert receipt is not None
+    sql, params = statements[0]
+    assert "FOR UPDATE OF c" in sql
+    assert "c.stopped=FALSE" in sql
+    assert "s.founder_approved=TRUE" in sql
+    assert "e.channel IN ('OAP Radio','*')" in sql
+    assert params == (station, owner, track, asset, entitlement)
+    assert "INSERT INTO oap_radio_delivery_admissions" in statements[1][0]
+    assert statements[1][1][0] == receipt
+    assert commits == [True]
+
+    statements.clear()
+    commits.clear()
+    selected[0] = None
+    assert store.admit_delivery(**args) is None
+    assert len(statements) == 1
+    assert commits == []
