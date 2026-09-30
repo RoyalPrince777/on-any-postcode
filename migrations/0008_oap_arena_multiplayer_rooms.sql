@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS oap_arena_room_updates (
     room_id UUID NOT NULL REFERENCES oap_arena_rooms(room_id) ON DELETE CASCADE,
     request_id TEXT NOT NULL,
     revision BIGINT NOT NULL CHECK (revision > 0),
+    action_hash TEXT NOT NULL CHECK (char_length(action_hash) = 64),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (room_id, request_id)
 );
