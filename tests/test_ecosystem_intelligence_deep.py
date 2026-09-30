@@ -1,4 +1,8 @@
-from mission_control import ecosystem_intelligence, ecosystem_runtime
+from mission_control import (
+    civilization_ecosystem_bridge,
+    ecosystem_intelligence,
+    ecosystem_runtime,
+)
 
 
 def _signal(
@@ -207,3 +211,45 @@ def test_outcome_endpoint_requires_explicit_founder_approval(client, monkeypatch
     )
     assert approved.status_code == 200
     assert approved.get_json()["durable_learning_proven"] is True
+
+
+def test_civilization_crosswalk_preserves_nine_owners_and_truth_boundaries():
+    projected = civilization_ecosystem_bridge.project((
+        _signal("movement", "Delivery delay", postcode="CR4",
+                pressure=80, truth_state="observed"),
+        _signal("nature", "Weather risk may spread", postcode="CR4",
+                pressure=70, truth_state="forecast"),
+    ))
+    domains = {item["id"]: item for item in projected["domains"]}
+    assert projected["domain_count"] == 9
+    assert domains["movement"]["referenced_signal_count"] == 1
+    assert domains["movement"]["truth_state_counts"] == {"observed": 1}
+    assert domains["environment"]["truth_state_counts"] == {"forecast": 1}
+    assert domains["communication"]["state"] == "no_evidence"
+    assert projected["mapping_is_causality_proof"] is False
+    assert projected["all_civilization_domains_operational_green"] is False
+    assert projected["execution_granted"] is False
+    assert projected["public_personal_data_exposed"] is False
+    assert "Delivery delay" not in str(projected)
+    assert "CR4" not in str(projected)
+
+
+def test_civilization_crosswalk_does_not_accept_unreferenced_signals():
+    signal = _signal("economy", "Unproven economic claim", postcode="SW16")
+    signal["evidence"] = ()
+    projected = civilization_ecosystem_bridge.project((signal,))
+    economy = next(item for item in projected["domains"] if item["id"] == "economy")
+    assert economy["referenced_signal_count"] == 0
+    assert economy["state"] == "no_evidence"
+
+
+def test_civilization_crosswalk_is_founder_only_and_read_only(client):
+    response = client.get("/mission/intelligence/ecosystem/civilization-bridge")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["scope"] == "founder_internal"
+    assert payload["domain_count"] == 9
+    assert payload["internal_context_is_live_external_proof"] is False
+    assert payload["execution_granted"] is False
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["X-Frame-Options"] == "DENY"
