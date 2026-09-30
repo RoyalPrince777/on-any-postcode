@@ -201,7 +201,9 @@ def test_smi_home_world_controls_open_existing_public_routes_without_private_act
     command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
     template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
-    assert "publicOapUrl:'https://on-any-postcode.onrender.com/'" in template
+    assert "publicOapUrl:'/'" in template
+    assert "publicWorldOrigin:'https://on-any-postcode.onrender.com/'" in template
+    assert 'cfg.publicWorldOrigin' in command
     assert 'homeWorld.textContent="🌍 OAP World"' in command
     assert 'homeRail.append(homeWorld,homeSystem,homeMatrix,homeWar)' in command
     assert 'worldPanel.id="smi-world-controls"' in command
