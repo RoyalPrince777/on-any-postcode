@@ -388,6 +388,49 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
                 )
                 conn.commit()
 
+        # A Founder station de-approval and removal of the selected rotation
+        # must serialize with admission too. No prepared receipt may be added
+        # after either mutation commits.
+        with psycopg.connect(URL, options=f"-c search_path={schema}") as revoker:
+            revoker.execute(
+                "UPDATE oap_radio_stations SET founder_approved=FALSE WHERE station_id=%s",
+                (station,),
+            )
+            monkeypatch.setattr(radio_core.postgres_db, "connect", bounded_connect)
+            with pytest.raises(psycopg.errors.LockNotAvailable):
+                store.admit_delivery(**args)
+        monkeypatch.setattr(radio_core.postgres_db, "connect", isolated_connect)
+        assert store.admit_delivery(**args) is None
+        with isolated_connect() as conn:
+            conn.execute(
+                "UPDATE oap_radio_stations SET founder_approved=TRUE WHERE station_id=%s",
+                (station,),
+            )
+            conn.commit()
+
+        with psycopg.connect(URL, options=f"-c search_path={schema}") as revoker:
+            revoker.execute(
+                "DELETE FROM oap_radio_rotation WHERE station_id=%s AND track_id=%s",
+                (station, station_track),
+            )
+            monkeypatch.setattr(radio_core.postgres_db, "connect", bounded_connect)
+            with pytest.raises(psycopg.errors.LockNotAvailable):
+                store.admit_delivery(**args)
+        monkeypatch.setattr(radio_core.postgres_db, "connect", isolated_connect)
+        assert store.admit_delivery(**args) is None
+        with isolated_connect(readonly=True) as conn:
+            assert conn.execute(
+                "SELECT count(*) FROM oap_radio_delivery_admissions"
+            ).fetchone()[0] == 1
+        with isolated_connect() as conn:
+            conn.execute(
+                """INSERT INTO oap_radio_rotation(
+                   station_id,owner_identity_id,track_id,position)
+                   VALUES (%s,%s,%s,1)""",
+                (station, owner, station_track),
+            )
+            conn.commit()
+
         store.stop_station(
             owner_identity_id=owner, station_id=station, reason="Founder STOP"
         )
