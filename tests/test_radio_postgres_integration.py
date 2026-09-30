@@ -100,6 +100,55 @@ def test_founder_station_and_show_gate_on_real_postgres(monkeypatch):
         )
         assert stopped["stopped"] is True
         assert stopped["broadcast_enabled"] is False
+
+        # Archive is a hard lifecycle barrier even when approval remains recorded.
+        with isolated_connect() as conn:
+            conn.execute(
+                "UPDATE oap_radio_stations SET state='ARCHIVED' WHERE station_id=%s",
+                (station_id,),
+            )
+            conn.commit()
+        with pytest.raises(PermissionError):
+            store.approve_station(founder_identity_id=owner, station_id=station_id)
+        with pytest.raises(PermissionError):
+            store.approve_show(
+                founder_identity_id=owner, station_id=station_id,
+                show_id=show["show_id"],
+            )
+        with pytest.raises(PermissionError):
+            store.schedule_show(
+                owner_identity_id=owner, station_id=station_id,
+                show_id=show["show_id"],
+                starts_at="2026-10-02T18:00:00+00:00",
+                ends_at="2026-10-02T19:00:00+00:00",
+            )
+        with pytest.raises(PermissionError):
+            store.set_always_on(
+                owner_identity_id=owner, station_id=station_id, enabled=True
+            )
+
+        with isolated_connect() as conn:
+            conn.execute(
+                "UPDATE oap_radio_stations SET state='ACTIVE' WHERE station_id=%s",
+                (station_id,),
+            )
+            conn.execute(
+                "UPDATE oap_radio_shows SET state='ARCHIVED' WHERE show_id=%s",
+                (show["show_id"],),
+            )
+            conn.commit()
+        with pytest.raises(PermissionError):
+            store.approve_show(
+                founder_identity_id=owner, station_id=station_id,
+                show_id=show["show_id"],
+            )
+        with pytest.raises(PermissionError):
+            store.schedule_show(
+                owner_identity_id=owner, station_id=station_id,
+                show_id=show["show_id"],
+                starts_at="2026-10-02T18:00:00+00:00",
+                ends_at="2026-10-02T19:00:00+00:00",
+            )
     finally:
         with psycopg.connect(URL, autocommit=True) as admin:
             admin.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
