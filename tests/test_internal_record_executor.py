@@ -318,6 +318,7 @@ def test_rollback_requires_exact_post_action_hash(monkeypatch):
     )
 
     assert observed["expected_current_hash"] == expected_after
+    assert observed["expected_result_hash"] == expected_before
     assert observed["expected_status"] == "active"
     assert observed["target_status"] == "draft"
     assert result["rollback_verified"] is True
@@ -338,3 +339,92 @@ def test_rollback_rejects_bad_before_hash():
                 "after_hash": "a" * 64,
             },
         )
+
+
+
+def test_rollback_wrong_restoration_hash_blocks_before_any_write(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    expected_after = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "active",
+    })
+    expected_before = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "draft",
+    })
+    # A well-formed forged before_hash used to fail only AFTER the executor
+    # had changed status, inserted audit evidence and committed its outcome.
+    forged_before = "f" * 64 if expected_before != "f" * 64 else "e" * 64
+    with pytest.raises(
+        executor.ExecutionBlocked, match="rollback_restoration_hash_mismatch",
+    ):
+        executor.rollback(
+            _authorization(identity),
+            identity_id=identity,
+            rollback_token={
+                "record_id": record,
+                "expected_status": "active",
+                "target_status": "draft",
+                "before_hash": forged_before,
+                "after_hash": expected_after,
+            },
+        )
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False
+
+
+def test_rollback_correct_hash_changes_only_status_after_readback(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    monkeypatch.setattr(
+        executor.governed_action_pipeline, "record_action_outcome",
+        lambda authorization, **kwargs: {
+            "pipeline_complete": True,
+            "stage": "HRM_RECEIPT",
+            "write_verified": True,
+            "read_back_verified": True,
+            "human_authority_final": True,
+        },
+    )
+    expected_after = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "active",
+    })
+    expected_before = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "draft",
+    })
+    result = executor.rollback(
+        _authorization(identity),
+        identity_id=identity,
+        rollback_token={
+            "record_id": record,
+            "expected_status": "active",
+            "target_status": "draft",
+            "before_hash": expected_before,
+            "after_hash": expected_after,
+        },
+    )
+    assert connection.status == "draft"
+    assert connection.committed is True
+    assert len(connection.audit) == 1
+    assert connection.title == "Founder note"
+    assert connection.body == "Keep this exact content."
+    assert result["rollback_verified"] is True
+    assert result["restored_hash"] == expected_before
