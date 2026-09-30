@@ -524,6 +524,39 @@ class RadioStore:
             "broadcast_started": False,
         }
 
+    def delivery_preflight(
+        self, *, station_id: object, track_id: object, asset_id: object
+    ) -> bool:
+        """Fresh station/track/asset STOP gate; never a stand-alone rights grant.
+
+        A caller must also enforce current OAP Music rights, Radio-channel
+        entitlement and media integrity. This check does not create a stream
+        or an airplay receipt.
+        """
+        station = _uuid(station_id, "station_id")
+        track = _uuid(track_id, "track_id")
+        asset = _uuid(asset_id, "asset_id")
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT 1 FROM oap_radio_stations s
+                   JOIN oap_radio_station_control c
+                     ON c.station_id=s.station_id
+                    AND c.owner_identity_id=s.owner_identity_id
+                   JOIN oap_radio_rotation r
+                     ON r.station_id=s.station_id
+                    AND r.owner_identity_id=s.owner_identity_id
+                   JOIN oap_music_assets a
+                     ON a.track_id=r.track_id
+                    AND a.owner_identity_id=s.owner_identity_id
+                   WHERE s.station_id=%s AND r.track_id=%s AND a.asset_id=%s
+                     AND s.state='ACTIVE' AND s.founder_approved=TRUE
+                     AND c.stopped=FALSE AND c.always_on=TRUE
+                     AND a.stopped=FALSE
+                   LIMIT 1""",
+                (station, track, asset),
+            ).fetchone()
+        return row is not None
+
     def dashboard(self, *, owner_identity_id: object) -> dict[str, object]:
         owner = _uuid(owner_identity_id, "owner_identity_id")
         with postgres_db.connect(readonly=True) as connection:
