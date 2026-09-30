@@ -218,3 +218,20 @@ def test_live_ptt_call_is_silent_by_default_and_lease_gated():
     assert 'data-oap-live-ptt-stop' in template
     assert template.count('data-call-mode="ptt"') == 2
     assert "server_controls_media" in script
+
+
+def test_live_ptt_controller_behaviour_with_mock_webrtc_and_floor():
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if node is None:
+        return
+    root = Path(__file__).resolve().parents[1]
+    subprocess.run(
+        [node, str(root / "tests" / "link_live_ptt_behavior.cjs")],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
