@@ -86,19 +86,16 @@ def create_room(*, game_key: object, host_name: object, capacity: object = 2) ->
         with postgres_db.connect() as connection:
             for _ in range(8):
                 code = _room_code()
-                try:
-                    inserted = connection.execute(
-                        """INSERT INTO oap_arena_rooms
-                           (room_id,room_code,game_key,status,capacity,revision,game_state)
-                           VALUES (%s,%s,%s,'WAITING',%s,0,'{}'::jsonb)
-                           ON CONFLICT (room_code) DO NOTHING
-                           RETURNING room_code""",
-                        (room_id, code, game, seats),
-                    ).fetchone()
-                    if inserted is not None:
-                        break
-                except Exception:
-                    raise
+                inserted = connection.execute(
+                    """INSERT INTO oap_arena_rooms
+                       (room_id,room_code,game_key,status,capacity,revision,game_state)
+                       VALUES (%s,%s,%s,'WAITING',%s,0,'{}'::jsonb)
+                       ON CONFLICT (room_code) DO NOTHING
+                       RETURNING room_code""",
+                    (room_id, code, game, seats),
+                ).fetchone()
+                if inserted is not None:
+                    break
             else:
                 raise ArenaRoomUnavailable("arena_room_code_exhausted")
 
