@@ -854,6 +854,26 @@ def arena_room_state_update():
     return _arena_json(result)
 
 
+@app.post("/arena/rooms/connect4/action")
+def arena_room_connect4_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.connect4_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            column=payload.get("column"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
 @app.post("/arena/session/start")
 def arena_session_start():
     denied = _arena_write_allowed()
