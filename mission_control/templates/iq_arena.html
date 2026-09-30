@@ -22,12 +22,12 @@
     <p><strong>Think. Solve. Adapt.</strong></p>
     <p>Seven-domain first-party skills challenge: Logic, Patterns, Memory, Spatial, Numbers, Language and Strategy.</p>
     <p><strong>Truth boundary:</strong> this is not a clinical or standardized IQ test. It reports only an in-game skill profile.</p>
-    <button type="button" data-start>Start IQ Arena</button>
-    <button type="button" data-stop>STOP</button>
-    <p data-error role="alert"></p>
+    <div class="arena-actions"><button class="arena-primary" type="button" data-start>Start IQ Arena</button>
+    <button class="arena-stop" type="button" data-stop disabled>STOP</button></div>
+    <p class="arena-error" data-error role="alert"></p>
   </section>
   <section class="card" data-play hidden>
-    <p>Status: <strong data-status></strong> · Score <strong data-score></strong>/<strong data-total></strong></p>
+    <div class="arena-metrics" role="status" aria-live="polite"><span>Status: <strong data-status></strong></span><span>Score <strong data-score></strong>/<strong data-total></strong></span></div>
     <div data-question></div>
     <h2>Skill Profile</h2>
     <div class="iq-grid" data-profile></div>
