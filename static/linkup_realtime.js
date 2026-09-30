@@ -171,6 +171,163 @@
     }
   };
 
+  // The server grants an expiring speaking lease; the local WebRTC track is
+  // disabled by default and immediately muted on release, failed renewal or STOP.
+  // The signalling server does not intercept malicious peer-to-peer media.
+  const pttFloor = (sessionId, action) =>
+    api(`/linkup/calls/${encodeURIComponent(sessionId)}/ptt/floor`, {
+      method: "POST",
+      body: JSON.stringify({ action }),
+    });
+
+  const pttMute = () => {
+    if (state.mode === "ptt") {
+      state.localStream?.getAudioTracks().forEach((track) => { track.enabled = false; });
+    }
+    pttHoldButton?.setAttribute("aria-pressed", "false");
+  };
+
+  const silencePtt = () => {
+    const hold = state.pttHold;
+    state.pttHold = null;
+    pttMute();
+    if (!hold) return;
+    hold.released = true;
+    for (const timer of [hold.deadline, hold.renewTimer, hold.pollTimer]) {
+      if (timer) window.clearTimeout(timer);
+    }
+    // A pending acquisition is released when its response arrives.
+    if (hold.granted) {
+      pttFloor(hold.sessionId, "release").catch(() => {});
+    }
+  };
+
+  const pttDeadline = (hold) => {
+    if (hold.deadline) window.clearTimeout(hold.deadline);
+    // Shorter than the eight-second server lease: never rely on an expired grant.
+    hold.deadline = window.setTimeout(() => {
+      if (state.pttHold === hold) {
+        silencePtt();
+        setStatus("PTT lease expired. Microphone muted.");
+      }
+    }, 6000);
+  };
+
+  const pollPttFloor = async (hold) => {
+    if (state.pttHold !== hold || hold.released) return;
+    try {
+      const value = await api(`/linkup/calls/${encodeURIComponent(hold.sessionId)}/ptt/floor`);
+      if (state.pttHold !== hold || hold.released) return;
+      if (value.holder_id !== hold.holderId) {
+        silencePtt();
+        setStatus("PTT floor revoked. Microphone muted.");
+        return;
+      }
+    } catch (_error) {
+      if (state.pttHold === hold) {
+        silencePtt();
+        setStatus("PTT floor unavailable. Microphone muted.");
+      }
+      return;
+    }
+    hold.pollTimer = window.setTimeout(() => pollPttFloor(hold), 1000);
+  };
+
+  const renewPttFloor = async (hold) => {
+    if (state.pttHold !== hold || hold.released) return;
+    try {
+      const value = await pttFloor(hold.sessionId, "acquire");
+      if (state.pttHold !== hold || hold.released) {
+        if (value.granted) pttFloor(hold.sessionId, "release").catch(() => {});
+        return;
+      }
+      if (!value.granted || value.holder_id !== hold.holderId) throw new Error("ptt_floor_revoked");
+      pttDeadline(hold);
+      hold.renewTimer = window.setTimeout(() => renewPttFloor(hold), 2500);
+    } catch (_error) {
+      if (state.pttHold === hold) {
+        silencePtt();
+        setStatus("PTT renewal failed. Microphone muted.");
+      }
+    }
+  };
+
+  const beginLivePtt = async (source, pointerId = null) => {
+    if (state.mode !== "ptt" || !state.current || !state.answered ||
+        state.pc?.connectionState !== "connected" || state.pttHold || !pttHoldButton ||
+        pttHoldButton.disabled) return;
+    const hold = { sessionId: state.current, released: false, granted: false, pointerId };
+    state.pttHold = hold;
+    pttMute();
+    setStatus("Requesting private PTT floor…");
+    try {
+      const value = await pttFloor(hold.sessionId, "acquire");
+      if (state.pttHold !== hold || hold.released || state.current !== hold.sessionId) {
+        if (value.granted) pttFloor(hold.sessionId, "release").catch(() => {});
+        return;
+      }
+      if (!value.granted || !value.holder_id || value.lease_seconds !== 8) throw new Error("ptt_floor_denied");
+      hold.granted = true;
+      hold.holderId = value.holder_id;
+      hold.source = source;
+      pttDeadline(hold);
+      state.localStream?.getAudioTracks().forEach((track) => { track.enabled = true; });
+      pttHoldButton.setAttribute("aria-pressed", "true");
+      setStatus("PTT speaking. Release to mute.");
+      hold.renewTimer = window.setTimeout(() => renewPttFloor(hold), 2500);
+      hold.pollTimer = window.setTimeout(() => pollPttFloor(hold), 1000);
+    } catch (_error) {
+      if (state.pttHold === hold) {
+        silencePtt();
+        setStatus("PTT floor denied. Microphone muted.");
+      }
+    }
+  };
+
+  const endLivePtt = (source, pointerId = null) => {
+    const hold = state.pttHold;
+    if (!hold || hold.source !== source) return;
+    if (source === "pointer" && hold.pointerId !== pointerId) return;
+    silencePtt();
+    setStatus("PTT microphone muted.");
+  };
+
+  pttHoldButton?.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || pttHoldButton.disabled) return;
+    event.preventDefault();
+    beginLivePtt("pointer", event.pointerId);
+  });
+  window.addEventListener("pointerup", (event) => endLivePtt("pointer", event.pointerId));
+  window.addEventListener("pointercancel", () => silencePtt());
+  pttHoldButton?.addEventListener("keydown", (event) => {
+    if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+      event.preventDefault();
+      beginLivePtt("keyboard");
+    }
+  });
+  pttHoldButton?.addEventListener("keyup", (event) => {
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      endLivePtt("keyboard");
+    }
+  });
+  pttHoldButton?.addEventListener("blur", silencePtt);
+  window.addEventListener("blur", silencePtt);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) silencePtt();
+  });
+  pttStopButton?.addEventListener("click", async () => {
+    if (state.mode !== "ptt" || !state.current) return;
+    const sessionId = state.current;
+    silencePtt();
+    try {
+      await pttFloor(sessionId, "stop");
+      setStatus("Private PTT floor stopped.");
+    } catch (_error) {
+      setStatus("PTT STOP could not be confirmed. Local microphone muted.");
+    }
+  });
+
   const resetCurrent = () => {
     silencePtt();
     clearSignalTimer();
