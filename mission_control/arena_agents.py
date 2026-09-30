@@ -31,9 +31,9 @@ AGENTS: dict[str, dict[str, Any]] = {
         "fits": {"iq": 5, "route-empire": 5, "connect4": 7, "ludo": 6, "chess": 6, "dot": 7},
     },
     "elephant": {
-        "name": "Hathi",
+        "name": "Colonel Hathi",
         "animal": "Elephant",
-        "family": ["Hathi", "Hathi Jr"],
+        "family": ["Colonel Hathi", "Hathi Jr"],
         "role": "Control, memory and pattern continuity",
         "overall_stars": 6,
         "fits": {"iq": 7, "route-empire": 6, "connect4": 5, "ludo": 5, "chess": 6, "dot": 5},
