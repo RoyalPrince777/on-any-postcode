@@ -77,7 +77,7 @@ def _active_pair(connection, identity: str, session: str, *, lock: bool = True) 
     # Lock the owning call first: a finished or expired session cannot obtain a floor.
     row = connection.execute(
         """SELECT initiator_id,recipient_id FROM link_call_sessions
-           WHERE session_id=%s AND state='active'
+           WHERE session_id=%s AND mode='ptt' AND state='active'
              AND expires_at>CURRENT_TIMESTAMP
              AND (initiator_id=%s OR recipient_id=%s)
            """ + (" FOR UPDATE" if lock else ""),
