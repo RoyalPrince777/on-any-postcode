@@ -76,6 +76,29 @@ def _verified(record: dict[str, Any], evidence_ref: str, *,
     except Exception as exc:
         raise PermissionError("property_verification_unavailable") from exc
 
+
+def _require_live_reviewer(record: dict[str, Any],
+                           reviewer_check: ReviewerCheck | None) -> None:
+    """Recheck the recorded approver against canonical Human Authority at use time."""
+    receipt = record.get("approval_receipt")
+    if not isinstance(receipt, dict):
+        raise PermissionError("property_approval_required")
+    try:
+        reviewer = _uuid(receipt.get("approved_by"), "approved_by")
+        publisher = _uuid(record.get("publisher_id"), "publisher_id")
+    except ValueError as exc:
+        raise PermissionError("property_human_reviewer_required") from exc
+    if reviewer == publisher:
+        raise PermissionError("property_independent_reviewer_required")
+    checker = reviewer_check or property_identity_gates.independent_human_reviewer
+    try:
+        current = checker(reviewer, publisher) is True
+    except Exception:  # noqa: BLE001 - denial on canonical provider failure.
+        current = False
+    if not current:
+        raise PermissionError("property_human_reviewer_required")
+
+
 def property_draft(payload: dict[str, Any], *, publisher_id: object) -> dict[str, Any]:
     """Validate a property draft WITHOUT publishing it or claiming ownership."""
     category = _required(payload.get("category"), "category", 32).lower()
@@ -144,14 +167,14 @@ def approve(record: dict[str, Any], *, evidence_ref: object, approved_by: object
 
 def publish(record: dict[str, Any], *, actor_id: object, channel: object,
             authority_check: AuthorityCheck | None = None,
-            certified_check: CertifiedCheck | None = None) -> dict[str, Any]:
+            certified_check: CertifiedCheck | None = None,
+            reviewer_check: ReviewerCheck | None = None) -> dict[str, Any]:
     if (record.get("state") != "APPROVED" or not record.get("authority_evidence_ref")
             or not record.get("approval_receipt")):
         raise PermissionError("property_approval_required")
     if _uuid(actor_id, "actor_id") != record.get("publisher_id"):
         raise PermissionError("property_publisher_required")
-    if record["approval_receipt"].get("approved_by") == record.get("publisher_id"):
-        raise PermissionError("property_independent_reviewer_required")
+    _require_live_reviewer(record, reviewer_check)
     _verified(record, record["authority_evidence_ref"], authority_check=authority_check,
               certified_check=certified_check)
     return {
@@ -199,7 +222,8 @@ def withdraw(record: dict[str, Any], *, actor_id: object, reason: object) -> dic
 
 def public_record(record: dict[str, Any], *,
                   authority_check: AuthorityCheck | None = None,
-                  certified_check: CertifiedCheck | None = None) -> dict[str, Any] | None:
+                  certified_check: CertifiedCheck | None = None,
+                  reviewer_check: ReviewerCheck | None = None) -> dict[str, Any] | None:
     """Public projection; recheck live authority and Certified status on every read.
 
     Trusted providers must verify scope, revocation and expiry at call time.
@@ -208,9 +232,8 @@ def public_record(record: dict[str, Any], *,
     if (record.get("state") != "ACTIVE" or not record.get("published_receipt")
             or not record.get("approval_receipt") or not record.get("authority_evidence_ref")):
         return None
-    if record["approval_receipt"].get("approved_by") == record.get("publisher_id"):
-        return None
     try:
+        _require_live_reviewer(record, reviewer_check)
         _verified(record, record["authority_evidence_ref"], authority_check=authority_check,
                   certified_check=certified_check)
     except PermissionError:
