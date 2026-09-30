@@ -38,6 +38,7 @@ def _review_status(identity_id: str, request_id: str) -> dict[str, Any]:
                 """SELECT
                        m.request_id,
                        m.output_state,
+                       m.content_hash,
                        g.outcome,
                        j.sections_completed,
                        j.constitution_consistent,
@@ -60,10 +61,10 @@ def _review_status(identity_id: str, request_id: str) -> dict[str, Any]:
     if row is None:
         raise ActionHandoffBlocked("reviewed_request_not_found")
 
-    guardian_outcome = str(row[2] or "")
-    sections_completed = int(row[3] or 0)
-    constitution_consistent = bool(row[4])
-    human_decision = str(row[5]) if row[5] else None
+    guardian_outcome = str(row[3] or "")
+    sections_completed = int(row[4] or 0)
+    constitution_consistent = row[5] is True
+    human_decision = str(row[6]) if row[6] else None
     guardian_passed = guardian_outcome == "PASSED"
     judgement_consistent = bool(
         sections_completed == 5 and constitution_consistent
@@ -72,6 +73,7 @@ def _review_status(identity_id: str, request_id: str) -> dict[str, Any]:
     return {
         "request_id": str(row[0]),
         "output_state": str(row[1]),
+        "content_hash": str(row[2] or ""),
         "guardian_outcome": guardian_outcome,
         "guardian_passed": guardian_passed,
         "judgement_sections_completed": sections_completed,
@@ -108,6 +110,15 @@ def handoff_status(
         raise ActionHandoffBlocked("mission_receipt_unverified")
 
     review = _review_status(identity, request_id)
+    # A valid approval for another request is not authority for this Mission.
+    # Bind the reviewed input to the independently verified Mission text hash.
+    mission_hash = mission_receipt.get("mission_hash")
+    review_hash = review.get("content_hash")
+    if (not isinstance(mission_hash, str)
+            or len(mission_hash) != 64
+            or not isinstance(review_hash, str)
+            or review_hash != mission_hash):
+        raise ActionHandoffBlocked("mission_review_content_mismatch")
     base = {
         "component": "ALL IN A.I. Governed Action Handoff",
         "mission_id": mission,
