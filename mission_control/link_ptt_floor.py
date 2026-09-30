@@ -35,18 +35,28 @@ def _uuid(value: object, code: str) -> str:
 
 def status() -> dict[str, bool]:
     if not link_call_audit.status().get("ready"):
-        return {"ready": False, "schema_ready": False, "server_controls_media": False}
+        return {"ready": False, "schema_ready": False, "mode_ready": False, "server_controls_media": False}
+    table_ready = False
+    mode_ready = False
     try:
         with postgres_db.connect(readonly=True) as connection:
-            row = connection.execute(
+            table_ready = connection.execute(
                 """SELECT 1 FROM information_schema.tables
                    WHERE table_schema='public' AND table_name='link_ptt_floor'"""
+            ).fetchone() is not None
+            mode = connection.execute(
+                """SELECT pg_get_constraintdef(oid) FROM pg_constraint
+                   WHERE conrelid='link_call_sessions'::regclass
+                     AND conname='link_call_sessions_mode_check'"""
             ).fetchone()
+            mode_ready = bool(mode and "'ptt'" in str(mode[0]))
     except Exception:  # noqa: BLE001 - readiness must fail closed.
-        row = None
+        table_ready = False
+        mode_ready = False
     return {
-        "ready": row is not None,
-        "schema_ready": row is not None,
+        "ready": table_ready and mode_ready,
+        "schema_ready": table_ready,
+        "mode_ready": mode_ready,
         "server_controls_media": False,
     }
 
