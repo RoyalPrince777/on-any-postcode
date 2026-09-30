@@ -91,6 +91,7 @@ def test_room_state_client_write_fails_closed():
 def test_status_keeps_boundaries_explicit():
     assert arena_rooms.status() == {
         "durable_rooms": True,
+        "playable_room_games_only": True,
         "invite_codes": True,
         "reconnect_tokens": True,
         "revision_conflict_guard": True,
@@ -255,3 +256,31 @@ def test_dot_room_rejects_wrong_seat(monkeypatch):
             action="draw", a="0,0", b="1,0",
         )
     assert connection.commits == 0
+
+
+def test_unimplemented_room_games_and_non_two_player_capacity_fail_before_io(monkeypatch):
+    connection = _Connection([])
+    _patch_connection(monkeypatch, connection)
+    for game in ("ludo", "chess", "iq", "route-empire"):
+        with pytest.raises(ValueError, match="arena_room_game_invalid"):
+            arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=2)
+    for game in ("connect4", "dot"):
+        with pytest.raises(ValueError, match="arena_room_requires_two_seats"):
+            arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=4)
+    assert connection.calls == []
+
+
+@pytest.mark.parametrize("a,b", [
+    ("a,b", "1,0"), ("00,0", "1,0"), ("0,0", "1,0 "), ("3,0", "2,0"),
+    ("0,0;DROP TABLE x", "1,0"), ("0,0", "0,0"),
+])
+def test_dot_room_malformed_edges_fail_before_database(monkeypatch, a, b):
+    connection = _Connection([])
+    _patch_connection(monkeypatch, connection)
+    with pytest.raises(ValueError, match="dot_edge_invalid"):
+        arena_rooms.dot_action(
+            room_id=str(uuid.uuid4()), reconnect_token="x" * 40,
+            expected_revision=0, request_id="dot-invalid-canon-0001",
+            action="draw", a=a, b=b,
+        )
+    assert connection.calls == []
