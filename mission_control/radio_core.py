@@ -269,9 +269,10 @@ class RadioStore:
                 """UPDATE oap_radio_stations
                    SET founder_approved=TRUE,
                        founder_approved_at=CURRENT_TIMESTAMP,
-                       state=CASE WHEN state='DRAFT' THEN 'ACTIVE' ELSE state END,
+                       state=CASE WHEN state IN ('DRAFT','REVIEW_REQUIRED') THEN 'ACTIVE' ELSE state END,
                        updated_at=CURRENT_TIMESTAMP
                    WHERE station_id=%s AND owner_identity_id=%s
+                     AND state IN ('DRAFT','REVIEW_REQUIRED','ACTIVE')
                    RETURNING station_id,state,founder_approved,founder_approved_at""",
                 (station, founder),
             ).fetchone()
@@ -302,7 +303,8 @@ class RadioStore:
                    WHERE sh.show_id=%s AND sh.station_id=%s
                      AND s.station_id=sh.station_id
                      AND s.owner_identity_id=%s
-                     AND s.founder_approved=TRUE
+                     AND s.founder_approved=TRUE AND s.state='ACTIVE'
+                     AND sh.state<>'ARCHIVED'
                    RETURNING sh.show_id,sh.state,sh.founder_approved,sh.founder_approved_at""",
                 (show, station, founder),
             ).fetchone()
@@ -336,9 +338,9 @@ class RadioStore:
                    FROM oap_radio_stations s
                    JOIN oap_radio_shows sh ON sh.station_id=s.station_id
                    WHERE s.station_id=%s AND s.owner_identity_id=%s
-                     AND s.founder_approved=TRUE
+                     AND s.founder_approved=TRUE AND s.state='ACTIVE'
                      AND sh.show_id=%s AND sh.owner_identity_id=%s
-                     AND sh.founder_approved=TRUE
+                     AND sh.founder_approved=TRUE AND sh.state<>'ARCHIVED'
                    RETURNING schedule_id,starts_at,ends_at""",
                 (owner, starts_at, ends_at, station, owner, show, owner),
             ).fetchone()
