@@ -17,6 +17,9 @@
     maxDurationMs: 120000,
     current: null,
     autoStopTimer: null,
+    activePointerId: null,
+    releaseRequested: false,
+    cancelRequested: false,
   };
 
   const setStatus = (message) => {
@@ -269,10 +272,14 @@
         }
       });
 
-      state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: false };
+      state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: state.cancelRequested };
       recorder.start(1000);
       state.autoStopTimer = window.setTimeout(finishRecording, state.maxDurationMs);
-      setStatus("Voice recording… tap Stop when finished.");
+      if (state.releaseRequested || state.cancelRequested) {
+        finishRecording();
+      } else {
+        setStatus("PTT transmitting on release as a private Voice clip…");
+      }
       refreshControls();
     } catch (error) {
       stopTracks(stream);
@@ -287,7 +294,32 @@
   };
 
   recordControls.forEach((control) => {
-    control.addEventListener("click", () => startRecording(control));
+    // A pointer press records only while held; keyboard activation retains the Stop control.
+    control.addEventListener("pointerdown", (event) => {
+      if (!event.isPrimary || event.button !== 0 || control.disabled || state.activePointerId !== null) return;
+      state.activePointerId = event.pointerId;
+      state.releaseRequested = false;
+      state.cancelRequested = false;
+      startRecording(control);
+    });
+    // Release is global so dragging outside the button never leaves the microphone running.
+    const release = (event, cancelled = false) => {
+      if (state.activePointerId !== event.pointerId) return;
+      state.activePointerId = null;
+      state.releaseRequested = true;
+      state.cancelRequested = cancelled;
+      if (state.current && cancelled) state.current.cancelled = true;
+      finishRecording();
+    };
+    window.addEventListener("pointerup", (event) => release(event));
+    window.addEventListener("pointercancel", (event) => release(event, true));
+    // Pointer-generated clicks must not start a second recording after release.
+    control.addEventListener("click", (event) => {
+      if (event.detail !== 0) return;
+      state.releaseRequested = false;
+      state.cancelRequested = false;
+      startRecording(control);
+    });
   });
 
   stopControls.forEach((control) => {
