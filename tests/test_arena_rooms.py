@@ -195,3 +195,63 @@ def test_room_join_distinct_name_opens_two_player_game(monkeypatch):
     assert result["game_key"] == "connect4"
     assert connection.commits == 1
     assert any("SET status='ACTIVE'" in sql for sql, _ in connection.calls)
+
+
+def test_dot_room_uses_server_engine_and_preserves_current_seat(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=("dot", "ACTIVE", 2, 0, {})),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    result = arena_rooms.dot_action(
+        room_id=room_id, reconnect_token="x" * 40,
+        expected_revision=0, request_id="dot-shared-draw-0001",
+        action="draw", a="0,0", b="1,0",
+    )
+    assert result["revision"] == 1
+    assert result["game_state"]["edges"] == [["0,0", "1,0"]]
+    assert result["game_state"]["turn_player_id"] == "p2"
+    assert result["game_state"]["players"][0]["name"] == "Alpha"
+    assert connection.commits == 1
+    updated = next(params for sql, params in connection.calls if "UPDATE oap_arena_rooms" in sql)
+    written = json.loads(updated[0])
+    assert written["checkpoint"]
+    assert written["edges"] == [["0,0", "1,0"]]
+
+
+def test_dot_room_rejects_invalid_edge_before_database(monkeypatch):
+    connection = _Connection([])
+    _patch_connection(monkeypatch, connection)
+    with pytest.raises(ValueError, match="dot_edge_invalid"):
+        arena_rooms.dot_action(
+            room_id=str(uuid.uuid4()), reconnect_token="x" * 40,
+            expected_revision=0, request_id="dot-invalid-edge-0001",
+            action="draw", a="0,0", b="2,2",
+        )
+    assert not connection.calls
+
+
+def test_dot_room_rejects_wrong_seat(monkeypatch):
+    from mission_control import dot
+
+    room_id = str(uuid.uuid4())
+    initial = dot.new_game("Alpha", "Bravo")
+    connection = _Connection([
+        _Result(one=("dot", "ACTIVE", 2, 0, initial)),
+        _Result(one=(2,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+    ])
+    _patch_connection(monkeypatch, connection)
+    with pytest.raises(ValueError, match="arena_room_not_your_turn"):
+        arena_rooms.dot_action(
+            room_id=room_id, reconnect_token="y" * 40,
+            expected_revision=0, request_id="dot-wrong-seat-0001",
+            action="draw", a="0,0", b="1,0",
+        )
+    assert connection.commits == 0
