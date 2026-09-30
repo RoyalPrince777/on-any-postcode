@@ -151,3 +151,21 @@ def test_home_restores_system_context_without_dashboard_wall():
     assert "Home intelligence rail: restore system context without restoring dashboard noise." in css
     assert "body.smi-noise-strip.smi-command-open .smi-home-intelligence" in css
     assert "body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence" in css
+
+
+def test_unified_system_intelligence_reuses_canonical_evidence():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert 'className="smi-unified-intelligence"' in command
+    for key in ("mission", "matrix", "guardian", "hrm", "signals", "gate"):
+        assert f'["{key}"' in command or f'"{key}"' in command
+    for url in ("cfg.healthUrl", "cfg.functionHealthUrl", "cfg.signalsUrl",
+                "cfg.greenGateUrl", "cfg.routesUrl", "cfg.hrmUrl"):
+        assert url in command
+    assert "No verified active mission feed · do not infer one" in command
+    assert "Route evidence reachable · Matrix world-state not certified" in command
+    assert "HRM source reached · durable receipt not certified" in command
+    assert 'setUnified("gate",gate?.green===true' in command
+    assert 'setUnified("signals",signalProven' in command
+    assert "smi-unified-grid" in css
+    assert "grid-template-columns:1fr!important" in css
