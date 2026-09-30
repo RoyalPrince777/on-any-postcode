@@ -7,6 +7,7 @@
 {% if founder_control %}
 <section class="card"><strong>👑 Founder Station Control</strong><div class="status">Only the Founder can approve, program or STOP OAP Radio stations. Approved is not broadcast.</div><form id="always-form" class="form"><select id="station-select" required><option value="">Choose station</option></select><button type="button" id="station-approve-button">✓ Approve Station</button><button type="submit">▶ Save Always On Setting</button><button type="button" id="stop-button">🛑 Founder STOP</button><div id="control-result" class="status" role="status"></div></form></section>
 <section class="card"><strong>Founder Show Approval</strong><form id="show-form" class="form"><input name="title" maxlength="180" placeholder="New show title" required><button type="submit">Create Draft Show</button></form><div class="form"><select id="show-select" aria-label="Select show"><option value="">Choose show</option></select><button type="button" id="show-approve-button">✓ Approve Show</button><div id="show-result" class="status" role="status">Select an approved station before approving its show.</div></div></section>
+<section class="card"><strong>Delivery evidence</strong><div class="status">Server response prepared ≠ listener delivery or confirmed airplay.</div><button type="button" id="radio-receipts-button" class="pill">View station receipts</button><div id="radio-receipts-result" class="status" role="status">Choose a station to inspect its recent receipt evidence.</div></section>
 <section class="card"><strong>Create Founder station</strong><form id="station-form" class="form"><input name="name" maxlength="180" placeholder="Station name" required><input name="slug" pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]" placeholder="station-slug" required><button>Create Draft Station</button><div id="station-result" class="status" role="status"></div></form></section>
 {% endif %}
 </main><nav class="bottom" aria-label="OAP Music"><a href="/music">🎵 Music</a><a class="active" href="/radio">📻 Radio</a><a href="/music/artist-progress">📈 Progress</a><a href="/music/studio">⬆ Studio</a></nav>
@@ -59,6 +60,24 @@
  }
  if(founderControl){
   stationSelect.addEventListener('change',refreshShows);
+  document.getElementById('radio-receipts-button').addEventListener('click',async()=>{
+   const id=stationSelect.value,result=document.getElementById('radio-receipts-result');
+   result.replaceChildren();
+   if(!id){result.textContent='Choose a station first.';return}
+   try{
+    const data=await api('/mission/organs/radio/stations/'+encodeURIComponent(id)+'/delivery-receipts');
+    const receipts=data.receipts||[];
+    if(!receipts.length){result.textContent='No prepared-response receipts for this station.';return}
+    const heading=document.createElement('div');
+    heading.textContent=receipts.length+' recent response-prepared receipts · not confirmed airplay';
+    result.append(heading);
+    receipts.forEach(item=>{
+     const entry=document.createElement('div');
+     entry.textContent=(item.created_at||'Time unavailable')+' · HTTP '+item.response_status+' · '+item.prepared_bytes+' bytes prepared · '+item.receipt_id;
+     result.append(entry);
+    });
+   }catch(x){result.textContent='Receipt history unavailable; no airplay claim made.'}
+  });
   document.getElementById('station-approve-button').addEventListener('click',async()=>{
    const id=stationSelect.value,result=document.getElementById('control-result');
    if(!id){result.textContent='Select a draft station first.';return}
