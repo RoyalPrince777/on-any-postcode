@@ -21,7 +21,7 @@ function render(){
  q("[data-state]").textContent="Completed boxes: "+Object.keys(state.boxes||{}).length+"/4"+
   (state.status==="completed"?" · Game finished":state.status==="stopped"?" · Match stopped":"");
 }
-async function act(url,payload){if(busy||(url==="/arena/dot/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(url,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
+async function act(url,payload){if(busy||(url==="/arena/dot/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(url,payload);render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
 q("[data-start]").onclick=()=>act("/arena/dot/start",{});
 q("[data-draw]").onclick=()=>act("/arena/dot/draw",{a:q("[data-a]").value.trim(),b:q("[data-b]").value.trim(),request_id:requestId()});
 q("[data-edges]").onclick=e=>{const btn=e.target.closest("[data-a]");if(!btn||btn.disabled)return;
