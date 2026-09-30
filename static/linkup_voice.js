@@ -166,10 +166,14 @@
   });
   window.addEventListener("pointerup", () => endPtt());
   window.addEventListener("pointercancel", () => endPtt(true));
+  window.addEventListener("blur", () => endPtt(true));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) endPtt(true);
+  });
 
   recordControls.forEach((control) => {
       const peerId = recipientFor(control);
-      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current);
+      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current) || Boolean(state.pttPress);
       const marker = control.querySelector("small");
       if (marker) {
         marker.textContent = control.disabled ? "locked" : "ready";
@@ -272,7 +276,7 @@
   };
 
   const startRecording = async (control, pttPress = null) => {
-    if (!state.ready || state.current || !browserReady()) {
+    if (!state.ready || state.current || !browserReady() || (!pttPress && state.pttPress)) {
       return;
     }
     const peerId = recipientFor(control);
