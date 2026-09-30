@@ -1,4 +1,5 @@
 """Radio discovery is station-scoped and never bypasses Music rights."""
+from contextlib import contextmanager
 from uuid import uuid4
 
 from flask import Flask, render_template
@@ -78,8 +79,6 @@ def test_radio_candidate_store_restricts_sql_to_public_eligible_rows(monkeypatch
 
         def fetchall(self):
             return [(STATION, "Founder Station", TRACK, ASSET)]
-
-    from contextlib import contextmanager
 
     @contextmanager
     def connection(*, readonly=False):
