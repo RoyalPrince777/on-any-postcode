@@ -854,6 +854,16 @@ def arena_room_state_update():
     return _arena_json(result)
 
 
+@app.get("/arena/connect4/room")
+def arena_connect4_room_page():
+    response = make_response(
+        render_template("arena_connect4_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.post("/arena/rooms/connect4/action")
 def arena_room_connect4_action():
     denied = _arena_write_allowed()
