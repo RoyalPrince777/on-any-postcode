@@ -343,3 +343,16 @@ def test_captain_rollback_requires_fresh_human_request_and_never_autoretries():
     assert "Do not blindly retry." in template
     assert "sessionStorage.setItem(sessionPrefix+'rollback" not in template
     assert "localStorage.setItem(" not in template
+
+
+
+def test_captain_requires_server_bound_rollback_origin_receipt():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1] / "mission_control"
+        / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert "token?.origin_request_id===gate.requestId" in template
+    assert "freshRequest===evidence.executeRequestId" in template
+    assert "rollbackEvidence={missionId:gate.missionId" in template
