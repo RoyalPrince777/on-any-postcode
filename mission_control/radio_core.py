@@ -627,8 +627,9 @@ class RadioStore:
 
         This is NOT confirmation of socket delivery, listening, or broadcast.
         STOP and this gate both write-lock the same station-control row. The
-        selected independently approved rights grant is share-locked through
-        receipt commit, serializing grant revocation against admission.
+        selected asset, entitlement and independently approved rights grant
+        are share-locked through receipt commit, serializing their STOP and
+        revocations against admission.
         """
         station = _uuid(station_id, "station_id")
         track = _uuid(track_id, "track_id")
@@ -692,7 +693,7 @@ class RadioStore:
                           OR '*'=ANY(g.permitted_channels))
                      AND (g.valid_from IS NULL OR g.valid_from<=CURRENT_TIMESTAMP)
                      AND (g.valid_until IS NULL OR g.valid_until>CURRENT_TIMESTAMP)
-                   LIMIT 1 FOR UPDATE OF c FOR SHARE OF g""",
+                   LIMIT 1 FOR UPDATE OF c FOR SHARE OF a,e,g""",
                 (station, owner, track, asset, entitlement),
             ).fetchone()
             if gate is None:
