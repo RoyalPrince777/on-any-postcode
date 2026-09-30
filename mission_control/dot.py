@@ -30,9 +30,12 @@ def _req(x):
     if not REQ.fullmatch(r):raise ValueError("dot_request_id_invalid")
     return r
 def _edge(a,b):return tuple(sorted((a,b)))
+NODE_PATTERN = re.compile(r"^[0-2],[0-2]$")
 def _adj(a,b):
+    if not isinstance(a, str) or not isinstance(b, str):return False
+    if not NODE_PATTERN.fullmatch(a) or not NODE_PATTERN.fullmatch(b):return False
     ax,ay=map(int,a.split(","));bx,by=map(int,b.split(","))
-    return abs(ax-bx)+abs(ay-by)==1 and all(0<=v<SIZE for v in (ax,ay,bx,by))
+    return abs(ax-bx)+abs(ay-by)==1
 def _completed_boxes(edges):
     es={tuple(x) for x in edges};out=[]
     for x in range(SIZE-1):
