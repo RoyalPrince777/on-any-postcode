@@ -21,8 +21,9 @@ def test_cross_platform_supervisor_runs_both_bounded_workers():
 def test_linux_macos_and_windows_launch_same_supervisor():
     assert "oap_home_node_supervisor.py" in POSIX
     assert "oap_home_node_supervisor.py" in WINDOWS
-    assert ".venv/bin/python" in POSIX
-    assert ".venv\\Scripts\\python.exe" in WINDOWS
+    assert 'VENV_DIR="${OAP_HOME_VENV:-$REPO_DIR/.venv}"' in POSIX
+    assert 'exec "$VENV_DIR/bin/python"' in POSIX
+    assert '.venv\\Scripts\\python.exe' in WINDOWS
 
 
 def test_canonical_status_requires_both_workers_and_runtime_readiness():
