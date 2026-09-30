@@ -140,6 +140,12 @@ def music_artist_progress():
     )
 
 
+@bp.get("/music/control")
+@web_security.login_required(api=False, founder_only=True)
+def founder_music_control():
+    return _no_store(make_response(render_template("oap_music_founder_control.html")))
+
+
 @bp.get("/radio")
 def radio_home():
     return _no_store(
