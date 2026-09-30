@@ -14,8 +14,9 @@ SCHEMA_VERSION = "link_ptt_floor_v1"
 SCHEMA_SQL = (
     """CREATE TABLE IF NOT EXISTS link_ptt_floor (
         session_id UUID PRIMARY KEY REFERENCES link_call_sessions(session_id) ON DELETE CASCADE,
-        holder_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        holder_id UUID REFERENCES users(id) ON DELETE CASCADE,
         lease_until TIMESTAMPTZ NOT NULL,
+        stopped BOOLEAN NOT NULL DEFAULT FALSE,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     )""",
     "CREATE INDEX IF NOT EXISTS idx_link_ptt_floor_expiry ON link_ptt_floor(lease_until)",
@@ -112,17 +113,20 @@ def floor(identity_id: object, session_id: object, *, action: str) -> dict:
         with postgres_db.connect() as connection:
             _active_pair(connection, identity, session)
             previous = connection.execute(
-                """SELECT holder_id,lease_until>CURRENT_TIMESTAMP FROM link_ptt_floor
+                """SELECT holder_id,lease_until>CURRENT_TIMESTAMP,stopped FROM link_ptt_floor
                    WHERE session_id=%s FOR UPDATE""",
                 (session,),
             ).fetchone()
             holder = str(previous[0]) if previous and previous[1] else None
+            stopped = bool(previous[2]) if previous else False
             if action == "acquire":
+                if stopped:
+                    raise ValueError("ptt_floor_stopped")
                 if holder and holder != identity:
                     raise ValueError("ptt_floor_busy")
                 connection.execute(
-                    """INSERT INTO link_ptt_floor(session_id,holder_id,lease_until,updated_at)
-                       VALUES (%s,%s,CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),CURRENT_TIMESTAMP)
+                    """INSERT INTO link_ptt_floor(session_id,holder_id,lease_until,updated_at,stopped)
+                       VALUES (%s,%s,CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),CURRENT_TIMESTAMP,FALSE)
                        ON CONFLICT(session_id) DO UPDATE SET
                          holder_id=EXCLUDED.holder_id,
                          lease_until=EXCLUDED.lease_until,
@@ -130,12 +134,26 @@ def floor(identity_id: object, session_id: object, *, action: str) -> dict:
                     (session, identity, LEASE_SECONDS),
                 )
                 result = {"granted": True, "holder_id": identity, "lease_seconds": LEASE_SECONDS}
+            elif action == "stop":
+                # Session-scoped tombstone: a queued acquire/renew cannot reverse STOP.
+                connection.execute(
+                    """INSERT INTO link_ptt_floor(session_id,holder_id,lease_until,stopped)
+                       VALUES (%s,NULL,CURRENT_TIMESTAMP,TRUE)
+                       ON CONFLICT(session_id) DO UPDATE SET
+                         holder_id=NULL,lease_until=CURRENT_TIMESTAMP,stopped=TRUE,
+                         updated_at=CURRENT_TIMESTAMP""",
+                    (session,),
+                )
+                result = {"granted": False, "holder_id": None, "stopped": True}
             else:
-                if action == "release" and holder and holder != identity:
+                if holder and holder != identity:
                     raise ValueError("ptt_floor_not_holder")
-                # STOP is exercisable by either participant, including to end a peer's lease.
-                connection.execute("DELETE FROM link_ptt_floor WHERE session_id=%s", (session,))
-                result = {"granted": False, "holder_id": None, "stopped": action == "stop"}
+                if not stopped:
+                    connection.execute(
+                        "DELETE FROM link_ptt_floor WHERE session_id=%s AND stopped=FALSE",
+                        (session,),
+                    )
+                result = {"granted": False, "holder_id": None, "stopped": stopped}
             connection.commit()
     except (ValueError, link_call_audit.LinkCallAuditUnavailable):
         raise
@@ -152,12 +170,13 @@ def read(identity_id: object, session_id: object) -> dict:
         with postgres_db.connect(readonly=True) as connection:
             _active_pair(connection, identity, session, lock=False)
             row = connection.execute(
-                """SELECT holder_id FROM link_ptt_floor
-                   WHERE session_id=%s AND lease_until>CURRENT_TIMESTAMP""",
+                """SELECT CASE WHEN lease_until>CURRENT_TIMESTAMP AND stopped=FALSE THEN holder_id END,stopped
+                   FROM link_ptt_floor WHERE session_id=%s""",
                 (session,),
             ).fetchone()
     except (ValueError, link_call_audit.LinkCallAuditUnavailable):
         raise
     except Exception as exc:
         raise LinkPttFloorUnavailable("ptt_floor_read_failed") from exc
-    return {"holder_id": str(row[0]) if row else None, "lease_seconds": LEASE_SECONDS}
+    return {"holder_id": str(row[0]) if row and row[0] else None,
+            "stopped": bool(row[1]) if row else False, "lease_seconds": LEASE_SECONDS}
