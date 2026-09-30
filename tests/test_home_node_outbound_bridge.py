@@ -49,3 +49,55 @@ def test_inference_gateway_routes_first_party_before_fallback():
     assert "first_party_inference_ready" in gateway
     assert "sovereign_inference_ready" in gateway
     assert "not FALLBACK_ENABLED" in gateway
+
+
+def test_bridge_requires_exact_ephemeral_claim_token_for_completion(monkeypatch):
+    monkeypatch.setenv("OAP_HOME_NODE_BRIDGE_SECRET", "s" * 48)
+    monkeypatch.setattr(home_node_bridge.time, "monotonic", lambda: 100.0)
+    with home_node_bridge._LOCK:
+        home_node_bridge._PENDING.clear()
+        home_node_bridge._JOBS.clear()
+        home_node_bridge._LAST_WORKER_SEEN = 100.0
+        first = home_node_bridge._Job(
+            job_id="00000000-0000-0000-0000-000000000001",
+            payload={"messages": [{"role": "user", "content": "one"}]},
+        )
+        second = home_node_bridge._Job(
+            job_id="00000000-0000-0000-0000-000000000002",
+            payload={"messages": [{"role": "user", "content": "two"}]},
+        )
+        for job in (first, second):
+            home_node_bridge._JOBS[job.job_id] = job
+            home_node_bridge._PENDING.append(job.job_id)
+    try:
+        claimed_first = home_node_bridge.claim_next()
+        claimed_second = home_node_bridge.claim_next()
+        assert claimed_first["claim_token"] != claimed_second["claim_token"]
+        assert not home_node_bridge.complete(first.job_id, result="unbound")
+        assert not home_node_bridge.complete(
+            first.job_id, claim_token=claimed_second["claim_token"],
+            result="wrong job",
+        )
+        assert first.event.is_set() is False
+        assert home_node_bridge.complete(
+            first.job_id, claim_token=claimed_first["claim_token"],
+            result="owned output",
+        )
+        assert first.result == "owned output"
+        assert not home_node_bridge.complete(
+            first.job_id, claim_token=claimed_first["claim_token"],
+            result="replay",
+        )
+    finally:
+        with home_node_bridge._LOCK:
+            home_node_bridge._PENDING.clear()
+            home_node_bridge._JOBS.clear()
+            home_node_bridge._LAST_WORKER_SEEN = 0.0
+
+
+def test_home_node_worker_returns_claim_token_without_static_secret_in_body():
+    worker = (ROOT / "scripts" / "oap_home_node_inference_worker.py").read_text()
+    views = (ROOT / "mission_control" / "home_node_views.py").read_text()
+    assert 'claim_token = str(job.get("claim_token", ""))' in worker
+    assert '"claim_token": claim_token' in worker
+    assert 'claim_token=payload.get("claim_token")' in views
