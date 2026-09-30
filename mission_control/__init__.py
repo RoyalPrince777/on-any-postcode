@@ -923,6 +923,16 @@ def init_app(app: Flask) -> None:
             raise click.ClickException("explicit_confirmation_required")
         print(link_call_audit.purge_expired())
 
+    @app.cli.command("oap-link-ptt-floor-status")
+    def _oap_link_ptt_floor_status() -> None:
+        print(json.dumps(link_ptt_floor.status()))
+
+    @app.cli.command("oap-init-link-ptt-floor")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_ptt_floor(dry_run: bool, yes: bool) -> None:
+        print(json.dumps(link_ptt_floor.init_schema(dry_run=dry_run, assume_yes=yes)))
+
     @app.cli.command("oap-link-signalling-status")
     def _oap_link_signalling_status() -> None:
         import json
