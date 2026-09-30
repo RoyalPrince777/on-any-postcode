@@ -99,11 +99,43 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     expect(host.locator("[data-status]")).to_have_text("ACTIVE")
     assert_layout(host)
     assert_layout(guest)
+    # The server commits a real move, but the browser loses the acknowledgement.
+    # Also interrupt its first recovery read. No second move is allowed until
+    # a subsequent explicit server read-back confirms the committed revision.
+    action_url = "/arena/rooms/connect4/action" if game == "connect4" else "/arena/rooms/dot/action"
+    def lost_ack(route):
+        actual = route.fetch()
+        assert actual.status == 200, actual.status
+        route.fulfill(
+            status=503, content_type="application/json",
+            body='{"error":{"code":"test_ack_lost"}}',
+        )
+    host.route("**" + action_url, lost_ack, times=1)
+    host.route(
+        "**/arena/rooms/state",
+        lambda route: route.fulfill(
+            status=503, content_type="application/json",
+            body='{"error":{"code":"test_refresh_unavailable"}}',
+        ),
+        times=1,
+    )
+    first_control = "[data-columns] button" if game == "connect4" else "[data-edges] button:not([disabled])"
+    host.locator(first_control).first.click()
+    expect(host.locator("[data-error]")).to_contain_text("test_refresh_unavailable")
+    expect(host.locator("[data-stop]")).to_be_disabled()
+    if game == "connect4":
+        assert all(button.is_disabled() for button in host.locator("[data-columns] button").all())
+    else:
+        assert all(button.is_disabled() for button in host.locator("[data-edges] button").all())
+    # The server committed exactly one move. Read-back restores the truthful
+    # revision and confirms that the other player owns the next turn.
+    host.locator("[data-refresh]").click()
+    expect(host.locator("[data-revision]")).to_have_text("1")
+    assert host.locator("[data-stop]").is_enabled()
+
     # Real authenticated browser CSRF/room membership requests from two sessions.
     if game == "connect4":
-        first, second = "[data-columns] button", "[data-columns] button"
-        host.locator(first).first.click()
-        expect(host.locator("[data-revision]")).to_have_text("1")
+        second = "[data-columns] button"
         guest.locator("[data-refresh]").click()
         expect(guest.locator("[data-revision]")).to_have_text("1")
         guest.locator(second).nth(1).click()
@@ -111,8 +143,6 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
         host.locator("[data-refresh]").click()
         expect(host.locator("[data-revision]")).to_have_text("2")
     else:
-        host.locator("[data-edges] button:not([disabled])").first.click()
-        expect(host.locator("[data-revision]")).to_have_text("1")
         guest.locator("[data-refresh]").click()
         expect(guest.locator("[data-revision]")).to_have_text("1")
         guest.locator("[data-edges] button:not([disabled])").first.click()
