@@ -110,3 +110,21 @@ def test_radio_listener_uses_station_choices_not_generic_catalogue():
     assert "player.src=x.stream_url" in public
     assert "continuous broadcast not claimed" in public
     assert 'id="station-approve-button"' not in public
+
+
+def test_radio_listener_rechecks_stop_and_avoids_premature_start_event():
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    with app.app_context():
+        public = render_template("oap_radio.html", founder_control=False)
+    assert "async function stationStillEligible(x)" in public
+    assert "s.station_id===x.station_id&&s.track_id===x.track_id" in public
+    assert "s.asset_id===x.asset_id&&s.stream_url===x.stream_url" in public
+    assert "if(!await stationStillEligible(x))" in public
+    assert "setInterval(recheckListening,10000)" in public
+    assert "visibilitychange" in public
+    assert "if(generation===radioGeneration&&!player.paused&&!allowed)haltStation(" in public
+    assert "player.pause();player.removeAttribute('src');player.load()" in public
+    assert "player.addEventListener('playing'" in public
+    assert "player.addEventListener('play'," not in public
+    assert "buffered playback paused" in public
+    assert "continuous broadcast not claimed" in public
