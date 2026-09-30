@@ -12,8 +12,8 @@ import logging
 import os
 import re
 import time
-from contextvars import ContextVar
 from collections.abc import Callable
+from contextvars import ContextVar
 from typing import Any
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
