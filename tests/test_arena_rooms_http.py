@@ -44,12 +44,6 @@ def test_arena_room_http_flow(client, csrf, monkeypatch):
             "payments": False,
         },
     )
-    monkeypatch.setattr(
-        app_module.arena_rooms,
-        "update_game_state",
-        lambda **kwargs: {"room_id": created["room_id"], "revision": 2, "duplicate": False},
-    )
-
     headers = {"X-OAP-CSRF": csrf["csrf_token"]}
     assert client.post("/arena/rooms/create", json={"game_key": "connect4", "host_name": "Alpha", "capacity": 2}).status_code == 403
 
@@ -88,5 +82,5 @@ def test_arena_room_http_flow(client, csrf, monkeypatch):
         },
         headers=headers,
     )
-    assert updated.status_code == 200
-    assert updated.get_json()["revision"] == 2
+    assert updated.status_code == 400
+    assert updated.get_json()["error"]["code"] == "arena_room_server_game_adapter_required"
