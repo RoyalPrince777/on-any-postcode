@@ -10,8 +10,8 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
-    ecosystem_intelligence,
     civilization_ecosystem_bridge,
+    ecosystem_intelligence,
     ecosystem_live_sources,
     ecosystem_runtime,
     location_intelligence,
