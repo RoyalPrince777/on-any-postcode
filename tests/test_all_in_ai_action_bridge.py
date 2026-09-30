@@ -214,7 +214,7 @@ def _executor_proof(authorization, *, recovery=False):
         "external_side_effect": False,
         "financial_side_effect": False,
         "human_authority_final": True,
-        "rollback_verified": True if recovery else False,
+        "rollback_verified": recovery,
         "outcome_receipt": {
             "write_verified": True,
             "read_back_verified": True,
