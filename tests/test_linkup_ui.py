@@ -250,7 +250,7 @@ def test_linkup_emoji_and_conversation_settings_reuse_existing_owners():
     script = Path("static/linkup_realtime.js").read_text(encoding="utf-8")
     assert "data-oap-emoji-picker" in page
     assert "data-oap-emoji=" in page
-    assert 'aria-label="Choose emoji"' in page
+    assert 'aria-label="My Emojis"' in page
     assert "data-oap-emoji" in script
     assert "textarea.setRangeText(emoji, start, end," in script
     assert "next.length > textarea.maxLength" in script
