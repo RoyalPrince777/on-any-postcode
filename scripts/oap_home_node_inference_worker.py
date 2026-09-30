@@ -74,14 +74,15 @@ def run() -> int:
                 time.sleep(min(POLL_SECONDS * 2, 10.0))
                 continue
             job_id = str(job.get("job_id", ""))
+            claim_token = str(job.get("claim_token", ""))
             payload = job.get("payload")
-            if not job_id or not isinstance(payload, dict):
+            if not job_id or not claim_token or not isinstance(payload, dict):
                 continue
             try:
                 result = _run_local(payload)
-                completion = {"result": result}
+                completion = {"claim_token": claim_token, "result": result}
             except Exception as exc:  # worker reports bounded failure; server decides fallback policy
-                completion = {"error": type(exc).__name__[:80]}
+                completion = {"claim_token": claim_token, "error": type(exc).__name__[:80]}
             _request(
                 f"{BASE_URL}/home-node/jobs/{job_id}/complete",
                 method="POST",

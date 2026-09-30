@@ -19,6 +19,7 @@ from . import (
     judgement,
     live_brain,
     media_intelligence,
+    oap_inference_gateway,
     postgres_db,
     smi_cancellation,
     smi_founder_assets,
@@ -683,6 +684,7 @@ def chat(
             (request_id, identity, outcome, reason),
         )
         provider_completed = False
+        oap_inference_gateway.clear_inference_route()
         if cancellation_token is not None:
             cancellation_token.raise_if_cancelled()
         if outcome == "BLOCKED":
@@ -762,6 +764,11 @@ def chat(
                 json.dumps(
                     {
                         "guardian": outcome,
+                        "inference_route": (
+                            oap_inference_gateway.observed_inference_route()
+                            if provider_completed else None
+                        ),
+                        "inference_route_attestation": False,
                         "provider": PROVIDER,
                         "image_attached": bool(image),
                         "media_kind": media.get("kind"),

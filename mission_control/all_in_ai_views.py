@@ -122,6 +122,21 @@ def all_in_ai_mission():
     return _no_store(make_response(jsonify(result), 201))
 
 
+
+@bp.get("/all-in-ai/mission/latest")
+@web_security.login_required(api=True, founder_only=True)
+def all_in_ai_mission_latest():
+    """Read-only latest owner-scoped mission receipt; never claim active execution."""
+    identity = _founder_id()
+    if identity is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    try:
+        evidence = all_in_ai_mission_store.latest_verified(identity)
+    except all_in_ai_mission_store.MissionStoreUnavailable:
+        return _error("mission_evidence_unavailable",
+                      "Latest mission evidence could not be independently verified.", 503)
+    return _no_store(make_response(jsonify(evidence)))
+
 @bp.get("/all-in-ai/mission/<mission_id>")
 @web_security.login_required(api=True, founder_only=True)
 def all_in_ai_mission_read(mission_id: str):
@@ -150,6 +165,28 @@ def all_in_ai_mission_read(mission_id: str):
     )
     return _no_store(make_response(jsonify(receipt=receipt)))
 
+
+
+@bp.get("/all-in-ai/mission/<mission_id>/inference/<request_id>")
+@web_security.login_required(api=True, founder_only=True)
+def all_in_ai_mission_inference(mission_id: str, request_id: str):
+    """Read-only HRM-backed inference correlation; no execution or provenance claim."""
+    identity = _founder_id()
+    if identity is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    try:
+        evidence = all_in_ai_mission_store.inference_receipt_evidence(
+            identity, mission_id, request_id,
+        )
+    except ValueError:
+        return _error("invalid_receipt_id", "Mission or request ID is invalid.", 400)
+    except all_in_ai_mission_store.MissionStoreUnavailable:
+        return _error(
+            "mission_inference_unverified",
+            "Matching governed inference evidence could not be independently verified.",
+            503,
+        )
+    return _no_store(make_response(jsonify(evidence)))
 
 @bp.post("/all-in-ai/mission/<mission_id>/stop")
 @web_security.login_required(api=True, founder_only=True)

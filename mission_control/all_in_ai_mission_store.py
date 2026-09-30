@@ -383,6 +383,132 @@ def read(identity_id: object, mission_id: object) -> dict[str, Any]:
     }
 
 
+
+def latest_verified(identity_id: object) -> dict[str, Any]:
+    """Read the latest owner-scoped checkpoint through canonical HRM/audit verification.
+
+    No active/executing state is inferred from a persisted plan. If the latest
+    receipt fails verification, fail closed rather than skipping to older data.
+    """
+    identity = _identity(identity_id)
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT record_id,title FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id='governance'
+                     AND title LIKE %s
+                   ORDER BY created_at DESC, record_id DESC LIMIT 1""",
+                (identity, _PREFIX + ":%:v%"),
+            ).fetchone()
+    except Exception as exc:
+        raise MissionStoreUnavailable("mission_latest_unavailable") from exc
+    if row is None:
+        return {"found": False, "execution_granted": False,
+                "human_authority_final": True}
+    record_id, title = str(row[0]), str(row[1])
+    try:
+        suffix = title.removeprefix(_PREFIX + ":")
+        mission_text, version_text = suffix.rsplit(":v", 1)
+        mission = _mission_id(mission_text)
+        version = int(version_text)
+        if (title != f"{_PREFIX}:{mission}:v{version}"
+                or version < 1):
+            raise ValueError("noncanonical_mission_title")
+    except (ValueError, TypeError) as exc:
+        raise MissionStoreUnavailable("mission_latest_invalid") from exc
+    receipt = read(identity, mission)
+    if not all(receipt.get(key) is True for key in
+               ("read_back_verified", "audit_verified", "hrm_verified")):
+        raise MissionStoreUnavailable("mission_latest_proof_incomplete")
+    # A concurrent STOP/recovery may advance the receipt after title selection.
+    # Never display an older selected checkpoint as the latest current state.
+    if (str(receipt.get("record_id")) != record_id
+            or type(receipt.get("version")) is not int
+            or receipt["version"] != version
+            or receipt.get("mission_id") != mission):
+        raise MissionStoreUnavailable("mission_latest_changed")
+    if receipt.get("state") not in _ALLOWED_STATES:
+        raise MissionStoreUnavailable("mission_latest_state_invalid")
+    return {
+        "found": True,
+        "mission_id": mission,
+        "state": receipt["state"],
+        "version": receipt["version"],
+        "read_back_verified": True,
+        "audit_verified": True,
+        "hrm_verified": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
+def inference_receipt_evidence(
+    identity_id: object, mission_id: object, request_id: object,
+) -> dict[str, Any]:
+    """Cross-check a plain-text SMI response against an owned Mission checkpoint.
+
+    A matching HRM content hash is correlation evidence, NOT mission execution,
+    first-party provider provenance, independent approval or a Green Gate.
+    """
+    identity = _identity(identity_id)
+    mission = _mission_id(mission_id)
+    request_value = _mission_id(request_id)
+    checkpoint = read(identity, mission)
+    if checkpoint.get("state") == "stopped":
+        raise MissionStoreUnavailable("mission_stopped")
+    if not all(checkpoint.get(key) is True for key in
+               ("read_back_verified", "audit_verified", "hrm_verified")):
+        raise MissionStoreUnavailable("mission_checkpoint_unverified")
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT content_hash,output_state,processing_states_json,rationale_json
+                   FROM smi_memory_records
+                   WHERE identity_id=%s AND request_id=%s
+                     AND task_type != 'ALL_IN_AI_MISSION'
+                   LIMIT 1""",
+                (identity, request_value),
+            ).fetchone()
+    except Exception as exc:
+        raise MissionStoreUnavailable("mission_inference_readback_failed") from exc
+    if row is None:
+        raise MissionStoreUnavailable("mission_inference_receipt_not_found")
+    if str(row[0]) != str(checkpoint.get("mission_hash")):
+        raise MissionStoreUnavailable("mission_inference_hash_mismatch")
+    try:
+        states = json.loads(row[2]) if isinstance(row[2], str) else row[2]
+        rationale = json.loads(row[3]) if isinstance(row[3], str) else row[3]
+    except (TypeError, ValueError) as exc:
+        raise MissionStoreUnavailable("mission_inference_receipt_invalid") from exc
+    if not isinstance(states, list) or not isinstance(rationale, dict):
+        raise MissionStoreUnavailable("mission_inference_receipt_invalid")
+    if ("PROVIDER_COMPLETED" not in states or "HRM_RECORDED" not in states
+            or rationale.get("image_attached") is not False
+            or rationale.get("media_kind")
+            or rationale.get("code_proposal") is not False
+            or row[1] not in {"RECOMMENDATION_READY", "REVIEW_REQUIRED"}):
+        raise MissionStoreUnavailable("mission_inference_proof_incomplete")
+    observed_route = rationale.get("inference_route")
+    if observed_route not in {"local_direct", "home_node_bridge", "compatibility_fallback"}:
+        observed_route = None
+    # A route observed inside this application is not a signed worker attestation.
+    return {
+        "mission_id": mission,
+        "request_id": request_value,
+        "mission_checkpoint_verified": True,
+        "mission_text_hash_matched": True,
+        "governed_response_recorded": True,
+        "output_state": row[1],
+        "inference_gateway_route_observed": observed_route,
+        "inference_route_attested": False,
+        "first_party_inference_proven": False,
+        "mission_execution_proven": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
 def status() -> dict[str, object]:
     return {
         "component": "ALL IN A.I. Durable Mission Store",

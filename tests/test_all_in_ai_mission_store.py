@@ -106,3 +106,136 @@ def test_recovery_requires_durable_stop(monkeypatch):
             "00000000-0000-0000-0000-000000000002",
             expected_previous_hash="b" * 64,
         )
+
+
+def _latest_record_connection(monkeypatch, identity, mission, *, version=2, record_id="record-2",
+                              title=None):
+    title = title if title is not None else f"{store._PREFIX}:{mission}:v{version}"
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *_args): return False
+        def execute(self, sql, params):
+            assert "SELECT record_id,title" in sql
+            assert "identity_id=%s" in sql
+            assert params == (identity, store._PREFIX + ":%:v%")
+            return self
+        def fetchone(self): return (record_id, title)
+    monkeypatch.setattr(store.postgres_db, "connect", lambda readonly=False: Connection())
+
+
+def test_latest_verified_reuses_owner_scoped_crosschecked_receipt(monkeypatch):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    _latest_record_connection(monkeypatch, identity, mission)
+    monkeypatch.setattr(store, "read", lambda owner, candidate: {
+        "mission_id": mission, "record_id": "record-2",
+        "state": "stopped", "version": 2, "read_back_verified": True,
+        "audit_verified": True, "hrm_verified": True,
+    } if (owner, candidate) == (identity, mission) else {})
+    assert store.latest_verified(identity) == {
+        "found": True, "mission_id": mission, "state": "stopped", "version": 2,
+        "read_back_verified": True, "audit_verified": True, "hrm_verified": True,
+        "execution_granted": False, "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
+def test_latest_verified_fails_closed_on_bad_hrm_receipt(monkeypatch):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    _latest_record_connection(monkeypatch, identity, mission, version=1)
+    monkeypatch.setattr(store, "read", lambda *_args: {
+        "mission_id": mission, "record_id": "record-2",
+        "state": "planned", "version": 1, "read_back_verified": True,
+        "audit_verified": True, "hrm_verified": False,
+    })
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_latest_proof_incomplete"):
+        store.latest_verified(identity)
+
+
+@pytest.mark.parametrize("override", [
+    {"record_id": "different-record"},
+    {"version": 3},
+    {"version": True},
+    {"mission_id": "00000000-0000-0000-0000-000000000003"},
+])
+def test_latest_verified_rejects_changed_or_inconsistent_receipt(monkeypatch, override):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    _latest_record_connection(monkeypatch, identity, mission)
+    receipt = {
+        "mission_id": mission, "record_id": "record-2", "version": 2,
+        "state": "planned", "read_back_verified": True,
+        "audit_verified": True, "hrm_verified": True,
+        **override,
+    }
+    monkeypatch.setattr(store, "read", lambda *_args: receipt)
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_latest_changed"):
+        store.latest_verified(identity)
+
+
+@pytest.mark.parametrize("bad_title", [
+    "OAP-ALL-IN-AI:invalid:v2",
+    "OAP-ALL-IN-AI:00000000-0000-0000-0000-000000000002:v0",
+    "OAP-ALL-IN-AI:00000000-0000-0000-0000-000000000002:v02",
+    "OAP-ALL-IN-AI:00000000-0000-0000-0000-000000000002:v2:extra",
+])
+def test_latest_verified_rejects_noncanonical_title_before_read(monkeypatch, bad_title):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    _latest_record_connection(monkeypatch, identity, mission, title=bad_title)
+    monkeypatch.setattr(store, "read", lambda *_args: pytest.fail("invalid title must not read"))
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_latest_invalid"):
+        store.latest_verified(identity)
+
+
+def test_mission_inference_receipt_correlates_owned_plaintext_hrm_only(monkeypatch):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    request = "00000000-0000-0000-0000-000000000003"
+    monkeypatch.setattr(store, "read", lambda owner, item: {
+        "state": "planned", "mission_hash": "a" * 64,
+        "read_back_verified": True, "audit_verified": True, "hrm_verified": True,
+    } if (owner, item) == (identity, mission) else {})
+    rows = [[
+        "a" * 64, "RECOMMENDATION_READY",
+        ["RECEIVED", "PROVIDER_COMPLETED", "HRM_RECORDED"],
+        {"image_attached": False, "media_kind": None, "code_proposal": False, "inference_route": "home_node_bridge"},
+    ]]
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *_args): return False
+        def execute(self, sql, params):
+            assert "identity_id=%s AND request_id=%s" in sql
+            assert params == (identity, request)
+            return self
+        def fetchone(self): return rows[0]
+    monkeypatch.setattr(store.postgres_db, "connect", lambda readonly=False: Connection())
+    outcome = store.inference_receipt_evidence(identity, mission, request)
+    assert outcome["mission_text_hash_matched"] is True
+    assert outcome["governed_response_recorded"] is True
+    assert outcome["inference_gateway_route_observed"] == "home_node_bridge"
+    assert outcome["inference_route_attested"] is False
+    assert outcome["first_party_inference_proven"] is False
+    assert outcome["mission_execution_proven"] is False
+    assert outcome["approval_granted"] is False
+    assert outcome["human_authority_final"] is True
+    rows[0] = ["b" * 64, *rows[0][1:]]
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_inference_hash_mismatch"):
+        store.inference_receipt_evidence(identity, mission, request)
+    rows[0] = ["a" * 64, "REVIEW_REQUIRED", ["HRM_RECORDED"], rows[0][3]]
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_inference_proof_incomplete"):
+        store.inference_receipt_evidence(identity, mission, request)
+
+
+def test_mission_inference_receipt_rejects_stopped_checkpoint_before_query(monkeypatch):
+    monkeypatch.setattr(store, "read", lambda *_args: {"state": "stopped"})
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("stopped mission must not query inference")
+    monkeypatch.setattr(store.postgres_db, "connect", forbidden)
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_stopped"):
+        store.inference_receipt_evidence(
+            "00000000-0000-0000-0000-000000000001",
+            "00000000-0000-0000-0000-000000000002",
+            "00000000-0000-0000-0000-000000000003",
+        )
