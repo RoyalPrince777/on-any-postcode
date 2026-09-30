@@ -258,6 +258,16 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
                 (receipt, station),
             ).fetchone()
         assert row == ("RESPONSE_PREPARED", 4, 206, "a" * 64, "b" * 64)
+        receipts = store.delivery_receipts(owner_identity_id=owner, station_id=station)
+        assert len(receipts) == 1
+        assert receipts[0]["receipt_id"] == receipt
+        assert receipts[0]["receipt_type"] == "RESPONSE_PREPARED"
+        assert receipts[0]["prepared_bytes"] == 4
+        assert receipts[0]["delivery_completed"] is False
+        assert receipts[0]["airplay_confirmed"] is False
+        assert store.delivery_receipts(
+            owner_identity_id=str(uuid4()), station_id=station
+        ) == []
 
         store.stop_station(
             owner_identity_id=owner, station_id=station, reason="Founder STOP"
