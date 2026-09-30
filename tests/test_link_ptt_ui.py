@@ -84,3 +84,16 @@ def test_voice_and_ptt_capture_are_serialised_during_pending_permission():
     assert source.index("state.capturePending = false;", source.index("getUserMedia({ audio: true")) < source.index("new MediaRecorder(stream")
     catch = source.split("} catch (error) {", maxsplit=2)[-1]
     assert "state.capturePending = false;" in catch
+
+
+def test_ptt_controller_behaviour_with_mock_media_and_events():
+    node = shutil.which("node")
+    if node is None:
+        return
+    subprocess.run(
+        [node, str(ROOT / "tests" / "link_ptt_behavior.cjs")],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
