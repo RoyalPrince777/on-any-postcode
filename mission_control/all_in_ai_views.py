@@ -419,7 +419,9 @@ def all_in_ai_execute_internal_record(mission_id: str):
         make_response(
             jsonify(
                 result=result,
-                execution_performed=True,
+                execution_performed=result.get("execution_performed") is True,
+                outcome_receipt_verified=result.get("outcome_receipt_verified") is True,
+                automatic_retry_allowed=False,
                 human_authority_final=True,
             )
         )
@@ -480,7 +482,9 @@ def all_in_ai_rollback_internal_record(mission_id: str):
         make_response(
             jsonify(
                 result=result,
-                rollback_verified=bool(result.get("rollback_verified")),
+                rollback_verified=result.get("rollback_verified") is True,
+                outcome_receipt_verified=result.get("outcome_receipt_verified") is True,
+                automatic_retry_allowed=False,
                 human_authority_final=True,
             )
         )
