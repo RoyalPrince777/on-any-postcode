@@ -9,6 +9,7 @@ async function post(path,payload){const r=await fetch(path,{method:"POST",creden
 function render(){
  if(!state)return;q("[data-game]").hidden=false;
  const active=state.status==="active";
+ q("[data-start]").disabled=busy||active;
  q("[data-turn]").textContent=active?state.turn:"—";q("[data-status]").textContent=state.status;
  q("[data-stop]").disabled=!active||busy;q("[data-move]").disabled=!active||busy;
  const board=q("[data-board]");board.replaceChildren();
@@ -22,7 +23,7 @@ function render(){
  }
  q("[data-feedback]").textContent=state.status==="completed"?"Winner: "+state.winner:state.status==="stopped"?"Match stopped.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
 }
-async function act(path,payload){if(busy)return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;
+async function act(path,payload){if(busy||(path==="/arena/chess/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;
  if(path==="/arena/chess/start"||path==="/arena/chess/move"){
   q("[data-source]").value="";q("[data-target]").value="";
  }
