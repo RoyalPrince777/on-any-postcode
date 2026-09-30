@@ -754,11 +754,15 @@ def connect4_agent_move():
         return denied
     try:
         payload = _arena_payload()
+        if session.get("oap_connect4_mode") != "agent":
+            raise ValueError("connect4_agent_mode_required")
         state = session.get(connect4.SESSION_KEY)
         view = connect4.public_state(state)
         if view.get("status") != "active":
             raise ValueError("connect4_agent_game_not_active")
-        agent = arena_agents.choose_agent("connect4", payload.get("agent_key"))
+        agent = arena_agents.choose_agent("connect4", session.get("oap_connect4_agent"))
+        if payload.get("agent_key") not in {None, agent["key"]}:
+            raise ValueError("connect4_agent_identity_locked")
         if view.get("current_player_id") != "p2":
             raise ValueError("connect4_agent_not_turn")
         column = arena_agents.connect4_column(
@@ -1109,10 +1113,20 @@ def connect4_start():
         return denied
     try:
         payload = _arena_payload()
-        state = connect4.new_game(payload.get("player_one"), payload.get("player_two"))
+        mode = str(payload.get("opponent_mode") or "human")
+        if mode not in {"human", "agent"}:
+            raise ValueError("connect4_opponent_mode_invalid")
+        if mode == "agent":
+            selected = arena_agents.choose_agent("connect4", payload.get("agent_key"))
+            player_two = selected["name"]
+        else:
+            player_two = payload.get("player_two")
+        state = connect4.new_game(payload.get("player_one"), player_two)
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[connect4.SESSION_KEY] = state
+    session["oap_connect4_mode"] = mode
+    session["oap_connect4_agent"] = selected["key"] if mode == "agent" else None
     session.modified = True
     return _arena_json(connect4.public_state(state), 201)
 
@@ -1124,6 +1138,10 @@ def connect4_drop():
         return denied
     try:
         payload = _arena_payload()
+        if session.get("oap_connect4_mode") == "agent":
+            current = connect4.public_state(session.get(connect4.SESSION_KEY))
+            if current.get("current_player_id") != "p1":
+                raise ValueError("connect4_agent_turn_reserved")
         state = connect4.drop(
             session.get(connect4.SESSION_KEY),
             column=payload.get("column"),
