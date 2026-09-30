@@ -62,6 +62,22 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     guest.goto(BASE + route, wait_until="domcontentloaded")
     assert_layout(host)
     assert_layout(guest)
+    if game == "connect4":
+        for unavailable in ("ludo", "chess", "iq", "route-empire"):
+            rejected = host.evaluate(
+                """async game => {
+                    const csrf = document.querySelector('meta[name="oap-csrf-token"]').content;
+                    const response = await fetch('/arena/rooms/create', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-OAP-CSRF': csrf},
+                        body: JSON.stringify({game_key:game,host_name:'Rejected Room',capacity:2})
+                    });
+                    return {status:response.status, result:await response.json()};
+                }""",
+                unavailable,
+            )
+            assert rejected["status"] == 400, rejected
+            assert rejected["result"]["error"]["code"] == "arena_room_game_invalid"
 
     host.locator("[data-host]").fill("Alpha " + game)
     host.locator("[data-create]").click()
