@@ -382,6 +382,10 @@ def test_mission_outcome_rejects_unrelated_and_truthy_executor_receipts():
     }
     valid = _executor_proof(authorization)
     assert all_in_ai_action_bridge._verified_executor_outcome(valid, authorization) is True
+    assert all_in_ai_action_bridge._verified_executor_outcome(valid, {}) is False
+    assert all_in_ai_action_bridge._verified_executor_outcome(
+        valid, {**authorization, "approval_receipt_id": None},
+    ) is False
     for tampered in (
         {**valid, "request_id": MISSION},
         {**valid, "status_readback_verified": "true"},
