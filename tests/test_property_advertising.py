@@ -104,7 +104,8 @@ def test_invalid_property_data_blocked(change):
         ads.property_draft(data, publisher_id=OWNER)
 
 
-def test_no_verifier_and_self_approval_fail_closed():
+def test_no_verifier_and_self_approval_fail_closed(monkeypatch):
+    monkeypatch.setattr(ads.property_authority, "verified_advertising_authority", lambda *_: False)
     draft = ads.property_draft(payload(), publisher_id=OWNER)
     with pytest.raises(PermissionError, match="independent_reviewer"):
         ads.approve(draft, evidence_ref="contract-ref", approved_by=OWNER, **REVIEW_GATES)
