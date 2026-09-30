@@ -272,3 +272,10 @@ def test_my_card_preferences_save_theme_avatar_and_my_emojis(anonymous_client):
     assert 'data-my-card-theme="midnight"' in page
     assert "🐆" in page
     assert 'value="✨" checked' in page
+
+
+def test_my_card_has_leave_my_world_control():
+    template = Path("templates/my_card.html").read_text(encoding="utf-8")
+    assert "Leave My World" in template
+    assert "url_for('auth_sign_out')" in template
+    assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in template
