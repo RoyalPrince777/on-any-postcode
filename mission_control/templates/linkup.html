@@ -56,7 +56,7 @@
       {% if my_card and not auth_user %}
       <a class="linkup-public-action" href="{{ url_for('my_card_page') }}">
         <strong>Open My Card</strong>
-        <small>{{ my_card.display_name }} · {{ my_card.card_id }}</small>
+        <small>{{ my_card.display_name }} · {{ my_card.card_id }} · Basic My Card active. No password required.</small>
       </a>
       {% else %}
       <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}">
