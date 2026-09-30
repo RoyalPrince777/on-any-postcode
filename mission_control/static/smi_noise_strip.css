@@ -1047,3 +1047,21 @@ body.smi-noise-strip.smi-live-fullscreen .smi-world-controls{
 @media(max-width:760px){
  body.smi-noise-strip .smi-world-controls:not([hidden]){top:50px!important}
 }
+
+/* The existing OAP World popover is one menu with public preview/private review separation. */
+body.smi-noise-strip .smi-world-controls .smi-world-menu-heading{
+  display:block!important;
+  margin:4px 5px 1px!important;
+  font-size:.66rem!important;
+  color:#d7b759!important;
+  letter-spacing:.06em!important;
+}
+body.smi-noise-strip .smi-world-controls .smi-world-founder-link{
+  border-left:2px solid rgba(215,183,89,.48)!important;
+  background:rgba(215,183,89,.05)!important;
+}
+body.smi-noise-strip .smi-world-controls:not([hidden]){
+  max-height:min(72dvh,580px)!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+}
