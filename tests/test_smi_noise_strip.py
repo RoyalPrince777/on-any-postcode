@@ -205,7 +205,7 @@ def test_smi_home_world_controls_open_existing_public_routes_without_private_act
     assert "publicWorldOrigin:'https://on-any-postcode.onrender.com/'" in template
     assert 'cfg.publicWorldOrigin' in command
     assert 'homeWorld.textContent="🌍 OAP World"' in command
-    assert 'homeRail.append(homeWorld,homeSystem,homeMatrix,homeWar)' in command
+    assert 'homeRail.append(homeWorld,homeJungle,homeSystem,homeMatrix,homeWar)' in command
     assert 'worldPanel.id="smi-world-controls"' in command
     for route in ('["🌍 Enter OAP World","/"]', '["📍 The Spot","/the-spot"]',
                   '["🔗 Link Up","/linkup"]', '["🗺️ OAP World / Place","/on-any-place"]'):
@@ -219,3 +219,18 @@ def test_smi_home_world_controls_open_existing_public_routes_without_private_act
     assert 'body.smi-noise-strip .smi-world-controls[hidden]{display:none!important}' in css
     assert 'body.smi-noise-strip.smi-command-open .smi-world-controls' in css
     assert 'Founder controls stay private.' in command
+
+
+def test_jungle_home_door_uses_registered_families_and_existing_war_room():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    assert 'homeJungle.textContent="🐆 Jungle"' in command
+    assert 'homeRail.append(homeWorld,homeJungle,homeSystem,homeMatrix,homeWar)' in command
+    assert 'junglePanel.id="smi-jungle-controls"' in command
+    for family in ("jungle_book", "animal", "akan_animal"):
+        assert "/mission/agents?family=" + family in command
+    assert 'String(cfg.warRoomUrl||"")' in command
+    assert 'junglePanel.hidden=true' in command
+    assert "homeJungle.setAttribute(\"aria-expanded\",String(opening))" in command
+    assert "homeWorld.addEventListener(\"click\",()=>closeJungle())" in command
+    assert "closeWorld();" in command
+    assert "review lenses are not independent agents" in command

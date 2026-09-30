@@ -130,6 +130,53 @@
  document.addEventListener("keydown",event=>{
   if(event.key==="Escape"&&!worldPanel.hidden){closeWorld();homeWorld.focus();}
  });
+ // Jungle is a navigation lens into the existing first-party agent families,
+ // never a second brain, auto-running actor or an agent-passport promotion.
+ const homeJungle=document.createElement("button");
+ homeJungle.type="button";homeJungle.textContent="🐆 Jungle";
+ homeJungle.setAttribute("aria-label","Open Jungle intelligence controls");
+ homeJungle.setAttribute("aria-controls","smi-jungle-controls");
+ homeJungle.setAttribute("aria-expanded","false");
+ const junglePanel=document.createElement("nav");
+ junglePanel.id="smi-jungle-controls";
+ junglePanel.className="smi-world-controls smi-jungle-controls";
+ junglePanel.setAttribute("aria-label","First-party Jungle intelligence families");
+ junglePanel.hidden=true;
+ const jungleRoutes=[
+  ["🐆 Jungle Book","/mission/agents?family=jungle_book"],
+  ["🦉 Animal Council","/mission/agents?family=animal"],
+  ["🌍 Akan Animal","/mission/agents?family=akan_animal"],
+  ["⚔️ War Room Council",String(cfg.warRoomUrl||"")]
+ ];
+ jungleRoutes.forEach(([label,path])=>{
+  if(!path||!path.startsWith("/"))return;
+  const link=document.createElement("a");
+  link.textContent=label;link.href=path;
+  junglePanel.append(link);
+ });
+ const jungleNotice=document.createElement("small");
+ jungleNotice.textContent="Registered first-party roles only · review lenses are not independent agents.";
+ junglePanel.append(jungleNotice);
+ document.body.append(junglePanel);
+ const closeJungle=()=>{
+  junglePanel.hidden=true;
+  homeJungle.setAttribute("aria-expanded","false");
+ };
+ homeJungle.addEventListener("click",event=>{
+  event.stopPropagation();
+  const opening=junglePanel.hidden;
+  closeWorld();
+  junglePanel.hidden=!opening;
+  homeJungle.setAttribute("aria-expanded",String(opening));
+ });
+ junglePanel.addEventListener("click",event=>event.stopPropagation());
+ document.addEventListener("click",event=>{
+  if(!junglePanel.hidden&&!junglePanel.contains(event.target)&&event.target!==homeJungle)closeJungle();
+ });
+ document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&!junglePanel.hidden){closeJungle();homeJungle.focus();}
+ });
+ homeWorld.addEventListener("click",()=>closeJungle());
  const homeSystem=document.createElement("button");
  homeSystem.type="button";homeSystem.textContent="🧠 SMI System";
  homeSystem.setAttribute("aria-label","Open SMI system intelligence");
@@ -139,7 +186,7 @@
  const homeWar=document.createElement("button");
  homeWar.type="button";homeWar.textContent="⚔️ War Room";
  homeWar.setAttribute("aria-label","Open War Room");
- homeRail.append(homeWorld,homeSystem,homeMatrix,homeWar);
+ homeRail.append(homeWorld,homeJungle,homeSystem,homeMatrix,homeWar);
  document.body.append(homeRail);
  homeSystem.addEventListener("click",()=>{
   setOpen(true);
