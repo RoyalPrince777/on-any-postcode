@@ -200,7 +200,7 @@ def test_mission_inference_receipt_correlates_owned_plaintext_hrm_only(monkeypat
     rows = [[
         "a" * 64, "RECOMMENDATION_READY",
         ["RECEIVED", "PROVIDER_COMPLETED", "HRM_RECORDED"],
-        {"image_attached": False, "media_kind": None, "code_proposal": False},
+        {"image_attached": False, "media_kind": None, "code_proposal": False, "inference_route": "home_node_bridge"},
     ]]
     class Connection:
         def __enter__(self): return self
@@ -214,6 +214,8 @@ def test_mission_inference_receipt_correlates_owned_plaintext_hrm_only(monkeypat
     outcome = store.inference_receipt_evidence(identity, mission, request)
     assert outcome["mission_text_hash_matched"] is True
     assert outcome["governed_response_recorded"] is True
+    assert outcome["inference_gateway_route_observed"] == "home_node_bridge"
+    assert outcome["inference_route_attested"] is False
     assert outcome["first_party_inference_proven"] is False
     assert outcome["mission_execution_proven"] is False
     assert outcome["approval_granted"] is False
