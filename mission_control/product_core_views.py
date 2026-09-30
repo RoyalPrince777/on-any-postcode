@@ -1016,6 +1016,17 @@ def stop_track_audio_asset(asset_id: str):
     )
 
 
+@bp.get("/tune/review-queue")
+@web_security.login_required(api=True, founder_only=True)
+def founder_tune_review_queue():
+    try:
+        return _no_store(make_response(jsonify(
+            product_core_services.founder_music_review_queue()
+        )))
+    except (ValueError, RuntimeError):
+        return _error("review_queue_unavailable", "Music review is temporarily unavailable.", 503)
+
+
 @bp.post("/tune/releases/<release_id>/approve")
 @web_security.login_required(api=True, founder_only=True)
 def founder_approve_release(release_id: str):
