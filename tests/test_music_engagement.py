@@ -7,7 +7,14 @@ def test_qualified_engagement_rules():
     assert music_engagement.qualifies(
         event_type="HEARTBEAT", playback_seconds=12, duration_seconds=20
     ) is True
-    assert music_engagement.qualifies(event_type="COMPLETE", playback_seconds=1) is True
+    assert music_engagement.qualifies(event_type="COMPLETE", playback_seconds=1) is False
+    assert music_engagement.qualifies(event_type="COMPLETE", playback_seconds=30) is True
+    assert music_engagement.qualifies(
+        event_type="COMPLETE", playback_seconds=10, duration_seconds=20
+    ) is True
+    assert music_engagement.qualifies(
+        event_type="COMPLETE", playback_seconds=9, duration_seconds=20
+    ) is False
 
 
 def test_listener_key_is_pseudonymous_and_stable():
