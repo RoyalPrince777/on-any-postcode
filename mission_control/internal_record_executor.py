@@ -148,6 +148,7 @@ def execute(
     expected_status: object,
     target_status: object,
     expected_current_hash: object | None = None,
+    expected_result_hash: object | None = None,
 ) -> dict[str, Any]:
     """Execute one reversible owner-scoped status transition and verify read-back."""
 
@@ -215,6 +216,24 @@ def execute(
                     raise ValueError("invalid_expected_current_hash")
                 if current_hash_proof != expected_hash:
                     raise ExecutionBlocked("record_hash_mismatch")
+
+            # Rollback restoration MUST be validated while holding the row lock
+            # and before UPDATE/HRM/audit/commit. A post-commit mismatch cannot
+            # safely be reported as a blocked, unperformed rollback.
+            if expected_result_hash is not None:
+                required_result = str(expected_result_hash or "").strip().casefold()
+                if (len(required_result) != 64
+                        or any(ch not in "0123456789abcdef"
+                               for ch in required_result)):
+                    raise ValueError("invalid_expected_result_hash")
+                projected_result = _proof_hash({
+                    "workspace_id": workspace_id,
+                    "title": title,
+                    "body": body,
+                    "status": target,
+                })
+                if projected_result != required_result:
+                    raise ExecutionBlocked("rollback_restoration_hash_mismatch")
 
             duplicate = connection.execute(
                 """SELECT metadata
@@ -418,7 +437,9 @@ def rollback(
         expected_status=expected_status,
         target_status=target_status,
         expected_current_hash=expected_current_hash,
+        expected_result_hash=expected_restored_hash,
     )
+    # Defensive consistency invariant; actual mismatch is blocked before write.
     if result["after_hash"] != expected_restored_hash:
         raise ExecutionBlocked("rollback_restoration_hash_mismatch")
 
