@@ -2,7 +2,6 @@
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
-    ),
     artist_progress,
     entertainment_catalogue,
     music_assets,
