@@ -38,3 +38,13 @@ body:has(.arena-game){overflow-x:hidden}
 .arena-game .arena-board-text{overflow:auto;white-space:pre;max-width:100%;font:inherit;line-height:1.6}
 @media(max-width:430px){.arena-game{width:calc(100% - 16px)}.arena-game .card{padding:14px}.arena-game .arena-actions button{flex:1 1 44%}}
 @media(prefers-reduced-motion:reduce){.arena-game *, .arena-game *::before,.arena-game *::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Accessible Chess grid, Ludo track and Dot edge controls */
+.arena-game .arena-chess-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:min(100%,480px);max-width:100%;aspect-ratio:1;border:2px solid var(--mc-line);margin:12px 0}
+.arena-game .arena-chess-square{min-width:0;min-height:0;width:100%;height:100%;border:0;border-radius:0;padding:0;font-size:clamp(18px,5vw,40px);line-height:1;color:#141526;display:grid;place-items:center}
+.arena-game .arena-chess-light{background:#ecdfc0}.arena-game .arena-chess-dark{background:#aa91c6}
+.arena-game .arena-chess-square[aria-pressed="true"]{outline:4px solid #f5c451;outline-offset:-4px;z-index:1}
+.arena-game .arena-race-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,2fr);align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--mc-line)}
+.arena-game .arena-race-row progress{width:100%;accent-color:var(--arena-accent);height:15px}
+.arena-game [data-edges]{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:8px;margin:10px 0}
+.arena-game [data-edges] button{width:100%;background:var(--mc-panel-soft);color:var(--mc-text);border:1px solid var(--mc-line)}
