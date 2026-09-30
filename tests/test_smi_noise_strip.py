@@ -124,3 +124,16 @@ def test_voice_and_pause_state_changes_keep_readable_labels():
     assert 'class="control-label">Pause</span>' in canonical
     assert 'class="control-label">Stop voice</span>' in canonical
     assert 'class="control-label">Voice</span>' in canonical
+
+
+def test_quiet_home_shows_only_primary_composer_controls():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text(encoding="utf-8")
+    assert "Final noise strip: one quiet front-door composer." in css
+    assert "body.smi-noise-strip #speaker-button{\n  display:none!important;" in css
+    assert 'id="voice-reply-menu-button"' in base
+    assert "oapVoiceReplyMenu" in canonical
+    assert "oapSpeaker?.click()" in canonical
+    for label in ("Tools", "Voice", "Send"):
+        assert label in base
