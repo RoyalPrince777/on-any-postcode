@@ -443,7 +443,9 @@
   const ecosystemInternal=ecosystem?.runtime?.automatic_internal_ingestion_ready===true;
   const provenGates=Number(ecosystem?.live_sources?.proven_gate_count||0);
   const requiredGates=Number(ecosystem?.live_sources?.required_gate_count||0);
-  const ecosystemComplete=ecosystemInternal&&requiredGates>0&&provenGates===requiredGates&&ecosystem?.live_sources?.all_required_live_sources_proven===true;
+  const ecosystemComplete=ecosystemInternal&&requiredGates>0&&provenGates===requiredGates&&
+   ecosystem?.live_sources?.all_required_live_sources_proven===true&&
+   ecosystem?.runtime?.external_live_complete===true&&ecosystem?.architecture?.full_green===true;
   setUnified("ecosystem",ecosystemComplete,
    ecosystemInternal?"Internal signals ready · "+provenGates+"/"+(requiredGates||"?")+" external gates · "+(ecosystemComplete?"source coverage proven; Founder Final separate":"NOT FULL GREEN"):
    ecosystem?"Internal ingestion not proven · NOT GREEN":"Ecosystem source unavailable · NOT PROVEN");
