@@ -92,7 +92,7 @@ q("[data-reconnect]").onclick=async()=>{
  const room_id=q("[data-reconnect-id]").value.trim();
  const reconnect_token=q("[data-reconnect-token]").value.trim();
  if(!room_id||!reconnect_token){error(new Error("Room ID and private token are required."));return;}
- membership={room_id,reconnect_token,seat:Number(q("[data-reconnect-seat]").value)};
+ membership={room_id,reconnect_token,seat:0};
  try{
   await refresh();
   if(!snapshot.players.some(p=>p.seat===membership.seat))throw new Error("arena_room_seat_invalid");
