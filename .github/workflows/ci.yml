@@ -137,6 +137,11 @@ jobs:
           OAP_RADIO_TEST_POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
         run: python -m pytest -q tests/test_radio_postgres_integration.py
 
+      - name: Prove Music playback sessions against isolated PostgreSQL
+        env:
+          OAP_MUSIC_TEST_POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
+        run: python -m pytest -q tests/test_music_playback_postgres_integration.py
+
       # The external routing service is a hard gate, but an outage must not
       # suppress unrelated recovery regression evidence.
       - name: Run governed regression suite
