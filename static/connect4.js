@@ -15,7 +15,7 @@ async function post(url,payload){
 }
 function render(){
  const start=q("[data-start]");
- start.disabled=busy;
+ start.disabled=busy||state?.status==="active";
  q("[data-mode]").disabled=busy||state?.status==="active";
  q("[data-agent]").disabled=busy||state?.status==="active";
  q("[data-difficulty]").disabled=busy;
@@ -71,7 +71,7 @@ q("[data-mode]").onchange=()=>{
  q("[data-human-wrap]").hidden=agentMode;q("[data-agent-wrap]").hidden=!agentMode;
 };
 q("[data-start]").onclick=()=>{
- if(busy)return;
+ if(busy||state?.status==="active")return;
  agentMode=q("[data-mode]").value==="agent";
  const agentName=agentMode?q("[data-agent]").selectedOptions[0].text:q("[data-p2]").value;
  action("/arena/connect4/start",{player_one:q("[data-p1]").value,player_two:agentName,
