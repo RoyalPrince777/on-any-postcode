@@ -13,11 +13,26 @@
 (() => {
  const founderControl={{ founder_control|default(false)|tojson }},csrf={{ oap_csrf_token|default('',true)|tojson }},player=document.getElementById('radio-player'),title=document.getElementById('now-title'),stationSelect=document.getElementById('station-select');let queue=[],index=0;
  async function publicQueue(){try{const r=await fetch('/music/api/catalogue',{cache:'no-store'}),p=await r.json();queue=(p.items||[]).filter(x=>x.playback_enabled&&x.stream_url);if(!queue.length){title.textContent='No cleared tracks available yet.';player.removeAttribute('src');return}play(0)}catch(e){title.textContent='Radio catalogue unavailable.'}}
- async function engagement(track,event){const seconds=Math.max(0,Math.floor(player.currentTime||0));const duration=Number.isFinite(player.duration)?Math.max(1,Math.floor(player.duration)):null;try{await fetch('/music/api/engagement',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({track_id:track,surface:'OAP_RADIO',event_type:event,playback_seconds:seconds,duration_seconds:duration})})}catch(e){}}
- function play(i){if(!queue.length)return;index=i%queue.length;const x=queue[index];title.textContent=x.track_title+' · '+x.release_title;player.dataset.trackId=x.track_id;player.dataset.started='0';player.dataset.lastBeat='0';player.src=x.stream_url;player.play().catch(()=>{})}
+ let radioSession=null,radioSequence=1,radioChain=Promise.resolve(),radioGeneration=0;
+ function engagement(track,event){
+  const generation=radioGeneration;
+  const seconds=Math.max(0,Math.floor(player.currentTime||0));
+  const duration=Number.isFinite(player.duration)?Math.max(1,Math.floor(player.duration)):null;
+  radioChain=radioChain.then(async()=>{
+   if(generation!==radioGeneration||event!=='START'&&!radioSession)return;
+   const body={track_id:track,surface:'OAP_RADIO',event_type:event,playback_seconds:seconds,duration_seconds:duration};
+   if(event!=='START'){body.playback_session_id=radioSession;body.event_sequence=++radioSequence}
+   const r=await fetch('/music/api/engagement',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body)});
+   if(!r.ok)throw new Error('engagement_unavailable');
+   const result=await r.json();
+   if(event==='START'&&generation===radioGeneration){radioSession=result.playback_session_id;radioSequence=result.event_sequence}
+  }).catch(()=>{if(generation===radioGeneration)radioSession=null});
+  return radioChain;
+ }
+ function play(i){if(!queue.length)return;index=i%queue.length;const x=queue[index];radioGeneration++;radioSession=null;radioSequence=1;title.textContent=x.track_title+' · '+x.release_title;player.dataset.trackId=x.track_id;player.dataset.started='0';player.dataset.lastBeat='0';player.src=x.stream_url;player.play().catch(()=>{})}
  player.addEventListener('play',()=>{const track=player.dataset.trackId;if(track&&player.dataset.started!=='1'){player.dataset.started='1';engagement(track,'START')}});
  player.addEventListener('timeupdate',()=>{const track=player.dataset.trackId,now=Math.floor(player.currentTime||0),last=Number(player.dataset.lastBeat||0);if(track&&now>=10&&now-last>=15){player.dataset.lastBeat=String(now);engagement(track,'HEARTBEAT')}});
- player.addEventListener('ended',()=>{const track=player.dataset.trackId;if(track)engagement(track,'COMPLETE');play(index+1)});
+ player.addEventListener('ended',()=>{const track=player.dataset.trackId;if(track)engagement(track,'COMPLETE').then(()=>play(index+1));else play(index+1)});
  const api=async(path,method='GET',body=null)=>{const o={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};if(method!=='GET')o.headers['X-OAP-CSRF']=csrf;if(body!==null){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}const r=await fetch(path,o),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.error?.code||'Request failed');return p};
  async function refresh(){try{const r=await api('/mission/organs/radio');stationSelect.replaceChildren(new Option('Choose station',''));(r.stations||[]).forEach(s=>{const o=document.createElement('option');o.value=s.station_id;o.textContent=s.name+(s.always_on?' · ALWAYS ON':'')+(s.stopped?' · STOPPED':'');stationSelect.append(o)})}catch(e){document.getElementById('control-result').textContent='Enter My World to control your station.'}}
  if(founderControl){
