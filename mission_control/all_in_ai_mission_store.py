@@ -383,6 +383,52 @@ def read(identity_id: object, mission_id: object) -> dict[str, Any]:
     }
 
 
+
+def latest_verified(identity_id: object) -> dict[str, Any]:
+    """Read the latest owner-scoped checkpoint through canonical HRM/audit verification.
+
+    No active/executing state is inferred from a persisted plan. If the latest
+    receipt fails verification, fail closed rather than skipping to older data.
+    """
+    identity = _identity(identity_id)
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT title FROM oap_workspace_records
+                   WHERE identity_id=%s AND workspace_id='governance'
+                     AND title LIKE %s
+                   ORDER BY created_at DESC, record_id DESC LIMIT 1""",
+                (identity, _PREFIX + ":%:v%"),
+            ).fetchone()
+    except Exception as exc:
+        raise MissionStoreUnavailable("mission_latest_unavailable") from exc
+    if row is None:
+        return {"found": False, "execution_granted": False,
+                "human_authority_final": True}
+    title = str(row[0])
+    try:
+        mission = _mission_id(title.removeprefix(_PREFIX + ":").rsplit(":v", 1)[0])
+    except ValueError as exc:
+        raise MissionStoreUnavailable("mission_latest_invalid") from exc
+    receipt = read(identity, mission)
+    if not all(receipt.get(key) is True for key in
+               ("read_back_verified", "audit_verified", "hrm_verified")):
+        raise MissionStoreUnavailable("mission_latest_proof_incomplete")
+    if receipt.get("state") not in _ALLOWED_STATES:
+        raise MissionStoreUnavailable("mission_latest_state_invalid")
+    return {
+        "found": True,
+        "mission_id": mission,
+        "state": receipt["state"],
+        "version": receipt["version"],
+        "read_back_verified": True,
+        "audit_verified": True,
+        "hrm_verified": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
 def status() -> dict[str, object]:
     return {
         "component": "ALL IN A.I. Durable Mission Store",
