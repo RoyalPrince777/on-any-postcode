@@ -22,7 +22,11 @@ function render(){
  }
  q("[data-feedback]").textContent=state.status==="completed"?"Winner: "+state.winner:state.status==="stopped"?"Match stopped.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
 }
-async function act(path,payload){if(busy)return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;render();}catch(e){error(e);}finally{busy=false;render();}}
+async function act(path,payload){if(busy)return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;
+ if(path==="/arena/chess/start"||path==="/arena/chess/move"){
+  q("[data-source]").value="";q("[data-target]").value="";
+ }
+ render();}catch(e){error(e);}finally{busy=false;render();}}
 function move(){
  const source=q("[data-source]").value.trim().toLowerCase(),target=q("[data-target]").value.trim().toLowerCase();
  if(!/^[a-h][1-8]$/.test(source)||!/^[a-h][1-8]$/.test(target)){error(new Error("Use squares a1–h8 (for example e2 → e4)."));return;}
@@ -34,8 +38,24 @@ q("[data-stop]").onclick=()=>act("/arena/chess/stop",{request_id:requestId()});
 q("[data-board]").onclick=e=>{
  const btn=e.target.closest("[data-square]");if(!btn||btn.disabled)return;
  const id=btn.dataset.square;
- if(!selected){selected=id;q("[data-source]").value=id;render();return;}
- if(selected===id){selected=null;q("[data-source]").value="";render();return;}
+ const piece=state.board[id];
+ const ownColour=state.turn==="White"?"w":"b";
+ if(!selected){
+  if(!piece||piece[0]!==ownColour){
+   q("[data-feedback]").textContent="Select one of your own pieces to begin.";
+   return;
+  }
+  selected=id;q("[data-source]").value=id;q("[data-target]").value="";
+  render();q('[data-square="'+id+'"]')?.focus();return;
+ }
+ if(selected===id){
+  selected=null;q("[data-source]").value="";q("[data-target]").value="";
+  render();q('[data-square="'+id+'"]')?.focus();return;
+ }
+ if(piece&&piece[0]===ownColour){
+  selected=id;q("[data-source]").value=id;q("[data-target]").value="";
+  render();q('[data-square="'+id+'"]')?.focus();return;
+ }
  q("[data-target]").value=id;move();
 };
 })();
