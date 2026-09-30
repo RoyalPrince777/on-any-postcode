@@ -178,6 +178,7 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
                    asset_id UUID PRIMARY KEY,
                    owner_identity_id UUID NOT NULL,
                    track_id UUID NOT NULL,
+                   sha256 CHAR(64) NOT NULL,
                    stopped BOOLEAN NOT NULL DEFAULT FALSE)"""
             )
             conn.execute(
@@ -235,9 +236,9 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
         with isolated_connect() as conn:
             conn.execute(
                 """INSERT INTO oap_music_assets(
-                   asset_id,owner_identity_id,track_id)
-                   VALUES (%s,%s,%s)""",
-                (asset, owner, station_track),
+                   asset_id,owner_identity_id,track_id,sha256)
+                   VALUES (%s,%s,%s,%s)""",
+                (asset, owner, station_track, "b" * 64),
             )
             conn.execute(
                 """INSERT INTO oap_music_entitlements(
@@ -287,6 +288,25 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
                 (receipt, station),
             ).fetchone()
         assert row == ("RESPONSE_PREPARED", 4, 206, "a" * 64, "b" * 64)
+        # A digest that was valid at asset-read time must still match the
+        # locked canonical asset row before any prepared-response receipt.
+        with isolated_connect() as conn:
+            conn.execute(
+                "UPDATE oap_music_assets SET sha256=%s WHERE asset_id=%s",
+                ("f" * 64, asset),
+            )
+            conn.commit()
+        assert store.admit_delivery(**args) is None
+        with isolated_connect(readonly=True) as conn:
+            assert conn.execute(
+                "SELECT count(*) FROM oap_radio_delivery_admissions"
+            ).fetchone()[0] == 1
+        with isolated_connect() as conn:
+            conn.execute(
+                "UPDATE oap_music_assets SET sha256=%s WHERE asset_id=%s",
+                ("b" * 64, asset),
+            )
+            conn.commit()
         receipts = store.delivery_receipts(owner_identity_id=owner, station_id=station)
         assert len(receipts) == 1
         assert receipts[0]["receipt_id"] == receipt
