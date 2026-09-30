@@ -8,13 +8,37 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from . import entertainment_catalogue, postgres_db
 
 RADIO_MIGRATION_VERSION = "0008_oap_radio_core"
 RADIO_ALWAYS_ON_MIGRATION_VERSION = "0016_oap_radio_always_on"
 RADIO_FOUNDER_APPROVAL_MIGRATION_VERSION = "0021_oap_radio_founder_approval"
+RADIO_DELIVERY_ADMISSION_MIGRATION_VERSION = "0022_oap_radio_delivery_admission"
+RADIO_DELIVERY_ADMISSION_SCHEMA_STATEMENTS = (
+    """CREATE TABLE IF NOT EXISTS oap_radio_delivery_admissions (
+        receipt_id UUID PRIMARY KEY,
+        station_id UUID NOT NULL REFERENCES oap_radio_stations(station_id)
+            ON DELETE RESTRICT,
+        owner_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        track_id UUID NOT NULL REFERENCES oap_music_tracks(track_id)
+            ON DELETE RESTRICT,
+        asset_id UUID NOT NULL REFERENCES oap_music_assets(asset_id)
+            ON DELETE RESTRICT,
+        entitlement_id UUID NOT NULL REFERENCES oap_music_entitlements(entitlement_id)
+            ON DELETE RESTRICT,
+        rights_decision_hash CHAR(64) NOT NULL,
+        media_sha256 CHAR(64) NOT NULL,
+        prepared_bytes INTEGER NOT NULL CHECK (prepared_bytes > 0),
+        response_status INTEGER NOT NULL CHECK (response_status IN (200,206)),
+        receipt_type TEXT NOT NULL DEFAULT 'RESPONSE_PREPARED'
+            CHECK (receipt_type='RESPONSE_PREPARED'),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE INDEX IF NOT EXISTS ix_radio_delivery_station_created
+       ON oap_radio_delivery_admissions(station_id,created_at DESC)""",
+)
 RADIO_FOUNDER_APPROVAL_SCHEMA_STATEMENTS = (
     """ALTER TABLE oap_radio_stations
        ADD COLUMN IF NOT EXISTS founder_approved BOOLEAN NOT NULL DEFAULT FALSE""",
@@ -556,6 +580,80 @@ class RadioStore:
                 (station, track, asset),
             ).fetchone()
         return row is not None
+
+    def admit_delivery(
+        self, *, station_id: object, track_id: object, asset_id: object,
+        owner_identity_id: object, entitlement_id: object,
+        rights_decision_hash: object, media_sha256: object,
+        prepared_bytes: int, response_status: int,
+    ) -> str | None:
+        """Serialize response preparation with STOP and persist an honest receipt.
+
+        This is NOT confirmation of socket delivery, listening, or broadcast.
+        STOP and this gate both write-lock the same station-control row.
+        """
+        station = _uuid(station_id, "station_id")
+        track = _uuid(track_id, "track_id")
+        asset = _uuid(asset_id, "asset_id")
+        owner = _uuid(owner_identity_id, "owner_identity_id")
+        entitlement = _uuid(entitlement_id, "entitlement_id")
+        if not isinstance(rights_decision_hash, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", rights_decision_hash
+        ):
+            raise ValueError("invalid_rights_decision_hash")
+        if not isinstance(media_sha256, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", media_sha256
+        ):
+            raise ValueError("invalid_media_sha256")
+        if type(prepared_bytes) is not int or prepared_bytes < 1:
+            raise ValueError("invalid_prepared_bytes")
+        if response_status not in (200, 206):
+            raise ValueError("invalid_response_status")
+        receipt = str(uuid4())
+        with postgres_db.connect() as connection:
+            # Row locking makes STOP-before-admission deny; admission-before-STOP
+            # records its receipt before STOP can commit.
+            gate = connection.execute(
+                """SELECT c.station_id
+                   FROM oap_radio_station_control c
+                   JOIN oap_radio_stations s
+                     ON s.station_id=c.station_id
+                    AND s.owner_identity_id=c.owner_identity_id
+                   JOIN oap_radio_rotation r
+                     ON r.station_id=s.station_id
+                    AND r.owner_identity_id=s.owner_identity_id
+                   JOIN oap_music_assets a
+                     ON a.track_id=r.track_id
+                    AND a.owner_identity_id=s.owner_identity_id
+                   JOIN oap_music_entitlements e
+                     ON e.asset_id=a.asset_id
+                    AND e.owner_identity_id=s.owner_identity_id
+                   WHERE c.station_id=%s AND c.owner_identity_id=%s
+                     AND r.track_id=%s AND a.asset_id=%s AND e.entitlement_id=%s
+                     AND s.state='ACTIVE' AND s.founder_approved=TRUE
+                     AND c.stopped=FALSE AND c.always_on=TRUE
+                     AND a.stopped=FALSE AND e.active=TRUE
+                     AND e.access_scope='PUBLIC_FREE'
+                     AND e.channel IN ('OAP Radio','*')
+                     AND e.territory IN ('*')
+                     AND (e.valid_from IS NULL OR e.valid_from<=CURRENT_TIMESTAMP)
+                     AND (e.valid_until IS NULL OR e.valid_until>CURRENT_TIMESTAMP)
+                   FOR UPDATE OF c""",
+                (station, owner, track, asset, entitlement),
+            ).fetchone()
+            if gate is None:
+                return None
+            connection.execute(
+                """INSERT INTO oap_radio_delivery_admissions(
+                   receipt_id,station_id,owner_identity_id,track_id,asset_id,
+                   entitlement_id,rights_decision_hash,media_sha256,
+                   prepared_bytes,response_status)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (receipt, station, owner, track, asset, entitlement,
+                 rights_decision_hash, media_sha256, prepared_bytes, response_status),
+            )
+            connection.commit()
+        return receipt
 
     def dashboard(self, *, owner_identity_id: object) -> dict[str, object]:
         owner = _uuid(owner_identity_id, "owner_identity_id")
