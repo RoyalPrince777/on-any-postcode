@@ -14,6 +14,18 @@ from . import entertainment_catalogue, postgres_db
 
 RADIO_MIGRATION_VERSION = "0008_oap_radio_core"
 RADIO_ALWAYS_ON_MIGRATION_VERSION = "0016_oap_radio_always_on"
+RADIO_FOUNDER_APPROVAL_MIGRATION_VERSION = "0021_oap_radio_founder_approval"
+RADIO_FOUNDER_APPROVAL_SCHEMA_STATEMENTS = (
+    """ALTER TABLE oap_radio_stations
+       ADD COLUMN IF NOT EXISTS founder_approved BOOLEAN NOT NULL DEFAULT FALSE""",
+    """ALTER TABLE oap_radio_stations
+       ADD COLUMN IF NOT EXISTS founder_approved_at TIMESTAMPTZ""",
+    """ALTER TABLE oap_radio_shows
+       ADD COLUMN IF NOT EXISTS founder_approved BOOLEAN NOT NULL DEFAULT FALSE""",
+    """ALTER TABLE oap_radio_shows
+       ADD COLUMN IF NOT EXISTS founder_approved_at TIMESTAMPTZ""",
+)
+
 RADIO_ALWAYS_ON_SCHEMA_STATEMENTS = (
     """ALTER TABLE oap_radio_station_control
        ADD COLUMN IF NOT EXISTS always_on BOOLEAN NOT NULL DEFAULT FALSE""",
@@ -247,6 +259,66 @@ class RadioStore:
             "state": str(row[2]),
         }
 
+    def approve_station(
+        self, *, founder_identity_id: object, station_id: object
+    ) -> dict[str, object]:
+        founder = _uuid(founder_identity_id, "founder_identity_id")
+        station = _uuid(station_id, "station_id")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_radio_stations
+                   SET founder_approved=TRUE,
+                       founder_approved_at=CURRENT_TIMESTAMP,
+                       state=CASE WHEN state='DRAFT' THEN 'ACTIVE' ELSE state END,
+                       updated_at=CURRENT_TIMESTAMP
+                   WHERE station_id=%s AND owner_identity_id=%s
+                   RETURNING station_id,state,founder_approved,founder_approved_at""",
+                (station, founder),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("radio_station_not_owned")
+            connection.commit()
+        return {
+            "station_id": str(row[0]),
+            "state": str(row[1]),
+            "founder_approved": bool(row[2]),
+            "founder_approved_at": row[3].isoformat() if row[3] else None,
+            "broadcast_started": False,
+            "human_authority_final": True,
+        }
+
+    def approve_show(
+        self, *, founder_identity_id: object, station_id: object, show_id: object
+    ) -> dict[str, object]:
+        founder = _uuid(founder_identity_id, "founder_identity_id")
+        station = _uuid(station_id, "station_id")
+        show = _uuid(show_id, "show_id")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_radio_shows sh
+                   SET founder_approved=TRUE,
+                       founder_approved_at=CURRENT_TIMESTAMP
+                   FROM oap_radio_stations s
+                   WHERE sh.show_id=%s AND sh.station_id=%s
+                     AND s.station_id=sh.station_id
+                     AND s.owner_identity_id=%s
+                     AND s.founder_approved=TRUE
+                   RETURNING sh.show_id,sh.state,sh.founder_approved,sh.founder_approved_at""",
+                (show, station, founder),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("radio_station_or_show_not_approved_for_founder")
+            connection.commit()
+        return {
+            "show_id": str(row[0]),
+            "station_id": station,
+            "state": str(row[1]),
+            "founder_approved": bool(row[2]),
+            "founder_approved_at": row[3].isoformat() if row[3] else None,
+            "broadcast_started": False,
+            "human_authority_final": True,
+        }
+
     def schedule_show(
         self, *, owner_identity_id: object, station_id: object, show_id: object,
         starts_at: object, ends_at: object,
@@ -264,7 +336,9 @@ class RadioStore:
                    FROM oap_radio_stations s
                    JOIN oap_radio_shows sh ON sh.station_id=s.station_id
                    WHERE s.station_id=%s AND s.owner_identity_id=%s
+                     AND s.founder_approved=TRUE
                      AND sh.show_id=%s AND sh.owner_identity_id=%s
+                     AND sh.founder_approved=TRUE
                    RETURNING schedule_id,starts_at,ends_at""",
                 (owner, starts_at, ends_at, station, owner, show, owner),
             ).fetchone()
@@ -344,6 +418,7 @@ class RadioStore:
                        stop_reason=CASE WHEN %s THEN NULL ELSE stop_reason END,
                        updated_at=CURRENT_TIMESTAMP
                    WHERE station_id=%s AND owner_identity_id=%s
+                     AND founder_approved=TRUE
                    RETURNING station_id,always_on,auto_add_approved,stopped""",
                 (
                     bool(enabled),
@@ -403,7 +478,7 @@ class RadioStore:
         with postgres_db.connect(readonly=True) as connection:
             stations = connection.execute(
                 """SELECT s.station_id,s.name,s.slug,s.state,c.stopped,
-                          c.always_on,c.auto_add_approved
+                          c.always_on,c.auto_add_approved,s.founder_approved
                    FROM oap_radio_stations s
                    JOIN oap_radio_station_control c ON c.station_id=s.station_id
                    WHERE s.owner_identity_id=%s
@@ -411,7 +486,7 @@ class RadioStore:
                 (owner,),
             ).fetchall()
             shows = connection.execute(
-                """SELECT show_id,station_id,title,state
+                """SELECT show_id,station_id,title,state,founder_approved
                    FROM oap_radio_shows
                    WHERE owner_identity_id=%s
                    ORDER BY created_at DESC LIMIT 200""",
@@ -446,6 +521,7 @@ class RadioStore:
                     "state": str(r[3]), "stopped": bool(r[4]),
                     "always_on": bool(r[5]),
                     "auto_add_approved": bool(r[6]),
+                    "founder_approved": bool(r[7]),
                     "broadcast_live": False,
                 }
                 for r in stations
@@ -454,6 +530,7 @@ class RadioStore:
                 {
                     "show_id": str(r[0]), "station_id": str(r[1]),
                     "title": str(r[2]), "state": str(r[3]),
+                    "founder_approved": bool(r[4]),
                 }
                 for r in shows
             ],
