@@ -27,9 +27,9 @@
 
   <section class="card" data-setup>
     <h2>Start local board</h2>
-    <label>Place <input data-location maxlength="80" value="Mitcham"></label>
-    <label>Players (2–4, comma separated) <input data-players maxlength="180" value="Player One, Player Two"></label>
-    <button type="button" data-start>Start Route Empire</button>
+    <label class="arena-field">Place <input data-location maxlength="80" value="Mitcham"></label>
+    <label class="arena-field">Players (2–4, comma separated) <input data-players maxlength="180" value="Player One, Player Two"></label>
+    <div class="arena-actions"><button class="arena-primary" type="button" data-start>Start Route Empire</button></div>
     <p data-error role="alert"></p>
   </section>
 
@@ -41,9 +41,9 @@
     <div class="re-grid" data-nodes></div>
     <div class="re-actions">
       <button type="button" data-end-turn>End turn</button>
-      <button type="button" data-stop>STOP</button>
+      <button type="button" class="arena-stop" data-stop>STOP</button>
     </div>
-    <p class="re-status" data-status></p>
+    <p class="arena-feedback re-status" data-status role="status" aria-live="polite"></p>
   </section>
 </main>
 </body>
