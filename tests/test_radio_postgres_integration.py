@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 
-from mission_control import radio_core
+from mission_control import music_civilization_migration, radio_core
 
 URL = os.getenv("OAP_RADIO_TEST_POSTGRES_URL")
 
@@ -440,6 +440,65 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
                 "SELECT count(*) FROM oap_radio_delivery_admissions"
             ).fetchone()[0]
         assert total == 1
+    finally:
+        with psycopg.connect(URL, autocommit=True) as admin:
+            admin.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+
+
+@pytest.mark.skipif(not URL, reason="isolated Radio PostgreSQL URL not configured")
+def test_music_migration_read_only_inventory_on_real_postgres(monkeypatch):
+    """Disposable schema confirms read-back without any DDL or ledger writes."""
+    psycopg = pytest.importorskip("psycopg")
+    schema = "music_inventory_" + uuid4().hex
+    first, statements = music_civilization_migration._MIGRATIONS[0]
+    expected = music_civilization_migration._checksum(statements)
+    base = music_civilization_migration.product_cores.PRODUCT_CORE_MIGRATION_VERSION
+    with psycopg.connect(URL, autocommit=True) as admin:
+        admin.execute(f"CREATE SCHEMA {schema}")
+    try:
+        with psycopg.connect(URL, options=f"-c search_path={schema}") as conn:
+            conn.execute(
+                "CREATE TABLE oap_schema_migrations(version TEXT PRIMARY KEY, checksum TEXT NOT NULL)"
+            )
+            conn.execute(
+                "INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,%s),(%s,%s)",
+                (base, "base-readback", first, expected),
+            )
+            conn.commit()
+
+        @contextmanager
+        def read_only_connect(*, readonly=False):
+            assert readonly is True
+            with psycopg.connect(URL, options=f"-c search_path={schema}") as conn:
+                conn.execute("SET TRANSACTION READ ONLY")
+                yield conn
+
+        monkeypatch.setattr(
+            music_civilization_migration.postgres_db, "connect", read_only_connect
+        )
+        before = [(base, "base-readback"), (first, expected)]
+        result = music_civilization_migration.inspect()
+        assert result["registry_present"] is True
+        assert result["base_product_core_present"] is True
+        assert result["existing"] == [first]
+        assert len(result["pending"]) == len(music_civilization_migration._MIGRATIONS) - 1
+        assert result["checksum_mismatches"] == []
+        assert result["schema_inventory_ready"] is False
+        assert result["migration_performed"] is False
+
+        with psycopg.connect(URL, options=f"-c search_path={schema}") as conn:
+            assert conn.execute(
+                "SELECT version,checksum FROM oap_schema_migrations ORDER BY version"
+            ).fetchall() == before
+            conn.execute(
+                "UPDATE oap_schema_migrations SET checksum=%s WHERE version=%s",
+                ("incorrect", first),
+            )
+            conn.commit()
+        result = music_civilization_migration.inspect()
+        assert result["existing"] == []
+        assert result["checksum_mismatches"] == [first]
+        assert result["schema_inventory_ready"] is False
     finally:
         with psycopg.connect(URL, autocommit=True) as admin:
             admin.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
