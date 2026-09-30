@@ -1,4 +1,5 @@
 import pytest
+from flask import Flask, render_template
 
 from mission_control import product_cores, radio_core
 
@@ -111,3 +112,19 @@ def test_radio_always_on_has_separate_governed_migration():
     schema = "\n".join(radio_core.RADIO_ALWAYS_ON_SCHEMA_STATEMENTS)
     assert "ADD COLUMN IF NOT EXISTS always_on BOOLEAN" in schema
     assert "ADD COLUMN IF NOT EXISTS auto_add_approved BOOLEAN" in schema
+
+
+def test_radio_founder_approval_controls_are_private_and_use_real_actions():
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    with app.app_context():
+        public = render_template("oap_radio.html", founder_control=False)
+        private = render_template("oap_radio.html", founder_control=True)
+    for control in ('id="station-approve-button"', 'id="show-form"',
+                    'id="show-select"', 'id="show-approve-button"'):
+        assert control not in public
+        assert control in private
+    assert "Approve Station" in private
+    assert "Approve Show" in private
+    assert "'/approve','POST'" in private
+    assert "'/shows/'+encodeURIComponent(show)+'/approve','POST'" in private
+    assert "Approved is not broadcast" in private
