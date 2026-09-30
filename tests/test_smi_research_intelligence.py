@@ -65,12 +65,29 @@ def test_founder_memory_channel_can_retrieve_research_intelligence_decision():
 # CC21: these observations are entirely local test fixtures, not market feeds.
 
 NOW = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
-TRUSTED_SOURCES = {"approved research source": {"research_use_permitted": True, "verified": True, "source_class": "reputable_secondary", "instruments": ("SAMPLE",)}}
+TRUSTED_SOURCES = {
+    "approved research source": {
+        "research_use_permitted": True,
+        "verified": True,
+        "source_class": "reputable_secondary",
+        "instruments": ("SAMPLE",),
+        "verified_observations": {
+            "receipt-1": {
+                "verified": True,
+                "instrument": "SAMPLE",
+                "value": "12.34",
+                "published_at": "2026-09-30T11:49:00Z",
+                "observed_at": "2026-09-30T11:50:00Z",
+            },
+        },
+    },
+}
 
 
 def _financial_observation():
     return {
         "source": "approved research source",
+        "evidence_id": "receipt-1",
         "source_class": "reputable_secondary",
         "research_use_permitted": True,
         "claim_supported": True,
@@ -98,7 +115,6 @@ def test_cc21_valid_observation_remains_research_only():
     ("source", "", "missing_source"),
     ("source_class", "made_up", "invalid_source_class"),
     ("source_class", "community_or_social_signal", "social_signal_not_a_verified_quote"),
-    ("claim_supported", False, "claim_not_verified"),
     ("observed_or_inferred", "inferred", "not_a_direct_observation"),
     ("instrument", "", "missing_instrument"),
     ("value", "NaN", "invalid_quote"),
@@ -165,3 +181,34 @@ def test_cc21_source_registry_controls_permission_and_coverage():
         )
         assert result["usable_for_research"] is False
         assert expected in result["reasons"]
+
+
+@pytest.mark.parametrize(("change", "expected"), (
+    ({"evidence_id": ""}, "missing_evidence_id"),
+    ({"evidence_id": "not-issued"}, "independent_evidence_not_verified"),
+    ({"value": "99.99"}, "independent_evidence_mismatch"),
+    ({"instrument": "OTHER"}, "independent_evidence_mismatch"),
+    ({"published_at": "2026-09-30T11:48:00Z"}, "independent_evidence_mismatch"),
+))
+def test_cc21_submitted_quote_needs_matching_independent_receipt(change, expected):
+    observation = {**_financial_observation(), **change}
+    result = assess_financial_observation(
+        observation, now=NOW, trusted_sources=TRUSTED_SOURCES,
+    )
+    assert result["usable_for_research"] is False
+    assert expected in result["reasons"]
+    assert result["execution_allowed"] is False
+
+
+def test_cc21_self_attested_claim_does_not_grant_independent_receipt():
+    observation = _financial_observation()
+    observation["claim_supported"] = True
+    record = {
+        **TRUSTED_SOURCES["approved research source"],
+        "verified_observations": {},
+    }
+    result = assess_financial_observation(
+        observation, now=NOW, trusted_sources={"approved research source": record},
+    )
+    assert result["usable_for_research"] is False
+    assert "independent_evidence_not_verified" in result["reasons"]
