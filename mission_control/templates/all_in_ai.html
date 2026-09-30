@@ -429,6 +429,7 @@ executeButton.addEventListener('click',async()=>{
        action?.external_side_effect===false&&
        action?.financial_side_effect===false&&
        action?.authority_transferred===false&&
+       token?.origin_request_id===gate.requestId&&
        token?.record_id===record&&token?.expected_status===target&&
        token?.target_status===expected&&
        validDigest(token?.before_hash)&&validDigest(token?.after_hash)&&
