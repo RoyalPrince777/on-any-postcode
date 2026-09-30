@@ -23,6 +23,15 @@ button{margin-top:14px;padding:12px 16px;border:0;border-radius:12px;background:
 <a class="action" href="{{ url_for('the_link_front_door') }}"><strong>🔗 The Link</strong><br><span class="muted">People and opportunities before private chat.</span></a>
 <a class="action" href="{{ url_for('linkup_front_door') }}"><strong>💬 Link Up</strong><br><span class="muted">Open private messages and calls.</span></a>
 </section>
+{% if auth_user %}
+<section class="card" id="my-controls"><h2>My Controls</h2>
+<p class="muted">Leave My World signs this device out. Your My Card, Links, messages and saved OAP data remain intact.</p>
+<form method="post" action="{{ url_for('auth_sign_out') }}">
+<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+<button type="submit">Leave My World</button>
+</form>
+</section>
+{% endif %}
 <section class="card"><h2>Contacts</h2>{% if auth_user and contacts %}<ul>{% for contact in contacts %}<li><strong>{{ contact.display_name }}</strong> · {{ contact.card_id }}</li>{% endfor %}</ul>{% elif auth_user %}<p class="muted">No accepted Links yet. Discover someone, send a Link Request, then accepted Links appear here.</p>{% else %}<p class="muted">Contacts are private. Add secure sign-in before accepted Links can appear here.</p>{% endif %}</section>
 <section class="card"><h2>Settings · Theme · My Emojis</h2><form method="post" action="{{ url_for('my_card_preferences') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
 <label for="theme">Theme</label><select id="theme" name="theme"><option value="royal" {% if theme=="royal" %}selected{% endif %}>Royal</option><option value="earth" {% if theme=="earth" %}selected{% endif %}>Earth</option><option value="midnight" {% if theme=="midnight" %}selected{% endif %}>Midnight</option></select>
