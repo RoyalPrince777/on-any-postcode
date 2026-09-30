@@ -249,6 +249,18 @@ def get_workbench_status() -> dict[str, Any]:
             "external_evidence_is_software_verified": bool(a7.get("external_evidence_is_software_verified")),
             "fail_closed": True,
         },
+        "release_evidence": {
+            "music": {
+                "name": "OAP Music migration inventory",
+                "inspect_url": "/mission/workbench/music/release-evidence",
+                "founder_only": True,
+                "read_only": True,
+                "inspected_in_this_request": False,
+                "production_certified": False,
+                "migration_performed": False,
+                "human_authority_final": True,
+            },
+        },
         "founder_library": {
             "schema_ready": bool(founder_library.get("schema_ready")),
             "asset_count": int(founder_library.get("asset_count") or 0),
