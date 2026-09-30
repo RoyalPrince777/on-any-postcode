@@ -93,7 +93,7 @@ def test_radio_candidate_store_restricts_sql_to_public_eligible_rows(monkeypatch
     for requirement in (
         "s.state='ACTIVE'", "s.founder_approved=TRUE",
         "c.stopped=FALSE", "c.always_on=TRUE", "a.stopped=FALSE",
-        "r.owner_identity_id=s.owner_identity_id",
+        "owner_identity_id=s.owner_identity_id",
         "a.owner_identity_id=s.owner_identity_id",
         "ORDER BY position ASC LIMIT 1",
     ):
