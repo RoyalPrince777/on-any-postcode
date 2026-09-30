@@ -213,7 +213,34 @@
 <section class="panel"><div class="ey">Intelligence board</div><h2>Named review · traceable dissent</h2><div class="grid agents"><div class="card"><strong>🐝 Bee</strong><small>Gather evidence</small></div><div class="card"><strong>🦉 Owl</strong><small>Verify quality</small></div><div class="card"><strong>🐘 Elephant</strong><small>Provenance · continuity</small></div><div class="card"><strong>🐆 Panther</strong><small>Gaps · security</small></div><div class="card"><strong>🦅 Eagle</strong><small>Whole-system view</small></div><div class="card"><strong>🦅 Falcon</strong><small>Bounded next gate</small></div><div class="card"><strong>🦍 Gorilla</strong><small>Stress test</small></div><div class="card purple"><strong>🕶 Agent Smith</strong><small>Integrity attack</small></div></div><p class="muted">Relevant registered specialists and Intelligence Worlds are selected per mission. Selection grants no authority.</p></section>
 <section class="panel" id="vote-board"><div class="ey">Vote board</div><h2>Current evidence only</h2><div class="grid vote"><div class="card"><small>DECISION</small><strong>⚪ Check current run</strong></div><div class="card"><small>PASS</small><strong>—</strong></div><div class="card"><small>FAIL</small><strong>—</strong></div><div class="card"><small>ABSTAIN / CONDITIONAL</small><strong>—</strong></div></div><p class="truth">No fabricated tally. Each vote must be attributable to an active reviewer and evidence. Votes inform judgement; they never grant execution.</p></section>
 <section class="panel"><div class="ey">Challenge room</div><h2>Attack the conclusion</h2><div class="bar"><a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ Challenge</a><a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a><a class="btn" href="/war-room/smi-brain/evidence-runner/run?command=recovery_test">💥 Failure / Recovery</a><a class="btn" href="/smi/brain/evidence-runner/run?command=guardian_check">🛡 Guardian</a></div><p class="muted">Permanent attack targets: stale evidence · duplicate routes · unsupported confidence · hidden dependencies · false Green · irreversibility.</p></section>
-<section class="panel"><div class="ey">Seven-Star Gate</div><h2>Independent proof dimensions</h2><div class="grid stars"><div class="card">⭐<strong>Truth</strong></div><div class="card">⭐<strong>Function</strong></div><div class="card">⭐<strong>Security</strong></div><div class="card">⭐<strong>Stability</strong></div><div class="card">⭐<strong>Integration</strong></div><div class="card">⭐<strong>Compliance</strong></div><div class="card">⭐<strong>Learning</strong></div></div><p class="truth">No evidence = no Green. No test = no star. 7/7 is a Green Gate candidate only.</p></section>
+<section class="panel" id="smi-seven-star"><div class="ey">Seven-Star Gate</div><h2>Independent proof dimensions</h2><div class="grid stars" role="list" aria-label="Evidence-backed seven-star technical gate">
+{% for name in ("Truth", "Function", "Security", "Stability", "Integration", "Compliance", "Learning") %}
+<div class="card" role="listitem" data-star-check="{{ name }}"><span data-star-symbol aria-hidden="true">☆</span> <strong>{{ name }}</strong><small data-star-state>⚪ Unknown</small></div>
+{% endfor %}
+</div><p class="muted" id="smi-seven-star-count" role="status" aria-live="polite">0/7 evidenced · 0% of technical checks (not release approval)</p><p class="truth">No evidence = no Green. No test = no star. 7/7 is a technical Green Gate candidate only; Founder Final stays separate.</p></section>
+<script>
+(() => {
+ const root=document.getElementById("smi-seven-star");
+ if(!root)return;
+ const states={green:["★","🟢 Proven"],red:["✕","🔴 Failed"],purple:["☆","🟣 Pending"],unknown:["☆","⚪ Unknown"]};
+ fetch("/smi/deep-dive",{credentials:"same-origin",cache:"no-store",headers:{"Accept":"application/json"}})
+  .then(response=>{if(!response.ok)throw new Error("seven-star evidence unavailable");return response.json();})
+  .then(data=>{
+   const board=data.seven_star_assessment;
+   if(!board||!Array.isArray(board.checks)||board.checks.length!==7)return;
+   board.checks.forEach(check=>{
+    const tile=Array.from(root.querySelectorAll("[data-star-check]")).find(node=>node.dataset.starCheck===check.name);
+    if(!tile)return;
+    const [symbol,label]=states[check.signal]||states.unknown;
+    tile.querySelector("[data-star-symbol]").textContent=symbol;
+    tile.querySelector("[data-star-state]").textContent=label;
+    tile.title=typeof check.source==="string"?check.source:"No verified source supplied";
+   });
+   document.getElementById("smi-seven-star-count").textContent=board.proven+"/7 evidenced · "+board.technical_check_percent+"% of technical checks (not release approval)";
+  })
+  .catch(()=>{document.getElementById("smi-seven-star-count").textContent="⚪ Evidence unavailable · no technical Green inferred";});
+})();
+</script>
 <details open><summary>🛡 Guardian · End Review · SMI Judgement</summary><div class="inside"><p><strong>Guardian:</strong> protects the human — privacy · safety · consent · identity · authority boundaries.</p><p><strong>Aegis:</strong> protects the OAP organism — containment · recursion limits · isolation · rollback · integrity.</p><p><strong>End Review:</strong> Neo → Shere Khan → Bagheera → Agent Smith → Judges → SMI Return → Green Gate. Serious dissent and the minority report survive.</p><p><strong>SMI:</strong> synthesises evidence, percentages, votes, ratings and unresolved gaps. <strong>👑 Human Authority remains final.</strong> Founder remains the final Human Authority.</p></div></details>
 <section class="panel"><div class="ey">Clear output</div><h2>Founder result contract</h2><div class="receipt">MISSION: current run<br>SIGNAL: 🟣 / 🟢 / 🟡 / 🟠<br>EVIDENCE: current / stale / conflicting / unknown<br>CONFIDENCE: evidence-backed % only<br>AGREED: pending<br>DISAGREED: pending<br>UNRESOLVED: pending<br>VOTES: count + split + %<br>VOICE / JUDGE SPEECHES: attributed<br>STRONGEST LINK: pending<br>WEAKEST LINK: pending<br>MINORITY REPORT: preserved<br>ARGUMENT: pending<br>VERDICT / JUDGEMENT: pending<br>7-STAR RATING: pending<br>GUARDIAN: boundary active<br>AEGIS: organism boundary active<br>GREEN GATE: proof required<br>END REVIEW: pending<br>RECOMMENDED SIGNAL: pending<br>FULL GREEN: NO until proven<br>FOUNDER FINAL: 👑 waiting / approved / held / blocked<br>PRODUCTION WRITE: none from this page<br>RECEIPT → HRM / JOOG → LEARN</div></section>
 <script>
