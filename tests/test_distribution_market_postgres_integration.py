@@ -427,14 +427,14 @@ def test_real_postgres_property_grant_scope_expiry_revocation_and_reviewer():
     assert verify(item, evidence_id) is True
 
     # A grant's property/evidence scope is immutable even to a direct DB writer.
-    with pytest.raises(Exception, match="property_grant_evidence_immutable"):
-        with postgres_db.connect() as connection:
-            connection.execute(
+    with (pytest.raises(Exception, match="property_grant_evidence_immutable"),
+          postgres_db.connect() as connection):
+        connection.execute(
                 """UPDATE oap_property_advertising_authority
                    SET property_ref='changed-property' WHERE evidence_id=%s""",
                 (evidence_id,),
-            )
-            connection.commit()
+        )
+        connection.commit()
     assert verify(item, evidence_id) is True
 
     with postgres_db.connect() as connection:
@@ -445,14 +445,14 @@ def test_real_postgres_property_grant_scope_expiry_revocation_and_reviewer():
         )
         connection.commit()
     assert verify(item, evidence_id) is False  # expired at the DB clock
-    with pytest.raises(Exception, match="property_grant_extension_requires_new_evidence"):
-        with postgres_db.connect() as connection:
-            connection.execute(
+    with (pytest.raises(Exception, match="property_grant_extension_requires_new_evidence"),
+          postgres_db.connect() as connection):
+        connection.execute(
                 """UPDATE oap_property_advertising_authority
                    SET valid_until=CURRENT_TIMESTAMP + INTERVAL '1 day'
                    WHERE evidence_id=%s""", (evidence_id,),
-            )
-            connection.commit()
+        )
+        connection.commit()
 
     # Real revocation is transactional with the existing OAP PostgreSQL audit.
     revoked = property_authority.revoke_advertising_authority(
@@ -472,14 +472,14 @@ def test_real_postgres_property_grant_scope_expiry_revocation_and_reviewer():
         assert row == (revoked["audit_hash"], reviewer, "PROPERTY_GRANT_REVOKED",
                        f"property_grant:{evidence_id}")
 
-    with pytest.raises(Exception, match="property_grant_revocation_terminal"):
-        with postgres_db.connect() as connection:
-            connection.execute(
+    with (pytest.raises(Exception, match="property_grant_revocation_terminal"),
+          postgres_db.connect() as connection):
+        connection.execute(
                 """UPDATE oap_property_advertising_authority
                    SET status='ACTIVE',revoked_at=NULL WHERE evidence_id=%s""",
                 (evidence_id,),
-            )
-            connection.commit()
+        )
+        connection.commit()
     with pytest.raises(ValueError, match="property_grant_not_revocable"):
         property_authority.revoke_advertising_authority(
             evidence_ref=evidence_id, revoked_by=reviewer, reason="Replay",
