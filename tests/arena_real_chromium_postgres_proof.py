@@ -28,6 +28,8 @@ def prepare():
     assert database.startswith("postgresql://") and "127.0.0.1" in database, (
         "Only the disposable localhost CI database is authorized."
     )
+    base = postgres_db.init_postgres(assume_yes=True)
+    assert base["initialized"] is True, "Ephemeral base schema must be complete"
     migration = (ROOT / "migrations/0008_oap_arena_multiplayer_rooms.sql").read_text()
     with postgres_db.connect() as connection:
         for sql in migration.split(";"):
@@ -68,7 +70,7 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     expect(host.locator("[data-create]")).to_be_hidden()
     room_code = host.locator("[data-code]").inner_text()
     assert len(room_code) == 6
-    assert host.locator("[data-token]").inner_text().strip()
+    expect(host.locator("[data-token]")).not_to_be_empty()
 
     guest_code = "[data-join-code]" if game == "connect4" else "[data-code-input]"
     guest.locator(guest_code).fill(room_code)
