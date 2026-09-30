@@ -193,7 +193,7 @@ def room_state(*, room_id: object, reconnect_token: object) -> dict[str, Any]:
     try:
         with postgres_db.connect(readonly=True) as connection:
             authorized = connection.execute(
-                """SELECT 1 FROM oap_arena_room_players
+                """SELECT seat FROM oap_arena_room_players
                    WHERE room_id=%s AND reconnect_token_hash=%s
                    LIMIT 1""",
                 (room, token_hash),
@@ -225,6 +225,7 @@ def room_state(*, room_id: object, reconnect_token: object) -> dict[str, Any]:
         game_state = connect4.public_state(game_state)
     return {
         "room_id": room,
+        "your_seat": int(authorized[0]),
         "room_code": str(room_row[0]),
         "game_key": str(room_row[1]),
         "status": str(room_row[2]),
