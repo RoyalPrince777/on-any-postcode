@@ -481,6 +481,49 @@ class RadioStore:
             "player_handoff_allowed": False,
         }
 
+    def playout_candidate(
+        self, *, station_id: object
+    ) -> dict[str, object] | None:
+        """Resolve a station-scoped candidate, never permission to deliver bytes.
+
+        Recheck STOP, rights, entitlement and asset integrity at the eventual
+        delivery boundary. A queue selection is not a broadcast or airplay.
+        """
+        station = _uuid(station_id, "station_id")
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT r.track_id,a.asset_id
+                   FROM oap_radio_stations s
+                   JOIN oap_radio_station_control c
+                     ON c.station_id=s.station_id
+                    AND c.owner_identity_id=s.owner_identity_id
+                   JOIN oap_radio_rotation r
+                     ON r.station_id=s.station_id
+                    AND r.owner_identity_id=s.owner_identity_id
+                   JOIN oap_music_assets a
+                     ON a.track_id=r.track_id
+                    AND a.owner_identity_id=s.owner_identity_id
+                   WHERE s.station_id=%s AND s.state='ACTIVE'
+                     AND s.founder_approved=TRUE
+                     AND c.stopped=FALSE AND c.always_on=TRUE
+                     AND a.stopped=FALSE
+                   ORDER BY r.position ASC LIMIT 1""",
+                (station,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "station_id": station,
+            "track_id": str(row[0]),
+            "asset_id": str(row[1]),
+            "selection_only": True,
+            "delivery_authorized": False,
+            "live_rights_and_entitlement_check_required": True,
+            "station_stop_recheck_required": True,
+            "airplay_receipt": None,
+            "broadcast_started": False,
+        }
+
     def dashboard(self, *, owner_identity_id: object) -> dict[str, object]:
         owner = _uuid(owner_identity_id, "owner_identity_id")
         with postgres_db.connect(readonly=True) as connection:
