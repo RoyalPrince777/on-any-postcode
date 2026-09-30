@@ -222,12 +222,19 @@ def _verified_executor_outcome(
     """
     if not isinstance(outcome, Mapping):
         return False
+    try:
+        request_id = _uuid(authorization.get("request_id"), "request_id")
+        approval_id = _uuid(
+            authorization.get("approval_receipt_id"), "approval_receipt_id",
+        )
+    except ValueError:
+        return False
     receipt = outcome.get("outcome_receipt")
     if not isinstance(receipt, Mapping):
         return False
     return all((
-        outcome.get("request_id") == authorization.get("request_id"),
-        outcome.get("approval_receipt_id") == authorization.get("approval_receipt_id"),
+        outcome.get("request_id") == request_id,
+        outcome.get("approval_receipt_id") == approval_id,
         outcome.get("action_performed") is True,
         outcome.get("evidence_proven") is True,
         outcome.get("status_readback_verified") is True,
