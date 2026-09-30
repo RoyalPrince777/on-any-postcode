@@ -23,6 +23,7 @@ from mission_control import (
     a7_certification,
     approval_service,
     arena_intelligence,
+    arena_rooms,
     authority,
     carnival_intelligence,
     certification,
@@ -738,6 +739,74 @@ def world_arena():
     """Open the bounded first-party OAP Arena Challenge Engine."""
 
     return _arena_intelligence_response()
+
+
+@app.post("/arena/rooms/create")
+def arena_room_create():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.create_room(
+            game_key=payload.get("game_key"),
+            host_name=payload.get("host_name"),
+            capacity=payload.get("capacity", 2),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result, 201)
+
+
+@app.post("/arena/rooms/join")
+def arena_room_join():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.join_room(
+            room_code=payload.get("room_code"),
+            display_name=payload.get("display_name"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result, 201)
+
+
+@app.post("/arena/rooms/state")
+def arena_room_state():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.room_state(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/state/update")
+def arena_room_state_update():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.update_game_state(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            game_state=payload.get("game_state"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
 
 
 @app.post("/arena/session/start")
