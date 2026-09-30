@@ -15,11 +15,11 @@ def test_missing_evidence_is_unknown_not_green():
     assert result["founder_final"] is False
 
 
-def test_proven_requires_explicit_true_and_source():
+def test_proven_requires_explicit_verified_fresh_source():
     result = evaluate_seven_star_gate({
-        "Truth": {"passed": True, "source": "CI exact-head/123"},
+        "Truth": {"passed": True, "verified": True, "fresh": True, "source": "CI exact-head/123"},
         "Function": {"passed": True, "source": "   "},
-        "Security": {"passed": False, "source": "security-check/123"},
+        "Security": {"passed": False, "verified": True, "source": "security-check/123"},
         "Stability": {"passed": "true", "source": "stability-check/123"},
         "Integration": {"passed": True},
     })
@@ -32,7 +32,7 @@ def test_proven_requires_explicit_true_and_source():
 
 def test_all_seven_technical_checks_do_not_self_approve_release():
     result = evaluate_seven_star_gate({
-        name: {"passed": True, "source": "verified-run/" + name}
+        name: {"passed": True, "verified": True, "fresh": True, "source": "verified-run/" + name}
         for name in SEVEN_STAR_GATE
     })
     assert result["proven"] == 7
@@ -54,3 +54,16 @@ def test_private_deep_dive_status_exposes_fail_closed_assessment():
     assert assessment["technical_gate_passed"] is False
     assert assessment["production_green"] is False
     assert assessment["founder_final"] is False
+
+def test_unverified_or_stale_pass_claims_never_turn_green():
+    result = evaluate_seven_star_gate({
+        "Truth": {"passed": True, "source": "unverified-source"},
+        "Function": {"passed": True, "verified": True, "fresh": False, "source": "old-run"},
+        "Security": {"passed": True, "verified": True, "source": "unconfirmed-freshness"},
+        "Stability": {"passed": True, "verified": True, "fresh": True, "source": "  "},
+    })
+    assert result["proven"] == 0
+    assert result["technical_check_percent"] == 0
+    assert all(item["signal"] == "purple" for item in result["checks"][:4])
+    assert result["technical_gate_passed"] is False
+
