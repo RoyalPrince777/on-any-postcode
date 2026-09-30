@@ -6,6 +6,18 @@ import pytest
 
 from mission_control import internal_record_executor as executor
 
+MISSION = "00000000-0000-0000-0000-000000000002"
+CHECKPOINT_DIGEST = "a" * 64
+
+
+@pytest.fixture(autouse=True)
+def verified_mission_checkpoint(monkeypatch):
+    monkeypatch.setattr(executor.all_in_ai_mission_store, "_latest_row",
+                        lambda *_args: ("checkpoint", "{}"))
+    monkeypatch.setattr(executor.all_in_ai_mission_store, "_parse_entry",
+                        lambda *_args: {"mission_id": MISSION, "state": "planned",
+                                       "digest": CHECKPOINT_DIGEST})
+
 
 def _authorization(identity_id: str) -> dict[str, object]:
     _ = identity_id
@@ -127,6 +139,8 @@ def test_executor_changes_status_only_and_proves_readback(monkeypatch):
     result = executor.execute(
         _authorization(identity),
         identity_id=identity,
+        mission_id=MISSION,
+        expected_mission_digest=CHECKPOINT_DIGEST,
         record_id=record,
         expected_status="draft",
         target_status="active",
@@ -166,7 +180,9 @@ def test_wrong_owner_fails_closed(monkeypatch):
         executor.execute(
             _authorization(other),
             identity_id=other,
-            record_id=record,
+            mission_id=MISSION,
+        expected_mission_digest=CHECKPOINT_DIGEST,
+        record_id=record,
             expected_status="draft",
             target_status="active",
         )
@@ -183,7 +199,9 @@ def test_stale_status_fails_closed(monkeypatch):
         executor.execute(
             _authorization(identity),
             identity_id=identity,
-            record_id=record,
+            mission_id=MISSION,
+        expected_mission_digest=CHECKPOINT_DIGEST,
+        record_id=record,
             expected_status="draft",
             target_status="active",
         )
@@ -200,7 +218,9 @@ def test_archived_record_never_mutates(monkeypatch):
         executor.execute(
             _authorization(identity),
             identity_id=identity,
-            record_id=record,
+            mission_id=MISSION,
+        expected_mission_digest=CHECKPOINT_DIGEST,
+        record_id=record,
             expected_status="draft",
             target_status="active",
         )
@@ -241,7 +261,9 @@ def test_executor_rejects_noop_and_archived_target():
         executor.execute(
             _authorization(identity),
             identity_id=identity,
-            record_id=record,
+            mission_id=MISSION,
+        expected_mission_digest=CHECKPOINT_DIGEST,
+        record_id=record,
             expected_status="draft",
             target_status="draft",
         )
@@ -250,7 +272,9 @@ def test_executor_rejects_noop_and_archived_target():
         executor.execute(
             _authorization(identity),
             identity_id=identity,
-            record_id=record,
+            mission_id=MISSION,
+        expected_mission_digest=CHECKPOINT_DIGEST,
+        record_id=record,
             expected_status="draft",
             target_status="archived",
         )
@@ -308,6 +332,8 @@ def test_rollback_requires_exact_post_action_hash(monkeypatch):
     result = executor.rollback(
         authorization,
         identity_id=identity,
+        mission_id=MISSION,
+        expected_mission_digest=CHECKPOINT_DIGEST,
         rollback_token={
             "record_id": record,
             "expected_status": "active",
@@ -330,6 +356,8 @@ def test_rollback_rejects_bad_before_hash():
         executor.rollback(
             _authorization(identity),
             identity_id=identity,
+            mission_id=MISSION,
+            expected_mission_digest=CHECKPOINT_DIGEST,
             rollback_token={
                 "record_id": str(uuid.uuid4()),
                 "expected_status": "active",
@@ -338,3 +366,60 @@ def test_rollback_rejects_bad_before_hash():
                 "after_hash": "a" * 64,
             },
         )
+
+
+def test_stop_checkpoint_blocks_before_record_lock_or_mutation(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    monkeypatch.setattr(executor.all_in_ai_mission_store, "_parse_entry",
+                        lambda *_args: {"mission_id": MISSION, "state": "stopped",
+                                       "digest": "b" * 64})
+    with pytest.raises(executor.ExecutionBlocked, match="mission_stopped"):
+        executor.execute(
+            _authorization(identity), identity_id=identity,
+            mission_id=MISSION, expected_mission_digest=CHECKPOINT_DIGEST,
+            record_id=record, expected_status="draft", target_status="active",
+        )
+    assert connection.status == "draft"
+    assert connection.audit == []
+    assert connection.committed is False
+
+
+def test_changed_checkpoint_blocks_stale_authorization(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    monkeypatch.setattr(executor.all_in_ai_mission_store, "_parse_entry",
+                        lambda *_args: {"mission_id": MISSION, "state": "recovered",
+                                       "digest": "b" * 64})
+    with pytest.raises(executor.ExecutionBlocked, match="mission_checkpoint_changed"):
+        executor.execute(
+            _authorization(identity), identity_id=identity,
+            mission_id=MISSION, expected_mission_digest=CHECKPOINT_DIGEST,
+            record_id=record, expected_status="draft", target_status="active",
+        )
+    assert connection.status == "draft"
+    assert connection.audit == []
+
+
+def test_mission_lock_is_acquired_before_target_record_lock(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    locks = []
+    original = connection.execute
+    def capture(sql, params=None):
+        if "pg_advisory_xact_lock(hashtext" in sql:
+            locks.append(params[0])
+        return original(sql, params)
+    monkeypatch.setattr(connection, "execute", capture)
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    monkeypatch.setattr(executor.governed_action_pipeline, "record_action_outcome",
+                        lambda *_args, **_kwargs: {"write_verified": True, "read_back_verified": True})
+    executor.execute(_authorization(identity), identity_id=identity,
+                     mission_id=MISSION, expected_mission_digest=CHECKPOINT_DIGEST,
+                     record_id=record, expected_status="draft", target_status="active")
+    assert locks[:2] == [f"all-in-ai:{MISSION}", f"internal-record-sync:{record}"]
