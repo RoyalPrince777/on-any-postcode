@@ -674,7 +674,7 @@ class RadioStore:
                      AND r.track_id=%s AND a.asset_id=%s AND e.entitlement_id=%s
                      AND s.state='ACTIVE' AND s.founder_approved=TRUE
                      AND c.stopped=FALSE AND c.always_on=TRUE
-                     AND a.stopped=FALSE AND e.active=TRUE
+                     AND a.stopped=FALSE AND a.sha256=%s AND e.active=TRUE
                      AND e.access_scope='PUBLIC_FREE'
                      AND e.channel IN ('OAP Radio','*')
                      AND e.territory IN ('*')
@@ -694,7 +694,7 @@ class RadioStore:
                      AND (g.valid_from IS NULL OR g.valid_from<=CURRENT_TIMESTAMP)
                      AND (g.valid_until IS NULL OR g.valid_until>CURRENT_TIMESTAMP)
                    LIMIT 1 FOR UPDATE OF c FOR SHARE OF a,e,g""",
-                (station, owner, track, asset, entitlement),
+                (station, owner, track, asset, entitlement, media_sha256),
             ).fetchone()
             if gate is None:
                 return None
