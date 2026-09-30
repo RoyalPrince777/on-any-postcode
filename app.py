@@ -22,7 +22,9 @@ from flask import (
 from mission_control import (
     a7_certification,
     approval_service,
+    arena_agents,
     arena_intelligence,
+    arena_rooms,
     authority,
     carnival_intelligence,
     certification,
@@ -740,6 +742,179 @@ def world_arena():
     return _arena_intelligence_response()
 
 
+@app.get("/arena/agents")
+def arena_agents_catalogue():
+    return _arena_json(arena_agents.catalogue())
+
+
+@app.post("/arena/connect4/agent-move")
+def connect4_agent_move():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        if session.get("oap_connect4_mode") != "agent":
+            raise ValueError("connect4_agent_mode_required")
+        state = session.get(connect4.SESSION_KEY)
+        view = connect4.public_state(state)
+        if view.get("status") != "active":
+            raise ValueError("connect4_agent_game_not_active")
+        agent = arena_agents.choose_agent("connect4", session.get("oap_connect4_agent"))
+        if payload.get("agent_key") not in {None, agent["key"]}:
+            raise ValueError("connect4_agent_identity_locked")
+        if view.get("current_player_id") != "p2":
+            raise ValueError("connect4_agent_not_turn")
+        column = arena_agents.connect4_column(
+            view.get("board"),
+            agent_piece=2,
+            human_piece=1,
+            difficulty=payload.get("difficulty", "standard"),
+        )
+        state = connect4.drop(
+            state,
+            column=column,
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[connect4.SESSION_KEY] = state
+    session.modified = True
+    result = connect4.public_state(state)
+    result["agent"] = agent
+    result["agent_column"] = column
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/create")
+def arena_room_create():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.create_room(
+            game_key=payload.get("game_key"),
+            host_name=payload.get("host_name"),
+            capacity=payload.get("capacity", 2),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result, 201)
+
+
+@app.post("/arena/rooms/join")
+def arena_room_join():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.join_room(
+            room_code=payload.get("room_code"),
+            display_name=payload.get("display_name"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result, 201)
+
+
+@app.post("/arena/rooms/state")
+def arena_room_state():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.room_state(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/state/update")
+def arena_room_state_update():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.update_game_state(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            game_state=payload.get("game_state"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.get("/arena/connect4/room")
+def arena_connect4_room_page():
+    response = make_response(
+        render_template("arena_connect4_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/arena/dot/room")
+def arena_dot_room_page():
+    response = make_response(
+        render_template("arena_dot_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.post("/arena/rooms/dot/action")
+def arena_room_dot_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.dot_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            a=payload.get("a"),
+            b=payload.get("b"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/connect4/action")
+def arena_room_connect4_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.connect4_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            column=payload.get("column"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
 @app.post("/arena/session/start")
 def arena_session_start():
     denied = _arena_write_allowed()
@@ -999,10 +1174,20 @@ def connect4_start():
         return denied
     try:
         payload = _arena_payload()
-        state = connect4.new_game(payload.get("player_one"), payload.get("player_two"))
+        mode = str(payload.get("opponent_mode") or "human")
+        if mode not in {"human", "agent"}:
+            raise ValueError("connect4_opponent_mode_invalid")
+        if mode == "agent":
+            selected = arena_agents.choose_agent("connect4", payload.get("agent_key"))
+            player_two = selected["name"]
+        else:
+            player_two = payload.get("player_two")
+        state = connect4.new_game(payload.get("player_one"), player_two)
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[connect4.SESSION_KEY] = state
+    session["oap_connect4_mode"] = mode
+    session["oap_connect4_agent"] = selected["key"] if mode == "agent" else None
     session.modified = True
     return _arena_json(connect4.public_state(state), 201)
 
@@ -1014,6 +1199,10 @@ def connect4_drop():
         return denied
     try:
         payload = _arena_payload()
+        if session.get("oap_connect4_mode") == "agent":
+            current = connect4.public_state(session.get(connect4.SESSION_KEY))
+            if current.get("current_player_id") != "p1":
+                raise ValueError("connect4_agent_turn_reserved")
         state = connect4.drop(
             session.get(connect4.SESSION_KEY),
             column=payload.get("column"),

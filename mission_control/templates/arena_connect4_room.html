@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="oap-csrf-token" content="{{ csrf_token }}">
+  <meta name="referrer" content="no-referrer">
+  <title>Connect 4 Rooms · OAP Arena</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <script src="{{ url_for('static', filename='arena_connect4_room.js') }}" defer></script>
+  <style>
+    .room-actions{display:flex;flex-wrap:wrap;gap:9px}.room-actions button{min-height:44px}
+    .room-panel{max-width:800px;margin:16px auto}.room-panel label{display:block;margin:10px 0}
+    .room-panel input{width:100%;max-width:420px}
+    .room-board{display:grid;grid-template-columns:repeat(7,minmax(32px,55px));gap:5px;max-width:430px}
+    .room-cell{aspect-ratio:1;border:1px solid var(--mc-line);border-radius:50%;background:rgba(255,255,255,.07)}
+    .room-p1{background:#f5c451}.room-p2{background:#a36dff}
+    .room-columns{display:grid;grid-template-columns:repeat(7,minmax(32px,55px));gap:5px;max-width:430px}
+    .room-columns button{min-width:0;min-height:44px}
+    .room-secret{font-family:monospace;word-break:break-all}
+    [hidden]{display:none!important}
+  </style>
+</head>
+<body><main class="mc-shell" data-room-root>
+  <section class="card room-panel">
+    <p><a href="/arena">← OAP Arena</a> · <a href="/arena/connect4">Local / Agent match</a></p>
+    <h1>🔴 Connect 4 · Room</h1>
+    <p>First-party two-player room. Send your room code to the other player; keep your reconnect token private.</p>
+    <div data-entry>
+      <h2>Create</h2>
+      <label>Your display name <input data-host maxlength="40" autocomplete="nickname" placeholder="Player One"></label>
+      <div class="room-actions"><button type="button" data-create>Create Room</button></div>
+      <h2>Join</h2>
+      <label>Room code <input data-join-code maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="ABC234"></label>
+      <label>Your display name <input data-guest maxlength="40" autocomplete="nickname" placeholder="Player Two"></label>
+      <div class="room-actions"><button type="button" data-join>Join Room</button></div>
+      <h2>Reconnect</h2>
+      <label>Room ID <input data-reconnect-id autocomplete="off" placeholder="Room UUID"></label>
+      <label>Your private reconnect token <input data-reconnect-token type="password" autocomplete="off"></label>
+      <button type="button" data-reconnect>Reconnect</button>
+    </div>
+    <section data-room hidden>
+      <p>Room code: <strong data-code></strong> · Status: <strong data-status></strong> · Revision: <strong data-revision></strong></p>
+      <details><summary>Private reconnect details (do not share)</summary>
+        <p>Room ID: <span class="room-secret" data-id></span></p>
+        <p>Token: <span class="room-secret" data-token></span></p>
+        <p>Save both to reconnect. Only share the six-character room code.</p>
+      </details>
+      <p data-players></p>
+      <p data-turn aria-live="polite"></p>
+      <div class="room-columns" data-columns aria-label="Choose Connect 4 column"></div>
+      <div class="room-board" data-board role="img" aria-label="Connect 4 board"></div>
+      <div class="room-actions"><button type="button" data-refresh>Refresh Match</button><button type="button" data-stop>STOP</button></div>
+    </section>
+    <p data-message role="status" aria-live="polite"></p>
+    <p data-error role="alert"></p>
+    <p>Unranked room; no chat, payment or prize execution. If another player moves first, refresh your match before acting.</p>
+  </section>
+</main></body>
+</html>
