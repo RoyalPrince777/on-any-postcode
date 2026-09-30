@@ -4,11 +4,13 @@ IDENTITY = "00000000-0000-0000-0000-000000000001"
 MISSION = "00000000-0000-0000-0000-000000000002"
 REQUEST = "00000000-0000-0000-0000-000000000003"
 MISSION_HASH = "a" * 64
+CHECKPOINT_DIGEST = "b" * 64
 
 
 def _mission_receipt(state="planned"):
     return {
         "mission_hash": MISSION_HASH,
+        "digest": CHECKPOINT_DIGEST,
         "state": state,
         "read_back_verified": True,
         "audit_verified": True,
@@ -241,6 +243,7 @@ def test_execute_internal_record_uses_server_derived_authorization(monkeypatch):
             "mission_id": MISSION,
             "reviewed_request_id": REQUEST,
             "status": "AUTHORIZED_NOT_EXECUTED",
+            "mission_checkpoint_digest": CHECKPOINT_DIGEST,
             "authorization": authorization,
         },
     )
@@ -274,6 +277,8 @@ def test_execute_internal_record_uses_server_derived_authorization(monkeypatch):
 
     assert observed["authorization"] is authorization
     assert observed["identity_id"] == IDENTITY
+    assert observed["mission_id"] == MISSION
+    assert observed["expected_mission_digest"] == CHECKPOINT_DIGEST
     assert result["execution_performed"] is True
     assert result["outcome_receipt_verified"] is True
     assert result["authority_transferred"] is False
@@ -325,6 +330,7 @@ def test_rollback_internal_record_returns_verified_recovery(monkeypatch):
             "mission_id": MISSION,
             "reviewed_request_id": REQUEST,
             "status": "AUTHORIZED_NOT_EXECUTED",
+            "mission_checkpoint_digest": CHECKPOINT_DIGEST,
             "authorization": authorization,
         },
     )

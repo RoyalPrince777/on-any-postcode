@@ -14,7 +14,7 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
-from . import governed_action_pipeline, postgres_db
+from . import all_in_ai_mission_store, governed_action_pipeline, postgres_db
 
 _ALLOWED = {"draft", "active"}
 _AUDIT_ACTION = "OAP_GOVERNED_INTERNAL_RECORD_SYNC"
@@ -140,10 +140,35 @@ def _governance_checks(
     }
 
 
+def _verify_locked_mission(
+    connection: object, *, identity: str, mission_id: str, expected_digest: str,
+) -> None:
+    """Serialize STOP/recovery and execution on the canonical mission lock."""
+    connection.execute(
+        "SELECT pg_advisory_xact_lock(hashtext(%s))",
+        (f"all-in-ai:{mission_id}",),
+    )
+    try:
+        row = all_in_ai_mission_store._latest_row(connection, identity, mission_id)
+        entry = all_in_ai_mission_store._parse_entry(row)
+    except all_in_ai_mission_store.MissionStoreUnavailable as exc:
+        raise ExecutionBlocked("mission_checkpoint_unverified") from exc
+    if entry.get("mission_id") != mission_id:
+        raise ExecutionBlocked("mission_checkpoint_unverified")
+    if entry.get("state") == "stopped":
+        raise ExecutionBlocked("mission_stopped")
+    if entry.get("state") not in {"planned", "recovered"}:
+        raise ExecutionBlocked("mission_checkpoint_unverified")
+    if entry.get("digest") != expected_digest:
+        raise ExecutionBlocked("mission_checkpoint_changed")
+
+
 def execute(
     authorization: Mapping[str, object],
     *,
     identity_id: object,
+    mission_id: object,
+    expected_mission_digest: object,
     record_id: object,
     expected_status: object,
     target_status: object,
@@ -152,6 +177,11 @@ def execute(
     """Execute one reversible owner-scoped status transition and verify read-back."""
 
     identity = _uuid(identity_id, "identity_id")
+    mission = _uuid(mission_id, "mission_id")
+    checkpoint_digest = str(expected_mission_digest or "")
+    if (len(checkpoint_digest) != 64
+            or any(char not in "0123456789abcdef" for char in checkpoint_digest)):
+        raise ExecutionBlocked("mission_checkpoint_digest_required")
     record = _uuid(record_id, "record_id")
     expected = _status(expected_status, "expected_status")
     target = _status(target_status, "target_status")
@@ -175,6 +205,10 @@ def execute(
 
     try:
         with postgres_db.connect() as connection:
+            _verify_locked_mission(
+                connection, identity=identity, mission_id=mission,
+                expected_digest=checkpoint_digest,
+            )
             connection.execute(
                 "SELECT pg_advisory_xact_lock(hashtext(%s))",
                 (f"internal-record-sync:{record}",),
@@ -394,6 +428,8 @@ def rollback(
     authorization: Mapping[str, object],
     *,
     identity_id: object,
+    mission_id: object,
+    expected_mission_digest: object,
     rollback_token: Mapping[str, object],
 ) -> dict[str, Any]:
     """Reverse one prior bounded execution after fresh governance approval."""
@@ -414,6 +450,8 @@ def rollback(
     result = execute(
         authorization,
         identity_id=identity_id,
+        mission_id=mission_id,
+        expected_mission_digest=expected_mission_digest,
         record_id=record_id,
         expected_status=expected_status,
         target_status=target_status,

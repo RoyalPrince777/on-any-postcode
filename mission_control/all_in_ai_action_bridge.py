@@ -109,6 +109,12 @@ def handoff_status(
     ):
         raise ActionHandoffBlocked("mission_receipt_unverified")
 
+    checkpoint_digest = mission_receipt.get("digest")
+    if (not isinstance(checkpoint_digest, str)
+            or len(checkpoint_digest) != 64
+            or any(ch not in "0123456789abcdef" for ch in checkpoint_digest)):
+        raise ActionHandoffBlocked("mission_checkpoint_digest_required")
+
     review = _review_status(identity, request_id)
     # A valid approval for another request is not authority for this Mission.
     # Bind the reviewed input to the independently verified Mission text hash.
@@ -129,6 +135,7 @@ def handoff_status(
         ),
         "mission_state": str(mission_receipt.get("state") or ""),
         "mission_receipt_verified": True,
+        "mission_checkpoint_digest": checkpoint_digest,
         "review": review,
         "human_authority_required": True,
         "execution_performed": False,
@@ -236,6 +243,8 @@ def execute_internal_record(
     execution = internal_record_executor.execute(
         authorization,
         identity_id=identity_id,
+        mission_id=handoff["mission_id"],
+        expected_mission_digest=handoff["mission_checkpoint_digest"],
         record_id=record_id,
         expected_status=expected_status,
         target_status=target_status,
@@ -282,6 +291,8 @@ def rollback_internal_record(
     recovery = internal_record_executor.rollback(
         authorization,
         identity_id=identity_id,
+        mission_id=handoff["mission_id"],
+        expected_mission_digest=handoff["mission_checkpoint_digest"],
         rollback_token=rollback_token,
     )
     return {
