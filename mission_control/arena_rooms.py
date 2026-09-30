@@ -12,7 +12,7 @@ import secrets
 import uuid
 from typing import Any
 
-from . import connect4, postgres_db
+from . import connect4, dot, postgres_db
 
 SUPPORTED_GAMES = frozenset({"iq", "route-empire", "connect4", "ludo", "chess", "dot"})
 ROOM_CODE_PATTERN = re.compile(r"^[A-Z2-9]{6}$")
@@ -77,7 +77,7 @@ def create_room(*, game_key: object, host_name: object, capacity: object = 2) ->
     game = _game(game_key)
     name = _name(host_name)
     seats = _capacity(capacity)
-    if game == "connect4" and seats != 2:
+    if game in {"connect4", "dot"} and seats != 2:
         raise ValueError("arena_room_connect4_requires_two_seats")
     room_id = str(uuid.uuid4())
     player_id = str(uuid.uuid4())
@@ -222,8 +222,9 @@ def room_state(*, room_id: object, reconnect_token: object) -> dict[str, Any]:
     game_state = room_row[5]
     if isinstance(game_state, str):
         game_state = json.loads(game_state)
-    if str(room_row[1]) == "connect4" and game_state:
-        game_state = connect4.public_state(game_state)
+    if str(room_row[1]) in {"connect4", "dot"} and game_state:
+        engine = connect4 if str(room_row[1]) == "connect4" else dot
+        game_state = engine.public_state(game_state)
     return {
         "room_id": room,
         "your_seat": int(authorized[0]),
@@ -243,35 +244,51 @@ def room_state(*, room_id: object, reconnect_token: object) -> dict[str, Any]:
 
 
 
-def connect4_action(
+
+def _two_player_action(
     *,
+    game_key: str,
     room_id: object,
     reconnect_token: object,
     expected_revision: object,
     request_id: object,
     action: object,
     column: object = None,
+    a: object = None,
+    b: object = None,
 ) -> dict[str, Any]:
-    """Commit a verified Connect 4 turn under a PostgreSQL room row lock.
-
-    The caller supplies an action, never a board or score. Duplicate action IDs
-    are accepted only when their complete binding matches the original request.
-    """
+    """Shared locked transaction for server-authoritative Connect 4 and Dot moves."""
+    engine = {"connect4": connect4, "dot": dot}[game_key]
     room = _room_id(room_id)
     token_hash = _token_hash(reconnect_token)
     req = _request_id(request_id)
     if isinstance(expected_revision, bool) or not isinstance(expected_revision, int) or expected_revision < 0:
         raise ValueError("arena_room_revision_invalid")
     verb = str(action or "")
-    if verb not in {"drop", "stop"}:
-        raise ValueError("arena_room_action_invalid")
-    if verb == "drop" and (isinstance(column, bool) or not isinstance(column, int) or not 0 <= column < 7):
-        raise ValueError("connect4_column_invalid")
-    if verb == "stop" and column is not None:
-        raise ValueError("arena_room_action_invalid")
+    if game_key == "connect4":
+        if verb not in {"drop", "stop"}:
+            raise ValueError("arena_room_action_invalid")
+        if verb == "drop" and (isinstance(column, bool) or not isinstance(column, int) or not 0 <= column < 7):
+            raise ValueError("connect4_column_invalid")
+        if verb == "stop" and column is not None:
+            raise ValueError("arena_room_action_invalid")
+        if a is not None or b is not None:
+            raise ValueError("arena_room_action_invalid")
+        move_data = column
+    else:
+        if verb not in {"draw", "stop"} or column is not None:
+            raise ValueError("arena_room_action_invalid")
+        if verb == "draw":
+            if not isinstance(a, str) or not isinstance(b, str) or not dot._adj(a, b):
+                raise ValueError("dot_edge_invalid")
+            move_data = sorted((a, b))
+        else:
+            if a is not None or b is not None:
+                raise ValueError("arena_room_action_invalid")
+            move_data = None
     digest = hashlib.sha256(
         json.dumps(
-            [room, token_hash, expected_revision, req, verb, column],
+            [room, token_hash, expected_revision, req, game_key, verb, move_data],
             separators=(",", ":"),
         ).encode("utf-8"),
     ).hexdigest()
@@ -285,8 +302,8 @@ def connect4_action(
             ).fetchone()
             if room_row is None:
                 raise ValueError("arena_room_not_found")
-            game_key, status, capacity, revision, stored = room_row
-            if game_key != "connect4" or int(capacity) != 2:
+            stored_game, status, capacity, revision, stored = room_row
+            if stored_game != game_key or int(capacity) != 2:
                 raise ValueError("arena_room_game_invalid")
             seat_row = connection.execute(
                 """SELECT seat FROM oap_arena_room_players
@@ -319,15 +336,22 @@ def connect4_action(
                 raise ValueError("arena_room_players_invalid")
             if isinstance(stored, str):
                 stored = json.loads(stored)
-            game_state = stored or connect4.new_game(players[0][1], players[1][1])
-            current = connect4.public_state(game_state)
-            if verb == "drop":
-                if current["current_player_id"] != f"p{seat}":
+            game_state = stored or engine.new_game(players[0][1], players[1][1])
+            current = engine.public_state(game_state)
+            if verb != "stop":
+                current_player_id = (
+                    current["current_player_id"] if game_key == "connect4"
+                    else current["turn_player_id"]
+                )
+                if current_player_id != f"p{seat}":
                     raise ValueError("arena_room_not_your_turn")
-                next_state = connect4.drop(game_state, column=column, request_id=req)
+                if game_key == "connect4":
+                    next_state = connect4.drop(game_state, column=column, request_id=req)
+                else:
+                    next_state = dot.draw(game_state, a=a, b=b, request_id=req)
             else:
-                next_state = connect4.stop(game_state, request_id=req)
-            next_view = connect4.public_state(next_state)
+                next_state = engine.stop(game_state, request_id=req)
+            next_view = engine.public_state(next_state)
             next_status = (
                 "COMPLETED" if next_view["status"] == "completed"
                 else "STOPPED" if next_view["status"] == "stopped"
@@ -351,11 +375,46 @@ def connect4_action(
     except ValueError:
         raise
     except Exception as exc:
-        raise ArenaRoomUnavailable("arena_room_connect4_action_failed") from exc
+        raise ArenaRoomUnavailable("arena_room_action_failed") from exc
     return {
         "room_id": room, "revision": new_revision, "duplicate": False,
         "status": next_status, "game_state": next_view,
     }
+
+
+def connect4_action(
+    *,
+    room_id: object,
+    reconnect_token: object,
+    expected_revision: object,
+    request_id: object,
+    action: object,
+    column: object = None,
+) -> dict[str, Any]:
+    """Only the first-party engine may construct a multiplayer Connect 4 board."""
+    return _two_player_action(
+        game_key="connect4", room_id=room_id, reconnect_token=reconnect_token,
+        expected_revision=expected_revision, request_id=request_id,
+        action=action, column=column,
+    )
+
+
+def dot_action(
+    *,
+    room_id: object,
+    reconnect_token: object,
+    expected_revision: object,
+    request_id: object,
+    action: object,
+    a: object = None,
+    b: object = None,
+) -> dict[str, Any]:
+    """Server-validated Dot edge/turn/box scoring under the shared room lock."""
+    return _two_player_action(
+        game_key="dot", room_id=room_id, reconnect_token=reconnect_token,
+        expected_revision=expected_revision, request_id=request_id,
+        action=action, a=a, b=b,
+    )
 
 
 def update_game_state(*, room_id: object, reconnect_token: object, expected_revision: object,
@@ -374,6 +433,7 @@ def status() -> dict[str, bool]:
         "reconnect_tokens": True,
         "revision_conflict_guard": True,
         "connect4_server_actions": True,
+        "dot_server_actions": True,
         "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
