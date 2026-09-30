@@ -3,10 +3,12 @@ from mission_control import all_in_ai_action_bridge
 IDENTITY = "00000000-0000-0000-0000-000000000001"
 MISSION = "00000000-0000-0000-0000-000000000002"
 REQUEST = "00000000-0000-0000-0000-000000000003"
+MISSION_HASH = "a" * 64
 
 
 def _mission_receipt(state="planned"):
     return {
+        "mission_hash": MISSION_HASH,
         "state": state,
         "read_back_verified": True,
         "audit_verified": True,
@@ -18,6 +20,7 @@ def _review(decision=None, *, guardian=True, judgement=True):
     return {
         "request_id": REQUEST,
         "output_state": "REVIEW_REQUIRED",
+        "content_hash": MISSION_HASH,
         "guardian_outcome": "PASSED" if guardian else "BLOCKED",
         "guardian_passed": guardian,
         "judgement_sections_completed": 5 if judgement else 4,
@@ -133,6 +136,59 @@ def test_signed_approval_can_authorize_but_bridge_never_executes(monkeypatch):
     assert result["execution_authorized"] is True
     assert result["execution_performed"] is False
     assert result["authority_transferred"] is False
+
+
+def test_other_review_cannot_authorize_or_execute_this_mission(monkeypatch):
+    monkeypatch.setattr(
+        all_in_ai_action_bridge.all_in_ai_mission_store,
+        "read",
+        lambda *_args, **_kwargs: _mission_receipt(),
+    )
+    monkeypatch.setattr(
+        all_in_ai_action_bridge,
+        "_review_status",
+        lambda *_args, **_kwargs: {
+            **_review("APPROVED"), "content_hash": "b" * 64,
+        },
+    )
+    def forbidden(**_kwargs):
+        raise AssertionError("unrelated approval must never reach authorization")
+    monkeypatch.setattr(
+        all_in_ai_action_bridge.governed_action_pipeline,
+        "authorize_action",
+        forbidden,
+    )
+    try:
+        all_in_ai_action_bridge.handoff_status(
+            IDENTITY, MISSION, reviewed_request_id=REQUEST,
+        )
+    except all_in_ai_action_bridge.ActionHandoffBlocked as exc:
+        assert str(exc) == "mission_review_content_mismatch"
+    else:
+        raise AssertionError("unrelated reviewed input must fail closed")
+
+
+def test_missing_mission_provenance_blocks_approved_review(monkeypatch):
+    monkeypatch.setattr(
+        all_in_ai_action_bridge.all_in_ai_mission_store,
+        "read",
+        lambda *_args, **_kwargs: {
+            **_mission_receipt(), "mission_hash": None,
+        },
+    )
+    monkeypatch.setattr(
+        all_in_ai_action_bridge,
+        "_review_status",
+        lambda *_args, **_kwargs: _review("APPROVED"),
+    )
+    try:
+        all_in_ai_action_bridge.handoff_status(
+            IDENTITY, MISSION, reviewed_request_id=REQUEST,
+        )
+    except all_in_ai_action_bridge.ActionHandoffBlocked as exc:
+        assert str(exc) == "mission_review_content_mismatch"
+    else:
+        raise AssertionError("missing Mission hash must not authorize")
 
 
 def test_bridge_status_creates_no_execution_authority():
