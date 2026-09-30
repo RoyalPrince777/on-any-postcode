@@ -6,7 +6,8 @@ from typing import Any
 
 AGENTS: dict[str, dict[str, Any]] = {
     "panther": {
-        "name": "Panther",
+        "name": "Bagheera",
+        "animal": "Panther",
         "role": "Adaptive opponent",
         "overall_stars": 7,
         "fits": {"iq": 6, "route-empire": 7, "connect4": 7, "ludo": 6, "chess": 6, "dot": 7},
@@ -30,8 +31,10 @@ AGENTS: dict[str, dict[str, Any]] = {
         "fits": {"iq": 5, "route-empire": 5, "connect4": 7, "ludo": 6, "chess": 6, "dot": 7},
     },
     "elephant": {
-        "name": "Elephant",
-        "role": "Memory and pattern continuity",
+        "name": "Hathi",
+        "animal": "Elephant",
+        "family": ["Hathi", "Hathi Jr"],
+        "role": "Control, memory and pattern continuity",
         "overall_stars": 6,
         "fits": {"iq": 7, "route-empire": 6, "connect4": 5, "ludo": 5, "chess": 6, "dot": 5},
     },
