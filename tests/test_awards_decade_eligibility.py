@@ -4,7 +4,6 @@ import unittest
 
 from mission_control.awards_eligibility import check_decade_nomination
 
-
 GOOD = {
     "nominee_name": "Example artist",
     "award_type": "Music",
