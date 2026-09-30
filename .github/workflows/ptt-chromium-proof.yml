@@ -1,0 +1,52 @@
+name: PTT real Chromium PostgreSQL proof
+
+on:
+  pull_request:
+    paths:
+      - "static/linkup_realtime.js"
+      - "mission_control/link_call_audit.py"
+      - "mission_control/link_ptt_floor.py"
+      - "mission_control/link_ptt_routes.py"
+      - "mission_control/link_signalling.py"
+      - "mission_control/link_signalling_routes.py"
+      - "mission_control/link_turn.py"
+      - "mission_control/link_turn_routes.py"
+      - "mission_control/templates/linkup.html"
+      - "tests/link_ptt_real_chromium_postgres_proof.py"
+      - ".github/workflows/ptt-chromium-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ptt-browser-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: oap_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d oap_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install application and actual Chromium
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+      - name: Prove two-browser private PTT over real Flask, WebRTC and PostgreSQL
+        run: python tests/link_ptt_real_chromium_postgres_proof.py
