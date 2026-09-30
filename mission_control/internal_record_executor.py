@@ -149,6 +149,7 @@ def execute(
     target_status: object,
     expected_current_hash: object | None = None,
     expected_result_hash: object | None = None,
+    rollback_origin: Mapping[str, object] | None = None,
 ) -> dict[str, Any]:
     """Execute one reversible owner-scoped status transition and verify read-back."""
 
@@ -234,6 +235,36 @@ def execute(
                 })
                 if projected_result != required_result:
                     raise ExecutionBlocked("rollback_restoration_hash_mismatch")
+
+            if rollback_origin is not None:
+                # A browser-supplied rollback token is NOT proof of its own origin.
+                # Anchor it to the most recent immutable record-action audit,
+                # under the same record lock and before performing any mutation.
+                previous_action = connection.execute(
+                    """SELECT metadata FROM audit_events
+                       WHERE action=%s AND actor_id=%s AND target=%s
+                       ORDER BY event_seq DESC LIMIT 1""",
+                    (_AUDIT_ACTION, identity, f"workspace_record:{record}"),
+                ).fetchone()
+                if previous_action is None:
+                    raise ExecutionBlocked("rollback_origin_audit_missing")
+                audit_data = previous_action[0]
+                if isinstance(audit_data, str):
+                    try:
+                        audit_data = json.loads(audit_data)
+                    except ValueError as exc:
+                        raise ExecutionBlocked("rollback_origin_audit_invalid") from exc
+                if not isinstance(audit_data, Mapping) or not all((
+                    audit_data.get("record_id") == record,
+                    audit_data.get("request_id") == rollback_origin.get("origin_request_id"),
+                    audit_data.get("before_hash") == required_result,
+                    audit_data.get("after_hash") == current_hash_proof,
+                    audit_data.get("before_status") == target,
+                    audit_data.get("after_status") == expected,
+                    audit_data.get("content_unchanged") is True,
+                    audit_data.get("status_readback_verified") is True,
+                )):
+                    raise ExecutionBlocked("rollback_origin_audit_mismatch")
 
             duplicate = connection.execute(
                 """SELECT metadata
@@ -455,6 +486,7 @@ def rollback(
         target_status=target_status,
         expected_current_hash=expected_current_hash,
         expected_result_hash=expected_restored_hash,
+        rollback_origin={"origin_request_id": original_request_id},
     )
     # A contradictory receipt is reconciliation evidence, not a claim that
     # the mutation never occurred; both hash gates execute before commit.
