@@ -1,10 +1,12 @@
 """First-party OAP Arena Ludo engine."""
 from __future__ import annotations
+
 import copy
 import hashlib
 import json
 import re
 import uuid
+
 SCHEMA="oap.arena.ludo.v1"; SESSION_KEY="oap_ludo_v1"; REQUEST_ID_PATTERN=re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
 BOARD_END=24
 def _canon(v): return json.dumps(v,separators=(",",":"),sort_keys=True)
