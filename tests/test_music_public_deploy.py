@@ -239,3 +239,90 @@ def test_music_install_controller_uses_existing_safe_root_worker(client):
     assert "beforeinstallprompt" in source
     assert "appinstalled" in source
     assert "OAP Music is ready to install." in source
+
+
+def test_music_migration_inspection_is_read_only_and_reports_drift(monkeypatch):
+    checksums = {
+        version: music_civilization_migration._checksum(statements)
+        for version, statements in music_civilization_migration._MIGRATIONS
+    }
+    base = music_civilization_migration.product_cores.PRODUCT_CORE_MIGRATION_VERSION
+    first, second = list(checksums)[:2]
+    stored = [(base, "base-checksum"), (first, checksums[first]), (second, "drift")]
+    statements_seen = []
+
+    class Result:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def fetchone(self):
+            return self.rows[0] if self.rows else None
+
+        def fetchall(self):
+            return self.rows
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params=()):
+            assert sql.startswith("SELECT ")
+            statements_seen.append((sql, params))
+            if "to_regclass" in sql:
+                return Result([("oap_schema_migrations",)])
+            return Result(stored)
+
+        def commit(self):
+            raise AssertionError("inspection must not commit")
+
+    def connect(*, readonly=False):
+        assert readonly is True
+        return Connection()
+
+    monkeypatch.setattr(music_civilization_migration.postgres_db, "connect", connect)
+    result = music_civilization_migration.inspect()
+    assert result["base_product_core_present"] is True
+    assert result["existing"] == [first]
+    assert result["checksum_mismatches"] == [second]
+    assert result["pending"] == list(checksums)[2:]
+    assert result["schema_inventory_ready"] is False
+    assert result["base_checksum_not_evaluated"] is True
+    assert result["migration_performed"] is False
+    assert result["human_approval_granted"] is False
+    assert len(statements_seen) == 2
+
+
+def test_music_migration_inspection_fails_closed_without_registry(monkeypatch):
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params=()):
+            assert sql == "SELECT to_regclass('oap_schema_migrations')"
+            return self
+
+        def fetchone(self):
+            return (None,)
+
+        def commit(self):
+            raise AssertionError("read-only inspection must not commit")
+
+    def connect(*, readonly=False):
+        assert readonly is True
+        return Connection()
+
+    monkeypatch.setattr(music_civilization_migration.postgres_db, "connect", connect)
+    result = music_civilization_migration.inspect()
+    assert result["registry_present"] is False
+    assert result["base_product_core_present"] is False
+    assert result["existing"] == []
+    assert result["checksum_mismatches"] == []
+    assert result["schema_inventory_ready"] is False
+    assert result["migration_performed"] is False
+    assert result["human_approval_granted"] is False
