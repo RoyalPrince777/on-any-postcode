@@ -95,7 +95,7 @@ def _active_pair(connection, identity: str, session: str, *, lock: bool = True) 
 def floor(identity_id: object, session_id: object, *, action: str) -> dict:
     identity = _uuid(identity_id, "invalid_identity")
     session = _uuid(session_id, "invalid_call_session")
-    if action not in {"acquire", "release", "stop"}:
+    if not isinstance(action, str) or action not in {"acquire", "release", "stop"}:
         raise ValueError("invalid_ptt_action")
     _require_ready()
     try:
