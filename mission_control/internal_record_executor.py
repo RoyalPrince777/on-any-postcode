@@ -283,6 +283,12 @@ def execute(
                     "status": str(after[3]),
                 }
             )
+            # Independently verify the actual post-UPDATE row while the same
+            # transaction is still open. Never discover a restoration hash
+            # mismatch only after the audit/outcome has committed.
+            if expected_result_hash is not None and after_hash != required_result:
+                raise ExecutionBlocked("rollback_restoration_hash_mismatch")
+
             rollback_token = {
                 "record_id": record,
                 "expected_status": target,
@@ -439,14 +445,12 @@ def rollback(
         expected_current_hash=expected_current_hash,
         expected_result_hash=expected_restored_hash,
     )
-    # Defensive consistency invariant; actual mismatch is blocked before write.
-    if result["after_hash"] != expected_restored_hash:
-        raise ExecutionBlocked("rollback_restoration_hash_mismatch")
-
+    # A contradictory receipt is reconciliation evidence, not a claim that
+    # the mutation never occurred; both hash gates execute before commit.
     return {
         **result,
         "recovery_action": "ROLLBACK_INTERNAL_RECORD",
-        "rollback_verified": True,
+        "rollback_verified": result["after_hash"] == expected_restored_hash,
         "restored_hash": result["after_hash"],
         "original_before_hash": expected_restored_hash,
         "human_authority_final": True,
