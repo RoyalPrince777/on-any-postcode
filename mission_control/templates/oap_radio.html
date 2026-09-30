@@ -3,7 +3,7 @@
 <style>:root{color-scheme:dark;font-family:system-ui;background:#070707;color:#fff}*{box-sizing:border-box}body{margin:0;background:#070707}.shell{max-width:880px;margin:auto;padding:24px 18px 96px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.muted{color:#aaa}.card{border:1px solid #303030;background:#111;border-radius:22px;padding:18px;margin-top:16px}.player{padding:22px}.now{font-size:1.2rem;font-weight:800;margin-top:8px}.form{display:grid;gap:10px}.form input,.form select,.form button{padding:12px;border-radius:12px;border:1px solid #383838;background:#0a0a0a;color:#fff}.form button{background:#f2f2f2;color:#111;font-weight:800}.player audio{width:100%;margin-top:14px}.pill{border:1px solid #333;border-radius:999px;padding:9px 13px;color:#fff;text-decoration:none}.status{color:#bbb;margin-top:8px}.bottom{position:fixed;bottom:0;left:0;right:0;background:#0a0a0af2;border-top:1px solid #262626;display:flex;justify-content:center;gap:4px;padding:8px 10px;backdrop-filter:blur(16px);z-index:20}.bottom a{color:#aaa;text-decoration:none;padding:9px 12px;border-radius:12px;font-size:.92rem}.bottom a.active{color:#fff;background:#1b1b1b}
 @media(max-width:640px){.shell{padding:16px 14px 88px}.top{align-items:flex-start;flex-direction:column}.player{padding:18px}.bottom a{flex:1;text-align:center;padding:9px 4px;font-size:.82rem}}</style></head>
 <body><main class="shell"><header class="top"><div><div class="muted">ON ANY POSTCODE</div><h1>📻 OAP Radio</h1><div class="muted">{% if founder_control %}Founder Control · private station management{% else %}Tune in · first-party OAP Music rotation{% endif %}</div></div>{% if founder_control %}<a class="pill" href="/radio">← Listener Radio</a><a class="pill" href="/music/control">🎵 Music approvals</a>{% else %}<a class="pill" href="/music">🎵 Music</a>{% endif %}</header>
-<section class="card player"><strong>Now playing</strong><div id="now-title" class="now">Finding cleared OAP Music…</div><audio id="radio-player" controls autoplay preload="metadata"></audio><div class="status">The player advances through currently cleared public OAP tracks. STOP/rights changes remain authoritative.</div></section>
+<section class="card player"><strong>Station listening</strong><label for="listener-station-select" class="muted">Select a cleared station</label><select id="listener-station-select" class="pill" style="display:block;width:100%;margin-top:8px;background:#111"><option value="">Choose station</option></select><div id="now-title" class="now">Select a station to request its current cleared track.</div><audio id="radio-player" controls preload="metadata"></audio><div class="status">Station audio is gated separately by Radio STOP, current rights and admission. One selected track is not a continuous live broadcast.</div></section>
 {% if founder_control %}
 <section class="card"><strong>👑 Founder Station Control</strong><div class="status">Only the Founder can approve, program or STOP OAP Radio stations. Approved is not broadcast.</div><form id="always-form" class="form"><select id="station-select" required><option value="">Choose station</option></select><button type="button" id="station-approve-button">✓ Approve Station</button><button type="submit">▶ Save Always On Setting</button><button type="button" id="stop-button">🛑 Founder STOP</button><div id="control-result" class="status" role="status"></div></form></section>
 <section class="card"><strong>Founder Show Approval</strong><form id="show-form" class="form"><input name="title" maxlength="180" placeholder="New show title" required><button type="submit">Create Draft Show</button></form><div class="form"><select id="show-select" aria-label="Select show"><option value="">Choose show</option></select><button type="button" id="show-approve-button">✓ Approve Show</button><div id="show-result" class="status" role="status">Select an approved station before approving its show.</div></div></section>
@@ -13,8 +13,18 @@
 </main><nav class="bottom" aria-label="OAP Music"><a href="/music">🎵 Music</a><a class="active" href="/radio">📻 Radio</a><a href="/music/artist-progress">📈 Progress</a><a href="/music/studio">⬆ Studio</a></nav>
 <script>
 (() => {
- const founderControl={{ founder_control|default(false)|tojson }},csrf={{ oap_csrf_token|default('',true)|tojson }},player=document.getElementById('radio-player'),title=document.getElementById('now-title'),stationSelect=document.getElementById('station-select');let queue=[],index=0;
- async function publicQueue(){try{const r=await fetch('/music/api/catalogue',{cache:'no-store'}),p=await r.json();queue=(p.items||[]).filter(x=>x.playback_enabled&&x.stream_url);if(!queue.length){title.textContent='No cleared tracks available yet.';player.removeAttribute('src');return}play(0)}catch(e){title.textContent='Radio catalogue unavailable.'}}
+ const founderControl={{ founder_control|default(false)|tojson }},csrf={{ oap_csrf_token|default('',true)|tojson }},player=document.getElementById('radio-player'),title=document.getElementById('now-title'),stationSelect=document.getElementById('station-select'),listenerSelect=document.getElementById('listener-station-select');let queue=[],index=0;
+ async function publicQueue(){
+  player.pause();player.removeAttribute('src');player.load();queue=[];
+  listenerSelect.replaceChildren(new Option('Choose station',''));
+  try{
+   const r=await fetch('/radio/api/stations',{cache:'no-store'});if(!r.ok)throw new Error('station_unavailable');
+   const p=await r.json();queue=p.stations||[];
+   queue.forEach((x,i)=>listenerSelect.add(new Option(x.station_name,String(i))));
+   title.textContent=queue.length?'Select a station to request its current cleared track.':'No currently cleared Radio stations available.';
+  }catch(e){title.textContent='Radio station discovery unavailable.'}
+ }
+ listenerSelect.addEventListener('change',()=>{if(listenerSelect.value!=='')play(Number(listenerSelect.value));else{player.pause();player.removeAttribute('src');title.textContent='Choose a station.'}});
  let radioSession=null,radioSequence=1,radioChain=Promise.resolve(),radioGeneration=0;
  function engagement(track,event){
   const generation=radioGeneration;
@@ -31,10 +41,11 @@
   }).catch(()=>{if(generation===radioGeneration)radioSession=null});
   return radioChain;
  }
- function play(i){if(!queue.length)return;index=i%queue.length;const x=queue[index];radioGeneration++;radioSession=null;radioSequence=1;title.textContent=x.track_title+' · '+x.release_title;player.dataset.trackId=x.track_id;player.dataset.started='0';player.dataset.lastBeat='0';player.src=x.stream_url;player.play().catch(()=>{})}
+ function play(i){if(!queue[i])return;index=i;const x=queue[index];radioGeneration++;radioSession=null;radioSequence=1;title.textContent=x.station_name+' · selected station track (not live broadcast)';player.dataset.trackId=x.track_id;player.dataset.started='0';player.dataset.lastBeat='0';player.src=x.stream_url;player.play().catch(()=>{title.textContent='Playback blocked or unavailable; refresh station selection.'})}
  player.addEventListener('play',()=>{const track=player.dataset.trackId;if(track&&player.dataset.started!=='1'){player.dataset.started='1';engagement(track,'START')}});
  player.addEventListener('timeupdate',()=>{const track=player.dataset.trackId,now=Math.floor(player.currentTime||0),last=Number(player.dataset.lastBeat||0);if(track&&now>=10&&now-last>=15){player.dataset.lastBeat=String(now);engagement(track,'HEARTBEAT')}});
- player.addEventListener('ended',()=>{const track=player.dataset.trackId;if(track)engagement(track,'COMPLETE').then(()=>play(index+1));else play(index+1)});
+ player.addEventListener('ended',()=>{const track=player.dataset.trackId;if(track)engagement(track,'COMPLETE');title.textContent='Selected track ended · continuous broadcast not claimed.';player.removeAttribute('src')});
+ player.addEventListener('error',()=>{player.pause();title.textContent='Station audio unavailable or stopped. Choose a station again.'});
  const api=async(path,method='GET',body=null)=>{const o={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};if(method!=='GET')o.headers['X-OAP-CSRF']=csrf;if(body!==null){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}const r=await fetch(path,o),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.error?.code||'Request failed');return p};
  let founderShows=[];
  function refreshShows(){
