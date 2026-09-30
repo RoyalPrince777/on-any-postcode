@@ -37,7 +37,8 @@ if [[ -z "${OAP_NEON_DATABASE_URL:-${DATABASE_URL:-}}" && -z "${OAP_DB_SECRET_B6
   rm -rf "$LOCK_DIR"
   exit 2
 fi
-if (( ${#OAP_HOME_NODE_BRIDGE_SECRET:-0} < 32 )); then
+bridge_secret="${OAP_HOME_NODE_BRIDGE_SECRET:-}"
+if (( ${#bridge_secret} < 32 )); then
   echo "OAP Home Node refused: OAP_HOME_NODE_BRIDGE_SECRET is not configured" >&2
   rm -rf "$LOCK_DIR"
   exit 2
