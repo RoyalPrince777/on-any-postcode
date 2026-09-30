@@ -1,2 +1,14 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}"><title>Chess · OAP Arena</title><link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='chess.js') }}" defer></script></head><body><main class="mc-shell arena-game" data-chess-root><section class="card"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a></nav><p class="arena-hint">OAP Arena · First-party game</p><h1>♟️ Chess</h1><p>Think. Move. Control.</p><button data-start>Start</button><button data-stop>STOP</button><p data-error></p></section><section class="card" data-game hidden><p>Turn: <strong data-turn></strong></p><input data-source placeholder="e2"><input data-target placeholder="e4"><button data-move>Move</button><pre data-board></pre></section></main></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}"><title>Chess · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='chess.js') }}" defer></script></head>
+<body><main class="mc-shell arena-game" data-chess-root><section class="card arena-header">
+<nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a></nav><p class="arena-hint">OAP Arena · Local pass-and-play</p><h1>♟️ Chess</h1><p>Think. Move. Control.</p>
+<p class="arena-hint">Bounded legal-movement engine, not yet full tournament chess (check/checkmate, castling and promotion are not implemented).</p>
+<div class="arena-actions"><button type="button" class="arena-primary" data-start>Start match</button><button type="button" class="arena-stop" data-stop disabled>STOP</button></div>
+<p class="arena-error" data-error role="alert"></p></section>
+<section class="card" data-game hidden><div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Status: <strong data-status></strong></span></div>
+<p class="arena-hint">Select a piece then a destination on the board, or enter square names below.</p>
+<div data-board class="arena-chess-board" role="group" aria-label="Chess board, files a to h and ranks eight to one"></div>
+<div class="arena-row"><label class="arena-field">From square<input data-source maxlength="2" inputmode="text" autocomplete="off" placeholder="e2" pattern="[a-h][1-8]"></label>
+<label class="arena-field">To square<input data-target maxlength="2" inputmode="text" autocomplete="off" placeholder="e4" pattern="[a-h][1-8]"></label>
+<button data-move type="button" class="arena-primary">Make move</button></div>
+<p class="arena-feedback" data-feedback role="status" aria-live="polite"></p></section></main></body></html>
