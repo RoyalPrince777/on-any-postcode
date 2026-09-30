@@ -6,6 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <title>Connect 4 Rooms · OAP Arena</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
   <script src="{{ url_for('static', filename='arena_connect4_room.js') }}" defer></script>
   <style>
     .room-actions{display:flex;flex-wrap:wrap;gap:9px}.room-actions button{min-height:44px}
@@ -20,9 +21,9 @@
     [hidden]{display:none!important}
   </style>
 </head>
-<body><main class="mc-shell" data-room-root>
+<body><main class="mc-shell arena-game" data-room-root>
   <section class="card room-panel">
-    <p><a href="/arena">← OAP Arena</a> · <a href="/arena/connect4">Local / Agent match</a></p>
+    <nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a></nav><p class="arena-hint">OAP Arena · First-party game</p><p> · <a href="/arena/connect4">Local / Agent match</a></p>
     <h1>🔴 Connect 4 · Room</h1>
     <p>First-party two-player room. Send your room code to the other player; keep your reconnect token private.</p>
     <div data-entry>
