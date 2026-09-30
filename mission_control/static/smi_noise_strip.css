@@ -1001,3 +1001,49 @@ body.smi-noise-strip .smi-system-detail>summary{
   font-size:.7rem!important;
   cursor:pointer!important;
 }
+
+
+/* OAP World on SMI home: one public navigation door, not another dashboard. */
+body.smi-noise-strip .smi-world-controls[hidden]{display:none!important}
+body.smi-noise-strip .smi-world-controls:not([hidden]){
+  position:fixed!important;
+  z-index:106!important;
+  top:56px!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  width:min(350px,calc(100vw - 24px))!important;
+  display:grid!important;
+  gap:4px!important;
+  padding:8px!important;
+  border:1px solid rgba(57,175,255,.24)!important;
+  border-radius:12px!important;
+  background:rgba(2,8,22,.96)!important;
+  box-shadow:0 8px 28px rgba(0,0,0,.24)!important;
+}
+body.smi-noise-strip .smi-world-controls a{
+  display:block!important;
+  border-radius:8px!important;
+  padding:10px!important;
+  color:#edf8ff!important;
+  background:rgba(57,175,255,.06)!important;
+  text-decoration:none!important;
+  font-size:.78rem!important;
+}
+body.smi-noise-strip .smi-world-controls a:hover,
+body.smi-noise-strip .smi-world-controls a:focus{
+  background:rgba(57,175,255,.18)!important;
+  outline:1px solid rgba(57,175,255,.28)!important;
+}
+body.smi-noise-strip .smi-world-controls small{
+  padding:5px!important;
+  font-size:.65rem!important;
+  color:#b7cad6!important;
+}
+body.smi-noise-strip.smi-command-open .smi-world-controls,
+body.smi-noise-strip.smi-status-open .smi-world-controls,
+body.smi-noise-strip.smi-live-fullscreen .smi-world-controls{
+  display:none!important;
+}
+@media(max-width:760px){
+ body.smi-noise-strip .smi-world-controls:not([hidden]){top:50px!important}
+}
