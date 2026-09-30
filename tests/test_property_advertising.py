@@ -108,9 +108,10 @@ def test_no_verifier_and_self_approval_fail_closed():
     draft = ads.property_draft(payload(), publisher_id=OWNER)
     with pytest.raises(PermissionError, match="independent_reviewer"):
         ads.approve(draft, evidence_ref="contract-ref", approved_by=OWNER, **REVIEW_GATES)
-    with pytest.raises(PermissionError, match="verifiers_required"):
+    with pytest.raises(PermissionError, match="authority_required"):
         ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER,
-                    reviewer_check=REVIEW_GATES["reviewer_check"])
+                    reviewer_check=REVIEW_GATES["reviewer_check"],
+                    certified_check=certified_check)
     with pytest.raises(PermissionError, match="authority_required"):
         ads.approve(draft, evidence_ref="wrong-ref", approved_by=REVIEWER, **REVIEW_GATES)
     with pytest.raises(PermissionError, match="certified_required"):
