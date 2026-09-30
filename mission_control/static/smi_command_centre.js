@@ -126,6 +126,7 @@
  const worldFounderRoutes=[
   ["🌍 Civilization registry",cfg.civilizationStatusUrl],
   ["🌱 Ecosystem Intelligence",cfg.ecosystemDashboardUrl],
+  ["🔗 Civilization × Ecosystem Evidence",cfg.civilizationBridgeUrl],
   ["🩺 World Function Health",cfg.functionHealthUrl],
   ["🟢 Green Gate evidence",cfg.greenGateUrl]
  ];
