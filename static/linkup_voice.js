@@ -5,9 +5,10 @@
   const statusNode = document.querySelector("[data-oap-voice-status]");
   const recordControls = Array.from(document.querySelectorAll("[data-oap-voice-control]"));
   const stopControls = Array.from(document.querySelectorAll("[data-oap-voice-stop]"));
+  const pttControls = Array.from(document.querySelectorAll("[data-oap-ptt-control]"));
   const lists = Array.from(document.querySelectorAll("[data-oap-voice-list]"));
 
-  if (!recordControls.length && !lists.length) {
+  if (!recordControls.length && !pttControls.length && !lists.length) {
     return;
   }
 
@@ -17,6 +18,7 @@
     maxDurationMs: 120000,
     current: null,
     autoStopTimer: null,
+    pttPress: null,
   };
 
   const setStatus = (message) => {
@@ -116,13 +118,67 @@
     [...recordControls, ...stopControls].filter((control) => recipientFor(control) === peerId);
 
   const refreshControls = () => {
-    recordControls.forEach((control) => {
+    // PTT deliberately reuses the governed Voice upload; it is not a live audio stream.
+  // Keep pending capture tokens until permissions resolve to prevent release-before-capture leaks.
+  const beginPtt = (control) => {
+    if (state.pttPress || state.current || control.disabled || !state.ready || !browserReady()) return;
+    const press = { control, released: false, cancelled: false };
+    state.pttPress = press;
+    refreshControls();
+    startRecording(control, press);
+  };
+
+  const endPtt = (cancel = false) => {
+    const press = state.pttPress;
+    if (!press) return;
+    press.released = true;
+    if (cancel) press.cancelled = true;
+    if (state.current) {
+      if (cancel) state.current.cancelled = true;
+      finishRecording();
+    } else if (cancel) {
+      state.pttPress = null;
+    }
+    refreshControls();
+  };
+
+  pttControls.forEach((control) => {
+    control.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || control.disabled) return;
+      event.preventDefault();
+      beginPtt(control);
+    });
+    control.addEventListener("keydown", (event) => {
+      if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+        event.preventDefault();
+        beginPtt(control);
+      }
+    });
+    control.addEventListener("keyup", (event) => {
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        if (state.pttPress?.control === control) endPtt();
+      }
+    });
+    control.addEventListener("blur", () => {
+      if (state.pttPress?.control === control) endPtt(true);
+    });
+  });
+  window.addEventListener("pointerup", () => endPtt());
+  window.addEventListener("pointercancel", () => endPtt(true));
+
+  recordControls.forEach((control) => {
       const peerId = recipientFor(control);
       control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current);
       const marker = control.querySelector("small");
       if (marker) {
         marker.textContent = control.disabled ? "locked" : "ready";
       }
+    });
+    pttControls.forEach((control) => {
+      const active = state.pttPress?.control === control;
+      control.disabled = !active && (!state.ready || !browserReady() || !recipientFor(control) || Boolean(state.current) || Boolean(state.pttPress));
+      control.setAttribute("aria-pressed", String(active));
     });
     stopControls.forEach((control) => {
       const peerId = recipientFor(control);
@@ -215,7 +271,7 @@
     }
   };
 
-  const startRecording = async (control) => {
+  const startRecording = async (control, pttPress = null) => {
     if (!state.ready || state.current || !browserReady()) {
       return;
     }
@@ -229,6 +285,11 @@
     try {
       const mimeType = preferredMime();
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      // A release/cancel may happen while the browser permission prompt is open.
+      if (pttPress && (state.pttPress !== pttPress || pttPress.cancelled)) {
+        stopTracks(stream);
+        return;
+      }
       const recorder = new MediaRecorder(stream, { mimeType });
       const chunks = [];
       const startedAt = Date.now();
@@ -244,6 +305,7 @@
         stopTracks(stream);
         const current = state.current;
         state.current = null;
+        if (pttPress && state.pttPress === pttPress) state.pttPress = null;
         refreshControls();
         if (!current || current.cancelled) {
           setStatus("Voice cancelled.");
@@ -272,11 +334,13 @@
       state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: false };
       recorder.start(1000);
       state.autoStopTimer = window.setTimeout(finishRecording, state.maxDurationMs);
-      setStatus("Voice recording… tap Stop when finished.");
+      setStatus(pttPress ? "PTT recording… release to send." : "Voice recording… tap Stop when finished.");
+      if (pttPress?.released) finishRecording();
       refreshControls();
     } catch (error) {
       stopTracks(stream);
       state.current = null;
+      if (pttPress && state.pttPress === pttPress) state.pttPress = null;
       refreshControls();
       setStatus(
         error?.name === "NotAllowedError"
@@ -304,6 +368,7 @@
   });
 
   window.addEventListener("pagehide", () => {
+    endPtt(true);
     clearAutoStop();
     if (state.current) {
       state.current.cancelled = true;
