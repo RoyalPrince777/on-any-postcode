@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import link_call_audit, link_ptt_floor, web_security
+from . import link_ptt_floor, web_security
 
 bp = Blueprint("link_ptt_floor", __name__)
 
