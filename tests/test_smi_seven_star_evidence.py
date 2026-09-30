@@ -19,7 +19,7 @@ def test_proven_requires_explicit_verified_fresh_source():
     result = evaluate_seven_star_gate({
         "Truth": {"passed": True, "verified": True, "fresh": True, "source": "CI exact-head/123"},
         "Function": {"passed": True, "source": "   "},
-        "Security": {"passed": False, "verified": True, "source": "security-check/123"},
+        "Security": {"passed": False, "verified": True, "fresh": True, "source": "security-check/123"},
         "Stability": {"passed": "true", "source": "stability-check/123"},
         "Integration": {"passed": True},
     })
@@ -67,3 +67,23 @@ def test_unverified_or_stale_pass_claims_never_turn_green():
     assert all(item["signal"] == "purple" for item in result["checks"][:4])
     assert result["technical_gate_passed"] is False
 
+
+def test_stale_failure_is_pending_not_current_red():
+    result = evaluate_seven_star_gate({
+        "Truth": {
+            "passed": False,
+            "verified": True,
+            "fresh": False,
+            "source": "old-failure",
+        },
+        "Security": {
+            "passed": False,
+            "verified": True,
+            "fresh": True,
+            "source": "current-failure",
+        },
+    })
+    assert result["checks"][0]["signal"] == "purple"
+    assert result["checks"][2]["signal"] == "red"
+    assert result["proven"] == 0
+    assert result["production_green"] is False
