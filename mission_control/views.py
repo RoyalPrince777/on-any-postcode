@@ -18,6 +18,7 @@ from flask import (
 )
 
 from . import agents as agent_registry
+from oap.smi import research_intelligence
 from . import (
     approval_service,
     authority,
@@ -725,6 +726,43 @@ def smi_chat_health():
     """Return detailed intelligence health only to a signed-in member."""
     return _no_store(make_response(jsonify(smi_chat_runtime.health())))
 
+
+
+
+def _financial_intelligence_private_state() -> dict[str, object]:
+    """Truthful private capability state; never treat a contract as a live feed."""
+    return {
+        "component": "SMI Financial Intelligence",
+        "existing_cluster": research_intelligence.status()["component"],
+        "research_validator_available": callable(
+            research_intelligence.assess_financial_observation
+        ),
+        "trusted_source_registry_connected": False,
+        "live_market_feed_connected": False,
+        "research_observations_available": False,
+        "sika_ledger_connected": False,
+        "trading_enabled": False,
+        "payment_enabled": False,
+        "production_acceptance_proven": False,
+        "human_authority_final": True,
+        "next_evidence": "Independent, licensed source onboarding and private runtime acceptance required.",
+    }
+
+
+@bp.get("/financial-intelligence")
+@web_security.login_required(founder_only=True)
+def financial_intelligence_private():
+    """One read-only destination under the existing SMI Mission Control."""
+    return _no_store(make_response(render_template(
+        "financial_intelligence.html", state=_financial_intelligence_private_state(),
+    )))
+
+
+@bp.get("/financial-intelligence/status")
+@web_security.login_required(api=True, founder_only=True)
+def financial_intelligence_private_status():
+    """Machine-readable private readiness without balances, quotes or secrets."""
+    return _no_store(make_response(jsonify(_financial_intelligence_private_state())))
 
 @bp.get("/workbench/status")
 @web_security.login_required(api=True)
