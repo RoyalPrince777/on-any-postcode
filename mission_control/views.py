@@ -17,8 +17,9 @@ from flask import (
     url_for,
 )
 
-from . import agents as agent_registry
 from oap.smi import research_intelligence
+
+from . import agents as agent_registry
 from . import (
     approval_service,
     authority,
