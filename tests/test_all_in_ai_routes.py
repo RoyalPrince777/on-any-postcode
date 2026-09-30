@@ -100,3 +100,44 @@ def test_all_in_ai_app_route_is_not_public():
     response = app.test_client().get("/mission/all-in-ai/app")
     assert response.status_code == 302
     assert "/enter" in response.headers["Location"]
+
+
+def test_captain_mission_keeper_restores_only_independently_verified_latest():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1]
+        / "mission_control" / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert 'id="restore" type="button"' in template
+    assert "all_in_ai.all_in_ai_mission_latest" in template
+    assert "await loadVerifiedMission(latest.mission_id,latest)" in template
+    assert "expected.version!==receipt?.version" in template
+    assert "expected.state!==receipt?.state" in template
+    assert "receipt.mission_id===missionId" in template
+    for proof in (
+        "receipt.read_back_verified===true",
+        "receipt.audit_verified===true",
+        "receipt.hrm_verified===true",
+        "receipt.execution_granted===false",
+        "receipt.approval_granted===false",
+        "receipt.human_authority_final===true",
+    ):
+        assert proof in template
+    assert "if(!showReceipt(" in template
+    assert "proofVerified=false;latestDigest=null;latestState=null" in template
+
+
+def test_captain_checkpoint_digest_is_never_trusted_from_browser_session():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1]
+        / "mission_control" / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert "persistCheckpoint();" in template
+    assert "showReceipt('🛑 STOP durably recorded.',body.receipt)" in template
+    assert "showReceipt('♻️ Mission recovered for review. No execution granted.',body.receipt)" in template
+    assert "if(!proofVerified||!latestDigest)return;" in template
+    assert "sessionStorage.getItem(sessionPrefix+'digest')" not in template
+    assert "Never trust sessionStorage digest for STOP/recovery" in template
