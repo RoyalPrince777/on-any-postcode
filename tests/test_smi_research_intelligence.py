@@ -4,12 +4,11 @@ from datetime import datetime, timezone
 
 import pytest
 
-from oap.smi.research_intelligence import assess_financial_observation
-
 from oap.smi.founder_memory_channel import synced_memory_items
 from oap.smi.research_intelligence import (
     CAPABILITY_IDS,
     RESEARCH_STAGES,
+    assess_financial_observation,
     depth_for_complexity,
 )
 from oap.smi.research_intelligence import status as research_status
