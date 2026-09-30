@@ -78,6 +78,26 @@
     <div class="result" id="inference-result" aria-live="polite">Restore or verify the Mission before inspecting its inference evidence.</div>
     <p class="muted">The Action Gate checks the same existing SMI request against its real Guardian, Judgement and signed Founder approval. It can only evaluate the registered reversible SYNC_INTERNAL_RECORD action. A review does not execute it.</p>
     <div class="result" id="handoff-result" aria-live="polite">No governed action reviewed. Execution is separate and remains protected.</div>
+    <div class="form" aria-label="Bounded internal record action">
+      <label>Owner-scoped internal record UUID
+        <input id="internal-record-id" maxlength="36" autocomplete="off" placeholder="Record UUID">
+      </label>
+      <label>Status transition
+        <select id="internal-target-status">
+          <option value="active">draft → active</option>
+          <option value="draft">active → draft</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn stop" id="internal-execute" type="button" disabled>👑 Execute Reviewed Internal Status</button>
+      </div>
+      <div class="result" id="internal-outcome" aria-live="polite">Only an independently re-authorised, owner-scoped draft ↔ active transition is supported. No payment, publication or external action.</div>
+      <label>Fresh approved SMI request UUID for rollback
+        <input id="rollback-request-id" maxlength="36" autocomplete="off" placeholder="New reviewed request UUID">
+      </label>
+      <button class="btn recover" id="internal-rollback" type="button" disabled>♻️ Governed Rollback</button>
+      <div class="result" id="rollback-outcome" aria-live="polite">Rollback requires a separately signed existing Human Authority review. No automatic retry.</div>
+    </div>
   </section>
 
   <section class="section">
@@ -102,6 +122,13 @@ const inferenceButton=document.getElementById('inference-inspect');
 const inferenceResult=document.getElementById('inference-result');
 const handoffButton=document.getElementById('handoff-review');
 const handoffResult=document.getElementById('handoff-result');
+const recordIdInput=document.getElementById('internal-record-id');
+const targetInput=document.getElementById('internal-target-status');
+const executeButton=document.getElementById('internal-execute');
+const executionResult=document.getElementById('internal-outcome');
+const rollbackIdInput=document.getElementById('rollback-request-id');
+const rollbackButton=document.getElementById('internal-rollback');
+const rollbackResult=document.getElementById('rollback-outcome');
 const sessionPrefix='oap_all_in_ai_';
 let missionId=null;
 let latestDigest=null;
@@ -109,19 +136,34 @@ let latestState=null;
 let proofVerified=false;
 let missionEpoch=0;
 let missionMutationPending=false;
+let actionPending=false;
+let readyHandoff=null;
+let rollbackEvidence=null;
+const validUuid=value=>typeof value==='string'&&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
+const validDigest=value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value);
 
 function updateControls(){
-  startButton.disabled=missionMutationPending;
-  restoreButton.disabled=missionMutationPending;
-  readButton.disabled=missionMutationPending||!missionId;
-  const writable=Boolean(!missionMutationPending&&missionId&&proofVerified&&latestDigest);
+  const busy=missionMutationPending||actionPending;
+  startButton.disabled=busy;
+  restoreButton.disabled=busy;
+  readButton.disabled=busy||!missionId;
+  const writable=Boolean(!busy&&missionId&&proofVerified&&latestDigest);
   stopButton.disabled=!writable||latestState==='stopped';
   recoverButton.disabled=!writable||latestState!=='stopped';
-  inferenceButton.disabled=missionMutationPending||!proofVerified||!missionId||latestState==='stopped';
-  handoffButton.disabled=missionMutationPending||!proofVerified||!missionId||latestState==='stopped';
+  inferenceButton.disabled=busy||!proofVerified||!missionId||latestState==='stopped';
+  handoffButton.disabled=busy||!proofVerified||!missionId||latestState==='stopped';
+  executeButton.disabled=busy||!writable||latestState==='stopped'||!readyHandoff;
+  rollbackButton.disabled=busy||!writable||latestState==='stopped'||!rollbackEvidence;
+}
+function resetActionEvidence(){
+  readyHandoff=null;rollbackEvidence=null;
+  executionResult.textContent='No current execution receipt. Protected action remains disabled.';
+  rollbackResult.textContent='No current verified rollback token. Manual reconciliation is required after an uncertain outcome.';
 }
 function clearLocalProof(){
   missionEpoch+=1;
+  resetActionEvidence();
   proofVerified=false;latestDigest=null;latestState=null;
   inferenceResult.textContent='Mission evidence unavailable. Reverify before inspection.';
   handoffResult.textContent='Mission proof cleared. Governed action must be reviewed again.';
@@ -150,6 +192,7 @@ function showReceipt(label,receipt){
   // A new checkpoint invalidates any earlier request-level gate presentation.
   inferenceResult.textContent='Checkpoint updated. Inspect inference again if needed.';
   handoffResult.textContent='Checkpoint updated. Review governance again if needed.';
+  resetActionEvidence();
   missionEpoch+=1;
   latestDigest=receipt.digest;
   latestState=receipt.state;
@@ -234,7 +277,7 @@ form.addEventListener('submit',async(event)=>{
 inferenceButton.addEventListener('click',async()=>{
   if(!proofVerified||!missionId||latestState==='stopped')return;
   const requestId=inferenceIdInput.value.trim().toLowerCase();
-  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)){
+  if(!validUuid(requestId)){
     inferenceResult.textContent='🔴 Enter a valid existing SMI request UUID.';
     return;
   }
@@ -283,10 +326,13 @@ inferenceButton.addEventListener('click',async()=>{
 handoffButton.addEventListener('click',async()=>{
   if(!proofVerified||!missionId||latestState==='stopped')return;
   const requestId=inferenceIdInput.value.trim().toLowerCase();
-  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)){
+  if(!validUuid(requestId)){
     handoffResult.textContent='🔴 Enter an existing reviewed SMI request UUID.';
     return;
   }
+  readyHandoff=null;
+  rollbackEvidence=null;
+  updateControls();
   const reviewedMission=missionId;
   const reviewedDigest=latestDigest;
   const reviewedEpoch=missionEpoch;
@@ -313,6 +359,8 @@ handoffButton.addEventListener('click',async()=>{
       return;
     }
     if(gate.status==='AUTHORIZED_NOT_EXECUTED'&&gate.execution_authorized===true){
+      readyHandoff={missionId:reviewedMission,digest:reviewedDigest,
+        epoch:reviewedEpoch,requestId};
       handoffResult.textContent=[
         '🟣 Governed backend handoff: AUTHORIZED, NOT EXECUTED.',
         'Existing Guardian, Judgement and signed Human Authority gates passed.',
@@ -335,6 +383,106 @@ handoffButton.addEventListener('click',async()=>{
     if(missionEpoch===reviewedEpoch)
       handoffResult.textContent='🔴 Governed handoff not verified: '+err.message;
   }finally{updateControls();}
+});
+executeButton.addEventListener('click',async()=>{
+  const gate=readyHandoff;
+  const record=recordIdInput.value.trim().toLowerCase();
+  const target=targetInput.value;
+  const expected=target==='active'?'draft':'active';
+  if(actionPending||missionMutationPending||!proofVerified||!gate||
+     gate.missionId!==missionId||gate.digest!==latestDigest||
+     gate.epoch!==missionEpoch||latestState==='stopped')return;
+  if(!validUuid(record)||!['draft','active'].includes(target)){
+    executionResult.textContent='🔴 A valid owned record UUID and bounded status are required.';
+    return;
+  }
+  // No cached approval receipt is sent. The server independently rechecks
+  // Guardian, Judgement, signed Founder authority and record ownership.
+  actionPending=true;readyHandoff=null;rollbackEvidence=null;updateControls();
+  executionResult.textContent='Checking fresh governance and executing bounded record status…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(gate.missionId)+
+      '/execute-internal-record',{
+        method:'POST',body:JSON.stringify({
+          reviewed_request_id:gate.requestId,record_id:record,
+          expected_status:expected,target_status:target,
+        }),
+      });
+    const result=body?.result, action=result?.execution, token=action?.rollback_token;
+    if(missionEpoch!==gate.epoch||missionId!==gate.missionId||
+       latestDigest!==gate.digest||!proofVerified||latestState==='stopped'){
+      executionResult.textContent='🔴 Mission changed during execution. RECONCILIATION REQUIRED; no retry.';
+      return;
+    }
+    if(result?.execution_evidence_state==='VERIFIED'&&
+       result?.outcome_receipt_verified===true&&
+       result?.execution_performed===true&&body?.execution_performed===true&&
+       body?.outcome_receipt_verified===true&&
+       result?.automatic_retry_allowed===false&&
+       body?.automatic_retry_allowed===false&&
+       result?.human_authority_final===true&&body?.human_authority_final===true&&
+       action?.action_name==='SYNC_INTERNAL_RECORD'&&
+       action?.record_id===record&&action?.after_status===target&&
+       action?.request_id===gate.requestId&&
+       action?.status_readback_verified===true&&
+       action?.content_unchanged===true&&action?.audit_recorded===true&&
+       action?.external_side_effect===false&&
+       action?.financial_side_effect===false&&
+       action?.authority_transferred===false&&
+       token?.record_id===record&&token?.expected_status===target&&
+       token?.target_status===expected&&
+       validDigest(token?.before_hash)&&validDigest(token?.after_hash)&&
+       token?.after_hash===action.after_hash){
+      rollbackEvidence={missionId:gate.missionId,digest:gate.digest,
+        epoch:gate.epoch,executeRequestId:gate.requestId,token};
+      executionResult.textContent='🟢 Verified bounded '+expected+' → '+target+
+        ' status update. HRM/action receipt and read-back checked. No external or financial side effect.';
+      rollbackResult.textContent='Rollback token held only in this page memory. Fresh signed reviewed request required.';
+    }else{
+      executionResult.textContent='🔴 RECONCILIATION REQUIRED: execution proof incomplete. Do not retry automatically.';
+    }
+  }catch(err){
+    executionResult.textContent='🔴 RECONCILIATION REQUIRED: '+err.message+'. Do not blindly retry.';
+  }finally{actionPending=false;updateControls();}
+});
+rollbackButton.addEventListener('click',async()=>{
+  const evidence=rollbackEvidence;
+  const freshRequest=rollbackIdInput.value.trim().toLowerCase();
+  if(actionPending||missionMutationPending||!proofVerified||!evidence||
+     evidence.missionId!==missionId||evidence.digest!==latestDigest||
+     evidence.epoch!==missionEpoch||latestState==='stopped')return;
+  if(!validUuid(freshRequest)||freshRequest===evidence.executeRequestId){
+    rollbackResult.textContent='🔴 A different, freshly approved SMI request UUID is required.';
+    return;
+  }
+  actionPending=true;rollbackEvidence=null;updateControls();
+  rollbackResult.textContent='Validating fresh governance and atomic rollback…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(evidence.missionId)+
+      '/rollback-internal-record',{
+        method:'POST',body:JSON.stringify({
+          reviewed_request_id:freshRequest,rollback_token:evidence.token,
+        }),
+      });
+    const result=body?.result,recovery=result?.recovery;
+    if(missionEpoch===evidence.epoch&&missionId===evidence.missionId&&
+       latestDigest===evidence.digest&&proofVerified&&
+       result?.execution_evidence_state==='VERIFIED'&&
+       result?.rollback_verified===true&&body?.rollback_verified===true&&
+       result?.outcome_receipt_verified===true&&
+       body?.outcome_receipt_verified===true&&
+       result?.automatic_retry_allowed===false&&body?.automatic_retry_allowed===false&&
+       result?.human_authority_final===true&&body?.human_authority_final===true&&
+       recovery?.rollback_verified===true&&
+       recovery?.record_id===evidence.token.record_id&&
+       recovery?.after_hash===evidence.token.before_hash){
+      rollbackResult.textContent='🟢 Bounded rollback verified with fresh Founder authority and record read-back.';
+    }else{
+      rollbackResult.textContent='🔴 RECONCILIATION REQUIRED: rollback proof incomplete. Do not retry.';
+    }
+  }catch(err){
+    rollbackResult.textContent='🔴 RECONCILIATION REQUIRED: '+err.message+'. Do not blindly retry.';
+  }finally{actionPending=false;updateControls();}
 });
 restoreButton.addEventListener('click',async()=>{
   if(missionMutationPending)return;
