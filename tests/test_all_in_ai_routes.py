@@ -176,3 +176,50 @@ def test_captain_inference_inspector_reuses_private_read_only_route():
     assert "Mission execution: NOT PROVEN" in template
     assert "inferenceResult.textContent=[" in template
     assert "inferenceResult.innerHTML" not in template
+
+
+
+def test_captain_review_action_gate_never_executes_or_extents_authority():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1]
+        / "mission_control" / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert 'id="handoff-review" type="button" disabled' in template
+    assert "handoffButton.addEventListener('click',async()=>{" in template
+    assert "if(!proofVerified||!missionId||latestState==='stopped')return;" in template
+    assert "'/action-handoff'" in template
+    assert "method:'POST'" in template
+    assert "body:JSON.stringify({reviewed_request_id:requestId,action_name:'SYNC_INTERNAL_RECORD'})" in template
+    assert "latestDigest!==reviewedDigest" in template
+    for check in (
+        "gate?.mission_id!==reviewedMission",
+        "gate?.reviewed_request_id!==requestId",
+        "gate?.action_name!=='SYNC_INTERNAL_RECORD'",
+        "gate?.mission_receipt_verified!==true",
+        "gate?.execution_performed!==false",
+        "gate?.authority_transferred!==false",
+        "gate?.human_authority_final!==true",
+        "body?.execution_performed!==false",
+        "body?.human_authority_final!==true",
+    ):
+        assert check in template
+    assert "gate.status==='AUTHORIZED_NOT_EXECUTED'&&gate.execution_authorized===true" in template
+    assert "gate.execution_authorized===false" in template
+    assert "This screen does not execute, publish, spend or deploy." in template
+    assert "handoffResult.textContent=" in template
+    assert "handoffResult.innerHTML" not in template
+    assert "'/execute-internal-record'" not in template
+    assert "'/rollback-internal-record'" not in template
+
+
+def test_captain_checkpoint_change_invalidates_previous_handoff_display():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1]
+        / "mission_control" / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert "handoffResult.textContent='Checkpoint updated. Review governance again if needed.'" in template
+    assert "handoffResult.textContent='Mission proof cleared. Governed action must be reviewed again.'" in template
