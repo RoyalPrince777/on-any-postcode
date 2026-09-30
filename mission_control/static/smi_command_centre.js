@@ -75,6 +75,61 @@
  const homeRail=document.createElement("nav");
  homeRail.className="smi-home-intelligence";
  homeRail.setAttribute("aria-label","SMI home intelligence");
+ const homeWorld=document.createElement("button");
+ homeWorld.type="button";homeWorld.textContent="🌍 OAP World";
+ homeWorld.setAttribute("aria-label","Open OAP World controls");
+ homeWorld.setAttribute("aria-controls","smi-world-controls");
+ homeWorld.setAttribute("aria-expanded","false");
+ const worldPanel=document.createElement("nav");
+ worldPanel.id="smi-world-controls";
+ worldPanel.className="smi-world-controls";
+ worldPanel.setAttribute("aria-label","OAP World public navigation");
+ worldPanel.hidden=true;
+ const publicRoot=String(cfg.publicWorldOrigin||"").trim();
+ // World links lead to the existing public service. No privileged action, iframe,
+ // copied user data or SMI token is sent across the separate origin.
+ let publicOrigin=null;
+ try{
+  const candidate=new URL(publicRoot);
+  if(candidate.protocol==="https:")publicOrigin=candidate.origin;
+ }catch(_){}
+ const publicRoutes=[
+  ["🌍 Enter OAP World","/"],
+  ["📍 The Spot","/the-spot"],
+  ["🔗 Link Up","/linkup"],
+  ["🗺️ OAP World / Place","/on-any-place"]
+ ];
+ const worldNotice=document.createElement("small");
+ worldNotice.textContent="Public OAP · first-party front door · Founder controls stay private.";
+ if(publicOrigin){
+  publicRoutes.forEach(([label,path])=>{
+   const link=document.createElement("a");
+   link.textContent=label;link.href=publicOrigin+path;
+   link.rel="noopener noreferrer";
+   worldPanel.append(link);
+  });
+ }else{
+  worldNotice.textContent="Public OAP origin unavailable · no unverified navigation.";
+ }
+ worldPanel.append(worldNotice);
+ document.body.append(worldPanel);
+ const closeWorld=()=>{
+  worldPanel.hidden=true;
+  homeWorld.setAttribute("aria-expanded","false");
+ };
+ homeWorld.addEventListener("click",event=>{
+  event.stopPropagation();
+  const opening=worldPanel.hidden;
+  worldPanel.hidden=!opening;
+  homeWorld.setAttribute("aria-expanded",String(opening));
+ });
+ worldPanel.addEventListener("click",event=>event.stopPropagation());
+ document.addEventListener("click",event=>{
+  if(!worldPanel.hidden&&!worldPanel.contains(event.target)&&event.target!==homeWorld)closeWorld();
+ });
+ document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&!worldPanel.hidden){closeWorld();homeWorld.focus();}
+ });
  const homeSystem=document.createElement("button");
  homeSystem.type="button";homeSystem.textContent="🧠 SMI System";
  homeSystem.setAttribute("aria-label","Open SMI system intelligence");
@@ -84,7 +139,7 @@
  const homeWar=document.createElement("button");
  homeWar.type="button";homeWar.textContent="⚔️ War Room";
  homeWar.setAttribute("aria-label","Open War Room");
- homeRail.append(homeSystem,homeMatrix,homeWar);
+ homeRail.append(homeWorld,homeSystem,homeMatrix,homeWar);
  document.body.append(homeRail);
  homeSystem.addEventListener("click",()=>{
   setOpen(true);

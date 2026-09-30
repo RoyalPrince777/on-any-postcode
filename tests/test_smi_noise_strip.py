@@ -195,3 +195,27 @@ def test_civilization_and_ecosystem_are_distinct_evidence_lanes_not_new_brains()
     assert 'ecosystem?.architecture?.full_green===true' in command
     assert 'setUnified("ecosystem",ecosystemComplete' in command
     assert "NOT FULL GREEN" in command
+
+
+def test_smi_home_world_controls_open_existing_public_routes_without_private_actions():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    assert "publicOapUrl:'/'" in template
+    assert "publicWorldOrigin:'https://on-any-postcode.onrender.com/'" in template
+    assert 'cfg.publicWorldOrigin' in command
+    assert 'homeWorld.textContent="🌍 OAP World"' in command
+    assert 'homeRail.append(homeWorld,homeSystem,homeMatrix,homeWar)' in command
+    assert 'worldPanel.id="smi-world-controls"' in command
+    for route in ('["🌍 Enter OAP World","/"]', '["📍 The Spot","/the-spot"]',
+                  '["🔗 Link Up","/linkup"]', '["🗺️ OAP World / Place","/on-any-place"]'):
+        assert route in command
+    assert 'candidate.protocol==="https:"' in command
+    assert 'link.href=publicOrigin+path' in command
+    assert 'link.rel="noopener noreferrer"' in command
+    assert 'worldPanel.hidden=true' in command
+    assert 'homeWorld.setAttribute("aria-expanded","false")' in command
+    assert 'event.key==="Escape"' in command
+    assert 'body.smi-noise-strip .smi-world-controls[hidden]{display:none!important}' in css
+    assert 'body.smi-noise-strip.smi-command-open .smi-world-controls' in css
+    assert 'Founder controls stay private.' in command
