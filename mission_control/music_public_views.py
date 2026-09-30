@@ -269,6 +269,8 @@ def music_record_engagement():
             session_identity=web_security.ensure_session_identity(),
             surface=payload.get("surface", "OAP_MUSIC"),
             event_type=payload.get("event_type"),
+            playback_session_id=payload.get("playback_session_id"),
+            event_sequence=payload.get("event_sequence"),
             playback_seconds=payload.get("playback_seconds", 0),
             duration_seconds=payload.get("duration_seconds"),
             postcode=payload.get("postcode"),
