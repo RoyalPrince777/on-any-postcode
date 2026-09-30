@@ -1,10 +1,12 @@
 """First-party OAP Arena Chess engine (bounded legal-move slice)."""
 from __future__ import annotations
+
 import copy
 import hashlib
 import json
 import re
 import uuid
+
 SCHEMA="oap.arena.chess.v1";SESSION_KEY="oap_chess_v1";REQ=re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
 def _d(v): return hashlib.sha256(json.dumps(v,separators=(",",":"),sort_keys=True).encode()).hexdigest()
 def _seal(s): o=copy.deepcopy(s);o.pop("checkpoint",None);o["checkpoint"]=_d(o);return o
