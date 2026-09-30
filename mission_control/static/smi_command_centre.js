@@ -85,7 +85,7 @@
  worldPanel.className="smi-world-controls";
  worldPanel.setAttribute("aria-label","OAP World public navigation");
  worldPanel.hidden=true;
- const publicRoot=String(cfg.publicOapUrl||"").trim();
+ const publicRoot=String(cfg.publicWorldOrigin||"").trim();
  // World links lead to the existing public service. No privileged action, iframe,
  // copied user data or SMI token is sent across the separate origin.
  let publicOrigin=null;
