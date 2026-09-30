@@ -19,6 +19,7 @@
     current: null,
     autoStopTimer: null,
     pttPress: null,
+    capturePending: false,
   };
 
   const setStatus = (message) => {
@@ -120,7 +121,7 @@
   const refreshControls = () => {
   recordControls.forEach((control) => {
       const peerId = recipientFor(control);
-      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current) || Boolean(state.pttPress);
+      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current) || Boolean(state.pttPress) || state.capturePending;
       const marker = control.querySelector("small");
       if (marker) {
         marker.textContent = control.disabled ? "locked" : "ready";
@@ -128,7 +129,7 @@
     });
     pttControls.forEach((control) => {
       const active = state.pttPress?.control === control;
-      control.disabled = !active && (!state.ready || !browserReady() || !recipientFor(control) || Boolean(state.current) || Boolean(state.pttPress));
+      control.disabled = !active && (!state.ready || !browserReady() || !recipientFor(control) || Boolean(state.current) || Boolean(state.pttPress) || state.capturePending));
       control.setAttribute("aria-pressed", String(active));
     });
     stopControls.forEach((control) => {
@@ -223,7 +224,7 @@
   };
 
   const startRecording = async (control, pttPress = null) => {
-    if (!state.ready || state.current || !browserReady() || (!pttPress && state.pttPress)) {
+    if (!state.ready || state.current || state.capturePending || !browserReady() || (!pttPress && state.pttPress)) {
       return;
     }
     const peerId = recipientFor(control);
@@ -232,13 +233,18 @@
       return;
     }
 
+    state.capturePending = true;
+    refreshControls();
     let stream = null;
     try {
       const mimeType = preferredMime();
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      state.capturePending = false;
       // A release/cancel may happen while the browser permission prompt is open.
       if (pttPress && (state.pttPress !== pttPress || pttPress.cancelled)) {
         stopTracks(stream);
+        if (state.pttPress === pttPress) state.pttPress = null;
+        refreshControls();
         return;
       }
       const recorder = new MediaRecorder(stream, { mimeType });
@@ -289,6 +295,7 @@
       if (pttPress?.released) finishRecording();
       refreshControls();
     } catch (error) {
+      state.capturePending = false;
       stopTracks(stream);
       state.current = null;
       if (pttPress && state.pttPress === pttPress) state.pttPress = null;
@@ -304,7 +311,7 @@
     // PTT deliberately reuses the governed Voice upload; it is not a live audio stream.
   // Keep pending capture tokens until permissions resolve to prevent release-before-capture leaks.
   const beginPtt = (control) => {
-    if (state.pttPress || state.current || control.disabled || !state.ready || !browserReady()) return;
+    if (state.pttPress || state.current || state.capturePending || control.disabled || !state.ready || !browserReady()) return;
     const press = { control, released: false, cancelled: false };
     state.pttPress = press;
     refreshControls();
