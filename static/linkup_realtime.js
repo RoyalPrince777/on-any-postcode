@@ -256,7 +256,7 @@
     if (state.mode !== "ptt" || !state.current || !state.answered ||
         state.pc?.connectionState !== "connected" || state.pttHold || !pttHoldButton ||
         pttHoldButton.disabled) return;
-    const hold = { sessionId: state.current, released: false, granted: false, pointerId };
+    const hold = { sessionId: state.current, released: false, granted: false, pointerId, source };
     state.pttHold = hold;
     pttMute();
     setStatus("Requesting private PTT floor…");
@@ -269,7 +269,6 @@
       if (!value.granted || !value.holder_id || value.lease_seconds !== 8) throw new Error("ptt_floor_denied");
       hold.granted = true;
       hold.holderId = value.holder_id;
-      hold.source = source;
       pttDeadline(hold);
       state.localStream?.getAudioTracks().forEach((track) => { track.enabled = true; });
       pttHoldButton.setAttribute("aria-pressed", "true");
