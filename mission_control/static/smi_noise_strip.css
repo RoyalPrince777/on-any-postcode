@@ -701,3 +701,91 @@ body.smi-noise-strip.smi-live-fullscreen #speaker-button,
 body.smi-noise-strip.smi-live-fullscreen .preview{
   display:none!important;
 }
+
+
+/* SMI human-control contract: icons may assist, but primary actions stay readable.
+   This block intentionally comes last so earlier quiet-shell rules cannot collapse
+   Tools, Voice, Pause, Stop, Send, or Live SMI back to emoji-only controls. */
+body.smi-noise-strip .composer-box{
+  grid-template-columns:auto auto auto minmax(120px,1fr) 92px auto!important;
+}
+body.smi-noise-strip #plus-button,
+body.smi-noise-strip #mic-button,
+body.smi-noise-strip #speaker-button,
+body.smi-noise-strip #send{
+  width:auto!important;
+  min-width:0!important;
+  padding:0 10px!important;
+  border-radius:999px!important;
+  font-size:.72rem!important;
+  white-space:nowrap!important;
+}
+body.smi-noise-strip #plus-button::after{content:" Tools";font-size:.72rem!important}
+body.smi-noise-strip #mic-button::after{content:" Voice";font-size:.72rem!important}
+body.smi-noise-strip #speaker-button::before{content:none!important}
+body.smi-noise-strip #speaker-button{font-size:.72rem!important}
+body.smi-noise-strip .send-label{display:inline!important;margin-left:4px!important}
+body.smi-noise-strip #pause-button,
+body.smi-noise-strip #stop-button{
+  width:auto!important;
+  min-width:72px!important;
+  padding:0 12px!important;
+  border-radius:999px!important;
+  font-size:.72rem!important;
+}
+body.smi-noise-strip #pause-button::after{content:" Pause";font-size:.72rem!important}
+body.smi-noise-strip #pause-button[aria-pressed="true"]::after{content:" Resume"}
+body.smi-noise-strip #stop-button::after{content:" Stop";font-size:.72rem!important}
+body.smi-noise-strip #live-character-toggle,
+body.smi-noise-strip.smi-live-fullscreen #live-character-toggle{
+  width:auto!important;
+  min-width:96px!important;
+  height:38px!important;
+  padding:0 11px!important;
+  border-radius:999px!important;
+  font-size:.72rem!important;
+  overflow:visible!important;
+}
+body.smi-noise-strip #live-character-toggle::before,
+body.smi-noise-strip #live-character-toggle.active::before{content:none!important}
+
+@media(max-width:760px){
+  body.smi-noise-strip .composer-box{
+    grid-template-columns:auto auto auto 1fr auto!important;
+    grid-template-rows:auto auto!important;
+    border-radius:22px!important;
+  }
+  body.smi-noise-strip .composer textarea{
+    grid-column:1/-1!important;
+    grid-row:1!important;
+  }
+  body.smi-noise-strip .attach-wrap,
+  body.smi-noise-strip #plus-button{grid-column:1!important;grid-row:2!important}
+  body.smi-noise-strip #mic-button{grid-column:2!important;grid-row:2!important}
+  body.smi-noise-strip #speaker-button{grid-column:3!important;grid-row:2!important}
+  body.smi-noise-strip #thinking-level{grid-column:4!important;grid-row:2!important;width:100%!important}
+  body.smi-noise-strip #send{grid-column:5!important;grid-row:2!important}
+  body.smi-noise-strip #plus-button,
+  body.smi-noise-strip #mic-button,
+  body.smi-noise-strip #speaker-button,
+  body.smi-noise-strip #send{
+    min-height:38px!important;
+    height:38px!important;
+    padding:0 8px!important;
+  }
+  body.smi-noise-strip .messages{bottom:126px!important}
+}
+
+/* Live keeps the same readable control law rather than reverting to symbols. */
+body.smi-noise-strip.smi-live-fullscreen .composer-box{
+  grid-template-columns:auto auto minmax(120px,1fr) auto!important;
+}
+body.smi-noise-strip.smi-live-fullscreen #plus-button,
+body.smi-noise-strip.smi-live-fullscreen #mic-button,
+body.smi-noise-strip.smi-live-fullscreen #send{
+  width:auto!important;
+  min-width:0!important;
+  padding:0 10px!important;
+  border-radius:999px!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .send-label{display:inline!important}
