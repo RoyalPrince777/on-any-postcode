@@ -33,6 +33,7 @@ def test_arena_room_http_flow(client, csrf, monkeypatch):
         "room_state",
         lambda **kwargs: {
             "room_id": created["room_id"],
+            "your_seat": 1,
             "room_code": created["room_code"],
             "game_key": "connect4",
             "status": "ACTIVE",
@@ -115,3 +116,18 @@ def test_connect4_room_action_http_csrf_and_adapter(client, csrf, monkeypatch):
     )
     assert response.status_code == 200
     assert response.get_json()["revision"] == 1
+
+
+def test_connect4_room_page_has_create_join_reconnect_and_control_paths(client):
+    page = client.get("/arena/connect4/room")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert "arena_connect4_room.js" in html
+    assert "data-create" in html
+    assert "data-join" in html
+    assert "data-reconnect" in html
+    assert "data-columns" in html
+    assert "data-refresh" in html
+    assert "data-stop" in html
+    assert "data-reconnect-seat" not in html
+    assert page.headers["Referrer-Policy"] == "no-referrer"
