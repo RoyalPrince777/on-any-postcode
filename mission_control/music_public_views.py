@@ -13,6 +13,7 @@ from . import (
     public_store,
     web_security,
 )
+
 bp = Blueprint("oap_music_public", __name__)
 _music_asset_store = music_assets.MusicAssetStore()
 _music_entitlement_store = music_entitlements.MusicEntitlementStore()
