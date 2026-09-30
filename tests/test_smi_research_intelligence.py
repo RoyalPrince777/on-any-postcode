@@ -112,6 +112,9 @@ def test_cc21_valid_observation_remains_research_only():
 def test_cc21_unproved_or_stale_observations_fail_closed(field, value, reason):
     observation = _financial_observation()
     observation[field] = value
+    if reason == "stale_observation":
+        # Maintain chronological validity while making the quote stale.
+        observation["published_at"] = "2026-09-30T11:29:00Z"
     decision = assess_financial_observation(observation, now=NOW)
     assert decision["usable_for_research"] is False
     assert reason in decision["reasons"]
