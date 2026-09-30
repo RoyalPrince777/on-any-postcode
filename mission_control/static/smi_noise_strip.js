@@ -2,7 +2,6 @@
 'use strict';
 const ready=()=>{
   document.body.classList.add('smi-noise-strip');
-  document.body.classList.remove('smi-booting');
 
   const status=document.getElementById('status');
   const plus=document.getElementById('plus-button');
@@ -69,7 +68,7 @@ const ready=()=>{
   // Enter and Shift+Enter remain owned by the canonical controller. No second key handler here.
 
   window.OAP_SMI_NOISE_STRIP=Object.freeze({
-    version:'1.0',
+    version:'1.1',
     applied:true,
     coreControlsPresent:missing.length===0,
     upgradeOnly:true
