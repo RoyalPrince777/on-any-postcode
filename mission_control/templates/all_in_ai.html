@@ -73,8 +73,11 @@
     <div class="actions">
       <input id="inference-request-id" aria-label="Existing SMI request ID" maxlength="36" autocomplete="off" placeholder="SMI request UUID" style="flex:1;min-width:200px;background:#080b09;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px;font:inherit">
       <button class="btn read" id="inference-inspect" type="button" disabled>🔎 Inspect Evidence</button>
+      <button class="btn read" id="handoff-review" type="button" disabled>🛡️ Review Action Gate</button>
     </div>
     <div class="result" id="inference-result" aria-live="polite">Restore or verify the Mission before inspecting its inference evidence.</div>
+    <p class="muted">The Action Gate checks the same existing SMI request against its real Guardian, Judgement and signed Founder approval. It can only evaluate the registered reversible SYNC_INTERNAL_RECORD action. A review does not execute it.</p>
+    <div class="result" id="handoff-result" aria-live="polite">No governed action reviewed. Execution is separate and remains protected.</div>
   </section>
 
   <section class="section">
@@ -97,6 +100,8 @@ const recoverButton=document.getElementById('recover');
 const inferenceIdInput=document.getElementById('inference-request-id');
 const inferenceButton=document.getElementById('inference-inspect');
 const inferenceResult=document.getElementById('inference-result');
+const handoffButton=document.getElementById('handoff-review');
+const handoffResult=document.getElementById('handoff-result');
 const sessionPrefix='oap_all_in_ai_';
 let missionId=null;
 let latestDigest=null;
@@ -109,10 +114,12 @@ function updateControls(){
   stopButton.disabled=!writable||latestState==='stopped';
   recoverButton.disabled=!writable||latestState!=='stopped';
   inferenceButton.disabled=!proofVerified||!missionId||latestState==='stopped';
+  handoffButton.disabled=!proofVerified||!missionId||latestState==='stopped';
 }
 function clearLocalProof(){
   proofVerified=false;latestDigest=null;latestState=null;
   inferenceResult.textContent='Mission evidence unavailable. Reverify before inspection.';
+  handoffResult.textContent='Mission proof cleared. Governed action must be reviewed again.';
   updateControls();
 }
 function persistCheckpoint(){
@@ -253,6 +260,59 @@ inferenceButton.addEventListener('click',async()=>{
     ].join('\\n');
   }catch(err){
     inferenceResult.textContent='🔴 Evidence not verified: '+err.message;
+  }finally{updateControls();}
+});
+handoffButton.addEventListener('click',async()=>{
+  if(!proofVerified||!missionId||latestState==='stopped')return;
+  const requestId=inferenceIdInput.value.trim().toLowerCase();
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)){
+    handoffResult.textContent='🔴 Enter an existing reviewed SMI request UUID.';
+    return;
+  }
+  const reviewedMission=missionId;
+  const reviewedDigest=latestDigest;
+  handoffButton.disabled=true;
+  handoffResult.textContent='Evaluating existing Guardian, Judgement and Founder approval evidence…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(reviewedMission)+'/action-handoff',{
+      method:'POST',
+      body:JSON.stringify({reviewed_request_id:requestId,action_name:'SYNC_INTERNAL_RECORD'}),
+    });
+    const gate=body?.result;
+    if(!proofVerified||missionId!==reviewedMission||latestDigest!==reviewedDigest||
+       latestState==='stopped'||gate?.mission_id!==reviewedMission||
+       gate?.reviewed_request_id!==requestId||
+       gate?.action_name!=='SYNC_INTERNAL_RECORD'||
+       gate?.mission_receipt_verified!==true||
+       gate?.execution_performed!==false||
+       gate?.authority_transferred!==false||
+       gate?.human_authority_final!==true||
+       body?.execution_performed!==false||
+       body?.human_authority_final!==true){
+      handoffResult.textContent='🔴 Governed handoff evidence mismatched or changed. No execution claimed.';
+      return;
+    }
+    if(gate.status==='AUTHORIZED_NOT_EXECUTED'&&gate.execution_authorized===true){
+      handoffResult.textContent=[
+        '🟣 Governed backend handoff: AUTHORIZED, NOT EXECUTED.',
+        'Existing Guardian, Judgement and signed Human Authority gates passed.',
+        'Registered action: SYNC_INTERNAL_RECORD (bounded and reversible).',
+        'Execution performed: false · Authority transferred: false.',
+        'This screen does not execute, publish, spend or deploy.',
+        '👑 Founder Final retained.',
+      ].join('\\n');
+    }else if(['BLOCKED','HUMAN_AUTHORITY_REQUIRED'].includes(gate.status)&&
+             gate.execution_authorized===false){
+      const reason=['guardian_gate_required','judgement_gate_required',
+        'human_authority_rejected','human_authority_approval_required']
+        .includes(gate.reason)?gate.reason:'governance gate not satisfied';
+      handoffResult.textContent='🔒 '+gate.status+' · '+reason+
+        '\\nExecution authorised: false. No action performed.';
+    }else{
+      handoffResult.textContent='🔴 Unrecognised or incomplete action-gate response. No Green.';
+    }
+  }catch(err){
+    handoffResult.textContent='🔴 Governed handoff not verified: '+err.message;
   }finally{updateControls();}
 });
 restoreButton.addEventListener('click',async()=>{
