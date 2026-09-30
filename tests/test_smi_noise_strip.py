@@ -169,3 +169,5 @@ def test_unified_system_intelligence_reuses_canonical_evidence():
     assert 'setUnified("signals",signalProven' in command
     assert "smi-unified-grid" in css
     assert "grid-template-columns:1fr!important" in css
+    assert 'className="smi-system-detail"' in command
+    assert 'evidenceDetail.append(evidenceSummary,dashboard)' in command
