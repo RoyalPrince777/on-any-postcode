@@ -202,6 +202,10 @@
           <summary>More</summary>
           <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
           <p><a href="{{ url_for('my_card_page') }}">My Card</a></p>
+          <form method="post" action="{{ url_for('auth_sign_out') }}">
+            <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+            <button class="mc-secondary" type="submit">Leave My World</button>
+          </form>
         </details>
 
         {% if dashboard and dashboard.threads %}
