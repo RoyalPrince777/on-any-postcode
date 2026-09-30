@@ -142,6 +142,9 @@ function showReceipt(label,receipt){
     result.textContent='🔴 Mission proof incomplete or mismatched. No STOP/recovery progression. Restore Latest to reverify.';
     return false;
   }
+  // A new checkpoint invalidates any earlier request-level gate presentation.
+  inferenceResult.textContent='Checkpoint updated. Inspect inference again if needed.';
+  handoffResult.textContent='Checkpoint updated. Review governance again if needed.';
   latestDigest=receipt.digest;
   latestState=receipt.state;
   proofVerified=true;
