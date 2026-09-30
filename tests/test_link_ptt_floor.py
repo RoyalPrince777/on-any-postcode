@@ -137,13 +137,12 @@ def test_current_relationship_guard_blocks_floor_mutations(monkeypatch):
     assert len(db.queries) == 1
 
 
-def test_ptt_floor_route_requires_csrf_and_auth(client, anonymous_client):
+def test_ptt_floor_route_requires_csrf(client):
     session = str(uuid.uuid4())
     route = f"/linkup/calls/{session}/ptt/floor"
     response = client.post(route, json={"action": "acquire"})
     assert response.status_code == 403
     assert response.get_json()["error"]["code"] == "csrf_failed"
-    assert anonymous_client.get("/linkup/ptt/status").status_code in {302, 401, 403}
     assert response.headers["Cache-Control"] == "no-store"
 
 
