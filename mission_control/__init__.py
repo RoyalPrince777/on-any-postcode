@@ -27,6 +27,7 @@ def init_app(app: Flask) -> None:
         hrm_durable_receipt,
         link_activity,
         link_call_audit,
+        link_ptt_floor,
         link_message_sync,
         link_ping,
         link_presence,
@@ -68,6 +69,7 @@ def init_app(app: Flask) -> None:
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
     from .link_call_routes import bp as link_call_bp
+    from .link_ptt_routes import bp as link_ptt_bp
     from .link_incoming_routes import bp as link_incoming_bp
     from .link_message_routes import bp as link_message_bp
     from .link_ping_routes import bp as link_ping_bp
@@ -1156,6 +1158,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(linkup_safety_bp)
     app.register_blueprint(link_relationship_bp)
     app.register_blueprint(link_call_bp)
+    app.register_blueprint(link_ptt_bp)
     app.register_blueprint(link_signalling_bp)
     app.register_blueprint(link_turn_bp)
     app.register_blueprint(link_incoming_bp)
