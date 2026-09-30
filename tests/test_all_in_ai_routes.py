@@ -141,3 +141,38 @@ def test_captain_checkpoint_digest_is_never_trusted_from_browser_session():
     assert "if(!proofVerified||!latestDigest)return;" in template
     assert "sessionStorage.getItem(sessionPrefix+'digest')" not in template
     assert "Never trust sessionStorage digest for STOP/recovery" in template
+
+
+
+def test_captain_inference_inspector_reuses_private_read_only_route():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1]
+        / "mission_control" / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert 'id="inference-inspect" type="button" disabled' in template
+    assert "inferenceButton.addEventListener('click',async()=>{" in template
+    assert "'/inference/'+encodeURIComponent(requestId)" in template
+    assert "if(!proofVerified||!missionId||latestState==='stopped')return;" in template
+    assert "evidence?.mission_id!==inspectedMission" in template
+    assert "evidence?.request_id!==requestId" in template
+    for field in (
+        "mission_checkpoint_verified",
+        "mission_text_hash_matched",
+        "governed_response_recorded",
+    ):
+        assert "evidence?." + field + "!==true" in template
+    for field in (
+        "inference_route_attested",
+        "first_party_inference_proven",
+        "mission_execution_proven",
+        "execution_granted",
+        "approval_granted",
+    ):
+        assert "evidence?." + field + "!==false" in template
+    assert "evidence?.human_authority_final!==true" in template
+    assert "Independent worker attestation: NOT PROVEN" in template
+    assert "Mission execution: NOT PROVEN" in template
+    assert "inferenceResult.textContent=[" in template
+    assert "inferenceResult.innerHTML" not in template
