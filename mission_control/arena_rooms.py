@@ -148,14 +148,15 @@ def join_room(*, room_code: object, display_name: object) -> dict[str, Any]:
             room_id, game_key, status, capacity = row
             if status not in {"WAITING", "ACTIVE"}:
                 raise ValueError("arena_room_join_closed")
-            seat_row = connection.execute(
-                """SELECT COALESCE(MAX(seat),0),COUNT(*)
-                   FROM oap_arena_room_players
-                   WHERE room_id=%s""",
+            existing_players = connection.execute(
+                """SELECT seat,display_name FROM oap_arena_room_players
+                   WHERE room_id=%s ORDER BY seat ASC""",
                 (room_id,),
-            ).fetchone()
-            next_seat = int(seat_row[0]) + 1
-            count = int(seat_row[1])
+            ).fetchall()
+            if any(str(player[1]).casefold() == name.casefold() for player in existing_players):
+                raise ValueError("arena_room_player_name_taken")
+            next_seat = max((int(player[0]) for player in existing_players), default=0) + 1
+            count = len(existing_players)
             if count >= int(capacity) or next_seat > int(capacity):
                 raise ValueError("arena_room_full")
             connection.execute(
