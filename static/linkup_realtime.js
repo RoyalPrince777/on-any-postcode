@@ -62,9 +62,13 @@
   const remoteVideo = document.querySelector("[data-oap-remote-video]");
   const remoteAudio = document.querySelector("[data-oap-remote-audio]");
   const hangupButton = document.querySelector("[data-oap-hangup]");
+  const pttHoldButton = document.querySelector("[data-oap-live-ptt-hold]");
+  const pttStopButton = document.querySelector("[data-oap-live-ptt-stop]");
 
   const state = {
     ready: false,
+    pttReady: false,
+    pttHold: null,
     busy: false,
     current: null,
     peer: null,
@@ -133,7 +137,8 @@
   const refreshControls = () => {
     callControls.forEach((control) => {
       const canUse =
-        state.ready && !state.busy && !state.current && Boolean(recipientFor(control));
+        state.ready && (control.dataset.callMode !== "ptt" || state.pttReady) &&
+        !state.busy && !state.current && Boolean(recipientFor(control));
       control.disabled = !canUse;
       const marker = control.querySelector("small");
       if (marker) {
@@ -167,6 +172,7 @@
   };
 
   const resetCurrent = () => {
+    silencePtt();
     clearSignalTimer();
     if (state.pc) {
       state.pc.onicecandidate = null;
@@ -215,6 +221,7 @@
   };
 
   const finishCurrent = async ({ remote = false, failed = false } = {}) => {
+    silencePtt();
     const sessionId = state.current;
     const peerId = state.peer;
     const role = state.role;
@@ -374,6 +381,8 @@
       audio: true,
       video: mode === "face_up",
     });
+    // A PTT call begins silent, before a peer connection or offer exists.
+    if (mode === "ptt") localStream.getAudioTracks().forEach((track) => { track.enabled = false; });
     let pc;
     try {
       pc = new RTCPeerConnection({ iceServers: credentials.ice_servers });
@@ -416,7 +425,16 @@
       stage.hidden = false;
     }
     if (stageLabel) {
-      stageLabel.textContent = mode === "face_up" ? "Private Link Call" : "Private Call";
+      stageLabel.textContent = mode === "face_up" ? "Private Link Call" : mode === "ptt" ? "Private Live PTT" : "Private Call";
+    }
+    if (pttHoldButton) {
+      pttHoldButton.hidden = mode !== "ptt";
+      pttHoldButton.disabled = mode !== "ptt";
+      pttHoldButton.setAttribute("aria-pressed", "false");
+    }
+    if (pttStopButton) {
+      pttStopButton.hidden = mode !== "ptt";
+      pttStopButton.disabled = mode !== "ptt";
     }
     if (mode === "face_up" && localVideo) {
       localVideo.srcObject = localStream;
@@ -444,7 +462,7 @@
       return;
     }
     const peerId = recipientFor(control);
-    const mode = control.dataset.callMode === "face_up" ? "face_up" : "call";
+    const mode = control.dataset.callMode === "face_up" ? "face_up" : control.dataset.callMode === "ptt" ? "ptt" : "call";
     if (!peerId) {
       setStatus("Choose a Certified member first.");
       return;
@@ -457,6 +475,10 @@
     setStatus(mode === "face_up" ? "Starting Link Call…" : "Starting Call…");
     let sessionId = null;
     try {
+      if (mode === "ptt") {
+        const floor = await api("/linkup/ptt/status");
+        if (!floor.ready || floor.server_controls_media !== false) throw new Error("ptt_floor_unavailable");
+      }
       const created = await api("/linkup/calls", {
         method: "POST",
         body: JSON.stringify({ recipient_id: peerId, mode }),
@@ -513,8 +535,12 @@
     if (incomingNode) {
       incomingNode.hidden = true;
     }
-    setStatus(session.mode === "face_up" ? "Answering Link Call…" : "Answering Call…");
+    setStatus(session.mode === "face_up" ? "Answering Link Call…" : session.mode === "ptt" ? "Answering private PTT…" : "Answering Call…");
     try {
+      if (session.mode === "ptt") {
+        const floor = await api("/linkup/ptt/status");
+        if (!floor.ready || floor.server_controls_media !== false) throw new Error("ptt_floor_unavailable");
+      }
       await api(`/linkup/calls/${encodeURIComponent(session.session_id)}/answer`, {
         method: "POST",
         body: "{}",
@@ -552,7 +578,7 @@
     incoming.forEach((session) => {
       const card = document.createElement("div");
       const label = document.createElement("p");
-      label.textContent = session.mode === "face_up" ? "Incoming Link Call" : "Incoming Call";
+      label.textContent = session.mode === "face_up" ? "Incoming Link Call" : session.mode === "ptt" ? "Incoming private PTT" : "Incoming Call";
       const answer = document.createElement("button");
       answer.type = "button";
       answer.className = "mc-primary";
@@ -617,6 +643,16 @@
     } catch (_error) {
       state.ready = false;
     }
+    if (state.ready) {
+      try {
+        const ptt = await api("/linkup/ptt/status");
+        state.pttReady = ptt.ready === true && ptt.server_controls_media === false;
+      } catch (_error) {
+        state.pttReady = false;
+      }
+    } else {
+      state.pttReady = false;
+    }
     refreshControls();
     if (state.ready) {
       setStatus("Call and Link Call runtime gates are Certified and ready.");
@@ -636,6 +672,7 @@
 
   hangupButton?.addEventListener("click", () => finishCurrent());
   window.addEventListener("pagehide", () => {
+    silencePtt();
     clearSignalTimer();
     if (state.incomingTimer) {
       window.clearTimeout(state.incomingTimer);
