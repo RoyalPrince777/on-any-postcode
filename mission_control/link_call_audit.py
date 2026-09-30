@@ -15,15 +15,20 @@ from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 SCHEMA_VERSION = "link_call_audit_v1"
 MIN_RETENTION_DAYS = 1
 MAX_RETENTION_DAYS = 90
-ALLOWED_MODES = frozenset({"call", "face_up"})
+ALLOWED_MODES = frozenset({"call", "face_up", "ptt"})
 FINAL_OUTCOMES = frozenset({"completed", "cancelled", "declined", "failed"})
+PTT_MODE_SCHEMA_SQL = (
+    "ALTER TABLE link_call_sessions DROP CONSTRAINT IF EXISTS link_call_sessions_mode_check",
+    """ALTER TABLE link_call_sessions ADD CONSTRAINT link_call_sessions_mode_check
+       CHECK (mode IN ('call','face_up','ptt'))""",
+)
 
 SCHEMA_SQL = (
     """CREATE TABLE IF NOT EXISTS link_call_sessions (
         session_id UUID PRIMARY KEY,
         initiator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        mode TEXT NOT NULL CHECK (mode IN ('call','face_up')),
+        mode TEXT NOT NULL CHECK (mode IN ('call','face_up','ptt')),
         state TEXT NOT NULL DEFAULT 'ringing'
             CHECK (state IN ('ringing','active','ended')),
         outcome TEXT CHECK (outcome IN ('completed','cancelled','declined','failed')),
@@ -115,6 +120,24 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
     except Exception as exc:
         raise LinkCallAuditUnavailable("link_call_audit_schema_failed") from exc
     return {"version": SCHEMA_VERSION, "applied": True}
+
+
+def upgrade_ptt_mode(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, Any]:
+    """Separate, explicit existing-schema upgrade; never performed on app startup."""
+    if not dry_run and not assume_yes:
+        raise PermissionError("explicit_confirmation_required")
+    if dry_run:
+        return {"version": "link_call_ptt_mode_v1", "statements": list(PTT_MODE_SCHEMA_SQL), "applied": False}
+    if not _table_ready():
+        raise LinkCallAuditUnavailable("link_call_schema_required")
+    try:
+        with postgres_db.connect() as connection:
+            for statement in PTT_MODE_SCHEMA_SQL:
+                connection.execute(statement)
+            connection.commit()
+    except Exception as exc:
+        raise LinkCallAuditUnavailable("link_call_ptt_mode_upgrade_failed") from exc
+    return {"version": "link_call_ptt_mode_v1", "applied": True}
 
 
 def _relationship_guard(first: str, second: str) -> None:
