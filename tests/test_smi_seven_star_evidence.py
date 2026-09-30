@@ -1,5 +1,8 @@
 """Seven-star evidence presentation must fail closed and preserve Founder Final."""
-from mission_control.smi_deep_dive_protocol import SEVEN_STAR_GATE, evaluate_seven_star_gate
+from mission_control.smi_deep_dive_protocol import (
+    SEVEN_STAR_GATE,
+    evaluate_seven_star_gate,
+)
 
 
 def test_missing_evidence_is_unknown_not_green():
