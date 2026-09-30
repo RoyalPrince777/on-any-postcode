@@ -574,7 +574,7 @@
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "connected") {
         state.answered = true;
-        setStatus(mode === "face_up" ? "Link Call connected." : "Call connected.");
+        setStatus(mode === "face_up" ? "Link Call connected." : mode === "ptt" ? "Private PTT connected. Hold to speak." : "Call connected.");
       } else if (pc.connectionState === "failed") {
         finishCurrent({ failed: true });
       }
@@ -610,9 +610,9 @@
         type: pc.localDescription.type,
         sdp: pc.localDescription.sdp,
       });
-      setStatus(mode === "face_up" ? "Link Call is ringing…" : "Call is ringing…");
+      setStatus(mode === "face_up" ? "Link Call is ringing…" : mode === "ptt" ? "Private PTT is ringing…" : "Call is ringing…");
     } else {
-      setStatus(mode === "face_up" ? "Opening private Link Call…" : "Opening private Call…");
+      setStatus(mode === "face_up" ? "Opening private Link Call…" : mode === "ptt" ? "Opening private PTT…" : "Opening private Call…");
     }
   };
 
@@ -631,7 +631,7 @@
     if (incomingNode) {
       incomingNode.hidden = true;
     }
-    setStatus(mode === "face_up" ? "Starting Link Call…" : "Starting Call…");
+    setStatus(mode === "face_up" ? "Starting Link Call…" : mode === "ptt" ? "Starting private PTT…" : "Starting Call…");
     let sessionId = null;
     try {
       if (mode === "ptt") {
