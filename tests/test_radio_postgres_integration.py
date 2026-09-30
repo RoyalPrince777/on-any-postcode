@@ -331,6 +331,43 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
             )
             conn.commit()
 
+        # Asset STOP and entitlement revocation must have the same
+        # transaction boundary: their uncommitted UPDATE locks block
+        # admission, and committed revocations deny it with no new receipt.
+        for target, row_id, change, restore in (
+            (
+                "oap_music_entitlements", entitlement,
+                "active=FALSE", "active=TRUE",
+            ),
+            (
+                "oap_music_assets", asset,
+                "stopped=TRUE", "stopped=FALSE",
+            ),
+        ):
+            key = "entitlement_id" if target == "oap_music_entitlements" else "asset_id"
+            with psycopg.connect(URL, options=f"-c search_path={schema}") as revoker:
+                revoker.execute(
+                    f"UPDATE {target} SET {change} WHERE {key}=%s", (row_id,)
+                )
+                monkeypatch.setattr(
+                    radio_core.postgres_db, "connect", bounded_connect
+                )
+                with pytest.raises(psycopg.errors.LockNotAvailable):
+                    store.admit_delivery(**args)
+            monkeypatch.setattr(
+                radio_core.postgres_db, "connect", isolated_connect
+            )
+            assert store.admit_delivery(**args) is None
+            with isolated_connect(readonly=True) as conn:
+                assert conn.execute(
+                    "SELECT count(*) FROM oap_radio_delivery_admissions"
+                ).fetchone()[0] == 1
+            with isolated_connect() as conn:
+                conn.execute(
+                    f"UPDATE {target} SET {restore} WHERE {key}=%s", (row_id,)
+                )
+                conn.commit()
+
         store.stop_station(
             owner_identity_id=owner, station_id=station, reason="Founder STOP"
         )
