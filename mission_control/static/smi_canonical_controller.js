@@ -247,7 +247,7 @@ function oapTogglePause(){
   if(oapRuntime.live&&!oapRuntime.listening&&!oapRuntime.thinking&&!oapRuntime.speaking)oapScheduleListening(180);
   oapResumeListenAfterPause=false;
  }
- if(oapPause){oapPause.classList.toggle('active',oapRuntime.paused);oapPause.setAttribute('aria-pressed',String(oapRuntime.paused));oapPause.textContent=oapRuntime.paused?'▶':'Ⅱ';}
+ if(oapPause){oapPause.classList.toggle('active',oapRuntime.paused);oapPause.setAttribute('aria-pressed',String(oapRuntime.paused));oapPause.innerHTML=oapRuntime.paused?'<span aria-hidden="true">▶</span><span class="control-label">Resume</span>':'<span aria-hidden="true">Ⅱ</span><span class="control-label">Pause</span>';}
  const provider=document.getElementById('provider-state');if(provider)provider.textContent=oapRuntime.paused?'Paused':'Working';
  oapSetStatus(oapRuntime.paused?'Paused by Human Authority':'Resumed');
 }
@@ -336,7 +336,7 @@ if(oapMic){
   oapRecognition.onstart=()=>{
    const expected=oapRecognitionToken;
    if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-start'});try{oapRecognition.stop()}catch{}return;}
-   oapApply('LISTEN_START');oapProof('listenStart',{epoch:oapRuntime?.epoch});oapListenStarted=Date.now();oapMic.classList.add('active');oapMic.setAttribute('aria-pressed','true');oapMic.setAttribute('aria-label','Stop voice input');oapMic.textContent='■';oapSetStatus('Listening · 0s');oapListenTimer=setInterval(()=>oapSetStatus(`Listening · ${oapElapsed()}s`),1000);
+   oapApply('LISTEN_START');oapProof('listenStart',{epoch:oapRuntime?.epoch});oapListenStarted=Date.now();oapMic.classList.add('active');oapMic.setAttribute('aria-pressed','true');oapMic.setAttribute('aria-label','Stop voice input');oapMic.innerHTML='<span aria-hidden="true">■</span><span class="control-label">Stop voice</span>';oapSetStatus('Listening · 0s');oapListenTimer=setInterval(()=>oapSetStatus(`Listening · ${oapElapsed()}s`),1000);
   };
   oapRecognition.onresult=event=>{
    if(!oapStateApi.tokenIsCurrent(oapRuntime,oapRecognitionToken)||!oapRuntime?.listening){oapProof('staleCallbackSuppressed',{source:'recognition-result'});return;}
@@ -344,7 +344,7 @@ if(oapMic){
    oapInput.value=full;oapFinalTranscript=finalText;oapInput.dispatchEvent(new Event('input',{bubbles:true}));
   };
   oapRecognition.onend=()=>{
-   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
+   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.innerHTML='<span aria-hidden="true">🎙️</span><span class="control-label">Voice</span>';
    if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-end'});return;}
    oapApply('LISTEN_END');oapProof('listenEnd',{epoch:oapRuntime?.epoch});
    if(oapRuntime.live){
@@ -368,7 +368,7 @@ if(oapMic){
    }else{oapSetStatus(oapFinalTranscript?'Voice captured · edit or send':'Voice input ended without a final transcript');}
   };
   oapRecognition.onerror=event=>{
-   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.textContent='🎙️';
+   const expected=oapRecognitionToken;oapStopListenTimer();oapMic.classList.remove('active');oapMic.setAttribute('aria-pressed','false');oapMic.setAttribute('aria-label','Voice input');oapMic.innerHTML='<span aria-hidden="true">🎙️</span><span class="control-label">Voice</span>';
    if(!oapStateApi.tokenIsCurrent(oapRuntime,expected)){oapProof('staleCallbackSuppressed',{source:'recognition-error'});return;}
    oapApply('LISTEN_END');oapProof('listenEnd',{epoch:oapRuntime?.epoch,error:String(event?.error||'unknown')});
    if(event?.error==='not-allowed')oapProof('permissionDenied',{});
