@@ -81,13 +81,15 @@ def test_live_fullscreen_surfaces_recovery_message():
 def test_primary_controls_remain_human_readable_not_emoji_only():
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
     base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
-    assert 'content:" Tools"' in css
-    assert 'content:" Voice"' in css
-    assert 'content:" Pause"' in css
-    assert 'content:" Stop"' in css
+    for label in ("Tools", "Voice", "Pause", "Stop", "Send"):
+        assert f">{label}<" in base or f">{label}</span>" in base
+    assert 'class="control-label">Tools</span>' in base
+    assert 'class="control-label">Voice</span>' in base
+    assert 'class="control-label">Pause</span>' in base
+    assert 'class="control-label">Stop</span>' in base
+    assert ".control-label{" in css
+    assert 'content:none!important' in css
     assert ".send-label{display:inline!important" in css
-    assert 'id="live-character-toggle"' in base
-    assert "font-size:.72rem!important" in css
 
 
 def test_final_smi_shell_does_not_wait_for_dom_ready_to_become_visible():
@@ -96,3 +98,29 @@ def test_final_smi_shell_does_not_wait_for_dom_ready_to_become_visible():
     assert 'class="mc-workspace-body smi-noise-strip"' in base
     assert "smi-booting" not in base
     assert "classList.remove('smi-booting')" not in js
+
+
+def test_first_paint_guard_is_inside_head_before_body():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    guard = base.index('id="smi-first-paint-guard"')
+    head_close = base.index("</head>")
+    body = base.index("<body")
+    assert guard < head_close < body
+
+
+def test_war_room_uses_direct_configured_route_not_hidden_tool_proxy():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    assert "const openWarRoom=()=>{" in command
+    assert "cfg.warRoomUrl" in command
+    assert "window.location.assign(target)" in command
+    assert 'if(target==="war-room"){openWarRoom();return;}' in command
+    assert 'if(action==="war-room")' in command
+    assert '#attach-menu [data-oap-action="war-room"]' not in command
+
+
+def test_voice_and_pause_state_changes_keep_readable_labels():
+    canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text(encoding="utf-8")
+    assert 'class="control-label">Resume</span>' in canonical
+    assert 'class="control-label">Pause</span>' in canonical
+    assert 'class="control-label">Stop voice</span>' in canonical
+    assert 'class="control-label">Voice</span>' in canonical
