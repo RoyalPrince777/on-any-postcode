@@ -23,7 +23,7 @@ function render(){
   "Winner: "+(state.players.find(p=>p.id===state.winner_id)?.name||"—"):
   state.status==="stopped"?"Match stopped.":"Choose a move from 1 to 6. This is manual movement, not a random dice roll.";
 }
-async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
+async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
 q("[data-start]").onclick=()=>action("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-step]");if(btn&&!btn.disabled)action("/arena/ludo/move",{steps:Number(btn.dataset.step),request_id:requestId()});});
 q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
