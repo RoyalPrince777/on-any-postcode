@@ -348,3 +348,43 @@ def organ_status(identity_id: object) -> dict[str, Any]:
         "post": post_dashboard(identity_id),
         "consequential_action": False,
     }
+
+
+def founder_music_review_queue(*, limit: int = 100) -> dict[str, Any]:
+    """Founder-only caller projection; route must enforce Human Authority.
+
+    A rights status is displayed, never inferred from the submission itself.
+    """
+    effective_limit = min(100, max(1, int(limit)))
+    with postgres_db.connect(readonly=True) as connection:
+        rows = connection.execute(
+            """SELECT r.release_id,r.owner_identity_id,r.title,r.release_type,
+                      r.state,r.rights_status,r.created_at,COUNT(t.track_id)
+               FROM oap_music_releases r
+               LEFT JOIN oap_music_tracks t ON t.release_id=r.release_id
+               WHERE r.state='REVIEW_REQUIRED'
+               GROUP BY r.release_id
+               ORDER BY r.created_at ASC,r.release_id ASC
+               LIMIT %s""",
+            (effective_limit,),
+        ).fetchall()
+    return {
+        "organ": "OAP Music",
+        "review_required": [
+            {
+                "release_id": str(r[0]),
+                "owner_identity_id": str(r[1]),
+                "title": str(r[2]),
+                "release_type": str(r[3]),
+                "state": str(r[4]),
+                "rights_status": str(r[5]),
+                "created_at": r[6].isoformat(),
+                "track_count": int(r[7]),
+                "approvable": str(r[5]) == "VERIFIED" and int(r[7]) > 0,
+            }
+            for r in rows
+        ],
+        "approval_does_not_publish": True,
+        "broadcast_claimed": False,
+        "human_authority_final": True,
+    }
