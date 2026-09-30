@@ -9,6 +9,7 @@
     "[data-oap-link-composer]",
     "[data-oap-call-control]",
     "[data-oap-voice-control]",
+    "[data-oap-ptt-control]",
     "[data-oap-voice-stop]",
     "[data-oap-share-spot-control]",
     "[data-oap-around-control]",

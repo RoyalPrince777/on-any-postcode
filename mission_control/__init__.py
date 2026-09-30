@@ -30,6 +30,7 @@ def init_app(app: Flask) -> None:
         link_message_sync,
         link_ping,
         link_presence,
+        link_ptt_floor,
         link_relationships,
         link_share,
         link_signalling,
@@ -72,6 +73,7 @@ def init_app(app: Flask) -> None:
     from .link_message_routes import bp as link_message_bp
     from .link_ping_routes import bp as link_ping_bp
     from .link_presence_routes import bp as link_presence_bp
+    from .link_ptt_routes import bp as link_ptt_bp
     from .link_relationship_routes import bp as link_relationship_bp
     from .link_signalling_routes import bp as link_signalling_bp
     from .link_turn_routes import bp as link_turn_bp
@@ -921,6 +923,22 @@ def init_app(app: Flask) -> None:
             raise click.ClickException("explicit_confirmation_required")
         print(link_call_audit.purge_expired())
 
+    @app.cli.command("oap-upgrade-link-call-ptt-mode")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_upgrade_link_call_ptt_mode(dry_run: bool, yes: bool) -> None:
+        print(json.dumps(link_call_audit.upgrade_ptt_mode(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-link-ptt-floor-status")
+    def _oap_link_ptt_floor_status() -> None:
+        print(json.dumps(link_ptt_floor.status()))
+
+    @app.cli.command("oap-init-link-ptt-floor")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_link_ptt_floor(dry_run: bool, yes: bool) -> None:
+        print(json.dumps(link_ptt_floor.init_schema(dry_run=dry_run, assume_yes=yes)))
+
     @app.cli.command("oap-link-signalling-status")
     def _oap_link_signalling_status() -> None:
         import json
@@ -1156,6 +1174,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(linkup_safety_bp)
     app.register_blueprint(link_relationship_bp)
     app.register_blueprint(link_call_bp)
+    app.register_blueprint(link_ptt_bp)
     app.register_blueprint(link_signalling_bp)
     app.register_blueprint(link_turn_bp)
     app.register_blueprint(link_incoming_bp)

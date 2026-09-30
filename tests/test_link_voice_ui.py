@@ -45,7 +45,7 @@ def test_voice_controller_is_explicit_audio_only_same_origin_and_bounded():
 def test_voice_permission_is_requested_from_click_path_not_page_load():
     script = SCRIPT.read_text(encoding="utf-8")
 
-    assert "const startRecording = async (control) =>" in script
+    assert "const startRecording = async (control, pttPress = null) =>" in script
     assert 'control.addEventListener("click", () => startRecording(control))' in script
     assert "getUserMedia" in script
     assert 'apiJson("/linkup/voice/status")' in script
