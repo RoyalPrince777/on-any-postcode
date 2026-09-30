@@ -458,7 +458,24 @@ def _public_asset_response(
                 return _api_error(
                     "radio_playout_locked", "Station or track is unavailable.", 403
                 )
+            receipt = _radio_store.admit_delivery(
+                station_id=radio_binding[0],
+                track_id=radio_binding[1],
+                asset_id=asset_id,
+                owner_identity_id=owner_identity_id,
+                entitlement_id=gate.get("entitlement_id"),
+                rights_decision_hash=gate.get("rights_decision_hash"),
+                media_sha256=digest,
+                prepared_bytes=len(body),
+                response_status=status,
+            )
+            if receipt is None:
+                return _api_error(
+                    "radio_playout_locked", "Station or track is unavailable.", 403
+                )
             response.headers["X-OAP-Radio-Station"] = radio_binding[0]
+            response.headers["X-OAP-Delivery-Admission"] = receipt
+            response.headers["X-OAP-Receipt-Type"] = "RESPONSE_PREPARED"
             response.headers["X-OAP-Airplay-Confirmed"] = "false"
         return _no_store(response)
     except (TypeError, ValueError):
