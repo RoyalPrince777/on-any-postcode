@@ -33,7 +33,7 @@ def test_ptt_hold_release_cancel_and_keyboard_are_bound():
         'press.cancelled = true',
         'if (cancel) state.current.cancelled = true',
         'if (pttPress?.released) finishRecording()',
-        'state.pttPress !== pttPress || pttPress.cancelled',
+        'state.pttPress !== pttPress || pttPress.cancelled || pttPress.released',
         'stopTracks(stream)',
         'endPtt(true)',
         'control.setAttribute("aria-pressed", String(active))',
