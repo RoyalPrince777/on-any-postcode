@@ -5,8 +5,9 @@
 <body><main class="shell"><header class="top"><div><div class="muted">ON ANY POSTCODE</div><h1>📻 OAP Radio</h1><div class="muted">{% if founder_control %}Founder Control · private station management{% else %}Tune in · first-party OAP Music rotation{% endif %}</div></div>{% if founder_control %}<a class="pill" href="/radio">← Listener Radio</a>{% else %}<a class="pill" href="/music">🎵 Music</a>{% endif %}</header>
 <section class="card player"><strong>Now playing</strong><div id="now-title" class="now">Finding cleared OAP Music…</div><audio id="radio-player" controls autoplay preload="metadata"></audio><div class="status">The player advances through currently cleared public OAP tracks. STOP/rights changes remain authoritative.</div></section>
 {% if founder_control %}
-<section class="card"><strong>👑 Founder Station Control</strong><div class="status">Only the Founder can create, program, start or STOP OAP Radio stations.</div><form id="always-form" class="form"><select id="station-select" required><option value="">Choose station</option></select><button type="submit">▶ Keep Radio Always On</button><button type="button" id="stop-button">🛑 Founder STOP</button><div id="control-result" class="status"></div></form></section>
-<section class="card"><strong>Create Founder station</strong><form id="station-form" class="form"><input name="name" maxlength="180" placeholder="Station name" required><input name="slug" pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]" placeholder="station-slug" required><button>Create station</button><div id="station-result" class="status"></div></form></section>
+<section class="card"><strong>👑 Founder Station Control</strong><div class="status">Only the Founder can approve, program or STOP OAP Radio stations. Approved is not broadcast.</div><form id="always-form" class="form"><select id="station-select" required><option value="">Choose station</option></select><button type="button" id="station-approve-button">✓ Approve Station</button><button type="submit">▶ Save Always On Setting</button><button type="button" id="stop-button">🛑 Founder STOP</button><div id="control-result" class="status" role="status"></div></form></section>
+<section class="card"><strong>Founder Show Approval</strong><form id="show-form" class="form"><input name="title" maxlength="180" placeholder="New show title" required><button type="submit">Create Draft Show</button></form><div class="form"><select id="show-select" aria-label="Select show"><option value="">Choose show</option></select><button type="button" id="show-approve-button">✓ Approve Show</button><div id="show-result" class="status" role="status">Select an approved station before approving its show.</div></div></section>
+<section class="card"><strong>Create Founder station</strong><form id="station-form" class="form"><input name="name" maxlength="180" placeholder="Station name" required><input name="slug" pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]" placeholder="station-slug" required><button>Create Draft Station</button><div id="station-result" class="status" role="status"></div></form></section>
 {% endif %}
 </main><nav class="bottom" aria-label="OAP Music"><a href="/music">🎵 Music</a><a class="active" href="/radio">📻 Radio</a><a href="/music/artist-progress">📈 Progress</a><a href="/music/studio">⬆ Studio</a></nav>
 <script>
@@ -34,11 +35,60 @@
  player.addEventListener('timeupdate',()=>{const track=player.dataset.trackId,now=Math.floor(player.currentTime||0),last=Number(player.dataset.lastBeat||0);if(track&&now>=10&&now-last>=15){player.dataset.lastBeat=String(now);engagement(track,'HEARTBEAT')}});
  player.addEventListener('ended',()=>{const track=player.dataset.trackId;if(track)engagement(track,'COMPLETE').then(()=>play(index+1));else play(index+1)});
  const api=async(path,method='GET',body=null)=>{const o={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};if(method!=='GET')o.headers['X-OAP-CSRF']=csrf;if(body!==null){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}const r=await fetch(path,o),p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error?.message||p.error?.code||'Request failed');return p};
- async function refresh(){try{const r=await api('/mission/organs/radio');stationSelect.replaceChildren(new Option('Choose station',''));(r.stations||[]).forEach(s=>{const o=document.createElement('option');o.value=s.station_id;o.textContent=s.name+(s.always_on?' · ALWAYS ON':'')+(s.stopped?' · STOPPED':'');stationSelect.append(o)})}catch(e){document.getElementById('control-result').textContent='Enter My World to control your station.'}}
+ let founderShows=[];
+ function refreshShows(){
+  const showSelect=document.getElementById('show-select'),selected=showSelect.value;
+  showSelect.replaceChildren(new Option('Choose show',''));
+  founderShows.filter(sh=>sh.station_id===stationSelect.value).forEach(sh=>{
+   const option=new Option(sh.title+(sh.founder_approved?' · APPROVED':' · DRAFT')+(sh.state==='ARCHIVED'?' · ARCHIVED':''),sh.show_id);
+   option.disabled=sh.state==='ARCHIVED';showSelect.add(option);
+  });
+  if([...showSelect.options].some(o=>o.value===selected&&!o.disabled))showSelect.value=selected;
+ }
+ async function refresh(preferredStation){
+  try{
+   const r=await api('/mission/organs/radio'),chosen=preferredStation||stationSelect.value;
+   stationSelect.replaceChildren(new Option('Choose station',''));
+   (r.stations||[]).forEach(st=>{
+    const option=new Option(st.name+(st.founder_approved?' · APPROVED':' · DRAFT')+(st.state==='ARCHIVED'?' · ARCHIVED':'')+(st.stopped?' · STOPPED':''),st.station_id);
+    option.disabled=st.state==='ARCHIVED';stationSelect.add(option);
+   });
+   if([...stationSelect.options].some(o=>o.value===chosen&&!o.disabled))stationSelect.value=chosen;
+   founderShows=r.shows||[];refreshShows();
+  }catch(e){document.getElementById('control-result').textContent='Station control unavailable; no changes made.'}
+ }
  if(founderControl){
-  document.getElementById('always-form').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/mission/organs/radio/stations/'+encodeURIComponent(stationSelect.value)+'/always-on','POST',{enabled:true,auto_add_approved:true});document.getElementById('control-result').textContent=r.always_on?'Always On active · approved music can feed rotation':'Manual mode';await refresh()}catch(x){document.getElementById('control-result').textContent=x.message}});
+  stationSelect.addEventListener('change',refreshShows);
+  document.getElementById('station-approve-button').addEventListener('click',async()=>{
+   const id=stationSelect.value,result=document.getElementById('control-result');
+   if(!id){result.textContent='Select a draft station first.';return}
+   try{const r=await api('/mission/organs/radio/stations/'+encodeURIComponent(id)+'/approve','POST');
+    result.textContent=r.founder_approved?'Station approved · no broadcast started':'Approval unavailable';
+    await refresh(id);
+   }catch(x){result.textContent=x.message}
+  });
+  document.getElementById('show-form').addEventListener('submit',async e=>{
+   e.preventDefault();const id=stationSelect.value,result=document.getElementById('show-result');
+   if(!id){result.textContent='Choose a station first.';return}
+   try{
+    const r=await api('/mission/organs/radio/stations/'+encodeURIComponent(id)+'/shows','POST',Object.fromEntries(new FormData(e.currentTarget).entries()));
+    result.textContent='Draft show created · '+r.title+' · awaiting Founder approval';
+    e.currentTarget.reset();await refresh(id);
+    document.getElementById('show-select').value=r.show_id;
+   }catch(x){result.textContent=x.message}
+  });
+  document.getElementById('show-approve-button').addEventListener('click',async()=>{
+   const station=stationSelect.value,show=document.getElementById('show-select').value,result=document.getElementById('show-result');
+   if(!station||!show){result.textContent='Choose a station and draft show first.';return}
+   try{
+    const r=await api('/mission/organs/radio/stations/'+encodeURIComponent(station)+'/shows/'+encodeURIComponent(show)+'/approve','POST');
+    result.textContent=r.founder_approved?'Show approved · not yet scheduled or aired':'Approval unavailable';
+    await refresh(station);document.getElementById('show-select').value=show;
+   }catch(x){result.textContent=x.message}
+  });
+  document.getElementById('always-form').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/mission/organs/radio/stations/'+encodeURIComponent(stationSelect.value)+'/always-on','POST',{enabled:true,auto_add_approved:true});document.getElementById('control-result').textContent=r.always_on?'Always On setting saved · broadcast not started':'Manual setting saved';await refresh()}catch(x){document.getElementById('control-result').textContent=x.message}});
   document.getElementById('stop-button').addEventListener('click',async()=>{try{const r=await api('/mission/organs/radio/stations/'+encodeURIComponent(stationSelect.value)+'/stop','POST',{reason:'Founder STOP'});document.getElementById('control-result').textContent=r.stopped?'STOP active':'STOP unchanged';player.pause();await refresh()}catch(x){document.getElementById('control-result').textContent=x.message}});
-  document.getElementById('station-form').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/mission/organs/radio/stations','POST',Object.fromEntries(new FormData(e.currentTarget).entries()));document.getElementById('station-result').textContent='Created · '+r.name;e.currentTarget.reset();await refresh()}catch(x){document.getElementById('station-result').textContent=x.message}});
+  document.getElementById('station-form').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/mission/organs/radio/stations','POST',Object.fromEntries(new FormData(e.currentTarget).entries()));document.getElementById('station-result').textContent='Draft created · '+r.name+' · Founder approval required';e.currentTarget.reset();await refresh(r.station_id)}catch(x){document.getElementById('station-result').textContent=x.message}});
   refresh();
  }
  publicQueue();
