@@ -128,3 +128,19 @@ def test_radio_founder_approval_controls_are_private_and_use_real_actions():
     assert "'/approve','POST'" in private
     assert "'/shows/'+encodeURIComponent(show)+'/approve','POST'" in private
     assert "Approved is not broadcast" in private
+
+
+
+def test_radio_receipt_inspection_is_private_and_never_marks_airplay():
+    app = Flask(__name__, template_folder="../mission_control/templates")
+    with app.app_context():
+        public = render_template("oap_radio.html", founder_control=False)
+        private = render_template("oap_radio.html", founder_control=True)
+    assert 'id="radio-receipts-button"' not in public
+    assert 'id="radio-receipts-result"' not in public
+    assert 'id="radio-receipts-button"' in private
+    assert 'id="radio-receipts-result"' in private
+    assert "/delivery-receipts" in private
+    assert "Server response prepared ≠ listener delivery or confirmed airplay." in private
+    assert "textContent=(item.created_at" in private
+    assert "innerHTML" not in private
