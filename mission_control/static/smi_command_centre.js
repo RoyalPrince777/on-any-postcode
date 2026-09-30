@@ -86,7 +86,11 @@
  homeWar.setAttribute("aria-label","Open War Room");
  homeRail.append(homeSystem,homeMatrix,homeWar);
  document.body.append(homeRail);
- homeSystem.addEventListener("click",()=>setOpen(true));
+ homeSystem.addEventListener("click",()=>{
+  setOpen(true);
+  panel.dataset.mobileView="evidence";
+  mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
+ });
  homeMatrix.addEventListener("click",()=>window.location.assign("/mission/war-room/routes"));
  homeWar.addEventListener("click",()=>openWarRoom());
  // Quick access reuses the existing, governed Master Tools handlers.
