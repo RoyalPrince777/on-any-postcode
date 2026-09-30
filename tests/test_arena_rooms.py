@@ -68,6 +68,7 @@ def test_room_state_returns_players_and_no_chat_or_payments(monkeypatch):
 
     result = arena_rooms.room_state(room_id=room_id, reconnect_token="t" * 40)
 
+    assert result["your_seat"] == 1
     assert result["revision"] == 3
     assert result["game_state"]["current_player_id"] == "p1"
     assert "checkpoint" not in result["game_state"]
