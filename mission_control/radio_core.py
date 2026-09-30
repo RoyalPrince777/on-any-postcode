@@ -15,7 +15,7 @@ from . import entertainment_catalogue, postgres_db
 RADIO_MIGRATION_VERSION = "0008_oap_radio_core"
 RADIO_ALWAYS_ON_MIGRATION_VERSION = "0016_oap_radio_always_on"
 RADIO_FOUNDER_APPROVAL_MIGRATION_VERSION = "0021_oap_radio_founder_approval"
-RADIO_DELIVERY_ADMISSION_MIGRATION_VERSION = "0022_oap_radio_delivery_admission"
+RADIO_DELIVERY_ADMISSION_MIGRATION_VERSION = "0023_oap_radio_delivery_admission"
 RADIO_DELIVERY_ADMISSION_SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_radio_delivery_admissions (
         receipt_id UUID PRIMARY KEY,
