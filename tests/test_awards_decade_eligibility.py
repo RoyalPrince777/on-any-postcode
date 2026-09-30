@@ -1,7 +1,6 @@
 """Regression tests for the reusable, non-publishing decade admission guard."""
 
 import unittest
-
 from mission_control.awards_eligibility import check_decade_nomination
 
 
@@ -45,9 +44,11 @@ class DecadeEligibilityTests(unittest.TestCase):
 
     def test_decade_not_assumed(self):
         self.check({**GOOD, "achievement_date": "2030-01-01"}, (True, "eligible_for_review"), 2030, 2039)
-        for first, last in ((2020, 2028), (2020, 2030), (2029, 2020), (0, 9), (9991, 10000), (True, 2029)):
+        for first, last in ((2020, 2028), (2020, 2030), (2029, 2020), (0, 9), (9991, 10000)):
             with self.subTest(first=first, last=last), self.assertRaises(ValueError):
                 check_decade_nomination(GOOD, first_year=first, last_year=last)
+        with self.assertRaises(TypeError):
+            check_decade_nomination(GOOD, first_year=True, last_year=2029)
 
     def test_eligibility_does_not_assert_winner(self):
         self.assertEqual(
