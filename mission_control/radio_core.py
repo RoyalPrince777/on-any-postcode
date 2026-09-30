@@ -418,7 +418,13 @@ class RadioStore:
                        stop_reason=CASE WHEN %s THEN NULL ELSE stop_reason END,
                        updated_at=CURRENT_TIMESTAMP
                    WHERE station_id=%s AND owner_identity_id=%s
-                     AND founder_approved=TRUE
+                     AND EXISTS (
+                       SELECT 1 FROM oap_radio_stations s
+                       WHERE s.station_id=oap_radio_station_control.station_id
+                         AND s.owner_identity_id=oap_radio_station_control.owner_identity_id
+                         AND s.founder_approved=TRUE
+                         AND s.state='ACTIVE'
+                     )
                    RETURNING station_id,always_on,auto_add_approved,stopped""",
                 (
                     bool(enabled),
