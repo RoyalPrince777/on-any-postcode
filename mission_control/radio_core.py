@@ -655,6 +655,44 @@ class RadioStore:
             connection.commit()
         return receipt
 
+    def delivery_receipts(
+        self, *, owner_identity_id: object, station_id: object
+    ) -> list[dict[str, object]]:
+        """Founder-only caller retrieves owner-scoped admission evidence, not airplay."""
+        owner = _uuid(owner_identity_id, "owner_identity_id")
+        station = _uuid(station_id, "station_id")
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT d.receipt_id,d.track_id,d.asset_id,d.entitlement_id,
+                          d.rights_decision_hash,d.media_sha256,
+                          d.prepared_bytes,d.response_status,d.receipt_type,d.created_at
+                   FROM oap_radio_delivery_admissions d
+                   JOIN oap_radio_stations s ON s.station_id=d.station_id
+                   WHERE d.station_id=%s AND d.owner_identity_id=%s
+                     AND s.owner_identity_id=%s
+                   ORDER BY d.created_at DESC,d.receipt_id DESC LIMIT 100""",
+                (station, owner, owner),
+            ).fetchall()
+        return [
+            {
+                "receipt_id": str(r[0]),
+                "station_id": station,
+                "track_id": str(r[1]),
+                "asset_id": str(r[2]),
+                "entitlement_id": str(r[3]),
+                "rights_decision_hash": str(r[4]),
+                "media_sha256": str(r[5]),
+                "prepared_bytes": int(r[6]),
+                "response_status": int(r[7]),
+                "receipt_type": str(r[8]),
+                "created_at": r[9].isoformat(),
+                "delivery_completed": False,
+                "airplay_confirmed": False,
+                "listener_completion_confirmed": False,
+            }
+            for r in rows
+        ]
+
     def dashboard(self, *, owner_identity_id: object) -> dict[str, object]:
         owner = _uuid(owner_identity_id, "owner_identity_id")
         with postgres_db.connect(readonly=True) as connection:
