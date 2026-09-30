@@ -448,7 +448,7 @@
  const unifiedGrid=document.createElement("div");
  unifiedGrid.className="smi-unified-grid";
  const unifiedSources=[
-  ["mission","🎯 Mission","No verified active mission feed",null],
+  ["mission","🎯 Mission","No verified active mission feed","/mission/all-in-ai/app"],
   ["civilization","🌍 Civilization","Architecture not checked",cfg.civilizationStatusUrl],
   ["ecosystem","🌱 Ecosystem","Runtime/source evidence not checked",cfg.ecosystemDashboardUrl],
   ["matrix","🌐 Matrix","Routes not checked","/mission/war-room/routes"],
@@ -529,7 +529,8 @@
    ["matrix",cfg.routesUrl],
    ["hrm",cfg.hrmUrl],
    ["civilization",cfg.civilizationStatusUrl],
-   ["ecosystem",cfg.ecosystemStatusUrl]
+   ["ecosystem",cfg.ecosystemStatusUrl],
+   ["mission","/mission/all-in-ai/mission/latest"]
   ];
   const result=await Promise.allSettled(targets.map(async ([,url])=>{
    if(!url)throw new Error("Route unavailable");
@@ -541,7 +542,7 @@
   }));
   if(signal.aborted)return;
   const value=index=>result[index].status==="fulfilled"?result[index].value:null;
-  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5),civilization=value(6),ecosystem=value(7);
+  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5),civilization=value(6),ecosystem=value(7),mission=value(8);
   const count=Number(functions?.available_count||0),expected=Number(functions?.expected_count||0);
   const functionsProven=expected>0&&count===expected&&Number(functions?.proof_checked_count||0)===expected&&Number(functions?.proof_required_count||0)===0;
   const signalProven=signals?.ready===true&&signals?.signals_valid===true&&Number(signals?.signal_count)===21;
@@ -560,6 +561,16 @@
   setRoom(roomGates.get("mind"),mindProven,mindProven?"Evidence coherent":"Reasoning/alignment proof incomplete");
   setRoom(roomGates.get("body"),bodyProven,bodyProven?"Runtime and function proof recorded":"Runtime/function proof incomplete");
   setRoom(roomGates.get("soul"),soulProven,soulProven?"Guardian/Aegis recovery proof recorded":"Safety/recovery proof incomplete");
+  // A plan is not an active mission: require the canonical owner-scoped HRM and
+  // audit read-back contract, never infer execution from HTTP 200 or a route.
+  const missionVerified=mission?.found===true&&mission?.read_back_verified===true&&
+   mission?.audit_verified===true&&mission?.hrm_verified===true&&
+   mission?.execution_granted===false&&mission?.human_authority_final===true&&
+   ["planned","stopped","recovered"].includes(mission?.state);
+  setUnified("mission",missionVerified,
+   missionVerified?"Verified "+mission.state+" checkpoint · no execution":
+   mission?.found===false?"No recorded mission · NOT PROVEN":
+   "Mission receipt unavailable/unverified · NOT PROVEN");
   // A valid response is not a Green receipt. Claim only explicit boolean contracts.
   setUnified("matrix",false,matrix?"Route evidence reachable · Matrix world-state not certified":"Routes unavailable · NOT PROVEN");
   setUnified("hrm",false,hrm?"HRM source reached · durable receipt not certified":"HRM unavailable · NOT PROVEN");
