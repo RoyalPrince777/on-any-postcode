@@ -12,7 +12,6 @@ class _Result:
                 10,
                 4,
                 2,
-                500,
             ),
             (
                 "33333333-3333-4333-8333-333333333333",
@@ -22,7 +21,6 @@ class _Result:
                 5,
                 3,
                 1,
-                0,
             ),
         ]
 
@@ -38,7 +36,7 @@ class _Connection:
         return _Result()
 
 
-def test_rank_uses_qualified_unique_radio_and_reconciled_value(monkeypatch):
+def test_rank_uses_qualified_sessions_without_unattributed_money(monkeypatch):
     monkeypatch.setattr(music_rank.postgres_db, "connect", lambda **kwargs: _Connection())
     result = music_rank.track_rank("55555555-5555-4555-8555-555555555555")
     assert result["raw_views_used"] is False
@@ -47,4 +45,8 @@ def test_rank_uses_qualified_unique_radio_and_reconciled_value(monkeypatch):
     assert result["external_metrics_used"] is False
     assert result["items"][0]["track_title"] == "Track A"
     assert result["items"][0]["position"] == 1
-    assert result["items"][0]["rank_score"] == 25
+    assert result["items"][0]["rank_score"] == 20
+    assert result["items"][0]["qualified_sessions"] == 10
+    assert result["items"][0]["reconciled_value_minor"] is None
+    assert result["monetary_attribution_used"] is False
+    assert result["public_chart_authority"] is False
