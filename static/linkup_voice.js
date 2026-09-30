@@ -129,7 +129,7 @@
     });
     pttControls.forEach((control) => {
       const active = state.pttPress?.control === control;
-      control.disabled = !active && (!state.ready || !browserReady() || !recipientFor(control) || Boolean(state.current) || Boolean(state.pttPress) || state.capturePending));
+      control.disabled = !active && (!state.ready || !browserReady() || !recipientFor(control) || Boolean(state.current) || Boolean(state.pttPress) || state.capturePending);
       control.setAttribute("aria-pressed", String(active));
     });
     stopControls.forEach((control) => {
