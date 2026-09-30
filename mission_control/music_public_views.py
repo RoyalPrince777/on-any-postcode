@@ -11,6 +11,7 @@ from . import (
     music_public_catalogue,
     music_purchases,
     public_store,
+    radio_core,
     web_security,
 )
 
@@ -18,6 +19,7 @@ bp = Blueprint("oap_music_public", __name__)
 _music_asset_store = music_assets.MusicAssetStore()
 _music_entitlement_store = music_entitlements.MusicEntitlementStore()
 _music_purchase_store = music_purchases.MusicPurchaseStore()
+_radio_store = radio_core.RadioStore()
 
 
 def _identity(*, sync: bool = False) -> str:
@@ -327,12 +329,32 @@ def music_catalogue():
 
 @bp.get("/music/api/assets/<asset_id>/stream")
 def public_music_stream(asset_id: str):
-    """Deliver one globally-cleared first-party asset after live fail-closed gates."""
+    """Deliver a Music asset using the shared rights-bound byte delivery path."""
+    return _public_asset_response(asset_id, channel="OAP Music")
+
+
+@bp.get("/radio/api/stations/<station_id>/tracks/<track_id>/assets/<asset_id>/stream")
+def radio_station_stream(station_id: str, track_id: str, asset_id: str):
+    """Bounded station-specific audio; never a confirmed broadcast/airplay."""
+    return _public_asset_response(
+        asset_id, channel="OAP Radio",
+        radio_binding=(station_id, track_id),
+    )
+
+
+def _public_asset_response(
+    asset_id: str, *, channel: str, radio_binding: tuple[str, str] | None = None
+):
+    """Reuse Music asset/range handling; Radio additionally checks STOP."""
     try:
+        if radio_binding is not None and not _radio_store.delivery_preflight(
+            station_id=radio_binding[0], track_id=radio_binding[1], asset_id=asset_id
+        ):
+            return _api_error("radio_playout_locked", "Station or track is unavailable.", 403)
         gate = _music_entitlement_store.public_gate(
             asset_id=asset_id,
             territory="*",
-            channel="OAP Music",
+            channel=channel,
         )
         if gate.get("allowed") is not True:
             return _no_store(
@@ -427,6 +449,17 @@ def public_music_stream(asset_id: str):
         response.headers["X-OAP-Entitlement"] = str(gate.get("entitlement_id"))
         if content_range is not None:
             response.headers["Content-Range"] = content_range
+        if radio_binding is not None:
+            # Recheck after rights evaluation and media read; selection is never
+            # permission to ignore a subsequently persisted station STOP.
+            if not _radio_store.delivery_preflight(
+                station_id=radio_binding[0], track_id=radio_binding[1], asset_id=asset_id
+            ):
+                return _api_error(
+                    "radio_playout_locked", "Station or track is unavailable.", 403
+                )
+            response.headers["X-OAP-Radio-Station"] = radio_binding[0]
+            response.headers["X-OAP-Airplay-Confirmed"] = "false"
         return _no_store(response)
     except (TypeError, ValueError):
         return _no_store(
