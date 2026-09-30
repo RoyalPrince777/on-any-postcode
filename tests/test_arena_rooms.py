@@ -165,3 +165,32 @@ def test_connect4_room_rejects_wrong_seat_and_stale_revision(monkeypatch):
             action="drop", column=3,
         )
     assert connection.commits == 0
+
+
+def test_room_join_rejects_duplicate_name_before_connect4_game_start(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=(room_id, "connect4", "WAITING", 2)),
+        _Result(many=[(1, "Alpha")]),
+    ])
+    _patch_connection(monkeypatch, connection)
+    with pytest.raises(ValueError, match="arena_room_player_name_taken"):
+        arena_rooms.join_room(room_code="ABC234", display_name=" alpha ")
+    assert connection.commits == 0
+    assert not any("INSERT INTO oap_arena_room_players" in sql for sql, _ in connection.calls)
+
+
+def test_room_join_distinct_name_opens_two_player_game(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=(room_id, "connect4", "WAITING", 2)),
+        _Result(many=[(1, "Alpha")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    result = arena_rooms.join_room(room_code="ABC234", display_name="Bravo")
+    assert result["seat"] == 2
+    assert result["game_key"] == "connect4"
+    assert connection.commits == 1
+    assert any("SET status='ACTIVE'" in sql for sql, _ in connection.calls)
