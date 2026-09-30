@@ -328,6 +328,12 @@ if(oapPlus)oapPlus.addEventListener('click',event=>{event.preventDefault();event
 document.addEventListener('click',event=>{if(oapAttachMenu&&oapPlus&&!event.target.closest('.attach-wrap')&&!event.target.closest('#tools-mode-button'))oapCloseAttach();});
 if(oapPause)oapPause.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapTogglePause();},true);
 if(oapStop)oapStop.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();const before=performance.now(),rawAt=Number(event.timeStamp),pointerAtMs=Number.isFinite(rawAt)&&Math.abs(rawAt-before)<10000?rawAt:before;oapStopAll();const handledAtMs=performance.now(),motion=window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION?.snapshot?.()||null,audio=oapLocalPlayer?.snapshot?.()||null;window.dispatchEvent(new CustomEvent('oap-smi-human-stop',{detail:{pointerAtMs,handledAtMs,stopAcknowledgementMs:Math.max(0,handledAtMs-pointerAtMs),motionStopped:Boolean(motion&&!motion.live&&motion.phase==='stopped'),audioStopped:Boolean(audio&&!audio.active),epoch:oapRuntime?.epoch}}));},true);
+const oapVoiceReplyMenu=document.getElementById('voice-reply-menu-button');
+if(oapVoiceReplyMenu)oapVoiceReplyMenu.addEventListener('click',event=>{
+ event.preventDefault();event.stopImmediatePropagation();
+ oapSpeaker?.click();
+ oapCloseAttach();
+},true);
 if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapSpeaker.classList.toggle('active',oapVoiceEnabled);oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';if(oapVoiceEnabled)oapLocalPlayer?.prepare?.();if(!oapVoiceEnabled){oapSpeechSeq+=1;oapLocalPlayer?.stop();if('speechSynthesis' in window)window.speechSynthesis.cancel();oapPlaybackState('cancelled',oapRuntime?.epoch);if(oapRuntime?.speaking)oapApply('SPEAK_END');if(oapRuntime?.live)oapScheduleListening(180);}oapSetStatus(oapVoiceEnabled?'Voice reply on':'Voice reply off');},true);
 if(oapMic){
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
