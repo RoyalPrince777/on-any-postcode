@@ -290,6 +290,7 @@ def execute(
                 raise ExecutionBlocked("rollback_restoration_hash_mismatch")
 
             rollback_token = {
+                "origin_request_id": request_id,
                 "record_id": record,
                 "expected_status": target,
                 "target_status": expected,
@@ -425,6 +426,16 @@ def rollback(
 
     if not isinstance(rollback_token, Mapping):
         raise TypeError("rollback_token_required")
+    original_request_id = _uuid(
+        rollback_token.get("origin_request_id"), "rollback_origin_request_id",
+    )
+    current_request_id = _uuid(
+        authorization.get("request_id"), "request_id",
+    )
+    # Enforce the distinct fresh Human Authority review on the server, not
+    # merely in browser controls. An old approval cannot authorise its own undo.
+    if original_request_id == current_request_id:
+        raise ExecutionBlocked("fresh_rollback_review_required")
     record_id = rollback_token.get("record_id")
     expected_status = rollback_token.get("expected_status")
     target_status = rollback_token.get("target_status")
