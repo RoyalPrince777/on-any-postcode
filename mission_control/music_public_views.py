@@ -142,7 +142,17 @@ def music_artist_progress():
 
 @bp.get("/radio")
 def radio_home():
-    return _no_store(make_response(render_template("oap_radio.html")))
+    return _no_store(
+        make_response(render_template("oap_radio.html", founder_control=False))
+    )
+
+
+@bp.get("/radio/control")
+@web_security.login_required(api=False, founder_only=True)
+def radio_control():
+    return _no_store(
+        make_response(render_template("oap_radio.html", founder_control=True))
+    )
 
 
 @bp.get("/music/api/song-price")
