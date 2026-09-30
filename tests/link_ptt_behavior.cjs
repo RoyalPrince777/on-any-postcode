@@ -121,14 +121,15 @@ async function scenario({ permissionDelay = false, action = "release", compete =
     control.emit("pointerdown");
     assert.equal(permissionRequests, 1);
   }
+  if (!permissionDelay) await settle(); // Capture is genuinely active while held.
   if (action === "cancel") win.emit("pointercancel");
   else win.emit("pointerup");
   if (permissionDelay) gate.resolve(stream());
   await settle();
 
-  if (action === "cancel") {
-    assert.equal(uploads, 0, "cancelled PTT must never upload");
-    assert.equal(recorderInstances.length, 0, "late permission after cancellation must never record");
+  if (action === "cancel" || permissionDelay) {
+    assert.equal(uploads, 0, "cancelled or already-released PTT must never upload");
+    assert.equal(recorderInstances.length, permissionDelay ? 0 : 1, "late permission must never start recording");
   } else {
     assert.equal(recorderInstances.length, 1, "release must create one recorder");
     assert.equal(uploads, 1, "release must upload exactly one private Voice");
@@ -142,7 +143,8 @@ async function scenario({ permissionDelay = false, action = "release", compete =
   await scenario({ action: "release", compete: true });
   await scenario({ action: "cancel", permissionDelay: true, compete: true });
   await scenario({ action: "release", permissionDelay: true, compete: true });
-  process.stdout.write("PTT controller behaviour passed: release, cancel, pending permission, capture exclusivity.\\n");
+  await scenario({ action: "cancel", compete: true });
+  process.stdout.write("PTT controller behaviour passed: active release, active cancel, late permission release/cancel, capture exclusivity.\\n");
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
