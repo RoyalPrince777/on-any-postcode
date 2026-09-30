@@ -138,6 +138,29 @@ def assess_financial_observation(
     if not isinstance(source_record, Mapping):
         reasons.append("untrusted_source")
     else:
+        # Usage rights must be separately documented in the trusted registry,
+        # not self-declared by the observation or inferred from a source name.
+        agreement = source_record.get("rights_evidence")
+        if not isinstance(agreement, Mapping):
+            reasons.append("missing_source_rights_evidence")
+        else:
+            if not isinstance(agreement.get("reference"), str) or not agreement["reference"].strip():
+                reasons.append("missing_source_rights_reference")
+            if agreement.get("verified") is not True:
+                reasons.append("source_rights_not_verified")
+            if agreement.get("use_scope") != "private_research":
+                reasons.append("private_research_rights_not_proven")
+            expiry = agreement.get("expires_at")
+            try:
+                if not isinstance(expiry, str):
+                    raise TypeError("expiry must be a string")
+                expiry_at = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
+                if expiry_at.tzinfo is None or expiry_at.utcoffset() is None:
+                    raise ValueError("expiry requires timezone")
+                if expiry_at <= now:
+                    reasons.append("source_rights_expired")
+            except (TypeError, ValueError, OverflowError):
+                reasons.append("invalid_source_rights_expiry")
         if source_record.get("research_use_permitted") is not True:
             reasons.append("research_permission_not_proven")
         if source_record.get("verified") is not True:
@@ -168,6 +191,7 @@ def assess_financial_observation(
             or receipt.get("value") != str(observation.get("value"))
             or receipt.get("published_at") != observation.get("published_at")
             or receipt.get("observed_at") != observation.get("observed_at")
+            or receipt.get("retrieved_at") != observation.get("retrieved_at")
         ):
             reasons.append("independent_evidence_mismatch")
     if observation.get("observed_or_inferred") != "observed":
