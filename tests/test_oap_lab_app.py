@@ -319,3 +319,23 @@ def test_lab_status_can_report_complete_evidence_without_granting_execution(monk
     assert data["recovery"]["live_store_identity_proven"] is True
     assert data["gates"]["release_proof_complete"] is True
     assert data["gates"]["automatic_execution"] is False
+
+
+def test_lab_science_lenses_render_and_keep_canonical_domain_on_review(monkeypatch):
+    from mission_control.oap_lab_research import DISCIPLINE_DOMAINS
+
+    client = _client(monkeypatch)
+    page = client.get("/oap-lab")
+    assert page.status_code == 200
+    for label, members in DISCIPLINE_DOMAINS:
+        assert f'<optgroup label="{label}">'.encode() in page.data
+        for domain in members:
+            assert f'<option value="{domain}"'.encode() in page.data
+    with client.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    for domain in ("materials", "physics", "robotics"):
+        response = client.post("/oap-lab", data=_form(domain=domain, operation=""))
+        assert response.status_code == 200
+        assert f"Domain: {domain.title()}".encode() in response.data
+        assert b"Not saved" in response.data
+        assert b"Not scientific proof" in response.data
