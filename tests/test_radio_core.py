@@ -168,6 +168,7 @@ def test_radio_routes_cover_body_controls():
     app.register_blueprint(product_core_views.bp, url_prefix="/mission/organs")
     expected = {
         "/mission/organs/radio": {"GET", "HEAD", "OPTIONS"},
+        "/mission/organs/radio/stations/<station_id>/delivery-receipts": {"GET", "HEAD", "OPTIONS"},
         "/mission/organs/radio/stations": {"POST", "OPTIONS"},
         "/mission/organs/radio/stations/<station_id>/shows": {"POST", "OPTIONS"},
         "/mission/organs/radio/stations/<station_id>/schedule": {"POST", "OPTIONS"},
