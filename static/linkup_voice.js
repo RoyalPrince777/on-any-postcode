@@ -240,8 +240,8 @@
       const mimeType = preferredMime();
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       state.capturePending = false;
-      // A release/cancel may happen while the browser permission prompt is open.
-      if (pttPress && (state.pttPress !== pttPress || pttPress.cancelled)) {
+      // Never begin recording after release or cancellation during browser permission.
+      if (pttPress && (state.pttPress !== pttPress || pttPress.cancelled || pttPress.released)) {
         stopTracks(stream);
         if (state.pttPress === pttPress) state.pttPress = null;
         refreshControls();
