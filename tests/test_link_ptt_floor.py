@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 import pytest
 
@@ -119,7 +120,7 @@ def test_floor_refuses_second_speaker_and_nonholder_release(monkeypatch):
 
 def test_either_participant_can_server_stop_a_live_floor(monkeypatch):
     first, second, session = (str(uuid.uuid4()) for _ in range(3))
-    db = Connection(first, second, previous=(second, True))
+    db = Connection(first, second, previous=(second, True, False))
     setup(monkeypatch, db)
     result = link_ptt_floor.floor(first, session, action="stop")
     assert result == {"granted": False, "holder_id": None, "stopped": True}
@@ -180,8 +181,40 @@ def test_stop_tombstone_rejects_late_renewal(monkeypatch):
 
 
 def test_floor_is_ptt_mode_only():
-    source = (link_ptt_floor.__file__)
-    from pathlib import Path
+    source = link_ptt_floor.__file__
     code = Path(source).read_text(encoding="utf-8")
     assert "mode='ptt' AND state='active'" in code
     assert "stopped BOOLEAN NOT NULL DEFAULT FALSE" in code
+
+
+def test_ptt_mode_migration_is_explicit_and_preserves_existing_modes():
+    from mission_control import link_call_audit
+
+    with pytest.raises(PermissionError, match="explicit_confirmation_required"):
+        link_call_audit.upgrade_ptt_mode()
+    dry = link_call_audit.upgrade_ptt_mode(dry_run=True)
+    assert dry["applied"] is False
+    joined = "\\n".join(dry["statements"])
+    assert "link_call_sessions_mode_check" in joined
+    assert "'call','face_up','ptt'" in joined
+    assert {"call", "face_up", "ptt"} == link_call_audit.ALLOWED_MODES
+
+
+def test_live_ptt_call_is_silent_by_default_and_lease_gated():
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "static" / "linkup_realtime.js").read_text(encoding="utf-8")
+    template = (root / "mission_control" / "templates" / "linkup.html").read_text(encoding="utf-8")
+    assert script.index("track.enabled = false;") < script.index("pc = new RTCPeerConnection(")
+    assert 'api("/linkup/ptt/status")' in script
+    assert 'pttFloor(hold.sessionId, "acquire")' in script
+    assert 'pttFloor(hold.sessionId, "release")' in script
+    assert 'pttFloor(sessionId, "stop")' in script
+    assert 'track.enabled = true;' in script
+    assert 'track.enabled = false;' in script
+    assert 'window.addEventListener("blur", silencePtt)' in script
+    assert 'if (document.hidden) silencePtt();' in script
+    assert 'state.pc?.connectionState !== "connected"' in script
+    assert 'data-oap-live-ptt-hold' in template
+    assert 'data-oap-live-ptt-stop' in template
+    assert template.count('data-call-mode="ptt"') == 2
+    assert "server_controls_media" in script
