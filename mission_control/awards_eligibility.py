@@ -16,9 +16,9 @@ def check_decade_nomination(record, *, first_year, last_year):
     evidence_reference and must not be silently admitted.
     """
     if not isinstance(first_year, int) or isinstance(first_year, bool):
-        raise ValueError("first_year must be an integer")
+        raise TypeError("first_year must be an integer")
     if not isinstance(last_year, int) or isinstance(last_year, bool):
-        raise ValueError("last_year must be an integer")
+        raise TypeError("last_year must be an integer")
     if first_year < 1 or last_year > 9999 or last_year - first_year != 9:
         raise ValueError("explicit inclusive ten-calendar-year boundaries required")
     if not isinstance(record, dict):
