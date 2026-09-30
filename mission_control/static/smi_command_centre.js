@@ -86,7 +86,11 @@
  homeWar.setAttribute("aria-label","Open War Room");
  homeRail.append(homeSystem,homeMatrix,homeWar);
  document.body.append(homeRail);
- homeSystem.addEventListener("click",()=>setOpen(true));
+ homeSystem.addEventListener("click",()=>{
+  setOpen(true);
+  panel.dataset.mobileView="evidence";
+  mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
+ });
  homeMatrix.addEventListener("click",()=>window.location.assign("/mission/war-room/routes"));
  homeWar.addEventListener("click",()=>openWarRoom());
  // Quick access reuses the existing, governed Master Tools handlers.
@@ -303,6 +307,56 @@
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
  dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>MIND × BODY × SOUL · DIRECT EVIDENCE</h3><div class="smi-room-gates"><article data-room-gate="mind"><strong>🧠 MIND</strong><small>Reasoning · alignment · evidence coherence</small></article><article data-room-gate="body"><strong>⚙️ BODY</strong><small>Runtime · functions · routes · execution health</small></article><article data-room-gate="soul"><strong>💛 SOUL</strong><small>Guardian · Aegis · recovery · trust boundaries</small></article></div><p class="smi-room-status-note">MBS is the operating model, not a percentage ladder. 3 / 7 / 21 controls review depth only. Founder Final remains separate Human Authority after evidence gates.</p>';
  evidence.append(dashboard);
+ // One System Intelligence reading surface. Each tile reports backend evidence,
+ // not inferred readiness from a reachable URL or an illustrated organism.
+ const unified=document.createElement("section");
+ unified.className="smi-unified-intelligence";
+ unified.setAttribute("aria-label","SMI unified system intelligence");
+ const unifiedTitle=document.createElement("h3");
+ unifiedTitle.textContent="🧠 SMI SYSTEM INTELLIGENCE · EVIDENCE";
+ const unifiedGrid=document.createElement("div");
+ unifiedGrid.className="smi-unified-grid";
+ const unifiedSources=[
+  ["mission","🎯 Mission","No verified active mission feed",null],
+  ["matrix","🌐 Matrix","Routes not checked","/mission/war-room/routes"],
+  ["guardian","🛡️ Guardian","Safety evidence not checked",cfg.greenGateUrl],
+  ["hrm","🧬 HRM","Receipts not checked",cfg.hrmUrl],
+  ["signals","📡 21 Signals","Contract not checked",cfg.signalsUrl],
+  ["gate","🟢 Green Gate","Decision evidence not checked",cfg.greenGateUrl]
+ ];
+ const unifiedNodes=new Map();
+ unifiedSources.forEach(([key,label,initial,url])=>{
+  const tile=document.createElement("article");
+  tile.dataset.unified=key;tile.dataset.proven="false";
+  const heading=document.createElement("strong");
+  heading.textContent=label;
+  const state=document.createElement("small");
+  state.textContent=initial;
+  tile.append(heading,state);
+  if(url){
+   const link=document.createElement("a");
+   link.href=url;link.textContent="Open";
+   link.setAttribute("aria-label","Open "+label+" canonical surface");
+   tile.append(link);
+  }
+  unifiedGrid.append(tile);
+  unifiedNodes.set(key,tile);
+ });
+ unified.append(unifiedTitle,unifiedGrid);
+ dashboard.before(unified);
+ // Preserve the original deep proof grid without making the home system a second wall.
+ const evidenceDetail=document.createElement("details");
+ evidenceDetail.className="smi-system-detail";
+ const evidenceSummary=document.createElement("summary");
+ evidenceSummary.textContent="Detailed MIND × BODY × SOUL evidence";
+ dashboard.before(evidenceDetail);
+ evidenceDetail.append(evidenceSummary,dashboard);
+ const setUnified=(key,proven,message)=>{
+  const node=unifiedNodes.get(key);
+  if(!node)return;
+  node.dataset.proven=String(proven===true);
+  node.querySelector("small").textContent=message;
+ };
  const roomStats=new Map([...dashboard.querySelectorAll("[data-room-stat]")].map(el=>[el.dataset.roomStat,el]));
  const roomGates=new Map([...dashboard.querySelectorAll("[data-room-gate]")].map(el=>[el.dataset.roomGate,el]));
  const proofList=document.createElement("div");proofList.className="smi-command-side";
@@ -332,11 +386,15 @@
   const signal=roomRequest.signal;
   roomStats.forEach(node=>setRoom(node,false,"Checking live evidence…"));
   roomGates.forEach((node,key)=>setRoom(node,false,key==="founder"?"Founder decision required":"Checking proof…"));
+  for(const key of ["matrix","guardian","hrm","signals","gate"])setUnified(key,false,"Checking backend evidence…");
+  setUnified("mission",false,"No verified active mission feed · do not infer one");
   const targets=[
    ["runtime",cfg.healthUrl],
    ["functions",cfg.functionHealthUrl],
    ["signals",cfg.signalsUrl],
-   ["alignment",cfg.greenGateUrl]
+   ["alignment",cfg.greenGateUrl],
+   ["matrix",cfg.routesUrl],
+   ["hrm",cfg.hrmUrl]
   ];
   const result=await Promise.allSettled(targets.map(async ([,url])=>{
    if(!url)throw new Error("Route unavailable");
@@ -348,7 +406,7 @@
   }));
   if(signal.aborted)return;
   const value=index=>result[index].status==="fulfilled"?result[index].value:null;
-  const health=value(0),functions=value(1),signals=value(2),gate=value(3);
+  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5);
   const count=Number(functions?.available_count||0),expected=Number(functions?.expected_count||0);
   const functionsProven=expected>0&&count===expected&&Number(functions?.proof_checked_count||0)===expected&&Number(functions?.proof_required_count||0)===0;
   const signalProven=signals?.ready===true&&signals?.signals_valid===true&&Number(signals?.signal_count)===21;
@@ -367,6 +425,12 @@
   setRoom(roomGates.get("mind"),mindProven,mindProven?"Evidence coherent":"Reasoning/alignment proof incomplete");
   setRoom(roomGates.get("body"),bodyProven,bodyProven?"Runtime and function proof recorded":"Runtime/function proof incomplete");
   setRoom(roomGates.get("soul"),soulProven,soulProven?"Guardian/Aegis recovery proof recorded":"Safety/recovery proof incomplete");
+  // A valid response is not a Green receipt. Claim only explicit boolean contracts.
+  setUnified("matrix",false,matrix?"Route evidence reachable · Matrix world-state not certified":"Routes unavailable · NOT PROVEN");
+  setUnified("hrm",false,hrm?"HRM source reached · durable receipt not certified":"HRM unavailable · NOT PROVEN");
+  setUnified("guardian",soulProven,soulProven?"Recovery checks explicitly passed":"Guardian/Aegis proof incomplete");
+  setUnified("signals",signalProven,signalProven?"21/21 signal contract validated":signals?"21 Signals proof incomplete":"Signals unavailable · NOT PROVEN");
+  setUnified("gate",gate?.green===true,gate?.green===true?"Backend gate satisfied · Founder Final separate":gate?"Missing proof · NOT GREEN":"Gate unavailable · NOT GREEN");
  }
  function setOpen(open){
   if(open===active)return;
