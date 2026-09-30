@@ -126,6 +126,7 @@ def status() -> dict[str, Any]:
             "rule": "Each pass receives the accumulated evidence and dissent from earlier passes; it is not seven copies of the same answer.",
         },
         "seven_star_gate": SEVEN_STAR_GATE,
+        "seven_star_assessment": evaluate_seven_star_gate(),
         "war_room_buttons": WAR_ROOM_BUTTONS,
         "founder_result_fields": FOUNDER_RESULT_FIELDS,
         "signal_rules": SIGNAL_RULES,
