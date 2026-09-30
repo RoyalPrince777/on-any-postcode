@@ -234,3 +234,20 @@ def test_jungle_home_door_uses_registered_families_and_existing_war_room():
     assert "homeWorld.addEventListener(\"click\",()=>closeJungle())" in command
     assert "closeWorld();" in command
     assert "review lenses are not independent agents" in command
+
+
+def test_existing_world_menu_separates_public_previews_and_private_review():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert 'homeWorld.textContent="🌍 OAP World"' in command
+    assert 'worldPanel.id="smi-world-controls"' in command
+    assert 'publicHeading.textContent="PUBLIC OAP · PREVIEW"' in command
+    assert 'controlHeading.textContent="PRIVATE SMI · WORLD GOVERNANCE"' in command
+    for route in ("cfg.civilizationStatusUrl", "cfg.ecosystemDashboardUrl",
+                  "cfg.functionHealthUrl", "cfg.greenGateUrl"):
+        assert route in command
+    assert 'if(!target.startsWith("/")||target.startsWith("//"))return' in command
+    assert 'link.referrerPolicy="no-referrer"' in command
+    assert "no publication, payment, permission change or automatic Green" in command
+    assert "smi-world-founder-link" in css
+    assert "overscroll-behavior:contain" in css
