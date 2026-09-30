@@ -27,7 +27,7 @@ async function act(path,payload){if(busy||(path==="/arena/chess/start"&&state?.s
  if(path==="/arena/chess/start"||path==="/arena/chess/move"){
   q("[data-source]").value="";q("[data-target]").value="";
  }
- render();}catch(e){error(e);}finally{busy=false;render();}}
+ render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
 function move(){
  const source=q("[data-source]").value.trim().toLowerCase(),target=q("[data-target]").value.trim().toLowerCase();
  if(!/^[a-h][1-8]$/.test(source)||!/^[a-h][1-8]$/.test(target)){error(new Error("Use squares a1–h8 (for example e2 → e4)."));return;}
