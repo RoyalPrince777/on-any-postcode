@@ -5,7 +5,6 @@ import pytest
 
 from mission_control import property_advertising as ads
 
-
 OWNER = str(uuid.uuid4())
 ADVERTISER = str(uuid.uuid4())
 REVIEWER = str(uuid.uuid4())
