@@ -258,7 +258,7 @@
                       {% endfor %}
                     </div>
                   </details>
-                  <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
+                  <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Hold to Talk (PTT)" title="Hold to Talk · release to send a Voice clip">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
                   <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop Voice">■</button>
                   <button class="mc-primary linkup-send" type="submit">Link</button>
                 </div>
