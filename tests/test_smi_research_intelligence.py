@@ -69,6 +69,12 @@ TRUSTED_SOURCES = {
     "approved research source": {
         "research_use_permitted": True,
         "verified": True,
+        "rights_evidence": {
+            "reference": "local-test-rights",
+            "verified": True,
+            "use_scope": "private_research",
+            "expires_at": "2026-10-01T00:00:00Z",
+        },
         "source_class": "reputable_secondary",
         "instruments": ("SAMPLE",),
         "verified_observations": {
@@ -78,6 +84,7 @@ TRUSTED_SOURCES = {
                 "value": "12.34",
                 "published_at": "2026-09-30T11:49:00Z",
                 "observed_at": "2026-09-30T11:50:00Z",
+                "retrieved_at": "2026-09-30T11:51:00Z",
             },
         },
     },
@@ -212,3 +219,44 @@ def test_cc21_self_attested_claim_does_not_grant_independent_receipt():
     )
     assert result["usable_for_research"] is False
     assert "independent_evidence_not_verified" in result["reasons"]
+
+
+@pytest.mark.parametrize(("rights", "expected"), (
+    (None, "missing_source_rights_evidence"),
+    ({}, "missing_source_rights_reference"),
+    ({"reference": "proof", "verified": False,
+      "use_scope": "private_research", "expires_at": "2026-10-01T00:00:00Z"},
+     "source_rights_not_verified"),
+    ({"reference": "proof", "verified": True,
+      "use_scope": "public_redistribution", "expires_at": "2026-10-01T00:00:00Z"},
+     "private_research_rights_not_proven"),
+    ({"reference": "proof", "verified": True,
+      "use_scope": "private_research", "expires_at": "2026-09-30T11:59:59Z"},
+     "source_rights_expired"),
+    ({"reference": "proof", "verified": True,
+      "use_scope": "private_research", "expires_at": "no-date"},
+     "invalid_source_rights_expiry"),
+))
+def test_cc21_source_rights_must_be_documented_valid_and_current(rights, expected):
+    record = {**TRUSTED_SOURCES["approved research source"]}
+    if rights is None:
+        record.pop("rights_evidence")
+    else:
+        record["rights_evidence"] = rights
+    result = assess_financial_observation(
+        _financial_observation(), now=NOW,
+        trusted_sources={"approved research source": record},
+    )
+    assert result["usable_for_research"] is False
+    assert expected in result["reasons"]
+    assert result["ledger_write_allowed"] is False
+
+
+def test_cc21_verified_receipt_binds_retrieval_time_not_just_quote_time():
+    observation = _financial_observation()
+    observation["retrieved_at"] = "2026-09-30T11:52:00Z"
+    result = assess_financial_observation(
+        observation, now=NOW, trusted_sources=TRUSTED_SOURCES,
+    )
+    assert result["usable_for_research"] is False
+    assert "independent_evidence_mismatch" in result["reasons"]
