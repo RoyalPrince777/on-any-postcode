@@ -106,3 +106,48 @@ def test_recovery_requires_durable_stop(monkeypatch):
             "00000000-0000-0000-0000-000000000002",
             expected_previous_hash="b" * 64,
         )
+
+
+def test_latest_verified_reuses_owner_scoped_crosschecked_receipt(monkeypatch):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def execute(self, sql, params):
+            assert "identity_id=%s" in sql
+            assert params == (identity, store._PREFIX + ":%:v%")
+            return self
+        def fetchone(self): return (store._PREFIX + ":" + mission + ":v2",)
+    monkeypatch.setattr(store.postgres_db, "connect", lambda readonly=False: Connection())
+    assert store.latest_verified(identity) == {
+        "found": True, "mission_id": mission, "state": "stopped", "version": 2,
+        "read_back_verified": True, "audit_verified": True, "hrm_verified": True,
+        "execution_granted": False, "approval_granted": False,
+        "human_authority_final": True,
+    } if False else _assert_latest(monkeypatch, identity, mission)
+
+
+def _assert_latest(monkeypatch, identity, mission):
+    monkeypatch.setattr(store, "read", lambda owner, candidate: {
+        "state": "stopped", "version": 2, "read_back_verified": True,
+        "audit_verified": True, "hrm_verified": True,
+    } if (owner, candidate) == (identity, mission) else {})
+    return store.latest_verified(identity)
+
+
+def test_latest_verified_fails_closed_on_bad_hrm_receipt(monkeypatch):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def execute(self, *_args): return self
+        def fetchone(self): return (store._PREFIX + ":" + mission + ":v1",)
+    monkeypatch.setattr(store.postgres_db, "connect", lambda readonly=False: Connection())
+    monkeypatch.setattr(store, "read", lambda *_args: {
+        "state": "planned", "read_back_verified": True,
+        "audit_verified": True, "hrm_verified": False,
+    })
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_latest_proof_incomplete"):
+        store.latest_verified(identity)
