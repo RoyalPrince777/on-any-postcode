@@ -15,11 +15,11 @@
     q("[data-nodes]").innerHTML=state.nodes.map(n=>`<div class="re-node"><strong>${escapeText(n.label)}</strong><br>Owner: ${escapeText(n.owner_id||"Open")} · Level ${n.level}<div class="re-actions"><button data-act="claim" data-node="${escapeText(n.id)}">Claim</button><button data-act="develop" data-node="${escapeText(n.id)}">Develop</button></div></div>`).join("");
     root.querySelectorAll("[data-nodes] button").forEach(b=>b.disabled=busy||state.status!=="active");
   };
-  const error=e=>{const output=q("[data-error]");output.textContent=e?.message||String(e);};
+  const error=e=>{const message=e?.message||String(e);q("[data-error]").textContent=message;q("[data-game-error]").textContent=message;};
   async function act(url,payload){
     if(busy||(url==="/arena/route-empire/start"&&state?.status==="active")||
       (url!=="/arena/route-empire/start"&&state?.status!=="active"))return;
-    busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";
+    busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";q("[data-game-error]").textContent="";
     if(state)render();
     try{state=await post(url,payload);render();}
     catch(e){error(e);}
