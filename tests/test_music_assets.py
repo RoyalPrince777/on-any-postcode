@@ -50,9 +50,10 @@ def test_music_creator_surface_exposes_real_governed_controls():
     with open("mission_control/templates/oap_radio.html", encoding="utf-8") as handle:
         radio = handle.read()
 
-    for control_id in ("release-form", "upload-form", "review-form", "approve-form"):
+    for control_id in ("release-form", "upload-form", "review-form"):
         assert f'id="{control_id}"' in studio
-    assert "/tune/releases/" in studio
+    assert '/tune/releases/' in studio
+    assert 'id="approve-form"' not in studio  # Founder approval belongs to private /music/control.
 
     assert 'id="station-form"' in radio
     assert 'id="always-form"' in radio
