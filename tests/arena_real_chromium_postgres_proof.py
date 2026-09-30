@@ -44,6 +44,7 @@ def assert_layout(page):
 
 
 def play_two_seats(browser, game, host_viewport, guest_viewport):
+    web_security.PUBLIC_WRITE_LIMITER.reset()
     host_context = browser.new_context(viewport=host_viewport)
     guest_context = browser.new_context(viewport=guest_viewport)
     host, guest = host_context.new_page(), guest_context.new_page()
