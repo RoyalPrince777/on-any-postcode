@@ -139,7 +139,7 @@ def test_delivery_admission_serializes_stop_and_persists_prepared_receipt(monkey
     receipt = store.admit_delivery(**args)
     assert receipt is not None
     sql, params = statements[0]
-    assert "FOR UPDATE OF c FOR SHARE OF g" in sql
+    assert "FOR UPDATE OF c FOR SHARE OF a,e,g" in sql
     assert "JOIN oap_music_rights_grants g" in sql
     assert "g.revoked=FALSE" in sql
     assert "g.authority_verified=TRUE" in sql
