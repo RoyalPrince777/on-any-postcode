@@ -151,3 +151,53 @@ def test_latest_verified_fails_closed_on_bad_hrm_receipt(monkeypatch):
     })
     with pytest.raises(store.MissionStoreUnavailable, match="mission_latest_proof_incomplete"):
         store.latest_verified(identity)
+
+
+def test_mission_inference_receipt_correlates_owned_plaintext_hrm_only(monkeypatch):
+    identity = "00000000-0000-0000-0000-000000000001"
+    mission = "00000000-0000-0000-0000-000000000002"
+    request = "00000000-0000-0000-0000-000000000003"
+    monkeypatch.setattr(store, "read", lambda owner, item: {
+        "state": "planned", "mission_hash": "a" * 64,
+        "read_back_verified": True, "audit_verified": True, "hrm_verified": True,
+    } if (owner, item) == (identity, mission) else {})
+    rows = [[
+        "a" * 64, "RECOMMENDATION_READY",
+        ["RECEIVED", "PROVIDER_COMPLETED", "HRM_RECORDED"],
+        {"image_attached": False, "media_kind": None, "code_proposal": False},
+    ]]
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *_args): return False
+        def execute(self, sql, params):
+            assert "identity_id=%s AND request_id=%s" in sql
+            assert params == (identity, request)
+            return self
+        def fetchone(self): return rows[0]
+    monkeypatch.setattr(store.postgres_db, "connect", lambda readonly=False: Connection())
+    outcome = store.inference_receipt_evidence(identity, mission, request)
+    assert outcome["mission_text_hash_matched"] is True
+    assert outcome["governed_response_recorded"] is True
+    assert outcome["first_party_inference_proven"] is False
+    assert outcome["mission_execution_proven"] is False
+    assert outcome["approval_granted"] is False
+    assert outcome["human_authority_final"] is True
+    rows[0] = ["b" * 64, *rows[0][1:]]
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_inference_hash_mismatch"):
+        store.inference_receipt_evidence(identity, mission, request)
+    rows[0] = ["a" * 64, "REVIEW_REQUIRED", ["HRM_RECORDED"], rows[0][3]]
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_inference_proof_incomplete"):
+        store.inference_receipt_evidence(identity, mission, request)
+
+
+def test_mission_inference_receipt_rejects_stopped_checkpoint_before_query(monkeypatch):
+    monkeypatch.setattr(store, "read", lambda *_args: {"state": "stopped"})
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("stopped mission must not query inference")
+    monkeypatch.setattr(store.postgres_db, "connect", forbidden)
+    with pytest.raises(store.MissionStoreUnavailable, match="mission_stopped"):
+        store.inference_receipt_evidence(
+            "00000000-0000-0000-0000-000000000001",
+            "00000000-0000-0000-0000-000000000002",
+            "00000000-0000-0000-0000-000000000003",
+        )
