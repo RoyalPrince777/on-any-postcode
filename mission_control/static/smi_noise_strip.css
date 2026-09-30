@@ -939,3 +939,52 @@ body.smi-noise-strip .messages{top:58px!important}
   }
   body.smi-noise-strip .messages{top:52px!important}
 }
+
+
+/* Unified System Intelligence: one evidence surface, only when SMI System opens. */
+body.smi-noise-strip .smi-unified-intelligence{
+  margin:8px 0!important;
+  padding:10px!important;
+  border:1px solid rgba(57,175,255,.2)!important;
+  border-radius:12px!important;
+  background:rgba(2,8,22,.52)!important;
+}
+body.smi-noise-strip .smi-unified-intelligence h3{
+  margin:0 0 8px!important;
+  font-size:.76rem!important;
+  letter-spacing:.03em!important;
+}
+body.smi-noise-strip .smi-unified-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+}
+body.smi-noise-strip .smi-unified-grid article{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:4px!important;
+  padding:9px!important;
+  min-width:0!important;
+  border:1px solid rgba(57,175,255,.16)!important;
+  border-radius:9px!important;
+  background:rgba(4,13,29,.72)!important;
+  box-shadow:none!important;
+}
+body.smi-noise-strip .smi-unified-grid strong{font-size:.72rem!important}
+body.smi-noise-strip .smi-unified-grid small{
+  color:#b9c7d5!important;
+  line-height:1.35!important;
+  font-size:.66rem!important;
+}
+body.smi-noise-strip .smi-unified-grid article[data-proven="true"]{
+  border-color:rgba(53,215,120,.42)!important;
+}
+body.smi-noise-strip .smi-unified-grid a{
+  color:#c3e8ff!important;
+  font-size:.67rem!important;
+  text-decoration:underline!important;
+}
+@media(max-width:520px){
+ body.smi-noise-strip .smi-unified-grid{grid-template-columns:1fr!important}
+}
