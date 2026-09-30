@@ -354,10 +354,15 @@ def all_in_ai_action_handoff(mission_id: str):
         str(result.get("status") or ""),
         bool(result.get("execution_authorized")),
     )
+    # The browser may inspect readiness but must never receive the internal
+    # action authorization receipt. The executor independently re-authorizes
+    # through the server-side governed handoff on its own protected route.
+    display_result = {key: value for key, value in result.items()
+                      if key not in {"authorization", "review", "action_policy"}}
     return _no_store(
         make_response(
             jsonify(
-                result=result,
+                result=display_result,
                 execution_performed=False,
                 human_authority_final=True,
             )
