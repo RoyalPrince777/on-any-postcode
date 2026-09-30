@@ -34,6 +34,7 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0015_oap_music_entitlements",
         "0016_oap_radio_always_on",
         "0021_oap_radio_founder_approval",
+        "0023_oap_radio_delivery_admission",
         "0017_oap_music_purchases",
         "0018_oap_music_accounting",
         "0019_oap_music_content_links",
