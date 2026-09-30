@@ -20,7 +20,7 @@ def _failure(exc: Exception):
         code = str(exc)
         if code in {"accepted_link_required", "link_blocked", "active_ptt_call_required"}:
             return _reply({"error": {"code": code}}, 403)
-        if code in {"ptt_floor_busy", "ptt_floor_not_holder"}:
+        if code in {"ptt_floor_busy", "ptt_floor_not_holder", "ptt_floor_stopped"}:
             return _reply({"error": {"code": code}}, 409)
         return _reply({"error": {"code": code}}, 400)
     return _reply({"error": {"code": "ptt_floor_unavailable"}}, 503)
