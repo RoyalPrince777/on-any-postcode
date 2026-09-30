@@ -51,6 +51,6 @@ def move(s,*,steps:object,request_id:object):
     return _seal(cur)
 def stop(s,*,request_id:object):
     cur=_copy(s); req=_req(request_id)
-    if cur["status"]!="active": raise ValueError("ludo_stop_denied")
     if any(x["request_id"]==req for x in cur["request_receipts"]): return cur
+    if cur["status"]!="active": raise ValueError("ludo_stop_denied")
     cur["status"]="stopped";cur["request_receipts"].append({"request_id":req,"action":"stop"});return _seal(cur)
