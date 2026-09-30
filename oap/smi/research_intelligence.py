@@ -108,11 +108,15 @@ _FINANCIAL_DISALLOWED_FIELDS = frozenset({
 
 
 def assess_financial_observation(
-    observation: Mapping[str, object], *, now: datetime
+    observation: Mapping[str, object],
+    *,
+    now: datetime,
+    trusted_sources: Mapping[str, Mapping[str, object]] | None = None,
 ) -> dict[str, object]:
     """Fail closed on provenance, freshness, permission and quote integrity.
 
-    Caller must supply a timezone-aware now for reproducible evaluation.
+    Caller must supply a timezone-aware now and an independently provisioned
+    source registry. Untrusted observation permission flags grant no authority.
     Passing observations remain research-only, never trade signals.
     """
     if now.tzinfo is None or now.utcoffset() is None:
@@ -126,8 +130,25 @@ def assess_financial_observation(
         reasons.append("invalid_source_class")
     if source_class == "community_or_social_signal":
         reasons.append("social_signal_not_a_verified_quote")
-    if observation.get("research_use_permitted") is not True:
-        reasons.append("research_permission_not_proven")
+    # Observations are untrusted input. Permission and source assurance cannot
+    # be granted by flags that the observation supplies about itself.
+    source_id = str(observation.get("source") or "").strip()
+    source_record = (trusted_sources or {}).get(source_id)
+    if not isinstance(source_record, Mapping):
+        reasons.append("untrusted_source")
+    else:
+        if source_record.get("research_use_permitted") is not True:
+            reasons.append("research_permission_not_proven")
+        if source_record.get("verified") is not True:
+            reasons.append("source_not_verified")
+        if source_record.get("source_class") != source_class:
+            reasons.append("source_class_mismatch")
+        instruments = source_record.get("instruments")
+        if (
+            not isinstance(instruments, (tuple, list, frozenset))
+            or observation.get("instrument") not in instruments
+        ):
+            reasons.append("instrument_not_authorised")
     if observation.get("claim_supported") is not True:
         reasons.append("claim_not_verified")
     if observation.get("observed_or_inferred") != "observed":
