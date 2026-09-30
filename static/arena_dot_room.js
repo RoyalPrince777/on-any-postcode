@@ -76,7 +76,16 @@ async function act(action,a=null,b=null){
  try{
   const data=await post("/arena/rooms/dot/action",{...me,expected_revision:state.revision,request_id:rid(),action,a,b});
   note(data.duplicate?"Action already recorded":"Move recorded");await refresh();
- }catch(e){error(e);if(e.message==="arena_room_revision_conflict"){try{await refresh();note("Board refreshed after other player's move.");}catch(err){error(err);}}}
+ }catch(e){
+  error(e);needsRefresh=true;
+  note("Move outcome requires server read-back. Refresh before another action.");
+  try{
+   await refresh();
+   if(e.message==="arena_room_revision_conflict")note("Board refreshed after other player's move.");
+  }catch(err){
+   error(err);note("Could not confirm the board. Retry Refresh before moving.");
+  }
+ }
  finally{busy=false;render();}
 }
 q("[data-create]").onclick=()=>enter(async()=>{
