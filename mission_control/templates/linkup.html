@@ -56,13 +56,7 @@
           <span class="linkup-crown" aria-hidden="true">♛</span>
           <h2>LINK <span>UP</span></h2>
           <strong>OAP</strong>
-          <p>PUBLIC · CONNECT · CREATE</p>
-        </div>
-        <div class="linkup-royal-search">
-          <span aria-hidden="true">⌕</span>
-          <label class="sr-only" for="linkup-public-search">Search Link Up</label>
-          <input id="linkup-public-search" type="search" placeholder="Search people, interests, or opportunities…" disabled>
-          <a href="{{ url_for('the_link_front_door') }}" aria-label="Open discovery filters">☷</a>
+          <p>PRIVATE CHAT · SIMPLE · LINKED</p>
         </div>
         {% if my_card and not auth_user %}
         <div class="linkup-create-card" aria-label="Basic My Card active">
@@ -82,54 +76,23 @@
         {% endif %}
       </section>
 
-      <nav class="linkup-royal-tools" aria-label="Link Up features">
-        <a href="{{ url_for('linkup_front_door') }}"><span class="royal-symbol royal-purple">💬</span><strong>Link Message</strong><small>Private chat home</small></a>
-        <a href="{{ url_for('home') }}"><span class="royal-symbol royal-world">🌍</span><strong>Discovery</strong><small>Discover people in OAP World</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Identity &amp; trust</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-gold">!</span><strong>Safety</strong><small>Public safety hub</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-shield">🔒</span><strong>Private</strong><small>My Card &amp; settings</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-purple">🔓</span><strong>Public</strong><small>Open public spaces</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; collaboration</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Public highlights</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-scroll">📜</span><strong>Identity</strong><small>Open My Card</small></a>
-      </nav>
-
-      <section class="linkup-royal-stream" aria-label="Link Up discovery">
-        <a class="linkup-royal-card" href="{{ url_for('home') }}">
-          <span class="royal-card-art royal-nearby" aria-hidden="true">📍</span>
-          <span><strong>Nearby People</strong><small>Discover people through OAP World, then Link Up privately.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-        <a class="linkup-royal-card" href="{{ url_for('the_link_front_door') }}">
-          <span class="royal-card-art royal-opportunity" aria-hidden="true">♛</span>
-          <span><strong>Opportunities</strong><small>Discover collaborations, projects, services and events.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-        <a class="linkup-royal-card" href="{{ url_for('the_spot_front_door') }}">
-          <span class="royal-card-art royal-signal" aria-hidden="true">🌐</span>
-          <span><strong>Community Signals</strong><small>See what is happening across The Spot.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
+      <section class="linkup-public-welcome" aria-label="Link Up private communication">
+        <p><strong>Simple private chat.</strong> Create My Card, Link with someone, then keep the conversation inside Link Up.</p>
       </section>
-
-      <nav class="linkup-royal-bottom" aria-label="Link Up navigation">
-        <a aria-current="page" href="{{ url_for('linkup_front_door') }}">⌂<span>Home</span></a>
-        <a href="{{ url_for('home') }}">♟<span>People</span></a>
-        <a class="linkup-oap-home" href="{{ url_for('home') }}">♛<span>OAP</span></a>
-        <a href="{{ url_for('linkup_front_door') }}">💬<span>Link Message</span></a>
-        <a href="{{ url_for('my_card_page') }}">●<span>Profile</span></a>
-      </nav>
     </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
       <aside class="linkup-list" aria-label="Link Ups">
-        <div class="linkup-list-head">
+        <div class="linkup-list-head" id="linkup-chats">
           <input class="linkup-search" type="search" placeholder="Search Link Ups" aria-label="Search Link Ups" data-linkup-search>
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
-        <div class="linkup-master-nav">
-          <a href="{{ url_for('the_link_front_door') }}">The Link</a>
-        </div>
+        <nav class="linkup-master-nav" aria-label="Link Up menu">
+          <a href="#linkup-chats">💬 Chats</a>
+          <a href="#linkup-calls">📞 Calls</a>
+          <a href="#linkup-now">🟢 Now</a>
+          <a href="#linkup-tap-in">🔗 Tap In</a>
+        </nav>
 
         {% if my_card %}
         <section class="linkup-card" aria-label="My Card">
@@ -149,7 +112,7 @@
           </span>
         </section>
         {% endif %}
-        <form class="linkup-now" data-oap-now-form>
+        <form class="linkup-now" id="linkup-now" data-oap-now-form>
           <label for="oap-now">💬 Now · What you on?</label>
           <input id="oap-now" maxlength="120" placeholder="Share a short status" data-oap-now-input>
           <label class="linkup-free"><input type="checkbox" data-oap-im-free> 🟢 I’m Free</label>
@@ -157,7 +120,7 @@
           <button type="submit">Update Now</button>
         </form>
 
-        <section class="linkup-card" aria-label="Link Requests">
+        <section class="linkup-card" id="linkup-tap-in" aria-label="Tap In · Link Requests">
           <span class="linkup-avatar">🔗</span>
           <span class="linkup-card-copy">
             <strong>Link Requests</strong>
@@ -213,12 +176,12 @@
         {% else %}
           <div class="linkup-empty">
             <p>No Link Ups yet.</p>
-            <p><a href="{{ url_for('home') }}">Discover people in OAP World</a> · <a href="{{ url_for('the_link_front_door') }}">Open The Link</a> · <a href="{{ url_for('my_card_page') }}">Open My Card</a></p>
+            <p><a href="{{ url_for('the_link_front_door') }}">Open The Link</a> · <a href="{{ url_for('my_card_page') }}">Open My Card</a></p>
           </div>
         {% endif %}
       </aside>
 
-      <section class="linkup-chat" aria-label="Open chat">
+      <section class="linkup-chat" id="linkup-calls" aria-label="Open chat">
         <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
         <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
         <div class="linkup-call-stage" data-oap-call-stage hidden>

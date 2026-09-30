@@ -103,20 +103,12 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert 'aria-label="Link Up app"' in page
-    assert "PUBLIC · CONNECT · CREATE" in page
+    assert "PRIVATE CHAT · SIMPLE · LINKED" in page
     assert "Create My Card" in page
     assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
-    assert "Link Message" in page
-    assert "Discovery" in page
-    assert "Certified" in page
-    assert "Safety" in page
-    assert "Private" in page
-    assert "Public" in page
-    assert "Opportunities" in page
-    assert "Spotlight" in page
-    assert "Identity" in page
-    assert "Nearby People" in page
-    assert "Community Signals" in page
+    assert "Simple private chat." in page
+    for removed in ("Discovery", "Spotlight", "Opportunities", "Nearby People", "Community Signals"):
+        assert removed not in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
@@ -273,29 +265,38 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "Enter My World" not in template
     assert "url_for('my_card_create_page')" in template
     assert "Create My Card" in template
-    assert "PUBLIC · CONNECT · CREATE" in template
+    assert "PRIVATE CHAT · SIMPLE · LINKED" in template
     assert "linkup-royal-home" in template
-    assert "linkup-royal-tools" in template
-    assert "linkup-royal-bottom" in template
+    assert "linkup-royal-tools" not in template
+    assert "linkup-royal-bottom" not in template
 
 
 
-def test_public_linkup_routes_each_surface_to_canonical_owner():
+def test_linkup_master_menu_is_only_chat_calls_now_and_tap_in():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
-    assert '<strong>Discovery</strong><small>Discover people in OAP World</small>' in template
-    assert '<strong>Opportunities</strong><small>Work &amp; collaboration</small>' in template
-    assert '<strong>Community Signals</strong><small>See what is happening across The Spot.</small>' in template
-    assert '<a href="{{ url_for(\'linkup_front_door\') }}">💬<span>Link Message</span></a>' in template
-    assert '<a href="{{ url_for(\'home\') }}">♟<span>People</span></a>' in template
-    assert '<a href="{{ url_for(\'my_card_page\') }}">●<span>Profile</span></a>' in template
+    assert 'aria-label="Link Up menu"' in template
+    assert '>💬 Chats</a>' in template
+    assert '>📞 Calls</a>' in template
+    assert '>🟢 Now</a>' in template
+    assert '>🔗 Tap In</a>' in template
+    for removed in (
+        "linkup-royal-tools",
+        "linkup-royal-bottom",
+        "<strong>Discovery</strong>",
+        "<strong>Spotlight</strong>",
+        "<strong>Opportunities</strong>",
+        "Nearby People",
+        "Community Signals",
+    ):
+        assert removed not in template
 
 
 def test_empty_linkup_chat_has_real_next_actions():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert "No Link Ups yet." in template
-    assert "Discover people in OAP World" in template
+    assert "Discover people in OAP World" not in template
     assert "Open The Link" in template
     assert "Open My Card" in template
 
