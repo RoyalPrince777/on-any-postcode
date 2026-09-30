@@ -309,6 +309,7 @@ def test_rollback_requires_exact_post_action_hash(monkeypatch):
         authorization,
         identity_id=identity,
         rollback_token={
+            "origin_request_id": str(uuid.uuid4()),
             "record_id": record,
             "expected_status": "active",
             "target_status": "draft",
@@ -332,6 +333,7 @@ def test_rollback_rejects_bad_before_hash():
             _authorization(identity),
             identity_id=identity,
             rollback_token={
+                "origin_request_id": str(uuid.uuid4()),
                 "record_id": str(uuid.uuid4()),
                 "expected_status": "active",
                 "target_status": "draft",
@@ -370,6 +372,7 @@ def test_rollback_wrong_restoration_hash_blocks_before_any_write(monkeypatch):
             _authorization(identity),
             identity_id=identity,
             rollback_token={
+                "origin_request_id": str(uuid.uuid4()),
                 "record_id": record,
                 "expected_status": "active",
                 "target_status": "draft",
@@ -414,6 +417,7 @@ def test_rollback_correct_hash_changes_only_status_after_readback(monkeypatch):
         _authorization(identity),
         identity_id=identity,
         rollback_token={
+            "origin_request_id": str(uuid.uuid4()),
             "record_id": record,
             "expected_status": "active",
             "target_status": "draft",
@@ -428,3 +432,51 @@ def test_rollback_correct_hash_changes_only_status_after_readback(monkeypatch):
     assert connection.body == "Keep this exact content."
     assert result["rollback_verified"] is True
     assert result["restored_hash"] == expected_before
+
+
+
+def test_rollback_cannot_reuse_original_execution_review_even_with_valid_hash(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    authorization = _authorization(identity)
+    token = {
+        "origin_request_id": authorization["request_id"],
+        "record_id": record,
+        "expected_status": "active",
+        "target_status": "draft",
+        "after_hash": executor._proof_hash({
+            "workspace_id": connection.workspace_id,
+            "title": connection.title, "body": connection.body,
+            "status": "active",
+        }),
+        "before_hash": executor._proof_hash({
+            "workspace_id": connection.workspace_id,
+            "title": connection.title, "body": connection.body,
+            "status": "draft",
+        }),
+    }
+    with pytest.raises(executor.ExecutionBlocked, match="fresh_rollback_review_required"):
+        executor.rollback(authorization, identity_id=identity, rollback_token=token)
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False
+
+
+def test_rollback_missing_origin_request_fails_before_mutation(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    with pytest.raises(ValueError, match="invalid_rollback_origin_request_id"):
+        executor.rollback(_authorization(identity), identity_id=identity, rollback_token={
+            "record_id": record, "expected_status": "active",
+            "target_status": "draft", "before_hash": "a" * 64,
+            "after_hash": "b" * 64,
+        })
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False
