@@ -41,3 +41,16 @@ def test_all_seven_technical_checks_do_not_self_approve_release():
     assert result["production_green"] is False
     assert result["founder_final"] is False
     assert result["physical_acceptance_included"] is False
+
+
+def test_private_deep_dive_status_exposes_fail_closed_assessment():
+    from mission_control.smi_deep_dive_protocol import status
+
+    state = status()
+    assessment = state["seven_star_assessment"]
+    assert assessment["total"] == 7
+    assert assessment["proven"] == 0
+    assert [check["name"] for check in assessment["checks"]] == list(SEVEN_STAR_GATE)
+    assert assessment["technical_gate_passed"] is False
+    assert assessment["production_green"] is False
+    assert assessment["founder_final"] is False
