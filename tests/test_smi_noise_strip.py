@@ -145,7 +145,9 @@ def test_home_restores_system_context_without_dashboard_wall():
     assert 'className="smi-home-intelligence"' in command
     for label in ("SMI System", "Matrix", "War Room"):
         assert label in command
-    assert 'homeSystem.addEventListener("click",()=>setOpen(true))' in command
+    assert 'homeSystem.addEventListener("click",()=>{' in command
+    assert 'setOpen(true);' in command
+    assert 'panel.dataset.mobileView="evidence"' in command
     assert 'homeMatrix.addEventListener("click",()=>window.location.assign("/mission/war-room/routes"))' in command
     assert 'homeWar.addEventListener("click",()=>openWarRoom())' in command
     assert "Home intelligence rail: restore system context without restoring dashboard noise." in css
