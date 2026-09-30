@@ -5,9 +5,10 @@ or an invoice. No live publishing, payment, outbound contact or migration at imp
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID
 
