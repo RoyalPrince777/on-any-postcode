@@ -36,7 +36,7 @@ class Connection:
             return Result(self.previous)
         if sql.startswith("INSERT INTO link_ptt_floor"):
             assert "ON CONFLICT(session_id)" in sql
-            if "stopped) VALUES" in sql:
+            if "VALUES (%s,NULL,CURRENT_TIMESTAMP,TRUE)" in sql:
                 assert params == (params[0],)
                 assert "stopped=TRUE" in sql
             else:
