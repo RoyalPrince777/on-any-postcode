@@ -131,3 +131,45 @@ def test_connect4_room_page_has_create_join_reconnect_and_control_paths(client):
     assert "data-stop" in html
     assert "data-reconnect-seat" not in html
     assert page.headers["Referrer-Policy"] == "no-referrer"
+
+
+
+def test_dot_room_page_and_authoritative_http_action(client, csrf, monkeypatch):
+    import app as app_module
+
+    page = client.get("/arena/dot/room")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert "arena_dot_room.js" in html
+    for action in ("data-create", "data-join", "data-reconnect", "data-edges", "data-refresh", "data-stop"):
+        assert action in html
+    assert "data-reconnect-seat" not in html
+    assert page.headers["Referrer-Policy"] == "no-referrer"
+
+    expected_room = "00000000-0000-0000-0000-000000000001"
+
+    def fake_dot_action(**kwargs):
+        assert kwargs["room_id"] == expected_room
+        assert kwargs["action"] == "draw"
+        assert (kwargs["a"], kwargs["b"]) == ("0,0", "1,0")
+        assert kwargs["expected_revision"] == 0
+        return {"room_id": expected_room, "revision": 1, "duplicate": False, "status": "ACTIVE"}
+
+    monkeypatch.setattr(app_module.arena_rooms, "dot_action", fake_dot_action)
+    payload = {
+        "room_id": expected_room,
+        "reconnect_token": "x" * 40,
+        "expected_revision": 0,
+        "request_id": "http-dot-room-0001",
+        "action": "draw",
+        "a": "0,0",
+        "b": "1,0",
+    }
+    assert client.post("/arena/rooms/dot/action", json=payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/dot/action",
+        json=payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
