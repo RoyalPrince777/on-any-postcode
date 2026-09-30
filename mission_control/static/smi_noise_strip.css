@@ -823,3 +823,63 @@ body.smi-noise-strip #send{
   }
   body.smi-noise-strip #thinking-level{min-width:76px!important}
 }
+
+
+/* Final noise strip: one quiet front-door composer.
+   Visible: Tools · Voice · message · 3/7/21 · Send.
+   Voice Reply remains available behind Tools; Pause/Stop appear only while active. */
+body.smi-noise-strip #speaker-button{
+  display:none!important;
+}
+body.smi-noise-strip .composer-box{
+  grid-template-columns:auto auto minmax(0,1fr) 92px auto!important;
+  gap:6px!important;
+}
+body.smi-noise-strip .attach-wrap,
+body.smi-noise-strip #plus-button{grid-column:1!important;grid-row:1!important}
+body.smi-noise-strip #mic-button{grid-column:2!important;grid-row:1!important}
+body.smi-noise-strip .composer textarea{grid-column:3!important;grid-row:1!important}
+body.smi-noise-strip #thinking-level{grid-column:4!important;grid-row:1!important}
+body.smi-noise-strip #send{grid-column:5!important;grid-row:1!important}
+body.smi-noise-strip .smi-dashboard-layer,
+body.smi-noise-strip .smi-command-centre,
+body.smi-noise-strip .smi-status-backdrop{
+  box-shadow:none!important;
+}
+body.smi-noise-strip .smi-command-universe{
+  gap:4px!important;
+}
+body.smi-noise-strip .smi-summary-card,
+body.smi-noise-strip .smi-panel,
+body.smi-noise-strip .smi-command{
+  box-shadow:none!important;
+}
+@media(max-width:760px){
+  body.smi-noise-strip .composer-box{
+    grid-template-columns:auto auto minmax(0,1fr) 74px auto!important;
+    grid-template-rows:auto!important;
+    min-height:52px!important;
+  }
+  body.smi-noise-strip .composer textarea{
+    grid-column:3!important;
+    grid-row:1!important;
+    min-height:40px!important;
+  }
+  body.smi-noise-strip #thinking-level{
+    grid-column:4!important;
+    grid-row:1!important;
+    width:74px!important;
+  }
+  body.smi-noise-strip #send{
+    grid-column:5!important;
+    grid-row:1!important;
+    min-width:62px!important;
+  }
+  body.smi-noise-strip .messages{bottom:82px!important}
+}
+body.smi-noise-strip.smi-live-fullscreen #speaker-button{display:none!important}
+body.smi-noise-strip.smi-live-fullscreen .composer-box{
+  grid-template-columns:auto auto minmax(0,1fr) auto!important;
+}
+body.smi-noise-strip.smi-live-fullscreen .composer textarea{grid-column:3!important}
+body.smi-noise-strip.smi-live-fullscreen #send{grid-column:4!important}
