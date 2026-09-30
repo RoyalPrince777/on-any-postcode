@@ -149,7 +149,8 @@ def test_delivery_admission_serializes_stop_and_persists_prepared_receipt(monkey
     assert "c.stopped=FALSE" in sql
     assert "s.founder_approved=TRUE" in sql
     assert "e.channel IN ('OAP Radio','*')" in sql
-    assert params == (station, owner, track, asset, entitlement)
+    assert "a.sha256=%s" in sql
+    assert params == (station, owner, track, asset, entitlement, "b" * 64)
     assert "INSERT INTO oap_radio_delivery_admissions" in statements[1][0]
     assert statements[1][1][0] == receipt
     assert commits == [True]
