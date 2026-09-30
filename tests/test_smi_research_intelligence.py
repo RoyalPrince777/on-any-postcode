@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
+import pytest
+
+from oap.smi.research_intelligence import assess_financial_observation
+
 from oap.smi.founder_memory_channel import synced_memory_items
 from oap.smi.research_intelligence import (
     CAPABILITY_IDS,
@@ -58,12 +64,6 @@ def test_founder_memory_channel_can_retrieve_research_intelligence_decision():
 
 
 # CC21: these observations are entirely local test fixtures, not market feeds.
-from datetime import datetime, timezone
-
-import pytest
-
-from oap.smi.research_intelligence import assess_financial_observation
-
 
 NOW = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
 
