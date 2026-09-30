@@ -84,3 +84,34 @@ def test_arena_room_http_flow(client, csrf, monkeypatch):
     )
     assert updated.status_code == 400
     assert updated.get_json()["error"]["code"] == "arena_room_server_game_adapter_required"
+
+
+def test_connect4_room_action_http_csrf_and_adapter(client, csrf, monkeypatch):
+    import app as app_module
+
+    expected_room = "00000000-0000-0000-0000-000000000001"
+
+    def fake_action(**kwargs):
+        assert kwargs["room_id"] == expected_room
+        assert kwargs["action"] == "drop"
+        assert kwargs["column"] == 3
+        assert kwargs["expected_revision"] == 0
+        return {"room_id": expected_room, "revision": 1, "duplicate": False, "status": "ACTIVE"}
+
+    monkeypatch.setattr(app_module.arena_rooms, "connect4_action", fake_action)
+    payload = {
+        "room_id": expected_room,
+        "reconnect_token": "x" * 40,
+        "expected_revision": 0,
+        "request_id": "http-room-c4-0001",
+        "action": "drop",
+        "column": 3,
+    }
+    assert client.post("/arena/rooms/connect4/action", json=payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/connect4/action",
+        json=payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
