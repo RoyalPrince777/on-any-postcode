@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Financial Intelligence · Private SMI</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <style>
+    body{margin:0;background:#050806;color:#f0faf3;font:16px/1.5 system-ui,sans-serif}
+    main{max-width:760px;margin:auto;padding:20px 16px 56px}
+    a{color:#d7b85d}
+    .panel{background:#09140d;border:1px solid #244832;border-radius:14px;padding:16px;margin:14px 0}
+    h1{line-height:1.2}
+    dt{color:#a9bdb0}dd{margin:0 0 12px;font-weight:700}
+    .locked{color:#f0d58f}
+  </style>
+</head>
+<body><main>
+  <nav aria-label="Back to private SMI"><a href="{{ url_for('mission_control.mission_workspace') }}">← SMI Command Center</a></nav>
+  <h1>Financial Intelligence</h1>
+  <p>Private Research Intelligence · Read-only source and release status.</p>
+  <section class="panel" aria-labelledby="scope">
+    <h2 id="scope">Working foundation</h2>
+    <p>Existing SMI Research Intelligence validator: <strong>{{ 'Available in branch code' if state.research_validator_available else 'Unavailable' }}</strong>.</p>
+    <p>Research observations are never trade instructions or SIKA ledger entries.</p>
+  </section>
+  <section class="panel" aria-labelledby="evidence">
+    <h2 id="evidence">Evidence required before live data</h2>
+    <dl>
+      <dt>Approved source registry</dt><dd class="locked">{{ 'Connected' if state.trusted_source_registry_connected else 'Not connected' }}</dd>
+      <dt>Licensed live market feed</dt><dd class="locked">{{ 'Connected' if state.live_market_feed_connected else 'Not connected' }}</dd>
+      <dt>Private production acceptance</dt><dd class="locked">{{ 'Proven' if state.production_acceptance_proven else 'Not proven' }}</dd>
+      <dt>Trading and payment execution</dt><dd>Disabled</dd>
+      <dt>Founder Final</dt><dd>Retained</dd>
+    </dl>
+    <p>{{ state.next_evidence }}</p>
+  </section>
+  <p><a href="{{ url_for('mission_control.financial_intelligence_private_status') }}">Inspect machine-readable readiness →</a></p>
+</main></body></html>
