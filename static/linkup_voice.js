@@ -340,6 +340,10 @@
   });
 
   window.addEventListener("pagehide", () => {
+    // Also cancel a permission request that is still awaiting browser resolution.
+    state.cancelRequested = true;
+    state.releaseRequested = true;
+    state.activePointerId = null;
     clearAutoStop();
     if (state.current) {
       state.current.cancelled = true;
