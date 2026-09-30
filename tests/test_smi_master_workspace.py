@@ -48,7 +48,8 @@ def test_visible_master_tool_buttons_have_real_handlers():
         assert f'data-connector-id="{connector}"' in base
     for action in (
         "map-intelligence","war-room","function-health","green-gate","hrm",
-        "founder-library","improvement","swot","behaviour","github-governed",
+        "founder-library","improvement","swot","behaviour","ux","alignment",
+        "infrastructure-intelligence","security","evidence","github-governed",
     ):
         assert f'data-oap-action="{action}"' in base
     assert "qa('[data-connector-id]').forEach" in final
