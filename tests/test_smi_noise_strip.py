@@ -205,7 +205,7 @@ def test_smi_home_world_controls_open_existing_public_routes_without_private_act
     assert "publicWorldOrigin:'https://on-any-postcode.onrender.com/'" in template
     assert 'cfg.publicWorldOrigin' in command
     assert 'homeWorld.textContent="🌍 OAP World"' in command
-    assert 'homeRail.append(homeWorld,homeSystem,homeMatrix,homeWar)' in command
+    assert 'homeRail.append(homeWorld,homeJungle,homeSystem,homeMatrix,homeWar)' in command
     assert 'worldPanel.id="smi-world-controls"' in command
     for route in ('["🌍 Enter OAP World","/"]', '["📍 The Spot","/the-spot"]',
                   '["🔗 Link Up","/linkup"]', '["🗺️ OAP World / Place","/on-any-place"]'):
