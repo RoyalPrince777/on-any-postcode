@@ -21,7 +21,7 @@ def test_connect4_agent_move_http(client, csrf):
     headers={"X-OAP-CSRF":csrf["csrf_token"]}
     started=client.post(
         "/arena/connect4/start",
-        json={"player_one":"Alpha","player_two":"Panther"},
+        json={"player_one":"Alpha","player_two":"Bagheera","opponent_mode":"agent","agent_key":"panther"},
         headers=headers,
     )
     assert started.status_code==201
@@ -54,3 +54,49 @@ def test_arena_agent_catalogue_http(client):
     assert body["defaults"]["connect4"]=="panther"
     assert body["defaults"]["chess"]=="owl"
     assert body["fair_play"]["hidden_information_access"] is False
+
+
+def test_agent_route_rejects_person_vs_person_match(client, csrf):
+    headers={"X-OAP-CSRF":csrf["csrf_token"]}
+    started=client.post(
+        "/arena/connect4/start",
+        json={"player_one":"Alpha","player_two":"Bravo","opponent_mode":"human"},
+        headers=headers,
+    )
+    assert started.status_code==201
+    human=client.post(
+        "/arena/connect4/drop",
+        json={"column":0,"request_id":"normal-human-0001"},
+        headers=headers,
+    )
+    assert human.status_code==200
+    rejected=client.post(
+        "/arena/connect4/agent-move",
+        json={"agent_key":"panther","difficulty":"strong","request_id":"unauth-agent-0001"},
+        headers=headers,
+    )
+    assert rejected.status_code==400
+    assert rejected.get_json()["error"]["code"]=="connect4_agent_mode_required"
+
+
+def test_human_cannot_play_reserved_agent_turn(client, csrf):
+    headers={"X-OAP-CSRF":csrf["csrf_token"]}
+    started=client.post(
+        "/arena/connect4/start",
+        json={"player_one":"Alpha","opponent_mode":"agent","agent_key":"panther"},
+        headers=headers,
+    )
+    assert started.status_code==201
+    human=client.post(
+        "/arena/connect4/drop",
+        json={"column":0,"request_id":"reserved-human-0001"},
+        headers=headers,
+    )
+    assert human.status_code==200
+    denied=client.post(
+        "/arena/connect4/drop",
+        json={"column":1,"request_id":"reserved-human-0002"},
+        headers=headers,
+    )
+    assert denied.status_code==400
+    assert denied.get_json()["error"]["code"]=="connect4_agent_turn_reserved"
