@@ -174,3 +174,24 @@ def test_unified_system_intelligence_reuses_canonical_evidence():
     assert "grid-template-columns:1fr!important" in css
     assert 'className="smi-system-detail"' in command
     assert 'evidenceDetail.append(evidenceSummary,dashboard)' in command
+
+
+def test_civilization_and_ecosystem_are_distinct_evidence_lanes_not_new_brains():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    assert "civilizationStatusUrl" in template
+    assert "ecosystemStatusUrl" in template
+    assert "ecosystemDashboardUrl" in template
+    assert "url_for('ecosystem_intelligence.dashboard')" in template
+    assert '["civilization","🌍 Civilization"' in command
+    assert '["ecosystem","🌱 Ecosystem"' in command
+    assert '["civilization",cfg.civilizationStatusUrl]' in command
+    assert '["ecosystem",cfg.ecosystemStatusUrl]' in command
+    assert 'civilization?.validation?.passed===true' in command
+    assert 'setUnified("civilization",false' in command
+    assert "Architecture validated · 9 domains · operational Green not claimed" in command
+    assert 'ecosystem?.runtime?.automatic_internal_ingestion_ready===true' in command
+    assert 'ecosystem?.runtime?.external_live_complete===true' in command
+    assert 'ecosystem?.architecture?.full_green===true' in command
+    assert 'setUnified("ecosystem",ecosystemComplete' in command
+    assert "NOT FULL GREEN" in command
