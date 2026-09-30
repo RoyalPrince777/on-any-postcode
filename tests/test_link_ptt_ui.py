@@ -1,7 +1,7 @@
 """PTT is a bounded hold/release adapter over existing governed Voice, not live radio."""
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "static" / "linkup_voice.js"
