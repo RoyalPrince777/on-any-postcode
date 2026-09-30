@@ -38,7 +38,7 @@ def evaluate_seven_star_gate(evidence: dict[str, dict[str, Any]] | None = None) 
     """Present the canonical seven checks without treating a score as approval.
 
     Evidence must be supplied by a verified caller, with a source reference and
-    an explicit passed=True. Unknown, pending and failed checks never earn a star.
+    explicit passed=True, verified=True and fresh=True. Unknown, stale, pending\n    and failed checks never earn a star.
     A technical seven-of-seven result still does not grant Founder Final.
     """
     supplied = evidence if isinstance(evidence, dict) else {}
@@ -48,8 +48,7 @@ def evaluate_seven_star_gate(evidence: dict[str, dict[str, Any]] | None = None) 
         record = item if isinstance(item, dict) else {}
         source = record.get("source")
         has_source = isinstance(source, str) and bool(source.strip())
-        proven = record.get("passed") is True and has_source
-        failed = record.get("passed") is False and has_source
+        proven = (\n            record.get("passed") is True\n            and record.get("verified") is True\n            and record.get("fresh") is True\n            and has_source\n        )\n        failed = record.get("passed") is False and record.get("verified") is True and has_source
         checks.append({
             "name": name,
             "signal": "green" if proven else "red" if failed else "purple" if record else "unknown",
