@@ -192,6 +192,24 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
                    valid_from TIMESTAMPTZ,
                    valid_until TIMESTAMPTZ)"""
             )
+            conn.execute(
+                """CREATE TABLE oap_music_rights_grants(
+                   grant_id UUID PRIMARY KEY,
+                   asset_id UUID NOT NULL,
+                   owner_identity_id UUID NOT NULL,
+                   right_type TEXT NOT NULL,
+                   permitted_uses TEXT[] NOT NULL,
+                   territories TEXT[] NOT NULL,
+                   permitted_channels TEXT[] NOT NULL,
+                   authority_verified BOOLEAN NOT NULL,
+                   authority_receipt_hash CHAR(64),
+                   human_approved BOOLEAN NOT NULL,
+                   human_approval_receipt_hash CHAR(64),
+                   evidence_hashes TEXT[] NOT NULL,
+                   revoked BOOLEAN NOT NULL DEFAULT FALSE,
+                   valid_from TIMESTAMPTZ,
+                   valid_until TIMESTAMPTZ)"""
+            )
             conn.execute("INSERT INTO users(id) VALUES (%s)", (owner,))
             conn.execute(
                 "INSERT INTO oap_music_tracks(track_id) VALUES (%s)", (station_track,)
@@ -234,6 +252,17 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
                    VALUES (%s,%s,%s,1)""",
                 (station, owner, station_track),
             )
+            grant_id = str(uuid4())
+            conn.execute(
+                """INSERT INTO oap_music_rights_grants(
+                   grant_id,asset_id,owner_identity_id,right_type,
+                   permitted_uses,territories,permitted_channels,
+                   authority_verified,authority_receipt_hash,human_approved,
+                   human_approval_receipt_hash,evidence_hashes)
+                   VALUES (%s,%s,%s,'recording',ARRAY['stream'],ARRAY['*'],
+                           ARRAY['OAP Radio'],TRUE,%s,TRUE,%s,ARRAY[%s])""",
+                (grant_id, asset, owner, "c" * 64, "d" * 64, "e" * 64),
+            )
             conn.commit()
 
         args = {
@@ -268,6 +297,39 @@ def test_delivery_admission_real_postgres_stop_and_receipt_readback(monkeypatch)
         assert store.delivery_receipts(
             owner_identity_id=str(uuid4()), station_id=station
         ) == []
+
+        # Revocation holds a PostgreSQL UPDATE lock on the same grant that
+        # response admission needs FOR SHARE. An uncommitted revocation must
+        # prevent a new prepared-response receipt.
+        with psycopg.connect(URL, options=f"-c search_path={schema}") as revoker:
+            revoker.execute(
+                "UPDATE oap_music_rights_grants SET revoked=TRUE WHERE grant_id=%s",
+                (grant_id,),
+            )
+
+            @contextmanager
+            def bounded_connect(*, readonly=False):
+                with isolated_connect(readonly=readonly) as conn:
+                    conn.execute("SET LOCAL lock_timeout='200ms'")
+                    yield conn
+
+            monkeypatch.setattr(radio_core.postgres_db, "connect", bounded_connect)
+            with pytest.raises(psycopg.errors.LockNotAvailable):
+                store.admit_delivery(**args)
+            # The outer revoker commits on context exit.
+        monkeypatch.setattr(radio_core.postgres_db, "connect", isolated_connect)
+        assert store.admit_delivery(**args) is None
+        with isolated_connect(readonly=True) as conn:
+            assert conn.execute(
+                "SELECT count(*) FROM oap_radio_delivery_admissions"
+            ).fetchone()[0] == 1
+        # Restore the valid grant to prove STOP remains an independent barrier.
+        with isolated_connect() as conn:
+            conn.execute(
+                "UPDATE oap_music_rights_grants SET revoked=FALSE WHERE grant_id=%s",
+                (grant_id,),
+            )
+            conn.commit()
 
         store.stop_station(
             owner_identity_id=owner, station_id=station, reason="Founder STOP"
