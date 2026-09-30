@@ -1,0 +1,48 @@
+name: OAP Arena real Chromium PostgreSQL acceptance
+
+on:
+  pull_request:
+    paths:
+      - "static/arena_connect4_room.js"
+      - "static/arena_dot_room.js"
+      - "mission_control/templates/arena_connect4_room.html"
+      - "mission_control/templates/arena_dot_room.html"
+      - "mission_control/arena_rooms.py"
+      - "tests/arena_real_chromium_postgres_proof.py"
+      - ".github/workflows/arena-chromium-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  arena-real-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: oap_arena_browser_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d oap_arena_browser_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_arena_browser_ci
+      OAP_AUTH_REQUIRED: "false"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install actual runtime and Chromium
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+      - name: Real dual-browser Connect4 and Dot PostgreSQL proof
+        run: python tests/arena_real_chromium_postgres_proof.py

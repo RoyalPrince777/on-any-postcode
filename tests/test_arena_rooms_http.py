@@ -173,3 +173,25 @@ def test_dot_room_page_and_authoritative_http_action(client, csrf, monkeypatch):
     )
     assert response.status_code == 200
     assert response.get_json()["revision"] == 1
+
+
+def test_multiplayer_clients_serialize_entry_and_fail_closed_on_uncertain_moves(client):
+    for route, asset, root in (
+        ("/arena/connect4/room", "/static/arena_connect4_room.js", "data-room-root"),
+        ("/arena/dot/room", "/static/arena_dot_room.js", "data-dot-room"),
+    ):
+        page = client.get(route)
+        assert page.status_code == 200
+        assert root in page.get_data(as_text=True)
+        response = client.get(asset)
+        assert response.status_code == 200
+        js = response.get_data(as_text=True)
+        assert "entryBusy" in js
+        assert "needsRefresh" in js
+        assert "refreshInFlight" in js
+        assert "async function enter(task)" in js
+        assert "if(entryBusy||busy)return;" in js
+        assert "if(busy||needsRefresh" in js
+        assert "if(membership!==current)return;" in js or "if(me!==current)return;" in js
+        assert "Retry Refresh before" in js or "Refresh before another action" in js
+        assert 'q("[data-refresh]").disabled=true' in js
