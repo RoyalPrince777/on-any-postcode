@@ -137,3 +137,17 @@ def test_quiet_home_shows_only_primary_composer_controls():
     assert "oapSpeaker?.click()" in canonical
     for label in ("Tools", "Voice", "Send"):
         assert label in base
+
+
+def test_home_restores_system_context_without_dashboard_wall():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert 'className="smi-home-intelligence"' in command
+    for label in ("SMI System", "Matrix", "War Room"):
+        assert label in command
+    assert 'homeSystem.addEventListener("click",()=>setOpen(true))' in command
+    assert 'homeMatrix.addEventListener("click",()=>window.location.assign("/mission/war-room/routes"))' in command
+    assert 'homeWar.addEventListener("click",()=>openWarRoom())' in command
+    assert "Home intelligence rail: restore system context without restoring dashboard noise." in css
+    assert "body.smi-noise-strip.smi-command-open .smi-home-intelligence" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence" in css

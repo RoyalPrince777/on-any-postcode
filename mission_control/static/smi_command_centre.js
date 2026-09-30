@@ -67,8 +67,28 @@
    if(details){details.open=true;details.scrollIntoView({block:"start",behavior:"auto"});}
   }
  };
+
  statusButton.addEventListener("click",()=>openStatus(false));
  signalsButton.addEventListener("click",()=>openStatus(true));
+
+ // Home intelligence rail: one compact map into the organism, not another dashboard.
+ const homeRail=document.createElement("nav");
+ homeRail.className="smi-home-intelligence";
+ homeRail.setAttribute("aria-label","SMI home intelligence");
+ const homeSystem=document.createElement("button");
+ homeSystem.type="button";homeSystem.textContent="🧠 SMI System";
+ homeSystem.setAttribute("aria-label","Open SMI system intelligence");
+ const homeMatrix=document.createElement("button");
+ homeMatrix.type="button";homeMatrix.textContent="🌐 Matrix";
+ homeMatrix.setAttribute("aria-label","Open Matrix routes and world state");
+ const homeWar=document.createElement("button");
+ homeWar.type="button";homeWar.textContent="⚔️ War Room";
+ homeWar.setAttribute("aria-label","Open War Room");
+ homeRail.append(homeSystem,homeMatrix,homeWar);
+ document.body.append(homeRail);
+ homeSystem.addEventListener("click",()=>setOpen(true));
+ homeMatrix.addEventListener("click",()=>window.location.assign("/mission/war-room/routes"));
+ homeWar.addEventListener("click",()=>openWarRoom());
  // Quick access reuses the existing, governed Master Tools handlers.
  const universe=document.createElement("nav");
  universe.className="smi-command-universe";
