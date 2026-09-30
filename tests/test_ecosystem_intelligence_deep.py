@@ -1,4 +1,8 @@
-from mission_control import ecosystem_intelligence, ecosystem_runtime, civilization_ecosystem_bridge
+from mission_control import (
+    civilization_ecosystem_bridge,
+    ecosystem_intelligence,
+    ecosystem_runtime,
+)
 
 
 def _signal(
