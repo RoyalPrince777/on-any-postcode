@@ -19,7 +19,11 @@ def certified_check(publisher_id):
 
 
 GATES = {'authority_check': authority_check, 'certified_check': certified_check}
-REVIEW_GATES = {**GATES, 'reviewer_check': lambda reviewer, publisher: reviewer == REVIEWER and reviewer != publisher}
+def reviewer_check(reviewer, publisher):
+    return reviewer == REVIEWER and reviewer != publisher
+
+
+REVIEW_GATES = {**GATES, 'reviewer_check': reviewer_check}
 
 
 def payload():
@@ -105,7 +109,8 @@ def test_no_verifier_and_self_approval_fail_closed():
     with pytest.raises(PermissionError, match="independent_reviewer"):
         ads.approve(draft, evidence_ref="contract-ref", approved_by=OWNER, **REVIEW_GATES)
     with pytest.raises(PermissionError, match="verifiers_required"):
-        ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER)
+        ads.approve(draft, evidence_ref="contract-ref", approved_by=REVIEWER,
+                    reviewer_check=REVIEW_GATES["reviewer_check"])
     with pytest.raises(PermissionError, match="authority_required"):
         ads.approve(draft, evidence_ref="wrong-ref", approved_by=REVIEWER, **REVIEW_GATES)
     with pytest.raises(PermissionError, match="certified_required"):
