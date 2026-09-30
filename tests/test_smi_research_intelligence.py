@@ -55,3 +55,89 @@ def test_founder_memory_channel_can_retrieve_research_intelligence_decision():
     joined = " ".join(item.summary for item in items)
     assert "Research Intelligence" in joined
     assert "not an eighth Intelligence World" in joined
+
+
+# CC21: these observations are entirely local test fixtures, not market feeds.
+from datetime import datetime, timezone, timedelta
+
+import pytest
+
+from oap.smi.research_intelligence import assess_financial_observation
+
+
+NOW = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
+
+
+def _financial_observation():
+    return {
+        "source": "approved research source",
+        "source_class": "reputable_secondary",
+        "research_use_permitted": True,
+        "claim_supported": True,
+        "observed_or_inferred": "observed",
+        "instrument": "SAMPLE",
+        "value": "12.34",
+        "published_at": "2026-09-30T11:49:00Z",
+        "observed_at": "2026-09-30T11:50:00Z",
+        "retrieved_at": "2026-09-30T11:51:00Z",
+    }
+
+
+def test_cc21_valid_observation_remains_research_only():
+    decision = assess_financial_observation(_financial_observation(), now=NOW)
+    assert decision["usable_for_research"] is True
+    assert decision["reasons"] == ()
+    assert decision["read_only"] is True
+    assert decision["trade_signal"] is False
+    assert decision["execution_allowed"] is False
+    assert decision["ledger_write_allowed"] is False
+    assert decision["human_authority_final"] is True
+
+
+@pytest.mark.parametrize(("field", "value", "reason"), (
+    ("source", "", "missing_source"),
+    ("source_class", "made_up", "invalid_source_class"),
+    ("source_class", "community_or_social_signal", "social_signal_not_a_verified_quote"),
+    ("research_use_permitted", False, "research_permission_not_proven"),
+    ("claim_supported", False, "claim_not_verified"),
+    ("observed_or_inferred", "inferred", "not_a_direct_observation"),
+    ("instrument", "", "missing_instrument"),
+    ("value", "NaN", "invalid_quote"),
+    ("value", "-1", "invalid_quote"),
+    ("value", "0", "invalid_quote"),
+    ("value", "bad", "invalid_quote"),
+    ("observed_at", "2026-09-30T11:50:00", "invalid_observed_at"),
+    ("observed_at", "2026-09-30T11:30:00Z", "stale_observation"),
+    ("retrieved_at", "2026-09-30T12:02:00Z", "inconsistent_or_future_timestamps"),
+))
+def test_cc21_unproved_or_stale_observations_fail_closed(field, value, reason):
+    observation = _financial_observation()
+    observation[field] = value
+    decision = assess_financial_observation(observation, now=NOW)
+    assert decision["usable_for_research"] is False
+    assert reason in decision["reasons"]
+    assert decision["execution_allowed"] is False
+    assert decision["ledger_write_allowed"] is False
+
+
+@pytest.mark.parametrize("field", (
+    "trade_action", "auto_execute", "payment_instruction", "ledger_entry",
+    "win_rate", "profit_loss", "guaranteed_return",
+))
+def test_cc21_quote_cannot_launder_trading_or_performance_claims(field):
+    observation = _financial_observation()
+    observation[field] = "some value"
+    decision = assess_financial_observation(observation, now=NOW)
+    assert decision["usable_for_research"] is False
+    assert "execution_or_performance_claim_in_quote" in decision["reasons"]
+
+
+def test_cc21_requires_aware_evaluation_clock():
+    with pytest.raises(ValueError, match="timezone-aware"):
+        assess_financial_observation(_financial_observation(), now=NOW.replace(tzinfo=None))
+
+
+def test_cc21_never_changes_canonical_sika_ownership():
+    from oap.smi.state_ownership_registry import owner_for
+    assert owner_for("value").owner_component == "sika"
+    assert owner_for("audit_evidence").owner_component == "oap_data"
