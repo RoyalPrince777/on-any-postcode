@@ -90,12 +90,13 @@ def main():
             assert response is not None and response.status == 200
             assert page.locator("h1").inner_text() == "👑 ALL IN A.I."
             for name in ("start", "restore", "read", "stop", "recover",
-                         "inference-inspect", "handoff-review"):
+                         "inference-inspect", "handoff-review",
+                         "internal-execute", "internal-rollback"):
                 assert page.locator("#" + name).count() == 1, name
             assert page.locator("#start").is_enabled()
             assert page.locator("#restore").is_enabled()
             for name in ("read", "stop", "recover", "inference-inspect",
-                         "handoff-review"):
+                         "handoff-review", "internal-execute", "internal-rollback"):
                 assert page.locator("#" + name).is_disabled(), name
             assert page.evaluate(
                 "() => document.documentElement.scrollWidth <= innerWidth + 2"
@@ -124,7 +125,7 @@ def main():
             page.reload(wait_until="domcontentloaded")
             assert page.locator("#read").is_enabled()
             for name in ("stop", "recover", "inference-inspect",
-                         "handoff-review"):
+                         "handoff-review", "internal-execute", "internal-rollback"):
                 assert page.locator("#" + name).is_disabled(), name
             assert "Verify Read-back or Restore Latest" in page.locator(
                 "#result"
@@ -133,7 +134,7 @@ def main():
 
             print("ALL_IN_AUTHENTICATED_CHROMIUM=PASS")
             print("ALL_IN_PRIVATE_ROUTE_BOUNDARY=PASS")
-            print("ALL_IN_SEVEN_BUTTONS_RENDERED=PASS")
+            print("ALL_IN_NINE_BUTTONS_RENDERED=PASS")
             print("ALL_IN_NO_BROWSER_PROOF_FORGED=PASS")
             print("ALL_IN_REAL_CSRF_REJECTION=PASS")
             print("ALL_IN_MOBILE_LAYOUT_NO_OVERFLOW=PASS")
