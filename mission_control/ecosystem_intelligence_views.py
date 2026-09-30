@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
     ecosystem_intelligence,
+    civilization_ecosystem_bridge,
     ecosystem_live_sources,
     ecosystem_runtime,
     location_intelligence,
@@ -64,6 +65,13 @@ def status():
             )
         )
     )
+
+
+@bp.get("/civilization-bridge")
+@web_security.login_required(api=True, founder_only=True)
+def civilization_bridge():
+    """Return private internal cross-domain context, without publishing data."""
+    return _no_store(make_response(jsonify(civilization_ecosystem_bridge.current_state())))
 
 
 @bp.get("/live")
