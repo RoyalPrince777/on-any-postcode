@@ -138,7 +138,7 @@ def test_captain_checkpoint_digest_is_never_trusted_from_browser_session():
     assert "persistCheckpoint();" in template
     assert "showReceipt('🛑 STOP durably recorded.',body.receipt)" in template
     assert "showReceipt('♻️ Mission recovered for review. No execution granted.',body.receipt)" in template
-    assert "if(missionMutationPending||!proofVerified||!latestDigest)return;" in template
+    assert "if(missionMutationPending||actionPending||!proofVerified||!latestDigest)return;" in template
     assert "sessionStorage.getItem(sessionPrefix+'digest')" not in template
     assert "Never trust sessionStorage digest for STOP/recovery" in template
 
@@ -154,7 +154,7 @@ def test_captain_inference_inspector_reuses_private_read_only_route():
     assert 'id="inference-inspect" type="button" disabled' in template
     assert "inferenceButton.addEventListener('click',async()=>{" in template
     assert "'/inference/'+encodeURIComponent(requestId)" in template
-    assert "if(!proofVerified||!missionId||latestState==='stopped')return;" in template
+    assert "if(actionPending||missionMutationPending||!proofVerified||!missionId||latestState==='stopped')return;" in template
     assert "evidence?.mission_id!==inspectedMission" in template
     assert "evidence?.request_id!==requestId" in template
     for field in (
@@ -188,7 +188,7 @@ def test_captain_review_action_gate_never_executes_or_extents_authority():
     ).read_text(encoding="utf-8")
     assert 'id="handoff-review" type="button" disabled' in template
     assert "handoffButton.addEventListener('click',async()=>{" in template
-    assert "if(!proofVerified||!missionId||latestState==='stopped')return;" in template
+    assert "if(actionPending||missionMutationPending||!proofVerified||!missionId||latestState==='stopped')return;" in template
     assert "'/action-handoff'" in template
     assert "method:'POST'" in template
     assert "body:JSON.stringify({reviewed_request_id:requestId,action_name:'SYNC_INTERNAL_RECORD'})" in template
@@ -207,11 +207,11 @@ def test_captain_review_action_gate_never_executes_or_extents_authority():
         assert check in template
     assert "gate.status==='AUTHORIZED_NOT_EXECUTED'&&gate.execution_authorized===true" in template
     assert "gate.execution_authorized===false" in template
-    assert "This screen does not execute, publish, spend or deploy." in template
+    assert "Review does not execute; the separate bounded Founder control requires fresh server-side governance." in template
     assert "handoffResult.textContent=" in template
     assert "handoffResult.innerHTML" not in template
-    assert "'/execute-internal-record'" not in template
-    assert "'/rollback-internal-record'" not in template
+    assert "'/execute-internal-record'" in template
+    assert "'/rollback-internal-record'" in template
 
 
 def test_captain_checkpoint_change_invalidates_previous_handoff_display():
@@ -243,14 +243,14 @@ def test_red_team_request_epoch_blocks_stale_mission_results_and_parallel_mutati
     assert "latestDigest!==inspectedDigest" in template
     assert "missionEpoch!==reviewedEpoch" in template
     assert "latestDigest!==reviewedDigest" in template
-    assert "if(missionMutationPending||!proofVerified||!latestDigest)return;" in template
+    assert "if(missionMutationPending||actionPending||!proofVerified||!latestDigest)return;" in template
     assert "missionMutationPending=true;updateControls();" in template
     assert "finally{missionMutationPending=false;updateControls();}" in template
-    assert "startButton.disabled=missionMutationPending;" in template
-    assert "restoreButton.disabled=missionMutationPending;" in template
-    assert "readButton.disabled=missionMutationPending||!missionId;" in template
-    assert "inferenceButton.disabled=missionMutationPending||" in template
-    assert "handoffButton.disabled=missionMutationPending||" in template
+    assert "startButton.disabled=busy;" in template
+    assert "restoreButton.disabled=busy;" in template
+    assert "readButton.disabled=busy||!missionId;" in template
+    assert "inferenceButton.disabled=busy||" in template
+    assert "handoffButton.disabled=busy||" in template
 
 
 def test_red_team_action_review_does_not_expose_internal_authorization(monkeypatch):
@@ -300,3 +300,46 @@ def test_red_team_action_review_does_not_expose_internal_authorization(monkeypat
             assert private_field not in payload["result"]
         assert "internal-only" not in response.get_data(as_text=True)
         assert "internal-review" not in response.get_data(as_text=True)
+
+
+
+def test_captain_protected_execution_requires_current_governance_and_strict_outcome():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1] / "mission_control"
+        / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert 'id="internal-execute" type="button" disabled' in template
+    assert 'id="internal-rollback" type="button" disabled' in template
+    assert "executeButton.addEventListener('click',async()=>{" in template
+    assert "readyHandoff={missionId:reviewedMission,digest:reviewedDigest," in template
+    assert "gate.epoch!==missionEpoch" in template
+    assert "actionPending=true;readyHandoff=null;rollbackEvidence=null;" in template
+    assert "'/execute-internal-record'" in template
+    assert "action?.action_name==='SYNC_INTERNAL_RECORD'" in template
+    assert "result?.execution_evidence_state==='VERIFIED'" in template
+    assert "result?.outcome_receipt_verified===true" in template
+    assert "result?.automatic_retry_allowed===false" in template
+    assert "action?.external_side_effect===false" in template
+    assert "action?.financial_side_effect===false" in template
+    assert "validDigest(token?.before_hash)&&validDigest(token?.after_hash)" in template
+    assert "RECONCILIATION REQUIRED" in template
+
+
+def test_captain_rollback_requires_fresh_human_request_and_never_autoretries():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[1] / "mission_control"
+        / "templates" / "all_in_ai.html"
+    ).read_text(encoding="utf-8")
+    assert "rollbackButton.addEventListener('click',async()=>{" in template
+    assert "freshRequest===evidence.executeRequestId" in template
+    assert "'/rollback-internal-record'" in template
+    assert "rollbackEvidence=null;updateControls();" in template
+    assert "result?.rollback_verified===true&&body?.rollback_verified===true" in template
+    assert "recovery?.after_hash===evidence.token.before_hash" in template
+    assert "Do not blindly retry." in template
+    assert "sessionStorage.setItem(sessionPrefix+'rollback" not in template
+    assert "localStorage.setItem(" not in template
