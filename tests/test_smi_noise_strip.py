@@ -167,6 +167,7 @@ def test_unified_system_intelligence_reuses_canonical_evidence():
     assert "HRM source reached · durable receipt not certified" in command
     assert 'setUnified("gate",gate?.green===true' in command
     assert 'setUnified("signals",signalProven' in command
+    assert 'panel.dataset.mobileView="evidence"' in command
     assert "smi-unified-grid" in css
     assert "grid-template-columns:1fr!important" in css
     assert 'className="smi-system-detail"' in command
