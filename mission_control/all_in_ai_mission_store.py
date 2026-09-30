@@ -394,7 +394,7 @@ def latest_verified(identity_id: object) -> dict[str, Any]:
     try:
         with postgres_db.connect(readonly=True) as connection:
             row = connection.execute(
-                """SELECT title FROM oap_workspace_records
+                """SELECT record_id,title FROM oap_workspace_records
                    WHERE identity_id=%s AND workspace_id='governance'
                      AND title LIKE %s
                    ORDER BY created_at DESC, record_id DESC LIMIT 1""",
@@ -405,15 +405,28 @@ def latest_verified(identity_id: object) -> dict[str, Any]:
     if row is None:
         return {"found": False, "execution_granted": False,
                 "human_authority_final": True}
-    title = str(row[0])
+    record_id, title = str(row[0]), str(row[1])
     try:
-        mission = _mission_id(title.removeprefix(_PREFIX + ":").rsplit(":v", 1)[0])
-    except ValueError as exc:
+        suffix = title.removeprefix(_PREFIX + ":")
+        mission_text, version_text = suffix.rsplit(":v", 1)
+        mission = _mission_id(mission_text)
+        version = int(version_text)
+        if (title != f"{_PREFIX}:{mission}:v{version}"
+                or version < 1):
+            raise ValueError("noncanonical_mission_title")
+    except (ValueError, TypeError) as exc:
         raise MissionStoreUnavailable("mission_latest_invalid") from exc
     receipt = read(identity, mission)
     if not all(receipt.get(key) is True for key in
                ("read_back_verified", "audit_verified", "hrm_verified")):
         raise MissionStoreUnavailable("mission_latest_proof_incomplete")
+    # A concurrent STOP/recovery may advance the receipt after title selection.
+    # Never display an older selected checkpoint as the latest current state.
+    if (str(receipt.get("record_id")) != record_id
+            or type(receipt.get("version")) is not int
+            or receipt["version"] != version
+            or receipt.get("mission_id") != mission):
+        raise MissionStoreUnavailable("mission_latest_changed")
     if receipt.get("state") not in _ALLOWED_STATES:
         raise MissionStoreUnavailable("mission_latest_state_invalid")
     return {
