@@ -1,6 +1,7 @@
 """Regression tests for the reusable, non-publishing decade admission guard."""
 
 import unittest
+
 from mission_control.awards_eligibility import check_decade_nomination
 
 
