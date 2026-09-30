@@ -70,3 +70,17 @@ def test_ptt_event_listeners_are_not_registered_during_refresh():
     assert script.index("const beginPtt =") < script.index('control.addEventListener("pointerdown"')
     assert 'window.addEventListener("blur", () => endPtt(true))' in script
     assert 'document.addEventListener("visibilitychange"' in script
+
+
+def test_voice_and_ptt_capture_are_serialised_during_pending_permission():
+    source = SCRIPT.read_text(encoding="utf-8")
+    assert "capturePending: false" in source
+    assert "state.capturePending = true;" in source
+    assert "state.capturePending = false;" in source
+    assert "state.current || state.capturePending || !browserReady()" in source
+    assert "state.pttPress || state.current || state.capturePending" in source
+    assert "Boolean(state.pttPress) || state.capturePending" in source
+    # Both success and exception branches release the pending-capture lock.
+    assert source.index("state.capturePending = false;", source.index("getUserMedia({ audio: true")) < source.index("new MediaRecorder(stream")
+    catch = source.split("} catch (error) {", maxsplit=2)[-1]
+    assert "state.capturePending = false;" in catch
