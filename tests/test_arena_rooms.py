@@ -74,46 +74,14 @@ def test_room_state_returns_players_and_no_chat_or_payments(monkeypatch):
     assert result["payments"] is False
 
 
-def test_update_state_uses_revision_compare_and_swap(monkeypatch):
-    room_id = str(uuid.uuid4())
-    connection = _Connection([
-        _Result(one=(1,)),
-        _Result(one=None),
-        _Result(one=(8,)),
-        _Result(),
-    ])
-    _patch_connection(monkeypatch, connection)
-
-    result = arena_rooms.update_game_state(
-        room_id=room_id,
-        reconnect_token="r" * 40,
-        expected_revision=7,
-        game_state={"move": 11},
-        request_id="room-update-0001",
-    )
-
-    assert result == {"room_id": room_id, "revision": 8, "duplicate": False}
-    update_sql = next(call for call in connection.calls if "UPDATE oap_arena_rooms" in call[0])
-    assert "revision=revision+1" in update_sql[0]
-    assert update_sql[1][-1] == 7
-
-
-def test_update_state_rejects_stale_revision(monkeypatch):
-    room_id = str(uuid.uuid4())
-    connection = _Connection([
-        _Result(one=(1,)),
-        _Result(one=None),
-        _Result(one=None),
-    ])
-    _patch_connection(monkeypatch, connection)
-
-    with pytest.raises(ValueError, match="arena_room_revision_conflict"):
+def test_room_state_client_write_fails_closed():
+    with pytest.raises(ValueError, match="arena_room_server_game_adapter_required"):
         arena_rooms.update_game_state(
-            room_id=room_id,
-            reconnect_token="r" * 40,
-            expected_revision=2,
-            game_state={"move": 12},
-            request_id="room-update-0002",
+            room_id=str(uuid.uuid4()),
+            reconnect_token="x" * 40,
+            expected_revision=0,
+            game_state={"winner": "me", "score": 999},
+            request_id="forged-update-0001",
         )
 
 
@@ -122,7 +90,8 @@ def test_status_keeps_boundaries_explicit():
         "durable_rooms": True,
         "invite_codes": True,
         "reconnect_tokens": True,
-        "revision_conflict_guard": True,
+        "revision_conflict_guard": False,
+        "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
         "explicit_migration_required": True,
