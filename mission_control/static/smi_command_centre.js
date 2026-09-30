@@ -318,6 +318,8 @@
  unifiedGrid.className="smi-unified-grid";
  const unifiedSources=[
   ["mission","🎯 Mission","No verified active mission feed",null],
+  ["civilization","🌍 Civilization","Architecture not checked",cfg.civilizationStatusUrl],
+  ["ecosystem","🌱 Ecosystem","Runtime/source evidence not checked",cfg.ecosystemDashboardUrl],
   ["matrix","🌐 Matrix","Routes not checked","/mission/war-room/routes"],
   ["guardian","🛡️ Guardian","Safety evidence not checked",cfg.greenGateUrl],
   ["hrm","🧬 HRM","Receipts not checked",cfg.hrmUrl],
@@ -386,7 +388,7 @@
   const signal=roomRequest.signal;
   roomStats.forEach(node=>setRoom(node,false,"Checking live evidence…"));
   roomGates.forEach((node,key)=>setRoom(node,false,key==="founder"?"Founder decision required":"Checking proof…"));
-  for(const key of ["matrix","guardian","hrm","signals","gate"])setUnified(key,false,"Checking backend evidence…");
+  for(const key of ["matrix","guardian","hrm","signals","gate","civilization","ecosystem"])setUnified(key,false,"Checking backend evidence…");
   setUnified("mission",false,"No verified active mission feed · do not infer one");
   const targets=[
    ["runtime",cfg.healthUrl],
@@ -394,7 +396,9 @@
    ["signals",cfg.signalsUrl],
    ["alignment",cfg.greenGateUrl],
    ["matrix",cfg.routesUrl],
-   ["hrm",cfg.hrmUrl]
+   ["hrm",cfg.hrmUrl],
+   ["civilization",cfg.civilizationStatusUrl],
+   ["ecosystem",cfg.ecosystemStatusUrl]
   ];
   const result=await Promise.allSettled(targets.map(async ([,url])=>{
    if(!url)throw new Error("Route unavailable");
@@ -406,7 +410,7 @@
   }));
   if(signal.aborted)return;
   const value=index=>result[index].status==="fulfilled"?result[index].value:null;
-  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5);
+  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5),civilization=value(6),ecosystem=value(7);
   const count=Number(functions?.available_count||0),expected=Number(functions?.expected_count||0);
   const functionsProven=expected>0&&count===expected&&Number(functions?.proof_checked_count||0)===expected&&Number(functions?.proof_required_count||0)===0;
   const signalProven=signals?.ready===true&&signals?.signals_valid===true&&Number(signals?.signal_count)===21;
@@ -431,6 +435,18 @@
   setUnified("guardian",soulProven,soulProven?"Recovery checks explicitly passed":"Guardian/Aegis proof incomplete");
   setUnified("signals",signalProven,signalProven?"21/21 signal contract validated":signals?"21 Signals proof incomplete":"Signals unavailable · NOT PROVEN");
   setUnified("gate",gate?.green===true,gate?.green===true?"Backend gate satisfied · Founder Final separate":gate?"Missing proof · NOT GREEN":"Gate unavailable · NOT GREEN");
+  // Architecture and internal ingestion are distinct from verified, externally current world-state.
+  const civilizationDefined=civilization?.validation?.passed===true&&civilization?.status==="architecture_protocol_defined";
+  setUnified("civilization",false,civilizationDefined?
+   "Architecture validated · 9 domains · operational Green not claimed":
+   civilization?"Architecture or protocol not validated · NOT PROVEN":"Civilization source unavailable · NOT PROVEN");
+  const ecosystemInternal=ecosystem?.runtime?.automatic_internal_ingestion_ready===true;
+  const provenGates=Number(ecosystem?.live_sources?.proven_gate_count||0);
+  const requiredGates=Number(ecosystem?.live_sources?.required_gate_count||0);
+  const ecosystemComplete=ecosystemInternal&&requiredGates>0&&provenGates===requiredGates&&ecosystem?.live_sources?.all_required_live_sources_proven===true;
+  setUnified("ecosystem",ecosystemComplete,
+   ecosystemInternal?"Internal signals ready · "+provenGates+"/"+(requiredGates||"?")+" external gates · "+(ecosystemComplete?"source coverage proven; Founder Final separate":"NOT FULL GREEN"):
+   ecosystem?"Internal ingestion not proven · NOT GREEN":"Ecosystem source unavailable · NOT PROVEN");
  }
  function setOpen(open){
   if(open===active)return;
