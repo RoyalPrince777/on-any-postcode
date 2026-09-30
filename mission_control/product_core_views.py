@@ -533,7 +533,7 @@ def open_cinema_evidence_preview():
 
 
 @bp.get("/radio")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def radio_status():
     """Authenticated owner-scoped OAP Radio dashboard."""
     try:
@@ -545,7 +545,7 @@ def radio_status():
 
 
 @bp.post("/radio/stations")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def create_radio_station():
     def action():
         payload = _payload()
@@ -559,7 +559,7 @@ def create_radio_station():
 
 
 @bp.post("/radio/stations/<station_id>/shows")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def create_radio_show(station_id: str):
     def action():
         payload = _payload()
@@ -573,7 +573,7 @@ def create_radio_show(station_id: str):
 
 
 @bp.post("/radio/stations/<station_id>/schedule")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def schedule_radio_show(station_id: str):
     def action():
         payload = _payload()
@@ -589,7 +589,7 @@ def schedule_radio_show(station_id: str):
 
 
 @bp.post("/radio/stations/<station_id>/rotation")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def add_radio_rotation(station_id: str):
     def action():
         payload = _payload()
@@ -604,7 +604,7 @@ def add_radio_rotation(station_id: str):
 
 
 @bp.post("/radio/stations/<station_id>/always-on")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def radio_always_on(station_id: str):
     def action():
         payload = _payload()
@@ -618,7 +618,7 @@ def radio_always_on(station_id: str):
 
 
 @bp.post("/radio/stations/<station_id>/stop")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def stop_radio_station(station_id: str):
     def action():
         payload = _payload()
