@@ -46,7 +46,8 @@ def test_live_control_is_forced_visible_outside_dashboard_layout():
 def test_legacy_dashboard_chrome_is_suppressed_before_first_paint():
     base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
     assert 'id="smi-first-paint-guard"' in base
-    assert '<body class="mc-workspace-body smi-noise-strip smi-booting">' in base
+    assert '<body class="mc-workspace-body smi-noise-strip">' in base
+    assert "smi-booting" not in base
     assert '<nav class="navs" hidden inert aria-hidden="true">' in base
     assert '<section class="smi-hero" hidden inert aria-hidden="true">' in base
     assert '<header class="chat-head" hidden aria-hidden="true">' in base
@@ -75,3 +76,23 @@ def test_live_fullscreen_surfaces_recovery_message():
     canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text()
     assert "if(oapRuntime?.live)oapShowLiveReply('Inference unavailable · your request is preserved for retry.')" in canonical
     assert "Your request is preserved for retry." in canonical
+
+
+def test_primary_controls_remain_human_readable_not_emoji_only():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    assert 'content:" Tools"' in css
+    assert 'content:" Voice"' in css
+    assert 'content:" Pause"' in css
+    assert 'content:" Stop"' in css
+    assert ".send-label{display:inline!important" in css
+    assert 'id="live-character-toggle"' in base
+    assert "font-size:.72rem!important" in css
+
+
+def test_final_smi_shell_does_not_wait_for_dom_ready_to_become_visible():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
+    assert 'class="mc-workspace-body smi-noise-strip"' in base
+    assert "smi-booting" not in base
+    assert "classList.remove('smi-booting')" not in js
