@@ -192,6 +192,8 @@
           <video data-oap-remote-video autoplay playsinline hidden></video>
           <video data-oap-local-video autoplay muted playsinline hidden></video>
           <audio data-oap-remote-audio autoplay hidden></audio>
+          <button class="mc-secondary" type="button" disabled data-oap-live-ptt-hold hidden aria-label="Hold for live PTT" aria-pressed="false">🎙️ Hold to Speak</button>
+          <button class="mc-secondary" type="button" disabled data-oap-live-ptt-stop hidden>STOP PTT</button>
           <button class="mc-secondary" type="button" data-oap-hangup>End</button>
         </div>
         <p class="linkup-runtime" data-oap-voice-status role="status">Voice</p>
@@ -213,6 +215,7 @@
               <span class="linkup-chat-name"><strong>{{ thread.display_name }}</strong><small>@{{ thread.username }}{% if thread.card_id %} · {{ thread.card_id }}{% endif %}</small>{% if thread.borough or thread.country %}<small>{{ thread.borough }}{% if thread.borough and thread.country %} · {% endif %}{{ thread.country }}</small>{% endif %}<small class="linkup-card-state">🔗 {{ 'Purpose Link' if thread.link_kind == 'purpose' else 'Linked' }}{% if thread.purpose_text %} · {{ thread.purpose_text }}{% endif %}</small>{% if thread.certifications %}<span class="linkup-certifications">{% for badge in thread.certifications %}<span class="linkup-certified">✓ {{ badge }}</span>{% endfor %}</span>{% endif %}</span>
               <span class="linkup-chat-actions">
                 <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
+                <button type="button" disabled data-oap-call-control data-call-mode="ptt" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Private live PTT">🎙️ Live PTT</button>
                 <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-id="{{ thread.other_identity_id }}" aria-label="Link Call">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
                 <details class="linkup-conversation-settings" aria-label="Conversation settings">
                   <summary>⚙ My Controls</summary>
@@ -282,6 +285,7 @@
             <span class="linkup-chat-name"><strong>New Link</strong><small>Choose an OAP member</small></span>
             <span class="linkup-chat-actions">
               <button type="button" disabled data-oap-call-control data-call-mode="call" data-recipient-source="#linkup-recipient" aria-label="Call">{{ motion_icon('call', 'oap-motion-call') }}</button>
+                <button type="button" disabled data-oap-call-control data-call-mode="ptt" data-recipient-source="#linkup-recipient" aria-label="Private live PTT">🎙️ Live PTT</button>
               <button type="button" disabled data-oap-call-control data-call-mode="face_up" data-recipient-source="#linkup-recipient" aria-label="Link Call">{{ motion_icon('face-up', 'oap-motion-face') }}</button>
             </span>
           </header>
