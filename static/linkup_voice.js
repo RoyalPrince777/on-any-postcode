@@ -118,59 +118,6 @@
     [...recordControls, ...stopControls].filter((control) => recipientFor(control) === peerId);
 
   const refreshControls = () => {
-    // PTT deliberately reuses the governed Voice upload; it is not a live audio stream.
-  // Keep pending capture tokens until permissions resolve to prevent release-before-capture leaks.
-  const beginPtt = (control) => {
-    if (state.pttPress || state.current || control.disabled || !state.ready || !browserReady()) return;
-    const press = { control, released: false, cancelled: false };
-    state.pttPress = press;
-    refreshControls();
-    startRecording(control, press);
-  };
-
-  const endPtt = (cancel = false) => {
-    const press = state.pttPress;
-    if (!press) return;
-    press.released = true;
-    if (cancel) press.cancelled = true;
-    if (state.current) {
-      if (cancel) state.current.cancelled = true;
-      finishRecording();
-    } else if (cancel) {
-      state.pttPress = null;
-    }
-    refreshControls();
-  };
-
-  pttControls.forEach((control) => {
-    control.addEventListener("pointerdown", (event) => {
-      if (event.button !== 0 || control.disabled) return;
-      event.preventDefault();
-      beginPtt(control);
-    });
-    control.addEventListener("keydown", (event) => {
-      if ((event.key === " " || event.key === "Enter") && !event.repeat) {
-        event.preventDefault();
-        beginPtt(control);
-      }
-    });
-    control.addEventListener("keyup", (event) => {
-      if (event.key === " " || event.key === "Enter") {
-        event.preventDefault();
-        if (state.pttPress?.control === control) endPtt();
-      }
-    });
-    control.addEventListener("blur", () => {
-      if (state.pttPress?.control === control) endPtt(true);
-    });
-  });
-  window.addEventListener("pointerup", () => endPtt());
-  window.addEventListener("pointercancel", () => endPtt(true));
-  window.addEventListener("blur", () => endPtt(true));
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) endPtt(true);
-  });
-
   recordControls.forEach((control) => {
       const peerId = recipientFor(control);
       control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current) || Boolean(state.pttPress);
@@ -353,6 +300,59 @@
       );
     }
   };
+
+    // PTT deliberately reuses the governed Voice upload; it is not a live audio stream.
+  // Keep pending capture tokens until permissions resolve to prevent release-before-capture leaks.
+  const beginPtt = (control) => {
+    if (state.pttPress || state.current || control.disabled || !state.ready || !browserReady()) return;
+    const press = { control, released: false, cancelled: false };
+    state.pttPress = press;
+    refreshControls();
+    startRecording(control, press);
+  };
+
+  const endPtt = (cancel = false) => {
+    const press = state.pttPress;
+    if (!press) return;
+    press.released = true;
+    if (cancel) press.cancelled = true;
+    if (state.current) {
+      if (cancel) state.current.cancelled = true;
+      finishRecording();
+    } else if (cancel) {
+      state.pttPress = null;
+    }
+    refreshControls();
+  };
+
+  pttControls.forEach((control) => {
+    control.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || control.disabled) return;
+      event.preventDefault();
+      beginPtt(control);
+    });
+    control.addEventListener("keydown", (event) => {
+      if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+        event.preventDefault();
+        beginPtt(control);
+      }
+    });
+    control.addEventListener("keyup", (event) => {
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        if (state.pttPress?.control === control) endPtt();
+      }
+    });
+    control.addEventListener("blur", () => {
+      if (state.pttPress?.control === control) endPtt(true);
+    });
+  });
+  window.addEventListener("pointerup", () => endPtt());
+  window.addEventListener("pointercancel", () => endPtt(true));
+  window.addEventListener("blur", () => endPtt(true));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) endPtt(true);
+  });
 
   recordControls.forEach((control) => {
     control.addEventListener("click", () => startRecording(control));
