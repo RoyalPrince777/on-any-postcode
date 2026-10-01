@@ -48,6 +48,7 @@ from mission_control import (
     linkup_safety,
     location_intelligence,
     ludo,
+    market_supplier_network,
     neon_auth,
     product_store,
     products,
@@ -2066,6 +2067,7 @@ def spot_capability_front_door(capability_slug):
             "location_error": None,
             "market_products": [],
             "market_reviews": {},
+            "market_supplier_projection": {},
             "signal_posts": [],
             "room_messages": [],
             "sika": None,
@@ -2091,10 +2093,20 @@ def spot_capability_front_door(capability_slug):
         if capability_slug in {"market", "businesses"} and public_store.status()["configured"]:
             try:
                 context["market_products"] = product_store.list_products()
-                context["market_reviews"] = reviews.summaries(
-                    [item["product_id"] for item in context["market_products"]]
+                product_ids = [
+                    item["product_id"] for item in context["market_products"]
+                ]
+                context["market_reviews"] = reviews.summaries(product_ids)
+                context["market_supplier_projection"] = (
+                    market_supplier_network.STORE.public_projection(
+                        product_ids=product_ids
+                    )
                 )
-            except (product_store.ProductStoreUnavailable, reviews.ReviewsUnavailable):
+            except (
+                product_store.ProductStoreUnavailable,
+                reviews.ReviewsUnavailable,
+                market_supplier_network.SupplierNetworkUnavailable,
+            ):
                 context["private_unavailable"] = True
         workspace_map = {
             "pulse": "signals",
@@ -2439,6 +2451,7 @@ def linkup_send():
     except (
         public_store.PublicStoreUnavailable,
         product_store.ProductStoreUnavailable,
+        market_supplier_network.SupplierNetworkUnavailable,
     ):
         return jsonify(error={"code": "linkup_unavailable"}), 503
     return redirect(url_for("linkup_front_door"))
@@ -2516,12 +2529,48 @@ def market_listing_create():
             email=str(user["email"]),
             display_name=str(user["name"]),
         )
-        product_store.create_product(
-            str(user["id"]),
-            name=request.form.get("name"),
-            description=request.form.get("description"),
-            price=request.form.get("price"),
-        )
+        made_to_order = str(request.form.get("made_to_order") or "").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        if made_to_order:
+            market_supplier_network.STORE.create_made_to_order_product(
+                seller_identity_id=str(user["id"]),
+                name=request.form.get("name"),
+                description=request.form.get("description"),
+                price=request.form.get("price"),
+                garment_type=request.form.get("garment_type"),
+                artwork_reference=request.form.get("artwork_reference"),
+                placements=[
+                    item.strip()
+                    for item in str(request.form.get("placements") or "").split(",")
+                    if item.strip()
+                ],
+                colors=[
+                    item.strip()
+                    for item in str(request.form.get("colors") or "").split(",")
+                    if item.strip()
+                ],
+                sizes=[
+                    item.strip()
+                    for item in str(request.form.get("sizes") or "").split(",")
+                    if item.strip()
+                ],
+                supplier_slug=request.form.get("supplier_slug"),
+                supplier_label=request.form.get("supplier_label"),
+                supplier_product_ref=request.form.get("supplier_product_ref"),
+                supplier_variant_ref=request.form.get("supplier_variant_ref"),
+                evidence_reference=request.form.get("supplier_evidence_reference"),
+            )
+        else:
+            product_store.create_product(
+                str(user["id"]),
+                name=request.form.get("name"),
+                description=request.form.get("description"),
+                price=request.form.get("price"),
+            )
     except ValueError as exc:
         return jsonify(error={"code": str(exc)}), 400
     except certification.CertificationUnavailable:
