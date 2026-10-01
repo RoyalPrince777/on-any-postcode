@@ -10,10 +10,10 @@ from mission_control import (
     arena_rooms,
     distribution_market_links,
     market_supplier_network,
-    supplier_bridge,
     movement_operations,
     postgres_db,
     product_cores,
+    supplier_bridge,
 )
 
 pytestmark = pytest.mark.skipif(
