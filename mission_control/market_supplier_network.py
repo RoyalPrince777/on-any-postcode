@@ -8,6 +8,7 @@ payment, transfers money, or dispatches a carrier.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import uuid
@@ -19,6 +20,49 @@ from . import postgres_db, product_store
 SUPPLIER_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 STATES = {"DRAFT", "READY", "STOPPED", "RECOVERY_REQUIRED"}
 DESIGN_STATES = {"DRAFT", "READY", "STOPPED", "RECOVERY_REQUIRED"}
+SUPPLIER_MIGRATION_VERSION = "0009_oap_market_supplier_network"
+SUPPLIER_SCHEMA_STATEMENTS = (
+    """CREATE TABLE IF NOT EXISTS oap_market_supplier_bindings (
+        binding_id UUID PRIMARY KEY,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        seller_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        supplier_slug TEXT NOT NULL,
+        supplier_label TEXT NOT NULL,
+        supplier_product_ref TEXT NOT NULL,
+        supplier_variant_ref TEXT NOT NULL DEFAULT '',
+        state TEXT NOT NULL CHECK (state IN ('DRAFT','READY','STOPPED','RECOVERY_REQUIRED')),
+        stop_reason TEXT NOT NULL DEFAULT '',
+        evidence_reference TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(product_id)
+    )""",
+    """CREATE INDEX IF NOT EXISTS idx_market_supplier_bindings_seller
+        ON oap_market_supplier_bindings(seller_identity_id, updated_at DESC)""",
+    """CREATE INDEX IF NOT EXISTS idx_market_supplier_bindings_state
+        ON oap_market_supplier_bindings(state)""",
+    """CREATE TABLE IF NOT EXISTS oap_market_design_products (
+        design_id UUID PRIMARY KEY,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        seller_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        garment_type TEXT NOT NULL,
+        artwork_reference TEXT NOT NULL,
+        placements JSONB NOT NULL DEFAULT '[]'::jsonb,
+        colors JSONB NOT NULL DEFAULT '[]'::jsonb,
+        sizes JSONB NOT NULL DEFAULT '[]'::jsonb,
+        made_to_order BOOLEAN NOT NULL DEFAULT TRUE,
+        state TEXT NOT NULL CHECK (state IN ('DRAFT','READY','STOPPED','RECOVERY_REQUIRED')),
+        stop_reason TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(product_id)
+    )""",
+    """CREATE INDEX IF NOT EXISTS idx_market_design_products_seller
+        ON oap_market_design_products(seller_identity_id, updated_at DESC)""",
+)
+SUPPLIER_MIGRATION_CHECKSUM = hashlib.sha256(
+    "\n".join(SUPPLIER_SCHEMA_STATEMENTS).encode()
+).hexdigest()
 
 
 class SupplierNetworkUnavailable(RuntimeError):
@@ -546,32 +590,96 @@ STORE = SupplierNetworkStore()
 
 
 def schema_status() -> dict[str, object]:
-    """Read production schema readiness without creating or changing tables."""
+    """Read production Supplier schema and migration readiness without mutation."""
 
+    result: dict[str, object] = {
+        "component": "OAP Supplier Network",
+        "migration": SUPPLIER_MIGRATION_VERSION,
+        "checksum": SUPPLIER_MIGRATION_CHECKSUM,
+        "database_reachable": False,
+        "supplier_bindings_ready": False,
+        "design_products_ready": False,
+        "migration_verified": False,
+        "schema_ready": False,
+        "provider_execution_enabled": False,
+        "error": None,
+    }
     try:
         with postgres_db.connect(readonly=True) as connection:
+            result["database_reachable"] = True
             supplier_bindings_ready = SupplierNetworkStore._table_exists(
                 connection, "oap_market_supplier_bindings"
             )
             design_products_ready = SupplierNetworkStore._table_exists(
                 connection, "oap_market_design_products"
             )
+            result["supplier_bindings_ready"] = supplier_bindings_ready
+            result["design_products_ready"] = design_products_ready
+            if not (supplier_bindings_ready and design_products_ready):
+                result["error"] = "supplier_schema_pending"
+                return result
+            migration = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (SUPPLIER_MIGRATION_VERSION,),
+            ).fetchone()
+            if migration is None or str(migration[0]) != SUPPLIER_MIGRATION_CHECKSUM:
+                result["error"] = "supplier_migration_not_verified"
+                return result
+            result["migration_verified"] = True
+            result["schema_ready"] = True
+            return result
     except (postgres_db._driver().Error, RuntimeError, OSError):
+        result["error"] = "supplier_schema_unavailable"
+        return result
+
+
+def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
+    """Apply Supplier schema only after explicit Human Authority approval."""
+
+    if not assume_yes:
+        raise RuntimeError("Explicit human approval required: pass --yes")
+    if dry_run:
         return {
-            "database_reachable": False,
-            "supplier_bindings_ready": False,
-            "design_products_ready": False,
-            "schema_ready": False,
+            "dry_run": True,
+            "migration": SUPPLIER_MIGRATION_VERSION,
+            "checksum": SUPPLIER_MIGRATION_CHECKSUM,
+            "statements": len(SUPPLIER_SCHEMA_STATEMENTS),
             "provider_execution_enabled": False,
+            "human_authority_final": True,
         }
 
-    return {
-        "database_reachable": True,
-        "supplier_bindings_ready": supplier_bindings_ready,
-        "design_products_ready": design_products_ready,
-        "schema_ready": supplier_bindings_ready and design_products_ready,
-        "provider_execution_enabled": False,
-    }
+    with postgres_db.connect() as connection:
+        try:
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (25800009,))
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS oap_schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    checksum TEXT NOT NULL,
+                    applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )"""
+            )
+            row = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (SUPPLIER_MIGRATION_VERSION,),
+            ).fetchone()
+            if row is not None and str(row[0]) != SUPPLIER_MIGRATION_CHECKSUM:
+                raise RuntimeError("Applied Supplier migration checksum mismatch")
+            if row is None:
+                for statement in SUPPLIER_SCHEMA_STATEMENTS:
+                    connection.execute(statement)
+                connection.execute(
+                    "INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,%s)",
+                    (SUPPLIER_MIGRATION_VERSION, SUPPLIER_MIGRATION_CHECKSUM),
+                )
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+
+    status = schema_status()
+    if status.get("schema_ready") is not True:
+        raise RuntimeError("Supplier migration completed without a ready schema")
+    return status
 
 
 def truth_status() -> dict[str, object]:
