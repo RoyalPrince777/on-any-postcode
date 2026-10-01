@@ -380,7 +380,7 @@ class SupplierNetworkStore:
             "product_id": product,
             "supplier": {"slug": str(row[1]), "label": str(row[2])},
             "state": "READY",
-            "order_intent_allowed": True,
+            "order_intent_allowed": False,
             "provider_execution_enabled": False,
             "external_order_created": False,
             "human_authority_final": True,
@@ -458,7 +458,7 @@ class SupplierNetworkStore:
                 "stop_reason": str(row[7] or ""),
                 "evidence_reference": str(row[8] or ""),
                 "updated_at": row[9].isoformat(),
-                "order_intent_allowed": str(row[6]) == "READY",
+                "order_intent_allowed": False,
                 "external_execution_allowed": False,
                 "human_authority_final": True,
             }
@@ -466,7 +466,7 @@ class SupplierNetworkStore:
         ]
 
     def public_projection(self, *, product_ids: list[object]) -> dict[str, dict[str, Any]]:
-        """Return public-safe made-to-order/manufacturer state for Market cards."""
+        """Return public-safe made-to-order state without claiming supplier identity."""
 
         products = []
         for value in product_ids[:200]:
@@ -480,8 +480,10 @@ class SupplierNetworkStore:
             with postgres_db.connect(readonly=True) as connection:
                 if not self._table_exists(connection, "oap_market_supplier_bindings"):
                     return {}
+                if not self._table_exists(connection, "oap_market_design_products"):
+                    return {}
                 rows = connection.execute(
-                    """SELECT b.product_id,b.supplier_label,b.state,
+                    """SELECT b.product_id,b.state,
                               d.garment_type,d.colors,d.sizes,d.made_to_order,d.state
                        FROM oap_market_supplier_bindings b
                        LEFT JOIN oap_market_design_products d
@@ -493,26 +495,28 @@ class SupplierNetworkStore:
             raise SupplierNetworkUnavailable("supplier_projection_read_failed") from exc
         return {
             str(row[0]): {
-                "manufacturer": str(row[1]),
-                "fulfilment_state": str(row[2]),
-                "made_to_order": bool(row[6]) if row[6] is not None else False,
-                "garment_type": str(row[3] or ""),
-                "colors": list(row[4] or []),
-                "sizes": list(row[5] or []),
-                "design_state": str(row[7] or ""),
-                "order_intent_allowed": str(row[2]) == "READY"
-                and (row[7] is None or str(row[7]) == "READY"),
+                "fulfilment_state": str(row[1]),
+                "made_to_order": bool(row[5]) if row[5] is not None else False,
+                "garment_type": str(row[2] or ""),
+                "colors": list(row[3] or []),
+                "sizes": list(row[4] or []),
+                "design_state": str(row[6] or ""),
+                "supplier_identity_public": False,
+                "provider_execution_enabled": False,
+                "order_intent_allowed": False,
                 "external_execution_allowed": False,
             }
             for row in rows
         }
 
     def order_intent_allowed(self, *, product_id: object) -> dict[str, object]:
-        """Gate Market/Commerce order intents for supplier-managed products.
+        """Fail closed for supplier-managed products until provider execution is proven.
 
-        Ordinary products with no supplier binding remain allowed. Supplier-
-        managed products require READY state. Missing migration means there are
-        no supplier-managed products yet, so legacy Market behaviour is retained.
+        Ordinary non-supplier products retain existing Market ordering. A mapped
+        made-to-order product may be internally READY for design/catalogue review,
+        but that is not authority to accept an order that depends on an external
+        manufacturer. A later provider adapter must replace this lock with
+        evidence-backed execution readiness.
         """
 
         product = _uuid(product_id, "invalid_product_id")
@@ -521,28 +525,20 @@ class SupplierNetworkStore:
                 if not self._table_exists(connection, "oap_market_supplier_bindings"):
                     return {"allowed": True, "supplier_managed": False}
                 row = connection.execute(
-                    """SELECT b.state,d.state
-                       FROM oap_market_supplier_bindings b
-                       LEFT JOIN oap_market_design_products d
-                         ON d.product_id=b.product_id
-                       WHERE b.product_id=%s LIMIT 1""",
+                    """SELECT state FROM oap_market_supplier_bindings
+                       WHERE product_id=%s LIMIT 1""",
                     (product,),
                 ).fetchone()
         except Exception as exc:
             raise SupplierNetworkUnavailable("supplier_order_gate_failed") from exc
         if row is None:
             return {"allowed": True, "supplier_managed": False}
-        supplier_state = str(row[0])
-        design_state = str(row[1]) if row[1] is not None else None
-        allowed = supplier_state == "READY" and (
-            design_state is None or design_state == "READY"
-        )
         return {
-            "allowed": allowed,
+            "allowed": False,
             "supplier_managed": True,
-            "supplier_state": supplier_state,
-            "design_state": design_state,
-            "reason": None if allowed else "supplier_not_ready",
+            "supplier_state": str(row[0]),
+            "provider_execution_enabled": False,
+            "reason": "supplier_execution_not_proven",
         }
 
 
