@@ -34,6 +34,7 @@ def test_ludo_requires_six_to_enter_and_six_keeps_turn():
 def test_ludo_moves_selected_piece_and_requires_exact_finish():
     state = ludo.new_game(["Alpha", "Bravo"])
     state["players"][0]["pieces"][0]["progress"] = ludo.FINISH_PROGRESS - 2
+    state["players"][0]["pieces"][1]["progress"] = 0
     state = ludo._seal(state)
 
     state = _roll(state, 3, "ludo-roll-0003")
