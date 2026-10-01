@@ -424,7 +424,7 @@ class SupplierNetworkStore:
             "product_id": product,
             "supplier": {"slug": str(row[1]), "label": str(row[2])},
             "state": "READY",
-            "order_intent_allowed": False,
+            "order_intent_allowed": True,
             "provider_execution_enabled": False,
             "external_order_created": False,
             "human_authority_final": True,
@@ -547,20 +547,18 @@ class SupplierNetworkStore:
                 "design_state": str(row[6] or ""),
                 "supplier_identity_public": False,
                 "provider_execution_enabled": False,
-                "order_intent_allowed": False,
+                "order_intent_allowed": str(row[1]) == "READY" and str(row[6] or "") == "READY",
                 "external_execution_allowed": False,
             }
             for row in rows
         }
 
     def order_intent_allowed(self, *, product_id: object) -> dict[str, object]:
-        """Fail closed for supplier-managed products until provider execution is proven.
+        """Allow OAP order intents for READY supplier-managed products only.
 
-        Ordinary non-supplier products retain existing Market ordering. A mapped
-        made-to-order product may be internally READY for design/catalogue review,
-        but that is not authority to accept an order that depends on an external
-        manufacturer. A later provider adapter must replace this lock with
-        evidence-backed execution readiness.
+        This unlocks OAP's own durable order and transaction records. It does not
+        call a supplier, capture payment, transfer money, or dispatch a carrier.
+        DRAFT, STOPPED, recovery, missing-design, and unavailable states fail closed.
         """
 
         product = _uuid(product_id, "invalid_product_id")
@@ -569,20 +567,30 @@ class SupplierNetworkStore:
                 if not self._table_exists(connection, "oap_market_supplier_bindings"):
                     return {"allowed": True, "supplier_managed": False}
                 row = connection.execute(
-                    """SELECT state FROM oap_market_supplier_bindings
-                       WHERE product_id=%s LIMIT 1""",
+                    """SELECT b.state,d.state
+                       FROM oap_market_supplier_bindings b
+                       LEFT JOIN oap_market_design_products d
+                         ON d.product_id=b.product_id
+                       WHERE b.product_id=%s LIMIT 1""",
                     (product,),
                 ).fetchone()
         except Exception as exc:
             raise SupplierNetworkUnavailable("supplier_order_gate_failed") from exc
         if row is None:
             return {"allowed": True, "supplier_managed": False}
+
+        supplier_state = str(row[0])
+        design_state = str(row[1] or "")
+        ready = supplier_state == "READY" and design_state == "READY"
         return {
-            "allowed": False,
+            "allowed": ready,
             "supplier_managed": True,
-            "supplier_state": str(row[0]),
+            "supplier_state": supplier_state,
+            "design_state": design_state,
             "provider_execution_enabled": False,
-            "reason": "supplier_execution_not_proven",
+            "external_execution_allowed": False,
+            "payment_capture_allowed": False,
+            "reason": None if ready else "supplier_or_design_not_ready",
         }
 
 
