@@ -107,12 +107,18 @@ jobs:
               try:
                   with urllib.request.urlopen(urllib.request.Request(api, headers=headers), timeout=20) as r:
                       deploys=json.loads(r.read(500000).decode("utf-8"))
-                  if any(
-                      item.get("status")=="live"
-                      and isinstance(item.get("image"), dict)
-                      and item["image"].get("ref")==expected_image
-                      for item in deploys
-                  ):
+                  found=False
+                  for item in deploys:
+                      deploy=item.get("deploy", item) if isinstance(item, dict) else {}
+                      image=deploy.get("image") if isinstance(deploy, dict) else None
+                      if (
+                          deploy.get("status")=="live"
+                          and isinstance(image, dict)
+                          and image.get("ref")==expected_image
+                      ):
+                          found=True
+                          break
+                  if found:
                       break
               except Exception:
                   pass
