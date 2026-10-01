@@ -876,6 +876,16 @@ def arena_dot_room_page():
     return response
 
 
+@app.get("/arena/chess/room")
+def arena_chess_room_page():
+    response = make_response(
+        render_template("arena_chess_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.post("/arena/rooms/dot/action")
 def arena_room_dot_action():
     denied = _arena_write_allowed()
@@ -891,6 +901,28 @@ def arena_room_dot_action():
             action=payload.get("action"),
             a=payload.get("a"),
             b=payload.get("b"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/chess/action")
+def arena_room_chess_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.chess_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            source=payload.get("source"),
+            target=payload.get("target"),
+            promotion=payload.get("promotion"),
         )
     except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
         return _arena_error(exc)
