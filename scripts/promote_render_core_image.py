@@ -22,10 +22,19 @@ import urllib.request
 API_BASE = "https://api.render.com/v1"
 SERVICE_ID = "srv-d8gfsv0jo6nc73egdlf0"
 SERVICE_NAME = "on-any-postcode"
-IMAGE = (
-    "ghcr.io/royalprince777/on-any-postcode-runtime@"
-    "sha256:22fb2967afe92eba48dfbdd261160ccf4f2a93cae5d7d11c8d807d0c4a02fb69"
-)
+RELEASE_MANIFEST = "deploy/render-core-release.json"
+
+
+def _release_image() -> str:
+    with open(RELEASE_MANIFEST, encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    service = manifest["service"]
+    if service.get("render_service_id") != SERVICE_ID:
+        raise RuntimeError("Release manifest service id mismatch")
+    image = manifest["image"]["immutable_ref"]
+    if not isinstance(image, str) or "@sha256:" not in image:
+        raise RuntimeError("Release manifest immutable image is invalid")
+    return image
 PUBLIC_URL = "https://on-any-postcode.onrender.com"
 HEALTH_PATH = "/healthz"
 
@@ -90,9 +99,8 @@ def plan() -> dict[str, object]:
         "service_name": SERVICE_NAME,
         "public_url": PUBLIC_URL,
         "health_path": HEALTH_PATH,
-        "image": IMAGE,
-        "update_payload": {"image": {"url": IMAGE}, "autoDeploy": "no"},
-        "deploy_payload": {"imageUrl": IMAGE},
+        "image": _release_image(),
+        "deploy_payload": {"imageUrl": _release_image()},
         "creates_new_service": False,
         "replaces_environment": False,
         "source_build_required": False,
@@ -108,20 +116,11 @@ def promote(*, apply: bool = False) -> dict[str, object]:
     current = _request("GET", f"/services/{SERVICE_ID}")
     _assert_service(current)
 
-    updated = _request(
-        "PATCH",
-        f"/services/{SERVICE_ID}",
-        {"image": {"url": IMAGE}, "autoDeploy": "no"},
-    )
-    _assert_service(updated)
-    image_path = updated.get("imagePath")
-    if image_path not in (None, IMAGE):
-        raise RuntimeError("Render returned an unexpected image path")
-
+    image = _release_image()
     deploy = _request(
         "POST",
         f"/services/{SERVICE_ID}/deploys",
-        {"imageUrl": IMAGE},
+        {"imageUrl": image},
     )
     deploy_id = deploy.get("id")
     if not isinstance(deploy_id, str) or not deploy_id.startswith("dep-"):
@@ -131,7 +130,7 @@ def promote(*, apply: bool = False) -> dict[str, object]:
         "applied": True,
         "dry_run": False,
         "service_id": SERVICE_ID,
-        "image": IMAGE,
+        "image": image,
         "deploy_id": deploy_id,
         "environment_replaced": False,
         "new_service_created": False,

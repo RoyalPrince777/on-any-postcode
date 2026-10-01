@@ -8,5 +8,5 @@
   "preserve_environment": true,
   "source_build_required": false,
   "human_authority_final": true,
-  "requested_reason": "Promote merged Human-AI runtime boundary gate from exact immutable image"
+  "requested_reason": "Retry exact immutable Human-AI boundary image using direct Render image deploy"
 }

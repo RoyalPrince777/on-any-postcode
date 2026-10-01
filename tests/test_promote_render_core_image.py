@@ -12,11 +12,9 @@ def test_plan_is_exact_existing_service_and_immutable_image():
     assert plan["creates_new_service"] is False
     assert plan["replaces_environment"] is False
     assert plan["source_build_required"] is False
-    assert plan["update_payload"] == {
-        "image": {"url": promotion.IMAGE},
-        "autoDeploy": "no",
-    }
-    assert plan["deploy_payload"] == {"imageUrl": promotion.IMAGE}
+    assert plan["image"] == promotion._release_image()
+    assert plan["deploy_payload"] == {"imageUrl": promotion._release_image()}
+    assert "update_payload" not in plan
 
 
 def test_dry_run_requires_no_credentials(monkeypatch):
@@ -34,7 +32,7 @@ def test_apply_fails_closed_without_render_api_key(monkeypatch):
         promotion.promote(apply=True)
 
 
-def test_apply_updates_existing_service_then_deploys_exact_image(monkeypatch):
+def test_apply_deploys_exact_manifest_image_without_service_patch(monkeypatch):
     calls = []
 
     current = {
@@ -50,8 +48,6 @@ def test_apply_updates_existing_service_then_deploys_exact_image(monkeypatch):
         calls.append((method, path, payload))
         if method == "GET":
             return dict(current)
-        if method == "PATCH":
-            return {**current, "imagePath": promotion.IMAGE}
         if method == "POST":
             return {"id": "dep-testreceipt"}
         raise AssertionError(method)
@@ -64,14 +60,9 @@ def test_apply_updates_existing_service_then_deploys_exact_image(monkeypatch):
     assert calls == [
         ("GET", f"/services/{promotion.SERVICE_ID}", None),
         (
-            "PATCH",
-            f"/services/{promotion.SERVICE_ID}",
-            {"image": {"url": promotion.IMAGE}, "autoDeploy": "no"},
-        ),
-        (
             "POST",
             f"/services/{promotion.SERVICE_ID}/deploys",
-            {"imageUrl": promotion.IMAGE},
+            {"imageUrl": promotion._release_image()},
         ),
     ]
 
