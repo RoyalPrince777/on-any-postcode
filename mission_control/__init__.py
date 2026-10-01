@@ -39,6 +39,7 @@ def init_app(app: Flask) -> None:
         linkup_safety,
         mail_migration,
         mail_preflight,
+        market_supplier_network,
         movement_match_safety,
         movement_operations,
         music_civilization_migration,
@@ -798,6 +799,26 @@ def init_app(app: Flask) -> None:
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-market-supplier-status")
+    def _oap_market_supplier_status() -> None:
+        """Read-only Supplier Network schema status."""
+        import json
+        print(json.dumps(market_supplier_network.schema_status()))
+
+    @app.cli.command("oap-init-market-supplier")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_market_supplier(dry_run: bool, yes: bool) -> None:
+        import json
+        print(
+            json.dumps(
+                market_supplier_network.init_schema(
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
 
     @app.cli.command("oap-mail-preflight")
     def _oap_mail_preflight() -> None:
