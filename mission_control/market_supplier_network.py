@@ -223,7 +223,6 @@ class SupplierNetworkStore:
         seller = _uuid(seller_identity_id, "invalid_seller_identity")
         try:
             with postgres_db.connect(readonly=True) as connection:
-                self._ensure_schema(connection)
                 rows = connection.execute(
                     """SELECT binding_id,product_id,supplier_slug,supplier_label,
                               supplier_product_ref,supplier_variant_ref,state,
@@ -265,7 +264,6 @@ class SupplierNetworkStore:
             return {}
         try:
             with postgres_db.connect(readonly=True) as connection:
-                self._ensure_schema(connection)
                 rows = connection.execute(
                     """SELECT product_id,supplier_label,state
                        FROM oap_market_supplier_bindings
