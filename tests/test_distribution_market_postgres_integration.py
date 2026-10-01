@@ -9,6 +9,7 @@ import pytest
 from mission_control import (
     arena_rooms,
     distribution_market_links,
+    market_supplier_network,
     movement_operations,
     postgres_db,
     product_cores,
@@ -343,3 +344,97 @@ def test_real_postgres_arena_dot_two_player_scores_replay_and_stop():
     assert arena_rooms.room_state(
         room_id=host["room_id"], reconnect_token=guest["reconnect_token"]
     )["status"] == "STOPPED"
+
+
+
+def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
+    """Exercise the Supplier Network migration and fail-closed order gate on real PostgreSQL."""
+
+    postgres_db.init_postgres(assume_yes=True)
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0009_oap_market_supplier_network.sql"
+    ).read_text(encoding="utf-8")
+    with postgres_db.connect() as connection:
+        for statement in migration.split(";"):
+            if statement.strip():
+                connection.execute(statement)
+        connection.commit()
+
+    seller = str(uuid4())
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO users(id,email,username,display_name,status)
+               VALUES (%s,%s,%s,%s,'active')""",
+            (
+                seller,
+                f"{seller}@example.invalid",
+                f"supplier-{seller[:8]}",
+                "Supplier Seller",
+            ),
+        )
+        connection.commit()
+
+    created = market_supplier_network.STORE.create_made_to_order_product(
+        seller_identity_id=seller,
+        name="CI made-to-order hoodie",
+        description="ephemeral supplier proof",
+        price="50.00",
+        garment_type="hoodie",
+        artwork_reference="ci-artwork-ref",
+        placements=["front"],
+        colors=["black"],
+        sizes=["M", "L"],
+        supplier_slug="tapstitch",
+        supplier_label="Tapstitch",
+        supplier_product_ref="ci-supplier-product",
+        supplier_variant_ref="ci-variant",
+        evidence_reference="ci-internal-mapping-evidence",
+    )
+    assert created["made_to_order"] is True
+    assert created["state"] == "DRAFT"
+    assert created["order_intent_allowed"] is False
+    assert created["supplier_api_called"] is False
+    assert created["external_order_created"] is False
+
+    draft_gate = market_supplier_network.STORE.order_intent_allowed(
+        product_id=created["product_id"]
+    )
+    assert draft_gate["allowed"] is False
+    assert draft_gate["supplier_managed"] is True
+    assert draft_gate["reason"] == "supplier_execution_not_proven"
+
+    ready = market_supplier_network.STORE.mark_ready(
+        seller_identity_id=seller,
+        product_id=created["product_id"],
+        evidence_reference="ci-review-ready-evidence",
+    )
+    assert ready["state"] == "READY"
+    assert ready["order_intent_allowed"] is False
+    assert ready["provider_execution_enabled"] is False
+
+    ready_gate = market_supplier_network.STORE.order_intent_allowed(
+        product_id=created["product_id"]
+    )
+    assert ready_gate["allowed"] is False
+    assert ready_gate["reason"] == "supplier_execution_not_proven"
+
+    public = market_supplier_network.STORE.public_projection(
+        product_ids=[created["product_id"]]
+    )[created["product_id"]]
+    assert public["made_to_order"] is True
+    assert public["garment_type"] == "hoodie"
+    assert public["supplier_identity_public"] is False
+    assert "manufacturer" not in public
+    assert public["provider_execution_enabled"] is False
+    assert public["order_intent_allowed"] is False
+
+    stopped = market_supplier_network.STORE.stop(
+        seller_identity_id=seller,
+        product_id=created["product_id"],
+        reason="ci-stop",
+    )
+    assert stopped["state"] == "STOPPED"
+    assert stopped["order_intent_allowed"] is False
+    assert stopped["external_execution_allowed"] is False
