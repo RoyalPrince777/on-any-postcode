@@ -355,7 +355,7 @@ def move(state, *, source: object, target: object, request_id: object, promotion
     current["board"] = next_board
 
     sx, sy = _coords(src)
-    dx, dy = _coords(dst)
+    _, dy = _coords(dst)
     current["en_passant"] = (
         _square(sx, sy + (1 if mover == "w" else -1))
         if piece[1] == "P" and abs(dy - sy) == 2
