@@ -3342,7 +3342,9 @@ def smi_organiser_schedule(external_id: str):
                 return jsonify(error={"code": "schedule_id_mismatch"}), 400
             public_store.ensure_authenticated_user(
                 owner_id, email=str(user["email"]),
-                display_name=str(user["name"]), store_email=False,
+                display_name=str(user["name"]),
+                email_verified=bool(user.get("email_verified")),
+                store_email=False,
             )
             schedule = organiser_schedules.OrganiserSchedule(
                 external_id=external_id,
@@ -3370,6 +3372,71 @@ def smi_organiser_schedule(external_id: str):
         return jsonify(error={"code": "organiser_schedule_store_unavailable"}), 503
     response = jsonify(result)
     response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route(
+    "/api/smi-organiser/connectivity-briefs/<brief_id>",
+    methods=["GET", "PUT"],
+)
+@web_security.login_required(api=True, founder_only=True)
+def smi_organiser_connectivity_brief(brief_id: str):
+    """Founder-only audited intake contract; never approves or executes a brief."""
+    from mission_control import connectivity_briefs
+
+    user = web_security.current_authenticated_user()
+    owner_id = str(user["id"])
+    try:
+        if request.method == "GET":
+            result = connectivity_briefs.get(owner_id, brief_id)
+        else:
+            if not web_security.csrf_valid(request):
+                return _csrf_failure()
+            body = request.get_json(silent=True)
+            if not isinstance(body, dict):
+                return jsonify(error={"code": "invalid_request"}), 400
+            if str(body.get("brief_id", brief_id)) != brief_id:
+                return jsonify(error={"code": "connectivity_brief_id_mismatch"}), 400
+            evidence_links = body.get("evidence_links", [])
+            if not isinstance(evidence_links, list):
+                return jsonify(error={"code": "invalid_connectivity_brief_evidence_links"}), 400
+            public_store.ensure_authenticated_user(
+                owner_id,
+                email=str(user["email"]),
+                display_name=str(user["name"]),
+                email_verified=bool(user.get("email_verified")),
+                store_email=False,
+            )
+            brief = connectivity_briefs.ConnectivityBrief(
+                brief_id=brief_id,
+                source_run_id=body.get("source_run_id"),
+                title=body.get("title"),
+                completed_at=body.get("completed_at"),
+                summary=body.get("summary"),
+                evidence_links=tuple(evidence_links),
+                evidence_score=body.get("evidence_score"),
+                decision=body.get("decision", "pending_review"),
+                no_material_update=body.get("no_material_update", False),
+                source=body.get("source", "chatgpt_automation"),
+            )
+            result = connectivity_briefs.upsert(
+                owner_id,
+                brief,
+                expected_last_hash=str(body.get("expected_last_hash", "")),
+                stopped=body.get("stopped", False),
+            )
+    except ValueError as exc:
+        return jsonify(error={"code": str(exc)}), 400
+    except PermissionError as exc:
+        return jsonify(error={"code": str(exc)}), 423
+    except connectivity_briefs.ConnectivityBriefUnavailable as exc:
+        status = 404 if str(exc) == "connectivity_brief_not_found" else 409
+        return jsonify(error={"code": str(exc)}), status
+    except (workspaces.WorkspaceUnavailable, public_store.PublicStoreUnavailable):
+        return jsonify(error={"code": "connectivity_brief_store_unavailable"}), 503
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 

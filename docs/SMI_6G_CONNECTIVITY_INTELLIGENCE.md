@@ -29,3 +29,10 @@ An external scheduled task is not part of the first-party SMI record until its
 timing metadata has a verified Organiser receipt. A delivered research brief is
 not part of the first-party evidence record until the Founder imports a bounded
 summary. Automatic external-task synchronization remains unclaimed.
+
+The Founder-only
+`/api/smi-organiser/connectivity-briefs/<brief_id>` GET/PUT contract is the
+machine-readable first-party intake boundary. It requires the existing OAP
+identity, Founder authority and CSRF protections, and writes through the same
+append-only audited draft store. The contract is not an external transport: no
+scheduled sender is connected until separately configured and proven.
