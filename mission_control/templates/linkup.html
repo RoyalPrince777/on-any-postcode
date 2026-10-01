@@ -91,7 +91,7 @@
           <a href="#linkup-chats">💬 Link Ups</a>
           <a href="#linkup-ring">📞 Ring</a>
           <a href="#linkup-now">🟢 Now</a>
-          <a href="#linkup-tap-in">🔗 Tap In</a>
+          <a href="#linkup-incoming">🔔 Incoming</a>
           <a href="#linkup-more">⋯ More</a>
         </nav>
 
@@ -121,7 +121,7 @@
           <button type="submit">Update Now</button>
         </form>
 
-        <section class="linkup-card" id="linkup-tap-in" aria-label="Tap In · Link Requests">
+        <section class="linkup-card" id="linkup-requests" aria-label="Link Requests">
           <span class="linkup-avatar">🔗</span>
           <span class="linkup-card-copy">
             <strong>Link Requests</strong>
@@ -183,7 +183,7 @@
       </aside>
 
       <section class="linkup-chat" id="linkup-ring" aria-label="Open chat">
-        <section aria-label="Tap In activity">
+        <section id="linkup-incoming" aria-label="Incoming activity">
           <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
         </section>
         <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
@@ -200,8 +200,11 @@
         <p class="linkup-runtime" data-oap-share-status role="status">Share</p>
         <details class="linkup-conversation-settings" id="linkup-more">
           <summary>More</summary>
-          <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
           <p><a href="{{ url_for('my_card_page') }}">My Card</a></p>
+          <p><a href="#linkup-requests">Link Requests</a></p>
+          <p><a href="#linkup-ring">My Controls</a> · open a Link Up and use ⚙ My Controls.</p>
+          <p><a href="{{ url_for('leave') }}">Leave My World</a></p>
+          <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
         </details>
 
         {% if dashboard and dashboard.threads %}
