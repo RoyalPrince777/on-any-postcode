@@ -54,3 +54,51 @@ def test_chess_stop_retry_remains_idempotent_after_check_upgrade():
     state=chess.new_game()
     stopped=chess.stop(state,request_id="chess-stop-0001")
     assert chess.stop(stopped,request_id="chess-stop-0001")==stopped
+
+
+def test_chess_stalemate_is_completed_without_winner():
+    state=chess.new_game()
+    state["board"]={
+        "a8":"bK",
+        "c6":"wK",
+        "b6":"wQ",
+    }
+    state["turn"]="w"
+    state["winner"]=None
+    state["result"]=None
+    state["check"]=False
+    state=chess._seal(state)
+
+    state=chess.move(
+        state,
+        source="b6",
+        target="c7",
+        request_id="chess-stalemate-0001",
+    )
+    view=chess.public_state(state)
+    assert view["status"]=="completed"
+    assert view["result"]=="stalemate"
+    assert view["winner"] is None
+    assert view["check"] is False
+
+
+def test_chess_rejects_king_capture():
+    state=chess.new_game()
+    state["board"]={
+        "e1":"wK",
+        "e7":"wQ",
+        "e8":"bK",
+    }
+    state["turn"]="w"
+    state["winner"]=None
+    state["result"]=None
+    state["check"]=False
+    state=chess._seal(state)
+
+    with pytest.raises(ValueError, match="chess_king_capture_invalid"):
+        chess.move(
+            state,
+            source="e7",
+            target="e8",
+            request_id="chess-king-capture-0001",
+        )
