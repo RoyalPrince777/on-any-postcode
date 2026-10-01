@@ -96,7 +96,7 @@
             <p class="market-meta">{{ product.seller }}</p>
             {% if supplier.get('made_to_order') %}
             <p class="market-meta">🧵 Made to order · {{ supplier.get('garment_type') or 'garment' }}</p>
-            <p class="market-meta">Manufacturer · {{ supplier.get('manufacturer') }} · {{ supplier.get('fulfilment_state') }}</p>
+            <p class="market-meta">Fulfilment setup · {{ supplier.get('fulfilment_state') }}</p>
             {% if supplier.get('sizes') %}<p class="market-meta">Sizes · {{ supplier.get('sizes')|join(', ') }}</p>{% endif %}
             {% if supplier.get('colors') %}<p class="market-meta">Colours · {{ supplier.get('colors')|join(', ') }}</p>{% endif %}
             {% endif %}
@@ -104,7 +104,7 @@
             <div class="market-actions">
               <a class="mc-secondary-link" href="{{ request.path }}?product={{ product.product_id }}">View item</a>
               {% if supplier and not supplier.get('order_intent_allowed') %}
-              <span class="market-notice">Supplier setup pending · ordering locked</span>
+              <span class="market-notice">Supplier execution not yet proven · ordering locked</span>
               {% elif auth_user %}
               <button class="mc-primary market-add" type="button"
                       data-product-id="{{ product.product_id }}"
