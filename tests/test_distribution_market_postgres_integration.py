@@ -411,14 +411,17 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
         evidence_reference="ci-review-ready-evidence",
     )
     assert ready["state"] == "READY"
-    assert ready["order_intent_allowed"] is False
+    assert ready["order_intent_allowed"] is True
     assert ready["provider_execution_enabled"] is False
 
     ready_gate = market_supplier_network.STORE.order_intent_allowed(
         product_id=created["product_id"]
     )
-    assert ready_gate["allowed"] is False
-    assert ready_gate["reason"] == "supplier_execution_not_proven"
+    assert ready_gate["allowed"] is True
+    assert ready_gate["reason"] is None
+    assert ready_gate["provider_execution_enabled"] is False
+    assert ready_gate["external_execution_allowed"] is False
+    assert ready_gate["payment_capture_allowed"] is False
 
     public = market_supplier_network.STORE.public_projection(
         product_ids=[created["product_id"]]
@@ -428,7 +431,7 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     assert public["supplier_identity_public"] is False
     assert "manufacturer" not in public
     assert public["provider_execution_enabled"] is False
-    assert public["order_intent_allowed"] is False
+    assert public["order_intent_allowed"] is True
 
     stopped = market_supplier_network.STORE.stop(
         seller_identity_id=seller,
