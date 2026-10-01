@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "release_commit": "2577d2f6eb42bd8c8c962ee1856c5de2e0cd7964",
+  "release_commit": "1c0e817e102afb836d6c6236aeb511769d0c9ec5",
   "image": {
     "repository": "ghcr.io/royalprince777/on-any-postcode-runtime",
-    "digest": "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622",
-    "immutable_ref": "ghcr.io/royalprince777/on-any-postcode-runtime@sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622",
+    "digest": "sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a",
+    "immutable_ref": "ghcr.io/royalprince777/on-any-postcode-runtime@sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a",
     "platform": "linux/amd64"
   },
   "services": {

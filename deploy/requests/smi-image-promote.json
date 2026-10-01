@@ -2,11 +2,11 @@
   "schema_version": 1,
   "action": "PROMOTE",
   "service_id": "srv-da6tp615efls73ct81q0",
-  "image_digest": "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622",
+  "image_digest": "sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a",
   "runtime_target": "smi_gateway:app",
   "preserve_existing_service": true,
   "preserve_environment": true,
   "source_build_required": false,
   "human_authority_final": true,
-  "requested_reason": "Promote proven SMI Live motion fix without consuming Render build-pipeline minutes"
+  "requested_reason": "Promote merged Human-AI runtime boundary gate from exact immutable image"
 }

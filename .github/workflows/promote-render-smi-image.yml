@@ -31,7 +31,7 @@ jobs:
           r=json.load(open("deploy/requests/smi-image-promote.json"))
           assert r["action"]=="PROMOTE"
           assert r["service_id"]=="srv-da6tp615efls73ct81q0"
-          assert r["image_digest"]=="sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+          assert r["image_digest"]=="sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a"
           assert r["runtime_target"]=="smi_gateway:app"
           assert r["human_authority_final"] is True
           print("git-release-request-ok")
@@ -42,13 +42,13 @@ jobs:
           python - <<'PY'
           import json
           m=json.load(open("deploy/render-image-release.json"))
-          assert m["release_commit"]=="2577d2f6eb42bd8c8c962ee1856c5de2e0cd7964"
+          assert m["release_commit"]=="1c0e817e102afb836d6c6236aeb511769d0c9ec5"
           assert m["services"]["smi"]["render_service_id"]=="srv-da6tp615efls73ct81q0"
           assert m["services"]["smi"]["runtime_target"]=="smi_gateway:app"
           assert m["image"]["immutable_ref"].endswith(
-              "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+              "sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a"
           )
-          print("smi-motion-fix-release-contract-ok")
+          print("smi-human-ai-boundary-release-contract-ok")
           PY
 
       - name: Promote exact existing SMI image
