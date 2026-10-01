@@ -214,3 +214,17 @@ def test_runtime_emits_private_supplier_schema_readiness_receipt():
     assert "oap_market_supplier_schema_readiness" in init_source
     assert "market_supplier_network.schema_status()" in init_source
     assert '"human_authority_final": True' in init_source
+
+
+
+def test_supplier_readiness_receipt_uses_production_gunicorn_hook_once():
+    root = _root()
+    gunicorn_source = (root / "gunicorn.conf.py").read_text(encoding="utf-8")
+    init_source = (root / "mission_control" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'event": "oap_market_supplier_schema_readiness"' in gunicorn_source
+    assert "schema_status()" in gunicorn_source
+    assert "server.log.info(" in gunicorn_source
+    assert "oap_market_supplier_schema_readiness" not in init_source
