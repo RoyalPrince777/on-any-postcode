@@ -1168,7 +1168,13 @@ def chess_move():
         return denied
     try:
         payload = _arena_payload()
-        state = chess.move(session.get(chess.SESSION_KEY), source=payload.get("source"), target=payload.get("target"), request_id=payload.get("request_id"))
+        state = chess.move(
+            session.get(chess.SESSION_KEY),
+            source=payload.get("source"),
+            target=payload.get("target"),
+            promotion=payload.get("promotion"),
+            request_id=payload.get("request_id"),
+        )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[chess.SESSION_KEY] = state
