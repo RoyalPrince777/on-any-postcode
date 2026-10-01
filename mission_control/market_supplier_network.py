@@ -556,7 +556,7 @@ def schema_status() -> dict[str, object]:
             design_products_ready = SupplierNetworkStore._table_exists(
                 connection, "oap_market_design_products"
             )
-    except Exception:
+    except (postgres_db._driver().Error, RuntimeError, OSError):
         return {
             "database_reachable": False,
             "supplier_bindings_ready": False,
