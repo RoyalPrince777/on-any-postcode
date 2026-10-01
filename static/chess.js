@@ -21,17 +21,18 @@ function render(){
   square.setAttribute("aria-label",id+" "+(piece?(piece[0]==="w"?"White ":"Black ")+({K:"king",Q:"queen",R:"rook",B:"bishop",N:"knight",P:"pawn"}[piece[1]]):"empty"));
   square.setAttribute("aria-pressed",String(selected===id));board.append(square);
  }
- q("[data-feedback]").textContent=state.status==="completed"?(state.result==="checkmate"?"Checkmate. Winner: "+state.winner:"Stalemate."):state.status==="stopped"?"Match stopped.":state.check?"Check. "+state.turn+" must respond.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
+ const completedMessage={checkmate:"Checkmate. Winner: "+state.winner,stalemate:"Stalemate.",draw_threefold:"Draw by threefold repetition.",draw_fifty_move:"Draw by fifty-move rule.",draw_insufficient_material:"Draw by insufficient material."};
+ q("[data-feedback]").textContent=state.status==="completed"?(completedMessage[state.result]||"Game completed."):state.status==="stopped"?"Match stopped.":state.check?"Check. "+state.turn+" must respond.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
 }
 async function act(path,payload){if(busy||(path==="/arena/chess/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;
  if(path==="/arena/chess/start"||path==="/arena/chess/move"){
-  q("[data-source]").value="";q("[data-target]").value="";
+  q("[data-source]").value="";q("[data-target]").value="";q("[data-promotion]").value="";
  }
  render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
 function move(){
  const source=q("[data-source]").value.trim().toLowerCase(),target=q("[data-target]").value.trim().toLowerCase();
  if(!/^[a-h][1-8]$/.test(source)||!/^[a-h][1-8]$/.test(target)){error(new Error("Use squares a1–h8 (for example e2 → e4)."));return;}
- act("/arena/chess/move",{source,target,request_id:requestId()});
+ const promotion=q("[data-promotion]").value||null;act("/arena/chess/move",{source,target,promotion,request_id:requestId()});
 }
 q("[data-start]").onclick=()=>act("/arena/chess/start",{});
 q("[data-move]").onclick=move;
