@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import arena_chess_chromium_proof
+import arena_ludo_chromium_proof
 from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
 
@@ -184,3 +185,4 @@ def main():
 if __name__ == "__main__":
     main()
     arena_chess_chromium_proof.main()
+    arena_ludo_chromium_proof.main()
