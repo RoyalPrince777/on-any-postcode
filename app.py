@@ -2451,7 +2451,6 @@ def linkup_send():
     except (
         public_store.PublicStoreUnavailable,
         product_store.ProductStoreUnavailable,
-        market_supplier_network.SupplierNetworkUnavailable,
     ):
         return jsonify(error={"code": "linkup_unavailable"}), 503
     return redirect(url_for("linkup_front_door"))
@@ -2578,6 +2577,7 @@ def market_listing_create():
     except (
         public_store.PublicStoreUnavailable,
         product_store.ProductStoreUnavailable,
+        market_supplier_network.SupplierNetworkUnavailable,
     ):
         return jsonify(error={"code": "market_unavailable"}), 503
     return redirect(url_for("spot_capability_front_door", capability_slug="market"))
