@@ -10,6 +10,7 @@ from mission_control import (
     arena_rooms,
     distribution_market_links,
     market_supplier_network,
+    supplier_bridge,
     movement_operations,
     postgres_db,
     product_cores,
@@ -432,6 +433,56 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     assert "manufacturer" not in public
     assert public["provider_execution_enabled"] is False
     assert public["order_intent_allowed"] is True
+
+    product_cores.init_product_core_schema(assume_yes=True)
+    buyer = str(uuid4())
+    order = str(uuid4())
+    fulfilment = str(uuid4())
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO users(id,email,username,display_name,status)
+               VALUES (%s,%s,%s,%s,'active')""",
+            (
+                buyer,
+                f"{buyer}@example.invalid",
+                f"buyer-{buyer[:8]}",
+                "Bridge Buyer",
+            ),
+        )
+        connection.execute(
+            """INSERT INTO oap_commerce_orders(
+                   order_id,buyer_identity_id,seller_identity_id,state,currency,
+                   subtotal_minor,idempotency_key)
+               VALUES (%s,%s,%s,'PAYMENT_PROVIDER_REQUIRED','GBP',5000,%s)""",
+            (order, buyer, seller, f"bridge-{order[:8]}"),
+        )
+        connection.execute(
+            """INSERT INTO oap_commerce_order_items(
+                   order_id,product_id,quantity,unit_price_minor,product_name)
+               VALUES (%s,%s,1,5000,'CI made-to-order hoodie')""",
+            (order, created["product_id"]),
+        )
+        connection.execute(
+            """INSERT INTO oap_commerce_fulfilment_intents(
+                   fulfilment_id,order_id,state)
+               VALUES (%s,%s,'PROVIDER_REQUIRED')""",
+            (fulfilment, order),
+        )
+        connection.commit()
+
+    candidate = supplier_bridge.handoff_candidate(order_id=order)
+    assert candidate["provider_slug"] == "tapstitch"
+    assert candidate["supplier_product_ref"] == "ci-supplier-product"
+    assert candidate["supplier_variant_ref"] == "ci-variant"
+    assert candidate["bridge_ready"] is False
+    assert candidate["checks"]["supplier_ready"] is True
+    assert candidate["checks"]["design_ready"] is True
+    assert candidate["checks"]["delivery_destination_present"] is False
+    assert candidate["checks"]["payment_capture_proven"] is False
+    assert candidate["checks"]["provider_connector_authorized"] is False
+    assert candidate["external_submission_allowed"] is False
+    assert candidate["external_submission_performed"] is False
+    assert len(candidate["checks"]) == 21
 
     stopped = market_supplier_network.STORE.stop(
         seller_identity_id=seller,
