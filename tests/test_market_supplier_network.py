@@ -275,3 +275,18 @@ def test_supplier_migration_constants_match_sql_file():
     ):
         assert token in source
         assert token in migration
+
+
+
+def test_supplier_boot_migration_is_explicit_off_by_default_and_fail_closed():
+    source = (_root() / "gunicorn.conf.py").read_text(encoding="utf-8")
+
+    assert "OAP_MARKET_SUPPLIER_MIGRATION_ON_BOOT" in source
+    assert '== "true"' in source
+    assert "init_schema(assume_yes=True)" in source
+    assert "oap_market_supplier_migration_applied" in source
+    assert '"provider_execution_enabled": False' in source
+    assert "except Exception" not in source[
+        source.index('OAP_MARKET_SUPPLIER_MIGRATION_ON_BOOT'):
+        source.index('from mission_control.market_supplier_network import schema_status')
+    ]

@@ -222,6 +222,29 @@ def on_starting(server):
                 separators=(",", ":"),
             )
         )
+    if (
+        os.environ.get("OAP_MARKET_SUPPLIER_MIGRATION_ON_BOOT", "")
+        .strip()
+        .lower()
+        == "true"
+    ):
+        from mission_control.market_supplier_network import init_schema
+
+        migration_status = init_schema(assume_yes=True)
+        server.log.info(
+            json.dumps(
+                {
+                    "event": "oap_market_supplier_migration_applied",
+                    "migration": migration_status.get("migration"),
+                    "schema_ready": migration_status.get("schema_ready") is True,
+                    "migration_verified": migration_status.get("migration_verified") is True,
+                    "provider_execution_enabled": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+            )
+        )
+
     try:
         from mission_control.market_supplier_network import schema_status
 
