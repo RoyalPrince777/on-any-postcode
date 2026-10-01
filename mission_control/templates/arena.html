@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <script src="{{ url_for('static', filename='arena_intelligence.js') }}" defer></script>
   <style>
-    .arena-hero{background:radial-gradient(circle at 85% 5%,rgba(163,109,255,.22),transparent 32%),linear-gradient(135deg,rgba(15,20,34,.98),rgba(32,18,53,.98));overflow:hidden}.arena-title{font-size:clamp(2.5rem,8vw,5.8rem);line-height:.9;margin:.18em 0}.arena-gold{color:#f5c451}.arena-tagline{max-width:760px;font-size:1.08rem}.arena-route{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:18px 0 0}.arena-route span{border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.04)}.arena-route b{color:#a36dff}.arena-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.arena-layer{border:1px solid var(--mc-line);border-radius:16px;padding:15px;background:var(--mc-panel-soft)}.arena-layer h3{margin:.25rem 0 .5rem}.arena-console{border:1px solid rgba(163,109,255,.7);box-shadow:0 18px 50px rgba(0,0,0,.25)}.arena-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.arena-state{display:inline-flex;border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;font-weight:800}.arena-score{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:8px;margin:14px 0}.arena-score div{border:1px solid var(--mc-line);border-radius:12px;padding:11px;background:rgba(255,255,255,.03)}.arena-score strong{display:block;font-size:1.35rem}.arena-question{margin:18px 0}.arena-choices{display:grid;gap:9px}.arena-choice,.arena-control{border:1px solid var(--mc-line);border-radius:13px;padding:12px 14px;background:var(--mc-panel-soft);color:var(--mc-text);text-align:left;font:inherit;cursor:pointer}.arena-choice:hover,.arena-choice:focus-visible,.arena-control:hover,.arena-control:focus-visible{border-color:#a36dff;outline:none}.arena-control-primary{background:#6f3ec3;border-color:#a36dff;font-weight:800}.arena-control-stop{border-color:#d45b68;color:#ffb7bf}.arena-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.arena-feedback{border-left:3px solid #a36dff;padding:10px 12px;margin:14px 0;background:rgba(163,109,255,.08)}.arena-feedback[data-tone="correct"]{border-color:#43d17d}.arena-feedback[data-tone="wrong"]{border-color:#f5c451}.arena-error{color:#ffb7bf}.arena-truth{border-left:3px solid #f5c451;padding-left:12px}.arena-boundary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.arena-lock{border:1px solid var(--mc-line);border-radius:12px;padding:10px}.arena-lock strong{color:#f5c451}.arena-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;overflow-wrap:anywhere;color:var(--mc-muted)}[hidden]{display:none!important}@media(max-width:560px){.arena-score{grid-template-columns:1fr}.arena-controls button{flex:1 1 44%}}
+    .arena-hero{background:radial-gradient(circle at 85% 5%,rgba(163,109,255,.22),transparent 32%),linear-gradient(135deg,rgba(15,20,34,.98),rgba(32,18,53,.98));overflow:hidden}.arena-title{font-size:clamp(2.5rem,8vw,5.8rem);line-height:.9;margin:.18em 0}.arena-gold{color:#f5c451}.arena-tagline{max-width:760px;font-size:1.08rem}.arena-route{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:18px 0 0}.arena-route span{border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.04)}.arena-route b{color:#a36dff}.arena-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.arena-quickstart{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.arena-quickstart .arena-layer{display:flex;flex-direction:column;gap:8px}.arena-quickstart .arena-control{margin-top:auto}.arena-kicker{font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#f5c451}.arena-layer{border:1px solid var(--mc-line);border-radius:16px;padding:15px;background:var(--mc-panel-soft)}.arena-layer h3{margin:.25rem 0 .5rem}.arena-console{border:1px solid rgba(163,109,255,.7);box-shadow:0 18px 50px rgba(0,0,0,.25)}.arena-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.arena-state{display:inline-flex;border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;font-weight:800}.arena-score{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:8px;margin:14px 0}.arena-score div{border:1px solid var(--mc-line);border-radius:12px;padding:11px;background:rgba(255,255,255,.03)}.arena-score strong{display:block;font-size:1.35rem}.arena-question{margin:18px 0}.arena-choices{display:grid;gap:9px}.arena-choice,.arena-control{border:1px solid var(--mc-line);border-radius:13px;padding:12px 14px;background:var(--mc-panel-soft);color:var(--mc-text);text-align:left;font:inherit;cursor:pointer}.arena-choice:hover,.arena-choice:focus-visible,.arena-control:hover,.arena-control:focus-visible{border-color:#a36dff;outline:none}.arena-control-primary{background:#6f3ec3;border-color:#a36dff;font-weight:800}.arena-control-stop{border-color:#d45b68;color:#ffb7bf}.arena-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.arena-feedback{border-left:3px solid #a36dff;padding:10px 12px;margin:14px 0;background:rgba(163,109,255,.08)}.arena-feedback[data-tone="correct"]{border-color:#43d17d}.arena-feedback[data-tone="wrong"]{border-color:#f5c451}.arena-error{color:#ffb7bf}.arena-truth{border-left:3px solid #f5c451;padding-left:12px}.arena-boundary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.arena-lock{border:1px solid var(--mc-line);border-radius:12px;padding:10px}.arena-lock strong{color:#f5c451}.arena-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;overflow-wrap:anywhere;color:var(--mc-muted)}[hidden]{display:none!important}@media(max-width:560px){.arena-score{grid-template-columns:1fr}.arena-controls button{flex:1 1 44%}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -29,6 +29,38 @@
   </header>
 
   <main class="mc-workspace">
+    <section class="mc-panel">
+      <p class="mc-eyebrow">Choose the result · one tap to the game</p>
+      <h2>⚡ Start with what you want to do</h2>
+      <p>Less menu hunting. Pick the outcome, enter the matching game, and see the rules before you commit.</p>
+      <div class="arena-quickstart" role="list" aria-label="Arena quick starts">
+        <article class="arena-layer" role="listitem">
+          <span class="arena-kicker">Fast head-to-head</span>
+          <h3>🔴 Connect 4</h3>
+          <p>Clear win condition, short turns, local or agent play.</p>
+          <a class="arena-control arena-control-primary" href="/arena/connect4">Play Connect 4</a>
+        </article>
+        <article class="arena-layer" role="listitem">
+          <span class="arena-kicker">Play another person online</span>
+          <h3>🌐 Online Room</h3>
+          <p>Create or join a governed Connect 4 room with authoritative turns.</p>
+          <a class="arena-control arena-control-primary" href="/arena/connect4/room">Open Online Room</a>
+        </article>
+        <article class="arena-layer" role="listitem">
+          <span class="arena-kicker">Deep strategy</span>
+          <h3>🌰 Oware</h3>
+          <p>Abapa core with visible houses, captures and feeding rules.</p>
+          <a class="arena-control arena-control-primary" href="/arena/oware">Play Oware</a>
+        </article>
+        <article class="arena-layer" role="listitem">
+          <span class="arena-kicker">Train the mind</span>
+          <h3>🧠 IQ Arena</h3>
+          <p>Seven-domain challenge with a game-only skill profile.</p>
+          <a class="arena-control arena-control-primary" href="/arena/iq">Start IQ Arena</a>
+        </article>
+      </div>
+      <p class="arena-truth"><strong>Value rule:</strong> clear outcome, visible rules, direct entry. No fake urgency, no hidden paywall and no inflated claims.</p>
+    </section>
     <section class="mc-panel">
       <p class="mc-eyebrow">First-party opponents · same visible state as people</p>
       <h2>🤖 Play an Agent</h2>
