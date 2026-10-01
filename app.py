@@ -1026,6 +1026,24 @@ def ludo_start():
     return _arena_json(ludo.public_state(state), 201)
 
 
+@app.post("/arena/ludo/roll")
+def ludo_roll():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = ludo.roll(
+            session.get(ludo.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[ludo.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(ludo.public_state(state))
+
+
 @app.post("/arena/ludo/move")
 def ludo_move():
     denied = _arena_write_allowed()
@@ -1033,7 +1051,11 @@ def ludo_move():
         return denied
     try:
         payload = _arena_payload()
-        state = ludo.move(session.get(ludo.SESSION_KEY), steps=payload.get("steps"), request_id=payload.get("request_id"))
+        state = ludo.move(
+            session.get(ludo.SESSION_KEY),
+            piece_index=payload.get("piece_index"),
+            request_id=payload.get("request_id"),
+        )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[ludo.SESSION_KEY] = state
