@@ -39,11 +39,11 @@ def _request_id(value):
 
 
 def _side(player_index):
-    return range(0, 6) if player_index == 0 else range(6, 12)
+    return range(6) if player_index == 0 else range(6, 12)
 
 
 def _opponent_side(player_index):
-    return range(6, 12) if player_index == 0 else range(0, 6)
+    return range(6, 12) if player_index == 0 else range(6)
 
 
 def _normalise_players(players):
