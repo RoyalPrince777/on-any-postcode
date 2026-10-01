@@ -207,13 +207,13 @@ def test_supplier_schema_status_is_read_only_and_fails_closed():
 
 
 def test_runtime_emits_private_supplier_schema_readiness_receipt():
-    init_source = (
-        _root() / "mission_control" / "__init__.py"
+    gunicorn_source = (
+        _root() / "gunicorn.conf.py"
     ).read_text(encoding="utf-8")
 
-    assert "oap_market_supplier_schema_readiness" in init_source
-    assert "market_supplier_network.schema_status()" in init_source
-    assert '"human_authority_final": True' in init_source
+    assert "oap_market_supplier_schema_readiness" in gunicorn_source
+    assert "schema_status()" in gunicorn_source
+    assert '"human_authority_final": True' in gunicorn_source
 
 
 
