@@ -33,9 +33,9 @@ def test_sowing_skips_origin_after_full_lap():
 
 def test_capture_walks_backward_over_opponent_twos_and_threes():
     state = oware.new_game()
-    state["pits"] = [0, 0, 0, 0, 0, 3, 1, 1, 4, 4, 4, 4]
+    state["pits"] = [0, 0, 0, 0, 0, 2, 1, 1, 4, 4, 4, 4]
     state["players"][0]["captured"] = 22
-    state["players"][1]["captured"] = 5
+    state["players"][1]["captured"] = 6
     state = reseal(state)
     moved = oware.move(state, pit=5, request_id="oware-move-0002")
     assert moved["players"][0]["captured"] == 26
