@@ -49,6 +49,7 @@ from mission_control import (
     location_intelligence,
     ludo,
     neon_auth,
+    oware,
     product_store,
     products,
     public_store,
@@ -1052,6 +1053,67 @@ def ludo_stop():
     session[ludo.SESSION_KEY] = state
     session.modified = True
     return _arena_json(ludo.public_state(state))
+
+
+@app.get("/arena/oware")
+def oware_page():
+    response = make_response(
+        render_template("oware.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/oware/start")
+def oware_start():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = oware.new_game(payload.get("players"))
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[oware.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(oware.public_state(state), 201)
+
+
+@app.post("/arena/oware/move")
+def oware_move():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = oware.move(
+            session.get(oware.SESSION_KEY),
+            pit=payload.get("pit"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[oware.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(oware.public_state(state))
+
+
+@app.post("/arena/oware/stop")
+def oware_stop():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = oware.stop(
+            session.get(oware.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[oware.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(oware.public_state(state))
 
 
 @app.get("/arena/chess")

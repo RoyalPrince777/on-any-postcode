@@ -75,6 +75,7 @@ jobs:
             static/route_empire.js \
             static/iq_arena.js \
             static/ludo.js \
+            static/oware.js \
             static/chess.js \
             static/dot.js \
             static/connect4.js \
