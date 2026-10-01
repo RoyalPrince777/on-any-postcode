@@ -87,6 +87,7 @@ def init_app(app: Flask) -> None:
     from .oap_library_views import bp as oap_library_bp
     from .oap_store import bp as oap_store_bp
     from .on_any_place_routes import bp as on_any_place_bp
+    from .organiser_views import bp as smi_organiser_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
     from .travel_supply_views import bp as travel_supply_bp
@@ -1173,6 +1174,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(certification_bp, url_prefix="/mission")
     app.register_blueprint(home_node_bp, url_prefix="/mission")
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
+    app.register_blueprint(smi_organiser_bp, url_prefix="/mission")
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
     app.register_blueprint(matrix_founder_decisions_bp)
