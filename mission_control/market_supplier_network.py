@@ -38,7 +38,7 @@ def _clean(value: object, *, limit: int) -> str:
 
 def _bounded_strings(values: object, *, limit: int, item_limit: int, code: str) -> list[str]:
     if not isinstance(values, (list, tuple)):
-        raise ValueError(code)
+        raise TypeError(code)
     result = []
     for raw in values[:limit]:
         value = _clean(raw, limit=item_limit)
