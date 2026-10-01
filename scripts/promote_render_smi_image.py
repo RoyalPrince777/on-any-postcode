@@ -109,19 +109,11 @@ def promote(*, apply: bool = False) -> dict[str, object]:
         return {"applied": False, "dry_run": True, "plan": action}
     current = _request("GET", f"/services/{SERVICE_ID}")
     _assert_service(current)
-    updated = _request(
-        "PATCH",
-        f"/services/{SERVICE_ID}",
-        {"image": {"url": IMAGE}, "autoDeploy": "no"},
-    )
-    _assert_service(updated)
-    image_path = updated.get("imagePath")
-    if image_path not in (None, IMAGE):
-        raise RuntimeError("Render returned an unexpected image path")
+    image = _release_image()
     deploy = _request(
         "POST",
         f"/services/{SERVICE_ID}/deploys",
-        {"imageUrl": IMAGE},
+        {"imageUrl": image},
     )
     deploy_id = deploy.get("id")
     if not isinstance(deploy_id, str) or not deploy_id.startswith("dep-"):
