@@ -19,6 +19,12 @@ from oap.registry import RegistryEngine
 from oap.state_machine import ProcessingState, RequestStateMachine
 from oap.war_room import WarRoomEngine
 
+from .action_risk_router import (
+    ROUTE_BLOCK,
+    ROUTE_CONFIRM,
+    ROUTE_GOVERNANCE,
+    route_action,
+)
 from .agi_core import AGICore
 from .autonomy import SMIAutonomyEngine
 from .coherence import CoherenceEngine
@@ -136,6 +142,10 @@ class SMICore:
             return self._block_early(request, state, permission.reason)
         state.advance(ProcessingState.IDENTITY_VERIFIED)
 
+        action_risk = route_action(
+            request.content,
+            safety_critical=bool(request.high_impact),
+        )
         agi_route = self.agi_core.route(request.content, request.task_type)
         command_review = self.command_intelligence.review(
             request.content,
@@ -159,6 +169,13 @@ class SMICore:
 
         analysis = self.organs.integrate(findings)
         output_state = self.judge.decide(request, analysis, safety)
+        if action_risk.route == ROUTE_BLOCK:
+            output_state = OutputState.BLOCK_REQUEST
+        elif (
+            action_risk.route in {ROUTE_CONFIRM, ROUTE_GOVERNANCE}
+            and output_state != OutputState.BLOCK_REQUEST
+        ):
+            output_state = OutputState.REVIEW_REQUIRED
         summary, rationale = self.frontal_lobe.form_summary(
             request.task_type,
             analysis,
@@ -171,6 +188,9 @@ class SMICore:
             "SMI command path: "
             + " → ".join(str(item).upper() for item in command_review["command_path"])
             + ".",
+            "Action risk route: "
+            + action_risk.route
+            + f" (risk={action_risk.risk_level}, depth={action_risk.smi_depth}).",
         )
         if self.sovereign_controls.emergency_halt_active():
             rationale = (

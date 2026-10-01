@@ -375,3 +375,36 @@ def test_ollama_adapter_rejects_redirect_outside_loopback(monkeypatch):
 
     assert result.available is False
     assert result.error_code == "provider_unavailable"
+
+
+
+def test_action_risk_router_is_wired_into_smi_cycle():
+    _, brain = _brain()
+
+    result = brain.process(
+        BrainRequest(
+            request_id="request-risk-route-1",
+            identity_id="founder-1",
+            content="Send 20 SIKA",
+        )
+    )
+
+    assert result.output_state == OutputState.REVIEW_REQUIRED
+    assert any("Action risk route: CONFIRM" in reason for reason in result.rationale)
+    assert result.can_execute is False
+
+
+def test_action_risk_governance_route_forces_review():
+    _, brain = _brain()
+
+    result = brain.process(
+        BrainRequest(
+            request_id="request-risk-route-2",
+            identity_id="founder-1",
+            content="Change admin permissions in production",
+        )
+    )
+
+    assert result.output_state == OutputState.REVIEW_REQUIRED
+    assert any("Action risk route: GOVERNANCE" in reason for reason in result.rationale)
+    assert result.can_execute is False
