@@ -1,7 +1,17 @@
 (()=>{"use strict";
 const root=document.querySelector("[data-room-root]");if(!root)return;const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
-const glyph={wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"};
+const character={K:"🤴",Q:"👸",R:"🏰",B:"🧙",N:"🐎",P:"🛡️"};
+const pieceName={K:"king",Q:"queen",R:"rook",B:"bishop",N:"knight",P:"pawn"};
+function characterPiece(piece){
+ if(!piece)return null;
+ const span=document.createElement("span");
+ span.className="arena-chess-character "+(piece[0]==="w"?"arena-chess-character-white":"arena-chess-character-black");
+ span.dataset.piece=piece;
+ span.setAttribute("aria-hidden","true");
+ span.textContent=character[piece[1]];
+ return span;
+}
 let membership=null,snapshot=null,busy=false,entryBusy=false,needsRefresh=false,selected=null;
 const req=()=>crypto.randomUUID().replaceAll("-","").slice(0,20);
 const error=e=>q("[data-error]").textContent=e?.message||String(e);const clear=()=>q("[data-error]").textContent="";
@@ -11,7 +21,7 @@ function render(){if(!membership||!snapshot)return;q("[data-code]").textContent=
 const me=snapshot.players.find(p=>p.seat===membership.seat);q("[data-players]").textContent=snapshot.players.map(p=>p.display_name+" ("+(p.seat===1?"White":"Black")+")").join(" vs ");
 const game=snapshot.game_state||{};const myColour=membership.seat===1?"w":"b";const myTurn=snapshot.status==="ACTIVE"&&(!game.started||(game.turn===(membership.seat===1?"White":"Black")));
 q("[data-turn]").textContent=(me?"Playing as "+me.display_name+" · ":"")+(game.status==="completed"?"Game completed":game.status==="stopped"?"Match stopped":myTurn?"Your turn":snapshot.status==="WAITING"?"Waiting for another player":"Other player's turn");
-const board=q("[data-board]");board.replaceChildren();for(let rank=8;rank>=1;rank--)for(const file of "abcdefgh"){const id=file+rank,piece=(game.board||{})[id];const b=document.createElement("button");b.type="button";b.dataset.square=id;b.className="arena-chess-square "+(((file.charCodeAt(0)-97+rank)%2)?"arena-chess-dark":"arena-chess-light");b.textContent=glyph[piece]||"";b.disabled=busy||needsRefresh||!myTurn;b.setAttribute("aria-pressed",String(selected===id));b.onclick=()=>{if(!myTurn)return;if(!selected){if(!piece||piece[0]!==myColour)return;selected=id;q("[data-source]").value=id;}else if(selected===id){selected=null;q("[data-source]").value="";}else{q("[data-target]").value=id;move();}render();};board.append(b);}
+const board=q("[data-board]");board.replaceChildren();for(let rank=8;rank>=1;rank--)for(const file of "abcdefgh"){const id=file+rank,piece=(game.board||{})[id];const b=document.createElement("button");b.type="button";b.dataset.square=id;b.className="arena-chess-square "+(((file.charCodeAt(0)-97+rank)%2)?"arena-chess-dark":"arena-chess-light");b.replaceChildren();const characterNode=characterPiece(piece);if(characterNode)b.append(characterNode);b.dataset.piece=piece||"";b.setAttribute("aria-label",id+" "+(piece?(piece[0]==="w"?"White ":"Black ")+pieceName[piece[1]]:"empty"));b.disabled=busy||needsRefresh||!myTurn;b.setAttribute("aria-pressed",String(selected===id));b.onclick=()=>{if(!myTurn)return;if(!selected){if(!piece||piece[0]!==myColour)return;selected=id;q("[data-source]").value=id;}else if(selected===id){selected=null;q("[data-source]").value="";}else{q("[data-target]").value=id;move();}render();};board.append(b);}
 q("[data-move]").disabled=busy||needsRefresh||!myTurn;q("[data-stop]").disabled=busy||needsRefresh||snapshot.status!=="ACTIVE";}
 async function refresh(){const d=await post("/arena/rooms/state",{room_id:membership.room_id,reconnect_token:membership.reconnect_token});if(d.game_key!=="chess")throw new Error("arena_room_game_invalid");snapshot=d;membership.seat=d.your_seat;needsRefresh=false;render();}
 async function enter(task){if(entryBusy||busy)return;entryBusy=true;clear();try{await task();}catch(e){error(e);}finally{entryBusy=false;}}
