@@ -1,4 +1,7 @@
-def test_remaining_arena_game_routes(client, csrf):
+from mission_control import ludo
+
+
+def test_remaining_arena_game_routes(client, csrf, monkeypatch):
     for path, label in (
         ("/arena/ludo", "Ludo"),
         ("/arena/chess", "Chess"),
@@ -17,6 +20,25 @@ def test_remaining_arena_game_routes(client, csrf):
     )
     assert ludo_started.status_code == 201
     assert ludo_started.get_json()["current_player_name"] == "Alpha"
+    assert len(ludo_started.get_json()["players"][0]["pieces"]) == 4
+
+    monkeypatch.setattr(ludo.secrets, "randbelow", lambda _: 5)
+    ludo_rolled = client.post(
+        "/arena/ludo/roll",
+        json={"request_id": "http-ludo-roll-0001"},
+        headers=headers,
+    )
+    assert ludo_rolled.status_code == 200
+    assert ludo_rolled.get_json()["pending_roll"] == 6
+    assert "p1-1" in ludo_rolled.get_json()["movable_piece_ids"]
+
+    ludo_moved = client.post(
+        "/arena/ludo/move",
+        json={"piece_id": "p1-1", "request_id": "http-ludo-move-0001"},
+        headers=headers,
+    )
+    assert ludo_moved.status_code == 200
+    assert ludo_moved.get_json()["players"][0]["pieces"][0]["zone"] == "track"
 
     chess_started = client.post("/arena/chess/start", json={}, headers=headers)
     assert chess_started.status_code == 201
