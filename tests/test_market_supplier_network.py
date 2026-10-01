@@ -175,7 +175,7 @@ def test_supplier_owner_apis_are_certified_and_human_controlled():
     assert "market_supplier_network.STORE.stop(" in source
 
 
-def test_ready_mapping_does_not_enable_customer_orders_or_public_supplier_claim():
+def test_ready_mapping_unlocks_oap_order_only_without_public_supplier_claim():
     source = (
         _root() / "mission_control" / "market_supplier_network.py"
     ).read_text(encoding="utf-8")
@@ -183,10 +183,11 @@ def test_ready_mapping_does_not_enable_customer_orders_or_public_supplier_claim(
     ready = source.split("def mark_ready", 1)[1].split("    def stop", 1)[0]
     gate = source.split("def order_intent_allowed", 1)[1].split("\n\nSTORE =", 1)[0]
 
-    assert '"order_intent_allowed": False' in ready
+    assert '"order_intent_allowed": True' in ready
     assert '"provider_execution_enabled": False' in ready
-    assert '"allowed": False' in gate
-    assert '"supplier_execution_not_proven"' in gate
+    assert '"allowed": ready' in gate
+    assert '"external_execution_allowed": False' in gate
+    assert '"payment_capture_allowed": False' in gate
     assert '"supplier_identity_public": False' in source
 
 
@@ -290,3 +291,16 @@ def test_supplier_boot_migration_is_explicit_off_by_default_and_fail_closed():
         source.index('OAP_MARKET_SUPPLIER_MIGRATION_ON_BOOT'):
         source.index('from mission_control.market_supplier_network import schema_status')
     ]
+
+
+
+def test_ready_supplier_order_gate_unlocks_oap_intent_only():
+    source = (
+        _root() / "mission_control" / "market_supplier_network.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'ready = supplier_state == "READY" and design_state == "READY"' in source
+    assert '"allowed": ready' in source
+    assert '"provider_execution_enabled": False' in source
+    assert '"external_execution_allowed": False' in source
+    assert '"payment_capture_allowed": False' in source
