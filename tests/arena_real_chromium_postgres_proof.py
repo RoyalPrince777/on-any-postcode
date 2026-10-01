@@ -19,6 +19,7 @@ from werkzeug.serving import make_server
 
 import app as app_module
 from mission_control import postgres_db, web_security
+import arena_chess_chromium_proof
 
 BASE = "http://127.0.0.1:8768"
 
@@ -182,3 +183,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    arena_chess_chromium_proof.main()
