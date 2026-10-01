@@ -66,7 +66,7 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     assert_layout(host)
     assert_layout(guest)
     if game == "connect4":
-        for unavailable in ("ludo", "chess", "iq", "route-empire"):
+        for unavailable in ("ludo", "iq", "route-empire"):
             rejected = host.evaluate(
                 """async game => {
                     const csrf = document.querySelector('meta[name="oap-csrf-token"]').content;
