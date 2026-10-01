@@ -196,7 +196,7 @@ def test_supplier_schema_status_is_read_only_and_fails_closed():
         _root() / "mission_control" / "market_supplier_network.py"
     ).read_text(encoding="utf-8")
     section = source.split("def schema_status", 1)[1].split(
-        "def truth_status", 1
+        "def init_schema", 1
     )[0]
 
     assert "connect(readonly=True)" in section
@@ -228,3 +228,50 @@ def test_supplier_readiness_receipt_uses_production_gunicorn_hook_once():
     assert "schema_status()" in gunicorn_source
     assert "server.log.info(" in gunicorn_source
     assert "oap_market_supplier_schema_readiness" not in init_source
+
+
+
+def test_supplier_migration_is_explicit_versioned_and_human_gated():
+    source = (
+        _root() / "mission_control" / "market_supplier_network.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'SUPPLIER_MIGRATION_VERSION = "0009_oap_market_supplier_network"' in source
+    assert "SUPPLIER_MIGRATION_CHECKSUM" in source
+    assert "pg_advisory_xact_lock" in source
+    assert "Explicit human approval required: pass --yes" in source
+    assert "connection.rollback()" in source
+    assert "Supplier migration completed without a ready schema" in source
+    assert '"provider_execution_enabled": False' in source
+
+
+def test_supplier_migration_cli_has_status_dry_run_and_explicit_yes():
+    source = (
+        _root() / "mission_control" / "__init__.py"
+    ).read_text(encoding="utf-8")
+
+    assert '@app.cli.command("oap-market-supplier-status")' in source
+    assert '@app.cli.command("oap-init-market-supplier")' in source
+    assert '@click.option("--dry-run", is_flag=True, default=False)' in source
+    assert '@click.option("--yes", "yes", is_flag=True, default=False)' in source
+    assert "market_supplier_network.init_schema(" in source
+
+
+def test_supplier_migration_constants_match_sql_file():
+    source = (
+        _root() / "mission_control" / "market_supplier_network.py"
+    ).read_text(encoding="utf-8")
+    migration = (
+        _root() / "migrations" / "0009_oap_market_supplier_network.sql"
+    ).read_text(encoding="utf-8")
+
+    for token in (
+        "oap_market_supplier_bindings",
+        "idx_market_supplier_bindings_seller",
+        "idx_market_supplier_bindings_state",
+        "oap_market_design_products",
+        "idx_market_design_products_seller",
+        "RECOVERY_REQUIRED",
+    ):
+        assert token in source
+        assert token in migration
