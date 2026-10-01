@@ -17,9 +17,9 @@ if str(ROOT) not in sys.path:
 from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
 
+import arena_chess_chromium_proof
 import app as app_module
 from mission_control import postgres_db, web_security
-import arena_chess_chromium_proof
 
 BASE = "http://127.0.0.1:8768"
 
