@@ -84,19 +84,51 @@ jobs:
               raise SystemExit(completed.returncode)
           PY
 
-      - name: Verify public health and public Link Up entry
+      - name: Verify exact image live, public health and public Link Up entry
+        env:
+          OAP_RENDER_API_KEY: ${{ secrets.OAP_RENDER_API_KEY }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
           python - <<'PY'
-          import time, urllib.request
-          base="https://on-any-postcode.onrender.com"
-          for attempt in range(18):
+          import json, os, time, urllib.request
+          manifest=json.load(open("deploy/render-core-release.json"))
+          service_id=manifest["service"]["render_service_id"]
+          expected_image=manifest["image"]["immutable_ref"]
+          token=(os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          if not token:
+              raise SystemExit("render_api_key_missing")
+          api=f"https://api.render.com/v1/services/{service_id}/deploys?limit=10"
+          headers={
+              "Accept":"application/json",
+              "Authorization":"Bearer "+token,
+              "User-Agent":"OAP-Core-Postdeploy-Proof/1.0",
+          }
+          for _ in range(36):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(api, headers=headers), timeout=20) as r:
+                      deploys=json.loads(r.read(500000).decode("utf-8"))
+                  if any(
+                      item.get("status")=="live"
+                      and isinstance(item.get("image"), dict)
+                      and item["image"].get("ref")==expected_image
+                      for item in deploys
+                  ):
+                      break
+              except Exception:
+                  pass
+              time.sleep(5)
+          else:
+              raise SystemExit("exact_image_not_live")
+
+          base=manifest["service"]["public_url"]
+          for _ in range(18):
               try:
                   with urllib.request.urlopen(base+"/healthz", timeout=20) as r:
                       if 200 <= r.status < 300:
                           break
               except Exception:
                   pass
-              time.sleep(10)
+              time.sleep(5)
           else:
               raise SystemExit("healthz_not_ready")
           with urllib.request.urlopen(base+"/linkup", timeout=20) as r:
