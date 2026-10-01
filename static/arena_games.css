@@ -48,3 +48,24 @@ body:has(.arena-game){overflow-x:hidden}
 .arena-game .arena-race-row progress{width:100%;accent-color:var(--arena-accent);height:15px}
 .arena-game [data-edges]{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:8px;margin:10px 0}
 .arena-game [data-edges] button{width:100%;background:var(--mc-panel-soft);color:var(--mc-text);border:1px solid var(--mc-line)}
+
+/* OAP Chess character set: visual-only; engine piece codes remain canonical. */
+.arena-game .arena-chess-character{
+  width:clamp(24px,7vw,48px);height:clamp(24px,7vw,48px);
+  display:grid;place-items:center;border-radius:50%;
+  font-size:clamp(16px,4.8vw,34px);line-height:1;
+  border:2px solid currentColor;box-shadow:0 2px 7px rgba(0,0,0,.28);
+  transform:translateZ(0);user-select:none;
+}
+.arena-game .arena-chess-character-white{
+  color:#8f6811;background:linear-gradient(145deg,#fff8dc,#e7c35c);
+  box-shadow:0 2px 7px rgba(0,0,0,.24),inset 0 0 0 2px rgba(255,255,255,.45);
+}
+.arena-game .arena-chess-character-black{
+  color:#f3d477;background:linear-gradient(145deg,#211b2b,#4b3763);
+  box-shadow:0 2px 7px rgba(0,0,0,.35),inset 0 0 0 2px rgba(163,109,255,.24);
+}
+.arena-game .arena-chess-square[data-piece=""] .arena-chess-character{display:none}
+@media(max-width:430px){
+  .arena-game .arena-chess-character{width:clamp(22px,8vw,36px);height:clamp(22px,8vw,36px);font-size:clamp(15px,6vw,26px)}
+}
