@@ -11,6 +11,7 @@ from . import (
     distribution_intelligence,
     entertainment_catalogue,
     live_music_core,
+    market_supplier_network,
     market_transaction_spine,
     music_acceptance,
     music_assets,
@@ -1066,11 +1067,68 @@ def create_product():
 def create_order():
     def action():
         payload = _payload()
+        product_id = payload.get("product_id")
+        gate = market_supplier_network.STORE.order_intent_allowed(
+            product_id=product_id
+        )
+        if gate.get("allowed") is not True:
+            raise ValueError(str(gate.get("reason") or "supplier_not_ready"))
         return _store.create_order_intent(
             buyer_identity_id=_identity(sync=True),
-            product_id=payload.get("product_id"),
+            product_id=product_id,
             quantity=payload.get("quantity", 1),
             idempotency_key=payload.get("idempotency_key"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/market/suppliers")
+@web_security.login_required(api=True)
+def market_supplier_bindings():
+    try:
+        identity = _require_certified_merchant(_identity())
+        return _no_store(make_response(jsonify({
+            "supplier_network": market_supplier_network.truth_status(),
+            "bindings": market_supplier_network.STORE.owner_bindings(
+                seller_identity_id=identity
+            ),
+        })))
+    except PermissionError as exc:
+        return _error("permission_denied", str(exc), 403)
+    except (ValueError, RuntimeError):
+        return _error(
+            "supplier_network_unavailable",
+            "Supplier Network is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/market/products/<product_id>/supplier-ready")
+@web_security.login_required(api=True)
+def mark_market_supplier_ready(product_id: str):
+    def action():
+        payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
+        return market_supplier_network.STORE.mark_ready(
+            seller_identity_id=seller,
+            product_id=product_id,
+            evidence_reference=payload.get("evidence_reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/products/<product_id>/supplier-stop")
+@web_security.login_required(api=True)
+def stop_market_supplier(product_id: str):
+    def action():
+        payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
+        return market_supplier_network.STORE.stop(
+            seller_identity_id=seller,
+            product_id=product_id,
+            reason=payload.get("reason"),
         )
 
     return _handle_write(action)
@@ -1101,9 +1159,15 @@ def create_market_order():
         payload = _payload()
         identity = _identity(sync=True)
         key = str(payload.get("idempotency_key") or "")
+        product_id = payload.get("product_id")
+        gate = market_supplier_network.STORE.order_intent_allowed(
+            product_id=product_id
+        )
+        if gate.get("allowed") is not True:
+            raise ValueError(str(gate.get("reason") or "supplier_not_ready"))
         order = _store.create_order_intent(
             buyer_identity_id=identity,
-            product_id=payload.get("product_id"),
+            product_id=product_id,
             quantity=payload.get("quantity", 1),
             idempotency_key=key,
         )
