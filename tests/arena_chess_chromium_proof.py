@@ -129,8 +129,8 @@ def prove_castling(browser):
     seed_state(context, state)
 
     move(page, "e1", "g1", next_turn="Black")
-    expect(page.locator('[data-square="g1"]')).to_have_text("♔")
-    expect(page.locator('[data-square="f1"]')).to_have_text("♖")
+    expect(page.locator('[data-square="g1"]')).to_have_attribute("data-piece", "wK")
+    expect(page.locator('[data-square="f1"]')).to_have_attribute("data-piece", "wR")
     assert not errors, errors
     context.close()
 
@@ -149,7 +149,7 @@ def prove_promotion(browser):
     page.locator("[data-target]").fill("a8")
     page.locator("[data-promotion]").select_option("Q")
     page.locator("[data-move]").click()
-    expect(page.locator('[data-square="a8"]')).to_have_text("♕")
+    expect(page.locator('[data-square="a8"]')).to_have_attribute("data-piece", "wQ")
     expect(page.locator("[data-turn]")).to_have_text("Black")
     assert not errors, errors
     context.close()

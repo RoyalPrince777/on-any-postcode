@@ -6,7 +6,7 @@ import uuid
 
 import pytest
 
-from mission_control import arena_rooms, connect4
+from mission_control import arena_rooms, chess, connect4
 
 
 class _Result:
@@ -97,6 +97,7 @@ def test_status_keeps_boundaries_explicit():
         "revision_conflict_guard": True,
         "connect4_server_actions": True,
         "dot_server_actions": True,
+        "chess_server_actions": True,
         "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
@@ -261,10 +262,10 @@ def test_dot_room_rejects_wrong_seat(monkeypatch):
 def test_unimplemented_room_games_and_non_two_player_capacity_fail_before_io(monkeypatch):
     connection = _Connection([])
     _patch_connection(monkeypatch, connection)
-    for game in ("ludo", "chess", "iq", "route-empire"):
+    for game in ("ludo", "iq", "route-empire"):
         with pytest.raises(ValueError, match="arena_room_game_invalid"):
             arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=2)
-    for game in ("connect4", "dot"):
+    for game in ("connect4", "dot", "chess"):
         with pytest.raises(ValueError, match="arena_room_requires_two_seats"):
             arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=4)
     assert connection.calls == []
@@ -284,3 +285,118 @@ def test_dot_room_malformed_edges_fail_before_database(monkeypatch, a, b):
             action="draw", a=a, b=b,
         )
     assert connection.calls == []
+
+
+
+def test_chess_room_action_commits_server_engine_move(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=("chess", "ACTIVE", 2, 0, {})),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    result = arena_rooms.chess_action(
+        room_id=room_id,
+        reconnect_token="x" * 40,
+        expected_revision=0,
+        request_id="chess-shared-move-0001",
+        action="move",
+        source="e2",
+        target="e4",
+    )
+
+    assert result["revision"] == 1
+    assert result["status"] == "ACTIVE"
+    assert result["game_state"]["board"]["e4"] == "wP"
+    assert result["game_state"]["turn"] == "Black"
+    assert connection.commits == 1
+    updated = next(params for sql, params in connection.calls if "UPDATE oap_arena_rooms" in sql)
+    written = json.loads(updated[0])
+    assert chess.validate(written)["passed"] is True
+
+
+def test_chess_room_rejects_wrong_seat(monkeypatch):
+    room_id = str(uuid.uuid4())
+    initial = chess.new_game()
+    connection = _Connection([
+        _Result(one=("chess", "ACTIVE", 2, 0, initial)),
+        _Result(one=(2,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    with pytest.raises(ValueError, match="arena_room_not_your_turn"):
+        arena_rooms.chess_action(
+            room_id=room_id,
+            reconnect_token="y" * 40,
+            expected_revision=0,
+            request_id="chess-wrong-seat-0001",
+            action="move",
+            source="e2",
+            target="e4",
+        )
+    assert connection.commits == 0
+
+
+def test_chess_room_promotion_flows_through_server_engine(monkeypatch):
+    room_id = str(uuid.uuid4())
+    state = chess.new_game()
+    state["board"] = {"h1": "wK", "h8": "bK", "a7": "wP", "g8": "bR"}
+    state["turn"] = "w"
+    state["castling"] = {"wK": False, "wQ": False, "bK": False, "bQ": False}
+    state["en_passant"] = None
+    state["position_counts"] = {}
+    state = chess._seal(state)
+    connection = _Connection([
+        _Result(one=("chess", "ACTIVE", 2, 7, state)),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    result = arena_rooms.chess_action(
+        room_id=room_id,
+        reconnect_token="x" * 40,
+        expected_revision=7,
+        request_id="chess-promote-room-0001",
+        action="move",
+        source="a7",
+        target="a8",
+        promotion="Q",
+    )
+    assert result["revision"] == 8
+    assert result["game_state"]["board"]["a8"] == "wQ"
+
+
+def test_chess_room_stop_is_server_authoritative(monkeypatch):
+    room_id = str(uuid.uuid4())
+    initial = chess.new_game()
+    connection = _Connection([
+        _Result(one=("chess", "ACTIVE", 2, 2, initial)),
+        _Result(one=(2,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    result = arena_rooms.chess_action(
+        room_id=room_id,
+        reconnect_token="z" * 40,
+        expected_revision=2,
+        request_id="chess-room-stop-0001",
+        action="stop",
+    )
+    assert result["revision"] == 3
+    assert result["status"] == "STOPPED"
+    assert result["game_state"]["status"] == "stopped"
