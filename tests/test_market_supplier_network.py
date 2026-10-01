@@ -157,9 +157,9 @@ def test_server_order_paths_cannot_bypass_supplier_readiness():
     )[0]
 
     assert "order_intent_allowed(" in commerce
-    assert "supplier_execution_not_proven" in commerce
+    assert 'if gate.get("allowed") is not True:' in commerce
     assert "order_intent_allowed(" in market
-    assert "supplier_execution_not_proven" in market
+    assert 'if gate.get("allowed") is not True:' in market
 
 
 def test_supplier_owner_apis_are_certified_and_human_controlled():
