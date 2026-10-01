@@ -5,9 +5,9 @@ import ipaddress
 import json
 import logging
 import os
+import threading
 import time
 import uuid
-import threading
 from collections.abc import Iterator
 from urllib import error as urlerror
 from urllib import parse as urlparse
@@ -77,7 +77,7 @@ _HOP_BY_HOP = {
 class _NoRedirect(urlrequest.HTTPRedirectHandler):
     """Return upstream redirects to the browser instead of following them here."""
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ARG002
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
 
 
@@ -227,6 +227,7 @@ def _allowed(path: str) -> bool:
         "/myworld",
         "/infrastructure",
         "/api/infrastructure",
+        "/api/smi-organiser",
         "/map-intelligence",
     ):
         if clean == prefix or clean.startswith(prefix + "/"):
