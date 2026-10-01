@@ -19,7 +19,12 @@ from oap.registry import RegistryEngine
 from oap.state_machine import ProcessingState, RequestStateMachine
 from oap.war_room import WarRoomEngine
 
-from .action_risk_router import ROUTE_BLOCK, ROUTE_CONFIRM, ROUTE_GOVERNANCE, route_action
+from .action_risk_router import (
+    ROUTE_BLOCK,
+    ROUTE_CONFIRM,
+    ROUTE_GOVERNANCE,
+    route_action,
+)
 from .agi_core import AGICore
 from .autonomy import SMIAutonomyEngine
 from .coherence import CoherenceEngine
