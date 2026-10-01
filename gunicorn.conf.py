@@ -222,6 +222,28 @@ def on_starting(server):
                 separators=(",", ":"),
             )
         )
+    try:
+        from mission_control.market_supplier_network import schema_status
+
+        supplier_schema = schema_status()
+    except Exception:
+        supplier_schema = {
+            "database_reachable": False,
+            "supplier_bindings_ready": False,
+            "design_products_ready": False,
+            "schema_ready": False,
+            "provider_execution_enabled": False,
+        }
+    server.log.info(
+        json.dumps(
+            {
+                "event": "oap_market_supplier_schema_readiness",
+                **supplier_schema,
+                "human_authority_final": True,
+            },
+            separators=(",", ":"),
+        )
+    )
     _emit_database_certification(server)
     _emit_database_connection_diagnostic(server)
     _restore_configured_authority_once(server)
