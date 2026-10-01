@@ -145,7 +145,8 @@ jobs:
           with urllib.request.urlopen(base+"/my-card/create", timeout=20) as r:
               create_card=r.read().decode("utf-8","replace")
           assert "Create My Card — Free" in create_card
-          assert "Creating it is free." in create_card
+          assert "OAP World and public Link Up are open without an account, email or sign-in." in create_card
+          assert "No email or sign-in is needed." in create_card
           assert "Enter My World" not in create_card
           print("oap-core-image-promotion-acceptance-pass")
           PY
