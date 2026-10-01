@@ -22,3 +22,24 @@ CREATE INDEX IF NOT EXISTS idx_market_supplier_bindings_seller
 
 CREATE INDEX IF NOT EXISTS idx_market_supplier_bindings_state
     ON oap_market_supplier_bindings(state);
+
+
+CREATE TABLE IF NOT EXISTS oap_market_design_products (
+    design_id UUID PRIMARY KEY,
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    seller_identity_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    garment_type TEXT NOT NULL,
+    artwork_reference TEXT NOT NULL,
+    placements JSONB NOT NULL DEFAULT '[]'::jsonb,
+    colors JSONB NOT NULL DEFAULT '[]'::jsonb,
+    sizes JSONB NOT NULL DEFAULT '[]'::jsonb,
+    made_to_order BOOLEAN NOT NULL DEFAULT TRUE,
+    state TEXT NOT NULL CHECK (state IN ('DRAFT','READY','STOPPED','RECOVERY_REQUIRED')),
+    stop_reason TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_design_products_seller
+    ON oap_market_design_products(seller_identity_id, updated_at DESC);
