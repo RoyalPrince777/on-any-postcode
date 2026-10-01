@@ -26,10 +26,14 @@ def prepare():
     web_security.PUBLIC_WRITE_LIMITER.reset()
 
 
-def move(page, source, target):
+def move(page, source, target, *, next_turn=None, completed=False):
     page.locator("[data-source]").fill(source)
     page.locator("[data-target]").fill(target)
     page.locator("[data-move]").click()
+    if completed:
+        expect(page.locator("[data-status]")).to_have_text("completed")
+    elif next_turn is not None:
+        expect(page.locator("[data-turn]")).to_have_text(next_turn)
 
 
 def open_game(browser):
@@ -45,9 +49,9 @@ def open_game(browser):
 
 def prove_check(browser):
     context, page, errors = open_game(browser)
-    move(page, "e2", "e3")
-    move(page, "d7", "d5")
-    move(page, "f1", "b5")
+    move(page, "e2", "e3", next_turn="Black")
+    move(page, "d7", "d5", next_turn="White")
+    move(page, "f1", "b5", next_turn="Black")
     expect(page.locator("[data-feedback]")).to_have_text("Check. Black must respond.")
     assert not errors, errors
     context.close()
@@ -55,10 +59,10 @@ def prove_check(browser):
 
 def prove_checkmate(browser):
     context, page, errors = open_game(browser)
-    move(page, "f2", "f3")
-    move(page, "e7", "e5")
-    move(page, "g2", "g4")
-    move(page, "d8", "h4")
+    move(page, "f2", "f3", next_turn="Black")
+    move(page, "e7", "e5", next_turn="White")
+    move(page, "g2", "g4", next_turn="Black")
+    move(page, "d8", "h4", completed=True)
     expect(page.locator("[data-feedback]")).to_have_text("Checkmate. Winner: Black")
     expect(page.locator("[data-status]")).to_have_text("completed")
     assert not errors, errors
@@ -90,7 +94,7 @@ def prove_stalemate(browser):
         "url": BASE,
     }])
 
-    move(page, "b6", "c7")
+    move(page, "b6", "c7", completed=True)
     expect(page.locator("[data-feedback]")).to_have_text("Stalemate.")
     expect(page.locator("[data-status]")).to_have_text("completed")
     assert not errors, errors
