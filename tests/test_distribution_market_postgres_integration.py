@@ -403,7 +403,7 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     )
     assert draft_gate["allowed"] is False
     assert draft_gate["supplier_managed"] is True
-    assert draft_gate["reason"] == "supplier_execution_not_proven"
+    assert draft_gate["reason"] == "supplier_or_design_not_ready"
 
     ready = market_supplier_network.STORE.mark_ready(
         seller_identity_id=seller,
