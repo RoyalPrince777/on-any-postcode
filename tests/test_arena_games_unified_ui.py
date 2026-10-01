@@ -36,7 +36,9 @@ def test_local_games_label_moves_and_start_with_stop_disabled(client, route):
         assert 'class="arena-chess-board"' in html
         assert 'data-source' in html and 'data-target' in html
     if route == "/arena/ludo":
-        assert 'data-step="1"' in html and 'data-step="6"' in html
+        assert "data-roll disabled" in html
+        assert "four pieces each" in html
+        assert "enter on 6" in html
     if route == "/arena/dot":
         assert 'data-edges' in html and 'data-score' in html
 
