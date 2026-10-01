@@ -14,7 +14,40 @@ from . import autonomy_levels
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
+
+
+HUMAN_AI_BOUNDARY = {
+    "human": {
+        "living_being": True,
+        "embodied": True,
+        "lived_experience": True,
+        "consent_source": True,
+        "responsibility_bearer": True,
+        "final_consequential_authority": True,
+    },
+    "ai": {
+        "engineered_software": True,
+        "living_being": False,
+        "human_identity": False,
+        "lived_experience_claimed": False,
+        "feelings_claimed": False,
+        "sentience_claimed": False,
+        "consciousness_claimed": False,
+        "may_observe_permitted_data": True,
+        "may_analyse": True,
+        "may_compare": True,
+        "may_predict": True,
+        "may_recommend": True,
+        "may_self_approve": False,
+        "may_replace_human_authority": False,
+    },
+    "rule": (
+        "AI may observe permitted data, analyse, remember, compare, predict and recommend. "
+        "It must not pretend to be human, claim human lived experience or feelings, "
+        "or replace Human Authority for consequential decisions."
+    ),
+}
 
 AI_BEHAVIOUR_PARTS = (
     {
@@ -457,6 +490,12 @@ HARD_LOCKS = {
     "a7_enabled": False,
     "self_permission_change_enabled": False,
     "self_constitution_change_enabled": False,
+    "human_identity_claim_enabled": False,
+    "lived_experience_claim_enabled": False,
+    "feelings_claim_enabled": False,
+    "sentience_claim_enabled": False,
+    "consciousness_claim_enabled": False,
+    "replace_human_authority_enabled": False,
 }
 
 
@@ -501,6 +540,7 @@ def status(target: object = "SMI") -> dict[str, object]:
         "twenty_one_laws": TWENTY_ONE_LAWS,
         "twenty_one_signals": TWENTY_ONE_SIGNALS,
         "behaviour_board": behaviour_board(),
+        "human_ai_boundary": HUMAN_AI_BOUNDARY,
         "hard_locks": HARD_LOCKS,
         "truth_light_rule": "Only Truth Intelligence plus Evidence Intelligence can support a green claim.",
         "canonical_autonomy_ladder": "A1-A7",
