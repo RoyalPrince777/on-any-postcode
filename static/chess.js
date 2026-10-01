@@ -21,7 +21,7 @@ function render(){
   square.setAttribute("aria-label",id+" "+(piece?(piece[0]==="w"?"White ":"Black ")+({K:"king",Q:"queen",R:"rook",B:"bishop",N:"knight",P:"pawn"}[piece[1]]):"empty"));
   square.setAttribute("aria-pressed",String(selected===id));board.append(square);
  }
- q("[data-feedback]").textContent=state.status==="completed"?"Winner: "+state.winner:state.status==="stopped"?"Match stopped.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
+ q("[data-feedback]").textContent=state.status==="completed"?(state.result==="checkmate"?"Checkmate. Winner: "+state.winner:"Stalemate."):state.status==="stopped"?"Match stopped.":state.check?"Check. "+state.turn+" must respond.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
 }
 async function act(path,payload){if(busy||(path==="/arena/chess/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;
  if(path==="/arena/chess/start"||path==="/arena/chess/move"){
