@@ -235,8 +235,6 @@ def move(state, *, piece_index: object, request_id: object):
     landing = 0 if before == -1 else before + die
     player["pieces"][piece_index] = landing
     captured = _capture(current, player_index, landing)
-    finished = landing == FINISH
-
     current["request_receipts"].append(
         {
             "request_id": req,
