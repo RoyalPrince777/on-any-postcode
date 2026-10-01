@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMI Organiser · OAP Private Command</title>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='private_command.css') }}">
+  <style>
+    .org-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:16px 0}.org-card{border:1px solid var(--oap-command-line);border-radius:16px;padding:14px;background:rgba(5,17,10,.72)}.org-card h3{margin:.25rem 0}.org-meta{color:var(--oap-command-muted);font-size:.9rem;display:grid;gap:4px}.org-state{font-weight:900}.org-state--green{color:#57ed91}.org-state--locked{color:#f4c95d}.org-empty{border:1px dashed var(--oap-command-line);border-radius:16px;padding:18px;color:var(--oap-command-muted)}.org-form{display:grid;gap:12px}.org-form label{display:grid;gap:6px;font-weight:800}.org-form input,.org-form textarea,.org-form select{width:100%;box-sizing:border-box;border:1px solid var(--oap-command-line);border-radius:12px;padding:11px;background:#06100a;color:var(--oap-command-text);font:inherit}.org-form textarea{min-height:110px;resize:vertical}.org-form button{justify-self:start;border:1px solid #35d778;border-radius:999px;padding:11px 15px;background:#0a2a16;color:#effff4;font:inherit;font-weight:900;cursor:pointer}.org-boundary{border-left:4px solid #35d778;padding:10px 12px;background:rgba(53,215,120,.08);border-radius:12px}.org-error{border-left-color:#ff6b6b;background:rgba(255,107,107,.08)}.org-links{margin:.5rem 0 0;padding-left:1.2rem}.org-links a{color:#7de9a3}.org-check{display:flex;align-items:flex-start;gap:8px;font-weight:700}.org-check input{width:auto;margin-top:3px}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  {% include '_command_nav.html' %}
+  <main class="oap-command-dashboard">
+    <section class="oap-command-hero-modern">
+      <p class="oap-command-kicker">SMI · ORGANISER · OWNER-SCOPED · AUDITED</p>
+      <h1 class="oap-command-title">SMI Organiser</h1>
+      <p class="oap-command-copy">Private Founder surface for schedule receipts and reviewed connectivity briefs. SMI mirrors timing and evidence; it never runs an external schedule, stores its prompt, or grants execution authority.</p>
+      <div class="org-grid">
+        <article class="org-card"><div class="org-meta">Schedule mirrors</div><h3>{{ schedules|length }}</h3><div class="org-state org-state--green">Audit read-back required</div></article>
+        <article class="org-card"><div class="org-meta">Connectivity briefs</div><h3>{{ briefs|length }}</h3><div class="org-state org-state--locked">Founder review required</div></article>
+        <article class="org-card"><div class="org-meta">Automation authority</div><h3>None</h3><div class="org-state org-state--green">Fail-closed</div></article>
+        <article class="org-card"><div class="org-meta">Physical acceptance</div><h3>Excluded</h3><div class="org-state org-state--locked">Evidence-gated</div></article>
+      </div>
+      {% if error %}<p class="org-boundary org-error"><strong>Fail-closed:</strong> {{ error }}</p>{% endif %}
+      {% if imported %}<p class="org-boundary"><strong>Imported for review:</strong> {{ imported }}. This is an audited draft, not Founder approval.</p>{% endif %}
+    </section>
+
+    <section class="mc-panel" id="schedules">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Timing receipts</p><h2>Mirrored schedules</h2></div><span class="mc-lock-badge">No execution</span></div>
+      {% if schedules %}
+        <div class="org-grid">
+          {% for item in schedules %}
+            <article class="org-card">
+              <div class="org-meta">{{ item.external_id }}</div>
+              <h3>{{ item.schedule.title }}</h3>
+              <p class="org-state {{ 'org-state--green' if item.schedule.enabled else 'org-state--locked' }}">{{ '🟢 Active mirror' if item.schedule.enabled else '⚪ Disabled mirror' }}</p>
+              <div class="org-meta">
+                <span>{{ item.schedule.timezone }} · {{ item.schedule.timing_mode.replace('_', ' ') }}</span>
+                <span>Version {{ item.version }} · audit {{ 'verified' if item.audit_readback_verified else 'unproven' }}</span>
+                <span>Prompt stored: no · execution authorised: no</span>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="org-empty">No owner-scoped schedule receipt has reached SMI yet. External scheduling may still be active; it is not shown here until the Organiser API writes and verifies an audit receipt.</div>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" id="connectivity-briefs">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">6G · ISAC · RAN · EDGE</p><h2>Connectivity Briefs</h2></div><span class="mc-lock-badge mc-lock-badge--amber">Review only</span></div>
+      {% if briefs %}
+        <div class="org-grid">
+          {% for item in briefs %}
+            <article class="org-card">
+              <div class="org-meta">{{ item.brief.completed_at }} · {{ item.brief.source_run_id }}</div>
+              <h3>{{ item.brief.title }}</h3>
+              <p>{{ item.brief.summary }}</p>
+              <div class="org-meta">
+                <span>Evidence score {{ item.brief.evidence_score }}% · {{ item.brief.decision.replace('_', ' ') }}</span>
+                <span>Version {{ item.version }} · audited draft</span>
+                <span>Founder approved: no · execution authorised: no</span>
+              </div>
+              {% if item.brief.evidence_links %}
+                <ul class="org-links">
+                  {% for link in item.brief.evidence_links %}<li><a href="{{ link }}" rel="noreferrer noopener" target="_blank">Primary evidence {{ loop.index }}</a></li>{% endfor %}
+                </ul>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="org-empty">No reviewed briefing receipt exists inside OAP. The Friday external briefing remains outside the first-party record until the Founder imports a bounded summary and evidence links here.</div>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel" id="import-brief">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Manual trust boundary</p><h2>Import a reviewed brief</h2></div><span class="mc-lock-badge">Founder action</span></div>
+      <p class="org-boundary">Paste only a reviewed summary and primary evidence links. Do not paste secrets, raw RF, private subscriber data, the automation prompt, or unreviewed task output.</p>
+      <form class="org-form" method="post" action="{{ url_for('smi_organiser.import_connectivity_brief') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label>External run ID<input name="source_run_id" required maxlength="80" value="{{ form.get('source_run_id', '') }}" placeholder="Automation or run identifier"></label>
+        <label>Brief title<input name="title" required maxlength="160" value="{{ form.get('title', '') }}" placeholder="SMI 6G + ISAC Brief"></label>
+        <label>Completed time with timezone<input name="completed_at" required maxlength="64" value="{{ form.get('completed_at', '') }}" placeholder="2026-10-02T08:00:00+01:00"></label>
+        <label>Reviewed summary<textarea name="summary" required maxlength="4000" placeholder="Evidence-backed findings and limitations only">{{ form.get('summary', '') }}</textarea></label>
+        <label>Primary evidence links — one HTTPS URL per line<textarea name="evidence_links" maxlength="6000" placeholder="https://www.itu.int/...">{{ form.get('evidence_links', '') }}</textarea></label>
+        <label>Evidence score<input name="evidence_score" type="number" min="0" max="100" required value="{{ form.get('evidence_score', '') }}"></label>
+        <label>SMI decision<select name="decision">
+          {% for value, label in [('pending_review','Pending review'),('adopt_for_review','Adopt for review'),('watch','Watch'),('reject_insufficient_evidence','Reject — insufficient evidence')] %}
+            <option value="{{ value }}" {{ 'selected' if form.get('decision', 'pending_review') == value else '' }}>{{ label }}</option>
+          {% endfor %}
+        </select></label>
+        <label class="org-check"><input type="checkbox" name="no_material_update" {{ 'checked' if form.get('no_material_update') else '' }}>No material update; allow a receipt without evidence links</label>
+        <button type="submit">Import audited draft</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
