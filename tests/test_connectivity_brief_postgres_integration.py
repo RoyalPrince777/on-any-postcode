@@ -112,7 +112,7 @@ def test_real_postgres_connectivity_brief_write_audit_chain_and_readback(
             (owner, f"OAP-CONNECTIVITY-BRIEF:{brief_id}:v%"),
         ).fetchall()
         receipts = connection.execute(
-            """SELECT prev_hash,curr_hash,actor_id,target,metadata
+            """SELECT event_seq,prev_hash,curr_hash,actor_id,target,metadata
                FROM audit_events
                WHERE actor_id=%s
                  AND action='OAP_CONNECTIVITY_BRIEF_IMPORT'
@@ -120,6 +120,14 @@ def test_real_postgres_connectivity_brief_write_audit_chain_and_readback(
                ORDER BY event_seq ASC""",
             (owner, f"connectivity_brief:{brief_id}"),
         ).fetchall()
+        predecessors = {
+            int(receipt[0]): connection.execute(
+                """SELECT curr_hash FROM audit_events
+                   WHERE event_seq < %s ORDER BY event_seq DESC LIMIT 1""",
+                (receipt[0],),
+            ).fetchone()
+            for receipt in receipts
+        }
 
     assert len(records) == len(receipts) == 2
     entries = [json.loads(str(row[2])) for row in records]
@@ -132,20 +140,22 @@ def test_real_postgres_connectivity_brief_write_audit_chain_and_readback(
     assert all("raw_output" not in entry["brief"] for entry in entries)
 
     for record, receipt in zip(records, receipts, strict=True):
-        metadata = receipt[4]
+        event_seq = int(receipt[0])
+        metadata = receipt[5]
         if isinstance(metadata, str):
             metadata = json.loads(metadata)
         canonical = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
         expected_audit_hash = hashlib.sha256(
-            (str(receipt[0]) + canonical).encode("utf-8")
+            (str(receipt[1]) + canonical).encode("utf-8")
         ).hexdigest()
-        assert str(receipt[1]) == expected_audit_hash
-        assert str(receipt[2]) == owner
-        assert str(receipt[3]) == f"connectivity_brief:{brief_id}"
+        predecessor = predecessors[event_seq]
+        expected_previous = str(predecessor[0]) if predecessor else "GENESIS"
+        assert str(receipt[1]) == expected_previous
+        assert str(receipt[2]) == expected_audit_hash
+        assert str(receipt[3]) == owner
+        assert str(receipt[4]) == f"connectivity_brief:{brief_id}"
         assert metadata["record_id"] == str(record[0])
         assert metadata["digest"] == json.loads(str(record[2]))["digest"]
         assert metadata["prompt_persisted"] is False
         assert metadata["execution_authorised"] is False
         assert metadata["founder_review_required"] is True
-
-    assert str(receipts[1][0]) == str(receipts[0][1])
