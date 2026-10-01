@@ -81,3 +81,7 @@ body:has(.arena-game){overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){
   .arena-game .arena-chess-square.arena-chess-capture .arena-chess-character{animation:none!important}
 }
+
+/* 2D Chess movement stays presentation-only; Web Animations supplies board-distance translation. */
+.arena-game .arena-chess-character{will-change:transform}
+.arena-game .arena-chess-square{overflow:visible}
