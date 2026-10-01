@@ -1,7 +1,8 @@
-"""Real Chromium + real Flask + disposable PostgreSQL acceptance for Arena rooms.
+"""Real Chromium acceptance for OAP Arena rooms and local rule engines.
 
-Never connects to production. The workflow supplies an ephemeral localhost CI DB.
-No game endpoint, board state or browser action is mocked.
+Connect4 and Dot use real Flask plus disposable PostgreSQL. Chess and Ludo then
+run through their real local Flask/session/browser flows on the same CI runner.
+Never connects to production; no game move endpoint or browser action is mocked.
 """
 from __future__ import annotations
 
