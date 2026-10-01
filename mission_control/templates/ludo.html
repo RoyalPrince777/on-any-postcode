@@ -1,14 +1,16 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}"><title>Ludo · OAP Arena</title>
-<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='ludo.js') }}" defer></script></head>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='ludo.js') }}" defer></script>
+<style>.ludo-player{border:1px solid var(--mc-line);border-radius:14px;padding:12px;margin:10px 0}.ludo-pieces{display:grid;grid-template-columns:repeat(4,minmax(64px,1fr));gap:8px}.ludo-piece{min-height:52px}.ludo-die{font-size:2rem;font-weight:900;min-width:60px;text-align:center}@media(max-width:560px){.ludo-pieces{grid-template-columns:repeat(2,1fr)}}</style></head>
 <body><main class="mc-shell arena-game" data-ludo-root>
 <section class="card arena-header"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a></nav>
-<p class="arena-hint">OAP Arena · Local pass-and-play</p><h1>🎲 Ludo</h1><p>Race. Move. Finish.</p>
-<p class="arena-hint">Bounded one-token track. Choose a move of 1–6; this is not a random dice roll.</p>
+<p class="arena-hint">OAP Arena · Local pass-and-play</p><h1>🎲 Ludo</h1><p>Roll. Race. Capture. Bring all four home.</p>
+<p class="arena-hint">Classic core: four tokens each, six to leave the yard, safe start/star squares, capture back to yard, bonus turn on six or capture, three consecutive sixes forfeit the third roll, and exact finish.</p>
 <label class="arena-field">Players (2–4, separated by commas)<input data-players maxlength="180" value="Player One, Player Two" autocomplete="off"></label>
 <div class="arena-actions"><button class="arena-primary" type="button" data-start>Start match</button><button class="arena-stop" type="button" data-stop disabled>STOP</button></div>
 <p class="arena-error" role="alert" data-error></p></section>
-<section class="card" data-game hidden><div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Status: <strong data-status></strong></span></div>
-<h2>Race to the finish</h2><div class="arena-game-content" data-players-view></div>
-<h3>Choose a move</h3><div class="arena-actions" role="group" aria-label="Move your token by one to six places">
-<button type="button" data-step="1">1</button><button type="button" data-step="2">2</button><button type="button" data-step="3">3</button><button type="button" data-step="4">4</button><button type="button" data-step="5">5</button><button type="button" data-step="6">6</button></div>
-<p class="arena-feedback" role="status" aria-live="polite" data-feedback></p></section></main></body></html>
+<section class="card" data-game hidden>
+<div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Status: <strong data-status></strong></span><span>Die: <strong class="ludo-die" data-die>—</strong></span></div>
+<div class="arena-actions"><button class="arena-primary" type="button" data-roll>Roll die</button></div>
+<div class="arena-game-content" data-players-view></div>
+<p class="arena-feedback" role="status" aria-live="polite" data-feedback></p>
+</section></main></body></html>
