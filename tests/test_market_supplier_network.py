@@ -111,8 +111,10 @@ def test_public_projection_discloses_safe_manufacturing_state_not_private_suppli
         "    def order_intent_allowed", 1
     )[0]
 
-    assert '"manufacturer"' in section
+    assert '"manufacturer"' not in section
     assert '"fulfilment_state"' in section
+    assert '"supplier_identity_public": False' in section
+    assert '"provider_execution_enabled": False' in section
     assert '"made_to_order"' in section
     assert '"garment_type"' in section
     assert '"colors"' in section
@@ -133,7 +135,8 @@ def test_market_ui_supports_no_stock_design_products_and_locks_draft_supplier_or
     assert 'name="made_to_order"' in template
     assert 'name="artwork_reference"' in template
     assert 'name="supplier_label"' in template
-    assert "Supplier setup pending · ordering locked" in template
+    assert "Supplier execution not yet proven · ordering locked" in template
+    assert "Manufacturer ·" not in template
     assert "market_supplier_projection" in template
 
     assert "create_made_to_order_product(" in app_source
@@ -154,9 +157,9 @@ def test_server_order_paths_cannot_bypass_supplier_readiness():
     )[0]
 
     assert "order_intent_allowed(" in commerce
-    assert "supplier_not_ready" in commerce
+    assert "supplier_execution_not_proven" in commerce
     assert "order_intent_allowed(" in market
-    assert "supplier_not_ready" in market
+    assert "supplier_execution_not_proven" in market
 
 
 def test_supplier_owner_apis_are_certified_and_human_controlled():
@@ -170,3 +173,18 @@ def test_supplier_owner_apis_are_certified_and_human_controlled():
     assert "_require_certified_merchant" in source
     assert "evidence_reference" in source
     assert "market_supplier_network.STORE.stop(" in source
+
+
+def test_ready_mapping_does_not_enable_customer_orders_or_public_supplier_claim():
+    source = (
+        _root() / "mission_control" / "market_supplier_network.py"
+    ).read_text(encoding="utf-8")
+
+    ready = source.split("def mark_ready", 1)[1].split("    def stop", 1)[0]
+    gate = source.split("def order_intent_allowed", 1)[1].split("\n\nSTORE =", 1)[0]
+
+    assert '"order_intent_allowed": False' in ready
+    assert '"provider_execution_enabled": False' in ready
+    assert '"allowed": False' in gate
+    assert '"supplier_execution_not_proven"' in gate
+    assert '"supplier_identity_public": False' in source
