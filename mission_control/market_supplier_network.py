@@ -545,6 +545,35 @@ class SupplierNetworkStore:
 STORE = SupplierNetworkStore()
 
 
+def schema_status() -> dict[str, object]:
+    """Read production schema readiness without creating or changing tables."""
+
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            supplier_bindings_ready = SupplierNetworkStore._table_exists(
+                connection, "oap_market_supplier_bindings"
+            )
+            design_products_ready = SupplierNetworkStore._table_exists(
+                connection, "oap_market_design_products"
+            )
+    except (postgres_db._driver().Error, RuntimeError, OSError):
+        return {
+            "database_reachable": False,
+            "supplier_bindings_ready": False,
+            "design_products_ready": False,
+            "schema_ready": False,
+            "provider_execution_enabled": False,
+        }
+
+    return {
+        "database_reachable": True,
+        "supplier_bindings_ready": supplier_bindings_ready,
+        "design_products_ready": design_products_ready,
+        "schema_ready": supplier_bindings_ready and design_products_ready,
+        "provider_execution_enabled": False,
+    }
+
+
 def truth_status() -> dict[str, object]:
     return {
         "organ": "OAP Supplier Network",

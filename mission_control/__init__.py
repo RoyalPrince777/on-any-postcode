@@ -39,6 +39,7 @@ def init_app(app: Flask) -> None:
         linkup_safety,
         mail_migration,
         mail_preflight,
+        market_supplier_network,
         movement_match_safety,
         movement_operations,
         music_civilization_migration,
@@ -94,6 +95,20 @@ def init_app(app: Flask) -> None:
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
+
+    supplier_schema = market_supplier_network.schema_status()
+    print(
+        json.dumps(
+            {
+                "event": "oap_market_supplier_schema_readiness",
+                **supplier_schema,
+                "human_authority_final": True,
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+        flush=True,
+    )
 
     if os.environ.get("OAP_MUSIC_SCHEMA_AUTO_APPLY", "").strip() == "1":
         try:
