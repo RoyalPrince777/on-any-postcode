@@ -433,6 +433,8 @@ jobs:
               ("smi_chat_status_private","https://oap-smi.onrender.com/mission/chat/status",{401}),
               ("smi_green_gate_private","https://oap-smi.onrender.com/mission/smi/green-gate",{401}),
               ("smi_war_room_private","https://oap-smi.onrender.com/mission/war-room/status",{401}),
+              ("smi_organiser_private","https://oap-smi.onrender.com/mission/organiser",{200}),
+              ("smi_organiser_api_private","https://oap-smi.onrender.com/api/smi-organiser/connectivity-briefs/11111111-1111-4111-8111-111111111111",{401}),
           ]
           receipt={}
           for name,url,allowed in probes:
