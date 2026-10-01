@@ -13,7 +13,7 @@ def _seal(s): o=copy.deepcopy(s);o.pop("checkpoint",None);o["checkpoint"]=_d(o);
 def new_game():
     b={"a1":"wR","b1":"wN","c1":"wB","d1":"wQ","e1":"wK","f1":"wB","g1":"wN","h1":"wR","a2":"wP","b2":"wP","c2":"wP","d2":"wP","e2":"wP","f2":"wP","g2":"wP","h2":"wP",
        "a8":"bR","b8":"bN","c8":"bB","d8":"bQ","e8":"bK","f8":"bB","g8":"bN","h8":"bR","a7":"bP","b7":"bP","c7":"bP","d7":"bP","e7":"bP","f7":"bP","g7":"bP","h7":"bP"}
-    return _seal({"schema":SCHEMA,"game_id":str(uuid.uuid4()),"status":"active","turn":"w","board":b,"winner":None,"request_receipts":[]})
+    return _seal({"schema":SCHEMA,"game_id":str(uuid.uuid4()),"status":"active","turn":"w","board":b,"winner":None,"result":None,"check":False,"request_receipts":[]})
 def validate(s):
     if not isinstance(s,dict):return {"passed":False,"errors":["chess_state_missing"]}
     e=[]; exp=copy.deepcopy(s);exp.pop("checkpoint",None)
@@ -57,11 +57,42 @@ def _legal(piece,src,dst,board):
             x+=stepx;y+=stepy
         return True
     return False
+def _king_square(board,color):
+    return next((sq for sq,piece in board.items() if piece==color+"K"),None)
+def _attacked(board,square,by_color):
+    for src,piece in board.items():
+        if piece[0]!=by_color:continue
+        if piece[1]=="P":
+            sx,sy=_coords(src);dx,dy=_coords(square)
+            direction=1 if by_color=="w" else -1
+            if abs(dx-sx)==1 and dy-sy==direction:return True
+            continue
+        if _legal(piece,src,square,board):return True
+    return False
+def _in_check(board,color):
+    king=_king_square(board,color)
+    return king is None or _attacked(board,king,"b" if color=="w" else "w")
+def _candidate_board(board,src,dst,color):
+    piece=board.get(src)
+    if not piece or piece[0]!=color or not _legal(piece,src,dst,board):return None
+    target=board.get(dst)
+    if target and target[1]=="K":return None
+    nxt=copy.deepcopy(board);nxt.pop(src);nxt[dst]=piece
+    if _in_check(nxt,color):return None
+    return nxt
+def _has_legal_move(board,color):
+    for src,piece in board.items():
+        if piece[0]!=color:continue
+        for file in "abcdefgh":
+            for rank in "12345678":
+                dst=file+rank
+                if src!=dst and _candidate_board(board,src,dst,color) is not None:return True
+    return False
 def public_state(s):
     if s is None:return {"started":False,"status":"idle"}
     c=validate(s)
     if not c["passed"]:raise ValueError(c["errors"][0])
-    return {"started":True,"status":s["status"],"turn":"White" if s["turn"]=="w" else "Black","board":copy.deepcopy(s["board"]),"winner":s["winner"],"payments":False}
+    return {"started":True,"status":s["status"],"turn":"White" if s["turn"]=="w" else "Black","board":copy.deepcopy(s["board"]),"winner":s["winner"],"result":s.get("result"),"check":bool(s.get("check")),"payments":False}
 def move(s,*,source:object,target:object,request_id:object):
     cur=_copy(s);req=_req(request_id);src=str(source);dst=str(target)
     if any(x["request_id"]==req for x in cur["request_receipts"]):return cur
@@ -70,10 +101,23 @@ def move(s,*,source:object,target:object,request_id:object):
     piece=cur["board"].get(src)
     if not piece or piece[0]!=cur["turn"]:raise ValueError("chess_turn_invalid")
     if not _legal(piece,src,dst,cur["board"]):raise ValueError("chess_move_invalid")
-    captured=cur["board"].get(dst)
-    cur["board"].pop(src);cur["board"][dst]=piece;cur["request_receipts"].append({"request_id":req,"action":"move","source":src,"target":dst})
-    if captured and captured[1]=="K":cur["status"]="completed";cur["winner"]="White" if piece[0]=="w" else "Black"
-    else:cur["turn"]="b" if cur["turn"]=="w" else "w"
+    if cur["board"].get(dst, "")[1:]=="K":raise ValueError("chess_king_capture_invalid")
+    next_board=_candidate_board(cur["board"],src,dst,cur["turn"])
+    if next_board is None:raise ValueError("chess_self_check_invalid")
+    mover=cur["turn"];opponent="b" if mover=="w" else "w"
+    cur["board"]=next_board
+    cur["request_receipts"].append({"request_id":req,"action":"move","source":src,"target":dst})
+    opponent_in_check=_in_check(cur["board"],opponent)
+    if not _has_legal_move(cur["board"],opponent):
+        cur["status"]="completed"
+        cur["turn"]=opponent
+        cur["check"]=opponent_in_check
+        cur["result"]="checkmate" if opponent_in_check else "stalemate"
+        cur["winner"]=("White" if mover=="w" else "Black") if opponent_in_check else None
+    else:
+        cur["turn"]=opponent
+        cur["check"]=opponent_in_check
+        cur["result"]=None
     return _seal(cur)
 def stop(s,*,request_id:object):
     cur=_copy(s);req=_req(request_id)
