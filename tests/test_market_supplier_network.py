@@ -188,3 +188,29 @@ def test_ready_mapping_does_not_enable_customer_orders_or_public_supplier_claim(
     assert '"allowed": False' in gate
     assert '"supplier_execution_not_proven"' in gate
     assert '"supplier_identity_public": False' in source
+
+
+
+def test_supplier_schema_status_is_read_only_and_fails_closed():
+    source = (
+        _root() / "mission_control" / "market_supplier_network.py"
+    ).read_text(encoding="utf-8")
+    section = source.split("def schema_status", 1)[1].split(
+        "def truth_status", 1
+    )[0]
+
+    assert "connect(readonly=True)" in section
+    assert "CREATE TABLE" not in section
+    assert "_ensure_schema(" not in section
+    assert '"schema_ready": False' in section
+    assert '"provider_execution_enabled": False' in section
+
+
+def test_runtime_emits_private_supplier_schema_readiness_receipt():
+    init_source = (
+        _root() / "mission_control" / "__init__.py"
+    ).read_text(encoding="utf-8")
+
+    assert "oap_market_supplier_schema_readiness" in init_source
+    assert "market_supplier_network.schema_status()" in init_source
+    assert '"human_authority_final": True' in init_source
