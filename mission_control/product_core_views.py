@@ -11,6 +11,8 @@ from . import (
     distribution_intelligence,
     entertainment_catalogue,
     live_music_core,
+    market_execution_authority,
+    sika_market_settlement,
     market_transaction_spine,
     music_acceptance,
     music_assets,
@@ -1112,9 +1114,17 @@ def create_market_order():
             order_id=order["order_id"],
             idempotency_key=f"market:{key}",
         )
+        settlement = sika_market_settlement.STORE.create_for_order(
+            order_id=order["order_id"],
+            actor_identity_id=identity,
+            idempotency_key=f"sika:{key}",
+            customer_approval_reference=payload.get("customer_approval_reference"),
+        )
         return {
             "order": order,
             "transaction": transaction,
+            "sika_settlement": settlement,
+            "payment_route": "SIKA",
             "payment_capture_performed": False,
             "money_transfer_performed": False,
             "external_fulfilment_performed": False,
@@ -1178,6 +1188,77 @@ def stop_market_transaction(transaction_id: str):
             actor_identity_id=_identity(sync=True),
         )
     )
+
+
+@bp.get("/market/execution-status")
+@web_security.login_required(api=True)
+def market_execution_status():
+    try:
+        return _no_store(make_response(jsonify({
+            capability: market_execution_authority.STORE.status(capability=capability)
+            for capability in sorted(market_execution_authority.CAPABILITIES)
+        })))
+    except (ValueError, RuntimeError):
+        return _error("market_execution_gate_unavailable", "Market execution gate is temporarily unavailable.", 503)
+
+
+@bp.post("/market/execution-authorities")
+@web_security.login_required(api=True, founder_only=True)
+def record_market_execution_authority():
+    def action():
+        payload = _payload()
+        return market_execution_authority.STORE.record_authority(
+            capability=payload.get("capability"),
+            provider_name=payload.get("provider_name"),
+            provider_reference=payload.get("provider_reference"),
+            evidence_sha256=payload.get("evidence_sha256"),
+            human_approval_reference=payload.get("human_approval_reference"),
+            state=payload.get("state", "APPROVED"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/orders/<order_id>/prepare-execution")
+@web_security.login_required(api=True)
+def prepare_market_order_execution(order_id: str):
+    return _handle_write(
+        lambda: market_execution_authority.STORE.prepare_commerce_order(
+            order_id=order_id,
+            actor_identity_id=_identity(sync=True),
+        )
+    )
+
+
+@bp.post("/market/orders/<order_id>/sika-settlement")
+@web_security.login_required(api=True)
+def create_market_sika_settlement(order_id: str):
+    def action():
+        payload = _payload()
+        return sika_market_settlement.STORE.create_for_order(
+            order_id=order_id,
+            actor_identity_id=_identity(sync=True),
+            idempotency_key=payload.get("idempotency_key"),
+            customer_approval_reference=payload.get("customer_approval_reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.get("/market/sika-settlements/<settlement_id>")
+@web_security.login_required(api=True)
+def market_sika_settlement_detail(settlement_id: str):
+    try:
+        return _no_store(make_response(jsonify(
+            sika_market_settlement.STORE.read_for_identity(
+                settlement_id=settlement_id,
+                identity_id=_identity(),
+            )
+        )))
+    except PermissionError:
+        return _error("permission_denied", "SIKA settlement unavailable for this identity.", 403)
+    except (ValueError, RuntimeError):
+        return _error("sika_settlement_unavailable", "SIKA settlement is temporarily unavailable.", 503)
 
 
 @bp.get("/post")
