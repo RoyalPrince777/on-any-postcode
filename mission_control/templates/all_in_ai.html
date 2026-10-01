@@ -22,7 +22,7 @@
 
   <div class="lock">
     <strong>🔒 Founder Final remains intact.</strong>
-    <p class="muted">This console can plan and durably receipt a mission, verify read-back, STOP it, and recover it to review. It cannot approve itself, spend, publish, deploy, or execute consequential actions.</p>
+    <p class="muted">This console can plan and receipt Missions, verify evidence, STOP and recover. It cannot approve itself, spend, publish, deploy or run arbitrary actions. Only the existing reversible owner-scoped draft ↔ active status executor is available after fresh signed Founder approval; outcomes must be independently verified.</p>
   </div>
 
   <section class="grid" aria-label="Mission Keeper status">
@@ -57,12 +57,47 @@
       <label><input id="high-impact" type="checkbox" style="width:auto"> High-impact mission — require stronger review path</label>
       <div class="actions">
         <button class="btn" id="start" type="submit">🟣 Start Mission</button>
+        <button class="btn read" id="restore" type="button">↩ Restore Latest</button>
         <button class="btn read" id="read" type="button" disabled>🔎 Verify Read-back</button>
         <button class="btn stop" id="stop" type="button" disabled>🛑 STOP</button>
         <button class="btn recover" id="recover" type="button" disabled>♻️ Recover for Review</button>
       </div>
     </form>
     <div class="result" id="result" aria-live="polite">No mission started from this console yet.</div>
+  </section>
+
+  <section class="section" aria-label="Mission inference evidence">
+    <p class="eyebrow">Captain · Read-only evidence</p>
+    <h2>Inspect SMI inference receipt</h2>
+    <p class="muted">Enter the request ID from an existing governed SMI response. A matching Mission input hash and HRM receipt prove correlation only—not mission execution, independent model identity or Founder approval.</p>
+    <div class="actions">
+      <input id="inference-request-id" aria-label="Existing SMI request ID" maxlength="36" autocomplete="off" placeholder="SMI request UUID" style="flex:1;min-width:200px;background:#080b09;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px;font:inherit">
+      <button class="btn read" id="inference-inspect" type="button" disabled>🔎 Inspect Evidence</button>
+      <button class="btn read" id="handoff-review" type="button" disabled>🛡️ Review Action Gate</button>
+    </div>
+    <div class="result" id="inference-result" aria-live="polite">Restore or verify the Mission before inspecting its inference evidence.</div>
+    <p class="muted">The Action Gate checks the same existing SMI request against its real Guardian, Judgement and signed Founder approval. It can only evaluate the registered reversible SYNC_INTERNAL_RECORD action. A review does not execute it.</p>
+    <div class="result" id="handoff-result" aria-live="polite">No governed action reviewed. Execution is separate and remains protected.</div>
+    <div class="form" aria-label="Bounded internal record action">
+      <label>Owner-scoped internal record UUID
+        <input id="internal-record-id" maxlength="36" autocomplete="off" placeholder="Record UUID">
+      </label>
+      <label>Status transition
+        <select id="internal-target-status">
+          <option value="active">draft → active</option>
+          <option value="draft">active → draft</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn stop" id="internal-execute" type="button" disabled>👑 Execute Reviewed Internal Status</button>
+      </div>
+      <div class="result" id="internal-outcome" aria-live="polite">Only an independently re-authorised, owner-scoped draft ↔ active transition is supported. No payment, publication or external action.</div>
+      <label>Fresh approved SMI request UUID for rollback
+        <input id="rollback-request-id" maxlength="36" autocomplete="off" placeholder="New reviewed request UUID">
+      </label>
+      <button class="btn recover" id="internal-rollback" type="button" disabled>♻️ Governed Rollback</button>
+      <div class="result" id="rollback-outcome" aria-live="polite">Rollback requires a separately signed existing Human Authority review. No automatic retry.</div>
+    </div>
   </section>
 
   <section class="section">
@@ -74,39 +109,135 @@
 <script>
 const csrf={{ oap_csrf_token|tojson }};
 const startUrl={{ url_for('all_in_ai.all_in_ai_mission')|tojson }};
+const latestUrl={{ url_for('all_in_ai.all_in_ai_mission_latest')|tojson }};
 const form=document.getElementById('mission-form');
 const result=document.getElementById('result');
 const startButton=document.getElementById('start');
+const restoreButton=document.getElementById('restore');
 const readButton=document.getElementById('read');
 const stopButton=document.getElementById('stop');
 const recoverButton=document.getElementById('recover');
+const inferenceIdInput=document.getElementById('inference-request-id');
+const inferenceButton=document.getElementById('inference-inspect');
+const inferenceResult=document.getElementById('inference-result');
+const handoffButton=document.getElementById('handoff-review');
+const handoffResult=document.getElementById('handoff-result');
+const recordIdInput=document.getElementById('internal-record-id');
+const targetInput=document.getElementById('internal-target-status');
+const executeButton=document.getElementById('internal-execute');
+const executionResult=document.getElementById('internal-outcome');
+const rollbackIdInput=document.getElementById('rollback-request-id');
+const rollbackButton=document.getElementById('internal-rollback');
+const rollbackResult=document.getElementById('rollback-outcome');
+const sessionPrefix='oap_all_in_ai_';
 let missionId=null;
 let latestDigest=null;
 let latestState=null;
+let proofVerified=false;
+let missionEpoch=0;
+let missionMutationPending=false;
+let actionPending=false;
+let readyHandoff=null;
+let rollbackEvidence=null;
+const validUuid=value=>typeof value==='string'&&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
+const validDigest=value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value);
 
 function updateControls(){
-  const active=Boolean(missionId&&latestDigest);
-  readButton.disabled=!active;
-  stopButton.disabled=!active||latestState==='stopped';
-  recoverButton.disabled=!active||latestState!=='stopped';
+  const busy=missionMutationPending||actionPending;
+  startButton.disabled=busy;
+  restoreButton.disabled=busy;
+  readButton.disabled=busy||!missionId;
+  const writable=Boolean(!busy&&missionId&&proofVerified&&latestDigest);
+  stopButton.disabled=!writable||latestState==='stopped';
+  recoverButton.disabled=!writable||latestState!=='stopped';
+  inferenceButton.disabled=busy||!proofVerified||!missionId||latestState==='stopped';
+  handoffButton.disabled=busy||!proofVerified||!missionId||latestState==='stopped';
+  executeButton.disabled=busy||!writable||latestState==='stopped'||!readyHandoff;
+  rollbackButton.disabled=busy||!writable||latestState==='stopped'||!rollbackEvidence;
+}
+function resetActionEvidence(){
+  readyHandoff=null;rollbackEvidence=null;
+  executionResult.textContent='No current execution receipt. Protected action remains disabled.';
+  rollbackResult.textContent='No current verified rollback token. Manual reconciliation is required after an uncertain outcome.';
+}
+function clearLocalProof(){
+  missionEpoch+=1;
+  resetActionEvidence();
+  proofVerified=false;latestDigest=null;latestState=null;
+  inferenceResult.textContent='Mission evidence unavailable. Reverify before inspection.';
+  handoffResult.textContent='Mission proof cleared. Governed action must be reviewed again.';
+  updateControls();
+}
+function persistCheckpoint(){
+  // Browser session is a pointer only, never a source of governance authority.
+  if(!missionId||!proofVerified||!latestDigest)return;
+  sessionStorage.setItem(sessionPrefix+'mission_id',missionId);
+  sessionStorage.setItem(sessionPrefix+'digest',latestDigest);
 }
 function showReceipt(label,receipt){
-  latestDigest=receipt?.digest||latestDigest;
-  latestState=receipt?.state||latestState;
+  const verified=receipt&&receipt.read_back_verified===true&&
+    receipt.audit_verified===true&&receipt.hrm_verified===true&&
+    receipt.execution_granted===false&&receipt.approval_granted===false&&
+    receipt.human_authority_final===true&&
+    typeof receipt.digest==='string'&&/^[0-9a-f]{64}$/.test(receipt.digest)&&
+    receipt.mission_id===missionId&&
+    ['planned','stopped','recovered'].includes(receipt.state)&&
+    Number.isInteger(receipt.version)&&receipt.version>=1;
+  if(!verified){
+    clearLocalProof();
+    result.textContent='🔴 Mission proof incomplete or mismatched. No STOP/recovery progression. Restore Latest to reverify.';
+    return false;
+  }
+  // A new checkpoint invalidates any earlier request-level gate presentation.
+  inferenceResult.textContent='Checkpoint updated. Inspect inference again if needed.';
+  handoffResult.textContent='Checkpoint updated. Review governance again if needed.';
+  resetActionEvidence();
+  missionEpoch+=1;
+  latestDigest=receipt.digest;
+  latestState=receipt.state;
+  proofVerified=true;
   updateControls();
+  persistCheckpoint();
   const proof=[
-    'mission_id: '+(receipt?.mission_id||missionId||''),
-    'state: '+(receipt?.state||''),
-    'version: '+(receipt?.version||''),
-    'read_back_verified: '+Boolean(receipt?.read_back_verified),
-    'audit_verified: '+Boolean(receipt?.audit_verified),
-    'hrm_verified: '+Boolean(receipt?.hrm_verified),
-    'execution_granted: '+Boolean(receipt?.execution_granted),
-    'approval_granted: '+Boolean(receipt?.approval_granted),
-    'human_authority_final: '+Boolean(receipt?.human_authority_final),
-  ].join('\n');
-  result.textContent=label+'\n'+proof;
+    'mission_id: '+missionId,
+    'state: '+receipt.state,
+    'version: '+receipt.version,
+    'read_back_verified: true',
+    'audit_verified: true',
+    'hrm_verified: true',
+    'execution_granted: false',
+    'approval_granted: false',
+    'human_authority_final: true',
+  ].join('\\n');
+  result.textContent=label+'\\n'+proof;
+  return true;
 }
+async function loadVerifiedMission(candidateId,expected=null){
+  const startedEpoch=missionEpoch;
+  if(typeof candidateId!=='string'||!/^[0-9a-f-]{36}$/.test(candidateId)){
+    clearLocalProof();throw new Error('Invalid mission identifier.');
+  }
+  const body=await requestJson(startUrl+'/'+encodeURIComponent(candidateId));
+  const receipt=body.receipt;
+  // Do not restore an old request over a newer START, STOP or recovery.
+  if(missionEpoch!==startedEpoch)return false;
+  // Latest selection may race a concurrent STOP or recovery. Reject mismatches.
+  if(expected&&(
+    expected.found!==true||expected.mission_id!==candidateId||
+    expected.version!==receipt?.version||expected.state!==receipt?.state||
+    expected.read_back_verified!==true||expected.audit_verified!==true||
+    expected.hrm_verified!==true||expected.execution_granted!==false||
+    expected.human_authority_final!==true
+  )){
+    clearLocalProof();throw new Error('Latest Mission changed during read-back. Restore again.');
+  }
+  missionId=candidateId;
+  if(!showReceipt('🟢 Independently verified Mission checkpoint.',receipt)){
+    throw new Error('Mission read-back proof is incomplete.');
+  }
+}
+
 async function requestJson(url,options={}){
   const r=await fetch(url,{
     credentials:'same-origin',
@@ -124,7 +255,8 @@ async function requestJson(url,options={}){
 }
 form.addEventListener('submit',async(event)=>{
   event.preventDefault();
-  startButton.disabled=true;
+  if(missionMutationPending||actionPending)return;
+  missionMutationPending=true;updateControls();
   result.textContent='Routing through SMI and writing durable HRM + audit receipts…';
   try{
     const body=await requestJson(startUrl,{
@@ -138,44 +270,275 @@ form.addEventListener('submit',async(event)=>{
     });
     missionId=body.mission_id;
     showReceipt('🟢 Mission durably receipted.',body.receipt);
-    sessionStorage.setItem('oap_all_in_ai_mission_id',missionId);
-    sessionStorage.setItem('oap_all_in_ai_digest',latestDigest||'');
   }catch(err){
-    result.textContent='🔴 '+err.message;
-  }finally{
-    startButton.disabled=false;
+    clearLocalProof();result.textContent='🔴 '+err.message;
+  }finally{missionMutationPending=false;updateControls();}
+});
+inferenceButton.addEventListener('click',async()=>{
+  if(actionPending||missionMutationPending||!proofVerified||!missionId||latestState==='stopped')return;
+  const requestId=inferenceIdInput.value.trim().toLowerCase();
+  if(!validUuid(requestId)){
+    inferenceResult.textContent='🔴 Enter a valid existing SMI request UUID.';
+    return;
   }
+  const inspectedMission=missionId;
+  const inspectedDigest=latestDigest;
+  const inspectedEpoch=missionEpoch;
+  inferenceButton.disabled=true;
+  inferenceResult.textContent='Checking current Founder-owned Mission and HRM inference receipt…';
+  try{
+    const evidence=await requestJson(startUrl+'/'+encodeURIComponent(inspectedMission)+
+      '/inference/'+encodeURIComponent(requestId));
+    if(!proofVerified||missionEpoch!==inspectedEpoch||
+       missionId!==inspectedMission||latestDigest!==inspectedDigest||
+       latestState==='stopped'||
+       evidence?.mission_id!==inspectedMission||evidence?.request_id!==requestId||
+       evidence?.mission_checkpoint_verified!==true||
+       evidence?.mission_text_hash_matched!==true||
+       evidence?.governed_response_recorded!==true||
+       evidence?.inference_route_attested!==false||
+       evidence?.first_party_inference_proven!==false||
+       evidence?.mission_execution_proven!==false||
+       evidence?.execution_granted!==false||
+       evidence?.approval_granted!==false||
+       evidence?.human_authority_final!==true){
+      inferenceResult.textContent='🔴 Incomplete or outdated inference evidence. No Green claimed.';
+      return;
+    }
+    const route=['local_direct','home_node_bridge','compatibility_fallback']
+      .includes(evidence.inference_gateway_route_observed)
+      ?evidence.inference_gateway_route_observed:'unknown / not recorded';
+    inferenceResult.textContent=[
+      '🟢 Governed SMI receipt correlated with this Mission input.',
+      'Output: '+String(evidence.output_state||'unknown'),
+      'Observed gateway route: '+route,
+      'Independent worker attestation: NOT PROVEN',
+      'First-party inference identity: NOT PROVEN',
+      'Mission execution: NOT PROVEN',
+      'Execution granted: false · Approval granted: false',
+      '👑 Human Authority final.',
+    ].join('\\n');
+  }catch(err){
+    if(missionEpoch===inspectedEpoch)
+      inferenceResult.textContent='🔴 Evidence not verified: '+err.message;
+  }finally{updateControls();}
+});
+handoffButton.addEventListener('click',async()=>{
+  if(actionPending||missionMutationPending||!proofVerified||!missionId||latestState==='stopped')return;
+  const requestId=inferenceIdInput.value.trim().toLowerCase();
+  if(!validUuid(requestId)){
+    handoffResult.textContent='🔴 Enter an existing reviewed SMI request UUID.';
+    return;
+  }
+  readyHandoff=null;
+  rollbackEvidence=null;
+  updateControls();
+  const reviewedMission=missionId;
+  const reviewedDigest=latestDigest;
+  const reviewedEpoch=missionEpoch;
+  handoffButton.disabled=true;
+  handoffResult.textContent='Evaluating existing Guardian, Judgement and Founder approval evidence…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(reviewedMission)+'/action-handoff',{
+      method:'POST',
+      body:JSON.stringify({reviewed_request_id:requestId,action_name:'SYNC_INTERNAL_RECORD'}),
+    });
+    const gate=body?.result;
+    if(!proofVerified||missionEpoch!==reviewedEpoch||
+       missionId!==reviewedMission||latestDigest!==reviewedDigest||
+       latestState==='stopped'||gate?.mission_id!==reviewedMission||
+       gate?.reviewed_request_id!==requestId||
+       gate?.action_name!=='SYNC_INTERNAL_RECORD'||
+       gate?.mission_receipt_verified!==true||
+       gate?.execution_performed!==false||
+       gate?.authority_transferred!==false||
+       gate?.human_authority_final!==true||
+       body?.execution_performed!==false||
+       body?.human_authority_final!==true){
+      handoffResult.textContent='🔴 Governed handoff evidence mismatched or changed. No execution claimed.';
+      return;
+    }
+    if(gate.status==='AUTHORIZED_NOT_EXECUTED'&&gate.execution_authorized===true){
+      readyHandoff={missionId:reviewedMission,digest:reviewedDigest,
+        epoch:reviewedEpoch,requestId};
+      handoffResult.textContent=[
+        '🟣 Governed backend handoff: AUTHORIZED, NOT EXECUTED.',
+        'Existing Guardian, Judgement and signed Human Authority gates passed.',
+        'Registered action: SYNC_INTERNAL_RECORD (bounded and reversible).',
+        'Execution performed: false · Authority transferred: false.',
+        'Review does not execute; the separate bounded Founder control requires fresh server-side governance.',
+        '👑 Founder Final retained.',
+      ].join('\\n');
+    }else if(['BLOCKED','HUMAN_AUTHORITY_REQUIRED'].includes(gate.status)&&
+             gate.execution_authorized===false){
+      const reason=['guardian_gate_required','judgement_gate_required',
+        'human_authority_rejected','human_authority_approval_required']
+        .includes(gate.reason)?gate.reason:'governance gate not satisfied';
+      handoffResult.textContent='🔒 '+gate.status+' · '+reason+
+        '\\nExecution authorised: false. No action performed.';
+    }else{
+      handoffResult.textContent='🔴 Unrecognised or incomplete action-gate response. No Green.';
+    }
+  }catch(err){
+    if(missionEpoch===reviewedEpoch)
+      handoffResult.textContent='🔴 Governed handoff not verified: '+err.message;
+  }finally{updateControls();}
+});
+executeButton.addEventListener('click',async()=>{
+  const gate=readyHandoff;
+  const record=recordIdInput.value.trim().toLowerCase();
+  const target=targetInput.value;
+  const expected=target==='active'?'draft':'active';
+  if(actionPending||missionMutationPending||!proofVerified||!gate||
+     gate.missionId!==missionId||gate.digest!==latestDigest||
+     gate.epoch!==missionEpoch||latestState==='stopped')return;
+  if(!validUuid(record)||!['draft','active'].includes(target)){
+    executionResult.textContent='🔴 A valid owned record UUID and bounded status are required.';
+    return;
+  }
+  // No cached approval receipt is sent. The server independently rechecks
+  // Guardian, Judgement, signed Founder authority and record ownership.
+  actionPending=true;readyHandoff=null;rollbackEvidence=null;updateControls();
+  executionResult.textContent='Checking fresh governance and executing bounded record status…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(gate.missionId)+
+      '/execute-internal-record',{
+        method:'POST',body:JSON.stringify({
+          reviewed_request_id:gate.requestId,record_id:record,
+          expected_status:expected,target_status:target,
+        }),
+      });
+    const result=body?.result, action=result?.execution, token=action?.rollback_token;
+    if(missionEpoch!==gate.epoch||missionId!==gate.missionId||
+       latestDigest!==gate.digest||!proofVerified||latestState==='stopped'){
+      executionResult.textContent='🔴 Mission changed during execution. RECONCILIATION REQUIRED; no retry.';
+      return;
+    }
+    if(result?.execution_evidence_state==='VERIFIED'&&
+       result?.outcome_receipt_verified===true&&
+       result?.execution_performed===true&&body?.execution_performed===true&&
+       body?.outcome_receipt_verified===true&&
+       result?.automatic_retry_allowed===false&&
+       body?.automatic_retry_allowed===false&&
+       result?.human_authority_final===true&&body?.human_authority_final===true&&
+       action?.action_name==='SYNC_INTERNAL_RECORD'&&
+       action?.record_id===record&&action?.after_status===target&&
+       action?.request_id===gate.requestId&&
+       action?.status_readback_verified===true&&
+       action?.content_unchanged===true&&action?.audit_recorded===true&&
+       action?.external_side_effect===false&&
+       action?.financial_side_effect===false&&
+       action?.authority_transferred===false&&
+       token?.origin_request_id===gate.requestId&&
+       token?.record_id===record&&token?.expected_status===target&&
+       token?.target_status===expected&&
+       validDigest(token?.before_hash)&&validDigest(token?.after_hash)&&
+       token?.after_hash===action.after_hash){
+      rollbackEvidence={missionId:gate.missionId,digest:gate.digest,
+        epoch:gate.epoch,executeRequestId:gate.requestId,token};
+      executionResult.textContent='🟢 Verified bounded '+expected+' → '+target+
+        ' status update. HRM/action receipt and read-back checked. No external or financial side effect.';
+      rollbackResult.textContent='Rollback token held only in this page memory. Fresh signed reviewed request required.';
+    }else{
+      executionResult.textContent='🔴 RECONCILIATION REQUIRED: execution proof incomplete. Do not retry automatically.';
+    }
+  }catch(err){
+    executionResult.textContent='🔴 RECONCILIATION REQUIRED: '+err.message+'. Do not blindly retry.';
+  }finally{actionPending=false;updateControls();}
+});
+rollbackButton.addEventListener('click',async()=>{
+  const evidence=rollbackEvidence;
+  const freshRequest=rollbackIdInput.value.trim().toLowerCase();
+  if(actionPending||missionMutationPending||!proofVerified||!evidence||
+     evidence.missionId!==missionId||evidence.digest!==latestDigest||
+     evidence.epoch!==missionEpoch||latestState==='stopped')return;
+  if(!validUuid(freshRequest)||freshRequest===evidence.executeRequestId){
+    rollbackResult.textContent='🔴 A different, freshly approved SMI request UUID is required.';
+    return;
+  }
+  actionPending=true;rollbackEvidence=null;updateControls();
+  rollbackResult.textContent='Validating fresh governance and atomic rollback…';
+  try{
+    const body=await requestJson(startUrl+'/'+encodeURIComponent(evidence.missionId)+
+      '/rollback-internal-record',{
+        method:'POST',body:JSON.stringify({
+          reviewed_request_id:freshRequest,rollback_token:evidence.token,
+        }),
+      });
+    const result=body?.result,recovery=result?.recovery;
+    if(missionEpoch===evidence.epoch&&missionId===evidence.missionId&&
+       latestDigest===evidence.digest&&proofVerified&&
+       result?.execution_evidence_state==='VERIFIED'&&
+       result?.rollback_verified===true&&body?.rollback_verified===true&&
+       result?.outcome_receipt_verified===true&&
+       body?.outcome_receipt_verified===true&&
+       result?.automatic_retry_allowed===false&&body?.automatic_retry_allowed===false&&
+       result?.human_authority_final===true&&body?.human_authority_final===true&&
+       recovery?.rollback_verified===true&&
+       recovery?.record_id===evidence.token.record_id&&
+       recovery?.after_hash===evidence.token.before_hash){
+      rollbackResult.textContent='🟢 Bounded rollback verified with fresh Founder authority and record read-back.';
+    }else{
+      rollbackResult.textContent='🔴 RECONCILIATION REQUIRED: rollback proof incomplete. Do not retry.';
+    }
+  }catch(err){
+    rollbackResult.textContent='🔴 RECONCILIATION REQUIRED: '+err.message+'. Do not blindly retry.';
+  }finally{actionPending=false;updateControls();}
+});
+restoreButton.addEventListener('click',async()=>{
+  if(missionMutationPending||actionPending)return;
+  const restoreEpoch=missionEpoch;
+  restoreButton.disabled=true;
+  result.textContent='Selecting owner-scoped latest Mission and verifying HRM + audit…';
+  try{
+    const latest=await requestJson(latestUrl);
+    if(missionEpoch!==restoreEpoch)return;
+    if(latest.found!==true){
+      clearLocalProof();result.textContent='No verified Mission found for this Founder.';
+      return;
+    }
+    await loadVerifiedMission(latest.mission_id,latest);
+  }catch(err){
+    if(missionEpoch===restoreEpoch){clearLocalProof();result.textContent='🔴 '+err.message;}
+  }finally{updateControls();}
 });
 readButton.addEventListener('click',async()=>{
-  result.textContent='Verifying workspace + audit + HRM read-back…';
-  try{
-    const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId));
-    showReceipt('🟢 Independent read-back verified.',body.receipt);
-  }catch(err){result.textContent='🔴 '+err.message;}
+  if(missionMutationPending||actionPending)return;
+  const readEpoch=missionEpoch;
+  result.textContent='Independently verifying Mission checkpoint…';
+  try{await loadVerifiedMission(missionId);}
+  catch(err){
+    if(missionEpoch===readEpoch){clearLocalProof();result.textContent='🔴 '+err.message;}
+  }
 });
 stopButton.addEventListener('click',async()=>{
-  stopButton.disabled=true;result.textContent='Writing durable STOP checkpoint…';
+  if(missionMutationPending||actionPending||!proofVerified||!latestDigest)return;
+  missionMutationPending=true;updateControls();result.textContent='Writing durable STOP checkpoint…';
   try{
     const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/stop',{
-      method:'POST',
-      body:JSON.stringify({expected_previous_hash:latestDigest}),
+      method:'POST',body:JSON.stringify({expected_previous_hash:latestDigest}),
     });
     showReceipt('🛑 STOP durably recorded.',body.receipt);
-  }catch(err){result.textContent='🔴 '+err.message;}finally{updateControls();}
+  }catch(err){clearLocalProof();result.textContent='🔴 '+err.message;}
+  finally{missionMutationPending=false;updateControls();}
 });
 recoverButton.addEventListener('click',async()=>{
-  recoverButton.disabled=true;result.textContent='Recovering mission to reviewable state…';
+  if(missionMutationPending||actionPending||!proofVerified||!latestDigest)return;
+  missionMutationPending=true;updateControls();result.textContent='Recovering mission to reviewable state…';
   try{
     const body=await requestJson(startUrl+'/'+encodeURIComponent(missionId)+'/recover',{
-      method:'POST',
-      body:JSON.stringify({expected_previous_hash:latestDigest}),
+      method:'POST',body:JSON.stringify({expected_previous_hash:latestDigest}),
     });
     showReceipt('♻️ Mission recovered for review. No execution granted.',body.receipt);
-  }catch(err){result.textContent='🔴 '+err.message;}finally{updateControls();}
+  }catch(err){clearLocalProof();result.textContent='🔴 '+err.message;}
+  finally{missionMutationPending=false;updateControls();}
 });
-const storedMission=sessionStorage.getItem('oap_all_in_ai_mission_id');
-const storedDigest=sessionStorage.getItem('oap_all_in_ai_digest');
-if(storedMission&&storedDigest){missionId=storedMission;latestDigest=storedDigest;updateControls();result.textContent='Previous session mission available for verified read-back.';}
+const storedMission=sessionStorage.getItem(sessionPrefix+'mission_id');
+// Never trust sessionStorage digest for STOP/recovery: re-read server authority.
+if(storedMission){
+  missionId=storedMission;clearLocalProof();
+  result.textContent='Previous Mission pointer found. Verify Read-back or Restore Latest before action.';
+}
 </script>
 </body>
 </html>

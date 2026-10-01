@@ -7,6 +7,9 @@ on:
       - "mission_control/static/smi_*.js"
       - "mission_control/static/smi_*.css"
       - "mission_control/smi_chat_runtime.py"
+      - "mission_control/templates/all_in_ai.html"
+      - "mission_control/all_in_ai_views.py"
+      - "tests/all_in_ai_chromium_proof.py"
       - "tests/smi_chromium_recovery_proof.py"
       - ".github/workflows/smi-chromium-proof.yml"
 
@@ -29,3 +32,5 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Prove authenticated SMI Live no-flash and failure recovery
         run: python tests/smi_chromium_recovery_proof.py
+      - name: Prove authenticated ALL IN Mission Keeper browser controls
+        run: python tests/all_in_ai_chromium_proof.py
