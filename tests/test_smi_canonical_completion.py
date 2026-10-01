@@ -173,3 +173,37 @@ def test_behaviour_step2_scores_only_explicit_runtime_evidence():
         if item["evidence_state"] == "unknown"
     }
     assert {"truth", "evidence", "instruction", "directness", "noise", "confidence"} <= unknown
+
+
+def test_human_ai_boundary_keeps_identity_experience_and_authority_distinct():
+    status = ai_behaviour_protocol.status()
+    boundary = status["human_ai_boundary"]
+
+    assert boundary["human"]["living_being"] is True
+    assert boundary["human"]["lived_experience"] is True
+    assert boundary["human"]["consent_source"] is True
+    assert boundary["human"]["responsibility_bearer"] is True
+    assert boundary["human"]["final_consequential_authority"] is True
+
+    assert boundary["ai"]["engineered_software"] is True
+    assert boundary["ai"]["living_being"] is False
+    assert boundary["ai"]["human_identity"] is False
+    assert boundary["ai"]["lived_experience_claimed"] is False
+    assert boundary["ai"]["feelings_claimed"] is False
+    assert boundary["ai"]["sentience_claimed"] is False
+    assert boundary["ai"]["consciousness_claimed"] is False
+    assert boundary["ai"]["may_observe_permitted_data"] is True
+    assert boundary["ai"]["may_analyse"] is True
+    assert boundary["ai"]["may_compare"] is True
+    assert boundary["ai"]["may_predict"] is True
+    assert boundary["ai"]["may_recommend"] is True
+    assert boundary["ai"]["may_self_approve"] is False
+    assert boundary["ai"]["may_replace_human_authority"] is False
+
+    locks = status["hard_locks"]
+    assert locks["human_identity_claim_enabled"] is False
+    assert locks["lived_experience_claim_enabled"] is False
+    assert locks["feelings_claim_enabled"] is False
+    assert locks["sentience_claim_enabled"] is False
+    assert locks["consciousness_claim_enabled"] is False
+    assert locks["replace_human_authority_enabled"] is False

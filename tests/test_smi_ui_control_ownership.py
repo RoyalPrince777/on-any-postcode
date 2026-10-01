@@ -63,6 +63,11 @@ def test_all_master_tool_actions_have_handlers():
         "improvement",
         "swot",
         "behaviour",
+        "ux",
+        "alignment",
+        "infrastructure-intelligence",
+        "security",
+        "evidence",
         "github-governed",
     }
     for action in actions:

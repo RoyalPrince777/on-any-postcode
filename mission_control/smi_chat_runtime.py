@@ -453,6 +453,16 @@ def chat(
     enriched["memory_sync"] = memory_sync_status()
     enriched["thinking_level"] = str(thinking_level or "auto")
     enriched["studio_mode"] = bool(studio_mode)
+    boundary_gate = _behaviour.evaluate_human_ai_boundary(enriched)
+    if boundary_gate["passed"] is not True:
+        enriched["response"] = (
+            "SMI boundary review required. The generated completion crossed the governed "
+            "Human-AI boundary and was not released."
+        )
+        enriched["output_state"] = "REVIEW_REQUIRED"
+        enriched["can_execute"] = False
+        enriched["guardian"] = "REVIEW_REQUIRED"
+    enriched["human_ai_boundary_gate"] = boundary_gate
     if cancellation_token is not None:
         cancellation_token.raise_if_cancelled()
     behaviour_receipt = _receipts.write_receipt(
