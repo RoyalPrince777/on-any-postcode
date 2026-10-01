@@ -3,6 +3,43 @@ const root=document.querySelector("[data-room-root]");if(!root)return;const q=s=
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
 const character={K:"🤴",Q:"👸",R:"🏰",B:"🧙",N:"🐎",P:"🛡️"};
 const pieceName={K:"king",Q:"queen",R:"rook",B:"bishop",N:"knight",P:"pawn"};
+
+function inferredMove(previous,current){
+ const arrivals=[];const departures=[];
+ for(const file of "abcdefgh")for(const rank of "12345678"){
+  const square=file+rank,oldPiece=previous[square],newPiece=current[square];
+  if(oldPiece&&oldPiece!==newPiece)departures.push({square,piece:oldPiece});
+  if(newPiece&&oldPiece!==newPiece)arrivals.push({square,piece:newPiece,oldPiece});
+ }
+ for(const arrival of arrivals){
+  const match=departures.find(item=>
+   item.piece===arrival.piece ||
+   (item.piece?.[1]==="P"&&arrival.piece?.[0]===item.piece?.[0]&&["Q","R","B","N"].includes(arrival.piece?.[1]))
+  );
+  if(match)return {source:match.square,target:arrival.square,capture:Boolean(arrival.oldPiece&&arrival.oldPiece[0]!==arrival.piece[0])};
+ }
+ return null;
+}
+function animateWalk(board,move){
+ if(!move||matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+ const from=board.querySelector('[data-square="'+move.source+'"]');
+ const to=board.querySelector('[data-square="'+move.target+'"]');
+ const actor=to?.querySelector(".arena-chess-character");
+ if(!from||!to||!actor)return;
+ const a=from.getBoundingClientRect(),b=to.getBoundingClientRect();
+ const dx=a.left-b.left,dy=a.top-b.top;
+ actor.animate(
+  [
+   {transform:"translate("+dx+"px,"+dy+"px) translateY(0) scale(.96)"},
+   {transform:"translate("+(dx*.72)+"px,"+(dy*.72)+"px) translateY(-5px) scale(.98)",offset:.25},
+   {transform:"translate("+(dx*.48)+"px,"+(dy*.48)+"px) translateY(2px)",offset:.48},
+   {transform:"translate("+(dx*.22)+"px,"+(dy*.22)+"px) translateY(-4px)",offset:.72},
+   {transform:"translate(0,0) translateY(0) scale(1)"}
+  ],
+  {duration:360,easing:"cubic-bezier(.2,.75,.25,1)"}
+ );
+}
+
 function characterPiece(piece){
  if(!piece)return null;
  const span=document.createElement("span");
@@ -21,8 +58,8 @@ function render(){if(!membership||!snapshot)return;q("[data-code]").textContent=
 const me=snapshot.players.find(p=>p.seat===membership.seat);q("[data-players]").textContent=snapshot.players.map(p=>p.display_name+" ("+(p.seat===1?"White":"Black")+")").join(" vs ");
 const game=snapshot.game_state||{};const myColour=membership.seat===1?"w":"b";const myTurn=snapshot.status==="ACTIVE"&&(!game.started||(game.turn===(membership.seat===1?"White":"Black")));
 q("[data-turn]").textContent=(me?"Playing as "+me.display_name+" · ":"")+(game.status==="completed"?"Game completed":game.status==="stopped"?"Match stopped":myTurn?"Your turn":snapshot.status==="WAITING"?"Waiting for another player":"Other player's turn");
-const previous=lastBoard;const board=q("[data-board]");board.replaceChildren();for(let rank=8;rank>=1;rank--)for(const file of "abcdefgh"){const id=file+rank,piece=(game.board||{})[id];const b=document.createElement("button");b.type="button";b.dataset.square=id;b.className="arena-chess-square "+(((file.charCodeAt(0)-97+rank)%2)?"arena-chess-dark":"arena-chess-light");b.replaceChildren();const characterNode=characterPiece(piece);if(characterNode)b.append(characterNode);b.dataset.piece=piece||"";b.setAttribute("aria-label",id+" "+(piece?(piece[0]==="w"?"White ":"Black ")+pieceName[piece[1]]:"empty"));b.disabled=busy||needsRefresh||!myTurn;if(previous[id]&&piece&&previous[id][0]!==piece[0])b.classList.add("arena-chess-capture");b.setAttribute("aria-pressed",String(selected===id));b.onclick=()=>{if(!myTurn)return;if(!selected){if(!piece||piece[0]!==myColour)return;selected=id;q("[data-source]").value=id;}else if(selected===id){selected=null;q("[data-source]").value="";}else{q("[data-target]").value=id;move();}render();};board.append(b);}
-lastBoard={...(game.board||{})};q("[data-move]").disabled=busy||needsRefresh||!myTurn;q("[data-stop]").disabled=busy||needsRefresh||snapshot.status!=="ACTIVE";}
+const previous=lastBoard;const walk=inferredMove(previous,game.board||{});const board=q("[data-board]");board.replaceChildren();for(let rank=8;rank>=1;rank--)for(const file of "abcdefgh"){const id=file+rank,piece=(game.board||{})[id];const b=document.createElement("button");b.type="button";b.dataset.square=id;b.className="arena-chess-square "+(((file.charCodeAt(0)-97+rank)%2)?"arena-chess-dark":"arena-chess-light");b.replaceChildren();const characterNode=characterPiece(piece);if(characterNode)b.append(characterNode);b.dataset.piece=piece||"";b.setAttribute("aria-label",id+" "+(piece?(piece[0]==="w"?"White ":"Black ")+pieceName[piece[1]]:"empty"));b.disabled=busy||needsRefresh||!myTurn;if(previous[id]&&piece&&previous[id][0]!==piece[0])b.classList.add("arena-chess-capture");b.setAttribute("aria-pressed",String(selected===id));b.onclick=()=>{if(!myTurn)return;if(!selected){if(!piece||piece[0]!==myColour)return;selected=id;q("[data-source]").value=id;}else if(selected===id){selected=null;q("[data-source]").value="";}else{q("[data-target]").value=id;move();}render();};board.append(b);}
+animateWalk(board,walk);lastBoard={...(game.board||{})};q("[data-move]").disabled=busy||needsRefresh||!myTurn;q("[data-stop]").disabled=busy||needsRefresh||snapshot.status!=="ACTIVE";}
 async function refresh(){const d=await post("/arena/rooms/state",{room_id:membership.room_id,reconnect_token:membership.reconnect_token});if(d.game_key!=="chess")throw new Error("arena_room_game_invalid");snapshot=d;membership.seat=d.your_seat;needsRefresh=false;render();}
 async function enter(task){if(entryBusy||busy)return;entryBusy=true;clear();try{await task();}catch(e){error(e);}finally{entryBusy=false;}}
 async function action(body){if(busy||needsRefresh||!membership||!snapshot)return;busy=true;render();clear();try{await post("/arena/rooms/chess/action",{...membership,expected_revision:snapshot.revision,request_id:req(),...body});selected=null;q("[data-source]").value="";q("[data-target]").value="";q("[data-promotion]").value="";await refresh();}catch(e){error(e);needsRefresh=true;try{await refresh();}catch(_){} }finally{busy=false;render();}}
