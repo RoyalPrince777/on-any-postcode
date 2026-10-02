@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import json
 
 from mission_control import commerce_install, product_core_views
@@ -55,7 +57,7 @@ def test_provider_execution_routes_are_registered(client):
 
 
 def test_provider_routes_never_embed_secret_values():
-    source = open("mission_control/product_core_views.py", encoding="utf-8").read()
+    source = Path("mission_control/product_core_views.py").read_text(encoding="utf-8")
     assert "OAP_PAYMENT_PROVIDER_TOKEN" not in source
     assert "OAP_POD_PROVIDER_TOKEN" not in source
     assert "super-secret-token" not in source
