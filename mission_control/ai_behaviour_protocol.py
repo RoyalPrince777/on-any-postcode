@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import re
 
-from . import autonomy_levels
+from . import autonomy_levels, smi_brain_protocol
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
@@ -213,29 +213,13 @@ TWENTY_ONE_LAWS = (
     "Legacy must be remembered cleanly",
 )
 
-TWENTY_ONE_SIGNALS = (
-    "Checking",
-    "Mode",
-    "Proof Needed",
-    "Locked",
-    "Blocked",
-    "Next Before Green",
-    "HRM Memory",
-    "Source Proof",
-    "Route / API Proof",
-    "Data Proof",
-    "Consent Proof",
-    "Install Proof",
-    "Monitoring Proof",
-    "Rollback Proof",
-    "Founder Approval",
-    "Guardian Pass",
-    "Green Gate Result",
-    "Public / Private Boundary",
-    "Tool / Plugin Proof",
-    "Neon Receipt",
-    "Real Green Decision",
-)
+SEVEN_MAJOR_LINKS = smi_brain_protocol.MAJOR_LINKS_7
+TWENTY_ONE_CORE_REVIEW_SIGNALS = smi_brain_protocol.CORE_REVIEW_SIGNALS_21
+TWENTY_ONE_THINKING_SIGNALS = smi_brain_protocol.THINKING_SIGNALS_21
+
+# Historical public name retained for compatibility; it refers to the visible
+# operational Thinking Signal board, not the new Core Review Signal set.
+TWENTY_ONE_SIGNALS = TWENTY_ONE_THINKING_SIGNALS
 
 
 BEHAVIOUR_DIMENSIONS = (
@@ -584,6 +568,9 @@ def status(target: object = "SMI") -> dict[str, object]:
         "agent_selection": AGENT_SELECTION,
         "rating_rules": RATING_RULES,
         "twenty_one_laws": TWENTY_ONE_LAWS,
+        "seven_major_links": SEVEN_MAJOR_LINKS,
+        "twenty_one_core_review_signals": TWENTY_ONE_CORE_REVIEW_SIGNALS,
+        "twenty_one_thinking_signals": TWENTY_ONE_THINKING_SIGNALS,
         "twenty_one_signals": TWENTY_ONE_SIGNALS,
         "behaviour_board": behaviour_board(),
         "human_ai_boundary": HUMAN_AI_BOUNDARY,

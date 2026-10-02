@@ -57,9 +57,67 @@ LAWS_21: tuple[str, ...] = (
     "Proof before execution", "Verification before sharing", "Compliance before public claims", "Community before middlemen", "Ownership before dependency", "Audit before automation", "Human approval before real-world action", "No fake green without live proof", "Public and private must stay separate", "Every action needs HRM receipt", "Every route needs source, timestamp and rollback", "Every tool must be checked before use", "Every upgrade must be reversible", "Static pages do not count as full function", "Human dignity before growth", "Privacy before convenience", "Culture must be respected", "Youth safety before engagement", "Local truth before global claim", "Founder Authority before system authority", "Legacy must be remembered cleanly"
 )
 
-SIGNALS_21: tuple[str, ...] = (
-    "Checking", "Mode", "Proof Needed", "Locked", "Blocked", "Next Before Green", "HRM Memory", "Source Proof", "Route / API Proof", "Data Proof", "Consent Proof", "Install Proof", "Monitoring Proof", "Rollback Proof", "Founder Approval", "Guardian Pass", "Green Gate Result", "Public / Private Boundary", "Tool / Plugin Proof", "Neon Receipt", "Real Green Decision"
+MAJOR_LINKS_7: tuple[str, ...] = (
+    "Mission",
+    "Continue",
+    "Risk / Guardian",
+    "War Room / Judgement",
+    "Founder Final",
+    "Recovery / Rollback",
+    "Outcome / Learning",
 )
+
+CORE_REVIEW_SIGNALS_21: tuple[str, ...] = (
+    "Truth",
+    "Evidence",
+    "Risk",
+    "Safety",
+    "Security",
+    "Privacy",
+    "Identity",
+    "Permission",
+    "Intent",
+    "Dependency",
+    "Architecture",
+    "Alignment",
+    "Resilience",
+    "Performance",
+    "Reversibility",
+    "Impact",
+    "Readiness",
+    "Coherence",
+    "Recovery",
+    "Outcome",
+    "Human Authority",
+)
+
+THINKING_SIGNALS_21: tuple[str, ...] = (
+    "Checking",
+    "Mode",
+    "Proof Needed",
+    "Locked",
+    "Blocked",
+    "Next Before Green",
+    "HRM Memory",
+    "Source Proof",
+    "Route / API Proof",
+    "Data Proof",
+    "Consent Proof",
+    "Install Proof",
+    "Monitoring Proof",
+    "Rollback Proof",
+    "Founder Approval",
+    "Guardian Pass",
+    "Green Gate Result",
+    "Public / Private Boundary",
+    "Tool / Plugin Proof",
+    "Neon Receipt",
+    "Real Green Decision",
+)
+
+# Backward-compatible alias for callers that historically treated the operational
+# Thinking Signal board as the generic 21-signal contract.
+SIGNALS_21: tuple[str, ...] = THINKING_SIGNALS_21
 
 WAR_ROOM_MASTER_LAWS: tuple[str, ...] = (
     "No War Room review = no decision",

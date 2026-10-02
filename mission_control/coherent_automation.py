@@ -343,7 +343,10 @@ def status() -> dict[str, Any]:
         "signal_intelligence_monitor": monitor,
         "mind_body_soul": smi_brain_protocol.MIND_BODY_SOUL_777,
         "laws_21": smi_brain_protocol.LAWS_21,
-        "proof_signals_21": smi_brain_protocol.SIGNALS_21,
+        "major_links_7": smi_brain_protocol.MAJOR_LINKS_7,
+        "core_review_signals_21": smi_brain_protocol.CORE_REVIEW_SIGNALS_21,
+        "thinking_signals_21": smi_brain_protocol.THINKING_SIGNALS_21,
+        "proof_signals_21": smi_brain_protocol.THINKING_SIGNALS_21,
         "flow": (
             "Observe",
             "Classify",
