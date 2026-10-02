@@ -146,6 +146,20 @@ def acceptance_receipt(message_id: str):
         return _failure(exc)
 
 
+@bp.delete("/linkup/messages/<message_id>")
+@web_security.login_required(api=True)
+def delete_message(message_id: str):
+    identity, _user = _identity_user()
+    if guarded := _mutation_guard(identity):
+        return guarded
+    try:
+        if not product_store.delete_message(identity, message_id):
+            return _error("message_not_found", 404)
+        return _no_store(make_response(jsonify(message_id=message_id, deleted=True)))
+    except MESSAGE_ERRORS as exc:
+        return _failure(exc)
+
+
 @bp.post("/linkup/messages/<message_id>/seen")
 @web_security.login_required(api=True)
 def seen(message_id: str):
