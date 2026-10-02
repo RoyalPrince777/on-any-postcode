@@ -281,7 +281,7 @@ def on_starting(server):
         from mission_control.commerce_install import status as commerce_install_status
 
         commerce_readiness = commerce_install_status()
-    except Exception:
+    except RuntimeError:
         commerce_readiness = {
             "installer_built": False,
             "payment_provider_configured": False,
