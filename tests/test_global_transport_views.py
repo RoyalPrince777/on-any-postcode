@@ -63,3 +63,30 @@ def test_global_transport_is_registered_by_main_mission_control_initializer():
     source = open("mission_control/__init__.py", encoding="utf-8").read()
     assert "from .global_transport_views import bp as global_transport_bp" in source
     assert "app.register_blueprint(global_transport_bp)" in source
+
+
+def test_oap_ride_aliases_reuse_durable_movement_routes():
+    app = _app()
+    client = app.test_client()
+    assert client.post("/transport/ride/request", follow_redirects=False).status_code == 307
+    assert client.post("/transport/ride/driver/availability", follow_redirects=False).status_code == 307
+    booking = "00000000-0000-0000-0000-000000000001"
+    proposal = "00000000-0000-0000-0000-000000000002"
+    response = client.post(f"/transport/ride/{booking}/match", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["Location"].endswith(f"/movement/bookings/{booking}/match")
+    response = client.post(f"/transport/ride/matches/{proposal}/accept", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["Location"].endswith(f"/movement/matches/{proposal}/accept")
+
+
+def test_oap_ride_runtime_declares_durable_owner_and_no_physical_dispatch():
+    payload = _app().test_client().get("/transport/ride/runtime").get_json()
+    assert payload["durable_owner"] == "OAP Movement"
+    assert payload["certified_driver_matching"] is True
+    assert payload["race_safe_match_acceptance"] is True
+    assert payload["tracking_consent_store"] is True
+    assert payload["payment_intent_store"] is True
+    assert payload["trip_link_binding"] is True
+    assert payload["physical_operations_in_scope"] is False
+    assert payload["external_dispatch_performed"] is False
