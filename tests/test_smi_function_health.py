@@ -410,12 +410,14 @@ def test_interaction_certification_fails_closed_when_surface_proof_reader_errors
 
 def test_interaction_surface_proof_signature_binds_surface_and_runtime(monkeypatch):
     monkeypatch.setenv("OAP_SMI_INTERACTION_PROOF_KEY", "red-team-test-key")
+    monkeypatch.setenv("OAP_SMI_RELEASE_ID", "release-a5426fed")
     payload = {
         "proof_version": smi_function_health.smi_receipt_backend.INTERACTION_PROOF_VERSION,
         "surface_id": "voice",
         "evidence_class": "production_interaction",
         "runtime_instance_id": "runtime-991",
         "interaction_id": "interaction-voice-1",
+        "release_id": "release-a5426fed",
         "status_code": 200,
         "runtime_acknowledged": True,
         "interaction_completed": True,
@@ -490,4 +492,31 @@ def test_generic_writer_cannot_mint_interaction_surface_proof():
     assert result["ok"] is False
     assert result["status"] == "blocked_reserved_interaction_proof_producer"
     assert result["receipt_id"] is None
+
+def test_interaction_surface_signature_binds_release(monkeypatch):
+    monkeypatch.setenv("OAP_SMI_INTERACTION_PROOF_KEY", "red-team-test-key")
+    monkeypatch.setenv("OAP_SMI_RELEASE_ID", "release-current")
+    payload = {
+        "proof_version": smi_function_health.smi_receipt_backend.INTERACTION_PROOF_VERSION,
+        "surface_id": "voice",
+        "evidence_class": "production_interaction",
+        "runtime_instance_id": "runtime-991",
+        "interaction_id": "interaction-voice-1",
+        "release_id": "release-old",
+        "status_code": 200,
+        "runtime_acknowledged": True,
+        "interaction_completed": True,
+        "click_only_proof": False,
+        "execution_authority_expanded": False,
+    }
+    payload["proof_signature_sha256"] = (
+        smi_function_health.smi_receipt_backend._interaction_proof_signature(
+            payload, "red-team-test-key"
+        )
+    )
+    assert (
+        smi_function_health.smi_receipt_backend._valid_interaction_proof_signature(payload)
+        is True
+    )
+    assert payload["release_id"] != smi_function_health.smi_receipt_backend._interaction_release_id()
 
