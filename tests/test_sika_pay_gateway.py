@@ -116,6 +116,14 @@ def test_only_review_to_authorised_transition_is_exposed():
     )
     assert allow["transition_authorized"] is True
     assert allow["target_status"] == "AUTHORISED"
+    assert allow["payment_id"] == "pay-3"
+    assert allow["payer_account_id"] == "acct-3"
+    assert allow["payee_reference"] == "payee-3"
+    assert allow["amount"] == "12.00"
+    assert allow["currency"] == "GBP"
+    assert allow["jurisdiction"] == "United Kingdom"
+    assert len(allow["rights_record_hash"]) == 64
+    assert len(allow["rights_gate_decision_hash"]) == 64
     assert allow["money_movement"] is False
 
     deny = sika_pay_gateway.authorize_orchestrator_transition(
