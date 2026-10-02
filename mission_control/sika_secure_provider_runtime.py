@@ -342,6 +342,30 @@ def verify_webhook(
     }
 
 
+
+def webhook_receipt(
+    *,
+    kind: str,
+    payload: object,
+    idempotency_key: object,
+) -> dict[str, object]:
+    """Normalize an already signature-verified provider callback."""
+
+    if kind not in {"payment", "pod"}:
+        raise ValueError("unsupported_provider_kind")
+    if not isinstance(payload, dict):
+        raise SecureProviderError("provider_webhook_payload_invalid")
+    config = _config(kind)
+    key = _idempotency(idempotency_key)
+    return _normalized_receipt(
+        kind=f"{kind}_webhook",
+        config=config,
+        response=payload,
+        idempotency_key=key,
+    )
+
+
+
 def status() -> dict[str, object]:
     payment = configuration_status("payment")
     pod = configuration_status("pod")
