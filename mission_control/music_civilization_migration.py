@@ -1,4 +1,4 @@
-"""Governed idempotent schema migration for OAP Music Civilization 0007-0013."""
+"""Governed idempotent schema migration for OAP Music Civilization 0007-0014."""
 from __future__ import annotations
 
 import hashlib
@@ -27,7 +27,7 @@ _MIGRATIONS = (
     (music_assets.MUSIC_ASSET_MIGRATION_VERSION, music_assets.SCHEMA_STATEMENTS),
     (music_market_purchase.MIGRATION_VERSION, music_market_purchase.SCHEMA_STATEMENTS),
 )
-_LOCK_KEY = 25800013
+_LOCK_KEY = 25800014
 
 
 def _checksum(statements: tuple[str, ...]) -> str:
