@@ -358,7 +358,24 @@
  const bankHeritage=document.createElement("p");
  bankHeritage.textContent="Prince Sovereign Bank · heritage | SIKA · separate value classes";
  const bankNotice=document.createElement("p");
- bankNotice.textContent="READ ONLY · no bank licence, balance, account, cash service, signed package or release is asserted.";
+ bankNotice.textContent="READ ONLY · checking canonical Bank / SIKA truth…";
+ const refreshBankTruth=async()=>{
+  bankNotice.textContent="READ ONLY · checking canonical Bank / SIKA truth…";
+  try{
+   const response=await fetch("/mission/smi/status",{cache:"no-store",credentials:"same-origin"});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error("Bank / SIKA truth unavailable");
+   const bank=payload&&payload.bank?payload.bank:{};
+   const controls=bank.software_controls_present===true?"software controls present":"software controls unproven";
+   const gateway=bank.single_pay_gateway===true?"SIKA Pay gateway present":"SIKA Pay gateway unproven";
+   const bypass=bank.direct_authorisation_bypass_allowed===false?"direct authorisation bypass closed":"direct authorisation bypass not proven closed";
+   const regulated=bank.regulated_execution_enabled===true?"regulated execution ON":"regulated execution locked";
+   const movement=bank.money_movement===true?"money movement ON":"money movement locked";
+   bankNotice.textContent=["READ ONLY",controls,gateway,bypass,regulated,movement].join(" · ");
+  }catch(_){
+   bankNotice.textContent="READ ONLY · Bank / SIKA canonical status unavailable · no Green inferred.";
+  }
+ };
  const bankTabs=document.createElement("nav");
  bankTabs.setAttribute("aria-label","Bank review controls");
  const bankDetail=document.createElement("div");
@@ -765,6 +782,7 @@
   if(action==="oap-bank-controls"){
    bankControls.hidden=!bankControls.hidden;
    trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
+   if(!bankControls.hidden)refreshBankTruth();
    return;
   }
   if(action==="oap-maps-controls"){
