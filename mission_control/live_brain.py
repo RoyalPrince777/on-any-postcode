@@ -371,7 +371,7 @@ def review(
         high_impact=high_impact,
         identity_authority_level=identity.authority_level,
         is_human_authority=is_human_authority,
-        permission_verified=bool(permission),
+        permission_verified=bool(permission.allowed),
         output_state=output_state.value,
         coherence=coherence.as_dict(),
         self_model=self_model.as_dict(),
