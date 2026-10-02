@@ -78,7 +78,11 @@ def _deposit_cap(value: object) -> Decimal | None:
     return parsed
 
 
-def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
+def init_schema(
+    *,
+    assume_yes: bool = False,
+    dry_run: bool = False,
+) -> dict[str, object]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
     if dry_run:
@@ -94,7 +98,9 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
                 connection.execute(statement)
             connection.commit()
     except Exception as exc:
-        raise PermissionScopeUnavailable("bank_permission_scope_schema_init_failed") from exc
+        raise PermissionScopeUnavailable(
+            "bank_permission_scope_schema_init_failed"
+        ) from exc
     return {
         **schema_status(),
         "migration": MIGRATION_VERSION,
@@ -160,7 +166,9 @@ def record_scope(
     if unknown:
         raise ValueError("unknown_bank_permission_capability")
     restriction_values = tuple(
-        _clean(item, limit=500) for item in (restrictions or ()) if _clean(item, limit=500)
+        cleaned
+        for item in (restrictions or ())
+        if (cleaned := _clean(item, limit=500))
     )
     cap = _deposit_cap(deposit_cap_gbp)
     if mobilisation and "accept_deposits" in capabilities and cap is None:
@@ -193,7 +201,9 @@ def record_scope(
             ).fetchone()
             connection.commit()
     except Exception as exc:
-        raise PermissionScopeUnavailable("bank_permission_scope_write_failed") from exc
+        raise PermissionScopeUnavailable(
+            "bank_permission_scope_write_failed"
+        ) from exc
 
     return {
         "scope_id": scope_id,
@@ -230,7 +240,9 @@ def current_scope() -> PermissionScope | None:
                    LIMIT 1"""
             ).fetchone()
     except Exception as exc:
-        raise PermissionScopeUnavailable("bank_permission_scope_read_failed") from exc
+        raise PermissionScopeUnavailable(
+            "bank_permission_scope_read_failed"
+        ) from exc
     if row is None:
         return None
     return PermissionScope(
