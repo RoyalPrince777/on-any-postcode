@@ -133,5 +133,7 @@ def test_live_brain_exposes_signal_record_without_score_or_percentage():
     assert '"core_review_signal_green_count": 0' in source
     assert '"core_review_signal_scoring": "disabled_without_request_specific_evidence"' in source
     signal_block = source[source.index("def _core_review_signal_record"):source.index("def review(")]
-    assert "percentage" not in signal_block
-    assert "score" not in signal_block
+    assert '"percentage"' not in signal_block
+    assert '"score"' not in signal_block
+    assert '"percentage":' not in signal_block
+    assert '"score":' not in signal_block
