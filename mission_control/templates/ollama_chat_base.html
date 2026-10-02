@@ -93,6 +93,11 @@
   </section>
   <section class="smi-tool-group" data-smi-tool-group="communication"><h3>Communication</h3>
     <button class="attach-option" id="voice-reply-menu-button" type="button"><span class="connector-copy"><span>🔊</span><span>Voice Reply</span></span></button>
+    <button class="attach-option" id="voice-settings-button" type="button" aria-expanded="false" aria-controls="voice-settings-panel"><span class="connector-copy"><span>⚙️</span><span>Voice Settings</span></span></button>
+    <div id="voice-settings-panel" hidden>
+      <label><input id="voice-auto-speak-toggle" type="checkbox"> Speak SMI replies automatically</label>
+      <p>Saved on this device only. No audio or transcript is stored by this preference.</p>
+    </div>
   </section>
   <section class="smi-tool-group" data-smi-tool-group="command"><h3>Command</h3>
     <button class="attach-option connector" type="button" data-oap-action="war-room"><span class="connector-copy"><span>⚔️</span><span>War Room</span></span><span class="connector-state">Open</span></button>
