@@ -227,4 +227,43 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
         }
 
 
+    def decline_match(
+        self, *, proposal_id: object, worker_identity_id: object
+    ) -> dict[str, Any]:
+        proposal = _uuid(proposal_id, "proposal_id")
+        worker = _uuid(worker_identity_id, "worker_identity_id")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_movement_match_proposals
+                   SET state='DECLINED',updated_at=CURRENT_TIMESTAMP
+                   WHERE proposal_id=%s AND worker_identity_id=%s
+                     AND state='PROPOSED'
+                   RETURNING booking_id,worker_role,updated_at""",
+                (proposal, worker),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("match_proposal_not_available")
+            remaining = connection.execute(
+                """SELECT 1 FROM oap_movement_match_proposals
+                   WHERE booking_id=%s AND state='PROPOSED' LIMIT 1""",
+                (row[0],),
+            ).fetchone()
+            if remaining is None:
+                connection.execute(
+                    """UPDATE oap_movement_bookings
+                       SET state='REQUESTED',updated_at=CURRENT_TIMESTAMP
+                       WHERE booking_id=%s AND state='MATCH_PROPOSED'""",
+                    (row[0],),
+                )
+            connection.commit()
+        return {
+            "booking_id": str(row[0]),
+            "worker_role": str(row[1]),
+            "state": "DECLINED",
+            "updated_at": row[2].isoformat(),
+            "booking_reopened_for_matching": remaining is None,
+            "external_dispatch_performed": False,
+        }
+
+
 STORE = SafePostgresMovementStore()
