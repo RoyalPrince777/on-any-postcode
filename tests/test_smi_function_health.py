@@ -269,3 +269,70 @@ def test_interaction_certification_fails_closed_without_durable_receipt(monkeypa
     assert result["live_proof_percent"] == 0.0
     assert result["whole_interaction_green"] is False
     assert all(item["live_runtime_proven"] is False for item in result["surfaces"])
+
+
+def test_interaction_certification_can_prove_chat_from_founder_interaction_gate(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {"proven": False, "reason": "missing", "receipt_id": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {
+            "proof_gates": (
+                {
+                    "id": "founder_chat_interaction",
+                    "proven": True,
+                    "state": "proven",
+                },
+            )
+        },
+    )
+    result = smi_function_health.interaction_certification()
+    surfaces = {item["id"]: item for item in result["surfaces"]}
+
+    assert result["live_proven_count"] == 1
+    assert result["live_proof_percent"] == 11.1
+    assert surfaces["chat"]["live_runtime_proven"] is True
+    assert surfaces["chat"]["state"] == "green"
+    assert surfaces["chat"]["live_proof_source"] == "founder_chat_interaction_gate"
+    assert surfaces["chat"]["live_proof_receipt_id"] is None
+    assert all(
+        item["live_runtime_proven"] is False
+        for item in result["surfaces"]
+        if item["id"] != "chat"
+    )
+
+
+def test_interaction_certification_combines_chat_and_control_proof_without_overclaim(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {
+            "proven": True,
+            "receipt_id": "receipt-live-control",
+            "runtime_acknowledged": True,
+            "click_only_proof": False,
+            "status_code": 200,
+        },
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {
+            "proof_gates": (
+                {"id": "founder_chat_interaction", "proven": True},
+            )
+        },
+    )
+    result = smi_function_health.interaction_certification()
+    surfaces = {item["id"]: item for item in result["surfaces"]}
+
+    assert result["live_proven_count"] == 2
+    assert result["live_proof_percent"] == 22.2
+    assert surfaces["chat"]["live_runtime_proven"] is True
+    assert surfaces["control-surface-v2"]["live_runtime_proven"] is True
+    assert result["whole_interaction_green"] is False
+    assert sum(item["live_runtime_proven"] for item in result["surfaces"]) == 2
