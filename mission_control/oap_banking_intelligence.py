@@ -17,6 +17,7 @@ from . import (
     sika_accounting_controls,
     sika_accounting_intelligence,
     sika_alm_forecasting_intelligence,
+    sika_card_controls,
     sika_closing_retained_earnings,
     sika_double_entry,
     sika_financial_intelligence,
@@ -201,6 +202,9 @@ def status() -> dict[str, object]:
         ),
         "alm_forecasting_intelligence_integrated": bool(
             sika_alm_forecasting_intelligence.status()["first_party"]
+        ),
+        "card_controls_integrated": bool(
+            sika_card_controls.status()["card_account_binding"]
         ),
         "closing_retained_earnings_integrated": bool(
             sika_closing_retained_earnings.status()["first_party"]
