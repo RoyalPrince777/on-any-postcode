@@ -278,11 +278,9 @@ def review(
         authority_roles=identity.roles,
         self_model=self_model.as_dict(),
         coherence=coherence.as_dict(),
-        force_review=bool(
-            force_war_room
-            or action_risk.red_team_required
-            or action_risk.route in {ROUTE_CONFIRM, ROUTE_GOVERNANCE, ROUTE_BLOCK}
-        ),
+        force_review=bool(force_war_room)
+        or action_risk.red_team_required
+        or action_risk.route in {ROUTE_CONFIRM, ROUTE_GOVERNANCE, ROUTE_BLOCK},
     )
     return {
         "passed": safety.passed,
