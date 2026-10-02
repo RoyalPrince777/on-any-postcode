@@ -8,6 +8,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+GROUP_NAME = "OAP Global Banking Group"
+CONTINENTAL_FAMILY = (
+    "Africa Crown Bank",
+    "Europa Crown Bank",
+    "Asia Crown Bank",
+    "North America Crown Bank",
+    "South America Crown Bank",
+    "Pacific Crown Bank",
+    "Antarctic Reserve",
+)
+FIRST_JURISDICTIONS = {
+    "Africa Crown Bank": "Ghana",
+    "Europa Crown Bank": "United Kingdom",
+}
+
+
 from . import (
     bank_authorisation,
     bank_authorisation_store,
@@ -109,6 +125,9 @@ def status() -> dict[str, object]:
 
     return {
         "system": "OAP Banking Intelligence OS",
+        "banking_group": GROUP_NAME,
+        "continental_family": list(CONTINENTAL_FAMILY),
+        "first_jurisdictions": dict(FIRST_JURISDICTIONS),
         "mode": "read_only_world_state",
         "first_party": True,
         "composes_sika_treasury": True,
