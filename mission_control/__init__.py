@@ -51,6 +51,7 @@ def init_app(app: Flask) -> None:
         organism_runtime,
         postgres_db,
         product_cores,
+        rights_persistence,
         routing,
         smi_auto,
         smi_founder_assets,
@@ -916,6 +917,40 @@ def init_app(app: Flask) -> None:
         """Dry-run checksum/statement count only; no live DDL command."""
         import json
         print(json.dumps(mail_migration.init_schema(dry_run=True, assume_yes=True)))
+
+    @app.cli.command("oap-rights-persistence-status")
+    def _oap_rights_persistence_status() -> None:
+        """Read-only Rights persistence schema status."""
+        import json
+        print(json.dumps(rights_persistence.schema_status()))
+
+    @app.cli.command("oap-rights-persistence-plan")
+    def _oap_rights_persistence_plan() -> None:
+        """Dry-run the Rights persistence migration without applying DDL."""
+        import json
+        print(
+            json.dumps(
+                rights_persistence.init_schema(
+                    dry_run=True,
+                    assume_yes=True,
+                )
+            )
+        )
+
+    @app.cli.command("oap-init-rights-persistence")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_rights_persistence(dry_run: bool, yes: bool) -> None:
+        """Apply Rights persistence only with explicit Human Authority approval."""
+        import json
+        print(
+            json.dumps(
+                rights_persistence.init_schema(
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
 
     @app.cli.command("oap-esim-status")
     def _oap_esim_status() -> None:
