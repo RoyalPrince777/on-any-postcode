@@ -28,7 +28,7 @@ def _pair(*, left_due_from="100", right_due_to="100"):
 
 
 def test_matching_intercompany_balances_are_elimination_ready():
-    left, right = _pair()
+    left, _right = _pair()
     result = sika_intercompany_accounting.match(left=left, right=right)
     assert result.state == "MATCHED"
     assert result.matched_amount == 100
