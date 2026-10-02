@@ -156,9 +156,10 @@ def amount_within_controls(*, card: CardAccount, amount: object) -> bool:
         raise CardControlError("card_amount_invalid") from exc
     if not parsed.is_finite() or parsed <= 0:
         raise CardControlError("card_amount_invalid")
-    if card.single_transaction_limit is not None and parsed > card.single_transaction_limit:
-        return False
-    return True
+    return not (
+        card.single_transaction_limit is not None
+        and parsed > card.single_transaction_limit
+    )
 
 
 def status() -> dict[str, object]:
