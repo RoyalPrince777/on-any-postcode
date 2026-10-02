@@ -62,3 +62,20 @@ def test_voice_browser_controller_has_valid_javascript_syntax():
         capture_output=True,
         text=True,
     )
+
+
+def test_ptt_hold_to_talk_reuses_first_party_voice_runtime():
+    source = (ROOT / "static" / "linkup_voice.js").read_text(encoding="utf-8")
+    template = (ROOT / "mission_control" / "templates" / "linkup.html").read_text(encoding="utf-8")
+    assert 'aria-label="Hold to Talk (PTT)"' in template
+    assert 'control.addEventListener("pointerdown"' in source
+    assert 'window.addEventListener("pointerup"' in source
+    assert 'window.addEventListener("pointercancel"' in source
+    assert 'state.releaseRequested || state.cancelRequested' in source
+    assert 'state.starting' in source
+    assert 'event.detail !== 0' in source  # suppress synthetic second start after pointer release
+    assert 'current.cancelled = true' in source
+    assert 'finishRecording();' in source
+    assert 'uploadVoice(peerId, blob, durationMs)' in source
+    assert '"/linkup/voice"' in source
+    assert "new WebSocket" not in source
