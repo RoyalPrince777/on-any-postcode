@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from mission_control.agents import AGENT_REGISTRY, LOCKED_FAMILY_IDS
+from mission_control import smi_brain_protocol
 from oap.aegis.engine import AegisEngine
 from oap.contracts import (
     BrainRequest,
@@ -155,6 +156,88 @@ def _identity_from_authority_context(
     return identity, is_human_authority
 
 
+def _core_review_signal_record(
+    *,
+    action_risk: dict[str, object],
+    safety_passed: bool,
+    high_impact: bool,
+    identity_authority_level: int,
+    is_human_authority: bool,
+    permission_verified: bool,
+    output_state: str,
+    coherence: dict[str, object],
+    self_model: dict[str, object],
+    war_room: dict[str, object],
+) -> tuple[dict[str, object], ...]:
+    """Expose evidence-bound 21-signal coverage without inventing Green or scores."""
+
+    reviewed: dict[str, tuple[str, str]] = {
+        "Truth": ("reviewed", "operational_coherence"),
+        "Risk": ("reviewed", "action_risk_router"),
+        "Safety": ("reviewed", "aegis_guardian"),
+        "Identity": ("reviewed", "identity_authority_context"),
+        "Permission": (
+            "reviewed" if permission_verified else "gated",
+            "permission_engine",
+        ),
+        "Intent": ("reviewed", "task_classification_and_action_risk"),
+        "Impact": ("reviewed", "high_impact_classification"),
+        "Coherence": ("reviewed", "coherence_engine"),
+        "Outcome": ("reviewed", "judge_output_state"),
+        "Human Authority": ("reviewed", "authority_context"),
+    }
+    required: dict[str, str] = {
+        "Evidence": "request_specific_source_or_runtime_proof",
+        "Security": "request_specific_security_evidence",
+        "Privacy": "request_specific_privacy_evidence",
+        "Dependency": "request_specific_dependency_evidence",
+        "Architecture": "request_specific_architecture_evidence",
+        "Alignment": "request_specific_alignment_evidence",
+        "Resilience": "request_specific_resilience_evidence",
+        "Performance": "request_specific_performance_evidence",
+        "Reversibility": "rollback_or_reversibility_proof",
+        "Readiness": "green_gate_or_runtime_readiness_proof",
+        "Recovery": "recovery_or_rollback_proof",
+    }
+
+    entries: list[dict[str, object]] = []
+    for signal in smi_brain_protocol.CORE_REVIEW_SIGNALS_21:
+        if signal in reviewed:
+            state, owner = reviewed[signal]
+        else:
+            state, owner = ("required", required[signal])
+
+        detail: dict[str, object] = {
+            "signal": signal,
+            "state": state,
+            "owner": owner,
+            "green": False,
+        }
+        if signal == "Risk":
+            detail["route"] = str(action_risk.get("route") or "")
+        elif signal == "Safety":
+            detail["passed"] = bool(safety_passed)
+        elif signal == "Impact":
+            detail["high_impact"] = bool(high_impact)
+        elif signal == "Coherence":
+            detail["coherent"] = bool(coherence.get("coherent"))
+            detail["self_model_ready"] = bool(self_model.get("overall_ready"))
+        elif signal == "Outcome":
+            detail["output_state"] = output_state
+        elif signal == "Human Authority":
+            detail["authority_level"] = identity_authority_level
+            detail["is_human_authority"] = bool(is_human_authority)
+        elif signal == "Reversibility":
+            detail["war_room_requires_reversibility"] = bool(
+                war_room.get("reversibility_required")
+            )
+        entries.append(detail)
+
+    if tuple(item["signal"] for item in entries) != smi_brain_protocol.CORE_REVIEW_SIGNALS_21:
+        raise RuntimeError("core_review_signal_contract_mismatch")
+    return tuple(entries)
+
+
 def review(
     *,
     request_id: str,
@@ -282,6 +365,21 @@ def review(
         or action_risk.red_team_required
         or action_risk.route in {ROUTE_CONFIRM, ROUTE_GOVERNANCE, ROUTE_BLOCK},
     )
+    core_review_signals = _core_review_signal_record(
+        action_risk=action_risk.as_dict(),
+        safety_passed=safety.passed,
+        high_impact=high_impact,
+        identity_authority_level=identity.authority_level,
+        is_human_authority=is_human_authority,
+        permission_verified=bool(permission),
+        output_state=output_state.value,
+        coherence=coherence.as_dict(),
+        self_model=self_model.as_dict(),
+        war_room={
+            "reversibility_required": war_room.reversibility_required,
+        },
+    )
+
     return {
         "passed": safety.passed,
         "high_impact": high_impact,
@@ -342,6 +440,10 @@ def review(
             "reversibility_required": war_room.reversibility_required,
             "decision_authority": False,
         },
+        "core_review_signals_21": [dict(item) for item in core_review_signals],
+        "core_review_signal_count": len(core_review_signals),
+        "core_review_signal_green_count": 0,
+        "core_review_signal_scoring": "disabled_without_request_specific_evidence",
         "processing_states": [
             "NEXUS_RECEIVED",
             "IDENTITY_VERIFIED",
