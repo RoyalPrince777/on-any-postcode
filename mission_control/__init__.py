@@ -25,6 +25,7 @@ def init_app(app: Flask) -> None:
         authority,
         bank_authorisation,
         bank_authorisation_store,
+        bank_regulator_pack,
         esim_persistence,
         hrm_durable_receipt,
         link_activity,
@@ -829,6 +830,13 @@ def init_app(app: Flask) -> None:
                 }
             )
         )
+
+    @app.cli.command("oap-bank-regulator-pack")
+    def _oap_bank_regulator_pack() -> None:
+        """Read-only canonical regulator evidence pack with SHA-256 digest."""
+        import json
+
+        print(json.dumps(bank_regulator_pack.build_pack(), sort_keys=True))
 
     @app.cli.command("oap-record-bank-evidence")
     @click.option(
