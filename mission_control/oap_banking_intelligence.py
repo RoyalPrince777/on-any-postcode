@@ -13,6 +13,7 @@ from . import (
     bank_authorisation_store,
     bank_permission_scope,
     oap_blockchain_accounting_anchor,
+    sika_account_engine,
     sika_accounting_controls,
     sika_accounting_intelligence,
     sika_alm_forecasting_intelligence,
@@ -177,6 +178,9 @@ def status() -> dict[str, object]:
         ),
         "accounting_intelligence_integrated": bool(
             sika_accounting_intelligence.status()["first_party"]
+        ),
+        "account_engine_integrated": bool(
+            sika_account_engine.status()["persistent_account_identity"]
         ),
         "accounting_controls_integrated": bool(
             sika_accounting_controls.status()["closed_period_posting_block"]
