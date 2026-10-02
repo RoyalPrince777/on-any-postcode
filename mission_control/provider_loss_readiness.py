@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
+import shutil
+import subprocess
 
 _REQUIRED_CHECKS: tuple[str, ...] = (
     "local_git_history_available",
@@ -77,6 +79,78 @@ _REPOSITORY_ARTIFACTS: dict[str, tuple[str, ...]] = {
 def required_checks() -> tuple[str, ...]:
     """Return the canonical 21-check provider-loss gate."""
     return _REQUIRED_CHECKS
+
+
+def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    git = shutil.which("git")
+    if not git:
+        raise RuntimeError("git_executable_unavailable")
+    return subprocess.run(
+        [git, *args],
+        cwd=repo,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=20,
+        check=False,
+    )
+
+
+def inspect_local_git_history(root: str | Path) -> dict[str, object]:
+    """Perform a read-only local Git integrity inspection.
+
+    This proves only the inspected local repository state. It does not prove an
+    independent mirror, remote availability, backup durability, or recovery.
+    """
+    repo = Path(root)
+    if not repo.is_dir():
+        return {
+            "repository_present": False,
+            "git_repository": False,
+            "head_sha": None,
+            "shallow": None,
+            "object_integrity_ok": False,
+            "local_git_history_available": False,
+            "independent_repo_mirror_proven": False,
+            "network_access_used": False,
+            "mutation_performed": False,
+        }
+
+    inside = _run_git(repo, "rev-parse", "--is-inside-work-tree")
+    if inside.returncode != 0 or inside.stdout.strip() != "true":
+        return {
+            "repository_present": True,
+            "git_repository": False,
+            "head_sha": None,
+            "shallow": None,
+            "object_integrity_ok": False,
+            "local_git_history_available": False,
+            "independent_repo_mirror_proven": False,
+            "network_access_used": False,
+            "mutation_performed": False,
+        }
+
+    head = _run_git(repo, "rev-parse", "--verify", "HEAD")
+    shallow = _run_git(repo, "rev-parse", "--is-shallow-repository")
+    fsck = _run_git(repo, "fsck", "--no-dangling", "--no-reflogs")
+
+    head_sha = head.stdout.strip() if head.returncode == 0 else None
+    shallow_value = shallow.stdout.strip() if shallow.returncode == 0 else None
+    object_integrity_ok = fsck.returncode == 0
+    full_history = shallow_value == "false"
+    available = bool(head_sha) and full_history and object_integrity_ok
+
+    return {
+        "repository_present": True,
+        "git_repository": True,
+        "head_sha": head_sha,
+        "shallow": shallow_value == "true" if shallow_value in ("true", "false") else None,
+        "object_integrity_ok": object_integrity_ok,
+        "local_git_history_available": available,
+        "independent_repo_mirror_proven": False,
+        "network_access_used": False,
+        "mutation_performed": False,
+    }
 
 
 def repository_artifact_snapshot(root: str | Path) -> dict[str, object]:
