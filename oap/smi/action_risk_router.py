@@ -7,8 +7,8 @@ grants authority. Its job is to choose the smallest safe governance path.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import Final
 
 ROUTE_DIRECT_ANSWER: Final = "DIRECT_ANSWER"
