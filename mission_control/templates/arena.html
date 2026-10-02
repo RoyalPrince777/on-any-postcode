@@ -134,6 +134,35 @@
       <noscript><p class="arena-error">JavaScript is required for the interactive challenge. Arena architecture and truth boundaries remain readable.</p></noscript>
     </section>
 
+    <section class="mc-panel" aria-labelledby="arena-gaming-intelligence-title">
+      <p class="mc-eyebrow">One game brain · capability truth per title</p>
+      <h2 id="arena-gaming-intelligence-title">🎮 Gaming Intelligence</h2>
+      <p>{{ hub.game_intelligence_summary.games }} games · {{ hub.game_intelligence_summary.training }} training-ready · {{ hub.game_intelligence_summary.move_review }} review-ready · {{ hub.game_intelligence_summary.online_rooms }} online-room games · {{ hub.game_intelligence_summary.agent_opponents }} executable agent-opponent game.</p>
+      <div class="arena-grid" role="list">
+        {% for key, game in hub.game_intelligence.games.items() %}
+        <article class="arena-layer" role="listitem">
+          <h3>{{ game.icon }} {{ game.name }}</h3>
+          <p><strong>Rules:</strong> {{ game.rules_status | replace('_', ' ') | title }}</p>
+          <p><strong>Live:</strong>
+            {% if game.capabilities.local_play %}Local{% endif %}
+            {% if game.capabilities.online_rooms %} · Online Rooms{% endif %}
+            {% if game.capabilities.agent_opponent %} · Agent Opponent{% endif %}
+            {% if game.capabilities.training %} · Training{% endif %}
+            {% if game.capabilities.move_review %} · Review{% endif %}
+          </p>
+          <p><strong>Locked:</strong>
+            {% if not game.capabilities.online_rooms %}Online Rooms · {% endif %}
+            {% if not game.capabilities.agent_opponent %}Agent Opponent · {% endif %}
+            {% if not game.capabilities.ranked_results %}Ranked Results · {% endif %}
+            {% if not game.capabilities.tournaments %}Tournaments{% endif %}
+          </p>
+          <p><a class="arena-control arena-control-primary" href="{{ game.route }}">Open {{ game.name }}</a></p>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="arena-truth"><strong>Truth mode:</strong> agent fit does not mean agent execution. Training and review are advisory until a game-specific executable analyser is proven.</p>
+    </section>
+
     <section class="mc-panel" aria-labelledby="arena-intelligence-title">
       <p class="mc-eyebrow">One brain · seven coordinated modes</p>
       <h2 id="arena-intelligence-title">Arena Intelligence</h2>

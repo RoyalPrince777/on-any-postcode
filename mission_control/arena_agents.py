@@ -10,25 +10,25 @@ AGENTS: dict[str, dict[str, Any]] = {
         "animal": "Panther",
         "role": "Adaptive opponent",
         "overall_stars": 7,
-        "fits": {"iq": 6, "route-empire": 7, "connect4": 7, "ludo": 6, "chess": 6, "dot": 7},
+        "fits": {"iq": 6, "route-empire": 7, "connect4": 7, "ludo": 6, "chess": 6, "dot": 7, "oware": 6},
     },
     "owl": {
         "name": "Owl",
         "role": "Wisdom and deep reasoning",
         "overall_stars": 7,
-        "fits": {"iq": 7, "route-empire": 6, "connect4": 6, "ludo": 5, "chess": 7, "dot": 6},
+        "fits": {"iq": 7, "route-empire": 6, "connect4": 6, "ludo": 5, "chess": 7, "dot": 6, "oware": 7},
     },
     "eagle": {
         "name": "Eagle",
         "role": "Long-range vision",
         "overall_stars": 6,
-        "fits": {"iq": 5, "route-empire": 7, "connect4": 5, "ludo": 5, "chess": 6, "dot": 5},
+        "fits": {"iq": 5, "route-empire": 7, "connect4": 5, "ludo": 5, "chess": 6, "dot": 5, "oware": 6},
     },
     "falcon": {
         "name": "Falcon",
         "role": "Fast tactical decisions",
         "overall_stars": 6,
-        "fits": {"iq": 5, "route-empire": 5, "connect4": 7, "ludo": 6, "chess": 6, "dot": 7},
+        "fits": {"iq": 5, "route-empire": 5, "connect4": 7, "ludo": 6, "chess": 6, "dot": 7, "oware": 5},
     },
     "elephant": {
         "name": "Colonel Hathi",
@@ -36,19 +36,19 @@ AGENTS: dict[str, dict[str, Any]] = {
         "family": ["Colonel Hathi", "Hathi Jr"],
         "role": "Control, memory and pattern continuity",
         "overall_stars": 6,
-        "fits": {"iq": 7, "route-empire": 6, "connect4": 5, "ludo": 5, "chess": 6, "dot": 5},
+        "fits": {"iq": 7, "route-empire": 6, "connect4": 5, "ludo": 5, "chess": 6, "dot": 5, "oware": 6},
     },
     "bee": {
         "name": "Bee",
         "role": "Coordination and team play",
         "overall_stars": 5,
-        "fits": {"iq": 5, "route-empire": 5, "connect4": 5, "ludo": 7, "chess": 4, "dot": 6},
+        "fits": {"iq": 5, "route-empire": 5, "connect4": 5, "ludo": 7, "chess": 4, "dot": 6, "oware": 6},
     },
     "gorilla": {
         "name": "Gorilla",
         "role": "Defensive play and protection",
         "overall_stars": 5,
-        "fits": {"iq": 4, "route-empire": 6, "connect4": 6, "ludo": 5, "chess": 6, "dot": 5},
+        "fits": {"iq": 4, "route-empire": 6, "connect4": 6, "ludo": 5, "chess": 6, "dot": 5, "oware": 5},
     },
 }
 DEFAULT_BY_GAME = {
@@ -58,6 +58,7 @@ DEFAULT_BY_GAME = {
     "ludo": "bee",
     "chess": "owl",
     "dot": "falcon",
+    "oware": "owl",
 }
 
 
