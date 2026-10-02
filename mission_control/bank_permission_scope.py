@@ -11,6 +11,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
+
 from . import bank_authorisation, postgres_db
 
 MIGRATION_VERSION = "bank_permission_scope_v1"
