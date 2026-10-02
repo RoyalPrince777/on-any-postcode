@@ -78,11 +78,16 @@ def test_auto_depth_is_safe_completion_metadata_and_visible():
     assert "autoDepthVisible:true" in final
 
 
-def test_control_surface_stays_purple_until_live_browser_certification():
+def test_control_surface_can_turn_green_only_from_durable_post_ack_proof():
     health = HEALTH.read_text(encoding="utf-8")
+    receipts = (ROOT / "mission_control" / "smi_receipt_backend.py").read_text(encoding="utf-8")
     assert '"id": "control-surface-v2"' in health
-    assert "signed-in browser/device certification is still required for full green" in health
-    assert '"live_runtime_proven": False' in health
+    assert "latest_durable_button_proof" in health
+    assert 'spec["id"] == "control-surface-v2"' in health
+    assert '"LIVE PROVEN"' in health
+    assert "durable_post_ack_button_proof" in receipts
+    assert "runtime_acknowledged" in receipts
+    assert "click_only_proof" in receipts
 
 
 def test_character_has_merry_expressive_style_and_reduced_motion():
