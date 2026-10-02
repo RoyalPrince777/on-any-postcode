@@ -115,6 +115,9 @@ def route_state(route: object, query: object = None) -> dict[str, object]:
             "state": state,
             "reported_road_state": report.get("road_state"),
             "source": report.get("source"),
+            "source_role": report.get("source_role") or "evidence_input",
+            "external_source": bool(report.get("external_source")),
+            "oap_decision_authority": False,
             "authority_verified": bool(report.get("authority_verified")),
             "updated_at": report.get("updated_at") or report.get("created_at"),
         })
@@ -176,4 +179,9 @@ def status() -> dict[str, object]:
         "precise_device_location_stored": False,
         "hidden_tracking": False,
         "truth_gated": True,
+        "intelligence_owner": "ON ANY POSTCODE",
+        "decision_engine": "OAP Live Road Intelligence",
+        "external_sources_are_evidence_only": True,
+        "external_source_decision_authority": False,
+        "external_source_routing_authority": False,
     }
