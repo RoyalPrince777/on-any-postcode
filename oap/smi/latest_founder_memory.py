@@ -133,7 +133,7 @@ _RECORDS = (
 )
 
 
-def latest_founder_memory_items(*, limit: int = 5) -> tuple[MemoryItem, ...]:
+def latest_founder_memory_items(*, limit: int = 6) -> tuple[MemoryItem, ...]:
     safe_limit = min(max(int(limit), 1), len(_RECORDS))
     return tuple(
         MemoryItem(
