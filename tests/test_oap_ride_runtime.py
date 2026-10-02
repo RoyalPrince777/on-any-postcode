@@ -20,6 +20,7 @@ def test_ride_lifecycle_routes_are_registered():
         "/transport/ride/bookings/<booking_id>/complete",
         "/transport/ride/bookings/<booking_id>/receipt",
         "/transport/ride/bookings/<booking_id>/feedback",
+        "/transport/ride/current",
     }
     assert expected <= rules
 
