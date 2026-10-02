@@ -2,6 +2,7 @@
 window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;
 const cfg=window.OAP_SMI_UI||{};
 const OAP_SMI_VOICE_PREF_KEY="oap.smi.voiceReplyEnabled.v1";
+const OAP_SMI_INTELLIGENCE_PREF_KEY="oap.smi.defaultIntelligence.v1";
 window.OAP_SMI_VOICE_PREF={
   read(fallback=true){
     try{
@@ -20,23 +21,39 @@ window.OAP_SMI_VOICE_PREF={
   storesTranscript:false
 };
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-const voiceSettingsButton=q("#voice-settings-button");
-const voiceSettingsPanel=q("#voice-settings-panel");
+const smiSettingsButton=q("#smi-settings-button");
+const smiSettingsPanel=q("#smi-settings-panel");
 const voiceAutoSpeakToggle=q("#voice-auto-speak-toggle");
-function syncVoiceSettings(){
-  if(!voiceAutoSpeakToggle)return;
-  voiceAutoSpeakToggle.checked=window.OAP_SMI_VOICE_PREF?.read?.(true) ?? true;
+const defaultIntelligenceLevel=q("#default-intelligence-level");
+const runtimeThinkingLevel=q("#thinking-level");
+const allowedIntelligenceLevels=new Set(["auto","instant","think","deep_dive"]);
+function readIntelligencePreference(){
+  try{
+    const stored=window.localStorage?.getItem(OAP_SMI_INTELLIGENCE_PREF_KEY);
+    return allowedIntelligenceLevels.has(stored)?stored:"auto";
+  }catch{return "auto";}
 }
-if(voiceSettingsButton&&voiceSettingsPanel){
-  voiceSettingsButton.addEventListener("click",()=>{
-    const open=voiceSettingsPanel.hidden;
-    voiceSettingsPanel.hidden=!open;
-    voiceSettingsButton.setAttribute("aria-expanded",String(open));
-    if(open)syncVoiceSettings();
+function writeIntelligencePreference(value){
+  const safe=allowedIntelligenceLevels.has(value)?value:"auto";
+  try{window.localStorage?.setItem(OAP_SMI_INTELLIGENCE_PREF_KEY,safe);}catch{}
+  return safe;
+}
+function syncSmiSettings(){
+  if(voiceAutoSpeakToggle)voiceAutoSpeakToggle.checked=window.OAP_SMI_VOICE_PREF?.read?.(true) ?? true;
+  const intelligence=readIntelligencePreference();
+  if(defaultIntelligenceLevel)defaultIntelligenceLevel.value=intelligence;
+  if(runtimeThinkingLevel&&allowedIntelligenceLevels.has(intelligence))runtimeThinkingLevel.value=intelligence;
+}
+if(smiSettingsButton&&smiSettingsPanel){
+  smiSettingsButton.addEventListener("click",()=>{
+    const open=smiSettingsPanel.hidden;
+    smiSettingsPanel.hidden=!open;
+    smiSettingsButton.setAttribute("aria-expanded",String(open));
+    if(open)syncSmiSettings();
   });
 }
 if(voiceAutoSpeakToggle){
-  syncVoiceSettings();
+  syncSmiSettings();
   voiceAutoSpeakToggle.addEventListener("change",()=>{
     const enabled=window.OAP_SMI_VOICE_PREF?.write?.(voiceAutoSpeakToggle.checked) ?? voiceAutoSpeakToggle.checked;
     const speaker=document.getElementById("speaker-button");
@@ -46,6 +63,15 @@ if(voiceAutoSpeakToggle){
     if(status)status.textContent=enabled
       ?"Voice reply on · preference saved on this device"
       :"Voice reply off · preference saved on this device";
+if(defaultIntelligenceLevel){
+  defaultIntelligenceLevel.addEventListener("change",()=>{
+    const value=writeIntelligencePreference(defaultIntelligenceLevel.value);
+    defaultIntelligenceLevel.value=value;
+    if(runtimeThinkingLevel)runtimeThinkingLevel.value=value;
+    const status=document.getElementById("status");
+    if(status)status.textContent="Default Intelligence · "+(value==="deep_dive"?"21":value==="think"?"7":value==="instant"?"3":"Auto")+" · preference saved on this device";
+  });
+}
   });
 }
 const input=q('#message'),messages=q('#messages'),history=q('.history'),historyList=q('#history-list'),head=q('.chat-head'),plus=q('#plus-button'),menu=q('#attach-menu'),thinking=q('#thinking');
