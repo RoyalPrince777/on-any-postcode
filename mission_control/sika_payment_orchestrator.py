@@ -7,6 +7,7 @@ module does not call providers, post journals, settle funds, or move money.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
@@ -226,11 +227,25 @@ def read_intent(payment_id: object) -> PaymentIntent | None:
     return None if row is None else _row_to_intent(row)
 
 
+def _gateway_authorization_valid(value: object) -> bool:
+    if not isinstance(value, Mapping):
+        return False
+    return (
+        value.get("transition_authorized") is True
+        and value.get("target_status") == "AUTHORISED"
+        and value.get("human_authority_final") is True
+        and value.get("provider_calling") is False
+        and value.get("settlement_execution") is False
+        and value.get("money_movement") is False
+    )
+
+
 def transition(
     *,
     payment_id: object,
     target_status: object,
     provider_reference: object | None = None,
+    gateway_authorization: object | None = None,
 ) -> PaymentIntent:
     target = _required(target_status, error="payment_target_status_required").upper()
     allowed = {
@@ -252,6 +267,14 @@ def transition(
         return current
     if target not in allowed[current.status]:
         raise PaymentOrchestratorError("payment_transition_not_allowed")
+    if target == "AUTHORISED" and not _gateway_authorization_valid(
+        gateway_authorization
+    ):
+        raise PaymentOrchestratorError("sika_pay_gateway_authorization_required")
+    if target != "AUTHORISED" and gateway_authorization is not None:
+        raise PaymentOrchestratorError(
+            "gateway_authorization_only_allowed_for_authorised_transition"
+        )
 
     provider_ref_value = current.provider_reference
     if target == "SUBMITTED":
@@ -303,6 +326,8 @@ def status() -> dict[str, object]:
         "payee_reference_binding": True,
         "currency_validation": True,
         "jurisdiction_validation": True,
+        "sika_pay_gateway_required_for_authorisation": True,
+        "direct_authorisation_bypass_allowed": False,
         "state_machine": [
             "DRAFT",
             "REVIEW",
