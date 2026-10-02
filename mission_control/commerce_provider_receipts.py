@@ -117,6 +117,24 @@ def record(
     }
 
 
+def owner_for_subject(subject_id: object) -> str | None:
+    subject = str(subject_id or "").strip()
+    if not subject:
+        raise ValueError("provider_receipt_subject_required")
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT owner_identity_id FROM oap_commerce_provider_receipts
+                   WHERE subject_id=%s ORDER BY created_at ASC LIMIT 1""",
+                (subject,),
+            ).fetchone()
+    except Exception as exc:
+        raise CommerceProviderReceiptUnavailable(
+            "commerce_provider_receipt_owner_read_failed"
+        ) from exc
+    return None if row is None else str(row[0])
+
+
 def status() -> dict[str, object]:
     return {
         "system": "OAP Commerce Provider Receipts",
