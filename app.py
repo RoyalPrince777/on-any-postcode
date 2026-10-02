@@ -57,6 +57,7 @@ from mission_control import (
     public_studio_runtime,
     reviews,
     route_empire,
+    sika_human_rights_gate,
     smi_chat_runtime,
     smi_proof_gate,
     surface_security,
@@ -2290,6 +2291,77 @@ def spot_capability_front_door(capability_slug):
                 **context,
             )
         )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/sika/human-rights", methods=["GET", "POST"])
+def sika_human_rights_app():
+    """Public rights charter plus protected consequential-review console."""
+
+    user = None
+    try:
+        user = web_security.current_authenticated_user()
+    except neon_auth.AuthUnavailable:
+        user = None
+
+    can_review = bool(user and web_security.private_authority_allowed(user))
+    review_result = None
+    review_error = None
+
+    if request.method == "POST":
+        if not web_security.csrf_valid(request):
+            return _csrf_failure()
+        if not can_review:
+            response = jsonify(
+                error={
+                    "code": "human_authority_required",
+                    "message": "Human Authority sign-in is required for a SIKA rights review.",
+                }
+            )
+            response.status_code = 403
+            response.headers["Cache-Control"] = "no-store"
+            return response
+        try:
+            review_result = sika_human_rights_gate.review(
+                action_type=_form_text("action_type", "", 64),
+                subject_reference=_form_text("subject_reference", "", 160),
+                evidence_reference=_form_text("evidence_reference", "", 240),
+                reason_code=_form_text("reason_code", "", 120),
+                privacy_minimised=request.form.get("privacy_minimised") == "on",
+                non_discrimination_reviewed=(
+                    request.form.get("non_discrimination_reviewed") == "on"
+                ),
+                accessibility_considered=(
+                    request.form.get("accessibility_considered") == "on"
+                ),
+                explanation_available=(
+                    request.form.get("explanation_available") == "on"
+                ),
+                remedy_available=request.form.get("remedy_available") == "on",
+            )
+        except sika_human_rights_gate.HumanRightsGateError as exc:
+            review_error = str(exc)
+
+    response = make_response(
+        render_template(
+            "sika_human_rights.html",
+            gate_status=sika_human_rights_gate.status(),
+            auth_user=user,
+            can_review=can_review,
+            review_result=review_result,
+            review_error=review_error,
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.get("/api/sika/human-rights/status")
+def sika_human_rights_status():
+    """Return public-safe SIKA Human Rights Gate truth status."""
+
+    response = jsonify(sika_human_rights_gate.status())
     response.headers["Cache-Control"] = "no-store"
     return response
 
