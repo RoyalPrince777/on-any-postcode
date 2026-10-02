@@ -19,6 +19,12 @@ from oap.guardian.engine import GuardianEngine
 from oap.nexus.router import NexusRouter
 from oap.permissions.engine import PermissionEngine
 from oap.registry.engine import RegistryEngine
+from oap.smi.action_risk_router import (
+    ROUTE_BLOCK,
+    ROUTE_CONFIRM,
+    ROUTE_GOVERNANCE,
+    route_action,
+)
 from oap.smi.agi_core import AGICore
 from oap.smi.coherence import CoherenceEngine
 from oap.smi.command_intelligence import CommandIntelligence
@@ -162,7 +168,11 @@ def review(
     """Run the canonical NEXUS/Identity/Registry/Brain/Guardian/War Room review."""
 
     task_type = classify_task(content)
-    high_impact = _is_high_impact(content)
+    action_risk = route_action(content)
+    high_impact = bool(
+        _is_high_impact(content)
+        or action_risk.route in {ROUTE_GOVERNANCE, ROUTE_BLOCK}
+    )
     request = BrainRequest(
         request_id=request_id,
         identity_id=identity_id,
@@ -226,6 +236,13 @@ def review(
     aegis_findings = aegis.inspect(signal)
     safety = guardian.protect(signal, permission, aegis_findings)
     output_state = JudgeEngine().decide(request, analysis, safety)
+    if action_risk.route == ROUTE_BLOCK:
+        output_state = OutputState.BLOCK_REQUEST
+    elif (
+        action_risk.route in {ROUTE_CONFIRM, ROUTE_GOVERNANCE}
+        and output_state != OutputState.BLOCK_REQUEST
+    ):
+        output_state = OutputState.REVIEW_REQUIRED
 
     components = (
         registry.status(),
@@ -261,11 +278,14 @@ def review(
         authority_roles=identity.roles,
         self_model=self_model.as_dict(),
         coherence=coherence.as_dict(),
-        force_review=bool(force_war_room),
+        force_review=bool(force_war_room)
+        or action_risk.red_team_required
+        or action_risk.route in {ROUTE_CONFIRM, ROUTE_GOVERNANCE, ROUTE_BLOCK},
     )
     return {
         "passed": safety.passed,
         "high_impact": high_impact,
+        "action_risk": action_risk.as_dict(),
         "task_type": task_type,
         "output_state": output_state.value,
         "signal_level": safety.signal_level.value,
