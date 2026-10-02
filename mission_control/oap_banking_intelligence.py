@@ -12,6 +12,7 @@ from . import (
     bank_authorisation,
     bank_authorisation_store,
     bank_permission_scope,
+    sika_double_entry,
     sika_production_evidence_store,
     sika_provider_adapter,
     sika_treasury_controls,
@@ -139,6 +140,8 @@ def status() -> dict[str, object]:
         "money_movement_enabled": False,
         "human_authority_final": True,
         "blockchain_integrity_integrated": False,
-        "bank_grade_double_entry_integrated": False,
+        "bank_grade_double_entry_integrated": bool(
+            sika_double_entry.status()["validates_debits_and_credits"]
+        ),
         "runtime_reconciliation_integrated": False,
     }
