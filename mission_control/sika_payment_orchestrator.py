@@ -227,12 +227,28 @@ def read_intent(payment_id: object) -> PaymentIntent | None:
     return None if row is None else _row_to_intent(row)
 
 
-def _gateway_authorization_valid(value: object) -> bool:
+def _gateway_authorization_valid(
+    value: object,
+    *,
+    intent: PaymentIntent,
+) -> bool:
     if not isinstance(value, Mapping):
+        return False
+    required_hashes = (
+        str(value.get("rights_record_hash") or ""),
+        str(value.get("rights_gate_decision_hash") or ""),
+    )
+    if any(len(item) != 64 for item in required_hashes):
         return False
     return (
         value.get("transition_authorized") is True
         and value.get("target_status") == "AUTHORISED"
+        and str(value.get("payment_id") or "") == intent.payment_id
+        and str(value.get("payer_account_id") or "") == intent.payer_account_id
+        and str(value.get("payee_reference") or "") == intent.payee_reference
+        and str(value.get("amount") or "") == f"{intent.amount:.2f}"
+        and str(value.get("currency") or "") == intent.currency
+        and str(value.get("jurisdiction") or "") == intent.jurisdiction
         and value.get("human_authority_final") is True
         and value.get("provider_calling") is False
         and value.get("settlement_execution") is False
@@ -268,7 +284,8 @@ def transition(
     if target not in allowed[current.status]:
         raise PaymentOrchestratorError("payment_transition_not_allowed")
     if target == "AUTHORISED" and not _gateway_authorization_valid(
-        gateway_authorization
+        gateway_authorization,
+        intent=current,
     ):
         raise PaymentOrchestratorError("sika_pay_gateway_authorization_required")
     if target != "AUTHORISED" and gateway_authorization is not None:
@@ -328,6 +345,8 @@ def status() -> dict[str, object]:
         "jurisdiction_validation": True,
         "sika_pay_gateway_required_for_authorisation": True,
         "direct_authorisation_bypass_allowed": False,
+        "gateway_authorization_bound_to_payment": True,
+        "gateway_authorization_requires_rights_hashes": True,
         "state_machine": [
             "DRAFT",
             "REVIEW",

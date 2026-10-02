@@ -105,21 +105,58 @@ def test_status_keeps_payment_orchestrator_non_executing():
 
 
 
-def test_gateway_authorization_contract_requires_exact_truth_boundaries():
+def test_gateway_authorization_contract_is_bound_to_exact_payment():
+    intent = sika_payment_orchestrator.PaymentIntent(
+        payment_id="pay-bound",
+        idempotency_key="idem-bound",
+        payer_account_id="acct-1",
+        payee_reference="payee-1",
+        amount=sika_payment_orchestrator.Decimal("10.00"),
+        currency="GBP",
+        jurisdiction="United Kingdom",
+        status="REVIEW",
+    )
     valid = {
         "transition_authorized": True,
         "target_status": "AUTHORISED",
+        "payment_id": "pay-bound",
+        "payer_account_id": "acct-1",
+        "payee_reference": "payee-1",
+        "amount": "10.00",
+        "currency": "GBP",
+        "jurisdiction": "United Kingdom",
+        "rights_record_hash": "a" * 64,
+        "rights_gate_decision_hash": "b" * 64,
         "provider_calling": False,
         "settlement_execution": False,
         "money_movement": False,
         "human_authority_final": True,
     }
-    assert sika_payment_orchestrator._gateway_authorization_valid(valid) is True
-    assert sika_payment_orchestrator._gateway_authorization_valid(None) is False
+    assert sika_payment_orchestrator._gateway_authorization_valid(
+        valid,
+        intent=intent,
+    ) is True
+    assert sika_payment_orchestrator._gateway_authorization_valid(
+        None,
+        intent=intent,
+    ) is False
 
-    tampered = dict(valid)
-    tampered["money_movement"] = True
-    assert sika_payment_orchestrator._gateway_authorization_valid(tampered) is False
+    for field, replacement in (
+        ("payment_id", "pay-other"),
+        ("payer_account_id", "acct-other"),
+        ("payee_reference", "payee-other"),
+        ("amount", "11.00"),
+        ("currency", "EUR"),
+        ("jurisdiction", "Ghana"),
+        ("rights_record_hash", "short"),
+        ("money_movement", True),
+    ):
+        tampered = dict(valid)
+        tampered[field] = replacement
+        assert sika_payment_orchestrator._gateway_authorization_valid(
+            tampered,
+            intent=intent,
+        ) is False
 
 
 def test_authorisation_transition_requires_sika_pay_gateway(monkeypatch):
@@ -152,3 +189,5 @@ def test_status_reports_direct_authorisation_bypass_closed():
     status = sika_payment_orchestrator.status()
     assert status["sika_pay_gateway_required_for_authorisation"] is True
     assert status["direct_authorisation_bypass_allowed"] is False
+    assert status["gateway_authorization_bound_to_payment"] is True
+    assert status["gateway_authorization_requires_rights_hashes"] is True

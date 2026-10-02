@@ -169,6 +169,17 @@ def authorize_orchestrator_transition(
         "transition_authorized": True,
         "reason": None,
         "target_status": "AUTHORISED",
+        "surface": str(pay_request.get("surface") or ""),
+        "payment_id": str(pay_request.get("payment_id") or ""),
+        "payer_account_id": str(pay_request.get("payer_account_id") or ""),
+        "payee_reference": str(pay_request.get("payee_reference") or ""),
+        "amount": str(pay_request.get("amount") or ""),
+        "currency": str(pay_request.get("currency") or ""),
+        "jurisdiction": str(pay_request.get("jurisdiction") or ""),
+        "rights_record_hash": str(pay_request.get("rights_record_hash") or ""),
+        "rights_gate_decision_hash": str(
+            pay_request.get("rights_gate_decision_hash") or ""
+        ),
         "provider_calling": False,
         "settlement_execution": False,
         "money_movement": False,
