@@ -95,6 +95,125 @@ def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+
+def inspect_local_mirror(
+    mirror_root: str | Path,
+    *,
+    expected_head: str,
+) -> dict[str, object]:
+    """Inspect a second local Git repository as a recovery mirror candidate.
+
+    A separate repository path can prove clone/readback mechanics, but it does
+    not by itself prove off-device, off-provider, or geographically independent
+    storage.
+    """
+    mirror = Path(mirror_root)
+    if not isinstance(expected_head, str) or len(expected_head) != 40:
+        raise ValueError("expected_head_sha_required")
+    if not mirror.is_dir():
+        return {
+            "mirror_present": False,
+            "git_repository": False,
+            "head_matches_expected": False,
+            "object_integrity_ok": False,
+            "independent_storage_proven": False,
+            "network_access_used": False,
+        }
+
+    inside = _run_git(mirror, "rev-parse", "--git-dir")
+    if inside.returncode != 0:
+        return {
+            "mirror_present": True,
+            "git_repository": False,
+            "head_matches_expected": False,
+            "object_integrity_ok": False,
+            "independent_storage_proven": False,
+            "network_access_used": False,
+        }
+
+    head = _run_git(mirror, "rev-parse", "--verify", "HEAD")
+    fsck = _run_git(mirror, "fsck", "--no-dangling", "--no-reflogs")
+    head_sha = head.stdout.strip() if head.returncode == 0 else None
+
+    return {
+        "mirror_present": True,
+        "git_repository": True,
+        "head_sha": head_sha,
+        "head_matches_expected": head_sha == expected_head,
+        "object_integrity_ok": fsck.returncode == 0,
+        "independent_storage_proven": False,
+        "network_access_used": False,
+    }
+
+
+def verify_clean_clone_from_local_mirror(
+    mirror_root: str | Path,
+    clone_root: str | Path,
+    *,
+    expected_head: str,
+) -> dict[str, object]:
+    """Clone from a local mirror into an empty scratch path and verify readback.
+
+    This is a bounded recovery drill. It proves that the supplied mirror can
+    reproduce the expected Git HEAD in a clean clone. It does not prove the
+    mirror is hosted independently from GitHub or on separate physical media.
+    """
+    mirror = Path(mirror_root)
+    clone = Path(clone_root)
+    if clone.exists():
+        raise ValueError("clone_target_must_not_exist")
+    mirror_status = inspect_local_mirror(mirror, expected_head=expected_head)
+    if not (
+        mirror_status["git_repository"]
+        and mirror_status["head_matches_expected"]
+        and mirror_status["object_integrity_ok"]
+    ):
+        return {
+            "clone_attempted": False,
+            "clone_succeeded": False,
+            "head_matches_expected": False,
+            "object_integrity_ok": False,
+            "independent_storage_proven": False,
+            "network_access_used": False,
+            "mutation_scope": "none",
+        }
+
+    git = shutil.which("git")
+    if not git:
+        raise RuntimeError("git_executable_unavailable")
+    result = subprocess.run(
+        [git, "clone", "--no-hardlinks", str(mirror), str(clone)],
+        text=True,
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    if result.returncode != 0:
+        return {
+            "clone_attempted": True,
+            "clone_succeeded": False,
+            "head_matches_expected": False,
+            "object_integrity_ok": False,
+            "independent_storage_proven": False,
+            "network_access_used": False,
+            "mutation_scope": "scratch_clone_only",
+        }
+
+    head = _run_git(clone, "rev-parse", "--verify", "HEAD")
+    fsck = _run_git(clone, "fsck", "--no-dangling", "--no-reflogs")
+    head_sha = head.stdout.strip() if head.returncode == 0 else None
+    return {
+        "clone_attempted": True,
+        "clone_succeeded": True,
+        "head_sha": head_sha,
+        "head_matches_expected": head_sha == expected_head,
+        "object_integrity_ok": fsck.returncode == 0,
+        "independent_storage_proven": False,
+        "network_access_used": False,
+        "mutation_scope": "scratch_clone_only",
+    }
+
+
 def inspect_local_git_history(root: str | Path) -> dict[str, object]:
     """Perform a read-only local Git integrity inspection.
 
