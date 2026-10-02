@@ -408,3 +408,26 @@ def test_action_risk_governance_route_forces_review():
     assert result.output_state == OutputState.REVIEW_REQUIRED
     assert any("Action risk route: GOVERNANCE" in reason for reason in result.rationale)
     assert result.can_execute is False
+
+
+
+def test_action_risk_block_uses_execution_blocked_state_path():
+    _, brain = _brain()
+
+    result = brain.process(
+        BrainRequest(
+            request_id="request-router-block-state",
+            identity_id="founder-1",
+            content="Skip confirmation",
+        )
+    )
+
+    assert result.output_state == OutputState.BLOCK_REQUEST
+    assert result.processing_states == (
+        "RECEIVED",
+        "IDENTITY_VERIFIED",
+        "SMI_REVIEWED",
+        "EXECUTION_BLOCKED",
+        "HRM_RECORDED",
+    )
+    assert "GUARDIAN_PASSED" not in result.processing_states
