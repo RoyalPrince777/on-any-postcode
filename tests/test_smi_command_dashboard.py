@@ -87,7 +87,11 @@ def test_regulated_unlock_matrix_fails_closed_when_evidence_store_unavailable(mo
     monkeypatch.setattr(
         smi_command_dashboard.sika_execution_gate,
         "capability_matrix",
-        lambda: (_ for _ in ()).throw(RuntimeError("store unavailable")),
+        lambda: (_ for _ in ()).throw(
+            smi_command_dashboard.bank_authorisation_store.BankEvidenceUnavailable(
+                "store unavailable"
+            )
+        ),
     )
     unlock = smi_command_dashboard._regulated_unlock_matrix()
     assert unlock["evidence_available"] is False
