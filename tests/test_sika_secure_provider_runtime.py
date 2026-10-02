@@ -3,7 +3,6 @@ import hmac
 import json
 
 import pytest
-
 from mission_control import sika_secure_provider_runtime as runtime
 
 
