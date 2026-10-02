@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 
 import pytest
+
 from mission_control import music_market_purchase as purchase
 
 
