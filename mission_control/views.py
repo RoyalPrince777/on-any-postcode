@@ -649,6 +649,43 @@ def smi_chat_reply_audio():
     )
 
 
+@bp.post("/chat/founder-final")
+@web_security.login_required(api=True)
+def smi_chat_founder_final():
+    """Record Founder Final for the latest pending Judgement in this chat."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = smi_chat_runtime.record_founder_final(
+            _chat_identity(),
+            payload.get("conversation_id"),
+            payload.get("decision") or "APPROVED",
+        )
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record Founder Final.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_founder_final", str(exc), 400)
+    except approval_service.ApprovalUnavailable:
+        return _error(
+            "approval_unavailable",
+            "Founder Final could not be recorded safely.",
+            503,
+        )
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.post("/chat/feedback")
 @web_security.login_required(api=True)
 def smi_chat_feedback():

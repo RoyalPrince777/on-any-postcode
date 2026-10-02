@@ -382,6 +382,74 @@ def _write_audit(
     )
 
 
+def record_founder_final(
+    identity_id: str,
+    conversation_id: object,
+    decision: object = "APPROVED",
+) -> dict:
+    """Record Founder Final for the latest pending Judgement in an owned chat.
+
+    This records Human Authority only. It never executes the recommendation.
+    """
+
+    identity = _validated_uuid(identity_id, "invalid_identity")
+    conversation = _validated_uuid(conversation_id, "invalid_conversation")
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT m.request_id
+               FROM smi_messages m
+               JOIN smi_conversations c ON c.conversation_id=m.conversation_id
+               JOIN smi_judgement_reviews j ON j.request_id=m.request_id
+               WHERE m.conversation_id=%s AND c.identity_id=%s
+                 AND m.role='assistant' AND j.human_decision IS NULL
+               ORDER BY m.created_at DESC LIMIT 1""",
+            (conversation, identity),
+        ).fetchone()
+    if row is None:
+        raise ValueError("no_pending_founder_decision")
+
+    receipt = approval_service.record_decision(
+        request_id=str(row[0]),
+        identity_id=identity,
+        decision=decision,
+    )
+    assistant_text = (
+        "Founder Final recorded. Signed Human Authority decision receipt verified. "
+        "No execution was granted."
+    )
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO smi_messages
+               (conversation_id,request_id,role,content,guardian_outcome)
+               VALUES (%s,%s,'user','🟢','PASSED')""",
+            (conversation, receipt["request_id"]),
+        )
+        connection.execute(
+            """INSERT INTO smi_messages
+               (conversation_id,request_id,role,content,guardian_outcome)
+               VALUES (%s,%s,'assistant',%s,'PASSED')""",
+            (conversation, receipt["request_id"], assistant_text),
+        )
+        connection.execute(
+            """UPDATE smi_conversations SET updated_at=CURRENT_TIMESTAMP
+               WHERE conversation_id=%s AND identity_id=%s""",
+            (conversation, identity),
+        )
+        connection.commit()
+    return {
+        "status": "recorded",
+        "conversation_id": conversation,
+        "request_id": receipt["request_id"],
+        "decision": receipt["decision"],
+        "receipt_id": receipt["receipt_id"],
+        "signature_verified": receipt["signature_verified"],
+        "authority_level": receipt["authority_level"],
+        "response": assistant_text,
+        "execution_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def record_feedback(
     identity_id: str,
     request_id: object,
@@ -495,7 +563,9 @@ def _latest_continuation_context(
            FROM smi_messages m
            JOIN smi_conversations c ON c.conversation_id=m.conversation_id
            JOIN smi_memory_records r ON r.request_id=m.request_id
+           JOIN smi_judgement_reviews j ON j.request_id=m.request_id
            WHERE m.conversation_id=%s AND c.identity_id=%s AND m.role='assistant'
+             AND j.human_decision IS NULL
            ORDER BY m.created_at DESC LIMIT 1""",
         (conversation_id, identity_id),
     ).fetchone()
