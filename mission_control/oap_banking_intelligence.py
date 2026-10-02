@@ -26,6 +26,7 @@ from . import (
     sika_journal_store,
     sika_multi_currency_revaluation,
     sika_payment_orchestrator,
+    sika_payment_submission_evidence,
     sika_production_evidence_store,
     sika_provider_adapter,
     sika_runtime_reconciliation,
@@ -164,6 +165,9 @@ def status() -> dict[str, object]:
         ),
         "payment_orchestrator_integrated": bool(
             sika_payment_orchestrator.status()["persistent_payment_intent"]
+        ),
+        "payment_submission_evidence_integrated": bool(
+            sika_payment_submission_evidence.status()["durable_submission_receipts"]
         ),
         "financial_intelligence_integrated": bool(
             sika_financial_intelligence.status()["first_party"]
