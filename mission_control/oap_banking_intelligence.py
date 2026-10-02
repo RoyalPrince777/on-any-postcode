@@ -13,6 +13,7 @@ from . import (
     bank_authorisation_store,
     bank_permission_scope,
     sika_double_entry,
+    sika_accounting_intelligence,
     sika_financial_intelligence,
     sika_journal_store,
     sika_production_evidence_store,
@@ -150,6 +151,9 @@ def status() -> dict[str, object]:
         ),
         "financial_intelligence_integrated": bool(
             sika_financial_intelligence.status()["first_party"]
+        ),
+        "accounting_intelligence_integrated": bool(
+            sika_accounting_intelligence.status()["first_party"]
         ),
         "runtime_reconciliation_integrated": False,
     }
