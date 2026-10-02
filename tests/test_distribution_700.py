@@ -4,7 +4,6 @@ import pytest
 
 from mission_control import distribution_700
 
-
 CELLS = distribution_700.protocol_cells()
 assert len(CELLS) == 700
 
