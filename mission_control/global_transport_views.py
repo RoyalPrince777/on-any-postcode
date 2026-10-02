@@ -65,10 +65,12 @@ def status() -> dict[str, object]:
         "human_authority_final": True,
         "live_execution_gates": dict(LIVE_EXECUTION_GATES),
         "live_external_transport_execution": False,
+        "mission_scope": "software_and_digital_only",
+        "physical_operations_in_scope": False,
         "truth_boundary": (
-            "Install-ready OAP software surface; physical transport, regulated "
-            "operations, external feeds and money movement require separately "
-            "proven live adapters and execution gates."
+            "Install-ready OAP software and digital coordination surface only. "
+            "Physical transport operations, vehicle operation, custody and real-world "
+            "carrier execution are outside this build."
         ),
     }
 
@@ -110,7 +112,7 @@ small{display:block;margin-top:18px;color:#777}
 <a class="card" href="/transport/status#{{ name|lower }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
 {% endfor %}
 </section>
-<small>SMI intelligence supports decisions. Human Authority remains final. OAP Post Core remains authoritative for parcel fulfilment.</small>
+<small>Software + digital coordination only. Physical transport operations are outside this build. Human Authority remains final.</small>
 </main></body></html>"""
 
 
