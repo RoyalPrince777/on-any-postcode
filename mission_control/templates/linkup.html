@@ -203,7 +203,10 @@
           <p><a href="{{ url_for('my_card_page') }}">My Card</a></p>
           <p><a href="#linkup-requests">Link Requests</a></p>
           <p><a href="#linkup-ring">My Controls</a> · open a Link Up and use ⚙ My Controls.</p>
-          <p><a href="/leave">Leave My World</a></p>
+          <form method="post" action="{{ url_for('auth_sign_out') }}">
+            <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+            <button class="mc-secondary" type="submit">Leave My World</button>
+          </form>
           <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
         </details>
 
