@@ -41,6 +41,8 @@ class CommandCentreUITest(unittest.TestCase):
             'hrmHomeButton.textContent="🧾 HRM / JOOG"',
             'controlHomeButton.textContent="⚙️ Control"',
             'settingsHomeButton.textContent="⚙ Settings"',
+            'incomingHomeButton.textContent="🔔 Incoming"',
+            'myWorldHomeButton.textContent="👤 My World"',
         ):
             self.assertIn(marker, source)
         self.assertIn('triggerMasterTool("guardian")', source)
@@ -49,6 +51,8 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('openWarRoom()', source)
         self.assertIn('cfg.agentsUrl', source)
         self.assertIn('document.getElementById("smi-settings-button")', source)
+        self.assertIn('window.location.assign("/linkup#linkup-incoming")', source)
+        self.assertIn('window.location.assign("/my-world")', source)
         self.assertIn('["🌍 OAP World","world-controls"]', source)
         self.assertIn('["🐆 Jungle","jungle-controls"]', source)
         self.assertIn('["🕶 Matrix Routes","matrix-routes"]', source)
