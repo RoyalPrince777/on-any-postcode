@@ -12,6 +12,9 @@ from mission_control import (
     distribution_market_links,
     market_supplier_network,
     movement_operations,
+    music_civilization_migration,
+    music_evidence,
+    music_market_purchase,
     postgres_db,
     product_cores,
     supplier_bridge,
@@ -551,3 +554,143 @@ def test_real_postgres_bank_authorisation_evidence_is_append_only_and_fail_close
                WHERE category='legal_entity_and_ownership'"""
         ).fetchone()[0]
     assert int(count) == 4
+
+
+def test_real_postgres_music_market_purchase_entitlement_and_splits():
+    """Prove Music -> Market order -> captured-payment observation -> ownership + split ledger."""
+    postgres_db.init_postgres(assume_yes=True)
+    migrated = music_civilization_migration.apply(assume_yes=True)
+    assert migrated["schema_ready"] is True
+    assert music_market_purchase.MIGRATION_VERSION in (
+        migrated["applied"] + migrated["existing"]
+    )
+
+    seller = str(uuid4())
+    buyer = str(uuid4())
+    oap_beneficiary = str(uuid4())
+    release = str(uuid4())
+    product = str(uuid4())
+    order = str(uuid4())
+
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO users(id,email,username,display_name,status)
+               VALUES
+               (%s,%s,%s,%s,'active'),
+               (%s,%s,%s,%s,'active'),
+               (%s,%s,%s,%s,'active')""",
+            (
+                seller, f"{seller}@example.invalid", f"artist-{seller[:8]}", "Artist",
+                buyer, f"{buyer}@example.invalid", f"buyer-{buyer[:8]}", "Buyer",
+                oap_beneficiary, f"{oap_beneficiary}@example.invalid",
+                f"oap-{oap_beneficiary[:8]}", "OAP",
+            ),
+        )
+        connection.execute(
+            """INSERT INTO oap_music_releases(
+                   release_id,owner_identity_id,title,release_type,state,rights_status,
+                   external_distribution_state,idempotency_key)
+               VALUES (%s,%s,'CI Music Purchase','single','PUBLISHED','VERIFIED',
+                       'PROVIDER_REQUIRED',%s)""",
+            (release, seller, f"release-{release[:8]}"),
+        )
+        connection.execute(
+            """INSERT INTO products(id,seller_id,name,description,price_minor,currency,active)
+               VALUES (%s,%s,'CI Music Purchase','ephemeral music purchase proof',100,'GBP',TRUE)""",
+            (product, seller),
+        )
+        connection.commit()
+
+    receipt_store = music_evidence.MusicEvidenceStore()
+    receipt = receipt_store.append_receipt(
+        owner_identity_id=seller,
+        release_id=release,
+        evidence_kind="recording_rights",
+        evidence_bytes=b"ci-rights-proof",
+        source_reference="ci:music:rights",
+        authority_reference="ci:human-authority",
+        territory="GB",
+    )
+
+    linked = music_market_purchase.STORE.link_release_product(
+        seller_identity_id=seller,
+        release_id=release,
+        product_id=product,
+        rights_evidence_receipt_id=receipt["receipt_id"],
+        split_plan=[
+            {
+                "beneficiary_identity_id": seller,
+                "split_kind": "ARTIST",
+                "basis_points": 8500,
+            },
+            {
+                "beneficiary_identity_id": oap_beneficiary,
+                "split_kind": "OAP",
+                "basis_points": 1500,
+            },
+        ],
+        optional_pay_more=True,
+    )
+    assert linked["state"] == "READY"
+    assert linked["minimum_price_minor"] == 100
+    assert linked["payment_capture_performed"] is False
+
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO oap_commerce_orders(
+                   order_id,buyer_identity_id,seller_identity_id,state,currency,
+                   subtotal_minor,idempotency_key)
+               VALUES (%s,%s,%s,'PAID','GBP',250,%s)""",
+            (order, buyer, seller, f"music-order-{order[:8]}"),
+        )
+        connection.execute(
+            """INSERT INTO oap_commerce_order_items(
+                   order_id,product_id,quantity,unit_price_minor,product_name)
+               VALUES (%s,%s,1,250,'CI Music Purchase')""",
+            (order, product),
+        )
+        connection.execute(
+            """INSERT INTO oap_commerce_payment_intents(
+                   order_id,amount_minor,currency,state,provider_reference)
+               VALUES (%s,250,'GBP','CAPTURED','ci-external-capture-proof')""",
+            (order,),
+        )
+        connection.commit()
+
+    owned = music_market_purchase.STORE.finalize_captured_order(
+        buyer_identity_id=buyer,
+        order_id=order,
+    )
+    assert owned["ownership_granted"] is True
+    assert owned["amount_minor"] == 250
+    assert owned["payment_capture_performed_here"] is False
+    assert owned["payout_performed"] is False
+    assert owned["split_state"] == "PAYOUT_PROVIDER_REQUIRED"
+
+    replay = music_market_purchase.STORE.finalize_captured_order(
+        buyer_identity_id=buyer,
+        order_id=order,
+    )
+    assert replay["entitlement_id"] == owned["entitlement_id"]
+
+    library = music_market_purchase.STORE.library(buyer_identity_id=buyer)
+    assert any(
+        row["release_id"] == release
+        and row["state"] == "OWNED"
+        and row["amount_minor"] == 250
+        for row in library
+    )
+
+    splits = music_market_purchase.STORE.split_ledger(
+        identity_id=seller,
+        entitlement_id=owned["entitlement_id"],
+    )
+    assert len(splits) == 2
+    assert sum(row["amount_minor"] for row in splits) == 250
+    assert {row["state"] for row in splits} == {"PAYOUT_PROVIDER_REQUIRED"}
+
+    with pytest.raises(PermissionError, match="music_entitlement_not_visible"):
+        music_market_purchase.STORE.split_ledger(
+            identity_id=str(uuid4()),
+            entitlement_id=owned["entitlement_id"],
+        )
