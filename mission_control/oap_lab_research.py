@@ -25,6 +25,21 @@ DOMAINS = (
     "food_agriculture", "water_climate", "mobility", "economics",
     "security_privacy", "civilization",
 )
+# These are navigation lenses over the canonical 21 domains, not new stores,
+# notebook fields, approval authorities or a claim of scientific certification.
+# Each domain appears in exactly one group so saved notebooks keep their
+# existing domain contract and can reopen without schema migration.
+DISCIPLINE_DOMAINS = (
+    ("Chemistry", ("materials", "water_climate", "food_agriculture")),
+    ("Physics", ("physics", "energy", "space")),
+    ("Engineering", ("robotics", "mobility", "spatial", "communications")),
+    ("Other research", tuple(domain for domain in DOMAINS if domain not in {
+        "materials", "water_climate", "food_agriculture",
+        "physics", "energy", "space",
+        "robotics", "mobility", "spatial", "communications",
+    })),
+)
+
 PROHIBITED = frozenset({
     "payment", "banking", "clinical", "human_subject",
     "radio_transmit", "deployment", "publication", "self_modify",

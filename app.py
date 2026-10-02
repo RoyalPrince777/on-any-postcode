@@ -3344,6 +3344,7 @@ def oap_lab_workbench():
     """Founder-only governed LAB workbench with explicit owner-scoped persistence."""
     from mission_control.oap_lab_research import (
         DOMAINS,
+        DISCIPLINE_DOMAINS,
         MISSIONS,
         Experiment,
         Notebook,
@@ -3485,6 +3486,7 @@ def oap_lab_workbench():
             error = "notebook_store_unavailable"
     response = make_response(render_template(
         "oap_lab.html", missions=MISSIONS, domains=DOMAINS,
+        discipline_domains=DISCIPLINE_DOMAINS,
         operations=("mean", "sum", "minimum", "maximum"),
         values=values, error=error, result=result,
     ))
