@@ -147,6 +147,20 @@
   mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
  });
 
+ const incomingHomeButton=document.createElement("button");
+ incomingHomeButton.type="button";incomingHomeButton.textContent="🔔 Incoming";
+ incomingHomeButton.setAttribute("aria-label","Open Incoming activity");
+ incomingHomeButton.addEventListener("click",()=>{
+  window.location.assign("/linkup#linkup-incoming");
+ });
+
+ const myWorldHomeButton=document.createElement("button");
+ myWorldHomeButton.type="button";myWorldHomeButton.textContent="👤 My World";
+ myWorldHomeButton.setAttribute("aria-label","Open My World");
+ myWorldHomeButton.addEventListener("click",()=>{
+  window.location.assign("/my-world");
+ });
+
  const settingsHomeButton=document.createElement("button");
  settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
  settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
@@ -163,9 +177,70 @@
 
  homeRail.append(
   homeButton,smiButton,signalsHomeButton,guardianHomeButton,warHomeButton,
-  intelligenceHomeButton,hrmHomeButton,controlHomeButton,settingsHomeButton
+  intelligenceHomeButton,hrmHomeButton,controlHomeButton,
+  incomingHomeButton,myWorldHomeButton,settingsHomeButton
  );
  document.body.append(homeRail);
+
+ // Seven canonical mission links: direct controls into existing owners, not stages.
+ const majorLinks=document.createElement("nav");
+ majorLinks.className="smi-major-links";
+ majorLinks.setAttribute("aria-label","SMI seven major mission links");
+
+ const missionStatus=(text)=>{
+  const feedback=document.getElementById("status");
+  if(feedback)feedback.textContent=String(text||"");
+ };
+
+ const submitLiteral=(literal)=>{
+  const input=document.getElementById("message");
+  const form=document.getElementById("chat-form");
+  if(!input||!form){missionStatus("SMI chat unavailable");return false;}
+  input.value=literal;
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+  form.requestSubmit();
+  return true;
+ };
+
+ const addMajor=(label,handler)=>{
+  const button=document.createElement("button");
+  button.type="button";button.textContent=label;
+  button.addEventListener("click",handler);
+  majorLinks.append(button);
+  return button;
+ };
+
+ addMajor("1 · Mission",async()=>{
+  missionStatus("Checking latest governed mission…");
+  try{
+   const response=await fetch("/mission/all-in-ai/mission/latest",{cache:"no-store",credentials:"same-origin"});
+   const body=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(body?.error?.message||"Mission feed unavailable");
+   const mission=body?.mission||body?.latest||body;
+   const label=String(mission?.title||mission?.mission||mission?.status||mission?.mission_id||"latest mission receipt found");
+   missionStatus("Mission · "+label.slice(0,180));
+  }catch(error){missionStatus(error?.message||"Mission feed unavailable");}
+ });
+ addMajor("2 · Continue",()=>submitLiteral("🟣"));
+ addMajor("3 · Risk / Guardian",()=>triggerMasterTool("guardian"));
+ addMajor("4 · War Room / Judgement",()=>openWarRoom());
+ addMajor("5 · Founder Final",()=>submitLiteral("🟢"));
+ addMajor("6 · Recovery / Rollback",async()=>{
+  missionStatus("Running bounded rollback / recovery proof…");
+  try{
+   const response=await fetch("/mission/smi-proof/rollback-recovery",{
+    method:"POST",credentials:"same-origin",
+    headers:{"X-OAP-CSRF":window.csrfToken||"","Accept":"application/json"}
+   });
+   const body=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(body?.error?.message||"Rollback / recovery proof unavailable");
+   missionStatus(body?.proof?.passed===true
+    ?"Rollback / Recovery proof passed · execution not granted"
+    :"Rollback / Recovery proof returned without Green");
+  }catch(error){missionStatus(error?.message||"Rollback / recovery proof unavailable");}
+ });
+ addMajor("7 · Outcome / Learning",()=>triggerMasterTool("hrm"));
+ document.body.append(majorLinks);
 
  // OAP World and Jungle remain available as deeper, existing command-centre systems.
  const worldPanel=document.createElement("nav");

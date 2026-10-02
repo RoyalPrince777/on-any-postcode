@@ -923,7 +923,48 @@ body.smi-noise-strip.smi-status-open .smi-home-intelligence,
 body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence{
   display:none!important;
 }
-body.smi-noise-strip .messages{top:58px!important}
+body.smi-noise-strip .smi-major-links{
+  position:fixed!important;
+  top:50px!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  z-index:104!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  max-width:min(1120px,calc(100vw - 20px))!important;
+  overflow-x:auto!important;
+  scrollbar-width:none!important;
+  padding:3px 4px!important;
+  border:1px solid rgba(215,183,89,.16)!important;
+  border-radius:999px!important;
+  background:rgba(2,8,22,.54)!important;
+  backdrop-filter:blur(10px)!important;
+}
+body.smi-noise-strip .smi-major-links::-webkit-scrollbar{display:none!important}
+body.smi-noise-strip .smi-major-links button{
+  min-height:30px!important;
+  padding:0 9px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:transparent!important;
+  color:rgba(232,240,248,.86)!important;
+  font:inherit!important;
+  font-size:.64rem!important;
+  white-space:nowrap!important;
+  cursor:pointer!important;
+}
+body.smi-noise-strip .smi-major-links button:hover,
+body.smi-noise-strip .smi-major-links button:focus{
+  background:rgba(215,183,89,.10)!important;
+  outline:1px solid rgba(215,183,89,.28)!important;
+}
+body.smi-noise-strip.smi-command-open .smi-major-links,
+body.smi-noise-strip.smi-status-open .smi-major-links,
+body.smi-noise-strip.smi-live-fullscreen .smi-major-links{
+  display:none!important;
+}
+body.smi-noise-strip .messages{top:92px!important}
 @media(max-width:760px){
   body.smi-noise-strip .smi-home-intelligence{
     top:8px!important;
@@ -937,7 +978,9 @@ body.smi-noise-strip .messages{top:58px!important}
     padding:0 8px!important;
     font-size:.64rem!important;
   }
-  body.smi-noise-strip .messages{top:52px!important}
+  body.smi-noise-strip .smi-major-links{top:46px!important;max-width:calc(100vw - 14px)!important}
+  body.smi-noise-strip .smi-major-links button{min-height:28px!important;padding:0 7px!important;font-size:.59rem!important}
+  body.smi-noise-strip .messages{top:84px!important}
 }
 
 
