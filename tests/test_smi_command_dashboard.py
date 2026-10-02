@@ -22,6 +22,19 @@ def test_smi_command_dashboard_composes_canonical_sources():
     assert command["bank"]["operational_bank"] is False
     assert command["bank"]["licence_verified"] is False
     assert command["bank"]["money_movement"] is False
+    unlock = command["bank"]["regulated_unlock"]
+    assert unlock["total"] == 8
+    assert unlock["unlocked_count"] >= 0
+    assert set(unlock["capabilities"]) == {
+        "accept_deposits",
+        "bank_accounts",
+        "cash_out",
+        "execute_payments",
+        "foreign_exchange",
+        "hold_customer_funds",
+        "issue_payment_cards",
+        "issue_redeemable_sika",
+    }
     assert command["risk_router"]["routes"] == (
         "DIRECT_ANSWER",
         "PREPARE",
@@ -67,3 +80,17 @@ def test_smi_command_dashboard_status_is_redacted_read_only(client):
     assert payload["bank"]["money_movement"] is False
     for forbidden in ("password", "private_key", "signing_key", "secret", "token"):
         assert forbidden not in serialized
+
+
+
+def test_regulated_unlock_matrix_fails_closed_when_evidence_store_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        smi_command_dashboard.sika_execution_gate,
+        "capability_matrix",
+        lambda: (_ for _ in ()).throw(RuntimeError("store unavailable")),
+    )
+    unlock = smi_command_dashboard._regulated_unlock_matrix()
+    assert unlock["evidence_available"] is False
+    assert unlock["unlocked_count"] == 0
+    assert unlock["all_unlocked"] is False
+    assert all(value is False for value in unlock["capabilities"].values())
