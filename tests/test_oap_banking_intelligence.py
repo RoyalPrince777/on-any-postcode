@@ -96,6 +96,7 @@ def test_status_exposes_remaining_real_integration_gaps():
     assert status["alm_forecasting_intelligence_integrated"] is True
     assert status["closing_retained_earnings_integrated"] is True
     assert status["runtime_reconciliation_integrated"] is True
+    assert status["reconciliation_exception_store_integrated"] is True
 
 
 def test_status_exposes_global_banking_family_and_first_jurisdictions():
