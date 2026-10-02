@@ -71,23 +71,109 @@
  statusButton.addEventListener("click",()=>openStatus(false));
  signalsButton.addEventListener("click",()=>openStatus(true));
 
- // Home intelligence rail: one compact map into the organism, not another dashboard.
+ // Canonical private SMI home rail: one front door into the existing owners.
+ // This is navigation/control composition only; it creates no duplicate runtime.
  const homeRail=document.createElement("nav");
  homeRail.className="smi-home-intelligence";
- homeRail.setAttribute("aria-label","SMI home intelligence");
- const homeWorld=document.createElement("button");
- homeWorld.type="button";homeWorld.textContent="🌍 OAP World";
- homeWorld.setAttribute("aria-label","Open OAP World controls");
- homeWorld.setAttribute("aria-controls","smi-world-controls");
- homeWorld.setAttribute("aria-expanded","false");
+ homeRail.setAttribute("aria-label","SMI master home menu");
+
+ const closeTransientPanels=()=>{
+  document.querySelectorAll(".smi-world-controls").forEach(item=>{item.hidden=true;});
+  document.querySelectorAll('[aria-controls="smi-world-controls"],[aria-controls="smi-jungle-controls"]').forEach(item=>item.setAttribute("aria-expanded","false"));
+ };
+
+ const triggerMasterTool=(action)=>{
+  const button=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
+  if(button&&!button.disabled){
+   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+   button.click();
+   return true;
+  }
+  const feedback=document.getElementById("status");
+  if(feedback)feedback.textContent=action+" control unavailable";
+  return false;
+ };
+
+ const homeButton=document.createElement("button");
+ homeButton.type="button";homeButton.textContent="🏠 Home";
+ homeButton.setAttribute("aria-label","Return to SMI Home");
+ homeButton.addEventListener("click",()=>{
+  closeTransientPanels();
+  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  if(document.body.classList.contains("smi-status-open"))document.querySelector(".smi-chat-return")?.click();
+  document.getElementById("message")?.focus();
+ });
+
+ const smiButton=document.createElement("button");
+ smiButton.type="button";smiButton.textContent="🧠 SMI";
+ smiButton.setAttribute("aria-label","Open SMI system command centre");
+ smiButton.addEventListener("click",()=>setOpen(true));
+
+ const signalsHomeButton=document.createElement("button");
+ signalsHomeButton.type="button";signalsHomeButton.textContent="📡 Signals";
+ signalsHomeButton.setAttribute("aria-label","Open SMI signals");
+ signalsHomeButton.addEventListener("click",()=>openStatus(true));
+
+ const guardianHomeButton=document.createElement("button");
+ guardianHomeButton.type="button";guardianHomeButton.textContent="🛡️ Guardian";
+ guardianHomeButton.setAttribute("aria-label","Run Guardian evidence review");
+ guardianHomeButton.addEventListener("click",()=>triggerMasterTool("guardian"));
+
+ const warHomeButton=document.createElement("button");
+ warHomeButton.type="button";warHomeButton.textContent="⚔️ War Room";
+ warHomeButton.setAttribute("aria-label","Open War Room");
+ warHomeButton.addEventListener("click",()=>openWarRoom());
+
+ const intelligenceHomeButton=document.createElement("button");
+ intelligenceHomeButton.type="button";intelligenceHomeButton.textContent="🧩 Intelligence";
+ intelligenceHomeButton.setAttribute("aria-label","Open Intelligence systems");
+ intelligenceHomeButton.addEventListener("click",()=>{
+  const target=String(cfg.agentsUrl||"").trim();
+  if(target.startsWith("/")&&!target.startsWith("//"))window.location.assign(target);
+  else setOpen(true);
+ });
+
+ const hrmHomeButton=document.createElement("button");
+ hrmHomeButton.type="button";hrmHomeButton.textContent="🧾 HRM / JOOG";
+ hrmHomeButton.setAttribute("aria-label","Open HRM and Jog Memory");
+ hrmHomeButton.addEventListener("click",()=>triggerMasterTool("hrm"));
+
+ const controlHomeButton=document.createElement("button");
+ controlHomeButton.type="button";controlHomeButton.textContent="⚙️ Control";
+ controlHomeButton.setAttribute("aria-label","Open SMI Control and infrastructure");
+ controlHomeButton.addEventListener("click",()=>{
+  setOpen(true);
+  panel.dataset.mobileView="evidence";
+  mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
+ });
+
+ const settingsHomeButton=document.createElement("button");
+ settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
+ settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
+ settingsHomeButton.addEventListener("click",()=>{
+  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  document.getElementById("plus-button")?.click();
+  const settings=document.getElementById("voice-settings-button");
+  if(settings){
+   const panelOpen=settings.getAttribute("aria-expanded")==="true";
+   if(!panelOpen)settings.click();
+   settings.scrollIntoView({block:"nearest",behavior:"auto"});
+  }
+ });
+
+ homeRail.append(
+  homeButton,smiButton,signalsHomeButton,guardianHomeButton,warHomeButton,
+  intelligenceHomeButton,hrmHomeButton,controlHomeButton,settingsHomeButton
+ );
+ document.body.append(homeRail);
+
+ // OAP World and Jungle remain available as deeper, existing command-centre systems.
  const worldPanel=document.createElement("nav");
  worldPanel.id="smi-world-controls";
  worldPanel.className="smi-world-controls";
  worldPanel.setAttribute("aria-label","OAP World public navigation");
  worldPanel.hidden=true;
  const publicRoot=String(cfg.publicWorldOrigin||"").trim();
- // World links lead to the existing public service. No privileged action, iframe,
- // copied user data or SMI token is sent across the separate origin.
  let publicOrigin=null;
  try{
   const candidate=new URL(publicRoot);
@@ -117,8 +203,6 @@
   worldNotice.textContent="Public OAP origin unavailable · no unverified navigation.";
  }
  worldPanel.append(worldNotice);
- // Founder review uses the existing SMI-origin, authenticated owners.
- // These are read-only navigation links, never public privileges or publish buttons.
  const controlHeading=document.createElement("strong");
  controlHeading.className="smi-world-menu-heading";
  controlHeading.textContent="PRIVATE SMI · WORLD GOVERNANCE";
@@ -142,30 +226,7 @@
  governanceNotice.textContent="Review only · no publication, payment, permission change or automatic Green. Founder Final remains separate.";
  worldPanel.append(governanceNotice);
  document.body.append(worldPanel);
- const closeWorld=()=>{
-  worldPanel.hidden=true;
-  homeWorld.setAttribute("aria-expanded","false");
- };
- homeWorld.addEventListener("click",event=>{
-  event.stopPropagation();
-  const opening=worldPanel.hidden;
-  worldPanel.hidden=!opening;
-  homeWorld.setAttribute("aria-expanded",String(opening));
- });
- worldPanel.addEventListener("click",event=>event.stopPropagation());
- document.addEventListener("click",event=>{
-  if(!worldPanel.hidden&&!worldPanel.contains(event.target)&&event.target!==homeWorld)closeWorld();
- });
- document.addEventListener("keydown",event=>{
-  if(event.key==="Escape"&&!worldPanel.hidden){closeWorld();homeWorld.focus();}
- });
- // Jungle is a navigation lens into the existing first-party agent families,
- // never a second brain, auto-running actor or an agent-passport promotion.
- const homeJungle=document.createElement("button");
- homeJungle.type="button";homeJungle.textContent="🐆 Jungle";
- homeJungle.setAttribute("aria-label","Open Jungle intelligence controls");
- homeJungle.setAttribute("aria-controls","smi-jungle-controls");
- homeJungle.setAttribute("aria-expanded","false");
+
  const junglePanel=document.createElement("nav");
  junglePanel.id="smi-jungle-controls";
  junglePanel.className="smi-world-controls smi-jungle-controls";
@@ -187,43 +248,7 @@
  jungleNotice.textContent="Registered first-party roles only · review lenses are not independent agents.";
  junglePanel.append(jungleNotice);
  document.body.append(junglePanel);
- const closeJungle=()=>{
-  junglePanel.hidden=true;
-  homeJungle.setAttribute("aria-expanded","false");
- };
- homeJungle.addEventListener("click",event=>{
-  event.stopPropagation();
-  const opening=junglePanel.hidden;
-  closeWorld();
-  junglePanel.hidden=!opening;
-  homeJungle.setAttribute("aria-expanded",String(opening));
- });
- junglePanel.addEventListener("click",event=>event.stopPropagation());
- document.addEventListener("click",event=>{
-  if(!junglePanel.hidden&&!junglePanel.contains(event.target)&&event.target!==homeJungle)closeJungle();
- });
- document.addEventListener("keydown",event=>{
-  if(event.key==="Escape"&&!junglePanel.hidden){closeJungle();homeJungle.focus();}
- });
- homeWorld.addEventListener("click",()=>closeJungle());
- const homeSystem=document.createElement("button");
- homeSystem.type="button";homeSystem.textContent="🧠 SMI System";
- homeSystem.setAttribute("aria-label","Open SMI system intelligence");
- const homeMatrix=document.createElement("button");
- homeMatrix.type="button";homeMatrix.textContent="🌐 Matrix";
- homeMatrix.setAttribute("aria-label","Open Matrix routes and world state");
- const homeWar=document.createElement("button");
- homeWar.type="button";homeWar.textContent="⚔️ War Room";
- homeWar.setAttribute("aria-label","Open War Room");
- homeRail.append(homeWorld,homeJungle,homeSystem,homeMatrix,homeWar);
- document.body.append(homeRail);
- homeSystem.addEventListener("click",()=>{
-  setOpen(true);
-  panel.dataset.mobileView="evidence";
-  mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
- });
- homeMatrix.addEventListener("click",()=>window.location.assign("/mission/war-room/routes"));
- homeWar.addEventListener("click",()=>openWarRoom());
+
  // Quick access reuses the existing, governed Master Tools handlers.
  const universe=document.createElement("nav");
  universe.className="smi-command-universe";
