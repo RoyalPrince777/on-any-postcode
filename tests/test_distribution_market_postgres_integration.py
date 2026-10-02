@@ -464,6 +464,12 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
             (order, created["product_id"]),
         )
         connection.execute(
+            """INSERT INTO oap_commerce_payment_intents(
+                   order_id,amount_minor,currency,state)
+               VALUES (%s,5000,'GBP','PROVIDER_REQUIRED')""",
+            (order,),
+        )
+        connection.execute(
             """INSERT INTO oap_commerce_fulfilment_intents(
                    fulfilment_id,order_id,state)
                VALUES (%s,%s,'PROVIDER_REQUIRED')""",
@@ -475,8 +481,8 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     assert sika_intent["canonical_unit"] == "SIKA"
     assert sika_intent["anchor"] == "1 SIKA = 1 GBP"
     assert sika_intent["amount_sika"] == "50.00"
-    assert sika_intent["payment_intent_matches_order"] is False
-    assert sika_intent["payment_execution_enabled"] is False
+    assert sika_intent["payment_intent_matches_order"] is True
+    assert sika_intent["ready"] is True\n    assert sika_intent["payment_execution_enabled"] is False
     assert sika_intent["customer_funds_held"] is False
     assert sika_intent["sika_issued"] is False
     assert sika_intent["money_transfer_performed"] is False
