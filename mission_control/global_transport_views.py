@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template_string
 
+from . import oap_ride
+
 bp = Blueprint("oap_global_transport", __name__)
 
 PUBLIC_DOORS = (
@@ -109,7 +111,7 @@ small{display:block;margin-top:18px;color:#777}
 </section>
 <section class="grid">
 {% for name, description in doors %}
-<a class="card" href="/transport/status#{{ name|lower }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
+<a class="card" href="{{ '/transport/ride' if name == 'Ride' else '/transport/status#' ~ name|lower }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
 {% endfor %}
 </section>
 <small>Software + digital coordination only. Physical transport operations are outside this build. Human Authority remains final.</small>
@@ -142,3 +144,8 @@ def transport_capabilities():
         "live_execution_gates": state["live_execution_gates"],
         "human_authority_final": True,
     }))
+
+
+@bp.get("/transport/ride")
+def transport_ride():
+    return _no_store(jsonify(oap_ride.status()))
