@@ -79,6 +79,10 @@ def test_runtime_projection_reuses_real_music_market_evidence(monkeypatch):
     assert result["evidence"]["states"]["pricing_margin"]["state"] == "PROVEN"
     assert result["evidence"]["states"]["market_commerce"]["state"] == "PROVEN"
     assert result["proven_count"] == 6
+    assert result["protocol_check_count"] == 700
+    assert result["protocol_proven_count"] == 0
+    assert result["protocol_green_gate_passed"] is False
+    assert result["protocol_registry"]["counts"]["UNKNOWN"] == 700
     assert result["operational_green"] is False
     assert result["full_green"] is False
 
