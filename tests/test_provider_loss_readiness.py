@@ -94,3 +94,35 @@ def test_unknown_scenario_is_rejected():
 def test_non_mapping_evidence_is_rejected():
     with pytest.raises(TypeError, match="evidence_mapping_required"):
         provider_loss_readiness.assess_provider_loss([], scenario="github")
+
+
+def test_repository_snapshot_reports_artifacts_without_claiming_recovery(tmp_path):
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "deploy").mkdir()
+    (tmp_path / "Dockerfile.runtime").write_text("FROM python:3.12")
+    (tmp_path / "requirements.txt").write_text("Flask")
+    (tmp_path / "scripts/home_node_run.sh").write_text("#!/bin/sh")
+    (tmp_path / "scripts/oap_home_node_supervisor.py").write_text("")
+    (tmp_path / "scripts/oap_home_node_status.py").write_text("")
+    (tmp_path / "docs/HOME_NODE.md").write_text("home node")
+
+    result = provider_loss_readiness.repository_artifact_snapshot(tmp_path)
+    assert result["repository_root_exists"] is True
+    assert result["artifact_groups"]["runtime_build"]["complete"] is True
+    assert result["artifact_groups"]["home_node_posix"]["complete"] is True
+    assert result["artifact_groups"]["release_control"]["complete"] is False
+    assert result["artifact_inventory_only"] is True
+    assert result["counts_as_provider_independence_proof"] is False
+    assert result["automatic_failover_authorised"] is False
+    assert result["deployment_authorised"] is False
+
+
+def test_repository_snapshot_missing_root_stays_inventory_only(tmp_path):
+    result = provider_loss_readiness.repository_artifact_snapshot(tmp_path / "missing")
+    assert result["repository_root_exists"] is False
+    assert all(
+        group["complete"] is False
+        for group in result["artifact_groups"].values()
+    )
+    assert result["counts_as_provider_independence_proof"] is False
