@@ -58,7 +58,7 @@ def build_evidence(
     )
     refund = _required_text(refund_contract, "refund_contract_required")
     digest = sha256(
-        f"{provider}|{authority}|{entity}|{env}|{receipt}|{refund}".encode("utf-8")
+        f"{provider}|{authority}|{entity}|{env}|{receipt}|{refund}".encode()
     ).hexdigest()
     return ProviderEvidence(
         provider_id=provider,
