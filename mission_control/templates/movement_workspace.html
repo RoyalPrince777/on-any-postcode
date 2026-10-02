@@ -157,6 +157,7 @@
           <p>{{ item.reason }} · score {{ '%.2f'|format(item.score) }}</p>
           {% if item.proposal_state == 'PROPOSED' %}
           <button type="button" class="movement-accept-button" data-proposal-id="{{ item.proposal_id }}">Accept match</button>
+          <button type="button" class="movement-decline-button" data-proposal-id="{{ item.proposal_id }}">Decline</button>
           {% endif %}
         </article>
         {% endfor %}
@@ -257,7 +258,20 @@
         setResult("accept-result", "Accepting…");
         try {
           await api(`/movement/matches/${button.dataset.proposalId}/accept`, "POST");
-          setResult("accept-result", "Match accepted. External dispatch is still disabled.");
+          setResult("accept-result", "Match accepted.");
+          window.location.reload();
+        } catch (error) {
+          setResult("accept-result", error.message);
+        }
+      });
+    });
+
+    document.querySelectorAll(".movement-decline-button").forEach((button) => {
+      button.addEventListener("click", async () => {
+        setResult("accept-result", "Declining…");
+        try {
+          await api(`/movement/matches/${button.dataset.proposalId}/decline`, "POST");
+          setResult("accept-result", "Journey declined.");
           window.location.reload();
         } catch (error) {
           setResult("accept-result", error.message);
