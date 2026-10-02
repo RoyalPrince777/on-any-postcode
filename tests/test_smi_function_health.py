@@ -219,3 +219,53 @@ def test_sovereign_dashboard_wires_core_routes_without_noise_duplicates():
         assert noise not in script
 
     assert "silently deploy, spend, dispatch, migrate or approve consequential actions" in script
+
+
+def test_interaction_certification_unlocks_only_control_surface_from_durable_receipt(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {
+            "proven": True,
+            "reason": "durable_post_ack_button_proof",
+            "receipt_id": "receipt-live-control",
+            "durable": True,
+            "runtime_acknowledged": True,
+            "click_only_proof": False,
+            "status_code": 200,
+        },
+    )
+    result = smi_function_health.interaction_certification()
+    surfaces = {item["id"]: item for item in result["surfaces"]}
+
+    assert result["implemented_count"] == result["expected_count"] == 9
+    assert result["implementation_percent"] == 100.0
+    assert result["live_proven_count"] == 1
+    assert result["live_proof_percent"] == 11.1
+    assert result["whole_interaction_green"] is False
+    assert surfaces["control-surface-v2"]["live_runtime_proven"] is True
+    assert surfaces["control-surface-v2"]["state"] == "green"
+    assert surfaces["control-surface-v2"]["label"] == "LIVE PROVEN"
+    assert surfaces["control-surface-v2"]["live_proof_receipt_id"] == "receipt-live-control"
+    assert all(
+        item["live_runtime_proven"] is False
+        for item in result["surfaces"]
+        if item["id"] != "control-surface-v2"
+    )
+
+
+def test_interaction_certification_fails_closed_without_durable_receipt(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {
+            "proven": False,
+            "reason": "durable_button_proof_missing",
+            "receipt_id": None,
+        },
+    )
+    result = smi_function_health.interaction_certification()
+    assert result["live_proven_count"] == 0
+    assert result["live_proof_percent"] == 0.0
+    assert result["whole_interaction_green"] is False
+    assert all(item["live_runtime_proven"] is False for item in result["surfaces"])
