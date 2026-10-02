@@ -135,8 +135,7 @@ def _git(tmp_path, *args):
         ["git", *args],
         cwd=tmp_path,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=True,
     )
 
