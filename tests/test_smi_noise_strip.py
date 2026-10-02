@@ -153,7 +153,7 @@ def test_home_restores_system_context_without_dashboard_wall():
     command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
     assert 'className="smi-home-intelligence"' in command
-    for label in ("🏠 Home", "🧠 SMI", "📡 Signals", "🛡️ Guardian", "⚔️ War Room", "🧩 Intelligence", "🧾 HRM / JOOG", "⚙️ Control", "⚙ Settings"):
+    for label in ("🏠 Home", "🧠 SMI", "📡 Signals", "🛡️ Guardian", "⚔️ War Room", "🧩 Intelligence", "🧾 HRM / JOOG", "⚙️ Control", "🔔 Incoming", "👤 My World", "⚙ Settings"):
         assert label in command
     assert 'homeButton.addEventListener("click",()=>{' in command
     assert 'setOpen(true);' in command
