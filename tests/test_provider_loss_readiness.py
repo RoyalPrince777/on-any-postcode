@@ -1,6 +1,8 @@
 """Provider-loss readiness must remain evidence-driven and fail closed."""
 from __future__ import annotations
 
+import subprocess
+
 import pytest
 
 from mission_control import provider_loss_readiness
@@ -126,3 +128,51 @@ def test_repository_snapshot_missing_root_stays_inventory_only(tmp_path):
         for group in result["artifact_groups"].values()
     )
     assert result["counts_as_provider_independence_proof"] is False
+
+
+def _git(tmp_path, *args):
+    return subprocess.run(
+        ["git", *args],
+        cwd=tmp_path,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+
+
+def test_local_git_inspection_proves_full_local_history_only(tmp_path):
+    if not provider_loss_readiness.shutil.which("git"):
+        pytest.skip("git unavailable")
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.invalid")
+    _git(tmp_path, "config", "user.name", "Provider Loss Test")
+    (tmp_path / "README.md").write_text("recovery proof")
+    _git(tmp_path, "add", "README.md")
+    _git(tmp_path, "commit", "-m", "initial")
+
+    result = provider_loss_readiness.inspect_local_git_history(tmp_path)
+    assert result["git_repository"] is True
+    assert len(result["head_sha"]) == 40
+    assert result["shallow"] is False
+    assert result["object_integrity_ok"] is True
+    assert result["local_git_history_available"] is True
+    assert result["independent_repo_mirror_proven"] is False
+    assert result["network_access_used"] is False
+    assert result["mutation_performed"] is False
+
+
+def test_local_git_inspection_rejects_plain_directory(tmp_path):
+    result = provider_loss_readiness.inspect_local_git_history(tmp_path)
+    assert result["repository_present"] is True
+    assert result["git_repository"] is False
+    assert result["local_git_history_available"] is False
+    assert result["independent_repo_mirror_proven"] is False
+
+
+def test_local_git_inspection_missing_directory_fails_closed(tmp_path):
+    result = provider_loss_readiness.inspect_local_git_history(tmp_path / "missing")
+    assert result["repository_present"] is False
+    assert result["git_repository"] is False
+    assert result["local_git_history_available"] is False
+    assert result["object_integrity_ok"] is False
