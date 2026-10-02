@@ -1,6 +1,24 @@
 (()=>{
 window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;
 const cfg=window.OAP_SMI_UI||{};
+const OAP_SMI_VOICE_PREF_KEY="oap.smi.voiceReplyEnabled.v1";
+window.OAP_SMI_VOICE_PREF={
+  read(fallback=true){
+    try{
+      const stored=window.localStorage?.getItem(OAP_SMI_VOICE_PREF_KEY);
+      if(stored==="true")return true;
+      if(stored==="false")return false;
+    }catch{}
+    return Boolean(fallback);
+  },
+  write(enabled){
+    try{window.localStorage?.setItem(OAP_SMI_VOICE_PREF_KEY,String(Boolean(enabled)));}catch{}
+    return Boolean(enabled);
+  },
+  scope:"device-local-ui-preference",
+  storesAudio:false,
+  storesTranscript:false
+};
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const input=q('#message'),messages=q('#messages'),history=q('.history'),historyList=q('#history-list'),head=q('.chat-head'),plus=q('#plus-button'),menu=q('#attach-menu'),thinking=q('#thinking');
 if(q('.chat-title'))q('.chat-title').textContent='Personal SMI';if(q('.chat-head .chat-subtitle'))q('.chat-head .chat-subtitle').textContent='Private Founder intelligence · straight answers · guarded actions';if(q('#thinking-title'))q('#thinking-title').textContent='🧠 Thinking Process · safe work stages';document.title='Personal SMI · OAP';
