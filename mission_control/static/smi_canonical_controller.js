@@ -22,17 +22,12 @@ const oapStateApi=window.OAP_SMI_LIVE_STATE;
 let oapRuntime=oapStateApi?.initialState?oapStateApi.initialState():null;
 let oapLocked=false,oapAbort=null,oapRecognition=null,oapListening=false,oapListenStarted=0,oapListenTimer=null;
 let oapPaused=false,oapWorkStarted=0,oapWorkTimer=null,oapLiveRestartTimer=null,oapRecognitionToken=null,oapFinalTranscript='',oapResumeListenAfterPause=false,oapSpeechSeq=0;
-const OAP_VOICE_PREF_KEY='oap.smi.voiceReplyEnabled.v1';
 function oapReadVoicePreference(){
- try{
-  const stored=window.localStorage?.getItem(OAP_VOICE_PREF_KEY);
-  if(stored==='true')return true;
-  if(stored==='false')return false;
- }catch{}
- return oapSpeaker?.getAttribute('aria-pressed')!=='false';
+ const fallback=oapSpeaker?.getAttribute('aria-pressed')!=='false';
+ return window.OAP_SMI_VOICE_PREF?.read?.(fallback) ?? fallback;
 }
 function oapWriteVoicePreference(enabled){
- try{window.localStorage?.setItem(OAP_VOICE_PREF_KEY,String(Boolean(enabled)));}catch{}
+ window.OAP_SMI_VOICE_PREF?.write?.(enabled);
 }
 function oapRenderVoicePreference(){
  if(!oapSpeaker)return;
