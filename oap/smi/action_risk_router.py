@@ -185,7 +185,14 @@ def route_action(
             reasons=("Empty or ambiguous request; prepare clarification without side effects.",),
         )
 
-    action_intent = _has_action_intent(text, asks_to_execute=asks_to_execute)
+    informational = _is_informational(text)
+    bypass_request = bool(
+        not informational and _contains_any(text, _BLOCKED_TERMS)
+    )
+    action_intent = bool(
+        bypass_request
+        or _has_action_intent(text, asks_to_execute=asks_to_execute)
+    )
     inferred_external = bool(action_intent and _contains_any(text, _EXTERNAL_EFFECT_TERMS))
     inferred_value = bool(action_intent and _contains_any(text, _VALUE_TRANSFER_TERMS))
     inferred_authority = bool(action_intent and _contains_any(text, _HIGH_IMPACT_TERMS))
@@ -194,7 +201,7 @@ def route_action(
     money = inferred_value if value_transfer is None else bool(value_transfer)
     authority = inferred_authority if authority_change is None else bool(authority_change)
 
-    if action_intent and _contains_any(text, _BLOCKED_TERMS):
+    if bypass_request:
         return ActionRiskDecision(
             route=ROUTE_BLOCK,
             risk_level="CRITICAL",
