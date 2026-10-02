@@ -8,6 +8,7 @@ grants authority. Its job is to choose the smallest safe governance path.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Final
 
 ROUTE_DIRECT_ANSWER: Final = "DIRECT_ANSWER"
@@ -111,8 +112,45 @@ class ActionRiskDecision:
         }
 
 
+def _contains_term(text: str, term: str) -> bool:
+    """Match canonical words/phrases without substring collisions."""
+
+    pattern = r"(?<!\\w)" + re.escape(term) + r"(?!\\w)"
+    return re.search(pattern, text) is not None
+
+
 def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
-    return any(term in text for term in terms)
+    return any(_contains_term(text, term) for term in terms)
+
+
+_INFORMATIONAL_PREFIXES: Final = (
+    "what is ",
+    "what's ",
+    "what are ",
+    "explain ",
+    "describe ",
+    "define ",
+    "tell me about ",
+    "how does ",
+    "how do ",
+    "why ",
+)
+
+
+def _is_informational(text: str) -> bool:
+    stripped = text.lstrip()
+    return any(stripped.startswith(prefix) for prefix in _INFORMATIONAL_PREFIXES)
+
+
+def _has_action_intent(text: str, *, asks_to_execute: bool) -> bool:
+    if asks_to_execute:
+        return True
+    if _is_informational(text):
+        return False
+    return _contains_any(
+        text,
+        tuple(dict.fromkeys((*_EXTERNAL_EFFECT_TERMS, "deploy", "migrate", "disable", "bypass"))),
+    )
 
 
 def route_action(
@@ -147,15 +185,16 @@ def route_action(
             reasons=("Empty or ambiguous request; prepare clarification without side effects.",),
         )
 
-    inferred_external = _contains_any(text, _EXTERNAL_EFFECT_TERMS)
-    inferred_value = _contains_any(text, _VALUE_TRANSFER_TERMS)
-    inferred_authority = _contains_any(text, _HIGH_IMPACT_TERMS)
+    action_intent = _has_action_intent(text, asks_to_execute=asks_to_execute)
+    inferred_external = bool(action_intent and _contains_any(text, _EXTERNAL_EFFECT_TERMS))
+    inferred_value = bool(action_intent and _contains_any(text, _VALUE_TRANSFER_TERMS))
+    inferred_authority = bool(action_intent and _contains_any(text, _HIGH_IMPACT_TERMS))
 
     external = inferred_external if external_effect is None else bool(external_effect)
     money = inferred_value if value_transfer is None else bool(value_transfer)
     authority = inferred_authority if authority_change is None else bool(authority_change)
 
-    if _contains_any(text, _BLOCKED_TERMS):
+    if action_intent and _contains_any(text, _BLOCKED_TERMS):
         return ActionRiskDecision(
             route=ROUTE_BLOCK,
             risk_level="CRITICAL",
