@@ -28,7 +28,7 @@ def _pair(*, left_due_from="100", right_due_to="100"):
 
 
 def test_matching_intercompany_balances_are_elimination_ready():
-    left, _right = _pair()
+    left, right = _pair()
     result = sika_intercompany_accounting.match(left=left, right=right)
     assert result.state == "MATCHED"
     assert result.matched_amount == 100
@@ -48,7 +48,7 @@ def test_mismatch_requires_resolution_before_elimination():
 
 
 def test_entity_pair_mismatch_fails_closed():
-    left, right = _pair()
+    left, _right = _pair()
     bad = sika_intercompany_accounting.position(
         entity_id="Pacific Crown Bank",
         counterparty_entity_id="Europa Crown Bank UK",
