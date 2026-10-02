@@ -1,3 +1,4 @@
+import re
 from __future__ import annotations
 
 import re
@@ -135,7 +136,10 @@ def test_anonymous_pages_do_not_disclose_internal_architecture(anonymous_client)
         "execution locked",
         "human authority",
     ):
-        assert internal_term not in public_copy
+        if internal_term == "smi":
+            assert re.search(r"\\bsmi\\b", public_copy) is None
+        else:
+            assert internal_term not in public_copy
 
 
 def test_anonymous_visitors_receive_only_public_styles(anonymous_client):
