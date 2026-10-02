@@ -107,7 +107,9 @@ def capability_matrix() -> dict[str, bool]:
             capability,
             regulator_authorisation_proven=regulator_authorisation_proven,
             production_gate_passed=production_gate_passed,
-            permission_scope_allows=bank_permission_scope.capability_allowed(capability),
+            permission_scope_allows=(
+                bank_permission_scope.capability_allowed(capability)
+            ),
         )
         for capability in sorted(bank_authorisation.REGULATED_CAPABILITIES)
     }
