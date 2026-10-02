@@ -57,20 +57,31 @@ def test_smi_runtime_modes_reach_governed_brain_context():
     assert "studio_mode=studio_mode" in facade
 
 
-def test_smi_voice_settings_surface_reuses_existing_preference():
+def test_smi_master_settings_reuses_voice_and_persists_default_intelligence():
     base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
     script = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text()
 
-    assert 'id="voice-settings-button"' in base
-    assert 'id="voice-settings-panel"' in base
+    assert 'id="smi-settings-button"' in base
+    assert 'id="smi-settings-panel"' in base
     assert 'id="voice-auto-speak-toggle"' in base
+    assert 'id="default-intelligence-level"' in base
     assert "Speak SMI replies automatically" in base
-    assert "No audio or transcript is stored by this preference." in base
-    assert 'voiceSettingsButton=q("#voice-settings-button")' in script
+    assert "Default Intelligence" in base
+    assert "Preferences are saved on this device only." in base
+    assert "No audio or transcript is stored by these settings." in base
+
+    assert 'smiSettingsButton=q("#smi-settings-button")' in script
+    assert 'OAP_SMI_INTELLIGENCE_PREF_KEY="oap.smi.defaultIntelligence.v1"' in script
+    assert "allowedIntelligenceLevels" in script
+    assert "readIntelligencePreference()" in script
+    assert "writeIntelligencePreference(" in script
+    assert "runtimeThinkingLevel.value=intelligence" in script
+    assert "runtimeThinkingLevel.value=value" in script
     assert "window.OAP_SMI_VOICE_PREF?.read?" in script
     assert "window.OAP_SMI_VOICE_PREF?.write?" in script
     assert 'document.getElementById("speaker-button")' in script
     assert "speaker.click()" in script
+
 
 
 def test_smi_response_actions_include_feedback_and_voice():
