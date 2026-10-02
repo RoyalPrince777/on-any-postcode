@@ -66,8 +66,8 @@ def init_app(app: Flask) -> None:
     from .all_in_ai_views import bp as all_in_ai_bp
     from .bank_store_catalog_routes import bp as bank_store_catalog_bp
     from .certification_views import bp as certification_bp
-    from .company_intelligence_views import bp as company_intelligence_bp
     from .checkpoint_views import bp as checkpoint_bp
+    from .company_intelligence_views import bp as company_intelligence_bp
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
