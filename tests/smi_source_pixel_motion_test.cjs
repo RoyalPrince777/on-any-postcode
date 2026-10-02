@@ -44,3 +44,13 @@ assert.ok(liveBlock.includes("visual motion active"),"Live status should confirm
 assert.ok(source.includes("explicitLiveMotion"),"explicit Live session must be represented in renderer state");
 assert.ok(source.includes("reducedMotionPreference"),"renderer must report reduced-motion preference truthfully");
 assert.ok(source.includes("!reducedPreference||explicitLiveMotion"),"explicit Live session may enable motion for that session");
+
+
+assert.ok(source.includes("userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.())"),
+  "explicit SMI Reduced Motion preference must be read by the motion engine");
+assert.ok(source.includes("!userReducedMotion&&(!reducedPreference||explicitLiveMotion)"),
+  "explicit user Reduced Motion must override Live motion");
+assert.ok(source.includes('win.addEventListener("oap-smi-reduced-motion-change"'),
+  "motion engine must react to Settings changes");
+assert.ok(source.includes("userReducedMotionPreference:userReducedMotion"),
+  "proof snapshot must expose explicit Reduced Motion state");

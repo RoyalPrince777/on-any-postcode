@@ -61,6 +61,16 @@ def test_failed_request_restores_composer_for_retry():
     assert "oapInput.focus()" in canonical
 
 
+def test_explicit_reduced_motion_preference_suppresses_smi_animation():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert "body.smi-user-reduced-motion .smi-shell *" in css
+    assert "animation:none!important" in css
+    assert "transition:none!important" in css
+    assert "scroll-behavior:auto!important" in css
+    assert "body.smi-user-reduced-motion .smi-approved-portrait" in css
+    assert "transform:none!important" in css
+
+
 def test_live_fullscreen_keeps_minimum_text_fallback_controls_visible():
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
     assert "Canonical Live SMI input law" in css

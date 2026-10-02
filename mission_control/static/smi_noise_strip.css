@@ -1065,3 +1065,20 @@ body.smi-noise-strip .smi-world-controls:not([hidden]){
   overflow-y:auto!important;
   overscroll-behavior:contain!important;
 }
+
+
+/* Explicit SMI accessibility preference. This user choice is stronger than
+   Live-session animation and does not disable controls, speech, text or status. */
+body.smi-user-reduced-motion .smi-shell *,
+body.smi-user-reduced-motion .smi-shell *::before,
+body.smi-user-reduced-motion .smi-shell *::after,
+body.smi-user-reduced-motion .smi-command-centre *,
+body.smi-user-reduced-motion .smi-command-centre *::before,
+body.smi-user-reduced-motion .smi-command-centre *::after{
+  animation:none!important;
+  transition:none!important;
+  scroll-behavior:auto!important;
+}
+body.smi-user-reduced-motion .smi-approved-portrait{
+  transform:none!important;
+}
