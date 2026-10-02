@@ -69,6 +69,7 @@ def init_app(app: Flask) -> None:
     from .checkpoint_views import bp as checkpoint_bp
     from .company_intelligence_views import bp as company_intelligence_bp
     from .founder_tool_views import bp as founder_tool_bp
+    from .global_transport_views import bp as global_transport_bp
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
@@ -1272,6 +1273,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(bank_store_catalog_bp)
     app.register_blueprint(oap_store_bp)
     app.register_blueprint(travel_supply_bp)
+    app.register_blueprint(global_transport_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
