@@ -19,6 +19,8 @@ def test_global_transport_contract_is_install_ready_without_false_live_claims():
     assert state["post_core_authoritative_for_parcels"] is True
     assert state["human_authority_final"] is True
     assert state["live_external_transport_execution"] is False
+    assert state["mission_scope"] == "software_and_digital_only"
+    assert state["physical_operations_in_scope"] is False
     assert all(value is False for value in state["live_execution_gates"].values())
 
 
