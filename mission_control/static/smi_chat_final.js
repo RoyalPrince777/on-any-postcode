@@ -63,6 +63,8 @@ if(voiceAutoSpeakToggle){
     if(status)status.textContent=enabled
       ?"Voice reply on · preference saved on this device"
       :"Voice reply off · preference saved on this device";
+  });
+}
 if(defaultIntelligenceLevel){
   defaultIntelligenceLevel.addEventListener("change",()=>{
     const value=writeIntelligencePreference(defaultIntelligenceLevel.value);
@@ -72,8 +74,7 @@ if(defaultIntelligenceLevel){
     if(status)status.textContent="Default Intelligence · "+(value==="deep_dive"?"21":value==="think"?"7":value==="instant"?"3":"Auto")+" · preference saved on this device";
   });
 }
-  });
-}
+syncSmiSettings();
 const input=q('#message'),messages=q('#messages'),history=q('.history'),historyList=q('#history-list'),head=q('.chat-head'),plus=q('#plus-button'),menu=q('#attach-menu'),thinking=q('#thinking');
 if(q('.chat-title'))q('.chat-title').textContent='Personal SMI';if(q('.chat-head .chat-subtitle'))q('.chat-head .chat-subtitle').textContent='Private Founder intelligence · straight answers · guarded actions';if(q('#thinking-title'))q('#thinking-title').textContent='🧠 Thinking Process · safe work stages';document.title='Personal SMI · OAP';
 if(input){input.rows=1;input.placeholder='Ask SMI…';const resize=()=>{input.style.height='31px';if(input.value.trim())input.style.height=Math.min(input.scrollHeight,96)+'px';};input.addEventListener('input',resize);resize()}
