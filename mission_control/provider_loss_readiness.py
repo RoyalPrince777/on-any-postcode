@@ -7,6 +7,7 @@ Render, or both without granting deployment, publication, or execution authority
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 
 _REQUIRED_CHECKS: tuple[str, ...] = (
     "local_git_history_available",
@@ -50,10 +51,61 @@ _PROVIDER_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     "github_and_render": _REQUIRED_CHECKS,
 }
 
+_REPOSITORY_ARTIFACTS: dict[str, tuple[str, ...]] = {
+    "runtime_build": ("Dockerfile.runtime", "requirements.txt"),
+    "home_node_posix": (
+        "scripts/home_node_run.sh",
+        "scripts/oap_home_node_supervisor.py",
+        "scripts/oap_home_node_status.py",
+    ),
+    "home_node_termux": (
+        "scripts/termux_home_node_run.sh",
+        "scripts/termux_home_node_setup.sh",
+        "scripts/termux_home_node_status.sh",
+    ),
+    "home_node_windows": ("scripts/home_node_run.ps1",),
+    "home_node_contract": ("docs/HOME_NODE.md",),
+    "host_core_contract": ("docs/OAP_HOST_CORE.md",),
+    "release_control": (
+        "deploy/oap-release-control-plane.json",
+        "deploy/render-core-release.json",
+        "deploy/render-image-release.json",
+    ),
+}
+
 
 def required_checks() -> tuple[str, ...]:
     """Return the canonical 21-check provider-loss gate."""
     return _REQUIRED_CHECKS
+
+
+def repository_artifact_snapshot(root: str | Path) -> dict[str, object]:
+    """Report recovery-related repository artifacts without promoting them to proof.
+
+    File presence is useful inventory evidence, but it cannot prove that a mirror,
+    restore, alternate host, DNS switch, or live failover has actually worked.
+    """
+    repo = Path(root)
+    groups: dict[str, dict[str, object]] = {}
+    for name, paths in _REPOSITORY_ARTIFACTS.items():
+        present = tuple(path for path in paths if (repo / path).is_file())
+        missing = tuple(path for path in paths if not (repo / path).is_file())
+        groups[name] = {
+            "required_paths": paths,
+            "present_paths": present,
+            "missing_paths": missing,
+            "complete": not missing,
+        }
+
+    return {
+        "repository_root_exists": repo.is_dir(),
+        "artifact_groups": groups,
+        "artifact_inventory_only": True,
+        "counts_as_provider_independence_proof": False,
+        "automatic_failover_authorised": False,
+        "deployment_authorised": False,
+        "human_authority_final": True,
+    }
 
 
 def assess_provider_loss(
