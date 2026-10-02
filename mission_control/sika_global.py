@@ -9,11 +9,11 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 SIKA_CODE = "SIKA"
 ANCHOR_CODE = "GBP"
-SIKA_TO_GBP = Decimal("1")
+SIKA_TO_GBP = Decimal(1)
 _CODE = re.compile(r"^[A-Z]{3}$")
 
 
@@ -76,7 +76,7 @@ def quote_from_sika(
         raise CurrencyError("rate_source_required")
 
     if code == ANCHOR_CODE:
-        rate = Decimal("1")
+        rate = Decimal(1)
     else:
         try:
             raw_rate = gbp_per_unit[code]
