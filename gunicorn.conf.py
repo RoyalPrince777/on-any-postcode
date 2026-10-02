@@ -245,6 +245,53 @@ def on_starting(server):
             )
         )
 
+    if (
+        os.environ.get("OAP_BANK_EVIDENCE_MIGRATION_ON_BOOT", "")
+        .strip()
+        .lower()
+        == "true"
+    ):
+        from mission_control.bank_authorisation_store import init_schema as init_bank_evidence_schema
+
+        bank_migration_status = init_bank_evidence_schema(assume_yes=True)
+        server.log.info(
+            json.dumps(
+                {
+                    "event": "oap_bank_authorisation_evidence_migration_applied",
+                    "migration": bank_migration_status.get("migration"),
+                    "schema_ready": bank_migration_status.get("schema_ready") is True,
+                    "regulated_execution_enabled": False,
+                    "regulator_authorisation_granted": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+            )
+        )
+
+    try:
+        from mission_control.bank_authorisation_store import schema_status as bank_evidence_schema_status
+
+        bank_evidence_schema = bank_evidence_schema_status()
+    except Exception:
+        bank_evidence_schema = {
+            "database_reachable": False,
+            "evidence_table_ready": False,
+            "schema_ready": False,
+            "error": "bank_evidence_schema_probe_failed",
+        }
+    server.log.info(
+        json.dumps(
+            {
+                "event": "oap_bank_authorisation_evidence_schema_readiness",
+                **bank_evidence_schema,
+                "regulated_execution_enabled": False,
+                "regulator_authorisation_granted": False,
+                "human_authority_final": True,
+            },
+            separators=(",", ":"),
+        )
+    )
+
     try:
         from mission_control.market_supplier_network import schema_status
 
