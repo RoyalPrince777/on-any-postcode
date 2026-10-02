@@ -46,10 +46,15 @@ INTERACTION_SURFACE_IDS = frozenset({
 
 INTERACTION_PROOF_VERSION = 1
 INTERACTION_PROOF_KEY_ENV = "OAP_SMI_INTERACTION_PROOF_KEY"
+INTERACTION_RELEASE_ID_ENV = "OAP_SMI_RELEASE_ID"
 
 
 def _interaction_proof_key() -> str:
     return str(os.getenv(INTERACTION_PROOF_KEY_ENV) or "").strip()
+
+
+def _interaction_release_id() -> str:
+    return str(os.getenv(INTERACTION_RELEASE_ID_ENV) or "").strip()
 
 
 def _interaction_proof_message(payload: dict[str, Any]) -> bytes:
@@ -59,6 +64,7 @@ def _interaction_proof_message(payload: dict[str, Any]) -> bytes:
         "evidence_class": payload.get("evidence_class"),
         "runtime_instance_id": payload.get("runtime_instance_id"),
         "interaction_id": payload.get("interaction_id"),
+        "release_id": payload.get("release_id"),
         "status_code": payload.get("status_code"),
         "runtime_acknowledged": payload.get("runtime_acknowledged"),
         "interaction_completed": payload.get("interaction_completed"),
@@ -428,7 +434,8 @@ def latest_durable_interaction_surface_proofs() -> dict[str, dict[str, Any]]:
     """
 
     proofs: dict[str, dict[str, Any]] = {}
-    if not _hrm_database_url():
+    release_id = _interaction_release_id()
+    if not _hrm_database_url() or not release_id or not _interaction_proof_key():
         return proofs
     try:
         with _connect_postgres() as connection, connection.cursor() as cursor:
@@ -468,6 +475,7 @@ def latest_durable_interaction_surface_proofs() -> dict[str, dict[str, Any]]:
             and payload.get("evidence_class") == "production_interaction"
             and str(payload.get("runtime_instance_id") or "").strip()
             and str(payload.get("interaction_id") or "").strip()
+            and str(payload.get("release_id") or "").strip() == release_id
             and payload.get("runtime_acknowledged") is True
             and payload.get("interaction_completed") is True
             and payload.get("click_only_proof") is not True
@@ -487,6 +495,7 @@ def latest_durable_interaction_surface_proofs() -> dict[str, dict[str, Any]]:
             "interaction_completed": True,
             "cryptographically_verified": True,
             "proof_version": INTERACTION_PROOF_VERSION,
+            "release_id": release_id,
             "durable": True,
         }
     return proofs
