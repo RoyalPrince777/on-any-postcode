@@ -3,6 +3,7 @@ window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;
 const cfg=window.OAP_SMI_UI||{};
 const OAP_SMI_VOICE_PREF_KEY="oap.smi.voiceReplyEnabled.v1";
 const OAP_SMI_INTELLIGENCE_PREF_KEY="oap.smi.defaultIntelligence.v1";
+const OAP_SMI_REDUCED_MOTION_PREF_KEY="oap.smi.reducedMotion.v1";
 window.OAP_SMI_VOICE_PREF={
   read(fallback=true){
     try{
@@ -20,12 +21,26 @@ window.OAP_SMI_VOICE_PREF={
   storesAudio:false,
   storesTranscript:false
 };
+window.OAP_SMI_REDUCED_MOTION={
+  read(){
+    try{return window.localStorage?.getItem(OAP_SMI_REDUCED_MOTION_PREF_KEY)==="true";}catch{return false;}
+  },
+  write(enabled){
+    const value=Boolean(enabled);
+    try{window.localStorage?.setItem(OAP_SMI_REDUCED_MOTION_PREF_KEY,String(value));}catch{}
+    document.body?.classList.toggle("smi-user-reduced-motion",value);
+    window.dispatchEvent(new CustomEvent("oap-smi-reduced-motion-change",{detail:{enabled:value}}));
+    return value;
+  },
+  scope:"device-local-ui-preference"
+};
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const smiSettingsButton=q("#smi-settings-button");
 const smiSettingsPanel=q("#smi-settings-panel");
 const voiceAutoSpeakToggle=q("#voice-auto-speak-toggle");
 const defaultIntelligenceLevel=q("#default-intelligence-level");
 const runtimeThinkingLevel=q("#thinking-level");
+const reducedMotionToggle=q("#reduced-motion-toggle");
 const allowedIntelligenceLevels=new Set(["auto","instant","think","deep_dive"]);
 function readIntelligencePreference(){
   try{
@@ -43,6 +58,9 @@ function syncSmiSettings(){
   const intelligence=readIntelligencePreference();
   if(defaultIntelligenceLevel)defaultIntelligenceLevel.value=intelligence;
   if(runtimeThinkingLevel&&allowedIntelligenceLevels.has(intelligence))runtimeThinkingLevel.value=intelligence;
+  const reduced=window.OAP_SMI_REDUCED_MOTION?.read?.()===true;
+  if(reducedMotionToggle)reducedMotionToggle.checked=reduced;
+  document.body?.classList.toggle("smi-user-reduced-motion",reduced);
 }
 if(smiSettingsButton&&smiSettingsPanel){
   smiSettingsButton.addEventListener("click",()=>{
@@ -72,6 +90,16 @@ if(defaultIntelligenceLevel){
     if(runtimeThinkingLevel)runtimeThinkingLevel.value=value;
     const status=document.getElementById("status");
     if(status)status.textContent="Default Intelligence · "+(value==="deep_dive"?"21":value==="think"?"7":value==="instant"?"3":"Auto")+" · preference saved on this device";
+  });
+}
+if(reducedMotionToggle){
+  reducedMotionToggle.addEventListener("change",()=>{
+    const enabled=window.OAP_SMI_REDUCED_MOTION?.write?.(reducedMotionToggle.checked) ?? reducedMotionToggle.checked;
+    reducedMotionToggle.checked=Boolean(enabled);
+    const status=document.getElementById("status");
+    if(status)status.textContent=enabled
+      ?"Reduced Motion on · SMI visual motion suppressed"
+      :"Reduced Motion off · system motion preference applies";
   });
 }
 syncSmiSettings();
