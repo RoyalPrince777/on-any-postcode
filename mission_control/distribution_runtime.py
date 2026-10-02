@@ -328,6 +328,24 @@ class DistributionRuntimeStore:
             "human_authority_final": True,
         }
 
+    def read_for_order(self, *, order_id: object) -> dict[str, object] | None:
+        order = _uuid(order_id, "order_id")
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT distribution_id,owner_identity_id
+                   FROM oap_distribution_runtime
+                   WHERE order_id=%s
+                   ORDER BY updated_at DESC,distribution_id
+                   LIMIT 1""",
+                (order,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self.read(
+            owner_identity_id=str(row[1]),
+            distribution_id=str(row[0]),
+        )
+
     def list_for_owner(self, *, owner_identity_id: object) -> list[dict[str, object]]:
         owner = _uuid(owner_identity_id, "owner_identity_id")
         with postgres_db.connect(readonly=True) as connection:
