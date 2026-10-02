@@ -66,11 +66,13 @@ def test_smi_master_settings_reuses_voice_and_persists_default_intelligence():
     assert 'id="voice-auto-speak-toggle"' in base
     assert 'id="default-intelligence-level"' in base
     assert 'id="reduced-motion-toggle"' in base
+    assert 'id="reset-device-preferences"' in base
     assert "Speak SMI replies automatically" in base
     assert "Default Intelligence" in base
     assert "Reduced Motion" in base
     assert "Preferences are saved on this device only." in base
     assert "Reduced Motion keeps SMI visually still, including Live mode." in base
+    assert "Reset clears only SMI device preferences; conversations, HRM and receipts are not deleted." in base
     assert "No audio or transcript is stored by these settings." in base
 
     assert 'smiSettingsButton=q("#smi-settings-button")' in script
@@ -84,6 +86,11 @@ def test_smi_master_settings_reuses_voice_and_persists_default_intelligence():
     assert "window.OAP_SMI_REDUCED_MOTION" in script
     assert 'classList.toggle("smi-user-reduced-motion",value)' in script
     assert '"oap-smi-reduced-motion-change"' in script
+    assert 'resetDevicePreferences=q("#reset-device-preferences")' in script
+    assert "window.localStorage?.removeItem(OAP_SMI_VOICE_PREF_KEY)" in script
+    assert "window.localStorage?.removeItem(OAP_SMI_INTELLIGENCE_PREF_KEY)" in script
+    assert "window.localStorage?.removeItem(OAP_SMI_REDUCED_MOTION_PREF_KEY)" in script
+    assert "conversations, HRM and receipts unchanged" in script
     assert "window.OAP_SMI_VOICE_PREF?.read?" in script
     assert "window.OAP_SMI_VOICE_PREF?.write?" in script
     assert 'document.getElementById("speaker-button")' in script
