@@ -290,7 +290,8 @@ def test_explicit_war_room_selector_forces_review_without_execution_authority():
     live_brain = (ROOT / "mission_control" / "live_brain.py").read_text()
     war_room = (ROOT / "oap" / "war_room" / "engine.py").read_text()
 
-    assert 'force_war_room=requested_mode == "war_room"' in core
+    assert 'requested_mode == "war_room" or shorthand["force_war_room"]' in core
+    assert "force_war_room=force_war_room" in core
     assert "force_review=bool(force_war_room)" in live_brain
     assert "bool(force_review)" in war_room
     assert '"decision_authority": False' in live_brain
