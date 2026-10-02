@@ -87,6 +87,7 @@ def test_status_exposes_remaining_real_integration_gaps():
     assert status["fraud_financial_crime_intelligence_integrated"] is True
     assert status["accounting_intelligence_integrated"] is True
     assert status["accounting_controls_integrated"] is True
+    assert status["closing_retained_earnings_integrated"] is True
     assert status["runtime_reconciliation_integrated"] is True
 
 
