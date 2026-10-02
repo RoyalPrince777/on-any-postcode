@@ -257,6 +257,23 @@ def send_message(
     return str(row[0])
 
 
+def delete_message(sender_id: object, message_id: object) -> bool:
+    """Delete one Link Message only when the authenticated identity is its sender."""
+
+    sender = _identity(sender_id)
+    message = _identity(message_id, "invalid_message")
+    try:
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                "DELETE FROM messages WHERE id=%s AND sender_id=%s RETURNING id",
+                (message, sender),
+            ).fetchone()
+            connection.commit()
+    except Exception as exc:
+        raise ProductStoreUnavailable("linkup_delete_failed") from exc
+    return row is not None
+
+
 def mark_message_read(identity_id: object, message_id: object) -> bool:
     identity = _identity(identity_id)
     message = _identity(message_id, "invalid_message")
