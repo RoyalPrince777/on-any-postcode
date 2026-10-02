@@ -11,6 +11,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from . import sika_financial_model
+
 SIKA_CODE = "SIKA"
 ANCHOR_CODE = "GBP"
 SIKA_TO_GBP = Decimal(1)
@@ -114,4 +116,5 @@ def status() -> dict[str, object]:
         "provider_authority_evidence_required": True,
         "settlement_receipt_required": True,
         "human_authority_required": True,
+        "financial_operating_model": sika_financial_model.status(),
     }
