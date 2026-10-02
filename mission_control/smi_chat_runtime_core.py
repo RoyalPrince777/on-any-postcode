@@ -643,6 +643,27 @@ def _requested_runtime_mode(value: object) -> str:
         raise ValueError("invalid_thinking_level")
     return requested
 
+def _founder_shorthand(message: object) -> dict[str, object]:
+    """Resolve explicit Founder chat shorthand without creating a second protocol."""
+
+    text = str(message or "").casefold()
+    smi_21 = bool(re.search(r"\bsmi\s*21\b", text))
+    truth_mode = bool(re.search(r"\btruth\s+mode\b", text))
+    red_team = bool(re.search(r"\bred\s+team\b", text))
+    return {
+        "deep_dive": bool(smi_21 or truth_mode or red_team),
+        "force_war_room": red_team,
+        "signals": tuple(
+            name
+            for name, active in (
+                ("SMI_21", smi_21),
+                ("TRUTH_MODE", truth_mode),
+                ("RED_TEAM", red_team),
+            )
+            if active
+        ),
+    }
+
 
 def _auto_runtime_mode(
     message: object,
@@ -657,6 +678,9 @@ def _auto_runtime_mode(
     """Resolve the canonical SMI selector without granting decision authority."""
 
     requested = _requested_runtime_mode(requested_level)
+    shorthand = _founder_shorthand(message)
+    if requested == "auto" and shorthand["deep_dive"]:
+        requested = "deep_dive"
 
     text = str(message or "").casefold()
     auto_studio = bool(
@@ -796,6 +820,10 @@ def chat(
         if media.get("transcript"):
             review_content += "\n\nAudio transcript: " + str(media["transcript"])
         requested_mode = _requested_runtime_mode(thinking_level)
+        shorthand = _founder_shorthand(effective_clean)
+        force_war_room = bool(
+            requested_mode == "war_room" or shorthand["force_war_room"]
+        )
         brain = live_brain.review(
             request_id=request_id,
             identity_id=identity,
@@ -803,7 +831,7 @@ def chat(
             history=history,
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
-            force_war_room=requested_mode == "war_room",
+            force_war_room=force_war_room,
         )
         level, resolved_studio_mode, resolved_depth = _auto_runtime_mode(
             effective_clean,
@@ -834,6 +862,8 @@ def chat(
             brain["resolved_depth"] = {"instant": 3, "think": 7, "deep_dive": 21}.get(level, resolved_depth)
         brain["requested_mode"] = requested_mode
         brain["auto_selected"] = requested_mode == "auto"
+        brain["founder_shorthand_signals"] = shorthand["signals"]
+        brain["founder_shorthand_war_room"] = bool(shorthand["force_war_room"])
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records

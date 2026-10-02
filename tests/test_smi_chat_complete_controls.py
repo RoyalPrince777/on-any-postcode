@@ -145,6 +145,50 @@ def test_smi_auto_resolves_smallest_sufficient_depth_and_studio():
     assert (level, studio, depth) == ("deep_dive", True, 21)
 
 
+def test_founder_shorthand_routes_into_existing_depth_and_review_controls():
+    from mission_control import smi_chat_runtime_core as core
+
+    for message in ("SMI 21", "truth mode"):
+        level, studio, depth = core._auto_runtime_mode(
+            message,
+            requested_level="auto",
+            studio_mode=False,
+            code_mode=False,
+            image_attached=False,
+            media_kind=None,
+            war_room_triggered=False,
+        )
+        assert (level, studio, depth) == ("deep_dive", False, 21)
+
+    signals = core._founder_shorthand("SMI 21 truth mode red team")
+    assert signals["deep_dive"] is True
+    assert signals["force_war_room"] is True
+    assert signals["signals"] == ("SMI_21", "TRUTH_MODE", "RED_TEAM")
+
+
+def test_explicit_ui_depth_still_beats_text_only_depth_shorthand():
+    from mission_control import smi_chat_runtime_core as core
+
+    level, studio, depth = core._auto_runtime_mode(
+        "SMI 21",
+        requested_level="instant",
+        studio_mode=False,
+        code_mode=False,
+        image_attached=False,
+        media_kind=None,
+        war_room_triggered=False,
+    )
+    assert (level, studio, depth) == ("instant", False, 3)
+
+
+def test_red_team_shorthand_forces_existing_war_room_review_path():
+    core = (ROOT / "mission_control" / "smi_chat_runtime_core.py").read_text()
+    assert 'red_team = bool(re.search(r"\\bred\\s+team\\b", text))' in core
+    assert 'requested_mode == "war_room" or shorthand["force_war_room"]' in core
+    assert "force_war_room=force_war_room" in core
+    assert 'brain["founder_shorthand_war_room"] = bool(shorthand["force_war_room"])' in core
+
+
 def test_explicit_smi_depth_is_preserved_but_generation_can_auto_enter_studio():
     from mission_control import smi_chat_runtime_core as core
 
@@ -246,7 +290,8 @@ def test_explicit_war_room_selector_forces_review_without_execution_authority():
     live_brain = (ROOT / "mission_control" / "live_brain.py").read_text()
     war_room = (ROOT / "oap" / "war_room" / "engine.py").read_text()
 
-    assert 'force_war_room=requested_mode == "war_room"' in core
+    assert 'requested_mode == "war_room" or shorthand["force_war_room"]' in core
+    assert "force_war_room=force_war_room" in core
     assert "force_review=bool(force_war_room)" in live_brain
     assert "bool(force_review)" in war_room
     assert '"decision_authority": False' in live_brain
