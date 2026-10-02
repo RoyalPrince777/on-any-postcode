@@ -6,10 +6,10 @@ Render, or both without granting deployment, publication, or execution authority
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
-from pathlib import Path
 import shutil
 import subprocess
+from collections.abc import Mapping
+from pathlib import Path
 
 _REQUIRED_CHECKS: tuple[str, ...] = (
     "local_git_history_available",
@@ -89,8 +89,7 @@ def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
         [git, *args],
         cwd=repo,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         timeout=20,
         check=False,
     )
