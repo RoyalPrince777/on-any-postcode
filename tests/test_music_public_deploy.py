@@ -188,7 +188,8 @@ def test_music_page_exposes_real_install_contract(client):
     assert "data-oap-music-install hidden" in body
     assert 'src="/assets/oap-music-install.js"' in body
     assert 'data-oap-music-install-status role="status"' in body
-    assert "First-party installable web app" in body
+    assert "First-party installable web app" not in body
+    assert "Install OAP Music" in body
 
 
 def test_music_install_controller_uses_existing_safe_root_worker(client):
