@@ -8,6 +8,7 @@ import pytest
 
 from mission_control import (
     arena_rooms,
+    bank_authorisation_store,
     distribution_market_links,
     market_supplier_network,
     movement_operations,
@@ -492,3 +493,61 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     assert stopped["state"] == "STOPPED"
     assert stopped["order_intent_allowed"] is False
     assert stopped["external_execution_allowed"] is False
+
+
+
+def test_real_postgres_bank_authorisation_evidence_is_append_only_and_fail_closed():
+    postgres_db.init_postgres(assume_yes=True)
+    schema = bank_authorisation_store.init_schema(assume_yes=True)
+    assert schema["schema_ready"] is True
+
+    draft = bank_authorisation_store.record_evidence(
+        category="legal_entity_and_ownership",
+        status="DRAFT",
+        evidence_reference="ci-company-proof-draft",
+    )
+    assert draft["regulated_execution_enabled"] is False
+
+    reviewed = bank_authorisation_store.record_evidence(
+        category="legal_entity_and_ownership",
+        status="ACCEPTED",
+        evidence_reference="ci-company-proof-reviewed",
+        reviewed_by="ci-founder-review",
+    )
+    assert reviewed["regulator_authorisation_granted"] is False
+
+    rejected = bank_authorisation_store.record_evidence(
+        category="legal_entity_and_ownership",
+        status="REJECTED",
+        evidence_reference="ci-company-proof-rejected",
+        reviewed_by="ci-founder-review",
+    )
+    assert rejected["regulated_execution_enabled"] is False
+
+    register = bank_authorisation_store.latest_register()
+    assert register["legal_entity_and_ownership"]["status"] == "REJECTED"
+    assert register["legal_entity_and_ownership"]["proven"] is False
+
+    accepted = bank_authorisation_store.record_evidence(
+        category="legal_entity_and_ownership",
+        status="ACCEPTED",
+        evidence_reference="ci-company-proof-final",
+        reviewed_by="ci-founder-review",
+    )
+    assert accepted["regulated_execution_enabled"] is False
+
+    register = bank_authorisation_store.latest_register()
+    assert register["legal_entity_and_ownership"]["status"] == "ACCEPTED"
+    assert register["legal_entity_and_ownership"]["proven"] is True
+
+    readiness = bank_authorisation_store.readiness_status()
+    assert readiness["evidence_proven"] == 1
+    assert readiness["authorised_bank"] is False
+    assert readiness["deposit_taking_enabled"] is False
+
+    with postgres_db.connect(readonly=True) as connection:
+        count = connection.execute(
+            """SELECT COUNT(*) FROM oap_bank_authorisation_evidence
+               WHERE category='legal_entity_and_ownership'"""
+        ).fetchone()[0]
+    assert int(count) == 4
