@@ -143,13 +143,16 @@ def test_home_restores_system_context_without_dashboard_wall():
     command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
     assert 'className="smi-home-intelligence"' in command
-    for label in ("SMI System", "Matrix", "War Room"):
+    for label in ("🏠 Home", "🧠 SMI", "📡 Signals", "🛡️ Guardian", "⚔️ War Room", "🧩 Intelligence", "🧾 HRM / JOOG", "⚙️ Control", "⚙ Settings"):
         assert label in command
-    assert 'homeSystem.addEventListener("click",()=>{' in command
+    assert 'homeButton.addEventListener("click",()=>{' in command
     assert 'setOpen(true);' in command
     assert 'panel.dataset.mobileView="evidence"' in command
-    assert 'homeMatrix.addEventListener("click",()=>window.location.assign("/mission/war-room/routes"))' in command
-    assert 'homeWar.addEventListener("click",()=>openWarRoom())' in command
+    assert 'signalsHomeButton.addEventListener("click",()=>openStatus(true))' in command
+    assert 'guardianHomeButton.addEventListener("click",()=>triggerMasterTool("guardian"))' in command
+    assert 'warHomeButton.addEventListener("click",()=>openWarRoom())' in command
+    assert 'hrmHomeButton.addEventListener("click",()=>triggerMasterTool("hrm"))' in command
+    assert 'document.getElementById("voice-settings-button")' in command
     assert "Home intelligence rail: restore system context without restoring dashboard noise." in css
     assert "body.smi-noise-strip.smi-command-open .smi-home-intelligence" in css
     assert "body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence" in css
@@ -204,8 +207,8 @@ def test_smi_home_world_controls_open_existing_public_routes_without_private_act
     assert "publicOapUrl:'/'" in template
     assert "publicWorldOrigin:'https://on-any-postcode.onrender.com/'" in template
     assert 'cfg.publicWorldOrigin' in command
-    assert 'homeWorld.textContent="🌍 OAP World"' in command
-    assert 'homeRail.append(homeWorld,homeJungle,homeSystem,homeMatrix,homeWar)' in command
+    assert '["🌍 OAP World","world-controls"]' in command
+    assert 'if(action==="world-controls")' in command
     assert 'worldPanel.id="smi-world-controls"' in command
     for route in ('["🌍 Enter OAP World","/"]', '["📍 The Spot","/the-spot"]',
                   '["🔗 Link Up","/linkup"]', '["🗺️ OAP World / Place","/on-any-place"]'):
@@ -214,7 +217,7 @@ def test_smi_home_world_controls_open_existing_public_routes_without_private_act
     assert 'link.href=publicOrigin+path' in command
     assert 'link.rel="noopener noreferrer"' in command
     assert 'worldPanel.hidden=true' in command
-    assert 'homeWorld.setAttribute("aria-expanded","false")' in command
+    assert 'worldPanel.hidden=!worldPanel.hidden' in command
     assert 'event.key==="Escape"' in command
     assert 'body.smi-noise-strip .smi-world-controls[hidden]{display:none!important}' in css
     assert 'body.smi-noise-strip.smi-command-open .smi-world-controls' in css
@@ -223,23 +226,21 @@ def test_smi_home_world_controls_open_existing_public_routes_without_private_act
 
 def test_jungle_home_door_uses_registered_families_and_existing_war_room():
     command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
-    assert 'homeJungle.textContent="🐆 Jungle"' in command
-    assert 'homeRail.append(homeWorld,homeJungle,homeSystem,homeMatrix,homeWar)' in command
+    assert '["🐆 Jungle","jungle-controls"]' in command
+    assert 'if(action==="jungle-controls")' in command
     assert 'junglePanel.id="smi-jungle-controls"' in command
     for family in ("jungle_book", "animal", "akan_animal"):
         assert "/mission/agents?family=" + family in command
     assert 'String(cfg.warRoomUrl||"")' in command
     assert 'junglePanel.hidden=true' in command
-    assert "homeJungle.setAttribute(\"aria-expanded\",String(opening))" in command
-    assert "homeWorld.addEventListener(\"click\",()=>closeJungle())" in command
-    assert "closeWorld();" in command
+    assert "junglePanel.hidden=!junglePanel.hidden" in command
     assert "review lenses are not independent agents" in command
 
 
 def test_existing_world_menu_separates_public_previews_and_private_review():
     command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
-    assert 'homeWorld.textContent="🌍 OAP World"' in command
+    assert '["🌍 OAP World","world-controls"]' in command
     assert 'worldPanel.id="smi-world-controls"' in command
     assert 'publicHeading.textContent="PUBLIC OAP · PREVIEW"' in command
     assert 'controlHeading.textContent="PRIVATE SMI · WORLD GOVERNANCE"' in command
