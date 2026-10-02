@@ -6,6 +6,7 @@ bp = Blueprint("oap_ride_dashboards", __name__)
 
 RIDER = (
     ("Request Journey", "/movement/workspace#book-title"),
+    ("Current Journey", "/transport/ride/current"),
     ("My Journeys", "/movement/workspace#bookings-title"),
     ("Find Match", "/movement/workspace#bookings-title"),
     ("My Matches", "/movement/workspace#member-matches-title"),
@@ -15,6 +16,7 @@ RIDER = (
 
 DRIVER = (
     ("Go Active / Quiet", "/movement/workspace#work-title"),
+    ("Current Journey", "/transport/ride/current"),
     ("Incoming Journey", "/movement/workspace#assigned-title"),
     ("Accept Journey", "/movement/workspace#assigned-title"),
     ("My Drive", "/movement/workspace#work-title"),
@@ -26,6 +28,7 @@ DRIVER = (
 MY = (
     ("Rider", "/transport/ride/rider"),
     ("Driver", "/transport/ride/driver"),
+    ("Current Journey", "/transport/ride/current"),
     ("My Journeys", "/movement/workspace#bookings-title"),
     ("My Drive", "/movement/workspace#work-title"),
     ("Payments", "/pay"),
