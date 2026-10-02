@@ -332,6 +332,7 @@ def readiness_state() -> dict[str, object]:
         atlas_live_sources,
         certification,
         listing_media,
+        live_road_intelligence,
         map_live_pattern,
         maps_movement_direct_proof_runner,
         product_store,
@@ -343,6 +344,7 @@ def readiness_state() -> dict[str, object]:
 
     route_state = routing.status()
     live_state = map_live_pattern.status()
+    live_road_state = live_road_intelligence.status()
     place_state = atlas_live_sources.status()
     federation_state = routing_federation.status()
     media_state = listing_media.status()
@@ -417,8 +419,16 @@ def readiness_state() -> dict[str, object]:
     if not first_party_reviews_ready:
         remaining.append("first-party reviews proof")
 
+    dynamic_live_eta_ready = bool(live_road_state.get("dynamic_eta_ready"))
+    traffic_layer_ready = bool(live_road_state.get("traffic_layer_ready"))
+    reroute_signal_ready = bool(live_road_state.get("reroute_signal_ready"))
     software_navigation_green = bool(
-        road_tiles_proven and route_geometry_proven and turn_by_turn_software_ready
+        road_tiles_proven
+        and route_geometry_proven
+        and turn_by_turn_software_ready
+        and dynamic_live_eta_ready
+        and traffic_layer_ready
+        and reroute_signal_ready
     )
     london_live_pattern_green = bool(live_disruption_proven)
     overall_green = bool(not remaining)
@@ -440,6 +450,12 @@ def readiness_state() -> dict[str, object]:
         "first_party_reviews_ready": first_party_reviews_ready,
         "connected_routing_shards": connected_shards,
         "wider_uk_routing_live": wider_uk_routing_live,
+        "dynamic_live_eta_ready": dynamic_live_eta_ready,
+        "traffic_layer_ready": traffic_layer_ready,
+        "reroute_signal_ready": reroute_signal_ready,
+        "continuous_speed_coverage_proven": bool(live_road_state.get("continuous_speed_coverage_proven")),
+        "uk_wide_live_traffic_proven": bool(live_road_state.get("uk_wide_live_traffic_proven")),
+        "vehicle_telemetry_integration_proven": bool(live_road_state.get("vehicle_telemetry_integration_proven")),
         "software_navigation_green": software_navigation_green,
         "london_live_pattern_green": london_live_pattern_green,
         "overall_green": overall_green,
