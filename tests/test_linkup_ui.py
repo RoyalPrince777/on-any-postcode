@@ -284,7 +284,9 @@ def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     assert 'id="linkup-ring"' in template
     assert 'id="linkup-incoming"' in template
     assert 'id="linkup-requests"' in template
-    assert 'href="/leave"' in template
+    assert "url_for('auth_sign_out')" in template
+    assert 'method="post"' in template
+    assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in template
     assert '>Leave My World</a>' in template
     assert 'id="linkup-more"' in template
     assert '>My Card</a>' in template
