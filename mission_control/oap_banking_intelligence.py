@@ -1,0 +1,126 @@
+"""First-party OAP Banking Intelligence read-only world state.
+
+This module composes existing SIKA, treasury, provider, regulator, permission
+and production owners. It does not create a second ledger, execute payments or
+move money. Its job is to present one deterministic banking truth snapshot.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from . import (
+    bank_authorisation,
+    bank_authorisation_store,
+    bank_permission_scope,
+    sika_production_evidence_store,
+    sika_provider_adapter,
+    sika_treasury_controls,
+)
+
+
+@dataclass(frozen=True)
+class BankingWorldState:
+    treasury_healthy: bool
+    provider_review_ready: bool
+    regulator_authorisation_proven: bool
+    production_gate_passed: bool
+    permission_scope_allows_payments: bool
+    may_enter_human_review: bool
+    money_moved: bool = False
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "treasury_healthy": self.treasury_healthy,
+            "provider_review_ready": self.provider_review_ready,
+            "regulator_authorisation_proven": self.regulator_authorisation_proven,
+            "production_gate_passed": self.production_gate_passed,
+            "permission_scope_allows_payments": (
+                self.permission_scope_allows_payments
+            ),
+            "may_enter_human_review": self.may_enter_human_review,
+            "money_moved": self.money_moved,
+        }
+
+
+def observe(
+    *,
+    treasury: sika_treasury_controls.TreasurySnapshot,
+    provider_evidence: sika_provider_adapter.ProviderEvidence,
+) -> BankingWorldState:
+    """Compose current banking readiness without authorising execution."""
+
+    treasury_gate = sika_treasury_controls.release_gate(treasury)
+    provider_gate = sika_provider_adapter.release_review(provider_evidence)
+    regulator = bank_authorisation_store.readiness_status()
+    production = sika_production_evidence_store.readiness_status()
+
+    treasury_healthy = bool(treasury_gate["liquidity_healthy"])
+    provider_review_ready = bool(provider_gate["may_enter_execution_review"])
+    regulator_authorisation_proven = bool(regulator.get("authorised_bank"))
+    production_gate_passed = bool(production.get("production_gate_passed"))
+    permission_scope_allows_payments = bank_permission_scope.capability_allowed(
+        "execute_payments"
+    )
+
+    may_enter_human_review = all(
+        (
+            treasury_healthy,
+            provider_review_ready,
+            regulator_authorisation_proven,
+            production_gate_passed,
+            permission_scope_allows_payments,
+        )
+    )
+
+    return BankingWorldState(
+        treasury_healthy=treasury_healthy,
+        provider_review_ready=provider_review_ready,
+        regulator_authorisation_proven=regulator_authorisation_proven,
+        production_gate_passed=production_gate_passed,
+        permission_scope_allows_payments=permission_scope_allows_payments,
+        may_enter_human_review=may_enter_human_review,
+        money_moved=False,
+    )
+
+
+def capability_world_state() -> dict[str, bool]:
+    """Expose exact regulated-capability readiness from governed owners."""
+
+    regulator = bank_authorisation_store.readiness_status()
+    production = sika_production_evidence_store.readiness_status()
+    regulator_proven = bool(regulator.get("authorised_bank"))
+    production_proven = bool(production.get("production_gate_passed"))
+
+    return {
+        capability: bank_authorisation.capability_allowed(
+            capability,
+            regulator_authorisation_proven=regulator_proven,
+            production_gate_passed=production_proven,
+            permission_scope_allows=(
+                bank_permission_scope.capability_allowed(capability)
+            ),
+        )
+        for capability in sorted(bank_authorisation.REGULATED_CAPABILITIES)
+    }
+
+
+def status() -> dict[str, object]:
+    """Describe the real composition boundary and remaining integration gaps."""
+
+    return {
+        "system": "OAP Banking Intelligence OS",
+        "mode": "read_only_world_state",
+        "first_party": True,
+        "composes_sika_treasury": True,
+        "composes_provider_evidence": True,
+        "composes_regulator_evidence": True,
+        "composes_permission_scope": True,
+        "composes_production_evidence": True,
+        "duplicate_ledger_created": False,
+        "payment_execution_enabled": False,
+        "money_movement_enabled": False,
+        "human_authority_final": True,
+        "blockchain_integrity_integrated": False,
+        "bank_grade_double_entry_integrated": False,
+        "runtime_reconciliation_integrated": False,
+    }
