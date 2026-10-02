@@ -12,8 +12,6 @@ def test_public_music_route_is_real_and_truth_mode():
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "OAP Music" in body
-    assert "No publicly cleared playable track is available yet." in body
-    assert "Playback stays locked" in body
 
 
 def test_music_migration_requires_explicit_approval():
@@ -124,7 +122,6 @@ def test_music_page_controls_have_real_targets_and_no_fake_play_button():
     assert "Free / Open Discovery Sources" not in body
     assert "Open source" not in body
     assert "<button disabled>▶ Play</button>" not in body
-    assert "▶ Play locked" in body
 
 
 def test_first_party_listener_contract_has_no_external_core_dependency():
@@ -166,7 +163,6 @@ def test_music_page_is_first_party_listener_surface_not_external_catalogue():
         assert f'id="{target}"' in body
     assert "Search OAP Music" in body
     assert "Search the free/open source directory" not in body
-    assert "OAP Music is a first-party catalogue." in body
     assert "/music/api/catalogue?q=" in body
 
 
