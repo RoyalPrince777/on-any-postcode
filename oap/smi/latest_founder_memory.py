@@ -9,10 +9,28 @@ from datetime import datetime, timezone
 
 from oap.contracts import MemoryItem, OutputState
 
-REVISION = "2026-09-18-war-room-intelligence"
-_TIMESTAMP = datetime(2026, 9, 18, tzinfo=timezone.utc)
+REVISION = "2026-10-02-seven-links-core-thinking-signals"
+_TIMESTAMP = datetime(2026, 10, 2, tzinfo=timezone.utc)
 
 _RECORDS = (
+    (
+        "smi.seven-links-and-signals",
+        (
+            "Latest Founder lock: the top-level SMI mission loop has exactly seven major links: "
+            "Mission -> Continue -> Risk / Guardian -> War Room / Judgement -> Founder Final -> "
+            "Recovery / Rollback -> Outcome / Learning. These are major links, not mandatory staged "
+            "progress theatre. SMI also keeps three distinct 21-signal concepts: Core Review Signals "
+            "(Truth, Evidence, Risk, Safety, Security, Privacy, Identity, Permission, Intent, Dependency, "
+            "Architecture, Alignment, Resilience, Performance, Reversibility, Impact, Readiness, Coherence, "
+            "Recovery, Outcome, Human Authority); Thinking Signals (Checking, Mode, Proof Needed, Locked, "
+            "Blocked, Next Before Green, HRM Memory, Source Proof, Route / API Proof, Data Proof, Consent Proof, "
+            "Install Proof, Monitoring Proof, Rollback Proof, Founder Approval, Guardian Pass, Green Gate Result, "
+            "Public / Private Boundary, Tool / Plugin Proof, Neon Receipt, Real Green Decision); and the existing "
+            "21 Live Signals colour/state vocabulary. Core Review Signals define what is checked; Thinking Signals "
+            "show safe visible work/proof telemetry; Live Signals express state. None expose private chain-of-thought. "
+            "Human Authority remains final."
+        ),
+    ),
     (
         "joog.unified-memory",
         (
