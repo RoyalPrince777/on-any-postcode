@@ -16,6 +16,7 @@ from . import (
     smi_completion_contract,
     smi_deep_dive_protocol,
     smi_function_health,
+    smi_master_blueprint_101,
     smi_proof_gate,
     smi_receipt_backend,
     war_room_simulation_actions,
@@ -261,6 +262,15 @@ def thinking_signals():
     """Return private-safe visible SMI thinking/status signals."""
 
     return _no_store(make_response(jsonify(alignment_check.thinking_signals())))
+
+
+@bp.get("/war-room/master-blueprint-101")
+@bp.get("/smi/master-blueprint-101")
+@web_security.login_required(api=True, founder_only=True)
+def smi_master_blueprint_101_status():
+    """Return the canonical 101-point architecture register without progress theatre."""
+
+    return _no_store(make_response(jsonify(smi_master_blueprint_101.status())))
 
 
 @bp.get("/war-room/function-health")
