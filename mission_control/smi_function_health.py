@@ -262,6 +262,9 @@ def interaction_certification() -> dict[str, Any]:
                     and surface_proofs_checked
                     and isinstance(surface_proofs.get(spec["id"]), Mapping)
                     and surface_proofs[spec["id"]].get("proven") is True
+                    and surface_proofs[spec["id"]].get("durable") is True
+                    and surface_proofs[spec["id"]].get("cryptographically_verified") is True
+                    and bool(str(surface_proofs[spec["id"]].get("release_id") or "").strip())
                 )
             )
         )
