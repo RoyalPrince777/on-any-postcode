@@ -30,6 +30,7 @@ from . import (
     sika_production_evidence_store,
     sika_provider_adapter,
     sika_runtime_reconciliation,
+    sika_reconciliation_exception_store,
     sika_treasury_controls,
 )
 
@@ -201,5 +202,8 @@ def status() -> dict[str, object]:
         ),
         "runtime_reconciliation_integrated": bool(
             sika_runtime_reconciliation.status()["first_party"]
+        ),
+        "reconciliation_exception_store_integrated": bool(
+            sika_reconciliation_exception_store.status()["persistent_exception_cases"]
         ),
     }
