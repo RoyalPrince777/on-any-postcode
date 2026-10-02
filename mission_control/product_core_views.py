@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from . import (
     certification,
     distribution_intelligence,
+    distribution_runtime,
     entertainment_catalogue,
     live_music_core,
     market_supplier_network,
@@ -40,6 +41,7 @@ _records_store = records_core.RecordsStore()
 _live_music_store = live_music_core.LiveMusicStore()
 _music_recovery_store = music_recovery.MusicRecoveryStore()
 _music_acceptance_store = music_acceptance.MusicAcceptanceStore()
+_distribution_runtime_store = distribution_runtime.DistributionRuntimeStore()
 _music_asset_store = music_assets.MusicAssetStore()
 
 
@@ -754,6 +756,81 @@ def distribution_status():
             "OAP Distribution is temporarily unavailable.",
             503,
         )
+
+
+@bp.get("/distribution/runtime")
+@web_security.login_required(api=True)
+def distribution_runtime_list():
+    try:
+        owner = _identity()
+        return _no_store(make_response(jsonify({
+            "runtime": distribution_runtime.status(),
+            "items": _distribution_runtime_store.list_for_owner(
+                owner_identity_id=owner
+            ),
+            "analytics": _distribution_runtime_store.analytics(
+                owner_identity_id=owner
+            ),
+        })))
+    except (ValueError, RuntimeError):
+        return _error(
+            "distribution_runtime_unavailable",
+            "OAP Distribution Runtime is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/distribution/runtime/<distribution_id>")
+@web_security.login_required(api=True)
+def distribution_runtime_item(distribution_id: str):
+    try:
+        return _no_store(make_response(jsonify(
+            _distribution_runtime_store.read(
+                owner_identity_id=_identity(),
+                distribution_id=distribution_id,
+            )
+        )))
+    except PermissionError:
+        return _error("permission_denied", "Distribution item unavailable.", 403)
+    except (ValueError, RuntimeError):
+        return _error(
+            "distribution_runtime_unavailable",
+            "OAP Distribution Runtime is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/distribution/runtime")
+@web_security.login_required(api=True)
+def create_distribution_runtime_item():
+    def action():
+        payload = _payload()
+        return _distribution_runtime_store.create(
+            owner_identity_id=_identity(sync=True),
+            lane=payload.get("lane"),
+            subject_type=payload.get("subject_type"),
+            subject_id=payload.get("subject_id"),
+            source_reference=payload.get("source_reference"),
+            destination_reference=payload.get("destination_reference"),
+            order_id=payload.get("order_id"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/distribution/runtime/<distribution_id>/transition")
+@web_security.login_required(api=True)
+def transition_distribution_runtime_item(distribution_id: str):
+    def action():
+        payload = _payload()
+        return _distribution_runtime_store.transition(
+            owner_identity_id=_identity(sync=True),
+            distribution_id=distribution_id,
+            target_state=payload.get("target_state"),
+            evidence_reference=payload.get("evidence_reference"),
+        )
+
+    return _handle_write(action)
 
 
 @bp.get("/distribution-market-media")
