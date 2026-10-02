@@ -325,9 +325,7 @@ def verify_webhook(
     current = int(time.time()) if now is None else int(now)
     if abs(current - ts) > tolerance_seconds:
         raise SecureProviderError("provider_webhook_timestamp_outside_tolerance")
-    supplied = str(signature or "").strip().lower()
-    if supplied.startswith("sha256="):
-        supplied = supplied[7:]
+    supplied = str(signature or "").strip().lower().removeprefix("sha256=")
     message = f"{ts}.".encode("ascii") + body
     expected = hmac.new(
         config.webhook_secret.encode("utf-8"),
