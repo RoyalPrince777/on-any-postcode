@@ -32,6 +32,7 @@ from . import (
     public_store,
     smi_android_live_evidence,
     smi_chat_runtime,
+    smi_command_dashboard,
     smi_founder_assets,
     smi_receipt_backend,
     smi_recursive_improvement,
@@ -285,6 +286,29 @@ def agent_intelligence():
         )
     )
     return _no_store(response)
+
+
+@bp.get("/smi")
+@web_security.login_required(founder_only=True)
+def smi_command_dashboard_view():
+    """Render one Founder command surface from canonical SMI status sources."""
+
+    return _no_store(
+        make_response(
+            render_template(
+                "smi_command_dashboard.html",
+                command=smi_command_dashboard.status(),
+            )
+        )
+    )
+
+
+@bp.get("/smi/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_command_dashboard_status():
+    """Return the same read-only Founder command projection as JSON."""
+
+    return _no_store(make_response(jsonify(smi_command_dashboard.status())))
 
 
 @bp.get("/brain")
