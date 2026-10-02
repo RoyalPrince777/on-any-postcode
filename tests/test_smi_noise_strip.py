@@ -152,7 +152,7 @@ def test_home_restores_system_context_without_dashboard_wall():
     assert 'guardianHomeButton.addEventListener("click",()=>triggerMasterTool("guardian"))' in command
     assert 'warHomeButton.addEventListener("click",()=>openWarRoom())' in command
     assert 'hrmHomeButton.addEventListener("click",()=>triggerMasterTool("hrm"))' in command
-    assert 'document.getElementById("voice-settings-button")' in command
+    assert 'document.getElementById("smi-settings-button")' in command
     assert "Home intelligence rail: restore system context without restoring dashboard noise." in css
     assert "body.smi-noise-strip.smi-command-open .smi-home-intelligence" in css
     assert "body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence" in css
