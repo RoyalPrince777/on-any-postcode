@@ -138,6 +138,71 @@ def _allocate(amount_minor: int, plan: tuple[dict[str, Any], ...]) -> tuple[dict
     return tuple(result)
 
 
+def validate_order_terms(
+    *,
+    listing_price_minor: object,
+    requested_price_minor: object,
+    minimum_price_minor: object = 100,
+    optional_pay_more: bool = True,
+    quantity: object = 1,
+) -> int:
+    """Validate non-live Music purchase pricing and return the unit price.
+
+    This performs no payment, settlement, fulfilment, or external call.
+    """
+    try:
+        listing = int(listing_price_minor)
+        minimum = int(minimum_price_minor)
+        qty = int(quantity)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_music_order_terms") from exc
+    if qty != 1:
+        raise ValueError("music_purchase_quantity_must_be_one")
+    if listing < minimum or minimum < 100:
+        raise ValueError("music_minimum_price_is_one_gbp")
+    if requested_price_minor in (None, ""):
+        return listing
+    try:
+        requested = int(requested_price_minor)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_music_price") from exc
+    if requested < minimum or requested < listing:
+        raise ValueError("music_price_below_allowed_floor")
+    if requested > listing and not optional_pay_more:
+        raise ValueError("music_pay_more_disabled")
+    return requested
+
+
+def validate_finalize_terms(
+    *,
+    currency: object,
+    unit_price_minor: object,
+    subtotal_minor: object,
+    minimum_price_minor: object,
+    quantity: object,
+    link_state: object,
+    payment_state: object,
+) -> None:
+    """Fail closed before ownership is minted from existing Commerce evidence."""
+    try:
+        unit_price = int(unit_price_minor)
+        subtotal = int(subtotal_minor)
+        minimum = int(minimum_price_minor)
+        qty = int(quantity)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_music_finalize_terms") from exc
+    if qty != 1:
+        raise ValueError("music_purchase_quantity_must_be_one")
+    if str(currency) != "GBP" or minimum < 100:
+        raise ValueError("music_purchase_currency_or_floor_invalid")
+    if unit_price < minimum or subtotal < unit_price:
+        raise ValueError("music_purchase_price_invalid")
+    if str(link_state) != "READY":
+        raise ValueError("music_market_product_not_ready")
+    if str(payment_state) != "CAPTURED":
+        raise ValueError("payment_not_captured")
+
+
 def init_schema(*, assume_yes: bool = False) -> dict[str, Any]:
     if not assume_yes:
         raise RuntimeError("explicit_confirmation_required")
@@ -287,14 +352,15 @@ class MusicMarketPurchaseStore:
             minimum = int(row[10])
             plan = tuple(dict(item) for item in row[11])
             link_state = str(row[12])
-            if quantity != 1:
-                raise ValueError("music_purchase_quantity_must_be_one")
-            if currency != "GBP" or unit_price < minimum or subtotal < minimum:
-                raise ValueError("music_purchase_price_invalid")
-            if link_state != "READY":
-                raise ValueError("music_market_product_not_ready")
-            if payment_state != "CAPTURED":
-                raise ValueError("payment_not_captured")
+            validate_finalize_terms(
+                currency=currency,
+                unit_price_minor=unit_price,
+                subtotal_minor=subtotal,
+                minimum_price_minor=minimum,
+                quantity=quantity,
+                link_state=link_state,
+                payment_state=payment_state,
+            )
 
             existing = connection.execute(
                 """SELECT entitlement_id,state,amount_minor,currency
