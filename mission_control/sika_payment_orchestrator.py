@@ -227,6 +227,30 @@ def read_intent(payment_id: object) -> PaymentIntent | None:
     return None if row is None else _row_to_intent(row)
 
 
+def read_intent_by_provider_reference(provider_reference: object) -> PaymentIntent | None:
+    provider_ref = _required(
+        provider_reference,
+        error="provider_reference_required",
+    )
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT payment_id,idempotency_key,payer_account_id,
+                          payee_reference,amount,currency,jurisdiction,status,
+                          provider_reference
+                   FROM oap_sika_payment_intents
+                   WHERE provider_reference=%s
+                   ORDER BY updated_at DESC
+                   LIMIT 1""",
+                (provider_ref,),
+            ).fetchone()
+    except Exception as exc:
+        raise PaymentOrchestratorUnavailable(
+            "payment_intent_provider_lookup_failed"
+        ) from exc
+    return None if row is None else _row_to_intent(row)
+
+
 def _gateway_authorization_valid(
     value: object,
     *,
