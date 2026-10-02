@@ -164,8 +164,8 @@ def test_runtime_schema_initialization_requires_explicit_human_approval():
     assert dry["statements"] == 4
 
 
-def test_distribution_runtime_routes_are_registered(app):
-    rules = {rule.rule for rule in app.url_map.iter_rules()}
+def test_distribution_runtime_routes_are_registered(client):
+    rules = {rule.rule for rule in client.application.url_map.iter_rules()}
 
     assert "/mission/organs/distribution/runtime" in rules
     assert "/mission/organs/distribution/runtime/<distribution_id>" in rules
