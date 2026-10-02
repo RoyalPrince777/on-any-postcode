@@ -23,6 +23,8 @@ def init_app(app: Flask) -> None:
     from . import audit as auditmod
     from . import (
         authority,
+        bank_authorisation,
+        bank_authorisation_store,
         esim_persistence,
         hrm_durable_receipt,
         link_activity,
@@ -799,6 +801,75 @@ def init_app(app: Flask) -> None:
     def _oap_init_postgres(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-bank-evidence-status")
+    def _oap_bank_evidence_status() -> None:
+        """Read-only bank evidence schema and regulator-readiness status."""
+        import json
+
+        print(
+            json.dumps(
+                {
+                    "schema": bank_authorisation_store.schema_status(),
+                    "readiness": bank_authorisation_store.readiness_status(),
+                }
+            )
+        )
+
+    @app.cli.command("oap-bank-evidence-register")
+    def _oap_bank_evidence_register() -> None:
+        """Read-only latest event projection for all PRA/FCA evidence categories."""
+        import json
+
+        print(
+            json.dumps(
+                {
+                    "register": bank_authorisation_store.latest_register(),
+                    "readiness": bank_authorisation_store.readiness_status(),
+                }
+            )
+        )
+
+    @app.cli.command("oap-record-bank-evidence")
+    @click.option(
+        "--category",
+        type=click.Choice(list(bank_authorisation.PRA_FCA_EVIDENCE)),
+        required=True,
+    )
+    @click.option(
+        "--status",
+        type=click.Choice(["DRAFT", "REVIEWED", "ACCEPTED", "REJECTED"]),
+        required=True,
+    )
+    @click.option("--evidence-reference", required=True)
+    @click.option("--notes", default="", show_default=True)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_record_bank_evidence(
+        category: str,
+        status: str,
+        evidence_reference: str,
+        notes: str,
+        yes: bool,
+    ) -> None:
+        """Append one Founder-confirmed bank-authorisation evidence event."""
+        import json
+
+        if not yes:
+            raise click.ClickException("explicit_confirmation_required")
+        reviewer = authority.configured_identity()
+        if not reviewer:
+            raise click.ClickException("human_authority_identity_not_configured")
+        try:
+            result = bank_authorisation_store.record_evidence(
+                category=category,
+                status=status,
+                evidence_reference=evidence_reference,
+                reviewed_by=str(reviewer),
+                notes=notes,
+            )
+        except Exception as exc:
+            raise click.ClickException(str(exc) or type(exc).__name__) from exc
+        print(json.dumps(result))
 
     @app.cli.command("oap-market-supplier-status")
     def _oap_market_supplier_status() -> None:
