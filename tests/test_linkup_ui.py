@@ -42,7 +42,7 @@ def test_link_up_language_law_keeps_messenger_terms_simple():
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["new_conversation"] == "New Link"
     assert "group" not in linkup.LINK_UP_PUBLIC_VOCABULARY
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["video_call"] == "Link Call"
-    assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Tap In"
+    assert linkup.LINK_UP_PUBLIC_VOCABULARY["notifications"] == "Incoming"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["share_location"] == "Share My Spot"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["in_transit"] == "Landing…"
     assert linkup.LINK_UP_PUBLIC_VOCABULARY["delivered"] == "Landed"
@@ -272,18 +272,26 @@ def test_linkup_public_shell_uses_free_my_card_actions():
 
 
 
-def test_linkup_master_menu_is_only_linkups_ring_now_tap_in_and_more():
+def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert 'aria-label="Link Up private menu"' in template
     assert '>💬 Link Ups</a>' in template
     assert '>📞 Ring</a>' in template
     assert '>🟢 Now</a>' in template
-    assert '>🔗 Tap In</a>' in template
+    assert '>🔔 Incoming</a>' in template
     assert '>⋯ More</a>' in template
     assert 'id="linkup-ring"' in template
-    assert 'id="linkup-tap-in"' in template
+    assert 'id="linkup-incoming"' in template
+    assert 'id="linkup-requests"' in template
+    assert "url_for('auth_sign_out')" in template
+    assert 'method="post"' in template
+    assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in template
+    assert '>Leave My World</button>' in template
     assert 'id="linkup-more"' in template
+    assert '>My Card</a>' in template
+    assert '>Link Requests</a>' in template
+    assert '>My Controls</a>' in template
     for removed in (
         "linkup-royal-tools",
         "linkup-royal-bottom",
