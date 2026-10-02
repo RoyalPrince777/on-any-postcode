@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import json
 import os
 import sqlite3
@@ -42,6 +43,50 @@ INTERACTION_SURFACE_IDS = frozenset({
     "intelligence-selector",
     "runtime-controls",
 })
+
+INTERACTION_PROOF_VERSION = 1
+INTERACTION_PROOF_KEY_ENV = "OAP_SMI_INTERACTION_PROOF_KEY"
+
+
+def _interaction_proof_key() -> str:
+    return str(os.getenv(INTERACTION_PROOF_KEY_ENV) or "").strip()
+
+
+def _interaction_proof_message(payload: dict[str, Any]) -> bytes:
+    fields = {
+        "proof_version": payload.get("proof_version"),
+        "surface_id": payload.get("surface_id"),
+        "evidence_class": payload.get("evidence_class"),
+        "runtime_instance_id": payload.get("runtime_instance_id"),
+        "interaction_id": payload.get("interaction_id"),
+        "status_code": payload.get("status_code"),
+        "runtime_acknowledged": payload.get("runtime_acknowledged"),
+        "interaction_completed": payload.get("interaction_completed"),
+        "click_only_proof": payload.get("click_only_proof"),
+        "execution_authority_expanded": payload.get("execution_authority_expanded"),
+    }
+    return json.dumps(
+        fields, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+
+
+def _interaction_proof_signature(payload: dict[str, Any], key: str) -> str:
+    if not key:
+        return ""
+    return hmac.new(
+        key.encode("utf-8"),
+        _interaction_proof_message(payload),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _valid_interaction_proof_signature(payload: dict[str, Any]) -> bool:
+    key = _interaction_proof_key()
+    supplied = str(payload.get("proof_signature_sha256") or "").strip().lower()
+    if not key or len(supplied) != 64:
+        return False
+    expected = _interaction_proof_signature(payload, key)
+    return bool(expected and hmac.compare_digest(supplied, expected))
 
 
 def _now() -> str:
@@ -419,12 +464,16 @@ def latest_durable_interaction_surface_proofs() -> dict[str, dict[str, Any]]:
         except (TypeError, ValueError):
             status_ok = False
         proven = bool(
-            payload.get("evidence_class") == "production_interaction"
+            payload.get("proof_version") == INTERACTION_PROOF_VERSION
+            and payload.get("evidence_class") == "production_interaction"
+            and str(payload.get("runtime_instance_id") or "").strip()
+            and str(payload.get("interaction_id") or "").strip()
             and payload.get("runtime_acknowledged") is True
             and payload.get("interaction_completed") is True
             and payload.get("click_only_proof") is not True
             and payload.get("execution_authority_expanded") is not True
             and status_ok
+            and _valid_interaction_proof_signature(payload)
         )
         if not proven:
             continue
@@ -436,6 +485,8 @@ def latest_durable_interaction_surface_proofs() -> dict[str, dict[str, Any]]:
             "status_code": int(status_code),
             "runtime_acknowledged": True,
             "interaction_completed": True,
+            "cryptographically_verified": True,
+            "proof_version": INTERACTION_PROOF_VERSION,
             "durable": True,
         }
     return proofs
