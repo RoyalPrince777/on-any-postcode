@@ -24,6 +24,7 @@ from . import (
     atlas_live_sources,
     local_map_intelligence,
     location_intelligence,
+    live_road_intelligence,
     map_live_pattern,
     mobility_provider_intelligence,
     road_tile_geometry,
@@ -327,6 +328,7 @@ def map_intelligence_status():
         "autocomplete": True,
         "source_backed_places_enabled": bool(place_status.get("enabled")),
         "live_pattern": map_live_pattern.status(),
+        "live_road_intelligence": live_road_intelligence.status(),
         "routing_federation": federation_status,
         "coverage": {
             "current_graph": "Greater London",
@@ -381,6 +383,11 @@ def map_intelligence_route():
         return jsonify({"error": {"code": str(exc)[:100] or "map_route_unavailable"}}), 503
     result["roads"] = _road_sequence(result)
     result["live_pattern_reports"] = map_live_pattern.reports(destination)
+    live_road_state = live_road_intelligence.route_state(result, destination)
+    result["live_road_state"] = live_road_state
+    result["base_duration_s"] = result.get("duration_s")
+    if live_road_state.get("live_claim_allowed"):
+        result["duration_s"] = live_road_state.get("adjusted_duration_s") or result.get("duration_s")
     response = jsonify({
         "route": result,
         "coverage": coverage,
@@ -392,6 +399,42 @@ def map_intelligence_route():
     })
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@bp.get("/map-intelligence/live-road-state")
+def map_intelligence_live_road_state():
+    query = request.args.get("q") or request.args.get("location") or ""
+    payload = live_road_intelligence.status()
+    payload["reports"] = map_live_pattern.reports(query)
+    payload["observations"] = live_road_intelligence.observations(query)
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.post("/map-intelligence/movement-observation")
+def map_intelligence_movement_observation():
+    if not web_security.csrf_valid(request):
+        return jsonify({"error": {"code": "csrf_failed"}}), 403
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": {"code": "json_object_required"}}), 400
+    try:
+        observation = live_road_intelligence.record_observation(
+            road=payload.get("road"),
+            state=payload.get("state"),
+            speed_kph=payload.get("speed_kph"),
+            source="consented_oap_device",
+        )
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": {"code": str(exc)[:80]}}), 400
+    response = jsonify({
+        "observation": observation,
+        "stored_precise_location": False,
+        "truth_gated": True,
+    })
+    response.headers["Cache-Control"] = "no-store"
+    return response, 201
 
 
 @bp.get("/booking")
