@@ -106,6 +106,7 @@ def status() -> dict[str, object]:
         "canonical_unit": SIKA_CODE,
         "anchor": {"currency": ANCHOR_CODE, "target": "1 SIKA = 1 GBP"},
         "first_party_core": True,
+        "commerce_settlement_intents_enabled": True,
         "quote_execution_enabled": False,
         "regulated_execution_enabled": False,
         "customer_funds_enabled": False,
