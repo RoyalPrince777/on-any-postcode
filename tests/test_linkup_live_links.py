@@ -47,3 +47,20 @@ def test_linkup_server_messages_have_live_sync_identity():
 
     assert 'data-link-message-id="{{ message.message_id }}"' in page
     assert 'data-created-at="{{ message.created_at }}"' in page
+
+
+def test_linkup_sender_delete_is_owner_scoped_and_csrf_guarded():
+    store = Path("mission_control/product_store.py").read_text(encoding="utf-8")
+    routes = Path("mission_control/link_message_routes.py").read_text(encoding="utf-8")
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
+
+    assert "def delete_message(sender_id: object, message_id: object)" in store
+    assert "DELETE FROM messages WHERE id=%s AND sender_id=%s RETURNING id" in store
+    assert '@bp.delete("/linkup/messages/<message_id>")' in routes
+    assert "if guarded := _mutation_guard(identity):" in routes
+    assert "product_store.delete_message(identity, message_id)" in routes
+    assert "data-oap-delete-link" in page
+    assert "message.direction == 'sent'" in page
+    assert 'method: "DELETE"' in script
+    assert "/linkup/messages/" in script

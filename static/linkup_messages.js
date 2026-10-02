@@ -367,6 +367,20 @@
     }
   });
 
+  document.querySelectorAll("[data-oap-delete-link]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const messageId = button.dataset.messageId || "";
+      if (!messageId || button.disabled) return;
+      button.disabled = true;
+      try {
+        const result = await apiJson(`/linkup/messages/${encodeURIComponent(messageId)}`, { method: "DELETE", body: "{}" });
+        if (result.deleted !== true) throw new Error("Delete unavailable");
+        document.querySelector(`[data-link-message-id="${CSS.escape(messageId)}"]`)?.remove();
+      } catch (error) {
+        button.disabled = false;
+      }
+    });
+  });
   apiJson("/linkup/messages/status")
     .then((status) => {
       state.ready = status.ready === true && status.first_party === true;
