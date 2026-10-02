@@ -940,14 +940,18 @@ refreshOps();
       event.preventDefault();
       event.stopImmediatePropagation();
       if(id==="map-intelligence"){
+        // Visibility is never gated by proof collection. Open the real map first;
+        // runtime evidence may update the control state afterwards.
+        openMap("/on-any-place");
         button.disabled=true;
         try{
           const ack=await fetchAck(id,"/on-any-place",{json:false});
           const chip=q(".connector-state",button);
           if(chip)chip.textContent=ack.proof?.receipt_id?"Proven":"Reached";
-          openMap("/on-any-place");
         }catch(error){
-          addCard("Map Intelligence",error?.message||"Map unavailable","red");
+          const chip=q(".connector-state",button);
+          if(chip)chip.textContent="Open";
+          addCard("Map Intelligence",error?.message||"Map proof unavailable","yellow");
         }finally{button.disabled=false;}
         return;
       }
