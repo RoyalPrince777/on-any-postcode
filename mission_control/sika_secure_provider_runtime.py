@@ -342,6 +342,68 @@ def verify_webhook(
     }
 
 
+def webhook_header_names(kind: str) -> dict[str, str]:
+    if kind not in {"payment", "pod"}:
+        raise ValueError("unsupported_provider_kind")
+    prefix = "OAP_PAYMENT_PROVIDER" if kind == "payment" else "OAP_POD_PROVIDER"
+    timestamp_header = (
+        _env(f"{prefix}_WEBHOOK_TIMESTAMP_HEADER")
+        or "X-OAP-Provider-Timestamp"
+    )
+    signature_header = (
+        _env(f"{prefix}_WEBHOOK_SIGNATURE_HEADER")
+        or "X-OAP-Provider-Signature"
+    )
+    return {
+        "timestamp": timestamp_header,
+        "signature": signature_header,
+    }
+
+
+def normalize_webhook_event(*, kind: str, payload: object) -> dict[str, object]:
+    if kind not in {"payment", "pod"}:
+        raise ValueError("unsupported_provider_kind")
+    if not isinstance(payload, dict):
+        raise SecureProviderError("provider_webhook_payload_invalid")
+
+    prefix = "OAP_PAYMENT_PROVIDER" if kind == "payment" else "OAP_POD_PROVIDER"
+    reference_field = _env(f"{prefix}_WEBHOOK_REFERENCE_FIELD") or "provider_reference"
+    state_field = _env(f"{prefix}_WEBHOOK_STATE_FIELD") or "status"
+    reference = str(payload.get(reference_field) or "").strip()
+    raw_state = str(payload.get(state_field) or "").strip().upper()
+    if not _PROVIDER_REF.fullmatch(reference):
+        raise SecureProviderError("provider_reference_missing")
+    if not raw_state or len(raw_state) > 80:
+        raise SecureProviderError("provider_webhook_state_invalid")
+
+    canonical_state = raw_state
+    if kind == "payment":
+        if raw_state in {"SUCCEEDED", "SUCCESS", "PAID", "COMPLETED"}:
+            canonical_state = "SETTLED"
+        elif raw_state in {"DECLINED", "REJECTED", "ERROR"}:
+            canonical_state = "FAILED"
+    else:
+        aliases = {
+            "PRODUCTION": "IN_PRODUCTION",
+            "INPRODUCTION": "IN_PRODUCTION",
+            "COMPLETE": "DELIVERED",
+            "COMPLETED": "DELIVERED",
+            "CANCELED": "CANCELLED",
+            "ERROR": "FAILED",
+        }
+        canonical_state = aliases.get(raw_state, raw_state)
+
+    metadata = payload.get("metadata")
+    return {
+        "kind": kind,
+        "provider_reference": reference,
+        "provider_state": canonical_state,
+        "metadata": metadata if isinstance(metadata, dict) else {},
+        "secret_values_exposed": False,
+        "human_authority_final": True,
+    }
+
+
 def status() -> dict[str, object]:
     payment = configuration_status("payment")
     pod = configuration_status("pod")
