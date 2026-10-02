@@ -66,6 +66,7 @@ def init_app(app: Flask) -> None:
     from .all_in_ai_views import bp as all_in_ai_bp
     from .bank_store_catalog_routes import bp as bank_store_catalog_bp
     from .certification_views import bp as certification_bp
+    from .company_intelligence_views import bp as company_intelligence_bp
     from .checkpoint_views import bp as checkpoint_bp
     from .founder_tool_views import bp as founder_tool_bp
     from .home_node_views import bp as home_node_bp
@@ -1273,6 +1274,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
     app.register_blueprint(certification_bp, url_prefix="/mission")
+    app.register_blueprint(company_intelligence_bp, url_prefix="/mission")
     app.register_blueprint(home_node_bp, url_prefix="/mission")
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
     app.register_blueprint(smi_organiser_bp, url_prefix="/mission")
