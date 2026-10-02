@@ -354,11 +354,17 @@ def test_interaction_certification_consumes_independent_surface_proofs_without_o
                 "proven": True,
                 "receipt_id": "receipt-live-voice",
                 "source": "durable_interaction_surface_proof",
+                "durable": True,
+                "cryptographically_verified": True,
+                "release_id": "release-test",
             },
             "vision": {
                 "proven": True,
                 "receipt_id": "receipt-live-vision",
                 "source": "durable_interaction_surface_proof",
+                "durable": True,
+                "cryptographically_verified": True,
+                "release_id": "release-test",
             },
         },
     )
@@ -519,4 +525,34 @@ def test_interaction_surface_signature_binds_release(monkeypatch):
         is True
     )
     assert payload["release_id"] != smi_function_health.smi_receipt_backend._interaction_release_id()
+
+def test_interaction_certification_rejects_unverified_proven_flag(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {"proven": False, "reason": "missing", "receipt_id": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {"proof_gates": ()},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_interaction_surface_proofs",
+        lambda: {
+            "voice": {
+                "proven": True,
+                "receipt_id": "forged-voice",
+                "durable": True,
+                "cryptographically_verified": False,
+                "release_id": "release-test",
+            }
+        },
+    )
+    result = smi_function_health.interaction_certification()
+    voice = next(item for item in result["surfaces"] if item["id"] == "voice")
+    assert voice["live_runtime_proven"] is False
+    assert voice["state"] != "green"
+    assert result["whole_interaction_green"] is False
 
