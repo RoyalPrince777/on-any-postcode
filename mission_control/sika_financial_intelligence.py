@@ -123,9 +123,9 @@ def assess(
 
     if providers == 0:
         provider_state = "NO_ACTIVE_PROVIDER"
-    elif providers == 1 or largest_share >= Decimal("80"):
+    elif providers == 1 or largest_share >= Decimal(80):
         provider_state = "CONCENTRATED"
-    elif largest_share >= Decimal("50"):
+    elif largest_share >= Decimal(50):
         provider_state = "WATCH"
     else:
         provider_state = "DIVERSIFIED"
