@@ -13,6 +13,7 @@ from . import (
     bank_authorisation_store,
     bank_permission_scope,
     sika_double_entry,
+    sika_financial_intelligence,
     sika_journal_store,
     sika_production_evidence_store,
     sika_provider_adapter,
@@ -146,6 +147,9 @@ def status() -> dict[str, object]:
         ),
         "persistent_journal_store_integrated": bool(
             sika_journal_store.status()["append_only"]
+        ),
+        "financial_intelligence_integrated": bool(
+            sika_financial_intelligence.status()["first_party"]
         ),
         "runtime_reconciliation_integrated": False,
     }
