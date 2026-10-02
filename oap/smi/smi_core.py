@@ -224,7 +224,9 @@ class SMICore:
             coherence=coherence.as_dict(),
         )
 
-        if safety.passed:
+        if output_state == OutputState.BLOCK_REQUEST:
+            state.block_and_record()
+        elif safety.passed:
             state.advance(ProcessingState.GUARDIAN_PASSED)
             if output_state == OutputState.SYSTEM_LOG_ONLY:
                 state.advance(ProcessingState.HRM_RECORDED)

@@ -90,3 +90,47 @@ def test_router_never_executes_or_self_approves():
     assert status()["executes_actions"] is False
     assert status()["self_approval_allowed"] is False
     assert status()["human_authority_final"] is True
+
+
+
+def test_postcode_question_is_not_misread_as_post_action():
+    decision = route_action("What is my postcode?")
+    assert decision.route == ROUTE_DIRECT_ANSWER
+    assert decision.confirmation_required is False
+
+
+def test_sika_definition_is_informational_not_value_transfer():
+    decision = route_action("What is SIKA?")
+    assert decision.route == ROUTE_DIRECT_ANSWER
+    assert decision.red_team_required is False
+
+
+def test_compliance_explanation_is_informational_not_governance_change():
+    decision = route_action("Explain compliance requirements")
+    assert decision.route == ROUTE_DIRECT_ANSWER
+    assert decision.founder_final_required is False
+
+
+def test_production_definition_is_informational_not_governance_change():
+    decision = route_action("What is production deployment?")
+    assert decision.route == ROUTE_DIRECT_ANSWER
+
+
+def test_informational_bypass_phrase_does_not_fake_block():
+    decision = route_action("Explain bypass Guardian")
+    assert decision.route == ROUTE_DIRECT_ANSWER
+
+    confirmation = route_action("Explain skip confirmation")
+    assert confirmation.route == ROUTE_DIRECT_ANSWER
+
+
+def test_real_governance_change_still_escalates_after_semantic_hardening():
+    decision = route_action("Change admin permissions in production")
+    assert decision.route == ROUTE_GOVERNANCE
+    assert decision.founder_final_required is True
+
+
+def test_real_sika_transfer_still_requires_confirmation_after_semantic_hardening():
+    decision = route_action("Send 20 SIKA")
+    assert decision.route == ROUTE_CONFIRM
+    assert decision.red_team_required is True
