@@ -86,7 +86,7 @@ def _registry() -> tuple[dict[str, str], ...]:
 
     rows.extend(
         _row(
-            item_id=f"function.{str(spec['id'])}",
+            item_id=f"function.{spec['id']!s}",
             name=str(spec["name"]),
             category="core_functions",
             owner="SMI Function Health",
@@ -124,7 +124,7 @@ def _registry() -> tuple[dict[str, str], ...]:
 
     rows.extend(
         _row(
-            item_id=f"interaction.{str(spec['id'])}",
+            item_id=f"interaction.{spec['id']!s}",
             name=str(spec["name"]),
             category="interaction_surfaces",
             owner="Personal SMI",
@@ -154,7 +154,7 @@ def _registry() -> tuple[dict[str, str], ...]:
 
     rows.extend(
         _row(
-            item_id=f"infrastructure.{str(module['id'])}",
+            item_id=f"infrastructure.{module['id']!s}",
             name=str(module["name"]),
             category="infrastructure_modules",
             owner="OAP Infrastructure",
