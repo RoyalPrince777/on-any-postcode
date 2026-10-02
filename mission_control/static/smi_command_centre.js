@@ -255,6 +255,8 @@
  universe.setAttribute("aria-label","SMI universe tools");
  const quickActions=[
   ["＋ Master Tools","master-tools"],
+  ["🌍 OAP World","world-controls"],
+  ["🐆 Jungle","jungle-controls"],
   ["⚔️ War Room","war-room"],
   ["🕶 Matrix Routes","matrix-routes"],
   ["🧠 HRM","hrm"],
@@ -661,6 +663,16 @@
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
   const action=trigger.dataset.action;
+  if(action==="world-controls"){
+   worldPanel.hidden=!worldPanel.hidden;
+   junglePanel.hidden=true;
+   return;
+  }
+  if(action==="jungle-controls"){
+   junglePanel.hidden=!junglePanel.hidden;
+   worldPanel.hidden=true;
+   return;
+  }
   if(action==="master-tools"){
    // Only the original composer owns the drawer. The originating click must not
    // bubble to its outside-click guard after the canonical button opens it.
