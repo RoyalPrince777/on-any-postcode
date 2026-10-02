@@ -116,6 +116,35 @@ def protocol_cells() -> tuple[tuple[str, str, str], ...]:
     )
 
 
+def review_cell(
+    lane: object,
+    lens: object,
+    evidence_test: object,
+    *,
+    evidence_present: bool,
+) -> dict[str, Any]:
+    """Evaluate one exact protocol cell with no execution side effects."""
+
+    safe_lane = str(lane or "").strip().lower()
+    safe_lens = str(lens or "").strip().lower()
+    safe_test = str(evidence_test or "").strip().lower()
+    if safe_lane not in DISTRIBUTION_LANES:
+        raise ValueError("unsupported_distribution_lane")
+    if safe_lens not in INTELLIGENCE_LENSES:
+        raise ValueError("unsupported_distribution_lens")
+    if safe_test not in EVIDENCE_TESTS:
+        raise ValueError("unsupported_distribution_evidence_test")
+    return {
+        "lane": safe_lane,
+        "lens": safe_lens,
+        "evidence_test": safe_test,
+        "passed": bool(evidence_present),
+        "state": "PASS" if evidence_present else "FAIL",
+        "execution_allowed": False,
+        "human_authority_final": True,
+    }
+
+
 def lane_plan(lane: object) -> dict[str, Any]:
     safe_lane = str(lane or "").strip().lower()
     if safe_lane not in LANE_POLICIES:
