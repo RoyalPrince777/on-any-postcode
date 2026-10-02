@@ -58,6 +58,29 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('["🕶 Matrix Routes","matrix-routes"]', source)
 
 
+    def test_seven_major_links_reuse_real_existing_owners(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        for label in (
+            "1 · Mission",
+            "2 · Continue",
+            "3 · Risk / Guardian",
+            "4 · War Room / Judgement",
+            "5 · Founder Final",
+            "6 · Recovery / Rollback",
+            "7 · Outcome / Learning",
+        ):
+            self.assertIn(label, source)
+        self.assertIn('fetch("/mission/all-in-ai/mission/latest"', source)
+        self.assertIn('submitLiteral("🟣")', source)
+        self.assertIn('triggerMasterTool("guardian")', source)
+        self.assertIn('openWarRoom()', source)
+        self.assertIn('submitLiteral("🟢")', source)
+        self.assertIn('fetch("/mission/smi-proof/rollback-recovery"', source)
+        self.assertIn('triggerMasterTool("hrm")', source)
+        self.assertIn('"X-OAP-CSRF":window.csrfToken||""', source)
+        self.assertIn("execution not granted", source)
+
+
     def test_command_quick_actions_are_real_canonical_controls(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
