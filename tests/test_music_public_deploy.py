@@ -30,6 +30,7 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0011_oap_music_recovery_manifest",
         "0012_oap_music_acceptance_receipts",
         "0013_oap_music_assets",
+        "0014_oap_media_assets",
     ]
 
 

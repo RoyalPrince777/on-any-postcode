@@ -13,6 +13,7 @@ from . import (
     live_music_core,
     market_supplier_network,
     market_transaction_spine,
+    media_assets,
     music_acceptance,
     music_assets,
     music_civilization,
@@ -39,6 +40,7 @@ _live_music_store = live_music_core.LiveMusicStore()
 _music_recovery_store = music_recovery.MusicRecoveryStore()
 _music_acceptance_store = music_acceptance.MusicAcceptanceStore()
 _music_asset_store = music_assets.MusicAssetStore()
+_media_asset_store = media_assets.MediaAssetStore()
 
 
 def _no_store(response):
@@ -115,6 +117,8 @@ def _media_projection(identity_id: str) -> dict[str, object]:
         "playlist_count": len(tune.get("playlists", [])),
         "entertainment": entertainment_catalogue.project_catalogue(tune),
         "licensed_audio_delivery": False,
+        "video_asset_contract_ready": True,
+        "public_video_playback_enabled": False,
         "external_distribution": False,
         "royalty_payout": False,
         "human_authority_final": True,
@@ -215,6 +219,149 @@ def media_status():
         return _no_store(make_response(jsonify(_media_projection(_identity()))))
     except (ValueError, RuntimeError):
         return _error("media_unavailable", "OAP Media is temporarily unavailable.", 503)
+
+
+@bp.post("/media/assets/upload")
+@web_security.login_required(api=True)
+def upload_media_video_asset():
+    """Persist one owner-private OAP Media video; never publish it."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    upload = request.files.get("video")
+    if upload is None or not upload.filename:
+        return _error("invalid_request", "Choose a video file to upload.", 400)
+    try:
+        data = upload.read(media_assets.MAX_VIDEO_BYTES + 1)
+        item = _media_asset_store.create_video_asset(
+            owner_identity_id=_identity(sync=True),
+            title=request.form.get("title") or upload.filename.rsplit(".", 1)[0],
+            original_name=upload.filename,
+            mime_type=upload.mimetype,
+            media=data,
+        )
+        return _no_store(make_response(jsonify(
+            asset=item,
+            player_url=f"/mission/organs/media/assets/{item['asset_id']}/video",
+            playback_scope="OWNER_PRIVATE_REVIEW",
+            public_playback_enabled=False,
+            rights_allow_required=True,
+            entitlement_required=True,
+            human_authority_final=True,
+        ), 201))
+    except PermissionError as exc:
+        return _error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_request", str(exc), 400)
+    except (
+        media_assets.MediaAssetUnavailable,
+        public_store.PublicStoreUnavailable,
+        RuntimeError,
+        OSError,
+        EOFError,
+    ):
+        return _error("media_unavailable", "OAP Media video storage is temporarily unavailable.", 503)
+
+
+@bp.get("/media/assets")
+@web_security.login_required(api=True)
+def list_media_video_assets():
+    try:
+        return _no_store(make_response(jsonify(
+            assets=_media_asset_store.list_assets(owner_identity_id=_identity()),
+            playback_scope="OWNER_PRIVATE_REVIEW",
+            public_playback_enabled=False,
+            rights_allow_required=True,
+            entitlement_required=True,
+        )))
+    except (TypeError, ValueError, media_assets.MediaAssetUnavailable):
+        return _error("media_unavailable", "OAP Media video storage is temporarily unavailable.", 503)
+
+
+@bp.get("/media/assets/<asset_id>/video")
+@web_security.login_required(api=True)
+def play_media_video_asset(asset_id: str):
+    """Owner-private review delivery only; STOP fails closed."""
+    try:
+        item = _media_asset_store.read(owner_identity_id=_identity(), asset_id=asset_id)
+        if item is None:
+            return _error("not_found", "Video asset unavailable.", 404)
+        media, mime_type, digest, original_name, stopped = item
+        if stopped:
+            return _error("media_stopped", "Video asset is stopped.", 410)
+        total = len(media)
+        status = 200
+        body = media
+        content_range = None
+        requested_range = request.headers.get("Range", "").strip()
+        if requested_range:
+            if not requested_range.startswith("bytes=") or "," in requested_range:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            spec = requested_range[6:]
+            start_text, separator, end_text = spec.partition("-")
+            if not separator:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            try:
+                if start_text:
+                    range_start = int(start_text)
+                    range_end = int(end_text) if end_text else total - 1
+                else:
+                    suffix = int(end_text)
+                    if suffix <= 0:
+                        raise ValueError("invalid_range")
+                    range_start = max(total - suffix, 0)
+                    range_end = total - 1
+            except ValueError:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            if range_start < 0 or range_start >= total or range_end < range_start:
+                response = make_response("", 416)
+                response.headers["Content-Range"] = f"bytes */{total}"
+                return _no_store(response)
+            range_end = min(range_end, total - 1)
+            body = media[range_start : range_end + 1]
+            status = 206
+            content_range = f"bytes {range_start}-{range_end}/{total}"
+        response = make_response(body, status)
+        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Length"] = str(len(body))
+        response.headers["ETag"] = f'"{digest}"'
+        safe_name = original_name.replace(chr(34), "").replace(chr(13), "").replace(chr(10), "")
+        response.headers["Content-Disposition"] = f'inline; filename="{safe_name}"'
+        response.headers["Accept-Ranges"] = "bytes"
+        response.headers["X-OAP-Playback-Scope"] = "OWNER_PRIVATE_REVIEW"
+        response.headers["X-OAP-Public-Playback"] = "disabled"
+        if content_range is not None:
+            response.headers["Content-Range"] = content_range
+        return _no_store(response)
+    except (TypeError, ValueError):
+        return _error("invalid_request", "Invalid video asset.", 400)
+    except media_assets.MediaAssetUnavailable:
+        return _error("media_unavailable", "OAP Media video storage is temporarily unavailable.", 503)
+
+
+@bp.post("/media/assets/<asset_id>/stop")
+@web_security.login_required(api=True)
+def stop_media_video_asset(asset_id: str):
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    try:
+        return _no_store(make_response(jsonify(
+            _media_asset_store.stop(
+                owner_identity_id=_identity(sync=True),
+                asset_id=asset_id,
+            )
+        ), 201))
+    except PermissionError as exc:
+        return _error("permission_denied", str(exc), 403)
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_request", str(exc), 400)
+    except media_assets.MediaAssetUnavailable:
+        return _error("media_unavailable", "OAP Media video storage is temporarily unavailable.", 503)
 
 
 @bp.get("/entertainment")
