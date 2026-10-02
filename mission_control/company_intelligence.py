@@ -10,7 +10,8 @@ checks inside one bounded mission, not 700 stop/start workflow stages:
 """
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from . import matrix_simulation, smi_judge_rotation
 
