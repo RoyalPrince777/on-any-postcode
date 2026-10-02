@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from itertools import product
+import itertools
 
 import pytest
 
@@ -35,7 +35,7 @@ FINALIZE_MODES = (
     ("bad-subtotal", "GBP", 1, "READY", "CAPTURED", "subtotal"),
 )
 
-CASES = tuple(product(LISTING_PRICES, ORDER_MODES, FINALIZE_MODES))
+CASES = tuple(itertools.product(LISTING_PRICES, ORDER_MODES, FINALIZE_MODES))
 assert len(CASES) == 700
 
 
@@ -111,7 +111,6 @@ def test_700_way_matrix_is_exactly_700_not_700_stages():
 
 def test_non_live_completion_boundary_remains_explicit():
     state = purchase.MusicMarketPurchaseStore.finalize_captured_order
-    source = state.__doc__ or ""
     module_source = purchase.__doc__ or ""
 
     assert "never captures payment or moves money" in module_source
