@@ -30,7 +30,7 @@ def _production_state(*, passed):
     }
 
 
-def _bind_states(monkeypatch, *, authorised, production):
+def _bind_states(monkeypatch, *, authorised, production, scope=True):
     monkeypatch.setattr(
         sika_execution_gate.bank_authorisation_store,
         "readiness_status",
@@ -40,6 +40,11 @@ def _bind_states(monkeypatch, *, authorised, production):
         sika_execution_gate.sika_production_evidence_store,
         "readiness_status",
         lambda: _production_state(passed=production),
+    )
+    monkeypatch.setattr(
+        sika_execution_gate.bank_permission_scope,
+        "capability_allowed",
+        lambda capability: bool(scope),
     )
 
 
@@ -115,3 +120,14 @@ def test_status_has_no_external_proof_overrides_or_execution_bypass():
     assert status["payment_execution_enabled"] is False
     assert status["money_movement_enabled"] is False
     assert status["bypass_path_available"] is False
+
+
+def test_permission_scope_blocks_execution_even_with_other_proof(monkeypatch):
+    _bind_states(monkeypatch, authorised=True, production=True, scope=False)
+    treasury = sika_treasury_controls.snapshot(available_sika="1000")
+    result = sika_execution_gate.assess(
+        treasury=treasury,
+        provider_evidence=_provider_evidence(),
+        human_authority_approved=True,
+    )
+    assert result.execution_authorised is False

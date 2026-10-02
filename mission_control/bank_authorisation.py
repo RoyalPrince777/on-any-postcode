@@ -96,8 +96,9 @@ def readiness_status(
         "evidence_missing": missing,
         "application_ready": len(missing) == 0,
         "authorised_bank": authorised,
-        "deposit_taking_enabled": authorised,
-        "regulated_execution_enabled": authorised,
+        "deposit_taking_enabled": False,
+        "regulated_execution_enabled": False,
+        "permission_scope_required": True,
         "humanitarian_or_human_rights_purpose_bypasses_authorisation": False,
         "human_authority_final": True,
     }
@@ -108,9 +109,14 @@ def capability_allowed(
     *,
     regulator_authorisation_proven: bool = False,
     production_gate_passed: bool = False,
+    permission_scope_allows: bool = False,
 ) -> bool:
-    """Allow regulated capabilities only after real regulator evidence + runtime proof."""
+    """Allow a capability only after regulator, scope and production proof."""
 
     if capability not in REGULATED_CAPABILITIES:
         return False
-    return regulator_authorisation_proven and production_gate_passed
+    return bool(
+        regulator_authorisation_proven
+        and permission_scope_allows
+        and production_gate_passed
+    )

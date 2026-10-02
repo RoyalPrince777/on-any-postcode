@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from . import (
     bank_authorisation,
     bank_authorisation_store,
+    bank_permission_scope,
     sika_production_evidence_store,
     sika_provider_adapter,
     sika_treasury_controls,
@@ -66,10 +67,14 @@ def assess(
     regulator_authorisation_proven = _regulator_authorisation_proven()
     production_gate_passed = _production_gate_passed()
 
+    permission_scope_allows = bank_permission_scope.capability_allowed(
+        "execute_payments"
+    )
     regulated_capability_allowed = bank_authorisation.capability_allowed(
         "execute_payments",
         regulator_authorisation_proven=regulator_authorisation_proven,
         production_gate_passed=production_gate_passed,
+        permission_scope_allows=permission_scope_allows,
     )
 
     authorised = all(
@@ -102,6 +107,9 @@ def capability_matrix() -> dict[str, bool]:
             capability,
             regulator_authorisation_proven=regulator_authorisation_proven,
             production_gate_passed=production_gate_passed,
+            permission_scope_allows=(
+                bank_permission_scope.capability_allowed(capability)
+            ),
         )
         for capability in sorted(bank_authorisation.REGULATED_CAPABILITIES)
     }
@@ -113,9 +121,11 @@ def status() -> dict[str, object]:
         "composes_treasury": True,
         "composes_provider_adapter": True,
         "composes_bank_authorisation": True,
+        "composes_permission_scope": True,
         "composes_production_evidence": True,
         "regulator_authorisation_source": "durable_governed_evidence_store",
         "production_readiness_source": "durable_governed_evidence_store",
+        "permission_scope_source": "accepted_part4a_permission_scope",
         "caller_regulator_override_allowed": False,
         "caller_production_override_allowed": False,
         "payment_execution_enabled": False,
