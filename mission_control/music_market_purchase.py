@@ -21,7 +21,7 @@ from uuid import UUID, uuid4
 
 from . import postgres_db
 
-MIGRATION_VERSION = "0013_music_market_purchase_spine"
+MIGRATION_VERSION = "0014_music_market_purchase_spine"
 
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_music_market_products (
@@ -142,7 +142,7 @@ def init_schema(*, assume_yes: bool = False) -> dict[str, Any]:
     if not assume_yes:
         raise RuntimeError("explicit_confirmation_required")
     with postgres_db.connect() as connection:
-        connection.execute("SELECT pg_advisory_xact_lock(%s)", (25800013,))
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (25800014,))
         row = connection.execute(
             "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
             (MIGRATION_VERSION,),
