@@ -21,6 +21,7 @@ from . import (
     sika_financial_intelligence,
     sika_financial_statements_intelligence,
     sika_fraud_financial_crime_intelligence,
+    sika_intercompany_accounting,
     sika_journal_store,
     sika_multi_currency_revaluation,
     sika_production_evidence_store,
@@ -167,6 +168,9 @@ def status() -> dict[str, object]:
         ),
         "multi_currency_revaluation_integrated": bool(
             sika_multi_currency_revaluation.status()["first_party"]
+        ),
+        "intercompany_accounting_integrated": bool(
+            sika_intercompany_accounting.status()["first_party"]
         ),
         "fraud_financial_crime_intelligence_integrated": bool(
             sika_fraud_financial_crime_intelligence.status()["first_party"]
