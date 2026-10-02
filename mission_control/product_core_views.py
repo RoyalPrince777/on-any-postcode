@@ -17,6 +17,7 @@ from . import (
     music_assets,
     music_civilization,
     music_evidence,
+    music_market_purchase,
     music_recovery,
     open_cinema,
     open_cinema_evidence,
@@ -33,6 +34,7 @@ from . import (
 bp = Blueprint("product_core_organs", __name__)
 _store = product_cores.PostgresProductCoreStore()
 _music_evidence_store = music_evidence.MusicEvidenceStore()
+_music_market_purchase_store = music_market_purchase.MusicMarketPurchaseStore()
 _radio_store = radio_core.RadioStore()
 _records_store = records_core.RecordsStore()
 _live_music_store = live_music_core.LiveMusicStore()
@@ -1132,6 +1134,144 @@ def stop_market_supplier(product_id: str):
         )
 
     return _handle_write(action)
+
+
+
+@bp.post("/market/music-products")
+@web_security.login_required(api=True)
+def create_music_market_product():
+    """Bind one rights-ready OAP Music release to one Market product."""
+    def action():
+        payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
+        split_plan = payload.get("split_plan")
+        if not isinstance(split_plan, list):
+            raise TypeError("split_plan_required")
+        return _music_market_purchase_store.link_release_product(
+            seller_identity_id=seller,
+            release_id=payload.get("release_id"),
+            product_id=payload.get("product_id"),
+            rights_evidence_receipt_id=payload.get("rights_evidence_receipt_id"),
+            split_plan=split_plan,
+            optional_pay_more=bool(payload.get("optional_pay_more", True)),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/music-orders")
+@web_security.login_required(api=True)
+def create_music_market_order():
+    """Create a Commerce order for a linked Music product without supplier fulfilment."""
+    def action():
+        payload = _payload()
+        identity = _identity(sync=True)
+        product_id = payload.get("product_id")
+        price_minor = payload.get("price_minor")
+        with music_market_purchase.postgres_db.connect(readonly=True) as connection:
+            linked = connection.execute(
+                """SELECT minimum_price_minor,optional_pay_more,state
+                   FROM oap_music_market_products WHERE product_id=%s""",
+                (product_id,),
+            ).fetchone()
+        if linked is None or str(linked[2]) != "READY":
+            raise ValueError("music_market_product_not_ready")
+        minimum = int(linked[0])
+        override = None
+        if price_minor not in (None, ""):
+            try:
+                override = int(price_minor)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("invalid_music_price") from exc
+            if override < minimum:
+                raise ValueError("music_minimum_price_is_one_gbp")
+            if override > minimum and not bool(linked[1]):
+                raise ValueError("music_pay_more_disabled")
+        order = _store.create_order_intent(
+            buyer_identity_id=identity,
+            product_id=product_id,
+            quantity=1,
+            idempotency_key=payload.get("idempotency_key"),
+            unit_price_override_minor=override,
+        )
+        transaction = market_transaction_spine.STORE.create_from_order(
+            buyer_identity_id=identity,
+            order_id=order["order_id"],
+            idempotency_key=f"music:{payload.get('idempotency_key')}",
+        )
+        return {
+            "order": order,
+            "transaction": transaction,
+            "ownership_granted": False,
+            "payment_capture_performed": False,
+            "payout_performed": False,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/music-orders/<order_id>/finalize")
+@web_security.login_required(api=True)
+def finalize_music_market_order(order_id: str):
+    """Observe an existing CAPTURED payment and mint the buyer entitlement."""
+    return _handle_write(
+        lambda: _music_market_purchase_store.finalize_captured_order(
+            buyer_identity_id=_identity(sync=True),
+            order_id=order_id,
+        )
+    )
+
+
+@bp.get("/tune/library/purchases")
+@web_security.login_required(api=True)
+def music_purchase_library():
+    try:
+        return _no_store(
+            make_response(
+                jsonify(
+                    {
+                        "items": _music_market_purchase_store.library(
+                            buyer_identity_id=_identity()
+                        ),
+                        "ownership_source": "captured_commerce_order",
+                        "payment_capture_performed_here": False,
+                    }
+                )
+            )
+        )
+    except (ValueError, RuntimeError):
+        return _error(
+            "music_library_unavailable",
+            "Purchased Music library is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/market/music-entitlements/<entitlement_id>/splits")
+@web_security.login_required(api=True)
+def music_purchase_splits(entitlement_id: str):
+    try:
+        return _no_store(
+            make_response(
+                jsonify(
+                    {
+                        "splits": _music_market_purchase_store.split_ledger(
+                            identity_id=_identity(),
+                            entitlement_id=entitlement_id,
+                        ),
+                        "payout_performed": False,
+                    }
+                )
+            )
+        )
+    except PermissionError:
+        return _error("permission_denied", "Split ledger unavailable.", 403)
+    except (ValueError, RuntimeError):
+        return _error(
+            "music_split_ledger_unavailable",
+            "Music split ledger is temporarily unavailable.",
+            503,
+        )
 
 
 @bp.get("/market/orders")

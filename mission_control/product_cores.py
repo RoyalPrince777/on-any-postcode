@@ -625,6 +625,7 @@ class PostgresProductCoreStore:
         product_id: object,
         quantity: object,
         idempotency_key: object,
+        unit_price_override_minor: object = None,
     ) -> dict[str, Any]:
         buyer = _uuid(buyer_identity_id, "buyer_identity_id")
         product = _uuid(product_id, "product_id")
@@ -655,7 +656,16 @@ class PostgresProductCoreStore:
             seller = str(product_row[0])
             if seller == buyer:
                 raise ValueError("cannot_buy_own_product")
-            subtotal = int(product_row[2]) * qty
+            base_unit_price = int(product_row[2])
+            unit_price = base_unit_price
+            if unit_price_override_minor not in (None, ""):
+                try:
+                    unit_price = int(unit_price_override_minor)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("invalid_unit_price_override") from exc
+                if unit_price < base_unit_price:
+                    raise ValueError("unit_price_override_below_listing_price")
+            subtotal = unit_price * qty
             existing = connection.execute(
                 """SELECT o.order_id,o.state,o.currency,o.subtotal_minor,o.created_at,
                           o.seller_identity_id,i.product_id,i.quantity
@@ -688,7 +698,7 @@ class PostgresProductCoreStore:
                     """INSERT INTO oap_commerce_order_items
                        (order_id,product_id,quantity,unit_price_minor,product_name)
                        VALUES (%s,%s,%s,%s,%s)""",
-                    (order[0], product, qty, int(product_row[2]), str(product_row[1])),
+                    (order[0], product, qty, unit_price, str(product_row[1])),
                 )
                 connection.execute(
                     """INSERT INTO oap_commerce_payment_intents
