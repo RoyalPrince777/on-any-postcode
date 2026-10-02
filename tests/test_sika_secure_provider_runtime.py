@@ -6,7 +6,6 @@ import pytest
 
 from mission_control import sika_secure_provider_runtime as runtime
 
-
 PAYMENT_ENV = {
     "OAP_PAYMENT_PROVIDER_ID": "private-provider",
     "OAP_PAYMENT_PROVIDER_BASE_URL": "https://payments.example.test",
