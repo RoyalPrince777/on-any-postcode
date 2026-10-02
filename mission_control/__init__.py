@@ -90,6 +90,7 @@ def init_app(app: Flask) -> None:
     from .music_public_views import bp as music_public_bp
     from .oap_data_views import bp as oap_data_bp
     from .oap_library_views import bp as oap_library_bp
+    from .oap_pay import bp as oap_pay_bp
     from .oap_store import bp as oap_store_bp
     from .on_any_place_routes import bp as on_any_place_bp
     from .organiser_views import bp as smi_organiser_bp
@@ -1251,6 +1252,7 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
+    app.register_blueprint(oap_pay_bp)
     app.register_blueprint(all_in_ai_bp, url_prefix="/mission")
     app.register_blueprint(music_public_bp)
     app.register_blueprint(on_any_place_bp)
