@@ -60,6 +60,7 @@
       <div><b id="eta-clock">—</b><span>Arrive</span></div>
       <div><b id="eta-remain">—</b><span>ETA</span></div>
       <div><b id="route-distance-hud">—</b><span>Remaining</span></div>
+      <div><b id="traffic-state">Unknown</b><span>Traffic</span></div>
       <button id="drive-toggle" type="button">Drive</button>
       <button id="voice-toggle" type="button" aria-pressed="false">Voice off</button>
       <button id="details-toggle" type="button" aria-expanded="false">Details</button>
@@ -109,7 +110,7 @@ function bind(inputSel,boxSel){
 bind('#map-from','#from-suggestions');bind('#map-to','#to-suggestions');
 
 const form=q('#map-form'),from=q('#map-from'),to=q('#map-to'),profile=q('#map-profile');
-const state=q('#route-state'),distance=q('#distance'),eta=q('#eta'),roads=q('#roads'),directions=q('#directions'),places=q('#places');
+const state=q('#route-state'),distance=q('#distance'),eta=q('#eta'),roads=q('#roads'),directions=q('#directions'),places=q('#places'),trafficState=q('#traffic-state');
 const roadLayer=q('#road-layer'),svg=q('#route-svg'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
 const fromLabel=q('#from-label'),toLabel=q('#to-label');
 let bounds=null,roadRequest=0;
@@ -195,6 +196,10 @@ async function route(options={}){
    draw(d.route.geometry?.coordinates||[]);
    distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';
    eta.textContent=Math.max(1,Math.round(d.route.duration_s/60))+' min';
+   const live=d.route.live_road_state||{};
+   trafficState.textContent=live.live_claim_allowed?String(live.state||'unknown').toUpperCase():'Unknown';
+   trafficState.dataset.live=String(Boolean(live.live_claim_allowed));
+   if(live.reroute_recommended)toast('Live road disruption · consider rerouting');
    fromLabel.textContent=d.origin?.label||a;toLabel.textContent=d.destination?.label||b;
    coverage.textContent=d.coverage?.selected_label||'Greater London';
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);

@@ -22,6 +22,7 @@ from flask import (
 
 from . import (
     atlas_live_sources,
+    live_road_intelligence,
     local_map_intelligence,
     location_intelligence,
     map_live_pattern,
@@ -315,6 +316,12 @@ def map_intelligence_status():
         "turn_by_turn": bool(readiness.get("turn_by_turn_software_ready")),
         "voice_turn_guidance": bool(readiness.get("voice_turn_guidance_ready")),
         "off_route_reroute": bool(readiness.get("off_route_reroute_ready")),
+        "dynamic_live_eta": bool(readiness.get("dynamic_live_eta_ready")),
+        "traffic_layer": bool(readiness.get("traffic_layer_ready")),
+        "reroute_signal": bool(readiness.get("reroute_signal_ready")),
+        "continuous_speed_coverage_proven": bool(readiness.get("continuous_speed_coverage_proven")),
+        "uk_wide_live_traffic_proven": bool(readiness.get("uk_wide_live_traffic_proven")),
+        "vehicle_telemetry_integration_proven": bool(readiness.get("vehicle_telemetry_integration_proven")),
         "software_navigation_green": bool(readiness.get("software_navigation_green")),
         "live_disruption_authority_proven": bool(readiness.get("live_disruption_authority_proven")),
         "opening_hours_source_proven": bool(readiness.get("opening_hours_source_proven")),
@@ -327,6 +334,7 @@ def map_intelligence_status():
         "autocomplete": True,
         "source_backed_places_enabled": bool(place_status.get("enabled")),
         "live_pattern": map_live_pattern.status(),
+        "live_road_intelligence": live_road_intelligence.status(),
         "routing_federation": federation_status,
         "coverage": {
             "current_graph": "Greater London",
@@ -381,6 +389,11 @@ def map_intelligence_route():
         return jsonify({"error": {"code": str(exc)[:100] or "map_route_unavailable"}}), 503
     result["roads"] = _road_sequence(result)
     result["live_pattern_reports"] = map_live_pattern.reports(destination)
+    live_road_state = live_road_intelligence.route_state(result, destination)
+    result["live_road_state"] = live_road_state
+    result["base_duration_s"] = result.get("duration_s")
+    if live_road_state.get("live_claim_allowed"):
+        result["duration_s"] = live_road_state.get("adjusted_duration_s") or result.get("duration_s")
     response = jsonify({
         "route": result,
         "coverage": coverage,
@@ -392,6 +405,42 @@ def map_intelligence_route():
     })
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@bp.get("/map-intelligence/live-road-state")
+def map_intelligence_live_road_state():
+    query = request.args.get("q") or request.args.get("location") or ""
+    payload = live_road_intelligence.status()
+    payload["reports"] = map_live_pattern.reports(query)
+    payload["observations"] = live_road_intelligence.observations(query)
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.post("/map-intelligence/movement-observation")
+def map_intelligence_movement_observation():
+    if not web_security.csrf_valid(request):
+        return jsonify({"error": {"code": "csrf_failed"}}), 403
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": {"code": "json_object_required"}}), 400
+    try:
+        observation = live_road_intelligence.record_observation(
+            road=payload.get("road"),
+            state=payload.get("state"),
+            speed_kph=payload.get("speed_kph"),
+            source="consented_oap_device",
+        )
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": {"code": str(exc)[:80]}}), 400
+    response = jsonify({
+        "observation": observation,
+        "stored_precise_location": False,
+        "truth_gated": True,
+    })
+    response.headers["Cache-Control"] = "no-store"
+    return response, 201
 
 
 @bp.get("/booking")

@@ -185,3 +185,12 @@ def test_public_map_uses_allowlisted_public_navigation_assets(client):
 
     assert client.get("/map-intelligence/assets/mission_control.css").status_code == 404
     assert client.get("/map-intelligence/assets/../views.py").status_code == 404
+
+
+def test_map_hud_exposes_truth_gated_live_traffic_state():
+    page = MAP.read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    assert 'id="traffic-state"' in page
+    assert "live_claim_allowed" in page
+    assert "reroute_recommended" in page
+    assert '#traffic-state[data-live="true"]' in css
