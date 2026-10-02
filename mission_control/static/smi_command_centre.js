@@ -153,7 +153,7 @@
  settingsHomeButton.addEventListener("click",()=>{
   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
   document.getElementById("plus-button")?.click();
-  const settings=document.getElementById("voice-settings-button");
+  const settings=document.getElementById("smi-settings-button");
   if(settings){
    const panelOpen=settings.getAttribute("aria-expanded")==="true";
    if(!panelOpen)settings.click();

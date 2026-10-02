@@ -93,10 +93,17 @@
   </section>
   <section class="smi-tool-group" data-smi-tool-group="communication"><h3>Communication</h3>
     <button class="attach-option" id="voice-reply-menu-button" type="button"><span class="connector-copy"><span>🔊</span><span>Voice Reply</span></span></button>
-    <button class="attach-option" id="voice-settings-button" type="button" aria-expanded="false" aria-controls="voice-settings-panel"><span class="connector-copy"><span>⚙️</span><span>Voice Settings</span></span></button>
-    <div id="voice-settings-panel" hidden>
+    <button class="attach-option" id="smi-settings-button" type="button" aria-expanded="false" aria-controls="smi-settings-panel"><span class="connector-copy"><span>⚙️</span><span>SMI Settings</span></span></button>
+    <div id="smi-settings-panel" hidden>
       <label><input id="voice-auto-speak-toggle" type="checkbox"> Speak SMI replies automatically</label>
-      <p>Saved on this device only. No audio or transcript is stored by this preference.</p>
+      <label for="default-intelligence-level">Default Intelligence</label>
+      <select id="default-intelligence-level" aria-label="Default Intelligence level">
+        <option value="auto">Auto</option>
+        <option value="instant">3 · Instant</option>
+        <option value="think">7 · Think</option>
+        <option value="deep_dive">21 · Deep Dive</option>
+      </select>
+      <p>Preferences are saved on this device only. No audio or transcript is stored by these settings.</p>
     </div>
   </section>
   <section class="smi-tool-group" data-smi-tool-group="command"><h3>Command</h3>
