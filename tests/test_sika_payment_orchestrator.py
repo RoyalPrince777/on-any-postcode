@@ -102,3 +102,53 @@ def test_status_keeps_payment_orchestrator_non_executing():
     assert status["journal_posting"] is False
     assert status["settlement_execution"] is False
     assert status["money_movement"] is False
+
+
+
+def test_gateway_authorization_contract_requires_exact_truth_boundaries():
+    valid = {
+        "transition_authorized": True,
+        "target_status": "AUTHORISED",
+        "provider_calling": False,
+        "settlement_execution": False,
+        "money_movement": False,
+        "human_authority_final": True,
+    }
+    assert sika_payment_orchestrator._gateway_authorization_valid(valid) is True
+    assert sika_payment_orchestrator._gateway_authorization_valid(None) is False
+
+    tampered = dict(valid)
+    tampered["money_movement"] = True
+    assert sika_payment_orchestrator._gateway_authorization_valid(tampered) is False
+
+
+def test_authorisation_transition_requires_sika_pay_gateway(monkeypatch):
+    current = sika_payment_orchestrator.PaymentIntent(
+        payment_id="pay-gated",
+        idempotency_key="idem-gated",
+        payer_account_id="acct-1",
+        payee_reference="payee-1",
+        amount=sika_payment_orchestrator.Decimal("10.00"),
+        currency="GBP",
+        jurisdiction="United Kingdom",
+        status="REVIEW",
+    )
+    monkeypatch.setattr(
+        sika_payment_orchestrator,
+        "read_intent",
+        lambda payment_id: current,
+    )
+    with pytest.raises(
+        sika_payment_orchestrator.PaymentOrchestratorError,
+        match="sika_pay_gateway_authorization_required",
+    ):
+        sika_payment_orchestrator.transition(
+            payment_id="pay-gated",
+            target_status="AUTHORISED",
+        )
+
+
+def test_status_reports_direct_authorisation_bypass_closed():
+    status = sika_payment_orchestrator.status()
+    assert status["sika_pay_gateway_required_for_authorisation"] is True
+    assert status["direct_authorisation_bypass_allowed"] is False
