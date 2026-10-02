@@ -85,6 +85,18 @@ def test_reply_read_aloud_uses_canonical_voice_and_honours_stop():
     assert "window.speechSynthesis.speak(u)" not in final
 
 
+def test_voice_reply_preference_is_local_and_persistent():
+    text = CONTROLLER.read_text(encoding="utf-8")
+
+    assert "OAP_VOICE_PREF_KEY='oap.smi.voiceReplyEnabled.v1'" in text
+    assert "window.localStorage?.getItem(OAP_VOICE_PREF_KEY)" in text
+    assert "window.localStorage?.setItem(OAP_VOICE_PREF_KEY" in text
+    assert "oapWriteVoicePreference(oapVoiceEnabled)" in text
+    assert "preference saved on this device" in text
+    assert "storesAudio:false" in text
+    assert "storesTranscript:false" in text
+
+
 def test_canonical_controller_owns_voice_mic_and_stop():
     text = CONTROLLER.read_text(encoding="utf-8")
     assert "window.SpeechRecognition||window.webkitSpeechRecognition" in text
