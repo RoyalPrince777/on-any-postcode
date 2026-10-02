@@ -13,6 +13,7 @@ from mission_control import (
     movement_operations,
     postgres_db,
     product_cores,
+    sika_commerce,
     supplier_bridge,
 )
 
@@ -469,6 +470,16 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
             (fulfilment, order),
         )
         connection.commit()
+
+    sika_intent = sika_commerce.settlement_intent(order_id=order)
+    assert sika_intent["canonical_unit"] == "SIKA"
+    assert sika_intent["anchor"] == "1 SIKA = 1 GBP"
+    assert sika_intent["amount_sika"] == "50.00"
+    assert sika_intent["payment_intent_matches_order"] is False
+    assert sika_intent["payment_execution_enabled"] is False
+    assert sika_intent["customer_funds_held"] is False
+    assert sika_intent["sika_issued"] is False
+    assert sika_intent["money_transfer_performed"] is False
 
     candidate = supplier_bridge.handoff_candidate(order_id=order)
     assert candidate["provider_slug"] == "tapstitch"
