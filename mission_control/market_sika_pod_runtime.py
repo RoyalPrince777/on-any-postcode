@@ -14,8 +14,8 @@ from . import (
     distribution_runtime,
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
-    supplier_bridge,
     sika_secure_provider_runtime,
+    supplier_bridge,
 )
 
 PAYMENT_ACCEPTED_STATES = frozenset({"AUTHORISED", "SUBMITTED", "SETTLED"})
