@@ -9,10 +9,8 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any
-
 from . import bank_authorisation, postgres_db
 
 MIGRATION_VERSION = "bank_permission_scope_v1"
@@ -54,7 +52,9 @@ class PermissionScope:
     restrictions: tuple[str, ...]
 
     def effective(self, *, today: date | None = None) -> bool:
-        return self.status == "ACCEPTED" and self.effective_from <= (today or date.today())
+        return self.status == "ACCEPTED" and self.effective_from <= (
+            today or datetime.now(timezone.utc).date()
+        )
 
     def allows(self, capability: str, *, today: date | None = None) -> bool:
         if capability not in bank_authorisation.REGULATED_CAPABILITIES:
@@ -159,7 +159,7 @@ def record_scope(
     if status_value in {"REVIEWED", "ACCEPTED", "REJECTED"} and not reviewer:
         raise ValueError("bank_permission_scope_reviewer_required")
     if not isinstance(effective_from, date):
-        raise ValueError("bank_permission_scope_effective_date_required")
+        raise TypeError("bank_permission_scope_effective_date_required")
 
     capabilities = frozenset(str(item) for item in (permitted_capabilities or ()))
     unknown = capabilities - bank_authorisation.REGULATED_CAPABILITIES
