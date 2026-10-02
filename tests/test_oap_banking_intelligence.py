@@ -86,7 +86,7 @@ def test_status_exposes_remaining_real_integration_gaps():
     assert status["financial_intelligence_integrated"] is True
     assert status["accounting_intelligence_integrated"] is True
     assert status["accounting_controls_integrated"] is True
-    assert status["runtime_reconciliation_integrated"] is False
+    assert status["runtime_reconciliation_integrated"] is True
 
 
 def test_status_exposes_global_banking_family_and_first_jurisdictions():
