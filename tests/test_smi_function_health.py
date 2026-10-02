@@ -334,3 +334,77 @@ def test_interaction_certification_combines_chat_and_control_without_overclaim(m
     assert surfaces["chat"]["live_runtime_proven"] is True
     assert surfaces["control-surface-v2"]["live_runtime_proven"] is True
     assert sum(item["live_runtime_proven"] for item in result["surfaces"]) == 2
+
+def test_interaction_certification_consumes_independent_surface_proofs_without_overclaim(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {"proven": False, "reason": "missing", "receipt_id": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {"proof_gates": ()},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_interaction_surface_proofs",
+        lambda: {
+            "voice": {
+                "proven": True,
+                "receipt_id": "receipt-live-voice",
+                "source": "durable_interaction_surface_proof",
+            },
+            "vision": {
+                "proven": True,
+                "receipt_id": "receipt-live-vision",
+                "source": "durable_interaction_surface_proof",
+            },
+        },
+    )
+
+    result = smi_function_health.interaction_certification()
+    surfaces = {item["id"]: item for item in result["surfaces"]}
+
+    assert result["live_proven_count"] == 2
+    assert result["live_proof_percent"] == 22.2
+    assert result["whole_interaction_green"] is False
+    assert surfaces["voice"]["live_runtime_proven"] is True
+    assert surfaces["voice"]["live_proof_receipt_id"] == "receipt-live-voice"
+    assert surfaces["voice"]["live_proof_source"] == "durable_interaction_surface_proof"
+    assert surfaces["vision"]["live_runtime_proven"] is True
+    assert surfaces["vision"]["live_proof_receipt_id"] == "receipt-live-vision"
+    assert all(
+        item["live_runtime_proven"] is False
+        for item in result["surfaces"]
+        if item["id"] not in {"voice", "vision"}
+    )
+
+
+def test_interaction_certification_fails_closed_when_surface_proof_reader_errors(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {"proven": False, "reason": "missing", "receipt_id": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {"proof_gates": ()},
+    )
+
+    def _boom():
+        raise RuntimeError("proof store unavailable")
+
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_interaction_surface_proofs",
+        _boom,
+    )
+
+    result = smi_function_health.interaction_certification()
+    assert result["live_proven_count"] == 0
+    assert result["live_proof_percent"] == 0.0
+    assert result["whole_interaction_green"] is False
+    assert all(item["live_runtime_proven"] is False for item in result["surfaces"])
+
