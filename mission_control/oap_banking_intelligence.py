@@ -19,6 +19,7 @@ from . import (
     sika_journal_store,
     sika_production_evidence_store,
     sika_provider_adapter,
+    sika_runtime_reconciliation,
     sika_treasury_controls,
 )
 
@@ -159,5 +160,7 @@ def status() -> dict[str, object]:
         "accounting_controls_integrated": bool(
             sika_accounting_controls.status()["closed_period_posting_block"]
         ),
-        "runtime_reconciliation_integrated": False,
+        "runtime_reconciliation_integrated": bool(
+            sika_runtime_reconciliation.status()["first_party"]
+        ),
     }
