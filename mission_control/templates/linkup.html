@@ -242,6 +242,9 @@
                 </div>
                 {% if message.other_identity_id %}
                 <details><summary>⋯</summary>
+                  {% if message.direction == 'sent' %}
+                  <button class="mc-secondary" type="button" data-oap-delete-link data-message-id="{{ message.message_id }}">Delete Link</button>
+                  {% endif %}
                   <form method="post" action="{{ url_for('linkup_safety.block_member', member_id=message.other_identity_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><button class="mc-secondary" type="submit">Block</button></form>
                   <form method="post" action="{{ url_for('linkup_safety.report_message', message_id=message.message_id, member_id=message.other_identity_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><select name="reason" required aria-label="Report reason"><option value="">Report…</option><option value="harassment">Harassment</option><option value="spam">Spam</option><option value="threat">Threat or safety concern</option><option value="other">Other</option></select><textarea name="detail" maxlength="2000" placeholder="Details (optional)" aria-label="Report details"></textarea><button class="mc-secondary" type="submit">Report</button></form>
                 </details>
