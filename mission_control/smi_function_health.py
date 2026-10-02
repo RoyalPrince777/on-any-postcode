@@ -15,6 +15,7 @@ from . import (
     smi_brain_evidence_runner,
     smi_chat_runtime,
     smi_proof_gate,
+    smi_receipt_backend,
     smi_recursive_improvement,
 )
 
@@ -191,7 +192,12 @@ def route_status(url_map: Any) -> dict[str, Any]:
 
 
 def interaction_certification() -> dict[str, Any]:
-    """Track SMI interaction implementation separately from live Green Gate proof."""
+    """Track implementation and consume only durable live interaction evidence."""
+
+    button_proof, button_proof_checked = _safe_read(
+        smi_receipt_backend.latest_durable_button_proof,
+        {"proven": False, "reason": "button_proof_unavailable"},
+    )
 
     try:
         base = (
@@ -216,21 +222,37 @@ def interaction_certification() -> dict[str, Any]:
     for spec in INTERACTION_CERTIFICATION_SPECS:
         markers = tuple(str(item) for item in spec["markers"])
         wired = bool(source_available and all(marker in source for marker in markers))
+        live_runtime_proven = bool(
+            wired
+            and spec["id"] == "control-surface-v2"
+            and button_proof_checked
+            and button_proof.get("proven") is True
+        )
         surfaces.append(
             {
                 "id": spec["id"],
                 "name": spec["name"],
                 "implementation_wired": wired,
                 "backend_path": spec["backend"],
-                "known_gap": spec.get("known_gap"),
-                "live_runtime_proven": False,
-                "state": "purple" if wired else "red",
-                "label": "CERTIFICATION REQUIRED" if wired else "IMPLEMENTATION MISSING",
+                "known_gap": None if live_runtime_proven else spec.get("known_gap"),
+                "live_runtime_proven": live_runtime_proven,
+                "live_proof_receipt_id": (
+                    button_proof.get("receipt_id") if live_runtime_proven else None
+                ),
+                "state": "green" if live_runtime_proven else ("purple" if wired else "red"),
+                "label": (
+                    "LIVE PROVEN"
+                    if live_runtime_proven
+                    else ("CERTIFICATION REQUIRED" if wired else "IMPLEMENTATION MISSING")
+                ),
             }
         )
 
     implemented_count = sum(
         1 for item in surfaces if item["implementation_wired"]
+    )
+    live_proven_count = sum(
+        1 for item in surfaces if item["live_runtime_proven"]
     )
     expected_count = len(surfaces)
     return {
@@ -240,8 +262,10 @@ def interaction_certification() -> dict[str, Any]:
         "implemented_count": implemented_count,
         "expected_count": expected_count,
         "implementation_percent": _percent(implemented_count, expected_count),
+        "live_proven_count": live_proven_count,
+        "live_proof_percent": _percent(live_proven_count, expected_count),
         "all_implemented_for_certification": implemented_count == expected_count,
-        "whole_interaction_green": False,
+        "whole_interaction_green": live_proven_count == expected_count,
         "live_proof_required": True,
         "proof_chain": (
             "control",
