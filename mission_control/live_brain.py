@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from mission_control.agents import AGENT_REGISTRY, LOCKED_FAMILY_IDS
 from mission_control import smi_brain_protocol
+from mission_control.agents import AGENT_REGISTRY, LOCKED_FAMILY_IDS
 from oap.aegis.engine import AegisEngine
 from oap.contracts import (
     BrainRequest,
