@@ -14,6 +14,7 @@ from . import (
     judgement,
     smi_brain_evidence_runner,
     smi_chat_runtime,
+    smi_completion_contract,
     smi_proof_gate,
     smi_receipt_backend,
     smi_recursive_improvement,
@@ -199,6 +200,23 @@ def interaction_certification() -> dict[str, Any]:
         {"proven": False, "reason": "button_proof_unavailable"},
     )
 
+    completion, completion_checked = _safe_read(
+        smi_completion_contract.completion_status,
+        {"proof_gates": ()},
+    )
+    proof_gates = completion.get("proof_gates")
+    if not isinstance(proof_gates, (tuple, list)):
+        proof_gates = ()
+    founder_chat_proven = bool(
+        completion_checked
+        and any(
+            isinstance(item, Mapping)
+            and item.get("id") == "founder_chat_interaction"
+            and item.get("proven") is True
+            for item in proof_gates
+        )
+    )
+
     try:
         base = (
             _REPOSITORY_ROOT / "mission_control" / "templates" / "ollama_chat_base.html"
@@ -224,9 +242,17 @@ def interaction_certification() -> dict[str, Any]:
         wired = bool(source_available and all(marker in source for marker in markers))
         live_runtime_proven = bool(
             wired
-            and spec["id"] == "control-surface-v2"
-            and button_proof_checked
-            and button_proof.get("proven") is True
+            and (
+                (
+                    spec["id"] == "control-surface-v2"
+                    and button_proof_checked
+                    and button_proof.get("proven") is True
+                )
+                or (
+                    spec["id"] == "chat"
+                    and founder_chat_proven
+                )
+            )
         )
         surfaces.append(
             {
@@ -237,7 +263,18 @@ def interaction_certification() -> dict[str, Any]:
                 "known_gap": None if live_runtime_proven else spec.get("known_gap"),
                 "live_runtime_proven": live_runtime_proven,
                 "live_proof_receipt_id": (
-                    button_proof.get("receipt_id") if live_runtime_proven else None
+                    button_proof.get("receipt_id")
+                    if live_runtime_proven and spec["id"] == "control-surface-v2"
+                    else None
+                ),
+                "live_proof_source": (
+                    "durable_post_ack_button_proof"
+                    if live_runtime_proven and spec["id"] == "control-surface-v2"
+                    else (
+                        "founder_chat_interaction_gate"
+                        if live_runtime_proven and spec["id"] == "chat"
+                        else None
+                    )
                 ),
                 "state": "green" if live_runtime_proven else ("purple" if wired else "red"),
                 "label": (
