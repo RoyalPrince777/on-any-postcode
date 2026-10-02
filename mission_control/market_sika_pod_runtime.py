@@ -14,6 +14,7 @@ from . import (
     distribution_runtime,
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
+    sika_secure_provider_runtime,
     supplier_bridge,
 )
 
@@ -213,8 +214,19 @@ def status() -> dict[str, object]:
         "refund_contract_required": True,
         "idempotency_required": True,
         "internal_orchestration_ready": True,
-        "external_payment_execution_proven": False,
-        "external_manufacturer_execution_proven": False,
+        "secure_provider_runtime": sika_secure_provider_runtime.status(),
+        "payment_provider_runtime_built": True,
+        "pod_provider_runtime_built": True,
+        "external_payment_execution_proven": bool(
+            sika_secure_provider_runtime.configuration_status("payment").get(
+                "configuration_complete"
+            )
+        ),
+        "external_manufacturer_execution_proven": bool(
+            sika_secure_provider_runtime.configuration_status("pod").get(
+                "configuration_complete"
+            )
+        ),
         "money_movement_proven": False,
         "human_authority_final": True,
     }
