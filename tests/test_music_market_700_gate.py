@@ -5,8 +5,6 @@ import itertools
 import pytest
 
 from mission_control import music_market_purchase as purchase
-
-
 LISTING_PRICES = (100, 101, 125, 199, 500, 999, 5000)
 
 ORDER_MODES = (
