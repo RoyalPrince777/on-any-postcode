@@ -147,6 +147,20 @@
   mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
  });
 
+ const incomingHomeButton=document.createElement("button");
+ incomingHomeButton.type="button";incomingHomeButton.textContent="🔔 Incoming";
+ incomingHomeButton.setAttribute("aria-label","Open Incoming activity");
+ incomingHomeButton.addEventListener("click",()=>{
+  window.location.assign("/linkup#linkup-incoming");
+ });
+
+ const myWorldHomeButton=document.createElement("button");
+ myWorldHomeButton.type="button";myWorldHomeButton.textContent="👤 My World";
+ myWorldHomeButton.setAttribute("aria-label","Open My World");
+ myWorldHomeButton.addEventListener("click",()=>{
+  window.location.assign("/my-world");
+ });
+
  const settingsHomeButton=document.createElement("button");
  settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
  settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
@@ -163,7 +177,8 @@
 
  homeRail.append(
   homeButton,smiButton,signalsHomeButton,guardianHomeButton,warHomeButton,
-  intelligenceHomeButton,hrmHomeButton,controlHomeButton,settingsHomeButton
+  intelligenceHomeButton,hrmHomeButton,controlHomeButton,
+  incomingHomeButton,myWorldHomeButton,settingsHomeButton
  );
  document.body.append(homeRail);
 
