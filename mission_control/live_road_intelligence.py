@@ -99,7 +99,12 @@ def route_state(route: object, query: object = None) -> dict[str, object]:
         hay = f"{report.get('road','')} {report.get('area','')} {report.get('note','')}".casefold()
         if roads and not any(road.casefold() in hay or hay.find(road.casefold()) >= 0 for road in roads):
             continue
-        state, factor = _severity(report.get("kind"), closure=bool(report.get("has_closures")))
+        explicit_state = _clean(report.get("road_state"), 20).casefold()
+        if explicit_state in _ALLOWED_STATES:
+            state = explicit_state
+            factor = {"free": 1.0, "slow": 1.15, "heavy": 1.3, "stopped": 1.8, "closed": 2.0, "hazard": 1.45, "unknown": 1.0}.get(state, 1.0)
+        else:
+            state, factor = _severity(report.get("kind"), closure=bool(report.get("has_closures")))
         multiplier = max(multiplier, factor)
         if rank[state] > rank[strongest]:
             strongest = state
@@ -108,6 +113,7 @@ def route_state(route: object, query: object = None) -> dict[str, object]:
             "road": report.get("road"),
             "kind": report.get("kind"),
             "state": state,
+            "reported_road_state": report.get("road_state"),
             "source": report.get("source"),
             "authority_verified": bool(report.get("authority_verified")),
             "updated_at": report.get("updated_at") or report.get("created_at"),
