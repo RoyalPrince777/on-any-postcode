@@ -17,7 +17,6 @@ from . import (
     sika_treasury_controls,
 )
 
-
 GROUP_NAME = "OAP Global Banking Group"
 CONTINENTAL_FAMILY = (
     "Africa Crown Bank",
