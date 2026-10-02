@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import base64
 import binascii
+import uuid
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
     certification,
+    commerce_install,
+    commerce_provider_receipts,
     distribution_intelligence,
     distribution_runtime,
     entertainment_catalogue,
@@ -30,6 +33,9 @@ from . import (
     public_store,
     radio_core,
     records_core,
+    sika_payment_orchestrator,
+    sika_payment_submission_evidence,
+    sika_secure_provider_runtime,
     web_security,
 )
 
@@ -1511,3 +1517,282 @@ def create_parcel():
         )
 
     return _handle_write(action)
+
+
+@bp.get("/market/install-status")
+@web_security.login_required(api=True, founder_only=True)
+def market_install_status():
+    """Founder-only secret-free install/provider readiness."""
+
+    try:
+        return _no_store(make_response(jsonify(commerce_install.status())))
+    except RuntimeError:
+        return _error(
+            "commerce_install_status_unavailable",
+            "Commerce install status is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/market/install")
+@web_security.login_required(api=True, founder_only=True)
+def install_market_commerce_runtime():
+    """Apply the unified commerce schema only after explicit Founder action."""
+
+    def action():
+        payload = _payload()
+        return commerce_install.install(
+            assume_yes=True,
+            dry_run=bool(payload.get("dry_run", True)),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/payments/<payment_id>/execute")
+@web_security.login_required(api=True, founder_only=True)
+def execute_market_payment(payment_id: str):
+    """Submit one already-AUTHORISED SIKA payment to the private provider."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        intent = sika_payment_orchestrator.read_intent(payment_id)
+        if intent is None:
+            raise ValueError("payment_intent_not_found")
+        if intent.status == "SUBMITTED":
+            return {
+                "payment": intent.as_dict(),
+                "idempotent": True,
+                "provider_called": False,
+                "human_authority_final": True,
+            }
+        if intent.status != "AUTHORISED":
+            raise ValueError("payment_not_authorised_for_provider_submission")
+        provider_payload = payload.get("provider_payload")
+        if provider_payload is None:
+            provider_payload = {}
+        if not isinstance(provider_payload, dict):
+            raise TypeError("provider_payload_object_required")
+        outbound = dict(provider_payload)
+        outbound.update(
+            payment_id=intent.payment_id,
+            payee_reference=intent.payee_reference,
+            amount=f"{intent.amount:.2f}",
+            currency=intent.currency,
+            jurisdiction=intent.jurisdiction,
+        )
+        receipt = sika_secure_provider_runtime.submit(
+            kind="payment",
+            payload=outbound,
+            idempotency_key=intent.idempotency_key,
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="payment",
+            subject_id=intent.payment_id,
+            provider_receipt=receipt,
+        )
+        evidence = sika_payment_submission_evidence.record(
+            evidence_id=str(uuid.uuid4()),
+            payment_id=intent.payment_id,
+            idempotency_key=intent.idempotency_key,
+            provider_id=receipt["provider_id"],
+            provider_reference=receipt["provider_reference"],
+            outcome="ACCEPTED",
+            evidence_hash=receipt["receipt_hash"],
+        )
+        submitted = sika_payment_orchestrator.transition(
+            payment_id=intent.payment_id,
+            target_status="SUBMITTED",
+            provider_reference=receipt["provider_reference"],
+        )
+        return {
+            "payment": submitted.as_dict(),
+            "receipt": durable,
+            "submission_evidence_id": evidence.evidence_id,
+            "provider_called": True,
+            "money_movement_claimed": False,
+            "secret_values_exposed": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/payments/provider/webhook")
+def market_payment_provider_webhook():
+    """Accept only timestamped HMAC-verified provider payment callbacks."""
+
+    raw = request.get_data(cache=True)
+    timestamp = request.headers.get("X-OAP-Provider-Timestamp", "")
+    signature = request.headers.get("X-OAP-Provider-Signature", "")
+    try:
+        verified = sika_secure_provider_runtime.verify_webhook(
+            kind="payment",
+            body=raw,
+            timestamp=timestamp,
+            signature=signature,
+        )
+        if verified.get("signature_verified") is not True:
+            return _error("provider_signature_invalid", "Invalid provider signature.", 403)
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            raise TypeError("provider_webhook_json_required")
+        payment_id = str(payload.get("payment_id") or "").strip()
+        state = str(payload.get("status") or payload.get("state") or "").strip().upper()
+        if not payment_id:
+            raise ValueError("payment_id_required")
+        intent = sika_payment_orchestrator.read_intent(payment_id)
+        if intent is None:
+            raise ValueError("payment_intent_not_found")
+        owner = commerce_provider_receipts.owner_for_subject(payment_id)
+        if owner is None:
+            raise ValueError("provider_receipt_owner_unavailable")
+        webhook_receipt = sika_secure_provider_runtime.webhook_receipt(
+            kind="payment",
+            payload=payload,
+            idempotency_key=f"payhook:{payment_id}:{timestamp}",
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="payment_webhook",
+            subject_id=payment_id,
+            provider_receipt=webhook_receipt,
+        )
+        target = {
+            "SETTLED": "SETTLED",
+            "CAPTURED": "SETTLED",
+            "SUCCEEDED": "SETTLED",
+            "FAILED": "FAILED",
+            "REJECTED": "FAILED",
+        }.get(state)
+        payment = intent
+        if target is not None and intent.status == "SUBMITTED":
+            payment = sika_payment_orchestrator.transition(
+                payment_id=payment_id,
+                target_status=target,
+            )
+        return _no_store(
+            make_response(
+                jsonify(
+                    accepted=True,
+                    payment=payment.as_dict(),
+                    receipt=durable,
+                    signature_verified=True,
+                    secret_values_exposed=False,
+                )
+            )
+        )
+    except (TypeError, ValueError):
+        return _error("provider_webhook_invalid", "Invalid provider webhook.", 400)
+    except RuntimeError:
+        return _error("provider_webhook_unavailable", "Provider webhook unavailable.", 503)
+
+
+@bp.post("/market/pod/<subject_id>/execute")
+@web_security.login_required(api=True, founder_only=True)
+def execute_market_pod(subject_id: str):
+    """Submit one governed POD request and persist its provider receipt."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        provider_payload = payload.get("provider_payload")
+        if not isinstance(provider_payload, dict):
+            raise TypeError("provider_payload_object_required")
+        outbound = dict(provider_payload)
+        outbound["oap_subject_id"] = subject_id
+        receipt = sika_secure_provider_runtime.submit(
+            kind="pod",
+            payload=outbound,
+            idempotency_key=payload.get("idempotency_key"),
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="pod",
+            subject_id=subject_id,
+            provider_receipt=receipt,
+        )
+        distribution = None
+        distribution_id = payload.get("distribution_id")
+        if distribution_id:
+            distribution = _distribution_runtime_store.transition(
+                owner_identity_id=owner,
+                distribution_id=distribution_id,
+                target_state="HANDED_OFF",
+                evidence_reference=receipt["receipt_hash"],
+            )
+        return {
+            "receipt": durable,
+            "distribution": distribution,
+            "provider_called": True,
+            "secret_values_exposed": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/provider/webhook")
+def market_pod_provider_webhook():
+    """Verify POD callback then persist and advance an owned Distribution item."""
+
+    raw = request.get_data(cache=True)
+    timestamp = request.headers.get("X-OAP-Provider-Timestamp", "")
+    signature = request.headers.get("X-OAP-Provider-Signature", "")
+    try:
+        verified = sika_secure_provider_runtime.verify_webhook(
+            kind="pod",
+            body=raw,
+            timestamp=timestamp,
+            signature=signature,
+        )
+        if verified.get("signature_verified") is not True:
+            return _error("provider_signature_invalid", "Invalid provider signature.", 403)
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            raise TypeError("provider_webhook_json_required")
+        subject_id = str(payload.get("oap_subject_id") or payload.get("subject_id") or "").strip()
+        if not subject_id:
+            raise ValueError("pod_subject_id_required")
+        owner = commerce_provider_receipts.owner_for_subject(subject_id)
+        if owner is None:
+            raise ValueError("provider_receipt_owner_unavailable")
+        webhook_receipt = sika_secure_provider_runtime.webhook_receipt(
+            kind="pod",
+            payload=payload,
+            idempotency_key=f"podhook:{subject_id}:{timestamp}",
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="pod_webhook",
+            subject_id=subject_id,
+            provider_receipt=webhook_receipt,
+        )
+        distribution = None
+        distribution_id = payload.get("distribution_id")
+        state = str(payload.get("state") or payload.get("status") or "").upper()
+        target = market_sika_pod_runtime.distribution_transition_for_supplier_state(state)
+        if distribution_id and target is not None:
+            distribution = _distribution_runtime_store.transition(
+                owner_identity_id=owner,
+                distribution_id=distribution_id,
+                target_state=target,
+                evidence_reference=webhook_receipt["receipt_hash"],
+            )
+        return _no_store(
+            make_response(
+                jsonify(
+                    accepted=True,
+                    receipt=durable,
+                    distribution=distribution,
+                    signature_verified=True,
+                    secret_values_exposed=False,
+                )
+            )
+        )
+    except (TypeError, ValueError):
+        return _error("provider_webhook_invalid", "Invalid provider webhook.", 400)
+    except RuntimeError:
+        return _error("provider_webhook_unavailable", "Provider webhook unavailable.", 503)
