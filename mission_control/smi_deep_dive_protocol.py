@@ -33,6 +33,53 @@ SEVEN_STAR_GATE: tuple[str, ...] = (
     "Truth", "Function", "Security", "Stability", "Integration", "Compliance", "Learning",
 )
 
+
+def evaluate_seven_star_gate(evidence: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Present the canonical seven checks without treating a score as approval.
+
+    Evidence must be supplied by a verified caller, with a source reference and
+    explicit passed=True, verified=True and fresh=True. Unknown, stale, pending
+    and failed checks never earn a star.
+    A technical seven-of-seven result still does not grant Founder Final.
+    """
+    supplied = evidence if isinstance(evidence, dict) else {}
+    checks: list[dict[str, Any]] = []
+    for name in SEVEN_STAR_GATE:
+        item = supplied.get(name)
+        record = item if isinstance(item, dict) else {}
+        source = record.get("source")
+        has_source = isinstance(source, str) and bool(source.strip())
+        proven = (
+            record.get("passed") is True
+            and record.get("verified") is True
+            and record.get("fresh") is True
+            and has_source
+        )
+        failed = (
+            record.get("passed") is False
+            and record.get("verified") is True
+            and record.get("fresh") is True
+            and has_source
+        )
+        checks.append({
+            "name": name,
+            "signal": "green" if proven else "red" if failed else "purple" if record else "unknown",
+            "passed": proven,
+            "source": source.strip() if has_source else None,
+        })
+    proven_count = sum(check["passed"] for check in checks)
+    return {
+        "checks": checks,
+        "proven": proven_count,
+        "total": len(SEVEN_STAR_GATE),
+        "technical_check_percent": round(100 * proven_count / len(SEVEN_STAR_GATE)),
+        "technical_gate_passed": proven_count == len(SEVEN_STAR_GATE),
+        "production_green": False,
+        "founder_final": False,
+        "physical_acceptance_included": False,
+        "percentage_scope": "Evidence-backed technical checks only; not overall completion or release approval.",
+    }
+
 WAR_ROOM_BUTTONS: tuple[dict[str, str], ...] = (
     {"button": "▶", "name": "RUN", "does": "Run the standard governed SMI War Room review."},
     {"button": "🔬", "name": "RESEARCH", "does": "Gather or refresh evidence, provenance, freshness, confidence and gaps."},
@@ -90,6 +137,7 @@ def status() -> dict[str, Any]:
             "rule": "Each pass receives the accumulated evidence and dissent from earlier passes; it is not seven copies of the same answer.",
         },
         "seven_star_gate": SEVEN_STAR_GATE,
+        "seven_star_assessment": evaluate_seven_star_gate(),
         "war_room_buttons": WAR_ROOM_BUTTONS,
         "founder_result_fields": FOUNDER_RESULT_FIELDS,
         "signal_rules": SIGNAL_RULES,
