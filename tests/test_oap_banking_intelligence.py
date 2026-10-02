@@ -81,7 +81,7 @@ def test_status_exposes_remaining_real_integration_gaps():
     assert status["payment_execution_enabled"] is False
     assert status["money_movement_enabled"] is False
     assert status["blockchain_integrity_integrated"] is False
-    assert status["bank_grade_double_entry_integrated"] is False
+    assert status["bank_grade_double_entry_integrated"] is True
     assert status["runtime_reconciliation_integrated"] is False
 
 
