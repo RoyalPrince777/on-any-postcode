@@ -19,19 +19,24 @@ def _no_store(response):
     return response
 
 
-@bp.get("")
-@bp.get("/")
-@web_security.login_required(founder_only=True)
-def dashboard():
+def _page(*, selected=None, focus: str = "overview"):
     return _no_store(
         make_response(
             render_template(
                 "planetary_domains.html",
                 planetary=planetary_domains.public_safe_status(),
-                selected=None,
+                selected=selected,
+                focus=focus,
             )
         )
     )
+
+
+@bp.get("")
+@bp.get("/")
+@web_security.login_required(founder_only=True)
+def dashboard():
+    return _page()
 
 
 @bp.get("/domain/<domain_id>")
@@ -41,15 +46,19 @@ def domain_dashboard(domain_id: str):
         selected = planetary_domains.domain_status(domain_id)
     except KeyError:
         abort(404)
-    return _no_store(
-        make_response(
-            render_template(
-                "planetary_domains.html",
-                planetary=planetary_domains.public_safe_status(),
-                selected=selected,
-            )
-        )
-    )
+    return _page(selected=selected, focus="domain")
+
+
+@bp.get("/cyber")
+@web_security.login_required(founder_only=True)
+def cyber_dashboard():
+    return _page(focus="cyber")
+
+
+@bp.get("/smi-fusion")
+@web_security.login_required(founder_only=True)
+def smi_fusion_dashboard():
+    return _page(focus="fusion")
 
 
 @bp.get("/status")
