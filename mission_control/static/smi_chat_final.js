@@ -41,6 +41,7 @@ const voiceAutoSpeakToggle=q("#voice-auto-speak-toggle");
 const defaultIntelligenceLevel=q("#default-intelligence-level");
 const runtimeThinkingLevel=q("#thinking-level");
 const reducedMotionToggle=q("#reduced-motion-toggle");
+const resetDevicePreferences=q("#reset-device-preferences");
 const allowedIntelligenceLevels=new Set(["auto","instant","think","deep_dive"]);
 function readIntelligencePreference(){
   try{
@@ -100,6 +101,25 @@ if(reducedMotionToggle){
     if(status)status.textContent=enabled
       ?"Reduced Motion on · SMI visual motion suppressed"
       :"Reduced Motion off · system motion preference applies";
+  });
+}
+if(resetDevicePreferences){
+  resetDevicePreferences.addEventListener("click",()=>{
+    try{
+      window.localStorage?.removeItem(OAP_SMI_VOICE_PREF_KEY);
+      window.localStorage?.removeItem(OAP_SMI_INTELLIGENCE_PREF_KEY);
+      window.localStorage?.removeItem(OAP_SMI_REDUCED_MOTION_PREF_KEY);
+    }catch{}
+    document.body?.classList.remove("smi-user-reduced-motion");
+    if(defaultIntelligenceLevel)defaultIntelligenceLevel.value="auto";
+    if(runtimeThinkingLevel)runtimeThinkingLevel.value="auto";
+    if(reducedMotionToggle)reducedMotionToggle.checked=false;
+    const speaker=document.getElementById("speaker-button");
+    if(speaker&&speaker.getAttribute("aria-pressed")!=="true")speaker.click();
+    if(voiceAutoSpeakToggle)voiceAutoSpeakToggle.checked=true;
+    window.dispatchEvent(new CustomEvent("oap-smi-reduced-motion-change",{detail:{enabled:false}}));
+    const status=document.getElementById("status");
+    if(status)status.textContent="SMI device preferences reset · conversations, HRM and receipts unchanged";
   });
 }
 syncSmiSettings();
