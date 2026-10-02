@@ -7,6 +7,7 @@ import binascii
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    awards_admission,
     certification,
     distribution_intelligence,
     entertainment_catalogue,
@@ -1285,3 +1286,18 @@ def create_parcel():
         )
 
     return _handle_write(action)
+
+
+@bp.post("/awards/best-of-the-decade/nominations")
+@web_security.login_required(api=True, founder_only=True)
+def submit_best_of_decade_nomination():
+    """Private, CSRF-protected admission into the existing OAP organ boundary.
+
+    Only PENDING_REVIEW records are written; this endpoint cannot vote,
+    approve evidence, declare winners or publish awards.
+    """
+    return _handle_write(
+        lambda: awards_admission.submit_nomination(
+            _payload(), owner_identity_id=_identity(sync=True),
+        )
+    )
