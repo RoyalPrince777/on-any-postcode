@@ -29,6 +29,31 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('const link=document.createElement(url?"a":"div")', source)
         self.assertIn('if(url){link.href=url;link.title=detail;}', source)
 
+    def test_master_home_menu_routes_into_existing_system_owners(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        for marker in (
+            'homeButton.textContent="🏠 Home"',
+            'smiButton.textContent="🧠 SMI"',
+            'signalsHomeButton.textContent="📡 Signals"',
+            'guardianHomeButton.textContent="🛡️ Guardian"',
+            'warHomeButton.textContent="⚔️ War Room"',
+            'intelligenceHomeButton.textContent="🧩 Intelligence"',
+            'hrmHomeButton.textContent="🧾 HRM / JOOG"',
+            'controlHomeButton.textContent="⚙️ Control"',
+            'settingsHomeButton.textContent="⚙ Settings"',
+        ):
+            self.assertIn(marker, source)
+        self.assertIn('triggerMasterTool("guardian")', source)
+        self.assertIn('triggerMasterTool("hrm")', source)
+        self.assertIn('openStatus(true)', source)
+        self.assertIn('openWarRoom()', source)
+        self.assertIn('cfg.agentsUrl', source)
+        self.assertIn('document.getElementById("voice-settings-button")', source)
+        self.assertIn('["🌍 OAP World","world-controls"]', source)
+        self.assertIn('["🐆 Jungle","jungle-controls"]', source)
+        self.assertIn('["🕶 Matrix Routes","matrix-routes"]', source)
+
+
     def test_command_quick_actions_are_real_canonical_controls(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
