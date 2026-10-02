@@ -139,3 +139,51 @@ def test_explicit_authority_heavy_state_adjusts_eta(monkeypatch):
     assert state["state"] == "heavy"
     assert state["eta_multiplier"] == 1.3
     assert state["adjusted_duration_s"] == 780
+
+
+def test_live_road_status_keeps_external_sources_evidence_only(monkeypatch):
+    monkeypatch.setattr(
+        map_live_pattern,
+        "status",
+        lambda: {"authority_verified_feed": True},
+    )
+
+    status = live_road_intelligence.status()
+
+    assert status["intelligence_owner"] == "ON ANY POSTCODE"
+    assert status["decision_engine"] == "OAP Live Road Intelligence"
+    assert status["external_sources_are_evidence_only"] is True
+    assert status["external_source_decision_authority"] is False
+    assert status["external_source_routing_authority"] is False
+
+
+def test_route_evidence_never_grants_external_decision_authority(monkeypatch):
+    monkeypatch.setattr(
+        map_live_pattern,
+        "reports",
+        lambda query=None: [{
+            "id": "tfl-road-a23",
+            "road": "A23",
+            "area": "Greater London",
+            "kind": "delay",
+            "road_state": "slow",
+            "note": "Minor delays",
+            "source": "Transport for London Road Status",
+            "source_role": "external_evidence_only",
+            "external_source": True,
+            "oap_decision_authority": False,
+            "authority_verified": True,
+            "has_closures": False,
+            "updated_at": "2026-10-03T00:00:00Z",
+        }],
+    )
+    monkeypatch.setattr(live_road_intelligence, "observations", lambda road=None: [])
+
+    state = live_road_intelligence.route_state(
+        {"duration_s": 600, "roads": ["A23"]},
+        "A23",
+    )
+
+    assert state["reports"][0]["source_role"] == "external_evidence_only"
+    assert state["reports"][0]["external_source"] is True
+    assert state["reports"][0]["oap_decision_authority"] is False
