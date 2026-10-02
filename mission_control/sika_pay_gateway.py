@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from . import sika_rights_decision_record
+from . import sika_customer_payment_authority, sika_rights_decision_record
 
 SURFACES = frozenset({
     "OAP World",
@@ -83,6 +83,7 @@ def build_pay_request(
     currency: object,
     jurisdiction: object,
     rights_record: object,
+    customer_authority_receipt: object,
 ) -> dict[str, Any]:
     """Return one bounded SIKA Pay authorization object.
 
@@ -116,6 +117,19 @@ def build_pay_request(
             "human_authority_final": True,
         }
 
+    authority_check = sika_customer_payment_authority.verify_receipt(
+        customer_authority_receipt
+    )
+    if not authority_check.get("verified"):
+        return {
+            "ready_for_payment_authorisation": False,
+            "reason": authority_check.get("reason") or "customer_authority_not_verified",
+            "provider_calling": False,
+            "settlement_execution": False,
+            "money_movement": False,
+            "human_authority_final": True,
+        }
+
     request = PayRequest(
         surface=surface_value,
         payment_id=_required(payment_id, "payment_id"),
@@ -127,8 +141,25 @@ def build_pay_request(
         rights_record_hash=str(rights_record["record_hash"]),
         rights_gate_decision_hash=str(rights_record["gate_decision_hash"]),
     )
+    request_dict = request.as_dict()
+    if not sika_customer_payment_authority.matches_payment(
+        customer_authority_receipt,
+        request_dict,
+    ):
+        return {
+            "ready_for_payment_authorisation": False,
+            "reason": "customer_authority_payment_mismatch",
+            "provider_calling": False,
+            "settlement_execution": False,
+            "money_movement": False,
+            "human_authority_final": True,
+        }
+
     return {
-        **request.as_dict(),
+        **request_dict,
+        "customer_authority_receipt_hash": str(
+            customer_authority_receipt.get("receipt_hash") or ""
+        ),
         "ready_for_payment_authorisation": True,
         "requires_payment_orchestrator": True,
         "requires_external_authorized_executor": True,
@@ -193,6 +224,8 @@ def status() -> dict[str, Any]:
         "first_party": True,
         "registered_surfaces": tuple(sorted(SURFACES)),
         "rights_record_required": True,
+        "customer_payment_authority_required": True,
+        "customer_authority_payment_binding": True,
         "rights_allow_required": True,
         "single_payment_door": True,
         "payment_orchestrator_required": True,
