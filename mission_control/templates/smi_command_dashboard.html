@@ -27,6 +27,7 @@
     <article class="card"><span class="pill gold">War Room</span><div class="metric">{{ command.war_room.overall_evidence_score }}</div><p class="muted">evidence score · {{ command.war_room.runtime_verified }} runtime verified · {{ command.war_room.operationally_certified }} operationally certified</p></article>
     <article class="card"><span class="pill green">Risk Router</span><div class="metric">5 routes</div><p class="muted">DIRECT_ANSWER · PREPARE · CONFIRM · GOVERNANCE · BLOCK</p></article>
     <article class="card"><span class="pill purple">Autonomy</span><div class="metric">{{ command.autonomy.configured_level }}</div><p class="muted">A5 {{ 'on' if command.autonomy.a5_enabled else 'locked' }} · A6 {{ 'on' if command.autonomy.a6_enabled else 'locked' }} · A7 {{ 'on' if command.autonomy.a7_enabled else 'locked' }}</p></article>
+    <article class="card"><span class="pill gold">Bank / SIKA</span><div class="metric">{{ 'Controls live' if command.bank.software_controls_present else 'Unproven' }}</div><p class="muted">Pay gateway {{ 'present' if command.bank.single_pay_gateway else 'missing' }} · direct bypass {{ 'OPEN' if command.bank.direct_authorisation_bypass_allowed else 'closed' }} · regulated execution {{ 'ON' if command.bank.regulated_execution_enabled else 'locked' }}</p></article>
   </div>
 
   <section>
