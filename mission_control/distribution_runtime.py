@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
 from uuid import UUID
 
 from . import distribution_700, postgres_db
