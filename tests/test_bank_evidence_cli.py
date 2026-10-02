@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 SOURCE = (
     Path(__file__).resolve().parents[1] / "mission_control" / "__init__.py"
 ).read_text(encoding="utf-8")
