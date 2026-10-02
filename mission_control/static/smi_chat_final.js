@@ -20,6 +20,34 @@ window.OAP_SMI_VOICE_PREF={
   storesTranscript:false
 };
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+const voiceSettingsButton=q("#voice-settings-button");
+const voiceSettingsPanel=q("#voice-settings-panel");
+const voiceAutoSpeakToggle=q("#voice-auto-speak-toggle");
+function syncVoiceSettings(){
+  if(!voiceAutoSpeakToggle)return;
+  voiceAutoSpeakToggle.checked=window.OAP_SMI_VOICE_PREF?.read?.(true) ?? true;
+}
+if(voiceSettingsButton&&voiceSettingsPanel){
+  voiceSettingsButton.addEventListener("click",()=>{
+    const open=voiceSettingsPanel.hidden;
+    voiceSettingsPanel.hidden=!open;
+    voiceSettingsButton.setAttribute("aria-expanded",String(open));
+    if(open)syncVoiceSettings();
+  });
+}
+if(voiceAutoSpeakToggle){
+  syncVoiceSettings();
+  voiceAutoSpeakToggle.addEventListener("change",()=>{
+    const enabled=window.OAP_SMI_VOICE_PREF?.write?.(voiceAutoSpeakToggle.checked) ?? voiceAutoSpeakToggle.checked;
+    const speaker=document.getElementById("speaker-button");
+    const current=speaker?.getAttribute("aria-pressed")==="true";
+    if(speaker&&current!==Boolean(enabled))speaker.click();
+    const status=document.getElementById("status");
+    if(status)status.textContent=enabled
+      ?"Voice reply on · preference saved on this device"
+      :"Voice reply off · preference saved on this device";
+  });
+}
 const input=q('#message'),messages=q('#messages'),history=q('.history'),historyList=q('#history-list'),head=q('.chat-head'),plus=q('#plus-button'),menu=q('#attach-menu'),thinking=q('#thinking');
 if(q('.chat-title'))q('.chat-title').textContent='Personal SMI';if(q('.chat-head .chat-subtitle'))q('.chat-head .chat-subtitle').textContent='Private Founder intelligence · straight answers · guarded actions';if(q('#thinking-title'))q('#thinking-title').textContent='🧠 Thinking Process · safe work stages';document.title='Personal SMI · OAP';
 if(input){input.rows=1;input.placeholder='Ask SMI…';const resize=()=>{input.style.height='31px';if(input.value.trim())input.style.height=Math.min(input.scrollHeight,96)+'px';};input.addEventListener('input',resize);resize()}
