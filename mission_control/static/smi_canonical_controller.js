@@ -257,6 +257,21 @@ async function oapCamera(){oapCloseAttach();if(!navigator.mediaDevices?.getUserM
 async function oapScreen(){oapCloseAttach();if(!navigator.mediaDevices?.getDisplayMedia){oapSetStatus('Screen sharing unavailable on this device');return;}oapSetStatus('Choose a screen to share…');try{const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});oapSetStatus('Sharing · capturing one governed frame…');await oapCaptureFrame(stream,'Screen');}catch(error){oapSetStatus(error?.name==='NotAllowedError'?'Screen sharing cancelled or blocked':'Screen sharing unavailable');}}
 function oapAddCaptureOptions(){if(!oapAttachMenu||oapAttachMenu.dataset.oapCaptureReady==='true')return;oapAttachMenu.dataset.oapCaptureReady='true';const camera=document.createElement('button');camera.type='button';camera.className='attach-option';camera.id='camera-button';camera.textContent='📷 Camera';camera.setAttribute('aria-label','Capture camera image');camera.addEventListener('click',oapCamera);const screen=document.createElement('button');screen.type='button';screen.className='attach-option';screen.id='screen-capture-button';screen.textContent='🖥️ Share Screen';screen.setAttribute('aria-label','Share screen and capture frame');screen.addEventListener('click',oapScreen);oapAttachMenu.prepend(screen);oapAttachMenu.prepend(camera);}
 
+async function oapFounderFinal(){
+ const target=window.OAP_SMI_UI?.founderFinalUrl;
+ if(!target)throw new Error('Founder Final route unavailable');
+ if(!conversationId)throw new Error('No active governed mission to approve');
+ const response=await fetch(target,{
+  method:'POST',
+  credentials:'same-origin',
+  headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||''},
+  body:JSON.stringify({conversation_id:conversationId,decision:'APPROVED'})
+ });
+ const payload=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(payload?.error?.message||'Founder Final was not recorded');
+ return payload;
+}
+
 async function oapSubmit(options={}){
  if(oapVoiceEnabled)oapLocalPlayer?.prepare?.();
  const fromLive=options?.fromLive===true;
@@ -273,6 +288,21 @@ async function oapSubmit(options={}){
  if(oapRuntime?.speaking)oapApply('SPEAK_END');
  oapPlaybackState('cancelled',oapRuntime?.epoch);
  add(userLabel,'user');
+ if(text==='🟢'&&!hasImage&&!hasAttachment&&!codeMode){
+  oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));
+  oapLocked=true;setRunning(true);oapSetStatus('Recording Founder Final…');
+  try{
+   const result=await oapFounderFinal();
+   add(result.response||'Founder Final recorded. No execution granted.','assistant');
+   add('🧾 Signed Founder Final · Receipt '+String(result.receipt_id||'recorded')+' · Execute locked','system');
+   oapSetStatus('Founder Final recorded · signed receipt verified · execution remains locked');
+   await loadConversations();
+  }catch(error){
+   add((error?.message||'Founder Final unavailable')+' · No decision was recorded.','system');
+   oapSetStatus('Founder Final not recorded');
+  }finally{oapLocked=false;setRunning(false);}
+  return;
+ }
  window.dispatchEvent(new CustomEvent('oap-smi-submit-start',{detail:{fromLive,atMs:performance.now()}}));
  oapLocked=true;responseStopped=false;oapPaused=false;oapShowLiveReply('');oapInput.value='';oapInput.dispatchEvent(new Event('input',{bubbles:true}));oapSetStatus('Command received · generating governed result');oapAbort=new AbortController();activeController=oapAbort;setRunning(true);oapBeginWork();showStage('Understand');showStage('Context');let assistantBody=null,completeResult=null,streamError=null,streamText='';
  try{
