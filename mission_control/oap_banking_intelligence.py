@@ -8,6 +8,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from . import (
+    bank_authorisation,
+    bank_authorisation_store,
+    bank_permission_scope,
+    sika_production_evidence_store,
+    sika_provider_adapter,
+    sika_treasury_controls,
+)
+
+
 GROUP_NAME = "OAP Global Banking Group"
 CONTINENTAL_FAMILY = (
     "Africa Crown Bank",
@@ -22,16 +32,6 @@ FIRST_JURISDICTIONS = {
     "Africa Crown Bank": "Ghana",
     "Europa Crown Bank": "United Kingdom",
 }
-
-
-from . import (
-    bank_authorisation,
-    bank_authorisation_store,
-    bank_permission_scope,
-    sika_production_evidence_store,
-    sika_provider_adapter,
-    sika_treasury_controls,
-)
 
 
 @dataclass(frozen=True)
