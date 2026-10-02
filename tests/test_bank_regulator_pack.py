@@ -37,7 +37,7 @@ def test_regulator_pack_digest_detects_tampering(monkeypatch):
     monkeypatch.setattr(
         bank_regulator_pack.bank_authorisation_store,
         "latest_register",
-        lambda: {},
+        dict,
     )
     pack = bank_regulator_pack.build_pack()
     assert bank_regulator_pack.verify_pack_digest(pack) is True
