@@ -48,7 +48,7 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('openStatus(true)', source)
         self.assertIn('openWarRoom()', source)
         self.assertIn('cfg.agentsUrl', source)
-        self.assertIn('document.getElementById("voice-settings-button")', source)
+        self.assertIn('document.getElementById("smi-settings-button")', source)
         self.assertIn('["🌍 OAP World","world-controls"]', source)
         self.assertIn('["🐆 Jungle","jungle-controls"]', source)
         self.assertIn('["🕶 Matrix Routes","matrix-routes"]', source)
