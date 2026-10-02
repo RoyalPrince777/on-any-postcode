@@ -7,7 +7,6 @@ from flask import Flask
 
 from mission_control import music_public_views, product_core_views
 
-
 MUSIC_TEMPLATE = Path("mission_control/templates/oap_music.html")
 MARKET_TEMPLATE = Path("mission_control/templates/market.html")
 
