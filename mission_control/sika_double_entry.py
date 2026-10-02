@@ -166,6 +166,30 @@ def validate_batch(
     )
 
 
+def reversal_batch(
+    *,
+    original: JournalBatch,
+    journal_id: object,
+    reference: object,
+) -> JournalBatch:
+    """Create a compensating journal without mutating the original batch."""
+
+    reversed_lines = tuple(
+        JournalLine(
+            account_id=item.account_id,
+            side=Side.CREDIT if item.side is Side.DEBIT else Side.DEBIT,
+            amount=item.amount,
+            currency=item.currency,
+        )
+        for item in original.lines
+    )
+    return validate_batch(
+        journal_id=journal_id,
+        reference=reference,
+        lines=reversed_lines,
+    )
+
+
 def status() -> dict[str, object]:
     return {
         "system": "SIKA Double-Entry Core",
@@ -173,6 +197,7 @@ def status() -> dict[str, object]:
         "validates_debits_and_credits": True,
         "balances_per_currency": True,
         "supports_account_classes": True,
+        "supports_compensating_reversals": True,
         "persistent_journal_store": False,
         "settlement_execution": False,
         "external_money_movement": False,
