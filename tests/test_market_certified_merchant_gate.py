@@ -121,7 +121,8 @@ def test_market_ui_and_truth_board_keep_checkout_locked():
 
     assert "Certified Merchant required" in template
     assert "merchant_certified" in template
-    assert "regulated payment capture remain separately locked" in template
+    assert "Certified Merchant active." in template
+    assert "regulated payment capture remain separately locked" not in template
     assert "Certified Merchant publishing gate connected" in products_source
     assert "Checkout still requires a compliant regulated payment route" in products_source
 
@@ -137,5 +138,6 @@ def test_market_has_dedicated_low_noise_surface():
     assert "Find what you need" in template
     assert "Sell on OAP" in template
     assert "Browsing is public." in template
-    assert "Payment capture · locked" in template
+    assert "Payment capture · locked" not in template
+    assert "Transaction truth" not in template
     assert "No listings match that search." in template

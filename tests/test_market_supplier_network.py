@@ -131,11 +131,11 @@ def test_market_ui_supports_no_stock_design_products_and_locks_draft_supplier_or
     app_source = (_root() / "app.py").read_text(encoding="utf-8")
 
     assert "Made-to-order clothing / print supplier" in template
-    assert "No OAP stock is required" in template
+    assert "Use this section for made-to-order products." in template
     assert 'name="made_to_order"' in template
     assert 'name="artwork_reference"' in template
     assert 'name="supplier_label"' in template
-    assert "Supplier execution not yet proven · ordering locked" in template
+    assert "Ordering unavailable for this item." in template
     assert "Manufacturer ·" not in template
     assert "market_supplier_projection" in template
 

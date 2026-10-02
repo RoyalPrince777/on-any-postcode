@@ -60,4 +60,5 @@ def test_music_creator_surface_exposes_real_governed_controls():
         assert f'id="{control_id}"' in template
     assert "/tune/releases/" in template
     assert "/radio/stations/" in template
-    assert "broadcast not auto-started" in template
+    assert "broadcast not auto-started" not in template
+    assert "schedule-form" in template
