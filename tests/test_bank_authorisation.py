@@ -22,6 +22,7 @@ def test_bank_status_never_uses_humanitarian_purpose_as_licence_bypass():
     assert status["authorised_bank"] is False
     assert status["deposit_taking_enabled"] is False
     assert status["regulated_execution_enabled"] is False
+    assert status["permission_scope_required"] is True
     assert status["humanitarian_or_human_rights_purpose_bypasses_authorisation"] is False
 
 
@@ -33,6 +34,7 @@ def test_regulated_bank_capabilities_require_authorisation_and_production_proof(
                 capability,
                 regulator_authorisation_proven=True,
                 production_gate_passed=False,
+                permission_scope_allows=True,
             )
             is False
         )
@@ -41,6 +43,7 @@ def test_regulated_bank_capabilities_require_authorisation_and_production_proof(
                 capability,
                 regulator_authorisation_proven=True,
                 production_gate_passed=True,
+                permission_scope_allows=True,
             )
             is True
         )
