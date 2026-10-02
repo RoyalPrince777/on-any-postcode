@@ -12,6 +12,7 @@ from . import (
     bank_authorisation,
     bank_authorisation_store,
     bank_permission_scope,
+    sika_accounting_controls,
     sika_accounting_intelligence,
     sika_double_entry,
     sika_financial_intelligence,
@@ -154,6 +155,9 @@ def status() -> dict[str, object]:
         ),
         "accounting_intelligence_integrated": bool(
             sika_accounting_intelligence.status()["first_party"]
+        ),
+        "accounting_controls_integrated": bool(
+            sika_accounting_controls.status()["closed_period_posting_block"]
         ),
         "runtime_reconciliation_integrated": False,
     }
