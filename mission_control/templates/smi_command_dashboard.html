@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMI Command Dashboard</title>
+  <style>
+    :root{color-scheme:dark;--bg:#050806;--panel:#0a120d;--line:#254633;--text:#f4faf6;--muted:#9fb3a5;--green:#48e489;--purple:#b884ff;--gold:#d8b85d}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    main{max-width:1180px;margin:auto;padding:22px 14px 70px}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.12em;text-transform:uppercase;font-size:.72rem}
+    h1{font-size:clamp(2.4rem,7vw,5rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.5}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:18px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.metric{font-size:1.8rem;font-weight:900;margin:.2em 0}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:850}
+    .green{color:var(--green)}.purple{color:var(--purple)}.gold{color:var(--gold)}.doors{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.door{color:inherit;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:9px 12px}
+    section{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}.truth{border-left:4px solid var(--gold);padding:12px 14px;background:#171405;border-radius:0 12px 12px 0}
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Founder-only · One SMI · One Command Surface</p>
+  <h1>🧠 SMI Command Dashboard</h1>
+  <p class="muted">Brain, Live SMI, War Room, All Intelligence, risk routing and evidence in one read-only command view. Existing systems stay canonical underneath.</p>
+
+  <div class="grid">
+    <article class="card"><span class="pill green">Brain</span><div class="metric">{{ command.brain.count }}</div><p class="muted">{{ command.brain.regions }} regions · {{ command.brain.lenses }} lenses · {{ command.brain.core_lenses }} core</p></article>
+    <article class="card"><span class="pill green">All Intelligence</span><div class="metric">{{ command.intelligence.worlds }} Worlds</div><p class="muted">{{ command.intelligence.families }} families · {{ command.intelligence.agents }}/{{ command.intelligence.agent_target }} agents</p></article>
+    <article class="card"><span class="pill purple">Runtime Proof</span><div class="metric">{{ command.runtime.bounded_worlds }}/{{ command.runtime.bounded_total }}</div><p class="muted">bounded worlds · {{ command.runtime.live_worlds }}/{{ command.runtime.live_total }} live external · {{ command.runtime.full_worlds }}/{{ command.runtime.full_total }} full runtime</p></article>
+    <article class="card"><span class="pill gold">War Room</span><div class="metric">{{ command.war_room.overall_evidence_score }}</div><p class="muted">evidence score · {{ command.war_room.runtime_verified }} runtime verified · {{ command.war_room.operationally_certified }} operationally certified</p></article>
+    <article class="card"><span class="pill green">Risk Router</span><div class="metric">5 routes</div><p class="muted">DIRECT_ANSWER · PREPARE · CONFIRM · GOVERNANCE · BLOCK</p></article>
+    <article class="card"><span class="pill purple">Autonomy</span><div class="metric">{{ command.autonomy.configured_level }}</div><p class="muted">A5 {{ 'on' if command.autonomy.a5_enabled else 'locked' }} · A6 {{ 'on' if command.autonomy.a6_enabled else 'locked' }} · A7 {{ 'on' if command.autonomy.a7_enabled else 'locked' }}</p></article>
+  </div>
+
+  <section>
+    <p class="eyebrow">Command doors</p>
+    <div class="doors">
+      {% for door in command.doors %}<a class="door" href="{{ door.href }}">{{ door.name }} →</a>{% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <p class="truth"><strong>Truth boundary:</strong> {{ command.truth_boundary }} Human Authority remains final. This dashboard cannot approve, execute, deploy, spend, dispatch or mutate production.</p>
+  </section>
+</main>
+</body>
+</html>
