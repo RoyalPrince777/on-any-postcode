@@ -13,6 +13,7 @@ from . import (
     bank_authorisation_store,
     bank_permission_scope,
     sika_double_entry,
+    sika_journal_store,
     sika_production_evidence_store,
     sika_provider_adapter,
     sika_treasury_controls,
@@ -142,6 +143,9 @@ def status() -> dict[str, object]:
         "blockchain_integrity_integrated": False,
         "bank_grade_double_entry_integrated": bool(
             sika_double_entry.status()["validates_debits_and_credits"]
+        ),
+        "persistent_journal_store_integrated": bool(
+            sika_journal_store.status()["append_only"]
         ),
         "runtime_reconciliation_integrated": False,
     }
