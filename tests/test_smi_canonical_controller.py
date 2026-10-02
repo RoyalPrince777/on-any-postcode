@@ -85,6 +85,24 @@ def test_reply_read_aloud_uses_canonical_voice_and_honours_stop():
     assert "window.speechSynthesis.speak(u)" not in final
 
 
+def test_voice_reply_preference_is_local_and_persistent():
+    controller = CONTROLLER.read_text(encoding="utf-8")
+    ui = (CONTROLLER.parent / "smi_chat_final.js").read_text(encoding="utf-8")
+
+    assert 'const OAP_SMI_VOICE_PREF_KEY="oap.smi.voiceReplyEnabled.v1"' in ui
+    assert "window.localStorage?.getItem(OAP_SMI_VOICE_PREF_KEY)" in ui
+    assert "window.localStorage?.setItem(OAP_SMI_VOICE_PREF_KEY" in ui
+    assert 'scope:"device-local-ui-preference"' in ui
+    assert "storesAudio:false" in ui
+    assert "storesTranscript:false" in ui
+
+    assert "window.OAP_SMI_VOICE_PREF?.read?" in controller
+    assert "window.OAP_SMI_VOICE_PREF?.write?" in controller
+    assert "oapWriteVoicePreference(oapVoiceEnabled)" in controller
+    assert "preference saved on this device" in controller
+    assert "localStorage" not in controller
+
+
 def test_canonical_controller_owns_voice_mic_and_stop():
     text = CONTROLLER.read_text(encoding="utf-8")
     assert "window.SpeechRecognition||window.webkitSpeechRecognition" in text

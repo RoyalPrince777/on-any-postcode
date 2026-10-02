@@ -22,7 +22,21 @@ const oapStateApi=window.OAP_SMI_LIVE_STATE;
 let oapRuntime=oapStateApi?.initialState?oapStateApi.initialState():null;
 let oapLocked=false,oapAbort=null,oapRecognition=null,oapListening=false,oapListenStarted=0,oapListenTimer=null;
 let oapPaused=false,oapWorkStarted=0,oapWorkTimer=null,oapLiveRestartTimer=null,oapRecognitionToken=null,oapFinalTranscript='',oapResumeListenAfterPause=false,oapSpeechSeq=0;
-let oapVoiceEnabled=(oapSpeaker?.getAttribute('aria-pressed')!=='false');
+function oapReadVoicePreference(){
+ const fallback=oapSpeaker?.getAttribute('aria-pressed')!=='false';
+ return window.OAP_SMI_VOICE_PREF?.read?.(fallback) ?? fallback;
+}
+function oapWriteVoicePreference(enabled){
+ window.OAP_SMI_VOICE_PREF?.write?.(enabled);
+}
+function oapRenderVoicePreference(){
+ if(!oapSpeaker)return;
+ oapSpeaker.classList.toggle('active',oapVoiceEnabled);
+ oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));
+ oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';
+}
+let oapVoiceEnabled=oapReadVoicePreference();
+oapRenderVoicePreference();
  const oapLocalVoiceUrl=window.OAP_SMI_UI?.localVoiceUrl;
  const oapLocalPlayer=window.OAP_SMI_LOCAL_REPLY_PLAYER?.create?.(window)||null;
 const oapLiveProof={
@@ -113,7 +127,8 @@ function oapSetLive(enabled){
   if(oapRuntime.stopped)oapApply('RESUME_FROM_STOP');
   oapApply('LIVE_ON');
   oapVoiceEnabled=true;
-  if(oapSpeaker){oapSpeaker.classList.add('active');oapSpeaker.setAttribute('aria-pressed','true');oapSpeaker.textContent='🔊 Voice reply';}
+  oapWriteVoicePreference(true);
+  oapRenderVoicePreference();
   if(oapRecognition){
    oapSetStatus('Live SMI full screen · visual motion active · voice-first · final recognised speech turns auto-send · browser speech-service locality not verified');
    oapScheduleListening(180);
@@ -364,7 +379,7 @@ if(oapVoiceReplyMenu)oapVoiceReplyMenu.addEventListener('click',event=>{
  oapSpeaker?.click();
  oapCloseAttach();
 },true);
-if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapSpeaker.classList.toggle('active',oapVoiceEnabled);oapSpeaker.setAttribute('aria-pressed',String(oapVoiceEnabled));oapSpeaker.textContent=oapVoiceEnabled?'🔊 Voice reply':'🔇 Voice off';if(oapVoiceEnabled)oapLocalPlayer?.prepare?.();if(!oapVoiceEnabled){oapSpeechSeq+=1;oapLocalPlayer?.stop();if('speechSynthesis' in window)window.speechSynthesis.cancel();oapPlaybackState('cancelled',oapRuntime?.epoch);if(oapRuntime?.speaking)oapApply('SPEAK_END');if(oapRuntime?.live)oapScheduleListening(180);}oapSetStatus(oapVoiceEnabled?'Voice reply on':'Voice reply off');},true);
+if(oapSpeaker)oapSpeaker.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();oapVoiceEnabled=!oapVoiceEnabled;oapWriteVoicePreference(oapVoiceEnabled);oapRenderVoicePreference();if(oapVoiceEnabled)oapLocalPlayer?.prepare?.();if(!oapVoiceEnabled){oapSpeechSeq+=1;oapLocalPlayer?.stop();if('speechSynthesis' in window)window.speechSynthesis.cancel();oapPlaybackState('cancelled',oapRuntime?.epoch);if(oapRuntime?.speaking)oapApply('SPEAK_END');if(oapRuntime?.live)oapScheduleListening(180);}oapSetStatus(oapVoiceEnabled?'Voice reply on · preference saved on this device':'Voice reply off · preference saved on this device');},true);
 if(oapMic){
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(Recognition&&oapStateApi){
