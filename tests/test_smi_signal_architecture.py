@@ -1,4 +1,8 @@
-from mission_control import ai_behaviour_protocol, live_signals, smi_brain_protocol
+from mission_control import (
+    ai_behaviour_protocol,
+    live_signals,
+    smi_brain_protocol,
+)
 
 
 EXPECTED_MAJOR_LINKS = (
