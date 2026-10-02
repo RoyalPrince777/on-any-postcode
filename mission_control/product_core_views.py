@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import uuid
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
@@ -30,6 +31,10 @@ from . import (
     public_store,
     radio_core,
     records_core,
+    sika_payment_orchestrator,
+    sika_payment_submission_evidence,
+    sika_secure_provider_runtime,
+    supplier_bridge,
     web_security,
 )
 
@@ -1511,3 +1516,253 @@ def create_parcel():
         )
 
     return _handle_write(action)
+
+
+def _provider_submission_evidence_id() -> str:
+    return str(uuid.uuid4())
+
+
+@bp.post("/market/payments/<payment_id>/provider-submit")
+@web_security.login_required(api=True, founder_only=True)
+def submit_market_payment_to_provider(payment_id: str):
+    """Founder-authorised provider submission using a pre-authorised SIKA intent."""
+
+    def action():
+        payload = _payload()
+        intent = sika_payment_orchestrator.read_intent(payment_id)
+        if intent is None:
+            raise ValueError("payment_intent_not_found")
+        if intent.status != "AUTHORISED":
+            raise ValueError("payment_not_authorised_for_provider_submission")
+
+        provider_payload = payload.get("provider_payload")
+        if not isinstance(provider_payload, dict):
+            provider_payload = {
+                "payment_id": intent.payment_id,
+                "payee_reference": intent.payee_reference,
+                "amount": f"{intent.amount:.2f}",
+                "currency": intent.currency,
+                "jurisdiction": intent.jurisdiction,
+                "metadata": {"payment_id": intent.payment_id},
+            }
+
+        try:
+            receipt = sika_secure_provider_runtime.submit(
+                kind="payment",
+                payload=provider_payload,
+                idempotency_key=intent.idempotency_key,
+            )
+        except sika_secure_provider_runtime.SecureProviderError:
+            raise
+
+        evidence = sika_payment_submission_evidence.record(
+            evidence_id=_provider_submission_evidence_id(),
+            payment_id=intent.payment_id,
+            idempotency_key=intent.idempotency_key,
+            provider_id=receipt["provider_id"],
+            provider_reference=receipt["provider_reference"],
+            outcome="ACCEPTED",
+            evidence_hash=receipt["receipt_hash"],
+        )
+        updated = sika_payment_orchestrator.transition(
+            payment_id=intent.payment_id,
+            target_status="SUBMITTED",
+            provider_reference=receipt["provider_reference"],
+        )
+        return {
+            "payment": updated.as_dict(),
+            "provider_receipt": receipt,
+            "submission_evidence": {
+                "evidence_id": evidence.evidence_id,
+                "outcome": evidence.outcome,
+                "provider_reference": evidence.provider_reference,
+                "evidence_hash": evidence.evidence_hash,
+            },
+            "money_movement_claimed": False,
+            "settlement_claimed": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/orders/<order_id>/provider-submit")
+@web_security.login_required(api=True, founder_only=True)
+def submit_pod_order_to_provider(order_id: str):
+    """Submit a READY POD order only when payment and Distribution proof align."""
+
+    def action():
+        payload = _payload()
+        payment_id = payload.get("payment_id")
+        if not isinstance(payment_id, str) or not payment_id.strip():
+            raise ValueError("payment_id_required")
+        payment = sika_payment_orchestrator.read_intent(payment_id)
+        if payment is None or payment.status != "SETTLED":
+            raise ValueError("payment_settlement_not_proven")
+
+        candidate = supplier_bridge.handoff_candidate(order_id=order_id)
+        distribution = _distribution_runtime_store.read_for_order(order_id=order_id)
+        if distribution is None:
+            raise ValueError("distribution_runtime_not_found")
+        if distribution["state"] != "ROUTED":
+            raise ValueError("distribution_not_routed_for_provider_handoff")
+
+        destination = payload.get("delivery_destination")
+        if not isinstance(destination, dict) or not destination:
+            raise ValueError("delivery_destination_required")
+
+        provider_status = sika_secure_provider_runtime.configuration_status("pod")
+        gate = market_sika_pod_runtime.pod_market_gate(
+            handoff_candidate=candidate,
+            delivery_destination_present=True,
+            payment_capture_proven=True,
+            provider_connector_authorized=bool(
+                provider_status.get("configuration_complete")
+            ),
+            provider_credentials_configured=bool(
+                provider_status.get("configuration_complete")
+            ),
+        )
+        if gate.get("ready") is not True:
+            raise ValueError("pod_provider_gate_not_ready")
+
+        provider_payload = {
+            "order_id": order_id,
+            "product_id": candidate.get("product_id"),
+            "supplier_product_ref": candidate.get("supplier_product_ref"),
+            "supplier_variant_ref": candidate.get("supplier_variant_ref"),
+            "quantity": candidate.get("quantity"),
+            "garment_type": candidate.get("garment_type"),
+            "artwork_reference": candidate.get("artwork_reference"),
+            "placements": candidate.get("placements"),
+            "colors": candidate.get("colors"),
+            "sizes": candidate.get("sizes"),
+            "delivery_destination": destination,
+            "metadata": {
+                "order_id": order_id,
+                "distribution_id": distribution["distribution_id"],
+            },
+        }
+        receipt = sika_secure_provider_runtime.submit(
+            kind="pod",
+            payload=provider_payload,
+            idempotency_key=f"pod:{order_id}",
+        )
+        transitioned = _distribution_runtime_store.transition(
+            owner_identity_id=distribution["events"][0]["owner_identity_id"],
+            distribution_id=distribution["distribution_id"],
+            target_state="HANDED_OFF",
+            evidence_reference=receipt["receipt_hash"],
+        )
+        return {
+            "provider_receipt": receipt,
+            "distribution": transitioned,
+            "external_submission_performed": True,
+            "payment_settlement_proven": True,
+            "money_transfer_performed_here": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+def _provider_webhook(kind: str):
+    raw = request.get_data(cache=True)
+    headers = sika_secure_provider_runtime.webhook_header_names(kind)
+    timestamp = request.headers.get(headers["timestamp"])
+    signature = request.headers.get(headers["signature"])
+    try:
+        verified = sika_secure_provider_runtime.verify_webhook(
+            kind=kind,
+            body=raw,
+            timestamp=timestamp,
+            signature=signature,
+        )
+        if verified.get("signature_verified") is not True:
+            return _error("webhook_signature_invalid", "Provider signature rejected.", 403)
+        payload = request.get_json(silent=True)
+        event = sika_secure_provider_runtime.normalize_webhook_event(
+            kind=kind,
+            payload=payload,
+        )
+
+        if kind == "payment":
+            intent = sika_payment_orchestrator.read_intent_by_provider_reference(
+                event["provider_reference"]
+            )
+            if intent is None:
+                return _error("provider_reference_unknown", "Provider receipt is unknown.", 404)
+            target = event["provider_state"]
+            if target not in {"SETTLED", "FAILED"}:
+                return _no_store(make_response(jsonify({
+                    "accepted": True,
+                    "state_mutated": False,
+                    "provider_state": target,
+                    "human_authority_final": True,
+                })))
+            if intent.status in {"SETTLED", "FAILED", "CANCELLED"}:
+                updated = intent
+            else:
+                updated = sika_payment_orchestrator.transition(
+                    payment_id=intent.payment_id,
+                    target_status=target,
+                )
+            return _no_store(make_response(jsonify({
+                "accepted": True,
+                "state_mutated": updated.status == target,
+                "payment": updated.as_dict(),
+                "human_authority_final": True,
+            })))
+
+        metadata = event.get("metadata") or {}
+        order_id = metadata.get("order_id")
+        if not isinstance(order_id, str) or not order_id:
+            return _error("pod_order_reference_missing", "Signed order reference required.", 400)
+        distribution = _distribution_runtime_store.read_for_order(order_id=order_id)
+        if distribution is None:
+            return _error("distribution_runtime_not_found", "Distribution record missing.", 404)
+        target = market_sika_pod_runtime.distribution_transition_for_supplier_state(
+            event["provider_state"]
+        )
+        if target is None:
+            return _no_store(make_response(jsonify({
+                "accepted": True,
+                "state_mutated": False,
+                "provider_state": event["provider_state"],
+                "human_authority_final": True,
+            })))
+        if distribution["state"] == target:
+            transitioned = distribution
+        else:
+            transitioned = _distribution_runtime_store.transition(
+                owner_identity_id=distribution["events"][0]["owner_identity_id"],
+                distribution_id=distribution["distribution_id"],
+                target_state=target,
+                evidence_reference=event["provider_reference"],
+            )
+        return _no_store(make_response(jsonify({
+            "accepted": True,
+            "state_mutated": transitioned["state"] == target,
+            "distribution": transitioned,
+            "human_authority_final": True,
+        })))
+    except (
+        ValueError,
+        PermissionError,
+        distribution_runtime.DistributionRuntimeError,
+        sika_payment_orchestrator.PaymentOrchestratorError,
+        sika_secure_provider_runtime.SecureProviderError,
+    ) as exc:
+        return _error("provider_webhook_rejected", str(exc), 400)
+    except Exception:
+        return _error("provider_webhook_unavailable", "Provider webhook unavailable.", 503)
+
+
+@bp.post("/market/provider/payment/webhook")
+def payment_provider_webhook():
+    return _provider_webhook("payment")
+
+
+@bp.post("/market/provider/pod/webhook")
+def pod_provider_webhook():
+    return _provider_webhook("pod")
