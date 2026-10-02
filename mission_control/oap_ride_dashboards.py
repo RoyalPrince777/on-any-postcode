@@ -11,7 +11,7 @@ RIDER = (
     ("Find Match", "/movement/workspace#bookings-title"),
     ("My Matches", "/movement/workspace#member-matches-title"),
     ("OAP Pay", "/pay"),
-    ("Guardian", "/transport/ride/runtime"),
+    ("Guardian", "/transport/ride/guardian/status"),
 )
 
 DRIVER = (
@@ -20,7 +20,7 @@ DRIVER = (
     ("Incoming Journey", "/movement/workspace#assigned-title"),
     ("Accept Journey", "/movement/workspace#assigned-title"),
     ("My Drive", "/movement/workspace#work-title"),
-    ("Earnings", "/pay"),
+    ("Earnings", "/transport/ride/driver/earnings"),
     ("Journey History", "/movement/workspace#bookings-title"),
     ("Guardian", "/transport/ride/runtime"),
 )
