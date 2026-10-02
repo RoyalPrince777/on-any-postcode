@@ -299,6 +299,71 @@ def _write_sqlite(kind: str, normalised: dict[str, Any], receipt_id: str, create
     }
 
 
+def latest_durable_button_proof() -> dict[str, Any]:
+    """Read the latest durable post-ack SMI control proof without creating evidence."""
+
+    if not _hrm_database_url():
+        return {
+            "proven": False,
+            "reason": "durable_hrm_backend_not_configured",
+            "receipt_id": None,
+        }
+    try:
+        with _connect_postgres() as connection, connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute(
+                """
+                SELECT receipt_id, payload_json, created_at
+                FROM smi_evidence_receipts
+                WHERE receipt_kind = 'agent_tool_connection_receipt'
+                  AND brain_part = 'smi_control_surface'
+                  AND command = 'button_runtime_proof'
+                ORDER BY created_at DESC
+                LIMIT 1
+                """
+            )
+            row = cursor.fetchone()
+    except Exception:  # noqa: BLE001 - certification reads fail closed.
+        return {
+            "proven": False,
+            "reason": "durable_button_proof_unavailable",
+            "receipt_id": None,
+        }
+    if not row:
+        return {
+            "proven": False,
+            "reason": "durable_button_proof_missing",
+            "receipt_id": None,
+        }
+    payload = row.get("payload_json")
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except json.JSONDecodeError:
+            payload = {}
+    payload = payload if isinstance(payload, dict) else {}
+    runtime_acknowledged = payload.get("runtime_acknowledged") is True
+    click_only_proof = payload.get("click_only_proof") is True
+    status_code = payload.get("status_code")
+    try:
+        status_ok = 200 <= int(status_code) < 400
+    except (TypeError, ValueError):
+        status_ok = False
+    proven = bool(runtime_acknowledged and not click_only_proof and status_ok)
+    return {
+        "proven": proven,
+        "reason": "durable_post_ack_button_proof" if proven else "button_proof_invalid",
+        "receipt_id": row.get("receipt_id"),
+        "created_at": str(row.get("created_at") or ""),
+        "action_id": str(payload.get("action_id") or ""),
+        "target": str(payload.get("target") or ""),
+        "status_code": int(status_code) if status_ok else None,
+        "runtime_acknowledged": runtime_acknowledged,
+        "click_only_proof": click_only_proof,
+        "durable": True,
+    }
+
+
 def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable: bool = False) -> dict[str, Any]:
     """Write one bounded receipt; prefer independent durable Postgres."""
 
