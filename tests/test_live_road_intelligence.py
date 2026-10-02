@@ -80,3 +80,62 @@ def test_live_road_status_separates_software_readiness_from_external_coverage(mo
     assert status["continuous_speed_coverage_proven"] is False
     assert status["uk_wide_live_traffic_proven"] is False
     assert status["vehicle_telemetry_integration_proven"] is False
+
+
+def test_explicit_authority_free_state_does_not_inflate_eta(monkeypatch):
+    monkeypatch.setattr(
+        map_live_pattern,
+        "reports",
+        lambda query=None: [{
+            "id": "tfl-road-a23",
+            "road": "A23",
+            "area": "Greater London",
+            "kind": "delay",
+            "road_state": "free",
+            "note": "No exceptional delays",
+            "source": "Transport for London Road Status",
+            "authority_verified": True,
+            "has_closures": False,
+            "updated_at": "2026-10-03T00:00:00Z",
+        }],
+    )
+    monkeypatch.setattr(live_road_intelligence, "observations", lambda road=None: [])
+
+    state = live_road_intelligence.route_state(
+        {"duration_s": 600, "roads": ["A23"]},
+        "A23",
+    )
+
+    assert state["state"] == "free"
+    assert state["live_claim_allowed"] is True
+    assert state["eta_multiplier"] == 1.0
+    assert state["adjusted_duration_s"] == 600
+
+
+def test_explicit_authority_heavy_state_adjusts_eta(monkeypatch):
+    monkeypatch.setattr(
+        map_live_pattern,
+        "reports",
+        lambda query=None: [{
+            "id": "tfl-road-a406",
+            "road": "North Circular (A406)",
+            "area": "Greater London",
+            "kind": "delay",
+            "road_state": "heavy",
+            "note": "Serious delays",
+            "source": "Transport for London Road Status",
+            "authority_verified": True,
+            "has_closures": False,
+            "updated_at": "2026-10-03T00:00:00Z",
+        }],
+    )
+    monkeypatch.setattr(live_road_intelligence, "observations", lambda road=None: [])
+
+    state = live_road_intelligence.route_state(
+        {"duration_s": 600, "roads": ["A406"]},
+        "A406",
+    )
+
+    assert state["state"] == "heavy"
+    assert state["eta_multiplier"] == 1.3
+    assert state["adjusted_duration_s"] == 780
