@@ -11,14 +11,42 @@ from oap.smi.action_risk_router import status as action_risk_status
 
 from . import (
     all_intelligence,
+    bank_authorisation,
     brain,
     intelligence_runtime_proof,
     prince_sovereign_bank,
     sika_account_engine,
+    sika_execution_gate,
     sika_pay_gateway,
     sika_payment_orchestrator,
     war_room,
 )
+
+
+def _regulated_unlock_matrix() -> dict[str, object]:
+    locked = {capability: False for capability in sorted(bank_authorisation.REGULATED_CAPABILITIES)}
+    try:
+        matrix = sika_execution_gate.capability_matrix()
+    except Exception:  # fail closed when governed stores are unavailable
+        return {
+            "evidence_available": False,
+            "capabilities": locked,
+            "unlocked_count": 0,
+            "total": len(locked),
+            "all_unlocked": False,
+        }
+    normalized = {
+        capability: bool(matrix.get(capability, False))
+        for capability in sorted(bank_authorisation.REGULATED_CAPABILITIES)
+    }
+    unlocked = sum(1 for value in normalized.values() if value)
+    return {
+        "evidence_available": True,
+        "capabilities": normalized,
+        "unlocked_count": unlocked,
+        "total": len(normalized),
+        "all_unlocked": unlocked == len(normalized),
+    }
 
 
 def status() -> dict[str, Any]:
@@ -31,6 +59,7 @@ def status() -> dict[str, Any]:
     account = sika_account_engine.status()
     pay = sika_pay_gateway.status()
     orchestrator = sika_payment_orchestrator.status()
+    unlock_matrix = _regulated_unlock_matrix()
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
@@ -90,6 +119,7 @@ def status() -> dict[str, Any]:
             "provider_calling": bool(pay.get("provider_calling")),
             "settlement_execution": bool(pay.get("settlement_execution")),
             "money_movement": bool(pay.get("money_movement")),
+            "regulated_unlock": unlock_matrix,
             "human_authority_final": True,
         },
         "autonomy": {
