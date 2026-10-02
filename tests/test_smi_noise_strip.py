@@ -168,6 +168,17 @@ def test_home_restores_system_context_without_dashboard_wall():
     assert "body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence" in css
 
 
+def test_seven_major_links_are_compact_home_controls_not_progress_stages():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    assert 'className="smi-major-links"' in command
+    assert 'aria-label","SMI seven major mission links"' in command
+    assert "body.smi-noise-strip .smi-major-links" in css
+    assert "overflow-x:auto!important" in css
+    assert "body.smi-noise-strip.smi-command-open .smi-major-links" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen .smi-major-links" in css
+
+
 def test_unified_system_intelligence_reuses_canonical_evidence():
     command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
