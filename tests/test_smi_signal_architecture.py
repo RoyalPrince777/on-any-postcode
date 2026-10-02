@@ -1,3 +1,5 @@
+from pathlib import Path
+
 # ruff: noqa: I001
 
 from mission_control import (
