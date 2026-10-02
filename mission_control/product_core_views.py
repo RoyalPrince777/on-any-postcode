@@ -9,11 +9,8 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
     certification,
-    sika_secure_provider_runtime,
-    sika_payment_submission_evidence,
-    sika_payment_orchestrator,
-    commerce_provider_receipts,
     commerce_install,
+    commerce_provider_receipts,
     distribution_intelligence,
     distribution_runtime,
     entertainment_catalogue,
@@ -36,6 +33,9 @@ from . import (
     public_store,
     radio_core,
     records_core,
+    sika_payment_orchestrator,
+    sika_payment_submission_evidence,
+    sika_secure_provider_runtime,
     web_security,
 )
 
