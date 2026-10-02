@@ -1146,7 +1146,7 @@ def create_music_market_product():
         seller = _require_certified_merchant(_identity(sync=True))
         split_plan = payload.get("split_plan")
         if not isinstance(split_plan, list):
-            raise ValueError("split_plan_required")
+            raise TypeError("split_plan_required")
         return _music_market_purchase_store.link_release_product(
             seller_identity_id=seller,
             release_id=payload.get("release_id"),
