@@ -15,6 +15,7 @@ from . import (
     oap_blockchain_accounting_anchor,
     sika_accounting_controls,
     sika_accounting_intelligence,
+    sika_closing_retained_earnings,
     sika_double_entry,
     sika_financial_intelligence,
     sika_fraud_financial_crime_intelligence,
@@ -166,6 +167,9 @@ def status() -> dict[str, object]:
         ),
         "accounting_controls_integrated": bool(
             sika_accounting_controls.status()["closed_period_posting_block"]
+        ),
+        "closing_retained_earnings_integrated": bool(
+            sika_closing_retained_earnings.status()["first_party"]
         ),
         "runtime_reconciliation_integrated": bool(
             sika_runtime_reconciliation.status()["first_party"]
