@@ -12,6 +12,7 @@ from . import (
     bank_authorisation,
     bank_authorisation_store,
     bank_permission_scope,
+    oap_blockchain_accounting_anchor,
     sika_accounting_controls,
     sika_accounting_intelligence,
     sika_double_entry,
@@ -144,7 +145,9 @@ def status() -> dict[str, object]:
         "payment_execution_enabled": False,
         "money_movement_enabled": False,
         "human_authority_final": True,
-        "blockchain_integrity_integrated": False,
+        "blockchain_integrity_integrated": bool(
+            oap_blockchain_accounting_anchor.status()["first_party"]
+        ),
         "bank_grade_double_entry_integrated": bool(
             sika_double_entry.status()["validates_debits_and_credits"]
         ),
