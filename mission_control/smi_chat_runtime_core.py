@@ -382,6 +382,50 @@ def _write_audit(
     )
 
 
+def record_founder_final(
+    identity_id: str,
+    conversation_id: object,
+    decision: object = "APPROVED",
+) -> dict:
+    """Record Founder Final for the latest pending Judgement in an owned chat.
+
+    This records Human Authority only. It never executes the recommendation.
+    """
+
+    identity = _validated_uuid(identity_id, "invalid_identity")
+    conversation = _validated_uuid(conversation_id, "invalid_conversation")
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT m.request_id
+               FROM smi_messages m
+               JOIN smi_conversations c ON c.conversation_id=m.conversation_id
+               JOIN smi_judgement_reviews j ON j.request_id=m.request_id
+               WHERE m.conversation_id=%s AND c.identity_id=%s
+                 AND m.role='assistant' AND j.human_decision IS NULL
+               ORDER BY m.created_at DESC LIMIT 1""",
+            (conversation, identity),
+        ).fetchone()
+    if row is None:
+        raise ValueError("no_pending_founder_decision")
+
+    receipt = approval_service.record_decision(
+        request_id=str(row[0]),
+        identity_id=identity,
+        decision=decision,
+    )
+    return {
+        "status": "recorded",
+        "conversation_id": conversation,
+        "request_id": receipt["request_id"],
+        "decision": receipt["decision"],
+        "receipt_id": receipt["receipt_id"],
+        "signature_verified": receipt["signature_verified"],
+        "authority_level": receipt["authority_level"],
+        "execution_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def record_feedback(
     identity_id: str,
     request_id: object,
