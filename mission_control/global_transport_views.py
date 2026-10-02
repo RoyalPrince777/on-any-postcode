@@ -7,7 +7,7 @@ rail, customs authority or live third-party feed.
 """
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template_string
+from flask import Blueprint, jsonify, make_response, redirect, render_template_string
 
 from . import oap_ride
 
@@ -37,6 +37,13 @@ INTEGRATIONS = (
     "my_world", "sika_oap_pay", "oap_market", "oap_post_core",
     "distribution_runtime", "movement",
 )
+
+RIDE_API_MAP = {
+    "request_journey": "/movement/bookings",
+    "driver_availability": "/movement/availability",
+    "oap_match": "/movement/bookings/<booking_id>/match",
+    "accept_journey": "/movement/matches/<proposal_id>/accept",
+}
 
 LIVE_EXECUTION_GATES = {
     "carrier_dispatch": False,
@@ -149,3 +156,39 @@ def transport_capabilities():
 @bp.get("/transport/ride")
 def transport_ride():
     return _no_store(jsonify(oap_ride.status()))
+
+
+@bp.post("/transport/ride/request")
+def ride_request_alias():
+    return redirect("/movement/bookings", code=307)
+
+
+@bp.post("/transport/ride/driver/availability")
+def ride_driver_availability_alias():
+    return redirect("/movement/availability", code=307)
+
+
+@bp.post("/transport/ride/<booking_id>/match")
+def ride_match_alias(booking_id: str):
+    return redirect(f"/movement/bookings/{booking_id}/match", code=307)
+
+
+@bp.post("/transport/ride/matches/<proposal_id>/accept")
+def ride_accept_alias(proposal_id: str):
+    return redirect(f"/movement/matches/{proposal_id}/accept", code=307)
+
+
+@bp.get("/transport/ride/runtime")
+def ride_runtime():
+    return _no_store(jsonify({
+        "product": "OAP Ride",
+        "durable_owner": "OAP Movement",
+        "api_map": RIDE_API_MAP,
+        "certified_driver_matching": True,
+        "race_safe_match_acceptance": True,
+        "tracking_consent_store": True,
+        "payment_intent_store": True,
+        "trip_link_binding": True,
+        "physical_operations_in_scope": False,
+        "external_dispatch_performed": False,
+    }))
