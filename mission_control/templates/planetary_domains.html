@@ -3,96 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050806">
   <title>OAP Planetary Intelligence</title>
   <style>
-    :root{color-scheme:dark;--bg:#050806;--panel:#09140d;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--text:#f0faf3;--muted:#9fb5a8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:20px 14px 70px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.13em;text-transform:uppercase;font-size:.72rem}h1{font-size:clamp(2.4rem,7vw,4.8rem);margin:.08em 0}.muted,.truth{color:var(--muted);line-height:1.5}.back,.door{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none;color:inherit}.grid,.summary{display:grid;gap:10px}.grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.summary{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin:18px 0}.card,.summary-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.domain{border-color:#2f8d53}.cyber{border-color:#5d4678}.fusion{border-color:#79662c}.selected{outline:2px solid var(--gold)}.pill{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:850}.green{color:var(--green)}.purple{color:var(--purple)}.section{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.signals{display:flex;gap:6px;flex-wrap:wrap}.signals span{border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:.78rem}.law{border-left:4px solid var(--gold);background:#191505;border-radius:0 12px 12px 0;padding:13px 15px;margin:18px 0}.path{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.path span{border:1px solid var(--line);border-radius:999px;padding:6px 9px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    :root{color-scheme:dark;--bg:#040705;--panel:#0a160f;--panel2:#0f2116;--line:#244832;--green:#39e57f;--purple:#b879ff;--gold:#d7b85d;--text:#f4fbf6;--muted:#9fb5a8;--shadow:0 18px 45px rgba(0,0,0,.28);--radius:18px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 12% -5%,rgba(57,229,127,.08),transparent 30rem),radial-gradient(circle at 92% 4%,rgba(184,121,255,.07),transparent 34rem),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif}a{color:inherit}.skip{position:absolute;left:-9999px}.skip:focus{left:12px;top:12px;z-index:99;background:#fff;color:#000;padding:8px 10px;border-radius:8px}.shell{max-width:1360px;margin:auto;padding:18px 16px 72px}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.eyebrow{color:var(--green);font-weight:900;letter-spacing:.14em;text-transform:uppercase;font-size:.72rem;margin:0 0 8px}h1{font-size:clamp(2.35rem,6vw,4.9rem);line-height:.95;letter-spacing:-.05em;margin:.06em 0 .18em}.muted,.truth{color:var(--muted);line-height:1.5}.back,.door,.nav-item{border:1px solid var(--line);border-radius:999px;text-decoration:none;color:inherit}.back,.door{padding:9px 12px}.back:hover,.door:hover,.nav-item:hover{border-color:var(--green)}.command-hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,.55fr);gap:16px;margin:20px 0}.hero-panel,.status-rail,.card,.summary-card,.focus-card{background:linear-gradient(155deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}.hero-panel{padding:clamp(18px,4vw,34px);position:relative;overflow:hidden}.hero-kicker,.signals,.actions{display:flex;gap:7px;flex-wrap:wrap}.hero-kicker{margin-top:18px}.chip,.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid currentColor;border-radius:999px;padding:5px 9px;font-size:.75rem;font-weight:850}.green{color:var(--green)}.purple{color:var(--purple)}.gold{color:var(--gold)}.status-rail{padding:16px;display:grid;gap:10px}.rail-item{border-bottom:1px solid var(--line);padding:0 0 10px}.rail-item:last-child{border:0;padding-bottom:0}.rail-item strong,.rail-item span{display:block}.rail-item span{color:var(--muted);font-size:.84rem;margin-top:3px}.sticky-nav{position:sticky;top:0;z-index:10;margin:14px -4px 0;padding:8px 4px;background:rgba(4,7,5,.92);backdrop-filter:blur(18px);overflow-x:auto}.nav-track{display:flex;gap:7px;min-width:max-content}.nav-item{padding:9px 12px;font-size:.86rem;font-weight:800;background:rgba(10,22,15,.8)}.nav-item[aria-current="page"]{border-color:var(--gold);background:#1d1808;color:#fff2b8}.summary{display:grid;gap:10px;grid-template-columns:repeat(4,minmax(0,1fr));margin:16px 0}.summary-card{padding:14px}.metric{font-size:1.65rem;font-weight:900;margin:8px 0 4px}.section{margin-top:26px;padding-top:22px;border-top:1px solid var(--line);scroll-margin-top:84px}.section-head{display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px}.grid{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}.card{padding:16px;min-height:245px;display:flex;flex-direction:column}.domain{border-top:3px solid var(--green)}.cyber{border-top:3px solid var(--purple)}.fusion{border-top:3px solid var(--gold)}.selected{outline:2px solid var(--gold);outline-offset:2px}.card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.domain-icon{font-size:2rem}.signals{margin:12px 0}.signals span{border:1px solid var(--line);background:rgba(0,0,0,.12);border-radius:999px;padding:5px 8px;font-size:.75rem;color:#c7d8cd}.card .actions{margin-top:auto}.law{border-left:4px solid var(--gold);background:#171406;border-radius:0 14px 14px 0;padding:13px 15px;margin:18px 0}.focus-card{padding:20px;border-color:var(--gold)}.focus-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.6fr);gap:16px}.focus-side{border-left:1px solid var(--line);padding-left:16px}.flow{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:8px;overflow-x:auto;padding-bottom:6px}.flow-step{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--panel)}.truth-legend{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin-top:12px}.truth-legend div{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(0,0,0,.12)}.truth-legend strong,.truth-legend span{display:block}.truth-legend span{color:var(--muted);font-size:.76rem;margin-top:3px}.bottom-bar{position:sticky;bottom:10px;z-index:8;margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(8,18,12,.94);backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:16px;padding:10px 12px;box-shadow:var(--shadow)}.bottom-bar small{color:var(--muted)}
+    @media(max-width:1050px){.command-hero,.focus-grid{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.focus-side{border-left:0;border-top:1px solid var(--line);padding:14px 0 0}}
+    @media(max-width:680px){.shell{padding-left:12px;padding-right:12px}.grid,.summary{grid-template-columns:1fr}.card{min-height:0}.flow{grid-template-columns:1fr;overflow:visible}.truth-legend{grid-template-columns:1fr}.bottom-bar{position:static}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
 </head>
 <body>
-<main class="shell">
+<a class="skip" href="#main-content">Skip to intelligence content</a>
+<main class="shell" id="main-content">
   <header class="top">
-    <div>
-      <p class="eyebrow">Founder-only · Seven operational domains</p>
-      <h1>🌐 OAP Planetary Intelligence</h1>
-      <p class="muted">Underground · Water · Land · Air · Space · Spectrum · Energy. Cyber spans all seven; SMI fuses them without becoming another domain.</p>
-    </div>
+    <div><p class="eyebrow">Founder command surface · Planetary Intelligence</p><h1>Seven domains.<br>One intelligence fabric.</h1><p class="muted">Underground · Water · Land · Air · Space · Spectrum · Energy. Cyber spans the seven; SMI fuses evidence without becoming another domain.</p></div>
     <a class="back" href="{{ url_for('mission_control.mission_workspace') }}">← Mission Control</a>
   </header>
 
-  <div class="summary">
-    <article class="summary-card"><span class="pill green">{{ planetary.architecture_light }} Architecture</span><h3>{{ planetary.operational_domain_count }} Domains</h3><p class="muted">One shared operational model.</p></article>
-    <article class="summary-card"><span class="pill green">{{ planetary.cyber_fabric.architecture_light }} Cross-cutting</span><h3>💻 Cyber Fabric</h3><p class="muted">Digital nervous system across all seven.</p></article>
-    <article class="summary-card"><span class="pill green">{{ planetary.smi_fusion.architecture_light }} Fusion</span><h3>🧠 One SMI Brain</h3><p class="muted">Correlation, reasoning and governed recommendations.</p></article>
-    <article class="summary-card"><span class="pill purple">{{ planetary.universal_live_runtime_light }} Live proof</span><h3>Evidence-gated</h3><p class="muted">No blanket claim of universal sensing or control.</p></article>
-  </div>
+  <section class="command-hero" aria-label="Planetary Intelligence command summary">
+    <article class="hero-panel"><p class="eyebrow">Current bounded state</p><h2>OAP Planetary Intelligence</h2><p class="muted">One Founder-only workspace for environmental, infrastructure, signal, energy and digital-system intelligence. Architecture and dashboards are separated from live-source proof.</p><div class="hero-kicker"><span class="chip green">{{ planetary.architecture_light }} Architecture ready</span><span class="chip purple">{{ planetary.universal_live_runtime_light }} Universal live proof gated</span><span class="chip gold">👑 Human Final Authority</span></div></article>
+    <aside class="status-rail"><div class="rail-item"><strong>{{ planetary.operational_domain_count }} operational domains</strong><span>Exact domain model</span></div><div class="rail-item"><strong>💻 Cyber Fabric</strong><span>Cross-cutting digital nervous system</span></div><div class="rail-item"><strong>🧠 SMI Fusion</strong><span>Single governed fusion brain</span></div><div class="rail-item"><strong>🟣 External runtime</strong><span>Evidence required per source</span></div></aside>
+  </section>
 
-  <p class="law"><strong>Truth boundary:</strong> the dashboard architecture is built. Live feeds, sensors, external providers, hardware control and universal coverage remain source-specific proof gates. Human Final Authority remains final.</p>
+  <nav class="sticky-nav" aria-label="Planetary dashboard navigation"><div class="nav-track">
+    <a class="nav-item" href="{{ url_for('planetary_domains.dashboard') }}"{% if focus == 'overview' %} aria-current="page"{% endif %}>Overview</a>
+    {% for domain in planetary.operational_domains %}<a class="nav-item" href="{{ url_for('planetary_domains.domain_dashboard', domain_id=domain.id) }}"{% if selected and selected.id == domain.id %} aria-current="page"{% endif %}>{{ domain.icon }} {{ domain.name|replace(' Intelligence','') }}</a>{% endfor %}
+    <a class="nav-item" href="{{ url_for('planetary_domains.cyber_dashboard') }}"{% if focus == 'cyber' %} aria-current="page"{% endif %}>💻 Cyber</a>
+    <a class="nav-item" href="{{ url_for('planetary_domains.smi_fusion_dashboard') }}"{% if focus == 'fusion' %} aria-current="page"{% endif %}>🧠 SMI Fusion</a>
+  </div></nav>
+
+  <div class="summary"><article class="summary-card"><span class="pill green">{{ planetary.architecture_light }} Architecture</span><div class="metric">{{ planetary.operational_domain_count }}</div><span class="muted">operational domains</span></article><article class="summary-card"><span class="pill green">{{ planetary.cyber_fabric.architecture_light }} Cyber</span><div class="metric">7/7</div><span class="muted">domains represented</span></article><article class="summary-card"><span class="pill green">{{ planetary.smi_fusion.architecture_light }} Fusion</span><div class="metric">1</div><span class="muted">SMI fusion brain</span></article><article class="summary-card"><span class="pill purple">{{ planetary.universal_live_runtime_light }} Runtime</span><div class="metric">Gated</div><span class="muted">source-specific proof</span></article></div>
+
+  <p class="law"><strong>Truth boundary:</strong> dashboard architecture is built. Live feeds, sensors, providers, hardware control and universal coverage are not promoted to green without source-specific evidence.</p>
 
   {% if selected %}
-  <section class="section" aria-labelledby="selected-title">
-    <p class="eyebrow">Domain dashboard</p>
-    <article class="card domain selected">
-      <span class="pill green">{{ selected.dashboard_light }} Dashboard</span>
-      <h2 id="selected-title">{{ selected.icon }} {{ selected.name }}</h2>
-      <p class="muted">{{ selected.purpose }}</p>
-      <div class="signals">{% for signal in selected.signals %}<span>{{ signal }}</span>{% endfor %}</div>
-      <p class="truth"><strong>{{ selected.live_external_light }} Live external proof:</strong> not blanket-proven. {{ selected.truth_boundary }}</p>
-      <div class="actions">
-        <a class="door" href="{{ url_for('planetary_domains.domain_status', domain_id=selected.id) }}">Open domain status JSON →</a>
-        <a class="door" href="{{ url_for('planetary_domains.dashboard') }}">All seven domains</a>
-      </div>
-    </article>
-  </section>
+  <section class="section"><div class="section-head"><div><p class="eyebrow">Domain command view</p><h2>{{ selected.icon }} {{ selected.name }}</h2></div><span class="pill green">{{ selected.dashboard_light }} Dashboard ready</span></div><article class="focus-card"><div class="focus-grid"><div><p class="muted">{{ selected.purpose }}</p><div class="signals">{% for signal in selected.signals %}<span>{{ signal }}</span>{% endfor %}</div><div class="actions"><a class="door" href="{{ url_for('planetary_domains.domain_status', domain_id=selected.id) }}">Evidence/status JSON →</a><a class="door" href="#all-domains">Compare all domains ↓</a></div></div><aside class="focus-side"><p class="eyebrow">Runtime truth</p><p><strong>{{ selected.live_external_light }} Live external sources</strong></p><p class="truth">{{ selected.truth_boundary }}</p><p class="truth">No consequential control execution is granted from this dashboard.</p></aside></div></article></section>
   {% endif %}
 
-  <section class="section" aria-labelledby="domains-title">
-    <p class="eyebrow">Operational environments</p>
-    <h2 id="domains-title">Seven Domain Dashboards</h2>
-    <div class="grid">
-      {% for domain in planetary.operational_domains %}
-      <article class="card domain{% if selected and selected.id == domain.id %} selected{% endif %}">
-        <span class="pill green">{{ domain.dashboard_light }} Dashboard</span>
-        <h3>{{ domain.icon }} {{ domain.name }}</h3>
-        <p class="muted">{{ domain.purpose }}</p>
-        <div class="signals">{% for signal in domain.signals %}<span>{{ signal }}</span>{% endfor %}</div>
-        <p class="truth">{{ domain.live_external_light }} live external proof · Human Authority final</p>
-        <div class="actions"><a class="door" href="{{ url_for('planetary_domains.domain_dashboard', domain_id=domain.id) }}">Open dashboard →</a></div>
-      </article>
-      {% endfor %}
-    </div>
-  </section>
+  {% if focus == 'cyber' %}
+  <section class="section"><div class="section-head"><div><p class="eyebrow">Cross-domain command view</p><h2>💻 Cyber Fabric</h2></div><span class="pill green">{{ planetary.cyber_fabric.architecture_light }} Architecture</span></div><article class="focus-card cyber"><p class="muted">{{ planetary.cyber_fabric.role }}. Cyber represents software, networks, identities, APIs, control systems and digital twins associated with each operational environment.</p><div class="signals">{% for item in planetary.cyber_fabric.covers %}<span>{{ item }}</span>{% endfor %}</div><p class="truth"><strong>{{ planetary.cyber_fabric.live_control_light }} Live control proof:</strong> evidence-gated. Cyber is not an eighth operational domain.</p></article></section>
+  {% endif %}
 
-  <section class="section" aria-labelledby="cyber-title">
-    <p class="eyebrow">Across every domain</p>
-    <h2 id="cyber-title">💻 Cyber Fabric</h2>
-    <article class="card cyber">
-      <span class="pill green">{{ planetary.cyber_fabric.architecture_light }} Architecture</span>
-      <h3>{{ planetary.cyber_fabric.role }}</h3>
-      <div class="signals">{% for item in planetary.cyber_fabric.covers %}<span>{{ item }}</span>{% endfor %}</div>
-      <p class="truth">Cyber represents and governs digital systems associated with all seven domains. It is cross-cutting, not an eighth operational environment.</p>
-    </article>
-  </section>
+  {% if focus == 'fusion' %}
+  <section class="section"><div class="section-head"><div><p class="eyebrow">Fusion command view</p><h2>🧠 SMI Fusion</h2></div><span class="pill green">{{ planetary.smi_fusion.architecture_light }} Single brain</span></div><article class="focus-card fusion"><p class="muted">{{ planetary.smi_fusion.role }}.</p><div class="flow">{% for step in planetary.smi_fusion.cycle %}<div class="flow-step"><strong>{{ loop.index }} · {{ step|title }}</strong></div>{% endfor %}</div><div class="truth-legend">{% for state in planetary.smi_fusion.truth_states %}<div><strong>{{ state|title }}</strong><span>{% if state == 'observed' %}Directly evidenced{% elif state == 'correlated' %}Supported across evidence{% elif state == 'inferred' %}Analytical conclusion{% elif state == 'forecast' %}Future possibility{% else %}Insufficient evidence{% endif %}</span></div>{% endfor %}</div><p class="truth">{{ planetary.smi_fusion.external_live_light }} External live fusion remains evidence-gated; recommendations do not become Human Authority decisions automatically.</p></article></section>
+  {% endif %}
 
-  <section class="section" aria-labelledby="fusion-title">
-    <p class="eyebrow">Single brain above the fabric</p>
-    <h2 id="fusion-title">🧠 SMI Fusion</h2>
-    <article class="card fusion">
-      <span class="pill green">{{ planetary.smi_fusion.architecture_light }} Governed fusion</span>
-      <p class="muted">{{ planetary.smi_fusion.role }}</p>
-      <div class="signals">{% for step in planetary.smi_fusion.cycle %}<span>{{ step }}</span>{% endfor %}</div>
-      <p class="truth">Truth states: {{ planetary.smi_fusion.truth_states|join(' · ') }}. External live fusion remains evidence-gated.</p>
-    </article>
-  </section>
+  <section class="section" id="all-domains"><div class="section-head"><div><p class="eyebrow">Operational environments</p><h2>All seven dashboards</h2></div><span class="muted">Tap a domain to enter its command view</span></div><div class="grid">
+    {% for domain in planetary.operational_domains %}<article class="card domain{% if selected and selected.id == domain.id %} selected{% endif %}"><div class="card-head"><div><span class="domain-icon">{{ domain.icon }}</span><h3>{{ domain.name }}</h3></div><span class="pill green">{{ domain.dashboard_light }}</span></div><p class="muted">{{ domain.purpose }}</p><div class="signals">{% for signal in domain.signals %}<span>{{ signal }}</span>{% endfor %}</div><p class="truth">{{ domain.live_external_light }} live external proof · Human Authority final</p><div class="actions"><a class="door" href="{{ url_for('planetary_domains.domain_dashboard', domain_id=domain.id) }}">Open command view →</a></div></article>{% endfor %}
+  </div></section>
 
-  <section class="section">
-    <p class="eyebrow">Governance path</p>
-    <div class="path">
-      {% for step in planetary.governance_path %}
-      <span>{{ step }}</span>{% if not loop.last %}<strong>→</strong>{% endif %}
-      {% endfor %}
-    </div>
-    <div class="actions"><a class="door" href="{{ url_for('planetary_domains.status') }}">Open master status JSON →</a></div>
-  </section>
+  <section class="section"><div class="section-head"><div><p class="eyebrow">Cross-system layer</p><h2>Cyber + SMI</h2></div></div><div class="grid">
+    <article class="card cyber"><div class="card-head"><div><span class="domain-icon">💻</span><h3>Cyber Fabric</h3></div><span class="pill green">{{ planetary.cyber_fabric.architecture_light }}</span></div><p class="muted">{{ planetary.cyber_fabric.role }}</p><div class="signals">{% for item in planetary.cyber_fabric.covers[:6] %}<span>{{ item }}</span>{% endfor %}</div><div class="actions"><a class="door" href="{{ url_for('planetary_domains.cyber_dashboard') }}">Open Cyber dashboard →</a></div></article>
+    <article class="card fusion"><div class="card-head"><div><span class="domain-icon">🧠</span><h3>SMI Fusion</h3></div><span class="pill green">{{ planetary.smi_fusion.architecture_light }}</span></div><p class="muted">{{ planetary.smi_fusion.role }}</p><div class="signals">{% for step in planetary.smi_fusion.cycle[:6] %}<span>{{ step }}</span>{% endfor %}</div><div class="actions"><a class="door" href="{{ url_for('planetary_domains.smi_fusion_dashboard') }}">Open SMI Fusion dashboard →</a></div></article>
+    <article class="card"><div class="card-head"><div><span class="domain-icon">🛡️</span><h3>Governance</h3></div><span class="pill gold">Human Final</span></div><p class="muted">Evidence moves through oversight and Green Gate before Human Final Authority.</p><div class="signals">{% for step in planetary.governance_path %}<span>{{ step }}</span>{% endfor %}</div><div class="actions"><a class="door" href="{{ url_for('planetary_domains.status') }}">Master status JSON →</a></div></article>
+  </div></section>
+
+  <section class="section"><div class="section-head"><div><p class="eyebrow">Governance path</p><h2>Evidence → decision</h2></div></div><div class="flow">{% for step in planetary.governance_path %}<div class="flow-step"><strong>{{ step }}</strong></div>{% endfor %}</div></section>
+
+  <div class="bottom-bar" role="status"><div><strong>{{ planetary.architecture_light }} Dashboard architecture</strong><br><small>{{ planetary.universal_live_runtime_light }} Universal live runtime remains evidence-gated</small></div><div class="actions"><a class="door" href="{{ url_for('planetary_domains.status') }}">Status JSON</a><a class="door" href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a></div></div>
 </main>
 </body>
 </html>
