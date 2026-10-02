@@ -45,3 +45,12 @@ def test_map_workspace_has_runtime_handlers():
         "/on-any-place",
     ):
         assert marker in script
+
+
+def test_map_open_is_not_blocked_by_runtime_proof():
+    script = FINAL.read_text(encoding="utf-8")
+    block_start = script.index('if(id==="map-intelligence"){', script.index('menu.addEventListener("click"'))
+    block_end = script.index("\n      }", block_start) + len("\n      }")
+    block = script[block_start:block_end]
+    assert block.index('openMap("/on-any-place")') < block.index('await fetchAck(id,"/on-any-place",{json:false})')
+    assert 'addCard("Map Intelligence",error?.message||"Map proof unavailable","yellow")' in block
