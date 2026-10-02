@@ -120,6 +120,9 @@ def test_informational_bypass_phrase_does_not_fake_block():
     decision = route_action("Explain bypass Guardian")
     assert decision.route == ROUTE_DIRECT_ANSWER
 
+    confirmation = route_action("Explain skip confirmation")
+    assert confirmation.route == ROUTE_DIRECT_ANSWER
+
 
 def test_real_governance_change_still_escalates_after_semantic_hardening():
     decision = route_action("Change admin permissions in production")
