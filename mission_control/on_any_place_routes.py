@@ -22,9 +22,9 @@ from flask import (
 
 from . import (
     atlas_live_sources,
+    live_road_intelligence,
     local_map_intelligence,
     location_intelligence,
-    live_road_intelligence,
     map_live_pattern,
     mobility_provider_intelligence,
     road_tile_geometry,
