@@ -1,0 +1,142 @@
+"""OAP Global Transport public surface and install-readiness contract.
+
+This module exposes one first-party front door over existing OAP movement,
+transport intelligence, distribution and travel capabilities. It does not
+pretend that a software route is a licensed carrier, dispatch network, payment
+rail, customs authority or live third-party feed.
+"""
+from __future__ import annotations
+
+from flask import Blueprint, jsonify, make_response, render_template_string
+
+bp = Blueprint("oap_global_transport", __name__)
+
+PUBLIC_DOORS = (
+    ("Journey", "End-to-end multimodal journey planning"),
+    ("Move", "Movement, disruption and route state"),
+    ("Ride", "Governed ride-request capability"),
+    ("Transit", "Bus, rail, metro, tram and ferry"),
+    ("Drive", "Personal vehicle and road journey layer"),
+    ("Fly", "Air journey and airport layer"),
+    ("Cargo", "Freight and cross-border planning"),
+    ("Deliver", "Local and global delivery layer"),
+    ("Fleet", "Commercial vehicle and driver operations"),
+)
+
+CAPABILITIES = (
+    "journey", "move", "ride", "drive", "transit", "fly", "sail",
+    "cycle", "walk", "cargo", "deliver", "fleet", "parking", "energy",
+    "road", "terminal", "accessibility", "guardian_transport",
+    "transport_market", "transport_intelligence", "transport_control_center",
+)
+
+INTEGRATIONS = (
+    "oap_world", "smi", "guardian", "hrm", "alpha_signal", "incoming",
+    "my_world", "sika_oap_pay", "oap_market", "oap_post_core",
+    "distribution_runtime", "movement",
+)
+
+LIVE_EXECUTION_GATES = {
+    "carrier_dispatch": False,
+    "ride_dispatch": False,
+    "ticket_issuance": False,
+    "fare_capture": False,
+    "payment_movement": False,
+    "customs_clearance": False,
+    "external_tracking_feed": False,
+    "vehicle_control": False,
+}
+
+
+def status() -> dict[str, object]:
+    return {
+        "product": "OAP Global Transport",
+        "front_door": "/transport",
+        "alias": "/global-transport",
+        "architecture": "One World -> One Front Door -> Many Transport Systems Inside",
+        "software_surface_install_ready": True,
+        "first_party_surface": True,
+        "public_doors": [name.lower() for name, _ in PUBLIC_DOORS],
+        "capability_count": len(CAPABILITIES),
+        "capabilities": list(CAPABILITIES),
+        "integrations": list(INTEGRATIONS),
+        "existing_transport_intelligence_reused": True,
+        "post_core_authoritative_for_parcels": True,
+        "human_authority_final": True,
+        "live_execution_gates": dict(LIVE_EXECUTION_GATES),
+        "live_external_transport_execution": False,
+        "truth_boundary": (
+            "Install-ready OAP software surface; physical transport, regulated "
+            "operations, external feeds and money movement require separately "
+            "proven live adapters and execution gates."
+        ),
+    }
+
+
+def _no_store(response):
+    response.headers["Cache-Control"] = "no-store, private"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAP Global Transport</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font-family:system-ui,-apple-system,sans-serif}
+main{max-width:920px;margin:auto;padding:24px 16px 48px}
+.hero{padding:24px;border:1px solid #7a6420;border-radius:22px;background:linear-gradient(145deg,#17130a,#0c0c0c)}
+.eyebrow{color:#d8b64b;font-weight:800;letter-spacing:.08em}.hero h1{margin:.3rem 0;font-size:clamp(2rem,7vw,4rem)}
+.hero p{color:#ccc;max-width:680px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:18px}
+.card{display:block;text-decoration:none;color:#fff;padding:18px;border-radius:18px;border:1px solid #292929;background:#111}
+.card strong{display:block;font-size:1.15rem;color:#f0cf63}.card span{display:block;color:#aaa;margin-top:7px;line-height:1.35}
+.bar{margin-top:18px;padding:14px;border-radius:14px;background:#121212;color:#bbb}.green{color:#6ee7a8}.purple{color:#c4a1ff}
+small{display:block;margin-top:18px;color:#777}
+</style>
+</head>
+<body><main>
+<section class="hero">
+<div class="eyebrow">🌍 ON ANY POSTCODE</div>
+<h1>Global Transport</h1>
+<p>One World → One Front Door → Many Transport Systems Inside.</p>
+<div class="bar"><span class="green">● Software surface ready</span> · <span class="purple">● Live execution stays evidence-gated</span></div>
+</section>
+<section class="grid">
+{% for name, description in doors %}
+<a class="card" href="/transport/status#{{ name|lower }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
+{% endfor %}
+</section>
+<small>SMI intelligence supports decisions. Human Authority remains final. OAP Post Core remains authoritative for parcel fulfilment.</small>
+</main></body></html>"""
+
+
+@bp.get("/transport")
+def transport_home():
+    return _no_store(make_response(render_template_string(_PAGE, doors=PUBLIC_DOORS)))
+
+
+@bp.get("/global-transport")
+def transport_alias():
+    return transport_home()
+
+
+@bp.get("/transport/status")
+def transport_status():
+    return _no_store(jsonify(status()))
+
+
+@bp.get("/transport/capabilities")
+def transport_capabilities():
+    state = status()
+    return _no_store(jsonify({
+        "product": state["product"],
+        "capability_count": state["capability_count"],
+        "capabilities": state["capabilities"],
+        "integrations": state["integrations"],
+        "live_execution_gates": state["live_execution_gates"],
+        "human_authority_final": True,
+    }))
