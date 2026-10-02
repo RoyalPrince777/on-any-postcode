@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import uuid
 from collections.abc import Mapping
 
@@ -70,7 +69,7 @@ def record(
     provider_receipt: object,
 ) -> dict[str, object]:
     if not isinstance(provider_receipt, Mapping):
-        raise ValueError("provider_receipt_invalid")
+        raise TypeError("provider_receipt_invalid")
     owner = str(uuid.UUID(str(owner_identity_id)))
     kind_value = str(kind or "").strip()
     if kind_value not in {"payment","payment_webhook","payment_refund","pod","pod_webhook"}:
