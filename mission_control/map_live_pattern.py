@@ -106,12 +106,12 @@ def _corridor_state(severity: object, description: object) -> str:
     text = _clean(f"{severity} {description}", 160).casefold()
     if "closed" in text:
         return "closed"
+    if "no exceptional delays" in text or "good" in text:
+        return "free"
     if "serious" in text or "severe" in text:
         return "heavy"
     if "moderate" in text or "minor" in text or "delay" in text:
         return "slow"
-    if "no exceptional delays" in text or "good" in text:
-        return "free"
     return "unknown"
 
 
