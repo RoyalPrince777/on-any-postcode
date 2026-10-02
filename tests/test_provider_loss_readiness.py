@@ -175,3 +175,66 @@ def test_local_git_inspection_missing_directory_fails_closed(tmp_path):
     assert result["git_repository"] is False
     assert result["local_git_history_available"] is False
     assert result["object_integrity_ok"] is False
+
+
+def test_local_mirror_and_clean_clone_prove_readback_not_storage_independence(tmp_path):
+    if not provider_loss_readiness.shutil.which("git"):
+        pytest.skip("git unavailable")
+    source = tmp_path / "source"
+    source.mkdir()
+    _git(source, "init")
+    _git(source, "config", "user.email", "test@example.invalid")
+    _git(source, "config", "user.name", "Provider Loss Test")
+    (source / "README.md").write_text("mirror proof")
+    _git(source, "add", "README.md")
+    _git(source, "commit", "-m", "initial")
+    expected_head = _git(source, "rev-parse", "HEAD").stdout.strip()
+
+    mirror = tmp_path / "mirror.git"
+    subprocess.run(
+        ["git", "clone", "--mirror", str(source), str(mirror)],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    mirror_status = provider_loss_readiness.inspect_local_mirror(
+        mirror,
+        expected_head=expected_head,
+    )
+    assert mirror_status["git_repository"] is True
+    assert mirror_status["head_matches_expected"] is True
+    assert mirror_status["object_integrity_ok"] is True
+    assert mirror_status["independent_storage_proven"] is False
+
+    clone = tmp_path / "restored"
+    restored = provider_loss_readiness.verify_clean_clone_from_local_mirror(
+        mirror,
+        clone,
+        expected_head=expected_head,
+    )
+    assert restored["clone_succeeded"] is True
+    assert restored["head_matches_expected"] is True
+    assert restored["object_integrity_ok"] is True
+    assert restored["network_access_used"] is False
+    assert restored["independent_storage_proven"] is False
+    assert restored["mutation_scope"] == "scratch_clone_only"
+
+
+def test_clean_clone_rejects_existing_target(tmp_path):
+    target = tmp_path / "existing"
+    target.mkdir()
+    with pytest.raises(ValueError, match="clone_target_must_not_exist"):
+        provider_loss_readiness.verify_clean_clone_from_local_mirror(
+            tmp_path / "missing",
+            target,
+            expected_head="0" * 40,
+        )
+
+
+def test_local_mirror_rejects_invalid_expected_head(tmp_path):
+    with pytest.raises(ValueError, match="expected_head_sha_required"):
+        provider_loss_readiness.inspect_local_mirror(
+            tmp_path,
+            expected_head="short",
+        )
