@@ -9,7 +9,16 @@ from typing import Any
 
 from oap.smi.action_risk_router import status as action_risk_status
 
-from . import all_intelligence, brain, intelligence_runtime_proof, war_room
+from . import (
+    all_intelligence,
+    brain,
+    intelligence_runtime_proof,
+    prince_sovereign_bank,
+    sika_account_engine,
+    sika_pay_gateway,
+    sika_payment_orchestrator,
+    war_room,
+)
 
 
 def status() -> dict[str, Any]:
@@ -18,6 +27,10 @@ def status() -> dict[str, Any]:
     intelligence = all_intelligence.public_safe_status()
     runtime = intelligence_runtime_proof.status()
     risk = action_risk_status()
+    bank_identity = prince_sovereign_bank.status()
+    account = sika_account_engine.status()
+    pay = sika_pay_gateway.status()
+    orchestrator = sika_payment_orchestrator.status()
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
@@ -58,6 +71,27 @@ def status() -> dict[str, Any]:
             "operationally_certified": int(war_summary.get("operationally_certified") or 0),
         },
         "risk_router": risk,
+        "bank": {
+            "name": bank_identity.get("name"),
+            "heritage_name": bank_identity.get("banking_family"),
+            "software_controls_present": True,
+            "account_engine_present": bool(account.get("persistent_account_identity")),
+            "single_pay_gateway": bool(pay.get("single_payment_door")),
+            "rights_record_required": bool(pay.get("rights_record_required")),
+            "orchestrator_present": bool(orchestrator.get("persistent_payment_intent")),
+            "direct_authorisation_bypass_allowed": bool(
+                orchestrator.get("direct_authorisation_bypass_allowed", False)
+            ),
+            "regulated_execution_enabled": bool(
+                bank_identity.get("regulated_execution_enabled")
+            ),
+            "operational_bank": bool(bank_identity.get("operational_bank")),
+            "licence_verified": bool(bank_identity.get("licence_verified")),
+            "provider_calling": bool(pay.get("provider_calling")),
+            "settlement_execution": bool(pay.get("settlement_execution")),
+            "money_movement": bool(pay.get("money_movement")),
+            "human_authority_final": True,
+        },
         "autonomy": {
             "configured_level": autonomy.get("configured_level"),
             "a3_policy_ready": autonomy.get("a3_policy_ready"),
