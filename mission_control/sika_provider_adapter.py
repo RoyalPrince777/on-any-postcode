@@ -58,7 +58,7 @@ def build_evidence(
     )
     refund = _required_text(refund_contract, "refund_contract_required")
     digest = sha256(
-        "|".join((provider, authority, entity, env, receipt, refund)).encode("utf-8")
+        f"{provider}|{authority}|{entity}|{env}|{receipt}|{refund}".encode("utf-8")
     ).hexdigest()
     return ProviderEvidence(
         provider_id=provider,
@@ -79,7 +79,6 @@ def release_review(evidence: ProviderEvidence) -> dict[str, object]:
     if len(payment_slots) != 1:
         raise ProviderEvidenceError("canonical_payment_provider_slot_unavailable")
 
-    payment_slot = payment_slots[0]
     provider_fabric_closed = not bool(
         fabric["execution"].get("payment_capture_enabled")
     )
