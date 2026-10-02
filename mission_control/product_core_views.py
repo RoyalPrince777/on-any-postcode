@@ -1177,16 +1177,23 @@ def create_music_market_order():
         if linked is None or str(linked[2]) != "READY":
             raise ValueError("music_market_product_not_ready")
         minimum = int(linked[0])
-        override = None
-        if price_minor not in (None, ""):
-            try:
-                override = int(price_minor)
-            except (TypeError, ValueError) as exc:
-                raise ValueError("invalid_music_price") from exc
-            if override < minimum:
-                raise ValueError("music_minimum_price_is_one_gbp")
-            if override > minimum and not bool(linked[1]):
-                raise ValueError("music_pay_more_disabled")
+        with music_market_purchase.postgres_db.connect(readonly=True) as connection:
+            product_row = connection.execute(
+                "SELECT price_minor FROM products WHERE id=%s AND active=TRUE",
+                (product_id,),
+            ).fetchone()
+        if product_row is None:
+            raise ValueError("market_product_unavailable")
+        effective_price = music_market_purchase.validate_order_terms(
+            listing_price_minor=product_row[0],
+            requested_price_minor=price_minor,
+            minimum_price_minor=minimum,
+            optional_pay_more=bool(linked[1]),
+            quantity=1,
+        )
+        override = (
+            effective_price if effective_price != int(product_row[0]) else None
+        )
         order = _store.create_order_intent(
             buyer_identity_id=identity,
             product_id=product_id,
