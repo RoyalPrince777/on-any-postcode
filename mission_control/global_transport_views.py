@@ -12,10 +12,12 @@ from flask import Blueprint, jsonify, make_response, redirect, render_template_s
 from . import oap_ride
 from .oap_ride_dashboards import bp as oap_ride_dashboards_bp
 from .oap_ride_runtime_routes import bp as oap_ride_runtime_bp
+from .oap_ride_journey_views import bp as oap_ride_journey_bp
 
 bp = Blueprint("oap_global_transport", __name__)
 bp.register_blueprint(oap_ride_dashboards_bp)
 bp.register_blueprint(oap_ride_runtime_bp)
+bp.register_blueprint(oap_ride_journey_bp)
 
 PUBLIC_DOORS = (
     ("Journey", "End-to-end multimodal journey planning"),
