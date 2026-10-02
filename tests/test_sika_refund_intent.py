@@ -2,7 +2,11 @@ from decimal import Decimal
 
 import pytest
 
-from mission_control import sika_double_entry, sika_payment_orchestrator, sika_refund_intent
+from mission_control import (
+    sika_double_entry,
+    sika_payment_orchestrator,
+    sika_refund_intent,
+)
 
 
 def _payment(status="SETTLED", amount=Decimal("100.00")):
