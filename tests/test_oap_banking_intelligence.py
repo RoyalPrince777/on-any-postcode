@@ -83,3 +83,21 @@ def test_status_exposes_remaining_real_integration_gaps():
     assert status["blockchain_integrity_integrated"] is False
     assert status["bank_grade_double_entry_integrated"] is False
     assert status["runtime_reconciliation_integrated"] is False
+
+
+def test_status_exposes_global_banking_family_and_first_jurisdictions():
+    status = oap_banking_intelligence.status()
+    assert status["banking_group"] == "OAP Global Banking Group"
+    assert status["continental_family"] == [
+        "Africa Crown Bank",
+        "Europa Crown Bank",
+        "Asia Crown Bank",
+        "North America Crown Bank",
+        "South America Crown Bank",
+        "Pacific Crown Bank",
+        "Antarctic Reserve",
+    ]
+    assert status["first_jurisdictions"] == {
+        "Africa Crown Bank": "Ghana",
+        "Europa Crown Bank": "United Kingdom",
+    }
