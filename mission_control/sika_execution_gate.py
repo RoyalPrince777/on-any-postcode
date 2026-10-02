@@ -1,9 +1,9 @@
 """Canonical SIKA execution-readiness gate.
 
-Composes Treasury health, provider evidence and regulator/production proof.
-Regulator authorisation state is derived from the governed durable evidence
-store; callers cannot self-assert it. This module never executes payments or
-moves funds.
+Composes Treasury health, provider evidence, regulator evidence and production
+proof. Regulator and production readiness are both derived from governed
+durable evidence stores; callers cannot self-assert either state. This module
+never executes payments or moves funds.
 """
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from . import (
     bank_authorisation,
     bank_authorisation_store,
+    sika_production_evidence_store,
     sika_provider_adapter,
     sika_treasury_controls,
 )
@@ -44,11 +45,15 @@ def _regulator_authorisation_proven() -> bool:
     return bool(readiness.get("authorised_bank"))
 
 
+def _production_gate_passed() -> bool:
+    readiness = sika_production_evidence_store.readiness_status()
+    return bool(readiness.get("production_gate_passed"))
+
+
 def assess(
     *,
     treasury: sika_treasury_controls.TreasurySnapshot,
     provider_evidence: sika_provider_adapter.ProviderEvidence,
-    production_gate_passed: bool = False,
     human_authority_approved: bool = False,
 ) -> ExecutionReadiness:
     """Return a governed readiness decision; never execute a payment."""
@@ -59,6 +64,7 @@ def assess(
     treasury_healthy = bool(treasury_gate["liquidity_healthy"])
     provider_ready = bool(provider_gate["may_enter_execution_review"])
     regulator_authorisation_proven = _regulator_authorisation_proven()
+    production_gate_passed = _production_gate_passed()
 
     regulated_capability_allowed = bank_authorisation.capability_allowed(
         "execute_payments",
@@ -79,20 +85,18 @@ def assess(
         treasury_healthy=treasury_healthy,
         provider_review_ready=provider_ready,
         regulator_authorisation_proven=regulator_authorisation_proven,
-        production_gate_passed=bool(production_gate_passed),
+        production_gate_passed=production_gate_passed,
         human_authority_required=True,
         execution_authorised=authorised,
         money_moved=False,
     )
 
 
-def capability_matrix(
-    *,
-    production_gate_passed: bool = False,
-) -> dict[str, bool]:
-    """Expose regulated capability readiness from governed regulator evidence."""
+def capability_matrix() -> dict[str, bool]:
+    """Expose regulated capability readiness from governed evidence stores."""
 
     regulator_authorisation_proven = _regulator_authorisation_proven()
+    production_gate_passed = _production_gate_passed()
     return {
         capability: bank_authorisation.capability_allowed(
             capability,
@@ -109,8 +113,11 @@ def status() -> dict[str, object]:
         "composes_treasury": True,
         "composes_provider_adapter": True,
         "composes_bank_authorisation": True,
+        "composes_production_evidence": True,
         "regulator_authorisation_source": "durable_governed_evidence_store",
+        "production_readiness_source": "durable_governed_evidence_store",
         "caller_regulator_override_allowed": False,
+        "caller_production_override_allowed": False,
         "payment_execution_enabled": False,
         "money_movement_enabled": False,
         "regulator_evidence_required": True,
