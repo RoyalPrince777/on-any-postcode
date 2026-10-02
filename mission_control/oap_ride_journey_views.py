@@ -23,7 +23,7 @@ button{font-weight:800}.state{color:#f1d36b;font-weight:800}.result{color:#aaa;m
 {% if booking.state == 'ACCEPTED' %}<button class="issue-code">Journey Code</button>{% endif %}
 {% if booking.state == 'COMPLETED' %}<button class="receipt">Receipt</button>
 <input class="rating" inputmode="numeric" min="1" max="5" placeholder="Rating 1-5"><textarea class="note" maxlength="500" placeholder="Feedback"></textarea><button class="feedback">Send Feedback</button>{% endif %}
-<p class="result"></p></section>
+<button class="guardian-on">Enable Guardian</button><button class="guardian-off">Disable Guardian</button><input class="trusted" maxlength="160" placeholder="Trusted contact reference"><button class="incident">Report Safety Concern</button><p class="result"></p></section>
 {% else %}<p>No active rider journey.</p>{% endfor %}
 
 <h2>Driver</h2>
@@ -53,6 +53,9 @@ document.querySelectorAll(".card").forEach(card=>{
  card.querySelector(".complete")?.addEventListener("click",()=>run(async()=>{await api("/transport/ride/bookings/"+id+"/complete","POST");location.reload();return "Completed";}));
  card.querySelector(".receipt")?.addEventListener("click",()=>run(async()=>{const p=await api("/transport/ride/bookings/"+id+"/receipt");return "Receipt · "+p.payment_state+(p.amount_minor===null?"":" · "+p.amount_minor+" "+(p.currency||""));}));
  card.querySelector(".feedback")?.addEventListener("click",()=>run(async()=>{const rating=card.querySelector(".rating").value,note=card.querySelector(".note").value;await api("/transport/ride/bookings/"+id+"/feedback","POST",{rating:rating,note:note});return "Feedback saved";}));
+ card.querySelector(".guardian-on")?.addEventListener("click",()=>run(async()=>{const ref=card.querySelector(".trusted")?.value||"";await api("/transport/ride/bookings/"+id+"/guardian","POST",{enabled:true,trusted_contact_ref:ref});return "Guardian enabled";}));
+ card.querySelector(".guardian-off")?.addEventListener("click",()=>run(async()=>{await api("/transport/ride/bookings/"+id+"/guardian","POST",{enabled:false,trusted_contact_ref:""});return "Guardian disabled";}));
+ card.querySelector(".incident")?.addEventListener("click",()=>run(async()=>{await api("/transport/ride/bookings/"+id+"/guardian/incidents","POST",{kind:"SAFETY_CONCERN",note:""});return "Safety concern recorded";}));
 });
 </script></main></body></html>"""
 
