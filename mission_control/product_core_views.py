@@ -13,6 +13,7 @@ from . import (
     entertainment_catalogue,
     live_music_core,
     market_supplier_network,
+    market_sika_pod_runtime,
     market_transaction_spine,
     music_acceptance,
     music_assets,
@@ -151,6 +152,7 @@ def _market_projection(identity_id: str) -> dict[str, object]:
         "orders": commerce.get("orders", []),
         "payment_capture_performed": False,
         "external_fulfilment_performed": False,
+        "sika_pod_runtime": market_sika_pod_runtime.status(),
         "human_authority_final": True,
     }
 
