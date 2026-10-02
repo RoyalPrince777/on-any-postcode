@@ -12,6 +12,8 @@ from oap.smi.action_risk_router import status as action_risk_status
 from . import (
     all_intelligence,
     bank_authorisation,
+    bank_authorisation_store,
+    bank_permission_scope,
     brain,
     intelligence_runtime_proof,
     prince_sovereign_bank,
@@ -19,6 +21,7 @@ from . import (
     sika_execution_gate,
     sika_pay_gateway,
     sika_payment_orchestrator,
+    sika_production_evidence_store,
     war_room,
 )
 
@@ -27,7 +30,11 @@ def _regulated_unlock_matrix() -> dict[str, object]:
     locked = {capability: False for capability in sorted(bank_authorisation.REGULATED_CAPABILITIES)}
     try:
         matrix = sika_execution_gate.capability_matrix()
-    except Exception:  # fail closed when governed stores are unavailable
+    except (
+        bank_authorisation_store.BankEvidenceUnavailable,
+        bank_permission_scope.PermissionScopeUnavailable,
+        sika_production_evidence_store.ProductionEvidenceUnavailable,
+    ):
         return {
             "evidence_available": False,
             "capabilities": locked,
