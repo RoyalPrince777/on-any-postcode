@@ -141,9 +141,6 @@ def issue_journey_code(*, booking_id: object, rider_identity_id: object) -> dict
             (booking, digest, expiry),
         )
         connection.commit()
-    split_snapshot = oap_ride_split_snapshot.capture(
-        booking_id=booking, amount_minor=amount
-    )
     return {"booking_id": booking, "journey_code": code, "expires_at": expiry.isoformat(), "stored_plaintext": False}
 
 
@@ -248,6 +245,9 @@ def complete(*, booking_id: object, driver_identity_id: object) -> dict[str, Any
             (driver,),
         )
         connection.commit()
+    split_snapshot = oap_ride_split_snapshot.capture(
+        booking_id=booking, amount_minor=amount
+    )
     return {
         "booking_id": booking,
         "state": "COMPLETED",
