@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 from uuid import UUID
-from . import postgres_db
+from . import oap_ride_private_geometry, postgres_db
 
 MIGRATION="0002_oap_ride_guardian"
 TABLES=frozenset({"oap_ride_guardian_sessions","oap_ride_guardian_incidents"})
@@ -176,6 +176,79 @@ def analyse_tracking(
         "movement_distance_m": round(distance, 1) if distance is not None else None,
         "tracking_analysis": "CONSENTED_PRIVATE_POINTS_ONLY",
         "route_deviation_analysis": "READY_FOR_GEOMETRY_CHECK" if geometry_present else "UNAVAILABLE_NO_ROUTE_GEOMETRY",
+        "covert_tracking": False,
+        "automatic_emergency_dispatch": False,
+    }
+
+
+def _distance_to_route_vertices_m(latitude: float, longitude: float, geometry: dict[str, Any]) -> float | None:
+    if geometry.get("type") != "LineString":
+        return None
+    points = geometry.get("coordinates")
+    if not isinstance(points, list) or not points:
+        return None
+    distances = []
+    for point in points[:5000]:
+        if not isinstance(point, list) or len(point) < 2:
+            continue
+        try:
+            lon, lat = float(point[0]), float(point[1])
+        except (TypeError, ValueError):
+            continue
+        distances.append(_distance_m(latitude, longitude, lat, lon))
+    return min(distances) if distances else None
+
+
+def analyse_route_deviation(
+    *,
+    booking_id: object,
+    identity_id: object,
+    deviation_threshold_m: object = 250,
+) -> dict[str, Any]:
+    booking = _uuid(booking_id, "booking_id")
+    identity = _uuid(identity_id, "identity_id")
+    try:
+        threshold = float(deviation_threshold_m)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_deviation_threshold") from exc
+    if not 25 <= threshold <= 5000:
+        raise ValueError("invalid_deviation_threshold")
+    with postgres_db.connect(readonly=True) as c:
+        if not _participant(c, booking, identity):
+            raise PermissionError("booking_participant_required")
+        latest = c.execute(
+            """SELECT latitude,longitude,recorded_at FROM oap_movement_tracking_points
+               WHERE booking_id=%s AND expires_at>CURRENT_TIMESTAMP
+               ORDER BY recorded_at DESC LIMIT 1""",
+            (booking,),
+        ).fetchone()
+    if latest is None:
+        return {
+            "booking_id": booking,
+            "route_deviation": False,
+            "analysis": "INSUFFICIENT_CONSENTED_POINTS",
+            "automatic_emergency_dispatch": False,
+        }
+    private = oap_ride_private_geometry.read_private(
+        booking_id=booking, identity_id=identity
+    )
+    distance = _distance_to_route_vertices_m(
+        float(latest[0]), float(latest[1]), private["geometry"]
+    )
+    if distance is None:
+        return {
+            "booking_id": booking,
+            "route_deviation": False,
+            "analysis": "INVALID_PRIVATE_ROUTE_GEOMETRY",
+            "automatic_emergency_dispatch": False,
+        }
+    return {
+        "booking_id": booking,
+        "route_deviation": distance > threshold,
+        "distance_to_route_m": round(distance, 1),
+        "threshold_m": threshold,
+        "analysis": "CONSENTED_POINT_VS_PRIVATE_OAP_ROUTE",
+        "geometry_sha256": private["geometry_sha256"],
         "covert_tracking": False,
         "automatic_emergency_dispatch": False,
     }
