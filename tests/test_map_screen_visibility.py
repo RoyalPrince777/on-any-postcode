@@ -78,7 +78,7 @@ def test_road_network_loads_without_successful_route():
         "if(from.value.trim()&&to.value.trim())route();"
     )
     assert 'id="road-source-state"' in template
-    assert "showRoadStatus(count?'': 'Road network unavailable" in template
+    assert "if(request===roadRequest&&!count)showRoadStatus('Road network unavailable" in template
 
 
 def test_route_failure_preserves_independent_road_layer():
@@ -116,8 +116,9 @@ def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     assert "const controller=new AbortController();" in template
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
-    assert "tiles.map(([x,y])=>fetchRoadTile(z,x,y,mode))" in template
-    assert "tiles.map(async([x,y])=>{const r=await fetch(" not in template
+    assert "const renderPayload=d=>" in template
+    assert "tiles.map(async([x,y])=>{const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)})" in template
+    assert "if(count)showRoadStatus('');" in template
     assert "Road network unavailable — route guidance may still work." in template
 
 
