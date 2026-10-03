@@ -1,3 +1,4 @@
+# ruff: noqa: I001, BLE001
 """Authenticated OAP Ride payment binding APIs."""
 from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, request
