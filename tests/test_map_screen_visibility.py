@@ -89,7 +89,7 @@ def test_route_failure_preserves_independent_road_layer():
 
     assert "roadLayer.innerHTML=''" not in route_section
     assert "if(request!==roadRequest||!d||!Array.isArray(d.lines))return;" in template
-    assert "if(request===roadRequest)" in template
+    assert "if(request===roadRequest&&!count)" in template
     assert "profile.addEventListener('change'" in template
 
 
