@@ -109,7 +109,11 @@ def execution_readiness() -> dict[str, object]:
             ),
             "requires": list(value["requires"]),
             "verified": list(evidence_area.get("verified") or ()),
-            "missing": list(evidence_area.get("missing") or value["requires"]),
+            "missing": list(
+                evidence_area["missing"]
+                if "missing" in evidence_area
+                else value["requires"]
+            ),
         }
     return {
         "product": "OAP Global Transport",
