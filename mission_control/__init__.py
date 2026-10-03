@@ -55,6 +55,7 @@ def init_app(app: Flask) -> None:
         oap_ride_driver_accessibility,
         oap_ride_guardian_outbox,
         oap_ride_reconciliation_cases,
+        oap_ride_split_snapshot,
         oap_ride_private_geometry,
         oap_ride_guardian,
         organism_runtime,
@@ -132,6 +133,7 @@ def init_app(app: Flask) -> None:
             ("0006_oap_ride_private_geometry", oap_ride_private_geometry.init_schema),
             ("0007_oap_ride_guardian_outbox", oap_ride_guardian_outbox.init_schema),
             ("0008_oap_ride_reconciliation_cases", oap_ride_reconciliation_cases.init_schema),
+            ("0009_oap_ride_split_snapshot", oap_ride_split_snapshot.init_schema),
         )
         ride_results = []
         try:
