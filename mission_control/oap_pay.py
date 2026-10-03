@@ -12,6 +12,7 @@ from flask import Blueprint, jsonify, make_response, render_template
 
 from . import (
     oap_pay_intelligence,
+    oap_pay_requests,
     sika_customer_payment_authority,
     sika_execution_gate,
     sika_pay_gateway,
@@ -60,6 +61,7 @@ def public_status() -> dict[str, Any]:
         "provider_calling": False,
         "money_movement": False,
         "intelligence": oap_pay_intelligence.status(),
+        "payment_requests": oap_pay_requests.status(),
         "human_authority_final": True,
     }
 
@@ -83,5 +85,17 @@ def pay_alias():
 @bp.get("/pay/status")
 def pay_status():
     response = jsonify(public_status())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/r/<token>")
+def public_payment_request(token: str):
+    item = oap_pay_requests.read_public_request(token)
+    if item is None:
+        response = jsonify({"error": {"code": "payment_request_not_found"}})
+        response.status_code = 404
+    else:
+        response = jsonify(item)
     response.headers["Cache-Control"] = "no-store"
     return response
