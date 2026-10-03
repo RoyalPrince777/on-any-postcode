@@ -23,6 +23,10 @@ _OPERATOR_ENV = {
     "lime": "OAP_SHARED_BIKE_LIME_GBFS_URL",
     "forest": "OAP_SHARED_BIKE_FOREST_GBFS_URL",
 }
+_OPERATOR_AUTH_ENV = {
+    "lime": "OAP_SHARED_BIKE_LIME_AUTHORIZATION",
+    "forest": "OAP_SHARED_BIKE_FOREST_AUTHORIZATION",
+}
 
 
 class SharedBikeUnavailable(RuntimeError):
@@ -63,18 +67,23 @@ def configured_operators() -> dict[str, str]:
     }
 
 
-def _fetch_json(url: str) -> dict[str, Any]:
+def _operator_authorization(operator: str) -> str:
+    env_name = _OPERATOR_AUTH_ENV.get(operator, "")
+    return str(os.environ.get(env_name, "") if env_name else "").strip()
+
+
+def _fetch_json(url: str, *, authorization: str = "") -> dict[str, Any]:
     parsed = urlparse.urlparse(url)
     expected_host = str(parsed.hostname or "").casefold()
     if not expected_host or expected_host not in _allowed_hosts():
         raise SharedBikeUnavailable("shared_bike_feed_rejected")
-    req = urlrequest.Request(
-        url,
-        headers={
-            "Accept": "application/json",
-            "User-Agent": "ON-ANY-POSTCODE-SharedBike/1.0",
-        },
-    )
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "ON-ANY-POSTCODE-SharedBike/1.0",
+    }
+    if authorization:
+        headers["Authorization"] = authorization
+    req = urlrequest.Request(url, headers=headers)
     try:
         with urlrequest.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
             final = urlparse.urlparse(response.geturl())
@@ -158,6 +167,7 @@ def _normalize_vehicle(
     centre_lat: float,
     centre_lon: float,
     radius_km: float,
+    source: str = "operator_public_gbfs",
 ) -> dict[str, Any] | None:
     try:
         lat = float(vehicle.get("lat"))
@@ -179,7 +189,7 @@ def _normalize_vehicle(
         "disabled": bool(vehicle.get("is_disabled")),
         "rental_uri_android": str(rental_uris.get("android") or "")[:500],
         "rental_uri_ios": str(rental_uris.get("ios") or "")[:500],
-        "source": "operator_public_gbfs",
+        "source": source,
         "read_only": True,
         "unlock_performed": False,
         "lock_performed": False,
@@ -201,10 +211,12 @@ def nearby_mitcham(*, radius_km: object = DEFAULT_RADIUS_KM) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     operator_state: dict[str, dict[str, Any]] = {}
     for operator, discovery_url in operators.items():
+        authorization = _operator_authorization(operator)
+        source = "operator_authorized_gbfs" if authorization else "operator_public_gbfs"
         try:
-            discovery = _fetch_json(discovery_url)
+            discovery = _fetch_json(discovery_url, authorization=authorization)
             vehicle_url = _vehicle_feed_url(discovery_url, discovery)
-            payload = _fetch_json(vehicle_url)
+            payload = _fetch_json(vehicle_url, authorization=authorization)
             before = len(results)
             for vehicle in _vehicles(payload):
                 normalized = _normalize_vehicle(
@@ -213,6 +225,7 @@ def nearby_mitcham(*, radius_km: object = DEFAULT_RADIUS_KM) -> dict[str, Any]:
                     centre_lat=MITCHAM_CENTRE[0],
                     centre_lon=MITCHAM_CENTRE[1],
                     radius_km=radius,
+                    source=source,
                 )
                 if normalized is not None:
                     results.append(normalized)
@@ -220,6 +233,7 @@ def nearby_mitcham(*, radius_km: object = DEFAULT_RADIUS_KM) -> dict[str, Any]:
                 "connected": True,
                 "nearby_count": len(results) - before,
                 "feed_type": "GBFS",
+                "authorized_access": bool(authorization),
             }
         except SharedBikeUnavailable as exc:
             operator_state[operator] = {
@@ -227,6 +241,7 @@ def nearby_mitcham(*, radius_km: object = DEFAULT_RADIUS_KM) -> dict[str, Any]:
                 "nearby_count": 0,
                 "error": str(exc)[:80],
                 "feed_type": "GBFS",
+                "authorized_access": bool(authorization),
             }
 
     results.sort(key=lambda item: (float(item["distance_km"]), str(item["operator"])))
@@ -253,6 +268,10 @@ def nearby_mitcham(*, radius_km: object = DEFAULT_RADIUS_KM) -> dict[str, Any]:
 
 def status() -> dict[str, Any]:
     configured = configured_operators()
+    authorized = sorted(
+        operator for operator in configured
+        if _operator_authorization(operator)
+    )
     return {
         "product": "OAP Shared E-Bikes",
         "area": "Mitcham / CR4",
@@ -261,6 +280,8 @@ def status() -> dict[str, Any]:
         "configured_operator_count": len(configured),
         "public_discovery_ready": True,
         "feed_configured": bool(configured),
+        "authorized_access_configured": bool(authorized),
+        "authorized_access_operators": authorized,
         "live_feed_connected": False,
         "operator_control_authorised": False,
         "unlock_enabled": False,
@@ -269,8 +290,9 @@ def status() -> dict[str, Any]:
         "payment_enabled": False,
         "motor_control_enabled": False,
         "truth_boundary": (
-            "Public availability and operator-provided rental links only. "
-            "No bike control, reservation, billing or motor commands without explicit operator authority."
+            "Operator-authorized or public availability and operator-provided rental links only. "
+            "Authorization secrets are never returned. No bike control, reservation, billing "
+            "or motor commands without explicit operator authority."
         ),
         "human_authority_final": True,
     }
