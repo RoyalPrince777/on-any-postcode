@@ -1214,6 +1214,24 @@ def chess_move():
     return _arena_json(chess.public_state(state))
 
 
+@app.post("/arena/chess/resign")
+def chess_resign():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = chess.resign(
+            session.get(chess.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[chess.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(chess.public_state(state))
+
+
 @app.post("/arena/chess/stop")
 def chess_stop():
     denied = _arena_write_allowed()
