@@ -5,6 +5,7 @@ No covert tracking, emergency-service impersonation, or automatic physical respo
 """
 from __future__ import annotations
 import hashlib
+from itertools import pairwise
 from typing import Any
 from uuid import UUID
 from . import oap_ride_guardian_outbox, oap_ride_private_geometry, postgres_db
@@ -194,21 +195,51 @@ def analyse_tracking(
 
 
 def _distance_to_route_vertices_m(latitude: float, longitude: float, geometry: dict[str, Any]) -> float | None:
+    """Return point-to-LineString distance using nearest route segment, not vertex."""
+    from math import cos, radians
+
     if geometry.get("type") != "LineString":
         return None
-    points = geometry.get("coordinates")
-    if not isinstance(points, list) or not points:
+    raw = geometry.get("coordinates")
+    if not isinstance(raw, list) or not raw:
         return None
-    distances = []
-    for point in points[:5000]:
+    points = []
+    for point in raw[:5000]:
         if not isinstance(point, list) or len(point) < 2:
             continue
         try:
-            lon, lat = float(point[0]), float(point[1])
+            points.append((float(point[1]), float(point[0])))
         except (TypeError, ValueError):
             continue
-        distances.append(_distance_m(latitude, longitude, lat, lon))
-    return min(distances) if distances else None
+    if not points:
+        return None
+    if len(points) == 1:
+        return _distance_m(latitude, longitude, points[0][0], points[0][1])
+
+    earth_m = 6371000.0
+    lat0 = radians(latitude)
+    cos_lat = max(abs(cos(lat0)), 1e-12)
+
+    def xy(lat: float, lon: float) -> tuple[float, float]:
+        return (
+            earth_m * radians(lon - longitude) * cos_lat,
+            earth_m * radians(lat - latitude),
+        )
+
+    best = None
+    for start, end in pairwise(points):
+        ax, ay = xy(start[0], start[1])
+        bx, by = xy(end[0], end[1])
+        vx, vy = bx - ax, by - ay
+        denom = vx * vx + vy * vy
+        if denom == 0:
+            distance = (ax * ax + ay * ay) ** 0.5
+        else:
+            t = max(0.0, min(1.0, -(ax * vx + ay * vy) / denom))
+            px, py = ax + t * vx, ay + t * vy
+            distance = (px * px + py * py) ** 0.5
+        best = distance if best is None else min(best, distance)
+    return best
 
 
 def analyse_route_deviation(

@@ -15,6 +15,8 @@ REQUIRED_TABLES = {
     "link_relationships",
     "link_voice_notes",
     "link_call_sessions",
+    "oap_movement_bookings",
+    "oap_movement_match_proposals",
 }
 
 class LinkIncomingUnavailable(RuntimeError):
@@ -123,11 +125,27 @@ def list_incoming(identity_id: object, *, limit: int = 80) -> list[dict[str, obj
                     AND c.outcome IN ('cancelled','declined','failed')
                     AND COALESCE(c.ended_at,c.started_at)>=CURRENT_TIMESTAMP - INTERVAL '7 days'
 
+                  UNION ALL
+
+                  SELECT
+                    'incoming_journey'::text,
+                    p.proposal_id::text,
+                    b.member_identity_id::text,
+                    COALESCE(u.display_name,u.username,'OAP Rider')::text,
+                    'Incoming Journey'::text,
+                    (upper(b.service_type) || ' · ' || COALESCE(p.reason,'eligible match'))::text,
+                    p.created_at
+                  FROM oap_movement_match_proposals p
+                  JOIN oap_movement_bookings b ON b.booking_id=p.booking_id
+                  LEFT JOIN users u ON u.id=b.member_identity_id
+                  WHERE p.worker_identity_id=%s
+                    AND p.state='PROPOSED'
+
                 ) incoming
                 ORDER BY created_at DESC
                 LIMIT %s
                 """,
-                (identity, identity, identity, identity, bounded),
+                (identity, identity, identity, identity, identity, bounded),
             ).fetchall()
     except Exception as exc:
         raise LinkIncomingUnavailable("incoming_read_failed") from exc
