@@ -6,6 +6,7 @@ The target must be the deployed public /oap-map route.
 from __future__ import annotations
 
 import os
+
 from playwright.sync_api import sync_playwright
 
 TARGET = os.environ.get("OAP_MAP_URL", "https://on-any-postcode.onrender.com/oap-map").strip()
