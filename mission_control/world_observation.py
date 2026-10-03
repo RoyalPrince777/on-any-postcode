@@ -127,10 +127,13 @@ def normalise(
         if source_policy is not None
         else "unknown"
     )
-    if claimed_source_ownership not in {"unknown", source_ownership}:
-        raise ValueError("source ownership does not match trusted source registry")
     if source_policy is None and claimed_source_ownership != "unknown":
         raise ValueError("unregistered source cannot claim trusted ownership")
+    if (
+        source_policy is not None
+        and claimed_source_ownership not in {"unknown", source_ownership}
+    ):
+        raise ValueError("source ownership does not match trusted source registry")
 
     observed_at = _parse_utc(observation.get("observed_at"))
     received_at = _parse_utc(observation.get("received_at"))
