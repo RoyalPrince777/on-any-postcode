@@ -44,5 +44,7 @@ def test_bank_app_menu_exposes_intelligence(monkeypatch):
         dict,
     )
     status = oap_pay.bank_status()
-    ids = [item["id"] for item in status["app_primary_menu"]]
-    assert "intelligence" in ids
+    primary_ids = [item["id"] for item in status["app_primary_menu"]]
+    more_ids = [item["id"] for item in status["app_more_menu"]]
+    assert "intelligence" not in primary_ids
+    assert "intelligence" in more_ids
