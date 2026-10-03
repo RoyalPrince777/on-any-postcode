@@ -17,7 +17,9 @@ def test_gateway_has_truthful_home_node_certification():
 def test_sovereign_ready_requires_first_party_proof_and_no_fallback():
     code = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text()
     assert 'proof.get("reachable") and proof.get("model_available")' in code
-    assert 'bridge.get("configured") and bridge.get("worker_recently_seen")' in code
+    assert 'bridge.get("configured")' in code
+    assert 'bridge.get("worker_recently_seen")' in code
+    assert 'bridge.get("durable_worker_fresh")' in code
     assert "first_party_ready and not FALLBACK_ENABLED" in code
 
 
