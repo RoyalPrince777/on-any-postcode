@@ -105,3 +105,23 @@ def test_route_empire_serializes_mutations_and_escapes_both_node_ids(client):
     assert 'data-act="claim" data-node="${escapeText(n.id)}"' in script
     assert 'data-act="develop" data-node="${escapeText(n.id)}"' in script
     assert 'b.disabled=busy||state.status!=="active"' in script
+
+
+def test_gameplay_upgrade_controls_are_exposed(client):
+    connect4 = client.get("/arena/connect4").get_data(as_text=True)
+    chess = client.get("/arena/chess").get_data(as_text=True)
+    route_empire = client.get("/arena/route-empire").get_data(as_text=True)
+    iq = client.get("/arena/iq").get_data(as_text=True)
+
+    assert "data-resign" in connect4
+    assert "data-resign" in chess
+    assert "data-build-route" in route_empire
+    assert "data-route-from" in route_empire and "data-route-to" in route_empire
+    assert "data-answer-feedback" in iq
+
+
+def test_route_empire_ui_calls_real_route_action(client):
+    script = client.get("/static/route_empire.js").get_data(as_text=True)
+    assert 'action:"route"' in script
+    assert 'target_node_id:q("[data-route-to]").value' in script
+    assert 'node_id:q("[data-route-from]").value' in script

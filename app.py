@@ -1214,6 +1214,24 @@ def chess_move():
     return _arena_json(chess.public_state(state))
 
 
+@app.post("/arena/chess/resign")
+def chess_resign():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = chess.resign(
+            session.get(chess.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[chess.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(chess.public_state(state))
+
+
 @app.post("/arena/chess/stop")
 def chess_stop():
     denied = _arena_write_allowed()
@@ -1329,6 +1347,24 @@ def connect4_drop():
         state = connect4.drop(
             session.get(connect4.SESSION_KEY),
             column=payload.get("column"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[connect4.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(connect4.public_state(state))
+
+
+@app.post("/arena/connect4/resign")
+def connect4_resign():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = connect4.resign(
+            session.get(connect4.SESSION_KEY),
             request_id=payload.get("request_id"),
         )
     except (TypeError, ValueError) as exc:

@@ -52,9 +52,11 @@ def test_grand_slam_capture_is_forfeited_to_avoid_starvation():
     state["players"][1]["captured"] = 23
     state = reseal(state)
     moved = oware.move(state, pit=5, request_id="oware-move-0003")
-    assert moved["players"][0]["captured"] == 23
-    assert sum(moved["pits"][6:]) == 2
     assert moved["request_receipts"][-1]["grand_slam_forfeited"] is True
+    assert moved["status"] == "completed"
+    assert moved["result"] == "no_legal_move"
+    assert sum(moved["pits"]) == 0
+    assert sum(player["captured"] for player in moved["players"]) == oware.TOTAL_SEEDS
 
 
 def test_empty_opponent_must_be_fed_when_possible():
@@ -74,3 +76,20 @@ def test_stop_retry_is_idempotent():
     assert oware.stop(stopped, request_id="oware-stop-0001") == stopped
     with pytest.raises(ValueError, match="stop_denied"):
         oware.stop(stopped, request_id="oware-stop-0002")
+
+
+def test_no_legal_move_collects_remaining_seeds_and_finishes():
+    state = oware.new_game()
+    state["pits"] = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+    state["players"][0]["captured"] = 23
+    state["players"][1]["captured"] = 24
+    state = reseal(state)
+
+    moved = oware.move(state, pit=5, request_id="oware-end-0001")
+    public = oware.public_state(moved)
+
+    assert public["status"] == "completed"
+    assert public["result"] == "no_legal_move"
+    assert sum(public["pits"]) == 0
+    assert sum(player["captured"] for player in public["players"]) == 48
+    assert public["winner_id"] == "p2"

@@ -96,3 +96,16 @@ def test_ludo_roll_and_move_are_idempotent():
 
     moved = ludo.move(rolled, piece_id="p1-1", request_id="ludo-move-0008")
     assert ludo.move(moved, piece_id="p1-1", request_id="ludo-move-0008") == moved
+
+
+def test_ludo_completed_public_state_names_winner_and_result():
+    state = ludo.new_game(["Alpha", "Bravo"])
+    for piece in state["players"][0]["pieces"][:3]:
+        piece["progress"] = ludo.FINISH_PROGRESS
+    state["players"][0]["pieces"][3]["progress"] = ludo.FINISH_PROGRESS - 1
+    state = ludo._seal(state)
+    state = ludo.roll(state, die_value=1, request_id="ludo-result-roll")
+    state = ludo.move(state, piece_id="p1-4", request_id="ludo-result-move")
+    view = ludo.public_state(state)
+    assert view["result"] == "all_pieces_home"
+    assert view["winner_name"] == "Alpha"

@@ -87,6 +87,7 @@ def new_game(players: object):
             "players": roster,
             "turn_index": 0,
             "winner_id": None,
+            "result": None,
             "pending_roll": None,
             "request_receipts": [],
         }
@@ -189,6 +190,8 @@ def public_state(state):
         "current_player_id": player["id"],
         "current_player_name": player["name"],
         "winner_id": state["winner_id"],
+        "winner_name": next((item["name"] for item in state["players"] if item["id"] == state["winner_id"]), None),
+        "result": state.get("result"),
         "pending_roll": pending_roll,
         "movable_piece_ids": (
             _movable_piece_ids(state, pending_roll)
@@ -284,6 +287,7 @@ def move(state, *, piece_id: object, request_id: object):
     if all(item["progress"] == FINISH_PROGRESS for item in player["pieces"]):
         current["status"] = "completed"
         current["winner_id"] = player["id"]
+        current["result"] = "all_pieces_home"
     elif roll_value != 6 and not captured:
         _advance_turn(current)
 

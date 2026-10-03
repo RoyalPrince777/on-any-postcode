@@ -100,3 +100,23 @@ def test_human_cannot_play_reserved_agent_turn(client, csrf):
     )
     assert denied.status_code==400
     assert denied.get_json()["error"]["code"]=="connect4_agent_turn_reserved"
+
+
+def test_connect4_resignation_http(client, csrf):
+    headers={"X-OAP-CSRF":csrf["csrf_token"]}
+    started=client.post(
+        "/arena/connect4/start",
+        json={"player_one":"Alpha","player_two":"Bravo"},
+        headers=headers,
+    )
+    assert started.status_code==201
+    resigned=client.post(
+        "/arena/connect4/resign",
+        json={"request_id":"http-resign-0001"},
+        headers=headers,
+    )
+    assert resigned.status_code==200
+    body=resigned.get_json()
+    assert body["status"]=="completed"
+    assert body["result"]=="resignation"
+    assert body["winner_id"]=="p2"
