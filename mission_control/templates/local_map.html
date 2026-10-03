@@ -222,7 +222,8 @@ window.addEventListener('oap-map-reroute-request',event=>{
  if(Number.isFinite(point.latitude)&&Number.isFinite(point.longitude))route({originCoords:point});
 });
 const boot=q('#oap-map-boot');
-loadRoadNetwork(defaultBounds,profile.value).finally(()=>{if(boot)boot.hidden=true});
+const initialRoadLoad=loadRoadNetwork(defaultBounds,profile.value);
+initialRoadLoad.finally(()=>{if(boot)boot.hidden=true});
 profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
 if(from.value.trim()&&to.value.trim())route();
 loadPlaces(from.value.trim());
