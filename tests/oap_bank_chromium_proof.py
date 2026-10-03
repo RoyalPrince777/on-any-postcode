@@ -39,6 +39,12 @@ def main():
             expect(page.get_by_text("OAP Bank", exact=True).first).to_be_visible()
             expect(page.locator('[aria-label="OAP Bank navigation"]')).to_be_visible()
             expect(page.get_by_text("Available balance", exact=True)).to_be_visible()
+            capture_guard = page.evaluate("window.OAP_BANK_CAPTURE_GUARD")
+            assert capture_guard["webScreenshotDetectionReliable"] is False
+            assert capture_guard["webScreenshotBlockingReliable"] is False
+            assert capture_guard["privacyShieldOnBackground"] is True
+            assert capture_guard["nativeAndroidFlagSecureRecommended"] is True
+            expect(page.locator("#oap-bank-capture-watermark")).to_be_attached()
             expect(page.get_by_text("No authenticated account selected", exact=False)).to_be_visible()
             expect(page.locator('[aria-label="Quick actions"]')).to_be_visible()
             expect(page.get_by_text("My accounts", exact=True)).to_be_visible()
