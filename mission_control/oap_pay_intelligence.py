@@ -9,7 +9,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from . import sika_account_engine, sika_payment_orchestrator
+from . import (
+    market_sika_pod_runtime,
+    sika_account_engine,
+    sika_journal_store,
+    sika_payment_disputes,
+    sika_payment_orchestrator,
+    sika_payment_submission_evidence,
+)
 
 PAYMENT_TRANSITIONS = {
     "DRAFT": frozenset({"REVIEW", "CANCELLED"}),
@@ -135,6 +142,129 @@ def request_intelligence(request: object) -> dict[str, Any]:
     }
 
 
+
+def merchant_intelligence(merchant: object) -> dict[str, Any]:
+    if not isinstance(merchant, Mapping):
+        return {
+            "valid": False,
+            "reason": "merchant_record_required",
+            "execution_granted": False,
+        }
+    merchant_reference = str(merchant.get("merchant_reference") or "").strip()
+    certified = merchant.get("certified") is True
+    checkout_reference = str(merchant.get("checkout_reference") or "").strip()
+    complete = bool(merchant_reference and checkout_reference)
+    return {
+        "valid": complete,
+        "reason": None if complete else "merchant_record_incomplete",
+        "merchant_reference": merchant_reference or None,
+        "checkout_reference": checkout_reference or None,
+        "certified": certified,
+        "payment_acceptance_advised": complete and certified,
+        "execution_granted": False,
+        "money_movement": False,
+    }
+
+
+def activity_intelligence(
+    *,
+    payment_intent: object,
+    submission_evidence: object | None = None,
+    dispute: object | None = None,
+) -> dict[str, Any]:
+    payment = payment_intelligence(payment_intent)
+    if not payment.get("valid"):
+        return {
+            "valid": False,
+            "reason": "payment_intent_required",
+            "timeline": (),
+            "money_movement": False,
+        }
+
+    timeline = [str(payment["status"])]
+    provider_submission_proven = False
+    if isinstance(submission_evidence, sika_payment_submission_evidence.SubmissionEvidence):
+        if submission_evidence.payment_id != payment["payment_id"]:
+            return {
+                "valid": False,
+                "reason": "submission_evidence_payment_mismatch",
+                "timeline": tuple(timeline),
+                "money_movement": False,
+            }
+        timeline.append(f"PROVIDER_{submission_evidence.outcome}")
+        provider_submission_proven = submission_evidence.outcome == "ACCEPTED"
+
+    dispute_open = False
+    if isinstance(dispute, sika_payment_disputes.DisputeCase):
+        if dispute.payment_id != payment["payment_id"]:
+            return {
+                "valid": False,
+                "reason": "dispute_payment_mismatch",
+                "timeline": tuple(timeline),
+                "money_movement": False,
+            }
+        timeline.append(f"DISPUTE_{dispute.status}")
+        dispute_open = dispute.status not in {"RESOLVED", "CLOSED"}
+
+    return {
+        "valid": True,
+        "payment_id": payment["payment_id"],
+        "timeline": tuple(timeline),
+        "provider_submission_proven": provider_submission_proven,
+        "dispute_open": dispute_open,
+        "money_movement": False,
+        "human_authority_final": True,
+    }
+
+
+def settlement_intelligence(
+    *,
+    payment_intent: object,
+    submission_evidence: object | None,
+    journal_batch: object | None,
+) -> dict[str, Any]:
+    payment = payment_intelligence(payment_intent)
+    if not payment.get("valid"):
+        return {
+            "valid": False,
+            "reason": "payment_intent_required",
+            "settlement_proven": False,
+            "money_movement": False,
+        }
+
+    submission = None
+    if isinstance(submission_evidence, sika_payment_submission_evidence.SubmissionEvidence):
+        submission = {
+            "payment_id": submission_evidence.payment_id,
+            "provider_reference": submission_evidence.provider_reference,
+            "outcome": submission_evidence.outcome,
+        }
+    gate = market_sika_pod_runtime.payment_submission_receipt_gate(
+        payment_intent={
+            "payment_id": payment["payment_id"],
+            "status": payment["status"],
+        },
+        submission_evidence=submission,
+    )
+    journal_present = isinstance(journal_batch, sika_journal_store.sika_double_entry.JournalBatch)
+    settlement_proven = bool(
+        gate.get("settlement_proven")
+        and journal_present
+        and getattr(journal_batch, "balanced", False)
+    )
+    return {
+        "valid": True,
+        "payment_id": payment["payment_id"],
+        "provider_submission_proven": bool(gate.get("proven")),
+        "journal_present": journal_present,
+        "journal_balanced": bool(getattr(journal_batch, "balanced", False)),
+        "settlement_proven": settlement_proven,
+        "external_money_movement_proven": False,
+        "execution_granted": False,
+        "money_movement": False,
+    }
+
+
 def status() -> dict[str, Any]:
     return {
         "system": "OAP Pay Intelligence",
@@ -143,12 +273,12 @@ def status() -> dict[str, Any]:
         "wallet_intelligence": True,
         "payment_intelligence": True,
         "request_intelligence": True,
-        "merchant_intelligence": False,
-        "settlement_intelligence": False,
+        "merchant_intelligence": True,
+        "settlement_intelligence": True,
         "fraud_intelligence": False,
         "rights_remedy_intelligence": False,
         "currency_sika_intelligence": False,
-        "activity_intelligence": False,
+        "activity_intelligence": True,
         "liquidity_intelligence": False,
         "guardian_intelligence": False,
         "smi_pay_intelligence": False,
