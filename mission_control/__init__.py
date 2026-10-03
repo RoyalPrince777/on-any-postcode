@@ -51,6 +51,7 @@ def init_app(app: Flask) -> None:
         oap_ride_runtime,
         oap_ride_commercial,
         oap_ride_payment_bridge,
+        oap_ride_driver_accessibility,
         oap_ride_guardian,
         organism_runtime,
         postgres_db,
@@ -986,6 +987,13 @@ def init_app(app: Flask) -> None:
     def _oap_init_ride_guardian(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(oap_ride_guardian.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-driver-accessibility")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_driver_accessibility(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_driver_accessibility.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-init-ride-payment-bridge")
     @click.option("--dry-run", is_flag=True, default=False)
