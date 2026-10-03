@@ -134,3 +134,79 @@ def test_oap_pay_phone_app_surface_is_installable(client):
     assert "Tap to Pay" in body
     assert "Phone-to-Phone" in body
     assert "Contactless execution locked" in body
+
+
+def test_oap_pay_bank_status_fails_closed(monkeypatch):
+    monkeypatch.setattr(
+        oap_pay.bank_authorisation_store,
+        "readiness_status",
+        lambda: {
+            "institution": "United States of Africa Royalty Bank",
+            "parent": "ON ANY POSTCODE LTD",
+            "jurisdiction": "United Kingdom",
+            "route": "PRA/FCA new-bank authorisation",
+            "evidence_total": 30,
+            "evidence_proven": 0,
+            "application_ready": False,
+            "authorised_bank": False,
+        },
+    )
+    monkeypatch.setattr(oap_pay.bank_permission_scope, "current_scope", lambda: None)
+    monkeypatch.setattr(
+        oap_pay.sika_production_evidence_store,
+        "readiness_status",
+        lambda: {
+            "evidence_total": 8,
+            "evidence_proven": 0,
+            "production_gate_passed": False,
+            "money_movement_enabled": False,
+            "human_authority_final": True,
+        },
+    )
+    monkeypatch.setattr(
+        oap_pay.sika_execution_gate,
+        "capability_matrix",
+        lambda: {
+            "accept_deposits": False,
+            "issue_redeemable_sika": False,
+            "execute_payments": False,
+            "hold_customer_funds": False,
+            "issue_payment_cards": False,
+            "cash_out": False,
+            "foreign_exchange": False,
+            "bank_accounts": False,
+        },
+    )
+    status = oap_pay.bank_status()
+    assert status["authorised_bank"] is False
+    assert status["application_ready"] is False
+    assert status["permission_scope_present"] is False
+    assert status["production_gate_passed"] is False
+    assert status["bank_accounts_enabled"] is False
+    assert status["deposit_taking_enabled"] is False
+    assert status["customer_fund_holding_enabled"] is False
+    assert status["regulated_execution_enabled"] is False
+    assert status["money_movement_enabled"] is False
+    assert status["humanitarian_or_human_rights_purpose_bypasses_authorisation"] is False
+
+
+def test_oap_pay_bank_page_and_status_are_no_store(client):
+    page = client.get("/pay/bank")
+    assert page.status_code == 200
+    assert page.headers["Cache-Control"] == "no-store"
+    body = page.get_data(as_text=True)
+    assert "OAP Pay · Bank" in body
+    assert "Regulated capabilities" in body
+    assert "does not itself create bank authorisation" in body
+
+    status = client.get("/pay/bank/status")
+    assert status.status_code == 200
+    assert status.headers["Cache-Control"] == "no-store"
+    payload = status.get_json()
+    assert payload["money_movement_enabled"] is False
+
+
+def test_oap_pay_bank_menu_links_to_bank_screen(client):
+    page = client.get("/pay")
+    body = page.get_data(as_text=True)
+    assert 'href="/pay/bank"' in body
