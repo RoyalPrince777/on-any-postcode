@@ -1,3 +1,4 @@
+# ruff: noqa: I001, BLE001
 """Durable OAP Ride journey lifecycle on top of OAP Movement.
 
 Owns Journey Code, start/completion receipts and feedback without altering the
