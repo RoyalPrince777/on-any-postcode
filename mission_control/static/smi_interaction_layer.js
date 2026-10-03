@@ -22,6 +22,9 @@
       if (status) status.textContent = value;
     };
 
+    const recordSurfaceProof = (surfaceId, interactionId) =>
+      window.OAP_SMI_RECORD_INTERACTION_PROOF?.(surfaceId, interactionId, 200);
+
     const strip = document.createElement("nav");
     strip.id = "interaction-strip";
     strip.className = "smi-interaction-strip";
@@ -128,7 +131,12 @@
         return;
       }
       const reader = new FileReader();
-      reader.onload = () => applyVisionImage(String(reader.result || ""), "SMI Vision camera capture");
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        if (!dataUrl) return;
+        applyVisionImage(dataUrl, "SMI Vision camera capture");
+        recordSurfaceProof("vision", "vision-" + Date.now());
+      };
       reader.onerror = () => setStatus("Vision capture could not be read.");
       reader.readAsDataURL(file);
     });
@@ -159,6 +167,7 @@
         canvas.height = Math.max(1, Math.round(height * scale));
         canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
         applyVisionImage(canvas.toDataURL("image/jpeg", 0.82), "Screen Intelligence capture");
+        recordSurfaceProof("screen", "screen-" + Date.now());
       } catch (error) {
         if (error && (error.name === "NotAllowedError" || error.name === "AbortError")) {
           setStatus("Screen share cancelled or blocked by device permission.");
@@ -209,6 +218,7 @@
         await faceVideo.play();
         faceStatus.textContent = "Local Face Up session active. Nothing is sent until you capture and send.";
         setStatus("Face Up active · camera/mic under your control");
+        recordSurfaceProof("face-up", "face-up-" + Date.now());
       } catch (error) {
         faceUpStream = null;
         faceVideo.srcObject = null;
@@ -269,7 +279,11 @@
     strip.querySelector("#tools-mode-button").addEventListener("click", () => {
       activate("tools-mode-button");
       plus.click();
-      if (!attachMenu.classList.contains("show")) activate("chat-mode-button");
+      if (attachMenu.classList.contains("show")) {
+        recordSurfaceProof("tools", "tools-" + Date.now());
+      } else {
+        activate("chat-mode-button");
+      }
     });
 
     cameraMenu.addEventListener("click", () => {
@@ -289,6 +303,7 @@
     thinking.addEventListener("change", () => {
       const label = thinking.options[thinking.selectedIndex]?.textContent || "Auto";
       setStatus("Intelligence " + label + " selected · Human Authority remains final");
+      recordSurfaceProof("intelligence-selector", "selector-" + String(thinking.value || "auto") + "-" + Date.now());
     });
 
     const pauseControl = document.getElementById("pause-button");
