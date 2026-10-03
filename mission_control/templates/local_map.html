@@ -140,7 +140,7 @@ function draw(coords){
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
 function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
-const ROAD_TILE_TIMEOUT_MS=4000;
+const ROAD_TILE_TIMEOUT_MS=15000;
 async function fetchRoadTile(z,x,y,mode){
  const controller=new AbortController();
  const timeout=setTimeout(()=>controller.abort(),ROAD_TILE_TIMEOUT_MS);
