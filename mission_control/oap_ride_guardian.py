@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 from uuid import UUID
-from . import oap_ride_private_geometry, postgres_db
+from . import oap_ride_guardian_outbox, oap_ride_private_geometry, postgres_db
 
 MIGRATION="0002_oap_ride_guardian"
 TABLES=frozenset({"oap_ride_guardian_sessions","oap_ride_guardian_incidents"})
@@ -85,7 +85,18 @@ def report_incident(*,booking_id:object,identity_id:object,kind:object,note:obje
         if not _participant(c,booking,identity): raise PermissionError("booking_participant_required")
         row=c.execute("""INSERT INTO oap_ride_guardian_incidents(booking_id,reporter_identity_id,kind,note)
         VALUES (%s,%s,%s,%s) RETURNING incident_id,created_at""",(booking,identity,k,text)).fetchone(); c.commit()
-    return {"incident_id":str(row[0]),"booking_id":booking,"kind":k,"created_at":row[1].isoformat(),"automatic_emergency_dispatch":False}
+    outbox = None
+    try:
+        outbox = oap_ride_guardian_outbox.enqueue(
+            booking_id=booking,
+            event_type="SAFETY_CONCERN" if k in {"SAFETY_CONCERN","OTHER"} else k,
+            payload={"kind": k, "incident_id": str(row[0])},
+        )
+    except Exception:
+        outbox = None
+    return {"incident_id":str(row[0]),"booking_id":booking,"kind":k,"created_at":row[1].isoformat(),
+            "trusted_contact_notification":outbox,
+            "automatic_emergency_dispatch":False}
 
 
 def _distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
