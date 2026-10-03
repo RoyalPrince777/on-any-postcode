@@ -392,6 +392,7 @@ refreshOps();
         if(receipt?.receipt_id){
           try{sessionStorage.setItem("oap_smi_interaction_proof:"+surfaceId,String(receipt.receipt_id));}catch{}
         }
+        if(receipt?.receipt_id)await syncFunctionHealth();
         return receipt;
       }catch{return null;}
     }
@@ -733,6 +734,22 @@ refreshOps();
       studioButton.after(studioLabel,imagine,alive,scene);
     }
 
+    function ensureInteractionProofBadge(){
+      let badge=document.getElementById("smi-interaction-proof-count");
+      if(badge)return badge;
+      badge=document.createElement("button");
+      badge.type="button";
+      badge.id="smi-interaction-proof-count";
+      badge.className="smi-proof-count";
+      badge.textContent="🟣 Proof 0/9";
+      badge.setAttribute("aria-label","SMI interaction proof progress");
+      badge.title="Durable signed interaction receipts · physical acceptance excluded";
+      badge.addEventListener("click",()=>safeInspect("Function Health",cfg.functionHealthUrl,badge));
+      const host=q(".chat-head")||document.body;
+      host.append(badge);
+      return badge;
+    }
+
     async function syncFunctionHealth(){
       if(!cfg.functionHealthUrl)return;
       try{
@@ -740,6 +757,20 @@ refreshOps();
         const data=await response.json();
         if(!response.ok||!Array.isArray(data.functions))return;
         const byId=new Map(data.functions.map(item=>[item.id,item]));
+        const interaction=data.interaction_certification||{};
+        const receiptSummary=interaction.receipt_summary||{};
+        const provenCount=Number(receiptSummary.proven_count ?? interaction.live_proven_count ?? 0);
+        const expectedCount=Number(receiptSummary.expected_count ?? interaction.expected_count ?? 9);
+        const remainingCount=Math.max(0,Number(receiptSummary.remaining_count ?? (expectedCount-provenCount)));
+        const badge=ensureInteractionProofBadge();
+        badge.textContent=(remainingCount===0?"🟢":"🟣")+" Proof "+provenCount+"/"+expectedCount;
+        badge.dataset.provenCount=String(provenCount);
+        badge.dataset.expectedCount=String(expectedCount);
+        badge.dataset.remainingCount=String(remainingCount);
+        badge.dataset.complete=String(remainingCount===0&&expectedCount>0);
+        badge.title=remainingCount===0
+          ?"9/9 durable interaction proof complete"
+          :remainingCount+" interaction proof"+(remainingCount===1?"":"s")+" remaining · no fake Green";
         qa("[data-oap-action]",menu).forEach(button=>{
           const item=byId.get(button.dataset.oapAction);
           if(!item)return;

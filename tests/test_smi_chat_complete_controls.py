@@ -343,3 +343,12 @@ def test_smi_interaction_surfaces_emit_post_ack_proof_receipts():
     assert "OAP_SMI_RECORD_INTERACTION_PROOF?.('voice'" in controller
     assert "OAP_SMI_RECORD_INTERACTION_PROOF?.('runtime-controls'" in controller
 
+def test_smi_live_interaction_proof_badge_tracks_authoritative_function_health():
+    source = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    assert 'badge.id="smi-interaction-proof-count"' in source
+    assert 'receiptSummary.proven_count' in source
+    assert 'interaction.live_proven_count' in source
+    assert '" Proof "+provenCount+"/"+expectedCount' in source
+    assert 'remainingCount===0?"🟢":"🟣"' in source
+    assert 'await syncFunctionHealth()' in source
+
