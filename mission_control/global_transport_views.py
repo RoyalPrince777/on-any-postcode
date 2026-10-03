@@ -174,6 +174,8 @@ _PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="/transport/manifest.webmanifest">
+<meta name="theme-color" content="#050807">
 <title>OAP Global Transport</title>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -194,13 +196,19 @@ small{display:block;margin-top:18px;color:#777}
 <h1>Global Transport</h1>
 <p>One World → One Front Door → Many Transport Systems Inside.</p>
 <div class="bar"><span class="green">● Software surface ready</span> · <span class="purple">● Live execution stays evidence-gated</span></div>
+<div class="bar">
+<button type="button" data-oap-install hidden>Install OAP Transport</button>
+<span data-oap-install-status role="status">Checking install support</span>
+<span data-oap-install-platform hidden></span>
+</div>
 </section>
 <section class="grid">
 {% for name, description in doors %}
 <a class="card" href="{{ '/transport/ride' if name == 'Ride' else '/transport/status#' ~ name|lower }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
 {% endfor %}
 </section>
-<small>Software + digital coordination only. Physical transport operations are outside this build. Human Authority remains final.</small>
+<small>Software + digital coordination only. Physical transport operations remain evidence-gated. Human Authority remains final.</small>
+<script src="/assets/oap-os.js" defer></script>
 </main></body></html>"""
 
 
