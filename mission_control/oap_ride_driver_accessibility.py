@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Ride driver accessibility capabilities.
 
 Stores driver/vehicle capability declarations and evaluates them against the
