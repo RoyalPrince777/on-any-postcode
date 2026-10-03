@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 
 from mission_control import ecosystem_intelligence, world_observation
 
-
 NOW = datetime(2026, 10, 3, 3, 30, tzinfo=timezone.utc)
 
 
