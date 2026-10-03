@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, redirect, render_template_string, request
 
-from . import authority, oap_ride, transport_execution_evidence, web_security
+from . import authority, oap_ride, shared_bike, transport_execution_evidence, web_security
 from .oap_ride_dashboards import bp as oap_ride_dashboards_bp
 from .oap_ride_runtime_routes import bp as oap_ride_runtime_bp
 from .oap_ride_journey_views import bp as oap_ride_journey_bp
@@ -147,6 +147,7 @@ def status() -> dict[str, object]:
         "capability_count": len(CAPABILITIES),
         "capabilities": list(CAPABILITIES),
         "integrations": list(INTEGRATIONS),
+        "shared_bikes": shared_bike.status(),
         "existing_transport_intelligence_reused": True,
         "post_core_authoritative_for_parcels": True,
         "human_authority_final": True,
@@ -244,6 +245,24 @@ def transport_capabilities():
 @bp.get("/transport/execution-readiness")
 def transport_execution_readiness():
     return _no_store(jsonify(execution_readiness()))
+
+
+@bp.get("/transport/shared-bikes/status")
+def transport_shared_bikes_status():
+    return _no_store(jsonify(shared_bike.status()))
+
+
+@bp.get("/transport/shared-bikes/mitcham")
+def transport_shared_bikes_mitcham():
+    try:
+        payload = shared_bike.nearby_mitcham(
+            radius_km=request.args.get("radius_km") or shared_bike.DEFAULT_RADIUS_KM
+        )
+    except ValueError as exc:
+        return _no_store(
+            make_response(jsonify(error={"code": str(exc)[:80]}), 400)
+        )
+    return _no_store(jsonify(payload))
 
 
 @bp.post("/transport/execution-evidence")
