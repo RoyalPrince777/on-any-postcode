@@ -21,14 +21,14 @@ def test_rider_dashboard_buttons_are_real_links():
     assert b"/movement/workspace#book-title" in data
     assert b"/movement/workspace#bookings-title" in data
     assert b"/movement/workspace#member-matches-title" in data
-    assert b"/transport/ride/driver/earnings" in data
+    assert b"/pay" in data
 
 
 def test_driver_dashboard_buttons_are_real_links():
     data = _app().test_client().get("/transport/ride/driver").data
     assert b"/movement/workspace#work-title" in data
     assert b"/movement/workspace#assigned-title" in data
-    assert b"/pay" in data
+    assert b"/transport/ride/driver/earnings" in data
 
 
 def test_my_transport_dashboard_links_to_rider_driver_and_owned_work():
