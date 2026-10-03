@@ -44,6 +44,7 @@ def test_location_weather_refresh_builds_real_place_and_nature_signals(monkeypat
             "provider": "UK postcode service",
             "weather": {
                 "provider": "Live weather service",
+                "provider_id": "api.open-meteo.com",
                 "time": "2026-09-13T16:00",
                 "intelligence": {
                     "condition": "Rain",
