@@ -12,6 +12,8 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+from . import world_source_registry
+
 EVIDENCE_CLASSES: tuple[str, ...] = (
     "observed",
     "derived",
@@ -111,11 +113,27 @@ def normalise(
     if not source:
         raise ValueError("observation source is required")
 
-    source_ownership = _clean(
+    claimed_source_ownership = _clean(
         observation.get("source_ownership") or "unknown"
     ).lower()
-    if source_ownership not in SOURCE_OWNERSHIP:
-        raise ValueError(f"Unsupported source ownership: {source_ownership}")
+    if claimed_source_ownership not in SOURCE_OWNERSHIP:
+        raise ValueError(
+            f"Unsupported source ownership: {claimed_source_ownership}"
+        )
+    source_policy = world_source_registry.get(source)
+    registered_source = source_policy is not None
+    source_ownership = (
+        str(source_policy["source_ownership"])
+        if source_policy is not None
+        else "unknown"
+    )
+    if source_policy is None and claimed_source_ownership != "unknown":
+        raise ValueError("unregistered source cannot claim trusted ownership")
+    if (
+        source_policy is not None
+        and claimed_source_ownership not in {"unknown", source_ownership}
+    ):
+        raise ValueError("source ownership does not match trusted source registry")
 
     observed_at = _parse_utc(observation.get("observed_at"))
     received_at = _parse_utc(observation.get("received_at"))
@@ -152,6 +170,23 @@ def normalise(
         raise ValueError(
             "freshness thresholds must satisfy fresh_for < stale_after < expires_after"
         )
+    if source_policy is not None:
+        limits = (
+            ("fresh_for_seconds", fresh_for, int(source_policy["max_fresh_for_seconds"])),
+            (
+                "stale_after_seconds",
+                stale_after,
+                int(source_policy["max_stale_after_seconds"]),
+            ),
+            (
+                "expires_after_seconds",
+                expires_after,
+                int(source_policy["max_expires_after_seconds"]),
+            ),
+        )
+        for name, supplied, maximum in limits:
+            if supplied > maximum:
+                raise ValueError(f"{name} exceeds trusted source policy")
 
     freshness_state, age_seconds = _freshness(
         observed_at=observed_at,
@@ -173,6 +208,10 @@ def normalise(
         raise ValueError(
             "external source cannot be marked as a first-party observation"
         )
+    if source_policy is not None and first_party["observation"] != bool(
+        source_policy["observation_first_party"]
+    ):
+        raise ValueError("observation ownership does not match trusted source registry")
 
     evidence = tuple(
         dict.fromkeys(
@@ -181,10 +220,41 @@ def normalise(
             if _clean(item)
         )
     )
+    required_prefixes = tuple(
+        source_policy.get("required_evidence_prefixes") or ()
+        if source_policy is not None
+        else ()
+    )
+    provider_evidence_bound = (
+        f"provider:{source}" in evidence if registered_source else False
+    )
+    observation_time_bound = False
+    if registered_source and observed_at is not None:
+        for proof in evidence:
+            if not proof.startswith("observation_time:"):
+                continue
+            try:
+                evidence_time = _parse_utc(proof.split(":", 1)[1])
+            except ValueError:
+                continue
+            if evidence_time == observed_at:
+                observation_time_bound = True
+                break
+    required_evidence_present = all(
+        any(proof.startswith(prefix) for proof in evidence)
+        for prefix in required_prefixes
+    )
+    evidence_bound = bool(
+        registered_source
+        and required_evidence_present
+        and provider_evidence_bound
+        and observation_time_bound
+    )
     live_claim_allowed = bool(
-        freshness_state in {"fresh", "aging"}
+        registered_source
+        and evidence_bound
+        and freshness_state in {"fresh", "aging"}
         and evidence_class in {"observed", "derived"}
-        and evidence
     )
 
     return {
@@ -193,6 +263,7 @@ def normalise(
         "event_type": _clean(observation.get("event_type") or "state"),
         "evidence_class": evidence_class,
         "source": source,
+        "source_registered": registered_source,
         "source_ownership": source_ownership,
         "observed_at": (
             observed_at.isoformat().replace("+00:00", "Z") if observed_at else ""
@@ -206,6 +277,7 @@ def normalise(
         "stale_after_seconds": stale_after,
         "expires_after_seconds": expires_after,
         "evidence": evidence,
+        "evidence_bound": evidence_bound,
         "first_party": first_party,
         "live_claim_allowed": live_claim_allowed,
         "execution_granted": False,
@@ -222,6 +294,7 @@ def status() -> dict[str, Any]:
         "freshness_states": FRESHNESS_STATES,
         "external_source_can_claim_first_party_observation": False,
         "max_future_skew_seconds": MAX_FUTURE_SKEW_SECONDS,
+        "source_registry": world_source_registry.status(),
         "execution_granted": False,
         "human_authority_final": True,
     }
