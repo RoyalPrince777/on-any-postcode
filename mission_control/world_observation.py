@@ -42,6 +42,8 @@ FRESHNESS_STATES: tuple[str, ...] = (
     "unknown",
 )
 
+MAX_FUTURE_SKEW_SECONDS = 60
+
 
 def _clean(value: object) -> str:
     return " ".join(str(value or "").strip().split())
@@ -118,6 +120,18 @@ def normalise(
     observed_at = _parse_utc(observation.get("observed_at"))
     received_at = _parse_utc(observation.get("received_at"))
     current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    if (
+        observed_at is not None
+        and (observed_at - current).total_seconds() > MAX_FUTURE_SKEW_SECONDS
+    ):
+        raise ValueError("observed_at is too far in the future")
+    if (
+        received_at is not None
+        and (received_at - current).total_seconds() > MAX_FUTURE_SKEW_SECONDS
+    ):
+        raise ValueError("received_at is too far in the future")
+    if observed_at is not None and received_at is not None and observed_at > received_at:
+        raise ValueError("observed_at cannot be after received_at")
 
     fresh_for = _bounded_seconds(
         observation.get("fresh_for_seconds"),
@@ -207,6 +221,7 @@ def status() -> dict[str, Any]:
         "first_party_dimensions": FIRST_PARTY_DIMENSIONS,
         "freshness_states": FRESHNESS_STATES,
         "external_source_can_claim_first_party_observation": False,
+        "max_future_skew_seconds": MAX_FUTURE_SKEW_SECONDS,
         "execution_granted": False,
         "human_authority_final": True,
     }
