@@ -29,8 +29,10 @@ def _account():
     return sika_account_engine.BankAccount(
         account_id="acct-1",
         owner_reference="owner-1",
+        legal_entity="ON ANY POSTCODE LTD",
         currency="GBP",
         jurisdiction="United Kingdom",
+        ledger_account_id="ledger-1",
         status="OPEN",
     )
 
