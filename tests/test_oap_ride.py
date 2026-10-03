@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 from uuid import uuid4
 import pytest
 from mission_control import oap_ride
