@@ -54,3 +54,20 @@ def guardian_incident(booking_id:str):
         )
         return _no_store(make_response(jsonify(result),201))
     except Exception as exc: return _translate(exc)
+
+
+@bp.post("/transport/ride/bookings/<booking_id>/guardian/analyse")
+@web_security.login_required(api=True)
+def guardian_analyse(booking_id:str):
+    identity=_identity()
+    if g:=_guard(identity): return g
+    try:
+        body=request.get_json(silent=True) or {}
+        result=oap_ride_guardian.analyse_tracking(
+            booking_id=booking_id,
+            identity_id=identity,
+            stop_minutes=body.get("stop_minutes",8),
+            stop_radius_m=body.get("stop_radius_m",40),
+        )
+        return _no_store(make_response(jsonify(result),200))
+    except Exception as exc: return _translate(exc)
