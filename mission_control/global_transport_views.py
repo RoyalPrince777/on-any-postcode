@@ -35,15 +35,32 @@ bp.register_blueprint(oap_ride_ops_bp)
 bp.register_blueprint(travel_transport_booking_bp)
 
 PUBLIC_DOORS = (
-    ("Journey", "End-to-end multimodal journey planning"),
-    ("Move", "Movement, disruption and route state"),
-    ("Ride", "Governed ride-request capability"),
-    ("Transit", "Bus, rail, metro, tram and ferry"),
-    ("Drive", "Personal vehicle and road journey layer"),
-    ("Fly", "Air journey and airport layer"),
-    ("Cargo", "Freight and cross-border planning"),
-    ("Deliver", "Local and global delivery layer"),
-    ("Fleet", "Commercial vehicle and driver operations"),
+    ("Journey", "Plan, map, save and finish journeys"),
+    ("Move", "Transit, drive, fly and network movement"),
+    ("Ride", "Car rides and shared e-bikes in one OAP ride door"),
+    ("Logistics", "Cargo, delivery and fleet operations"),
+    ("Guardian", "Journey safety, incidents and protection"),
+    ("Operators", "First-party gateway for transport providers"),
+    ("Control Center", "Transport intelligence, readiness and oversight"),
+)
+
+RIDE_MODES = (
+    {
+        "id": "car",
+        "name": "Car Ride",
+        "experience": "ride_hailing",
+        "request_route": "/transport/ride/request",
+        "external_dispatch_performed": False,
+    },
+    {
+        "id": "ebike",
+        "name": "E-Bike",
+        "experience": "shared_hire",
+        "availability_route": "/transport/shared-bikes/mitcham",
+        "operator_gateway": "OAP Operator Gateway",
+        "external_unlock_performed": False,
+        "external_payment_performed": False,
+    },
 )
 
 CAPABILITIES = (
@@ -149,6 +166,7 @@ def status() -> dict[str, object]:
         "integrations": list(INTEGRATIONS),
         "shared_bikes": operator_gateway.shared_bikes_status(),
         "operator_gateway": operator_gateway.status(),
+        "ride_modes": list(RIDE_MODES),
         "existing_transport_intelligence_reused": True,
         "post_core_authoritative_for_parcels": True,
         "human_authority_final": True,
@@ -338,7 +356,36 @@ def transport_execution_evidence_record():
 
 @bp.get("/transport/ride")
 def transport_ride():
-    return _no_store(jsonify(oap_ride.status()))
+    state = oap_ride.status()
+    return _no_store(jsonify({
+        "product": "OAP Ride",
+        "first_party_surface": True,
+        "experience": "one_ride_door_many_modes",
+        "modes": list(RIDE_MODES),
+        "car_ride": state,
+        "ebike": operator_gateway.shared_bikes_status(),
+        "operator_gateway": operator_gateway.status(),
+        "human_authority_final": True,
+    }))
+
+
+@bp.get("/transport/ride/options")
+def transport_ride_options():
+    return _no_store(jsonify({
+        "product": "OAP Ride",
+        "modes": list(RIDE_MODES),
+        "default_flow": [
+            "choose_mode",
+            "set_start_or_pickup",
+            "set_destination",
+            "check_availability",
+            "show_terms_or_price",
+            "start_or_request",
+            "track_journey",
+            "park_or_complete",
+        ],
+        "human_authority_final": True,
+    }))
 
 
 @bp.post("/transport/ride/request")
