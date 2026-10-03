@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Authenticated OAP Ride analytics and reconciliation-case APIs."""
 from __future__ import annotations
 from flask import Blueprint, jsonify, make_response
