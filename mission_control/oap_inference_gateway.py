@@ -515,7 +515,13 @@ def status(*, probe: bool = False) -> dict[str, Any]:
     bridge = home_node_bridge.status()
     first_party_ready = bool(
         (proof.get("reachable") and proof.get("model_available"))
-        or (bridge.get("configured") and bridge.get("worker_recently_seen"))
+        or (
+            bridge.get("configured")
+            and (
+                bridge.get("worker_recently_seen")
+                or bridge.get("durable_worker_fresh")
+            )
+        )
     )
     return {
         "gateway": "OAP Inference Gateway",
