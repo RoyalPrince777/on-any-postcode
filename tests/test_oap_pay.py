@@ -210,3 +210,40 @@ def test_oap_pay_bank_menu_links_to_bank_screen(client):
     page = client.get("/pay")
     body = page.get_data(as_text=True)
     assert 'href="/pay/bank"' in body
+
+
+def test_oap_bank_has_dedicated_install_manifest(client):
+    response = client.get("/pay/bank/manifest.webmanifest")
+    manifest = response.get_json()
+
+    assert response.status_code == 200
+    assert response.content_type == "application/manifest+json"
+    assert response.headers["Cache-Control"] == "public, max-age=3600"
+    assert manifest["id"] == "/pay/bank"
+    assert manifest["name"] == "OAP Bank"
+    assert manifest["short_name"] == "OAP Bank"
+    assert manifest["start_url"] == "/pay/bank"
+    assert manifest["scope"] == "/pay/bank"
+    assert manifest["display"] == "standalone"
+    assert {item["url"] for item in manifest["shortcuts"]} == {
+        "/pay/bank",
+        "/pay/bank#capabilities",
+        "/pay",
+    }
+
+
+def test_oap_bank_page_is_installable_mobile_shell(client):
+    page = client.get("/pay/bank")
+    body = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert page.headers["Cache-Control"] == "no-store"
+    assert 'rel="manifest" href="/pay/bank/manifest.webmanifest"' in body
+    assert 'data-oap-install hidden' in body
+    assert "Install OAP Bank" in body
+    assert 'aria-label="OAP Bank navigation"' in body
+    assert 'id="capabilities"' in body
+    assert ">Status</a>" in body
+    assert ">Capabilities</a>" in body
+    assert ">OAP Pay</a>" in body
+    assert ">Evidence</a>" in body
