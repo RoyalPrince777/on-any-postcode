@@ -111,7 +111,7 @@ def record_evidence_reference(
         raise ValueError("invalid_verification_state")
 
     fingerprint = hashlib.sha256(
-        f"{area_key}|{requirement_key}|{digest}|{issuer_value}|{scope_value}".encode("utf-8")
+        f"{area_key}|{requirement_key}|{digest}|{issuer_value}|{scope_value}".encode()
     ).hexdigest()
 
     with postgres_db.connect() as connection:
@@ -139,10 +139,10 @@ def record_evidence_reference(
                     "area": area_key,
                     "requirement": requirement_key,
                     "verification_state": state,
-                    "evidence_ref": ref,
                     "evidence_hash": digest,
-                    "issuer": issuer_value,
-                    "scope": scope_value,
+                    "evidence_ref_hash": hashlib.sha256(ref.encode()).hexdigest(),
+                    "issuer_hash": hashlib.sha256(issuer_value.encode()).hexdigest(),
+                    "scope_hash": hashlib.sha256(scope_value.encode()).hexdigest(),
                     "attestor_type": attestor,
                     "fingerprint": fingerprint,
                     "software_verified_external_authenticity": False,
@@ -157,6 +157,10 @@ def record_evidence_reference(
         "requirement": requirement_key,
         "verification_state": state,
         "fingerprint": fingerprint,
+        "sensitive_evidence_stored": False,
+        "raw_reference_stored": False,
+        "raw_issuer_stored": False,
+        "raw_scope_stored": False,
         "software_verified_external_authenticity": False,
         "execution_authorised_by_this_receipt_alone": False,
         "human_authority_final": True,
