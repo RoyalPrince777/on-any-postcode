@@ -38,11 +38,17 @@ def main():
 
             expect(page.get_by_text("OAP Bank", exact=True).first).to_be_visible()
             expect(page.locator('[aria-label="OAP Bank navigation"]')).to_be_visible()
+            expect(page.get_by_text("Bank Home", exact=True)).to_be_visible()
+            expect(page.locator("#accounts")).to_be_visible()
+            expect(page.locator("#transfers")).to_be_visible()
+            expect(page.locator("#activity")).to_be_visible()
+            expect(page.locator("#more")).to_be_visible()
             expect(page.locator("#capabilities")).to_be_visible()
-            expect(page.get_by_text("Regulated capabilities", exact=True)).to_be_visible()
 
-            page.get_by_text("Capabilities", exact=True).click()
-            assert page.url.endswith("/pay/bank#capabilities")
+            page.get_by_text("Accounts", exact=True).last.click()
+            assert page.url.endswith("/pay/bank#accounts")
+            page.get_by_text("More", exact=True).click()
+            assert page.url.endswith("/pay/bank#more")
 
             manifest_href = page.locator('link[rel="manifest"]').get_attribute("href")
             assert manifest_href == "/pay/bank/manifest.webmanifest"
