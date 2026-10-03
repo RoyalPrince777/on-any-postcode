@@ -1,7 +1,7 @@
 """Authenticated OAP Ride payment binding APIs."""
 from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, request
-from . import oap_ride_payment_bridge, web_security
+from . import movement_operations, oap_ride_payment_bridge, web_security
 
 bp=Blueprint("oap_ride_payment_bridge_routes",__name__)
 
@@ -38,7 +38,10 @@ def bind_payment(booking_id:str):
 @bp.get("/transport/ride/bookings/<booking_id>/sika-payment")
 @web_security.login_required(api=True)
 def payment_projection(booking_id:str):
+    identity=_identity()
     try:
+        if not movement_operations.STORE.is_participant(booking_id=booking_id,identity_id=identity):
+            raise PermissionError("booking_participant_required")
         result=oap_ride_payment_bridge.projection(booking_id=booking_id)
         return _no_store(make_response(jsonify(result),200))
     except Exception as exc: return _translate(exc)
