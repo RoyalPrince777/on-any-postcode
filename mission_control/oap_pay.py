@@ -11,11 +11,15 @@ from typing import Any
 from flask import Blueprint, jsonify, make_response, render_template
 
 from . import (
+    bank_authorisation,
+    bank_authorisation_store,
+    bank_permission_scope,
     oap_pay_intelligence,
     oap_pay_requests,
     sika_customer_payment_authority,
     sika_execution_gate,
     sika_pay_gateway,
+    sika_production_evidence_store,
 )
 
 bp = Blueprint("oap_pay", __name__)
@@ -90,6 +94,62 @@ def public_status() -> dict[str, Any]:
     }
 
 
+
+def bank_status() -> dict[str, Any]:
+    """Return a read-only bank truth projection from governed evidence stores."""
+
+    try:
+        readiness = bank_authorisation_store.readiness_status()
+        scope = bank_permission_scope.current_scope()
+        production = sika_production_evidence_store.readiness_status()
+        matrix = sika_execution_gate.capability_matrix()
+        evidence_available = True
+    except (
+        bank_authorisation_store.BankEvidenceUnavailable,
+        bank_permission_scope.PermissionScopeUnavailable,
+        sika_production_evidence_store.ProductionEvidenceUnavailable,
+    ):
+        readiness = bank_authorisation.readiness_status()
+        scope = None
+        production = {
+            "evidence_total": len(sika_production_evidence_store.PRODUCTION_EVIDENCE),
+            "evidence_proven": 0,
+            "evidence_missing": tuple(sika_production_evidence_store.PRODUCTION_EVIDENCE),
+            "production_gate_passed": False,
+            "money_movement_enabled": False,
+            "human_authority_final": True,
+        }
+        matrix = {capability: False for capability in bank_authorisation.REGULATED_CAPABILITIES}
+        evidence_available = False
+
+    return {
+        "institution": readiness["institution"],
+        "parent": readiness["parent"],
+        "jurisdiction": readiness["jurisdiction"],
+        "route": readiness["route"],
+        "evidence_available": evidence_available,
+        "evidence_total": readiness["evidence_total"],
+        "evidence_proven": readiness["evidence_proven"],
+        "application_ready": readiness["application_ready"],
+        "authorised_bank": readiness["authorised_bank"],
+        "permission_scope_present": scope is not None,
+        "permission_scope_effective": bool(scope and scope.effective()),
+        "permission_scope_capabilities": sorted(scope.permitted_capabilities) if scope else [],
+        "mobilisation": bool(scope and scope.mobilisation),
+        "deposit_cap_gbp": str(scope.deposit_cap_gbp) if scope and scope.deposit_cap_gbp is not None else None,
+        "production_evidence_total": production["evidence_total"],
+        "production_evidence_proven": production["evidence_proven"],
+        "production_gate_passed": bool(production["production_gate_passed"]),
+        "capabilities": matrix,
+        "bank_accounts_enabled": bool(matrix.get("bank_accounts", False)),
+        "deposit_taking_enabled": bool(matrix.get("accept_deposits", False)),
+        "customer_fund_holding_enabled": bool(matrix.get("hold_customer_funds", False)),
+        "regulated_execution_enabled": any(matrix.values()),
+        "money_movement_enabled": False,
+        "humanitarian_or_human_rights_purpose_bypasses_authorisation": False,
+        "human_authority_final": True,
+    }
+
 def _page():
     response = make_response(render_template("oap_pay.html", pay=public_status()))
     response.headers["Cache-Control"] = "no-store"
@@ -121,5 +181,19 @@ def public_payment_request(token: str):
         response.status_code = 404
     else:
         response = jsonify(item)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank")
+def bank_page():
+    response = make_response(render_template("oap_pay_bank.html", bank=bank_status()))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/status")
+def bank_status_api():
+    response = jsonify(bank_status())
     response.headers["Cache-Control"] = "no-store"
     return response
