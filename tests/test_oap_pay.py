@@ -195,7 +195,7 @@ def test_oap_pay_bank_page_and_status_are_no_store(client):
     assert page.status_code == 200
     assert page.headers["Cache-Control"] == "no-store"
     body = page.get_data(as_text=True)
-    assert "OAP Pay · Bank" in body
+    assert "OAP Bank" in body
     assert "Regulated capabilities" in body
     assert "does not itself create bank authorisation" in body
 
