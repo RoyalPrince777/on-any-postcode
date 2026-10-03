@@ -84,6 +84,6 @@ def test_status_marks_new_intelligence_built_only():
     assert status["fraud_intelligence"] is True
     assert status["rights_remedy_intelligence"] is True
     assert status["currency_sika_intelligence"] is True
-    assert status["liquidity_intelligence"] is False
-    assert status["guardian_intelligence"] is False
-    assert status["smi_pay_intelligence"] is False
+    assert status["liquidity_intelligence"] is True
+    assert status["guardian_intelligence"] is True
+    assert status["smi_pay_intelligence"] is True
