@@ -161,6 +161,7 @@ def status() -> dict[str, object]:
         "post_core_authoritative_for_parcels": True,
         "human_authority_final": True,
         "live_execution_gates": dict(LIVE_EXECUTION_GATES),
+        "execution_readiness": execution_readiness(),
         "live_external_transport_execution": False,
         "mission_scope": "software_and_digital_only",
         "physical_operations_in_scope": False,
@@ -237,6 +238,7 @@ def transport_capabilities():
         "capabilities": state["capabilities"],
         "integrations": state["integrations"],
         "live_execution_gates": state["live_execution_gates"],
+        "execution_readiness": state["execution_readiness"],
         "human_authority_final": True,
     }))
 
