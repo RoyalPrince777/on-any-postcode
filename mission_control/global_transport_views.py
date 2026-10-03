@@ -248,6 +248,21 @@ def transport_execution_readiness():
     return _no_store(jsonify(execution_readiness()))
 
 
+@bp.get("/transport/operator-gateway/availability")
+def transport_operator_gateway_availability():
+    try:
+        payload = operator_gateway.availability(
+            mode=request.args.get("mode"),
+            radius_km=request.args.get("radius_km")
+            or operator_gateway.DEFAULT_SHARED_BIKE_RADIUS_KM,
+        )
+    except ValueError as exc:
+        return _no_store(
+            make_response(jsonify(error={"code": str(exc)[:80]}), 400)
+        )
+    return _no_store(jsonify(payload))
+
+
 @bp.get("/transport/shared-bikes/status")
 def transport_shared_bikes_status():
     return _no_store(jsonify(operator_gateway.shared_bikes_status()))
