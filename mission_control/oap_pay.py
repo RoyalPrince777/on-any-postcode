@@ -289,7 +289,7 @@ def bank_manifest():
         ],
         "shortcuts": [
             {"name": "Bank Status", "short_name": "Status", "url": "/pay/bank"},
-            {"name": "Capability Status", "short_name": "Capabilities", "url": "/pay/bank#capabilities"},
+            {"name": "Accounts", "short_name": "Accounts", "url": "/pay/bank/accounts"},
             {"name": "OAP Pay", "short_name": "OAP Pay", "url": "/pay"},
         ],
     }
