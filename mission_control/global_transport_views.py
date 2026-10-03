@@ -8,9 +8,9 @@ rail, customs authority or live third-party feed.
 """
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template_string
+from flask import Blueprint, jsonify, make_response, redirect, render_template_string, request
 
-from . import oap_ride
+from . import authority, oap_ride, transport_execution_evidence, web_security
 from .oap_ride_dashboards import bp as oap_ride_dashboards_bp
 from .oap_ride_runtime_routes import bp as oap_ride_runtime_bp
 from .oap_ride_journey_views import bp as oap_ride_journey_bp
@@ -20,6 +20,7 @@ from .oap_ride_commercial_routes import bp as oap_ride_commercial_bp
 from .oap_ride_payment_bridge_routes import bp as oap_ride_payment_bridge_bp
 from .oap_ride_driver_accessibility_routes import bp as oap_ride_driver_accessibility_bp
 from .oap_ride_ops_routes import bp as oap_ride_ops_bp
+from .travel_transport_views import bp as travel_transport_booking_bp
 
 bp = Blueprint("oap_global_transport", __name__)
 bp.register_blueprint(oap_ride_dashboards_bp)
@@ -31,6 +32,7 @@ bp.register_blueprint(oap_ride_commercial_bp)
 bp.register_blueprint(oap_ride_payment_bridge_bp)
 bp.register_blueprint(oap_ride_driver_accessibility_bp)
 bp.register_blueprint(oap_ride_ops_bp)
+bp.register_blueprint(travel_transport_booking_bp)
 
 PUBLIC_DOORS = (
     ("Journey", "End-to-end multimodal journey planning"),
@@ -65,81 +67,69 @@ RIDE_API_MAP = {
 }
 
 LIVE_EXECUTION_GATES = {
-    "carrier_dispatch": False,
-    "ride_dispatch": False,
-    "ticket_issuance": False,
-    "fare_capture": False,
-    "payment_movement": False,
-    "customs_clearance": False,
-    "external_tracking_feed": False,
-    "vehicle_control": False,
+    key: False for key in transport_execution_evidence.EXECUTION_REQUIREMENTS
 }
 
 
 EXECUTION_READINESS = {
-    "carrier_dispatch": {
+    key: {
         "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("licensed_carrier_binding", "capacity_evidence", "dispatch_receipt"),
-    },
-    "ride_dispatch": {
-        "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("eligible_driver_binding", "vehicle_evidence", "dispatch_receipt"),
-    },
-    "ticket_issuance": {
-        "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("issuer_authority", "inventory_or_entitlement_proof", "issued_ticket_receipt"),
-    },
-    "fare_capture": {
-        "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("regulated_payment_executor", "customer_authorisation", "capture_receipt"),
-    },
-    "payment_movement": {
-        "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("regulated_payment_executor", "submission_evidence", "settlement_evidence"),
-    },
-    "customs_clearance": {
-        "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("customs_authority_or_broker_binding", "declaration_reference", "clearance_receipt"),
-    },
-    "external_tracking_feed": {
-        "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("tracking_source_binding", "consent", "fresh_signed_or_verified_observation"),
-    },
-    "vehicle_control": {
-        "software_ready": True,
-        "live_execution_authorised": False,
-        "requires": ("vehicle_identity_binding", "device_or_oem_authority", "command_receipt"),
-    },
+        "requires": requirements,
+    }
+    for key, requirements in transport_execution_evidence.EXECUTION_REQUIREMENTS.items()
 }
 
 
+def live_execution_gates() -> dict[str, bool]:
+    evidence = transport_execution_evidence.status()
+    areas = evidence.get("areas") if isinstance(evidence.get("areas"), dict) else {}
+    return {
+        key: bool(
+            isinstance(areas.get(key), dict)
+            and areas[key].get("live_execution_authorised") is True
+        )
+        for key in EXECUTION_READINESS
+    }
+
+
 def execution_readiness() -> dict[str, object]:
+    evidence = transport_execution_evidence.status()
+    evidence_areas = (
+        evidence.get("areas") if isinstance(evidence.get("areas"), dict) else {}
+    )
+    areas = {}
+    for key, value in EXECUTION_READINESS.items():
+        evidence_area = evidence_areas.get(key)
+        if not isinstance(evidence_area, dict):
+            evidence_area = {}
+        areas[key] = {
+            "software_ready": bool(value["software_ready"]),
+            "live_execution_authorised": bool(
+                evidence_area.get("live_execution_authorised") is True
+            ),
+            "requires": list(value["requires"]),
+            "verified": list(evidence_area.get("verified") or ()),
+            "missing": list(
+                evidence_area["missing"]
+                if "missing" in evidence_area
+                else value["requires"]
+            ),
+        }
     return {
         "product": "OAP Global Transport",
         "software_execution_layer_ready": all(
             item["software_ready"] for item in EXECUTION_READINESS.values()
         ),
-        "live_execution_authorised": all(
-            item["live_execution_authorised"] for item in EXECUTION_READINESS.values()
+        "live_execution_authorised": bool(areas) and all(
+            item["live_execution_authorised"] for item in areas.values()
         ),
-        "areas": {
-            key: {
-                "software_ready": bool(value["software_ready"]),
-                "live_execution_authorised": bool(value["live_execution_authorised"]),
-                "requires": list(value["requires"]),
-            }
-            for key, value in EXECUTION_READINESS.items()
-        },
+        "areas": areas,
+        "evidence_store_reachable": bool(evidence.get("store_reachable")),
+        "software_verified_external_authenticity": False,
         "truth_boundary": (
-            "Software execution contracts are installed. External or physical execution "
-            "remains fail-closed until the required real evidence exists."
+            "Software execution contracts are installed. Live execution unlocks only "
+            "from reviewed VERIFIED external evidence references for every required item. "
+            "Recording a reference does not make its external authenticity software-verified."
         ),
         "human_authority_final": True,
     }
@@ -160,10 +150,10 @@ def status() -> dict[str, object]:
         "existing_transport_intelligence_reused": True,
         "post_core_authoritative_for_parcels": True,
         "human_authority_final": True,
-        "live_execution_gates": dict(LIVE_EXECUTION_GATES),
+        "live_execution_gates": live_execution_gates(),
         "execution_readiness": execution_readiness(),
-        "live_external_transport_execution": False,
-        "mission_scope": "software_and_digital_only",
+        "live_external_transport_execution": execution_readiness()["live_execution_authorised"],
+        "mission_scope": "software_plus_evidence_gated_execution",
         "physical_operations_in_scope": False,
         "truth_boundary": (
             "Install-ready OAP software and digital coordination surface only. "
@@ -246,6 +236,76 @@ def transport_capabilities():
 @bp.get("/transport/execution-readiness")
 def transport_execution_readiness():
     return _no_store(jsonify(execution_readiness()))
+
+
+@bp.post("/transport/execution-evidence")
+@web_security.login_required(api=True, founder_only=True)
+def transport_execution_evidence_record():
+    """Record one Founder-reviewed external execution evidence reference."""
+
+    if not web_security.csrf_valid(request):
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "csrf_failed", "message": "Secure session required."}),
+                403,
+            )
+        )
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "authentication_required", "message": "Founder sign-in required."}),
+                401,
+            )
+        )
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "invalid_request", "message": "A JSON object is required."}),
+                400,
+            )
+        )
+    try:
+        receipt = transport_execution_evidence.record_evidence_reference(
+            identity_id=str(user["id"]),
+            area=payload.get("area"),
+            requirement=payload.get("requirement"),
+            evidence_ref=payload.get("evidence_ref"),
+            evidence_hash=payload.get("evidence_hash"),
+            issuer=payload.get("issuer"),
+            scope=payload.get("scope"),
+            attestor_type=payload.get("attestor_type"),
+            verification_state=payload.get("verification_state"),
+        )
+    except authority.HumanAuthorityRequired:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "human_authority_required", "message": "Level-zero Human Authority required."}),
+                403,
+            )
+        )
+    except ValueError as exc:
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "invalid_execution_evidence", "message": str(exc)}),
+                400,
+            )
+        )
+    except Exception:  # noqa: BLE001 - evidence intake fails closed.
+        return _no_store(
+            make_response(
+                jsonify(error={"code": "execution_evidence_unavailable", "message": "Evidence could not be recorded safely."}),
+                503,
+            )
+        )
+    return _no_store(
+        jsonify(
+            receipt=receipt,
+            execution_readiness=execution_readiness(),
+            human_authority_final=True,
+        )
+    )
 
 
 @bp.get("/transport/ride")
