@@ -20,6 +20,11 @@ class _Result:
     def fetchone(self):
         return self.row
 
+    def fetchall(self):
+        if self.row is None:
+            return []
+        return [self.row]
+
 
 class _Connection:
     def __init__(self, steps):
