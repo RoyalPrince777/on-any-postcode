@@ -211,9 +211,9 @@ def test_human_ai_boundary_keeps_identity_experience_and_authority_distinct():
 
 def test_completion_contract_reflects_governed_a5_a6_runtime_state(monkeypatch):
     monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A6")
-    monkeypatch.setenv("OAP_A5_ENABLED", "true")
-    monkeypatch.setenv("OAP_A6_ENABLED", "true")
-    monkeypatch.setenv("OAP_A6_MATRIX_CONTROL", "true")
+    monkeypatch.setattr(autonomy_levels, "A5_ENABLED", True)
+    monkeypatch.setattr(autonomy_levels, "A6_ENABLED", True)
+    monkeypatch.setattr(autonomy_levels, "A6_MATRIX_CONTROL", True)
 
     status = smi_completion_contract.completion_status()
     rows = {item["check"]: item for item in status["completion_checks"]}
