@@ -194,6 +194,8 @@ def on_starting(server):
                     "local_reason": home_node.get("reason"),
                     "bridge_configured": bridge.get("configured"),
                     "worker_recently_seen": bridge.get("worker_recently_seen"),
+                    "durable_worker_fresh": bridge.get("durable_worker_fresh"),
+                    "worker_ready": bridge.get("worker_ready"),
                     "first_party_inference_ready": inference_probe.get("first_party_inference_ready"),
                     "compatibility_fallback_configured": inference_probe.get(
                         "compatibility_fallback_configured"
@@ -213,6 +215,8 @@ def on_starting(server):
                     "local_reason": "probe_failed",
                     "bridge_configured": False,
                     "worker_recently_seen": False,
+                    "durable_worker_fresh": False,
+                    "worker_ready": False,
                     "first_party_inference_ready": False,
                     "compatibility_fallback_configured": bool(
                         os.environ.get("OPENAI_API_KEY", "").strip()
