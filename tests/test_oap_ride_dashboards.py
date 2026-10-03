@@ -21,7 +21,7 @@ def test_rider_dashboard_buttons_are_real_links():
     assert b"/movement/workspace#book-title" in data
     assert b"/movement/workspace#bookings-title" in data
     assert b"/movement/workspace#member-matches-title" in data
-    assert b"/pay" in data
+    assert b"/transport/ride/driver/earnings" in data
 
 
 def test_driver_dashboard_buttons_are_real_links():
