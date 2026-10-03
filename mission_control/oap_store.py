@@ -384,7 +384,7 @@ def transport_manifest():
             {
                 "name": "Travel",
                 "short_name": "Travel",
-                "url": "/transport/travel/status?source=oap-transport",
+                "url": "/travel?source=oap-transport",
                 "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}],
             },
         ],
