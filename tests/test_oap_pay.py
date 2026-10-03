@@ -60,3 +60,45 @@ def test_oap_pay_fail_closes_regulated_features(monkeypatch):
     for item in status["features"]:
         if item["capability"] is not None:
             assert item["enabled"] is False
+
+
+def test_oap_pay_exposes_primary_more_and_regulated_menus(monkeypatch):
+    monkeypatch.setattr(
+        oap_pay.sika_execution_gate,
+        "capability_matrix",
+        lambda: {
+            "execute_payments": False,
+            "hold_customer_funds": False,
+            "issue_payment_cards": False,
+            "cash_out": False,
+            "foreign_exchange": False,
+            "bank_accounts": False,
+        },
+    )
+    status = oap_pay.public_status()
+    assert [item["id"] for item in status["primary_menu"]] == [
+        "home", "pay", "request", "activity", "sika"
+    ]
+    assert [item["id"] for item in status["more_menu"]] == [
+        "wallet", "business", "treasury", "rights", "guardian", "smi-pay", "settings"
+    ]
+    regulated = {item["id"]: item for item in status["regulated_menu"]}
+    assert set(regulated) == {"cards", "cash", "fx", "bank"}
+    assert all(item["enabled"] is False for item in regulated.values())
+
+
+def test_oap_pay_page_contains_mobile_nav_and_more_drawer(client):
+    page = client.get("/pay")
+    body = page.get_data(as_text=True)
+    assert 'aria-label="OAP Pay navigation"' in body
+    assert ">Home</a>" in body
+    assert ">Pay</a>" in body
+    assert ">Request</a>" in body
+    assert ">Activity</a>" in body
+    assert ">My SIKA</a>" in body
+    assert 'id="moreDrawer"' in body
+    assert "Regulated capabilities" in body
+    assert "Cards" in body
+    assert "Cash / Post Office" in body
+    assert "FX" in body
+    assert "Bank" in body
