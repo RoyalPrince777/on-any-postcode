@@ -20,6 +20,13 @@ from . import (
 
 bp = Blueprint("oap_pay", __name__)
 
+PHONE_PAYMENT_METHODS = (
+    {"id": "qr", "name": "Scan QR", "enabled": True, "requires": None},
+    {"id": "link", "name": "Payment Link", "enabled": True, "requires": None},
+    {"id": "tap", "name": "Tap to Pay", "enabled": False, "requires": "contactless_provider_authority"},
+    {"id": "phone", "name": "Phone-to-Phone", "enabled": False, "requires": "contactless_provider_authority"},
+)
+
 FEATURES = (
     {"id": "home", "name": "Home", "capability": None, "section": "primary"},
     {"id": "pay", "name": "Pay", "capability": "execute_payments", "section": "primary"},
@@ -62,6 +69,7 @@ def public_status() -> dict[str, Any]:
         "system": "OAP Pay",
         "tagline": "One OAP payment door.",
         "features": features,
+        "phone_payment_methods": [dict(item) for item in PHONE_PAYMENT_METHODS],
         "primary_menu": [item for item in features if item["section"] == "primary"],
         "more_menu": [item for item in features if item["section"] == "more"],
         "regulated_menu": [item for item in features if item["section"] == "regulated"],
