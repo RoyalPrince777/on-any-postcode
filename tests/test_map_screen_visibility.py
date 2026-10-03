@@ -119,3 +119,13 @@ def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     assert "tiles.map(([x,y])=>fetchRoadTile(z,x,y,mode))" in template
     assert "tiles.map(async([x,y])=>{const r=await fetch(" not in template
     assert "Road network unavailable — route guidance may still work." in template
+
+
+def test_route_draw_preserves_existing_road_layer():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    draw_section = template.split("function draw(coords){", 1)[1].split(
+        "function lon2x", 1
+    )[0]
+
+    assert "if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);" in draw_section
+    assert "svg.hidden=false;loadRoadNetwork(bounds,profile.value);return true" not in draw_section
