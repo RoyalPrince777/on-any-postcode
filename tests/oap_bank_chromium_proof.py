@@ -43,7 +43,10 @@ def main():
             expect(page.locator('[aria-label="Quick actions"]')).to_be_visible()
             expect(page.get_by_text("My accounts", exact=True)).to_be_visible()
             expect(page.get_by_text("Recent activity", exact=True)).to_be_visible()
-            expect(page.locator("#more")).to_be_visible()
+            more_panel = page.locator("#more")
+            expect(more_panel).to_be_visible()
+            page.get_by_text("More", exact=True).last.click()
+            assert more_panel.get_attribute("open") is not None
 
             page.get_by_text("Accounts", exact=True).last.click()
             page.wait_for_url("**/pay/bank/accounts")
@@ -63,6 +66,15 @@ def main():
 
             manifest_href = page.locator('link[rel="manifest"]').get_attribute("href")
             assert manifest_href == "/pay/bank/manifest.webmanifest"
+
+            page.goto(BASE + "/pay/bank/cards", wait_until="domcontentloaded")
+            nav = page.locator('[aria-label="OAP Bank navigation"]')
+            expect(nav).to_be_visible()
+            expect(nav.get_by_text("Home", exact=True)).to_be_visible()
+            expect(nav.get_by_text("Accounts", exact=True)).to_be_visible()
+            expect(nav.get_by_text("Transfers", exact=True)).to_be_visible()
+            expect(nav.get_by_text("Activity", exact=True)).to_be_visible()
+            expect(nav.get_by_text("More", exact=True)).to_be_visible()
 
             assert not errors, errors
             print("OAP_BANK_REAL_CHROMIUM_PASS")
