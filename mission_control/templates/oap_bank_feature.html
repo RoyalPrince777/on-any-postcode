@@ -44,6 +44,11 @@
 <section class="panel"><h2>Rights & Remedy</h2><p>Explanations, integrity checks, dispute/remedy references and human-authority boundaries remain available even when regulated execution is locked.</p></section>
 {% elif view.feature.id == 'guardian' %}
 <section class="panel"><h2>Guardian</h2><p>Guardian can surface review warnings but cannot determine guilt, confiscate automatically or create banking authority.</p></section>
+{% elif view.feature.id == 'intelligence' %}
+<section class="panel"><h2>All Bank Intelligence</h2><p>{{ view.intelligence.domain_count }} first-party intelligence domains are connected to this Bank intelligence view.</p></section>
+{% for item in view.intelligence.domains %}
+<section class="panel" id="intel-{{ item.id }}"><h2>{{ loop.index }}. {{ item.name }}</h2><p>{{ item.id }}</p></section>
+{% endfor %}
 {% else %}
 <section class="panel"><h2>{{ view.feature.name }}</h2><p>This module is wired into the Bank app and inherits the same capability/evidence gates as the Bank core.</p></section>
 {% endif %}
