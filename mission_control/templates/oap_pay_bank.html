@@ -62,5 +62,15 @@
 <a class="nav" href="/pay/bank/activity"><strong>≡</strong>Activity</a>
 <a class="nav" href="#more"><strong>•••</strong>More</a>
 </nav>
+<script>
+(() => {
+  const morePanel = document.getElementById('more');
+  const openMore = () => {
+    if (morePanel && location.hash === '#more') morePanel.open = true;
+  };
+  openMore();
+  window.addEventListener('hashchange', openMore);
+})();
+</script>
 </body>
 </html>
