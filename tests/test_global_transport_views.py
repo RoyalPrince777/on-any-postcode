@@ -20,7 +20,7 @@ def test_global_transport_contract_is_install_ready_without_false_live_claims():
     assert state["post_core_authoritative_for_parcels"] is True
     assert state["human_authority_final"] is True
     assert state["live_external_transport_execution"] is False
-    assert state["mission_scope"] == "software_and_digital_only"
+    assert state["mission_scope"] == "software_plus_evidence_gated_execution"
     assert state["physical_operations_in_scope"] is False
     assert all(value is False for value in state["live_execution_gates"].values())
 
@@ -123,3 +123,65 @@ def test_execution_readiness_route_is_no_store():
     payload = response.get_json()
     assert payload["software_execution_layer_ready"] is True
     assert payload["live_execution_authorised"] is False
+
+
+def test_execution_readiness_uses_verified_evidence_per_area(monkeypatch):
+    monkeypatch.setattr(
+        global_transport_views.transport_execution_evidence,
+        "status",
+        lambda: {
+            "store_reachable": True,
+            "areas": {
+                "ride_dispatch": {
+                    "verified": [
+                        "eligible_driver_binding",
+                        "vehicle_evidence",
+                        "dispatch_receipt",
+                    ],
+                    "missing": [],
+                    "live_execution_authorised": True,
+                },
+                "payment_movement": {
+                    "verified": ["regulated_payment_executor"],
+                    "missing": ["submission_evidence", "settlement_evidence"],
+                    "live_execution_authorised": False,
+                },
+            },
+        },
+    )
+
+    state = global_transport_views.execution_readiness()
+    assert state["areas"]["ride_dispatch"]["live_execution_authorised"] is True
+    assert state["areas"]["ride_dispatch"]["missing"] == []
+    assert state["areas"]["payment_movement"]["live_execution_authorised"] is False
+    assert state["areas"]["payment_movement"]["missing"] == [
+        "submission_evidence",
+        "settlement_evidence",
+    ]
+    assert state["live_execution_authorised"] is False
+
+
+def test_live_execution_gates_fail_closed_for_unproven_areas(monkeypatch):
+    monkeypatch.setattr(
+        global_transport_views.transport_execution_evidence,
+        "status",
+        lambda: {
+            "store_reachable": True,
+            "areas": {
+                "ride_dispatch": {
+                    "verified": [
+                        "eligible_driver_binding",
+                        "vehicle_evidence",
+                        "dispatch_receipt",
+                    ],
+                    "missing": [],
+                    "live_execution_authorised": True,
+                },
+            },
+        },
+    )
+
+    gates = global_transport_views.live_execution_gates()
+    assert gates["ride_dispatch"] is True
+    assert gates["carrier_dispatch"] is False
+    assert gates["payment_movement"] is False
