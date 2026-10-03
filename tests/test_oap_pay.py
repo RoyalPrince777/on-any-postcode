@@ -316,3 +316,54 @@ def test_oap_bank_page_contains_full_app_structure(client):
     assert ">Transfers</a>" in body
     assert ">Activity</a>" in body
     assert ">More</a>" in body
+
+
+def test_oap_bank_feature_routes_are_real_and_fail_closed(client, monkeypatch):
+    monkeypatch.setattr(
+        oap_pay.sika_execution_gate,
+        "capability_matrix",
+        lambda: {
+            "accept_deposits": False,
+            "issue_redeemable_sika": False,
+            "execute_payments": False,
+            "hold_customer_funds": False,
+            "issue_payment_cards": False,
+            "cash_out": False,
+            "foreign_exchange": False,
+            "bank_accounts": False,
+        },
+    )
+    for feature in (
+        "accounts", "sika", "transfers", "activity", "cards", "cash", "fx",
+        "deposits", "wallet", "rights", "guardian", "settings", "control-center"
+    ):
+        response = client.get(f"/pay/bank/{feature}")
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "no-store"
+
+    accounts = client.get("/pay/bank/accounts").get_data(as_text=True)
+    assert "Accounts" in accounts
+    assert "Evidence-gated / unavailable" in accounts
+    assert "does not fabricate balances" in accounts
+
+    transfers = client.get("/pay/bank/transfers").get_data(as_text=True)
+    assert "Payment-intent lifecycle" in transfers
+    assert "Money movement: off" in transfers
+
+    rights = client.get("/pay/bank/rights").get_data(as_text=True)
+    assert "Rights &amp; Remedy" in rights
+    assert "human-authority boundaries" in rights
+
+    missing = client.get("/pay/bank/not-a-feature")
+    assert missing.status_code == 404
+    assert missing.headers["Cache-Control"] == "no-store"
+
+
+def test_oap_bank_home_links_to_real_feature_routes(client):
+    body = client.get("/pay/bank").get_data(as_text=True)
+    assert 'href="/pay/bank/accounts"' in body
+    assert 'href="/pay/bank/transfers"' in body
+    assert 'href="/pay/bank/activity"' in body
+    assert 'href="/pay/bank/cards"' in body
+    assert 'href="/pay/bank/rights"' in body
+    assert 'href="/pay/bank/control-center"' in body
