@@ -112,7 +112,7 @@ def test_oap_os_generation_zero_map_binding_is_truthful_and_consent_safe():
 def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "const ROAD_TILE_TIMEOUT_MS=4000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=15000;" in template
     assert "const controller=new AbortController();" in template
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
