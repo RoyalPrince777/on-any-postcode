@@ -185,3 +185,14 @@ def test_live_execution_gates_fail_closed_for_unproven_areas(monkeypatch):
     assert gates["ride_dispatch"] is True
     assert gates["carrier_dispatch"] is False
     assert gates["payment_movement"] is False
+
+
+def test_transport_execution_evidence_source_is_hash_only_for_sensitive_fields():
+    source = open("mission_control/transport_execution_evidence.py", encoding="utf-8").read()
+    metadata_block = source.split("metadata={", 1)[1].split("}", 1)[0]
+    assert '"evidence_ref": ref' not in metadata_block
+    assert '"issuer": issuer_value' not in metadata_block
+    assert '"scope": scope_value' not in metadata_block
+    assert '"evidence_ref_hash"' in metadata_block
+    assert '"issuer_hash"' in metadata_block
+    assert '"scope_hash"' in metadata_block
