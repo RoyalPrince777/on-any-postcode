@@ -197,3 +197,31 @@ def bank_status_api():
     response = jsonify(bank_status())
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@bp.get("/pay/bank/manifest.webmanifest")
+def bank_manifest():
+    manifest = {
+        "id": "/pay/bank",
+        "name": "OAP Bank",
+        "short_name": "OAP Bank",
+        "description": "Evidence-gated OAP Bank capability and readiness dashboard.",
+        "start_url": "/pay/bank",
+        "scope": "/pay/bank",
+        "display": "standalone",
+        "background_color": "#050706",
+        "theme_color": "#050706",
+        "icons": [
+            {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png"},
+        ],
+        "shortcuts": [
+            {"name": "Bank Status", "short_name": "Status", "url": "/pay/bank"},
+            {"name": "Capability Status", "short_name": "Capabilities", "url": "/pay/bank#capabilities"},
+            {"name": "OAP Pay", "short_name": "OAP Pay", "url": "/pay"},
+        ],
+    }
+    response = jsonify(manifest)
+    response.content_type = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
