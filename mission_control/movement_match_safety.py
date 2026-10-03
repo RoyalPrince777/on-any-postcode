@@ -1,3 +1,4 @@
+# ruff: noqa: BLE001
 """Race-safe certified matching boundary for OAP Movement.
 
 This store subclasses the existing Movement persistence layer but hardens the
