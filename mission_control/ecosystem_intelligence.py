@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from . import matrix_signal_bus, workspaces
+from . import matrix_signal_bus, workspaces, world_observation
 
 HIERARCHY: tuple[str, ...] = (
     "Human Authority",
@@ -210,6 +210,12 @@ def _normalise_signal(signal: Mapping[str, Any]) -> dict[str, Any]:
     recommendation = str(signal.get("recommendation") or "").strip()
     risk = str(signal.get("risk") or "").strip()
     opportunity = str(signal.get("opportunity") or "").strip()
+    raw_observation = signal.get("observation")
+    observation = (
+        world_observation.normalise(raw_observation)
+        if raw_observation is not None
+        else None
+    )
 
     return {
         "domain": domain,
@@ -225,6 +231,7 @@ def _normalise_signal(signal: Mapping[str, Any]) -> dict[str, Any]:
         "recommendation": recommendation,
         "risk": risk,
         "opportunity": opportunity,
+        "observation": observation,
     }
 
 
@@ -335,6 +342,7 @@ def status() -> dict[str, Any]:
         ),
         "time_horizons": TIME_HORIZONS,
         "truth_states": TRUTH_STATES,
+        "world_observation": world_observation.status(),
         "geography_levels": GEOGRAPHY_LEVELS,
         "pressure_dimensions": PRESSURE_DIMENSIONS,
         "intelligence_cycle": INTELLIGENCE_CYCLE,
@@ -422,6 +430,28 @@ def analyse(
         for item in items
         if item["truth_state"] == "forecast" or item["horizon"] == "next"
     )
+    observations = tuple(
+        item["observation"] for item in items if item.get("observation") is not None
+    )
+    observation_evidence_mix = {
+        evidence_class: sum(
+            1
+            for observation in observations
+            if observation["evidence_class"] == evidence_class
+        )
+        for evidence_class in world_observation.EVIDENCE_CLASSES
+    }
+    observation_freshness_mix = {
+        freshness_state: sum(
+            1
+            for observation in observations
+            if observation["freshness_state"] == freshness_state
+        )
+        for freshness_state in world_observation.FRESHNESS_STATES
+    }
+    live_observation_count = sum(
+        bool(observation["live_claim_allowed"]) for observation in observations
+    )
 
     explanation = (
         f"{len(items)} evidence-bound signals across {len(domains)} domains indicate "
@@ -463,6 +493,15 @@ def analyse(
         "affected_systems": affected_systems,
         "evidence": evidence,
         "forecast": forecasts,
+        "observations": observations,
+        "observation_count": len(observations),
+        "live_observation_count": live_observation_count,
+        "observation_evidence_mix": observation_evidence_mix,
+        "observation_freshness_mix": observation_freshness_mix,
+        "stale_or_expired_observation_present": any(
+            observation["freshness_state"] in {"stale", "expired"}
+            for observation in observations
+        ),
         "risks": risks,
         "opportunities": opportunities,
         "recommendations": recommendations,
