@@ -227,7 +227,7 @@ def test_oap_bank_has_dedicated_install_manifest(client):
     assert manifest["display"] == "standalone"
     assert {item["url"] for item in manifest["shortcuts"]} == {
         "/pay/bank",
-        "/pay/bank#capabilities",
+        "/pay/bank/accounts",
         "/pay",
     }
 
@@ -401,3 +401,60 @@ def test_oap_bank_balance_is_first_and_not_fabricated(client):
     assert "No authenticated account selected" in body
     assert "£0.00" not in body
     assert "0.00 SIKA" not in body
+
+
+def test_oap_bank_all_visible_routes_resolve(client):
+    routes = (
+        "/pay/bank",
+        "/pay/bank/accounts",
+        "/pay/bank/transfers",
+        "/pay/bank/activity",
+        "/pay/bank/sika",
+        "/pay/bank/cards",
+        "/pay/bank/cash",
+        "/pay/bank/fx",
+        "/pay/bank/deposits",
+        "/pay/bank/wallet",
+        "/pay/bank/intelligence",
+        "/pay/bank/rights",
+        "/pay/bank/guardian",
+        "/pay/bank/settings",
+        "/pay/bank/control-center",
+        "/pay/bank/status",
+        "/pay/bank/intelligence/status",
+        "/pay/bank/manifest.webmanifest",
+        "/pay",
+    )
+    for route in routes:
+        response = client.get(route)
+        assert response.status_code == 200, route
+
+
+def test_oap_bank_home_visible_links_are_not_dead(client):
+    body = client.get("/pay/bank").get_data(as_text=True)
+    expected_links = (
+        "/pay/bank/transfers",
+        "/pay",
+        "/pay/bank/cards",
+        "/pay/bank/accounts",
+        "/pay/bank/sika",
+        "/pay/bank/activity",
+        "/pay/bank/intelligence",
+        "/pay/bank/rights",
+        "/pay/bank/guardian",
+        "/pay/bank/settings",
+        "/pay/bank/control-center",
+        "#more",
+    )
+    for href in expected_links:
+        assert f'href="{href}"' in body
+
+
+def test_oap_bank_feature_screens_keep_bank_navigation(client):
+    body = client.get("/pay/bank/cards").get_data(as_text=True)
+    assert 'aria-label="OAP Bank navigation"' in body
+    assert 'href="/pay/bank"' in body
+    assert 'href="/pay/bank/accounts"' in body
+    assert 'href="/pay/bank/transfers"' in body
+    assert 'href="/pay/bank/activity"' in body
+    assert 'href="/pay/bank#more"' in body
