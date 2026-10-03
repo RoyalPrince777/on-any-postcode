@@ -814,6 +814,60 @@ def smi_founder_library():
         )
 
 
+@bp.post("/ui/interaction-proof")
+@web_security.login_required(api=True, founder_only=True)
+def smi_interaction_proof():
+    """Persist one signed, release-bound surface proof after runtime acknowledgement."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+
+    surface_id = str(payload.get("surface_id") or "").strip()
+    runtime_instance_id = str(payload.get("runtime_instance_id") or "").strip()
+    interaction_id = str(payload.get("interaction_id") or "").strip()
+    try:
+        status_code = int(payload.get("status_code") or 0)
+    except (TypeError, ValueError):
+        status_code = 0
+
+    result = smi_receipt_backend.write_interaction_surface_live_proof(
+        surface_id=surface_id,
+        runtime_instance_id=runtime_instance_id,
+        interaction_id=interaction_id,
+        status_code=status_code,
+        runtime_acknowledged=payload.get("runtime_acknowledged") is True,
+        interaction_completed=payload.get("interaction_completed") is True,
+    )
+    if not result.get("ok"):
+        return _error(
+            "interaction_proof_not_recorded",
+            "The interaction was not eligible for durable certification.",
+            409,
+        )
+    return _no_store(
+        make_response(
+            jsonify(
+                proven=True,
+                surface_id=surface_id,
+                chronicle_receipt={
+                    "receipt_id": result.get("receipt_id"),
+                    "durable": bool(result.get("durable")),
+                    "backend": result.get("backend"),
+                },
+                whole_interaction_green=False,
+                human_authority_final=True,
+            )
+        )
+    )
+
+
 @bp.post("/ui/button-proof")
 @web_security.login_required(api=True, founder_only=True)
 def smi_button_proof():
