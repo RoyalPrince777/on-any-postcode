@@ -1,7 +1,7 @@
 """Authenticated OAP Ride Guardian APIs."""
 from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, request
-from . import oap_ride_guardian, web_security
+from . import oap_ride_guardian, oap_ride_private_geometry, web_security
 
 bp=Blueprint("oap_ride_guardian_routes",__name__)
 
@@ -68,6 +68,34 @@ def guardian_analyse(booking_id:str):
             identity_id=identity,
             stop_minutes=body.get("stop_minutes",8),
             stop_radius_m=body.get("stop_radius_m",40),
+        )
+        return _no_store(make_response(jsonify(result),200))
+    except Exception as exc: return _translate(exc)
+
+
+@bp.post("/transport/ride/bookings/<booking_id>/private-route")
+@web_security.login_required(api=True)
+def private_route(booking_id:str):
+    identity=_identity()
+    if g:=_guard(identity): return g
+    try:
+        result=oap_ride_private_geometry.prove_and_store(
+            booking_id=booking_id,identity_id=identity
+        )
+        return _no_store(make_response(jsonify(result),201))
+    except Exception as exc: return _translate(exc)
+
+@bp.post("/transport/ride/bookings/<booking_id>/guardian/deviation")
+@web_security.login_required(api=True)
+def guardian_deviation(booking_id:str):
+    identity=_identity()
+    if g:=_guard(identity): return g
+    try:
+        body=request.get_json(silent=True) or {}
+        result=oap_ride_guardian.analyse_route_deviation(
+            booking_id=booking_id,
+            identity_id=identity,
+            deviation_threshold_m=body.get("deviation_threshold_m",250),
         )
         return _no_store(make_response(jsonify(result),200))
     except Exception as exc: return _translate(exc)
