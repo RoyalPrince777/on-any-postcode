@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from . import postgres_db
+from . import postgres_db, oap_ride_payment_bridge
 
 RIDE_RUNTIME_MIGRATION = "0001_oap_ride_runtime"
 TABLES = frozenset({
@@ -200,14 +200,30 @@ def complete(*, booking_id: object, driver_identity_id: object) -> dict[str, Any
             raise PermissionError("accepted_driver_required")
         if state != "IN_PROGRESS":
             raise ValueError("ride_not_in_progress")
-        payment = connection.execute(
-            """SELECT state,amount_minor,currency FROM oap_movement_payment_intents
-               WHERE booking_id=%s ORDER BY created_at DESC LIMIT 1""",
-            (booking,),
-        ).fetchone()
-        payment_state = str(payment[0]) if payment else "NOT_CREATED"
-        amount = int(payment[1]) if payment else None
-        currency = str(payment[2]) if payment else None
+        try:
+            payment_projection = oap_ride_payment_bridge.projection(booking_id=booking)
+        except Exception:
+            payment_projection = {
+                "bound": False,
+                "payment_status": "BRIDGE_UNAVAILABLE",
+                "amount_minor": None,
+                "currency": None,
+                "submission_evidence": None,
+                "settlement_proven": False,
+            }
+        if payment_projection.get("bound"):
+            payment_state = str(payment_projection.get("payment_status") or "UNKNOWN")
+            amount = payment_projection.get("amount_minor")
+            currency = payment_projection.get("currency")
+        else:
+            payment = connection.execute(
+                """SELECT state,amount_minor,currency FROM oap_movement_payment_intents
+                   WHERE booking_id=%s ORDER BY created_at DESC LIMIT 1""",
+                (booking,),
+            ).fetchone()
+            payment_state = str(payment[0]) if payment else str(payment_projection.get("payment_status") or "NOT_CREATED")
+            amount = int(payment[1]) if payment else None
+            currency = str(payment[2]) if payment else None
         completed = connection.execute(
             """UPDATE oap_movement_bookings SET state='COMPLETED',updated_at=CURRENT_TIMESTAMP
                WHERE booking_id=%s AND state='IN_PROGRESS' RETURNING updated_at""",
@@ -235,6 +251,9 @@ def complete(*, booking_id: object, driver_identity_id: object) -> dict[str, Any
         "amount_minor": amount,
         "currency": currency,
         "receipt_recorded": True,
+        "canonical_sika_payment_bound": bool(payment_projection.get("bound")),
+        "submission_evidence": payment_projection.get("submission_evidence"),
+        "settlement_proven": bool(payment_projection.get("settlement_proven")),
         "payment_captured_by_ride_runtime": False,
         "physical_operation_performed": False,
     }
@@ -254,12 +273,19 @@ def receipt(*, booking_id: object, identity_id: object) -> dict[str, Any]:
         ).fetchone()
     if row is None:
         raise PermissionError("ride_receipt_not_available")
+    try:
+        payment_projection = oap_ride_payment_bridge.projection(booking_id=booking)
+    except Exception:
+        payment_projection = {"bound": False, "submission_evidence": None, "settlement_proven": False}
     return {
         "booking_id": booking,
         "completed_at": row[0].isoformat(),
         "payment_state": str(row[1]),
         "amount_minor": int(row[2]) if row[2] is not None else None,
         "currency": str(row[3]) if row[3] else None,
+        "canonical_sika_payment_bound": bool(payment_projection.get("bound")),
+        "submission_evidence": payment_projection.get("submission_evidence"),
+        "settlement_proven": bool(payment_projection.get("settlement_proven")),
     }
 
 
