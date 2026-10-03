@@ -76,6 +76,75 @@ LIVE_EXECUTION_GATES = {
 }
 
 
+EXECUTION_READINESS = {
+    "carrier_dispatch": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("licensed_carrier_binding", "capacity_evidence", "dispatch_receipt"),
+    },
+    "ride_dispatch": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("eligible_driver_binding", "vehicle_evidence", "dispatch_receipt"),
+    },
+    "ticket_issuance": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("issuer_authority", "inventory_or_entitlement_proof", "issued_ticket_receipt"),
+    },
+    "fare_capture": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("regulated_payment_executor", "customer_authorisation", "capture_receipt"),
+    },
+    "payment_movement": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("regulated_payment_executor", "submission_evidence", "settlement_evidence"),
+    },
+    "customs_clearance": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("customs_authority_or_broker_binding", "declaration_reference", "clearance_receipt"),
+    },
+    "external_tracking_feed": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("tracking_source_binding", "consent", "fresh_signed_or_verified_observation"),
+    },
+    "vehicle_control": {
+        "software_ready": True,
+        "live_execution_authorised": False,
+        "requires": ("vehicle_identity_binding", "device_or_oem_authority", "command_receipt"),
+    },
+}
+
+
+def execution_readiness() -> dict[str, object]:
+    return {
+        "product": "OAP Global Transport",
+        "software_execution_layer_ready": all(
+            item["software_ready"] for item in EXECUTION_READINESS.values()
+        ),
+        "live_execution_authorised": all(
+            item["live_execution_authorised"] for item in EXECUTION_READINESS.values()
+        ),
+        "areas": {
+            key: {
+                "software_ready": bool(value["software_ready"]),
+                "live_execution_authorised": bool(value["live_execution_authorised"]),
+                "requires": list(value["requires"]),
+            }
+            for key, value in EXECUTION_READINESS.items()
+        },
+        "truth_boundary": (
+            "Software execution contracts are installed. External or physical execution "
+            "remains fail-closed until the required real evidence exists."
+        ),
+        "human_authority_final": True,
+    }
+
+
 def status() -> dict[str, object]:
     return {
         "product": "OAP Global Transport",
@@ -170,6 +239,11 @@ def transport_capabilities():
         "live_execution_gates": state["live_execution_gates"],
         "human_authority_final": True,
     }))
+
+
+@bp.get("/transport/execution-readiness")
+def transport_execution_readiness():
+    return _no_store(jsonify(execution_readiness()))
 
 
 @bp.get("/transport/ride")
