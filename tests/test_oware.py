@@ -52,9 +52,11 @@ def test_grand_slam_capture_is_forfeited_to_avoid_starvation():
     state["players"][1]["captured"] = 23
     state = reseal(state)
     moved = oware.move(state, pit=5, request_id="oware-move-0003")
-    assert moved["players"][0]["captured"] == 23
-    assert sum(moved["pits"][6:]) == 2
     assert moved["request_receipts"][-1]["grand_slam_forfeited"] is True
+    assert moved["status"] == "completed"
+    assert moved["result"] == "no_legal_move"
+    assert sum(moved["pits"]) == 0
+    assert sum(player["captured"] for player in moved["players"]) == oware.TOTAL_SEEDS
 
 
 def test_empty_opponent_must_be_fed_when_possible():
