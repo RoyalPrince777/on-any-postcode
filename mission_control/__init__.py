@@ -49,6 +49,8 @@ def init_app(app: Flask) -> None:
         oap_lab_immutability_migration,
         oap_library_learning,
         oap_ride_runtime,
+        oap_ride_commercial,
+        oap_ride_guardian,
         organism_runtime,
         postgres_db,
         product_cores,
@@ -971,6 +973,25 @@ def init_app(app: Flask) -> None:
     def _oap_init_runtime(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(organism_runtime.init_runtime_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-ride-guardian-status")
+    def _oap_ride_guardian_status() -> None:
+        import json
+        print(json.dumps(oap_ride_guardian.status()))
+
+    @app.cli.command("oap-init-ride-guardian")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_guardian(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_guardian.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-commercial")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_commercial(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_commercial.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-ride-runtime-status")
     def _oap_ride_runtime_status() -> None:
