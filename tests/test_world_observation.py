@@ -251,7 +251,11 @@ def test_registered_source_requires_evidence_bound_to_same_provider_and_time():
 def test_registered_source_rejects_freshness_beyond_source_policy():
     try:
         world_observation.normalise(
-            _observation(fresh_for_seconds=901),
+            _observation(
+                fresh_for_seconds=901,
+                stale_after_seconds=3600,
+                expires_after_seconds=21600,
+            ),
             now=NOW,
         )
     except ValueError as exc:
