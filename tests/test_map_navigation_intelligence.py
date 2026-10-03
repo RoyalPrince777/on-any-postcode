@@ -194,3 +194,24 @@ def test_map_hud_exposes_truth_gated_live_traffic_state():
     assert "live_claim_allowed" in page
     assert "reroute_recommended" in page
     assert '#traffic-state[data-live="true"]' in css
+
+
+def test_map_page_has_server_visible_shell_without_install_service_worker(client):
+    page = client.get("/on-any-place")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert 'id="oap-map-critical"' in body
+    assert 'id="oap-map-boot"' in body
+    assert "OAP Maps · loading road view" in body
+    assert "/assets/oap-os.js" not in body
+
+
+def test_unique_oap_map_door_renders_same_real_map_shell(client):
+    page = client.get("/oap-map")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert 'class="map-app"' in body
+    assert 'id="roads-svg"' in body
+    assert 'id="map-form"' in body
+    assert 'id="oap-map-boot"' in body
+    assert "/map-intelligence/assets/oap_map_navigation.css" in body

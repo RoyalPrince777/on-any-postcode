@@ -449,6 +449,7 @@ def booking_entry():
 
 
 @bp.get("/on-any-place")
+@bp.get("/oap-map")
 def canonical_on_any_place():
     values = _with_defaults(request.path.rstrip("/"))
     local_map = local_map_intelligence.local_map(
