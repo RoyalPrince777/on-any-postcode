@@ -135,7 +135,9 @@ function draw(coords){
  line.setAttribute('points',pts.map(x=>x.join(',')).join(' '));
  start.setAttribute('cx',pts[0][0]);start.setAttribute('cy',pts[0][1]);
  end.setAttribute('cx',pts.at(-1)[0]);end.setAttribute('cy',pts.at(-1)[1]);
- svg.hidden=false;loadRoadNetwork(bounds,profile.value);return true
+ svg.hidden=false;
+ if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);
+ return true
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
