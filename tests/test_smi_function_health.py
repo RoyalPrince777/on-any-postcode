@@ -556,3 +556,69 @@ def test_interaction_certification_rejects_unverified_proven_flag(monkeypatch):
     assert voice["state"] != "green"
     assert result["whole_interaction_green"] is False
 
+def test_reserved_interaction_producer_signs_release_bound_payload(monkeypatch):
+    monkeypatch.setenv("OAP_SMI_INTERACTION_PROOF_KEY", "producer-test-key")
+    monkeypatch.setenv("OAP_SMI_RELEASE_ID", "release-producer-test")
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "_hrm_database_url",
+        lambda: "postgresql://configured",
+    )
+    captured = {}
+
+    def _write(kind, normalised, receipt_id, created_at, *, independent_readback=False):
+        captured["kind"] = kind
+        captured["payload"] = dict(normalised["safe_payload"])
+        captured["independent_readback"] = independent_readback
+        return {
+            "ok": True,
+            "status": "written_and_read_back",
+            "receipt_kind": kind,
+            "receipt_id": receipt_id,
+            "read_back_ok": True,
+            "durable": True,
+            "backend": "independent_hrm_postgres",
+            "fallback_used": False,
+        }
+
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "_write_postgres",
+        _write,
+    )
+    result = smi_function_health.smi_receipt_backend.write_interaction_surface_live_proof(
+        surface_id="voice",
+        runtime_instance_id="runtime-1",
+        interaction_id="interaction-1",
+        status_code=200,
+        runtime_acknowledged=True,
+        interaction_completed=True,
+    )
+    assert result["ok"] is True
+    assert captured["kind"] == "interaction_surface_live_proof_receipt"
+    assert captured["independent_readback"] is True
+    payload = captured["payload"]
+    assert payload["release_id"] == "release-producer-test"
+    assert payload["surface_id"] == "voice"
+    assert payload["execution_authority_expanded"] is False
+    assert (
+        smi_function_health.smi_receipt_backend._valid_interaction_proof_signature(payload)
+        is True
+    )
+
+
+def test_reserved_interaction_producer_rejects_unacknowledged_or_unknown_surface(monkeypatch):
+    monkeypatch.setenv("OAP_SMI_INTERACTION_PROOF_KEY", "producer-test-key")
+    monkeypatch.setenv("OAP_SMI_RELEASE_ID", "release-producer-test")
+    for surface, acknowledged in (("voice", False), ("unknown", True)):
+        result = smi_function_health.smi_receipt_backend.write_interaction_surface_live_proof(
+            surface_id=surface,
+            runtime_instance_id="runtime-1",
+            interaction_id="interaction-1",
+            status_code=200,
+            runtime_acknowledged=acknowledged,
+            interaction_completed=True,
+        )
+        assert result["ok"] is False
+        assert result["receipt_id"] is None
+
