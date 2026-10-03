@@ -5,6 +5,8 @@ def test_ride_schema_auto_apply_is_explicit_and_ordered():
     source = Path("mission_control/__init__.py").read_text(encoding="utf-8")
 
     assert 'OAP_RIDE_SCHEMA_AUTO_APPLY' in source
+    assert "init_movement_schema" in source
+    assert "0005_movement_operations" in source
     expected = [
         "0001_oap_ride_runtime",
         "0002_oap_ride_guardian",
