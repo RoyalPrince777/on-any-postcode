@@ -185,6 +185,39 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
         return result
 
 
+def inference_worker_status(*, stale_after_seconds: int = 60) -> dict[str, object]:
+    """Return durable readiness for an authenticated Home Node inference worker.
+
+    The inference worker writes this heartbeat only after a successful
+    authenticated bridge poll, so a fresh row proves both device process
+    liveness and recent bridge authentication without relying on web-process
+    memory.
+    """
+    result: dict[str, object] = {
+        "worker_fresh": False,
+        "error": None,
+    }
+    base = postgres_db.postgres_status()
+    if not base.get("initialized"):
+        result["error"] = "base_postgres_not_ready"
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT 1 FROM oap_runtime_workers
+                   WHERE status='ACTIVE'
+                     AND worker_id LIKE %s
+                     AND heartbeat_at >= CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
+                   LIMIT 1""",
+                ("%-inference", max(30, int(stale_after_seconds))),
+            ).fetchone()
+        result["worker_fresh"] = row is not None
+        return result
+    except Exception:  # noqa: BLE001 - readiness fails closed without exposing DB details.
+        result["error"] = "runtime_store_unavailable"
+        return result
+
+
 def init_runtime_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
     """Apply the runtime schema only after explicit Human Authority invocation."""
     if not assume_yes:
