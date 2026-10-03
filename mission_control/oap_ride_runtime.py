@@ -141,6 +141,9 @@ def issue_journey_code(*, booking_id: object, rider_identity_id: object) -> dict
             (booking, digest, expiry),
         )
         connection.commit()
+    split_snapshot = oap_ride_split_snapshot.capture(
+        booking_id=booking, amount_minor=amount
+    )
     return {"booking_id": booking, "journey_code": code, "expires_at": expiry.isoformat(), "stored_plaintext": False}
 
 
@@ -238,9 +241,6 @@ def complete(*, booking_id: object, driver_identity_id: object) -> dict[str, Any
                VALUES (%s,%s,%s,%s,%s,%s,%s)
                ON CONFLICT (booking_id) DO NOTHING""",
             (booking, rider, driver, completed[0], payment_state, amount, currency),
-        )
-        split_snapshot = oap_ride_split_snapshot.capture(
-            booking_id=booking, amount_minor=amount
         )
         connection.execute(
             """UPDATE oap_movement_availability SET availability_state='ONLINE',updated_at=CURRENT_TIMESTAMP
