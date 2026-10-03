@@ -16,6 +16,7 @@ from .oap_ride_journey_views import bp as oap_ride_journey_bp
 from .oap_ride_guardian_routes import bp as oap_ride_guardian_bp
 from .oap_ride_earnings_routes import bp as oap_ride_earnings_bp
 from .oap_ride_commercial_routes import bp as oap_ride_commercial_bp
+from .oap_ride_payment_bridge_routes import bp as oap_ride_payment_bridge_bp
 
 bp = Blueprint("oap_global_transport", __name__)
 bp.register_blueprint(oap_ride_dashboards_bp)
@@ -24,6 +25,7 @@ bp.register_blueprint(oap_ride_journey_bp)
 bp.register_blueprint(oap_ride_guardian_bp)
 bp.register_blueprint(oap_ride_earnings_bp)
 bp.register_blueprint(oap_ride_commercial_bp)
+bp.register_blueprint(oap_ride_payment_bridge_bp)
 
 PUBLIC_DOORS = (
     ("Journey", "End-to-end multimodal journey planning"),
