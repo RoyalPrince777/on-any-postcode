@@ -196,7 +196,7 @@ def test_oap_pay_bank_page_and_status_are_no_store(client):
     assert page.headers["Cache-Control"] == "no-store"
     body = page.get_data(as_text=True)
     assert "OAP Bank" in body
-    assert "Regulated capability truth" in body
+    assert "Available balance" in body
     assert "does not itself accept deposits" in body or "does not itself" in body
 
     status = client.get("/pay/bank/status")
@@ -267,26 +267,27 @@ def test_oap_bank_exposes_full_app_menu_contract(monkeypatch):
     )
     status = oap_pay.bank_status()
     assert [item["id"] for item in status["app_primary_menu"]] == [
-        "home", "accounts", "sika", "transfers", "activity", "intelligence"
+        "home", "accounts", "transfers", "activity"
     ]
     assert [item["id"] for item in status["app_more_menu"]] == [
-        "cards", "cash", "fx", "deposits", "wallet", "rights", "guardian", "settings"
+        "sika", "cards", "cash", "fx", "deposits", "wallet",
+        "intelligence", "rights", "guardian", "settings"
     ]
     assert [item["id"] for item in status["app_admin_menu"]] == ["control-center"]
     regulated = {
-        item["id"]: item["enabled"]
+        item["id"]: (item["screen_enabled"], item["action_enabled"])
         for item in status["app_features"]
         if item["capability"] is not None
     }
     assert regulated == {
-        "accounts": False,
-        "sika": False,
-        "transfers": False,
-        "cards": False,
-        "cash": False,
-        "fx": False,
-        "deposits": False,
-        "wallet": False,
+        "accounts": (True, False),
+        "transfers": (True, False),
+        "sika": (True, False),
+        "cards": (True, False),
+        "cash": (True, False),
+        "fx": (True, False),
+        "deposits": (True, False),
+        "wallet": (True, False),
     }
 
 
@@ -294,13 +295,13 @@ def test_oap_bank_page_contains_full_app_structure(client):
     page = client.get("/pay/bank")
     body = page.get_data(as_text=True)
 
-    assert "Bank Home" in body
-    assert 'aria-label="OAP Bank primary menu"' in body
-    assert "Accounts" in body
-    assert "SIKA" in body
+    assert "Available balance" in body
+    assert "No authenticated account selected" in body
+    assert 'aria-label="Quick actions"' in body
+    assert "My accounts" in body
+    assert "Recent activity" in body
     assert "Transfers" in body
-    assert "Activity" in body
-    assert "More Bank Tools" in body
+    assert "More" in body
     assert "Cards" in body
     assert "Cash / Post Office" in body
     assert "FX" in body
@@ -343,7 +344,7 @@ def test_oap_bank_feature_routes_are_real_and_fail_closed(client, monkeypatch):
 
     accounts = client.get("/pay/bank/accounts").get_data(as_text=True)
     assert "Accounts" in accounts
-    assert "Evidence-gated / unavailable" in accounts
+    assert "Action unavailable" in accounts
     assert "does not fabricate balances" in accounts
 
     transfers = client.get("/pay/bank/transfers").get_data(as_text=True)
@@ -367,3 +368,36 @@ def test_oap_bank_home_links_to_real_feature_routes(client):
     assert 'href="/pay/bank/cards"' in body
     assert 'href="/pay/bank/rights"' in body
     assert 'href="/pay/bank/control-center"' in body
+
+
+def test_oap_bank_unlocks_screens_but_not_regulated_actions(monkeypatch):
+    monkeypatch.setattr(
+        oap_pay.sika_execution_gate,
+        "capability_matrix",
+        lambda: {
+            "accept_deposits": False,
+            "issue_redeemable_sika": False,
+            "execute_payments": False,
+            "hold_customer_funds": False,
+            "issue_payment_cards": False,
+            "cash_out": False,
+            "foreign_exchange": False,
+            "bank_accounts": False,
+        },
+    )
+    status = oap_pay.bank_status()
+    regulated = [item for item in status["app_features"] if item["capability"] is not None]
+    assert regulated
+    assert all(item["screen_enabled"] is True for item in regulated)
+    assert all(item["action_enabled"] is False for item in regulated)
+
+
+def test_oap_bank_balance_is_first_and_not_fabricated(client):
+    body = client.get("/pay/bank").get_data(as_text=True)
+    balance_pos = body.index("Available balance")
+    accounts_pos = body.index("My accounts")
+    activity_pos = body.index("Recent activity")
+    assert balance_pos < accounts_pos < activity_pos
+    assert "No authenticated account selected" in body
+    assert "£0.00" not in body
+    assert "0.00 SIKA" not in body
