@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Ride participant analytics.
 
 Read-only private summaries over Ride bookings, receipts and feedback.
