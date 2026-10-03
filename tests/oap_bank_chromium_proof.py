@@ -46,9 +46,14 @@ def main():
             expect(page.locator("#capabilities")).to_be_visible()
 
             page.get_by_text("Accounts", exact=True).last.click()
-            assert page.url.endswith("/pay/bank#accounts")
-            page.get_by_text("More", exact=True).click()
-            assert page.url.endswith("/pay/bank#more")
+            page.wait_for_url("**/pay/bank/accounts")
+            expect(page.get_by_text("Accounts", exact=True).first).to_be_visible()
+            expect(page.get_by_text("Evidence-gated / unavailable", exact=True)).to_be_visible()
+
+            page.goto(BASE + "/pay/bank", wait_until="domcontentloaded")
+            page.get_by_text("Transfers", exact=True).last.click()
+            page.wait_for_url("**/pay/bank/transfers")
+            expect(page.get_by_text("Transfers", exact=True).first).to_be_visible()
 
             manifest_href = page.locator('link[rel="manifest"]').get_attribute("href")
             assert manifest_href == "/pay/bank/manifest.webmanifest"
