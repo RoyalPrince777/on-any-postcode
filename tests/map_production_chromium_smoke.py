@@ -57,6 +57,29 @@ with sync_playwright() as p:
         "oap_map_navigation.js",
         "oap_os_map_bridge.js",
     )
+
+    api_line_counts = page.evaluate(
+        """async () => {
+          const urls = [
+            '/map-intelligence/road-geometry/14/8182/5455?profile=driving',
+            '/map-intelligence/road-geometry/14/8181/5456?profile=driving',
+            '/map-intelligence/road-geometry/14/8183/5455?profile=driving'
+          ];
+          const counts = [];
+          for (const url of urls) {
+            try {
+              const response = await fetch(url, {credentials:'same-origin', cache:'no-store'});
+              if (!response.ok) { counts.push(-response.status); continue; }
+              const payload = await response.json();
+              counts.push(Number(payload.line_count || 0));
+            } catch (error) {
+              counts.push(-1);
+            }
+          }
+          return counts;
+        }"""
+    )
+    assert any(count > 0 for count in api_line_counts), ("road_geometry_api_empty", api_line_counts)
     page.wait_for_function(
         "() => document.querySelector('#oap-map-boot')?.hidden === true",
         timeout=30000,
@@ -85,6 +108,7 @@ with sync_playwright() as p:
         f"roads={road_count}",
         f"box={box['width']}x{box['height']}",
         f"road_request_failures={len(road_request_failures)}",
+        f"api_line_counts={api_line_counts}",
     )
     context.close()
     browser.close()
