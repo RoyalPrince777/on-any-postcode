@@ -59,6 +59,32 @@ LINK_UP = {
 }
 
 
+
+OAP_TRANSPORT = {
+    "app_id": "oap.transport",
+    "name": "OAP Transport",
+    "publisher": "ON ANY POSTCODE LTD",
+    "distribution": "OAP Store",
+    "first_party": True,
+    "description": "Rider, Driver and Travel in one installable OAP Transport app.",
+    "release_state": "install_ready",
+    "install_enabled": True,
+    "install_mode": "PWA",
+    "manifest_url": "/transport/manifest.webmanifest",
+    "service_worker_url": "/service-worker.js",
+    "start_url": "/transport?source=oap-store",
+    "open_url": "/transport",
+    "category": "Travel",
+    "install_url": "/transport?source=oap-store&install=1",
+    "offline_url": "/offline",
+    "native_apk": False,
+    "native_package_available": False,
+    "physical_device_certified": False,
+    "bundles": ("Rider", "Driver", "Travel"),
+    "human_authority_final": True,
+}
+
+
 OAP_MUSIC = {
     "app_id": "oap.music",
     "name": "OAP Music",
@@ -223,6 +249,7 @@ def catalogue() -> tuple[dict[str, object], ...]:
         dict(OAP_WORLD),
         dict(LINK_UP),
         dict(OAP_MUSIC),
+        dict(OAP_TRANSPORT),
         *PUBLIC_STORE_APPS,
         *PLANNED_STORE_APPS,
         *_spot_store_apps(),
@@ -306,6 +333,71 @@ def link_up_manifest():
 @bp.get("/oap-store/apps/oap.linkup")
 def link_up_store_entry():
     response = make_response(jsonify(dict(LINK_UP)), 200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/transport/manifest.webmanifest")
+def transport_manifest():
+    payload = {
+        "name": "OAP Transport · ON ANY POSTCODE",
+        "short_name": "OAP Transport",
+        "description": "Rider, Driver and Travel inside ON ANY POSTCODE.",
+        "id": "/transport",
+        "start_url": "/transport?source=oap-store",
+        "scope": "/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "any",
+        "background_color": "#050807",
+        "theme_color": "#050807",
+        "prefer_related_applications": False,
+        "launch_handler": {"client_mode": "navigate-existing"},
+        "categories": ["travel", "navigation", "utilities"],
+        "icons": [
+            {
+                "src": "/assets/oap-os-icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+            {
+                "src": "/assets/oap-os-icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+        ],
+        "shortcuts": [
+            {
+                "name": "Rider",
+                "short_name": "Rider",
+                "url": "/transport/ride/rider?source=oap-transport",
+                "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}],
+            },
+            {
+                "name": "Driver",
+                "short_name": "Driver",
+                "url": "/transport/ride/driver?source=oap-transport",
+                "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}],
+            },
+            {
+                "name": "Travel",
+                "short_name": "Travel",
+                "url": "/travel?source=oap-transport",
+                "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}],
+            },
+        ],
+    }
+    response = make_response(jsonify(payload), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@bp.get("/oap-store/apps/oap.transport")
+def transport_store_entry():
+    response = make_response(jsonify(dict(OAP_TRANSPORT)), 200)
     response.headers["Cache-Control"] = "no-store"
     return response
 

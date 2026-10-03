@@ -5,7 +5,11 @@
   const status = document.querySelector("[data-oap-install-status]");
   const platformLabel = document.querySelector("[data-oap-install-platform]");
   let deferredInstall = null;
-  const productName = location.pathname === "/linkup" || location.pathname.startsWith("/linkup/") ? "Link Up" : "OAP OS";
+  const productName = location.pathname === "/linkup" || location.pathname.startsWith("/linkup/")
+    ? "Link Up"
+    : location.pathname === "/transport" || location.pathname.startsWith("/transport/")
+      ? "OAP Transport"
+      : "OAP OS";
 
   const ua = navigator.userAgent || "";
   const platform = navigator.userAgentData?.platform || navigator.platform || "";
