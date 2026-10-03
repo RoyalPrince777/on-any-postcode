@@ -12,6 +12,8 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from . import oap_offline_router
+
 from .agents import ADVISORY_AGENT_NAMES as ADVISORY_AGENTS
 from .agents import (
     AGENT_ANATOMY,
@@ -939,4 +941,24 @@ def get_public_anatomy() -> dict[str, Any]:
             "status": "Final approval required",
             "message": "This view cannot execute or approve architecture changes.",
         },
+    }
+
+
+def offline_routing_status() -> dict[str, Any]:
+    """Expose the canonical whole-organism offline routing fabric."""
+
+    routing = oap_offline_router.status()
+    return {
+        "component": "OAP Digital Organism Offline Routing",
+        "routing": routing,
+        "reconciliation": oap_offline_router.reconciliation_policy(),
+        "organism_domain_count": routing["domain_count"],
+        "all_major_domains_routed": routing["domain_count"] == 14,
+        "external_action_permitted_offline": False,
+        "human_authority_final": True,
+        "truth_boundary": (
+            "A defined offline route is an architecture/runtime policy. "
+            "It does not prove that every local cache, device store or sync transport "
+            "has been exercised successfully on a physical device."
+        ),
     }
