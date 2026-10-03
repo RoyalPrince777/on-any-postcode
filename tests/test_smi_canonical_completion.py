@@ -207,3 +207,23 @@ def test_human_ai_boundary_keeps_identity_experience_and_authority_distinct():
     assert locks["sentience_claim_enabled"] is False
     assert locks["consciousness_claim_enabled"] is False
     assert locks["replace_human_authority_enabled"] is False
+
+
+def test_completion_contract_reflects_governed_a5_a6_runtime_state(monkeypatch):
+    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A6")
+    monkeypatch.setattr(autonomy_levels, "A5_ENABLED", True)
+    monkeypatch.setattr(autonomy_levels, "A6_ENABLED", True)
+    monkeypatch.setattr(autonomy_levels, "A6_MATRIX_CONTROL", True)
+
+    status = smi_completion_contract.completion_status()
+    rows = {item["check"]: item for item in status["completion_checks"]}
+
+    assert rows["A5 preparation boundary"]["status"] == "governed_preparation_enabled"
+    assert rows["A5 preparation boundary"]["light"] == "🟢"
+    assert rows["A6 governed execution"]["status"] == "matrix_governed_operation_gated"
+    assert rows["A6 governed execution"]["light"] == "🟢"
+    assert rows["A7 organism-scale autonomy"]["status"] == "constitutional_locked"
+    assert rows["A7 organism-scale autonomy"]["light"] == "🔒"
+    assert status["hard_locks"]["a5_enabled"] is True
+    assert status["hard_locks"]["a6_enabled"] is True
+    assert status["hard_locks"]["a7_enabled"] is False
