@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+{% set oap_app_name = 'OAP Pay' %}
+{% include "_oap_install_head.html" %}
 <title>OAP Pay · ON ANY POSTCODE</title>
 <style>
 :root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--panel2:#101712;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
@@ -12,7 +14,17 @@
 <body>
 <main class="shell" id="home">
 <header class="top"><div class="brand">🌍 ON ANY POSTCODE</div><a class="back" href="/">OAP World</a></header>
-<section class="hero"><div class="eyebrow">OAP Pay · powered by SIKA controls</div><h1>Pay. Request. Move through one door.</h1><p>One OAP payment front door for people, creators and businesses. Everyday actions stay simple; regulated execution remains evidence-gated.</p></section>
+<section class="hero"><div class="eyebrow">OAP Pay · powered by SIKA controls</div><h1>Pay from your phone.</h1><p>Scan, share, request and move through one governed door. Contactless actions stay locked until real provider and regulatory evidence allows them.</p><button class="back" type="button" data-oap-install hidden>Install OAP Pay</button><div class="meta" data-oap-install-status role="status">Checking install support</div></section>
+
+<div class="section-title"><h2>Phone Pay</h2><span>Phone-first payment actions</span></div>
+<section class="grid" aria-label="Phone payment methods">
+{% for method in pay.phone_payment_methods %}
+<article class="card" id="phone-{{ method.id }}"><h3>{{ method.name }}</h3>
+{% if method.enabled %}<div class="state on">🟢 Available</div>{% else %}<div class="state off">🔒 Contactless execution locked</div>{% endif %}
+{% if method.id == 'qr' %}<p>Use a QR-ready OAP Pay request or payment link.</p>{% elif method.id == 'link' %}<p>Share a secure OAP Pay request link from your phone.</p>{% elif method.id == 'tap' %}<p>NFC/contactless payment needs authorised provider execution.</p>{% else %}<p>Phone-to-phone contactless needs the same verified contactless rail.</p>{% endif %}
+</article>
+{% endfor %}
+</section>
 
 <div class="section-title"><h2>My SIKA</h2><span>Everyday money controls</span></div>
 <section class="grid" aria-label="OAP Pay primary menu">
