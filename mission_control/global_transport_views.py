@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, redirect, render_template_string, request
 
-from . import authority, oap_ride, operator_gateway, transport_execution_evidence, web_security
+from . import authority, oap_ride_modes, operator_gateway, transport_execution_evidence, web_security
 from .oap_ride_dashboards import bp as oap_ride_dashboards_bp
 from .oap_ride_runtime_routes import bp as oap_ride_runtime_bp
 from .oap_ride_journey_views import bp as oap_ride_journey_bp
@@ -338,7 +338,23 @@ def transport_execution_evidence_record():
 
 @bp.get("/transport/ride")
 def transport_ride():
-    return _no_store(jsonify(oap_ride.status()))
+    return _no_store(jsonify(oap_ride_modes.status()))
+
+
+@bp.get("/transport/ride/ebikes/mitcham")
+def transport_ride_ebikes_mitcham():
+    try:
+        payload = oap_ride_modes.nearby_ebikes_mitcham(
+            radius_km=(
+                request.args.get("radius_km")
+                or operator_gateway.DEFAULT_SHARED_BIKE_RADIUS_KM
+            )
+        )
+    except ValueError as exc:
+        return _no_store(
+            make_response(jsonify(error={"code": str(exc)[:80]}), 400)
+        )
+    return _no_store(jsonify(payload))
 
 
 @bp.post("/transport/ride/request")
