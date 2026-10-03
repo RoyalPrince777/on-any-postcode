@@ -10,6 +10,8 @@ from typing import Any
 
 from . import shared_bike
 
+DEFAULT_SHARED_BIKE_RADIUS_KM = shared_bike.DEFAULT_RADIUS_KM
+
 
 def status() -> dict[str, Any]:
     shared = shared_bike.status()
@@ -36,7 +38,7 @@ def shared_bikes_status() -> dict[str, Any]:
 
 
 def nearby_shared_bikes_mitcham(
-    *, radius_km: object = shared_bike.DEFAULT_RADIUS_KM
+    *, radius_km: object = DEFAULT_SHARED_BIKE_RADIUS_KM
 ) -> dict[str, Any]:
     payload = shared_bike.nearby_mitcham(radius_km=radius_km)
     payload["gateway"] = {
