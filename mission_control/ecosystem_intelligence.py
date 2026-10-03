@@ -384,9 +384,26 @@ def analyse(
 
     domains = tuple(dict.fromkeys(item["domain"] for item in items))
     horizons = tuple(dict.fromkeys(item["horizon"] for item in items))
-    average_pressure = sum(item["pressure"] for item in items) / len(items)
-    strongest = min(items, key=lambda item: item["pressure"])
-    weakest = max(items, key=lambda item: item["pressure"])
+    current_items = tuple(
+        item
+        for item in items
+        if item.get("observation") is None
+        or bool(item["observation"]["live_claim_allowed"])
+    )
+    contextual_only_items = tuple(item for item in items if item not in current_items)
+    pressure_items = current_items or tuple(
+        {
+            **item,
+            "pressure": 0,
+            "risk": "",
+            "opportunity": "",
+            "recommendation": "",
+        }
+        for item in items
+    )
+    average_pressure = sum(item["pressure"] for item in pressure_items) / len(pressure_items)
+    strongest = min(pressure_items, key=lambda item: item["pressure"])
+    weakest = max(pressure_items, key=lambda item: item["pressure"])
     consequential = average_pressure >= 60 or weakest["pressure"] >= 80
     state = _pressure_state(average_pressure)
 
@@ -418,12 +435,12 @@ def analyse(
             for proof in item["evidence"]
         )
     )
-    risks = _clean_strings(item["risk"] for item in items if item["risk"])
+    risks = _clean_strings(item["risk"] for item in current_items if item["risk"])
     opportunities = _clean_strings(
-        item["opportunity"] for item in items if item["opportunity"]
+        item["opportunity"] for item in current_items if item["opportunity"]
     )
     recommendations = _clean_strings(
-        item["recommendation"] for item in items if item["recommendation"]
+        item["recommendation"] for item in current_items if item["recommendation"]
     )
     forecasts = tuple(
         item["summary"]
@@ -496,6 +513,11 @@ def analyse(
         "observations": observations,
         "observation_count": len(observations),
         "live_observation_count": live_observation_count,
+        "current_signal_count": len(current_items),
+        "contextual_only_signal_count": len(contextual_only_items),
+        "contextual_only_signal_ids": tuple(
+            str(item.get("summary") or "") for item in contextual_only_items
+        ),
         "observation_evidence_mix": observation_evidence_mix,
         "observation_freshness_mix": observation_freshness_mix,
         "stale_or_expired_observation_present": any(
