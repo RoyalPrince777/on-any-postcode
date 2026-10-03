@@ -101,3 +101,31 @@ def test_home_node_worker_returns_claim_token_without_static_secret_in_body():
     assert 'claim_token = str(job.get("claim_token", ""))' in worker
     assert '"claim_token": claim_token' in worker
     assert 'claim_token=payload.get("claim_token")' in views
+
+
+def test_bridge_exposes_durable_authenticated_worker_readiness(monkeypatch):
+    monkeypatch.setenv("OAP_HOME_NODE_BRIDGE_SECRET", "s" * 48)
+    monkeypatch.setattr(home_node_bridge.time, "monotonic", lambda: 100.0)
+    monkeypatch.setattr(
+        home_node_bridge,
+        "inference_worker_status",
+        lambda **kwargs: {"worker_fresh": True, "error": None},
+    )
+    with home_node_bridge._LOCK:
+        home_node_bridge._LAST_WORKER_SEEN = 0.0
+    status = home_node_bridge.status()
+    assert status["worker_recently_seen"] is False
+    assert status["durable_worker_fresh"] is True
+    assert status["worker_ready"] is True
+
+
+def test_worker_persists_heartbeat_only_after_authenticated_bridge_success():
+    worker = (ROOT / "scripts" / "oap_home_node_inference_worker.py").read_text()
+    gateway = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text()
+    runtime = (ROOT / "mission_control" / "organism_runtime.py").read_text()
+    assert "PostgresRuntimeStore" in worker
+    assert "if status in {200, 204}" in worker
+    assert 'WORKER_ID = f"{os.environ.get(\'OAP_WORKER_ID\', \'home-node\')[:96]}-inference"' in worker
+    assert "durable_worker_fresh" in gateway
+    assert "def inference_worker_status" in runtime
+    assert '"%-inference"' in runtime

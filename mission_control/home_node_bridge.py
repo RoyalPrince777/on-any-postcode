@@ -18,6 +18,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from .organism_runtime import inference_worker_status
+
 _MAX_PENDING = 8
 _JOB_TTL_SECONDS = 45.0
 _RESULT_WAIT_SECONDS = 20.0
@@ -194,12 +196,15 @@ def complete(
 
 def status() -> dict[str, Any]:
     now = time.monotonic()
+    durable = inference_worker_status(stale_after_seconds=60)
     with _LOCK:
         _prune_locked(now)
         worker_recent = _worker_recent_locked(now)
         return {
             "configured": configured(),
             "worker_recently_seen": worker_recent,
+            "durable_worker_fresh": bool(durable.get("worker_fresh")),
+            "worker_ready": bool(worker_recent or durable.get("worker_fresh")),
             "pending_jobs": len(_PENDING),
             "active_jobs": len(_JOBS),
             "public_ollama_required": False,

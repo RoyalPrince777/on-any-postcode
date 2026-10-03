@@ -14,10 +14,15 @@ import time
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
+from mission_control.organism_runtime import PostgresRuntimeStore
+
 BASE_URL = os.environ.get("OAP_HOME_NODE_BRIDGE_URL", "https://oap-smi.onrender.com/mission").strip().rstrip("/")
 TOKEN = os.environ.get("OAP_HOME_NODE_BRIDGE_SECRET", "").strip()
 OLLAMA_URL = os.environ.get("OAP_HOME_NODE_OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
 POLL_SECONDS = max(0.5, min(float(os.environ.get("OAP_HOME_NODE_POLL_SECONDS", "1.5")), 30.0))
+HEARTBEAT_SECONDS = 20.0
+WORKER_ID = f"{os.environ.get('OAP_WORKER_ID', 'home-node')[:96]}-inference"
+REVISION = os.environ.get("OAP_ENV_REVISION", "device-local")[:120]
 
 
 def _headers() -> dict[str, str]:
@@ -63,10 +68,26 @@ def _run_local(payload: dict) -> str:
 
 def run() -> int:
     _headers()
+    runtime_store = PostgresRuntimeStore()
+    last_heartbeat = 0.0
     print("OAP Home Node inference worker active", flush=True)
     while True:
         try:
             job, status = _request(f"{BASE_URL}/home-node/jobs/next", timeout=20.0)
+            if status in {200, 204}:
+                now = time.monotonic()
+                if now - last_heartbeat >= HEARTBEAT_SECONDS:
+                    try:
+                        runtime_store.heartbeat(
+                            WORKER_ID,
+                            status="ACTIVE",
+                            revision=REVISION,
+                        )
+                        last_heartbeat = now
+                    except Exception:
+                        # Inference transport remains available if durable status
+                        # storage is temporarily unavailable; readiness fails closed.
+                        pass
             if status == 204 or job.get("status") == "idle":
                 time.sleep(POLL_SECONDS)
                 continue
