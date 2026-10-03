@@ -102,3 +102,27 @@ def test_oap_pay_page_contains_mobile_nav_and_more_drawer(client):
     assert "Cash / Post Office" in body
     assert "FX" in body
     assert "Bank" in body
+
+
+def test_oap_pay_phone_methods_are_truth_bound():
+    status = oap_pay.public_status()
+    methods = {item["id"]: item for item in status["phone_payment_methods"]}
+    assert methods["qr"]["enabled"] is True
+    assert methods["link"]["enabled"] is True
+    assert methods["tap"]["enabled"] is False
+    assert methods["phone"]["enabled"] is False
+    assert methods["tap"]["requires"] == "contactless_provider_authority"
+
+
+def test_oap_pay_phone_app_surface_is_installable(client):
+    page = client.get("/pay")
+    body = page.get_data(as_text=True)
+    assert 'rel="manifest" href="/manifest.webmanifest"' in body
+    assert 'data-oap-install hidden' in body
+    assert "Install OAP Pay" in body
+    assert "Pay from your phone." in body
+    assert "Scan QR" in body
+    assert "Payment Link" in body
+    assert "Tap to Pay" in body
+    assert "Phone-to-Phone" in body
+    assert "Contactless execution locked" in body
