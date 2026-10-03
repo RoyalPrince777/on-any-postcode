@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Mission Control package initialiser.
 
 Web-only dependencies are imported inside ``init_app`` so worker-only runtimes
