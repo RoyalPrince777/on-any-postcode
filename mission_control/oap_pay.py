@@ -14,6 +14,7 @@ from . import (
     bank_authorisation,
     bank_authorisation_store,
     bank_permission_scope,
+    oap_bank_intelligence_catalog,
     oap_pay_intelligence,
     oap_pay_requests,
     sika_customer_payment_authority,
@@ -289,5 +290,25 @@ def bank_feature_page(feature_id: str):
         response.status_code = 404
     else:
         response = make_response(render_template("oap_bank_feature.html", view=feature))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/intelligence")
+def bank_intelligence_page():
+    response = make_response(
+        render_template(
+            "oap_bank_intelligence.html",
+            intelligence=oap_bank_intelligence_catalog.status(),
+            bank=bank_status(),
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/intelligence/status")
+def bank_intelligence_status():
+    response = jsonify(oap_bank_intelligence_catalog.status())
     response.headers["Cache-Control"] = "no-store"
     return response
