@@ -74,3 +74,20 @@ def test_stop_retry_is_idempotent():
     assert oware.stop(stopped, request_id="oware-stop-0001") == stopped
     with pytest.raises(ValueError, match="stop_denied"):
         oware.stop(stopped, request_id="oware-stop-0002")
+
+
+def test_no_legal_move_collects_remaining_seeds_and_finishes():
+    state = oware.new_game()
+    state["pits"] = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+    state["players"][0]["captured"] = 23
+    state["players"][1]["captured"] = 24
+    state = reseal(state)
+
+    moved = oware.move(state, pit=5, request_id="oware-end-0001")
+    public = oware.public_state(moved)
+
+    assert public["status"] == "completed"
+    assert public["result"] == "no_legal_move"
+    assert sum(public["pits"]) == 0
+    assert sum(player["captured"] for player in public["players"]) == 48
+    assert public["winner_id"] == "p2"
