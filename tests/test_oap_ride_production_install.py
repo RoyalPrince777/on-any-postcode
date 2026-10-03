@@ -14,6 +14,7 @@ def test_ride_schema_auto_apply_is_explicit_and_ordered():
         "0006_oap_ride_private_geometry",
         "0007_oap_ride_guardian_outbox",
         "0008_oap_ride_reconciliation_cases",
+        "0009_oap_ride_split_snapshot",
     ]
     positions = [source.index(version) for version in expected]
     assert positions == sorted(positions)
