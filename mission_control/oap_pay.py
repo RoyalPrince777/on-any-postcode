@@ -38,6 +38,7 @@ BANK_APP_FEATURES = (
     {"id": "sika", "name": "SIKA", "description": "SIKA balances, issuance status and value classes.", "capability": "issue_redeemable_sika", "section": "primary"},
     {"id": "transfers", "name": "Transfers", "description": "Governed payment and transfer capability.", "capability": "execute_payments", "section": "primary"},
     {"id": "activity", "name": "Activity", "description": "Bank-related activity and evidence events.", "capability": None, "section": "primary"},
+    {"id": "intelligence", "name": "Intelligence", "description": "21-domain Bank Intelligence across accounts, payments, treasury, risk, rights and evidence.", "capability": None, "section": "primary"},
     {"id": "cards", "name": "Cards", "description": "Card capability and provider authority status.", "capability": "issue_payment_cards", "section": "more"},
     {"id": "cash", "name": "Cash / Post Office", "description": "Cash-in/out capability and lawful release status.", "capability": "cash_out", "section": "more"},
     {"id": "fx", "name": "FX", "description": "Foreign-exchange capability and permission scope.", "capability": "foreign_exchange", "section": "more"},
@@ -296,13 +297,13 @@ def bank_feature_page(feature_id: str):
 
 @bp.get("/pay/bank/intelligence")
 def bank_intelligence_page():
-    response = make_response(
-        render_template(
-            "oap_bank_intelligence.html",
-            intelligence=oap_bank_intelligence_catalog.status(),
-            bank=bank_status(),
-        )
-    )
+    feature = bank_feature_status("intelligence")
+    if feature is None:
+        response = jsonify({"error": {"code": "bank_intelligence_unavailable"}})
+        response.status_code = 503
+    else:
+        feature["intelligence"] = oap_bank_intelligence_catalog.status()
+        response = make_response(render_template("oap_bank_feature.html", view=feature))
     response.headers["Cache-Control"] = "no-store"
     return response
 
