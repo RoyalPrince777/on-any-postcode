@@ -86,3 +86,96 @@ def report_incident(*,booking_id:object,identity_id:object,kind:object,note:obje
         row=c.execute("""INSERT INTO oap_ride_guardian_incidents(booking_id,reporter_identity_id,kind,note)
         VALUES (%s,%s,%s,%s) RETURNING incident_id,created_at""",(booking,identity,k,text)).fetchone(); c.commit()
     return {"incident_id":str(row[0]),"booking_id":booking,"kind":k,"created_at":row[1].isoformat(),"automatic_emergency_dispatch":False}
+
+
+def _distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    from math import asin, cos, radians, sin, sqrt
+    earth_m = 6371000.0
+    p1, p2 = radians(lat1), radians(lat2)
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(p1) * cos(p2) * sin(dlon / 2) ** 2
+    return 2 * earth_m * asin(sqrt(a))
+
+
+def analyse_tracking(
+    *,
+    booking_id: object,
+    identity_id: object,
+    stop_minutes: object = 8,
+    stop_radius_m: object = 40,
+) -> dict[str, Any]:
+    booking = _uuid(booking_id, "booking_id")
+    identity = _uuid(identity_id, "identity_id")
+    try:
+        stop_window = int(stop_minutes)
+        radius = float(stop_radius_m)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_guardian_threshold") from exc
+    if not 2 <= stop_window <= 60 or not 5 <= radius <= 500:
+        raise ValueError("invalid_guardian_threshold")
+    with postgres_db.connect(readonly=True) as c:
+        if not _participant(c, booking, identity):
+            raise PermissionError("booking_participant_required")
+        booking_row = c.execute(
+            "SELECT state,route_snapshot FROM oap_movement_bookings WHERE booking_id=%s",
+            (booking,),
+        ).fetchone()
+        points = c.execute(
+            """SELECT latitude,longitude,recorded_at,identity_id
+               FROM oap_movement_tracking_points
+               WHERE booking_id=%s AND expires_at>CURRENT_TIMESTAMP
+               ORDER BY recorded_at DESC LIMIT 6""",
+            (booking,),
+        ).fetchall()
+    if booking_row is None:
+        raise PermissionError("booking_not_found")
+    state = str(booking_row[0])
+    route_snapshot = booking_row[1] if isinstance(booking_row[1], dict) else {}
+    if state != "IN_PROGRESS":
+        return {
+            "booking_id": booking,
+            "journey_state": state,
+            "unexpected_stop": False,
+            "tracking_analysis": "INACTIVE_JOURNEY",
+            "route_deviation_analysis": "NOT_RUN",
+            "automatic_emergency_dispatch": False,
+        }
+    if len(points) < 2:
+        return {
+            "booking_id": booking,
+            "journey_state": state,
+            "unexpected_stop": False,
+            "tracking_analysis": "INSUFFICIENT_CONSENTED_POINTS",
+            "route_deviation_analysis": "UNAVAILABLE_NO_ROUTE_GEOMETRY",
+            "automatic_emergency_dispatch": False,
+        }
+    latest = points[0]
+    earlier = None
+    for point in points[1:]:
+        delta_min = (latest[2] - point[2]).total_seconds() / 60
+        if delta_min >= stop_window:
+            earlier = point
+            break
+    unexpected = False
+    distance = None
+    elapsed = None
+    if earlier is not None:
+        elapsed = (latest[2] - earlier[2]).total_seconds() / 60
+        distance = _distance_m(
+            float(earlier[0]), float(earlier[1]),
+            float(latest[0]), float(latest[1]),
+        )
+        unexpected = distance <= radius
+    geometry_present = bool(route_snapshot.get("geometry") or route_snapshot.get("geometry_polyline"))
+    return {
+        "booking_id": booking,
+        "journey_state": state,
+        "unexpected_stop": unexpected,
+        "elapsed_minutes": round(elapsed, 2) if elapsed is not None else None,
+        "movement_distance_m": round(distance, 1) if distance is not None else None,
+        "tracking_analysis": "CONSENTED_PRIVATE_POINTS_ONLY",
+        "route_deviation_analysis": "READY_FOR_GEOMETRY_CHECK" if geometry_present else "UNAVAILABLE_NO_ROUTE_GEOMETRY",
+        "covert_tracking": False,
+        "automatic_emergency_dispatch": False,
+    }
