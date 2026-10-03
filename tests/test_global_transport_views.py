@@ -32,6 +32,8 @@ def test_global_transport_public_routes_are_registered():
     assert "/global-transport" in rules
     assert "/transport/status" in rules
     assert "/transport/capabilities" in rules
+    assert "/transport/shared-bikes/status" in rules
+    assert "/transport/shared-bikes/mitcham" in rules
 
 
 def test_global_transport_home_and_status_are_mobile_public_surfaces():
@@ -196,3 +198,33 @@ def test_transport_execution_evidence_source_is_hash_only_for_sensitive_fields()
     assert '"evidence_ref_hash"' in metadata_block
     assert '"issuer_hash"' in metadata_block
     assert '"scope_hash"' in metadata_block
+
+
+def test_mitcham_shared_bike_routes_are_public_read_only(monkeypatch):
+    monkeypatch.delenv("OAP_SHARED_BIKE_LIME_GBFS_URL", raising=False)
+    monkeypatch.delenv("OAP_SHARED_BIKE_FOREST_GBFS_URL", raising=False)
+    monkeypatch.delenv("OAP_SHARED_BIKE_ALLOWED_HOSTS", raising=False)
+    client = _app().test_client()
+
+    status_response = client.get("/transport/shared-bikes/status")
+    assert status_response.status_code == 200
+    assert status_response.headers["Cache-Control"] == "no-store, private"
+    status = status_response.get_json()
+    assert status["public_discovery_ready"] is True
+    assert status["operator_control_authorised"] is False
+    assert status["unlock_enabled"] is False
+
+    nearby_response = client.get("/transport/shared-bikes/mitcham")
+    assert nearby_response.status_code == 200
+    nearby = nearby_response.get_json()
+    assert nearby["area"] == "Mitcham"
+    assert nearby["postcode"] == "CR4"
+    assert nearby["vehicle_count"] == 0
+    assert nearby["public_discovery_only"] is True
+    assert nearby["operator_control_authorised"] is False
+
+
+def test_mitcham_shared_bike_route_rejects_oversized_radius():
+    response = _app().test_client().get("/transport/shared-bikes/mitcham?radius_km=99")
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "invalid_radius_km"
