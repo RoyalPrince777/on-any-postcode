@@ -103,7 +103,7 @@ def test_oap_pay_page_contains_mobile_nav_and_more_drawer(client):
     assert ">Activity</a>" in body
     assert ">My SIKA</a>" in body
     assert 'id="moreDrawer"' in body
-    assert "Regulated capability truth" in body
+    assert "Regulated capabilities" in body
     assert "Cards" in body
     assert "Cash / Post Office" in body
     assert "FX" in body
@@ -196,8 +196,8 @@ def test_oap_pay_bank_page_and_status_are_no_store(client):
     assert page.headers["Cache-Control"] == "no-store"
     body = page.get_data(as_text=True)
     assert "OAP Bank" in body
-    assert "Regulated capabilities" in body
-    assert "does not itself create bank authorisation" in body
+    assert "Regulated capability truth" in body
+    assert "does not itself accept deposits" in body or "does not itself" in body
 
     status = client.get("/pay/bank/status")
     assert status.status_code == 200
@@ -267,7 +267,7 @@ def test_oap_bank_exposes_full_app_menu_contract(monkeypatch):
     )
     status = oap_pay.bank_status()
     assert [item["id"] for item in status["app_primary_menu"]] == [
-        "home", "accounts", "sika", "transfers", "activity"
+        "home", "accounts", "sika", "transfers", "activity", "intelligence"
     ]
     assert [item["id"] for item in status["app_more_menu"]] == [
         "cards", "cash", "fx", "deposits", "wallet", "rights", "guardian", "settings"
