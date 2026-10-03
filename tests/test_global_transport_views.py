@@ -1,3 +1,4 @@
+# ruff: noqa: SIM115
 from flask import Flask
 
 from mission_control import global_transport_views
