@@ -107,22 +107,6 @@ def public_status() -> dict[str, Any]:
         "money_movement": False,
         "intelligence": oap_pay_intelligence.status(),
         "payment_requests": oap_pay_requests.status(),
-        "app_features": [
-            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
-            for item in BANK_APP_FEATURES
-        ],
-        "app_primary_menu": [
-            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
-            for item in BANK_APP_FEATURES if item["section"] == "primary"
-        ],
-        "app_more_menu": [
-            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
-            for item in BANK_APP_FEATURES if item["section"] == "more"
-        ],
-        "app_admin_menu": [
-            {**item, "enabled": True}
-            for item in BANK_APP_FEATURES if item["section"] == "admin"
-        ],
         "human_authority_final": True,
     }
 
@@ -180,6 +164,22 @@ def bank_status() -> dict[str, Any]:
         "regulated_execution_enabled": any(matrix.values()),
         "money_movement_enabled": False,
         "humanitarian_or_human_rights_purpose_bypasses_authorisation": False,
+        "app_features": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES
+        ],
+        "app_primary_menu": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES if item["section"] == "primary"
+        ],
+        "app_more_menu": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES if item["section"] == "more"
+        ],
+        "app_admin_menu": [
+            {**item, "enabled": True}
+            for item in BANK_APP_FEATURES if item["section"] == "admin"
+        ],
         "human_authority_final": True,
     }
 
