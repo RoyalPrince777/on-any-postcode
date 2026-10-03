@@ -200,6 +200,11 @@ def interaction_certification() -> dict[str, Any]:
         {"proven": False, "reason": "button_proof_unavailable"},
     )
 
+    surface_proofs, surface_proofs_checked = _safe_read(
+        smi_receipt_backend.latest_durable_interaction_surface_proofs,
+        {},
+    )
+
     completion, completion_checked = _safe_read(
         smi_completion_contract.completion_status,
         {"proof_gates": ()},
@@ -252,6 +257,15 @@ def interaction_certification() -> dict[str, Any]:
                     spec["id"] == "chat"
                     and founder_chat_proven
                 )
+                or (
+                    spec["id"] not in {"chat", "control-surface-v2"}
+                    and surface_proofs_checked
+                    and isinstance(surface_proofs.get(spec["id"]), Mapping)
+                    and surface_proofs[spec["id"]].get("proven") is True
+                    and surface_proofs[spec["id"]].get("durable") is True
+                    and surface_proofs[spec["id"]].get("cryptographically_verified") is True
+                    and bool(str(surface_proofs[spec["id"]].get("release_id") or "").strip())
+                )
             )
         )
         surfaces.append(
@@ -265,7 +279,15 @@ def interaction_certification() -> dict[str, Any]:
                 "live_proof_receipt_id": (
                     button_proof.get("receipt_id")
                     if live_runtime_proven and spec["id"] == "control-surface-v2"
-                    else None
+                    else (
+                        surface_proofs[spec["id"]].get("receipt_id")
+                        if (
+                            live_runtime_proven
+                            and spec["id"] not in {"chat", "control-surface-v2"}
+                            and isinstance(surface_proofs.get(spec["id"]), Mapping)
+                        )
+                        else None
+                    )
                 ),
                 "live_proof_source": (
                     "durable_post_ack_button_proof"
@@ -273,7 +295,14 @@ def interaction_certification() -> dict[str, Any]:
                     else (
                         "founder_chat_interaction_gate"
                         if live_runtime_proven and spec["id"] == "chat"
-                        else None
+                        else (
+                            "durable_interaction_surface_proof"
+                            if (
+                                live_runtime_proven
+                                and spec["id"] not in {"chat", "control-surface-v2"}
+                            )
+                            else None
+                        )
                     )
                 ),
                 "state": "green" if live_runtime_proven else ("purple" if wired else "red"),

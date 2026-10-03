@@ -334,3 +334,225 @@ def test_interaction_certification_combines_chat_and_control_without_overclaim(m
     assert surfaces["chat"]["live_runtime_proven"] is True
     assert surfaces["control-surface-v2"]["live_runtime_proven"] is True
     assert sum(item["live_runtime_proven"] for item in result["surfaces"]) == 2
+
+def test_interaction_certification_consumes_independent_surface_proofs_without_overclaim(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {"proven": False, "reason": "missing", "receipt_id": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {"proof_gates": ()},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_interaction_surface_proofs",
+        lambda: {
+            "voice": {
+                "proven": True,
+                "receipt_id": "receipt-live-voice",
+                "source": "durable_interaction_surface_proof",
+                "durable": True,
+                "cryptographically_verified": True,
+                "release_id": "release-test",
+            },
+            "vision": {
+                "proven": True,
+                "receipt_id": "receipt-live-vision",
+                "source": "durable_interaction_surface_proof",
+                "durable": True,
+                "cryptographically_verified": True,
+                "release_id": "release-test",
+            },
+        },
+    )
+
+    result = smi_function_health.interaction_certification()
+    surfaces = {item["id"]: item for item in result["surfaces"]}
+
+    assert result["live_proven_count"] == 2
+    assert result["live_proof_percent"] == 22.2
+    assert result["whole_interaction_green"] is False
+    assert surfaces["voice"]["live_runtime_proven"] is True
+    assert surfaces["voice"]["live_proof_receipt_id"] == "receipt-live-voice"
+    assert surfaces["voice"]["live_proof_source"] == "durable_interaction_surface_proof"
+    assert surfaces["vision"]["live_runtime_proven"] is True
+    assert surfaces["vision"]["live_proof_receipt_id"] == "receipt-live-vision"
+    assert all(
+        item["live_runtime_proven"] is False
+        for item in result["surfaces"]
+        if item["id"] not in {"voice", "vision"}
+    )
+
+
+def test_interaction_certification_fails_closed_when_surface_proof_reader_errors(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {"proven": False, "reason": "missing", "receipt_id": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {"proof_gates": ()},
+    )
+
+    def _boom():
+        raise RuntimeError("proof store unavailable")
+
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_interaction_surface_proofs",
+        _boom,
+    )
+
+    result = smi_function_health.interaction_certification()
+    assert result["live_proven_count"] == 0
+    assert result["live_proof_percent"] == 0.0
+    assert result["whole_interaction_green"] is False
+    assert all(item["live_runtime_proven"] is False for item in result["surfaces"])
+
+def test_interaction_surface_proof_signature_binds_surface_and_runtime(monkeypatch):
+    monkeypatch.setenv("OAP_SMI_INTERACTION_PROOF_KEY", "red-team-test-key")
+    monkeypatch.setenv("OAP_SMI_RELEASE_ID", "release-a5426fed")
+    payload = {
+        "proof_version": smi_function_health.smi_receipt_backend.INTERACTION_PROOF_VERSION,
+        "surface_id": "voice",
+        "evidence_class": "production_interaction",
+        "runtime_instance_id": "runtime-991",
+        "interaction_id": "interaction-voice-1",
+        "release_id": "release-a5426fed",
+        "status_code": 200,
+        "runtime_acknowledged": True,
+        "interaction_completed": True,
+        "click_only_proof": False,
+        "execution_authority_expanded": False,
+    }
+    payload["proof_signature_sha256"] = (
+        smi_function_health.smi_receipt_backend._interaction_proof_signature(
+            payload, "red-team-test-key"
+        )
+    )
+    assert (
+        smi_function_health.smi_receipt_backend._valid_interaction_proof_signature(payload)
+        is True
+    )
+
+    forged_surface = dict(payload)
+    forged_surface["surface_id"] = "vision"
+    assert (
+        smi_function_health.smi_receipt_backend._valid_interaction_proof_signature(
+            forged_surface
+        )
+        is False
+    )
+
+    forged_runtime = dict(payload)
+    forged_runtime["runtime_instance_id"] = "runtime-forged"
+    assert (
+        smi_function_health.smi_receipt_backend._valid_interaction_proof_signature(
+            forged_runtime
+        )
+        is False
+    )
+
+
+def test_interaction_surface_proof_signature_fails_closed_without_key(monkeypatch):
+    monkeypatch.delenv("OAP_SMI_INTERACTION_PROOF_KEY", raising=False)
+    payload = {
+        "proof_version": smi_function_health.smi_receipt_backend.INTERACTION_PROOF_VERSION,
+        "surface_id": "voice",
+        "evidence_class": "production_interaction",
+        "runtime_instance_id": "runtime-991",
+        "interaction_id": "interaction-voice-1",
+        "status_code": 200,
+        "runtime_acknowledged": True,
+        "interaction_completed": True,
+        "click_only_proof": False,
+        "execution_authority_expanded": False,
+        "proof_signature_sha256": "0" * 64,
+    }
+    assert (
+        smi_function_health.smi_receipt_backend._valid_interaction_proof_signature(payload)
+        is False
+    )
+
+
+def test_generic_writer_cannot_mint_interaction_surface_proof():
+    result = smi_function_health.smi_receipt_backend.write_receipt(
+        "interaction_surface_live_proof_receipt",
+        {
+            "brain_part": "smi_interaction",
+            "gate": 21,
+            "command": "interaction_surface_proof",
+            "safe_payload": {
+                "surface_id": "voice",
+                "runtime_acknowledged": True,
+                "interaction_completed": True,
+            },
+        },
+        require_durable=True,
+    )
+    assert result["ok"] is False
+    assert result["status"] == "blocked_reserved_interaction_proof_producer"
+    assert result["receipt_id"] is None
+
+def test_interaction_surface_signature_binds_release(monkeypatch):
+    monkeypatch.setenv("OAP_SMI_INTERACTION_PROOF_KEY", "red-team-test-key")
+    monkeypatch.setenv("OAP_SMI_RELEASE_ID", "release-current")
+    payload = {
+        "proof_version": smi_function_health.smi_receipt_backend.INTERACTION_PROOF_VERSION,
+        "surface_id": "voice",
+        "evidence_class": "production_interaction",
+        "runtime_instance_id": "runtime-991",
+        "interaction_id": "interaction-voice-1",
+        "release_id": "release-old",
+        "status_code": 200,
+        "runtime_acknowledged": True,
+        "interaction_completed": True,
+        "click_only_proof": False,
+        "execution_authority_expanded": False,
+    }
+    payload["proof_signature_sha256"] = (
+        smi_function_health.smi_receipt_backend._interaction_proof_signature(
+            payload, "red-team-test-key"
+        )
+    )
+    assert (
+        smi_function_health.smi_receipt_backend._valid_interaction_proof_signature(payload)
+        is True
+    )
+    assert payload["release_id"] != smi_function_health.smi_receipt_backend._interaction_release_id()
+
+def test_interaction_certification_rejects_unverified_proven_flag(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {"proven": False, "reason": "missing", "receipt_id": None},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {"proof_gates": ()},
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_interaction_surface_proofs",
+        lambda: {
+            "voice": {
+                "proven": True,
+                "receipt_id": "forged-voice",
+                "durable": True,
+                "cryptographically_verified": False,
+                "release_id": "release-test",
+            }
+        },
+    )
+    result = smi_function_health.interaction_certification()
+    voice = next(item for item in result["surfaces"] if item["id"] == "voice")
+    assert voice["live_runtime_proven"] is False
+    assert voice["state"] != "green"
+    assert result["whole_interaction_green"] is False
+

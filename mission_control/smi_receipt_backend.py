@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import json
 import os
 import sqlite3
@@ -30,7 +31,68 @@ ALLOWED_RECEIPT_KINDS = {
     "behaviour_step4_readiness_receipt",
     "studio_generation_receipt",
     "oap_lab_recovery_anchor",
+    "interaction_surface_live_proof_receipt",
 }
+
+INTERACTION_SURFACE_IDS = frozenset({
+    "voice",
+    "vision",
+    "face-up",
+    "screen",
+    "tools",
+    "intelligence-selector",
+    "runtime-controls",
+})
+
+INTERACTION_PROOF_VERSION = 1
+INTERACTION_PROOF_KEY_ENV = "OAP_SMI_INTERACTION_PROOF_KEY"
+INTERACTION_RELEASE_ID_ENV = "OAP_SMI_RELEASE_ID"
+
+
+def _interaction_proof_key() -> str:
+    return str(os.getenv(INTERACTION_PROOF_KEY_ENV) or "").strip()
+
+
+def _interaction_release_id() -> str:
+    return str(os.getenv(INTERACTION_RELEASE_ID_ENV) or "").strip()
+
+
+def _interaction_proof_message(payload: dict[str, Any]) -> bytes:
+    fields = {
+        "proof_version": payload.get("proof_version"),
+        "surface_id": payload.get("surface_id"),
+        "evidence_class": payload.get("evidence_class"),
+        "runtime_instance_id": payload.get("runtime_instance_id"),
+        "interaction_id": payload.get("interaction_id"),
+        "release_id": payload.get("release_id"),
+        "status_code": payload.get("status_code"),
+        "runtime_acknowledged": payload.get("runtime_acknowledged"),
+        "interaction_completed": payload.get("interaction_completed"),
+        "click_only_proof": payload.get("click_only_proof"),
+        "execution_authority_expanded": payload.get("execution_authority_expanded"),
+    }
+    return json.dumps(
+        fields, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+
+
+def _interaction_proof_signature(payload: dict[str, Any], key: str) -> str:
+    if not key:
+        return ""
+    return hmac.new(
+        key.encode("utf-8"),
+        _interaction_proof_message(payload),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _valid_interaction_proof_signature(payload: dict[str, Any]) -> bool:
+    key = _interaction_proof_key()
+    supplied = str(payload.get("proof_signature_sha256") or "").strip().lower()
+    if not key or len(supplied) != 64:
+        return False
+    expected = _interaction_proof_signature(payload, key)
+    return bool(expected and hmac.compare_digest(supplied, expected))
 
 
 def _now() -> str:
@@ -364,6 +426,81 @@ def latest_durable_button_proof() -> dict[str, Any]:
     }
 
 
+def latest_durable_interaction_surface_proofs() -> dict[str, dict[str, Any]]:
+    """Read independently durable production proof for each non-chat interaction surface.
+
+    This is a read-only certification input. Missing, malformed, SQLite-only or
+    non-acknowledged evidence fails closed and cannot promote a surface.
+    """
+
+    proofs: dict[str, dict[str, Any]] = {}
+    release_id = _interaction_release_id()
+    if not _hrm_database_url() or not release_id or not _interaction_proof_key():
+        return proofs
+    try:
+        with _connect_postgres() as connection, connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute(
+                """
+                SELECT DISTINCT ON (payload_json->>'surface_id')
+                       receipt_id,payload_json,created_at
+                FROM smi_evidence_receipts
+                WHERE receipt_kind='interaction_surface_live_proof_receipt'
+                ORDER BY payload_json->>'surface_id', created_at DESC
+                """
+            )
+            rows = cursor.fetchall()
+    except Exception:  # noqa: BLE001 - certification evidence must fail closed.
+        return proofs
+
+    for row in rows:
+        payload = row.get("payload_json")
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                continue
+        if not isinstance(payload, dict):
+            continue
+        surface_id = str(payload.get("surface_id") or "").strip()
+        if surface_id not in INTERACTION_SURFACE_IDS:
+            continue
+        status_code = payload.get("status_code")
+        try:
+            status_ok = 200 <= int(status_code) < 400
+        except (TypeError, ValueError):
+            status_ok = False
+        proven = bool(
+            payload.get("proof_version") == INTERACTION_PROOF_VERSION
+            and payload.get("evidence_class") == "production_interaction"
+            and str(payload.get("runtime_instance_id") or "").strip()
+            and str(payload.get("interaction_id") or "").strip()
+            and str(payload.get("release_id") or "").strip() == release_id
+            and payload.get("runtime_acknowledged") is True
+            and payload.get("interaction_completed") is True
+            and payload.get("click_only_proof") is not True
+            and payload.get("execution_authority_expanded") is not True
+            and status_ok
+            and _valid_interaction_proof_signature(payload)
+        )
+        if not proven:
+            continue
+        proofs[surface_id] = {
+            "proven": True,
+            "receipt_id": row.get("receipt_id"),
+            "created_at": str(row.get("created_at") or ""),
+            "source": "durable_interaction_surface_proof",
+            "status_code": int(status_code),
+            "runtime_acknowledged": True,
+            "interaction_completed": True,
+            "cryptographically_verified": True,
+            "proof_version": INTERACTION_PROOF_VERSION,
+            "release_id": release_id,
+            "durable": True,
+        }
+    return proofs
+
+
 def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable: bool = False) -> dict[str, Any]:
     """Write one bounded receipt; prefer independent durable Postgres."""
 
@@ -376,6 +513,19 @@ def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable
             "receipt_id": None,
             "read_back_ok": False,
             "durable": False,
+        }
+
+    # Interaction certification proof is reserved for a separately governed
+    # production producer. Generic callers cannot mint their own Green evidence.
+    if kind == "interaction_surface_live_proof_receipt":
+        return {
+            "ok": False,
+            "status": "blocked_reserved_interaction_proof_producer",
+            "receipt_kind": kind,
+            "receipt_id": None,
+            "read_back_ok": False,
+            "durable": False,
+            "fallback_used": False,
         }
 
     # A generic caller cannot mint a stored Matrix review that the learning
