@@ -123,3 +123,40 @@ def public_payment_request(token: str):
         response = jsonify(item)
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@bp.get("/pay/manifest.webmanifest")
+def pay_manifest():
+    manifest = {
+        "id": "/pay",
+        "name": "OAP Pay",
+        "short_name": "OAP Pay",
+        "description": "Phone-first OAP Pay powered by governed SIKA controls.",
+        "start_url": "/pay",
+        "scope": "/pay",
+        "display": "standalone",
+        "background_color": "#050706",
+        "theme_color": "#050706",
+        "icons": [
+            {
+                "src": "/assets/oap-os-icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+            },
+            {
+                "src": "/assets/oap-os-icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+            },
+        ],
+        "shortcuts": [
+            {"name": "Pay", "short_name": "Pay", "url": "/pay#pay"},
+            {"name": "Request", "short_name": "Request", "url": "/pay#request"},
+            {"name": "Activity", "short_name": "Activity", "url": "/pay#activity"},
+            {"name": "My SIKA", "short_name": "My SIKA", "url": "/pay#sika"},
+        ],
+    }
+    response = jsonify(manifest)
+    response.content_type = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
