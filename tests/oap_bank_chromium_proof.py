@@ -38,17 +38,17 @@ def main():
 
             expect(page.get_by_text("OAP Bank", exact=True).first).to_be_visible()
             expect(page.locator('[aria-label="OAP Bank navigation"]')).to_be_visible()
-            expect(page.get_by_text("Bank Home", exact=True)).to_be_visible()
-            expect(page.locator("#accounts")).to_be_visible()
-            expect(page.locator("#transfers")).to_be_visible()
-            expect(page.locator("#activity")).to_be_visible()
+            expect(page.get_by_text("Available balance", exact=True)).to_be_visible()
+            expect(page.get_by_text("No authenticated account selected", exact=False)).to_be_visible()
+            expect(page.locator('[aria-label="Quick actions"]')).to_be_visible()
+            expect(page.get_by_text("My accounts", exact=True)).to_be_visible()
+            expect(page.get_by_text("Recent activity", exact=True)).to_be_visible()
             expect(page.locator("#more")).to_be_visible()
-            expect(page.locator("#capabilities")).to_be_visible()
 
             page.get_by_text("Accounts", exact=True).last.click()
             page.wait_for_url("**/pay/bank/accounts")
             expect(page.get_by_text("Accounts", exact=True).first).to_be_visible()
-            expect(page.get_by_text("Evidence-gated / unavailable", exact=True)).to_be_visible()
+            expect(page.get_by_text("Action unavailable", exact=True)).to_be_visible()
 
             page.goto(BASE + "/pay/bank", wait_until="domcontentloaded")
             page.get_by_text("Transfers", exact=True).last.click()
