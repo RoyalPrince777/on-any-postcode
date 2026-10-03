@@ -11,11 +11,13 @@ from typing import Any
 
 from . import (
     market_sika_pod_runtime,
+    prince_sovereign_bank,
     sika_account_engine,
     sika_journal_store,
     sika_payment_disputes,
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
+    sika_rights_decision_record,
 )
 
 PAYMENT_TRANSITIONS = {
@@ -265,6 +267,102 @@ def settlement_intelligence(
     }
 
 
+
+def fraud_intelligence(signals: object) -> dict[str, Any]:
+    if not isinstance(signals, Mapping):
+        return {
+            "valid": False,
+            "reason": "fraud_signals_required",
+            "recommended_action": "REVIEW",
+            "guilt_determined": False,
+            "execution_granted": False,
+        }
+    duplicate = signals.get("duplicate_submission") is True
+    account_mismatch = signals.get("account_mismatch") is True
+    payment_mismatch = signals.get("payment_mismatch") is True
+    authority_missing = signals.get("customer_authority_missing") is True
+    rights_not_allow = signals.get("rights_not_allow") is True
+    suspicious = any(
+        (duplicate, account_mismatch, payment_mismatch, authority_missing, rights_not_allow)
+    )
+    return {
+        "valid": True,
+        "recommended_action": "REVIEW" if suspicious else "ALLOW_TO_CONTINUE_REVIEW",
+        "risk_flags": tuple(
+            name
+            for name, flagged in (
+                ("duplicate_submission", duplicate),
+                ("account_mismatch", account_mismatch),
+                ("payment_mismatch", payment_mismatch),
+                ("customer_authority_missing", authority_missing),
+                ("rights_not_allow", rights_not_allow),
+            )
+            if flagged
+        ),
+        "guilt_determined": False,
+        "automatic_confiscation": False,
+        "automatic_permanent_blacklist": False,
+        "execution_granted": False,
+        "money_movement": False,
+    }
+
+
+def rights_remedy_intelligence(record: object) -> dict[str, Any]:
+    check = sika_rights_decision_record.verify_decision_record(record)
+    if not check.get("verified") or not isinstance(record, Mapping):
+        return {
+            "valid": False,
+            "reason": "rights_record_integrity_failed",
+            "execution_ready": False,
+            "remedy_available": False,
+            "execution_granted": False,
+        }
+    gate = sika_rights_decision_record.execution_gate(record)
+    return {
+        "valid": True,
+        "decision": record.get("decision"),
+        "execution_ready": bool(gate.get("ready")),
+        "remedy_reference": record.get("remedy_reference"),
+        "explanation_reference": record.get("explanation_reference"),
+        "remedy_available": bool(record.get("remedy_reference")),
+        "human_authority_final": bool(record.get("human_authority_final")),
+        "automatic_confiscation": bool(
+            record.get("automatic_confiscation_enabled")
+        ),
+        "automatic_permanent_blacklist": bool(
+            record.get("automatic_permanent_blacklist_enabled")
+        ),
+        "execution_granted": False,
+        "money_movement": False,
+    }
+
+
+def currency_sika_intelligence() -> dict[str, Any]:
+    bank = prince_sovereign_bank.status()
+    currency = dict(bank.get("currency") or {})
+    return {
+        "valid": True,
+        "name": currency.get("name"),
+        "subunit": currency.get("subunit"),
+        "subunits_per_unit": currency.get("subunits_per_unit"),
+        "value_classes": tuple(currency.get("value_classes") or ()),
+        "recognition_to_fiat_enabled": bool(
+            currency.get("recognition_to_fiat_enabled")
+        ),
+        "recognition_to_currency_enabled": bool(
+            currency.get("recognition_to_currency_enabled")
+        ),
+        "fiat_to_currency_enabled": bool(currency.get("fiat_to_currency_enabled")),
+        "rewards_are_money": bool(currency.get("rewards_are_money")),
+        "legal_tender": bool(currency.get("proposed_currency_is_legal_tender")),
+        "balance_known": False,
+        "conversion_rate_claimed": False,
+        "issuance_enabled": False,
+        "execution_granted": False,
+        "money_movement": False,
+    }
+
+
 def status() -> dict[str, Any]:
     return {
         "system": "OAP Pay Intelligence",
@@ -275,9 +373,9 @@ def status() -> dict[str, Any]:
         "request_intelligence": True,
         "merchant_intelligence": True,
         "settlement_intelligence": True,
-        "fraud_intelligence": False,
-        "rights_remedy_intelligence": False,
-        "currency_sika_intelligence": False,
+        "fraud_intelligence": True,
+        "rights_remedy_intelligence": True,
+        "currency_sika_intelligence": True,
         "activity_intelligence": True,
         "liquidity_intelligence": False,
         "guardian_intelligence": False,
