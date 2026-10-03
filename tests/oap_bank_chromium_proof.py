@@ -55,6 +55,12 @@ def main():
             page.wait_for_url("**/pay/bank/transfers")
             expect(page.get_by_text("Transfers", exact=True).first).to_be_visible()
 
+            page.goto(BASE + "/pay/bank", wait_until="domcontentloaded")
+            page.get_by_text("Intelligence", exact=True).last.click()
+            page.wait_for_url("**/pay/bank/intelligence")
+            expect(page.get_by_text("All Bank Intelligence", exact=True)).to_be_visible()
+            expect(page.get_by_text("21 first-party intelligence domains", exact=False)).to_be_visible()
+
             manifest_href = page.locator('link[rel="manifest"]').get_attribute("href")
             assert manifest_href == "/pay/bank/manifest.webmanifest"
 
