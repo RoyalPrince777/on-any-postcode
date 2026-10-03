@@ -103,7 +103,7 @@ def test_store_lists_every_public_spot_app_without_faking_installability():
 def test_only_apps_with_dedicated_install_proof_expose_install_buttons():
     apps = {app["app_id"]: app for app in oap_store.catalogue()}
     installable = {app_id for app_id, app in apps.items() if app["install_enabled"]}
-    assert installable == {"oap.world", "oap.linkup", "oap.music"}
+    assert installable == {"oap.world", "oap.linkup", "oap.music", "oap.transport"}
     for app_id, app in apps.items():
         if app_id not in installable:
             assert app["manifest_url"] is None
@@ -186,3 +186,46 @@ def test_oap_search_does_not_return_planned_apps_without_open_routes(client):
     body = page.get_data(as_text=True)
     assert "No public OAP app matched." in body
     assert "Open OAP VPN" not in body
+
+
+def test_oap_transport_is_a_separate_installable_os_entry(client):
+    app = oap_store.OAP_TRANSPORT
+    assert app["app_id"] == "oap.transport"
+    assert app["install_enabled"] is True
+    assert app["install_mode"] == "PWA"
+    assert app["manifest_url"] == "/transport/manifest.webmanifest"
+    assert app["start_url"].startswith("/transport")
+    assert app["bundles"] == ("Rider", "Driver", "Travel")
+    assert app["native_apk"] is False
+    assert app["physical_device_certified"] is False
+
+    entry = client.get("/oap-store/apps/oap.transport")
+    assert entry.status_code == 200
+    payload = entry.get_json()
+    assert payload["install_enabled"] is True
+    assert payload["manifest_url"] == "/transport/manifest.webmanifest"
+
+    manifest_response = client.get("/transport/manifest.webmanifest")
+    assert manifest_response.status_code == 200
+    assert manifest_response.content_type == "application/manifest+json"
+    manifest = manifest_response.get_json()
+    assert manifest["name"] == "OAP Transport · ON ANY POSTCODE"
+    assert manifest["id"] == "/transport"
+    assert manifest["scope"] == "/"
+    assert manifest["display"] == "standalone"
+    shortcuts = {item["name"]: item["url"].split("?", 1)[0] for item in manifest["shortcuts"]}
+    assert shortcuts == {
+        "Rider": "/transport/ride/rider",
+        "Driver": "/transport/ride/driver",
+        "Travel": "/transport/travel/status",
+    }
+
+
+def test_transport_home_exposes_install_contract(client):
+    response = client.get("/transport")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'rel="manifest" href="/transport/manifest.webmanifest"' in body
+    assert "Install OAP Transport" in body
+    assert "data-oap-install hidden" in body
+    assert 'src="/assets/oap-os.js"' in body
