@@ -1,3 +1,4 @@
+# ruff: noqa: I001, BLE001
 """OAP Ride Guardian: participant-scoped digital safety records.
 
 No covert tracking, emergency-service impersonation, or automatic physical response.
