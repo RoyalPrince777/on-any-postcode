@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Ride commercial rules and accessibility preferences.
 
 Extends Ride without duplicating the SIKA payment orchestrator. Stores explicit
