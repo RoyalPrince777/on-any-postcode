@@ -101,3 +101,98 @@ def test_ecosystem_analysis_preserves_structured_world_observation():
     assert result["observations"][0]["source_ownership"] == "external_public"
     assert result["observation_evidence_mix"]["observed"] == 1
     assert result["execution_granted"] is False
+
+
+def test_future_observation_beyond_clock_skew_is_rejected():
+    try:
+        world_observation.normalise(
+            _observation(observed_at="2026-10-03T03:32:00Z"),
+            now=NOW,
+        )
+    except ValueError as exc:
+        assert "too far in the future" in str(exc)
+    else:
+        raise AssertionError("future-dated observation must fail closed")
+
+
+def test_observed_at_cannot_be_after_received_at():
+    try:
+        world_observation.normalise(
+            _observation(
+                observed_at="2026-10-03T03:29:30Z",
+                received_at="2026-10-03T03:29:00Z",
+            ),
+            now=NOW,
+        )
+    except ValueError as exc:
+        assert "cannot be after received_at" in str(exc)
+    else:
+        raise AssertionError("impossible chronology must fail closed")
+
+
+def test_stale_observation_is_context_only_and_cannot_drive_current_pressure():
+    result = ecosystem_intelligence.analyse(
+        (
+            {
+                "domain": "nature",
+                "summary": "Stale severe weather",
+                "pressure": 100,
+                "confidence": 100,
+                "truth_state": "observed",
+                "horizon": "now",
+                "source": "stale_weather_source",
+                "evidence": ("provider:stale",),
+                "risk": "Severe current disruption",
+                "recommendation": "Escalate now",
+                "observation": _observation(
+                    observed_at="2026-10-03T03:20:00Z"
+                ),
+            },
+            {
+                "domain": "infrastructure",
+                "summary": "Current healthy runtime",
+                "pressure": 10,
+                "confidence": 90,
+                "truth_state": "observed",
+                "horizon": "now",
+                "source": "oap_runtime",
+                "evidence": ("runtime:healthy",),
+            },
+        ),
+        scope="Red Team",
+    )
+
+    assert result["state"] == "stable"
+    assert result["average_pressure"] == 10.0
+    assert result["contextual_only_signal_count"] == 1
+    assert "Severe current disruption" not in result["risks"]
+    assert "Escalate now" not in result["recommendations"]
+    assert result["war_room_required"] is False
+
+
+def test_only_stale_observations_fail_closed_to_zero_current_pressure():
+    result = ecosystem_intelligence.analyse(
+        (
+            {
+                "domain": "nature",
+                "summary": "Old severe observation",
+                "pressure": 100,
+                "confidence": 100,
+                "truth_state": "observed",
+                "horizon": "now",
+                "source": "old_source",
+                "evidence": ("old:evidence",),
+                "risk": "Current emergency",
+                "observation": _observation(
+                    observed_at="2026-10-03T03:20:00Z"
+                ),
+            },
+        ),
+        scope="Red Team",
+    )
+
+    assert result["average_pressure"] == 0.0
+    assert result["state"] == "stable"
+    assert result["current_signal_count"] == 0
+    assert result["war_room_required"] is False
+    assert result["risks"] == ()
