@@ -113,6 +113,16 @@ def init_app(app: Flask) -> None:
 
 
     if os.environ.get("OAP_RIDE_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        # Ride schema objects reference the durable Movement spine. Production
+        # may legitimately start with the Ride auto-apply flag on a database
+        # where Movement has not yet been materialised, so establish that
+        # prerequisite first instead of crashing Gunicorn during app import.
+        movement_schema = movement_operations.init_movement_schema(
+            assume_yes=True,
+            dry_run=False,
+        )
+        if not movement_schema.get("schema_ready"):
+            raise RuntimeError("movement_schema_required_before_ride")
         ride_installers = (
             ("0001_oap_ride_runtime", oap_ride_runtime.init_schema),
             ("0002_oap_ride_guardian", oap_ride_guardian.init_schema),
