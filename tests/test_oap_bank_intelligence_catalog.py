@@ -41,7 +41,7 @@ def test_bank_app_menu_exposes_intelligence(monkeypatch):
     monkeypatch.setattr(
         oap_pay.sika_execution_gate,
         "capability_matrix",
-        lambda: {},
+        dict,
     )
     status = oap_pay.bank_status()
     ids = [item["id"] for item in status["app_primary_menu"]]
