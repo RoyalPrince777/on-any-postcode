@@ -1,3 +1,4 @@
+# ruff: noqa: BLE001
 """Authenticated OAP Ride journey lifecycle APIs."""
 from __future__ import annotations
 
