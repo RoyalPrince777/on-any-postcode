@@ -147,7 +147,7 @@ def _distance_km(lat: float, lon: float, target_lat: float, target_lon: float) -
 
 
 def _public_vehicle_id(operator: str, raw_id: object) -> str:
-    digest = hashlib.sha256(f"{operator}:{raw_id}".encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha256(f"{operator}:{raw_id}".encode()).hexdigest()[:12]
     return f"oap-bike-{digest}"
 
 
