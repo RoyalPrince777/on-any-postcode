@@ -353,6 +353,49 @@ refreshOps();
         : "";
     };
     const endpoint=(template,id)=>String(template||"").replace("__VIDEO_ID__",encodeURIComponent(String(id||"")));
+    const interactionRuntimeId=(()=>{
+      const key="oap_smi_interaction_runtime_id";
+      try{
+        const existing=sessionStorage.getItem(key);
+        if(existing)return existing;
+        const created=(crypto.randomUUID?.()||("runtime-"+Date.now()+"-"+Math.random().toString(16).slice(2)));
+        sessionStorage.setItem(key,created);
+        return created;
+      }catch{
+        return crypto.randomUUID?.()||("runtime-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+      }
+    })();
+
+    async function recordInteractionProof(surfaceId,interactionId,statusCode=200){
+      if(!cfg.interactionProofUrl)return null;
+      const id=String(interactionId||crypto.randomUUID?.()||("interaction-"+Date.now()+"-"+Math.random().toString(16).slice(2)));
+      try{
+        const response=await fetch(cfg.interactionProofUrl,{
+          method:"POST",
+          credentials:"same-origin",
+          headers:{
+            "Content-Type":"application/json",
+            "X-OAP-CSRF":window.csrfToken||cfg.csrfToken||""
+          },
+          body:JSON.stringify({
+            surface_id:String(surfaceId||""),
+            runtime_instance_id:interactionRuntimeId,
+            interaction_id:id,
+            status_code:Number(statusCode||0),
+            runtime_acknowledged:true,
+            interaction_completed:true
+          })
+        });
+        const payload=await response.json().catch(()=>({}));
+        if(!response.ok||payload.proven!==true)return null;
+        const receipt=payload.chronicle_receipt||null;
+        if(receipt?.receipt_id){
+          try{sessionStorage.setItem("oap_smi_interaction_proof:"+surfaceId,String(receipt.receipt_id));}catch{}
+        }
+        return receipt;
+      }catch{return null;}
+    }
+    window.OAP_SMI_RECORD_INTERACTION_PROOF=recordInteractionProof;
 
     async function recordButtonProof(actionId,target,statusCode){
       if(!cfg.buttonProofUrl)return null;
