@@ -3,19 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Bank · OAP Pay</title>
+{% set oap_app_name = 'OAP Bank' %}
+{% set oap_manifest_url = '/pay/bank/manifest.webmanifest' %}
+{% include "_oap_install_head.html" %}
+<title>OAP Bank · ON ANY POSTCODE</title>
 <style>
 :root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:920px;margin:auto;padding:18px 14px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 12px}.hero{padding:38px 0 22px}.eyebrow{color:var(--gold);font-weight:900;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:8px 0 10px;font-size:clamp(2.5rem,8vw,5rem);line-height:.92}.hero p{color:var(--muted);max-width:700px;line-height:1.55}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}.card h2{margin:0 0 8px;font-size:1rem}.big{font-size:1.6rem;font-weight:900}.on{color:var(--green)}.off{color:var(--gold)}.meta{color:var(--muted);font-size:.8rem;line-height:1.5}.caps{margin-top:18px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.cap{display:flex;justify-content:space-between;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}@media(max-width:640px){.grid,.caps{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:920px;margin:auto;padding:18px 14px 110px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 12px}.hero{padding:38px 0 22px}.eyebrow{color:var(--gold);font-weight:900;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:8px 0 10px;font-size:clamp(2.5rem,8vw,5rem);line-height:.92}.hero p{color:var(--muted);max-width:700px;line-height:1.55}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}.card h2{margin:0 0 8px;font-size:1rem}.big{font-size:1.6rem;font-weight:900}.on{color:var(--green)}.off{color:var(--gold)}.meta{color:var(--muted);font-size:.8rem;line-height:1.5}.caps{margin-top:18px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.cap{display:flex;justify-content:space-between;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(920px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));background:rgba(5,7,6,.96);border-top:1px solid var(--line);backdrop-filter:blur(18px);z-index:20}.nav{color:var(--muted);text-decoration:none;text-align:center;font-size:.68rem;font-weight:800;padding:8px 4px;border-radius:12px}.nav strong{display:block;color:var(--text);font-size:1rem;margin-bottom:3px}.nav:focus-visible,.nav:hover{background:var(--panel);outline:1px solid var(--line)}@media(max-width:640px){.grid,.caps{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main class="shell">
-<header class="top"><strong>👑 OAP Pay · Bank</strong><a class="back" href="/pay">Back to OAP Pay</a></header>
+<header class="top"><strong>👑 OAP Bank</strong><a class="back" href="/pay">OAP Pay</a></header>
 <section class="hero">
 <div class="eyebrow">Evidence-gated bank capability</div>
 <h1>{{ bank.institution }}</h1>
 <p>Parent: {{ bank.parent }} · Jurisdiction: {{ bank.jurisdiction }} · Route: {{ bank.route }}</p>
+<button class="back" type="button" data-oap-install hidden>Install OAP Bank</button>
+<div class="meta" data-oap-install-status role="status">Checking install support</div>
 </section>
 
 <section class="grid" aria-label="Bank status">
@@ -26,7 +31,7 @@
 </section>
 
 <h2>Regulated capabilities</h2>
-<section class="caps" aria-label="Regulated bank capabilities">
+<section class="caps" id="capabilities" aria-label="Regulated bank capabilities">
 {% for capability, enabled in bank.capabilities.items() %}
 <div class="cap"><span>{{ capability.replace('_',' ')|title }}</span><strong class="{{ 'on' if enabled else 'off' }}">{{ '🟢 Allowed' if enabled else '🔒 Locked' }}</strong></div>
 {% endfor %}
@@ -34,5 +39,11 @@
 
 <div class="truth"><strong>Truth:</strong> This screen reports governed evidence. It does not itself create bank authorisation, accept deposits, hold customer funds or move money. Humanitarian or human-rights purpose does not bypass the legal authorisation route.</div>
 </main>
+<nav class="bottom-nav" aria-label="OAP Bank navigation">
+<a class="nav" href="/pay/bank"><strong>⌂</strong>Status</a>
+<a class="nav" href="#capabilities"><strong>▦</strong>Capabilities</a>
+<a class="nav" href="/pay"><strong>SIKA</strong>OAP Pay</a>
+<a class="nav" href="/pay/bank/status"><strong>◎</strong>Evidence</a>
+</nav>
 </body>
 </html>
