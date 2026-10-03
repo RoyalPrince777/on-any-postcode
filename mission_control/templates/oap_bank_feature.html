@@ -16,21 +16,18 @@
 <main class="shell">
 <header class="top"><strong>👑 OAP Bank</strong><a class="back" href="/pay/bank">Bank Home</a></header>
 <section class="hero">
-<div class="eyebrow">{{ 'Regulated capability' if view.evidence_gated else 'Bank service' }}</div>
+<div class="eyebrow">OAP Bank</div>
 <h1>{{ view.feature.name }}</h1>
 <p>{{ view.feature.description }}</p>
-{% if view.enabled %}<span class="state on">🟢 Software gate allows this capability</span>{% else %}<span class="state off">🔒 Evidence-gated / unavailable</span>{% endif %}
+{% if view.evidence_gated and not view.action_enabled %}<span class="state off">Action unavailable</span>{% elif view.evidence_gated %}<span class="state on">Action available</span>{% endif %}
 </section>
 
+{% if view.evidence_gated and not view.action_enabled %}
 <section class="panel">
-<h2>Capability truth</h2>
-<p>{% if view.capability %}Required capability: <strong>{{ view.capability }}</strong>.{% else %}This screen has no regulated execution capability attached to it.{% endif %}</p>
+<h2>Action status</h2>
+<p>This screen is open. The regulated action behind it is not available yet.</p>
 </section>
-
-<section class="panel">
-<h2>Bank readiness</h2>
-<p>Authorisation evidence {{ view.bank.evidence_proven }} / {{ view.bank.evidence_total }} · Permission scope {{ 'effective' if view.bank.permission_scope_effective else 'locked' }} · Production gate {{ 'passed' if view.bank.production_gate_passed else 'not passed' }}.</p>
-</section>
+{% endif %}
 
 {% if view.feature.id == 'accounts' %}
 <section class="panel"><h2>Accounts</h2><p>First-party account identity and lifecycle exist in the SIKA account engine. This app does not fabricate balances or open regulated bank accounts without the required bank-account capability.</p></section>
@@ -53,7 +50,7 @@
 <section class="panel"><h2>{{ view.feature.name }}</h2><p>This module is wired into the Bank app and inherits the same capability/evidence gates as the Bank core.</p></section>
 {% endif %}
 
-<div class="truth"><strong>Truth:</strong> Bank software availability is not regulator authorisation. Provider calling: off · Money movement: off from this module.</div>
+<div class="truth"><strong>App status:</strong> Screen available. Live provider execution and money movement only appear when the regulated action is actually enabled.</div>
 </main>
 <nav class="bottom"><a href="/pay/bank"><strong>⌂</strong>Home</a><a href="/pay"><strong>SIKA</strong>OAP Pay</a><a href="/pay/bank/status"><strong>◎</strong>Evidence</a></nav>
 </body>
