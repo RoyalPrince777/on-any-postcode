@@ -253,9 +253,32 @@ jobs:
               raise SystemExit("core_image_health_not_ready")
           PY
 
-  promote-smi:
+  map-production-browser-proof:
     if: github.event_name == 'push'
     needs: [runtime-image, promote-core]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Chromium proof runtime
+        run: |
+          python -m pip install 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+
+      - name: Prove live public OAP map renders real roads
+        env:
+          OAP_MAP_URL: https://on-any-postcode.onrender.com/oap-map
+        run: python tests/map_production_chromium_smoke.py
+
+  promote-smi:
+    if: github.event_name == 'push'
+    needs: [runtime-image, promote-core, map-production-browser-proof]
     runs-on: ubuntu-latest
     environment: production
     env:
