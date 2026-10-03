@@ -501,6 +501,112 @@ def latest_durable_interaction_surface_proofs() -> dict[str, dict[str, Any]]:
     return proofs
 
 
+def write_interaction_surface_live_proof(
+    *,
+    surface_id: str,
+    runtime_instance_id: str,
+    interaction_id: str,
+    status_code: int,
+    runtime_acknowledged: bool,
+    interaction_completed: bool,
+) -> dict[str, Any]:
+    """Write one signed, release-bound interaction proof through the reserved producer."""
+
+    surface = str(surface_id or "").strip()
+    runtime_id = str(runtime_instance_id or "").strip()
+    interaction = str(interaction_id or "").strip()
+    release_id = _interaction_release_id()
+    key = _interaction_proof_key()
+    try:
+        code = int(status_code)
+    except (TypeError, ValueError):
+        code = 0
+
+    if (
+        surface not in INTERACTION_SURFACE_IDS
+        or not runtime_id
+        or not interaction
+        or not release_id
+        or not key
+        or runtime_acknowledged is not True
+        or interaction_completed is not True
+        or code < 200
+        or code >= 400
+    ):
+        return {
+            "ok": False,
+            "status": "interaction_surface_proof_rejected",
+            "receipt_kind": "interaction_surface_live_proof_receipt",
+            "receipt_id": None,
+            "read_back_ok": False,
+            "durable": False,
+            "fallback_used": False,
+        }
+
+    safe_payload = {
+        "proof_version": INTERACTION_PROOF_VERSION,
+        "surface_id": surface,
+        "evidence_class": "production_interaction",
+        "runtime_instance_id": runtime_id,
+        "interaction_id": interaction,
+        "release_id": release_id,
+        "status_code": code,
+        "runtime_acknowledged": True,
+        "interaction_completed": True,
+        "click_only_proof": False,
+        "execution_authority_expanded": False,
+    }
+    safe_payload["proof_signature_sha256"] = _interaction_proof_signature(
+        safe_payload, key
+    )
+
+    normalised = _normalise_payload(
+        {
+            "brain_part": "smi_interaction",
+            "gate": 21,
+            "command": "interaction_surface_runtime_proof",
+            "signal": "🟣",
+            "guardian": "signed_runtime_ack_required",
+            "green_gate": "surface_only_not_whole_smi_green",
+            "founder_final": "required_for_full_green",
+            "safe_payload": safe_payload,
+        }
+    )
+    receipt_id = f"smi-{uuid.uuid4().hex}"
+    created_at = _now()
+    if not _hrm_database_url():
+        return {
+            "ok": False,
+            "status": "blocked_durable_hrm_unconfigured",
+            "receipt_kind": "interaction_surface_live_proof_receipt",
+            "receipt_id": None,
+            "read_back_ok": False,
+            "durable": False,
+            "backend": "unconfigured",
+            "fallback_used": False,
+        }
+    try:
+        result = _write_postgres(
+            "interaction_surface_live_proof_receipt",
+            normalised,
+            receipt_id,
+            created_at,
+            independent_readback=True,
+        )
+    except Exception:  # noqa: BLE001 - reserved producer must fail closed.
+        return {
+            "ok": False,
+            "status": "durable_interaction_proof_unconfirmed",
+            "receipt_kind": "interaction_surface_live_proof_receipt",
+            "receipt_id": receipt_id,
+            "read_back_ok": False,
+            "durable": False,
+            "backend": "independent_hrm_postgres",
+            "fallback_used": False,
+        }
+    return result
+
+
 def write_receipt(receipt_kind: str, payload: dict[str, Any], *, require_durable: bool = False) -> dict[str, Any]:
     """Write one bounded receipt; prefer independent durable Postgres."""
 
