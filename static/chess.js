@@ -21,7 +21,7 @@ function render(){
  const active=state.status==="active";
  q("[data-start]").disabled=busy||active;
  q("[data-turn]").textContent=active?state.turn:"—";q("[data-status]").textContent=state.status;
- q("[data-stop]").disabled=!active||busy;q("[data-move]").disabled=!active||busy;
+ q("[data-stop]").disabled=!active||busy;q("[data-resign]").disabled=!active||busy;q("[data-move]").disabled=!active||busy;
  const previous=lastBoard;const board=q("[data-board]");board.replaceChildren();
  for(let rank=8;rank>=1;rank--)for(const file of "abcdefgh"){
   const id=file+rank,piece=state.board[id];const square=document.createElement("button");
@@ -35,7 +35,7 @@ function render(){
   square.setAttribute("aria-pressed",String(selected===id));board.append(square);
  }
  lastBoard={...state.board};
- const completedMessage={checkmate:"Checkmate. Winner: "+state.winner,stalemate:"Stalemate.",draw_threefold:"Draw by threefold repetition.",draw_fifty_move:"Draw by fifty-move rule.",draw_insufficient_material:"Draw by insufficient material."};
+ const completedMessage={checkmate:"Checkmate. Winner: "+state.winner,resignation:"Resignation. Winner: "+state.winner,stalemate:"Stalemate.",draw_threefold:"Draw by threefold repetition.",draw_fifty_move:"Draw by fifty-move rule.",draw_insufficient_material:"Draw by insufficient material."};
  q("[data-feedback]").textContent=state.status==="completed"?(completedMessage[state.result]||"Game completed."):state.status==="stopped"?"Match stopped.":state.check?"Check. "+state.turn+" must respond.":selected?"Selected "+selected+". Choose destination.":"Select your piece or enter source and target squares.";
 }
 async function act(path,payload){if(busy||(path==="/arena/chess/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);selected=null;
@@ -50,6 +50,7 @@ function move(){
 }
 q("[data-start]").onclick=()=>act("/arena/chess/start",{});
 q("[data-move]").onclick=move;
+q("[data-resign]").onclick=()=>act("/arena/chess/resign",{request_id:requestId()});
 q("[data-stop]").onclick=()=>act("/arena/chess/stop",{request_id:requestId()});
 q("[data-board]").onclick=e=>{
  const btn=e.target.closest("[data-square]");if(!btn||btn.disabled)return;
