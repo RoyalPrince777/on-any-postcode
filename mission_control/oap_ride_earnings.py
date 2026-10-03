@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Ride earnings projection.
 
 Reads completed Ride receipts and reports gross ride value plus settlement truth.
