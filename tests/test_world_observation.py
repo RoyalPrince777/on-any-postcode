@@ -17,7 +17,10 @@ def _observation(**overrides):
         "fresh_for_seconds": 60,
         "stale_after_seconds": 300,
         "expires_after_seconds": 3600,
-        "evidence": ("provider:api.open-meteo.com",),
+        "evidence": (
+            "provider:api.open-meteo.com",
+            "observation_time:2026-10-03T03:29:30Z",
+        ),
         "first_party": {
             "software": True,
             "processing": True,
@@ -203,7 +206,10 @@ def test_unregistered_source_cannot_claim_live_or_trusted_ownership():
         _observation(
             source="unregistered.example",
             source_ownership="unknown",
-            evidence=("provider:unregistered.example", "observation_time:2026-10-03T03:29:30Z"),
+            evidence=(
+                "provider:unregistered.example",
+                "observation_time:2026-10-03T03:29:30Z",
+            ),
         ),
         now=NOW,
     )
