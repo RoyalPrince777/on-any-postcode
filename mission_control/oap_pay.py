@@ -21,11 +21,22 @@ from . import (
 bp = Blueprint("oap_pay", __name__)
 
 FEATURES = (
-    {"id": "pay", "name": "Pay", "capability": "execute_payments"},
-    {"id": "request", "name": "Request", "capability": "execute_payments"},
-    {"id": "wallet", "name": "Wallet", "capability": "hold_customer_funds"},
-    {"id": "activity", "name": "Activity", "capability": None},
-    {"id": "business", "name": "Business", "capability": "execute_payments"},
+    {"id": "home", "name": "Home", "capability": None, "section": "primary"},
+    {"id": "pay", "name": "Pay", "capability": "execute_payments", "section": "primary"},
+    {"id": "request", "name": "Request", "capability": None, "section": "primary"},
+    {"id": "activity", "name": "Activity", "capability": None, "section": "primary"},
+    {"id": "sika", "name": "My SIKA", "capability": None, "section": "primary"},
+    {"id": "wallet", "name": "Wallet", "capability": "hold_customer_funds", "section": "more"},
+    {"id": "business", "name": "Business", "capability": "execute_payments", "section": "more"},
+    {"id": "treasury", "name": "Treasury", "capability": None, "section": "more"},
+    {"id": "rights", "name": "Rights & Remedy", "capability": None, "section": "more"},
+    {"id": "guardian", "name": "Guardian", "capability": None, "section": "more"},
+    {"id": "smi-pay", "name": "SMI Pay", "capability": None, "section": "more"},
+    {"id": "settings", "name": "Settings", "capability": None, "section": "more"},
+    {"id": "cards", "name": "Cards", "capability": "issue_payment_cards", "section": "regulated"},
+    {"id": "cash", "name": "Cash / Post Office", "capability": "cash_out", "section": "regulated"},
+    {"id": "fx", "name": "FX", "capability": "foreign_exchange", "section": "regulated"},
+    {"id": "bank", "name": "Bank", "capability": "bank_accounts", "section": "regulated"},
 )
 
 
@@ -51,6 +62,9 @@ def public_status() -> dict[str, Any]:
         "system": "OAP Pay",
         "tagline": "One OAP payment door.",
         "features": features,
+        "primary_menu": [item for item in features if item["section"] == "primary"],
+        "more_menu": [item for item in features if item["section"] == "more"],
+        "regulated_menu": [item for item in features if item["section"] == "regulated"],
         "evidence_available": evidence_available,
         "sika_pay_gateway": bool(sika_pay_gateway.status().get("single_payment_door")),
         "customer_payment_authority_required": bool(
