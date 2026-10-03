@@ -458,3 +458,26 @@ def test_oap_bank_feature_screens_keep_bank_navigation(client):
     assert 'href="/pay/bank/transfers"' in body
     assert 'href="/pay/bank/activity"' in body
     assert 'href="/pay/bank#more"' in body
+
+
+def test_oap_bank_screenshot_intelligence_truth(client):
+    status = client.get("/pay/bank/security/capture")
+    assert status.status_code == 200
+    assert status.headers["Cache-Control"] == "no-store"
+    payload = status.get_json()
+    assert payload["system"] == "OAP Bank Screenshot Intelligence"
+    assert payload["web_screenshot_detection_reliable"] is False
+    assert payload["web_screenshot_blocking_reliable"] is False
+    assert payload["privacy_shield_on_background"] is True
+    assert payload["sensitive_watermark"] is True
+    assert payload["printscreen_key_signal_only"] is True
+    assert payload["native_android_flag_secure_recommended"] is True
+    assert payload["native_android_flag_secure_implemented"] is False
+
+
+def test_oap_bank_sensitive_pages_load_capture_guard(client):
+    for route in ("/pay/bank", "/pay/bank/accounts", "/pay/bank/cards", "/pay/bank/intelligence"):
+        body = client.get(route).get_data(as_text=True)
+        assert 'data-oap-bank-sensitive' in body
+        assert '/static/oap-bank-capture-guard.js' in body
+        assert 'id="oap-bank-privacy-shield"' not in body
