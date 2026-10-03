@@ -88,7 +88,12 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                            CASE WHEN a.zone=%s AND %s<>'' THEN 0 ELSE 1 END,
                            a.updated_at DESC
                          LIMIT 20"""
-            candidates = connection.execute(query, (*roles, zone, zone)).fetchall()
+            result = connection.execute(query, (*roles, zone, zone))
+            if hasattr(result, "fetchall"):
+                candidates = result.fetchall()
+            else:
+                first_candidate = result.fetchone()
+                candidates = [] if first_candidate is None else [first_candidate]
             candidate = None
             accessibility_result = None
             for item in candidates:
