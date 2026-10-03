@@ -61,7 +61,7 @@
 <h3>Regulated capabilities</h3>
 <div class="menu-list">
 {% for item in pay.regulated_menu %}
-<div class="menu-row"><span><strong>{{ item.name }}</strong><br><small>{{ item.description }}</small></span>{% if item.enabled %}<span class="ready">🟢 Evidence allows</span>{% else %}<span class="lock">🔒 Evidence-gated</span>{% endif %}</div>
+<div class="menu-row"><span><strong>{% if item.id == 'bank' %}<a href="/pay/bank" style="color:inherit;text-decoration:none">{{ item.name }}</a>{% else %}{{ item.name }}{% endif %}</strong><br><small>{{ item.description }}</small></span>{% if item.enabled %}<span class="ready">🟢 Evidence allows</span>{% else %}<span class="lock">🔒 Evidence-gated</span>{% endif %}</div>
 {% endfor %}
 </div>
 </div>
