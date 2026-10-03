@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Private route geometry for OAP Ride Guardian.
 
 Persists only route geometry proven by the OAP-owned production-gated route
