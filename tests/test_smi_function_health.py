@@ -622,3 +622,63 @@ def test_reserved_interaction_producer_rejects_unacknowledged_or_unknown_surface
         assert result["ok"] is False
         assert result["receipt_id"] is None
 
+def test_interaction_certification_exposes_auditable_receipt_summary(monkeypatch):
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_button_proof",
+        lambda: {
+            "proven": True,
+            "receipt_id": "receipt-control",
+            "runtime_acknowledged": True,
+            "click_only_proof": False,
+            "status_code": 200,
+        },
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_completion_contract,
+        "completion_status",
+        lambda: {
+            "proof_gates": (
+                {"id": "founder_chat_interaction", "proven": True},
+            )
+        },
+    )
+    monkeypatch.setattr(
+        smi_function_health.smi_receipt_backend,
+        "latest_durable_interaction_surface_proofs",
+        lambda: {
+            "voice": {
+                "proven": True,
+                "receipt_id": "receipt-voice",
+                "durable": True,
+                "cryptographically_verified": True,
+                "release_id": "release-live",
+            }
+        },
+    )
+    result = smi_function_health.interaction_certification()
+    summary = result["receipt_summary"]
+    assert summary["reader_checked"] is True
+    assert summary["proven_count"] == 3
+    assert summary["expected_count"] == 9
+    assert summary["remaining_count"] == 6
+    assert summary["complete"] is False
+    assert set(summary["proven_surface_ids"]) == {
+        "chat",
+        "voice",
+        "control-surface-v2",
+    }
+    assert "vision" in summary["pending_surface_ids"]
+    assert summary["receipt_ids"] == {
+        "voice": "receipt-voice",
+        "control-surface-v2": "receipt-control",
+    }
+
+
+def test_function_health_includes_interaction_receipt_summary(monkeypatch):
+    result = smi_function_health.function_health(type("Map", (), {"iter_rules": lambda self: []})())
+    interaction = result["interaction_certification"]
+    assert "receipt_summary" in interaction
+    assert interaction["receipt_summary"]["expected_count"] == 9
+    assert interaction["receipt_summary"]["remaining_count"] >= 0
+
