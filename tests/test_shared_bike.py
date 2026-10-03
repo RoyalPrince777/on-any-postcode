@@ -60,7 +60,8 @@ def test_mitcham_discovery_normalizes_public_gbfs_without_control(monkeypatch):
         }
     }
 
-    def fake_fetch(url: str):
+    def fake_fetch(url: str, *, authorization: str = ""):
+        assert authorization == ""
         return discovery if url.endswith("/gbfs.json") else vehicles
 
     monkeypatch.setattr(shared_bike, "_fetch_json", fake_fetch)
@@ -97,3 +98,89 @@ def test_shared_bike_radius_is_bounded():
         assert str(exc) == "invalid_radius_km"
     else:
         raise AssertionError("oversized radius should be rejected")
+
+
+def test_authorized_operator_feed_uses_secret_without_exposing_it(monkeypatch):
+    secret = "Bearer operator-secret-token"
+    monkeypatch.setenv("OAP_SHARED_BIKE_ALLOWED_HOSTS", "feeds.example")
+    monkeypatch.setenv(
+        "OAP_SHARED_BIKE_FOREST_GBFS_URL",
+        "https://feeds.example/london/gbfs.json",
+    )
+    monkeypatch.setenv("OAP_SHARED_BIKE_FOREST_AUTHORIZATION", secret)
+
+    discovery = {
+        "data": {
+            "feeds": [
+                {
+                    "name": "vehicle_status",
+                    "url": "https://feeds.example/london/vehicle_status.json",
+                }
+            ]
+        }
+    }
+    vehicles = {
+        "data": {
+            "vehicles": [
+                {
+                    "vehicle_id": "authorized-bike",
+                    "lat": 51.404,
+                    "lon": -0.169,
+                    "is_reserved": False,
+                    "is_disabled": False,
+                }
+            ]
+        }
+    }
+    observed = []
+
+    def fake_fetch(url: str, *, authorization: str = ""):
+        observed.append((url, authorization))
+        return discovery if url.endswith("/gbfs.json") else vehicles
+
+    monkeypatch.setattr(shared_bike, "_fetch_json", fake_fetch)
+
+    result = shared_bike.nearby_mitcham(radius_km=5)
+    assert observed
+    assert all(auth == secret for _, auth in observed)
+    assert result["operators"]["forest"]["authorized_access"] is True
+    assert result["vehicles"][0]["source"] == "operator_authorized_gbfs"
+
+    status = shared_bike.status()
+    assert status["authorized_access_configured"] is True
+    assert status["authorized_access_operators"] == ["forest"]
+    assert secret not in repr(status)
+    assert secret not in repr(result)
+
+
+def test_authorization_header_is_added_only_when_configured(monkeypatch):
+    monkeypatch.setenv("OAP_SHARED_BIKE_ALLOWED_HOSTS", "feeds.example")
+
+    captured = {}
+
+    class FakeResponse:
+        def geturl(self):
+            return "https://feeds.example/feed.json"
+
+        def read(self, _limit):
+            return b'{"data": {}}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    def fake_urlopen(req, timeout):
+        captured["authorization"] = req.headers.get("Authorization")
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(shared_bike.urlrequest, "urlopen", fake_urlopen)
+
+    shared_bike._fetch_json(
+        "https://feeds.example/feed.json",
+        authorization="Bearer abc",
+    )
+    assert captured["authorization"] == "Bearer abc"
+    assert captured["timeout"] == shared_bike.TIMEOUT_SECONDS
