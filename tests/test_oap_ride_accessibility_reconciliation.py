@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 from flask import Flask
 import pytest
 
