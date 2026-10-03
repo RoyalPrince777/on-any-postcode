@@ -20,23 +20,31 @@ from . import (
 
 bp = Blueprint("oap_pay", __name__)
 
+PHONE_PAYMENT_METHODS = (
+    {"id": "qr", "name": "Scan QR", "enabled": True, "requires": None},
+    {"id": "link", "name": "Payment Link", "enabled": True, "requires": None},
+    {"id": "tap", "name": "Tap to Pay", "enabled": False, "requires": "contactless_provider_authority"},
+    {"id": "phone", "name": "Phone-to-Phone", "enabled": False, "requires": "contactless_provider_authority"},
+)
+
 FEATURES = (
-    {"id": "home", "name": "Home", "capability": None, "section": "primary"},
-    {"id": "pay", "name": "Pay", "capability": "execute_payments", "section": "primary"},
-    {"id": "request", "name": "Request", "capability": None, "section": "primary"},
-    {"id": "activity", "name": "Activity", "capability": None, "section": "primary"},
-    {"id": "sika", "name": "My SIKA", "capability": None, "section": "primary"},
-    {"id": "wallet", "name": "Wallet", "capability": "hold_customer_funds", "section": "more"},
-    {"id": "business", "name": "Business", "capability": "execute_payments", "section": "more"},
-    {"id": "treasury", "name": "Treasury", "capability": None, "section": "more"},
-    {"id": "rights", "name": "Rights & Remedy", "capability": None, "section": "more"},
-    {"id": "guardian", "name": "Guardian", "capability": None, "section": "more"},
-    {"id": "smi-pay", "name": "SMI Pay", "capability": None, "section": "more"},
-    {"id": "settings", "name": "Settings", "capability": None, "section": "more"},
-    {"id": "cards", "name": "Cards", "capability": "issue_payment_cards", "section": "regulated"},
-    {"id": "cash", "name": "Cash / Post Office", "capability": "cash_out", "section": "regulated"},
-    {"id": "fx", "name": "FX", "capability": "foreign_exchange", "section": "regulated"},
-    {"id": "bank", "name": "Bank", "capability": "bank_accounts", "section": "regulated"},
+    {"id": "home", "name": "Home", "description": "Balance view, incoming requests, recent activity.", "capability": None, "section": "primary"},
+    {"id": "pay", "name": "Pay", "description": "Send payment through the governed SIKA Pay door.", "capability": "execute_payments", "section": "primary"},
+    {"id": "request", "name": "Request", "description": "Create payment request, link or QR-ready request.", "capability": None, "section": "primary"},
+    {"id": "wallet", "name": "Wallet", "description": "SIKA wallet/account view.", "capability": "hold_customer_funds", "section": "more"},
+    {"id": "activity", "name": "Activity", "description": "Payments, requests, submissions, disputes and refunds.", "capability": None, "section": "primary"},
+    {"id": "business", "name": "Business", "description": "Merchant tools, checkout and sales activity.", "capability": "execute_payments", "section": "more"},
+    {"id": "sika", "name": "SIKA", "description": "Currency view, value classes and issuance status.", "capability": None, "section": "primary"},
+    {"id": "treasury", "name": "Treasury", "description": "Liquidity, reserves, commitments and release gates.", "capability": None, "section": "more"},
+    {"id": "rights", "name": "Rights & Remedy", "description": "Rights decisions, explanations, appeals and disputes.", "capability": None, "section": "more"},
+    {"id": "guardian", "name": "Guardian", "description": "Fraud/risk warnings and human-review gates.", "capability": None, "section": "more"},
+    {"id": "cards", "name": "Cards", "description": "Locked until real card authority/provider evidence exists.", "capability": "issue_payment_cards", "section": "regulated"},
+    {"id": "cash", "name": "Cash / Post Office", "description": "Locked until lawful cash-in/out capability is proven.", "capability": "cash_out", "section": "regulated"},
+    {"id": "fx", "name": "FX", "description": "Locked until foreign-exchange permission and execution are proven.", "capability": "foreign_exchange", "section": "regulated"},
+    {"id": "bank", "name": "Bank", "description": "Accounts/deposits capability screen, evidence-gated.", "capability": "bank_accounts", "section": "regulated"},
+    {"id": "smi-pay", "name": "SMI Pay", "description": "Intelligence dashboard across all payment-control layers.", "capability": None, "section": "more"},
+    {"id": "settings", "name": "Settings", "description": "Security, authority, privacy, notifications and limits.", "capability": None, "section": "more"},
+    {"id": "control-center", "name": "Control Center", "description": "Founder/admin evidence gates, provider status and regulator scope.", "capability": None, "section": "admin"},
 )
 
 
@@ -62,9 +70,11 @@ def public_status() -> dict[str, Any]:
         "system": "OAP Pay",
         "tagline": "One OAP payment door.",
         "features": features,
+        "phone_payment_methods": [dict(item) for item in PHONE_PAYMENT_METHODS],
         "primary_menu": [item for item in features if item["section"] == "primary"],
         "more_menu": [item for item in features if item["section"] == "more"],
         "regulated_menu": [item for item in features if item["section"] == "regulated"],
+        "admin_menu": [item for item in features if item["section"] == "admin"],
         "evidence_available": evidence_available,
         "sika_pay_gateway": bool(sika_pay_gateway.status().get("single_payment_door")),
         "customer_payment_authority_required": bool(
