@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Ride -> canonical SIKA payment bridge.
 
 Binds an owner-scoped Ride booking to one canonical SIKA payment intent and
