@@ -5,6 +5,7 @@ No covert tracking, emergency-service impersonation, or automatic physical respo
 """
 from __future__ import annotations
 import hashlib
+from itertools import pairwise
 from typing import Any
 from uuid import UUID
 from . import oap_ride_guardian_outbox, oap_ride_private_geometry, postgres_db
@@ -226,7 +227,7 @@ def _distance_to_route_vertices_m(latitude: float, longitude: float, geometry: d
         )
 
     best = None
-    for start, end in zip(points, points[1:]):
+    for start, end in pairwise(points):
         ax, ay = xy(start[0], start[1])
         bx, by = xy(end[0], end[1])
         vx, vy = bx - ax, by - ay
