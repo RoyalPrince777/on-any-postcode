@@ -34,3 +34,21 @@ def test_iq_arena_duplicate_request_is_idempotent_and_stop_fails_closed():
     assert twice == once
     stopped = iq_arena.stop(twice, request_id="stop-00001")
     assert stopped["status"] == "stopped"
+
+
+def test_iq_arena_exposes_last_answer_feedback_and_accuracy():
+    state = iq_arena.new_session()
+    q = iq_arena.QUESTIONS[0]
+    state = iq_arena.answer(
+        state,
+        question_id=q["id"],
+        choice_id=q["answer"],
+        request_id="answer-feedback-0001",
+    )
+    view = iq_arena.public_state(state)
+    assert view["last_answer"] == {
+        "question_id": q["id"],
+        "domain": q["domain"],
+        "correct": True,
+    }
+    assert view["accuracy_percent"] == 100
