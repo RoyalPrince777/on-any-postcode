@@ -243,7 +243,76 @@ def test_oap_bank_page_is_installable_mobile_shell(client):
     assert "Install OAP Bank" in body
     assert 'aria-label="OAP Bank navigation"' in body
     assert 'id="capabilities"' in body
-    assert ">Status</a>" in body
-    assert ">Capabilities</a>" in body
-    assert ">OAP Pay</a>" in body
-    assert ">Evidence</a>" in body
+    assert ">Home</a>" in body
+    assert ">Accounts</a>" in body
+    assert ">Transfers</a>" in body
+    assert ">Activity</a>" in body
+    assert ">More</a>" in body
+
+
+def test_oap_bank_exposes_full_app_menu_contract(monkeypatch):
+    monkeypatch.setattr(
+        oap_pay.sika_execution_gate,
+        "capability_matrix",
+        lambda: {
+            "accept_deposits": False,
+            "issue_redeemable_sika": False,
+            "execute_payments": False,
+            "hold_customer_funds": False,
+            "issue_payment_cards": False,
+            "cash_out": False,
+            "foreign_exchange": False,
+            "bank_accounts": False,
+        },
+    )
+    status = oap_pay.bank_status()
+    assert [item["id"] for item in status["app_primary_menu"]] == [
+        "home", "accounts", "sika", "transfers", "activity"
+    ]
+    assert [item["id"] for item in status["app_more_menu"]] == [
+        "cards", "cash", "fx", "deposits", "wallet", "rights", "guardian", "settings"
+    ]
+    assert [item["id"] for item in status["app_admin_menu"]] == ["control-center"]
+    regulated = {
+        item["id"]: item["enabled"]
+        for item in status["app_features"]
+        if item["capability"] is not None
+    }
+    assert regulated == {
+        "accounts": False,
+        "sika": False,
+        "transfers": False,
+        "cards": False,
+        "cash": False,
+        "fx": False,
+        "deposits": False,
+        "wallet": False,
+    }
+
+
+def test_oap_bank_page_contains_full_app_structure(client):
+    page = client.get("/pay/bank")
+    body = page.get_data(as_text=True)
+
+    assert "Bank Home" in body
+    assert 'aria-label="OAP Bank primary menu"' in body
+    assert "Accounts" in body
+    assert "SIKA" in body
+    assert "Transfers" in body
+    assert "Activity" in body
+    assert "More Bank Tools" in body
+    assert "Cards" in body
+    assert "Cash / Post Office" in body
+    assert "FX" in body
+    assert "Deposits" in body
+    assert "Customer Funds" in body
+    assert "Rights & Remedy" in body
+    assert "Guardian" in body
+    assert "Settings" in body
+    assert "Founder / Control Center" in body
+    assert 'aria-label="OAP Bank navigation"' in body
+    assert ">Home</a>" in body
+    assert ">Accounts</a>" in body
+    assert ">Transfers</a>" in body
+    assert ">Activity</a>" in body
+    assert ">More</a>" in body
