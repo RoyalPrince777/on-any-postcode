@@ -217,7 +217,7 @@ def test_oap_transport_is_a_separate_installable_os_entry(client):
     assert shortcuts == {
         "Rider": "/transport/ride/rider",
         "Driver": "/transport/ride/driver",
-        "Travel": "/transport/travel/status",
+        "Travel": "/travel",
     }
 
 
