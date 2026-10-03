@@ -8,42 +8,76 @@
 {% include "_oap_install_head.html" %}
 <title>OAP Bank · ON ANY POSTCODE</title>
 <style>
-:root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:920px;margin:auto;padding:18px 14px 110px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 12px}.hero{padding:38px 0 22px}.eyebrow{color:var(--gold);font-weight:900;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:8px 0 10px;font-size:clamp(2.5rem,8vw,5rem);line-height:.92}.hero p{color:var(--muted);max-width:700px;line-height:1.55}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}.card h2{margin:0 0 8px;font-size:1rem}.big{font-size:1.6rem;font-weight:900}.on{color:var(--green)}.off{color:var(--gold)}.meta{color:var(--muted);font-size:.8rem;line-height:1.5}.caps{margin-top:18px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.cap{display:flex;justify-content:space-between;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(920px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));background:rgba(5,7,6,.96);border-top:1px solid var(--line);backdrop-filter:blur(18px);z-index:20}.nav{color:var(--muted);text-decoration:none;text-align:center;font-size:.68rem;font-weight:800;padding:8px 4px;border-radius:12px}.nav strong{display:block;color:var(--text);font-size:1rem;margin-bottom:3px}.nav:focus-visible,.nav:hover{background:var(--panel);outline:1px solid var(--line)}@media(max-width:640px){.grid,.caps{grid-template-columns:1fr}}
+:root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--panel2:#101712;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:980px;margin:auto;padding:16px 14px 116px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-weight:950;letter-spacing:.04em}.pill{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 11px;background:transparent}.hero{padding:34px 0 20px}.eyebrow{color:var(--gold);font-weight:900;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:8px 0 10px;font-size:clamp(2.5rem,8vw,5rem);line-height:.92}.hero p{color:var(--muted);max-width:760px;line-height:1.55}.install-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}.section-title{display:flex;justify-content:space-between;align-items:end;gap:10px;margin:24px 0 10px}.section-title h2{margin:0;font-size:1rem}.section-title span{color:var(--muted);font-size:.76rem}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;min-height:132px}.card h3{margin:0 0 8px;font-size:1rem}.state{font-size:.73rem;font-weight:900}.on{color:var(--green)}.off{color:var(--gold)}.card p{margin:10px 0 0;color:var(--muted);font-size:.78rem;line-height:1.45}.status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.status-card{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}.status-card .big{font-size:1.35rem;font-weight:950;margin-top:5px}.more{margin-top:22px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--panel)}.more summary{cursor:pointer;padding:15px;font-weight:900}.more-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px 12px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--panel2)}.row small{display:block;color:var(--muted);margin-top:3px}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.meta{color:var(--muted);font-size:.78rem;line-height:1.45}.bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(980px,100%);display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));background:rgba(5,7,6,.96);border-top:1px solid var(--line);backdrop-filter:blur(18px);z-index:20}.nav{color:var(--muted);text-decoration:none;text-align:center;font-size:.64rem;font-weight:800;padding:8px 3px;border-radius:12px}.nav strong{display:block;color:var(--text);font-size:.95rem;margin-bottom:3px}.nav:hover,.nav:focus-visible{background:var(--panel2);outline:1px solid var(--line)}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.status-grid{grid-template-columns:1fr 1fr}.more-grid{grid-template-columns:1fr}}@media(max-width:430px){.grid{grid-template-columns:1fr 1fr}.card{min-height:118px;padding:13px}.nav{font-size:.58rem}}
 </style>
 </head>
 <body>
-<main class="shell">
-<header class="top"><strong>👑 OAP Bank</strong><a class="back" href="/pay">OAP Pay</a></header>
+<main class="shell" id="home">
+<header class="top"><div class="brand">👑 OAP BANK</div><a class="pill" href="/pay">OAP Pay</a></header>
+
 <section class="hero">
-<div class="eyebrow">Evidence-gated bank capability</div>
+<div class="eyebrow">Bank app · evidence-gated</div>
 <h1>{{ bank.institution }}</h1>
-<p>Parent: {{ bank.parent }} · Jurisdiction: {{ bank.jurisdiction }} · Route: {{ bank.route }}</p>
-<button class="back" type="button" data-oap-install hidden>Install OAP Bank</button>
+<p>{{ bank.parent }} · {{ bank.jurisdiction }} · {{ bank.route }}</p>
+<div class="install-row">
+<button class="pill" type="button" data-oap-install hidden>Install OAP Bank</button>
 <div class="meta" data-oap-install-status role="status">Checking install support</div>
+</div>
 </section>
 
-<section class="grid" aria-label="Bank status">
-<article class="card"><h2>Authorisation evidence</h2><div class="big">{{ bank.evidence_proven }} / {{ bank.evidence_total }}</div><div class="meta">{{ 'Application evidence complete' if bank.application_ready else 'Evidence pack incomplete' }}</div></article>
-<article class="card"><h2>Bank authorisation</h2><div class="big {{ 'on' if bank.authorised_bank else 'off' }}">{{ 'PROVEN' if bank.authorised_bank else 'NOT PROVEN' }}</div><div class="meta">Internal records do not grant regulator authorisation.</div></article>
-<article class="card"><h2>Permission scope</h2><div class="big {{ 'on' if bank.permission_scope_effective else 'off' }}">{{ 'EFFECTIVE' if bank.permission_scope_effective else 'LOCKED' }}</div><div class="meta">Accepted and effective permission scope required.</div></article>
-<article class="card"><h2>Production gate</h2><div class="big">{{ bank.production_evidence_proven }} / {{ bank.production_evidence_total }}</div><div class="meta">{{ 'Production evidence passed' if bank.production_gate_passed else 'Production evidence incomplete' }}</div></article>
+<section class="status-grid" aria-label="Bank readiness">
+<article class="status-card"><div class="meta">Authorisation evidence</div><div class="big">{{ bank.evidence_proven }} / {{ bank.evidence_total }}</div></article>
+<article class="status-card"><div class="meta">Bank authorisation</div><div class="big {{ 'on' if bank.authorised_bank else 'off' }}">{{ 'PROVEN' if bank.authorised_bank else 'NOT PROVEN' }}</div></article>
+<article class="status-card"><div class="meta">Permission scope</div><div class="big {{ 'on' if bank.permission_scope_effective else 'off' }}">{{ 'EFFECTIVE' if bank.permission_scope_effective else 'LOCKED' }}</div></article>
+<article class="status-card"><div class="meta">Production gate</div><div class="big">{{ bank.production_evidence_proven }} / {{ bank.production_evidence_total }}</div></article>
 </section>
 
-<h2>Regulated capabilities</h2>
-<section class="caps" id="capabilities" aria-label="Regulated bank capabilities">
-{% for capability, enabled in bank.capabilities.items() %}
-<div class="cap"><span>{{ capability.replace('_',' ')|title }}</span><strong class="{{ 'on' if enabled else 'off' }}">{{ '🟢 Allowed' if enabled else '🔒 Locked' }}</strong></div>
+<div class="section-title"><h2>Bank Home</h2><span>Everyday bank app</span></div>
+<section class="grid" aria-label="OAP Bank primary menu">
+{% for item in bank.app_primary_menu %}
+<article class="card" id="{{ item.id }}">
+<h3>{{ item.name }}</h3>
+{% if item.enabled %}<div class="state on">🟢 Available</div>{% else %}<div class="state off">🔒 Evidence-gated</div>{% endif %}
+<p>{{ item.description }}</p>
+</article>
 {% endfor %}
 </section>
 
-<div class="truth"><strong>Truth:</strong> This screen reports governed evidence. It does not itself create bank authorisation, accept deposits, hold customer funds or move money. Humanitarian or human-rights purpose does not bypass the legal authorisation route.</div>
+<details class="more" id="more">
+<summary>More Bank Tools</summary>
+<div class="more-grid">
+{% for item in bank.app_more_menu %}
+<div class="row" id="{{ item.id }}"><span><strong>{{ item.name }}</strong><small>{{ item.description }}</small></span>{% if item.enabled %}<span class="state on">🟢 Available</span>{% else %}<span class="state off">🔒 Locked</span>{% endif %}</div>
+{% endfor %}
+</div>
+</details>
+
+<details class="more" id="control-center">
+<summary>Founder / Control Center</summary>
+<div class="more-grid">
+{% for item in bank.app_admin_menu %}
+<div class="row"><span><strong>{{ item.name }}</strong><small>{{ item.description }}</small></span><span class="state on">Founder</span></div>
+{% endfor %}
+</div>
+</details>
+
+<div class="section-title"><h2>Regulated capability truth</h2><span>software cannot self-authorise</span></div>
+<section class="more-grid" id="capabilities" aria-label="Regulated bank capabilities">
+{% for capability, enabled in bank.capabilities.items() %}
+<div class="row"><span>{{ capability.replace('_',' ')|title }}</span><strong class="{{ 'on' if enabled else 'off' }}">{{ '🟢 Allowed' if enabled else '🔒 Locked' }}</strong></div>
+{% endfor %}
+</section>
+
+<div class="truth"><strong>Truth:</strong> The Bank app is built as software, but regulated banking actions remain locked unless the governed regulator, permission-scope and production evidence gates all allow them. This screen does not itself accept deposits, hold customer funds or move money.</div>
 </main>
+
 <nav class="bottom-nav" aria-label="OAP Bank navigation">
-<a class="nav" href="/pay/bank"><strong>⌂</strong>Status</a>
-<a class="nav" href="#capabilities"><strong>▦</strong>Capabilities</a>
-<a class="nav" href="/pay"><strong>SIKA</strong>OAP Pay</a>
-<a class="nav" href="/pay/bank/status"><strong>◎</strong>Evidence</a>
+<a class="nav" href="#home"><strong>⌂</strong>Home</a>
+<a class="nav" href="#accounts"><strong>▤</strong>Accounts</a>
+<a class="nav" href="#transfers"><strong>↗</strong>Transfers</a>
+<a class="nav" href="#activity"><strong>≡</strong>Activity</a>
+<a class="nav" href="#more"><strong>•••</strong>More</a>
 </nav>
 </body>
 </html>
