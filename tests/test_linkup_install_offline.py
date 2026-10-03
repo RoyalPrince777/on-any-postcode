@@ -34,7 +34,9 @@ def test_linkup_network_guard_never_queues_private_actions_offline():
 
 
 def test_installer_uses_linkup_name_on_linkup_route():
-    assert 'productName = location.pathname === "/linkup"' in INSTALL
+    assert 'location.pathname === "/linkup"' in INSTALL
+    assert 'location.pathname.startsWith("/linkup/")' in INSTALL
+    assert '? "Link Up"' in INSTALL
     assert "${productName} is ready to install" in INSTALL
     assert "${productName} is installed" in INSTALL
 
