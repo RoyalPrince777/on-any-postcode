@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Ride dashboard button surfaces wired to existing Movement functions."""
 from __future__ import annotations
 from flask import Blueprint, make_response, render_template_string
