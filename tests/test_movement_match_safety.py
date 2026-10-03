@@ -60,7 +60,6 @@ def test_proposal_selection_requires_current_certification(monkeypatch):
         [
             ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
             ("oap_identity_roles", (WORKER, "driver", "CR4")),
-            ("FROM oap_ride_accessibility", None),
             (
                 "INSERT INTO oap_movement_match_proposals",
                 (PROPOSAL, WORKER, "driver", "PROPOSED", 1.0, "same_zone_certified_available", now),
@@ -72,6 +71,11 @@ def test_proposal_selection_requires_current_certification(monkeypatch):
         movement_match_safety.postgres_db,
         "connect",
         _connect(connection),
+    )
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible",
+        lambda **kwargs: {"eligible": True, "reason": "no_accessibility_preferences"},
     )
 
     result = movement_match_safety.SafePostgresMovementStore().propose_match(
