@@ -112,6 +112,60 @@ def init_app(app: Flask) -> None:
     movement_operations.STORE = movement_match_safety.STORE
 
 
+    if os.environ.get("OAP_RIDE_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        ride_installers = (
+            ("0001_oap_ride_runtime", oap_ride_runtime.init_schema),
+            ("0002_oap_ride_guardian", oap_ride_guardian.init_schema),
+            ("0003_oap_ride_commercial_accessibility", oap_ride_commercial.init_schema),
+            ("0004_oap_ride_payment_bridge", oap_ride_payment_bridge.init_schema),
+            ("0005_oap_ride_driver_accessibility", oap_ride_driver_accessibility.init_schema),
+            ("0006_oap_ride_private_geometry", oap_ride_private_geometry.init_schema),
+            ("0007_oap_ride_guardian_outbox", oap_ride_guardian_outbox.init_schema),
+            ("0008_oap_ride_reconciliation_cases", oap_ride_reconciliation_cases.init_schema),
+        )
+        ride_results = []
+        try:
+            for version, installer in ride_installers:
+                result = installer(assume_yes=True, dry_run=False)
+                ride_results.append(
+                    {
+                        "version": version,
+                        "schema_ready": bool(result.get("schema_ready")),
+                        "checksum": result.get("checksum"),
+                        "tables": result.get("tables"),
+                    }
+                )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_ride_schema_migration",
+                        "success": all(item["schema_ready"] for item in ride_results),
+                        "results": ride_results,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_ride_schema_migration",
+                        "success": False,
+                        "results": ride_results,
+                        "error": "ride_schema_migration_failed",
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+
     if os.environ.get("OAP_MUSIC_SCHEMA_AUTO_APPLY", "").strip() == "1":
         try:
             music_schema = music_civilization_migration.apply(assume_yes=True)
