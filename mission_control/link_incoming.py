@@ -131,7 +131,7 @@ def list_incoming(identity_id: object, *, limit: int = 80) -> list[dict[str, obj
                     'incoming_journey'::text,
                     p.proposal_id::text,
                     b.member_identity_id::text,
-                    COALESCE(u.display_name,u.username)::text,
+                    COALESCE(u.display_name,u.username,'OAP Rider')::text,
                     'Incoming Journey'::text,
                     (upper(b.service_type) || ' · ' || COALESCE(p.reason,'eligible match'))::text,
                     p.created_at
