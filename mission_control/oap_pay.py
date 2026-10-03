@@ -183,6 +183,27 @@ def bank_status() -> dict[str, Any]:
         "human_authority_final": True,
     }
 
+
+def bank_feature_status(feature_id: object) -> dict[str, Any] | None:
+    feature_key = str(feature_id or "").strip().lower()
+    status = bank_status()
+    feature = next(
+        (item for item in status["app_features"] if item["id"] == feature_key),
+        None,
+    )
+    if feature is None:
+        return None
+    return {
+        "feature": feature,
+        "bank": status,
+        "capability": feature["capability"],
+        "enabled": bool(feature["enabled"]),
+        "evidence_gated": feature["capability"] is not None,
+        "provider_calling": False,
+        "money_movement": False,
+        "human_authority_final": True,
+    }
+
 def _page():
     response = make_response(render_template("oap_pay.html", pay=public_status()))
     response.headers["Cache-Control"] = "no-store"
@@ -257,4 +278,16 @@ def bank_manifest():
     response = jsonify(manifest)
     response.content_type = "application/manifest+json"
     response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@bp.get("/pay/bank/<feature_id>")
+def bank_feature_page(feature_id: str):
+    feature = bank_feature_status(feature_id)
+    if feature is None:
+        response = jsonify({"error": {"code": "bank_feature_not_found"}})
+        response.status_code = 404
+    else:
+        response = make_response(render_template("oap_bank_feature.html", view=feature))
+    response.headers["Cache-Control"] = "no-store"
     return response
