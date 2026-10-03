@@ -91,3 +91,35 @@ def test_oap_ride_runtime_declares_durable_owner_and_no_physical_dispatch():
     assert payload["trip_link_binding"] is True
     assert payload["physical_operations_in_scope"] is False
     assert payload["external_dispatch_performed"] is False
+
+
+def test_execution_readiness_unlocks_software_without_false_live_claims():
+    state = global_transport_views.execution_readiness()
+    assert state["software_execution_layer_ready"] is True
+    assert state["live_execution_authorised"] is False
+    assert set(state["areas"]) == {
+        "carrier_dispatch",
+        "ride_dispatch",
+        "ticket_issuance",
+        "fare_capture",
+        "payment_movement",
+        "customs_clearance",
+        "external_tracking_feed",
+        "vehicle_control",
+    }
+    assert all(item["software_ready"] is True for item in state["areas"].values())
+    assert all(
+        item["live_execution_authorised"] is False
+        for item in state["areas"].values()
+    )
+    assert all(item["requires"] for item in state["areas"].values())
+
+
+def test_execution_readiness_route_is_no_store():
+    client = _app().test_client()
+    response = client.get("/transport/execution-readiness")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store, private"
+    payload = response.get_json()
+    assert payload["software_execution_layer_ready"] is True
+    assert payload["live_execution_authorised"] is False
