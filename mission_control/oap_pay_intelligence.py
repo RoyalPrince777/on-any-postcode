@@ -18,6 +18,7 @@ from . import (
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
     sika_rights_decision_record,
+    sika_treasury_controls,
 )
 
 PAYMENT_TRANSITIONS = {
@@ -363,6 +364,123 @@ def currency_sika_intelligence() -> dict[str, Any]:
     }
 
 
+
+def liquidity_intelligence(state: object) -> dict[str, Any]:
+    if not isinstance(state, sika_treasury_controls.TreasurySnapshot):
+        return {
+            "valid": False,
+            "reason": "treasury_snapshot_required",
+            "liquidity_healthy": False,
+            "payment_execution_authorised": False,
+            "money_movement": False,
+        }
+    gate = sika_treasury_controls.release_gate(state)
+    return {
+        "valid": True,
+        "free_liquidity_sika": gate["free_liquidity_sika"],
+        "shortfall_sika": gate["shortfall_sika"],
+        "liquidity_healthy": bool(gate["liquidity_healthy"]),
+        "may_enter_payment_review": bool(gate["may_enter_payment_review"]),
+        "payment_execution_authorised": False,
+        "balance_source": "treasury_snapshot",
+        "money_movement": False,
+        "human_authority_final": True,
+    }
+
+
+def guardian_intelligence(
+    *,
+    fraud: object,
+    rights: object,
+    settlement: object,
+    liquidity: object,
+) -> dict[str, Any]:
+    components = (fraud, rights, settlement, liquidity)
+    if not all(isinstance(item, Mapping) for item in components):
+        return {
+            "valid": False,
+            "reason": "guardian_inputs_required",
+            "recommended_action": "REVIEW",
+            "execution_granted": False,
+        }
+    warnings: list[str] = []
+    if fraud.get("recommended_action") == "REVIEW":
+        warnings.append("fraud_review")
+    if rights.get("valid") is not True or rights.get("execution_ready") is not True:
+        warnings.append("rights_not_ready")
+    if settlement.get("valid") is not True:
+        warnings.append("settlement_evidence_invalid")
+    if liquidity.get("valid") is not True or liquidity.get("liquidity_healthy") is not True:
+        warnings.append("liquidity_not_healthy")
+    return {
+        "valid": True,
+        "warnings": tuple(warnings),
+        "recommended_action": "REVIEW" if warnings else "CONTINUE_REVIEW",
+        "automatic_execution": False,
+        "automatic_confiscation": False,
+        "automatic_permanent_blacklist": False,
+        "execution_granted": False,
+        "money_movement": False,
+        "human_authority_final": True,
+    }
+
+
+def smi_pay_intelligence(
+    *,
+    transition: object,
+    wallet: object,
+    payment: object,
+    request: object,
+    merchant: object,
+    activity: object,
+    settlement: object,
+    fraud: object,
+    rights: object,
+    currency: object,
+    liquidity: object,
+    guardian: object,
+) -> dict[str, Any]:
+    named = {
+        "transition": transition,
+        "wallet": wallet,
+        "payment": payment,
+        "request": request,
+        "merchant": merchant,
+        "activity": activity,
+        "settlement": settlement,
+        "fraud": fraud,
+        "rights": rights,
+        "currency": currency,
+        "liquidity": liquidity,
+        "guardian": guardian,
+    }
+    validity = {
+        name: isinstance(value, Mapping) and value.get("valid") is True
+        for name, value in named.items()
+    }
+    all_valid = all(validity.values())
+    guardian_review = (
+        isinstance(guardian, Mapping)
+        and guardian.get("recommended_action") == "REVIEW"
+    )
+    return {
+        "valid": all_valid,
+        "component_validity": validity,
+        "recommended_action": (
+            "REVIEW"
+            if guardian_review or not all_valid
+            else "CONTINUE_REVIEW"
+        ),
+        "intelligence_blocks_observed": len(named),
+        "execution_authority": False,
+        "provider_calling": False,
+        "journal_posting": False,
+        "settlement_execution": False,
+        "money_movement": False,
+        "human_authority_final": True,
+    }
+
+
 def status() -> dict[str, Any]:
     return {
         "system": "OAP Pay Intelligence",
@@ -377,9 +495,9 @@ def status() -> dict[str, Any]:
         "rights_remedy_intelligence": True,
         "currency_sika_intelligence": True,
         "activity_intelligence": True,
-        "liquidity_intelligence": False,
-        "guardian_intelligence": False,
-        "smi_pay_intelligence": False,
+        "liquidity_intelligence": True,
+        "guardian_intelligence": True,
+        "smi_pay_intelligence": True,
         "advisory_only": True,
         "provider_calling": False,
         "journal_posting": False,
