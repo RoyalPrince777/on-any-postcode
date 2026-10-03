@@ -53,6 +53,7 @@ def init_app(app: Flask) -> None:
         oap_ride_payment_bridge,
         oap_ride_driver_accessibility,
         oap_ride_guardian_outbox,
+        oap_ride_reconciliation_cases,
         oap_ride_private_geometry,
         oap_ride_guardian,
         organism_runtime,
@@ -996,6 +997,13 @@ def init_app(app: Flask) -> None:
     def _oap_init_ride_private_geometry(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(oap_ride_private_geometry.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-reconciliation-cases")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_reconciliation_cases(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_reconciliation_cases.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-init-ride-guardian-outbox")
     @click.option("--dry-run", is_flag=True, default=False)
