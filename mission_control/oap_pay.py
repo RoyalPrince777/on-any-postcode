@@ -10,7 +10,12 @@ from typing import Any
 
 from flask import Blueprint, jsonify, make_response, render_template
 
-from . import sika_customer_payment_authority, sika_execution_gate, sika_pay_gateway
+from . import (
+    oap_pay_intelligence,
+    sika_customer_payment_authority,
+    sika_execution_gate,
+    sika_pay_gateway,
+)
 
 bp = Blueprint("oap_pay", __name__)
 
@@ -54,6 +59,7 @@ def public_status() -> dict[str, Any]:
         "customer_fund_holding_enabled": bool(matrix.get("hold_customer_funds", False)),
         "provider_calling": False,
         "money_movement": False,
+        "intelligence": oap_pay_intelligence.status(),
         "human_authority_final": True,
     }
 
