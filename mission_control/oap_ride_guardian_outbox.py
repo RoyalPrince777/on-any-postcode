@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Ride Guardian trusted-contact outbox.
 
 Creates durable first-party notification jobs. It does not claim external
