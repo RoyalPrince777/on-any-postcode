@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from . import movement_operations, postgres_db
+from . import movement_operations, oap_ride_driver_accessibility, postgres_db
 
 
 def _uuid(value: object, name: str) -> str:
@@ -86,13 +86,27 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                          ORDER BY
                            CASE WHEN a.zone=%s AND %s<>'' THEN 0 ELSE 1 END,
                            a.updated_at DESC
-                         LIMIT 1"""
-            candidate = connection.execute(query, (*roles, zone, zone)).fetchone()
+                         LIMIT 20"""
+            candidates = connection.execute(query, (*roles, zone, zone)).fetchall()
+            candidate = None
+            accessibility_result = None
+            for item in candidates:
+                try:
+                    accessibility_result = oap_ride_driver_accessibility.eligible(
+                        booking_id=booking,
+                        driver_identity_id=item[0],
+                    )
+                except Exception:
+                    accessibility_result = {"eligible": True, "reason": "accessibility_layer_unavailable"}
+                if accessibility_result.get("eligible") is True:
+                    candidate = item
+                    break
             if candidate is None:
                 return None
             same_zone = bool(zone and str(candidate[2]).upper() == zone)
             score = 1.0 if same_zone else 0.5
-            reason = "same_zone_certified_available" if same_zone else "certified_available_candidate"
+            base_reason = "same_zone_certified_available" if same_zone else "certified_available_candidate"
+            reason = base_reason + ":" + str(accessibility_result.get("reason") or "unknown")
             row = connection.execute(
                 """INSERT INTO oap_movement_match_proposals
                    (booking_id,worker_identity_id,worker_role,score,reason)
