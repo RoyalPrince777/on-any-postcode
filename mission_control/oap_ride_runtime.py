@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from . import postgres_db, oap_ride_payment_bridge
+from . import postgres_db, oap_ride_payment_bridge, oap_ride_split_snapshot
 
 RIDE_RUNTIME_MIGRATION = "0001_oap_ride_runtime"
 TABLES = frozenset({
@@ -239,6 +239,9 @@ def complete(*, booking_id: object, driver_identity_id: object) -> dict[str, Any
                ON CONFLICT (booking_id) DO NOTHING""",
             (booking, rider, driver, completed[0], payment_state, amount, currency),
         )
+        split_snapshot = oap_ride_split_snapshot.capture(
+            booking_id=booking, amount_minor=amount
+        )
         connection.execute(
             """UPDATE oap_movement_availability SET availability_state='ONLINE',updated_at=CURRENT_TIMESTAMP
                WHERE identity_id=%s AND role_type='driver' AND availability_state='BUSY'""",
@@ -257,6 +260,7 @@ def complete(*, booking_id: object, driver_identity_id: object) -> dict[str, Any
         "settlement_proven": bool(payment_projection.get("settlement_proven")),
         "payment_captured_by_ride_runtime": False,
         "physical_operation_performed": False,
+        "split_snapshot": split_snapshot,
     }
 
 
