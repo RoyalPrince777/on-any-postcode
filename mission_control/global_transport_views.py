@@ -35,16 +35,24 @@ bp.register_blueprint(oap_ride_ops_bp)
 bp.register_blueprint(travel_transport_booking_bp)
 
 PUBLIC_DOORS = (
-    ("Journey", "End-to-end multimodal journey planning"),
-    ("Move", "Movement, disruption and route state"),
-    ("Ride", "Governed ride-request capability"),
-    ("Transit", "Bus, rail, metro, tram and ferry"),
-    ("Drive", "Personal vehicle and road journey layer"),
-    ("Fly", "Air journey and airport layer"),
-    ("Cargo", "Freight and cross-border planning"),
-    ("Deliver", "Local and global delivery layer"),
-    ("Fleet", "Commercial vehicle and driver operations"),
+    ("Journey", "Maps · Park · My Journeys", "/transport/status#journey"),
+    ("Move", "Shared Bikes · Transit · Drive · Fly", "/transport/status#move"),
+    ("Ride", "OAP Ride · Requests · Matching · Trip state", "/transport/ride"),
+    ("Logistics", "Cargo · Deliver · Fleet", "/transport/status#logistics"),
+    ("Guardian", "Safety · Incidents · Journey protection", "/transport/status#guardian"),
+    ("Operators", "Operator Gateway · Provider Access · Connection", "/transport/shared-bikes/status"),
+    ("Control Center", "Intelligence · Market · Execution Readiness", "/transport/status#control-center"),
 )
+
+DOOR_GROUPS = {
+    "journey": ["maps", "park", "my_journeys"],
+    "move": ["shared_bikes", "transit", "drive", "fly"],
+    "ride": ["oap_ride", "requests", "matching", "trip_state"],
+    "logistics": ["cargo", "deliver", "fleet"],
+    "guardian": ["guardian_transport", "safety", "incidents", "journey_protection"],
+    "operators": ["operator_gateway", "provider_access", "connection"],
+    "control_center": ["transport_intelligence", "transport_market", "execution_readiness"],
+}
 
 CAPABILITIES = (
     "journey", "move", "ride", "drive", "transit", "fly", "sail",
@@ -143,7 +151,8 @@ def status() -> dict[str, object]:
         "architecture": "One World -> One Front Door -> Many Transport Systems Inside",
         "software_surface_install_ready": True,
         "first_party_surface": True,
-        "public_doors": [name.lower() for name, _ in PUBLIC_DOORS],
+        "public_doors": [name.lower().replace(" ", "_") for name, _, _ in PUBLIC_DOORS],
+        "door_groups": DOOR_GROUPS,
         "capability_count": len(CAPABILITIES),
         "capabilities": list(CAPABILITIES),
         "integrations": list(INTEGRATIONS),
@@ -205,8 +214,8 @@ small{display:block;margin-top:18px;color:#777}
 </div>
 </section>
 <section class="grid">
-{% for name, description in doors %}
-<a class="card" href="{{ '/transport/ride' if name == 'Ride' else '/transport/status#' ~ name|lower }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
+{% for name, description, href in doors %}
+<a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
 {% endfor %}
 </section>
 <small>Software + digital coordination only. Physical transport operations remain evidence-gated. Human Authority remains final.</small>
