@@ -29,7 +29,7 @@ def test_oap_pay_page_and_status_are_no_store(client):
     assert page.status_code == 200
     assert page.headers["Cache-Control"] == "no-store"
     assert "OAP Pay" in page.get_data(as_text=True)
-    assert "Pay. Request. Move through one door." in page.get_data(as_text=True)
+    assert "Pay from your phone." in page.get_data(as_text=True)
 
     alias = client.get("/oap-pay")
     assert alias.status_code == 200
@@ -82,6 +82,12 @@ def test_oap_pay_exposes_primary_more_and_regulated_menus(monkeypatch):
     assert [item["id"] for item in status["more_menu"]] == [
         "wallet", "business", "treasury", "rights", "guardian", "smi-pay", "settings"
     ]
+    assert [item["id"] for item in status["admin_menu"]] == ["control-center"]
+    assert [item["id"] for item in status["features"]] == [
+        "home", "pay", "request", "wallet", "activity", "business", "sika",
+        "treasury", "rights", "guardian", "cards", "cash", "fx", "bank",
+        "smi-pay", "settings", "control-center"
+    ]
     regulated = {item["id"]: item for item in status["regulated_menu"]}
     assert set(regulated) == {"cards", "cash", "fx", "bank"}
     assert all(item["enabled"] is False for item in regulated.values())
@@ -102,6 +108,8 @@ def test_oap_pay_page_contains_mobile_nav_and_more_drawer(client):
     assert "Cash / Post Office" in body
     assert "FX" in body
     assert "Bank" in body
+    assert "Control Center" in body
+    assert "Founder / Admin" in body
 
 
 def test_oap_pay_phone_methods_are_truth_bound():
