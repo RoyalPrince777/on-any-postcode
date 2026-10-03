@@ -37,7 +37,7 @@ def test_guardian_outbox_migration_dry_run_is_bounded():
     assert len(state["checksum"])==64
 
 
-def test_route_vertex_distance_detects_zero_distance():
+def test_route_segment_distance_detects_zero_distance():
     geometry={"type":"LineString","coordinates":[[-0.1687,51.4036],[-0.1600,51.4100]]}
     result=oap_ride_guardian._distance_to_route_vertices_m(51.4036,-0.1687,geometry)
     assert result == 0
@@ -50,3 +50,10 @@ def test_deviation_rejects_invalid_threshold_before_store_access():
             identity_id="00000000-0000-0000-0000-000000000002",
             deviation_threshold_m=5,
         )
+
+
+def test_route_segment_distance_handles_midpoint_between_vertices():
+    geometry={"type":"LineString","coordinates":[[-0.1700,51.4000],[-0.1500,51.4200]]}
+    result=oap_ride_guardian._distance_to_route_vertices_m(51.4100,-0.1600,geometry)
+    assert result is not None
+    assert result < 5
