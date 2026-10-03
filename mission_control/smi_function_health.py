@@ -321,6 +321,17 @@ def interaction_certification() -> dict[str, Any]:
         1 for item in surfaces if item["live_runtime_proven"]
     )
     expected_count = len(surfaces)
+    proven_surface_ids = tuple(
+        item["id"] for item in surfaces if item["live_runtime_proven"]
+    )
+    pending_surface_ids = tuple(
+        item["id"] for item in surfaces if not item["live_runtime_proven"]
+    )
+    receipt_ids = {
+        item["id"]: item["live_proof_receipt_id"]
+        for item in surfaces
+        if item["live_proof_receipt_id"]
+    }
     return {
         "component": "SMI Interaction Certification",
         "generated_at": _now(),
@@ -332,6 +343,16 @@ def interaction_certification() -> dict[str, Any]:
         "live_proof_percent": _percent(live_proven_count, expected_count),
         "all_implemented_for_certification": implemented_count == expected_count,
         "whole_interaction_green": live_proven_count == expected_count,
+        "receipt_summary": {
+            "reader_checked": bool(surface_proofs_checked),
+            "proven_surface_ids": proven_surface_ids,
+            "pending_surface_ids": pending_surface_ids,
+            "receipt_ids": receipt_ids,
+            "proven_count": live_proven_count,
+            "expected_count": expected_count,
+            "remaining_count": expected_count - live_proven_count,
+            "complete": live_proven_count == expected_count,
+        },
         "live_proof_required": True,
         "proof_chain": (
             "control",
