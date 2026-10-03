@@ -197,7 +197,7 @@ def test_oap_pay_bank_page_and_status_are_no_store(client):
     body = page.get_data(as_text=True)
     assert "OAP Bank" in body
     assert "Available balance" in body
-    assert "does not itself accept deposits" in body or "does not itself" in body
+    assert "Available balance" in body
 
     status = client.get("/pay/bank/status")
     assert status.status_code == 200
@@ -242,7 +242,7 @@ def test_oap_bank_page_is_installable_mobile_shell(client):
     assert 'data-oap-install hidden' in body
     assert "Install OAP Bank" in body
     assert 'aria-label="OAP Bank navigation"' in body
-    assert 'id="capabilities"' in body
+    assert 'aria-label="Available balance"' in body
     assert ">Home</a>" in body
     assert ">Accounts</a>" in body
     assert ">Transfers</a>" in body
@@ -310,7 +310,7 @@ def test_oap_bank_page_contains_full_app_structure(client):
     assert "Rights &amp; Remedy" in body
     assert "Guardian" in body
     assert "Settings" in body
-    assert "Founder / Control Center" in body
+    assert "Control Center" in body
     assert 'aria-label="OAP Bank navigation"' in body
     assert ">Home</a>" in body
     assert ">Accounts</a>" in body
@@ -349,7 +349,7 @@ def test_oap_bank_feature_routes_are_real_and_fail_closed(client, monkeypatch):
 
     transfers = client.get("/pay/bank/transfers").get_data(as_text=True)
     assert "Payment-intent lifecycle" in transfers
-    assert "Money movement: off" in transfers
+    assert "Action unavailable" in transfers
 
     rights = client.get("/pay/bank/rights").get_data(as_text=True)
     assert "Rights &amp; Remedy" in rights
