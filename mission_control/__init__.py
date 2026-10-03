@@ -113,6 +113,17 @@ def init_app(app: Flask) -> None:
 
 
     if os.environ.get("OAP_RIDE_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        movement_result = movement_operations.init_movement_schema(
+            assume_yes=True, dry_run=False
+        )
+        ride_results = [
+            {
+                "version": movement_result.get("migration", "0005_movement_operations"),
+                "schema_ready": bool(movement_result.get("schema_ready")),
+                "checksum": movement_result.get("checksum"),
+                "tables": movement_result.get("tables"),
+            }
+        ]
         ride_installers = (
             ("0001_oap_ride_runtime", oap_ride_runtime.init_schema),
             ("0002_oap_ride_guardian", oap_ride_guardian.init_schema),
@@ -123,8 +134,9 @@ def init_app(app: Flask) -> None:
             ("0007_oap_ride_guardian_outbox", oap_ride_guardian_outbox.init_schema),
             ("0008_oap_ride_reconciliation_cases", oap_ride_reconciliation_cases.init_schema),
         )
-        ride_results = []
         try:
+            if not ride_results[0]["schema_ready"]:
+                raise RuntimeError("movement_schema_not_ready")
             for version, installer in ride_installers:
                 result = installer(assume_yes=True, dry_run=False)
                 ride_results.append(
