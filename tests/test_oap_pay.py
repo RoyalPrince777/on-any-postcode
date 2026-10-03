@@ -103,7 +103,7 @@ def test_oap_pay_page_contains_mobile_nav_and_more_drawer(client):
     assert ">Activity</a>" in body
     assert ">My SIKA</a>" in body
     assert 'id="moreDrawer"' in body
-    assert "Regulated capabilities" in body
+    assert "Regulated capability truth" in body
     assert "Cards" in body
     assert "Cash / Post Office" in body
     assert "FX" in body
@@ -306,7 +306,7 @@ def test_oap_bank_page_contains_full_app_structure(client):
     assert "FX" in body
     assert "Deposits" in body
     assert "Customer Funds" in body
-    assert "Rights & Remedy" in body
+    assert "Rights &amp; Remedy" in body
     assert "Guardian" in body
     assert "Settings" in body
     assert "Founder / Control Center" in body
