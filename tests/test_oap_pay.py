@@ -125,7 +125,7 @@ def test_oap_pay_phone_methods_are_truth_bound():
 def test_oap_pay_phone_app_surface_is_installable(client):
     page = client.get("/pay")
     body = page.get_data(as_text=True)
-    assert 'rel="manifest" href="/manifest.webmanifest"' in body
+    assert 'rel="manifest" href="/pay/manifest.webmanifest"' in body
     assert 'data-oap-install hidden' in body
     assert "Install OAP Pay" in body
     assert "Pay from your phone." in body
@@ -210,3 +210,31 @@ def test_oap_pay_bank_menu_links_to_bank_screen(client):
     page = client.get("/pay")
     body = page.get_data(as_text=True)
     assert 'href="/pay/bank"' in body
+
+
+def test_oap_pay_has_dedicated_install_manifest(client):
+    response = client.get("/pay/manifest.webmanifest")
+    manifest = response.get_json()
+
+    assert response.status_code == 200
+    assert response.content_type == "application/manifest+json"
+    assert response.headers["Cache-Control"] == "public, max-age=3600"
+    assert manifest["id"] == "/pay"
+    assert manifest["name"] == "OAP Pay"
+    assert manifest["short_name"] == "OAP Pay"
+    assert manifest["start_url"] == "/pay"
+    assert manifest["scope"] == "/pay"
+    assert manifest["display"] == "standalone"
+    assert {item["url"] for item in manifest["shortcuts"]} == {
+        "/pay#pay",
+        "/pay#request",
+        "/pay#activity",
+        "/pay#sika",
+    }
+
+
+def test_oap_pay_page_uses_dedicated_manifest(client):
+    page = client.get("/pay")
+    body = page.get_data(as_text=True)
+    assert 'rel="manifest" href="/pay/manifest.webmanifest"' in body
+    assert 'rel="manifest" href="/manifest.webmanifest"' not in body
