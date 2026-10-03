@@ -7,7 +7,7 @@ It does not invent a driver/platform split or claim settlement.
 from __future__ import annotations
 from typing import Any
 from uuid import UUID
-from . import postgres_db, oap_ride_commercial
+from . import postgres_db, oap_ride_commercial, oap_ride_split_snapshot
 
 def _uuid(value:object,name:str)->str:
     try:return str(UUID(str(value)))
@@ -31,7 +31,12 @@ def driver_summary(*,driver_identity_id:object,limit:int=50)->dict[str,Any]:
         amount=int(row[3]) if row[3] is not None else None
         if currency and amount is not None:
             totals[currency]=totals.get(currency,0)+amount
-        split = oap_ride_commercial.project_split(amount_minor=amount) if amount is not None else {"configured": False, "driver_earnings_minor": None, "platform_amount_minor": None, "settlement_performed": False}
+        snapshot = oap_ride_split_snapshot.read(booking_id=row[0])
+        split = snapshot or (
+            oap_ride_commercial.project_split(amount_minor=amount)
+            if amount is not None
+            else {"configured": False, "driver_earnings_minor": None, "platform_amount_minor": None, "settlement_performed": False}
+        )
         journeys.append({
             "booking_id":str(row[0]),
             "completed_at":row[1].isoformat(),
@@ -41,7 +46,8 @@ def driver_summary(*,driver_identity_id:object,limit:int=50)->dict[str,Any]:
             "driver_earnings_minor":split.get("driver_earnings_minor"),
             "platform_amount_minor":split.get("platform_amount_minor"),
             "split_rule_id":split.get("rule_id"),
-            "settlement_state":"PROJECTED" if split.get("configured") else "UNCONFIGURED",
+            "split_snapshot_immutable":bool(snapshot and snapshot.get("immutable")),
+            "settlement_state":"PROJECTED" if split.get("driver_earnings_minor") is not None else "UNCONFIGURED",
         })
     return {
         "journey_count":len(journeys),
