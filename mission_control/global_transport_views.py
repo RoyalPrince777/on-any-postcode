@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """OAP Global Transport public surface and install-readiness contract.
 
 This module exposes one first-party front door over existing OAP movement,
