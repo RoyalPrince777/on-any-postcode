@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Ride-specific ownership for SIKA reconciliation exceptions."""
 from __future__ import annotations
 import hashlib
