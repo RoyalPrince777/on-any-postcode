@@ -125,7 +125,7 @@ def test_oap_pay_phone_methods_are_truth_bound():
 def test_oap_pay_phone_app_surface_is_installable(client):
     page = client.get("/pay")
     body = page.get_data(as_text=True)
-    assert 'rel="manifest" href="/manifest.webmanifest"' in body
+    assert 'rel="manifest" href="/pay/manifest.webmanifest"' in body
     assert 'data-oap-install hidden' in body
     assert "Install OAP Pay" in body
     assert "Pay from your phone." in body
