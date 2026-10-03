@@ -31,6 +31,23 @@ PHONE_PAYMENT_METHODS = (
     {"id": "phone", "name": "Phone-to-Phone", "enabled": False, "requires": "contactless_provider_authority"},
 )
 
+BANK_APP_FEATURES = (
+    {"id": "home", "name": "Home", "description": "Bank overview, readiness and key actions.", "capability": None, "section": "primary"},
+    {"id": "accounts", "name": "Accounts", "description": "Account capability and account products.", "capability": "bank_accounts", "section": "primary"},
+    {"id": "sika", "name": "SIKA", "description": "SIKA balances, issuance status and value classes.", "capability": "issue_redeemable_sika", "section": "primary"},
+    {"id": "transfers", "name": "Transfers", "description": "Governed payment and transfer capability.", "capability": "execute_payments", "section": "primary"},
+    {"id": "activity", "name": "Activity", "description": "Bank-related activity and evidence events.", "capability": None, "section": "primary"},
+    {"id": "cards", "name": "Cards", "description": "Card capability and provider authority status.", "capability": "issue_payment_cards", "section": "more"},
+    {"id": "cash", "name": "Cash / Post Office", "description": "Cash-in/out capability and lawful release status.", "capability": "cash_out", "section": "more"},
+    {"id": "fx", "name": "FX", "description": "Foreign-exchange capability and permission scope.", "capability": "foreign_exchange", "section": "more"},
+    {"id": "deposits", "name": "Deposits", "description": "Deposit-taking capability and protection status.", "capability": "accept_deposits", "section": "more"},
+    {"id": "wallet", "name": "Customer Funds", "description": "Customer-fund holding capability status.", "capability": "hold_customer_funds", "section": "more"},
+    {"id": "rights", "name": "Rights & Remedy", "description": "Explanations, disputes, appeals and remedy.", "capability": None, "section": "more"},
+    {"id": "guardian", "name": "Guardian", "description": "Fraud, risk and human-review controls.", "capability": None, "section": "more"},
+    {"id": "settings", "name": "Settings", "description": "Security, privacy, limits and authority controls.", "capability": None, "section": "more"},
+    {"id": "control-center", "name": "Control Center", "description": "Founder evidence gates, provider status and regulator scope.", "capability": None, "section": "admin"},
+)
+
 FEATURES = (
     {"id": "home", "name": "Home", "description": "Balance view, incoming requests, recent activity.", "capability": None, "section": "primary"},
     {"id": "pay", "name": "Pay", "description": "Send payment through the governed SIKA Pay door.", "capability": "execute_payments", "section": "primary"},
@@ -90,6 +107,22 @@ def public_status() -> dict[str, Any]:
         "money_movement": False,
         "intelligence": oap_pay_intelligence.status(),
         "payment_requests": oap_pay_requests.status(),
+        "app_features": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES
+        ],
+        "app_primary_menu": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES if item["section"] == "primary"
+        ],
+        "app_more_menu": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES if item["section"] == "more"
+        ],
+        "app_admin_menu": [
+            {**item, "enabled": True}
+            for item in BANK_APP_FEATURES if item["section"] == "admin"
+        ],
         "human_authority_final": True,
     }
 
