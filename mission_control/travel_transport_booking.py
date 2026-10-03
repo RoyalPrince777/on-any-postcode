@@ -10,7 +10,12 @@ import hashlib
 import re
 from typing import Any
 
-from . import approval_service, postgres_db, transport_execution_evidence, travel_marketplace
+from . import (
+    approval_service,
+    postgres_db,
+    transport_execution_evidence,
+    travel_marketplace,
+)
 
 TRAVEL_MODES = frozenset({"bus", "rail", "flight", "ferry"})
 _RECEIPT_HASH = re.compile(r"^[0-9a-f]{64}$")
