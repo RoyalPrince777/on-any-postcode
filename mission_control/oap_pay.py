@@ -329,3 +329,25 @@ def bank_intelligence_status():
     response = jsonify(oap_bank_intelligence_catalog.status())
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+def bank_capture_security_status() -> dict[str, Any]:
+    return {
+        "system": "OAP Bank Screenshot Intelligence",
+        "web_screenshot_detection_reliable": False,
+        "web_screenshot_blocking_reliable": False,
+        "privacy_shield_on_background": True,
+        "sensitive_watermark": True,
+        "printscreen_key_signal_only": True,
+        "native_android_flag_secure_recommended": True,
+        "native_android_flag_secure_implemented": False,
+        "screen_recording_detection_reliable_on_web": False,
+        "human_authority_final": True,
+    }
+
+
+@bp.get("/pay/bank/security/capture")
+def bank_capture_security_status_api():
+    response = jsonify(bank_capture_security_status())
+    response.headers["Cache-Control"] = "no-store"
+    return response
