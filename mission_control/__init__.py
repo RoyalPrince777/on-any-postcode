@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Mission Control package initialiser.
 
 Web-only dependencies are imported inside ``init_app`` so worker-only runtimes
@@ -48,6 +49,14 @@ def init_app(app: Flask) -> None:
         music_civilization_migration,
         oap_lab_immutability_migration,
         oap_library_learning,
+        oap_ride_runtime,
+        oap_ride_commercial,
+        oap_ride_payment_bridge,
+        oap_ride_driver_accessibility,
+        oap_ride_guardian_outbox,
+        oap_ride_reconciliation_cases,
+        oap_ride_private_geometry,
+        oap_ride_guardian,
         organism_runtime,
         postgres_db,
         product_cores,
@@ -69,6 +78,7 @@ def init_app(app: Flask) -> None:
     from .checkpoint_views import bp as checkpoint_bp
     from .company_intelligence_views import bp as company_intelligence_bp
     from .founder_tool_views import bp as founder_tool_bp
+    from .global_transport_views import bp as global_transport_bp
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
@@ -970,6 +980,72 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(organism_runtime.init_runtime_schema(dry_run=dry_run, assume_yes=yes)))
 
+    @app.cli.command("oap-ride-guardian-status")
+    def _oap_ride_guardian_status() -> None:
+        import json
+        print(json.dumps(oap_ride_guardian.status()))
+
+    @app.cli.command("oap-init-ride-guardian")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_guardian(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_guardian.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-private-geometry")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_private_geometry(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_private_geometry.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-reconciliation-cases")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_reconciliation_cases(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_reconciliation_cases.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-guardian-outbox")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_guardian_outbox(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_guardian_outbox.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-driver-accessibility")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_driver_accessibility(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_driver_accessibility.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-payment-bridge")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_payment_bridge(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_payment_bridge.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-commercial")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_commercial(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_commercial.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-ride-runtime-status")
+    def _oap_ride_runtime_status() -> None:
+        import json
+        print(json.dumps(oap_ride_runtime.schema_status()))
+
+    @app.cli.command("oap-init-ride-runtime")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_runtime(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_runtime.init_schema(dry_run=dry_run, assume_yes=yes)))
+
     @app.cli.command("oap-movement-status")
     def _oap_movement_status() -> None:
         import json
@@ -1272,6 +1348,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(bank_store_catalog_bp)
     app.register_blueprint(oap_store_bp)
     app.register_blueprint(travel_supply_bp)
+    app.register_blueprint(global_transport_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")

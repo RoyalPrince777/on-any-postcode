@@ -155,8 +155,11 @@
           <p class="mc-eyebrow">{{ item.worker_role|upper }} · {{ item.proposal_state }}</p>
           <h3>{{ item.service_type|upper }} · {{ item.pickup_zone }}{% if item.destination_zone %} → {{ item.destination_zone }}{% endif %}</h3>
           <p>{{ item.reason }} · score {{ '%.2f'|format(item.score) }}</p>
+          {% if item.scheduled_for %}<p>Scheduled: {{ item.scheduled_for }}</p>{% endif %}
+          {% if item.route_ready %}<p>Route: {{ item.route_distance_m }} m · {{ item.route_duration_s }} s</p>{% endif %}
           {% if item.proposal_state == 'PROPOSED' %}
           <button type="button" class="movement-accept-button" data-proposal-id="{{ item.proposal_id }}">Accept match</button>
+          <button type="button" class="movement-decline-button" data-proposal-id="{{ item.proposal_id }}">Decline</button>
           {% endif %}
         </article>
         {% endfor %}
@@ -257,7 +260,20 @@
         setResult("accept-result", "Accepting…");
         try {
           await api(`/movement/matches/${button.dataset.proposalId}/accept`, "POST");
-          setResult("accept-result", "Match accepted. External dispatch is still disabled.");
+          setResult("accept-result", "Match accepted.");
+          window.location.reload();
+        } catch (error) {
+          setResult("accept-result", error.message);
+        }
+      });
+    });
+
+    document.querySelectorAll(".movement-decline-button").forEach((button) => {
+      button.addEventListener("click", async () => {
+        setResult("accept-result", "Declining…");
+        try {
+          await api(`/movement/matches/${button.dataset.proposalId}/decline`, "POST");
+          setResult("accept-result", "Journey declined.");
           window.location.reload();
         } catch (error) {
           setResult("accept-result", error.message);

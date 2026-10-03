@@ -65,6 +65,7 @@ def snapshot(identity_id: object, *, limit: int = 20) -> dict[str, Any]:
                           p.worker_role, p.state, p.score, p.reason,
                           b.service_type, b.state,
                           b.pickup->>'zone', b.destination->>'zone',
+                          b.scheduled_for,b.route_snapshot,
                           p.created_at, p.updated_at
                      FROM oap_movement_match_proposals p
                      JOIN oap_movement_bookings b
@@ -141,8 +142,12 @@ def snapshot(identity_id: object, *, limit: int = 20) -> dict[str, Any]:
             "booking_state": row[7],
             "pickup_zone": row[8] or "",
             "destination_zone": row[9] or "",
-            "created_at": _iso(row[10]),
-            "updated_at": _iso(row[11]),
+            "scheduled_for": _iso(row[10]),
+            "route_distance_m": (row[11] or {}).get("distance_m") if isinstance(row[11], dict) else None,
+            "route_duration_s": (row[11] or {}).get("duration_s") if isinstance(row[11], dict) else None,
+            "route_ready": isinstance(row[11], dict) and bool(row[11]),
+            "created_at": _iso(row[12]),
+            "updated_at": _iso(row[13]),
         }
         for row in worker_match_rows
     ]

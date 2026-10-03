@@ -20,6 +20,11 @@ class _Result:
     def fetchone(self):
         return self.row
 
+    def fetchall(self):
+        if self.row is None:
+            return []
+        return [self.row]
+
 
 class _Connection:
     def __init__(self, steps):
@@ -66,6 +71,11 @@ def test_proposal_selection_requires_current_certification(monkeypatch):
         movement_match_safety.postgres_db,
         "connect",
         _connect(connection),
+    )
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible",
+        lambda **kwargs: {"eligible": True, "reason": "no_accessibility_preferences"},
     )
 
     result = movement_match_safety.SafePostgresMovementStore().propose_match(

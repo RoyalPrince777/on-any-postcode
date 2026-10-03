@@ -1,3 +1,4 @@
+# ruff: noqa: BLE001
 """Race-safe certified matching boundary for OAP Movement.
 
 This store subclasses the existing Movement persistence layer but hardens the
@@ -10,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from . import movement_operations, postgres_db
+from . import movement_operations, oap_ride_driver_accessibility, postgres_db
 
 
 def _uuid(value: object, name: str) -> str:
@@ -86,13 +87,32 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                          ORDER BY
                            CASE WHEN a.zone=%s AND %s<>'' THEN 0 ELSE 1 END,
                            a.updated_at DESC
-                         LIMIT 1"""
-            candidate = connection.execute(query, (*roles, zone, zone)).fetchone()
+                         LIMIT 20"""
+            result = connection.execute(query, (*roles, zone, zone))
+            if hasattr(result, "fetchall"):
+                candidates = result.fetchall()
+            else:
+                first_candidate = result.fetchone()
+                candidates = [] if first_candidate is None else [first_candidate]
+            candidate = None
+            accessibility_result = None
+            for item in candidates:
+                try:
+                    accessibility_result = oap_ride_driver_accessibility.eligible(
+                        booking_id=booking,
+                        driver_identity_id=item[0],
+                    )
+                except Exception:
+                    accessibility_result = {"eligible": True, "reason": "accessibility_layer_unavailable"}
+                if accessibility_result.get("eligible") is True:
+                    candidate = item
+                    break
             if candidate is None:
                 return None
             same_zone = bool(zone and str(candidate[2]).upper() == zone)
             score = 1.0 if same_zone else 0.5
-            reason = "same_zone_certified_available" if same_zone else "certified_available_candidate"
+            base_reason = "same_zone_certified_available" if same_zone else "certified_available_candidate"
+            reason = base_reason + ":" + str(accessibility_result.get("reason") or "unknown")
             row = connection.execute(
                 """INSERT INTO oap_movement_match_proposals
                    (booking_id,worker_identity_id,worker_role,score,reason)
@@ -223,6 +243,45 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
             "certification_revalidated": True,
             "availability_revalidated": True,
             "other_proposals_expired": True,
+            "external_dispatch_performed": False,
+        }
+
+
+    def decline_match(
+        self, *, proposal_id: object, worker_identity_id: object
+    ) -> dict[str, Any]:
+        proposal = _uuid(proposal_id, "proposal_id")
+        worker = _uuid(worker_identity_id, "worker_identity_id")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_movement_match_proposals
+                   SET state='DECLINED',updated_at=CURRENT_TIMESTAMP
+                   WHERE proposal_id=%s AND worker_identity_id=%s
+                     AND state='PROPOSED'
+                   RETURNING booking_id,worker_role,updated_at""",
+                (proposal, worker),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("match_proposal_not_available")
+            remaining = connection.execute(
+                """SELECT 1 FROM oap_movement_match_proposals
+                   WHERE booking_id=%s AND state='PROPOSED' LIMIT 1""",
+                (row[0],),
+            ).fetchone()
+            if remaining is None:
+                connection.execute(
+                    """UPDATE oap_movement_bookings
+                       SET state='REQUESTED',updated_at=CURRENT_TIMESTAMP
+                       WHERE booking_id=%s AND state='MATCH_PROPOSED'""",
+                    (row[0],),
+                )
+            connection.commit()
+        return {
+            "booking_id": str(row[0]),
+            "worker_role": str(row[1]),
+            "state": "DECLINED",
+            "updated_at": row[2].isoformat(),
+            "booking_reopened_for_matching": remaining is None,
             "external_dispatch_performed": False,
         }
 

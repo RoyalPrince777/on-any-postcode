@@ -392,6 +392,24 @@ def accept_match(proposal_id: str):
         return _operation_error(exc)
 
 
+@bp.post("/movement/matches/<proposal_id>/decline")
+@web_security.login_required(api=True)
+def decline_match(proposal_id: str):
+    """Allow the proposed worker to decline and reopen matching when needed."""
+
+    identity = _private_identity()
+    if guard := _write_guard(identity):
+        return guard
+    try:
+        result = movement_match_safety.STORE.decline_match(
+            proposal_id=proposal_id,
+            worker_identity_id=identity,
+        )
+        return _no_store(make_response(jsonify(match=result), 200))
+    except Exception as exc:  # noqa: BLE001
+        return _operation_error(exc)
+
+
 @bp.post("/movement/bookings/<booking_id>/tracking/consent")
 @web_security.login_required(api=True)
 def grant_tracking_consent(booking_id: str):
