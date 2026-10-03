@@ -132,5 +132,7 @@ def test_status_marks_only_implemented_intelligence_green():
     assert status["merchant_intelligence"] is True
     assert status["settlement_intelligence"] is True
     assert status["activity_intelligence"] is True
-    assert status["fraud_intelligence"] is False
+    assert status["fraud_intelligence"] is True
+    assert status["rights_remedy_intelligence"] is True
+    assert status["currency_sika_intelligence"] is True
     assert status["guardian_intelligence"] is False
