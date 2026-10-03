@@ -42,13 +42,24 @@ def test_global_transport_home_and_status_are_mobile_public_surfaces():
     assert home.status_code == 200
     assert b"OAP Global Transport" not in home.data or b"Global Transport" in home.data
     assert b"Journey" in home.data
-    assert b"Cargo" in home.data
+    assert b"Logistics" in home.data
+    assert b"Operators" in home.data
+    assert b"Control Center" in home.data
     assert home.headers["Cache-Control"] == "no-store, private"
 
     payload = client.get("/transport/status").get_json()
     assert payload["front_door"] == "/transport"
     assert payload["public_doors"] == [
-        "journey", "move", "ride", "transit", "drive", "fly", "cargo", "deliver", "fleet"
+        "journey", "move", "ride", "logistics", "guardian", "operators", "control_center"
+    ]
+    assert payload["door_groups"]["journey"] == ["maps", "park", "my_journeys"]
+    assert payload["door_groups"]["move"] == ["shared_bikes", "transit", "drive", "fly"]
+    assert payload["door_groups"]["logistics"] == ["cargo", "deliver", "fleet"]
+    assert payload["door_groups"]["operators"] == [
+        "operator_gateway", "provider_access", "connection"
+    ]
+    assert payload["door_groups"]["control_center"] == [
+        "transport_intelligence", "transport_market", "execution_readiness"
     ]
 
 
@@ -228,3 +239,21 @@ def test_mitcham_shared_bike_route_rejects_oversized_radius():
     response = _app().test_client().get("/transport/shared-bikes/mitcham?radius_km=99")
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "invalid_radius_km"
+
+
+def test_transport_menu_is_seven_doors_without_losing_21_capabilities():
+    state = global_transport_views.status()
+    assert len(state["public_doors"]) == 7
+    assert state["capability_count"] == 21
+    assert set(state["public_doors"]) == {
+        "journey",
+        "move",
+        "ride",
+        "logistics",
+        "guardian",
+        "operators",
+        "control_center",
+    }
+    assert "shared_bikes" in state["door_groups"]["move"]
+    assert "operator_gateway" in state["door_groups"]["operators"]
+    assert "execution_readiness" in state["door_groups"]["control_center"]
