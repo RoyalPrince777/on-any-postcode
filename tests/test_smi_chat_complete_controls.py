@@ -326,3 +326,20 @@ def test_function_health_tracks_interaction_certification_without_fake_green():
         "control-surface-v2",
     }
     assert all(item["state"] == "purple" for item in result["surfaces"])
+
+def test_smi_interaction_surfaces_emit_post_ack_proof_receipts():
+    template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    final = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    layer = (ROOT / "mission_control" / "static" / "smi_interaction_layer.js").read_text(encoding="utf-8")
+    controller = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text(encoding="utf-8")
+
+    assert "interactionProofUrl:" in template
+    assert "window.OAP_SMI_RECORD_INTERACTION_PROOF=recordInteractionProof" in final
+    assert '"runtime_acknowledged":true' not in final
+    assert "runtime_acknowledged:true" in final
+    assert "interaction_completed:true" in final
+    for surface in ("vision", "screen", "face-up", "tools", "intelligence-selector"):
+        assert f'recordSurfaceProof("{surface}"' in layer
+    assert "OAP_SMI_RECORD_INTERACTION_PROOF?.('voice'" in controller
+    assert "OAP_SMI_RECORD_INTERACTION_PROOF?.('runtime-controls'" in controller
+
