@@ -14,6 +14,7 @@ from . import (
     bank_authorisation,
     bank_authorisation_store,
     bank_permission_scope,
+    oap_bank_intelligence_catalog,
     oap_pay_intelligence,
     oap_pay_requests,
     sika_customer_payment_authority,
@@ -29,6 +30,24 @@ PHONE_PAYMENT_METHODS = (
     {"id": "link", "name": "Payment Link", "enabled": True, "requires": None},
     {"id": "tap", "name": "Tap to Pay", "enabled": False, "requires": "contactless_provider_authority"},
     {"id": "phone", "name": "Phone-to-Phone", "enabled": False, "requires": "contactless_provider_authority"},
+)
+
+BANK_APP_FEATURES = (
+    {"id": "home", "name": "Home", "description": "Bank overview, readiness and key actions.", "capability": None, "section": "primary"},
+    {"id": "accounts", "name": "Accounts", "description": "Account capability and account products.", "capability": "bank_accounts", "section": "primary"},
+    {"id": "sika", "name": "SIKA", "description": "SIKA balances, issuance status and value classes.", "capability": "issue_redeemable_sika", "section": "primary"},
+    {"id": "transfers", "name": "Transfers", "description": "Governed payment and transfer capability.", "capability": "execute_payments", "section": "primary"},
+    {"id": "activity", "name": "Activity", "description": "Bank-related activity and evidence events.", "capability": None, "section": "primary"},
+    {"id": "intelligence", "name": "Intelligence", "description": "21-domain Bank Intelligence across accounts, payments, treasury, risk, rights and evidence.", "capability": None, "section": "primary"},
+    {"id": "cards", "name": "Cards", "description": "Card capability and provider authority status.", "capability": "issue_payment_cards", "section": "more"},
+    {"id": "cash", "name": "Cash / Post Office", "description": "Cash-in/out capability and lawful release status.", "capability": "cash_out", "section": "more"},
+    {"id": "fx", "name": "FX", "description": "Foreign-exchange capability and permission scope.", "capability": "foreign_exchange", "section": "more"},
+    {"id": "deposits", "name": "Deposits", "description": "Deposit-taking capability and protection status.", "capability": "accept_deposits", "section": "more"},
+    {"id": "wallet", "name": "Customer Funds", "description": "Customer-fund holding capability status.", "capability": "hold_customer_funds", "section": "more"},
+    {"id": "rights", "name": "Rights & Remedy", "description": "Explanations, disputes, appeals and remedy.", "capability": None, "section": "more"},
+    {"id": "guardian", "name": "Guardian", "description": "Fraud, risk and human-review controls.", "capability": None, "section": "more"},
+    {"id": "settings", "name": "Settings", "description": "Security, privacy, limits and authority controls.", "capability": None, "section": "more"},
+    {"id": "control-center", "name": "Control Center", "description": "Founder evidence gates, provider status and regulator scope.", "capability": None, "section": "admin"},
 )
 
 FEATURES = (
@@ -147,6 +166,43 @@ def bank_status() -> dict[str, Any]:
         "regulated_execution_enabled": any(matrix.values()),
         "money_movement_enabled": False,
         "humanitarian_or_human_rights_purpose_bypasses_authorisation": False,
+        "app_features": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES
+        ],
+        "app_primary_menu": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES if item["section"] == "primary"
+        ],
+        "app_more_menu": [
+            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            for item in BANK_APP_FEATURES if item["section"] == "more"
+        ],
+        "app_admin_menu": [
+            {**item, "enabled": True}
+            for item in BANK_APP_FEATURES if item["section"] == "admin"
+        ],
+        "human_authority_final": True,
+    }
+
+
+def bank_feature_status(feature_id: object) -> dict[str, Any] | None:
+    feature_key = str(feature_id or "").strip().lower()
+    status = bank_status()
+    feature = next(
+        (item for item in status["app_features"] if item["id"] == feature_key),
+        None,
+    )
+    if feature is None:
+        return None
+    return {
+        "feature": feature,
+        "bank": status,
+        "capability": feature["capability"],
+        "enabled": bool(feature["enabled"]),
+        "evidence_gated": feature["capability"] is not None,
+        "provider_calling": False,
+        "money_movement": False,
         "human_authority_final": True,
     }
 
@@ -195,5 +251,65 @@ def bank_page():
 @bp.get("/pay/bank/status")
 def bank_status_api():
     response = jsonify(bank_status())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/manifest.webmanifest")
+def bank_manifest():
+    manifest = {
+        "id": "/pay/bank",
+        "name": "OAP Bank",
+        "short_name": "OAP Bank",
+        "description": "Evidence-gated OAP Bank capability and readiness dashboard.",
+        "start_url": "/pay/bank",
+        "scope": "/pay/bank",
+        "display": "standalone",
+        "background_color": "#050706",
+        "theme_color": "#050706",
+        "icons": [
+            {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png"},
+        ],
+        "shortcuts": [
+            {"name": "Bank Status", "short_name": "Status", "url": "/pay/bank"},
+            {"name": "Capability Status", "short_name": "Capabilities", "url": "/pay/bank#capabilities"},
+            {"name": "OAP Pay", "short_name": "OAP Pay", "url": "/pay"},
+        ],
+    }
+    response = jsonify(manifest)
+    response.content_type = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@bp.get("/pay/bank/<feature_id>")
+def bank_feature_page(feature_id: str):
+    feature = bank_feature_status(feature_id)
+    if feature is None:
+        response = jsonify({"error": {"code": "bank_feature_not_found"}})
+        response.status_code = 404
+    else:
+        response = make_response(render_template("oap_bank_feature.html", view=feature))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/intelligence")
+def bank_intelligence_page():
+    feature = bank_feature_status("intelligence")
+    if feature is None:
+        response = jsonify({"error": {"code": "bank_intelligence_unavailable"}})
+        response.status_code = 503
+    else:
+        feature["intelligence"] = oap_bank_intelligence_catalog.status()
+        response = make_response(render_template("oap_bank_feature.html", view=feature))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/intelligence/status")
+def bank_intelligence_status():
+    response = jsonify(oap_bank_intelligence_catalog.status())
     response.headers["Cache-Control"] = "no-store"
     return response
