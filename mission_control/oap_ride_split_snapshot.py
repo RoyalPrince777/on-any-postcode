@@ -1,4 +1,3 @@
-# ruff: noqa: I001
 """Immutable commercial split snapshot for completed OAP Ride journeys."""
 from __future__ import annotations
 
