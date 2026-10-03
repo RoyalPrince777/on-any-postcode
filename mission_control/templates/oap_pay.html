@@ -2,26 +2,69 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>OAP Pay · ON ANY POSTCODE</title>
 <style>
-:root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:960px;margin:auto;padding:18px 14px 70px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:950;letter-spacing:.08em}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 11px}.hero{padding:48px 0 24px}.eyebrow{color:var(--green);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(3rem,10vw,6rem);line-height:.9;margin:8px 0 14px;letter-spacing:-.06em}.hero p{max-width:620px;color:var(--muted);line-height:1.55}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:18px;min-height:145px}.card h2{margin:0 0 8px}.state{font-size:.75rem;font-weight:900}.on{color:var(--green)}.off{color:var(--gold)}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.meta{margin-top:20px;color:var(--muted);font-size:.8rem;line-height:1.5}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.hero{padding-top:34px}}@media(max-width:460px){.grid{grid-template-columns:1fr}}
+:root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--panel2:#101712;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:980px;margin:auto;padding:18px 14px 110px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:950;letter-spacing:.08em}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 11px}.hero{padding:42px 0 22px}.eyebrow{color:var(--green);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.7rem,9vw,5.8rem);line-height:.9;margin:8px 0 14px;letter-spacing:-.06em}.hero p{max-width:640px;color:var(--muted);line-height:1.55}.section-title{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:22px 0 10px}.section-title h2{margin:0;font-size:1rem}.section-title span{font-size:.76rem;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:17px;min-height:124px}.card h3{margin:0 0 9px;font-size:1rem}.state{font-size:.73rem;font-weight:900}.on{color:var(--green)}.off{color:var(--gold)}.card p{font-size:.76rem;color:var(--muted);line-height:1.45;margin:10px 0 0}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.meta{margin-top:18px;color:var(--muted);font-size:.79rem;line-height:1.5}.bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(980px,100%);display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));background:rgba(5,7,6,.96);border-top:1px solid var(--line);backdrop-filter:blur(18px);z-index:20}.nav-item,.more-btn{appearance:none;border:0;background:transparent;color:var(--muted);text-decoration:none;text-align:center;font:inherit;font-size:.68rem;font-weight:800;padding:8px 3px;border-radius:12px}.nav-item strong,.more-btn strong{display:block;color:var(--text);font-size:1rem;margin-bottom:3px}.nav-item:hover,.nav-item:focus-visible,.more-btn:hover,.more-btn:focus-visible{background:var(--panel2);color:var(--text);outline:1px solid var(--line)}.drawer{position:fixed;inset:0;z-index:30;display:none;background:rgba(0,0,0,.65)}.drawer.open{display:block}.sheet{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);max-height:82vh;overflow:auto;background:#08100b;border:1px solid var(--line);border-radius:24px 24px 0 0;padding:18px 14px calc(24px + env(safe-area-inset-bottom))}.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.sheet-head h2{margin:0}.close{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:8px 12px}.menu-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.menu-row{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:13px}.menu-row span:first-child{font-weight:800}.lock{color:var(--gold);font-size:.72rem;font-weight:900}.ready{color:var(--green);font-size:.72rem;font-weight:900}.regulated{margin-top:18px}.regulated h3{margin:0 0 8px;font-size:.9rem;color:var(--gold)}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.hero{padding-top:30px}.menu-list{grid-template-columns:1fr}.bottom-nav{grid-template-columns:repeat(6,1fr)}}@media(max-width:460px){.grid{grid-template-columns:1fr 1fr}.card{min-height:112px;padding:14px}.nav-item,.more-btn{font-size:.6rem}}
 </style>
 </head>
 <body>
-<main class="shell">
+<main class="shell" id="home">
 <header class="top"><div class="brand">🌍 ON ANY POSTCODE</div><a class="back" href="/">OAP World</a></header>
-<section class="hero"><div class="eyebrow">OAP Pay · powered by SIKA controls</div><h1>Pay. Request. Move through one door.</h1><p>One OAP payment front door for people, creators and businesses. Every execution-facing action stays behind the same governed SIKA authorization chain.</p></section>
-<section class="grid" aria-label="OAP Pay">
-{% for item in pay.features %}
-<article class="card"><h2>{{ item.name }}</h2>
+<section class="hero"><div class="eyebrow">OAP Pay · powered by SIKA controls</div><h1>Pay. Request. Move through one door.</h1><p>One OAP payment front door for people, creators and businesses. Everyday actions stay simple; regulated execution remains evidence-gated.</p></section>
+
+<div class="section-title"><h2>My SIKA</h2><span>Everyday money controls</span></div>
+<section class="grid" aria-label="OAP Pay primary menu">
+{% for item in pay.primary_menu %}
+<article class="card" id="{{ item.id }}"><h3>{{ item.name }}</h3>
 {% if item.enabled %}<div class="state on">🟢 Available</div>{% else %}<div class="state off">🔒 Regulated execution locked</div>{% endif %}
+{% if item.id == 'request' %}<p>Create a request, share a link, or use the QR-ready request path.</p>{% elif item.id == 'activity' %}<p>See payments, requests, submissions, disputes and remedies.</p>{% elif item.id == 'sika' %}<p>Your SIKA account and currency view.</p>{% elif item.id == 'pay' %}<p>Governed payment entry. Execution stays behind SIKA gates.</p>{% else %}<p>SIKA home and current capability state.</p>{% endif %}
 </article>
 {% endfor %}
 </section>
-<div class="truth"><strong>Truth:</strong> OAP Pay software is live as a governed front door. Real payment execution and customer-fund holding only become available when the regulated capability evidence says they are allowed. No page state can override that gate.</div>
+
+<div class="truth"><strong>Truth:</strong> OAP Pay is the governed front door. A visible menu item does not grant regulated permission. Cards, cash-out, FX, bank accounts and customer-fund holding remain locked unless capability evidence explicitly allows them.</div>
 <div class="meta">SIKA Pay Gateway: {{ 'present' if pay.sika_pay_gateway else 'unproven' }} · Customer payment authority: {{ 'required' if pay.customer_payment_authority_required else 'unproven' }} · Provider calling: off · Money movement: off until authorised execution is proven.</div>
 </main>
+
+<nav class="bottom-nav" aria-label="OAP Pay navigation">
+<a class="nav-item" href="#home"><strong>⌂</strong>Home</a>
+<a class="nav-item" href="#pay"><strong>↗</strong>Pay</a>
+<a class="nav-item" href="#request"><strong>＋</strong>Request</a>
+<a class="nav-item" href="#activity"><strong>≡</strong>Activity</a>
+<a class="nav-item" href="#sika"><strong>SIKA</strong>My SIKA</a>
+<button class="more-btn" type="button" id="moreButton" aria-expanded="false" aria-controls="moreDrawer"><strong>•••</strong>More</button>
+</nav>
+
+<div class="drawer" id="moreDrawer" aria-hidden="true">
+<section class="sheet" role="dialog" aria-modal="true" aria-label="OAP Pay more menu">
+<div class="sheet-head"><h2>More</h2><button class="close" id="closeMore" type="button">Close</button></div>
+<div class="menu-list">
+{% for item in pay.more_menu %}
+<div class="menu-row"><span>{{ item.name }}</span>{% if item.enabled %}<span class="ready">🟢 Ready</span>{% else %}<span class="lock">🔒 Locked</span>{% endif %}</div>
+{% endfor %}
+</div>
+<div class="regulated">
+<h3>Regulated capabilities</h3>
+<div class="menu-list">
+{% for item in pay.regulated_menu %}
+<div class="menu-row"><span>{{ item.name }}</span>{% if item.enabled %}<span class="ready">🟢 Evidence allows</span>{% else %}<span class="lock">🔒 Evidence-gated</span>{% endif %}</div>
+{% endfor %}
+</div>
+</div>
+</section>
+</div>
+
+<script>
+const drawer=document.getElementById('moreDrawer');
+const openButton=document.getElementById('moreButton');
+const closeButton=document.getElementById('closeMore');
+function setDrawer(open){drawer.classList.toggle('open',open);drawer.setAttribute('aria-hidden',String(!open));openButton.setAttribute('aria-expanded',String(open));if(open){closeButton.focus()}else{openButton.focus()}}
+openButton.addEventListener('click',()=>setDrawer(true));
+closeButton.addEventListener('click',()=>setDrawer(false));
+drawer.addEventListener('click',event=>{if(event.target===drawer)setDrawer(false)});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&drawer.classList.contains('open'))setDrawer(false)});
+</script>
 </body>
 </html>
