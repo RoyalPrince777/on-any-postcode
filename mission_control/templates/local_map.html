@@ -157,32 +157,34 @@ async function loadRoadNetwork(b,mode){
  const request=++roadRequest;roadLayer.innerHTML='';showRoadStatus('Loading road network…');const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
  let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);const tiles=[];
  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){if(tiles.length<20)tiles.push([x,y])}
- try{
-   const payloads=await Promise.all(tiles.map(([x,y])=>fetchRoadTile(z,x,y,mode)));
-   if(request!==roadRequest)return;
-   let count=0,labelCount=0;const labelled=new Set();
-   for(const d of payloads){if(!d||!Array.isArray(d.lines))continue;const t=d.tile||{};
-     for(const feature of d.lines){if(count>=900)break;
-       const pts=(feature.points||[]).map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
-         .filter(ll=>ll[0]>=b.minX-.02&&ll[0]<=b.maxX+.02&&ll[1]>=b.minY-.02&&ll[1]<=b.maxY+.02).map(ll=>project(ll[0],ll[1],b));
-       if(pts.length<2)continue;
-       const rawClass=String(feature.class||feature.layer||'road').toLowerCase();
-       const isMajor=feature.is_small===false||(+feature.speed||0)>=50||/(motorway|trunk|primary)/.test(rawClass);
-       const isSecondary=/(secondary|tertiary)/.test(rawClass);
-       const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' '));
-       poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local');
-       roadLayer.appendChild(poly);count++;
-       const name=String(feature.name||'').trim();
-       if(name&&labelCount<32&&!labelled.has(name)&&(isMajor||isSecondary)){
-         const mid=pts[Math.floor(pts.length/2)];
-         const text=document.createElementNS('http://www.w3.org/2000/svg','text');
-         text.setAttribute('x',mid[0]);text.setAttribute('y',mid[1]);text.setAttribute('class','road-label');
-         text.textContent=name;roadLayer.appendChild(text);labelled.add(name);labelCount++
-       }
+ let count=0,labelCount=0;const labelled=new Set();
+ const renderPayload=d=>{
+   if(request!==roadRequest||!d||!Array.isArray(d.lines))return;
+   const t=d.tile||{};
+   for(const feature of d.lines){if(count>=900)break;
+     const pts=(feature.points||[]).map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
+       .filter(ll=>ll[0]>=b.minX-.02&&ll[0]<=b.maxX+.02&&ll[1]>=b.minY-.02&&ll[1]<=b.maxY+.02).map(ll=>project(ll[0],ll[1],b));
+     if(pts.length<2)continue;
+     const rawClass=String(feature.class||feature.layer||'road').toLowerCase();
+     const isMajor=feature.is_small===false||(+feature.speed||0)>=50||/(motorway|trunk|primary)/.test(rawClass);
+     const isSecondary=/(secondary|tertiary)/.test(rawClass);
+     const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' '));
+     poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local');
+     roadLayer.appendChild(poly);count++;
+     const name=String(feature.name||'').trim();
+     if(name&&labelCount<32&&!labelled.has(name)&&(isMajor||isSecondary)){
+       const mid=pts[Math.floor(pts.length/2)];
+       const text=document.createElementNS('http://www.w3.org/2000/svg','text');
+       text.setAttribute('x',mid[0]);text.setAttribute('y',mid[1]);text.setAttribute('class','road-label');
+       text.textContent=name;roadLayer.appendChild(text);labelled.add(name);labelCount++
      }
    }
-   showRoadStatus(count?'': 'Road network unavailable — route guidance may still work.');
- }catch{if(request===roadRequest){roadLayer.innerHTML='';showRoadStatus('Road network unavailable — check map source.')}}
+   if(count)showRoadStatus('');
+ };
+ try{
+   await Promise.all(tiles.map(async([x,y])=>{const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}));
+   if(request===roadRequest&&!count)showRoadStatus('Road network unavailable — route guidance may still work.');
+ }catch{if(request===roadRequest&&!count){showRoadStatus('Road network unavailable — check map source.')}}
 }
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
 function renderSteps(items){directions.innerHTML='';(items||[]).forEach(step=>{const row=document.createElement('div');row.className='step';const a=document.createElement('b');a.textContent=(step.modifier||'').includes('left')?'↰':(step.modifier||'').includes('right')?'↱':step.type==='arrive'?'●':'↑';const b=document.createElement('span');b.textContent=step.type==='arrive'?'Arrive':(step.name?'Continue on '+step.name:'Continue');const c=document.createElement('small');c.textContent=Math.round(step.distance_m||0)+' m';row.append(a,b,c);directions.appendChild(row)})}
