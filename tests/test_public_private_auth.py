@@ -71,6 +71,7 @@ def test_private_apis_fail_closed_with_structured_401(anonymous_client):
         "/mission/brain/status",
         "/mission/status",
         "/mission/chat/status",
+        "/mission/evidence/status",
         "/mission/conversations",
         "/infrastructure/services",
         "/api/infrastructure/status",

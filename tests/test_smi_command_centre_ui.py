@@ -96,6 +96,18 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertNotIn('["🕶 Matrix","agents"]', source)
         self.assertNotIn('["🛡 Guardian","guardian"]', source)
 
+    def test_evidence_gate_is_a_real_command_centre_source(self):
+        page = TEMPLATE.read_text(encoding="utf-8")
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn("mission_control.smi_evidence_status", page)
+        self.assertIn("evidenceGateUrl", page)
+        self.assertIn('["evidence","📜 Evidence Gate"', source)
+        self.assertIn('["evidence",cfg.evidenceGateUrl]', source)
+        self.assertIn('required_gates.length===6', source)
+        self.assertIn('execution_granted===false', source)
+        self.assertIn('human_authority_final===true', source)
+        self.assertIn('Evidence gate unavailable · NOT PROVEN', source)
+
     def test_health_truth_is_fail_closed(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn("data.checks[key]===true", source)
