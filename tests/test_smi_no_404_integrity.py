@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import app as app_module
-
 from mission_control import smi_function_health
 
 
