@@ -79,7 +79,7 @@ def create_order():
     except ValueError as exc:
         code = str(exc) or "invalid_eats_order"
         return _error(code, 409 if code == "idempotency_conflict" else 400)
-    except Exception:
+    except RuntimeError:
         return _error("eats_store_unavailable", 503)
 
 
@@ -105,7 +105,7 @@ def transition_order(order_id: str):
         return _error(str(exc) or "eats_access_denied", 403)
     except ValueError as exc:
         return _error(str(exc) or "invalid_eats_transition", 400)
-    except Exception:
+    except RuntimeError:
         return _error("eats_store_unavailable", 503)
 
 
@@ -129,7 +129,7 @@ def bind_order_payment(order_id: str):
         return _error(str(exc) or "eats_access_denied", 403)
     except ValueError as exc:
         return _error(str(exc) or "invalid_eats_payment", 400)
-    except Exception:
+    except RuntimeError:
         return _error("eats_payment_bridge_unavailable", 503)
 
 
@@ -156,7 +156,7 @@ def create_order_delivery(order_id: str):
     except ValueError as exc:
         code = str(exc) or "invalid_eats_delivery"
         return _error(code, 409 if code == "idempotency_conflict" else 400)
-    except Exception:
+    except RuntimeError:
         return _error("eats_delivery_bridge_unavailable", 503)
 
 
