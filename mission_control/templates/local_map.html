@@ -249,7 +249,7 @@ async function route(options={}){
    const r=await fetch('/map-intelligence/route?'+params.toString(),{credentials:'same-origin',cache:'no-store'});
    const d=await r.json();
    if(!r.ok||!d.route){svg.hidden=true;toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');return}
-   await draw(d.route.geometry?.coordinates||[]);
+   const roadReady=await draw(d.route.geometry?.coordinates||[]);
    distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';
    eta.textContent=Math.max(1,Math.round(d.route.duration_s/60))+' min';
    const live=d.route.live_road_state||{};
@@ -261,6 +261,7 @@ async function route(options={}){
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
    window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
    history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+   setRenderState(roadReady?'stable':'degraded');
  }catch{svg.hidden=true;toast('Route temporarily unavailable')}
 }
 form.addEventListener('submit',e=>{e.preventDefault();route()});
