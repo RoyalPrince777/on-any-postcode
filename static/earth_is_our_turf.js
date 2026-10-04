@@ -38,17 +38,17 @@ function render(){
  state.nodes.filter(n=>n.id!==state.player.node).forEach(n=>{const o=document.createElement("option");o.value=n.id;o.textContent=n.label;dest.appendChild(o)});if([...dest.options].some(o=>o.value===prior))dest.value=prior;
  q("[data-mode]").value=state.player.travel_mode;
  const card=q("[data-route-card]");
- if(state.active_route){card.hidden=false;card.innerHTML="<strong>"+esc(state.active_route.mode.toUpperCase())+" route</strong><br>"+esc(state.active_route.labels.join(" → "))+"<br>"+state.active_route.distance_m+" m · "+state.active_route.steps.map(s=>esc(s.kind)).join(" / ")}else{card.hidden=true;card.textContent=""}
+ if(state.active_route){const pos=state.world_position;card.hidden=false;card.innerHTML="<strong>"+esc(state.active_route.mode.toUpperCase())+" route</strong><br>"+esc(state.active_route.labels.join(" → "))+"<br>"+state.active_route.distance_m+" m · "+state.active_route.steps.map(s=>esc(s.kind)).join(" / ")+(pos?"<br>Progress "+Math.round(pos.route_progress*100)+"% · "+Math.round(pos.remaining_m)+" m remaining":"")}else{card.hidden=true;card.textContent=""}
  const shops=state.businesses.filter(b=>b.node===here.id);q("[data-businesses]").innerHTML=shops.length?shops.map(b=>'<div class="eiot-business"><strong>'+esc(b.label)+'</strong><br>'+ (b.open?"OPEN":"CLOSED")+' · stock '+b.stock+' · remembers '+b.memory+'</div>').join(""):"<p>No ON ANY POSTCODE business at this point yet.</p>";
  q("[data-memory]").innerHTML=[...state.events].reverse().slice(0,12).map(e=>"<li>"+esc(e.type)+" · "+esc(e.node||e.to||e.minutes||"world")+(e.mode?" · "+esc(e.mode):"")+"</li>").join("")||"<li>No remembered actions yet.</li>";
  root.querySelectorAll("button").forEach(b=>b.disabled=busy);
- const travel=q('[data-action="travel-route"]');if(travel)travel.disabled=busy||!state.active_route;
+ const travel=q('[data-action="advance-route"]');if(travel)travel.disabled=busy||!state.active_route;
 }
-async function act(command,target,mode){
+async function act(command,target,mode,distance=null){
  if(busy)return;busy=true;q("[data-error]").textContent="";render();
  try{
   const token=document.querySelector('meta[name="oap-csrf-token"]').content;
-  const r=await fetch("/arena/earth-is-our-turf/action",{method:"POST",headers:{"Content-Type":"application/json","X-OAP-CSRF-Token":token},body:JSON.stringify({command,target,mode})});
+  const r=await fetch("/arena/earth-is-our-turf/action",{method:"POST",headers:{"Content-Type":"application/json","X-OAP-CSRF-Token":token},body:JSON.stringify({command,target,mode,distance})});
   const data=await r.json();if(!r.ok)throw new Error(data.error||"World action failed");state=data;
  }catch(e){q("[data-error]").textContent=e.message||String(e)}finally{busy=false;render()}
 }
@@ -56,7 +56,7 @@ root.addEventListener("click",e=>{
  const pin=e.target.closest("[data-node]");if(pin&&pin.dataset.node!==state.player.node){q("[data-destination]").value=pin.dataset.node;act("navigate",pin.dataset.node,q("[data-mode]").value);return}
  const a=e.target.closest("[data-action]");if(!a)return;
  if(a.dataset.action==="navigate")act("navigate",q("[data-destination]").value,q("[data-mode]").value);
- else if(a.dataset.action==="travel-route")act("travel-route",null,state.player.travel_mode);
+ else if(a.dataset.action==="advance-route")act("advance-route",null,state.player.travel_mode,100);
  else act(a.dataset.action,null,q("[data-mode]").value);
 });
 render();
