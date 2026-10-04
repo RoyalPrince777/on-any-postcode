@@ -257,7 +257,13 @@ async function route(options={}){
    const r=await fetch('/map-intelligence/route?'+params.toString(),{credentials:'same-origin',cache:'no-store',signal});
    const d=await r.json();
    if(request!==routeRequest)return;
-   if(!r.ok||!d.route){svg.hidden=true;toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');return}
+   if(!r.ok||!d.route){
+     svg.hidden=true;
+     toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');
+     const roadCount=await loadRoadNetwork(defaultBounds,profile.value);
+     setRenderState(roadCount>0?'stable':'degraded');
+     return
+   }
    await draw(d.route.geometry?.coordinates||[]);
    if(request!==routeRequest)return;
    distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';
@@ -273,7 +279,9 @@ async function route(options={}){
    history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
  }catch(error){
    if(error?.name==='AbortError'||request!==routeRequest)return;
-   svg.hidden=true;toast('Route temporarily unavailable')
+   svg.hidden=true;toast('Route temporarily unavailable');
+   const roadCount=await loadRoadNetwork(defaultBounds,profile.value);
+   setRenderState(roadCount>0?'stable':'degraded')
  }
 }
 window.addEventListener('pageshow',event=>{
