@@ -21,6 +21,7 @@ from . import (
     sika_execution_gate,
     sika_pay_gateway,
     sika_production_evidence_store,
+    sika_software_readiness,
 )
 
 bp = Blueprint("oap_pay", __name__)
@@ -99,6 +100,11 @@ def public_status() -> dict[str, Any]:
         "regulated_menu": [item for item in features if item["section"] == "regulated"],
         "admin_menu": [item for item in features if item["section"] == "admin"],
         "evidence_available": evidence_available,
+        "software_ready": software.ready,
+        "software_percent": software.percent,
+        "software_checks": dict(software.checks),
+        "software_scope": "software_only",
+        "software_external_execution_ready": software.external_execution_ready,
         "sika_pay_gateway": bool(sika_pay_gateway.status().get("single_payment_door")),
         "customer_payment_authority_required": bool(
             sika_customer_payment_authority.status().get("customer_authority_required")
@@ -140,6 +146,8 @@ def bank_status() -> dict[str, Any]:
         }
         matrix = {capability: False for capability in bank_authorisation.REGULATED_CAPABILITIES}
         evidence_available = False
+
+    software = sika_software_readiness.assess()
 
     return {
         "institution": readiness["institution"],
