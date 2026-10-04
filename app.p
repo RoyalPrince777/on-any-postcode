@@ -1,8 +1,12 @@
-from flask import Flask, request, redirect, url_for, render_template_string
+from flask import Flask, request, redirect, url_for, render_template_string, session, abort
+from markupsafe import escape
+import os
+import secrets
 import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("OAP_FLASK_SECRET") or secrets.token_hex(32)
 DB = "oap_public.db"
 
 def db():
