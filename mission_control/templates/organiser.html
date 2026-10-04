@@ -40,6 +40,17 @@
       </div>
     </section>
 
+    <section class="mc-panel" id="runtime-evidence">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Mission-to-100 mandatory runtime gate</p><h2>First-Party Inference</h2></div><span class="mc-lock-badge">{{ 'PROVEN' if archive.runtime_evidence.first_party_inference.ready else 'NOT PROVEN' }}</span></div>
+      <div class="org-grid">
+        <article class="org-card"><div class="org-meta">Bridge</div><h3>{{ 'Configured' if archive.runtime_evidence.first_party_inference.bridge_configured else 'Not configured' }}</h3></article>
+        <article class="org-card"><div class="org-meta">Worker</div><h3>{{ 'Ready' if archive.runtime_evidence.first_party_inference.worker_ready else 'Not ready' }}</h3></article>
+        <article class="org-card"><div class="org-meta">Recent heartbeat</div><h3>{{ 'Seen' if archive.runtime_evidence.first_party_inference.worker_recently_seen else 'Not seen' }}</h3></article>
+        <article class="org-card"><div class="org-meta">Durable heartbeat</div><h3>{{ 'Fresh' if archive.runtime_evidence.first_party_inference.durable_worker_fresh else 'Not fresh' }}</h3></article>
+      </div>
+      <p class="org-boundary">{{ archive.runtime_evidence.first_party_inference.proof_rule }}</p>
+    </section>
+
     <section class="mc-panel" id="history">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Timeline inside Archive</p><h2>History</h2></div><span class="mc-lock-badge">Provenance preserved</span></div>
       <div class="org-grid">
