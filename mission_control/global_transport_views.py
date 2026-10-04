@@ -338,9 +338,105 @@ def transport_execution_evidence_record():
     )
 
 
+
+_RIDE_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0d10">
+<title>OAP Rides</title>
+<style>
+:root{color-scheme:dark;--bg:#0a0d10;--panel:#12171b;--panel2:#172027;--line:#26323a;--gold:#efc85d;--blue:#80bfff;--green:#7ee2a8;--muted:#94a2ad;--text:#f7f9fa}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+body{min-height:100vh}.app{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 16px calc(92px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:space-between;align-items:center;padding:16px 0 10px;position:sticky;top:0;z-index:4;background:linear-gradient(var(--bg) 72%,transparent)}
+.brand{display:flex;gap:11px;align-items:center;text-decoration:none;color:var(--text)}.mark{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#16212a,#0e1114);border:1px solid #3b5363;color:var(--blue);font-weight:900}
+.brand strong{display:block}.brand small{display:block;color:var(--muted)}.round{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--panel);text-decoration:none;color:var(--text)}
+.hero{padding:22px 0 8px}.eyebrow{font-size:.76rem;letter-spacing:.12em;color:var(--gold);font-weight:900}.hero h1{font-size:clamp(2rem,9vw,3.7rem);line-height:.98;margin:.45rem 0}.hero p{max-width:540px;color:#c3cbd1;margin:.6rem 0}
+.routebox{margin:17px 0;padding:16px;border-radius:24px;background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line)}
+.route-line{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:center;padding:11px 4px}.route-line+.route-line{border-top:1px solid #202a30}.dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px #173328}.dot.to{background:var(--gold);box-shadow:0 0 0 4px #342d17}.route-line a{color:var(--text);text-decoration:none;font-weight:800}.route-line span{color:var(--muted);font-size:.82rem}.go{display:block;margin-top:12px;text-align:center;padding:14px;border-radius:16px;background:var(--gold);color:#17130a;text-decoration:none;font-weight:900}
+.section-head{display:flex;justify-content:space-between;align-items:end;margin:24px 2px 12px}.section-head h2{margin:0;font-size:1.15rem}.section-head a{color:var(--blue);text-decoration:none;font-size:.88rem}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{min-height:118px;border:1px solid var(--line);border-radius:22px;padding:16px;background:linear-gradient(145deg,var(--panel2),var(--panel));color:var(--text);text-decoration:none;display:flex;flex-direction:column;justify-content:space-between}.card .emoji{font-size:1.6rem}.card strong{font-size:1.02rem}.card span{font-size:.81rem;line-height:1.3;color:var(--muted)}
+.mode{display:grid;grid-template-columns:1fr 1fr;gap:9px}.mode a{padding:15px;border-radius:18px;border:1px solid var(--line);background:var(--panel);text-decoration:none;color:var(--text);font-weight:900}.mode small{display:block;color:var(--muted);font-weight:500;margin-top:4px}
+.status{margin-top:22px;padding:14px 15px;border:1px solid #25342c;border-radius:16px;background:#101712;color:#aab8af;font-size:.82rem;line-height:1.45}.status b{color:var(--green)}
+.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(760px,100%);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(10,13,16,.96);backdrop-filter:blur(16px);border-top:1px solid var(--line);z-index:5}.bottom a{display:grid;gap:3px;place-items:center;text-decoration:none;color:var(--muted);font-size:.68rem;padding:7px 2px;border-radius:12px}.bottom a.active{color:var(--blue);background:#13202a}.bottom b{font-size:1.05rem}
+@media(min-width:620px){.grid{grid-template-columns:repeat(4,1fr)}.card{min-height:136px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="top">
+<a class="brand" href="/transport/ride"><span class="mark">OAP</span><span><strong>Rides</strong><small>From this postcode to the next.</small></span></a>
+<a class="round" href="/transport/my" aria-label="My Transport">◎</a>
+</header>
+<section class="hero">
+<div class="eyebrow">ON ANY POSTCODE · RIDES</div>
+<h1>Move through<br>your world.</h1>
+<p>One ride door powered by OAP Movement, OAP World, Guardian and SIKA.</p>
+</section>
+<section class="routebox">
+<div class="route-line"><span class="dot"></span><a href="/oap-map">Choose pickup</a><span>OAP World</span></div>
+<div class="route-line"><span class="dot to"></span><a href="/oap-map">Choose destination</a><span>Route</span></div>
+<a class="go" href="/movement/workspace#book-title">Request a journey</a>
+</section>
+<div class="section-head"><h2>Journey tools</h2><a href="/transport/ride/current">Current journey</a></div>
+<section class="grid">
+<a class="card" href="/movement/workspace#book-title"><span class="emoji">🚗</span><div><strong>Request ride</strong><span>Create a governed journey request.</span></div></a>
+<a class="card" href="/oap-map"><span class="emoji">🗺️</span><div><strong>Open map</strong><span>Plan pickup, destination and route.</span></div></a>
+<a class="card" href="/transport/ride/current"><span class="emoji">🧭</span><div><strong>Current journey</strong><span>Journey state, code, receipt and feedback.</span></div></a>
+<a class="card" href="/transport/ride/guardian/status"><span class="emoji">🛡️</span><div><strong>Guardian</strong><span>Safety controls and protected journey state.</span></div></a>
+<a class="card" href="/pay/bank"><span class="emoji">🪙</span><div><strong>SIKA</strong><span>Open payment and value controls.</span></div></a>
+<a class="card" href="/movement/workspace#bookings-title"><span class="emoji">🧾</span><div><strong>My journeys</strong><span>Review your movement history.</span></div></a>
+<a class="card" href="/transport/ride/driver/earnings"><span class="emoji">📊</span><div><strong>Earnings</strong><span>Driver earnings software view.</span></div></a>
+<a class="card" href="/eats"><span class="emoji">🍲</span><div><strong>Eats</strong><span>Switch to food and delivery.</span></div></a>
+</section>
+<div class="section-head"><h2>Choose mode</h2></div>
+<div class="mode">
+<a href="/transport/ride/rider">Rider<small>Request, match, journey, receipt</small></a>
+<a href="/transport/ride/driver">Driver<small>Availability, jobs, drive, earnings</small></a>
+</div>
+<div class="status"><b>● Software surface active.</b> Journey requests, matching, Guardian and payment bindings are software capabilities. Physical vehicle operation and external dispatch remain outside this build.</div>
+</main>
+<nav class="bottom" aria-label="OAP Rides navigation">
+<a class="active" href="/transport/ride"><b>⌂</b><span>Rides</span></a>
+<a href="/oap-map"><b>◎</b><span>World</span></a>
+<a href="/transport/ride/current"><b>↗</b><span>Journey</span></a>
+<a href="/transport/ride/guardian/status"><b>⛨</b><span>Guardian</span></a>
+<a href="/pay/bank"><b>◈</b><span>SIKA</span></a>
+</nav>
+</body>
+</html>"""
+
 @bp.get("/transport/ride")
 def transport_ride():
-    return _no_store(jsonify(oap_ride.status()))
+    return _no_store(make_response(render_template_string(_RIDE_PAGE), 200))
+
+
+@bp.get("/transport/ride/status")
+def transport_ride_status():
+    return _no_store(make_response(jsonify(oap_ride.status()), 200))
+
+
+@bp.get("/transport/ride/app-config")
+def transport_ride_app_config():
+    return _no_store(make_response(jsonify({
+        "product": "OAP Rides",
+        "front_door": "/transport/ride",
+        "navigation": {
+            "rides": "/transport/ride",
+            "world": "/oap-map",
+            "journey": "/transport/ride/current",
+            "guardian": "/transport/ride/guardian/status",
+            "sika": "/pay/bank",
+            "eats": "/eats",
+        },
+        "rider": "/transport/ride/rider",
+        "driver": "/transport/ride/driver",
+        "movement_workspace": "/movement/workspace",
+        "physical_operations_in_scope": False,
+        "human_authority_final": True,
+    }), 200))
 
 
 @bp.post("/transport/ride/request")

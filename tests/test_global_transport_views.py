@@ -228,3 +228,51 @@ def test_mitcham_shared_bike_route_rejects_oversized_radius():
     response = _app().test_client().get("/transport/shared-bikes/mitcham?radius_km=99")
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "invalid_radius_km"
+
+
+
+def test_oap_rides_front_door_is_mobile_app_surface():
+    client = _app().test_client()
+    response = client.get("/transport/ride")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    for marker in (
+        'aria-label="OAP Rides navigation"',
+        'href="/movement/workspace#book-title"',
+        'href="/oap-map"',
+        'href="/transport/ride/current"',
+        'href="/transport/ride/guardian/status"',
+        'href="/pay/bank"',
+        'href="/eats"',
+        "From this postcode to the next.",
+        "Physical vehicle operation and external dispatch remain outside this build.",
+    ):
+        assert marker in body
+
+
+def test_oap_rides_app_config_exposes_real_shared_routes():
+    client = _app().test_client()
+    response = client.get("/transport/ride/app-config")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["navigation"] == {
+        "rides": "/transport/ride",
+        "world": "/oap-map",
+        "journey": "/transport/ride/current",
+        "guardian": "/transport/ride/guardian/status",
+        "sika": "/pay/bank",
+        "eats": "/eats",
+    }
+    assert payload["rider"] == "/transport/ride/rider"
+    assert payload["driver"] == "/transport/ride/driver"
+    assert payload["movement_workspace"] == "/movement/workspace"
+    assert payload["physical_operations_in_scope"] is False
+    assert payload["human_authority_final"] is True
+
+
+def test_oap_rides_status_moved_off_front_door_without_losing_truth_api():
+    client = _app().test_client()
+    response = client.get("/transport/ride/status")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["physical_operations_in_scope"] is False
