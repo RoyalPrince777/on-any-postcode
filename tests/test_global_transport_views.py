@@ -32,6 +32,8 @@ def test_global_transport_public_routes_are_registered():
     assert "/global-transport" in rules
     assert "/transport/status" in rules
     assert "/transport/capabilities" in rules
+    assert "/transport/journey/status" in rules
+    assert "/transport/control/status" in rules
     assert "/transport/shared-bikes/status" in rules
     assert "/transport/shared-bikes/mitcham" in rules
 
@@ -48,8 +50,10 @@ def test_global_transport_home_and_status_are_mobile_public_surfaces():
     payload = client.get("/transport/status").get_json()
     assert payload["front_door"] == "/transport"
     assert payload["public_doors"] == [
-        "journey", "move", "ride", "transit", "drive", "fly", "cargo", "deliver", "fleet"
+        "journey", "move", "ride", "network transport", "drive", "fly", "cargo", "deliver", "fleet"
     ]
+    assert payload["legacy_transit_capability_preserved"] is True
+    assert payload["network_transport_modes"] == ["bus", "rail", "metro", "tram", "ferry", "coach"]
 
 
 def test_global_transport_capability_api_exposes_21_without_execution_authority():
@@ -228,3 +232,33 @@ def test_mitcham_shared_bike_route_rejects_oversized_radius():
     response = _app().test_client().get("/transport/shared-bikes/mitcham?radius_km=99")
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "invalid_radius_km"
+
+
+def test_journey_status_exposes_truth_and_authority_boundaries():
+    payload = _app().test_client().get("/transport/journey/status").get_json()
+    assert payload["truth_states"] == ["SCHEDULED", "PREDICTED", "OBSERVED"]
+    assert payload["gateway_levels"][-1] == "ACTION_AUTHORISED"
+    assert payload["scheduled_is_not_live"] is True
+    assert payload["predicted_is_not_observed"] is True
+    assert payload["execution_authorised"] is False
+    assert payload["payment_authorised"] is False
+
+
+def test_transport_control_status_is_fail_closed_and_recovery_ready():
+    payload = _app().test_client().get("/transport/control/status").get_json()
+    assert payload["product"] == "OAP Global Transport Control"
+    assert payload["journey_engine"]["disruption_propagation"] is True
+    assert payload["journey_engine"]["alternative_recovery_contract"] is True
+    assert payload["journey_engine"]["recovery_case_contract"] is True
+    assert payload["journey_engine"]["evidence_trace_contract"] is True
+    assert payload["journey_engine"]["independent_source_counting"] is True
+    assert payload["journey_engine"]["event_supersession"] is True
+    assert payload["journey_engine"]["event_correction_lineage"] is True
+    assert payload["journey_engine"]["contradiction_registry"] is True
+    assert payload["journey_engine"]["deterministic_alternative_ranking"] is True
+    assert payload["journey_engine"]["explicit_recovery_closure"] is True
+    assert "impact" in payload["actions"]
+    assert "evidence" in payload["actions"]
+    assert payload["automatic_execution"] is False
+    assert payload["payment_action_authorised"] is False
+    assert payload["human_authority_final"] is True

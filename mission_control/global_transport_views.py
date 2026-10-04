@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, redirect, render_template_string, request
 
-from . import authority, oap_ride, operator_gateway, transport_execution_evidence, web_security
+from . import authority, journey_engine, oap_ride, operator_gateway, transport_execution_evidence, web_security
 from .oap_ride_dashboards import bp as oap_ride_dashboards_bp
 from .oap_ride_runtime_routes import bp as oap_ride_runtime_bp
 from .oap_ride_journey_views import bp as oap_ride_journey_bp
@@ -38,7 +38,7 @@ PUBLIC_DOORS = (
     ("Journey", "End-to-end multimodal journey planning"),
     ("Move", "Movement, disruption and route state"),
     ("Ride", "Governed ride-request capability"),
-    ("Transit", "Bus, rail, metro, tram and ferry"),
+    ("Network Transport", "Bus, rail, metro, tram, ferry and coach"),
     ("Drive", "Personal vehicle and road journey layer"),
     ("Fly", "Air journey and airport layer"),
     ("Cargo", "Freight and cross-border planning"),
@@ -149,6 +149,13 @@ def status() -> dict[str, object]:
         "integrations": list(INTEGRATIONS),
         "shared_bikes": operator_gateway.shared_bikes_status(),
         "operator_gateway": operator_gateway.status(),
+        "journey_engine": journey_engine.status(),
+        "network_transport_modes": list(journey_engine.NETWORK_MODES),
+        "disruption_propagation": True,
+        "journey_recovery": True,
+        "transport_evidence_lineage": True,
+        "command_center_projection": True,
+        "legacy_transit_capability_preserved": "transit" in CAPABILITIES,
         "existing_transport_intelligence_reused": True,
         "post_core_authoritative_for_parcels": True,
         "human_authority_final": True,
@@ -246,6 +253,29 @@ def transport_capabilities():
 @bp.get("/transport/execution-readiness")
 def transport_execution_readiness():
     return _no_store(jsonify(execution_readiness()))
+
+@bp.get("/transport/journey/status")
+def transport_journey_status():
+    return _no_store(jsonify(journey_engine.status()))
+
+@bp.get("/transport/control/status")
+def transport_control_status():
+    return _no_store(jsonify({
+        "product": "OAP Global Transport Control",
+        "journey_engine": journey_engine.status(),
+        "execution_readiness": execution_readiness(),
+        "actions": [
+            "inspect",
+            "map",
+            "impact",
+            "alternatives",
+            "evidence",
+            "dependencies",
+        ],
+        "automatic_execution": False,
+        "payment_action_authorised": False,
+        "human_authority_final": True,
+    }))
 
 
 @bp.get("/transport/shared-bikes/status")
