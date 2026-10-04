@@ -102,6 +102,7 @@ with sync_playwright() as p:
             timeout=10000,
         )
         if mobile:
+            before_route_roads = page.locator("#road-layer polyline").count()
             page.evaluate("""
                 () => window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:{route:{
                     distance_m:4200,duration_s:720,
@@ -113,6 +114,12 @@ with sync_playwright() as p:
                 }}}))
             """)
             assert page.locator("#trip-bar").is_visible()
+            page.wait_for_function(
+                "() => document.querySelectorAll('#road-layer polyline').length > 0",
+                timeout=10000,
+            )
+            assert page.locator("#road-layer polyline").count() > 0
+            assert before_route_roads > 0
             page.locator("#voice-toggle").click()
             assert page.locator("#voice-toggle").get_attribute("aria-pressed") == "true"
             page.locator("#drive-toggle").click()
@@ -131,6 +138,7 @@ with sync_playwright() as p:
             page.wait_for_function("() => window.__oapGeoWatchCalls === 1", timeout=5000)
             assert page.evaluate("() => window.__oapGeoWatchCalls") == 1
         assert page.locator("#road-layer polyline").count() > 0, label
+        assert page.locator("#oap-map-boot").is_hidden(), label
         if mobile:
             assert page.locator("#voice-toggle").inner_text() == "Voice on"
             assert page.evaluate("() => Array.isArray(window.__oapSpoken)") is True
