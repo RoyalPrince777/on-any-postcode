@@ -20,6 +20,8 @@ GATEWAY_LEVELS = (
     "ACTION_AVAILABLE",
     "ACTION_AUTHORISED",
 )
+IMPACT_STATES = ("CLEAR", "WATCH", "PREDICTED_IMPACT", "IMPACT_CONFIRMED", "UNKNOWN")
+RECOVERY_STATES = ("NOT_REQUIRED", "REPLAN_REQUIRED", "ALTERNATIVE_AVAILABLE", "BLOCKED", "UNKNOWN")
 
 
 def _text(value: object, field: str, *, limit: int = 240) -> str:
@@ -139,6 +141,210 @@ def compose_journey(
     }
 
 
+
+def disruption_event(
+    *,
+    event_type: object,
+    affected_modes: object,
+    observation: dict[str, Any],
+    severity: object,
+    evidence_ids: object = None,
+    location: object = "",
+) -> dict[str, Any]:
+    if not isinstance(affected_modes, (list, tuple)) or not affected_modes:
+        raise ValueError("transport_affected_modes_required")
+    modes = []
+    for item in affected_modes:
+        mode = str(item or "").strip().lower()
+        if mode not in ALL_MODES:
+            raise ValueError("transport_mode_invalid")
+        if mode not in modes:
+            modes.append(mode)
+    if not isinstance(observation, dict) or observation.get("truth_state") not in TRUTH_STATES:
+        raise ValueError("transport_observation_required")
+    if isinstance(severity, bool) or not isinstance(severity, int) or not 0 <= severity <= 100:
+        raise ValueError("transport_severity_invalid")
+    evidence = []
+    if evidence_ids is not None:
+        if not isinstance(evidence_ids, (list, tuple)):
+            raise ValueError("transport_evidence_ids_invalid")
+        for item in evidence_ids:
+            value = str(item or "").strip()
+            if not value or len(value) > 160:
+                raise ValueError("transport_evidence_ids_invalid")
+            if value not in evidence:
+                evidence.append(value)
+    return {
+        "event_id": str(uuid4()),
+        "event_type": _text(event_type, "event_type", limit=120),
+        "affected_modes": modes,
+        "location": " ".join(str(location or "").split())[:240],
+        "severity": severity,
+        "observation": dict(observation),
+        "evidence_ids": evidence,
+        "execution_authorised": False,
+    }
+
+
+def _impact_state(event: dict[str, Any]) -> str:
+    observation = event.get("observation")
+    if not isinstance(observation, dict):
+        return "UNKNOWN"
+    truth = observation.get("truth_state")
+    freshness = observation.get("freshness")
+    if freshness in {"stale", "expired", "unknown"}:
+        return "UNKNOWN"
+    if truth == "OBSERVED":
+        return "IMPACT_CONFIRMED"
+    if truth == "PREDICTED":
+        return "PREDICTED_IMPACT"
+    if truth == "SCHEDULED":
+        return "WATCH"
+    return "UNKNOWN"
+
+
+def assess_disruptions(*, journey: dict[str, Any], events: object) -> dict[str, Any]:
+    if not isinstance(journey, dict) or not isinstance(journey.get("legs"), list):
+        raise ValueError("transport_journey_invalid")
+    if not isinstance(events, list):
+        raise ValueError("transport_events_invalid")
+    impacts = []
+    affected_leg_ids = set()
+    evidence_ids = []
+    overall = "CLEAR"
+
+    rank = {
+        "CLEAR": 0,
+        "WATCH": 1,
+        "PREDICTED_IMPACT": 2,
+        "IMPACT_CONFIRMED": 3,
+        "UNKNOWN": 4,
+    }
+    for event in events:
+        if not isinstance(event, dict):
+            raise ValueError("transport_event_invalid")
+        modes = event.get("affected_modes")
+        if not isinstance(modes, list):
+            raise ValueError("transport_event_invalid")
+        matched = [
+            leg["leg_id"]
+            for leg in journey["legs"]
+            if isinstance(leg, dict) and leg.get("mode") in modes
+        ]
+        if not matched:
+            continue
+        state = _impact_state(event)
+        if rank[state] > rank[overall]:
+            overall = state
+        affected_leg_ids.update(matched)
+        for evidence_id in event.get("evidence_ids") or []:
+            if evidence_id not in evidence_ids:
+                evidence_ids.append(evidence_id)
+        impacts.append(
+            {
+                "event_id": event.get("event_id"),
+                "event_type": event.get("event_type"),
+                "impact_state": state,
+                "severity": event.get("severity"),
+                "affected_leg_ids": matched,
+                "truth_state": (event.get("observation") or {}).get("truth_state"),
+                "freshness": (event.get("observation") or {}).get("freshness"),
+                "confidence": (event.get("observation") or {}).get("confidence"),
+                "evidence_ids": list(event.get("evidence_ids") or []),
+            }
+        )
+
+    return {
+        "journey_id": journey.get("journey_id"),
+        "impact_state": overall,
+        "affected_leg_ids": sorted(affected_leg_ids),
+        "impacts": impacts,
+        "evidence_ids": evidence_ids,
+        "execution_authorised": False,
+        "human_authority_final": True,
+    }
+
+
+def recovery_plan(
+    *,
+    journey: dict[str, Any],
+    assessment: dict[str, Any],
+    alternatives: object = None,
+) -> dict[str, Any]:
+    if not isinstance(journey, dict) or not journey.get("journey_id"):
+        raise ValueError("transport_journey_invalid")
+    if not isinstance(assessment, dict) or assessment.get("journey_id") != journey.get("journey_id"):
+        raise ValueError("transport_assessment_invalid")
+    candidates = []
+    if alternatives is not None:
+        if not isinstance(alternatives, list):
+            raise ValueError("transport_alternatives_invalid")
+        for item in alternatives:
+            if not isinstance(item, dict) or not item.get("journey_id"):
+                raise ValueError("transport_alternative_invalid")
+            candidates.append(dict(item))
+
+    impact = assessment.get("impact_state")
+    if impact == "CLEAR":
+        state = "NOT_REQUIRED"
+    elif candidates:
+        state = "ALTERNATIVE_AVAILABLE"
+    elif impact in {"WATCH", "PREDICTED_IMPACT", "IMPACT_CONFIRMED"}:
+        state = "REPLAN_REQUIRED"
+    elif impact == "UNKNOWN":
+        state = "UNKNOWN"
+    else:
+        state = "BLOCKED"
+
+    return {
+        "journey_id": journey.get("journey_id"),
+        "recovery_state": state,
+        "affected_leg_ids": list(assessment.get("affected_leg_ids") or []),
+        "alternative_journey_ids": [item["journey_id"] for item in candidates],
+        "required_actions": (
+            []
+            if state == "NOT_REQUIRED"
+            else ["refresh_evidence", "recalculate_journey", "confirm_operator_state"]
+        ),
+        "automatic_execution": False,
+        "payment_action_authorised": False,
+        "human_authority_final": True,
+    }
+
+
+def command_center_state(
+    *,
+    journey: dict[str, Any],
+    assessment: dict[str, Any],
+    recovery: dict[str, Any],
+) -> dict[str, Any]:
+    if (
+        not isinstance(journey, dict)
+        or assessment.get("journey_id") != journey.get("journey_id")
+        or recovery.get("journey_id") != journey.get("journey_id")
+    ):
+        raise ValueError("transport_command_center_state_invalid")
+    return {
+        "journey_id": journey.get("journey_id"),
+        "impact_state": assessment.get("impact_state"),
+        "recovery_state": recovery.get("recovery_state"),
+        "affected_leg_count": len(assessment.get("affected_leg_ids") or []),
+        "evidence_ids": list(assessment.get("evidence_ids") or []),
+        "actions": [
+            "inspect",
+            "map",
+            "impact",
+            "alternatives",
+            "evidence",
+            "dependencies",
+        ],
+        "execution_authorised": False,
+        "payment_authorised": False,
+        "human_authority_final": True,
+    }
+
+
+
 def status() -> dict[str, Any]:
     return {
         "product": "OAP Journey Engine",
@@ -147,6 +353,12 @@ def status() -> dict[str, Any]:
         "map_modes": list(MAP_MODES),
         "truth_states": list(TRUTH_STATES),
         "gateway_levels": list(GATEWAY_LEVELS),
+        "impact_states": list(IMPACT_STATES),
+        "recovery_states": list(RECOVERY_STATES),
+        "disruption_propagation": True,
+        "alternative_recovery_contract": True,
+        "evidence_lineage": True,
+        "command_center_projection": True,
         "scheduled_is_not_live": True,
         "predicted_is_not_observed": True,
         "execution_authorised": False,
