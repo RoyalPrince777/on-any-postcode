@@ -27,7 +27,7 @@ function render(){
  q("[data-influence]").textContent=" "+state.player.influence;q("[data-mode-view]").textContent=" "+state.player.travel_mode;
  q("[data-chunk-view]").textContent=" "+(state.chunks?.[state.active_chunk]?.label||state.active_chunk);
  q("[data-traffic]").textContent=" "+state.environment.traffic;
- const here=state.nodes.find(n=>n.id===state.player.node);q("[data-location]").textContent=here.label;
+ const here=state.nodes.find(n=>n.id===state.player.node);q("[data-location]").textContent=here.label;\n q("[data-local-voice]").textContent=state.language?.arrival||"";
  q("[data-environment]").innerHTML="<strong>Environment Intelligence</strong><br>Footfall "+state.environment.footfall+" · Shops "+state.environment.shop_activity+" · Parks "+state.environment.park_activity+"<br>"+esc(state.environment.lighting)+" · "+esc(state.environment.soundscape)+" · "+esc(state.environment.visibility)+"<br><small>Game simulation · not live telemetry</small>";
  q("[data-links]").innerHTML=state.navigation_links.map(lineMarkup).join("");
  const routeLine=q("[data-route-line]"),pts=routePoints();routeLine.setAttribute("points",pts);routeLine.hidden=!pts;
