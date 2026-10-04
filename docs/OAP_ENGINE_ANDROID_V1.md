@@ -86,3 +86,19 @@ security, compatibility and fuzzing evidence show that it can safely render the
 target web surface.
 
 Names and architecture do not satisfy either gate.
+
+
+## Implemented since the initial v0 slice
+
+OAP Engine now also contains:
+
+- a first-party DOM tree with parent/child ownership, ids, classes and text-content traversal;
+- hidden executable/style/template content excluded from user text projection;
+- a bounded CSS parser;
+- tag, class and id selector matching;
+- deterministic specificity/order cascade;
+- inline-style precedence for the supported property allow-list; and
+- regression tests for malformed HTML recovery, cascade precedence and unsupported-selector rejection.
+
+This materially advances the source foundation, but it still does not make OAP
+Engine standards-complete or the default renderer for arbitrary websites.
