@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
+from mission_control import mtown_build_system
 
 SCHEMA = "oap.arena.earth-is-our-turf.mitcham.v3"
 SESSION_KEY = "oap_eiot_mitcham_v1"
@@ -140,6 +141,13 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         node_id=current_node,
         minute=state["time_minutes"],
         day=state["day"],
+    )
+    node_to_chunk={row["id"]:row["chunk"] for row in NODES}
+    out["mbs"]=mtown_build_system.build_manifest(
+        chunks=mitcham_world.CHUNKS,
+        active_chunk=out["active_chunk"],
+        route_nodes=(state.get("active_route") or {}).get("nodes") if isinstance(state.get("active_route"),dict) else None,
+        node_to_chunk=node_to_chunk,
     )
     out["payments"]=False; out["real_world_tracking"]=False
     return out
