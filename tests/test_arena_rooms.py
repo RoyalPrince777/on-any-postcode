@@ -6,7 +6,7 @@ import uuid
 
 import pytest
 
-from mission_control import arena_rooms, chess, connect4, ludo, oware
+from mission_control import arena_rooms, chess, connect4, iq_duel, ludo, oware, route_empire
 
 
 class _Result:
@@ -100,6 +100,8 @@ def test_status_keeps_boundaries_explicit():
         "chess_server_actions": True,
         "ludo_server_actions": True,
         "oware_server_actions": True,
+        "iq_duel_server_actions": True,
+        "route_empire_server_actions": True,
         "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
@@ -261,13 +263,12 @@ def test_dot_room_rejects_wrong_seat(monkeypatch):
     assert connection.commits == 0
 
 
-def test_unimplemented_room_games_and_non_two_player_capacity_fail_before_io(monkeypatch):
+def test_all_room_games_are_two_seat_and_unknown_games_fail_before_io(monkeypatch):
     connection = _Connection([])
     _patch_connection(monkeypatch, connection)
-    for game in ("iq", "route-empire"):
-        with pytest.raises(ValueError, match="arena_room_game_invalid"):
-            arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=2)
-    for game in ("connect4", "dot", "chess", "ludo", "oware"):
+    with pytest.raises(ValueError, match="arena_room_game_invalid"):
+        arena_rooms.create_room(game_key="unknown", host_name="Alpha", capacity=2)
+    for game in ("connect4", "dot", "chess", "ludo", "oware", "iq", "route-empire"):
         with pytest.raises(ValueError, match="arena_room_requires_two_seats"):
             arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=4)
     assert connection.calls == []
@@ -488,3 +489,58 @@ def test_ludo_and_oware_wrong_seat_fail_closed(monkeypatch):
         with pytest.raises(ValueError, match="arena_room_not_your_turn"):
             call(room_id)
         assert connection.commits == 0
+
+
+
+def test_iq_room_answer_uses_fair_duel_engine(monkeypatch):
+    room_id = str(uuid.uuid4())
+    state = iq_duel.new_game(["Alpha", "Bravo"])
+    connection = _Connection([
+        _Result(one=("iq", "ACTIVE", 2, 0, state)),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    result = arena_rooms.iq_action(
+        room_id=room_id, reconnect_token="x" * 40,
+        expected_revision=0, request_id="iq-room-answer-0001",
+        action="answer", choice_id="b",
+    )
+    assert result["revision"] == 1
+    assert result["game_state"]["your_answer_locked"] is True
+    assert result["game_state"]["players"][0]["score"] == 0
+
+
+def test_route_empire_room_action_enforces_turn(monkeypatch):
+    room_id = str(uuid.uuid4())
+    state = route_empire.new_game(location="OAP Arena Room", players=["Alpha", "Bravo"])
+    connection = _Connection([
+        _Result(one=("route-empire", "ACTIVE", 2, 0, state)),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    result = arena_rooms.route_empire_action(
+        room_id=room_id, reconnect_token="x" * 40,
+        expected_revision=0, request_id="route-room-claim-0001",
+        action="claim", node_id="north",
+    )
+    assert result["revision"] == 1
+    assert result["game_state"]["nodes"][0]["owner_id"] == state["players"][0]["id"]
+
+    connection = _Connection([
+        _Result(one=("route-empire", "ACTIVE", 2, 1, state)),
+        _Result(one=(2,)),
+        _Result(one=None),
+    ])
+    _patch_connection(monkeypatch, connection)
+    with pytest.raises(ValueError, match="arena_room_not_your_turn"):
+        arena_rooms.route_empire_action(
+            room_id=room_id, reconnect_token="y" * 40,
+            expected_revision=1, request_id="route-room-wrong-seat-0001",
+            action="claim", node_id="market",
+        )
