@@ -11,7 +11,7 @@ from typing import Any
 from uuid import UUID
 
 from . import postgres_db
-from .oap_eats import EatsOrderState, can_transition
+from .oap_eats import can_transition
 
 MIGRATION_VERSION = "0001_oap_eats_core"
 SCHEMA_STATEMENTS = (
