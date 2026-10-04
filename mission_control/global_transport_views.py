@@ -151,6 +151,10 @@ def status() -> dict[str, object]:
         "operator_gateway": operator_gateway.status(),
         "journey_engine": journey_engine.status(),
         "network_transport_modes": list(journey_engine.NETWORK_MODES),
+        "disruption_propagation": True,
+        "journey_recovery": True,
+        "transport_evidence_lineage": True,
+        "command_center_projection": True,
         "legacy_transit_capability_preserved": "transit" in CAPABILITIES,
         "existing_transport_intelligence_reused": True,
         "post_core_authoritative_for_parcels": True,
@@ -253,6 +257,25 @@ def transport_execution_readiness():
 @bp.get("/transport/journey/status")
 def transport_journey_status():
     return _no_store(jsonify(journey_engine.status()))
+
+@bp.get("/transport/control/status")
+def transport_control_status():
+    return _no_store(jsonify({
+        "product": "OAP Global Transport Control",
+        "journey_engine": journey_engine.status(),
+        "execution_readiness": execution_readiness(),
+        "actions": [
+            "inspect",
+            "map",
+            "impact",
+            "alternatives",
+            "evidence",
+            "dependencies",
+        ],
+        "automatic_execution": False,
+        "payment_action_authorised": False,
+        "human_authority_final": True,
+    }))
 
 
 @bp.get("/transport/shared-bikes/status")
