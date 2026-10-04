@@ -3,6 +3,8 @@
 No fixtures, request interception, set_content(), or mocked readiness state.
 The target is the deployed public OAP Bank surface and its canonical status.
 """
+import time
+
 from playwright.sync_api import expect, sync_playwright
 
 BASE_URL = "https://on-any-postcode.onrender.com"
@@ -72,8 +74,18 @@ def main() -> None:
         )
 
         for route in CUSTOMER_ROUTES:
-            route_response = context.request.get(BASE_URL + route)
-            assert route_response.status == 200, route
+            route_response = None
+            for attempt in range(3):
+                route_response = context.request.get(BASE_URL + route)
+                if route_response.status == 200:
+                    break
+                if route_response.status not in {429, 502, 503, 504}:
+                    break
+                time.sleep(2 * (attempt + 1))
+            assert route_response is not None and route_response.status == 200, (
+                route,
+                None if route_response is None else route_response.status,
+            )
 
         manifest_response = context.request.get(
             BASE_URL + "/pay/bank/manifest.webmanifest"
