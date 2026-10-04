@@ -145,7 +145,7 @@ def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
     assert "tiles.sort((a,b)=>" in template
     assert "tiles=tiles.slice(0,4);" in template
-    assert "Math.min(4,tiles.length)" in template
+    assert "if(count>=MIN_STABLE_ROADS)break;" in template
     assert "for(let attempt=0;attempt<2;attempt++)" in template
     assert "response.status!==503" in template
 
@@ -179,8 +179,8 @@ def test_road_network_does_not_self_cancel_slow_successful_batches():
     assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
     assert "recoveryTimer" not in template
     assert "tiles=tiles.slice(0,4)" in template
-    assert "Math.min(4,tiles.length)" in template
-    assert "request===roadRequest&&count<180" in template
+    assert "if(count>=MIN_STABLE_ROADS)break;" in template
+    assert "if(request!==roadRequest||count>=180)break;" in template
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
     assert "},6000):null;" not in template
     assert "if(recoveryTimer)clearTimeout(recoveryTimer);" not in template
