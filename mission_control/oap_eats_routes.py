@@ -125,6 +125,44 @@ def eats_status():
     return _no_store(make_response(jsonify(oap_eats.status()), 200))
 
 
+@bp.get("/eats/app-config")
+def eats_app_config():
+    return _no_store(make_response(jsonify({
+        "product": "OAP Eats",
+        "front_door": "/eats",
+        "navigation": {
+            "eats": "/eats",
+            "explore": "/market",
+            "world": "/oap-map",
+            "rides": "/transport",
+            "sika": "/pay/bank",
+        },
+        "roles": {
+            key: list(role.permissions) for key, role in oap_eats.ROLES.items()
+        },
+        "physical_operations_in_scope": False,
+        "human_authority_final": True,
+    }), 200))
+
+
+@bp.get("/eats/orders/<order_id>")
+@web_security.login_required(api=True)
+def read_order(order_id: str):
+    identity = web_security.authenticated_identity()
+    try:
+        result = oap_eats_store.STORE.read_order(
+            order_id=order_id,
+            identity_id=identity,
+        )
+        return _no_store(make_response(jsonify(result), 200))
+    except PermissionError as exc:
+        return _error(str(exc) or "eats_access_denied", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_eats_order", 400)
+    except RuntimeError:
+        return _error("eats_store_unavailable", 503)
+
+
 @bp.get("/eats/order-states")
 def eats_order_states():
     return _no_store(make_response(jsonify({
@@ -200,6 +238,8 @@ def bind_order_payment(order_id: str):
     identity = web_security.authenticated_identity()
     if not web_security.csrf_valid(request):
         return _error("csrf_failed", 403)
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(identity):
+        return _error("rate_limited", 429)
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return _error("json_object_required", 400)
