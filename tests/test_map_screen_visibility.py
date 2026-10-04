@@ -78,7 +78,10 @@ def test_road_network_loads_without_successful_route():
         "if(from.value.trim()&&to.value.trim())route();"
     )
     assert 'id="road-source-state"' in template
-    assert "if(request===roadRequest&&!count){clearBoot();showRoadStatus('Road network unavailable" in template
+    assert "if(request===roadRequest&&!count){" in template
+    assert "if(batchAttempt<3)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.');" in template
 
 
 def test_route_failure_preserves_independent_road_layer():
@@ -161,3 +164,13 @@ def test_on_any_postcode_maps_public_identity_and_navigation_camera():
     assert "perspectiveDriveCamera:true" in nav
     assert "routeCasing:true" in nav
     assert ".route-svg #route-casing" in css
+
+
+def test_road_network_has_bounded_batch_level_cold_start_recovery():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null)" in template
+    assert "request=requestToken===null?++roadRequest:requestToken" in template
+    assert "if(batchAttempt<3)" in template
+    assert "1000*(batchAttempt+1)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "Warming road network…" in template
