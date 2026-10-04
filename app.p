@@ -38,6 +38,25 @@ def init_db():
             created_at TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS market_products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            category TEXT NOT NULL,
+            description TEXT,
+            price_minor INTEGER NOT NULL CHECK(price_minor >= 0),
+            currency TEXT NOT NULL DEFAULT 'GBP',
+            image_url TEXT,
+            seller_name TEXT,
+            state TEXT NOT NULL DEFAULT 'DRAFT'
+                CHECK(state IN ('DRAFT','LIVE','PAUSED','SOLD_OUT')),
+            created_at TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS ix_market_products_state_category
+        ON market_products(state, category)
+    """)
     conn.commit()
     conn.close()
 
