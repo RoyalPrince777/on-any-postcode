@@ -43,6 +43,17 @@ function render(){
  const parkingActions=activeVehicle?hereParking.map(p=>"<button type=\"button\" data-action=\"park-vehicle\" data-target=\""+esc(p.id)+"\">Park · "+esc(p.kind)+"</button>").join(" "):"";
  const entranceActions=hereEntrances.map(e=>"<button type=\"button\" data-action=\"use-entrance\" data-target=\""+esc(e.id)+"\">Use "+esc(e.label)+"</button>").join(" ");
  q("[data-vehicle-life]").innerHTML="<strong>Vehicle Life + Entrances</strong><br>"+(vehicleActions||"No persistent vehicle here")+"<br>"+parkingActions+"<br>"+entranceActions;
+ const interior=state.interiors?.current_interior_id;
+ const activeVid=state.vehicle_life?.active_vehicle_id;
+ const vehicleState=activeVid?state.interiors?.vehicle_state?.[activeVid]:null;
+ let interiorHtml="<strong>Interior + Vehicle State</strong><br>";
+ interiorHtml+=interior?("Inside "+esc(interior)+' <button type="button" data-action="exit-interior">Exit interior</button>'):"Outside";
+ if(vehicleState){
+   interiorHtml+="<br>Condition "+Math.round(vehicleState.condition)+"% · "+esc(vehicleState.energy_type)+" "+Math.round(vehicleState.energy)+"% · "+vehicleState.odometer_m+" m";
+   interiorHtml+='<br><button type="button" data-action="service-vehicle" data-target="'+esc(activeVid)+'">Service</button> <button type="button" data-action="restore-vehicle-energy" data-target="'+esc(activeVid)+'">Restore '+esc(vehicleState.energy_type)+'</button>';
+ }
+ q("[data-interior-state]").innerHTML=interiorHtml;
+
 
  q("[data-links]").innerHTML=state.navigation_links.map(lineMarkup).join("");
  const routeLine=q("[data-route-line]"),pts=routePoints();routeLine.setAttribute("points",pts);routeLine.hidden=!pts;
