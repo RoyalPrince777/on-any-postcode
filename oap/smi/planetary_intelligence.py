@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from mission_control import earth_intelligence, ecosystem_intelligence
+from mission_control import earth_intelligence, ecosystem_intelligence, evidence_gate
 
 PLANETARY_LEVELS = (
     "postcode",
@@ -71,6 +71,7 @@ def correlate(
         if not tuple(signal.get("evidence") or ()):
             raise ValueError("Planetary signals require explicit evidence")
 
+    evidence_assessment = evidence_gate.assess(items)
     analysis = ecosystem_intelligence.analyse(items, scope=scope)
     geography = analysis["geography"]
     represented_levels = tuple(level for level in PLANETARY_LEVELS if geography.get(level))
@@ -82,6 +83,7 @@ def correlate(
         "truth_mix": analysis["truth_mix"],
         "domains": analysis["domains"],
         "evidence": analysis["evidence"],
+        "evidence_assessment": evidence_assessment,
         "risks": analysis["risks"],
         "opportunities": analysis["opportunities"],
         "recommendations": analysis["recommendations"],
