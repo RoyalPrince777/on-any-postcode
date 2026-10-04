@@ -1,9 +1,9 @@
 """Public OAP Eats software surface."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, render_template_string
+from flask import Blueprint, jsonify, make_response, render_template_string, request
 
-from . import oap_eats
+from . import oap_eats, oap_eats_store, web_security
 
 bp = Blueprint("oap_eats", __name__)
 
@@ -46,3 +46,64 @@ def eats_order_states():
         "states": [state.value for state in oap_eats.EatsOrderState],
         "human_authority_final": True,
     }), 200))
+
+
+def _error(code: str, status: int):
+    return _no_store(make_response(jsonify(error={"code": code}), status))
+
+
+@bp.post("/eats/orders")
+@web_security.login_required(api=True)
+def create_order():
+    identity = web_security.authenticated_identity()
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", 403)
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(identity):
+        return _error("rate_limited", 429)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error("json_object_required", 400)
+    try:
+        result = oap_eats_store.STORE.create_order(
+            customer_identity_id=identity,
+            merchant_id=body.get("merchant_id"),
+            items=body.get("items"),
+            amount_minor=body.get("amount_minor"),
+            currency=body.get("currency"),
+            fulfilment_mode=body.get("fulfilment_mode"),
+            idempotency_key=request.headers.get("Idempotency-Key"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _error(str(exc) or "eats_access_denied", 403)
+    except ValueError as exc:
+        code = str(exc) or "invalid_eats_order"
+        return _error(code, 409 if code == "idempotency_conflict" else 400)
+    except Exception:
+        return _error("eats_store_unavailable", 503)
+
+
+@bp.post("/eats/orders/<order_id>/state")
+@web_security.login_required(api=True)
+def transition_order(order_id: str):
+    identity = web_security.authenticated_identity()
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", 403)
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(identity):
+        return _error("rate_limited", 429)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error("json_object_required", 400)
+    try:
+        result = oap_eats_store.STORE.transition(
+            order_id=order_id,
+            actor_identity_id=identity,
+            target_state=body.get("state"),
+        )
+        return _no_store(make_response(jsonify(result), 200))
+    except PermissionError as exc:
+        return _error(str(exc) or "eats_access_denied", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_eats_transition", 400)
+    except Exception:
+        return _error("eats_store_unavailable", 503)
