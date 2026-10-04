@@ -19,6 +19,7 @@ from . import (
     sika_atomic_payment,
     sika_balance_engine,
     sika_card_controls,
+    sika_customer_view,
     sika_double_entry,
     sika_journal_store,
     sika_payment_disputes,
@@ -82,6 +83,12 @@ def assess() -> SoftwareReadiness:
         "journal_store": _check(sika_journal_store.status, "append_only"),
         "payment_orchestrator": _check(
             sika_payment_orchestrator.status, "persistent_payment_intent"
+        ),
+        "terminal_hold_lifecycle": _check(
+            sika_payment_orchestrator.status, "terminal_hold_lifecycle_sync"
+        ),
+        "authenticated_customer_view": _check(
+            sika_customer_view.status, "owner_scoped"
         ),
         "payment_disputes": _check(
             sika_payment_disputes.status, "persistent_dispute_cases"
