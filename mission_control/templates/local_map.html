@@ -141,7 +141,7 @@ function draw(coords){
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
 function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
-const ROAD_TILE_TIMEOUT_MS=8000;
+const ROAD_TILE_TIMEOUT_MS=20000;
 async function fetchRoadTile(z,x,y,mode){
  const url='/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode);
  for(let attempt=0;attempt<3;attempt++){
@@ -161,15 +161,12 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
  const request=requestToken===null?++roadRequest:requestToken;
  if(batchAttempt===0)roadLayer.innerHTML='';
  showRoadStatus(batchAttempt?'Warming road network…':'Loading road network…');
- const recoveryTimer=batchAttempt<3?setTimeout(()=>{
-   if(request===roadRequest&&!roadLayer.querySelector('polyline'))loadRoadNetwork(b,mode,batchAttempt+1,null);
- },6000):null;
  const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
  let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);let tiles=[];
  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)tiles.push([x,y]);
  const cx=(x0+x1)/2,cy=(y0+y1)/2;
  tiles.sort((a,b)=>((a[0]-cx)**2+(a[1]-cy)**2)-((b[0]-cx)**2+(b[1]-cy)**2));
- tiles=tiles.slice(0,24);
+ tiles=tiles.slice(0,8);
  let count=0,labelCount=0;const labelled=new Set();
  const renderPayload=d=>{
    if(request!==roadRequest||!d||!Array.isArray(d.lines))return;
@@ -196,8 +193,8 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
  };
  try{
    const queue=[...tiles];
-   const worker=async()=>{while(queue.length&&request===roadRequest){const [x,y]=queue.shift();const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}};
-   await Promise.all(Array.from({length:Math.min(4,tiles.length)},worker));
+   const worker=async()=>{while(queue.length&&request===roadRequest&&count<180){const [x,y]=queue.shift();const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}};
+   await Promise.all(Array.from({length:Math.min(2,tiles.length)},worker));
    if(request===roadRequest&&!count){
      if(batchAttempt<3){
        showRoadStatus('Warming road network…');
@@ -214,8 +211,6 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
      }
      clearBoot();showRoadStatus('Road network unavailable — check map source.');
    }
- }finally{
-   if(recoveryTimer)clearTimeout(recoveryTimer);
  }
 }
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
