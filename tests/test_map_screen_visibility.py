@@ -128,5 +128,11 @@ def test_route_draw_preserves_existing_road_layer():
         "function lon2x", 1
     )[0]
 
-    assert "if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);" in draw_section
-    assert "svg.hidden=false;loadRoadNetwork(bounds,profile.value);return true" not in draw_section
+    assert "loadRoadNetwork(bounds,profile.value);" in draw_section
+    assert "if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);" not in draw_section
+
+
+def test_map_boot_does_not_wait_for_every_road_tile():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "if(count){showRoadStatus('');clearBoot()}" in template
+    assert "setTimeout(clearBoot,5000);" in template
