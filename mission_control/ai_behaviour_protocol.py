@@ -203,6 +203,11 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
         "best_for": "alternate bounded fixes, hidden edge cases, constraint-aware path selection",
         "authority": "advisory_review_only",
     },
+    "Spider": {
+        "role": "Network pattern / dependency-path reviewer",
+        "best_for": "request chains, dependency graphs, route-to-render paths, hidden coupling and handoff tracing",
+        "authority": "advisory_review_only",
+    },
     "Elephant": {
         "role": "Memory / history reviewer",
         "best_for": "history, provenance, prior decisions, long-memory consistency",
@@ -223,7 +228,7 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
     (
         ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
-        ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Fox", "Bee"),
+        ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Spider", "Fox", "Bee"),
         "Map stability mission: adversarial, recovery, integrity, dual-state, dependency, tactical and coordination review.",
     ),
     (
