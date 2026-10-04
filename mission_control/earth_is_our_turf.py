@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
-from mission_control import earth_is_our_turf_character, mtown_build_system, mtown_language
+from mission_control import (\n    earth_is_our_turf_character,\n    mtown_build_system,\n    mtown_language,\n)
 
 SCHEMA = "oap.arena.earth-is-our-turf.mitcham.v3"
 SESSION_KEY = "oap_eiot_mitcham_v1"
