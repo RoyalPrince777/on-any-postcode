@@ -247,3 +247,64 @@ def test_command_center_projection_preserves_evidence_and_authority_boundary():
     assert "alternatives" in state["actions"]
     assert state["execution_authorised"] is False
     assert state["payment_authorised"] is False
+
+
+def test_dependency_propagation_is_explicit_and_loop_safe():
+    journey = _sample_journey()
+    rail_leg = journey["legs"][1]["leg_id"]
+    walk_leg = journey["legs"][0]["leg_id"]
+    event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator incident feed",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=98,
+        ),
+        severity=95,
+        evidence_ids=["ev-rail-003"],
+    )
+    assessment = journey_engine.assess_disruptions(
+        journey=journey,
+        events=[event],
+        dependencies=[
+            {
+                "from_leg_id": rail_leg,
+                "to_leg_id": walk_leg,
+                "type": "feeds",
+                "evidence_id": "dep-001",
+            },
+            {
+                "from_leg_id": walk_leg,
+                "to_leg_id": rail_leg,
+                "type": "connected_to",
+                "evidence_id": "dep-002",
+            },
+        ],
+    )
+    assert set(assessment["affected_leg_ids"]) == {walk_leg, rail_leg}
+    impact = assessment["impacts"][0]
+    assert impact["direct_leg_ids"] == [rail_leg]
+    assert impact["dependency_propagated_leg_ids"] == [walk_leg]
+    assert "dep-001" in assessment["evidence_ids"]
+    assert assessment["execution_authorised"] is False
+
+
+def test_dependency_without_evidence_or_declared_edge_does_not_spread_impact():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator incident feed",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=98,
+        ),
+        severity=95,
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    assert assessment["affected_leg_ids"] == [journey["legs"][1]["leg_id"]]
