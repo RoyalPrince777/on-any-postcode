@@ -23,7 +23,7 @@ from . import (
     postgres_db,
     smi_cancellation,
     smi_founder_assets,
-    smi_auto_review,
+    smi_auto,
     studio_intelligence,
 )
 
@@ -874,13 +874,13 @@ def chat(
         )
         brain["founder_shorthand_signals"] = shorthand["signals"]
         brain["founder_shorthand_war_room"] = bool(shorthand["force_war_room"])
-        active_reviewers = smi_auto_review.selected_roles(
+        active_reviewers = smi_auto.selected_review_roles(
             clean,
             auto_mode=bool(brain["auto_selected"]),
         )
         brain["active_reviewers"] = active_reviewers
         brain["active_review_lenses"] = {
-            reviewer: smi_auto_review.lens_for(reviewer)
+            reviewer: smi_auto.review_lens(reviewer)
             for reviewer in active_reviewers
         }
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
@@ -1018,7 +1018,7 @@ def chat(
             provider_completed=provider_completed,
             provider_id=PROVIDER,
         )
-        auto_review = smi_auto_review.build_vote_board(
+        auto_review = smi_auto.build_evidence_vote_board(
             roles=tuple(brain.get("active_reviewers") or ()),
             brain=brain,
             coherence=coherence,
