@@ -1101,3 +1101,55 @@ refreshOps();
   }
 })();
 
+
+
+/* SMI automatic reviewer + evidence-vote surface.
+ * Uses only the completed governed result returned by the server.
+ * It never invents reviewer votes client-side.
+ */
+window.addEventListener('oap-smi-complete',event=>{
+  const result=event?.detail||{};
+  const review=result.auto_review;
+  if(!review||review.automatic!==true||!Array.isArray(review.votes))return;
+  const messages=document.getElementById('messages');
+  if(!messages)return;
+
+  const card=document.createElement('div');
+  card.className='msg receipt-card smi-auto-review-card';
+  card.dataset.smiAutoReview='true';
+
+  const title=document.createElement('strong');
+  title.textContent='🧠 SMI AUTO · Evidence Vote Board';
+  const meta=document.createElement('span');
+  meta.className='receipt-meta';
+  const roles=Array.isArray(result.active_reviewers)?result.active_reviewers:[];
+  meta.textContent=(roles.length?roles.join(' · '):'Automatic review')+' · Human Authority final';
+  card.append(title,meta);
+
+  const grid=document.createElement('div');
+  grid.className='receipt-grid';
+  review.votes.forEach(item=>{
+    const pill=document.createElement('div');
+    pill.className='receipt-pill';
+    pill.dataset.vote=String(item.vote||'CONDITIONAL');
+    const name=document.createElement('b');
+    name.textContent=String(item.reviewer||'Reviewer');
+    const vote=document.createElement('span');
+    const signal=item.vote==='PASS'?'🟢':item.vote==='FAIL'?'🔴':'🟣';
+    vote.textContent=signal+' '+String(item.vote||'CONDITIONAL');
+    const lens=document.createElement('small');
+    lens.textContent=String(item.lens||item.reason||'Governed evidence review');
+    pill.append(name,vote,lens);
+    grid.append(pill);
+  });
+  card.append(grid);
+
+  const summary=document.createElement('div');
+  summary.className='receipt-meta';
+  const counts=review.summary||{};
+  summary.textContent='PASS '+String(counts.PASS||0)+' · FAIL '+String(counts.FAIL||0)+' · CONDITIONAL '+String(counts.CONDITIONAL||0)+' · Votes advise only; they grant no authority.';
+  card.append(summary);
+
+  messages.append(card);
+  messages.scrollTop=messages.scrollHeight;
+});
