@@ -1,6 +1,5 @@
 from mission_control import oap_pay
 
-
 AUTH_USER = {
     "id": "11111111-1111-1111-1111-111111111111",
     "name": "OAP Member",
