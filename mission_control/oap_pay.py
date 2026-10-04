@@ -18,10 +18,12 @@ from . import (
     oap_pay_intelligence,
     oap_pay_requests,
     sika_customer_payment_authority,
+    sika_customer_view,
     sika_execution_gate,
     sika_pay_gateway,
     sika_production_evidence_store,
     sika_software_readiness,
+    web_security,
 )
 
 bp = Blueprint("oap_pay", __name__)
@@ -190,6 +192,8 @@ def bank_status() -> dict[str, Any]:
             {**item, "enabled": True}
             for item in BANK_APP_FEATURES if item["section"] == "admin"
         ],
+        "authenticated_customer_view": True,
+        "personal_balance_public": False,
         "human_authority_final": True,
     }
 
@@ -259,6 +263,40 @@ def bank_page():
 @bp.get("/pay/bank/status")
 def bank_status_api():
     response = jsonify(bank_status())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/me/status")
+@web_security.login_required(api=True)
+def bank_customer_status():
+    try:
+        payload = sika_customer_view.snapshot(
+            web_security.authenticated_identity()
+        )
+        response = jsonify(payload)
+    except RuntimeError:
+        response = jsonify(
+            {"error": {"code": "sika_customer_state_unavailable"}}
+        )
+        response.status_code = 503
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/me/activity")
+@web_security.login_required(api=True)
+def bank_customer_activity():
+    try:
+        payload = sika_customer_view.activity(
+            web_security.authenticated_identity()
+        )
+        response = jsonify(payload)
+    except RuntimeError:
+        response = jsonify(
+            {"error": {"code": "sika_customer_activity_unavailable"}}
+        )
+        response.status_code = 503
     response.headers["Cache-Control"] = "no-store"
     return response
 
