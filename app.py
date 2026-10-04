@@ -31,6 +31,7 @@ from mission_control import (
     chess,
     connect4,
     dot,
+    earth_is_our_turf,
     founder_activation,
     founder_recovery,
     iq_arena,
@@ -742,6 +743,47 @@ def world_arena():
     """Open the bounded first-party OAP Arena Challenge Engine."""
 
     return _arena_intelligence_response()
+
+
+@app.get("/arena/earth-is-our-turf")
+def earth_is_our_turf_page():
+    state = session.get(earth_is_our_turf.SESSION_KEY)
+    if state is None:
+        state = earth_is_our_turf.new_world()
+        session[earth_is_our_turf.SESSION_KEY] = state
+        session.modified = True
+    try:
+        world = earth_is_our_turf.public_state(state)
+    except ValueError:
+        state = earth_is_our_turf.new_world()
+        session[earth_is_our_turf.SESSION_KEY] = state
+        session.modified = True
+        world = earth_is_our_turf.public_state(state)
+    response = make_response(render_template("earth_is_our_turf.html", world=world))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/earth-is-our-turf/action")
+def earth_is_our_turf_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = session.get(earth_is_our_turf.SESSION_KEY)
+        if state is None:
+            state = earth_is_our_turf.new_world()
+        state = earth_is_our_turf.action(
+            state,
+            command=payload.get("command"),
+            target=payload.get("target"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[earth_is_our_turf.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(earth_is_our_turf.public_state(state))
 
 
 @app.get("/arena/agents")
