@@ -94,7 +94,7 @@ def test_uber_provider_is_fail_closed_without_approval(monkeypatch):
 def test_first_party_renderer_has_sparse_road_hierarchy_and_labels():
     page = MAP.read_text(encoding="utf-8")
     css = CSS.read_text(encoding="utf-8")
-    assert "labelCount<32" in page
+    assert "labelCount<18" in page
     assert "feature.name" in page
     assert "poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local')" in page
     assert ".road-svg polyline.local" in css
@@ -236,3 +236,25 @@ def test_map_runtime_assets_are_versioned_and_revalidated(client):
     assert js.status_code == 200
     assert css.headers["Cache-Control"] == "no-cache, max-age=0, must-revalidate"
     assert js.headers["Cache-Control"] == "no-cache, max-age=0, must-revalidate"
+
+
+def test_map_render_is_atomic_and_has_no_timeout_fake_ready():
+    page = MAP.read_text(encoding="utf-8")
+
+    assert "roadLayer.replaceChildren(staged)" in page
+    assert "document.createDocumentFragment()" in page
+    assert "setRenderState('stable')" in page
+    assert "setRenderState('degraded')" in page
+    assert "await loadRoadNetwork(bounds,profile.value)" in page
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value)" in page
+    assert "setTimeout(clearBoot,5000)" not in page
+    assert ".oap-map-boot[hidden]{display:none!important}" in page
+
+
+def test_route_waits_for_road_context_before_exposing_complete_map():
+    page = MAP.read_text(encoding="utf-8")
+
+    assert "svg.hidden=true;setRenderState('loading')" in page
+    assert "const roadCount=await loadRoadNetwork(bounds,profile.value)" in page
+    assert "svg.hidden=false" in page
+    assert "setRenderState(roadCount>0?'stable':'degraded')" in page
