@@ -9,28 +9,35 @@
 <title>{{ view.feature.name }} · OAP Bank</title>
 <style>
 :root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:760px;margin:auto;padding:18px 14px 90px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 11px}.hero{padding:40px 0 22px}.eyebrow{color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.6rem,10vw,5rem);line-height:.92;margin:8px 0 12px}.hero p{color:var(--muted);line-height:1.55}.state{display:inline-block;margin-top:8px;font-size:.78rem;font-weight:950}.on{color:var(--green)}.off{color:var(--gold)}.panel{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:16px;margin-top:12px}.panel h2{margin:0 0 8px;font-size:1rem}.panel p{color:var(--muted);line-height:1.5;margin:0}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.bottom{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(760px,100%);display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:8px;background:rgba(5,7,6,.96);border-top:1px solid var(--line)}.bottom a{color:var(--muted);text-decoration:none;text-align:center;font-size:.7rem;font-weight:850;padding:9px}.bottom strong{display:block;color:var(--text);font-size:1rem}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:760px;margin:auto;padding:18px 14px 90px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 11px}.hero{padding:40px 0 22px}.eyebrow{color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.6rem,10vw,5rem);line-height:.92;margin:8px 0 12px}.hero p{color:var(--muted);line-height:1.55}.state{display:inline-block;margin-top:8px;font-size:.78rem;font-weight:950}.on{color:var(--green)}.off{color:var(--gold)}.panel{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:16px;margin-top:12px}.panel h2{margin:0 0 8px;font-size:1rem}.panel p{color:var(--muted);line-height:1.5;margin:0}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.bottom{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(760px,100%);display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:8px;background:rgba(5,7,6,.96);border-top:1px solid var(--line)}.bottom a{color:var(--muted);text-decoration:none;text-align:center;font-size:.62rem;font-weight:850;padding:8px 2px}.bottom strong{display:block;color:var(--text);font-size:.95rem}
 </style>
+<style>
+#oap-bank-privacy-shield{position:fixed;inset:0;display:none;place-items:center;background:#050706;z-index:99999;text-align:center;padding:24px}
+#oap-bank-privacy-shield div{display:grid;gap:8px}
+#oap-bank-privacy-shield span{color:#9aac9f;font-size:.82rem}
+#oap-bank-capture-watermark{position:fixed;right:10px;top:10px;z-index:9999;pointer-events:none;opacity:.18;font-size:.62rem;font-weight:900;letter-spacing:.08em}
+html[data-oap-bank-shielded] #oap-bank-privacy-shield{display:grid}
+html[data-oap-bank-shielded] [data-oap-bank-sensitive]{filter:blur(18px)}
+html[data-oap-bank-capture-risk] #oap-bank-capture-watermark{opacity:.55}
+</style>
+<script defer src="/static/oap-bank-capture-guard.js"></script>
 </head>
 <body>
 <main class="shell">
 <header class="top"><strong>👑 OAP Bank</strong><a class="back" href="/pay/bank">Bank Home</a></header>
 <section class="hero">
-<div class="eyebrow">{{ 'Regulated capability' if view.evidence_gated else 'Bank service' }}</div>
+<div class="eyebrow">OAP Bank</div>
 <h1>{{ view.feature.name }}</h1>
 <p>{{ view.feature.description }}</p>
-{% if view.enabled %}<span class="state on">🟢 Software gate allows this capability</span>{% else %}<span class="state off">🔒 Evidence-gated / unavailable</span>{% endif %}
+{% if view.evidence_gated and not view.action_enabled %}<span class="state off">Action unavailable</span>{% elif view.evidence_gated %}<span class="state on">Action available</span>{% endif %}
 </section>
 
+{% if view.evidence_gated and not view.action_enabled %}
 <section class="panel">
-<h2>Capability truth</h2>
-<p>{% if view.capability %}Required capability: <strong>{{ view.capability }}</strong>.{% else %}This screen has no regulated execution capability attached to it.{% endif %}</p>
+<h2>Action status</h2>
+<p>This screen is open. The regulated action behind it is not available yet.</p>
 </section>
-
-<section class="panel">
-<h2>Bank readiness</h2>
-<p>Authorisation evidence {{ view.bank.evidence_proven }} / {{ view.bank.evidence_total }} · Permission scope {{ 'effective' if view.bank.permission_scope_effective else 'locked' }} · Production gate {{ 'passed' if view.bank.production_gate_passed else 'not passed' }}.</p>
-</section>
+{% endif %}
 
 {% if view.feature.id == 'accounts' %}
 <section class="panel"><h2>Accounts</h2><p>First-party account identity and lifecycle exist in the SIKA account engine. This app does not fabricate balances or open regulated bank accounts without the required bank-account capability.</p></section>
@@ -53,8 +60,8 @@
 <section class="panel"><h2>{{ view.feature.name }}</h2><p>This module is wired into the Bank app and inherits the same capability/evidence gates as the Bank core.</p></section>
 {% endif %}
 
-<div class="truth"><strong>Truth:</strong> Bank software availability is not regulator authorisation. Provider calling: off · Money movement: off from this module.</div>
+<div class="truth"><strong>App status:</strong> Screen available. Live provider execution and money movement only appear when the regulated action is actually enabled.</div>
 </main>
-<nav class="bottom"><a href="/pay/bank"><strong>⌂</strong>Home</a><a href="/pay"><strong>SIKA</strong>OAP Pay</a><a href="/pay/bank/status"><strong>◎</strong>Evidence</a></nav>
+<nav class="bottom" aria-label="OAP Bank navigation"><a href="/pay/bank"><strong>⌂</strong>Home</a><a href="/pay/bank/accounts"><strong>▤</strong>Accounts</a><a href="/pay/bank/transfers"><strong>↗</strong>Transfers</a><a href="/pay/bank/activity"><strong>≡</strong>Activity</a><a href="/pay/bank#more"><strong>•••</strong>More</a></nav>
 </body>
 </html>

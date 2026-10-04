@@ -33,20 +33,20 @@ PHONE_PAYMENT_METHODS = (
 )
 
 BANK_APP_FEATURES = (
-    {"id": "home", "name": "Home", "description": "Bank overview, readiness and key actions.", "capability": None, "section": "primary"},
-    {"id": "accounts", "name": "Accounts", "description": "Account capability and account products.", "capability": "bank_accounts", "section": "primary"},
-    {"id": "sika", "name": "SIKA", "description": "SIKA balances, issuance status and value classes.", "capability": "issue_redeemable_sika", "section": "primary"},
-    {"id": "transfers", "name": "Transfers", "description": "Governed payment and transfer capability.", "capability": "execute_payments", "section": "primary"},
-    {"id": "activity", "name": "Activity", "description": "Bank-related activity and evidence events.", "capability": None, "section": "primary"},
-    {"id": "intelligence", "name": "Intelligence", "description": "21-domain Bank Intelligence across accounts, payments, treasury, risk, rights and evidence.", "capability": None, "section": "primary"},
-    {"id": "cards", "name": "Cards", "description": "Card capability and provider authority status.", "capability": "issue_payment_cards", "section": "more"},
-    {"id": "cash", "name": "Cash / Post Office", "description": "Cash-in/out capability and lawful release status.", "capability": "cash_out", "section": "more"},
-    {"id": "fx", "name": "FX", "description": "Foreign-exchange capability and permission scope.", "capability": "foreign_exchange", "section": "more"},
-    {"id": "deposits", "name": "Deposits", "description": "Deposit-taking capability and protection status.", "capability": "accept_deposits", "section": "more"},
-    {"id": "wallet", "name": "Customer Funds", "description": "Customer-fund holding capability status.", "capability": "hold_customer_funds", "section": "more"},
+    {"id": "home", "name": "Home", "description": "Balance, quick actions and recent activity.", "capability": None, "section": "primary"},
+    {"id": "accounts", "name": "Accounts", "description": "Your bank accounts and account details.", "capability": "bank_accounts", "section": "primary"},
+    {"id": "transfers", "name": "Transfers", "description": "Send and receive through governed payment controls.", "capability": "execute_payments", "section": "primary"},
+    {"id": "activity", "name": "Activity", "description": "Payments, transfers, disputes and account events.", "capability": None, "section": "primary"},
+    {"id": "sika", "name": "SIKA", "description": "SIKA balance and currency information.", "capability": "issue_redeemable_sika", "section": "more"},
+    {"id": "cards", "name": "Cards", "description": "Cards and card controls.", "capability": "issue_payment_cards", "section": "more"},
+    {"id": "cash", "name": "Cash / Post Office", "description": "Cash-in and cash-out services.", "capability": "cash_out", "section": "more"},
+    {"id": "fx", "name": "FX", "description": "Foreign exchange.", "capability": "foreign_exchange", "section": "more"},
+    {"id": "deposits", "name": "Deposits", "description": "Deposit products and status.", "capability": "accept_deposits", "section": "more"},
+    {"id": "wallet", "name": "Customer Funds", "description": "Customer-fund holding status.", "capability": "hold_customer_funds", "section": "more"},
+    {"id": "intelligence", "name": "Intelligence", "description": "Bank Intelligence and risk/evidence insight.", "capability": None, "section": "more"},
     {"id": "rights", "name": "Rights & Remedy", "description": "Explanations, disputes, appeals and remedy.", "capability": None, "section": "more"},
     {"id": "guardian", "name": "Guardian", "description": "Fraud, risk and human-review controls.", "capability": None, "section": "more"},
-    {"id": "settings", "name": "Settings", "description": "Security, privacy, limits and authority controls.", "capability": None, "section": "more"},
+    {"id": "settings", "name": "Settings", "description": "Security, privacy, limits and account controls.", "capability": None, "section": "more"},
     {"id": "control-center", "name": "Control Center", "description": "Founder evidence gates, provider status and regulator scope.", "capability": None, "section": "admin"},
 )
 
@@ -167,15 +167,30 @@ def bank_status() -> dict[str, Any]:
         "money_movement_enabled": False,
         "humanitarian_or_human_rights_purpose_bypasses_authorisation": False,
         "app_features": [
-            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            {
+                **item,
+                "screen_enabled": True,
+                "action_enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False)),
+                "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False)),
+            }
             for item in BANK_APP_FEATURES
         ],
         "app_primary_menu": [
-            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            {
+                **item,
+                "screen_enabled": True,
+                "action_enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False)),
+                "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False)),
+            }
             for item in BANK_APP_FEATURES if item["section"] == "primary"
         ],
         "app_more_menu": [
-            {**item, "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False))}
+            {
+                **item,
+                "screen_enabled": True,
+                "action_enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False)),
+                "enabled": True if item["capability"] is None else bool(matrix.get(item["capability"], False)),
+            }
             for item in BANK_APP_FEATURES if item["section"] == "more"
         ],
         "app_admin_menu": [
@@ -199,7 +214,8 @@ def bank_feature_status(feature_id: object) -> dict[str, Any] | None:
         "feature": feature,
         "bank": status,
         "capability": feature["capability"],
-        "enabled": bool(feature["enabled"]),
+        "enabled": bool(feature["screen_enabled"]),
+        "action_enabled": bool(feature["action_enabled"]),
         "evidence_gated": feature["capability"] is not None,
         "provider_calling": False,
         "money_movement": False,
@@ -273,7 +289,7 @@ def bank_manifest():
         ],
         "shortcuts": [
             {"name": "Bank Status", "short_name": "Status", "url": "/pay/bank"},
-            {"name": "Capability Status", "short_name": "Capabilities", "url": "/pay/bank#capabilities"},
+            {"name": "Accounts", "short_name": "Accounts", "url": "/pay/bank/accounts"},
             {"name": "OAP Pay", "short_name": "OAP Pay", "url": "/pay"},
         ],
     }
@@ -311,5 +327,27 @@ def bank_intelligence_page():
 @bp.get("/pay/bank/intelligence/status")
 def bank_intelligence_status():
     response = jsonify(oap_bank_intelligence_catalog.status())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def bank_capture_security_status() -> dict[str, Any]:
+    return {
+        "system": "OAP Bank Screenshot Intelligence",
+        "web_screenshot_detection_reliable": False,
+        "web_screenshot_blocking_reliable": False,
+        "privacy_shield_on_background": True,
+        "sensitive_watermark": True,
+        "printscreen_key_signal_only": True,
+        "native_android_flag_secure_recommended": True,
+        "native_android_flag_secure_implemented": False,
+        "screen_recording_detection_reliable_on_web": False,
+        "human_authority_final": True,
+    }
+
+
+@bp.get("/pay/bank/security/capture")
+def bank_capture_security_status_api():
+    response = jsonify(bank_capture_security_status())
     response.headers["Cache-Control"] = "no-store"
     return response
