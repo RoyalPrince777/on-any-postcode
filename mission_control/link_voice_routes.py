@@ -136,6 +136,8 @@ def ptt_status():
 @bp.post("/linkup/ptt")
 @web_security.login_required(api=True)
 def create_ptt():
+    if not link_voice.status().get("ptt_ready"):
+        return _error("ptt_unavailable", 503)
     return _create_voice_kind("ptt")
 
 
