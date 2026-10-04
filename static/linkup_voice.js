@@ -15,6 +15,7 @@
 
   const state = {
     ready: false,
+    pttReady: false,
     maxBytes: 5 * 1024 * 1024,
     maxDurationMs: 120000,
     current: null,
@@ -123,7 +124,7 @@
   const refreshControls = () => {
     recordControls.forEach((control) => {
       const peerId = recipientFor(control);
-      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current);
+      control.disabled = !state.pttReady || !browserReady() || !peerId || Boolean(state.current);
       const marker = control.querySelector("small");
       if (marker) {
         marker.textContent = control.disabled ? "locked" : "ready";
@@ -381,14 +382,17 @@
     }
   });
 
-  apiJson("/linkup/voice/status")
-    .then((status) => {
+  Promise.all([apiJson("/linkup/voice/status"), apiJson("/linkup/ptt/status")])
+    .then(([status, pttStatus]) => {
       state.ready = status.ready === true && status.first_party === true;
+      state.pttReady = pttStatus.ready === true && pttStatus.first_party === true;
       state.maxBytes = Number(status.max_voice_bytes) || state.maxBytes;
       state.maxDurationMs = Number(status.max_voice_duration_ms) || state.maxDurationMs;
       setStatus(
         state.ready && browserReady()
-          ? "Voice is ready. Microphone stays off until you tap Voice."
+          ? state.pttReady
+            ? "Voice and PTT are ready. Microphone stays off until you use a control."
+            : "Voice is ready. PTT stays locked until its OAP Data schema is proven."
           : "Voice remains locked until OAP Data Voice and browser recording are ready.",
       );
       refreshControls();
@@ -401,7 +405,8 @@
     })
     .catch(() => {
       state.ready = false;
-      setStatus("Voice is unavailable. Microphone remains off.");
+      state.pttReady = false;
+      setStatus("Voice and PTT are unavailable. Microphone remains off.");
       refreshControls();
     });
 })();
