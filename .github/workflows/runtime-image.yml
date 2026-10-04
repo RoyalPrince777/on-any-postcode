@@ -11,6 +11,7 @@ on:
       - "smi_gateway.py"
       - "mission_control/**"
       - "tests/map_production_chromium_smoke.py"
+      - "tests/oap_bank_production_chromium_smoke.py"
       - "oap/**"
       - "templates/global_affairs.html"
       - ".github/workflows/runtime-image.yml"
@@ -24,6 +25,7 @@ on:
       - "smi_gateway.py"
       - "mission_control/**"
       - "tests/map_production_chromium_smoke.py"
+      - "tests/oap_bank_production_chromium_smoke.py"
       - "oap/**"
       - "templates/global_affairs.html"
       - ".github/workflows/runtime-image.yml"
@@ -278,9 +280,33 @@ jobs:
           OAP_MAP_URL: https://on-any-postcode.onrender.com/oap-map
         run: python tests/map_production_chromium_smoke.py
 
+  bank-production-browser-proof:
+    if: github.event_name == 'push'
+    needs: [runtime-image, promote-core]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Chromium proof runtime
+        run: |
+          python -m pip install 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+
+      - name: Prove live OAP Bank renders canonical SIKA software truth
+        env:
+          OAP_BANK_URL: https://on-any-postcode.onrender.com/pay/bank
+          OAP_BANK_STATUS_URL: https://on-any-postcode.onrender.com/pay/bank/status
+        run: python tests/oap_bank_production_chromium_smoke.py
+
   promote-smi:
     if: github.event_name == 'push'
-    needs: [runtime-image, promote-core, map-production-browser-proof]
+    needs: [runtime-image, promote-core, map-production-browser-proof, bank-production-browser-proof]
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -410,7 +436,7 @@ jobs:
 
   certify-production-release:
     if: github.event_name == 'push'
-    needs: [runtime-image, promote-core, promote-smi]
+    needs: [runtime-image, promote-core, promote-smi, bank-production-browser-proof]
     runs-on: ubuntu-latest
     environment: production
     env:
