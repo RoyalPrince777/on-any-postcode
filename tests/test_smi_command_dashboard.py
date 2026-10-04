@@ -118,8 +118,10 @@ def test_smi_home_has_exactly_seven_unique_doors_and_truthful_mail_scope():
     assert command["interaction"]["messages"]["built"] is True
     assert command["interaction"]["my_line"]["built"] is True
     assert command["interaction"]["oap_mail"]["built"] is True
-    assert command["interaction"]["oap_mail"]["href"] == "/mail/status"
+    assert command["interaction"]["oap_mail"]["href"] == "/mail"
+    assert command["interaction"]["oap_mail"]["mailbox_read_built"] is True
     assert command["interaction"]["oap_mail"]["inbox_receive_built"] is False
+    assert command["interaction"]["oap_mail"]["inbound_transport_built"] is False
     assert command["interaction"]["incoming"]["href"] == "/linkup/incoming"
     assert command["interaction"]["recents"]["href"] == "/linkup/calls/recents"
     assert command["telecom"]["validation_passed"] is True

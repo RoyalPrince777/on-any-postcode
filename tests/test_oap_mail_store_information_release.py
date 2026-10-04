@@ -49,15 +49,18 @@ def test_mail_store_html_is_information_only(request, fixture):
     assert "/mail/drafts" not in html
 
 
-def test_information_does_not_register_mailbox_or_write_paths(client):
+def test_information_does_not_register_install_or_mailbox_write_paths(client):
     for path in (
         "/oap-store/apps/oap.mail",
         "/oap-store/apps/oap.mail/view",
         "/oap-store/apps/oap.mail/install",
     ):
         assert client.post(path, json={"install": True}).status_code in (404, 405)
+
+    # The public catalogue remains information-only even though a separate
+    # Founder-private read-only mailbox surface now exists.
     assert client.get("/mail/app").status_code == 404
-    assert client.get("/mail/inbox").status_code == 404
+    assert client.get("/mail/inbox").status_code in (200, 503)
     assert client.post("/mail/drafts", json={"subject": "x"}).status_code == 404
 
 
