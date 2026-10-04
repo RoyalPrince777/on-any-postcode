@@ -35,8 +35,25 @@ def fixture(route):
             "first_party": True, "source": "test fixture",
         }))
     elif "/route?" in route.request.url:
-        route.fulfill(status=503, content_type="application/json",
-                      body='{"error":{"code":"fixture_route_unavailable"}}')
+        route.fulfill(status=200, content_type="application/json", body=json.dumps({
+            "route": {
+                "distance_m": 15100,
+                "duration_s": 1980,
+                "geometry": {"coordinates": [
+                    [-0.1687, 51.4036], [-0.1450, 51.4300],
+                    [-0.1200, 51.4650], [-0.0877, 51.5079]
+                ]},
+                "steps": [
+                    {"type": "turn", "modifier": "right", "name": "Fixture Road", "distance_m": 1800},
+                    {"type": "arrive", "modifier": "", "name": "", "distance_m": 2400}
+                ],
+                "roads": ["Fixture Road"],
+                "live_road_state": {"live_claim_allowed": False}
+            },
+            "origin": {"label": "Mitcham"},
+            "destination": {"label": "London Bridge"},
+            "coverage": {"selected_label": "Greater London"}
+        }))
     elif "/places?" in route.request.url:
         route.fulfill(status=200, content_type="application/json", body='{"results":[]}')
     else:
@@ -97,12 +114,20 @@ with sync_playwright() as p:
         page.locator("#map-to").fill("London Bridge")
         page.locator("#map-form button.go").click()
         page.wait_for_function(
-            "() => document.querySelector('#route-state').textContent.includes('Route unavailable')"
-            " || document.querySelector('#route-state').textContent.includes('temporarily unavailable')",
+            "() => document.querySelector('#route-svg')?.hidden === false",
             timeout=10000,
         )
+        page.wait_for_function(
+            "() => document.querySelectorAll('#road-layer polyline').length > 0",
+            timeout=10000,
+        )
+        visible_route_roads = page.evaluate("""() => [...document.querySelectorAll('#road-layer polyline')].filter(el => {
+            const r = el.getBoundingClientRect();
+            return r.width > 1 && r.height > 1 && r.bottom >= 0 && r.right >= 0
+                && r.top <= innerHeight && r.left <= innerWidth;
+        }).length""")
+        assert visible_route_roads > 0, (label, "No visible road context after route bounds changed")
         if mobile:
-            before_route_roads = page.locator("#road-layer polyline").count()
             page.evaluate("""
                 () => window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:{route:{
                     distance_m:4200,duration_s:720,
@@ -119,7 +144,6 @@ with sync_playwright() as p:
                 timeout=10000,
             )
             assert page.locator("#road-layer polyline").count() > 0
-            assert before_route_roads > 0
             page.locator("#voice-toggle").click()
             assert page.locator("#voice-toggle").get_attribute("aria-pressed") == "true"
             page.locator("#drive-toggle").click()
@@ -143,6 +167,6 @@ with sync_playwright() as p:
             assert page.locator("#voice-toggle").inner_text() == "Voice on"
             assert page.evaluate("() => Array.isArray(window.__oapSpoken)") is True
         assert not errors, (label, errors)
-        print(f"OAP_MAP_CHROMIUM_FIXTURE_PASS {label} roads={count} route_failure_retained=true")
+        print(f"OAP_MAP_CHROMIUM_FIXTURE_PASS {label} roads={count} route_road_context=true")
         context.close()
     browser.close()
