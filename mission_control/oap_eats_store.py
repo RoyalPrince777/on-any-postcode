@@ -48,6 +48,7 @@ SCHEMA_STATEMENTS = (
         currency TEXT NOT NULL CHECK (char_length(currency)=3),
         fulfilment_mode TEXT NOT NULL CHECK (fulfilment_mode IN ('delivery','collection')),
         movement_booking_id UUID REFERENCES oap_movement_bookings(booking_id) ON DELETE SET NULL,
+        payment_id TEXT,
         payment_hold_id TEXT,
         idempotency_key TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -139,7 +140,7 @@ class EatsStore:
                      AND oap_eats_orders.currency=EXCLUDED.currency
                      AND oap_eats_orders.fulfilment_mode=EXCLUDED.fulfilment_mode
                    RETURNING order_id,merchant_id,state,amount_minor,currency,
-                             fulfilment_mode,movement_booking_id,payment_hold_id,
+                             fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
                              created_at,updated_at""",
                 (customer, merchant, payload, amount, curr, mode, key),
             ).fetchone()
@@ -171,12 +172,67 @@ class EatsStore:
                 """UPDATE oap_eats_orders SET state=%s,updated_at=CURRENT_TIMESTAMP
                    WHERE order_id=%s
                    RETURNING order_id,merchant_id,state,amount_minor,currency,
-                             fulfilment_mode,movement_booking_id,payment_hold_id,
+                             fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
                              created_at,updated_at""", (target, order)
             ).fetchone()
             connection.execute(
                 """INSERT INTO oap_eats_order_events(order_id,actor_identity_id,from_state,to_state)
                    VALUES (%s,%s,%s,%s)""", (order, actor, str(current[0]), target)
+            )
+            connection.commit()
+        return _row(row)
+
+    def bind_payment(self, *, order_id: object, customer_identity_id: object, payment_id: object, hold_id: object) -> dict[str, Any]:
+        order = _uuid(order_id, "order_id")
+        customer = _uuid(customer_identity_id, "customer_identity_id")
+        payment = str(payment_id or "").strip()
+        hold = str(hold_id or "").strip()
+        if not payment or not hold:
+            raise ValueError("payment_binding_required")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_eats_orders
+                   SET payment_id=%s,payment_hold_id=%s,updated_at=CURRENT_TIMESTAMP
+                   WHERE order_id=%s AND customer_identity_id=%s
+                     AND (payment_id IS NULL OR payment_id=%s)
+                     AND (payment_hold_id IS NULL OR payment_hold_id=%s)
+                   RETURNING order_id,merchant_id,state,amount_minor,currency,
+                             fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
+                             created_at,updated_at""",
+                (payment, hold, order, customer, payment, hold),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("order_payment_binding_denied")
+            connection.execute(
+                """INSERT INTO oap_eats_order_events(order_id,actor_identity_id,from_state,to_state,evidence)
+                   VALUES (%s,%s,%s,%s,%s::jsonb)""",
+                (order, customer, str(row[2]), str(row[2]), json.dumps({"payment_id": payment, "hold_id": hold})),
+            )
+            connection.commit()
+        return _row(row)
+
+    def bind_movement(self, *, order_id: object, customer_identity_id: object, booking_id: object) -> dict[str, Any]:
+        order = _uuid(order_id, "order_id")
+        customer = _uuid(customer_identity_id, "customer_identity_id")
+        booking = _uuid(booking_id, "booking_id")
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """UPDATE oap_eats_orders
+                   SET movement_booking_id=%s,updated_at=CURRENT_TIMESTAMP
+                   WHERE order_id=%s AND customer_identity_id=%s
+                     AND fulfilment_mode='delivery'
+                     AND (movement_booking_id IS NULL OR movement_booking_id=%s)
+                   RETURNING order_id,merchant_id,state,amount_minor,currency,
+                             fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
+                             created_at,updated_at""",
+                (booking, order, customer, booking),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("order_movement_binding_denied")
+            connection.execute(
+                """INSERT INTO oap_eats_order_events(order_id,actor_identity_id,from_state,to_state,evidence)
+                   VALUES (%s,%s,%s,%s,%s::jsonb)""",
+                (order, customer, str(row[2]), str(row[2]), json.dumps({"movement_booking_id": booking})),
             )
             connection.commit()
         return _row(row)
@@ -187,9 +243,10 @@ def _row(row) -> dict[str, Any]:
         "order_id": str(row[0]), "merchant_id": str(row[1]), "state": str(row[2]),
         "amount_minor": int(row[3]), "currency": str(row[4]), "fulfilment_mode": str(row[5]),
         "movement_booking_id": str(row[6]) if row[6] else None,
-        "payment_hold_id": str(row[7]) if row[7] else None,
-        "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8]),
-        "updated_at": row[9].isoformat() if hasattr(row[9], "isoformat") else str(row[9]),
+        "payment_id": str(row[7]) if row[7] else None,
+        "payment_hold_id": str(row[8]) if row[8] else None,
+        "created_at": row[9].isoformat() if hasattr(row[9], "isoformat") else str(row[9]),
+        "updated_at": row[10].isoformat() if hasattr(row[10], "isoformat") else str(row[10]),
         "payment_captured": False, "courier_dispatched": False,
     }
 
