@@ -276,3 +276,32 @@ def test_oap_rides_status_moved_off_front_door_without_losing_truth_api():
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["physical_operations_in_scope"] is False
+
+
+
+def test_transport_cards_route_to_real_app_destinations():
+    client = _app().test_client()
+    response = client.get("/transport")
+    body = response.get_data(as_text=True)
+    for href in (
+        "/travel",
+        "/movement/workspace",
+        "/transport/ride",
+        "/oap-map?profile=driving",
+        "/distribution",
+        "/movement/workspace#book-title",
+        "/transport/ride/driver",
+    ):
+        assert f'href="{href}"' in body
+    assert "/transport/status#" not in body
+
+
+def test_transport_status_exposes_public_route_map():
+    payload = _app().test_client().get("/transport/status").get_json()
+    assert payload["public_routes"]["journey"] == "/travel"
+    assert payload["public_routes"]["move"] == "/movement/workspace"
+    assert payload["public_routes"]["ride"] == "/transport/ride"
+    assert payload["public_routes"]["drive"] == "/oap-map?profile=driving"
+    assert payload["public_routes"]["cargo"] == "/distribution"
+    assert payload["public_routes"]["deliver"] == "/movement/workspace#book-title"
+    assert payload["public_routes"]["fleet"] == "/transport/ride/driver"
