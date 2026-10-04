@@ -3,8 +3,6 @@
 No fixtures, request interception, set_content(), or mocked readiness state.
 The target is the deployed public OAP Bank surface and its canonical status.
 """
-from __future__ import annotations
-
 from playwright.sync_api import expect, sync_playwright
 
 
