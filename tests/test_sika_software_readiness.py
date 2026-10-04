@@ -39,3 +39,11 @@ def test_software_ready_requires_every_internal_check(monkeypatch):
 def test_treasury_is_part_of_canonical_software_readiness():
     result = sika_software_readiness.assess()
     assert result.checks["treasury_controls"] is True
+
+
+def test_canonical_customer_money_spine_is_required_for_readiness():
+    result = sika_software_readiness.assess()
+    assert result.checks["account_owner_resolution"] is True
+    assert result.checks["canonical_balance_engine"] is True
+    assert result.checks["payment_reservations"] is True
+    assert result.checks["atomic_payment_creation"] is True

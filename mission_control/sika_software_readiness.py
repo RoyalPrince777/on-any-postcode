@@ -16,11 +16,14 @@ from dataclasses import dataclass
 from . import (
     sika_account_engine,
     sika_accounting_controls,
+    sika_atomic_payment,
+    sika_balance_engine,
     sika_card_controls,
     sika_double_entry,
     sika_journal_store,
     sika_payment_disputes,
     sika_payment_orchestrator,
+    sika_payment_reservations,
     sika_payment_submission_evidence,
     sika_reconciliation_exception_store,
     sika_refund_intent,
@@ -58,8 +61,20 @@ def assess() -> SoftwareReadiness:
         "account_engine": _check(
             sika_account_engine.status, "persistent_account_identity"
         ),
+        "account_owner_resolution": _check(
+            sika_account_engine.status, "owner_resolution"
+        ),
         "accounting_controls": _check(
             sika_accounting_controls.status, "closed_period_posting_block"
+        ),
+        "canonical_balance_engine": _check(
+            sika_balance_engine.status, "ledger_derived"
+        ),
+        "payment_reservations": _check(
+            sika_payment_reservations.status, "persistent_holds"
+        ),
+        "atomic_payment_creation": _check(
+            sika_atomic_payment.status, "single_database_transaction"
         ),
         "double_entry": _check(
             sika_double_entry.status, "validates_debits_and_credits"

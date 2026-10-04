@@ -66,3 +66,35 @@ def test_status_keeps_account_engine_non_executing():
     assert status["journal_posting"] is False
     assert status["payment_execution"] is False
     assert status["money_movement"] is False
+
+
+def test_owner_resolver_rejects_mismatch_and_requires_open_account(monkeypatch):
+    account = sika_account_engine.BankAccount(
+        account_id="acct-owned",
+        owner_reference="owner-777",
+        legal_entity="Europa Crown Bank",
+        jurisdiction="United Kingdom",
+        currency="GBP",
+        ledger_account_id="ledger-owned",
+        status="OPEN",
+    )
+    monkeypatch.setattr(sika_account_engine, "read_account", lambda account_id: account)
+
+    resolved = sika_account_engine.resolve_owned_account(
+        account_id="acct-owned",
+        owner_reference="owner-777",
+    )
+    assert resolved == account
+
+    with pytest.raises(
+        sika_account_engine.AccountEngineError,
+        match="account_owner_mismatch",
+    ):
+        sika_account_engine.resolve_owned_account(
+            account_id="acct-owned",
+            owner_reference="owner-other",
+        )
+
+
+def test_account_status_exposes_owner_resolution():
+    assert sika_account_engine.status()["owner_resolution"] is True
