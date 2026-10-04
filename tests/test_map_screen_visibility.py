@@ -117,7 +117,9 @@ def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
     assert "const renderPayload=d=>" in template
-    assert "tiles.map(async([x,y])=>{const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)})" in template
+    assert "const queue=[...tiles];" in template
+    assert "const worker=async()=>{while(queue.length&&request===roadRequest)" in template
+    assert "Math.min(4,tiles.length)" in template
     assert "if(count){showRoadStatus('');clearBoot()}" in template
     assert "Road network unavailable — route guidance may still work." in template
 
