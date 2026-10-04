@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.routing import RequestRedirect
+
 from . import (
     agents,
     brain,
@@ -138,7 +141,7 @@ def _registered_get_path(url_map: Any, path: str) -> bool:
     adapter = url_map.bind("localhost")
     try:
         adapter.match(clean_path, method="GET")
-    except Exception:
+    except (MethodNotAllowed, NotFound, RequestRedirect):
         return False
     return True
 
