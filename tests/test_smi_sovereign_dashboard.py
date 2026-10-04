@@ -71,3 +71,15 @@ def test_dashboard_buttons_route_to_existing_first_party_rooms_only():
     assert "document.getElementById('plus-button')?.click()" in script
     assert "Truth Mode." in script
     assert "does not silently deploy, spend, dispatch, migrate or approve consequential actions" in script
+
+
+def test_home_boot_and_room_navigation_do_not_auto_fetch_status():
+    script = DASHBOARD_JS.read_text(encoding="utf-8")
+    boot = script[script.index("function boot(){"):]
+    go_dashboard = script[script.index("const goDashboard="):script.index("const scrollToPanel=")]
+
+    assert "refresh();" not in go_dashboard
+    assert "setInterval" not in boot
+    assert "zero status requests on boot" in boot
+    assert "smi-refresh" in boot
+    assert "addEventListener('click',refresh)" in boot
