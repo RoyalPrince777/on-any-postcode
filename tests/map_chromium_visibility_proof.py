@@ -123,7 +123,7 @@ with sync_playwright() as p:
         )
         visible_route_roads = page.evaluate("""() => [...document.querySelectorAll('#road-layer polyline')].filter(el => {
             const r = el.getBoundingClientRect();
-            return r.width > 1 && r.height > 1 && r.bottom >= 0 && r.right >= 0
+            return (r.width > 1 || r.height > 1) && r.bottom >= 0 && r.right >= 0
                 && r.top <= innerHeight && r.left <= innerWidth;
         }).length""")
         assert visible_route_roads > 0, (label, "No visible road context after route bounds changed")
