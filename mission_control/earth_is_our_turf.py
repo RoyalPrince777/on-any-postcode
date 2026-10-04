@@ -83,7 +83,8 @@ def new_world() -> dict[str, Any]:
         "fine_geometry_claimed":False,
         "time_minutes":8*60,
         "day":1,
-        "player":{"node":"town-centre","travel_mode":"foot","influence":0,"cash":250,"reputation":0},\n        "character":earth_is_our_turf_character.new_character(),
+        "player":{"node":"town-centre","travel_mode":"foot","influence":0,"cash":250,"reputation":0},
+        "character":earth_is_our_turf_character.new_character(),
         "active_chunk":"central",
         "loaded_chunks":["central"],
         "nodes":[dict(n, memory=0, prosperity=50, activity=50) for n in NODES],
@@ -149,7 +150,8 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         route_nodes=(state.get("active_route") or {}).get("nodes") if isinstance(state.get("active_route"),dict) else None,
         node_to_chunk=node_to_chunk,
     )
-    out["character"]=earth_is_our_turf_character.public_character(state["character"])\n    out["language"]={
+    out["character"]=earth_is_our_turf_character.public_character(state["character"])
+    out["language"]={
         "status":mtown_language.status(),
         "place_label":mtown_language.place_label(out["district"]),
         "arrival":mtown_language.phrase("arrival",place=_node_row(current_node)["label"]),
@@ -194,7 +196,8 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         current["events"].append({"type":"movement","from":here["id"],"to":plan["to"],"mode":travel,"kind":plan["steps"][0]["kind"]})
     elif cmd=="help-local":
         here["memory"]+=2; here["prosperity"]=min(100,here["prosperity"]+2)
-        current["player"]["influence"]+=2; current["player"]["reputation"]+=1\n        current["character"]=earth_is_our_turf_character.adjust_reputation(current["character"],dimension="m_town",amount=1)
+        current["player"]["influence"]+=2; current["player"]["reputation"]+=1
+        current["character"]=earth_is_our_turf_character.adjust_reputation(current["character"],dimension="m_town",amount=1)
         current["events"].append({"type":"postcode_memory","node":here["id"],"effect":"community_help"})
     elif cmd=="shop":
         shops=[b for b in current["businesses"] if b["node"]==here["id"] and _business_open(b,current["time_minutes"]) and b["stock"]>0]
