@@ -264,6 +264,8 @@ def create_order_delivery(order_id: str):
     identity = web_security.authenticated_identity()
     if not web_security.csrf_valid(request):
         return _error("csrf_failed", 403)
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(identity):
+        return _error("rate_limited", 429)
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return _error("json_object_required", 400)
