@@ -366,7 +366,8 @@ def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies:
     if not isinstance(events, list):
         raise TypeError("transport_events_invalid")
     events = reconcile_event_lineage(events)
-    contradictions = contradiction_registry(events)
+    active_events = [event for event in events if event.get("lineage_state") == "ACTIVE"]
+    contradictions = contradiction_registry(active_events)
     impacts = []
     affected_leg_ids = set()
     evidence_ids = []
@@ -409,7 +410,7 @@ def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies:
         "IMPACT_CONFIRMED": 3,
         "UNKNOWN": 4,
     }
-    for event in events:
+    for event in active_events:
         if not isinstance(event, dict):
             raise TypeError("transport_event_invalid")
         modes = event.get("affected_modes")
@@ -469,9 +470,7 @@ def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies:
         "affected_leg_ids": sorted(affected_leg_ids),
         "impacts": impacts,
         "evidence_ids": evidence_ids,
-        "independent_source_count": independent_source_count([
-            event for event in events if event.get("lineage_state") == "ACTIVE"
-        ]),
+        "independent_source_count": independent_source_count(active_events),
         "contradictions": contradictions,
         "contradiction_free": not contradictions,
         "execution_authorised": False,
