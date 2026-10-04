@@ -1,5 +1,5 @@
-from oap.browser_engine import render_html
 from oap import android_platform
+from oap.browser_engine import render_html
 
 
 def test_oap_engine_owns_html_to_display_list_path():
@@ -24,7 +24,7 @@ def test_oap_engine_wraps_and_produces_deterministic_geometry():
     assert len(document.items) > 1
     assert all(item.x == 16 for item in document.items)
     assert all(item.height == 24 for item in document.items)
-    assert list(item.y for item in document.items) == sorted(item.y for item in document.items)
+    assert [item.y for item in document.items] == sorted(item.y for item in document.items)
 
 
 def test_oap_engine_rejects_unusable_viewport():
