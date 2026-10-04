@@ -243,7 +243,7 @@ def test_map_render_is_atomic_and_has_no_timeout_fake_ready():
 
     assert "roadLayer.replaceChildren(staged)" in page
     assert "document.createDocumentFragment()" in page
-    assert "setRenderState('stable')" in page
+    assert "setRenderState(roadReady?'stable':'degraded')" in page
     assert "setRenderState('degraded')" in page
     assert "await loadRoadNetwork(bounds,profile.value)" in page
     assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value).then(count=>setRenderState(count>0?'stable':'degraded'))" in page
