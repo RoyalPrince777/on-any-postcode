@@ -23,6 +23,7 @@ GATEWAY_LEVELS = (
 IMPACT_STATES = ("CLEAR", "WATCH", "PREDICTED_IMPACT", "IMPACT_CONFIRMED", "UNKNOWN")
 RECOVERY_STATES = ("NOT_REQUIRED", "REPLAN_REQUIRED", "ALTERNATIVE_AVAILABLE", "BLOCKED", "UNKNOWN")
 DEPENDENCY_TYPES = ("depends_on", "feeds", "connected_to", "routes_through", "affected_by", "alternative_to")
+EVENT_LINEAGE_STATES = ("ACTIVE", "SUPERSEDED", "CORRECTED")
 
 
 def _text(value: object, field: str, *, limit: int = 240) -> str:
@@ -39,6 +40,9 @@ def transport_observation(
     observed_at: object,
     freshness: object,
     confidence: object,
+    source_id: object = "",
+    source_group: object = "",
+    content_hash: object = "",
 ) -> dict[str, Any]:
     truth = str(truth_state or "").strip().upper()
     if truth not in TRUTH_STATES:
@@ -50,9 +54,15 @@ def transport_observation(
         raise ValueError("transport_freshness_invalid")
     if isinstance(confidence, bool) or not isinstance(confidence, int) or not 0 <= confidence <= 100:
         raise ValueError("transport_confidence_invalid")
+    source_id_value = " ".join(str(source_id or "").split())[:160]
+    source_group_value = " ".join(str(source_group or "").split())[:160]
+    content_hash_value = str(content_hash or "").strip().lower()[:128]
     return {
         "truth_state": truth,
         "source": source_value,
+        "source_id": source_id_value,
+        "source_group": source_group_value,
+        "content_hash": content_hash_value,
         "observed_at": observed,
         "freshness": freshness_value,
         "confidence": confidence,
@@ -151,6 +161,8 @@ def disruption_event(
     severity: object,
     evidence_ids: object = None,
     location: object = "",
+    supersedes_event_id: object = "",
+    correction_of_event_id: object = "",
 ) -> dict[str, Any]:
     if not isinstance(affected_modes, (list, tuple)) or not affected_modes:
         raise ValueError("transport_affected_modes_required")
@@ -182,9 +194,154 @@ def disruption_event(
         "location": " ".join(str(location or "").split())[:240],
         "severity": severity,
         "observation": dict(observation),
+        "supersedes_event_id": str(supersedes_event_id or "").strip()[:160],
+        "correction_of_event_id": str(correction_of_event_id or "").strip()[:160],
+        "lineage_state": "ACTIVE",
         "evidence_ids": evidence,
         "execution_authorised": False,
     }
+
+
+
+def independent_source_count(events: object) -> int:
+    if not isinstance(events, list):
+        raise TypeError("transport_events_invalid")
+    identities = set()
+    for event in events:
+        if event.get("lineage_state") != "ACTIVE":
+            continue
+        if not isinstance(event, dict):
+            raise TypeError("transport_event_invalid")
+        observation = event.get("observation")
+        if not isinstance(observation, dict):
+            continue
+        source_group = str(observation.get("source_group") or "").strip()
+        source_id = str(observation.get("source_id") or "").strip()
+        source = str(observation.get("source") or "").strip()
+        identity = source_group or source_id or source
+        if identity:
+            identities.add(identity.casefold())
+    return len(identities)
+
+
+def reconcile_event_lineage(events: object) -> list[dict[str, Any]]:
+    if not isinstance(events, list):
+        raise TypeError("transport_events_invalid")
+    by_id = {}
+    result = []
+    for raw in events:
+        if not isinstance(raw, dict):
+            raise TypeError("transport_event_invalid")
+        event = dict(raw)
+        event_id = str(event.get("event_id") or "")
+        if not event_id or event_id in by_id:
+            raise ValueError("transport_event_id_invalid")
+        event["lineage_state"] = "ACTIVE"
+        by_id[event_id] = event
+        result.append(event)
+
+    for event in result:
+        supersedes = str(event.get("supersedes_event_id") or "")
+        correction = str(event.get("correction_of_event_id") or "")
+        for target_id, state in ((supersedes, "SUPERSEDED"), (correction, "CORRECTED")):
+            if not target_id:
+                continue
+            if target_id == event["event_id"] or target_id not in by_id:
+                raise ValueError("transport_event_lineage_invalid")
+            by_id[target_id]["lineage_state"] = state
+    return result
+
+
+def contradiction_registry(events: object) -> list[dict[str, Any]]:
+    reconciled = reconcile_event_lineage(events)
+    active = [event for event in reconciled if event.get("lineage_state") == "ACTIVE"]
+    contradictions = []
+    for index, left in enumerate(active):
+        for right in active[index + 1:]:
+            if set(left.get("affected_modes") or []).isdisjoint(right.get("affected_modes") or []):
+                continue
+            left_obs = left.get("observation") or {}
+            right_obs = right.get("observation") or {}
+            left_truth = left_obs.get("truth_state")
+            right_truth = right_obs.get("truth_state")
+            left_type = str(left.get("event_type") or "").casefold()
+            right_type = str(right.get("event_type") or "").casefold()
+            opposite = (
+                ("clear" in left_type and any(word in right_type for word in ("blocked", "suspended", "closed")))
+                or ("clear" in right_type and any(word in left_type for word in ("blocked", "suspended", "closed")))
+            )
+            if opposite and left_truth in TRUTH_STATES and right_truth in TRUTH_STATES:
+                contradictions.append({
+                    "left_event_id": left.get("event_id"),
+                    "right_event_id": right.get("event_id"),
+                    "affected_modes": sorted(
+                        set(left.get("affected_modes") or [])
+                        & set(right.get("affected_modes") or [])
+                    ),
+                })
+    return contradictions
+
+
+def rank_alternatives(alternatives: object) -> list[dict[str, Any]]:
+    if not isinstance(alternatives, list):
+        raise TypeError("transport_alternatives_invalid")
+    ranked = []
+    for item in alternatives:
+        if not isinstance(item, dict) or not item.get("journey_id"):
+            raise ValueError("transport_alternative_invalid")
+        confidence = item.get("confidence")
+        duration = item.get("duration_minutes")
+        disruptions = item.get("disruptions") or []
+        if isinstance(confidence, bool) or not isinstance(confidence, int):
+            confidence = 0
+        if isinstance(duration, bool) or not isinstance(duration, int):
+            duration = 10**9
+        ranked.append(dict(item))
+    ranked.sort(
+        key=lambda item: (
+            len(item.get("disruptions") or []),
+            -int(item.get("confidence") or 0),
+            int(item.get("duration_minutes") or 10**9),
+            str(item.get("journey_id")),
+        )
+    )
+    return ranked
+
+
+def close_recovery_case(
+    *,
+    case: dict[str, Any],
+    resolved_evidence_ids: object,
+    operator_state_confirmed: bool,
+) -> dict[str, Any]:
+    if not isinstance(case, dict) or not case.get("case_id"):
+        raise TypeError("transport_recovery_case_invalid")
+    if not isinstance(resolved_evidence_ids, list):
+        raise TypeError("transport_resolved_evidence_invalid")
+    evidence = [str(item).strip() for item in resolved_evidence_ids if str(item).strip()]
+    trace = case.get("evidence_trace")
+    if not isinstance(trace, dict):
+        raise ValueError("transport_evidence_trace_invalid")
+    required = set(trace.get("evidence_ids") or [])
+    provided = set(evidence)
+    unresolved = list(trace.get("unresolved") or [])
+    evidence_complete = required.issubset(provided) and bool(required)
+    can_close = (
+        case.get("recovery_state") in {"NOT_REQUIRED", "ALTERNATIVE_AVAILABLE"}
+        and evidence_complete
+        and operator_state_confirmed is True
+        and "impact_truth_unresolved" not in unresolved
+    )
+    result = dict(case)
+    result["resolved_evidence_ids"] = evidence
+    result["operator_state_confirmed"] = operator_state_confirmed is True
+    result["closed"] = can_close
+    result["automatic_execution"] = False
+    result["operator_action_authorised"] = False
+    result["payment_action_authorised"] = False
+    result["human_authority_final"] = True
+    return result
+
 
 
 def _impact_state(event: dict[str, Any]) -> str:
@@ -209,6 +366,8 @@ def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies:
         raise TypeError("transport_journey_invalid")
     if not isinstance(events, list):
         raise TypeError("transport_events_invalid")
+    events = reconcile_event_lineage(events)
+    contradictions = contradiction_registry(events)
     impacts = []
     affected_leg_ids = set()
     evidence_ids = []
@@ -311,6 +470,11 @@ def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies:
         "affected_leg_ids": sorted(affected_leg_ids),
         "impacts": impacts,
         "evidence_ids": evidence_ids,
+        "independent_source_count": independent_source_count([
+            event for event in events if event.get("lineage_state") == "ACTIVE"
+        ]),
+        "contradictions": contradictions,
+        "contradiction_free": not contradictions,
         "execution_authorised": False,
         "human_authority_final": True,
     }
@@ -334,6 +498,8 @@ def recovery_plan(
             if not isinstance(item, dict) or not item.get("journey_id"):
                 raise ValueError("transport_alternative_invalid")
             candidates.append(dict(item))
+
+    candidates = rank_alternatives(candidates) if candidates else []
 
     impact = assessment.get("impact_state")
     if impact == "CLEAR":
@@ -404,6 +570,8 @@ def evidence_trace(
         unresolved.append("recovery_not_closed")
     if not assessment.get("evidence_ids"):
         unresolved.append("evidence_missing")
+    if assessment.get("contradictions"):
+        unresolved.append("contradiction_unresolved")
 
     return {
         "journey_id": journey_id,
@@ -450,7 +618,7 @@ def recovery_case(
         "automatic_execution": False,
         "operator_action_authorised": False,
         "payment_action_authorised": False,
-        "closed": state == "NOT_REQUIRED" and trace["trace_complete"],
+        "closed": False,
         "human_authority_final": True,
     }
 
@@ -481,6 +649,12 @@ def command_center_state(
             "alternatives",
             "evidence",
             "dependencies",
+            "trace",
+            "compare_time",
+            "show_confidence",
+            "show_source",
+            "challenge",
+            "recalculate",
         ],
         "execution_authorised": False,
         "payment_authorised": False,
@@ -508,6 +682,12 @@ def status() -> dict[str, Any]:
         "command_center_projection": True,
         "recovery_case_contract": True,
         "evidence_trace_contract": True,
+        "independent_source_counting": True,
+        "event_supersession": True,
+        "event_correction_lineage": True,
+        "contradiction_registry": True,
+        "deterministic_alternative_ranking": True,
+        "explicit_recovery_closure": True,
         "scheduled_is_not_live": True,
         "predicted_is_not_observed": True,
         "execution_authorised": False,
