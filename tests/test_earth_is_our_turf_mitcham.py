@@ -6,7 +6,7 @@ def test_mitcham_world_action_memory_and_consequence():
     state=earth_is_our_turf.new_world()
     before=earth_is_our_turf.public_state(state)
     assert before["district"]=="Mitcham · CR4"
-    assert before["player"]["node"]=="town-centre"
+    assert before["player"]["node"]=="town-centre"\n    assert before["player"]["travel_mode"]=="foot"
     changed=earth_is_our_turf.action(state,command="help-local")
     after=earth_is_our_turf.public_state(changed)
     assert after["player"]["influence"]==2
@@ -17,16 +17,30 @@ def test_mitcham_world_action_memory_and_consequence():
     assert after["events"][-1]["type"]=="postcode_memory"
 
 
-def test_mitcham_world_only_allows_connected_routes():
-    state=earth_is_our_turf.new_world()
-    moved=earth_is_our_turf.action(state,command="move",target="eastfields")
-    assert earth_is_our_turf.public_state(moved)["player"]["node"]=="eastfields"
+def test_mitcham_navigation_separates_car_from_foot_shortcuts():
+    foot=earth_is_our_turf.route("town-centre","figges-marsh","foot")
+    car=earth_is_our_turf.route("town-centre","figges-marsh","car")
+    assert foot["distance_m"] <= car["distance_m"]
+    assert foot["mode"]=="foot"
     try:
-        earth_is_our_turf.action(moved,command="move",target="ravensbury")
+        earth_is_our_turf.route("town-centre","market-lane","car")
     except ValueError as exc:
-        assert str(exc)=="eiot_route_not_adjacent"
+        assert str(exc)=="eiot_route_unavailable_for_mode"
     else:
-        raise AssertionError("non-adjacent route should fail")
+        raise AssertionError("car must not use alley-only destination")
+
+
+def test_mitcham_planned_route_can_be_travelled_and_remembered():
+    state=earth_is_our_turf.new_world()
+    state=earth_is_our_turf.action(state,command="navigate",target="pollards-hill",mode="bike")
+    planned=earth_is_our_turf.public_state(state)
+    assert planned["active_route"]["to"]=="pollards-hill"
+    assert planned["active_route"]["mode"]=="bike"
+    state=earth_is_our_turf.action(state,command="travel-route")
+    after=earth_is_our_turf.public_state(state)
+    assert after["player"]["node"]=="pollards-hill"
+    assert after["active_route"] is None
+    assert after["events"][-1]["type"]=="travel"
 
 
 def test_mitcham_arena_surface_is_exposed(client):
@@ -36,7 +50,7 @@ def test_mitcham_arena_surface_is_exposed(client):
     assert "EARTH IS OUR TURF" in html
     assert "Born Local. Built Global." in html
     assert "Mitcham / CR4" in html
-    assert "earth_is_our_turf.js" in html
+    assert "earth_is_our_turf.js" in html\n    assert "Mitcham Navigation" in html\n    assert "Travel mode" in html\n    assert "Foot" in html and "Bike / e-bike" in html and "Car" in html
     assert "No precise tracking" in html
 
 
