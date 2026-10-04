@@ -15,7 +15,7 @@ from . import autonomy_levels, hrm_agent_lifecycle, smi_brain_protocol
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
-PROTOCOL_VERSION = 5
+PROTOCOL_VERSION = 6
 
 
 HUMAN_AI_BOUNDARY = {
@@ -193,6 +193,16 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
         "best_for": "multi-agent coordination and bounded work distribution",
         "authority": "advisory_review_only",
     },
+    "Octopus": {
+        "role": "Multi-system dependency / interface reviewer",
+        "best_for": "connected subsystems, async dependencies, interface timing, fan-out and recovery paths",
+        "authority": "advisory_review_only",
+    },
+    "Fox": {
+        "role": "Tactical options / edge-case reviewer",
+        "best_for": "alternate bounded fixes, hidden edge cases, constraint-aware path selection",
+        "authority": "advisory_review_only",
+    },
     "Elephant": {
         "role": "Memory / history reviewer",
         "best_for": "history, provenance, prior decisions, long-memory consistency",
@@ -211,6 +221,11 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
 }
 
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
+    (
+        ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
+        ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Fox", "Bee"),
+        "Map stability mission: adversarial, recovery, integrity, dual-state, dependency, tactical and coordination review.",
+    ),
     (
         ("cache", "stale", "new then old", "new-then-old", "race", "split", "diverg", "state conflict"),
         ("Twinz", "Agent Smith", "Shere Khan", "Bagheera"),
