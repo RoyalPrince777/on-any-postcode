@@ -106,6 +106,10 @@ with sync_playwright() as p:
     page.locator("#map-to").fill("London Bridge")
     page.locator("#map-form button.go").click()
     page.wait_for_function(
+        "() => document.body?.dataset?.mapRenderState === 'stable'",
+        timeout=30000,
+    )
+    page.wait_for_function(
         "() => document.querySelector('#route-svg')?.hidden === false",
         timeout=30000,
     )
@@ -113,6 +117,34 @@ with sync_playwright() as p:
         "() => document.querySelectorAll('#road-layer polyline').length >= 25",
         timeout=30000,
     )
+    stability_before = page.evaluate("""() => ({
+      state: document.body?.dataset?.mapRenderState,
+      roads: document.querySelectorAll('#road-layer polyline').length,
+      labels: document.querySelectorAll('#road-layer .road-label').length,
+      bootHidden: document.querySelector('#oap-map-boot')?.hidden === true,
+      roadStatusHidden: document.querySelector('#road-source-state')?.hidden === true,
+      routeHidden: document.querySelector('#route-svg')?.hidden === true,
+      routePoints: document.querySelector('#route-line')?.getAttribute('points') || ''
+    })""")
+    page.wait_for_timeout(4000)
+    stability_after = page.evaluate("""() => ({
+      state: document.body?.dataset?.mapRenderState,
+      roads: document.querySelectorAll('#road-layer polyline').length,
+      labels: document.querySelectorAll('#road-layer .road-label').length,
+      bootHidden: document.querySelector('#oap-map-boot')?.hidden === true,
+      roadStatusHidden: document.querySelector('#road-source-state')?.hidden === true,
+      routeHidden: document.querySelector('#route-svg')?.hidden === true,
+      routePoints: document.querySelector('#route-line')?.getAttribute('points') || ''
+    })""")
+    assert stability_before == stability_after, (
+        "map_changed_after_stable_render",
+        stability_before,
+        stability_after,
+    )
+    assert stability_after["state"] == "stable", stability_after
+    assert stability_after["bootHidden"] is True, stability_after
+    assert stability_after["roadStatusHidden"] is True, stability_after
+    assert stability_after["routeHidden"] is False, stability_after
     visible_route_roads = page.evaluate("""() => [...document.querySelectorAll('#road-layer polyline')].filter(el => {
       const r = el.getBoundingClientRect();
       return r.width > 1 && r.height > 1 && r.bottom >= 0 && r.right >= 0
@@ -135,6 +167,8 @@ with sync_playwright() as p:
         f"road_request_failures={len(road_request_failures)}",
         f"api_line_counts={api_line_counts}",
         f"visible_route_roads={visible_route_roads}",
+        f"stable_roads={stability_after['roads']}",
+        f"stable_labels={stability_after['labels']}",
     )
     context.close()
     browser.close()
