@@ -41,7 +41,7 @@ PERSONAL_EXECUTION_BOUNDARY: dict[str, bool] = {
     "real_carrier_activation_enabled": False,
     "private_radio_transmission_enabled": False,
     "public_number_assigned": False,
-    "raw_telecom_secrets_exposed": False,
+    "sensitive_material_exposed": False,
 }
 
 
@@ -90,6 +90,7 @@ def status() -> dict[str, Any]:
             "recovery": dict(PERSONAL_LINE["recovery"]),
         },
         "execution": dict(PERSONAL_EXECUTION_BOUNDARY),
+        "unlock_tracks": tuple(dict(track) for track in UNLOCK_TRACKS),
         "validation": validate(),
         "truth_boundary": (
             "This is a first-party personal identity/control contract. It is not "
