@@ -349,10 +349,9 @@ def map_build_agent_board(mission: object = "Build and harden OAP Maps") -> dict
     for reviewer in MAP_BUILD_AUTO_TEAM:
         for candidate in MAP_BUILD_AUTO_TEAM:
             if reviewer == candidate:
-                decision = "ABSTAIN"
-            else:
-                candidate_row = next(row for row in rows if row["agent"] == candidate)
-                decision = "PASS" if candidate_row["fit_stars"] >= 6 else "CONDITIONAL"
+                continue
+            candidate_row = next(row for row in rows if row["agent"] == candidate)
+            decision = "PASS" if candidate_row["fit_stars"] >= 6 else "CONDITIONAL"
             votes.append({
                 "reviewer": reviewer,
                 "candidate": candidate,
