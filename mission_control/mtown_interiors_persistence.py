@@ -116,10 +116,10 @@ def drive_vehicle(state: object, *, vehicle: dict[str,Any], distance_m: object) 
     except (TypeError,ValueError) as exc:
         raise ValueError("mtown_vehicle_distance_invalid") from exc
     row=out["vehicle_state"][vid]
-    row["odometer_m"]+=int(round(distance))
+    row["odometer_m"]+=round(distance)
     row["energy"]=max(0,round(float(row["energy"])-distance/1200,2))
     row["condition"]=max(0,round(float(row["condition"])-distance/25000,2))
-    out["receipts"].append({"type":"vehicle_driven","vehicle_id":vid,"distance_m":int(round(distance))})
+    out["receipts"].append({"type":"vehicle_driven","vehicle_id":vid,"distance_m":round(distance)})
     out["receipts"]=out["receipts"][-40:]
     return out
 
