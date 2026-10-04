@@ -94,8 +94,28 @@ with sync_playwright() as p:
         assert matches and all(status == 200 for status in matches), (asset, matches)
 
     road_count = page.locator("#road-layer polyline").count()
-    assert road_count > 0, "no_live_road_polylines"
+    assert road_count >= 25, ("insufficient_live_road_context", road_count)
     assert boot.is_hidden(), "map_boot_state_did_not_clear"
+
+    page.locator("#map-from").fill("Mitcham")
+    page.locator("#map-to").fill("London Bridge")
+    page.locator("#map-form button.go").click()
+    page.wait_for_function(
+        "() => document.querySelector('#route-svg')?.hidden === false",
+        timeout=30000,
+    )
+    page.wait_for_function(
+        "() => document.querySelectorAll('#road-layer polyline').length >= 25",
+        timeout=30000,
+    )
+    visible_route_roads = page.evaluate("""() => [...document.querySelectorAll('#road-layer polyline')].filter(el => {
+      const r = el.getBoundingClientRect();
+      return r.width > 1 && r.height > 1 && r.bottom >= 0 && r.right >= 0
+        && r.top <= innerHeight && r.left <= innerWidth;
+    }).length""")
+    assert visible_route_roads >= 10, ("routed_screen_lacks_visible_road_context", visible_route_roads)
+    assert page.locator("#turn-card").is_visible(), "turn_guidance_not_visible_after_route"
+
     assert not page_errors, ("browser_page_errors", page_errors)
     road_request_failures = [
         url for url in failed_requests
@@ -109,6 +129,7 @@ with sync_playwright() as p:
         f"box={box['width']}x{box['height']}",
         f"road_request_failures={len(road_request_failures)}",
         f"api_line_counts={api_line_counts}",
+        f"visible_route_roads={visible_route_roads}",
     )
     context.close()
     browser.close()
