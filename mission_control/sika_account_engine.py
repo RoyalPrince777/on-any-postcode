@@ -175,6 +175,24 @@ def read_account(account_id: object) -> BankAccount | None:
     )
 
 
+def resolve_owned_account(
+    *,
+    account_id: object,
+    owner_reference: object,
+) -> BankAccount:
+    """Resolve one exact account and prove it belongs to the supplied owner."""
+
+    account = read_account(account_id)
+    if account is None:
+        raise AccountEngineError("account_not_found")
+    owner_value = _required(owner_reference, error="owner_reference_required")
+    if account.owner_reference != owner_value:
+        raise AccountEngineError("account_owner_mismatch")
+    if not account.customer_activity_allowed:
+        raise AccountEngineError("account_not_open")
+    return account
+
+
 def transition(
     *,
     account_id: object,
@@ -234,6 +252,7 @@ def status() -> dict[str, object]:
         "backend": "postgresql",
         "persistent_account_identity": True,
         "owner_binding": True,
+        "owner_resolution": True,
         "legal_entity_binding": True,
         "jurisdiction_binding": True,
         "currency_binding": True,
