@@ -40,7 +40,7 @@ class _Connection:
 
 
 def test_eats_order_idempotency_binds_immutable_payload(monkeypatch):
-    row = (ORDER, MERCHANT, "created", 1599, "GBP", "delivery", None, None, WHEN, WHEN)
+    row = (ORDER, MERCHANT, "created", 1599, "GBP", "delivery", None, None, None, WHEN, WHEN)
     connection = _Connection(row)
     monkeypatch.setattr(oap_eats_store.postgres_db, "connect", lambda **_: connection)
     result = oap_eats_store.STORE.create_order(
