@@ -282,3 +282,19 @@ def test_clean_oap_map_opens_without_old_route(client):
 def test_clean_map_does_not_auto_route_without_explicit_destination():
     page = MAP.read_text(encoding="utf-8")
     assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);" in page
+
+
+def test_route_cancels_previous_fetch_and_blocks_stale_commit():
+    page = MAP.read_text(encoding="utf-8")
+    assert "routeController=new AbortController();" in page
+    assert "if(routeController)routeController.abort();" in page
+    assert "signal});" in page
+    assert "if(request!==routeRequest)return;" in page
+
+
+def test_bfcache_restore_without_destination_clears_old_route():
+    page = MAP.read_text(encoding="utf-8")
+    assert "window.addEventListener('pageshow',event=>" in page
+    assert "if(!event.persisted)return;" in page
+    assert "if(!params.get('to')){" in page
+    assert "window.dispatchEvent(new CustomEvent('oap-map-route-clear'));" in page
