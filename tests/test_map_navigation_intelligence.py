@@ -258,3 +258,14 @@ def test_route_waits_for_road_context_before_exposing_complete_map():
     assert "const roadCount=await loadRoadNetwork(bounds,profile.value)" in page
     assert "svg.hidden=false" in page
     assert "setRenderState(roadCount>0?'stable':'degraded')" in page
+
+
+def test_route_sets_loading_before_async_fetch_to_prevent_stale_stable_race():
+    page = MAP.read_text(encoding="utf-8")
+    route = page.split("async function route(options={}){", 1)[1].split(
+        "form.addEventListener('submit'", 1
+    )[0]
+
+    loading_index = route.index("setRenderState('loading')")
+    fetch_index = route.index("fetch('/map-intelligence/route?")
+    assert loading_index < fetch_index
