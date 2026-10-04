@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from . import mail_outbound, web_security
+from . import mail_mailbox, mail_outbound, web_security
 
 bp = Blueprint("oap_mail", __name__)
 
@@ -17,6 +17,48 @@ def _no_store(response):
 @bp.get("/mail/status")
 def mail_status():
     return _no_store(make_response(jsonify(mail_outbound.status()), 200))
+
+
+def _identity() -> str:
+    return web_security.authenticated_identity()
+
+
+def _mailbox_error(exc: Exception):
+    if isinstance(exc, ValueError):
+        return _no_store(make_response(jsonify(error={"code": str(exc)[:80]}), 400))
+    if isinstance(exc, mail_mailbox.MailboxUnavailable):
+        return _no_store(
+            make_response(jsonify(error={"code": "oap_mail_mailbox_unavailable"}), 503)
+        )
+    return _no_store(
+        make_response(jsonify(error={"code": "oap_mail_mailbox_unavailable"}), 503)
+    )
+
+
+@bp.get("/mail/mailbox/status")
+@web_security.login_required(api=True, founder_only=True)
+def mailbox_status():
+    return _no_store(make_response(jsonify(mail_mailbox.status()), 200))
+
+
+@bp.get("/mail/<folder>")
+@web_security.login_required(api=True, founder_only=True)
+def mailbox_folder(folder: str):
+    try:
+        items = mail_mailbox.list_folder(_identity(), folder)
+        return _no_store(make_response(jsonify(folder=folder, items=items), 200))
+    except Exception as exc:  # noqa: BLE001
+        return _mailbox_error(exc)
+
+
+@bp.get("/mail/search")
+@web_security.login_required(api=True, founder_only=True)
+def mailbox_search():
+    try:
+        items = mail_mailbox.search(_identity(), request.args.get("q"))
+        return _no_store(make_response(jsonify(items=items), 200))
+    except Exception as exc:  # noqa: BLE001
+        return _mailbox_error(exc)
 
 
 @bp.post("/mail/send")
