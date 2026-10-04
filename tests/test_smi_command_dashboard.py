@@ -53,13 +53,16 @@ def test_smi_command_dashboard_route_is_read_only(client):
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert "SMI Command Dashboard" in page
-    assert "All Intelligence" in page
-    assert "War Room" in page
-    assert "Bank / SIKA" in page
-    assert "direct bypass closed" in page
-    assert "regulated execution locked" in page
-    assert "DIRECT_ANSWER" in page
+    assert "SMI Home" in page
+    assert "Seven doors" in page
+    assert "Phone" in page
+    assert "Walkie-Talkie" in page
+    assert "Messages" in page
+    assert "My Line / eSIM" in page
+    assert "OAP Mail" in page
+    assert "Not built" in page
+    assert "Graphs" in page
+    assert "Monitors" in page
     assert 'method="post"' not in page.lower()
     assert client.post("/mission/smi").status_code == 405
 
@@ -98,3 +101,30 @@ def test_regulated_unlock_matrix_fails_closed_when_evidence_store_unavailable(mo
     assert unlock["unlocked_count"] == 0
     assert unlock["all_unlocked"] is False
     assert all(value is False for value in unlock["capabilities"].values())
+
+
+def test_smi_home_has_exactly_seven_unique_doors_and_truthful_mail_gap():
+    command = smi_command_dashboard.status()
+    doors = command["doors"]
+    assert len(doors) == 7
+    assert len({door["id"] for door in doors}) == 7
+    assert [door["id"] for door in doors] == [
+        "smi", "command", "interaction", "control", "lab", "studio", "recovery"
+    ]
+    assert command["interaction"]["phone"]["built"] is True
+    assert command["interaction"]["walkie_talkie"]["built"] is True
+    assert command["interaction"]["messages"]["built"] is True
+    assert command["interaction"]["my_line"]["built"] is True
+    assert command["interaction"]["oap_mail"]["built"] is False
+    assert command["interaction"]["oap_mail"]["href"] is None
+
+
+def test_smi_home_cockpit_is_low_noise_and_route_backed():
+    command = smi_command_dashboard.status()
+    assert [item["id"] for item in command["cockpit"]] == [
+        "brain", "graphs", "monitors", "signals", "incoming", "nexus"
+    ]
+    assert command["interaction"]["phone"]["href"] == "/linkup?intent=link-call"
+    assert command["interaction"]["walkie_talkie"]["href"] == "/linkup?intent=ptt"
+    assert command["interaction"]["messages"]["href"] == "/linkup?intent=message"
+    assert command["interaction"]["my_line"]["href"] == "/my-line"
