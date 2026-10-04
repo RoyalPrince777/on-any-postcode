@@ -61,7 +61,7 @@ function applyView(){
  const cy=Math.min(700-h/2,Math.max(h/2,viewCenter[1]));
  const box=`${cx-w/2} ${cy-h/2} ${w} ${h}`;
  roadsSvg?.setAttribute('viewBox',box);routeSvg?.setAttribute('viewBox',box);
- const mapTransform=driveMode?`rotate(${-lastHeading}deg) scale(1.08)`:'none';
+ const mapTransform=driveMode?`perspective(900px) rotateX(22deg) rotateZ(${-lastHeading}deg) scale(1.18) translateY(3%)`:'none';
  if(roadsSvg)roadsSvg.style.transform=mapTransform;
  if(routeSvg)routeSvg.style.transform=mapTransform;
 }
@@ -71,7 +71,7 @@ function setZoom(next){
 function setDrive(on){
  driveMode=!!on;body.dataset.mapMode=driveMode?'drive':'explore';
  driveToggle.textContent=driveMode?'Overview':'Drive';
- if(driveMode){zoom=Math.max(2.1,zoom);if(lastProjected)viewCenter=lastProjected}
+ if(driveMode){zoom=Math.max(2.35,zoom);if(lastProjected)viewCenter=[lastProjected[0],Math.min(610,lastProjected[1]+70)]}
  else{zoom=1;viewCenter=[500,350]}
  applyView();
 }
@@ -177,5 +177,5 @@ zoomIn?.addEventListener('click',()=>setZoom(zoom+.45));
 zoomOut?.addEventListener('click',()=>setZoom(zoom-.45));
 window.addEventListener('oap-map-route-ready',e=>renderRoute(e.detail||{}));
 window.addEventListener('pagehide',()=>{if(watchId!==null)navigator.geolocation?.clearWatch(watchId);cancelGuidanceVoice()});
-window.OAP_MAP_NAVIGATION={version:'2.2',lowNoise:true,driveFollow:true,progressiveTurnGuidance:true,voiceTurnGuidance:true,voiceUserControlled:true,voiceAudioStored:false,offRouteReroute:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};
+window.OAP_MAP_NAVIGATION={version:'3.0',product:'On Any Postcode Maps',lowNoise:true,driveFollow:true,perspectiveDriveCamera:true,routeCasing:true,progressiveTurnGuidance:true,voiceTurnGuidance:true,voiceUserControlled:true,voiceAudioStored:false,offRouteReroute:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};
 })();

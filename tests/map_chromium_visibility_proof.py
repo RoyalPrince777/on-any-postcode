@@ -109,6 +109,8 @@ with sync_playwright() as p:
         count = page.locator("#road-layer polyline").count()
         assert count > 0, (label, "No actual SVG road polylines")
         assert page.locator("#roads-svg").is_visible(), label
+        assert page.title() == "On Any Postcode Maps", label
+        assert page.locator("#route-casing").count() == 1, label
         assert not errors, (label, errors)
         page.locator("#map-from").fill("Mitcham")
         page.locator("#map-to").fill("London Bridge")
@@ -148,6 +150,8 @@ with sync_playwright() as p:
             assert page.locator("#voice-toggle").get_attribute("aria-pressed") == "true"
             page.locator("#drive-toggle").click()
             assert page.locator("body").get_attribute("data-map-mode") == "drive"
+            transform = page.locator("#roads-svg").evaluate("(el) => el.style.transform")
+            assert "perspective(900px)" in transform and "rotateX(22deg)" in transform, transform
             page.evaluate("""
                 () => {
                     window.__oapGeoWatchCalls=0;

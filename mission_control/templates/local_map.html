@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 {% set oap_install_script = false %}
 {% include "_oap_install_head.html" %}
-<title>On Any Place</title>
+<title>On Any Postcode Maps</title>
 <style id="oap-map-critical">
 html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;color:#f8fafc}
 .map-app,.map-wrap{position:relative;width:100%;height:100vh;min-height:100vh;overflow:hidden}
@@ -17,11 +17,12 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
 </head>
 <body data-map-mode="explore">
 <main class="map-app">
-  <section class="map-wrap" aria-label="On Any Place">
+  <section class="map-wrap" aria-label="On Any Postcode Maps">
     <div class="map-surface"></div>
-    <div id="oap-map-boot" class="oap-map-boot" role="status">OAP Maps · loading road view…</div>
+    <div id="oap-map-boot" class="oap-map-boot" role="status">On Any Postcode Maps · loading roads…</div>
     <svg id="roads-svg" class="road-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"><g id="road-layer"></g></svg>
     <svg id="route-svg" class="route-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" hidden>
+      <polyline id="route-casing"></polyline>
       <polyline id="route-line"></polyline>
       <circle id="route-start" r="10"></circle>
       <circle id="route-end" r="10"></circle>
@@ -117,7 +118,7 @@ bind('#map-from','#from-suggestions');bind('#map-to','#to-suggestions');
 
 const form=q('#map-form'),from=q('#map-from'),to=q('#map-to'),profile=q('#map-profile');
 const state=q('#route-state'),distance=q('#distance'),eta=q('#eta'),roads=q('#roads'),directions=q('#directions'),places=q('#places'),trafficState=q('#traffic-state');
-const roadLayer=q('#road-layer'),svg=q('#route-svg'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
+const roadLayer=q('#road-layer'),svg=q('#route-svg'),casing=q('#route-casing'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
 const fromLabel=q('#from-label'),toLabel=q('#to-label');
 let bounds=null,roadRequest=0;
 const roadStatus=q('#road-source-state'),boot=q('#oap-map-boot');
@@ -130,7 +131,7 @@ const project=(lon,lat,b)=>{const p=50,dx=b.maxX-b.minX||1,dy=b.maxY-b.minY||1;r
 function draw(coords){
  if(!Array.isArray(coords)||coords.length<2)return false;
  bounds=padBounds(coords);const pts=coords.map(c=>project(+c[0],+c[1],bounds));
- line.setAttribute('points',pts.map(x=>x.join(',')).join(' '));
+ const routePoints=pts.map(x=>x.join(',')).join(' ');line.setAttribute('points',routePoints);casing.setAttribute('points',routePoints);
  start.setAttribute('cx',pts[0][0]);start.setAttribute('cy',pts[0][1]);
  end.setAttribute('cx',pts.at(-1)[0]);end.setAttribute('cy',pts.at(-1)[1]);
  svg.hidden=false;
@@ -225,7 +226,7 @@ async function route(options={}){
    coverage.textContent=d.coverage?.selected_label||'Greater London';
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
    window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
-   history.replaceState(null,'','/on-any-place?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+   history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
  }catch{svg.hidden=true;toast('Route temporarily unavailable')}
 }
 form.addEventListener('submit',e=>{e.preventDefault();route()});
