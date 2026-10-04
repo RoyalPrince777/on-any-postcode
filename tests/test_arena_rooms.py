@@ -6,7 +6,15 @@ import uuid
 
 import pytest
 
-from mission_control import arena_rooms, chess, connect4, iq_duel, ludo, oware, route_empire
+from mission_control import (
+    arena_rooms,
+    chess,
+    connect4,
+    iq_duel,
+    ludo,
+    oware,
+    route_empire,
+)
 
 
 class _Result:
