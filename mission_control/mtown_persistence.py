@@ -1,7 +1,11 @@
 """Durable PostgreSQL persistence for EARTH IS OUR TURF M Town."""
 from __future__ import annotations
-import hashlib, json, secrets
+
+import hashlib
+import json
+import secrets
 from typing import Any
+
 from mission_control import postgres_db
 
 SCHEMA_STATEMENTS=(
