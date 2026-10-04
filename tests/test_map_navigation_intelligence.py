@@ -33,7 +33,7 @@ def test_drive_runtime_updates_turns_and_follows_position():
         "activeStep(progress)",
         "updateTurn(progress)",
         "driveMode",
-        "viewCenter=lastProjected",
+        "viewCenter=[lastProjected[0],Math.min(610,lastProjected[1]+70)]",
         "setZoom",
         "storesPreciseLocation:false",
         "individualPeopleTracking:false",
@@ -107,11 +107,11 @@ def test_drive_camera_is_heading_up_without_rotating_controls():
     script = NAV.read_text(encoding="utf-8")
     css = CSS.read_text(encoding="utf-8")
     assert "lastHeading" in script
-    assert "scale(1.08)" in script
+    assert "perspective(900px) rotateX(22deg)" in script
     assert "if(driveMode)applyView()" in script
     assert "roadsSvg.style.transform=mapTransform" in script
     assert "routeSvg.style.transform=mapTransform" in script
-    assert 'body[data-map-mode="drive"] .road-label{display:none}' in css
+    assert 'body[data-map-mode="drive"] .road-label{opacity:.58' in css
     assert "transform-origin:50% 50%" in css
 
 
@@ -205,7 +205,7 @@ def test_map_page_has_server_visible_shell_without_install_service_worker(client
     body = page.get_data(as_text=True)
     assert 'id="oap-map-critical"' in body
     assert 'id="oap-map-boot"' in body
-    assert "OAP Maps · loading road view" in body
+    assert "On Any Postcode Maps · loading roads" in body
     assert "/assets/oap-os.js" not in body
 
 
