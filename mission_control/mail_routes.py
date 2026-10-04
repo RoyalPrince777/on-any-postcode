@@ -27,7 +27,7 @@ def mailbox_home():
     elif mailbox_state.get("ready"):
         try:
             items = mail_mailbox.list_folder(_identity(), folder)
-        except Exception:
+        except (ValueError, mail_mailbox.MailboxUnavailable):
             error = "oap_mail_mailbox_unavailable"
     else:
         error = str(mailbox_state.get("error") or "oap_mail_mailbox_unavailable")
