@@ -72,7 +72,7 @@ def test_public_map_door_uses_visible_first_party_renderer():
 def test_road_network_loads_without_successful_route():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);" in template
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value).then(count=>setRenderState(count>0?'stable':'degraded'));" in template
     assert 'id="road-source-state"' in template
     assert "if(request!==roadRequest)return 0;" in template
     assert "if(batchAttempt<3)" in template
@@ -120,7 +120,7 @@ def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     assert "const worker=async()=>{while(queue.length&&request===roadRequest&&count<180)" in template
     assert "Math.min(2,tiles.length)" in template
     assert "roadLayer.replaceChildren(staged);" in template
-    assert "showRoadStatus('');clearBoot();setRenderState('stable');" in template
+    assert "showRoadStatus('');clearBoot();" in template
     assert "Road network unavailable — route guidance may still work." in template
 
 
@@ -136,7 +136,8 @@ def test_route_draw_preserves_existing_road_layer():
 
 def test_map_boot_clears_only_after_terminal_road_state():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    assert "showRoadStatus('');clearBoot();setRenderState('stable');" in template
+    assert "showRoadStatus('');clearBoot();" in template
+    assert "setRenderState(roadReady?'stable':'degraded')" in template
     assert "clearBoot();setRenderState('degraded')" in template
     assert "setTimeout(clearBoot,5000);" not in template
 
