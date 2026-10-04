@@ -37,6 +37,7 @@ from mission_control import (
     founder_activation,
     founder_recovery,
     iq_arena,
+    iq_duel,
     judgement,
     languages,
     link_call_audit,
@@ -1174,12 +1175,26 @@ def ludo_start():
         return denied
     try:
         payload = _arena_payload()
-        state = ludo.new_game(payload.get("players"))
+        mode = str(payload.get("opponent_mode") or "human")
+        if mode not in {"human", "agent"}:
+            raise ValueError("ludo_opponent_mode_invalid")
+        selected = arena_agents.choose_agent("ludo", payload.get("agent_key")) if mode == "agent" else None
+        players = payload.get("players")
+        if mode == "agent":
+            names = players if isinstance(players, list) else []
+            human = str(names[0] if names else "Player One")
+            players = [human, selected["name"]]
+        state = ludo.new_game(players)
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[ludo.SESSION_KEY] = state
+    session["oap_ludo_mode"] = mode
+    session["oap_ludo_agent"] = selected["key"] if selected else None
     session.modified = True
-    return _arena_json(ludo.public_state(state), 201)
+    result = ludo.public_state(state)
+    if selected:
+        result["agent"] = selected
+    return _arena_json(result, 201)
 
 
 @app.post("/arena/ludo/roll")
@@ -1189,6 +1204,9 @@ def ludo_roll():
         return denied
     try:
         payload = _arena_payload()
+        current = ludo.public_state(session.get(ludo.SESSION_KEY))
+        if session.get("oap_ludo_mode") == "agent" and current.get("current_player_id") != "p1":
+            raise ValueError("ludo_agent_turn_reserved")
         state = ludo.roll(
             session.get(ludo.SESSION_KEY),
             request_id=payload.get("request_id"),
@@ -1207,6 +1225,9 @@ def ludo_move():
         return denied
     try:
         payload = _arena_payload()
+        current = ludo.public_state(session.get(ludo.SESSION_KEY))
+        if session.get("oap_ludo_mode") == "agent" and current.get("current_player_id") != "p1":
+            raise ValueError("ludo_agent_turn_reserved")
         state = ludo.move(
             session.get(ludo.SESSION_KEY),
             piece_id=payload.get("piece_id"),
@@ -1250,12 +1271,26 @@ def oware_start():
         return denied
     try:
         payload = _arena_payload()
-        state = oware.new_game(payload.get("players"))
+        mode = str(payload.get("opponent_mode") or "human")
+        if mode not in {"human", "agent"}:
+            raise ValueError("oware_opponent_mode_invalid")
+        selected = arena_agents.choose_agent("oware", payload.get("agent_key")) if mode == "agent" else None
+        players = payload.get("players")
+        if mode == "agent":
+            names = players if isinstance(players, list) else []
+            human = str(names[0] if names else "Player One")
+            players = [human, selected["name"]]
+        state = oware.new_game(players)
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[oware.SESSION_KEY] = state
+    session["oap_oware_mode"] = mode
+    session["oap_oware_agent"] = selected["key"] if selected else None
     session.modified = True
-    return _arena_json(oware.public_state(state), 201)
+    result = oware.public_state(state)
+    if selected:
+        result["agent"] = selected
+    return _arena_json(result, 201)
 
 
 @app.post("/arena/oware/move")
@@ -1265,6 +1300,9 @@ def oware_move():
         return denied
     try:
         payload = _arena_payload()
+        current = oware.public_state(session.get(oware.SESSION_KEY))
+        if session.get("oap_oware_mode") == "agent" and current.get("current_player_id") != "p1":
+            raise ValueError("oware_agent_turn_reserved")
         state = oware.move(
             session.get(oware.SESSION_KEY),
             pit=payload.get("pit"),
@@ -1308,13 +1346,22 @@ def chess_start():
     if denied is not None:
         return denied
     try:
-        _arena_payload()
+        payload = _arena_payload()
+        mode = str(payload.get("opponent_mode") or "human")
+        if mode not in {"human", "agent"}:
+            raise ValueError("chess_opponent_mode_invalid")
+        selected = arena_agents.choose_agent("chess", payload.get("agent_key")) if mode == "agent" else None
         state = chess.new_game()
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[chess.SESSION_KEY] = state
+    session["oap_chess_mode"] = mode
+    session["oap_chess_agent"] = selected["key"] if selected else None
     session.modified = True
-    return _arena_json(chess.public_state(state), 201)
+    result = chess.public_state(state)
+    if selected:
+        result["agent"] = selected
+    return _arena_json(result, 201)
 
 
 @app.post("/arena/chess/move")
@@ -1324,6 +1371,9 @@ def chess_move():
         return denied
     try:
         payload = _arena_payload()
+        current = chess.public_state(session.get(chess.SESSION_KEY))
+        if session.get("oap_chess_mode") == "agent" and current.get("turn") != "White":
+            raise ValueError("chess_agent_turn_reserved")
         state = chess.move(
             session.get(chess.SESSION_KEY),
             source=payload.get("source"),
@@ -1384,13 +1434,24 @@ def dot_start():
     if denied is not None:
         return denied
     try:
-        _arena_payload()
-        state = dot.new_game()
+        payload = _arena_payload()
+        mode = str(payload.get("opponent_mode") or "human")
+        if mode not in {"human", "agent"}:
+            raise ValueError("dot_opponent_mode_invalid")
+        selected = arena_agents.choose_agent("dot", payload.get("agent_key")) if mode == "agent" else None
+        player_one = str(payload.get("player_one") or "Player One")
+        player_two = selected["name"] if selected else str(payload.get("player_two") or "Player Two")
+        state = dot.new_game(player_one, player_two)
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[dot.SESSION_KEY] = state
+    session["oap_dot_mode"] = mode
+    session["oap_dot_agent"] = selected["key"] if selected else None
     session.modified = True
-    return _arena_json(dot.public_state(state), 201)
+    result = dot.public_state(state)
+    if selected:
+        result["agent"] = selected
+    return _arena_json(result, 201)
 
 
 @app.post("/arena/dot/draw")
@@ -1400,6 +1461,9 @@ def dot_draw():
         return denied
     try:
         payload = _arena_payload()
+        current = dot.public_state(session.get(dot.SESSION_KEY))
+        if session.get("oap_dot_mode") == "agent" and current.get("turn_player_id") != "p1":
+            raise ValueError("dot_agent_turn_reserved")
         state = dot.draw(session.get(dot.SESSION_KEY), a=payload.get("a"), b=payload.get("b"), request_id=payload.get("request_id"))
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
@@ -1604,15 +1668,29 @@ def route_empire_start():
         return denied
     try:
         payload = _arena_payload()
+        mode = str(payload.get("opponent_mode") or "human")
+        if mode not in {"human", "agent"}:
+            raise ValueError("route_empire_opponent_mode_invalid")
+        selected = arena_agents.choose_agent("route-empire", payload.get("agent_key")) if mode == "agent" else None
+        players = payload.get("players")
+        if mode == "agent":
+            names = players if isinstance(players, list) else []
+            human = str(names[0] if names else "Player One")
+            players = [human, selected["name"]]
         state = route_empire.new_game(
             location=payload.get("location"),
-            players=payload.get("players"),
+            players=players,
         )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[route_empire.SESSION_KEY] = state
+    session["oap_route_empire_mode"] = mode
+    session["oap_route_empire_agent"] = selected["key"] if selected else None
     session.modified = True
-    return _arena_json(route_empire.public_state(state), 201)
+    result = route_empire.public_state(state)
+    if selected:
+        result["agent"] = selected
+    return _arena_json(result, 201)
 
 
 @app.get("/arena/route-empire/state")
@@ -1631,6 +1709,12 @@ def route_empire_action():
         return denied
     try:
         payload = _arena_payload()
+        current = route_empire.public_state(session.get(route_empire.SESSION_KEY))
+        if session.get("oap_route_empire_mode") == "agent":
+            players = current.get("players") or []
+            agent_id = players[1]["id"] if len(players) > 1 else None
+            if current.get("current_player_id") == agent_id:
+                raise ValueError("route_empire_agent_turn_reserved")
         state = route_empire.action(
             session.get(route_empire.SESSION_KEY),
             action=payload.get("action"),
