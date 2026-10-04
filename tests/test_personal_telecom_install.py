@@ -41,8 +41,12 @@ def test_apply_writes_private_non_operational_manifest(monkeypatch, tmp_path):
     manifest = tmp_path / personal_telecom_install.MANIFEST_NAME
 
     assert result["installed"] is True
+    checksum = tmp_path / personal_telecom_install.CHECKSUM_NAME
+
     assert manifest.is_file()
+    assert checksum.is_file()
     assert manifest.stat().st_mode & 0o777 == 0o600
+    assert checksum.stat().st_mode & 0o777 == 0o600
     text = manifest.read_text(encoding="utf-8")
     assert '"oap_number": "OAP-25-8-000001"' in text
     assert '"real_carrier_profile_installed": false' in text
@@ -95,3 +99,59 @@ def test_infrastructure_exposes_install_readiness_without_activation(monkeypatch
     assert install["software_ready"] is True
     assert install["external_execution_enabled"] is False
     assert install["human_authority_final"] is True
+
+
+def test_applied_install_is_integrity_verified(monkeypatch, tmp_path):
+    monkeypatch.setenv("OAP_PERSONAL_TELECOM_HOME", str(tmp_path))
+
+    install = personal_telecom_install.install(assume_yes=True, dry_run=False)
+    verify = personal_telecom_install.verify()
+
+    assert install["integrity_verified"] is True
+    assert install["source_revision"] != "unknown"
+    assert verify["verified"] is True
+    assert verify["integrity"]["checksum_valid"] is True
+    assert verify["integrity"]["schema_valid"] is True
+    assert verify["integrity"]["oap_number_valid"] is True
+    assert verify["integrity"]["source_revision_matches"] is True
+
+
+def test_manifest_tamper_is_detected(monkeypatch, tmp_path):
+    monkeypatch.setenv("OAP_PERSONAL_TELECOM_HOME", str(tmp_path))
+    personal_telecom_install.install(assume_yes=True, dry_run=False)
+
+    manifest = tmp_path / personal_telecom_install.MANIFEST_NAME
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8") + " ",
+        encoding="utf-8",
+    )
+
+    verify = personal_telecom_install.verify()
+
+    assert verify["verified"] is False
+    assert verify["integrity"]["checksum_valid"] is False
+    assert verify["integrity"]["integrity_valid"] is False
+
+
+def test_uninstall_removes_manifest_and_checksum(monkeypatch, tmp_path):
+    monkeypatch.setenv("OAP_PERSONAL_TELECOM_HOME", str(tmp_path))
+    personal_telecom_install.install(assume_yes=True, dry_run=False)
+
+    personal_telecom_install.uninstall(assume_yes=True, dry_run=False)
+
+    assert not (tmp_path / personal_telecom_install.MANIFEST_NAME).exists()
+    assert not (tmp_path / personal_telecom_install.CHECKSUM_NAME).exists()
+
+
+def test_status_reports_exact_install_integrity(monkeypatch, tmp_path):
+    monkeypatch.setenv("OAP_PERSONAL_TELECOM_HOME", str(tmp_path))
+    personal_telecom_install.install(assume_yes=True, dry_run=False)
+
+    status = personal_telecom_install.status()
+
+    assert status["manifest_present"] is True
+    assert status["install_integrity"]["integrity_valid"] is True
+    assert (
+        status["install_integrity"]["source_revision"]
+        == status["install_integrity"]["current_revision"]
+    )
