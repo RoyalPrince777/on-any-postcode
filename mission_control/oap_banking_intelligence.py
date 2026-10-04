@@ -35,6 +35,7 @@ from . import (
     sika_reconciliation_exception_store,
     sika_refund_intent,
     sika_runtime_reconciliation,
+    sika_software_readiness,
     sika_treasury_controls,
 )
 
@@ -159,6 +160,8 @@ def status() -> dict[str, object]:
         "payment_execution_enabled": False,
         "money_movement_enabled": False,
         "human_authority_final": True,
+        "software_scope": sika_software_readiness.status(),
+        "software_readiness_integrated": True,
         "blockchain_integrity_integrated": bool(
             oap_blockchain_accounting_anchor.status()["first_party"]
         ),
