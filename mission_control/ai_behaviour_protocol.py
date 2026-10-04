@@ -279,6 +279,107 @@ DEFAULT_REVIEW_TEAM: tuple[str, ...] = (
     "Bagheera",
 )
 
+MAP_BUILD_AUTO_TEAM: tuple[str, ...] = (
+    "Octopus",
+    "Spider",
+    "Agent Smith",
+    "Twinz",
+    "Shere Khan",
+    "Bagheera",
+    "Fox",
+    "Bee",
+)
+
+MAP_BUILD_FIT_CAPABILITIES: dict[str, tuple[str, ...]] = {
+    "Octopus": ("orchestration", "dependencies", "interfaces", "parallel_work", "route_render_handoff", "recovery_paths", "coordination"),
+    "Spider": ("dependencies", "interfaces", "route_render_handoff", "hidden_coupling", "request_chain", "state_paths"),
+    "Agent Smith": ("state_integrity", "stale_state", "duplication", "contract_drift", "route_render_handoff"),
+    "Twinz": ("concurrency", "state_divergence", "fresh_vs_existing", "race_conditions", "alternate_paths"),
+    "Shere Khan": ("failure_pressure", "false_green", "weakest_link", "survivability"),
+    "Bagheera": ("recovery_paths", "rollback", "safe_path", "last_known_good"),
+    "Fox": ("edge_cases", "alternate_fixes", "constraint_paths", "tactical_options"),
+    "Bee": ("coordination", "work_distribution", "evidence_flow", "handoffs"),
+}
+
+
+def map_build_agent_board(mission: object = "Build and harden OAP Maps") -> dict[str, object]:
+    """Return SMI CC AUTO map-build fit, peer evidence votes and star ratings.
+
+    Ratings are software role-fit only. They are not runtime strength claims.
+    Peer votes are deterministic evidence reviews of declared first-party role
+    coverage, not simulated independent opinions and never grant authority.
+    """
+
+    mission_text = " ".join(str(mission or "").strip().split())[:800] or "Build and harden OAP Maps"
+    rows: list[dict[str, object]] = []
+    for name in MAP_BUILD_AUTO_TEAM:
+        capabilities = MAP_BUILD_FIT_CAPABILITIES[name]
+        coverage_count = min(len(capabilities), 7)
+        fit_percent = round((coverage_count / 7) * 100, 1)
+        fit_stars = hrm_agent_lifecycle.stars_for_score(fit_percent)
+        strength = agent_strength_status(name)
+        rows.append({
+            "agent": name,
+            "role": REVIEW_AGENT_CATALOG[name]["role"],
+            "best_for": REVIEW_AGENT_CATALOG[name]["best_for"],
+            "fit_capabilities": capabilities,
+            "fit_percent": fit_percent,
+            "fit_stars": fit_stars,
+            "rating_kind": "software_role_fit_not_runtime_strength",
+            "runtime_strength_percent": strength["proven_strength_percent"],
+            "runtime_strength_stars": (
+                hrm_agent_lifecycle.stars_for_score(strength["proven_strength_percent"])
+                if strength["proven_strength_percent"] is not None
+                else None
+            ),
+            "runtime_strength_state": strength["strength_label"],
+        })
+
+    rows.sort(key=lambda row: (-row["fit_percent"], MAP_BUILD_AUTO_TEAM.index(row["agent"])))
+    best_fit = rows[0]["agent"]
+
+    votes: list[dict[str, object]] = []
+    for reviewer in MAP_BUILD_AUTO_TEAM:
+        for candidate in MAP_BUILD_AUTO_TEAM:
+            if reviewer == candidate:
+                decision = "ABSTAIN"
+            else:
+                candidate_row = next(row for row in rows if row["agent"] == candidate)
+                decision = "PASS" if candidate_row["fit_stars"] >= 6 else "CONDITIONAL"
+            votes.append({
+                "reviewer": reviewer,
+                "candidate": candidate,
+                "decision": decision,
+                "deterministic_evidence_review": True,
+                "independent_agent_opinion": False,
+                "authority_granted": False,
+            })
+
+    vote_summary: dict[str, dict[str, int]] = {}
+    for candidate in MAP_BUILD_AUTO_TEAM:
+        candidate_votes = [vote for vote in votes if vote["candidate"] == candidate]
+        vote_summary[candidate] = {
+            "PASS": sum(1 for vote in candidate_votes if vote["decision"] == "PASS"),
+            "CONDITIONAL": sum(1 for vote in candidate_votes if vote["decision"] == "CONDITIONAL"),
+            "ABSTAIN": sum(1 for vote in candidate_votes if vote["decision"] == "ABSTAIN"),
+        }
+
+    return {
+        "component": "SMI CC AUTO · Maps Agent Board",
+        "mission": mission_text,
+        "mode": "AUTO",
+        "first_party_only": True,
+        "best_fit_agent": best_fit,
+        "best_fit_reason": "Highest deterministic map-build software role coverage; Founder can override.",
+        "team": tuple(rows),
+        "peer_votes": tuple(votes),
+        "vote_summary": vote_summary,
+        "votes_are_binding": False,
+        "votes_grant_authority": False,
+        "strength_truth_rule": "Fit stars describe declared software role coverage only. Runtime strength stays unrated until first-party evidence proves it.",
+        "founder_final": True,
+    }
+
 
 def recommend_agent_team(
     mission: object,
@@ -945,6 +1046,11 @@ def status(target: object = "SMI") -> dict[str, object]:
             "smi_can_silently_override_founder": False,
             "catalog": REVIEW_AGENT_CATALOG,
             "default_recommendation": recommend_agent_team(target),
+        },
+        "smi_cc_auto": {
+            "enabled": True,
+            "map_build_board": map_build_agent_board(target) if "map" in str(target or "").casefold() else None,
+            "rule": "Best-fit selection, fit stars and peer evidence votes are automatic; runtime strength remains evidence-gated and Founder Final remains human.",
         },
         "rating_rules": RATING_RULES,
         "twenty_one_laws": TWENTY_ONE_LAWS,
