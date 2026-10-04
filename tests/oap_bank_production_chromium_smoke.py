@@ -8,8 +8,20 @@ from __future__ import annotations
 from playwright.sync_api import expect, sync_playwright
 
 
-BANK_URL = "https://on-any-postcode.onrender.com/pay/bank"
-STATUS_URL = "https://on-any-postcode.onrender.com/pay/bank/status"
+BASE_URL = "https://on-any-postcode.onrender.com"
+BANK_URL = BASE_URL + "/pay/bank"
+STATUS_URL = BASE_URL + "/pay/bank/status"
+
+CUSTOMER_ROUTES = (
+    "/pay/bank/accounts",
+    "/pay/bank/transfers",
+    "/pay/bank/activity",
+    "/pay/bank/cards",
+    "/pay/bank/rights",
+    "/pay/bank/guardian",
+    "/pay/bank/settings",
+    "/pay/bank/intelligence",
+)
 
 
 def main() -> None:
@@ -41,6 +53,20 @@ def main() -> None:
         assert all(payload["software_checks"].values())
         assert payload["software_external_execution_ready"] is False
         assert payload["money_movement_enabled"] is False
+
+        for route in CUSTOMER_ROUTES:
+            route_response = context.request.get(BASE_URL + route)
+            assert route_response.status == 200, route
+
+        manifest_response = context.request.get(
+            BASE_URL + "/pay/bank/manifest.webmanifest"
+        )
+        assert manifest_response.status == 200
+        manifest = manifest_response.json()
+        assert manifest["id"] == "/pay/bank"
+        assert manifest["start_url"] == "/pay/bank"
+        assert manifest["scope"] == "/pay/bank"
+        assert manifest["display"] == "standalone"
 
         assert not errors, errors
         print("OAP_BANK_PRODUCTION_CHROMIUM_PASS")
