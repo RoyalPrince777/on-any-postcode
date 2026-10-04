@@ -1,6 +1,8 @@
 """Authoritative M Town world-server facade."""
 from __future__ import annotations
+
 from typing import Any
+
 from mission_control import earth_is_our_turf, mtown_endless_world, mtown_persistence
 
 def new_session()->dict[str,Any]:
