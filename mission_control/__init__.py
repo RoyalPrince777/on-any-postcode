@@ -49,6 +49,7 @@ def init_app(app: Flask) -> None:
         music_civilization_migration,
         oap_lab_immutability_migration,
         oap_library_learning,
+        oap_eats_store,
         oap_ride_runtime,
         oap_ride_commercial,
         oap_ride_payment_bridge,
@@ -114,6 +115,23 @@ def init_app(app: Flask) -> None:
 
     movement_operations.STORE = movement_match_safety.STORE
 
+
+    if os.environ.get("OAP_EATS_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        result = oap_eats_store.init_schema(assume_yes=True, dry_run=False)
+        print(
+            json.dumps(
+                {
+                    "event": "oap_eats_schema_migration",
+                    "success": bool(result.get("schema_ready")),
+                    "migration": result.get("migration"),
+                    "checksum": result.get("checksum"),
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
 
     if os.environ.get("OAP_RIDE_SCHEMA_AUTO_APPLY", "").strip() == "1":
         # Ride schema objects reference the durable Movement spine. Production
