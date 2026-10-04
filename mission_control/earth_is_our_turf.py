@@ -18,6 +18,7 @@ from mission_control import (
     earth_is_our_turf_character,
     mtown_build_system,
     mtown_language,
+    mtown_living_streets,
     mtown_world_position,
 )
 from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
@@ -99,6 +100,7 @@ def new_world() -> dict[str, Any]:
         ],
         "active_route":None,
         "world_position":None,
+        "living_streets":mtown_living_streets.new_state(),
         "businesses":[
             {"id":"oap-local","label":"ON ANY POSTCODE Local","node":"town-centre","opens":420,"closes":1380,"stock":82,"memory":0},
             {"id":"oap-market","label":"ON ANY POSTCODE Market","node":"town-centre","opens":420,"closes":1320,"stock":90,"memory":0},
@@ -150,6 +152,16 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         day=state["day"],
     )
     node_to_chunk={row["id"]:row["chunk"] for row in NODES}
+    _,out["living"]=mtown_living_streets.snapshot(
+        state["living_streets"],
+        node_id=current_node,
+        minute=state["time_minutes"],
+        day=state["day"],
+        environment=out["environment"],
+        loaded_chunks=out["loaded_chunks"],
+        node_to_chunk=node_to_chunk,
+    )
+    out["living_status"]=mtown_living_streets.status()
     out["mbs"]=mtown_build_system.build_manifest(
         chunks=mitcham_world.CHUNKS,
         active_chunk=out["active_chunk"],
