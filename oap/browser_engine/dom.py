@@ -16,8 +16,8 @@ class Node:
     tag: str
     attrs: dict[str, str] = field(default_factory=dict)
     text: str = ""
-    children: list["Node"] = field(default_factory=list)
-    parent: "Node | None" = field(default=None, repr=False)
+    children: list[Node] = field(default_factory=list)
+    parent: Node | None = field(default=None, repr=False)
 
     @property
     def id(self) -> str | None:
@@ -27,11 +27,11 @@ class Node:
     def classes(self) -> frozenset[str]:
         return frozenset(self.attrs.get("class", "").split())
 
-    def append(self, child: "Node") -> None:
+    def append(self, child: Node) -> None:
         child.parent = self
         self.children.append(child)
 
-    def descendants(self) -> list["Node"]:
+    def descendants(self) -> list[Node]:
         result: list[Node] = []
         for child in self.children:
             result.append(child)
