@@ -207,6 +207,8 @@ def test_map_page_has_server_visible_shell_without_install_service_worker(client
     assert 'id="oap-map-boot"' in body
     assert "On Any Postcode Maps · loading roads" in body
     assert "/assets/oap-os.js" not in body
+    assert "oap_luxury.css" not in body
+    assert "_oap_install_head.html" not in body
 
 
 def test_unique_oap_map_door_renders_same_real_map_shell(client):
