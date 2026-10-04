@@ -329,7 +329,7 @@ jobs:
 
   bank-production-browser-proof:
     if: github.event_name == 'push'
-    needs: [runtime-image, promote-core]
+    needs: [runtime-image, promote-core, map-production-browser-proof]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact release commit
