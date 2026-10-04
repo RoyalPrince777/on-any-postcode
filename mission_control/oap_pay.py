@@ -100,11 +100,6 @@ def public_status() -> dict[str, Any]:
         "regulated_menu": [item for item in features if item["section"] == "regulated"],
         "admin_menu": [item for item in features if item["section"] == "admin"],
         "evidence_available": evidence_available,
-        "software_ready": software.ready,
-        "software_percent": software.percent,
-        "software_checks": dict(software.checks),
-        "software_scope": "software_only",
-        "software_external_execution_ready": software.external_execution_ready,
         "sika_pay_gateway": bool(sika_pay_gateway.status().get("single_payment_door")),
         "customer_payment_authority_required": bool(
             sika_customer_payment_authority.status().get("customer_authority_required")
@@ -155,6 +150,11 @@ def bank_status() -> dict[str, Any]:
         "jurisdiction": readiness["jurisdiction"],
         "route": readiness["route"],
         "evidence_available": evidence_available,
+        "software_ready": software.ready,
+        "software_percent": software.percent,
+        "software_checks": dict(software.checks),
+        "software_scope": "software_only",
+        "software_external_execution_ready": software.external_execution_ready,
         "evidence_total": readiness["evidence_total"],
         "evidence_proven": readiness["evidence_proven"],
         "application_ready": readiness["application_ready"],
