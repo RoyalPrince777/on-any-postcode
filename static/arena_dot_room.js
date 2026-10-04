@@ -89,6 +89,7 @@ async function act(action,a=null,b=null){
  finally{busy=false;render();}
 }
 q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"dot",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
+q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"dot",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
 q("[data-create]").onclick=()=>enter(async()=>{
  const data=await post("/arena/rooms/create",{
   game_key:"dot",host_name:q("[data-host]").value.trim(),capacity:2,
